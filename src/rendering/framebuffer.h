@@ -8,7 +8,7 @@
 #include <array>
 #include <cmath>
 
-#define FRAMEBUFFER_MAX_ATTACHMENTS 6
+#define FRAMEBUFFER_MAX_ATTACHMENTS 8
 
 namespace hyperion {
 
@@ -21,7 +21,9 @@ public:
         FRAMEBUFFER_ATTACHMENT_POSITIONS = 0b100,
         FRAMEBUFFER_ATTACHMENT_USERDATA = 0b1000,
         FRAMEBUFFER_ATTACHMENT_SSAO = 0b10000,
-        FRAMEBUFFER_ATTACHMENT_DEPTH = 0b100000
+        FRAMEBUFFER_ATTACHMENT_TANGENTS = 0b100000,
+        FRAMEBUFFER_ATTACHMENT_BITANGENTS = 0b1000000,
+        FRAMEBUFFER_ATTACHMENT_DEPTH = 0b10000000
     };
 
     // convert from attachment (2^x) into ordinal (0-5) for use as an array index

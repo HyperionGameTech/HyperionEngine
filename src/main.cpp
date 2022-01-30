@@ -250,12 +250,9 @@ public:
 
                 for (size_t i = 0; i < box->NumChildren(); i++) {
                     Vector3 col = Vector3(
-                        1.0f,
-                        0.0f,
-                        0.0f
-                        //MathUtil::Random(0.4f, 1.0f),
-                        //MathUtil::Random(0.4f, 1.0f),
-                        //MathUtil::Random(0.4f, 1.0f)
+                        MathUtil::Random(0.4f, 1.80f),
+                        MathUtil::Random(0.4f, 1.80f),
+                        MathUtil::Random(0.4f, 1.80f)
                     ).Normalize();
 
                     box->GetChild(i)->GetMaterial().diffuse_color = Vector4(
@@ -269,12 +266,12 @@ public:
                     // box->GetChild(0)->GetMaterial().SetTexture("ParallaxMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_height.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("AoMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_ao.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("NormalMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_normal-ogl.png"));
-                    box->GetChild(i)->GetMaterial().SetParameter("shininess", float(x) / 5.0f);
-                    box->GetChild(i)->GetMaterial().SetParameter("roughness", float(z) / 5.0f);
+                    //box->GetChild(i)->GetMaterial().SetParameter("shininess", float(x) / 5.0f);
+                    //box->GetChild(i)->GetMaterial().SetParameter("roughness", float(z) / 5.0f);
                     if (voxel_debug)
                         box->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
-                    //box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.8f);
-                    //box->GetChild(i)->GetMaterial().SetParameter("roughness", 0.1f);
+                    box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.8f);
+                    box->GetChild(i)->GetMaterial().SetParameter("roughness", 0.1f);
                 }
 
                 box->SetLocalTranslation(box_position);
@@ -384,6 +381,7 @@ public:
         Environment::GetInstance()->SetShadowsEnabled(false);
         Environment::GetInstance()->SetNumCascades(4);
         Environment::GetInstance()->SetProbeEnabled(false);
+        Environment::GetInstance()->SetVCTEnabled(true);
         Environment::GetInstance()->GetProbeRenderer()->SetRenderShading(true);
         Environment::GetInstance()->GetProbeRenderer()->SetRenderTextures(true);
         Environment::GetInstance()->GetProbeRenderer()->GetProbe()->SetOrigin(Vector3(0, 0, 0));
@@ -393,7 +391,7 @@ public:
         //m_renderer->GetPostProcessing()->AddFilter<DepthOfFieldFilter>("depth of field", 50);
         m_renderer->GetPostProcessing()->AddFilter<GammaCorrectionFilter>("gamma correction", 999);
         m_renderer->GetPostProcessing()->AddFilter<FXAAFilter>("fxaa", 9999);
-        m_renderer->SetDeferred(false);
+        m_renderer->SetDeferred(true);
 
         AudioManager::GetInstance()->Initialize();
 

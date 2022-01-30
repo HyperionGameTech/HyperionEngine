@@ -113,19 +113,12 @@ void LightingShader::ApplyMaterial(const Material &mat)
         SetUniform("RimShading", mat.GetParameter("RimShading")[0]);
     }
 
-    SetUniform("u_scale", 5.0f);
-    SetUniform("u_probePos", Vector3(0.0));//Environment::GetInstance()->GetGIRenderer()->GetGIMapping(0)->GetProbePosition());
-
     if (Environment::GetInstance()->VCTEnabled()) {
         for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
             if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
                 probe->Bind(this);
+
                 for (int j = 0; j < probe->NumCameras(); j++) {
-
-                    // TODO
-                    //CoreEngine::GetInstance()->ActiveTexture(CoreEngine::GLEnums::TEXTURE0 + 11 + i + j);
-                    //CoreEngine::GetInstance()->BindTexture(CoreEngine::GLEnums::TEXTURE_3D, probe->GetCamera(j)->GetTexture()->GetId());
-
                     SetUniform(std::string("VoxelMap[") + std::to_string(j) + "]", probe->GetCamera(j)->GetTexture().get());
                 }
             }

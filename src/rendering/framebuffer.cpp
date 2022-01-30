@@ -48,6 +48,24 @@ Framebuffer::default_texture_attributes = {
         CoreEngine::GLEnums::NEAREST,
         true
     ),
+    Framebuffer::FramebufferTextureAttributes( // tangents
+        "TangentMap",
+        CoreEngine::GLEnums::RGBA,
+        CoreEngine::GLEnums::RGBA8,
+        CoreEngine::GLEnums::NEAREST,
+        CoreEngine::GLEnums::NEAREST,
+        false
+    ),
+    Framebuffer::FramebufferTextureAttributes( // bitangents
+        "BitangentMap",
+        CoreEngine::GLEnums::RGBA,
+        CoreEngine::GLEnums::RGBA8,
+        CoreEngine::GLEnums::NEAREST,
+        CoreEngine::GLEnums::NEAREST,
+        false
+    ),
+
+    // *** depth must remain last
     Framebuffer::FramebufferTextureAttributes( // depth
         "DepthMap",
         CoreEngine::GLEnums::DEPTH_COMPONENT,
@@ -71,6 +89,7 @@ Framebuffer::~Framebuffer()
     if (is_created) {
         glDeleteFramebuffers(1, &id);
     }
+
     is_uploaded = false;
     is_created = false;
 }

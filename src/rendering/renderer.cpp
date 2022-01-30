@@ -39,8 +39,10 @@ void Renderer::Render(Camera *cam)
             true, // depth
             true, // normals
             true, // positions
-            true,  // data
-            true // ao
+            true, // data
+            true, // ao
+            true, // tangents
+            true  // bitangents
         );
     }
 

@@ -70,6 +70,18 @@ void DeferredRenderingShader::ApplyMaterial(const Material &mat)
 
         SetUniform("env_GlobalIrradianceCubemap", cubemap.get());
     }
+
+    if (Environment::GetInstance()->VCTEnabled()) {
+        for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
+            if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
+                probe->Bind(this);
+
+                for (int j = 0; j < probe->NumCameras(); j++) {
+                    SetUniform(std::string("VoxelMap[") + std::to_string(j) + "]", probe->GetCamera(j)->GetTexture().get());
+                }
+            }
+        }
+    }
 }
 
 void DeferredRenderingShader::ApplyTransforms(const Transform &transform, Camera *camera)

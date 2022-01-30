@@ -30,15 +30,20 @@ Framebuffer2D::Framebuffer2D(
     bool has_normal_texture,
     bool has_position_texture,
     bool has_data_texture,
-    bool has_ao_texture
+    bool has_ao_texture,
+    bool has_tangents_texture,
+    bool has_bitangents_texture
 ) : Framebuffer(width, height)
 {
+    // TODO: refactor this jank
     has_color_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_COLOR)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_COLOR, width, height));
     has_depth_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_DEPTH)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_DEPTH, width, height));
     has_normal_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_NORMALS)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_NORMALS, width, height));
     has_position_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_POSITIONS)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_POSITIONS, width, height));
     has_data_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_USERDATA)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_USERDATA, width, height));
     has_ao_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_SSAO)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_SSAO, width, height));
+    has_tangents_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_TANGENTS)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_TANGENTS, width, height));
+    has_bitangents_texture && (m_attachments[AttachmentToOrdinal(FRAMEBUFFER_ATTACHMENT_BITANGENTS)] = MakeTexture(FRAMEBUFFER_ATTACHMENT_BITANGENTS, width, height));
 }
 
 Framebuffer2D::~Framebuffer2D()
