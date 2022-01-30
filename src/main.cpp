@@ -195,8 +195,8 @@ public:
         }
         top->AddChild(mitsuba);
 
-        auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
-        sponza->Scale(Vector3(0.05f));
+        /*auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
+        sponza->Scale(Vector3(0.1f));
         //if (voxel_debug) {
             for (size_t i = 0; i < sponza->NumChildren(); i++) {
                 sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.05f);
@@ -209,23 +209,8 @@ public:
                     sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
             }
         //}
-        top->AddChild(sponza);
-
-
-
-        auto house = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/house.obj");
-        house->Scale(Vector3(1.0f));
-        house->Move(Vector3(0.0f, 5.0f, 0.0f));
-        top->AddChild(house);
-        for (size_t i = 0; i < house->NumChildren(); i++) {
-            if (house->GetChild(i)->GetRenderable() == nullptr) {
-                continue;
-            }
-            if (voxel_debug)
-                house->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
-        }
-
-        /* {
+        top->AddChild(sponza);*/
+        {
 
             auto street = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/street/street.obj");
             street->SetName("street");
@@ -241,7 +226,8 @@ public:
 
             top->AddChild(street);
             street->UpdateTransform();
-        }*/
+        }
+
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
                 Vector3 box_position = Vector3(((float(x) - 2.5) * 8), 3.0f, (float(z) - 2.5) * 8);
@@ -445,7 +431,7 @@ public:
 
         auto cm = InitCubemap();
 
-        //top->AddControl(std::make_shared<SkydomeControl>(cam));
+        top->AddControl(std::make_shared<SkydomeControl>(cam));
         // top->AddControl(std::make_shared<SkyboxControl>(cam, nullptr));
 
         // shader = ShaderManager::GetInstance()->GetShader<LightingShader>(ShaderProperties());

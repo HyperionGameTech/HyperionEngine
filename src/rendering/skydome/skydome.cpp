@@ -9,7 +9,7 @@ namespace hyperion {
 const bool SkydomeControl::clouds_in_dome = false;
 
 SkydomeControl::SkydomeControl(Camera *camera)
-    : EntityControl(30.0),
+    : EntityControl(10.0),
       camera(camera),
       global_time(0.0)
 {
