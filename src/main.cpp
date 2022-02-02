@@ -195,7 +195,9 @@ public:
                 }
                 sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.6f);
                 sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.5f);
-               // sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
+
+                if (voxel_debug)
+                    sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
             }
         //}
         top->AddChild(sponza);
@@ -216,7 +218,7 @@ public:
             top->AddChild(street);
             street->UpdateTransform();
         }*/
-
+        return;
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
                 Vector3 box_position = Vector3(((float(x) - 2.5) * 8), 3.0f, (float(z) - 2.5) * 8);
@@ -355,6 +357,7 @@ public:
         shadows = new PssmShadowMapping(cam, 4, 120.0f);
         shadows->SetVarianceShadowMapping(true);
 
+        Environment::GetInstance()->SetVCTEnabled(true);
         Environment::GetInstance()->SetShadowsEnabled(false);
         Environment::GetInstance()->SetNumCascades(4);
         Environment::GetInstance()->SetProbeEnabled(false);
@@ -383,7 +386,7 @@ public:
 
         auto gi_test_node = std::make_shared<Entity>("gi_test_node");
         gi_test_node->Move(Vector3(0, 5, 0));
-        gi_test_node->AddControl(std::make_shared<GIProbeControl>(BoundingBox(Vector3(-25.0f), Vector3(25.0f))));
+        gi_test_node->AddControl(std::make_shared<GIProbeControl>(BoundingBox(Vector3(20.0f, -5.0f, 40.0f), Vector3(50.0f, 10.0f, 40.0f))));
         top->AddChild(gi_test_node);
 
 
@@ -426,13 +429,13 @@ public:
 
         // shader = ShaderManager::GetInstance()->GetShader<LightingShader>(ShaderProperties());
 
-        auto hydrant = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/FireHydrant/FireHydrantMesh.obj");
+        /*auto hydrant = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/FireHydrant/FireHydrantMesh.obj");
         hydrant->GetChild(0)->GetMaterial().SetTexture("DiffuseMap", AssetManager::GetInstance()->LoadFromFile<Texture>("res/models/FireHydrant/fire_hydrant_Base_Color.png"));
         hydrant->GetChild(0)->GetMaterial().SetTexture("NormalMap", AssetManager::GetInstance()->LoadFromFile<Texture>("res/models/FireHydrant/fire_hydrant_Normal_OpenGL.png"));
         hydrant->GetChild(0)->GetMaterial().SetTexture("AoMap", AssetManager::GetInstance()->LoadFromFile<Texture>("res/models/FireHydrant/fire_hydrant_Mixed_AO.png"));
         hydrant->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 3.5f);
         hydrant->Scale(Vector3(5.0f));
-        top->AddChild(hydrant);
+        top->AddChild(hydrant);*/
 
         auto house = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/house.obj");
         house->Scale(Vector3(1.0f));

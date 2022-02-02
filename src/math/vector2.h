@@ -36,6 +36,7 @@ public:
     Vector2 &operator/=(const Vector2 &other);
     bool operator==(const Vector2 &other) const;
     bool operator!=(const Vector2 &other) const;
+    inline Vector2 operator-() const { return operator*(-1.0f); }
 
     float Length() const;
     float LengthSquared() const;

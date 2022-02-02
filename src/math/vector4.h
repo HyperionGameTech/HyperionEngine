@@ -45,6 +45,7 @@ public:
     Vector4 &operator/=(const Vector4 &other);
     bool operator==(const Vector4 &other) const;
     bool operator!=(const Vector4 &other) const;
+    inline Vector4 operator-() const { return operator*(-1.0f); }
 
     float Length() const;
     float LengthSquared() const;

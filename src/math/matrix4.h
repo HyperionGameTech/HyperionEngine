@@ -33,6 +33,8 @@ public:
     inline float &operator()(int i, int j) { return values[i * 4 + j]; }
     inline float At(int i, int j) const { return operator()(i, j); }
     inline float &At(int i, int j) { return operator()(i, j); }
+    inline constexpr float operator[](int index) const { return values[index]; }
+    inline constexpr float &operator[](int index) { return values[index]; }
 
     static Matrix4 Zeroes();
     static Matrix4 Ones();

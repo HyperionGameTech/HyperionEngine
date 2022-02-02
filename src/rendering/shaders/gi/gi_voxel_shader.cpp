@@ -1,6 +1,8 @@
 #include "gi_voxel_shader.h"
+#include "../../shader_manager.h"
 #include "../../../asset/asset_manager.h"
 #include "../../../asset/text_loader.h"
+#include "../../environment.h"
 
 namespace hyperion {
 GIVoxelShader::GIVoxelShader(const ShaderProperties &properties)
@@ -23,13 +25,14 @@ GIVoxelShader::GIVoxelShader(const ShaderProperties &properties)
         properties,
         fs_path
     );
-
-    AddSubShader(
-        Shader::SubShaderType::SUBSHADER_GEOMETRY,
-        AssetManager::GetInstance()->LoadFromFile<TextLoader::LoadedText>(gs_path)->GetText(),
-        properties,
-        gs_path
-    );
+    if (ShaderManager::GetInstance()->GetBaseShaderProperties().GetValue("VCT_GEOMETRY_SHADER").IsTruthy()) {
+        AddSubShader(
+            Shader::SubShaderType::SUBSHADER_GEOMETRY,
+            AssetManager::GetInstance()->LoadFromFile<TextLoader::LoadedText>(gs_path)->GetText(),
+            properties,
+            gs_path
+        );
+    }
 }
 
 void GIVoxelShader::ApplyMaterial(const Material &mat)
@@ -59,24 +62,12 @@ void GIVoxelShader::ApplyTransforms(const Transform &transform, Camera *camera)
     Shader::ApplyTransforms(transform, camera);
     SetUniform("CameraPosition", camera->GetTranslation());
 
-    Transform world_to_unit_cube;
-    world_to_unit_cube.SetTranslation(-1.0f);
-    world_to_unit_cube.SetScale(2.0f);
+    for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
+        if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
+            probe->Bind(this);
 
 
-    Vector3 voxel_bias(20.0f); // todo
-    world_to_unit_cube *= Transform(Vector3(voxel_bias), Vector3(5.0f)/* scale*/, Quaternion());
-
-    Matrix4 unit_cube_to_ndc = camera->GetViewProjectionMatrix();
-
-    Matrix4 world_to_ndc = unit_cube_to_ndc * world_to_unit_cube.GetMatrix();
-
-    Matrix4 ndc_to_tex = Matrix4(unit_cube_to_ndc).Transpose();
-
-  //  SetUniform("u_projMatrix", world)
-
-    SetUniform("mvp", world_to_ndc);
-
-    SetUniform("StorageTransformMatrix", ndc_to_tex);
+        }
+    }
 }
 } // namespace hyperion

@@ -30,6 +30,8 @@ public:
 
     void UpdateRenderTick(double dt);
 
+    std::array<std::pair<Matrix4, Matrix4>, 6> m_storage_transform_matrices; //  TEMP
+
 private:
     double m_render_tick;
     int m_render_index;
