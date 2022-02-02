@@ -177,7 +177,7 @@ public:
 
     void InitTestArea()
     {
-        bool voxel_debug = false;
+        bool voxel_debug = true;
 
         auto mitsuba = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/mitsuba.obj");
         //living_room->Scale(0.05f);
@@ -195,7 +195,7 @@ public:
         }
         top->AddChild(mitsuba);
 
-        /*auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
+        auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
         sponza->Scale(Vector3(0.1f));
         //if (voxel_debug) {
             for (size_t i = 0; i < sponza->NumChildren(); i++) {
@@ -204,13 +204,15 @@ public:
                 if (sponza->GetChild(i)->GetRenderable() == nullptr) {
                     continue;
                 }
-
-                if (voxel_debug)
-                    sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
+                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.6f);
+                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.5f);
+                if (voxel_debug) {
+                    sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
+                }
             }
         //}
-        top->AddChild(sponza);*/
-        {
+        top->AddChild(sponza);
+        /*{
 
             auto street = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/street/street.obj");
             street->SetName("street");
@@ -226,7 +228,7 @@ public:
 
             top->AddChild(street);
             street->UpdateTransform();
-        }
+        }*/
 
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
@@ -377,7 +379,7 @@ public:
         //m_renderer->GetPostProcessing()->AddFilter<DepthOfFieldFilter>("depth of field", 50);
         m_renderer->GetPostProcessing()->AddFilter<GammaCorrectionFilter>("gamma correction", 999);
         m_renderer->GetPostProcessing()->AddFilter<FXAAFilter>("fxaa", 9999);
-        m_renderer->SetDeferred(true);
+        m_renderer->SetDeferred(false);
 
         AudioManager::GetInstance()->Initialize();
 

@@ -24,7 +24,6 @@ GIManager::GIManager()
         ShaderProperties()
             .Define("VCT_MAP_SIZE", voxel_map_size)
             .Define("VCT_NUM_MAPS", 6)
-            .Define("VCT_GEOMETRY_SHADER", false)
             .Define("VCT_SCALE", 1.0f)
     );
 }
