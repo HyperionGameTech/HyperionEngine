@@ -76,6 +76,7 @@
 
 #include "rendering/gi/gi_probe_control.h"
 #include "rendering/shaders/gi/gi_voxel_debug_shader.h"
+#include "rendering/shaders/gi/gi_voxel_debug_shader2.h"
 
 /* Standard library */
 #include <cstdlib>
@@ -183,25 +184,48 @@ public:
         mitsuba->Move(Vector3(-4.5, 1.2, -4.5));
         mitsuba->Scale(2);
         mitsuba->GetChild(0)->GetMaterial().diffuse_color = Vector4(1.0);
-        mitsuba->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 50.0f);
+        mitsuba->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 20.0f);
+        for (size_t i = 0; i < mitsuba->NumChildren(); i++) {
+            if (mitsuba->GetChild(i)->GetRenderable() == nullptr) {
+                continue;
+            }
+
+            if (voxel_debug)
+                mitsuba->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
+        }
         top->AddChild(mitsuba);
 
         auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
-        sponza->Scale(Vector3(0.1f));
+        sponza->Scale(Vector3(0.05f));
         //if (voxel_debug) {
             for (size_t i = 0; i < sponza->NumChildren(); i++) {
+                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.05f);
+                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.9f);
                 if (sponza->GetChild(i)->GetRenderable() == nullptr) {
                     continue;
                 }
-                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.6f);
-                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.5f);
 
                 if (voxel_debug)
-                    sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
+                    sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
             }
         //}
         top->AddChild(sponza);
-        /*{
+
+
+
+        auto house = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/house.obj");
+        house->Scale(Vector3(1.0f));
+        house->Move(Vector3(0.0f, 5.0f, 0.0f));
+        top->AddChild(house);
+        for (size_t i = 0; i < house->NumChildren(); i++) {
+            if (house->GetChild(i)->GetRenderable() == nullptr) {
+                continue;
+            }
+            if (voxel_debug)
+                house->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
+        }
+
+        /* {
 
             auto street = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/street/street.obj");
             street->SetName("street");
@@ -218,7 +242,6 @@ public:
             top->AddChild(street);
             street->UpdateTransform();
         }*/
-        return;
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
                 Vector3 box_position = Vector3(((float(x) - 2.5) * 8), 3.0f, (float(z) - 2.5) * 8);
@@ -386,7 +409,7 @@ public:
 
         auto gi_test_node = std::make_shared<Entity>("gi_test_node");
         gi_test_node->Move(Vector3(0, 5, 0));
-        gi_test_node->AddControl(std::make_shared<GIProbeControl>(BoundingBox(Vector3(20.0f, -5.0f, 40.0f), Vector3(50.0f, 10.0f, 40.0f))));
+        gi_test_node->AddControl(std::make_shared<GIProbeControl>(BoundingBox(Vector3(-25.0f), Vector3(25.0f))));
         top->AddChild(gi_test_node);
 
 
@@ -436,11 +459,6 @@ public:
         hydrant->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 3.5f);
         hydrant->Scale(Vector3(5.0f));
         top->AddChild(hydrant);*/
-
-        auto house = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/house.obj");
-        house->Scale(Vector3(1.0f));
-        house->Move(Vector3(0.0f, -5.0f, 0.0f));
-        top->AddChild(house);
 
         InitTestArea();
 

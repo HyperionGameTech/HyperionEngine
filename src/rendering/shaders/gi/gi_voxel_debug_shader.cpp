@@ -118,6 +118,25 @@ void GIVoxelDebugShader::ApplyMaterial(const Material &mat)
 
     SetUniform("u_scale", 5.0f);
     SetUniform("u_probePos", Vector3(0.0));//Environment::GetInstance()->GetGIRenderer()->GetGIMapping(0)->GetProbePosition());
+
+    Matrix4 tmp;
+
+    BoundingBox bb = Environment::GetInstance()->GetGIManager()->GetProbe(0)->GetAABB();
+    Matrix4 projection;
+    MatrixUtil::ToOrtho(projection, bb.GetMin().x, bb.GetMax().x, bb.GetMin().y, bb.GetMax().y, 0.0f, bb.GetMax().z - bb.GetMin().z);
+    MatrixUtil::ToLookAt(tmp, Vector3(bb.GetMax().x, 0, 0) + bb.GetCenter(),
+        bb.GetCenter(), Vector3(0, 1, 0));
+    Matrix4 mvp_x = projection * tmp;
+    MatrixUtil::ToLookAt(tmp, Vector3(0, bb.GetMax().y, 0) + bb.GetCenter(),
+        bb.GetCenter(), Vector3(0, 0, -1));
+    Matrix4 mvp_y = projection * tmp;
+    MatrixUtil::ToLookAt(tmp, Vector3(0, 0, bb.GetMax().z) + bb.GetCenter(),
+        bb.GetCenter(), Vector3(0, 1, 0));
+    Matrix4 mvp_z = projection * tmp;
+
+    SetUniform("mvp_x", mvp_x);
+    SetUniform("mvp_y", mvp_y);
+    SetUniform("mvp_z", mvp_z);
 }
 
 void GIVoxelDebugShader::ApplyTransforms(const Transform &transform, Camera *camera)

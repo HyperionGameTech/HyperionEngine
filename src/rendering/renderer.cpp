@@ -255,12 +255,12 @@ void Renderer::RenderAll(Camera *cam, Framebuffer2D *fbo)
     }
 
     if (!m_buckets[Renderable::RB_BUFFER].IsEmpty()) {
-        CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT | CoreEngine::GLEnums::STENCIL_BUFFER_BIT);
+        CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT);
 
         RenderBucket(cam, m_buckets[Renderable::RB_BUFFER]); // PRE
     }
 
-    CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT | CoreEngine::GLEnums::STENCIL_BUFFER_BIT);
+    CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT);
 
     CoreEngine::GetInstance()->Disable(CoreEngine::GLEnums::CULL_FACE);
     RenderBucket(cam, m_buckets[Renderable::RB_SKY]);

@@ -16,7 +16,7 @@ GIMapperCamera::GIMapperCamera(const GIMapperRegion &region)
     : Renderable(RB_BUFFER),
       m_texture_id(0),
       m_region(region),
-      m_camera(new PerspectiveCamera(90.0f, GIManager::voxel_map_size, GIManager::voxel_map_size, 0.1f, 100.0f))
+      m_camera(new PerspectiveCamera(90.0f, GIManager::voxel_map_size, GIManager::voxel_map_size, 0.01f, GIManager::voxel_map_size))
 {
     m_texture.reset(new Texture3D(GIManager::voxel_map_size, GIManager::voxel_map_size, GIManager::voxel_map_size, nullptr));
     m_texture->SetWrapMode(CoreEngine::GLEnums::CLAMP_TO_EDGE, CoreEngine::GLEnums::CLAMP_TO_EDGE);
@@ -47,6 +47,7 @@ void GIMapperCamera::Begin()
 
     glBindImageTexture(0, m_texture->GetId(), 0, true, 0, GL_READ_WRITE, GL_RGBA32F);
     CatchGLErrors("Failed to bind image texture.");
+
 }
 
 void GIMapperCamera::End()
