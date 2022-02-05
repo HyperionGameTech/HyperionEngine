@@ -1,6 +1,6 @@
 #include "compute_shader.h"
-#include "../../core_engine.h"
-#include "../../util.h"
+#include "../../../core_engine.h"
+#include "../../../util.h"
 
 namespace hyperion {
 ComputeShader::ComputeShader(const ShaderProperties &properties, int width, int height, int length)

@@ -6,6 +6,7 @@
 
 namespace hyperion {
 const int GIManager::voxel_map_size = 128;
+const float GIManager::voxel_map_scale = 1.0f;
 
 GIManager *GIManager::instance = nullptr;
 
@@ -24,7 +25,7 @@ GIManager::GIManager()
         ShaderProperties()
             .Define("VCT_MAP_SIZE", voxel_map_size)
             .Define("VCT_NUM_MAPS", 6)
-            .Define("VCT_SCALE", 1.0f)
+            .Define("VCT_SCALE", voxel_map_scale)
     );
 }
 } // namespace apex

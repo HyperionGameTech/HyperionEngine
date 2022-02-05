@@ -76,7 +76,6 @@
 
 #include "rendering/gi/gi_probe_control.h"
 #include "rendering/shaders/gi/gi_voxel_debug_shader.h"
-#include "rendering/shaders/gi/gi_voxel_debug_shader2.h"
 
 /* Standard library */
 #include <cstdlib>
@@ -177,21 +176,21 @@ public:
 
     void InitTestArea()
     {
-        bool voxel_debug = true;
+        bool voxel_debug = false;
 
         auto mitsuba = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/mitsuba.obj");
         //living_room->Scale(0.05f);
         mitsuba->Move(Vector3(-4.5, 1.2, -4.5));
         mitsuba->Scale(2);
         mitsuba->GetChild(0)->GetMaterial().diffuse_color = Vector4(1.0);
-        mitsuba->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 20.0f);
+        mitsuba->GetChild(0)->GetMaterial().SetParameter("Emissiveness", 60.0f);
         for (size_t i = 0; i < mitsuba->NumChildren(); i++) {
             if (mitsuba->GetChild(i)->GetRenderable() == nullptr) {
                 continue;
             }
 
             if (voxel_debug)
-                mitsuba->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader2>(ShaderProperties()));
+                mitsuba->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
         }
         top->AddChild(mitsuba);
 
@@ -199,13 +198,11 @@ public:
         sponza->Scale(Vector3(0.1f));
         //if (voxel_debug) {
             for (size_t i = 0; i < sponza->NumChildren(); i++) {
-                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.05f);
-                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.9f);
+                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.4f);
+                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.8f);
                 if (sponza->GetChild(i)->GetRenderable() == nullptr) {
                     continue;
                 }
-                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.6f);
-                sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.5f);
                 if (voxel_debug) {
                     sponza->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
                 }
@@ -254,12 +251,12 @@ public:
                     // box->GetChild(0)->GetMaterial().SetTexture("ParallaxMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_height.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("AoMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_ao.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("NormalMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_normal-ogl.png"));
-                    //box->GetChild(i)->GetMaterial().SetParameter("shininess", float(x) / 5.0f);
-                    //box->GetChild(i)->GetMaterial().SetParameter("roughness", float(z) / 5.0f);
+                    box->GetChild(i)->GetMaterial().SetParameter("shininess", float(x) / 5.0f);
+                    box->GetChild(i)->GetMaterial().SetParameter("roughness", float(z) / 5.0f);
                     if (voxel_debug)
                         box->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
-                    box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.8f);
-                    box->GetChild(i)->GetMaterial().SetParameter("roughness", 0.1f);
+                   // box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.8f);
+                    //box->GetChild(i)->GetMaterial().SetParameter("roughness", 0.1f);
                 }
 
                 box->SetLocalTranslation(box_position);
@@ -369,7 +366,6 @@ public:
         Environment::GetInstance()->SetShadowsEnabled(false);
         Environment::GetInstance()->SetNumCascades(4);
         Environment::GetInstance()->SetProbeEnabled(false);
-        Environment::GetInstance()->SetVCTEnabled(true);
         Environment::GetInstance()->GetProbeRenderer()->SetRenderShading(true);
         Environment::GetInstance()->GetProbeRenderer()->SetRenderTextures(true);
         Environment::GetInstance()->GetProbeRenderer()->GetProbe()->SetOrigin(Vector3(0, 0, 0));
@@ -379,7 +375,7 @@ public:
         //m_renderer->GetPostProcessing()->AddFilter<DepthOfFieldFilter>("depth of field", 50);
         m_renderer->GetPostProcessing()->AddFilter<GammaCorrectionFilter>("gamma correction", 999);
         m_renderer->GetPostProcessing()->AddFilter<FXAAFilter>("fxaa", 9999);
-        m_renderer->SetDeferred(false);
+        m_renderer->SetDeferred(true);
 
         AudioManager::GetInstance()->Initialize();
 

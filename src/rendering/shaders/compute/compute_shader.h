@@ -1,7 +1,7 @@
 #ifndef COMPUTE_SHADER_H
 #define COMPUTE_SHADER_H
 
-#include "../shader.h"
+#include "../../shader.h"
 
 namespace hyperion {
 class ComputeShader : public Shader {

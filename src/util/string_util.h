@@ -38,12 +38,32 @@ public:
     static inline std::vector<std::string> Split(const std::string &text, const char sep)
     {
         std::vector<std::string> tokens;
-        size_t start = 0, end = 0;
+        std::string working_string;
+        working_string.reserve(text.length());
+
+        for (char ch : text) {
+            if (ch == sep) {
+                tokens.push_back(working_string);
+                working_string.clear();
+                continue;
+            }
+
+            working_string += ch;
+        }
+
+        if (!working_string.empty()) {
+            tokens.push_back(working_string);
+        }
+
+        return tokens;
+
+
+        /*size_t start = 0, end = 0;
         while ((end = text.find(sep, start)) != std::string::npos) {
             tokens.push_back(text.substr(start, end - start));
             start = end + 1;
         }
-        tokens.push_back(text.substr(start));
+        tokens.push_back(text.substr(start));*/
         return tokens;
     }
 
