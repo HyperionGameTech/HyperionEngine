@@ -20,7 +20,7 @@ GIMapperCamera::GIMapperCamera(const GIMapperRegion &region)
 {
     m_texture.reset(new Texture3D(GIManager::voxel_map_size, GIManager::voxel_map_size, GIManager::voxel_map_size, nullptr));
     m_texture->SetWrapMode(CoreEngine::GLEnums::CLAMP_TO_EDGE, CoreEngine::GLEnums::CLAMP_TO_EDGE);
-    m_texture->SetFilter(CoreEngine::GLEnums::LINEAR, CoreEngine::GLEnums::LINEAR_MIPMAP_LINEAR);
+    m_texture->SetFilter(CoreEngine::GLEnums::LINEAR, CoreEngine::GLEnums::LINEAR);
     m_texture->SetFormat(CoreEngine::GLEnums::RGBA);
     m_texture->SetInternalFormat(CoreEngine::GLEnums::RGBA32F);
 
@@ -42,7 +42,7 @@ void GIMapperCamera::Begin()
         m_texture->Begin(false); // do not upload texture data
         // this ought to be refactored int a more reusable format
         glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA32F, m_texture->GetWidth(), m_texture->GetHeight(), m_texture->GetLength());
-        glGenerateMipmap(GL_TEXTURE_3D);
+        //glGenerateMipmap(GL_TEXTURE_3D);
         m_texture->End();
     }
 

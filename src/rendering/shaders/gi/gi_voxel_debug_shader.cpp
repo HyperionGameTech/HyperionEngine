@@ -1,5 +1,6 @@
 #include "gi_voxel_debug_shader.h"
 #include "../../environment.h"
+#include "../../shader_manager.h"
 #include "../../../asset/asset_manager.h"
 #include "../../../asset/text_loader.h"
 #include "../../../util/shader_preprocessor.h"
@@ -10,6 +11,7 @@ GIVoxelDebugShader::GIVoxelDebugShader(const ShaderProperties &properties)
 {
     const std::string vs_path("res/shaders/gi/voxel.vert");
     const std::string fs_path("res/shaders/gi/gi_debug.frag");
+    const std::string gs_path("res/shaders/gi/voxel.geom");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -24,6 +26,15 @@ GIVoxelDebugShader::GIVoxelDebugShader(const ShaderProperties &properties)
         properties,
         fs_path
     );
+
+    if (ShaderManager::GetInstance()->GetBaseShaderProperties().GetValue("VCT_GEOMETRY_SHADER").IsTruthy()) {
+        AddSubShader(
+            Shader::SubShaderType::SUBSHADER_GEOMETRY,
+            AssetManager::GetInstance()->LoadFromFile<TextLoader::LoadedText>(gs_path)->GetText(),
+            properties,
+            gs_path
+        );
+    }
 }
 
 void GIVoxelDebugShader::ApplyMaterial(const Material &mat)

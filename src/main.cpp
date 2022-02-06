@@ -194,11 +194,11 @@ public:
         }
         top->AddChild(mitsuba);
 
-        auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
+        /*auto sponza = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/sponza/sponza.obj");
         sponza->Scale(Vector3(0.1f));
         //if (voxel_debug) {
             for (size_t i = 0; i < sponza->NumChildren(); i++) {
-                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.4f);
+                sponza->GetChild(i)->GetMaterial().SetParameter("shininess", 0.1f);
                 sponza->GetChild(i)->GetMaterial().SetParameter("roughness", 0.8f);
                 if (sponza->GetChild(i)->GetRenderable() == nullptr) {
                     continue;
@@ -208,24 +208,41 @@ public:
                 }
             }
         //}
-        top->AddChild(sponza);
+        top->AddChild(sponza);*/
         /*{
 
             auto street = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/street/street.obj");
             street->SetName("street");
             // street->SetLocalTranslation(Vector3(3.0f, -0.5f, -1.5f));
-            street->Scale(0.5f);
+            street->Scale(0.6f);
 
             for (size_t i = 0; i < street->NumChildren(); i++) {
                 if (voxel_debug)
                     street->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
-                street->GetChild(i)->GetMaterial().SetParameter("shininess", 0.5f);
-                street->GetChild(i)->GetMaterial().SetParameter("roughness", 0.0f);
+                street->GetChild(i)->GetMaterial().SetParameter("shininess", 0.3f);
+                street->GetChild(i)->GetMaterial().SetParameter("roughness", 0.8f);
             }
 
             top->AddChild(street);
             street->UpdateTransform();
         }*/
+
+
+        {
+            auto model = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/conference/conference.obj");
+            model->SetName("model");
+            model->Scale(0.01f);
+
+            for (size_t i = 0; i < model->NumChildren(); i++) {
+                if (voxel_debug)
+                    model->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
+                model->GetChild(i)->GetMaterial().SetParameter("shininess", 0.2f);
+                model->GetChild(i)->GetMaterial().SetParameter("roughness", 0.8f);
+            }
+
+            top->AddChild(model);
+            model->UpdateTransform();
+        }
 
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
@@ -251,8 +268,8 @@ public:
                     // box->GetChild(0)->GetMaterial().SetTexture("ParallaxMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_height.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("AoMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_ao.png"));
                     // box->GetChild(0)->GetMaterial().SetTexture("NormalMap", AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/steelplate/steelplate1_normal-ogl.png"));
-                    box->GetChild(i)->GetMaterial().SetParameter("shininess", float(x) / 5.0f);
-                    box->GetChild(i)->GetMaterial().SetParameter("roughness", float(z) / 5.0f);
+                    box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.25f);
+                    box->GetChild(i)->GetMaterial().SetParameter("roughness", 0.8f);
                     if (voxel_debug)
                         box->GetChild(i)->GetRenderable()->SetShader(ShaderManager::GetInstance()->GetShader<GIVoxelDebugShader>(ShaderProperties()));
                    // box->GetChild(i)->GetMaterial().SetParameter("shininess", 0.8f);

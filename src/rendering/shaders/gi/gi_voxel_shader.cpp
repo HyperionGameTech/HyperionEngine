@@ -10,6 +10,7 @@ GIVoxelShader::GIVoxelShader(const ShaderProperties &properties)
 {
     const std::string vs_path("res/shaders/gi/voxel.vert");
     const std::string fs_path("res/shaders/gi/voxel.frag");
+    const std::string gs_path("res/shaders/gi/voxel.geom");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -24,11 +25,23 @@ GIVoxelShader::GIVoxelShader(const ShaderProperties &properties)
         properties,
         fs_path
     );
+
+    if (ShaderManager::GetInstance()->GetBaseShaderProperties().GetValue("VCT_GEOMETRY_SHADER").IsTruthy()) {
+
+        AddSubShader(
+            Shader::SubShaderType::SUBSHADER_GEOMETRY,
+            AssetManager::GetInstance()->LoadFromFile<TextLoader::LoadedText>(gs_path)->GetText(),
+            properties,
+            gs_path
+        );
+    }
 }
 
 void GIVoxelShader::ApplyMaterial(const Material &mat)
 {
     Shader::ApplyMaterial(mat);
+
+    CoreEngine::GetInstance()->Disable(CoreEngine::GLEnums::CULL_FACE);
 
     SetUniform("C_albedo", mat.diffuse_color);
 
