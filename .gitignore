@@ -9,6 +9,8 @@
 *.userosscache
 *.sln.docstates
 
+cmake-build-debug/**/*
+
 build/**/*
 build_old/**/*
 out/build/**/*

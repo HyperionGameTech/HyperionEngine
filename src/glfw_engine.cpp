@@ -1,11 +1,9 @@
 #include "glfw_engine.h"
 #include "game.h"
 #include "input_manager.h"
-#include "util.h"
 #include "math/math_util.h"
 
 #include <iostream>
-#include <chrono>
 
 #define USE_CHRONO 0
 
@@ -75,10 +73,10 @@ bool GlfwEngine::InitializeGame(Game *game)
     Vector2 render_scale(Vector2::One()), prev_render_scale = game->GetRenderer()->GetRenderWindow().GetScale();
 
     //render_scale = Vector2::Max(render_scale, Vector2::One());
-
+    glewExperimental = true;
 #ifdef USE_GLEW
     if (glewInit() != GLEW_OK) {
-        throw "error initializing glew";
+        throw std::runtime_error("error initializing glew");
     }
 #endif
 

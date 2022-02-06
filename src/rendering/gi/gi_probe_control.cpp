@@ -1,5 +1,6 @@
 #include "gi_probe_control.h"
 #include "gi_mapper.h"
+#include <memory>
 #include "gi_manager.h"
 #include "../../entity.h"
 

@@ -13,6 +13,7 @@ namespace hyperion {
 
 class CoreEngine;
 class Camera;
+class Renderer;
 
 using Vertices_t = std::vector<Vertex>;
 

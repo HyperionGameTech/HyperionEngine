@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <functional>
+#include <string>
 
 namespace hyperion {
 using HashCode_t = size_t;

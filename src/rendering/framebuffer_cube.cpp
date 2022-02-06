@@ -3,6 +3,7 @@
 #include "../gl_util.h"
 #include "../util.h"
 
+#include <string.h>
 #include <iostream>
 
 namespace hyperion {

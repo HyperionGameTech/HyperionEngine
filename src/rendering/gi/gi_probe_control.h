@@ -1,6 +1,7 @@
 #ifndef GI_PROBE_CONTROL_H
 #define GI_PROBE_CONTROL_H
 
+#include <memory>
 #include "../../control.h"
 #include "../../math/bounding_box.h"
 

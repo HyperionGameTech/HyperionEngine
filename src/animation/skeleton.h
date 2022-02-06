@@ -3,6 +3,7 @@
 
 #include "../asset/loadable.h"
 #include "animation.h"
+#include "../rendering/renderer.h"
 
 #include <string>
 #include <vector>

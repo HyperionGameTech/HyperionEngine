@@ -11,8 +11,9 @@
 
 #if USE_GLEW
 #include <GL/glew.h>
+#include <GL/gl.h>
 #else
-#include <OpenGL/gl3.h>
+#include <GL/gl.h>
 #endif
 
 #include <GLFW/glfw3.h>

@@ -15,6 +15,8 @@ namespace hyperion {
 
 typedef uint32_t MeshIndex;
 
+class Renderer;
+
 class Mesh : public Renderable {
 public:
     enum PrimitiveType {

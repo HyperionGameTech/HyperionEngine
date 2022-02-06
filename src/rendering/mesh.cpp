@@ -225,7 +225,7 @@ void Mesh::Render(Renderer *renderer, Camera *cam)
         if (buffer.empty()) {
             is_uploaded = true;
 
-            soft_assert(false, "CreateBuffer() returned no data");
+            soft_assert_msg(false, "CreateBuffer() returned no data");
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
