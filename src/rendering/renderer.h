@@ -235,11 +235,14 @@ class Shader;
 class Renderer {
 public:
     Renderer(const RenderWindow &);
+    Renderer(const Renderer &other) = delete;
+    Renderer &operator=(const Renderer &other) = delete;
     ~Renderer();
 
-    void Begin(Camera *cam, Entity *top);
+    void Collect(Camera *cam, Entity *top);
+    void Begin(Camera *cam);
     void Render(Camera *cam);
-    void End(Camera * cam, Entity *top);
+    void End(Camera * cam);
 
     void RenderBucket(Camera *cam, Bucket &bucket, Shader *override_shader = nullptr, bool enable_frustum_culling = true);
     void RenderAll(Camera *cam, Framebuffer2D *fbo = nullptr);
@@ -257,7 +260,7 @@ public:
 
     inline Bucket &GetBucket(Renderable::RenderBucket bucket) { return m_buckets[bucket]; }
 
-    Bucket m_buckets[7];
+    Bucket m_buckets[Renderable::RB_MAX];
 
 private:
     PostProcessing *m_post_processing;

@@ -9,7 +9,7 @@
 
 namespace hyperion {
 SkyboxControl::SkyboxControl(Camera *camera, const std::shared_ptr<Cubemap> &cubemap)
-    : EntityControl(),
+    : EntityControl(fbom::FBOMObjectType("SKYBOX_CONTROL"), 10.0),
       m_camera(camera),
       m_cubemap(cubemap)
 {
@@ -44,5 +44,10 @@ void SkyboxControl::OnUpdate(double dt)
         m_cubemap = Environment::GetInstance()->GetGlobalCubemap();
         m_cube->GetMaterial().SetTexture("SkyboxMap", m_cubemap);
     }
+}
+
+std::shared_ptr<EntityControl> SkyboxControl::CloneImpl()
+{
+    return std::make_shared<SkyboxControl>(nullptr, m_cubemap); // TODO
 }
 } // namespace hyperion

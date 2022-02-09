@@ -22,6 +22,8 @@ public:
     inline void SetOffset(const Vector3 &offset) { m_offset = offset; }
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     Camera *m_camera;
     Vector3 m_offset;
 };

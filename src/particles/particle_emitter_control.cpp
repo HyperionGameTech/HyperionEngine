@@ -7,7 +7,7 @@
 
 namespace hyperion {
 ParticleEmitterControl::ParticleEmitterControl(Camera *camera, const ParticleConstructionInfo &info)
-    : EntityControl(60.0),
+    : EntityControl(fbom::FBOMObjectType("PARTICLE_EMITTER_CONTROL"), 60.0),
       m_camera(camera)
 {
     m_particle_renderer.reset(new ParticleRenderer(info));
@@ -95,5 +95,16 @@ void ParticleEmitterControl::OnUpdate(double dt)
     // sort particles so that the closest particles are rendered first
     // TODO: use more efficient algo
     std::sort(m_particles.begin(), m_particles.end());
+}
+
+std::shared_ptr<EntityControl> ParticleEmitterControl::CloneImpl()
+{
+    ex_assert(m_particle_renderer != nullptr);
+
+    auto clone = std::make_shared<ParticleEmitterControl>(nullptr, m_particle_renderer->m_info); // TODO
+
+    clone->m_particles = m_particles;
+
+    return clone;
 }
 } // namespace hyperion

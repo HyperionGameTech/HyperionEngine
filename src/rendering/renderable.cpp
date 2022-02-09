@@ -2,8 +2,10 @@
 
 namespace hyperion {
 
-Renderable::Renderable(RenderBucket bucket)
-    : m_bucket(bucket)
+Renderable::Renderable(const fbom::FBOMType &loadable_type,
+    RenderBucket bucket)
+    : fbom::FBOMLoadable(fbom::FBOMObjectType("RENDERABLE").Extend(loadable_type)),
+      m_bucket(bucket)
 {
 }
 
@@ -23,6 +25,11 @@ bool Renderable::IntersectRay(const Ray &ray, const Transform &transform, Raytes
     }
 
     return false;
+}
+
+std::shared_ptr<Loadable> Renderable::Clone()
+{
+    return CloneImpl();
 }
 
 } // namespace hyperion

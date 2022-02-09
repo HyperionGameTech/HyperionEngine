@@ -11,8 +11,9 @@ namespace hyperion {
 
 static int num_threads = 0;
 
-TerrainControl::TerrainControl(Camera *camera)
-    : m_camera(camera),
+TerrainControl::TerrainControl(const fbom::FBOMType &loadable_type, Camera *camera)
+    : EntityControl(fbom::FBOMObjectType("TERRAIN_CONTROL").Extend(loadable_type), 30.0),
+      m_camera(camera),
       m_scale(8, 4, 8),
       m_tick(0),
       m_queuetick(0),
@@ -36,6 +37,10 @@ void TerrainControl::OnRemoved()
 
 void TerrainControl::OnUpdate(double dt)
 {
+    if (m_camera == nullptr) {
+        return;
+    }
+
     Vector3 campos(m_camera->GetTranslation());
     campos -= parent->GetGlobalTransform().GetTranslation();
     campos *= Vector3::One() / (m_scale * float(m_chunk_size - 1));

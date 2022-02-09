@@ -38,18 +38,14 @@ Environment::Environment()
       m_shadow_maps({ nullptr }),
       m_shadow_matrices({ Matrix4::Identity() }),
       m_sun(Vector3(-1, -1, -1).Normalize(), Vector4(0.9, 0.8, 0.7, 1.0)),
-      m_probe_renderer(new ProbeRenderer()),
-      m_probe_enabled(false),
       m_max_point_lights(0),
-      m_gi_manager(GIManager::GetInstance()),
-      m_vct_enabled(false)
+      m_probe_manager(ProbeManager::GetInstance())
 {
     SetMaxPointLights(10);
 }
 
 Environment::~Environment()
 {
-    delete m_probe_renderer;
 }
 
 void Environment::SetMaxPointLights(int max_point_lights)
@@ -89,32 +85,6 @@ void Environment::SetNumCascades(int num_cascades)
     );
 
     m_num_cascades = num_cascades;
-}
-
-void Environment::SetProbeEnabled(bool probe_enabled)
-{
-    if (probe_enabled == m_probe_enabled) {
-        return;
-    }
-
-    ShaderManager::GetInstance()->SetBaseShaderProperties(
-        ShaderProperties().Define("PROBE_ENABLED", probe_enabled)
-    );
-
-    m_probe_enabled = probe_enabled;
-}
-
-void Environment::SetVCTEnabled(bool vct_enabled)
-{
-    if (vct_enabled == m_vct_enabled) {
-        return;
-    }
-
-    ShaderManager::GetInstance()->SetBaseShaderProperties(
-        ShaderProperties().Define("VCT_ENABLED", vct_enabled)
-    );
-
-    m_vct_enabled = vct_enabled;
 }
 
 } // namespace hyperion

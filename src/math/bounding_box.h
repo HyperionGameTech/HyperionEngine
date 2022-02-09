@@ -11,6 +11,7 @@
 namespace hyperion {
 
 class BoundingBox {
+    friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 public:
     BoundingBox();
     BoundingBox(const Vector3 &min, const Vector3 &max);

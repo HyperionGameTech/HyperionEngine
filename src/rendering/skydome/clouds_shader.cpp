@@ -9,8 +9,8 @@ namespace hyperion {
 CloudsShader::CloudsShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/clouds.vert");
-    const std::string fs_path("res/shaders/clouds.frag");
+    const std::string vs_path("shaders/clouds.vert");
+    const std::string fs_path("shaders/clouds.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -26,7 +26,7 @@ CloudsShader::CloudsShader(const ShaderProperties &properties)
         fs_path
     );
 
-    cloud_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/clouds2.png");
+    cloud_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("textures/clouds2.png");
     if (cloud_map == nullptr) {
         throw std::runtime_error("Could not load cloud map!");
     }

@@ -6,9 +6,10 @@
 namespace hyperion {
 
 Entity::Entity(const std::string &name)
-    : m_name(name),
+    : fbom::FBOMLoadable(fbom::FBOMObjectType("ENTITY")),
+      m_name(name),
       m_aabb_affects_parent(true),
-      m_flags(0),
+      m_flags(UPDATE_TRANSFORM | UPDATE_AABB),
       m_parent(nullptr),
       m_local_translation(Vector3::Zero()),
       m_local_scale(Vector3::One()),
@@ -18,8 +19,6 @@ Entity::Entity(const std::string &name)
 
 Entity::~Entity()
 {
-    std::cout << "Delete node " << GetName() << "\n";
-
     for (auto it = m_controls.rbegin(); it != m_controls.rend(); ++it) {
         (*it)->OnRemoved();
         (*it)->m_first_run = true;

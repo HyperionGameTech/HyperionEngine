@@ -8,8 +8,8 @@ namespace hyperion {
 SkyboxShader::SkyboxShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/skybox.vert");
-    const std::string fs_path("res/shaders/skybox.frag");
+    const std::string vs_path("shaders/skybox.vert");
+    const std::string fs_path("shaders/skybox.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,

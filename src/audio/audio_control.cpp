@@ -3,7 +3,8 @@
 
 namespace hyperion {
 AudioControl::AudioControl(std::shared_ptr<AudioSource> source)
-    : EntityControl(10), m_source(source)
+    : EntityControl(fbom::FBOMObjectType("AUDIO_CONTROL"), 10),
+      m_source(source)
 {
 }
 
@@ -28,5 +29,12 @@ void AudioControl::OnUpdate(double dt)
         m_source->SetPosition(current_position);
         m_last_position = current_position;
     }
+}
+
+std::shared_ptr<EntityControl> AudioControl::CloneImpl()
+{
+    auto clone = std::make_shared<AudioControl>(m_source); // should source be cloned?
+
+    return clone;
 }
 } // namespace hyperion

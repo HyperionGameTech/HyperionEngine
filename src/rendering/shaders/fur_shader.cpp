@@ -8,7 +8,7 @@ namespace hyperion {
 FurShader::FurShader(const ShaderProperties &properties)
     : LightingShader(properties)
 {
-    const std::string vs_path("res/shaders/fur.vert");
+    const std::string vs_path("shaders/fur.vert");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -17,7 +17,7 @@ FurShader::FurShader(const ShaderProperties &properties)
         vs_path
     );
 
-    const std::string fs_path("res/shaders/fur.frag");
+    const std::string fs_path("shaders/fur.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,
@@ -26,7 +26,7 @@ FurShader::FurShader(const ShaderProperties &properties)
         fs_path
     );
 
-    const std::string gs_path("res/shaders/fur.geom");
+    const std::string gs_path("shaders/fur.geom");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_GEOMETRY,

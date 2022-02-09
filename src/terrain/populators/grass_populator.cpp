@@ -16,6 +16,7 @@ GrassPopulator::GrassPopulator(
     int num_patches
 )
     : Populator(
+        fbom::FBOMObjectType("GRASS_POPULATOR_CONTROL"),
         camera,
         seed,
         probability_factor,
@@ -34,8 +35,8 @@ GrassPopulator::~GrassPopulator()
 
 std::shared_ptr<Entity> GrassPopulator::CreateEntity(const Vector3 &position) const
 {
-    auto object_node = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/grass/grass2.obj");
-    // auto object_node = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/cube.obj");
+    auto object_node = AssetManager::GetInstance()->LoadFromFile<Entity>("models/grass/grass2.obj");
+    // auto object_node = AssetManager::GetInstance()->LoadFromFile<Entity>("models/cube.obj");
     // auto object_node = std::make_shared<Entity>("Populator object"); // TODO: virtual method
     // object_node->SetLocalRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(180.0f)));
     // object_node->SetLocalRotation(Quaternion(lookat_mat) * Quaternion(Vector3::UnitY(), MathUtil::Random(0.0f, MathUtil::DegToRad(359.0f))));
@@ -60,5 +61,12 @@ std::shared_ptr<Entity> GrassPopulator::CreateEntity(const Vector3 &position) co
     }
     
     return object_node;
+}
+
+std::shared_ptr<EntityControl> GrassPopulator::CloneImpl()
+{
+    return std::make_shared<GrassPopulator>(nullptr, m_seed, m_probability_factor,
+        m_tolerance, m_max_distance, m_spread, m_num_entities_per_chunk,
+        m_num_patches); // TODO
 }
 } // namespace hyperion

@@ -73,7 +73,7 @@ UIText::UIText(const std::string &name, const std::string &text)
       m_needs_update(true)
 {
     m_font_map = new FontMap(
-        AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/fonts/courier_new.png"),
+        AssetManager::GetInstance()->LoadFromFile<Texture2D>("textures/fonts/courier_new.png"),
         16,
         16,
         32

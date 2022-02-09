@@ -199,4 +199,10 @@ double BoundingBox::Area() const
     return dimensions.x * dimensions.y * dimensions.z;
 }
 
+std::ostream &operator<<(std::ostream &out, const BoundingBox &bb) // output
+{
+    out << "BoundingBox [max: " << bb.GetMax() << ", min: " << bb.GetMin() << "]";
+    return out;
+}
+
 } // namespace hyperion

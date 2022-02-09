@@ -106,6 +106,8 @@ protected:
     btDefaultMotionState *m_motion_state;
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     std::shared_ptr<PhysicsShape> m_shape;
     PhysicsMaterial m_material;
     bool m_awake;

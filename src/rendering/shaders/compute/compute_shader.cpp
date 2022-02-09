@@ -3,12 +3,9 @@
 #include "../../../util.h"
 
 namespace hyperion {
-ComputeShader::ComputeShader(const ShaderProperties &properties, int width, int height, int length)
+ComputeShader::ComputeShader(const ShaderProperties &properties)
     : Shader(properties),
-      m_work_group_size(nullptr),
-      m_width(width),
-      m_height(height),
-      m_length(length)
+      m_work_group_size(nullptr)
 {
 }
 
@@ -29,7 +26,7 @@ void ComputeShader::ApplyTransforms(const Transform &transform, Camera *camera)
     hard_assert_msg(false, "Compute shader does not implement ApplyTransforms");
 }
 
-void ComputeShader::Dispatch()
+void ComputeShader::Dispatch(int width, int height, int length)
 {
     ex_assert(GetId() != 0);
 
@@ -37,7 +34,7 @@ void ComputeShader::Dispatch()
         GetWorkGroupSize();
     }
 
-    CoreEngine::GetInstance()->DispatchCompute(m_width / m_work_group_size[0], m_height / m_work_group_size[1], m_length / m_work_group_size[2]);
+    CoreEngine::GetInstance()->DispatchCompute(width / m_work_group_size[0], height / m_work_group_size[1], length / m_work_group_size[2]);
 }
 
 void ComputeShader::GetWorkGroupSize()

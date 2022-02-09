@@ -45,9 +45,17 @@ AssetManager::AssetManager()
     RegisterLoader<WavLoader>(".wav");
 }
 
+void AssetManager::SetRootDir(const std::string &path) {
+    this->root_path = path;
+}
+
+std::string AssetManager::GetRootDir() {
+    return this->root_path;
+}
+
 std::shared_ptr<Loadable> AssetManager::LoadFromFile(const std::string &path, bool use_caching)
 {
-    const std::string new_path = StringUtil::Trim(StringUtil::ReplaceAll(path, "\\", "/"));
+    const std::string new_path = this->GetRootDir()+StringUtil::Trim(StringUtil::ReplaceAll(path, "\\", "/"));
     
     if (use_caching) {
         auto it = loaded_assets.find(new_path);

@@ -2,28 +2,21 @@
 
 namespace hyperion {
 
-const std::map<std::string, MaterialParameter> Material::default_parameters = {
-    { "roughness", MaterialParameter(0.8f) },
-    { "shininess", MaterialParameter(0.04f) },
-    { "Emissiveness", MaterialParameter(0.1f) }
-};
+const decltype(Material::default_parameters) Material::default_parameters; // TODO
 
 MaterialParameter::MaterialParameter()
-    : size(0),
-      type(MaterialParameter_None)
+    : type(MaterialParameter_None)
 {
 }
 
 MaterialParameter::MaterialParameter(const float value)
-    : size(1),
-      type(MaterialParameter_Float)
+    : type(MaterialParameter_Float)
 {
     values[0] = value;
 }
 
 MaterialParameter::MaterialParameter(const float *data, size_t nvalues, MaterialParameterType paramtype)
-    : size(nvalues),
-      type(paramtype)
+    : type(paramtype)
 {
     for (size_t i = 0; i < nvalues; i++) {
         values[i] = data[i];
@@ -32,21 +25,23 @@ MaterialParameter::MaterialParameter(const float *data, size_t nvalues, Material
 
 MaterialParameter::MaterialParameter(const MaterialParameter &other)
     : values(other.values),
-      size(other.size),
       type(other.type)
 {
 }
 
 Material::Material()
-    : diffuse_color(Vector4(1.0))
+    : fbom::FBOMLoadable(fbom::FBOMObjectType("MATERIAL")),
+      diffuse_color(Vector4(1.0))
 {
-    for (auto it : default_parameters) {
-        params[it.first] = it.second;
+    for (size_t i = 0; i < default_parameters.Size(); i++) {
+        auto pair = default_parameters.KeyValueAt(i);
+        m_params.Set(pair.first, pair.second);
     }
 }
 
 Material::Material(const Material &other)
-    : params(other.params),
+    : fbom::FBOMLoadable(fbom::FBOMObjectType("MATERIAL")),
+      m_params(other.m_params),
       alpha_blended(other.alpha_blended),
       depth_test(other.depth_test),
       depth_write(other.depth_write),
@@ -55,57 +50,34 @@ Material::Material(const Material &other)
 {
 }
 
-bool Material::HasParameter(const std::string &name) const
-{
-    auto it = params.find(name);
-    if (it != params.end() && it->second.GetType() != MaterialParameter_None) {
-        return true;
-    }
-    return false;
-}
-
-std::map<std::string, MaterialParameter> &Material::GetParameters()
-{
-    return params;
-}
-
-const MaterialParameter &Material::GetParameter(const std::string &name) const
-{
-    auto it = params.find(name);
-    if (it == params.end()) {
-        throw std::out_of_range("parameter not found");
-    }
-    return it->second;
-}
-
-void Material::SetParameter(const std::string &name, float value)
+void Material::SetParameter(MaterialParameterKey key, float value)
 {
     float values[] = { value };
-    params[name] = MaterialParameter(values, 1, MaterialParameter_Float);
+    m_params.Set(key, MaterialParameter(values, 1, MaterialParameter_Float));
 }
 
-void Material::SetParameter(const std::string &name, int value)
+void Material::SetParameter(MaterialParameterKey key, int value)
 {
     float values[] = { (float)value };
-    params[name] = MaterialParameter(values, 1, MaterialParameter_Int);
+    m_params.Set(key, MaterialParameter(values, 1, MaterialParameter_Int));
 }
 
-void Material::SetParameter(const std::string &name, const Vector2 &value)
+void Material::SetParameter(MaterialParameterKey key, const Vector2 &value)
 {
     float values[] = { value.x, value.y };
-    params[name] = MaterialParameter(values, 2, MaterialParameter_Vector2);
+    m_params.Set(key, MaterialParameter(values, 2, MaterialParameter_Vector2));
 }
 
-void Material::SetParameter(const std::string &name, const Vector3 &value)
+void Material::SetParameter(MaterialParameterKey key, const Vector3 &value)
 {
     float values[] = { value.x, value.y, value.z };
-    params[name] = MaterialParameter(values, 3, MaterialParameter_Vector3);
+    m_params.Set(key, MaterialParameter(values, 3, MaterialParameter_Vector3));
 }
 
-void Material::SetParameter(const std::string &name, const Vector4 &value)
+void Material::SetParameter(MaterialParameterKey key, const Vector4 &value)
 {
     float values[] = { value.x, value.y, value.z, value.w };
-    params[name] = MaterialParameter(values, 4, MaterialParameter_Vector4);
+    m_params.Set(key, MaterialParameter(values, 4, MaterialParameter_Vector4));
 }
 
 void Material::SetTexture(const std::string &name, const std::shared_ptr<Texture> &texture)
@@ -122,6 +94,16 @@ std::shared_ptr<Texture> Material::GetTexture(const std::string &name) const
     }
 
     return nullptr;
+}
+
+std::shared_ptr<Loadable> Material::Clone()
+{
+    return CloneImpl();
+}
+
+std::shared_ptr<Material> Material::CloneImpl()
+{
+    return std::make_shared<Material>(*this);
 }
 
 } // namespace hyperion

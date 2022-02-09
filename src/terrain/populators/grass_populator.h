@@ -20,6 +20,9 @@ public:
     ~GrassPopulator();
 
     std::shared_ptr<Entity> CreateEntity(const Vector3 &position) const override;
+
+protected:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
 };
 
 } // namespace hyperion

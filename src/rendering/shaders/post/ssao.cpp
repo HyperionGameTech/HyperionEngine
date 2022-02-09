@@ -8,7 +8,7 @@ namespace hyperion {
 SSAOShader::SSAOShader(const ShaderProperties &properties)
     : PostShader(properties)
 {
-    const std::string fs_path("res/shaders/filters/ssao.frag");
+    const std::string fs_path("shaders/filters/ssao.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,

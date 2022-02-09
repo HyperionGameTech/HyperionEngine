@@ -110,7 +110,7 @@ std::shared_ptr<Loadable> MtlLoader::LoadFromFile(const std::string &path)
 
                     if (model >= 4) {
                         if (Material *last_mtl = mtl->GetLastMaterial()) {
-                            last_mtl->SetParameter("shininess", float(model) / 9.0f); // kinda arb but gives a place to start
+                            last_mtl->SetParameter(MATERIAL_PARAMETER_METALNESS, float(model) / 9.0f); // kinda arb but gives a place to start
                         }
                     }
                 }
@@ -119,7 +119,7 @@ std::shared_ptr<Loadable> MtlLoader::LoadFromFile(const std::string &path)
                     int spec_amount = std::stoi(tokens[1]);
 
                     if (Material *last_mtl = mtl->GetLastMaterial()) {
-                        last_mtl->SetParameter("Emissiveness", float(spec_amount) / 100.0f);
+                        last_mtl->SetParameter(MATERIAL_PARAMETER_EMISSIVENESS, float(spec_amount) / 100.0f);
                     }
                 }
             }

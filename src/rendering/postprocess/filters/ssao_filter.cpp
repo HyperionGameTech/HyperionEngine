@@ -25,7 +25,7 @@ SSAOFilter::SSAOFilter()
     m_noise_scale = Vector2(500.0f);
     m_shader->SetUniform("u_noiseScale", m_noise_scale);
 
-    m_noise_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/noise_ssao.png");
+    m_noise_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("textures/noise_ssao.png");
 
     if (m_noise_map == nullptr) {
         throw std::runtime_error("Could not load noise map!");

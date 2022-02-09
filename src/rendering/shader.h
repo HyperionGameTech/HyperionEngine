@@ -185,7 +185,10 @@ class Shader {
 public:
     Shader(const ShaderProperties &properties);
     Shader(const ShaderProperties &properties,
-        const std::string &vscode, const std::string &fscode);
+        const std::string &vscode,
+        const std::string &fscode);
+    Shader(const Shader &other) = delete;
+    Shader &operator=(const Shader &other) = delete;
     virtual ~Shader();
 
     virtual void ApplyMaterial(const Material &mat);
@@ -202,7 +205,7 @@ public:
 
     inline void SetUniform(const std::string &name, float value) { uniforms[name] = Uniform(value); uniform_changed = true; }
     inline void SetUniform(const std::string &name, int value) { uniforms[name] = Uniform(value); uniform_changed = true; }
-    inline void SetUniform(const std::string &name, Texture *value) { uniforms[name] = Uniform(value); uniform_changed = true; }
+    inline void SetUniform(const std::string &name, const Texture *value) { uniforms[name] = Uniform(value); uniform_changed = true; }
     inline void SetUniform(const std::string &name, const Vector2 &value) { uniforms[name] = Uniform(value); uniform_changed = true; }
     inline void SetUniform(const std::string &name, const Vector3 &value) { uniforms[name] = Uniform(value); uniform_changed = true; }
     inline void SetUniform(const std::string &name, const Vector4 &value) { uniforms[name] = Uniform(value); uniform_changed = true; }
@@ -343,7 +346,7 @@ private:
             type = Uniform_Matrix4;
         }
 
-        Uniform(Texture *texture)
+        Uniform(const Texture *texture)
         {
             ex_assert(texture != nullptr);
 

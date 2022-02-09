@@ -12,8 +12,8 @@ VegetationShader::VegetationShader(const ShaderProperties &properties)
             .Merge(properties)
     )
 {
-    const std::string vs_path("res/shaders/vegetation.vert");
-    const std::string fs_path("res/shaders/vegetation.frag");
+    const std::string vs_path("shaders/vegetation.vert");
+    const std::string fs_path("shaders/vegetation.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,

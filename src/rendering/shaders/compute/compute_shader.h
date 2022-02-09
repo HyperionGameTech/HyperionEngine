@@ -6,19 +6,16 @@
 namespace hyperion {
 class ComputeShader : public Shader {
 public:
-    ComputeShader(const ShaderProperties &properties, int width, int height, int length);
+    ComputeShader(const ShaderProperties &propertiesh);
     virtual ~ComputeShader();
 
     virtual void ApplyMaterial(const Material &mat) override final;
     virtual void ApplyTransforms(const Transform &transform, Camera *camera) override final;
 
-    void Dispatch();
+    void Dispatch(int width, int height, int length);
 
 protected:
     int *m_work_group_size;
-    int m_width;
-    int m_height;
-    int m_length;
 
     void GetWorkGroupSize();
 };

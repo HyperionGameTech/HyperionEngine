@@ -17,7 +17,6 @@ public:
     SkeletonControl(std::shared_ptr<Shader> skinning_shader);
     virtual ~SkeletonControl() = default;
 
-
     inline std::vector<Bone*> &GetBones() { return bones; }
     inline const std::vector<Bone*> &GetBones() const { return bones; }
     inline Bone *GetBone(size_t index) { return bones[index]; }
@@ -43,6 +42,8 @@ public:
 
 private:
     void FindBones(Entity *top);
+
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
 
     std::vector<std::string> bone_names;
     std::vector<Bone*> bones;

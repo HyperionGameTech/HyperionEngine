@@ -16,6 +16,8 @@ public:
 
     Texture(TextureType texture_type);
     Texture(TextureType texture_type, int width, int height, unsigned char *bytes);
+    Texture(const Texture &other) = delete;
+    Texture &operator=(const Texture &other) = delete;
     virtual ~Texture();
 
     unsigned int GetId() const;

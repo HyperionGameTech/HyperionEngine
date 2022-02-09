@@ -9,6 +9,9 @@
 namespace hyperion {
 class AssetLoader {
 public:
+    AssetLoader() = default;
+    AssetLoader(const AssetLoader &other) = delete;
+    AssetLoader &operator=(const AssetLoader &other) = delete;
     virtual ~AssetLoader() = default;
 
     virtual std::shared_ptr<Loadable> LoadFromFile(const std::string &) = 0;

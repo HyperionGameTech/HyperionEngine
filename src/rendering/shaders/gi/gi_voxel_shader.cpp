@@ -4,13 +4,15 @@
 #include "../../../asset/text_loader.h"
 #include "../../environment.h"
 
+#include "../../../core_engine.h"
+
 namespace hyperion {
 GIVoxelShader::GIVoxelShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/gi/voxel.vert");
-    const std::string fs_path("res/shaders/gi/voxel.frag");
-    const std::string gs_path("res/shaders/gi/voxel.geom");
+    const std::string vs_path("shaders/gi/voxel.vert");
+    const std::string fs_path("shaders/gi/voxel.frag");
+    const std::string gs_path("shaders/gi/voxel.geom");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -44,10 +46,7 @@ void GIVoxelShader::ApplyMaterial(const Material &mat)
     CoreEngine::GetInstance()->Disable(CoreEngine::GLEnums::CULL_FACE);
 
     SetUniform("C_albedo", mat.diffuse_color);
-
-    if (mat.HasParameter("Emissiveness")) {
-        SetUniform("Emissiveness", mat.GetParameter("Emissiveness")[0]);
-    }
+    SetUniform("Emissiveness", mat.GetParameter(MATERIAL_PARAMETER_EMISSIVENESS)[0]);
 
     for (auto it = mat.textures.begin(); it != mat.textures.end(); it++) {
         if (it->second == nullptr) {
@@ -66,11 +65,10 @@ void GIVoxelShader::ApplyTransforms(const Transform &transform, Camera *camera)
     Shader::ApplyTransforms(transform, camera);
     SetUniform("CameraPosition", camera->GetTranslation());
 
-    for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
-        if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
+    // TODO filter by type
+    for (int i = 0; i < Environment::GetInstance()->GetProbeManager()->NumProbes(); i++) {
+        if (auto &probe = Environment::GetInstance()->GetProbeManager()->GetProbe(i)) {
             probe->Bind(this);
-
-
         }
     }
 }

@@ -7,8 +7,8 @@ namespace hyperion {
 ParticleShader::ParticleShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/particle.vert");
-    const std::string fs_path("res/shaders/particle.frag");
+    const std::string vs_path("shaders/particle.vert");
+    const std::string fs_path("shaders/particle.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,

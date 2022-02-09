@@ -10,8 +10,7 @@ namespace hyperion {
 
 std::string ShaderPreprocessor::ProcessShader(const std::string &code, 
     const ShaderProperties &shader_properties, 
-    const std::string &path,
-    int *line_num_ptr)
+    const std::string &path)
 {
     std::istringstream ss(code);
     std::ostringstream os;
@@ -24,20 +23,13 @@ std::string ShaderPreprocessor::ProcessShader(const std::string &code,
         local_path.clear(); // non-relative path
     }
 
-    int line_num = 0;
-
-    if (line_num_ptr == nullptr) {
-        line_num_ptr = &line_num;
-    }
-
-    return FileHeader(path) + ProcessInner(ss, pos, shader_properties, local_path, line_num_ptr);
+    return FileHeader(path) + ProcessInner(ss, pos, shader_properties, local_path);
 }
 
 std::string ShaderPreprocessor::ProcessInner(std::istringstream &ss, 
     std::streampos &pos,
     const ShaderProperties &shader_properties,
-    const std::string &local_path,
-    int *line_num_ptr)
+    const std::string &local_path)
 {
     ShaderProperties defines(shader_properties);
 
@@ -46,13 +38,9 @@ std::string ShaderPreprocessor::ProcessInner(std::istringstream &ss,
     std::string line;
 
     while (std::getline(ss, line)) {
-        (*line_num_ptr)++;
-
         line = StringUtil::Trim(line);
 
-        std::string new_line = "/* ";
-        new_line += std::to_string(*line_num_ptr);
-        new_line += " */ ";
+        std::string new_line;
 
         if (StringUtil::StartsWith(line, "#define $")) {
             std::string sub = line.substr(9);
@@ -98,14 +86,14 @@ std::string ShaderPreprocessor::ProcessInner(std::istringstream &ss,
             }
         } else if (StringUtil::StartsWith(line, "#if !")) {
             std::string key = line.substr(5);
-            std::string inner = ProcessInner(ss, pos, defines, local_path, line_num_ptr);
+            std::string inner = ProcessInner(ss, pos, defines, local_path);
 
             if (!defines.GetValue(key).IsTruthy()) {
                 new_line += inner;
             }
         } else if (StringUtil::StartsWith(line, "#if ")) {
             std::string key = line.substr(4);
-            std::string inner = ProcessInner(ss, pos, defines, local_path, line_num_ptr);
+            std::string inner = ProcessInner(ss, pos, defines, local_path);
 
             if (defines.GetValue(key).IsTruthy()) {
                 new_line += inner;
@@ -133,7 +121,7 @@ std::string ShaderPreprocessor::ProcessInner(std::istringstream &ss,
             }
 
             if (auto loaded = AssetManager::GetInstance()->LoadFromFile<TextLoader::LoadedText>(include_path)) {
-                new_line += ProcessShader(loaded->GetText(), defines, include_path, line_num_ptr) + "\n";
+                new_line += ProcessShader(loaded->GetText(), defines, include_path) + "\n";
                 new_line += "\n";
                 new_line += FileHeader(local_path);
             } else {

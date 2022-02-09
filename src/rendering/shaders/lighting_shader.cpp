@@ -8,8 +8,8 @@ namespace hyperion {
 LightingShader::LightingShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/default.vert");
-    const std::string fs_path("res/shaders/default.frag");
+    const std::string vs_path("shaders/default.vert");
+    const std::string fs_path("shaders/default.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -71,23 +71,23 @@ void LightingShader::ApplyMaterial(const Material &mat)
         SetUniform("env_GlobalCubemap", gi.get());
     }*/
 
-    if (auto cubemap = env->GetGlobalCubemap()) {
-        //cubemap->Prepare();
 
-        //SetUniform("env_GlobalCubemap", cubemap.get());
-
-
-        /*if (env->ProbeEnabled()) {
-            const auto &origin = env->GetProbeRenderer()->GetProbe()->GetOrigin();
-            SetUniform("EnvProbe.position", origin);
-            SetUniform("EnvProbe.max", Vector3(40.0f));
-        }*/
+    for (int i = 0; i < env->GetProbeManager()->NumProbes(); i++) {
+        env->GetProbeManager()->GetProbe(i)->Bind(this);
     }
 
-    if (auto cubemap = env->GetGlobalIrradianceCubemap()) {
-        cubemap->Prepare();
+    if (!env->GetProbeManager()->EnvMapEnabled()) {
+        if (auto cubemap = env->GetGlobalCubemap()) {
+            cubemap->Prepare();
 
-        SetUniform("env_GlobalIrradianceCubemap", cubemap.get());
+            SetUniform("env_GlobalCubemap", cubemap.get());
+        }
+
+        if (auto cubemap = env->GetGlobalIrradianceCubemap()) {
+            cubemap->Prepare();
+
+            SetUniform("env_GlobalIrradianceCubemap", cubemap.get());
+        }
     }
 
     for (auto it = mat.textures.begin(); it != mat.textures.end(); it++) {
@@ -101,29 +101,10 @@ void LightingShader::ApplyMaterial(const Material &mat)
         SetUniform(std::string("Has") + it->first, 1);
     }
 
-    if (mat.HasParameter("shininess")) {
-        SetUniform("u_shininess", mat.GetParameter("shininess")[0]);
-    }
+    SetUniform("u_shininess", mat.GetParameter(MATERIAL_PARAMETER_METALNESS)[0]);
+    SetUniform("u_roughness", mat.GetParameter(MATERIAL_PARAMETER_ROUGHNESS)[0]);
 
-    if (mat.HasParameter("roughness")) {
-        SetUniform("u_roughness", mat.GetParameter("roughness")[0]);
-    }
 
-    if (mat.HasParameter("RimShading")) {
-        SetUniform("RimShading", mat.GetParameter("RimShading")[0]);
-    }
-
-    if (Environment::GetInstance()->VCTEnabled()) {
-        for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
-            if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
-                probe->Bind(this);
-
-                for (int j = 0; j < probe->NumCameras(); j++) {
-                    SetUniform(std::string("VoxelMap[") + std::to_string(j) + "]", probe->GetCamera(j)->GetTexture().get());
-                }
-            }
-        }
-    }
 }
 
 void LightingShader::ApplyTransforms(const Transform &transform, Camera *camera)

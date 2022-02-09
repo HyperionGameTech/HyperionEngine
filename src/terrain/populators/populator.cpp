@@ -14,6 +14,7 @@
 
 namespace hyperion {
 Populator::Populator(
+    const fbom::FBOMType &loadable_type,
     Camera *camera,
     unsigned long seed,
     double probability_factor,
@@ -25,7 +26,7 @@ Populator::Populator(
     int patch_spread,
     bool use_batching
 )
-    : EntityControl(1.0), // 1 update / sec
+    : EntityControl(fbom::FBOMObjectType("POPULATOR_CONTROL").Extend(loadable_type), 1.0), // 1 update / sec
       m_camera(camera),
       m_seed(seed),
       m_probability_factor(probability_factor),

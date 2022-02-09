@@ -9,6 +9,8 @@ namespace hyperion {
 using HashCode_t = size_t;
 
 struct HashCode {
+    using Value_t = HashCode_t;
+
     HashCode()
         : hash(0)
     {
@@ -33,15 +35,15 @@ struct HashCode {
         HashCombine(std::hash<T>()(value));
     }
 
-    size_t Value() const
+    Value_t Value() const
     {
         return hash;
     }
 
 private:
-    HashCode_t hash;
+    Value_t hash;
 
-    void HashCombine(HashCode_t other)
+    void HashCombine(Value_t other)
     {
         hash ^= other + 0x9e3779b9 + (hash << 6) + (hash >> 2);
     }

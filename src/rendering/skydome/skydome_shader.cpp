@@ -9,8 +9,8 @@ namespace hyperion {
 SkydomeShader::SkydomeShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/skydome.vert");
-    const std::string fs_path("res/shaders/skydome.frag");
+    const std::string vs_path("shaders/skydome.vert");
+    const std::string fs_path("shaders/skydome.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -33,7 +33,7 @@ SkydomeShader::SkydomeShader(const ShaderProperties &properties)
     }
 
     if (has_clouds) {
-        noise_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("res/textures/clouds.png");
+        noise_map = AssetManager::GetInstance()->LoadFromFile<Texture2D>("textures/clouds.png");
         if (noise_map == nullptr) {
             throw std::runtime_error("Could not load noise map!");
         }

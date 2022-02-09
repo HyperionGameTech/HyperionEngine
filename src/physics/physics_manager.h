@@ -5,7 +5,6 @@
 #define POSITION_EPSILON 0.0005
 
 #include "rigid_body.h"
-#include "collision.h"
 #include "box_physics_shape.h"
 #include "sphere_physics_shape.h"
 #include "plane_physics_shape.h"
@@ -41,10 +40,6 @@ private:
     btCollisionDispatcher *m_dispatcher;
     btBroadphaseInterface *m_broadphase_interface;
     btSequentialImpulseConstraintSolver *m_solver;
-
-    void UpdateInternals(std::vector<physics::CollisionInfo> &collisions, double dt);
-    void UpdateVelocities(std::vector<physics::CollisionInfo> &collisions, double dt);
-    void UpdatePositions(std::vector<physics::CollisionInfo> &collisions, double dt);
 };
 }
 

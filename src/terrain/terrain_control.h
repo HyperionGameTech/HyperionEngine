@@ -24,7 +24,7 @@ namespace hyperion {
 
 class TerrainControl : public EntityControl {
 public:
-    TerrainControl(Camera *camera);
+    TerrainControl(const fbom::FBOMType &loadable_type, Camera *camera);
     virtual ~TerrainControl();
 
     virtual void OnAdded();
@@ -32,6 +32,8 @@ public:
     virtual void OnUpdate(double dt);
 
 protected:
+    virtual std::shared_ptr<EntityControl> CloneImpl() = 0;
+
     Camera *m_camera;
     Vector3 m_scale;
     int m_chunk_size = TERRAIN_CHUNK_VERTEX_SIZE;

@@ -7,7 +7,7 @@ namespace hyperion {
 BloomShader::BloomShader(const ShaderProperties &properties)
     : PostShader(properties)
 {
-    const std::string fs_path("res/shaders/filters/bloom.frag");
+    const std::string fs_path("shaders/filters/bloom.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,

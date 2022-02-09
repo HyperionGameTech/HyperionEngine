@@ -8,7 +8,7 @@ namespace hyperion {
 TerrainShader::TerrainShader(const ShaderProperties &properties)
     : LightingShader(properties)
 {
-    const std::string fs_path("res/shaders/terrain.frag");
+    const std::string fs_path("shaders/terrain.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,

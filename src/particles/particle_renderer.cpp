@@ -11,7 +11,7 @@
 
 namespace hyperion {
 ParticleRenderer::ParticleRenderer(const ParticleConstructionInfo &info)
-    : Renderable(RB_PARTICLE),
+    : Renderable(fbom::FBOMObjectType("PARTICLE_RENDERER"), RB_PARTICLE),
       m_info(info),
       m_is_created(false),
       m_particles(nullptr)
@@ -209,5 +209,14 @@ void ParticleRenderer::Render(Renderer *renderer, Camera *cam)
 
     CoreEngine::GetInstance()->Disable(GL_BLEND);
     CoreEngine::GetInstance()->DepthMask(true);
+}
+
+std::shared_ptr<Renderable> ParticleRenderer::CloneImpl()
+{
+    auto clone = std::make_shared<ParticleRenderer>(m_info);
+
+    clone->m_shader = m_shader;
+
+    return clone;
 }
 } // namespace hyperion

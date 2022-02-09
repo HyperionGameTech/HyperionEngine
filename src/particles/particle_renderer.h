@@ -22,6 +22,9 @@ public:
     inline ParticleConstructionInfo &GetParticleConstructionInfo() { return m_info; }
     inline const ParticleConstructionInfo &GetParticleConstructionInfo() const { return m_info; }
 
+protected:
+    virtual std::shared_ptr<Renderable> CloneImpl() override;
+
 private:
     // pointer to particle vector (set by ParticleEmitterControl)
     std::vector<Particle> *m_particles;

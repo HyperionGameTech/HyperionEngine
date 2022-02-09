@@ -9,7 +9,7 @@ namespace hyperion {
 const bool SkydomeControl::clouds_in_dome = false;
 
 SkydomeControl::SkydomeControl(Camera *camera)
-    : EntityControl(10.0),
+    : EntityControl(fbom::FBOMObjectType("SKYDOME_CONTROL"), 10.0),
       camera(camera),
       global_time(0.0)
 {
@@ -20,7 +20,7 @@ void SkydomeControl::OnAdded()
     shader = ShaderManager::GetInstance()->GetShader<SkydomeShader>(ShaderProperties()
         .Define("CLOUDS", clouds_in_dome));
 
-    dome = AssetManager::GetInstance()->LoadFromFile<Entity>("res/models/dome.obj");
+    dome = AssetManager::GetInstance()->LoadFromFile<Entity>("models/dome.obj");
 
     if (dome == nullptr) {
         throw std::runtime_error("Could not load skydome model!");
@@ -70,5 +70,10 @@ void SkydomeControl::OnUpdate(double dt)
     } else {
         shader->SetGlobalTime(global_time);
     }
+}
+
+std::shared_ptr<EntityControl> SkydomeControl::CloneImpl()
+{
+    return std::make_shared<SkydomeControl>(nullptr); // TODO
 }
 } // namespace hyperion

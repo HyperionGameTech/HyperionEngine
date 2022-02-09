@@ -2,9 +2,12 @@
 
 namespace hyperion {
 SkeletonControl::SkeletonControl(std::shared_ptr<Shader> skinning_shader)
-    : EntityControl(60.0), skinning_shader(skinning_shader),
-    play_state(STOPPED), loop_mode(PLAY_ONCE),
-    current_anim(nullptr), time(0.0)
+    : EntityControl(fbom::FBOMObjectType("SKELETON_CONTROL"), 60.0),
+      skinning_shader(skinning_shader),
+      play_state(STOPPED),
+      loop_mode(PLAY_ONCE),
+      current_anim(nullptr),
+      time(0.0)
 {
 }
 
@@ -125,5 +128,27 @@ void SkeletonControl::OnUpdate(double dt)
     for (size_t i = 0; i < bones.size(); i++) {
         skinning_shader->SetUniform(bone_names[i], bones[i]->GetBoneMatrix());
     }
+}
+
+std::shared_ptr<EntityControl> SkeletonControl::CloneImpl()
+{
+    std::shared_ptr<SkeletonControl> clone = std::make_shared<SkeletonControl>(skinning_shader);
+
+    // clone->bone_names = bone_names;
+
+    clone->animations.reserve(animations.size());
+
+    for (const auto &anim : animations) {
+        if (anim == nullptr) {
+            continue;
+        }
+
+        clone->animations.push_back(std::make_shared<Animation>(*anim));
+    }
+
+    clone->play_speed = play_speed;
+    clone->loop_mode = loop_mode;
+
+    return clone;
 }
 }

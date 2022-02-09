@@ -1,6 +1,7 @@
 #include "text_loader.h"
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 namespace hyperion {
 std::shared_ptr<Loadable> TextLoader::LoadFromFile(const std::string &filepath)

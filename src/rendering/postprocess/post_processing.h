@@ -24,6 +24,7 @@ public:
     PostProcessing();
     PostProcessing(const PostProcessing &) = delete;
     PostProcessing(PostProcessing &&) = delete;
+    PostProcessing &operator=(const PostProcessing &) = delete;
     ~PostProcessing();
 
     template<typename T>

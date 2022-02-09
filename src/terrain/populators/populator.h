@@ -19,6 +19,7 @@ public:
     struct Patch;
 
     Populator(
+        const fbom::FBOMType &loadable_type,
         Camera *camera,
         unsigned long seed = 12345,
         double probability_factor = 0.55,
@@ -130,6 +131,8 @@ public:
     };
 
 protected:
+    virtual std::shared_ptr<EntityControl> CloneImpl() = 0;
+
     Camera *m_camera;
 
     std::shared_ptr<Entity> m_entity;

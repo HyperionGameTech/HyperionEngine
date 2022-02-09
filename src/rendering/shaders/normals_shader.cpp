@@ -7,8 +7,8 @@ namespace hyperion {
 NormalsShader::NormalsShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/normals.vert");
-    const std::string fs_path("res/shaders/normals.frag");
+    const std::string vs_path("shaders/normals.vert");
+    const std::string fs_path("shaders/normals.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,

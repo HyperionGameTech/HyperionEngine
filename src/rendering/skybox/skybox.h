@@ -21,6 +21,8 @@ public:
     void OnUpdate(double dt);
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     std::shared_ptr<Entity> m_cube;
     std::shared_ptr<Cubemap> m_cubemap;
     Camera *m_camera;

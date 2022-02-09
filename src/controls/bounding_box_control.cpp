@@ -2,7 +2,7 @@
 
 namespace hyperion {
 BoundingBoxControl::BoundingBoxControl()
-    : EntityControl()
+    : EntityControl(fbom::FBOMObjectType("BOUNDING_BOX_CONTROL"))
 {
     m_bounding_box_renderer.reset(new BoundingBoxRenderer());
 
@@ -28,5 +28,10 @@ void BoundingBoxControl::OnRemoved()
 void BoundingBoxControl::OnUpdate(double dt)
 {
     m_bounding_box_renderer->SetAABB(parent->GetAABB());
+}
+
+std::shared_ptr<EntityControl> BoundingBoxControl::CloneImpl()
+{
+    return std::make_shared<BoundingBoxControl>();
 }
 } // namespace hyperion

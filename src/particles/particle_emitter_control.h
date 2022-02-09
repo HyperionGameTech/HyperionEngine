@@ -22,6 +22,8 @@ public:
     void OnUpdate(double dt);
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     Camera *m_camera;
     std::vector<Particle> m_particles;
     std::shared_ptr<Entity> m_entity;

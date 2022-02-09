@@ -4,7 +4,7 @@
 
 namespace hyperion {
 MeshArray::MeshArray()
-    : Renderable()
+    : Renderable(fbom::FBOMObjectType("MESH_ARRAY"))
 {
 }
 
@@ -69,5 +69,22 @@ void MeshArray::Optimize()
     }
 
     m_submeshes.resize(1);
+}
+
+std::shared_ptr<Renderable> MeshArray::CloneImpl()
+{
+    auto clone = std::make_shared<MeshArray>();
+
+    for (const auto &submesh : m_submeshes) {
+        soft_assert_continue(submesh.mesh != nullptr);
+
+        Submesh submesh_clone;
+        submesh_clone.mesh = std::dynamic_pointer_cast<Mesh>(submesh.mesh->Clone());
+        submesh_clone.transform = submesh.transform;
+
+        clone->m_submeshes.push_back(submesh_clone);
+    }
+
+    return clone;
 }
 } // namespace hyperion

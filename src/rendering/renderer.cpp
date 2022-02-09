@@ -24,12 +24,12 @@ Renderer::~Renderer()
     delete m_fbo;
 }
 
-void Renderer::Begin(Camera *cam, Entity *top)
+void Renderer::Collect(Camera *cam, Entity *top)
 {
     FindRenderables(cam, top, false, true);
 }
 
-void Renderer::Render(Camera *cam)
+void Renderer::Begin(Camera *cam)
 {
     if (m_fbo == nullptr) {
         m_fbo = new Framebuffer2D(
@@ -45,22 +45,26 @@ void Renderer::Render(Camera *cam)
             true  // bitangents
         );
     }
+}
 
+void Renderer::Render(Camera *cam)
+{
     RenderAll(cam, m_fbo);
 }
 
-void Renderer::End(Camera *cam, Entity *top)
+void Renderer::End(Camera *cam)
 {
     RenderPost(cam, m_fbo);
 
     CoreEngine::GetInstance()->Disable(CoreEngine::GLEnums::CULL_FACE);
+    RenderBucket(cam, m_buckets[Renderable::RB_DEBUG]);
     RenderBucket(cam, m_buckets[Renderable::RB_SCREEN]);
     CoreEngine::GetInstance()->Enable(CoreEngine::GLEnums::CULL_FACE);
 }
 
 void Renderer::ClearRenderables()
 {
-   for (int i = 0; i < sizeof(m_buckets) / sizeof(Bucket); i++) {
+   for (int i = 0; i < Renderable::RB_MAX; i++) {
        m_buckets[i].ClearAll();
    }
 }
@@ -83,10 +87,12 @@ void Renderer::FindRenderables(Camera *cam, Entity *top, bool frustum_culled, bo
     }
 
     if (recalc) {
+        // hash has changed so we will need to recalculate a few things
         if (top->PendingRemoval()) {
-            // std::cout << "[RENDERER] " << top->GetName() << " pending removal, erasing from hash cache\n";
+            // pending removal -- erase from hash cache
             m_hash_cache.erase(top);
         } else {
+            // not pending removal, just update hash for this entity's memory address
             m_hash_cache[top] = entity_hash;
         }
     }
@@ -250,16 +256,14 @@ void Renderer::SetRendererDefaults()
 
 void Renderer::RenderAll(Camera *cam, Framebuffer2D *fbo)
 {
+    if (!m_buckets[Renderable::RB_BUFFER].IsEmpty()) {
+        RenderBucket(cam, m_buckets[Renderable::RB_BUFFER]); // PRE
+    }
+
     if (fbo) {
         fbo->Use();
     } else {
         CoreEngine::GetInstance()->Viewport(0, 0, cam->GetWidth(), cam->GetHeight());
-    }
-
-    if (!m_buckets[Renderable::RB_BUFFER].IsEmpty()) {
-        CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT);
-
-        RenderBucket(cam, m_buckets[Renderable::RB_BUFFER]); // PRE
     }
 
     CoreEngine::GetInstance()->Clear(CoreEngine::GLEnums::COLOR_BUFFER_BIT | CoreEngine::GLEnums::DEPTH_BUFFER_BIT);
@@ -270,7 +274,6 @@ void Renderer::RenderAll(Camera *cam, Framebuffer2D *fbo)
     RenderBucket(cam, m_buckets[Renderable::RB_OPAQUE]);
     RenderBucket(cam, m_buckets[Renderable::RB_TRANSPARENT]);
     RenderBucket(cam, m_buckets[Renderable::RB_PARTICLE]);
-    RenderBucket(cam, m_buckets[Renderable::RB_DEBUG]);
 
     if (fbo) {
         fbo->End();

@@ -19,7 +19,10 @@ public:
 
     virtual void Render(Renderer *renderer, Camera *cam) override;
 
-    inline void SetAABB(const BoundingBox &aabb) { m_aabb = aabb; } 
+    inline void SetAABB(const BoundingBox &aabb) { m_aabb = aabb; }
+
+protected:
+    virtual std::shared_ptr<Renderable> CloneImpl() override;
 
 private:
     void UpdateVertices();

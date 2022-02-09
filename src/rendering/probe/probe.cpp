@@ -4,12 +4,11 @@
 #include "../../math/matrix_util.h"
 
 namespace hyperion {
-Probe::Probe(const Vector3 &origin, int width, int height, float near, float far)
-    : m_origin(origin),
-      m_width(width),
-      m_height(height),
-      m_near(near),
-      m_far(far),
+Probe::Probe(const fbom::FBOMType &loadable_type, const Vector3 &origin, const BoundingBox &bounds)
+    : Renderable(fbom::FBOMObjectType("PROBE").Extend(loadable_type), RB_BUFFER),
+      m_cameras({ nullptr }),
+      m_origin(origin),
+      m_bounds(bounds),
       m_directions({
         std::make_pair(Vector3(1, 0, 0), Vector3(0, -1, 0)),
         std::make_pair(Vector3(-1, 0, 0), Vector3(0, -1, 0)),
@@ -19,24 +18,35 @@ Probe::Probe(const Vector3 &origin, int width, int height, float near, float far
         std::make_pair(Vector3(0, 0, -1), Vector3(0, -1, 0))
       })
 {
-    MatrixUtil::ToPerspective(m_proj_matrix, 90.0f, width, height, near, far);
 }
 
-void Probe::UpdateMatrices()
+Probe::~Probe()
 {
-    for (int i = 0; i < m_matrices.size(); i++) {
-        MatrixUtil::ToLookAt(m_matrices[i], m_origin, m_origin + m_directions[i].first, m_directions[i].second);
+}
 
-        m_matrices[i] = m_matrices[i] * m_proj_matrix;
+void Probe::SetBounds(const BoundingBox &bounds)
+{
+    m_bounds = bounds;
+
+    for (ProbeCamera *cam : m_cameras) {
+        if (cam == nullptr) {
+            continue;
+        }
+
+        cam->GetRegion().bounds = bounds;
     }
 }
 
-void Probe::Begin()
+void Probe::SetOrigin(const Vector3 &origin)
 {
-    UpdateMatrices();
-}
+    m_origin = origin;
 
-void Probe::End()
-{
+    for (ProbeCamera *cam : m_cameras) {
+        if (cam == nullptr) {
+            continue;
+        }
+
+        cam->GetRegion().origin = origin;
+    }
 }
 } // namespace hyperion

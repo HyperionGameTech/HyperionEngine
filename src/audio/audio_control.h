@@ -19,6 +19,8 @@ public:
     void OnUpdate(double dt);
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     std::shared_ptr<AudioSource> m_source;
     Vector3 m_last_position;
 };

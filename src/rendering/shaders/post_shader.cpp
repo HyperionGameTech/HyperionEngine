@@ -7,7 +7,7 @@ namespace hyperion {
 PostShader::PostShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/post.vert");
+    const std::string vs_path("shaders/post.vert");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,

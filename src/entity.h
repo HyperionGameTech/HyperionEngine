@@ -13,9 +13,10 @@
 #include "rendering/renderable.h"
 #include "rendering/material.h"
 
+#include "asset/fbom/fbom.h"
 namespace hyperion {
 class Camera;
-class Entity : public Loadable {
+class Entity : public fbom::FBOMLoadable {
 public:
     enum UpdateFlags {
         UPDATE_TRANSFORM = 0x01,
@@ -24,6 +25,8 @@ public:
     };
 
     Entity(const std::string &name = "entity");
+    Entity(const Entity &other) = delete;
+    Entity &operator=(const Entity &other) = delete;
     virtual ~Entity();
 
     inline const std::string &GetName() const { return m_name; }
@@ -143,7 +146,141 @@ public:
     virtual void Update(double dt);
     void UpdateControls(double dt);
 
-    virtual std::shared_ptr<Loadable> Clone();
+    virtual std::shared_ptr<Loadable> Clone() override;
+
+#pragma region serialization
+    FBOM_DEF_DESERIALIZER(loader, in, out) {
+        using namespace fbom;
+
+        std::string name;
+        if (auto err = in->GetProperty("name").ReadString(name)) {
+            return err;
+        }
+
+        Vector3 translation;
+        if (auto err = in->GetProperty("local_translation").ReadArrayElements(FBOMFloat(), 3, (unsigned char*)&translation)) {
+            return err;
+        }
+
+        Vector3 scale;
+        if (auto err = in->GetProperty("local_scale").ReadArrayElements(FBOMFloat(), 3, (unsigned char*)&scale)) {
+            return err;
+        }
+
+        Quaternion rotation;
+        if (auto err = in->GetProperty("local_rotation").ReadArrayElements(FBOMFloat(), 4, (unsigned char*)&rotation)) {
+            return err;
+        }
+
+        auto out_entity = std::make_shared<Entity>(name);
+        out = out_entity;
+
+        out_entity->SetLocalTranslation(translation);
+        out_entity->SetLocalScale(scale);
+        out_entity->SetLocalRotation(rotation);
+
+        for (auto &node : in->nodes) {
+            ex_assert(node->deserialized_object != nullptr);
+
+            FBOMDeserialized child = node->deserialized_object;
+
+            if (child->GetLoadableType().IsOrExtends("ENTITY")) {
+                auto child_entity = std::dynamic_pointer_cast<Entity>(child);
+                ex_assert(child_entity != nullptr);
+
+                out_entity->AddChild(child_entity);
+
+                continue;
+            }
+
+            if (child->GetLoadableType().IsOrExtends("CONTROL")) {
+                auto control = std::dynamic_pointer_cast<EntityControl>(child);
+                ex_assert(control != nullptr);
+
+                out_entity->AddControl(control);
+
+                continue;
+            }
+
+            if (child->GetLoadableType().IsOrExtends("RENDERABLE")) {
+                auto renderable = std::dynamic_pointer_cast<Renderable>(child);
+                ex_assert(renderable != nullptr);
+
+                out_entity->SetRenderable(renderable);
+
+                continue;
+            }
+
+            if (child->GetLoadableType().IsOrExtends("MATERIAL")) {
+                auto material = std::dynamic_pointer_cast<Material>(child);
+                ex_assert(material != nullptr);
+
+                out_entity->SetMaterial(*material);
+
+                continue;
+            }
+
+            return FBOMResult(FBOMResult::FBOM_ERR, std::string("Entity does not know how to handle ") + node->m_object_type.name + " subnode");
+        }
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    FBOM_DEF_SERIALIZER(loader, in, out)
+    {
+        // TODO: static data and instancing
+        using namespace fbom;
+
+        auto entity = dynamic_cast<Entity*>(in);
+
+        if (entity == nullptr) {
+            return FBOMResult::FBOM_ERR;
+        }
+
+        out->SetProperty("name", FBOMString(), entity->GetName().size(), (void*)entity->m_name.data());
+        out->SetProperty("local_translation", FBOMArray(FBOMFloat(), 3), (void*)&entity->m_local_translation);
+        out->SetProperty("local_scale", FBOMArray(FBOMFloat(), 3), (void*)&entity->m_local_scale);
+        out->SetProperty("local_rotation", FBOMArray(FBOMFloat(), 4), (void*)&entity->m_local_rotation);
+
+        for (size_t i = 0; i < entity->NumChildren(); i++) {
+            if (auto child = entity->GetChild(i)) {
+                FBOMObject *child_object = out->AddChild(child->GetLoadableType());
+                FBOMResult loader_result = loader->Serialize(child.get(), child_object);
+
+                if (loader_result != FBOMResult::FBOM_OK) {
+                    return loader_result;
+                }
+            }
+        }
+
+        for (size_t i = 0; i < entity->NumControls(); i++) {
+            if (auto control = entity->GetControl(i)) {
+                FBOMObject *control_object = out->AddChild(control->GetLoadableType());
+                FBOMResult loader_result = loader->Serialize(control.get(), control_object);
+
+                if (loader_result != FBOMResult::FBOM_OK) {
+                    return loader_result;
+                }
+            }
+        }
+
+        if (auto renderable = entity->GetRenderable()) {
+            FBOMObject *renderable_object = out->AddChild(renderable->GetLoadableType());
+            FBOMResult loader_result = loader->Serialize(renderable.get(), renderable_object);
+
+            if (loader_result != FBOMResult::FBOM_OK) {
+                return loader_result;
+            }
+        }
+
+        FBOMObject *material_object = out->AddChild(entity->GetMaterial().GetLoadableType());
+        if (auto err = loader->Serialize(&entity->GetMaterial(), material_object)) {
+            return err;
+        }
+
+        return FBOMResult::FBOM_OK;
+    }
+#pragma endregion serialization
 
     inline HashCode GetHashCode() const
     {

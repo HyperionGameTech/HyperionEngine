@@ -28,10 +28,12 @@ public:
     void ClearSubmeshes();
 
 protected:
-    std::vector<Submesh> m_submeshes;
+    virtual std::shared_ptr<Renderable> CloneImpl() override;
 
     void UpdateSubmeshes();
     void ApplyTransforms();
+
+    std::vector<Submesh> m_submeshes;
 };
 } // namespace hyperion
 

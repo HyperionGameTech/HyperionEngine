@@ -20,6 +20,8 @@ public:
     virtual void OnUpdate(double dt);
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     std::shared_ptr<Entity> m_entity;
     std::shared_ptr<BoundingBoxRenderer> m_bounding_box_renderer;
 };

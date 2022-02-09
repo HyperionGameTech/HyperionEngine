@@ -38,22 +38,5 @@ BoundingBox PlanePhysicsShape::GetBoundingBox()
     return bounding_box;
 }
 
-bool PlanePhysicsShape::CollidesWith(BoxPhysicsShape *shape, CollisionList &out)
-{
-    // implementation is in BoxPhysicsShape
-    return shape->CollidesWith(this, out);
-}
-
-bool PlanePhysicsShape::CollidesWith(SpherePhysicsShape *shape, CollisionList &out)
-{
-    // implementation is in SpherePhysicsShape
-    return shape->CollidesWith(this, out);
-}
-
-bool PlanePhysicsShape::CollidesWith(PlanePhysicsShape *shape, CollisionList &out)
-{
-    return false;
-}
-
 } // namespace physics
 } // namespace hyperion

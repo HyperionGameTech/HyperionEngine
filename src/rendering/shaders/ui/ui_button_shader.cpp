@@ -7,7 +7,7 @@ namespace hyperion {
 UIButtonShader::UIButtonShader(const ShaderProperties &properties)
     : UIObjectShader(properties)
 {
-    const std::string fs_path("res/shaders/ui/ui_button.frag");
+    const std::string fs_path("shaders/ui/ui_button.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,

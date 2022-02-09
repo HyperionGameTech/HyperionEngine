@@ -23,10 +23,6 @@ public:
 
     virtual BoundingBox GetBoundingBox() override;
 
-    bool CollidesWith(BoxPhysicsShape *shape, CollisionList &out);
-    bool CollidesWith(SpherePhysicsShape *shape, CollisionList &out);
-    bool CollidesWith(PlanePhysicsShape *shape, CollisionList &out);
-
 private:
     Vector3 m_dimensions;
 };

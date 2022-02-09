@@ -3,7 +3,7 @@
 
 namespace hyperion {
 
-const Mesh::MeshAttribute Mesh::MeshAttribute::Positions = {0, 3, 0 };
+const Mesh::MeshAttribute Mesh::MeshAttribute::Positions = { 0, 3, 0 };
 const Mesh::MeshAttribute Mesh::MeshAttribute::Normals = { 0, 3, 1 };
 const Mesh::MeshAttribute Mesh::MeshAttribute::TexCoords0 = { 0, 2, 2 };
 const Mesh::MeshAttribute Mesh::MeshAttribute::TexCoords1 = { 0, 2, 3 };
@@ -13,7 +13,10 @@ const Mesh::MeshAttribute Mesh::MeshAttribute::BoneWeights = { 0, 4, 6 };
 const Mesh::MeshAttribute Mesh::MeshAttribute::BoneIndices = { 0, 4, 7 };
 
 Mesh::Mesh()
-    : Renderable()
+    : Renderable(fbom::FBOMObjectType("MESH")),
+      vao(0),
+      vbo(0),
+      ibo(0)
 {
     SetAttribute(ATTR_POSITIONS, MeshAttribute::Positions);
     SetPrimitiveType(PRIM_TRIANGLES);
@@ -85,11 +88,11 @@ void Mesh::SetAttribute(MeshAttributeType type, const MeshAttribute &attribute)
     is_uploaded = false;
 }
 
-std::vector<float> Mesh::CreateBuffer()
+void Mesh::CalculateVertexSize()
 {
     unsigned int vert_size = 0, prev_size = 0, offset = 0;
 
-    for (auto &&attr : attribs) {
+    for (auto &attr : attribs) {
         offset += prev_size;
         attr.second.offset = offset;
         prev_size = attr.second.size;
@@ -97,8 +100,13 @@ std::vector<float> Mesh::CreateBuffer()
     }
 
     vertex_size = vert_size;
+}
 
-    std::vector<float> buffer(vert_size * vertices.size());
+std::vector<float> Mesh::CreateBuffer()
+{
+    CalculateVertexSize();
+
+    std::vector<float> buffer(vertex_size * vertices.size());
 
     auto pos_it = attribs.find(ATTR_POSITIONS);
     auto norm_it = attribs.find(ATTR_NORMALS);
@@ -113,48 +121,135 @@ std::vector<float> Mesh::CreateBuffer()
         auto &vertex = vertices[i];
 
         if (pos_it != attribs.end()) {
-            buffer[(i * vert_size) + pos_it->second.offset] = vertex.GetPosition().x;
-            buffer[(i * vert_size) + pos_it->second.offset + 1] = vertex.GetPosition().y;
-            buffer[(i * vert_size) + pos_it->second.offset + 2] = vertex.GetPosition().z;
+            buffer[(i * vertex_size) + pos_it->second.offset] = vertex.GetPosition().x;
+            buffer[(i * vertex_size) + pos_it->second.offset + 1] = vertex.GetPosition().y;
+            buffer[(i * vertex_size) + pos_it->second.offset + 2] = vertex.GetPosition().z;
         }
         if (norm_it != attribs.end()) {
-            buffer[(i * vert_size) + norm_it->second.offset] = vertex.GetNormal().x;
-            buffer[(i * vert_size) + norm_it->second.offset + 1] = vertex.GetNormal().y;
-            buffer[(i * vert_size) + norm_it->second.offset + 2] = vertex.GetNormal().z;
+            buffer[(i * vertex_size) + norm_it->second.offset] = vertex.GetNormal().x;
+            buffer[(i * vertex_size) + norm_it->second.offset + 1] = vertex.GetNormal().y;
+            buffer[(i * vertex_size) + norm_it->second.offset + 2] = vertex.GetNormal().z;
         }
         if (tc0_it != attribs.end()) {
-            buffer[(i * vert_size) + tc0_it->second.offset] = vertex.GetTexCoord0().x;
-            buffer[(i * vert_size) + tc0_it->second.offset + 1] = vertex.GetTexCoord0().y;
+            buffer[(i * vertex_size) + tc0_it->second.offset] = vertex.GetTexCoord0().x;
+            buffer[(i * vertex_size) + tc0_it->second.offset + 1] = vertex.GetTexCoord0().y;
         }
         if (tc1_it != attribs.end()) {
-            buffer[(i * vert_size) + tc1_it->second.offset] = vertex.GetTexCoord1().x;
-            buffer[(i * vert_size) + tc1_it->second.offset + 1] = vertex.GetTexCoord1().y;
+            buffer[(i * vertex_size) + tc1_it->second.offset] = vertex.GetTexCoord1().x;
+            buffer[(i * vertex_size) + tc1_it->second.offset + 1] = vertex.GetTexCoord1().y;
         }
         if (tan_it != attribs.end()) {
-            buffer[(i * vert_size) + tan_it->second.offset] = vertex.GetTangent().x;
-            buffer[(i * vert_size) + tan_it->second.offset + 1] = vertex.GetTangent().y;
-            buffer[(i * vert_size) + tan_it->second.offset + 2] = vertex.GetTangent().z;
+            buffer[(i * vertex_size) + tan_it->second.offset] = vertex.GetTangent().x;
+            buffer[(i * vertex_size) + tan_it->second.offset + 1] = vertex.GetTangent().y;
+            buffer[(i * vertex_size) + tan_it->second.offset + 2] = vertex.GetTangent().z;
         }
         if (bitan_it != attribs.end()) {
-            buffer[(i * vert_size) + bitan_it->second.offset] = vertex.GetBitangent().x;
-            buffer[(i * vert_size) + bitan_it->second.offset + 1] = vertex.GetBitangent().y;
-            buffer[(i * vert_size) + bitan_it->second.offset + 2] = vertex.GetBitangent().z;
+            buffer[(i * vertex_size) + bitan_it->second.offset] = vertex.GetBitangent().x;
+            buffer[(i * vertex_size) + bitan_it->second.offset + 1] = vertex.GetBitangent().y;
+            buffer[(i * vertex_size) + bitan_it->second.offset + 2] = vertex.GetBitangent().z;
         }
         if (bonei_it != attribs.end()) {
-            buffer[(i * vert_size) + bonei_it->second.offset] = static_cast<float>(vertex.GetBoneIndex(0));
-            buffer[(i * vert_size) + bonei_it->second.offset + 1] = static_cast<float>(vertex.GetBoneIndex(1));
-            buffer[(i * vert_size) + bonei_it->second.offset + 2] = static_cast<float>(vertex.GetBoneIndex(2));
-            buffer[(i * vert_size) + bonei_it->second.offset + 3] = static_cast<float>(vertex.GetBoneIndex(3));
+            buffer[(i * vertex_size) + bonei_it->second.offset] = static_cast<float>(vertex.GetBoneIndex(0));
+            buffer[(i * vertex_size) + bonei_it->second.offset + 1] = static_cast<float>(vertex.GetBoneIndex(1));
+            buffer[(i * vertex_size) + bonei_it->second.offset + 2] = static_cast<float>(vertex.GetBoneIndex(2));
+            buffer[(i * vertex_size) + bonei_it->second.offset + 3] = static_cast<float>(vertex.GetBoneIndex(3));
         }
         if (bonew_it != attribs.end()) {
-            buffer[(i * vert_size) + bonew_it->second.offset] = vertex.GetBoneWeight(0);
-            buffer[(i * vert_size) + bonew_it->second.offset + 1] = vertex.GetBoneWeight(1);
-            buffer[(i * vert_size) + bonew_it->second.offset + 2] = vertex.GetBoneWeight(2);
-            buffer[(i * vert_size) + bonew_it->second.offset + 3] = vertex.GetBoneWeight(3);
+            buffer[(i * vertex_size) + bonew_it->second.offset] = vertex.GetBoneWeight(0);
+            buffer[(i * vertex_size) + bonew_it->second.offset + 1] = vertex.GetBoneWeight(1);
+            buffer[(i * vertex_size) + bonew_it->second.offset + 2] = vertex.GetBoneWeight(2);
+            buffer[(i * vertex_size) + bonew_it->second.offset + 3] = vertex.GetBoneWeight(3);
         }
     }
 
     return buffer;
+}
+
+void Mesh::SetVerticesFromFloatBuffer(const std::vector<float> &buffer)
+{
+    CalculateVertexSize();
+
+    ex_assert_msg(buffer.size() % vertex_size == 0, "vertex size does not evenly divide into buffer size -- mismatch!");
+
+    size_t num_vertices = buffer.size() / vertex_size;
+
+    std::vector<Vertex> result;
+    result.reserve(num_vertices);
+
+    auto pos_it = attribs.find(ATTR_POSITIONS);
+    auto norm_it = attribs.find(ATTR_NORMALS);
+    auto tc0_it = attribs.find(ATTR_TEXCOORDS0);
+    auto tc1_it = attribs.find(ATTR_TEXCOORDS1);
+    auto tan_it = attribs.find(ATTR_TANGENTS);
+    auto bitan_it = attribs.find(ATTR_BITANGENTS);
+    auto bonew_it = attribs.find(ATTR_BONEWEIGHTS);
+    auto bonei_it = attribs.find(ATTR_BONEINDICES);
+
+    for (unsigned int i = 0; i < buffer.size(); i += vertex_size) {
+        Vertex v;
+
+        if (pos_it != attribs.end()) {
+            v.SetPosition(Vector3(
+                buffer[i + pos_it->second.offset],
+                buffer[i + pos_it->second.offset + 1],
+                buffer[i + pos_it->second.offset + 2]
+            ));
+        }
+
+        if (norm_it != attribs.end()) {
+            v.SetNormal(Vector3(
+                buffer[i + norm_it->second.offset],
+                buffer[i + norm_it->second.offset + 1],
+                buffer[i + norm_it->second.offset + 2]
+            ));
+        }
+
+        if (tc0_it != attribs.end()) {
+            v.SetTexCoord0(Vector2(
+                buffer[i + tc0_it->second.offset],
+                buffer[i + tc0_it->second.offset + 1]
+            ));
+        }
+
+        if (tc1_it != attribs.end()) {
+            v.SetTexCoord1(Vector2(
+                buffer[i + tc1_it->second.offset],
+                buffer[i + tc1_it->second.offset + 1]
+            ));
+        }
+
+        if (tan_it != attribs.end()) {
+            v.SetTangent(Vector3(
+                buffer[i + tan_it->second.offset],
+                buffer[i + tan_it->second.offset + 1],
+                buffer[i + tan_it->second.offset + 2]
+            ));
+        }
+
+        if (bitan_it != attribs.end()) {
+            v.SetBitangent(Vector3(
+                buffer[i + bitan_it->second.offset],
+                buffer[i + bitan_it->second.offset + 1],
+                buffer[i + bitan_it->second.offset + 2]
+            ));
+        }
+
+        if (bonei_it != attribs.end()) {
+            for (int j = 0; j < 4; j++) {
+                v.SetBoneIndex(j, buffer[i + bonei_it->second.offset + j]);
+            }
+        }
+
+        if (bonew_it != attribs.end()) {
+            for (int j = 0; j < 4; j++) {
+                v.SetBoneWeight(j, buffer[i + bonew_it->second.offset + j]);
+            }
+        }
+
+        result.push_back(v);
+    }
+
+    SetVertices(result);
 }
 
 void Mesh::CalculateTangents()
@@ -352,6 +447,20 @@ void Mesh::InvertNormals()
     for (Vertex &vert : vertices) {
         vert.SetNormal(vert.GetNormal() * -1);
     }
+}
+
+std::shared_ptr<Renderable> Mesh::CloneImpl()
+{
+    auto clone = std::make_shared<Mesh>();
+
+    clone->SetVertices(vertices, indices);
+    clone->attribs = attribs;
+    clone->primitive_type = primitive_type;
+    clone->m_shader = m_shader; // TODO: clone shader?
+    clone->m_bucket = m_bucket;
+    clone->m_aabb = m_aabb;
+
+    return clone;
 }
 
 } // namespace hyperion

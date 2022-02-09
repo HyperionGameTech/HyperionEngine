@@ -15,6 +15,8 @@ public:
 
     AssetManager();
 
+    void SetRootDir(const std::string &path);
+    std::string GetRootDir();
     std::shared_ptr<Loadable> LoadFromFile(const std::string &path, bool use_caching = true);
     const std::unique_ptr<AssetLoader> &GetLoader(const std::string &path);
 
@@ -40,6 +42,8 @@ public:
 
 private:
     static AssetManager *instance;
+
+    std::string root_path = "./";
 
     std::map<std::string, std::unique_ptr<AssetLoader>> loaders;
     std::map<std::string, std::shared_ptr<Loadable>> loaded_assets;

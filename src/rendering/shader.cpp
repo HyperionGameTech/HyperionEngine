@@ -6,6 +6,8 @@
 
 namespace hyperion {
 
+std::string EnumerateLines(const std::string &str);
+
 Shader::Shader(const ShaderProperties &properties)
     : m_properties(properties),
       m_previous_properties_hash_code(properties.GetHashCode().Value()),
@@ -98,7 +100,7 @@ void Shader::UploadGpuData()
                 }
 
                 std::cout << "===================\n";
-                std::cout << it.second.processed_code;
+                std::cout << EnumerateLines(it.second.processed_code);
 
                 std::cout << "\n\n";
             }
@@ -165,7 +167,7 @@ void Shader::UploadGpuData()
                 }
 
                 std::cout << "===================\n";
-                std::cout << it.second.processed_code;
+                std::cout << EnumerateLines(it.second.processed_code);
 
                 std::cout << "\n\n";
             }
@@ -251,15 +253,9 @@ void Shader::ApplyMaterial(const Material &mat)
         glDepthMask(false);
     }
 
-    if (mat.HasParameter("FlipUV")) {
-        const auto &param = mat.GetParameter("FlipUV");
-        SetUniform("FlipUV_X", int(param[0]));
-        SetUniform("FlipUV_Y", int(param[1]));
-    } else if (mat.HasParameter("FlipUV_X")) {
-        SetUniform("FlipUV_X", int(mat.GetParameter("FlipUV_X")[0]));
-    } else if (mat.HasParameter("FlipUV_Y")) {
-        SetUniform("FlipUV_Y", int(mat.GetParameter("FlipUV_X")[0]));
-    }
+    const auto &param = mat.GetParameter(MATERIAL_PARAMETER_FLIP_UV);
+    SetUniform("FlipUV_X", int(param[0]));
+    SetUniform("FlipUV_Y", int(param[1]));
 }
 
 void Shader::ApplyTransforms(const Transform &transform, Camera *camera)
@@ -382,6 +378,30 @@ void Shader::AddSubShader(SubShaderType type,
 void Shader::ReprocessSubShader(SubShader &sub_shader, const ShaderProperties &properties)
 {
     sub_shader.processed_code = ShaderPreprocessor::ProcessShader(sub_shader.code, properties, sub_shader.path);
+}
+
+std::string EnumerateLines(const std::string &str)
+{
+    std::string result;
+    result.reserve(str.length());
+
+    std::vector<std::string> lines = StringUtil::Split(str, '\n');
+
+    for (size_t i = 0; i < lines.size(); i++) {
+        if (lines[i].length() == 0) {
+            if (i != 0 && lines[i - 1].length() == 0) {
+                // no-op
+            } else if (i != lines.size() - 1 && lines[i + 1].length() == 0) {
+                result += " ... ";
+            } 
+        } else {
+            result += "[" + std::to_string(i + 1) + "]: " + lines[i];
+        }
+
+        result += "\n";
+    }
+
+    return result;
 }
 
 } // namespace hyperion

@@ -23,6 +23,8 @@ public:
     void OnUpdate(double dt);
 
 private:
+    virtual std::shared_ptr<EntityControl> CloneImpl() override;
+
     static const bool clouds_in_dome;
 
     std::shared_ptr<Entity> dome;

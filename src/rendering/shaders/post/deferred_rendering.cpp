@@ -8,7 +8,7 @@ namespace hyperion {
 DeferredRenderingShader::DeferredRenderingShader(const ShaderProperties &properties)
     : PostShader(properties)
 {
-    const std::string fs_path("res/shaders/filters/deferred.frag");
+    const std::string fs_path("shaders/filters/deferred.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,
@@ -53,35 +53,36 @@ void DeferredRenderingShader::ApplyMaterial(const Material &mat)
         }
     }
 
-    if (auto cubemap = env->GetGlobalCubemap()) {
-        cubemap->Prepare();
 
-        SetUniform("env_GlobalCubemap", cubemap.get());
+    for (int i = 0; i < env->GetProbeManager()->NumProbes(); i++) {
+        env->GetProbeManager()->GetProbe(i)->Bind(this);
+    }
 
-        if (env->ProbeEnabled()) {
-            const auto &origin = env->GetProbeRenderer()->GetProbe()->GetOrigin();
-            SetUniform("EnvProbe.position", origin);
-            SetUniform("EnvProbe.max", Vector3(40.0f));
+
+    if (!env->GetProbeManager()->EnvMapEnabled()) {
+        if (auto cubemap = env->GetGlobalCubemap()) {
+            cubemap->Prepare();
+
+            SetUniform("env_GlobalCubemap", cubemap.get());
+        }
+
+        if (auto cubemap = env->GetGlobalIrradianceCubemap()) {
+            cubemap->Prepare();
+
+            SetUniform("env_GlobalIrradianceCubemap", cubemap.get());
         }
     }
-
-    if (auto cubemap = env->GetGlobalIrradianceCubemap()) {
-        cubemap->Prepare();
-
-        SetUniform("env_GlobalIrradianceCubemap", cubemap.get());
-    }
-
-    if (Environment::GetInstance()->VCTEnabled()) {
+    /*if (Environment::GetInstance()->VCTEnabled()) {
         for (int i = 0; i < Environment::GetInstance()->GetGIManager()->NumProbes(); i++) {
             if (auto &probe = Environment::GetInstance()->GetGIManager()->GetProbe(i)) {
                 probe->Bind(this);
 
                 for (int j = 0; j < probe->NumCameras(); j++) {
-                    SetUniform(std::string("VoxelMap[") + std::to_string(j) + "]", probe->GetCamera(j)->GetTexture().get());
+                    SetUniform(std::string("VoxelMap[") + std::to_string(j) + "]", probe->GetCamera(j)->GetTexture());
                 }
             }
         }
-    }
+    }*/
 }
 
 void DeferredRenderingShader::ApplyTransforms(const Transform &transform, Camera *camera)

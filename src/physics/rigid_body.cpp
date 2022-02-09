@@ -85,7 +85,7 @@ static Matrix3 CalculateInverseInertiaWorldMatrix(const Matrix3 &iit_body, const
 }
 
 RigidBody::RigidBody(std::shared_ptr<PhysicsShape> shape, PhysicsMaterial material)
-    : EntityControl(60.0),
+    : EntityControl(fbom::FBOMObjectType("RIGID_BODY_CONTROL"), 60.0),
       m_shape(shape),
       m_material(material),
       m_awake(true),
@@ -222,5 +222,13 @@ void RigidBody::OnUpdate(double dt)
     parent->SetGlobalRotation(FromBulletQuaternion(bt_transform.getRotation()));
 }
 
+std::shared_ptr<EntityControl> RigidBody::CloneImpl()
+{
+    auto clone = std::make_shared<RigidBody>(m_shape, m_material);
+
+    // TODO
+
+    return clone;
+}
 } // namespace physics
 } // namespace hyperion

@@ -14,10 +14,6 @@ public:
 
     virtual void ApplyMaterial(const Material &mat);
     virtual void ApplyTransforms(const Transform &transform, Camera *camera);
-
-private:
-    std::array<Matrix4, 6> m_shadow_matrices;
-    std::array<std::pair<Vector3, Vector3>, 6> m_directions;
 };
 } // namespace hyperion
 

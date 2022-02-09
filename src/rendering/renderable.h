@@ -5,32 +5,39 @@
 #include "../math/vertex.h"
 #include "../math/ray.h"
 #include "../math/bounding_box.h"
+#include "../asset/fbom/fbom.h"
 
 #include <memory>
 #include <vector>
 
 namespace hyperion {
 
+class Renderer;
 class CoreEngine;
 class Camera;
 class Renderer;
 
 using Vertices_t = std::vector<Vertex>;
 
-class Renderable {
+class Renderable : public fbom::FBOMLoadable {
     friend class Renderer;
 public:
     enum RenderBucket {
-        RB_SKY = 0,
-        RB_OPAQUE = 1,
-        RB_TRANSPARENT = 2,
-        RB_PARTICLE = 3,
-        RB_SCREEN = 4,
-        RB_DEBUG = 5,
-        RB_BUFFER = 6
+        RB_SKY,
+        RB_OPAQUE,
+        RB_TRANSPARENT,
+        RB_PARTICLE,
+        RB_SCREEN,
+        RB_DEBUG,
+        RB_BUFFER,
+        // ...
+        RB_MAX
     };
 
-    Renderable(RenderBucket bucket = RB_OPAQUE);
+    Renderable(const fbom::FBOMType &loadable_type,
+        RenderBucket bucket = RB_OPAQUE);
+    Renderable(const Renderable &other) = delete;
+    Renderable &operator=(const Renderable &other) = delete;
     virtual ~Renderable() = default;
 
     inline RenderBucket GetRenderBucket() const { return m_bucket; }
@@ -44,10 +51,14 @@ public:
 
     virtual void Render(Renderer *renderer, Camera *cam) = 0;
 
+    virtual std::shared_ptr<Loadable> Clone() override;
+
 protected:
     RenderBucket m_bucket;
     std::shared_ptr<Shader> m_shader;
     BoundingBox m_aabb;
+
+    virtual std::shared_ptr<Renderable> CloneImpl() = 0;
 };
 
 } // namespace hyperion

@@ -8,7 +8,7 @@ namespace hyperion {
 ShadertoyShader::ShadertoyShader(const ShaderProperties &properties)
     : PostShader(properties)
 {
-    const std::string fs_path("res/shaders/filters/shadertoy/sky.frag");
+    const std::string fs_path("shaders/filters/shadertoy/sky.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,

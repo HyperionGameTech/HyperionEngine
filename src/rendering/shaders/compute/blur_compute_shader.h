@@ -6,7 +6,7 @@
 namespace hyperion {
 class BlurComputeShader : public ComputeShader {
 public:
-    BlurComputeShader(const ShaderProperties &properties, int width, int height, int length);
+    BlurComputeShader(const ShaderProperties &properties);
     virtual ~BlurComputeShader();
 };
 } // namespace hyperion

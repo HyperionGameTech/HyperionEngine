@@ -7,7 +7,7 @@ namespace hyperion {
 UIObjectShader::UIObjectShader(const ShaderProperties &properties)
     : Shader(properties)
 {
-    const std::string vs_path("res/shaders/ui/ui_object.vert");
+    const std::string vs_path("shaders/ui/ui_object.vert");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_VERTEX,
@@ -16,7 +16,7 @@ UIObjectShader::UIObjectShader(const ShaderProperties &properties)
         vs_path
     );
 
-    const std::string fs_path("res/shaders/ui/ui_object.frag");
+    const std::string fs_path("shaders/ui/ui_object.frag");
 
     AddSubShader(
         Shader::SubShaderType::SUBSHADER_FRAGMENT,
