@@ -10,6 +10,7 @@
 *.sln.docstates
 
 cmake-build-debug/**/*
+cmake-build-release/**/*
 
 build/**/*
 build_old/**/*

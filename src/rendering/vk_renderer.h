@@ -44,14 +44,18 @@ private:
 
 class VkRenderer {
     static bool CheckValidationLayerSupport(const std::vector<const char *> &requested_layers);
+    uint32_t    FindQueueFamily(VkPhysicalDevice _device);
 public:
     VkRenderer(SystemSDL &_system, const char *app_name, const char *engine_name);
     void SetupDebug();
-    VkDevice InitDevice(const VkPhysicalDevice &physical,
-                                    std::set<uint32_t> unique_queue_families,
-                                    const std::vector<const char *> &required_extensions);
+//    VkDevice InitDevice(const VkPhysicalDevice &physical,
+//                                    std::set<uint32_t> unique_queue_families,
+//                                    const std::vector<const char *> &required_extensions);
 
     void SetValidationLayers(std::vector<const char *> _layers);
+    void SetRendererDevice(const RendererDevice &_device);
+    std::vector<VkPhysicalDevice> EnumeratePhysicalDevices();
+    VkPhysicalDevice PickPhysicalDevice(std::vector<VkPhysicalDevice> _devices);
 
     void SetCurrentWindow(const SystemWindow &window);
     SystemWindow GetCurrentWindow();

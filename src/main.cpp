@@ -15,6 +15,8 @@
 #include "animation/skeleton_control.h"
 #include "math/bounding_box.h"
 
+#include "system/sdl_system.h"
+
 #include "rendering/probe/envmap/envmap_probe_control.h"
 
 /* Post */
@@ -684,6 +686,31 @@ public:
 
 int main()
 {
+    SystemSDL system;
+    SystemWindow window = SystemSDL::CreateWindow("Hyperion Engine", 1024, 768);
+    system.SetCurrentWindow(window);
+
+    SystemEvent event;
+
+    bool running = true;
+    while (running) {
+        while (SystemSDL::PollEvent(&event)) {
+            switch (event.GetType()) {
+                case SystemEventType::EVENT_SHUTDOWN:
+                    running = false;
+                    break;
+                case SystemEventType::EVENT_KEYDOWN:
+                    std::cout << "Keydown captured!\n";
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    return  0;
+
+
     // timing test
     /*{ // fbom
         using namespace std;

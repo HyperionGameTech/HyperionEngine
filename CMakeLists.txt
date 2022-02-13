@@ -20,6 +20,9 @@ find_package(Bullet REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
 
+find_package(Vulkan REQUIRED)
+find_package(SDL2 REQUIRED)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\" -g -O2 -fpermissive")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
@@ -31,15 +34,28 @@ include_directories(
     ${OPENGL_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
+    ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
+
+set(COMMON_LIBRARIES
+    ${CMAKE_THREADS_LIBS_INIT}
+    ${OPENAL_LIBRARY}
+    ${GLEW_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    ${Vulkan_LIBRARIES}
+    ${BULLET_LIBRARIES}
+    glfw
+    SDL2
+)
+
 if(APPLE)
-  target_link_libraries(${BUILD_NAME} ${CMAKE_THREAD_LIBS_INIT} ${OPENAL_LIBRARY} ${OPENGL_LIBRARIES} ${BULLET_LIBRARIES} GLEW glfw)
+  target_link_libraries(${BUILD_NAME} ${COMMON_LIBRARIES} glfw)
 elseif(MSVC)
-  target_link_libraries(${BUILD_NAME} ${CMAKE_THREAD_LIBS_INIT} ${OPENAL_LIBRARY} ${OPENGL_LIBRARIES} ${BULLET_LIBRARIES} ${GLEW_LIBRARIES} glfw)
+  target_link_libraries(${BUILD_NAME} ${COMMON_LIBRARIES} glfw)
 else()
-  target_link_libraries(${BUILD_NAME} ${CMAKE_THREAD_LIBS_INIT} ${OPENAL_LIBRARY} ${OPENGL_LIBRARIES} ${BULLET_LIBRARIES} GLEW glfw)
+  target_link_libraries(${BUILD_NAME} ${COMMON_LIBRARIES} glfw)
 endif()
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})

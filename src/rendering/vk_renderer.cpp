@@ -7,6 +7,7 @@
 #include "../system/sdl_system.h"
 
 #include <vector>
+#include <iostream>
 
 void RendererDevice::SetDevice(const VkDevice &_device) {
     this->device = _device;
@@ -142,23 +143,23 @@ uint32_t VkRenderer::FindQueueFamily(VkPhysicalDevice _device) {
         vkGetPhysicalDeviceSurfaceSupportKHR(_device, index, this->surface, &supports_presentation);
 
         if ((family.queueFlags & VK_QUEUE_GRAPHICS_BIT) && supports_presentation)
-            return i;
+            return index;
 
         index++;
     }
     return 0;
 }
 
-VkDevice VkRenderer::InitDevice(const VkPhysicalDevice &physical,
-                                std::set<uint32_t> unique_queue_families,
-                                const std::vector<const char *> &required_extensions)
-{
-    s
-}
+//VkDevice VkRenderer::InitDevice(const VkPhysicalDevice &physical,
+//                                std::set<uint32_t> unique_queue_families,
+//                                const std::vector<const char *> &required_extensions)
+//{
+//
+//}
 
-void VkRenderer::SetRendererDevice(const VkDevice &_device) {
-    this->
 
+void VkRenderer::SetRendererDevice(const RendererDevice &_device) {
+    this->device = _device;
 }
 
 VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _devices) {
@@ -167,8 +168,8 @@ VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _d
 
     // Check for a Discrete GPU with geometry shaders
     for (const auto &device : _devices) {
-        VkGetPhysicalDeviceProperties(deivce, &properties);
-        VkGetPhysicalDeviceFeatures(device, &features);
+        vkGetPhysicalDeviceProperties(device, &properties);
+        vkGetPhysicalDeviceFeatures(device, &features);
 
         // Check for discrete GPU
         if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader) {
@@ -177,7 +178,7 @@ VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _d
     }
     // No discrete GPU, but look for one with  at least geometry shaders
     for (const auto &device : _devices) {
-        VkGetPhysicalDeviceFeatures(device, &features);
+        vkGetPhysicalDeviceFeatures(device, &features);
         // Check for geometry shader
         if (features.geometryShader) {
             return device;
