@@ -16,6 +16,8 @@
 #include "math/bounding_box.h"
 
 #include "system/sdl_system.h"
+#include "system/debug.h"
+#include "rendering/vk_renderer.h"
 
 #include "rendering/probe/envmap/envmap_probe_control.h"
 
@@ -692,6 +694,13 @@ int main()
 
     SystemEvent event;
 
+    VkRenderer renderer(system, "Hyperion Vulkan Test", "HyperionEngine");
+
+    renderer.Initialize(true);
+    renderer.CreateSurface();
+
+    renderer.InitializeRendererDevice();
+
     bool running = true;
     while (running) {
         while (SystemSDL::PollEvent(&event)) {
@@ -700,7 +709,7 @@ int main()
                     running = false;
                     break;
                 case SystemEventType::EVENT_KEYDOWN:
-                    std::cout << "Keydown captured!\n";
+                    DebugLog(LogType::Info, "Keydown captured!");
                     break;
                 default:
                     break;

@@ -37,7 +37,7 @@ include_directories(
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
-add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
+add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS} src/system/debug.cpp src/system/debug.h)
 
 
 set(COMMON_LIBRARIES

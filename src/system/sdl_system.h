@@ -5,6 +5,7 @@
 #ifndef HYPERION_SDL_SYSTEM_H
 #define HYPERION_SDL_SYSTEM_H
 
+#include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL.h>
 #include <vector>
 #include <string>
@@ -30,7 +31,9 @@ class SystemWindow {
 public:
     SystemWindow(const char *_title, int _width, int _height);
     void Initialize();
-    SDL_Window *GetSDLWindow();
+    SDL_Window *GetInternalWindow();
+
+    VkSurfaceKHR CreateVulkanSurface(VkInstance instance);
     ~SystemWindow();
 
     const char *title;
@@ -45,7 +48,7 @@ public:
     static SystemWindow CreateWindow(const char *title, int width, int height);
     static int          PollEvent(SystemEvent *result);
     void SetCurrentWindow(const SystemWindow &window);
-    SystemWindow GetCurrentWindow();
+    SystemWindow *GetCurrentWindow();
 
     std::vector<const char *> GetVulkanExtensionNames();
     ~SystemSDL();

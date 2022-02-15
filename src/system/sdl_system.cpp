@@ -37,8 +37,17 @@ void SystemWindow::Initialize() {
     }
 }
 
-SDL_Window *SystemWindow::GetSDLWindow() {
+SDL_Window *SystemWindow::GetInternalWindow() {
     return this->window;
+}
+
+VkSurfaceKHR SystemWindow::CreateVulkanSurface(VkInstance instance) {
+    VkSurfaceKHR surface;
+    int result = SDL_Vulkan_CreateSurface(this->GetInternalWindow(), instance, &surface);
+    if (result != SDL_TRUE) {
+        throw std::runtime_error("Could not create Vulkan Surface!");
+    }
+    return surface;
 }
 
 SystemWindow::~SystemWindow() {
@@ -64,13 +73,13 @@ int SystemSDL::PollEvent(SystemEvent *result) {
     return SDL_PollEvent(result->GetInternalEvent());
 }
 
-SystemWindow SystemSDL::GetCurrentWindow() {
-    return this->current_window;
+SystemWindow *SystemSDL::GetCurrentWindow() {
+    return &this->current_window;
 }
 
 std::vector<const char *> SystemSDL::GetVulkanExtensionNames() {
     uint32_t vk_ext_count = 0;
-    auto *window = this->current_window.GetSDLWindow();
+    SDL_Window *window = this->current_window.GetInternalWindow();
 
     SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, nullptr);
     std::vector<const char *> extensions(vk_ext_count);
