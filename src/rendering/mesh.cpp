@@ -169,7 +169,7 @@ void Mesh::SetVerticesFromFloatBuffer(const std::vector<float> &buffer)
 {
     CalculateVertexSize();
 
-    ex_assert_msg(buffer.size() % vertex_size == 0, "vertex size does not evenly divide into buffer size -- mismatch!");
+    AssertThrowMsg(buffer.size() % vertex_size == 0, "vertex size does not evenly divide into buffer size -- mismatch!");
 
     size_t num_vertices = buffer.size() / vertex_size;
 
@@ -320,7 +320,7 @@ void Mesh::Render(Renderer *renderer, Camera *cam)
         if (buffer.empty()) {
             is_uploaded = true;
 
-            soft_assert_msg(false, "CreateBuffer() returned no data");
+            AssertSoftMsg(false, "CreateBuffer() returned no data");
         }
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);

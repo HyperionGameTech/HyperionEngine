@@ -145,7 +145,7 @@ void TerrainControl::AddChunk(int x, int z)
 
             std::shared_ptr<TerrainChunk> new_chunk = NewChunk(height_info);
 
-            ex_assert(new_chunk != nullptr);
+            AssertThrow(new_chunk != nullptr);
 
 #if TERRAIN_MULTITHREADED
             terrain_mtx.lock();

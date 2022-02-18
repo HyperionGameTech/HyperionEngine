@@ -18,17 +18,17 @@ ComputeShader::~ComputeShader()
 
 void ComputeShader::ApplyMaterial(const Material &mat)
 {
-    hard_assert_msg(false, "Compute shader does not implement ApplyMaterial");
+    AssertExitMsg(false, "Compute shader does not implement ApplyMaterial");
 }
 
 void ComputeShader::ApplyTransforms(const Transform &transform, Camera *camera)
 {
-    hard_assert_msg(false, "Compute shader does not implement ApplyTransforms");
+    AssertExitMsg(false, "Compute shader does not implement ApplyTransforms");
 }
 
 void ComputeShader::Dispatch(int width, int height, int length)
 {
-    ex_assert(GetId() != 0);
+    AssertThrow(GetId() != 0);
 
     if (m_work_group_size == nullptr) {
         GetWorkGroupSize();
@@ -39,7 +39,7 @@ void ComputeShader::Dispatch(int width, int height, int length)
 
 void ComputeShader::GetWorkGroupSize()
 {
-    hard_assert(m_work_group_size == nullptr);
+    AssertExit(m_work_group_size == nullptr);
 
     m_work_group_size = new int[3];
 

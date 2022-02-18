@@ -175,7 +175,7 @@ public:
             size_t num_vertices = float_buffer_size / out_mesh->vertex_size;
 
             // sanity
-            ex_assert_msg(float_buffer_size % out_mesh->vertex_size == 0, "vertex_size does not evenly divide into float buffer size");
+            AssertThrowMsg(float_buffer_size % out_mesh->vertex_size == 0, "vertex_size does not evenly divide into float buffer size");
 
             std::vector<float> vertex_buffer;
             vertex_buffer.resize(float_buffer_size);

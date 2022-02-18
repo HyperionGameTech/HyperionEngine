@@ -114,7 +114,7 @@ void Framebuffer2D::Use()
 
 void Framebuffer2D::Store(FramebufferAttachment attachment, std::shared_ptr<Texture> &texture)
 {
-    soft_assert(m_attachments[AttachmentToOrdinal(attachment)] != nullptr);
+    AssertSoft(m_attachments[AttachmentToOrdinal(attachment)] != nullptr);
 
     // What happens for depth tex?
     glReadBuffer(GL_COLOR_ATTACHMENT0 + AttachmentToOrdinal(attachment));

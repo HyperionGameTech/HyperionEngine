@@ -3,6 +3,7 @@
 //
 
 #include "sdl_system.h"
+#include "debug.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
@@ -18,6 +19,7 @@ SystemEventType SystemEvent::GetType() {
 }
 
 SystemWindow::SystemWindow(const char *_title, int _width, int _height) {
+    this->window = nullptr;
     this->title = _title;
     this->width = _width;
     this->height = _height;
@@ -26,15 +28,17 @@ SystemWindow::SystemWindow(const char *_title, int _width, int _height) {
 void SystemWindow::Initialize() {
     this->window = SDL_CreateWindow(
             this->title,
-            SDL_WINDOWPOS_UNDEFINED,
-            SDL_WINDOWPOS_UNDEFINED,
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
             this->width, this->height,
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
     );
+    std::cout << "win1 : " << this->window << "\n";
     if (this->window == nullptr) {
         // TODO: change this to use error logging
-        throw std::runtime_error("Error creating SDL Window!");
+        SystemSDL::ThrowError();
     }
+    
 }
 
 SDL_Window *SystemWindow::GetInternalWindow() {
@@ -45,7 +49,7 @@ VkSurfaceKHR SystemWindow::CreateVulkanSurface(VkInstance instance) {
     VkSurfaceKHR surface;
     int result = SDL_Vulkan_CreateSurface(this->GetInternalWindow(), instance, &surface);
     if (result != SDL_TRUE) {
-        throw std::runtime_error("Could not create Vulkan Surface!");
+        SystemSDL::ThrowError();
     }
     return surface;
 }
@@ -59,13 +63,13 @@ SystemSDL::SystemSDL() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 }
 
-void SystemSDL::SetCurrentWindow(const SystemWindow &window) {
+void SystemSDL::SetCurrentWindow(SystemWindow *window) {
     this->current_window = window;
 }
 
-SystemWindow SystemSDL::CreateWindow(const char *title, int width, int height) {
-    SystemWindow window(title, width, height);
-    window.Initialize();
+SystemWindow *SystemSDL::CreateWindow(const char *title, int width, int height) {
+    SystemWindow *window = new SystemWindow(title, width, height);
+    window->Initialize();
     return window;
 }
 
@@ -74,20 +78,33 @@ int SystemSDL::PollEvent(SystemEvent *result) {
 }
 
 SystemWindow *SystemSDL::GetCurrentWindow() {
-    return &this->current_window;
+    return this->current_window;
 }
 
 std::vector<const char *> SystemSDL::GetVulkanExtensionNames() {
     uint32_t vk_ext_count = 0;
-    SDL_Window *window = this->current_window.GetInternalWindow();
+    SDL_Window *window = this->current_window->GetInternalWindow();
 
-    SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, nullptr);
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, nullptr)) {
+        ThrowError();
+    }
     std::vector<const char *> extensions(vk_ext_count);
-    SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, extensions.data());
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, extensions.data())) {
+        ThrowError();
+    }
 
     return extensions;
 }
 
 SystemSDL::~SystemSDL() {
     SDL_Quit();
+}
+
+void SystemSDL::ThrowError()
+{
+    std::string message = SDL_GetError();
+
+    DebugLog(LogType::Error, "SDL Error: %s", message.c_str());
+
+    throw std::runtime_error(message);
 }

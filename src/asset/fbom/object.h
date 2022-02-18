@@ -74,7 +74,7 @@ public:
 
     inline void SetProperty(const std::string &key, const FBOMType &type, const void *bytes)
     {
-        ex_assert_msg(!type.IsUnbouned(), "Cannot determine size of an unbounded type, please manually specify size");
+        AssertThrowMsg(!type.IsUnbouned(), "Cannot determine size of an unbounded type, please manually specify size");
 
         SetProperty(key, type, type.size, bytes);
     }
@@ -95,13 +95,13 @@ public:
         hc.Add(m_object_type.GetHashCode());
 
         for (const auto &it : nodes) {
-            soft_assert_continue(it != nullptr);
+            AssertContinue(it != nullptr);
 
             hc.Add(it->GetHashCode());
         }
 
         for (const auto &it : properties) {
-            soft_assert_continue(it.second != nullptr);
+            AssertContinue(it.second != nullptr);
 
             hc.Add(it.first);
             hc.Add(it.second->GetHashCode());

@@ -73,7 +73,7 @@ void FBOMData::ReadBytes(size_t n, unsigned char *out) const
 void FBOMData::SetBytes(size_t n, const unsigned char *data)
 {
     if (!type.IsUnbouned()) {
-        ex_assert_msg(n <= type.size, "Attempt to insert data past size max size of object");
+        AssertThrowMsg(n <= type.size, "Attempt to insert data past size max size of object");
     }
 
     if (raw_data != nullptr && n > data_size) {

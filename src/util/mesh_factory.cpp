@@ -307,7 +307,7 @@ std::shared_ptr<Mesh> MeshFactory::CreateSphere(float radius, int num_slices, in
 
 std::vector<RenderableMesh_t> MeshFactory::GatherMeshes(Entity *entity)
 {
-    ex_assert(entity != nullptr);
+    AssertThrow(entity != nullptr);
 
     entity->UpdateTransform();
 

@@ -91,7 +91,7 @@ NoiseGenerator *NoiseFactory::Capture(NoiseGenerationType type, Seed_t seed)
             ref.noise = new WorleyNoiseGenerator(seed);
             break;
         default:
-            ex_assert_msg(false, "Unsupported noise type");
+            AssertThrowMsg(false, "Unsupported noise type");
         }
 
         ref.uses = 1;
@@ -108,7 +108,7 @@ NoiseGenerator *NoiseFactory::Capture(NoiseGenerationType type, Seed_t seed)
 
 void NoiseFactory::Release(NoiseGenerator *noise)
 {
-    ex_assert(noise != nullptr);
+    AssertThrow(noise != nullptr);
 
     Release(noise->m_type, noise->m_seed);
 }
@@ -117,7 +117,7 @@ void NoiseFactory::Release(NoiseGenerationType type, Seed_t seed)
 {
     auto it = m_noise_generators.find(std::make_pair(type, seed));
 
-    hard_assert(it != m_noise_generators.end());
+    AssertExit(it != m_noise_generators.end());
 
     if (!(--it->second.uses)) {
         delete it->second.noise;

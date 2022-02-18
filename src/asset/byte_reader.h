@@ -17,7 +17,7 @@ public:
             return;
         }
 
-        ex_assert(Position() + std::streamoff(size) <= Max());
+        AssertThrow(Position() + std::streamoff(size) <= Max());
 
         ReadBytes(reinterpret_cast<char*>(ptr), size);
     }

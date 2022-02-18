@@ -80,7 +80,7 @@ struct Bucket {
     std::size_t GetIndex(size_t at)
     {
         const auto it = hash_to_item_index.find(at);
-        ex_assert(it != hash_to_item_index.end());
+        AssertThrow(it != hash_to_item_index.end());
 
         return it->second;
     }
@@ -95,7 +95,7 @@ struct Bucket {
         }
 
         const size_t index = it->second;
-        ex_assert(index < items.size());
+        AssertThrow(index < items.size());
 
         return &items[index];
     }
@@ -103,10 +103,10 @@ struct Bucket {
     BucketItem &GetItem(size_t at)
     {
         const auto it = hash_to_item_index.find(at);
-        ex_assert(it != hash_to_item_index.end());
+        AssertThrow(it != hash_to_item_index.end());
 
         const size_t index = it->second;
-        ex_assert(index < items.size());
+        AssertThrow(index < items.size());
 
         return items[index];
     }
@@ -114,9 +114,9 @@ struct Bucket {
     void AddItem(const BucketItem &bucket_item)
     {
         const auto it = hash_to_item_index.find(bucket_item.hash_code);
-        ex_assert(it == hash_to_item_index.end());
+        AssertThrow(it == hash_to_item_index.end());
 
-        soft_assert(bucket_item.renderable != nullptr);
+        AssertSoft(bucket_item.renderable != nullptr);
 
         // For optimization: try to find an existing slot that
         // where the same shader is used previously or next
@@ -136,7 +136,7 @@ struct Bucket {
                 slot_index = i;
                 slot_found = true;
 
-                soft_assert_break_msg(bucket_item.renderable->GetShader() != nullptr, "No shader set, using first found inactive slot");
+                AssertBreakMsg(bucket_item.renderable->GetShader() != nullptr, "No shader set, using first found inactive slot");
 
                 continue;
             }
@@ -152,7 +152,7 @@ struct Bucket {
             // next one is empty, so we compare shaders for this,
             // checking if we should insert the item into the next slot
 
-            hard_assert(items[i].renderable != nullptr);
+            AssertExit(items[i].renderable != nullptr);
 
             if (items[i].renderable->GetShader() != nullptr) {
                 // doing ID check for now... not sure how portable it will be
@@ -183,10 +183,10 @@ struct Bucket {
     void SetItem(size_t at, const BucketItem &bucket_item)
     {
         const auto it = hash_to_item_index.find(at);
-        ex_assert(it != hash_to_item_index.end());
+        AssertThrow(it != hash_to_item_index.end());
 
         const size_t index = it->second;
-        ex_assert(index < items.size());
+        AssertThrow(index < items.size());
 
         items[index] = bucket_item;
 
@@ -199,10 +199,10 @@ struct Bucket {
     void RemoveItem(size_t at)
     {
         const auto it = hash_to_item_index.find(at);
-        ex_assert(it != hash_to_item_index.end());
+        AssertThrow(it != hash_to_item_index.end());
 
         const size_t index = it->second;
-        ex_assert(index < items.size());
+        AssertThrow(index < items.size());
 
         hash_to_item_index.erase(it);
         //items.erase(items.begin() + index);

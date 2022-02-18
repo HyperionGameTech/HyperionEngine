@@ -36,7 +36,7 @@ void PostProcessing::RemoveFilter(const std::string &tag)
 
 void PostProcessing::Render(Camera *cam, Framebuffer2D *fbo)
 {
-    hard_assert(!m_filters.empty());
+    AssertExit(!m_filters.empty());
 
     if (!m_chained_textures_initialized) {
         for (int i = 0; i < m_chained_textures.size(); i++) {

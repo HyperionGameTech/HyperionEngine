@@ -125,7 +125,7 @@ public:
     inline size_t NumControls() const { return m_controls.size(); }
     inline std::shared_ptr<EntityControl> GetControl(size_t index) const
     {
-        soft_assert_return(index < NumControls(), nullptr);
+        AssertReturn(index < NumControls(), nullptr);
 
         return m_controls[index];
     }
@@ -180,13 +180,13 @@ public:
         out_entity->SetLocalRotation(rotation);
 
         for (auto &node : in->nodes) {
-            ex_assert(node->deserialized_object != nullptr);
+            AssertThrow(node->deserialized_object != nullptr);
 
             FBOMDeserialized child = node->deserialized_object;
 
             if (child->GetLoadableType().IsOrExtends("ENTITY")) {
                 auto child_entity = std::dynamic_pointer_cast<Entity>(child);
-                ex_assert(child_entity != nullptr);
+                AssertThrow(child_entity != nullptr);
 
                 out_entity->AddChild(child_entity);
 
@@ -195,7 +195,7 @@ public:
 
             if (child->GetLoadableType().IsOrExtends("CONTROL")) {
                 auto control = std::dynamic_pointer_cast<EntityControl>(child);
-                ex_assert(control != nullptr);
+                AssertThrow(control != nullptr);
 
                 out_entity->AddControl(control);
 
@@ -204,7 +204,7 @@ public:
 
             if (child->GetLoadableType().IsOrExtends("RENDERABLE")) {
                 auto renderable = std::dynamic_pointer_cast<Renderable>(child);
-                ex_assert(renderable != nullptr);
+                AssertThrow(renderable != nullptr);
 
                 out_entity->SetRenderable(renderable);
 
@@ -213,7 +213,7 @@ public:
 
             if (child->GetLoadableType().IsOrExtends("MATERIAL")) {
                 auto material = std::dynamic_pointer_cast<Material>(child);
-                ex_assert(material != nullptr);
+                AssertThrow(material != nullptr);
 
                 out_entity->SetMaterial(*material);
 

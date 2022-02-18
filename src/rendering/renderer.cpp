@@ -100,7 +100,7 @@ void Renderer::FindRenderables(Camera *cam, Entity *top, bool frustum_culled, bo
     if (top->GetRenderable() != nullptr) { // NOTE: this currently doesnt handle renderable being set to null.
         const Renderable::RenderBucket new_bucket_index = top->GetRenderable()->GetRenderBucket();
 
-        hard_assert(new_bucket_index < sizeof(m_buckets) / sizeof(Bucket));
+        AssertExit(new_bucket_index < sizeof(m_buckets) / sizeof(Bucket));
 
         new_bucket = &m_buckets[new_bucket_index];
     
@@ -116,7 +116,7 @@ void Renderer::FindRenderables(Camera *cam, Entity *top, bool frustum_culled, bo
                 if (item_in_existing_bucket != m_hash_to_bucket.end()) {
                     const Renderable::RenderBucket previous_bucket_index = item_in_existing_bucket->second;
 
-                    hard_assert(previous_bucket_index < sizeof(m_buckets) / sizeof(Bucket));
+                    AssertExit(previous_bucket_index < sizeof(m_buckets) / sizeof(Bucket));
 
                     // remove from prev bucket
                     previous_bucket = &m_buckets[previous_bucket_index];

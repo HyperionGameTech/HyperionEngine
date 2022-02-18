@@ -4,6 +4,7 @@
 
 #include "debug.h"
 #include <cstdio>
+#include <cstdarg>
 
 /* Using a FILE* is definitely less than ideal,
  * But it's the easiest way to pass in a file and get

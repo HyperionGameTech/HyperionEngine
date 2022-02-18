@@ -85,7 +85,7 @@ struct FBOMData {
 
     inline FBOMResult ReadStruct(size_t size, unsigned char *out) const
     {
-        ex_assert(out != nullptr);
+        AssertThrow(out != nullptr);
 
         FBOM_ASSERT(IsStruct(size), std::string("Type mismatch (object of type ") + type.ToString() + " was asked for struct [size: " + std::to_string(size) + "] value)");
 
@@ -108,7 +108,7 @@ struct FBOMData {
     // count is number of ELEMENTS
     inline FBOMResult ReadArrayElements(const FBOMType &held_type, size_t num_items, unsigned char *out) const
     {
-        ex_assert(out != nullptr);
+        AssertThrow(out != nullptr);
 
         FBOM_ASSERT(IsArray(), std::string("Type mismatch (object of type ") + type.ToString() + " was asked for array value)");
 

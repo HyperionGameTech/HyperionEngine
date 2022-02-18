@@ -183,7 +183,6 @@ public:
     void Initialize(bool load_debug_layers=false);
     void CreateSurface();
     void SetValidationLayers(std::vector<const char *> _layers);
-    void SetRendererDevice(RendererDevice *_device);
     RendererDevice *GetRendererDevice();
     RendererDevice *InitializeRendererDevice(VkPhysicalDevice _physical_device=nullptr);
     void InitializeSwapchain();

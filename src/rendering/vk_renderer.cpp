@@ -659,6 +659,7 @@ VkRenderer::VkRenderer(SystemSDL &_system, const char *app_name, const char *eng
     this->system = _system;
     this->app_name = app_name;
     this->engine_name = engine_name;
+    this->device = nullptr;
 }
 
 void VkRenderer::Initialize(bool load_debug_layers) {
@@ -717,10 +718,12 @@ VkRenderer::~VkRenderer() {
 void VkRenderer::SetQueueFamilies(std::set<uint32_t> _queue_families) {
     this->queue_families = _queue_families;
 }
-
-void VkRenderer::SetRendererDevice(RendererDevice *_device) {
-    this->device = _device;
-}
+//VkDevice VkRenderer::InitDevice(const VkPhysicalDevice &physical,
+//                                std::set<uint32_t> unique_queue_families,
+//                          <      const std::vector<const char *> &required_extensions)
+//{
+//
+//}
 
 RendererDevice *VkRenderer::GetRendererDevice() {
     return this->device;
@@ -741,6 +744,7 @@ VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _d
         vkGetPhysicalDeviceFeatures(_device, &features);
 
         if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.geometryShader) {
+            std::cout << "select device " << properties.deviceName << "\n";
             return _device;
         }
     }
@@ -761,6 +765,9 @@ RendererDevice *VkRenderer::InitializeRendererDevice(VkPhysicalDevice physical_d
         std::vector<VkPhysicalDevice> physical_devices = this->EnumeratePhysicalDevices();
         physical_device = this->PickPhysicalDevice(physical_devices);
     }
+
+    AssertExit(this->device == nullptr);
+
     this->device = new RendererDevice();
 
     this->device->SetRequiredExtensions(this->requested_device_extensions);

@@ -33,7 +33,7 @@ public:
     // convert from ordinal (0-5) into power-of-two for use as bit flags
     static inline FramebufferAttachment OrdinalToAttachment(uint64_t ordinal)
     {
-        hard_assert(ordinal < FRAMEBUFFER_MAX_ATTACHMENTS);
+        AssertExit(ordinal < FRAMEBUFFER_MAX_ATTACHMENTS);
 
         return FramebufferAttachment(1 << ordinal);
     }

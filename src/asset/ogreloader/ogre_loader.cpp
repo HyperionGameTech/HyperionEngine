@@ -109,7 +109,7 @@ public:
             float y = std::stof(attributes.at("v"));
             texcoords.push_back(Vector2(x, y));
         } else if (name == "face") {
-            ex_assert(attributes.size() == 3);
+            AssertThrow(attributes.size() == 3);
 
             if (!has_submeshes) {
                 for (auto &&it : attributes) {
