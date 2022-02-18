@@ -10,6 +10,7 @@
 #include <vector>
 #include <iostream>
 #include <optional>
+#include <cstring>
 
 
 RendererQueue::RendererQueue() {
@@ -24,22 +25,37 @@ void RendererQueue::GetQueueFromDevice(RendererDevice device, uint32_t queue_fam
 void RendererDevice::SetDevice(const VkDevice &_device) {
     this->device = _device;
 }
-
 void RendererDevice::SetPhysicalDevice(const VkPhysicalDevice &_physical) {
     this->physical = _physical;
+}
+void RendererDevice::SetRenderSurface(const VkSurfaceKHR &_surface) {
+    this->surface = _surface;
+}
+void RendererDevice::SetRequiredExtensions(const std::vector<const char *> &_extensions) {
+    this->required_extensions = _extensions;
 }
 
 VkDevice RendererDevice::GetDevice() {
     return this->device;
 }
-
 VkPhysicalDevice RendererDevice::GetPhysicalDevice() {
     return this->physical;
+}
+VkSurfaceKHR RendererDevice::GetRenderSurface() {
+    if (this->surface == nullptr) {
+        DebugLog(LogType::Fatal, "Device render surface is null!\n");
+        throw std::runtime_error("Device render surface not set");
+    }
+    return this->surface;
+}
+std::vector<const char *> RendererDevice::GetRequiredExtensions() {
+    return this->required_extensions;
 }
 
 RendererDevice::RendererDevice() {
     this->device = nullptr;
     this->physical = nullptr;
+    this->surface = nullptr;
 }
 
 RendererDevice::~RendererDevice() {
@@ -48,6 +64,36 @@ RendererDevice::~RendererDevice() {
      * all the queues on our device are stopped. */
     vkDeviceWaitIdle(this->device);
     vkDestroyDevice(this->device, nullptr);
+}
+
+QueueFamilyIndices RendererDevice::FindQueueFamilies() {
+    VkPhysicalDevice _physical_device = this->GetPhysicalDevice();
+    QueueFamilyIndices indices;
+
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, nullptr);
+    std::vector<VkQueueFamilyProperties> families(queue_family_count);
+    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, families.data());
+
+    int index = 0;
+    VkBool32 supports_presentation = false;
+    for (const auto &queue_family : families) {
+        if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            indices.graphics_family = index;
+
+        /* Some devices appear only to compute and are not graphical,
+         * so we need to make sure it supports presenting to the user. */
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device, index, this->GetRenderSurface(), &supports_presentation);
+        if (supports_presentation)
+            indices.present_family = index;
+
+        /* Everything was found, return the indices */
+        if (indices.is_complete())
+            break;
+
+        index++;
+    }
+    return indices;
 }
 
 VkPhysicalDeviceFeatures RendererDevice::GetDeviceFeatures() {
@@ -64,27 +110,74 @@ std::vector<VkExtensionProperties> RendererDevice::GetSupportedExtensions() {
     return supported_extensions;
 }
 
-std::vector<VkExtensionProperties> RendererDevice::CheckExtensionSupport(std::vector<const char *> required_extensions) {
-    auto supported = this->GetSupportedExtensions();
-    std::vector<VkExtensionProperties> unsupported_extensions;
+std::vector<const char *> RendererDevice::CheckExtensionSupport(std::vector<const char *> required_extensions) {
+    auto extensions_supported = this->GetSupportedExtensions();
+    std::vector<const char *> unsupported_extensions = required_extensions;
 
-    for (auto &required_ext_name : required_extensions) {
+    for (const char *required_ext_name : required_extensions) {
         /* For each extension required, check */
-        auto it = std::find_if(
-                supported.begin(),
-                supported.end(),
-                [required_ext_name] (VkExtensionProperties &property) {
-                    return (property.extensionName == required_ext_name);
-                }
-        );
-        if (it != supported.end()) {
-            unsupported_extensions.push_back(*it);
+        for (auto &supported : extensions_supported) {
+            if (!strcmp(supported.extensionName, required_ext_name)) {
+                unsupported_extensions.erase(std::find(unsupported_extensions.begin(), unsupported_extensions.end(), required_ext_name));
+            }
         }
     }
     return unsupported_extensions;
 }
+std::vector<const char *> RendererDevice::CheckExtensionSupport() {
+    return this->CheckExtensionSupport(this->GetRequiredExtensions());
+}
+
+SwapchainSupportDetails RendererDevice::QuerySwapchainSupport() {
+    SwapchainSupportDetails details;
+    VkPhysicalDevice _physical = this->GetPhysicalDevice();
+    VkSurfaceKHR     _surface  = this->GetRenderSurface();
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_physical, _surface, &details.capabilities);
+    uint32_t count = 0;
+    /* Get device surface formats */
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical, _surface, &count, nullptr);
+    std::vector<VkSurfaceFormatKHR> surface_formats(count);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(_physical, _surface, &count, surface_formats.data());
+    if (count == 0)
+        DebugLog(LogType::Warn, "No surface formats available!\n");
+
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_physical, _surface, &count, nullptr);
+    std::vector<VkPresentModeKHR> present_modes(count);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(_physical, _surface, &count, present_modes.data());
+    if (count == 0)
+        DebugLog(LogType::Warn, "No present modes available!\n");
+
+    details.formats = surface_formats;
+    details.present_modes = present_modes;
+
+    return details;
+}
+
+bool RendererDevice::CheckDeviceSuitable() {
+    QueueFamilyIndices indices = this->FindQueueFamilies();
+    std::vector<const char *> unsupported_extensions = this->CheckExtensionSupport();
+    if (!unsupported_extensions.empty()) {
+        DebugLog(LogType::Warn, "--- Unsupported Extensions ---\n");
+        for (const auto &extension : unsupported_extensions) {
+            DebugLog(LogType::Warn, "\t%s\n", extension);
+        }
+        DebugLog(LogType::Error, "Vulkan: Device does not support required extensions\n");
+        /* TODO: try different device(s) before exploding  */
+        throw std::runtime_error("Device does not support required extensions");
+    }
+    bool extensions_available = unsupported_extensions.empty();
+
+    SwapchainSupportDetails swapchain_support = this->QuerySwapchainSupport();
+    bool swapchains_available = (!swapchain_support.formats.empty() && !swapchain_support.present_modes.empty());
+
+    return (indices.is_complete() && extensions_available && swapchains_available);
+}
+
 
 VkDevice RendererDevice::CreateLogicalDevice(const std::set<uint32_t> &required_queue_families, const std::vector<const char *> &required_extensions) {
+    this->SetRequiredExtensions(required_extensions);
+
     std::vector<VkDeviceQueueCreateInfo> queue_create_info_vec;
     const float priorities[] = { 1.0f };
     // for each queue family(for separate threads) we add them to
@@ -98,17 +191,9 @@ VkDevice RendererDevice::CreateLogicalDevice(const std::set<uint32_t> &required_
         queue_create_info_vec.push_back(queue_info);
     }
 
-    auto unsupported_extensions = this->CheckExtensionSupport(required_extensions);
-    if (!unsupported_extensions.empty()) {
-        DebugLog(LogType::Warn, "--- Unsupported Extensions ---\n");
-        for (const auto &extension : unsupported_extensions) {
-            DebugLog(LogType::Warn, "\t%s (spec-ver: %d)\n", extension.extensionName, extension.specVersion);
-        }
-        DebugLog(LogType::Error, "Vulkan: Device does not support required extensions\n");
-        throw std::runtime_error("Device does not support required extensions");
-    }
-    else {
-        DebugLog(LogType::Info, "Vulkan: loaded %d device extension(s)\n", required_extensions.size());
+    if (!this->CheckDeviceSuitable()) {
+        DebugLog(LogType::Error, "Device not suitable!\n");
+        throw std::runtime_error("Device not suitable");
     }
 
     VkDeviceCreateInfo create_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
@@ -137,6 +222,145 @@ VkQueue RendererDevice::GetQueue(uint32_t queue_family_index, uint32_t queue_ind
     VkQueue queue;
     vkGetDeviceQueue(this->GetDevice(), queue_family_index, queue_index, &queue);
     return queue;
+}
+
+RendererSwapchain::RendererSwapchain(RendererDevice *_device, const SwapchainSupportDetails &_details) {
+    this->swapchain = nullptr;
+    this->renderer_device = _device;
+    this->support_details = _details;
+}
+
+VkSurfaceFormatKHR RendererSwapchain::ChooseSurfaceFormat() {
+    for (const auto &format: this->support_details.formats) {
+        if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+            return format;
+        }
+    }
+    DebugLog(LogType::Warn, "Swapchain format sRGB is not supported, going with defaults...\n");
+    return this->support_details.formats[0];
+}
+
+VkPresentModeKHR RendererSwapchain::ChoosePresentMode() {
+    /* TODO: add more presentation modes in the future */
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D RendererSwapchain::ChooseSwapchainExtent() {
+    return this->support_details.capabilities.currentExtent;
+}
+
+void RendererSwapchain::RetrieveImageHandles() {
+    uint32_t image_count = 0;
+    /* Query for the size, as we will need to create swap chains with more images
+     * in the future for more complex applications. */
+    vkGetSwapchainImagesKHR(this->renderer_device->GetDevice(), this->swapchain, &image_count, nullptr);
+    this->images.resize(image_count);
+    vkGetSwapchainImagesKHR(this->renderer_device->GetDevice(), this->swapchain, &image_count, this->images.data());
+    DebugLog(LogType::Info, "Retrieved Swapchain images\n");
+}
+
+void RendererSwapchain::CreateImageView(size_t index, VkImage *swapchain_image) {
+    VkImageViewCreateInfo create_info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    create_info.image = (*swapchain_image);
+    create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    create_info.format   = this->image_format;
+    /* Components; we'll just stick to the default mapping for now. */
+    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+    create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    create_info.subresourceRange.baseMipLevel = 0;
+    create_info.subresourceRange.levelCount = 1;
+    create_info.subresourceRange.baseArrayLayer = 0;
+    create_info.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(this->renderer_device->GetDevice(), &create_info, nullptr, &this->image_views[index]) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Could not create swapchain image views!\n");
+        throw std::runtime_error("Could not create image views");
+    }
+}
+
+void RendererSwapchain::CreateImageViews() {
+    this->image_views.resize(this->images.size());
+    for (size_t i = 0; i < this->images.size(); i++) {
+        this->CreateImageView(i, &this->images[i]);
+    }
+}
+
+void RendererSwapchain::DestroyImageViews() {
+    for (auto view : this->image_views) {
+        vkDestroyImageView(this->renderer_device->GetDevice(), view, nullptr);
+    }
+}
+
+void RendererSwapchain::Create(const VkSurfaceKHR &surface, QueueFamilyIndices qf_indices) {
+    this->surface_format = this->ChooseSurfaceFormat();
+    this->present_mode   = this->ChoosePresentMode();
+    this->extent         = this->ChooseSwapchainExtent();
+    this->image_format   = this->surface_format.format;
+
+    uint32_t image_count = this->support_details.capabilities.minImageCount + 1;
+
+    VkSwapchainCreateInfoKHR create_info{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+    create_info.surface = surface;
+    create_info.minImageCount = image_count;
+    create_info.imageFormat = surface_format.format;
+    create_info.imageColorSpace = surface_format.colorSpace;
+    create_info.imageExtent     = extent;
+    create_info.imageArrayLayers = 1; /* This is always 1 unless we make a stereoscopic/VR application */
+    create_info.imageUsage       = this->image_usage_flags;
+
+    /* Graphics computations and presentation are done on separate hardware */
+    if (qf_indices.graphics_family != qf_indices.present_family) {
+        DebugLog(LogType::Info, "Swapchain sharing mode set to Concurrent!\n");
+        create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        create_info.queueFamilyIndexCount = 2; /* Two family indices(one for each process) */
+        const uint32_t families[] = {qf_indices.graphics_family.value(), qf_indices.present_family.value()};
+        create_info.pQueueFamilyIndices = families;
+    }
+    /* Computations and presentation are done on same hardware(most scenarios) */
+    else {
+        DebugLog(LogType::Info, "Swapchain sharing mode set to Exclusive!\n");
+        create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        create_info.queueFamilyIndexCount = 0;       /* Optional */
+        create_info.pQueueFamilyIndices   = nullptr; /* Optional */
+    }
+    /* For transformations such as rotations, etc. */
+    create_info.preTransform = this->support_details.capabilities.currentTransform;
+    /* This can be used to blend with other windows in the windowing system, but we
+     * simply leave it opaque.*/
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.presentMode = present_mode;
+    create_info.clipped = VK_TRUE;
+    create_info.oldSwapchain = VK_NULL_HANDLE;
+
+    if (vkCreateSwapchainKHR(this->renderer_device->GetDevice(), &create_info, nullptr, &this->swapchain) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Failed to create Vulkan swapchain!\n");
+        throw std::runtime_error("Failed to create swapchain");
+    }
+    DebugLog(LogType::Info, "Created Swapchain!\n");
+    this->RetrieveImageHandles();
+    this->CreateImageViews();
+}
+
+RendererSwapchain::~RendererSwapchain() {
+    this->DestroyImageViews();
+    if (this->swapchain != nullptr)
+        vkDestroySwapchainKHR(this->renderer_device->GetDevice(), this->swapchain, nullptr);
+}
+
+void RendererShader::AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size) {
+    VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    create_info.codeSize = code_size;
+    create_info.pCode    = code;
+    VkShaderModule module;
+    if (vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &module) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Could not create Vulkan shader module!\n");
+        return;
+    }
+    this->shader_modules.push_back(module);
 }
 
 bool VkRenderer::CheckValidationLayerSupport(const std::vector<const char *> &requested_layers) {
@@ -232,10 +456,11 @@ void VkRenderer::Initialize(bool load_debug_layers) {
 }
 
 VkRenderer::~VkRenderer() {
-    /* We need to make sure that the current device is destroyed
-     * before we free the rest of the renderer */
-    this->device.~RendererDevice();
+    delete this->swapchain;
+    delete this->device;
+    /* Destroy the surface from SDL */
     vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
+    /* Destroy the Vulkan instance(this should always be last!) */
     vkDestroyInstance(this->instance, nullptr);
 }
 
@@ -243,72 +468,7 @@ void VkRenderer::SetQueueFamilies(std::set<uint32_t> _queue_families) {
     this->queue_families = _queue_families;
 }
 
-uint32_t VkRenderer::FindQueueFamily(VkPhysicalDevice _device) {
-    uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(_device, &queue_family_count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(queue_family_count);
-    vkGetPhysicalDeviceQueueFamilyProperties(_device, &queue_family_count, families.data());
-
-    std::cout << "VK Queue Families supported: " << queue_family_count << "\n";
-
-    int index = 0;
-    for (const auto &family : families) {
-        VkBool32 supports_presentation = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(_device, index, this->surface, &supports_presentation);
-
-        if ((family.queueFlags & VK_QUEUE_GRAPHICS_BIT) && supports_presentation)
-            return index;
-
-        index++;
-    }
-    return 0;
-}
-
-QueueFamilyIndices VkRenderer::FindQueueFamilies(VkPhysicalDevice _physical_device) {
-    if (_physical_device == nullptr) {
-        /* No alternate physical device passed in, so
-         * we'll just use the currently selected one */
-        _physical_device = this->device.GetPhysicalDevice();
-    }
-    QueueFamilyIndices indices;
-
-    uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, nullptr);
-    std::vector<VkQueueFamilyProperties> families(queue_family_count);
-    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, families.data());
-
-    int index = 0;
-    VkBool32 supports_presentation = false;
-    for (const auto &queue_family : families) {
-        if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            indices.graphics_family = index;
-
-        /* Some devices appear only to compute and are not graphical,
-         * so we need to make sure it supports presenting to the user. */
-        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device, index, this->surface, &supports_presentation);
-        if (supports_presentation)
-            indices.present_family = index;
-
-        /* Everything was found, return the indices */
-        if (indices.is_complete())
-            break;
-
-        index++;
-    }
-    std::cout << "Are all queue families supported? [" << indices.is_complete() << "]\n";
-    std::cout << "\tGraphical: [" << indices.graphics_family.has_value() << "] Presentation: [" << indices.present_family.has_value() << "]\n";
-    return indices;
-}
-
-//VkDevice VkRenderer::InitDevice(const VkPhysicalDevice &physical,
-//                                std::set<uint32_t> unique_queue_families,
-//                          <      const std::vector<const char *> &required_extensions)
-//{
-//
-//}
-
-
-void VkRenderer::SetRendererDevice(const RendererDevice &_device) {
+void VkRenderer::SetRendererDevice(RendererDevice *_device) {
     this->device = _device;
 }
 
@@ -347,7 +507,12 @@ RendererDevice *VkRenderer::InitializeRendererDevice(VkPhysicalDevice physical_d
         std::vector<VkPhysicalDevice> physical_devices = this->EnumeratePhysicalDevices();
         physical_device = this->PickPhysicalDevice(physical_devices);
     }
-    QueueFamilyIndices family_indices = this->FindQueueFamilies(physical_device);
+    this->device = new RendererDevice();
+
+    this->device->SetRequiredExtensions(this->requested_device_extensions);
+    this->device->SetPhysicalDevice(physical_device);
+    this->device->SetRenderSurface(this->surface);
+    QueueFamilyIndices family_indices = this->device->FindQueueFamilies();
 
     /* No user specified queue families to create, so we just use the defaults */
     std::cout << "Found queue family indices\n";
@@ -358,24 +523,34 @@ RendererDevice *VkRenderer::InitializeRendererDevice(VkPhysicalDevice physical_d
             family_indices.present_family.value()
         });
     }
-    this->device.SetPhysicalDevice(physical_device);
     std::cout << "Creating Logical Device\n";
-    this->device.CreateLogicalDevice(this->queue_families, this->requested_device_extensions);
+    this->device->CreateLogicalDevice(this->queue_families, this->requested_device_extensions);
     std::cout << "Finding the queues\n";
 
     /* Get the internal queues from our device */
-    this->queue_graphics = device.GetQueue(family_indices.graphics_family.value(), 0);
-    this->queue_present  = device.GetQueue(family_indices.present_family.value(), 0);
+    this->queue_graphics = device->GetQueue(family_indices.graphics_family.value(), 0);
+    this->queue_present  = device->GetQueue(family_indices.present_family.value(), 0);
 
-    return &this->device;
+    return this->device;
+}
+
+void VkRenderer::InitializeSwapchain() {
+    SwapchainSupportDetails sc_support = this->device->QuerySwapchainSupport();
+    QueueFamilyIndices      qf_indices = this->device->FindQueueFamilies();
+
+    this->swapchain = new RendererSwapchain(this->device, sc_support);
+    this->swapchain->Create(this->surface, qf_indices);
 }
 
 std::vector<VkPhysicalDevice> VkRenderer::EnumeratePhysicalDevices() {
     uint32_t device_count = 0;
 
     vkEnumeratePhysicalDevices(this->instance, &device_count, nullptr);
-    if (device_count == 0)
+    if (device_count == 0) {
+        DebugLog(LogType::Fatal, "No devices with Vulkan support found! " \
+                                 "Please update your graphics drivers or install a Vulkan compatible device.\n");
         throw std::runtime_error("No GPUs with Vulkan support found!");
+    }
 
     std::vector<VkPhysicalDevice> devices(device_count);
     vkEnumeratePhysicalDevices(this->instance, &device_count, devices.data());
