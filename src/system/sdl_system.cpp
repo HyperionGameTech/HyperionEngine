@@ -33,12 +33,8 @@ void SystemWindow::Initialize() {
             this->width, this->height,
             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
     );
-    std::cout << "win1 : " << this->window << "\n";
-    if (this->window == nullptr) {
-        // TODO: change this to use error logging
-        SystemSDL::ThrowError();
-    }
-    
+
+    AssertThrowMsg(this->window != nullptr, "Failed to initialize window: %s", SDL_GetError());
 }
 
 SDL_Window *SystemWindow::GetInternalWindow() {
@@ -48,9 +44,9 @@ SDL_Window *SystemWindow::GetInternalWindow() {
 VkSurfaceKHR SystemWindow::CreateVulkanSurface(VkInstance instance) {
     VkSurfaceKHR surface;
     int result = SDL_Vulkan_CreateSurface(this->GetInternalWindow(), instance, &surface);
-    if (result != SDL_TRUE) {
-        SystemSDL::ThrowError();
-    }
+
+    AssertThrowMsg(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
+
     return surface;
 }
 
@@ -88,7 +84,9 @@ std::vector<const char *> SystemSDL::GetVulkanExtensionNames() {
     if (!SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, nullptr)) {
         ThrowError();
     }
+
     std::vector<const char *> extensions(vk_ext_count);
+
     if (!SDL_Vulkan_GetInstanceExtensions(window, &vk_ext_count, extensions.data())) {
         ThrowError();
     }
