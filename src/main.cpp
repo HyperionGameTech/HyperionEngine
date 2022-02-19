@@ -702,6 +702,14 @@ int main()
     renderer.InitializeRendererDevice();
     renderer.InitializeSwapchain();
 
+    RendererDevice *device = renderer.GetRendererDevice();
+
+    RendererShader shader;
+    shader.AttachShader(device, ShaderType::Vertex, "../res/vkshaders/vert.spv");
+    shader.AttachShader(device, ShaderType::Fragment, "../res/vkshaders/frag.spv");
+    shader.CreateProgram("main");
+    renderer.InitializePipeline(&shader);
+
     bool running = true;
     while (running) {
         while (SystemSDL::PollEvent(&event)) {
@@ -717,6 +725,8 @@ int main()
             }
         }
     }
+
+    shader.Destroy();
 
     return  0;
 

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <optional>
 #include <cstring>
+#include <fstream>
 
 
 RendererQueue::RendererQueue() {
@@ -351,7 +352,9 @@ RendererSwapchain::~RendererSwapchain() {
         vkDestroySwapchainKHR(this->renderer_device->GetDevice(), this->swapchain, nullptr);
 }
 
-void RendererShader::AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size) {
+void RendererShader::AttachShader(RendererDevice *_device, ShaderType type, const uint32_t *code, const size_t code_size) {
+    this->device = _device;
+
     VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
     create_info.codeSize = code_size;
     create_info.pCode    = code;
@@ -360,8 +363,254 @@ void RendererShader::AttachShader(RendererDevice *device, ShaderType type, const
         DebugLog(LogType::Error, "Could not create Vulkan shader module!\n");
         return;
     }
-    this->shader_modules.push_back(module);
+    RendererShaderModule shader_mod = { type, module };
+    this->shader_modules.push_back(shader_mod);
 }
+
+void RendererShader::AttachShader(RendererDevice *device, ShaderType type, const std::string &path) {
+    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        DebugLog(LogType::Error, "Failed to open SPIRV file!\n");
+        throw std::runtime_error("Failed to open shader file");
+    }
+    std::streamsize data_size = file.tellg();
+    std::vector<char> data(data_size);
+    file.seekg(0);
+    file.read(data.data(), data_size);
+    file.close();
+
+    this->AttachShader(device, type, reinterpret_cast<const uint32_t *>(data.data()), (size_t)data_size);
+}
+
+VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShaderModule *module, const std::string &name) {
+    VkPipelineShaderStageCreateInfo create_info{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    create_info.module = module->module;
+    create_info.pName = name.c_str();
+    switch (module->type) {
+        case ShaderType::Vertex:
+            create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            break;
+        case ShaderType::Fragment:
+            create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            break;
+        default:
+            DebugLog(LogType::Warn, "Shader type %d is currently unimplemented!\n", module->type);
+    }
+    return create_info;
+}
+
+void RendererShader::CreateProgram(const std::string &name) {
+    std::vector<VkPipelineShaderStageCreateInfo> stages;
+    for (auto module: this->shader_modules) {
+        auto stage = this->CreateShaderStage(&module, name);
+        this->shader_stages.push_back(stage);
+    }
+}
+
+void RendererShader::Destroy() {
+    for (auto module: this->shader_modules) {
+        vkDestroyShaderModule(this->device->GetDevice(), module.module, nullptr);
+    }
+}
+
+RendererPipeline::RendererPipeline(RendererDevice *_device, RendererSwapchain *_swapchain) {
+    this->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    this->swapchain = _swapchain;
+    this->device = _device;
+
+    auto width = (float)swapchain->extent.width;
+    auto height = (float)swapchain->extent.height;
+    this->SetViewport(0.0f, 0.0f, width, height);
+    this->SetScissor(0, 0, _swapchain->extent.width, _swapchain->extent.height);
+
+    std::vector<VkDynamicState> default_dynamic_states = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_LINE_WIDTH,
+    };
+    this->SetDynamicStates(default_dynamic_states);
+}
+
+void RendererPipeline::SetPrimitive(VkPrimitiveTopology _primitive) {
+    this->primitive = _primitive;
+}
+VkPrimitiveTopology RendererPipeline::GetPrimitive() {
+    return this->primitive;
+}
+
+void RendererPipeline::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth) {
+    VkViewport *vp = &this->viewport;
+    vp->x = x;
+    vp->y = y;
+    vp->width = width;
+    vp->height = height;
+    vp->minDepth = min_depth;
+    vp->maxDepth = max_depth;
+}
+
+void RendererPipeline::SetScissor(int x, int y, uint32_t width, uint32_t height) {
+    this->scissor.offset = { x, y };
+    this->scissor.extent = { width, height };
+}
+
+void RendererPipeline::SetDynamicStates(const std::vector<VkDynamicState> &_states) {
+    this->dynamic_states = _states;
+}
+
+std::vector<VkDynamicState> RendererPipeline::GetDynamicStates() {
+    return this->dynamic_states;
+}
+
+void RendererPipeline::CreateRenderPass(VkSampleCountFlagBits sample_count) {
+    VkAttachmentDescription attachment{};
+    attachment.format = this->swapchain->image_format;
+    attachment.samples = sample_count;
+    /* Options to change what happens before and after our render pass */
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    /* Images are presented to the swapchain */
+    attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference attachment_ref{};
+    attachment_ref.attachment = 0; /* Our attachment array(only one pass, so it will be 0) */
+    attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    /* Subpasses for post processing, etc. */
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &attachment_ref;
+
+    const VkAttachmentDescription attachments[] = { attachment };
+    const VkSubpassDescription    subpasses[]   = { subpass };
+
+    /* Create render pass */
+    VkRenderPassCreateInfo render_pass_info{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = attachments;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses   = subpasses;
+
+    if (vkCreateRenderPass(this->device->GetDevice(), &render_pass_info, nullptr, &this->render_pass) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Could not create render pass!\n");
+        throw std::runtime_error("Error creating render pass");
+    }
+    DebugLog(LogType::Info, "Renderpass created!\n");
+}
+
+void RendererPipeline::Rebuild(RendererShader *shader) {
+    VkPipelineVertexInputStateCreateInfo vertex_input_info{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+    vertex_input_info.vertexBindingDescriptionCount = 0;
+    vertex_input_info.pVertexBindingDescriptions = nullptr;
+    vertex_input_info.vertexAttributeDescriptionCount = 0;
+    vertex_input_info.pVertexAttributeDescriptions = nullptr;
+
+    VkPipelineInputAssemblyStateCreateInfo input_asm_info{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+    input_asm_info.topology = this->GetPrimitive();
+    input_asm_info.primitiveRestartEnable = VK_FALSE;
+
+    VkPipelineViewportStateCreateInfo viewport_state{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+    VkViewport viewports[] = { this->viewport };
+    viewport_state.viewportCount = 1;
+    viewport_state.pViewports = viewports;
+
+    VkRect2D scissors[] = { this->scissor };
+    viewport_state.scissorCount = 1;
+    viewport_state.pScissors = scissors;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+    /* TODO: Revisit this for shadow maps! */
+    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    /* Backface culling */
+    rasterizer.cullMode  = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    /* Also visit for shadow mapping! Along with other optional parameters such as
+     * depthBiasClamp, slopeFactor etc. */
+    rasterizer.depthBiasEnable = VK_FALSE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.minSampleShading = 1.0f;
+    multisampling.pSampleMask = nullptr;
+
+    /* TODO: enable multisampling and the GPU feature required for it.  */
+
+    VkPipelineColorBlendAttachmentState color_blend_attachment{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+    color_blend_attachment.colorWriteMask = (
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
+
+    /* TODO: with multiple framebuffers and post processing, we will need to enable colour blending */
+    color_blend_attachment.blendEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo color_blending{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+    color_blending.logicOpEnable = false;
+    color_blending.attachmentCount = 1;
+    color_blending.pAttachments = &color_blend_attachment;
+
+    /* Dynamic states */
+    VkPipelineDynamicStateCreateInfo dynamic_state{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+    dynamic_state.dynamicStateCount = 2;
+    VkDynamicState states[] = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_LINE_WIDTH,
+    };
+    dynamic_state.pDynamicStates  = states;
+    DebugLog(LogType::Info, "Enabling [%d] dynamic states\n", dynamic_state.dynamicStateCount);
+    /* Pipeline layout */
+    VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    layout_info.setLayoutCount = 0;
+    layout_info.pSetLayouts = nullptr;
+    layout_info.pushConstantRangeCount = 0;
+    layout_info.pPushConstantRanges = nullptr;
+
+    if (vkCreatePipelineLayout(this->device->GetDevice(), &layout_info, nullptr, &this->layout) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Error creating pipeline layout!\n");
+        throw std::runtime_error("Error creating pipeline layout");
+    }
+
+    VkGraphicsPipelineCreateInfo pipeline_info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+    auto stages = shader->shader_stages;
+    pipeline_info.stageCount = stages.size();
+    pipeline_info.pStages = stages.data();
+
+    pipeline_info.pVertexInputState = &vertex_input_info;
+    pipeline_info.pInputAssemblyState = &input_asm_info;
+    pipeline_info.pViewportState = &viewport_state;
+    pipeline_info.pRasterizationState = &rasterizer;
+    pipeline_info.pMultisampleState = &multisampling;
+    pipeline_info.pDepthStencilState = nullptr;
+    pipeline_info.pColorBlendState = &color_blending;
+    pipeline_info.pDynamicState = &dynamic_state;
+
+    pipeline_info.layout = layout;
+    pipeline_info.renderPass = render_pass;
+    pipeline_info.subpass = 0; /* Index of the subpass */
+    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+    pipeline_info.basePipelineIndex = -1;
+
+    if (vkCreateGraphicsPipelines(this->device->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &this->pipeline) != VK_SUCCESS) {
+        DebugLog(LogType::Error, "Could not create graphics pipeline!\n");
+        throw std::runtime_error("Could not create pipeline");
+    }
+    DebugLog(LogType::Info, "Created graphics pipeline!\n");
+}
+
+RendererPipeline::~RendererPipeline() {
+    VkDevice render_device = this->device->GetDevice();
+    vkDestroyPipeline(render_device, this->pipeline, nullptr);
+    vkDestroyPipelineLayout(render_device, this->layout, nullptr);
+    vkDestroyRenderPass(render_device, this->render_pass, nullptr);
+}
+
+
 
 bool VkRenderer::CheckValidationLayerSupport(const std::vector<const char *> &requested_layers) {
     uint32_t layers_count;
@@ -456,6 +705,7 @@ void VkRenderer::Initialize(bool load_debug_layers) {
 }
 
 VkRenderer::~VkRenderer() {
+    delete this->pipeline;
     delete this->swapchain;
     delete this->device;
     /* Destroy the surface from SDL */
@@ -470,6 +720,10 @@ void VkRenderer::SetQueueFamilies(std::set<uint32_t> _queue_families) {
 
 void VkRenderer::SetRendererDevice(RendererDevice *_device) {
     this->device = _device;
+}
+
+RendererDevice *VkRenderer::GetRendererDevice() {
+    return this->device;
 }
 
 void VkRenderer::CreateSurface() {
@@ -532,6 +786,12 @@ RendererDevice *VkRenderer::InitializeRendererDevice(VkPhysicalDevice physical_d
     this->queue_present  = device->GetQueue(family_indices.present_family.value(), 0);
 
     return this->device;
+}
+
+void VkRenderer::InitializePipeline(RendererShader *render_shader) {
+    this->pipeline = new RendererPipeline(this->device, this->swapchain);
+    this->pipeline->CreateRenderPass();
+    this->pipeline->Rebuild(render_shader);
 }
 
 void VkRenderer::InitializeSwapchain() {

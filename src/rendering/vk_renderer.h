@@ -123,13 +123,55 @@ enum class ShaderType : int {
     RayMiss,
 };
 
+struct RendererShaderModule {
+    ShaderType type;
+    VkShaderModule module;
+};
+
 class RendererShader {
 public:
     void AttachShader(RendererDevice *device, ShaderType type, const std::string &path);
     void AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size);
+    VkPipelineShaderStageCreateInfo CreateShaderStage(RendererShaderModule *module, const std::string &name);
+    void CreateProgram(const std::string &name);
+    void Destroy();
+
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
 private:
-    std::vector<VkShaderModule> shader_modules;
+    std::vector<RendererShaderModule> shader_modules;
+    RendererDevice *device = nullptr;
 };
+
+class RendererPipeline {
+
+public:
+    RendererPipeline(RendererDevice *_device, RendererSwapchain *_swapchain);
+    void SetPrimitive(VkPrimitiveTopology _primitive);
+    void SetDynamicStates(const std::vector<VkDynamicState> &_states);
+    VkPrimitiveTopology GetPrimitive();
+    std::vector<VkDynamicState> GetDynamicStates();
+    ~RendererPipeline();
+
+    void SetViewport(float x, float y, float width, float height, float min_depth=0.0f, float max_depth=1.0f);
+    void SetScissor(int x, int y, uint32_t width, uint32_t height);
+
+    void Rebuild(RendererShader *shader);
+    void CreateRenderPass(VkSampleCountFlagBits sample_count=VK_SAMPLE_COUNT_1_BIT);
+private:
+    std::vector<VkDynamicState> dynamic_states;
+
+    VkViewport viewport;
+    VkRect2D   scissor;
+    VkPrimitiveTopology primitive;
+
+    VkPipeline pipeline;
+    VkPipelineLayout layout;
+    VkRenderPass render_pass;
+
+    RendererSwapchain *swapchain;
+    RendererDevice *device;
+};
+
 
 class VkRenderer {
     static bool CheckValidationLayerSupport(const std::vector<const char *> &requested_layers);
@@ -142,8 +184,11 @@ public:
     void CreateSurface();
     void SetValidationLayers(std::vector<const char *> _layers);
     void SetRendererDevice(RendererDevice *_device);
+    RendererDevice *GetRendererDevice();
     RendererDevice *InitializeRendererDevice(VkPhysicalDevice _physical_device=nullptr);
     void InitializeSwapchain();
+
+    void InitializePipeline(RendererShader *shader);
 
     void SetQueueFamilies(std::set<uint32_t> queue_families);
 
@@ -167,8 +212,9 @@ private:
     VkQueue queue_graphics;
     VkQueue queue_present;
 
-    RendererSwapchain *swapchain;
-    RendererDevice    *device;
+    RendererDevice    *device = nullptr;
+    RendererSwapchain *swapchain = nullptr;
+    RendererPipeline  *pipeline = nullptr;
 
     std::set<uint32_t> queue_families;
     std::vector<const char *> validation_layers;
