@@ -297,6 +297,25 @@ void RendererSwapchain::DestroyImageViews() {
     }
 }
 
+void RendererSwapchain::CreateFramebuffers(VkRenderPass *renderpass) {
+    this->framebuffers.resize(this->image_views.size());
+    for (size_t i; i < this->image_views.size(); i++) {
+        VkImageView attachments[] = { this->image_views[i] };
+        VkFramebufferCreateInfo create_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+        create_info.renderPass = *renderpass;
+        create_info.attachmentCount = 1;
+        create_info.pAttachments = attachments;
+        create_info.width = this->extent.width;
+        create_info.height = this->extent.height;
+        create_info.layers = 1;
+
+        if (vkCreateFramebuffer(this->renderer_device->GetDevice(), &create_info, nullptr, &this->framebuffers[i]) != VK_SUCCESS) {
+            DebugLog(LogType::Error, "Could not create Vulkan framebuffer!\n");
+            throw std::runtime_error("could not create framebuffer");
+        }
+    }
+}
+
 void RendererSwapchain::Create(const VkSurfaceKHR &surface, QueueFamilyIndices qf_indices) {
     this->surface_format = this->ChooseSurfaceFormat();
     this->present_mode   = this->ChoosePresentMode();

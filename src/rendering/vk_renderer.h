@@ -91,6 +91,7 @@ public:
     RendererSwapchain(RendererDevice *_device, const SwapchainSupportDetails &_details);
     ~RendererSwapchain();
     void Create(const VkSurfaceKHR &surface, QueueFamilyIndices qf_indices);
+    void CreateFramebuffers(VkRenderPass *renderpass);
 
     VkSwapchainKHR swapchain;
     VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
