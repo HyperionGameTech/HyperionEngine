@@ -714,8 +714,8 @@ int main()
     shader.AttachShader(device, SPIRVObject{ SPIRVObject::Type::Vertex, FileByteReader(AssetManager::GetInstance()->GetRootDir() + "vkshaders/vert.spv").Read() });
     shader.AttachShader(device, SPIRVObject{ SPIRVObject::Type::Fragment, FileByteReader(AssetManager::GetInstance()->GetRootDir() + "vkshaders/frag.spv").Read() });
     shader.CreateProgram("main");
-    renderer.InitializePipeline(&shader);
 
+    renderer.InitializePipeline(&shader);
 
     bool running = true;
     while (running) {
@@ -731,6 +731,7 @@ int main()
                     break;
             }
         }
+        renderer.DrawFrame();
     }
 
     shader.Destroy();

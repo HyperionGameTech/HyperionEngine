@@ -93,6 +93,8 @@ public:
     void Create(const VkSurfaceKHR &surface, QueueFamilyIndices qf_indices);
     void CreateFramebuffers(VkRenderPass *renderpass);
 
+    std::vector<VkFramebuffer> framebuffers;
+
     VkSwapchainKHR swapchain;
     VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     VkPresentModeKHR present_mode;
@@ -106,7 +108,6 @@ private:
 
     std::vector<VkImage> images;
     std::vector<VkImageView> image_views;
-    std::vector<VkFramebuffer> framebuffers;
 };
 
 struct RendererShaderModule {
@@ -136,6 +137,9 @@ public:
     void SetDynamicStates(const std::vector<VkDynamicState> &_states);
     VkPrimitiveTopology GetPrimitive();
     std::vector<VkDynamicState> GetDynamicStates();
+    VkRenderPass *GetRenderPass();
+    void CreateCommandPool();
+    void CreateCommandBuffers();
     ~RendererPipeline();
 
     void SetViewport(float x, float y, float width, float height, float min_depth=0.0f, float max_depth=1.0f);
@@ -143,8 +147,13 @@ public:
 
     void Rebuild(RendererShader *shader);
     void CreateRenderPass(VkSampleCountFlagBits sample_count=VK_SAMPLE_COUNT_1_BIT);
+    void DoRenderPass();
+
+    std::vector<VkCommandBuffer> command_buffers;
 private:
     std::vector<VkDynamicState> dynamic_states;
+
+    VkCommandPool command_pool;
 
     VkViewport viewport;
     VkRect2D   scissor;
@@ -163,16 +172,17 @@ class VkRenderer {
     static bool CheckValidationLayerSupport(const std::vector<const char *> &requested_layers);
     std::vector<VkPhysicalDevice> EnumeratePhysicalDevices();
     VkPhysicalDevice PickPhysicalDevice(std::vector<VkPhysicalDevice> _devices);
+    void CreateSemaphores();
     void SetupDebug();
 public:
     VkRenderer(SystemSDL &_system, const char *app_name, const char *engine_name);
     void Initialize(bool load_debug_layers=false);
     void CreateSurface();
+    void DrawFrame();
     void SetValidationLayers(std::vector<const char *> _layers);
     RendererDevice *GetRendererDevice();
     RendererDevice *InitializeRendererDevice(VkPhysicalDevice _physical_device=nullptr);
     void InitializeSwapchain();
-
     void InitializePipeline(RendererShader *shader);
 
     void SetQueueFamilies(std::set<uint32_t> queue_families);
@@ -188,8 +198,8 @@ private:
     SystemWindow *window = nullptr;
     SystemSDL    system;
 
-    VkInstance instance;
-    VkSurfaceKHR surface;
+    VkInstance instance = nullptr;
+    VkSurfaceKHR surface = nullptr;
 
     VkSemaphore sp_image_available;
     VkSemaphore sp_render_finished;

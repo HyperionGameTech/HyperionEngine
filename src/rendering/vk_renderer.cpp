@@ -299,7 +299,8 @@ void RendererSwapchain::DestroyImageViews() {
 
 void RendererSwapchain::CreateFramebuffers(VkRenderPass *renderpass) {
     this->framebuffers.resize(this->image_views.size());
-    for (size_t i; i < this->image_views.size(); i++) {
+    DebugLog(LogType::Info, "[%d] image views found!\n", this->image_views.size());
+    for (size_t i = 0; i < this->image_views.size(); i++) {
         VkImageView attachments[] = { this->image_views[i] };
         VkFramebufferCreateInfo create_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
         create_info.renderPass = *renderpass;
@@ -313,6 +314,7 @@ void RendererSwapchain::CreateFramebuffers(VkRenderPass *renderpass) {
             DebugLog(LogType::Error, "Could not create Vulkan framebuffer!\n");
             throw std::runtime_error("could not create framebuffer");
         }
+        DebugLog(LogType::Info, "Created Pipeline Framebuffer #%d\n", i);
     }
 }
 
@@ -367,6 +369,9 @@ void RendererSwapchain::Create(const VkSurfaceKHR &surface, QueueFamilyIndices q
 }
 
 RendererSwapchain::~RendererSwapchain() {
+    for (auto framebuffer : this->framebuffers) {
+        vkDestroyFramebuffer(this->renderer_device->GetDevice(), framebuffer, nullptr);
+    }
     this->DestroyImageViews();
     if (this->swapchain != nullptr)
         vkDestroySwapchainKHR(this->renderer_device->GetDevice(), this->swapchain, nullptr);
@@ -460,7 +465,7 @@ RendererPipeline::RendererPipeline(RendererDevice *_device, RendererSwapchain *_
 
     auto width = (float)swapchain->extent.width;
     auto height = (float)swapchain->extent.height;
-    this->SetViewport(0.0f, 0.0f, width, height);
+    this->SetViewport(0.0f, 0.0f, width, height, 0.0f, 1.0f);
     this->SetScissor(0, 0, _swapchain->extent.width, _swapchain->extent.height);
 
     std::vector<VkDynamicState> default_dynamic_states = {
@@ -500,6 +505,63 @@ std::vector<VkDynamicState> RendererPipeline::GetDynamicStates() {
     return this->dynamic_states;
 }
 
+VkRenderPass *RendererPipeline::GetRenderPass() {
+    return &this->render_pass;
+}
+
+void RendererPipeline::CreateCommandPool() {
+    QueueFamilyIndices family_indices = this->device->FindQueueFamilies();
+
+    VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    pool_info.queueFamilyIndex = family_indices.graphics_family.value();
+    /* TODO: look into VK_COMMAND_POOL_CREATE_TRANSIENT_BIT for constantly changing objects */
+    pool_info.flags = 0;
+
+    auto result = vkCreateCommandPool(this->device->GetDevice(), &pool_info, nullptr, &this->command_pool);
+
+    AssertThrowMsg(result == VK_SUCCESS, "Could not create Vulkan command pool\n");
+}
+
+void RendererPipeline::CreateCommandBuffers() {
+    this->command_buffers.resize(this->swapchain->framebuffers.size());
+
+    VkCommandBufferAllocateInfo alloc_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    alloc_info.commandPool = this->command_pool;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandBufferCount = (uint32_t)this->command_buffers.size();
+
+    auto result = vkAllocateCommandBuffers(this->device->GetDevice(), &alloc_info, this->command_buffers.data());
+
+    AssertThrowMsg(result == VK_SUCCESS, "Could not create Vulkan command buffers\n");
+}
+
+void RendererPipeline::DoRenderPass() {
+    for (size_t i = 0; i < this->command_buffers.size(); i++) {
+        VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        begin_info.flags = 0;
+        begin_info.pInheritanceInfo = nullptr;
+        auto result = vkBeginCommandBuffer(this->command_buffers[i], &begin_info);
+        AssertThrowMsg(result == VK_SUCCESS, "Failed to start recording command buffer [%d]!\n", i);
+
+        VkRenderPassBeginInfo render_pass_info{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+        render_pass_info.renderPass = this->render_pass;
+        render_pass_info.framebuffer = this->swapchain->framebuffers[i];
+        render_pass_info.renderArea.offset = {0, 0};
+        render_pass_info.renderArea.extent = this->swapchain->extent;
+
+        VkClearValue clear_colour = {0.5f, 0.7f, 0.5f, 1.0f};
+        render_pass_info.clearValueCount = 1;
+        render_pass_info.pClearValues = &clear_colour;
+        vkCmdBeginRenderPass(this->command_buffers[i], &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+        vkCmdDraw(this->command_buffers[i], 3, 1, 0, 0);
+        vkCmdEndRenderPass(this->command_buffers[i]);
+
+        result = vkEndCommandBuffer(this->command_buffers[i]);
+        AssertThrowMsg(result == VK_SUCCESS, "Failed to record command buffer [%d]!\n", i);
+    }
+}
+
 void RendererPipeline::CreateRenderPass(VkSampleCountFlagBits sample_count) {
     VkAttachmentDescription attachment{};
     attachment.format = this->swapchain->image_format;
@@ -533,6 +595,17 @@ void RendererPipeline::CreateRenderPass(VkSampleCountFlagBits sample_count) {
     render_pass_info.pAttachments = attachments;
     render_pass_info.subpassCount = 1;
     render_pass_info.pSubpasses   = subpasses;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    render_pass_info.dependencyCount = 1;
+    render_pass_info.pDependencies = &dependency;
 
     if (vkCreateRenderPass(this->device->GetDevice(), &render_pass_info, nullptr, &this->render_pass) != VK_SUCCESS) {
         DebugLog(LogType::Error, "Could not create render pass!\n");
@@ -595,7 +668,8 @@ void RendererPipeline::Rebuild(RendererShader *shader) {
     color_blending.attachmentCount = 1;
     color_blending.pAttachments = &color_blend_attachment;
 
-    /* Dynamic states */
+    /* Dynamic states; these are the values that can be changed without
+     * rebuilding the rendering pipeline. */
     VkPipelineDynamicStateCreateInfo dynamic_state{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
     dynamic_state.dynamicStateCount = 2;
     VkDynamicState states[] = {
@@ -628,7 +702,8 @@ void RendererPipeline::Rebuild(RendererShader *shader) {
     pipeline_info.pMultisampleState = &multisampling;
     pipeline_info.pDepthStencilState = nullptr;
     pipeline_info.pColorBlendState = &color_blending;
-    pipeline_info.pDynamicState = &dynamic_state;
+    /* TODO: reimplement dynamic states! */
+    pipeline_info.pDynamicState = nullptr;
 
     pipeline_info.layout = layout;
     pipeline_info.renderPass = render_pass;
@@ -645,12 +720,48 @@ void RendererPipeline::Rebuild(RendererShader *shader) {
 
 RendererPipeline::~RendererPipeline() {
     VkDevice render_device = this->device->GetDevice();
+
+    vkDestroyCommandPool(render_device, this->command_pool, nullptr);
+
     vkDestroyPipeline(render_device, this->pipeline, nullptr);
     vkDestroyPipelineLayout(render_device, this->layout, nullptr);
     vkDestroyRenderPass(render_device, this->render_pass, nullptr);
 }
 
+void VkRenderer::DrawFrame() {
+    const VkSemaphore wait_semaphores[] = { this->sp_image_available };
+    const VkSemaphore signal_semaphores[] = { this->sp_render_finished };
 
+    uint32_t image_index = 0;
+    vkAcquireNextImageKHR(this->device->GetDevice(), this->swapchain->swapchain, UINT64_MAX, this->sp_image_available, VK_NULL_HANDLE, &image_index);
+    VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semaphores;
+    submit_info.pWaitDstStageMask = wait_stages;
+
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &this->pipeline->command_buffers[image_index];
+
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signal_semaphores;
+
+    auto result = vkQueueSubmit(this->queue_graphics, 1, &submit_info, VK_NULL_HANDLE);
+    AssertThrowMsg(result == VK_SUCCESS, "Failed to submit draw command buffer!\n");
+
+    VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = signal_semaphores;
+
+    VkSwapchainKHR swapchains[] = { this->swapchain->swapchain };
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swapchains;
+    present_info.pImageIndices = &image_index;
+    present_info.pResults = nullptr;
+
+    vkQueuePresentKHR(this->queue_present, &present_info);
+    vkQueueWaitIdle(this->queue_present);
+}
 
 bool VkRenderer::CheckValidationLayerSupport(const std::vector<const char *> &requested_layers) {
     uint32_t layers_count;
@@ -693,6 +804,14 @@ void VkRenderer::SetCurrentWindow(SystemWindow *_window) {
 
 SystemWindow *VkRenderer::GetCurrentWindow() {
     return this->window;
+}
+
+void VkRenderer::CreateSemaphores() {
+    VkSemaphoreCreateInfo semaphore_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    auto ia_result = vkCreateSemaphore(this->device->GetDevice(), &semaphore_info, nullptr, &this->sp_image_available);
+    auto rf_result = vkCreateSemaphore(this->device->GetDevice(), &semaphore_info, nullptr, &this->sp_render_finished);
+
+    AssertThrowMsg((ia_result == VK_SUCCESS && rf_result == VK_SUCCESS), "Error creating render semaphores!\n");
 }
 
 VkRenderer::VkRenderer(SystemSDL &_system, const char *app_name, const char *engine_name) {
@@ -746,6 +865,9 @@ void VkRenderer::Initialize(bool load_debug_layers) {
 }
 
 VkRenderer::~VkRenderer() {
+    vkDestroySemaphore(this->device->GetDevice(), this->sp_render_finished, nullptr);
+    vkDestroySemaphore(this->device->GetDevice(), this->sp_image_available, nullptr);
+
     delete this->pipeline;
     delete this->swapchain;
     delete this->device;
@@ -838,7 +960,15 @@ RendererDevice *VkRenderer::InitializeRendererDevice(VkPhysicalDevice physical_d
 void VkRenderer::InitializePipeline(RendererShader *render_shader) {
     this->pipeline = new RendererPipeline(this->device, this->swapchain);
     this->pipeline->CreateRenderPass();
+    this->swapchain->CreateFramebuffers(this->pipeline->GetRenderPass());
     this->pipeline->Rebuild(render_shader);
+
+    this->CreateSemaphores();
+    this->pipeline->CreateCommandPool();
+    this->pipeline->CreateCommandBuffers();
+    DebugLog(LogType::Info, "Created command buffers+pool!\n");
+
+    this->pipeline->DoRenderPass();
 }
 
 void VkRenderer::InitializeSwapchain() {
