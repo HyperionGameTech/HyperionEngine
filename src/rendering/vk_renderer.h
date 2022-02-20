@@ -119,8 +119,8 @@ class RendererShader {
 public:
     void AttachShader(RendererDevice *device, const SPIRVObject &spirv);
     //void AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size);
-    VkPipelineShaderStageCreateInfo CreateShaderStage(RendererShaderModule *module, const std::string &name);
-    void CreateProgram(const std::string &name);
+    VkPipelineShaderStageCreateInfo CreateShaderStage(RendererShaderModule *module, const char *entry_point);
+    void CreateProgram(const char *entry_point);
     void Destroy();
 
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages;

@@ -54,10 +54,11 @@ std::vector<const char *> RendererDevice::GetRequiredExtensions() {
     return this->required_extensions;
 }
 
-RendererDevice::RendererDevice() {
-    this->device = nullptr;
-    this->physical = nullptr;
-    this->surface = nullptr;
+RendererDevice::RendererDevice()
+    : device(nullptr),
+      physical(nullptr),
+      surface(nullptr)
+{
 }
 
 RendererDevice::~RendererDevice() {
@@ -394,10 +395,10 @@ void RendererShader::AttachShader(RendererDevice *_device, const SPIRVObject &sp
     this->shader_modules.push_back(shader_mod);
 }
 
-VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShaderModule *module, const std::string &name) {
+VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShaderModule *module, const char *entry_point) {
     VkPipelineShaderStageCreateInfo create_info{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
     create_info.module = module->module;
-    create_info.pName = name.c_str();
+    create_info.pName = entry_point;
     switch (module->type) {
         case SPIRVObject::Type::Vertex:
             create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -444,10 +445,10 @@ VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShader
     return create_info;
 }
 
-void RendererShader::CreateProgram(const std::string &name) {
+void RendererShader::CreateProgram(const char *entry_point) {
     std::vector<VkPipelineShaderStageCreateInfo> stages;
     for (auto module: this->shader_modules) {
-        auto stage = this->CreateShaderStage(&module, name);
+        auto stage = this->CreateShaderStage(&module, entry_point);
         this->shader_stages.push_back(stage);
     }
 }
@@ -910,6 +911,7 @@ VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _d
             return _device;
         }
     }
+
     /* No discrete gpu found, look for a device with at least geometry shaders */
     for (const auto &_device : _devices) {
         vkGetPhysicalDeviceFeatures(_device, &features);
@@ -917,6 +919,9 @@ VkPhysicalDevice VkRenderer::PickPhysicalDevice(std::vector<VkPhysicalDevice> _d
             return _device;
         }
     }
+
+    AssertExit(!_devices.empty());
+
     /* well shit, we'll just hope for the best at this point */
     return _devices[0];
 }
