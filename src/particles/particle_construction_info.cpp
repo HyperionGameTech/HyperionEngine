@@ -19,7 +19,7 @@ ParticleConstructionInfo::ParticleConstructionInfo(const Vector3 &origin, const 
       m_scale(scale),
       m_scale_randomness(scale_randomness)
 {
-    ex_assert(m_lifespan > 0.0);
+    AssertThrow(m_lifespan > 0.0);
 }
 
 ParticleConstructionInfo::ParticleConstructionInfo(const ParticleConstructionInfo &other)
@@ -37,6 +37,6 @@ ParticleConstructionInfo::ParticleConstructionInfo(const ParticleConstructionInf
       m_scale(other.m_scale),
       m_scale_randomness(other.m_scale_randomness)
 {
-    ex_assert(m_lifespan > 0.0);
+    AssertThrow(m_lifespan > 0.0);
 }
 } // namespace hyperion

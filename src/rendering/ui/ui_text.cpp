@@ -14,7 +14,7 @@ FontMap::FontMap(const std::shared_ptr<Texture2D> &texture, int num_chars_per_ro
     : m_texture(texture),
       m_char_offset(char_offset)
 {
-    ex_assert(texture != nullptr);
+    AssertThrow(texture != nullptr);
 
     m_char_size = Vector2(
         m_texture->GetWidth() / num_chars_per_row,
@@ -104,7 +104,7 @@ void UIText::UpdateTextTransforms()
 
     auto mesh_array = std::dynamic_pointer_cast<MeshArray>(m_renderable);
 
-    ex_assert(mesh_array != nullptr);
+    AssertThrow(mesh_array != nullptr);
 
     mesh_array->ClearSubmeshes();
 

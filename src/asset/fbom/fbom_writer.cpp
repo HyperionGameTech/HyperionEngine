@@ -17,8 +17,8 @@ FBOMWriter::~FBOMWriter()
 
 FBOMResult FBOMWriter::Serialize(FBOMLoadable *in, FBOMObject *out) const
 {
-    ex_assert(in != nullptr);
-    ex_assert(out != nullptr);
+    AssertThrow(in != nullptr);
+    AssertThrow(out != nullptr);
 
     std::string object_type = in->GetLoadableType().name;
 
@@ -91,13 +91,13 @@ void FBOMWriter::Prune(FBOMObject *object)
     AddStaticData(object->m_object_type);
 
     for (const auto &node : object->nodes) {
-        soft_assert_continue(node != nullptr);
+        AssertContinue(node != nullptr);
 
         Prune(node.get());
     }
 
     for (auto &prop : object->properties) {
-        soft_assert_continue(prop.second != nullptr);
+        AssertContinue(prop.second != nullptr);
 
         int property_value_usage = m_write_stream.m_hash_use_count_map[prop.second->GetHashCode().Value()];
 
@@ -209,7 +209,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
 
         // now write out all child nodes
         for (auto &node : object.nodes) {
-            soft_assert_continue(node != nullptr);
+            AssertContinue(node != nullptr);
 
             if (auto err = WriteObject(out, *node)) {
                 return err;
@@ -226,7 +226,7 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
 
 FBOMResult FBOMWriter::WriteObject(ByteWriter *out, FBOMLoadable *loadable)
 {
-    ex_assert(out != nullptr);
+    AssertThrow(out != nullptr);
 
     FBOMObject base(loadable->GetLoadableType());
     if (auto err = Serialize(loadable, &base)) {
@@ -280,7 +280,7 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
 
 FBOMResult FBOMWriter::WriteData(ByteWriter *out, const std::shared_ptr<FBOMData> &data)
 {
-    ex_assert(data != nullptr);
+    AssertThrow(data != nullptr);
 
     FBOMStaticData static_data;
     HashCode::Value_t hash_code = data->GetHashCode().Value();
@@ -382,7 +382,7 @@ FBOMStaticData FBOMWriter::AddStaticData(const FBOMObject &object)
 
 FBOMStaticData FBOMWriter::AddStaticData(const std::shared_ptr<FBOMData> &data)
 {
-    ex_assert(data != nullptr);
+    AssertThrow(data != nullptr);
 
     AddStaticData(data->GetType());
 
@@ -420,7 +420,7 @@ void FBOMWriter::WriteStream::MarkStaticDataWritten(HashCode::Value_t hash_code)
 {
     auto it = m_static_data.find(hash_code);
 
-    ex_assert(it != m_static_data.end());
+    AssertThrow(it != m_static_data.end());
 
     m_static_data[hash_code].written = true;
 }

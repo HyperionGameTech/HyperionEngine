@@ -274,3 +274,7 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+/res/models/bedroom
+/res/models/fireplace_room
+/res/models/salle_de_bain
+/res/models/sdb.fbom

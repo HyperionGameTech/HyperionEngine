@@ -76,7 +76,7 @@ std::shared_ptr<Renderable> MeshArray::CloneImpl()
     auto clone = std::make_shared<MeshArray>();
 
     for (const auto &submesh : m_submeshes) {
-        soft_assert_continue(submesh.mesh != nullptr);
+        AssertContinue(submesh.mesh != nullptr);
 
         Submesh submesh_clone;
         submesh_clone.mesh = std::dynamic_pointer_cast<Mesh>(submesh.mesh->Clone());

@@ -179,7 +179,7 @@ public:
 
     FBOMResult Deserialize(FBOMObject *in, FBOMDeserialized &out);
 
-    virtual std::shared_ptr<Loadable> LoadFromFile(const std::string &) override;
+    virtual Result LoadFromFile(const std::string &) override;
 
 private:
     FBOMCommand NextCommand(ByteReader *);

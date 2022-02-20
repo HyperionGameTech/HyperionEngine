@@ -8,13 +8,13 @@ class TextLoader : public AssetLoader {
 public:
     class LoadedText;
 
-    std::shared_ptr<Loadable> LoadFromFile(const std::string &);
+    virtual Result LoadFromFile(const std::string &) override;
 
     // convenience function, as many other loaders may use TextLoader
     inline std::shared_ptr<LoadedText> LoadTextFromFile(const std::string &str)
     {
-        if (auto text = LoadFromFile(str)) {
-            return std::static_pointer_cast<LoadedText>(text);
+        if (auto result = LoadFromFile(str)) {
+            return std::static_pointer_cast<LoadedText>(result.loadable);
         }
 
         return nullptr;

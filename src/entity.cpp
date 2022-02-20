@@ -121,7 +121,7 @@ float Entity::CalculateCameraDistance(Camera *camera) const
 
 void Entity::AddChild(std::shared_ptr<Entity> entity)
 {
-    ex_assert(entity != nullptr);
+    AssertThrow(entity != nullptr);
 
     if (entity->m_flags & PENDING_REMOVAL) {
         std::cout << entity->GetName() << " saved from death\n";
@@ -149,7 +149,7 @@ void Entity::AddChild(std::shared_ptr<Entity> entity)
 
 void Entity::RemoveChild(const std::shared_ptr<Entity> &entity)
 {
-    ex_assert(entity != nullptr);
+    AssertThrow(entity != nullptr);
 
     m_children_pending_removal.push_back(entity);
     m_children.erase(std::find(m_children.begin(), m_children.end(), entity));
@@ -186,7 +186,7 @@ std::shared_ptr<Entity> Entity::GetChildPendingRemoval(size_t index) const
 
 void Entity::AddControl(std::shared_ptr<EntityControl> control)
 {
-    // ex_assert(control->parent == nullptr);
+    // AssertThrow(control->parent == nullptr);
 
     m_controls.push_back(control);
     control->parent = this;
@@ -195,7 +195,7 @@ void Entity::AddControl(std::shared_ptr<EntityControl> control)
 
 void Entity::RemoveControl(const std::shared_ptr<EntityControl> &control)
 {
-    soft_assert(control != nullptr);
+    AssertSoft(control != nullptr);
 
     m_controls.erase(std::find(m_controls.begin(), m_controls.end(), control));
     control->OnRemoved();

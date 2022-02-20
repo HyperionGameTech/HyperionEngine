@@ -45,8 +45,8 @@ void PostFilter::End(Camera *cam, Framebuffer *fbo, Framebuffer::FramebufferAtta
             continue;
         }
 
-        soft_assert(attachments[i] != nullptr);
-        soft_assert(Framebuffer::default_texture_attributes[i].is_volatile)
+        AssertSoft(attachments[i] != nullptr);
+        AssertSoft(Framebuffer::default_texture_attributes[i].is_volatile)
 
         fbo->Store(attachment, attachments[i]);
     }

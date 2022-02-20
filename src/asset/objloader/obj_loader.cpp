@@ -69,12 +69,18 @@ ObjModel::ObjIndex ObjModel::ParseObjIndex(const std::string &token)
     return res;
 }
 
-std::shared_ptr<Loadable> ObjLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result ObjLoader::LoadFromFile(const std::string &path)
 {
-    auto loaded_text = TextLoader().LoadTextFromFile(path);
+    auto loaded_text_result = TextLoader().LoadFromFile(path);
+
+    if (!loaded_text_result) {
+        return loaded_text_result;
+    }
+
+    auto loaded_text = std::dynamic_pointer_cast<TextLoader::LoadedText>(loaded_text_result.Value());
 
     if (loaded_text == nullptr) {
-        return nullptr;
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "Could not load text file");
     }
 
     ObjModel model;
@@ -198,6 +204,6 @@ std::shared_ptr<Loadable> ObjLoader::LoadFromFile(const std::string &path)
         res->AddChild(geom);
     }
 
-    return res;
+    return AssetLoader::Result(res);
 }
 }

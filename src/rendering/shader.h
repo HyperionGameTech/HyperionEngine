@@ -348,7 +348,7 @@ private:
 
         Uniform(const Texture *texture)
         {
-            ex_assert(texture != nullptr);
+            AssertThrow(texture != nullptr);
 
             data[0] = texture->GetId();
             // texture->GetTextureType() should start at 0 and map to the correct uniform texture type

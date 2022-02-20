@@ -9,13 +9,13 @@
 #include <iostream>
 
 namespace hyperion {
-std::shared_ptr<Loadable> TextureLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result TextureLoader::LoadFromFile(const std::string &path)
 {
     int width, height, comp;
     unsigned char *bytes = stbi_load(path.c_str(), &width, &height, &comp, 0);
 
     if (bytes == nullptr) {
-        return nullptr;
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "Texture data could not be read.");
     }
 
     auto tex = std::make_shared<Texture2D>(width, height, bytes);
@@ -42,13 +42,6 @@ std::shared_ptr<Loadable> TextureLoader::LoadFromFile(const std::string &path)
             throw "Unknown image format";
     }
 
-    /*tex->Use(); // uploads data
-
-    stbi_image_free(bytes);
-    tex->bytes = nullptr;
-
-    tex->End();*/
-
-    return tex;
+    return AssetLoader::Result(tex);
 }
 } // namespace hyperion

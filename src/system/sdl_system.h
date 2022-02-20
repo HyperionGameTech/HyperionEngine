@@ -10,6 +10,15 @@
 #include <vector>
 #include <string>
 
+// replace with file from util.h
+template <class T>
+struct non_owning_ptr {
+    T *ptr = nullptr;
+
+    T *operator->() { return ptr; }
+    const T *operator->() const { return ptr; }
+};
+
 enum SystemEventType {
     EVENT_KEYDOWN = SDL_KEYDOWN,
     EVENT_SHUTDOWN = SDL_QUIT,
@@ -30,6 +39,8 @@ private:
 class SystemWindow {
 public:
     SystemWindow(const char *_title, int _width, int _height);
+    SystemWindow(const SystemWindow &other) = delete;
+    SystemWindow &operator=(const SystemWindow &other) = delete;
     void Initialize();
     SDL_Window *GetInternalWindow();
 
@@ -45,15 +56,17 @@ private:
 class SystemSDL {
 public:
     SystemSDL();
-    static SystemWindow CreateWindow(const char *title, int width, int height);
+    static SystemWindow *CreateWindow(const char *title, int width, int height);
     static int          PollEvent(SystemEvent *result);
-    void SetCurrentWindow(const SystemWindow &window);
+    void SetCurrentWindow(SystemWindow *window);
     SystemWindow *GetCurrentWindow();
 
     std::vector<const char *> GetVulkanExtensionNames();
     ~SystemSDL();
+
+    static void ThrowError();
 private:
-    SystemWindow current_window = SystemWindow(nullptr, 0, 0);
+    SystemWindow *current_window;
 };
 
 

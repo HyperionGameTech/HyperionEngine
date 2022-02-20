@@ -47,9 +47,9 @@ FBOMLoader::~FBOMLoader()
 
 FBOMResult FBOMLoader::Deserialize(FBOMObject *in, FBOMDeserialized &out)
 {
-    ex_assert(in != nullptr);
-    ex_assert(out == nullptr);
-    ex_assert_msg(in->deserialized_object == nullptr, "Object was already deserialized");
+    AssertThrow(in != nullptr);
+    AssertThrow(out == nullptr);
+    AssertThrowMsg(in->deserialized_object == nullptr, "Object was already deserialized");
 
     std::string object_type = in->m_object_type.name;
 
@@ -66,7 +66,7 @@ FBOMResult FBOMLoader::Deserialize(FBOMObject *in, FBOMDeserialized &out)
     return deserialize_result;
 }
 
-std::shared_ptr<Loadable> FBOMLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result FBOMLoader::LoadFromFile(const std::string &path)
 {
     // Include our root dir as part of the path
     std::string root_dir = AssetManager::GetInstance()->GetRootDir();
@@ -89,7 +89,7 @@ std::shared_ptr<Loadable> FBOMLoader::LoadFromFile(const std::string &path)
 
         if (last == nullptr) {
             // end of file
-            ex_assert_msg(reader->Eof(), "last was nullptr before eof reached");
+            AssertThrowMsg(reader->Eof(), "last was nullptr before eof reached");
 
             break;
         }
@@ -97,17 +97,22 @@ std::shared_ptr<Loadable> FBOMLoader::LoadFromFile(const std::string &path)
 
     delete reader;
 
-    hard_assert(root != nullptr);
+    AssertExit(root != nullptr);
 
-    ex_assert_msg(root->nodes.size() == 1, "No object added to root (should be one)");
-    ex_assert(root->nodes[0] != nullptr);
+    if (root->nodes.size() != 1) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "No object added to root (should be one)");
+    }
 
-    return root->nodes[0]->deserialized_object;
+    if (root->nodes[0] == nullptr) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "Top node was null");
+    }
+
+    return AssetLoader::Result(root->nodes[0]->deserialized_object);
 }
 
 FBOMCommand FBOMLoader::NextCommand(ByteReader *reader)
 {
-    hard_assert(!reader->Eof());
+    AssertExit(!reader->Eof());
 
     uint8_t ins = 0;
     reader->Read(&ins);
@@ -117,7 +122,7 @@ FBOMCommand FBOMLoader::NextCommand(ByteReader *reader)
 
 FBOMCommand FBOMLoader::PeekCommand(ByteReader *reader)
 {
-    hard_assert(!reader->Eof());
+    AssertExit(!reader->Eof());
 
     uint8_t ins = 0;
     reader->Peek(&ins);
@@ -192,7 +197,7 @@ FBOMType FBOMLoader::ReadObjectType(ByteReader *reader)
         reader->Read(&offset);
 
         // grab from static data pool
-        ex_assert(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_TYPE);
+        AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_TYPE);
         result = m_static_data_pool.at(offset).type_data;
     }
 
@@ -224,7 +229,7 @@ FBOMResult FBOMLoader::ReadData(ByteReader *reader, std::shared_ptr<FBOMData> &d
         reader->Read(&offset);
 
         // grab from static data pool
-        ex_assert(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_DATA);
+        AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_DATA);
         data = m_static_data_pool.at(offset).data_data;
     }
 
@@ -250,7 +255,7 @@ FBOMResult FBOMLoader::ReadObject(ByteReader *reader, FBOMObject &object)
         reader->Read(&offset);
 
         // grab from static data pool
-        ex_assert(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_OBJECT);
+        AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_OBJECT);
         object = m_static_data_pool.at(offset).object_data;
 
         return FBOMResult::FBOM_OK;
@@ -342,7 +347,7 @@ FBOMResult FBOMLoader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
     }
     case FBOM_STATIC_DATA_START:
     {
-        hard_assert(!m_in_static_data);
+        AssertExit(!m_in_static_data);
 
         if (auto err = Eat(reader, FBOM_STATIC_DATA_START)) {
             return err;
@@ -419,7 +424,7 @@ FBOMResult FBOMLoader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
     }
     case FBOM_STATIC_DATA_END:
     {
-        hard_assert(m_in_static_data);
+        AssertExit(m_in_static_data);
 
         if (auto err = Eat(reader, FBOM_STATIC_DATA_END)) {
             return err;

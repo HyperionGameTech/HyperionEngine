@@ -27,7 +27,7 @@ struct FBOMArray : FBOMType {
     FBOMArray(const FBOMType &held_type, size_t count)
         : FBOMType("array", held_type.size * count)
     {
-        ex_assert_msg(!held_type.IsUnbouned(), "Cannot create array of unbounded type");
+        AssertThrowMsg(!held_type.IsUnbouned(), "Cannot create array of unbounded type");
     }
 };
 

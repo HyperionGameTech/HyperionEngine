@@ -109,7 +109,7 @@ public:
             float y = std::stof(attributes.at("v"));
             texcoords.push_back(Vector2(x, y));
         } else if (name == "face") {
-            ex_assert(attributes.size() == 3);
+            AssertThrow(attributes.size() == 3);
 
             if (!has_submeshes) {
                 for (auto &&it : attributes) {
@@ -177,11 +177,16 @@ private:
     std::string filepath;
 };
 
-std::shared_ptr<Loadable> OgreLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result OgreLoader::LoadFromFile(const std::string &path)
 {
     OgreHandler handler(path);
     xml::SaxParser parser(&handler);
-    parser.Parse(path);
+    
+    auto sax_result = parser.Parse(path);
+
+    if (!sax_result) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, sax_result.message);
+    }
 
     auto final_node = std::make_shared<Entity>();
 
@@ -297,6 +302,6 @@ std::shared_ptr<Loadable> OgreLoader::LoadFromFile(const std::string &path)
         final_node->AddControl(skeleton_control);
     }
 
-    return final_node;
+    return AssetLoader::Result(final_node);
 }
 } // namespace hyperion

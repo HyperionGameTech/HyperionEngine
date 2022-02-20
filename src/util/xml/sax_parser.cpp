@@ -8,12 +8,11 @@ SaxParser::SaxParser(SaxHandler *handler)
 {
 }
 
-void SaxParser::Parse(const std::string &filepath)
+SaxParser::Result SaxParser::Parse(const std::string &filepath)
 {
     file.open(filepath);
     if (!file.is_open()) {
-        std::cout << "Error opening file stream!";
-        return;
+        return SaxParser::Result(SaxParser::Result::SAX_ERR, "File could not be read.");
     }
 
     bool is_reading = false,
@@ -125,6 +124,8 @@ void SaxParser::Parse(const std::string &filepath)
         }
         last_char = ch;
     }
+
+    return SaxParser::Result(SaxParser::Result::SAX_OK);
 }
 
 } // namespace xml

@@ -34,14 +34,20 @@ std::shared_ptr<Loadable> MtlLib::Clone()
     return new_mtl;
 }
 
-std::shared_ptr<Loadable> MtlLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result MtlLoader::LoadFromFile(const std::string &path)
 {
     std::shared_ptr<MtlLib> mtl = std::make_shared<MtlLib>();
 
-    auto loaded_text = TextLoader().LoadTextFromFile(path);
+    auto loaded_text_result = TextLoader().LoadFromFile(path);
+
+    if (!loaded_text_result) {
+        return loaded_text_result;
+    }
+
+    auto loaded_text = std::dynamic_pointer_cast<TextLoader::LoadedText>(loaded_text_result.Value());
 
     if (loaded_text == nullptr) {
-        return nullptr;
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "Could not load text file");
     }
 
     std::vector<std::string> lines = StringUtil::Split(loaded_text->GetText(), '\n');
@@ -126,7 +132,7 @@ std::shared_ptr<Loadable> MtlLoader::LoadFromFile(const std::string &path)
         }
     }
 
-    return mtl;
+    return AssetLoader::Result(mtl);
 }
 
 std::shared_ptr<Texture> MtlLoader::LoadTexture(const std::string &name, const std::string &path)

@@ -41,21 +41,21 @@ public:
 
     inline Vector2 GetScaling() const
     {
-        ex_assert(m_texture != nullptr);
+        AssertThrow(m_texture != nullptr);
 
         return m_char_size / Vector2(m_texture->GetWidth(), m_texture->GetHeight());
     }
 
     inline int NumCharsPerRow() const
     {
-        ex_assert(m_texture != nullptr);
+        AssertThrow(m_texture != nullptr);
 
         return m_texture->GetWidth() / int(m_char_size.x);
     }
 
     inline int NumCharsPerCol() const
     {
-        ex_assert(m_texture != nullptr);
+        AssertThrow(m_texture != nullptr);
 
         return m_texture->GetHeight() / int(m_char_size.y);
     }

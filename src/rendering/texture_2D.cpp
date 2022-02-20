@@ -49,11 +49,11 @@ void Texture2D::UploadGpuData(bool should_upload_data)
 
 void Texture2D::CopyData(Texture * const other)
 {
-    ex_assert(other != nullptr);
-    ex_assert(width == other->GetWidth());
-    ex_assert(height == other->GetHeight());
-    ex_assert(ifmt == other->GetInternalFormat());
-    ex_assert(fmt == other->GetFormat());
+    AssertThrow(other != nullptr);
+    AssertThrow(width == other->GetWidth());
+    AssertThrow(height == other->GetHeight());
+    AssertThrow(ifmt == other->GetInternalFormat());
+    AssertThrow(fmt == other->GetFormat());
 
     glCopyTexImage2D(GL_TEXTURE_2D, 0, fmt, 0, 0, width, height, 0);
 

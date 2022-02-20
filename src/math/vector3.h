@@ -40,7 +40,7 @@ public:
         if (index == 1) return y;
         if (index == 2) return z;
 
-        ex_assert_msg(false, "Index out of bounds");
+        AssertThrowMsg(false, "Index out of bounds");
     }
 
     constexpr inline float &operator[](size_t index)
@@ -49,7 +49,7 @@ public:
         if (index == 1) return y;
         if (index == 2) return z;
 
-        ex_assert_msg(false, "Index out of bounds");
+        AssertThrowMsg(false, "Index out of bounds");
     }
 
     Vector3 &operator=(const Vector3 &other);
