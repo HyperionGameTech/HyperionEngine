@@ -114,12 +114,18 @@ private:
     std::string last_element_name;
 };
 
-std::shared_ptr<Loadable> OgreSkeletonLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result OgreSkeletonLoader::LoadFromFile(const std::string &path)
 {
     OgreSkeletonHandler handler;
     xml::SaxParser parser(&handler);
-    parser.Parse(path.c_str());
 
-    return handler.GetSkeleton();
+    auto sax_result = parser.Parse(path);
+
+    if (!sax_result) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, sax_result.message);
+    }
+
+
+    return AssetLoader::Result(handler.GetSkeleton());
 }
 }

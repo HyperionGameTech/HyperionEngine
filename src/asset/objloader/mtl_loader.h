@@ -53,7 +53,7 @@ class MtlLoader : public AssetLoader {
 public:
     virtual ~MtlLoader() = default;
 
-    std::shared_ptr<Loadable> LoadFromFile(const std::string &) override;
+    virtual Result LoadFromFile(const std::string &) override;
 
 private:
     std::shared_ptr<Texture> LoadTexture(const std::string &name, const std::string &path);

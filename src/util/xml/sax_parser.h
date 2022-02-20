@@ -25,8 +25,29 @@ public:
 
 class SaxParser {
 public:
+    struct Result {
+        enum {
+            SAX_OK = 0,
+            SAX_ERR = 1
+        } result;
+
+        std::string message;
+
+        Result(decltype(result) result = SAX_OK, std::string message = "") : result(result), message(message) {}
+        Result(const Result &other) : result(other.result), message(other.message) {}
+        inline Result &operator=(const Result &other)
+        {
+            result = other.result;
+            message = other.message;
+
+            return *this;
+        }
+
+        inline operator bool() const { return result == SAX_OK; }
+    };
+
     SaxParser(SaxHandler *handler);
-    void Parse(const std::string &filepath);
+    Result Parse(const std::string &filepath);
 
 private:
     std::ifstream file;

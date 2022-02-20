@@ -4,17 +4,18 @@
 #include <iostream>
 
 namespace hyperion {
-std::shared_ptr<Loadable> TextLoader::LoadFromFile(const std::string &filepath)
+AssetLoader::Result TextLoader::LoadFromFile(const std::string &filepath)
 {
     std::ifstream file(filepath);
+
     if (!file.is_open()) {
-        return nullptr;
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "File could not be opened.");
     }
 
     std::stringstream buffer;
     buffer << file.rdbuf();
 
-    return std::make_shared<LoadedText>(buffer.str());
+    return AssetLoader::Result(std::make_shared<LoadedText>(buffer.str()));
 }
 
 std::shared_ptr<Loadable> TextLoader::LoadedText::Clone()

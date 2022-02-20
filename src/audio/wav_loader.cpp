@@ -28,7 +28,7 @@ struct WaveData {
     long sub_chunk_2_size;
 };
 
-std::shared_ptr<Loadable> WavLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result WavLoader::LoadFromFile(const std::string &path)
 {
     WaveFormat wave_format;
     RiffHeader riff_header;
@@ -43,8 +43,9 @@ std::shared_ptr<Loadable> WavLoader::LoadFromFile(const std::string &path)
     std::ifstream fs;
     try {
         fs.open(path, std::ios::binary);
+
         if (!fs.is_open()) {
-            return nullptr;
+            return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "File could not be opened");
         }
 
         fs.read((char*)&riff_header, sizeof(RiffHeader));
@@ -106,12 +107,13 @@ std::shared_ptr<Loadable> WavLoader::LoadFromFile(const std::string &path)
         delete[] data;
         fs.close();
 
-        return audio_source;
+        return AssetLoader::Result(audio_source);
     } catch (std::string error) {
         if (fs.is_open()) {
             fs.close();
         }
-        return nullptr;
+
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, error);
     }
 }
 } // namespace hyperion

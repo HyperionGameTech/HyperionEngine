@@ -11,6 +11,9 @@
 #include <iostream>
 
 namespace hyperion {
+const AssetLoader::Result AssetManager::ErrorList::no_error{ AssetLoader::Result::ASSET_OK };
+const int AssetManager::ErrorList::max_size = 16;
+
 AssetManager *AssetManager::instance = nullptr;
 
 AssetManager *AssetManager::GetInstance()
@@ -31,6 +34,7 @@ AssetManager::AssetManager()
     RegisterLoader<TextLoader>(".vert");
     RegisterLoader<TextLoader>(".geom");
     RegisterLoader<TextLoader>(".comp");
+    RegisterLoader<TextLoader>(".spv");
 
     RegisterLoader<ObjLoader>(".obj");
     RegisterLoader<MtlLoader>(".mtl");
@@ -75,24 +79,24 @@ std::shared_ptr<Loadable> AssetManager::LoadFromFile(const std::string &path, bo
         }
     }
 
-    try {
-        auto &loader = GetLoader(new_path);
+    auto &loader = GetLoader(new_path);
 
-        if (loader != nullptr) {
-            auto loaded = loader->LoadFromFile(new_path);
+    if (loader != nullptr) {
+        auto result = loader->LoadFromFile(new_path);
 
-            if (!loaded) {
-                throw std::string("Loader returned no data");
-            } else {
-                loaded->SetFilePath(new_path);
+        if (!result) {
+            m_error_list.Add(result);
 
-                loaded_assets[new_path] = loaded;
-            }
+            DebugLog(LogType::Warn, "Asset could not be loaded at %s:  %s\n", new_path.c_str(), result.message.c_str());
+        } else if (result.loadable == nullptr) {
+            DebugLog(LogType::Warn, "Asset loader gave ASSET_OK result but asset was null at %s:  %s\n", new_path.c_str(), result.message.c_str());
+        } else {
+            result.loadable->SetFilePath(new_path);
 
-            return loaded;
+            loaded_assets[new_path] = result.loadable;
+
+            return result.loadable;
         }
-    } catch (std::string err) {
-        std::cout << "[" << path << "]: " << "File load error: " << err << "\n";
     }
 
     return nullptr;

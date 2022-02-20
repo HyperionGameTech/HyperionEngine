@@ -66,7 +66,7 @@ FBOMResult FBOMLoader::Deserialize(FBOMObject *in, FBOMDeserialized &out)
     return deserialize_result;
 }
 
-std::shared_ptr<Loadable> FBOMLoader::LoadFromFile(const std::string &path)
+AssetLoader::Result FBOMLoader::LoadFromFile(const std::string &path)
 {
     // Include our root dir as part of the path
     std::string root_dir = AssetManager::GetInstance()->GetRootDir();
@@ -99,10 +99,15 @@ std::shared_ptr<Loadable> FBOMLoader::LoadFromFile(const std::string &path)
 
     AssertExit(root != nullptr);
 
-    AssertThrowMsg(root->nodes.size() == 1, "No object added to root (should be one)");
-    AssertThrow(root->nodes[0] != nullptr);
+    if (root->nodes.size() != 1) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "No object added to root (should be one)");
+    }
 
-    return root->nodes[0]->deserialized_object;
+    if (root->nodes[0] == nullptr) {
+        return AssetLoader::Result(AssetLoader::Result::ASSET_ERR, "Top node was null");
+    }
+
+    return AssetLoader::Result(root->nodes[0]->deserialized_object);
 }
 
 FBOMCommand FBOMLoader::NextCommand(ByteReader *reader)

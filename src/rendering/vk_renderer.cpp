@@ -13,6 +13,7 @@
 #include <cstring>
 #include <fstream>
 
+namespace hyperion {
 
 RendererQueue::RendererQueue() {
     this->queue = nullptr;
@@ -352,34 +353,21 @@ RendererSwapchain::~RendererSwapchain() {
         vkDestroySwapchainKHR(this->renderer_device->GetDevice(), this->swapchain, nullptr);
 }
 
-void RendererShader::AttachShader(RendererDevice *_device, ShaderType type, const uint32_t *code, const size_t code_size) {
+void RendererShader::AttachShader(RendererDevice *_device, const SPIRVObject &spirv) {
     this->device = _device;
 
     VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    create_info.codeSize = code_size;
-    create_info.pCode    = code;
+    create_info.codeSize = spirv.raw.size();
+    create_info.pCode    = spirv.VkCode();
     VkShaderModule module;
+
     if (vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &module) != VK_SUCCESS) {
         DebugLog(LogType::Error, "Could not create Vulkan shader module!\n");
         return;
     }
-    RendererShaderModule shader_mod = { type, module };
+
+    RendererShaderModule shader_mod = { spirv.type, module };
     this->shader_modules.push_back(shader_mod);
-}
-
-void RendererShader::AttachShader(RendererDevice *device, ShaderType type, const std::string &path) {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        DebugLog(LogType::Error, "Failed to open SPIRV file!\n");
-        throw std::runtime_error("Failed to open shader file");
-    }
-    std::streamsize data_size = file.tellg();
-    std::vector<char> data(data_size);
-    file.seekg(0);
-    file.read(data.data(), data_size);
-    file.close();
-
-    this->AttachShader(device, type, reinterpret_cast<const uint32_t *>(data.data()), (size_t)data_size);
 }
 
 VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShaderModule *module, const std::string &name) {
@@ -387,11 +375,44 @@ VkPipelineShaderStageCreateInfo RendererShader::CreateShaderStage(RendererShader
     create_info.module = module->module;
     create_info.pName = name.c_str();
     switch (module->type) {
-        case ShaderType::Vertex:
+        case SPIRVObject::Type::Vertex:
             create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
             break;
-        case ShaderType::Fragment:
+        case SPIRVObject::Type::Fragment:
             create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            break;
+        case SPIRVObject::Type::Geometry:
+            create_info.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+            break;
+        case SPIRVObject::Type::Compute:
+            create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+            break;
+        case SPIRVObject::Type::Task:
+            create_info.stage = VK_SHADER_STAGE_TASK_BIT_NV;
+            break;
+        case SPIRVObject::Type::Mesh:
+            create_info.stage = VK_SHADER_STAGE_MESH_BIT_NV;
+            break;
+        case SPIRVObject::Type::TessControl:
+            create_info.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+            break;
+        case SPIRVObject::Type::TessEval:
+            create_info.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+            break;
+        case SPIRVObject::Type::RayGen:
+            create_info.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+            break;
+        case SPIRVObject::Type::RayIntersect:
+            create_info.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+            break;
+        case SPIRVObject::Type::RayAnyHit:
+            create_info.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+            break;
+        case SPIRVObject::Type::RayClosestHit:
+            create_info.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            break;
+        case SPIRVObject::Type::RayMiss:
+            create_info.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
             break;
         default:
             DebugLog(LogType::Warn, "Shader type %d is currently unimplemented!\n", module->type);
@@ -701,7 +722,7 @@ void VkRenderer::Initialize(bool load_debug_layers) {
 
     this->surface = nullptr;
     this->requested_device_extensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
 }
 
@@ -824,3 +845,5 @@ std::vector<VkPhysicalDevice> VkRenderer::EnumeratePhysicalDevices() {
 
     return devices;
 }
+
+} // namespace hyperion

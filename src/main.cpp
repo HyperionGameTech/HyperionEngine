@@ -3,6 +3,8 @@
 #include "entity.h"
 #include "util.h"
 #include "asset/asset_manager.h"
+#include "asset/text_loader.h"
+#include "asset/byte_reader.h"
 #include "rendering/shader.h"
 #include "rendering/environment.h"
 #include "rendering/texture.h"
@@ -425,19 +427,19 @@ public:
 
             if (read) {
 
-                std::shared_ptr<Loadable> result = fbom::FBOMLoader().LoadFromFile("models/scene.fbom");
-
-                if (auto entity = std::dynamic_pointer_cast<Entity>(result)) {
-                    for (size_t i = 0; i < entity->NumChildren(); i++) {
-                        if (auto child = entity->GetChild(i)) {
-                            if (auto ren = child->GetRenderable()) {
-                                ren->SetShader(ShaderManager::GetInstance()->GetShader<LightingShader>(ShaderProperties()));
+                if (auto result = fbom::FBOMLoader().LoadFromFile("models/scene.fbom")) {
+                    if (auto entity = std::dynamic_pointer_cast<Entity>(result.loadable)) {
+                        for (size_t i = 0; i < entity->NumChildren(); i++) {
+                            if (auto child = entity->GetChild(i)) {
+                                if (auto ren = child->GetRenderable()) {
+                                    ren->SetShader(ShaderManager::GetInstance()->GetShader<LightingShader>(ShaderProperties()));
+                                }
                             }
                         }
-                    }
 
-                    GetScene()->AddChild(entity);
-                    entity->GetChild("mesh0_SG")->AddControl(std::make_shared<EnvMapProbeControl>(Vector3(0.0f, 2.0f, 0.0f)));
+                        GetScene()->AddChild(entity);
+                        entity->GetChild("mesh0_SG")->AddControl(std::make_shared<EnvMapProbeControl>(Vector3(0.0f, 2.0f, 0.0f)));
+                    }
                 }
             }
         }
@@ -688,6 +690,10 @@ public:
 
 int main()
 {
+    std::string base_path = HYP_ROOT_DIR;
+    AssetManager::GetInstance()->SetRootDir(base_path + "/res/");
+
+
     SystemSDL system;
     SystemWindow *window = SystemSDL::CreateWindow("Hyperion Engine", 1024, 768);
     system.SetCurrentWindow(window);
@@ -705,8 +711,8 @@ int main()
     RendererDevice *device = renderer.GetRendererDevice();
 
     RendererShader shader;
-    shader.AttachShader(device, ShaderType::Vertex, "../res/vkshaders/vert.spv");
-    shader.AttachShader(device, ShaderType::Fragment, "../res/vkshaders/frag.spv");
+    shader.AttachShader(device, SPIRVObject{ SPIRVObject::Type::Vertex, FileByteReader(AssetManager::GetInstance()->GetRootDir() + "vkshaders/vert.spv").Read() });
+    shader.AttachShader(device, SPIRVObject{ SPIRVObject::Type::Fragment, FileByteReader(AssetManager::GetInstance()->GetRootDir() + "vkshaders/frag.spv").Read() });
     shader.CreateProgram("main");
     renderer.InitializePipeline(&shader);
 
@@ -808,9 +814,6 @@ int main()
 
     CoreEngine *engine = new GlfwEngine();
     CoreEngine::SetInstance(engine);
-
-    std::string base_path = HYP_ROOT_DIR;
-    AssetManager::GetInstance()->SetRootDir(base_path+"/res/");
 
     auto *game = new SceneEditor(RenderWindow(1480, 1200, "Hyperion Demo"));
 

@@ -6,7 +6,7 @@
 namespace hyperion {
 class WavLoader : public AssetLoader {
 public:
-    std::shared_ptr<Loadable> LoadFromFile(const std::string &);
+    virtual Result LoadFromFile(const std::string &) override;
 };
 } // namespace hyperion
 

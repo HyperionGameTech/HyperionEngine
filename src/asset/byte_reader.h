@@ -1,6 +1,7 @@
 #ifndef BYTE_READER_H
 #define BYTE_READER_H
 
+#include "../types.h"
 #include "../util.h"
 
 #include <fstream>
@@ -20,6 +21,16 @@ public:
         AssertThrow(Position() + std::streamoff(size) <= Max());
 
         ReadBytes(reinterpret_cast<char*>(ptr), size);
+    }
+
+    inline std::vector<byte> Read()
+    {
+        std::vector<byte> data;
+        data.resize(Max());
+
+        Read(data.data(), data.size());
+
+        return data;
     }
     
     template <typename T>

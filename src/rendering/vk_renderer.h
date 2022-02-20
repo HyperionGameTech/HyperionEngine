@@ -9,11 +9,15 @@
 #include <set>
 #include <array>
 
+#include "./backend/spirv.h"
+
 #include <vulkan/vulkan.hpp>
 #include "../system/sdl_system.h"
 #include <optional>
 
 #define VK_RENDERER_API_VERSION VK_API_VERSION_1_2
+
+namespace hyperion {
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphics_family;
@@ -104,34 +108,15 @@ private:
     std::vector<VkFramebuffer> framebuffers;
 };
 
-enum class ShaderType : int {
-    Vertex = 0,
-    Fragment,
-    Geometry,
-    Compute,
-    /* Mesh shaders */
-    Task,
-    Mesh,
-    /* Tesselation */
-    TessControl,
-    TessEval,
-    /* Raytracing */
-    RayGen,
-    RayIntersect,
-    RayAnyHit,
-    RayClosestHit,
-    RayMiss,
-};
-
 struct RendererShaderModule {
-    ShaderType type;
+    SPIRVObject::Type type;
     VkShaderModule module;
 };
 
 class RendererShader {
 public:
-    void AttachShader(RendererDevice *device, ShaderType type, const std::string &path);
-    void AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size);
+    void AttachShader(RendererDevice *device, const SPIRVObject &spirv);
+    //void AttachShader(RendererDevice *device, ShaderType type, const uint32_t *code, const size_t code_size);
     VkPipelineShaderStageCreateInfo CreateShaderStage(RendererShaderModule *module, const std::string &name);
     void CreateProgram(const std::string &name);
     void Destroy();
@@ -219,7 +204,7 @@ private:
     std::vector<const char *> validation_layers;
 };
 
-
+} // namespace hyperion
 
 
 #endif //HYPERION_VK_RENDERER_H
