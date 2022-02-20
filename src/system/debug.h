@@ -62,42 +62,42 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
         DebugLog(level, "%s", s); \
     }
 
-#define _DebugLogAssertionMsg(level, cond, msg, ...) \
+#define _DebugLogAssertionMsg(level, cond, ...) \
     { \
-        const char *s = "*** assertion failed: " #msg " ***\n\t" #cond " evaluated to FALSE in file " __FILE__; \
-        DebugLog(level, "%s\nMessage was: %s", s, msg, __VA_ARGS__); \
+        const char *s = "*** assertion failed: ***\n\t" #cond " evaluated to FALSE in file " __FILE__; \
+        DebugLog(level, "%s\nMessage was: %s", s, __VA_ARGS__); \
     }
 
 #define AssertOrElse(level, cond, stmt) \
     { \
         if (!(cond)) { \
             _DebugLogAssertion(level, cond); \
-            ##stmt; \
+            { stmt; } \
         } \
     }
 
-#define AssertOrElseMsg(level, cond, stmt, msg, ...) \
+#define AssertOrElseMsg(level, cond, stmt, ...) \
     { \
-        if (!(cond)) { \
-            _DebugLogAssertionMsg(level, cond, msg, __VA_ARGS__); \
-            ##stmt; \
-        } \
+        if (!(cond)) {                                            \
+            _DebugLogAssertionMsg(level, cond, __VA_ARGS__); \
+            { stmt; }                                               \
+        }                                                         \
     }
 
 #define AssertThrow(cond) AssertOrElse(LogType::Error, cond, throw std::runtime_error("Assertion failed"))
-#define AssertThrowMsg(cond, msg, ...) AssertOrElseMsg(LogType::Error, cond, throw std::runtime_error("Assertion failed"), msg, __VA_ARGS__)
+#define AssertThrowMsg(cond, ...) AssertOrElseMsg(LogType::Error, cond, throw std::runtime_error("Assertion failed"), __VA_ARGS__)
 #define AssertSoft(cond) AssertOrElse(LogType::Warn, cond, return);
-#define AssertSoftMsg(cond, msg, ...) AssertOrElseMsg(LogType::Warn, cond, return, msg, __VA_ARGS__);
+#define AssertSoftMsg(cond, ...) AssertOrElseMsg(LogType::Warn, cond, return, __VA_ARGS__);
 #define AssertReturn(cond, value) AssertOrElse(LogType::Warn, cond, return value);
-#define AssertReturnMsg(cond, value, msg, ...) AssertOrElseMsg(LogType::Warn, cond, return value, msg, __VA_ARGS__);
+#define AssertReturnMsg(cond, value, ...) AssertOrElseMsg(LogType::Warn, cond, return value, __VA_ARGS__);
 #define AssertBreak(cond) AssertOrElse(LogType::Warn, cond, break);
-#define AssertBreakMsg(cond, msg, ...) AssertOrElseMsg(LogType::Warn, cond, break, msg, __VA_ARGS__);
+#define AssertBreakMsg(cond, ...) AssertOrElseMsg(LogType::Warn, cond, break, __VA_ARGS__);
 #define AssertContinue(cond) AssertOrElse(LogType::Warn, cond, continue);
-#define AssertContinueMsg(cond, msg, ...) AssertOrElseMsg(LogType::Warn, cond, continue, msg, __VA_ARGS__);
+#define AssertContinueMsg(cond, ...) AssertOrElseMsg(LogType::Warn, cond, continue, __VA_ARGS__);
 #define AssertExit(cond) AssertOrElse(LogType::Fatal, cond, exit(1));
-#define AssertExitMsg(cond, msg, ...) AssertOrElseMsg(LogType::Fatal, cond, exit(1), msg, __VA_ARGS__)
+#define AssertExitMsg(cond, ...) AssertOrElseMsg(LogType::Fatal, cond, exit(1), __VA_ARGS__)
 #define RagequitUnless(cond) AssertExit(cond)
-#define RagequitUnlessMsg(cond, msg, ...) AssertExitMsg(cond, msg, __VA_ARGS__)
+#define RagequitUnlessMsg(cond, ...) AssertExitMsg(cond, __VA_ARGS__)
 
 #define not_implemented AssertExitMsg(0, "Not implemented")
 #define function_body_not_implemented { not_implemented; }
