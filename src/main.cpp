@@ -19,7 +19,7 @@
 
 #include "system/sdl_system.h"
 #include "system/debug.h"
-#include "rendering/vk_renderer.h"
+#include "rendering/vulkan/vk_renderer.h"
 
 #include "rendering/probe/envmap/envmap_probe_control.h"
 
@@ -703,7 +703,6 @@ int main()
     VkRenderer renderer(system, "Hyperion Vulkan Test", "HyperionEngine");
 
     renderer.Initialize(true);
-    system.GetVulkanExtensionNames();
     renderer.CreateSurface();
     renderer.InitializeRendererDevice();
     renderer.InitializeSwapchain();
@@ -735,6 +734,7 @@ int main()
     }
 
     shader.Destroy();
+    renderer.Destroy();
     delete window;
 
     return  0;

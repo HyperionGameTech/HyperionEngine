@@ -37,7 +37,7 @@ include_directories(
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
-add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS} src/system/debug.cpp src/system/debug.h)
+add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS} src/system/debug.cpp src/system/debug.h src/rendering/vulkan/renderer_device.cpp src/rendering/vulkan/renderer_device.h src/rendering/vulkan/renderer_swapchain.cpp src/rendering/vulkan/renderer_swapchain.h src/rendering/vulkan/renderer_structs.h src/rendering/vulkan/renderer_pipeline.cpp src/rendering/vulkan/renderer_pipeline.h src/rendering/vulkan/renderer_shader.cpp src/rendering/vulkan/renderer_shader.h)
 
 
 set(COMMON_LIBRARIES
