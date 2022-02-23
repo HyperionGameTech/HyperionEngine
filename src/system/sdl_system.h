@@ -56,7 +56,7 @@ private:
 class SystemSDL {
 public:
     SystemSDL();
-    static SystemWindow *CreateWindow(const char *title, int width, int height);
+    static SystemWindow *CreateSystemWindow(const char *title, int width, int height);
     static int          PollEvent(SystemEvent *result);
     void SetCurrentWindow(SystemWindow *window);
     SystemWindow *GetCurrentWindow();

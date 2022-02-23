@@ -41,7 +41,6 @@ protected:
     virtual void WriteBytes(char *ptr, unsigned size) = 0;
 };
 
-// TEMP
 class MemoryByteWriter : public ByteWriter {
 public:
     MemoryByteWriter()
@@ -59,9 +58,7 @@ public:
         return std::streampos(m_pos);
     }
 
-    void Close()
-    {
-    }
+    void Close() {}
 
     inline const std::vector<char> &GetData() const { return m_data; }
 

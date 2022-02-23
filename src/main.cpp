@@ -17,6 +17,10 @@
 #include "animation/skeleton_control.h"
 #include "math/bounding_box.h"
 
+#include "asset/json/json.h"
+#include "asset/json/lexer.h"
+#include "asset/json/parser.h"
+
 #include "system/sdl_system.h"
 #include "system/debug.h"
 #include "rendering/vulkan/vk_renderer.h"
@@ -691,11 +695,25 @@ public:
 int main()
 {
     std::string base_path = HYP_ROOT_DIR;
+
+    json::SourceFile sf(base_path + "/config.json", 200);
+    sf.operator>>(std::string("{ \"hello\": [1,2,3,4], \"Test nested\": { \"key\": \"value\", \"other\": 5.345435e-2 } }"));
+    json::SourceStream ss(&sf);
+    json::TokenStream ts(json::TokenStreamInfo("./config.json"));
+    json::State state;
+    auto json_lex = json::Lexer(ss, &ts, &state);
+    json_lex.Analyze();
+    auto json_parser = json::Parser(&ts, &state);
+    auto json_object = json_parser.Parse();
+    std::cout << "json: " << json_object.ToString() << "\n";
+
+
+
     AssetManager::GetInstance()->SetRootDir(base_path + "/res/");
 
 
     SystemSDL system;
-    SystemWindow *window = SystemSDL::CreateWindow("Hyperion Engine", 1024, 768);
+    SystemWindow *window = SystemSDL::CreateSystemWindow("Hyperion Engine", 1024, 768);
     system.SetCurrentWindow(window);
 
     SystemEvent event;

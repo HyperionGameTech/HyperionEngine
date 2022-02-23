@@ -63,7 +63,7 @@ void SystemSDL::SetCurrentWindow(SystemWindow *window) {
     this->current_window = window;
 }
 
-SystemWindow *SystemSDL::CreateWindow(const char *title, int width, int height) {
+SystemWindow *SystemSDL::CreateSystemWindow(const char *title, int width, int height) {
     SystemWindow *window = new SystemWindow(title, width, height);
     window->Initialize();
     return window;

@@ -46,6 +46,7 @@ VkResult VkRenderer::AcquireNextImage(uint32_t *image_index) {
 void VkRenderer::RenderFrame(uint32_t *image_index) {
     auto new_image_result = this->AcquireNextImage(image_index);
     if (new_image_result == VK_SUBOPTIMAL_KHR || new_image_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        DebugLog(LogType::Info, "Device wait idle, image result was %d\n", new_image_result);
         vkDeviceWaitIdle(this->device->GetDevice());
         /* TODO: regenerate framebuffers and swapchain */
     }
