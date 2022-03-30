@@ -25,6 +25,7 @@ using renderer::PerFrameData;
 class Engine;
 
 class GraphicsPipeline : public EngineComponent<renderer::GraphicsPipeline> {
+    friend class Engine;
     friend class Spatial;
 
 public:
@@ -100,12 +101,12 @@ public:
     /* Build pipeline */
     void Create(Engine *engine);
     void Destroy(Engine *engine);
-    
-    void Render(Engine *engine, CommandBuffer *primary_command_buffer, uint32_t frame_index);
 
 private:
     /* Called from Spatial - remove the pointer */
     void OnSpatialRemoved(Spatial *spatial);
+
+    void Render(Engine *engine, CommandBuffer *primary_command_buffer, uint32_t frame_index);
 
     Shader::ID m_shader_id;
     RenderPass::ID m_render_pass_id;

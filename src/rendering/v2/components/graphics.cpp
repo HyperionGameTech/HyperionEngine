@@ -153,6 +153,7 @@ void GraphicsPipeline::Render(Engine *engine, CommandBuffer *primary_command_buf
 
     //HYPERION_ASSERT_RESULT(secondary_command_buffer->Reset(engine->GetInstance()->GetDevice()));
 
+
     secondary_command_buffer->Record(
         instance->GetDevice(),
         m_wrapped.GetConstructionInfo().render_pass,
