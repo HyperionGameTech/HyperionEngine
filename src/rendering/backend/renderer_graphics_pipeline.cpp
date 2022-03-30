@@ -64,9 +64,9 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
 
         this->vertex_attributes[i] = VkVertexInputAttributeDescription{
             .location = attribute.location,
-            .binding = attribute.binding,
-            .format = attribute.GetFormat(),
-            .offset = binding_sizes[attribute.binding]
+            .binding  = attribute.binding,
+            .format   = attribute.GetFormat(),
+            .offset   = binding_sizes[attribute.binding]
         };
 
         binding_sizes[attribute.binding] += attribute.size;

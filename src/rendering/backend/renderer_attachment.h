@@ -114,7 +114,7 @@ class Attachment<
 public:
     Attachment(uint32_t binding, VkFormat format) : AttachmentBase(
         format,
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        VK_ATTACHMENT_LOAD_OP_LOAD,
         VK_ATTACHMENT_STORE_OP_STORE,
         VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         VK_ATTACHMENT_STORE_OP_DONT_CARE,

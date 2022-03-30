@@ -80,16 +80,40 @@ public:
         Parameter() : type(MATERIAL_PARAMETER_TYPE_NONE) {}
 
         template <size_t Size>
-        explicit Parameter(const std::array<float, Size> &v)
+        explicit Parameter(std::array<float, Size> &&v)
             : type(Type(MATERIAL_PARAMETER_TYPE_FLOAT_1 + (Size - 1)))
         {
             static_assert(Size >= 1 && Size <= 4);
 
-            std::memcpy(values.float_values, v.data(), Size * sizeof(float));
+            std::memcpy(values.float_values, v, Size * sizeof(float));
+        }
+        
+        explicit Parameter(float value)
+            : type(MATERIAL_PARAMETER_TYPE_FLOAT_1)
+        {
+            std::memcpy(values.float_values, &value, sizeof(float));
+        }
+
+        explicit Parameter(const Vector2 &xy)
+            : type(MATERIAL_PARAMETER_TYPE_FLOAT_2)
+        {
+            std::memcpy(values.float_values, &xy.values, 2 * sizeof(float));
+        }
+
+        explicit Parameter(const Vector3 &xyz)
+            : type(MATERIAL_PARAMETER_TYPE_FLOAT_3)
+        {
+            std::memcpy(values.float_values, &xyz.values, 3 * sizeof(float));
+        }
+
+        explicit Parameter(const Vector4 &xyzw)
+            : type(MATERIAL_PARAMETER_TYPE_FLOAT_4)
+        {
+            std::memcpy(values.float_values, &xyzw.values, 4 * sizeof(float));
         }
 
         template <size_t Size>
-        explicit Parameter(const std::array<int, Size> &v)
+        explicit Parameter(std::array<int, Size> &&v)
             : type(Type(MATERIAL_PARAMETER_TYPE_INT_1 + (Size - 1)))
         {
             static_assert(Size >= 1 && Size <= 4);
@@ -97,7 +121,7 @@ public:
             std::memcpy(values.int_values, v.data(), Size * sizeof(int));
         }
 
-        Parameter(const Parameter &other)
+        explicit Parameter(const Parameter &other)
             : type(other.type)
         {
             std::memcpy(&values, &other.values, sizeof(values));

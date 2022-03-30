@@ -153,8 +153,6 @@ void GraphicsPipeline::Render(Engine *engine, CommandBuffer *primary_command_buf
 
     //HYPERION_ASSERT_RESULT(secondary_command_buffer->Reset(engine->GetInstance()->GetDevice()));
 
-    m_wrapped.BeginRenderPass(primary_command_buffer, 0, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
     secondary_command_buffer->Record(
         instance->GetDevice(),
         m_wrapped.GetConstructionInfo().render_pass,
@@ -204,8 +202,6 @@ void GraphicsPipeline::Render(Engine *engine, CommandBuffer *primary_command_buf
         });
     
     secondary_command_buffer->SubmitSecondary(primary_command_buffer);
-
-    m_wrapped.EndRenderPass(primary_command_buffer, 0);
 }
 
 } // namespace hyperion::v2

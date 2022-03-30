@@ -417,16 +417,19 @@ int main()
 
 
     auto mat1 = std::make_unique<v2::Material>();
-    mat1->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(std::array{ 1.0f, 0.0f, 0.0f, 1.0f }));
+    mat1->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 1.0f, 0.0f, 0.0f, 1.0f }));
     v2::Material::ID mat1_id = engine.AddMaterial(std::move(mat1));
+
     auto mat2 = std::make_unique<v2::Material>();
-    mat2->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(std::array{ 0.0f, 0.0f, 1.0f, 1.0f }));
+    mat2->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 0.0f, 0.0f, 1.0f, 1.0f }));
     v2::Material::ID mat2_id = engine.AddMaterial(std::move(mat2));
+
     auto skybox_material = std::make_unique<v2::Material>();
-    skybox_material->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(std::array{ 1.0f, 1.0f, 1.0f, 1.0f }));
+    skybox_material->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 1.0f, 1.0f, 1.0f, 1.0f }));
     v2::Material::ID skybox_material_id = engine.AddMaterial(std::move(skybox_material));
+
     auto translucent_material = std::make_unique<v2::Material>();
-    translucent_material->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(std::array{ 0.0f, 1.0f, 0.0f, 0.4f }));
+    translucent_material->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 0.0f, 1.0f, 0.0f, 0.2f }));
     v2::Material::ID translucent_material_id = engine.AddMaterial(std::move(translucent_material));
 
     v2::GraphicsPipeline::ID main_pipeline_id;

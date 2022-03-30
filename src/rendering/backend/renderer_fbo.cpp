@@ -82,12 +82,12 @@ Result FramebufferObject::Create(Device *device, RenderPass *render_pass)
     }
 
     VkFramebufferCreateInfo framebuffer_create_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-    framebuffer_create_info.renderPass = render_pass->GetRenderPass();
+    framebuffer_create_info.renderPass      = render_pass->GetRenderPass();
     framebuffer_create_info.attachmentCount = uint32_t(attachment_image_views.size());
     framebuffer_create_info.pAttachments    = attachment_image_views.data();
-    framebuffer_create_info.width  = m_width;
-    framebuffer_create_info.height = m_height;
-    framebuffer_create_info.layers = 1;
+    framebuffer_create_info.width           = m_width;
+    framebuffer_create_info.height          = m_height;
+    framebuffer_create_info.layers          = 1;
 
     HYPERION_VK_CHECK(vkCreateFramebuffer(device->GetDevice(), &framebuffer_create_info, nullptr, &m_framebuffer));
 

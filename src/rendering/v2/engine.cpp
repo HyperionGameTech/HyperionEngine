@@ -309,6 +309,7 @@ void Engine::UpdateDescriptorData(uint32_t frame_index)
 
 void Engine::Render(CommandBuffer *primary, uint32_t frame_index)
 {
+    m_render_bucket_container.GetBucket(GraphicsPipeline::Bucket::BUCKET_OPAQUE).objects[0]->Get().BeginRenderPass(primary, 0);
     for (const auto &pipeline : m_render_bucket_container.GetBucket(GraphicsPipeline::Bucket::BUCKET_SKYBOX).objects) {
         pipeline->Render(this, primary, frame_index);
     }
@@ -316,6 +317,8 @@ void Engine::Render(CommandBuffer *primary, uint32_t frame_index)
     for (const auto &pipeline : m_render_bucket_container.GetBucket(GraphicsPipeline::Bucket::BUCKET_OPAQUE).objects) {
         pipeline->Render(this, primary, frame_index);
     }
+
+    m_render_bucket_container.GetBucket(GraphicsPipeline::Bucket::BUCKET_OPAQUE).objects[0]->Get().EndRenderPass(primary, 0);
 }
 
 void Engine::RenderDeferred(CommandBuffer *primary, uint32_t frame_index)
