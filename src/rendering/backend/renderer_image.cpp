@@ -11,6 +11,7 @@
 #include <vulkan/vulkan.h>
 
 #include <unordered_map>
+#include <cstring>
 
 namespace hyperion {
 namespace renderer {
