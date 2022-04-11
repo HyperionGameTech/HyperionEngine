@@ -86,8 +86,8 @@ public:
 
     inline Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
-    
-    
+
+
 
     /* Pipelines will be deferred until descriptor sets are built
      * We take in the builder object rather than a unique_ptr,
@@ -117,7 +117,7 @@ public:
         { return const_cast<Engine*>(this)->GetGraphicsPipeline(id); }
 
     void SetSpatialTransform(Spatial *spatial, const Transform &transform);
-    
+
 
     void Initialize();
     void Destroy();

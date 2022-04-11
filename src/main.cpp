@@ -109,11 +109,11 @@ using namespace hyperion;
 int main()
 {
     using namespace hyperion::renderer;
-    
+
     std::string base_path = HYP_ROOT_DIR;
     AssetManager::GetInstance()->SetRootDir(base_path + "/res/");
-    
-    
+
+
     SystemSDL system;
     SystemWindow *window = SystemSDL::CreateSystemWindow("Hyperion Engine", 1024, 768);
     system.SetCurrentWindow(window);
@@ -121,8 +121,8 @@ int main()
     SystemEvent event;
 
     v2::Engine engine(system, "My app");
-    
-    
+
+
     std::vector<std::shared_ptr<Texture2D>> cubemap_faces;
     cubemap_faces.resize(6);
 
@@ -175,7 +175,7 @@ int main()
 #endif
 
     engine.Initialize();
-    
+
     auto [zombie, sponza, cube_obj] = engine.assets.Load<v2::Node>(
         base_path + "/res/models/ogrexml/dragger_Body.mesh.xml",
         base_path + "/res/models/sponza/sponza.obj",
@@ -188,10 +188,10 @@ int main()
     sponza->Scale(0.1f);
     //sponza->Rotate(Quaternion({1, 0, 0}, MathUtil::DegToRad(90.0f)));
     sponza->Update(&engine);
-    
+
 
     Device *device = engine.GetInstance()->GetDevice();
-    
+
 #if HYPERION_VK_TEST_IMAGE_STORE
     auto *descriptor_set_globals = engine.GetInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
@@ -209,7 +209,7 @@ int main()
 
     HYPERION_ASSERT_RESULT(image_storage_view.Create(device, image_storage));
 #endif
-    
+
     engine.PrepareSwapchain();
     
     auto mirror_shader = engine.resources.shaders.Add(std::make_unique<v2::Shader>(
@@ -293,12 +293,12 @@ int main()
     }
 
     v2::Node new_root("root");
-    
+
     auto mat1 = engine.resources.materials.Add(std::make_unique<v2::Material>());
     mat1->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 1.0f, 0.0f, 0.0f, 0.5f }));
     mat1->SetTexture(v2::Material::MATERIAL_TEXTURE_ALBEDO_MAP, texture.Acquire());
     mat1.Init();
-    
+
     auto mat2 = engine.resources.materials.Add(std::make_unique<v2::Material>());
     mat2->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 0.0f, 0.0f, 1.0f, 1.0f }));
     mat2->SetTexture(v2::Material::MATERIAL_TEXTURE_ALBEDO_MAP, texture2.Acquire());
@@ -325,7 +325,7 @@ int main()
             engine.GetRenderList()[v2::GraphicsPipeline::BUCKET_OPAQUE].render_pass.Acquire(),
             v2::GraphicsPipeline::Bucket::BUCKET_OPAQUE
         );
-        
+
         pipeline->AddSpatial(cube_spatial.Acquire());
 
         std::function<void(v2::Node *)> find_spatials = [&](v2::Node *node) {
@@ -442,7 +442,7 @@ int main()
     };
 
     wire_pipeline_id = engine.AddGraphicsPipeline(std::move(pipeline));
-        
+
 #endif
     
     engine.Compile();
@@ -531,13 +531,13 @@ int main()
         engine.GetOctree().CalculateVisibility(scene.ptr);
 
         sponza->Update(&engine);
-        
+
         zombie->GetChild(0)->GetSpatial()->GetSkeleton()->FindBone("head")->m_pose_transform.SetRotation(Quaternion({0, 1, 0}, timer * 0.35f));
         zombie->GetChild(0)->GetSpatial()->GetSkeleton()->FindBone("head")->UpdateWorldTransform();
         zombie->GetChild(0)->GetSpatial()->GetSkeleton()->SetShaderDataState(v2::ShaderDataState::DIRTY);
         zombie->SetLocalTransform(transform);
         zombie->Update(&engine);
-        
+
         cube_obj->SetLocalTranslation(scene->GetCamera()->GetTranslation());
         cube_obj->Update(&engine);
 
@@ -600,7 +600,7 @@ int main()
 
 #endif
     
-    
+
     //delete cubemap;
 
     for (size_t i = 0; i < per_frame_data.NumFrames(); i++) {

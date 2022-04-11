@@ -36,6 +36,7 @@ public:
     inline ImageView *GetImageView() const { return m_image_view.get(); }
     inline Sampler *GetSampler() const { return m_sampler.get(); }
 
+    void BlitTexture(Engine *engine, Vector4 dst_rect, Texture *src, Vector4 src_rect);
     void Init(Engine *engine);
 
 private:
