@@ -19,11 +19,11 @@ public:
         int32_t width, height;
     };
 
-    TextureAtlas(uint32_t width, uint32_t height,
+    TextureAtlas(Extent2D extent,
                  Image::InternalFormat format,
                  Image::FilterMode filter_mode,
                  Image::WrapMode wrap_mode);
-    TextureAtlas(uint32_t width, uint32_t height);
+    TextureAtlas(Extent2D extent);
 
     void Create(Engine *engine);
     void SetOffsets(const std::vector<Offset> &offsets) { m_offsets = offsets; }
@@ -35,16 +35,18 @@ public:
         return m_offsets[index];
     }
 
-    inline Texture2D *GetTexture() const { return m_texture.get(); }
+    inline Texture *GetTexture() const { return m_texture.ptr; }
 
     void BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *src_texture, Offset &src_offset);
 
 private:
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
+    Extent2D m_extent;
+    Image::InternalFormat m_format;
+    Image::FilterMode m_filter_mode;
+    Image::WrapMode m_wrap_mode;
 
     std::vector<Offset> m_offsets;
-    std::unique_ptr<Texture2D> m_texture;
+    Ref<Texture> m_texture;
 };
 
 

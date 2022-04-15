@@ -3,20 +3,23 @@
 //
 
 #include "texture_atlas.h"
+#include "../engine.h"
 
 namespace hyperion::v2 {
 
-TextureAtlas::TextureAtlas(uint32_t width, uint32_t height,
+TextureAtlas::TextureAtlas(Extent2D extent,
                            Image::InternalFormat format,
                            Image::FilterMode filter_mode,
                            Image::WrapMode wrap_mode)
-    : m_width(width), m_height(height)
+    : m_extent(extent),
+      m_format(format),
+      m_filter_mode(filter_mode),
+      m_wrap_mode(wrap_mode)
 {
-    m_texture = std::make_unique<Texture2D>(width, height, format, filter_mode, wrap_mode, nullptr);
 }
 
-TextureAtlas::TextureAtlas(uint32_t width, uint32_t height)
-    : TextureAtlas(width, height,
+TextureAtlas::TextureAtlas(Extent2D extent)
+    : TextureAtlas(extent,
                    Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
                    Image::FilterMode::TEXTURE_FILTER_LINEAR,
                    Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER)
@@ -45,9 +48,5 @@ void TextureAtlas::Create(Engine *engine) {
 
     m_texture.Init(engine);
 }
-
-
-
-
 
 }
