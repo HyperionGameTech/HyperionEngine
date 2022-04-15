@@ -612,42 +612,38 @@ Result Image::Create(Device *device, Instance *renderer,
     HYPERION_RETURN_OK;
 }
 
-void Image::BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect) {
+Result Image::BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect) {
     auto commands = renderer->GetSingleTimeCommands();
 
-    /* TODO: change this in the class to contain the image layout. */
-    const VkImageLayout lazy_layout = VK_IMAGE_LAYOUT_GENERAL;
-
     VkImageSubresourceLayers input_layer{};
-    input_layer.aspectMask = (VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    input_layer.mipLevel = 0;
-    input_layer.baseArrayLayer = 0;
-    input_layer.layerCount = 0;
+    input_layer.aspectMask = (VK_IMAGE_ASPECT_COLOR_BIT);
+    input_layer.layerCount = 1;
 
-    VkImageBlit2 region{VK_STRUCTURE_TYPE_IMAGE_BLIT_2};
+    VkImageBlit region{};
     region.srcSubresource = input_layer;
     region.dstSubresource = input_layer;
 
+    DebugLog(LogType::Info, "Blitting texture (%f, %f) :: (%f, %f)\n", src_rect.x, src_rect.y, src_rect.z, src_rect.w);
+
     region.srcOffsets[0] = { (int32_t)src_rect.x, (int32_t)src_rect.y, 0 };
-    region.srcOffsets[1] = { (int32_t)src_rect.z, (int32_t)src_rect.w, 0 };
+    region.srcOffsets[1] = { (int32_t)src_rect.z, (int32_t)src_rect.w, 1 };
 
     region.dstOffsets[0] = { (int32_t)dst_rect.x, (int32_t)dst_rect.y, 0 };
-    region.dstOffsets[1] = { (int32_t)dst_rect.z, (int32_t)dst_rect.w, 0 };
-
-    VkBlitImageInfo2 blit_info{ VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2 };
-    blit_info.srcImage = src_image->GetGPUImage()->image;
-    blit_info.srcImageLayout = lazy_layout;
-    blit_info.dstImage = this->GetGPUImage()->image;
-    blit_info.dstImageLayout = lazy_layout;
-    blit_info.regionCount = 1;
-    VkImageBlit2 blit_regions[] = { region };
-    blit_info.pRegions = blit_regions;
-    blit_info.filter = VK_FILTER_LINEAR;
+    region.dstOffsets[1] = { (int32_t)dst_rect.z, (int32_t)dst_rect.w, 1 };
 
     commands.Push([&](VkCommandBuffer cmd) {
-        vkCmdBlitImage2(cmd, &blit_info);
+        vkCmdBlitImage(cmd,
+                       src_image->GetGPUImage()->image,
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       this->GetGPUImage()->image,
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       1,
+                       &region,
+                       VK_FILTER_NEAREST);
         HYPERION_RETURN_OK;
     });
+    HYPERION_BUBBLE_ERRORS(commands.Execute(renderer->GetDevice()));
+    HYPERION_RETURN_OK;
 }
 
 Result Image::Destroy(Device *device)

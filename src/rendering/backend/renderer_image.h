@@ -91,7 +91,7 @@ public:
     static bool IsDepthTexture(InternalFormat fmt);
     static bool IsDepthTexture(BaseFormat fmt);
 
-    void BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect);
+    Result BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect);
 
     static VkFormat ToVkFormat(InternalFormat fmt);
     static VkImageType ToVkType(Type type);

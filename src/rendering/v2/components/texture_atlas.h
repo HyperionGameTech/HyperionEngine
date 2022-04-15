@@ -15,8 +15,8 @@ class TextureAtlas {
 public:
     using OffsetIndex = uint16_t;
     struct Offset {
-        uint32_t x, y;
-        uint32_t width, height;
+        int32_t x, y;
+        int32_t width, height;
     };
 
     TextureAtlas(uint32_t width, uint32_t height,
@@ -33,10 +33,11 @@ public:
             return Offset { 0, 0, 0, 0 };
         }
         return m_offsets[index];
-    };
-    void BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *src_texture, Offset &src_offset);
+    }
 
-    ~TextureAtlas();
+    inline Texture2D *GetTexture() const { return m_texture.get(); }
+
+    void BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *src_texture, Offset &src_offset);
 
 private:
     uint32_t m_width = 0;

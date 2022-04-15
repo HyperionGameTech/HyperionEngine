@@ -25,9 +25,9 @@ TextureAtlas::TextureAtlas(uint32_t width, uint32_t height)
 
 void TextureAtlas::BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *src_texture, Offset &src_offset) {
     Vector4 dst = { (float)dst_offset.x, (float)dst_offset.y,
-                    (float)dst_offset.x+dst_offset.width, (float)dst_offset.y+dst_offset.height };
+                    (float)dst_offset.x+(float)dst_offset.width, (float)dst_offset.y+(float)dst_offset.height };
     Vector4 src = { (float)src_offset.x, (float)src_offset.y,
-                    (float)src_offset.x+src_offset.width, (float)src_offset.y+src_offset.height };
+                    (float)src_offset.x+(float)src_offset.width, (float)src_offset.y+(float)src_offset.height };
 
     m_texture->BlitTexture(engine, dst, src_texture, src);
 }
