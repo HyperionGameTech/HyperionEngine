@@ -1,6 +1,6 @@
 #include "input_manager.h"
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 namespace hyperion {
 

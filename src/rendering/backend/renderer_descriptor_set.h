@@ -52,7 +52,7 @@ public:
     };
 
     static constexpr uint32_t max_descriptor_sets = DESCRIPTOR_SET_INDEX_MAX;
-    static constexpr uint32_t max_bindless_resources = 4096;
+    static constexpr uint32_t max_bindless_resources = 1024;
     static constexpr uint32_t max_sub_descriptor_updates_per_frame = 16;
     static constexpr uint32_t max_bound_descriptor_sets = 4; /* 0 = no cap */
 

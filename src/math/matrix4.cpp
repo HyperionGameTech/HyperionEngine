@@ -3,6 +3,7 @@
 #include "quaternion.h"
 
 #include <string.h>
+#include <cstring>
 
 namespace hyperion {
 

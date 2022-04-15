@@ -33,7 +33,17 @@ void TextureAtlas::BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *sr
 }
 
 void TextureAtlas::Create(Engine *engine) {
-    m_texture->Create(engine);
+    AssertThrow(m_texture == nullptr);
+
+    m_texture = engine->resources.textures.Add(std::make_unique<Texture2D>(
+        m_extent,
+        m_format,
+        m_filter_mode,
+        m_wrap_mode,
+        nullptr
+    ));
+
+    m_texture.Init(engine);
 }
 
 

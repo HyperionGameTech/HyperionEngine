@@ -40,14 +40,6 @@ void Texture::Init(Engine *engine)
 
         engine->shader_globals->textures.AddResource(this);
 
-void Texture::BlitTexture(Engine *engine, Vector4 dst_rect, Texture *src, Vector4 src_rect) {
-    m_wrapped.BlitImage(engine->GetInstance(), dst_rect, &src->m_wrapped, src_rect);
-}
-
-void Texture::Destroy(Engine *engine)
-{
-    HYPERION_ASSERT_RESULT(m_sampler->Destroy(engine->GetInstance()->GetDevice()));
-    HYPERION_ASSERT_RESULT(m_image_view->Destroy(engine->GetInstance()->GetDevice()));
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_TEXTURES, [this](Engine *engine) {
             AssertThrow(m_image_view != nullptr);
             AssertThrow(m_sampler != nullptr);
@@ -63,6 +55,10 @@ void Texture::Destroy(Engine *engine)
             EngineComponent::Destroy(engine);
         }), engine);
     }));
+}
+
+void Texture::BlitTexture(Engine *engine, Vector4 dst_rect, Texture *src, Vector4 src_rect) {
+    m_wrapped.BlitImage(engine->GetInstance(), dst_rect, &src->m_wrapped, src_rect);
 }
 
 } // namespace hyperion::v2

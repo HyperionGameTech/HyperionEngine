@@ -8,25 +8,26 @@
 #include <iomanip>
 #include <functional>
 #include <cctype>
+#include <algorithm>
 
 namespace hyperion {
 
 class StringUtil {
 public:
-    static constexpr std::string ToLower(const std::string &str)
+    static std::string ToLower(const std::string &str)
     {
         std::string result(str);
 
-        std::transform(result.begin(), result.end(), result.begin(), std::tolower);
+        std::transform(result.begin(), result.end(), result.begin(), [](char ch) { return std::tolower(ch); });
 
         return result;
     }
 
-    static constexpr std::string ToUpper(const std::string &str)
+    static std::string ToUpper(const std::string &str)
     {
         std::string result(str);
 
-        std::transform(result.begin(), result.end(), result.begin(), std::toupper);
+        std::transform(result.begin(), result.end(), result.begin(), [](char ch) { return std::toupper(ch); });
 
         return result;
     }
