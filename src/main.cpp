@@ -294,9 +294,17 @@ int main()
 
     v2::Node new_root("root");
 
+
+    auto *test_atlas = new v2::TextureAtlas({512, 512});
+    test_atlas->Init(&engine);
+    v2::TextureAtlas::Offset src_offset, dst_offset;
+    src_offset = { 0, 0, 200, 200 };
+    dst_offset = { 0, 0, 200, 200 };
+    test_atlas->BlitTexture(&engine, dst_offset, texture.Acquire(), src_offset);
+
     auto mat1 = engine.resources.materials.Add(std::make_unique<v2::Material>());
     mat1->SetParameter(v2::Material::MATERIAL_KEY_ALBEDO, v2::Material::Parameter(Vector4{ 1.0f, 0.0f, 0.0f, 0.5f }));
-    mat1->SetTexture(v2::Material::MATERIAL_TEXTURE_ALBEDO_MAP, texture.Acquire());
+    mat1->SetTexture(v2::Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine.resources.textures.Acquire(test_atlas->GetTexture()));
     mat1.Init();
 
     auto mat2 = engine.resources.materials.Add(std::make_unique<v2::Material>());

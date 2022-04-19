@@ -8,6 +8,7 @@
 #include "graphics.h"
 #include "material.h"
 #include "texture.h"
+#include "texture_atlas.h"
 #include "mesh.h"
 #include "skeleton.h"
 #include "scene.h"

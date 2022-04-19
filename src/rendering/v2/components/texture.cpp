@@ -21,11 +21,30 @@ Texture::~Texture()
     Teardown();
 }
 
+void Texture::DoOperation(Engine *engine, TextureOperation &op)
+{
+    /* Hope this ages well */
+    switch (op.type) {
+        case TextureOperation::Type::BLIT:
+            this->BlitTexture(
+                engine,
+                op.values.blit.dst_rect,
+                std::move(op.other),
+                op.values.blit.src_rect
+            );
+            break;
+        default:
+            break;
+    }
+}
+
 void Texture::Init(Engine *engine)
 {
     if (IsInit()) {
         return;
     }
+
+    m_enqueued_operations.reserve(4);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_TEXTURES, [this](Engine *engine) {
         EngineComponent::Create(
@@ -39,6 +58,10 @@ void Texture::Init(Engine *engine)
         HYPERION_ASSERT_RESULT(m_sampler->Create(engine->GetInstance()->GetDevice(), m_image_view.get()));
 
         engine->shader_globals->textures.AddResource(this);
+
+        for (auto &operation : m_enqueued_operations) {
+            this->DoOperation(engine, operation);
+        }
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_TEXTURES, [this](Engine *engine) {
             AssertThrow(m_image_view != nullptr);
@@ -57,7 +80,20 @@ void Texture::Init(Engine *engine)
     }));
 }
 
-void Texture::BlitTexture(Engine *engine, Vector4 dst_rect, Texture *src, Vector4 src_rect) {
+void Texture::BlitTexture(Engine *engine, Image::Rect dst_rect, Ref<Texture> &&src, Image::Rect src_rect) {
+    if (!IsInit()) {
+        m_enqueued_operations.push_back({
+            .type = TextureOperation::Type::BLIT,
+            .values={
+                    .blit={
+                            .src_rect = src_rect,
+                            .dst_rect = dst_rect
+                    },
+            },
+            .other = std::move(src)
+        });
+        return;
+    }
     m_wrapped.BlitImage(engine->GetInstance(), dst_rect, &src->m_wrapped, src_rect);
 }
 

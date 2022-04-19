@@ -15,6 +15,10 @@ class Device;
 class Image {
 public:
     struct LayoutTransferStateBase;
+    struct Rect {
+        uint32_t x0, y0;
+        uint32_t x1, y1;
+    };
 
     enum Type {
         TEXTURE_TYPE_2D = 0,
@@ -91,7 +95,7 @@ public:
     static bool IsDepthTexture(InternalFormat fmt);
     static bool IsDepthTexture(BaseFormat fmt);
 
-    Result BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect);
+    Result BlitImage(Instance *renderer, Rect dst_rect, Image *src_image, Rect src_rect);
 
     static VkFormat ToVkFormat(InternalFormat fmt);
     static VkImageType ToVkType(Type type);
@@ -155,7 +159,9 @@ public:
 
     inline const Extent3D &GetExtent() const { return m_extent; }
 
-    inline GPUImage *GetGPUImage() { return m_image; }
+    inline GPUImage *GetGPUImage() {
+        return m_image;
+    }
     inline const GPUImage *GetGPUImage() const { return m_image; }
 
     inline InternalFormat GetTextureFormat() const { return m_format; }

@@ -612,26 +612,25 @@ Result Image::Create(Device *device, Instance *renderer,
     HYPERION_RETURN_OK;
 }
 
-Result Image::BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, Vector4 src_rect) {
+Result Image::BlitImage(Instance *renderer, Rect dst_rect, Image *src_image, Rect src_rect) {
     auto commands = renderer->GetSingleTimeCommands();
 
-    VkImageSubresourceLayers input_layer{};
-    input_layer.aspectMask = (VK_IMAGE_ASPECT_COLOR_BIT);
-    input_layer.layerCount = 1;
-
-    VkImageBlit region{};
-    region.srcSubresource = input_layer;
-    region.dstSubresource = input_layer;
-
-    DebugLog(LogType::Info, "Blitting texture (%f, %f) :: (%f, %f)\n", src_rect.x, src_rect.y, src_rect.z, src_rect.w);
-
-    region.srcOffsets[0] = { (int32_t)src_rect.x, (int32_t)src_rect.y, 0 };
-    region.srcOffsets[1] = { (int32_t)src_rect.z, (int32_t)src_rect.w, 1 };
-
-    region.dstOffsets[0] = { (int32_t)dst_rect.x, (int32_t)dst_rect.y, 0 };
-    region.dstOffsets[1] = { (int32_t)dst_rect.z, (int32_t)dst_rect.w, 1 };
+    AssertThrow(src_image->GetGPUImage());
 
     commands.Push([&](VkCommandBuffer cmd) {
+        VkImageSubresourceLayers input_layer{};
+        input_layer.aspectMask = (VK_IMAGE_ASPECT_COLOR_BIT);
+        input_layer.layerCount = 1;
+
+        VkImageBlit region{};
+        region.srcSubresource = input_layer;
+        region.dstSubresource = input_layer;
+
+        region.srcOffsets[0] = { (int32_t)src_rect.x0, (int32_t)src_rect.y0, 0 };
+        region.srcOffsets[1] = { (int32_t)src_rect.x1, (int32_t)src_rect.y1, 1 };
+
+        region.dstOffsets[0] = { (int32_t)dst_rect.x0, (int32_t)dst_rect.y0, 0 };
+        region.dstOffsets[1] = { (int32_t)dst_rect.x1, (int32_t)dst_rect.y1, 1 };
         vkCmdBlitImage(cmd,
                        src_image->GetGPUImage()->image,
                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -642,6 +641,7 @@ Result Image::BlitImage(Instance *renderer, Vector4 dst_rect, Image *src_image, 
                        VK_FILTER_NEAREST);
         HYPERION_RETURN_OK;
     });
+    AssertThrow(renderer != nullptr && renderer->GetDevice() != nullptr);
     HYPERION_BUBBLE_ERRORS(commands.Execute(renderer->GetDevice()));
     HYPERION_RETURN_OK;
 }

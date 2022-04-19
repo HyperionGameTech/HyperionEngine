@@ -36,10 +36,27 @@ public:
     inline ImageView *GetImageView() const { return m_image_view.get(); }
     inline Sampler *GetSampler() const { return m_sampler.get(); }
 
-    void BlitTexture(Engine *engine, Vector4 dst_rect, Texture *src, Vector4 src_rect);
+    void BlitTexture(Engine *engine, Image::Rect dst_rect, Ref<Texture> &&src, Image::Rect src_rect);
     void Init(Engine *engine);
 
 private:
+    struct TextureOperation {
+        enum class Type {
+            NONE,
+            BLIT,
+        } type;
+        union {
+            struct {
+                Image::Rect src_rect;
+                Image::Rect dst_rect;
+            } blit;
+        } values;
+        Ref<Texture> other;
+    };
+    std::vector<TextureOperation> m_enqueued_operations;
+
+    void DoOperation(Engine *engine, TextureOperation &op);
+
     std::unique_ptr<ImageView> m_image_view;
     std::unique_ptr<Sampler> m_sampler;
 };

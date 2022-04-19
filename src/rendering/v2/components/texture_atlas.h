@@ -11,7 +11,7 @@
 
 namespace hyperion::v2 {
 
-class TextureAtlas {
+class TextureAtlas : public EngineComponentBase<STUB_CLASS(TextureAtlas)> {
 public:
     using OffsetIndex = uint16_t;
     struct Offset {
@@ -25,7 +25,7 @@ public:
                  Image::WrapMode wrap_mode);
     TextureAtlas(Extent2D extent);
 
-    void Create(Engine *engine);
+    void Init(Engine *engine);
     void SetOffsets(const std::vector<Offset> &offsets) { m_offsets = offsets; }
     Offset GetOffset(OffsetIndex index) {
         if (index > m_offsets.size()) {
@@ -34,12 +34,21 @@ public:
         }
         return m_offsets[index];
     }
+    void BlitTexture(Engine *engine, Offset &dst_offset, Ref<Texture> &&src_texture, Offset &src_offset);
 
     inline Texture *GetTexture() const { return m_texture.ptr; }
 
-    void BlitTexture(Engine *engine, Offset &dst_offset, Texture2D *src_texture, Offset &src_offset);
+    ~TextureAtlas();
 
 private:
+    void InternalBlitTexture(Engine *engine, Offset &dst_offset, Texture *src_texture, Offset &src_offset);
+    struct QueueItem {
+        Offset dst_offset;
+        Offset src_offset;
+        Texture *texture;
+    };
+    std::vector<QueueItem> m_enqueued;
+
     Extent2D m_extent;
     Image::InternalFormat m_format;
     Image::FilterMode m_filter_mode;
@@ -48,7 +57,6 @@ private:
     std::vector<Offset> m_offsets;
     Ref<Texture> m_texture;
 };
-
 
 }
 
