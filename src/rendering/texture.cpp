@@ -56,7 +56,9 @@ void Texture::Init(Engine *engine)
             HYPERION_BUBBLE_ERRORS(m_image_view.Create(engine->GetInstance()->GetDevice(), &m_image));
             HYPERION_BUBBLE_ERRORS(m_sampler.Create(engine->GetInstance()->GetDevice(), &m_image_view));
 
+#if HYP_FEATURES_BINDLESS_TEXTURES
             engine->shader_globals->textures.AddResource(this);
+#endif
 
             HYPERION_RETURN_OK;
         });
@@ -67,7 +69,9 @@ void Texture::Init(Engine *engine)
             SetReady(false);
 
             engine->render_scheduler.Enqueue([this, engine](...) {
+#if HYP_FEATURES_BINDLESS_TEXTURES
                 engine->shader_globals->textures.RemoveResource(m_id);
+#endif
 
                 HYPERION_BUBBLE_ERRORS(m_sampler.Destroy(engine->GetInstance()->GetDevice()));
                 HYPERION_BUBBLE_ERRORS(m_image_view.Destroy(engine->GetInstance()->GetDevice()));

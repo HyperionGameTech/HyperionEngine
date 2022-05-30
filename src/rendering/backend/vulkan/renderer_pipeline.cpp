@@ -1,4 +1,5 @@
 #include "renderer_pipeline.h"
+#include "renderer_descriptor_set.h"
 
 #include <system/debug.h>
 
@@ -16,6 +17,24 @@ Pipeline::~Pipeline()
 {
     AssertThrowMsg(pipeline == nullptr, "Expected pipeline to have been destroyed");
     AssertThrowMsg(layout == nullptr, "Expected layout to have been destroyed");
+}
+
+std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *device, DescriptorPool *descriptor_pool) const
+{
+    const auto &pool_layouts = descriptor_pool->GetDescriptorSetLayouts();
+
+    std::vector<VkDescriptorSetLayout> used_layouts{ // tmp
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_VOXELIZER),
+        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
+    };
+    
+    return used_layouts;
 }
 
 } // namespace renderer

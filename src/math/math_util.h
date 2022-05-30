@@ -10,9 +10,9 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cmath>
+#include <cfloat>
 #include <limits>
 #include <type_traits>
-
 
 namespace hyperion {
 

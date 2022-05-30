@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_BUFFERS_H
 #define HYPERION_V2_BUFFERS_H
 
+#include <util/defines.h>
+
 #include <core/lib/heap_array.h>
 #include <core/lib/range.h>
 
@@ -88,7 +90,11 @@ struct alignas(256) ObjectShaderData {
 static_assert(sizeof(ObjectShaderData) == 256);
 
 struct alignas(256) MaterialShaderData {
+#if HYP_FEATURES_ENABLE_BINDLESS_TEXTURES
     static constexpr size_t max_bound_textures = sizeof(uint32_t) * CHAR_BIT;
+#else
+    static constexpr size_t max_bound_textures = 2; // tmp
+#endif
 
     Vector4 albedo;
 
@@ -174,7 +180,7 @@ constexpr size_t max_scenes_bytes = max_scenes * sizeof(SceneShaderData);
 constexpr size_t max_lights = (16ull * 1024ull) / sizeof(LightShaderData);
 constexpr size_t max_lights_bytes = max_lights * sizeof(LightShaderData);
 /* max number of shadow maps, based on size in kb */
-constexpr size_t max_shadow_maps = (16ull * 1024ull) / sizeof(ShadowShaderData);
+constexpr size_t max_shadow_maps = (8ull * 1024ull) / sizeof(ShadowShaderData);
 constexpr size_t max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);
 
 template <class Buffer, class StructType, size_t Size>

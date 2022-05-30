@@ -1,7 +1,3 @@
-//
-// Created by ethan on 2/5/22.
-//
-
 #ifndef HYPERION_RENDERER_INSTANCE_H
 #define HYPERION_RENDERER_INSTANCE_H
 
@@ -13,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 #include <util/non_owning_ptr.h>
+
 #include <system/sdl_system.h>
 #include <system/vma/vma_usage.h>
 
@@ -26,7 +23,7 @@
 #include "renderer_frame_handler.h"
 #include "renderer_queue.h"
 
-#define VK_RENDERER_API_VERSION VK_API_VERSION_1_2
+#define VK_RENDERER_API_VERSION VK_API_VERSION_1_1
 
 namespace hyperion {
 namespace renderer {
@@ -132,3 +129,4 @@ private:
 } // namespace hyperion
 
 #endif //!RENDERER_INSTANCE
+

@@ -10,6 +10,8 @@
 #include <system/debug.h>
 #include <system/vma/vma_usage.h>
 
+#include <types.h>
+
 #include <vector>
 #include <optional>
 #include <cstring>
@@ -132,8 +134,8 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 Result Instance::SetupDebug()
 {
     static const std::vector<const char *> layers {
-        "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_monitor"
+        "VK_LAYER_KHRONOS_validation"
+        //"VK_LAYER_LUNARG_monitor"
     };
 
     HYPERION_BUBBLE_ERRORS(CheckValidationLayerSupport(layers));
@@ -274,16 +276,28 @@ Result Instance::Initialize(bool load_debug_layers)
 
     /* init descriptor sets */
 
-    for (int index = DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED; index != DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MAX; index++) {
-        const auto parent_index = DescriptorSet::GetBaseIndex(DescriptorSet::Index(index));
+    for (uint i = DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MAX; i++) {
+        const auto index = DescriptorSet::Index(i);
+        const auto slot  = DescriptorSet::GetBaseIndex(index);
 
-        descriptor_pool.AddDescriptorSet(
-            parent_index,
-            parent_index == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS
-        );
+#if HYP_FEATURES_BINDLESS_TEXTURES
+        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+            continue;
+        }
+#else
+        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS) {
+            continue;
+        }
+#endif
+
+        descriptor_pool.AddDescriptorSet(std::make_unique<DescriptorSet>(
+            slot,
+            i,
+            slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS
+        ));
     }
 
-    AssertThrow(descriptor_pool.NumDescriptorSets() == DescriptorSet::max_descriptor_sets);
+    //AssertThrow(descriptor_pool.NumDescriptorSets() <= DescriptorSet::max_descriptor_sets);
 
     SetupDebugMessenger();
     this->device->SetupAllocator(this);
@@ -400,19 +414,28 @@ VkPhysicalDevice Instance::PickPhysicalDevice(std::vector<VkPhysicalDevice> _dev
         }
     }
 
-    AssertExit(!_devices.empty());
+    AssertThrow(!_devices.empty());
 
     auto _device = _devices[0];
     device_features.SetPhysicalDevice(_device);
 
     device_requirements_result = device_features.SatisfiesMinimumRequirements();
 
+#if 0
+    AssertThrowMsg(
+        device_requirements_result,
+        "No device found which satisfied the minimum requirements.\nThe error message was: %s\n",
+        device_requirements_result.message
+    );
+
+#else
     DebugLog(
         LogType::Error,
         "No device found which satisfied the minimum requirements; selecting device %s.\nThe error message was: %s\n",
         device_features.GetDeviceName(),
         device_requirements_result.message
     );
+#endif
 
     /* well shit, we'll just hope for the best at this point */
     return _device;

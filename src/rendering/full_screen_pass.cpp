@@ -13,7 +13,7 @@ using renderer::Descriptor;
 using renderer::DescriptorSet;
 using renderer::SamplerDescriptor;
 
-std::unique_ptr<Mesh> FullScreenPass::full_screen_quad = MeshBuilder::Quad(Topology::TRIANGLE_FAN);
+std::unique_ptr<Mesh> FullScreenPass::full_screen_quad = MeshBuilder::Quad();
 
 FullScreenPass::FullScreenPass()
     : FullScreenPass(nullptr)
@@ -171,7 +171,7 @@ void FullScreenPass::CreatePipeline(Engine *engine)
     pipeline->AddFramebuffer(m_framebuffer.IncRef());
     pipeline->SetDepthWrite(false);
     pipeline->SetDepthTest(false);
-    pipeline->SetTopology(Topology::TRIANGLE_FAN);
+    pipeline->SetFaceCullMode(FaceCullMode::FRONT);
 
     m_pipeline = engine->AddGraphicsPipeline(std::move(pipeline));
     m_pipeline.Init();
@@ -266,6 +266,7 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
                     }
                 ));
                 
+#if HYP_FEATURES_BINDLESS_TEXTURES
                 HYPERION_BUBBLE_ERRORS(engine->GetInstance()->GetDescriptorPool().Bind(
                     engine->GetInstance()->GetDevice(),
                     cmd,
@@ -275,7 +276,17 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
                         {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS}
                     }
                 ));
-
+#else
+                HYPERION_BUBBLE_ERRORS(engine->GetInstance()->GetDescriptorPool().Bind(
+                    engine->GetInstance()->GetDevice(),
+                    cmd,
+                    m_pipeline->GetPipeline(),
+                    {
+                        {.set = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, 0, frame_index), .count = 1}, // tmp, make it so we don't have to bind
+                        {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES}
+                    }
+                ));
+#endif
 
                 HYPERION_BUBBLE_ERRORS(engine->GetInstance()->GetDescriptorPool().Bind(
                     engine->GetInstance()->GetDevice(),

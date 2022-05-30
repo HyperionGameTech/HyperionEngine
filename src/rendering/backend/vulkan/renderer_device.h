@@ -1,7 +1,3 @@
-//
-// Created by emd22 on 2022-02-20.
-//
-
 #ifndef HYPERION_RENDERER_DEVICE_H
 #define HYPERION_RENDERER_DEVICE_H
 
@@ -40,6 +36,8 @@ public:
     VkDevice         GetDevice();
     VkSurfaceKHR     GetRenderSurface();
     VkPhysicalDevice GetPhysicalDevice();
+
+    void DebugLogAllocatorStats() const;
 
     Result SetupAllocator(Instance *instance);
     Result DestroyAllocator();

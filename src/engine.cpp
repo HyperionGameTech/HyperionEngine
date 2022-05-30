@@ -230,8 +230,8 @@ void Engine::PrepareSwapchain()
 
         ++iteration;
     }
-
-    m_root_pipeline->SetTopology(Topology::TRIANGLE_FAN);
+    
+    m_root_pipeline->SetFaceCullMode(FaceCullMode::FRONT);
 
     callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         m_render_list_container.AddFramebuffersToPipelines(this);
@@ -247,6 +247,21 @@ void Engine::Initialize()
 
     shader_globals = new ShaderGlobals(m_instance->GetFrameHandler()->NumFrames());
     shader_globals->Create(this);
+
+    renderer::Image *dummy_image = new renderer::TextureImage2D(
+        renderer::Extent2D(1, 1),
+        renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+        renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
+        nullptr
+    );
+
+    HYPERION_ASSERT_RESULT(dummy_image->Create(GetDevice()));
+
+    renderer::ImageView *dummy_view = new renderer::ImageView();
+    HYPERION_ASSERT_RESULT(dummy_view->Create(GetDevice(), dummy_image));
+
+    renderer::Sampler *dummy_sampler = new renderer::Sampler();
+    HYPERION_ASSERT_RESULT(dummy_sampler->Create(GetDevice(), dummy_view));
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
@@ -332,6 +347,7 @@ void Engine::Initialize()
             .range = static_cast<uint32_t>(sizeof(SkeletonShaderData))
         });
 
+#if HYP_FEATURES_BINDLESS_TEXTURES
     m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
         ->AddDescriptor<renderer::SamplerDescriptor>(0);
@@ -339,6 +355,19 @@ void Engine::Initialize()
     m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1)
         ->AddDescriptor<renderer::SamplerDescriptor>(0);
+#else
+    auto *material_textures_descriptor = m_instance->GetDescriptorPool()
+        .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
+        ->AddDescriptor<renderer::SamplerDescriptor>(0);
+
+    for (uint i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
+        material_textures_descriptor->AddSubDescriptor({
+            .element_index = i,
+            .image_view    = dummy_view, // HACK: Todo make a simple throwaway 1x1 image to use
+            .sampler       = dummy_sampler
+        });
+    }
+#endif
 
     /* for textures */
     //shader_globals->textures.Create(this);
@@ -439,8 +468,8 @@ void Engine::Compile()
         shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
-    callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_VOXELIZER, this);
+    callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
 
     /* Flush render queue before finalizing descriptors */
     HYP_FLUSH_RENDER_QUEUE(this);
@@ -524,7 +553,9 @@ void Engine::UpdateBuffersAndDescriptors(uint32_t frame_index)
     shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
+#if HYP_FEATURES_BINDLESS_TEXTURES
     shader_globals->textures.ApplyUpdates(this, frame_index);
+#endif
 }
 
 void Engine::RenderDeferred(Frame *frame)
@@ -555,6 +586,7 @@ void Engine::RenderFinalPass(CommandBuffer *command_buffer) const
         }}
     );
 
+#if HYP_FEATURES_ENABLE_RAYTRACING
     /* TMP */
     m_instance->GetDescriptorPool().Bind(
         m_instance->GetDevice(),
@@ -565,6 +597,7 @@ void Engine::RenderFinalPass(CommandBuffer *command_buffer) const
             .count = 1
         }}
     );
+#endif
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
     FullScreenPass::full_screen_quad->Render(const_cast<Engine *>(this), command_buffer);

@@ -341,6 +341,7 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                 }
             );
 
+#if HYP_FEATURES_BINDLESS_TEXTURES
             /* Bindless textures */
             instance->GetDescriptorPool().Bind(
                 device,
@@ -351,6 +352,8 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                     {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS}
                 }
             );
+#endif
+            
             instance->GetDescriptorPool().Bind(
                 device,
                 secondary,
@@ -417,6 +420,19 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                         }}
                     }
                 );
+
+#if !HYP_FEATURES_BINDLESS_TEXTURES
+            /* Per-material texture set */
+            instance->GetDescriptorPool().Bind(
+                device,
+                secondary,
+                m_pipeline.get(),
+                {
+                    {.set = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index), .count = 1},
+                    {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES}
+                }
+            );
+#endif
 
                 spatial->GetMesh()->Render(engine, secondary);
             }

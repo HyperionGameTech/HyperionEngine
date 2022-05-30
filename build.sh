@@ -1,5 +1,18 @@
 #!/bin/sh
+mkdir -p build
 pushd build
-make
+
+read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
+
+if [[ $? -lt 128 ]] ; then
+    case $RESP in
+        [Yy]* ) cmake ../; break;;
+        [Nn]* ) break;;
+        * ) break;;
+    esac
+fi
+
+cmake --build . -j 24
 popd
+
 

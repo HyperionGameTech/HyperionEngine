@@ -81,6 +81,19 @@
     #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
+#ifdef __APPLE__
+
+#define HYP_APPLE 1
+
+#include <TargetConditionals.h>
+
+#if (TARGET_IPHONE_SIMULATOR == 1) || (TARGET_OS_IPHONE == 1)
+    #define HYP_IOS 1
+#elif (TARGET_OS_MAC == 1)
+    #define HYP_MACOS 1
+#endif
+#endif
+
 #define HYP_USE_EXCEPTIONS     0
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
@@ -141,7 +154,15 @@
     #endif
 #endif
 
-
 #define HYP_ENABLE_THREAD_ASSERTION 1 // set to 0 if needing to debug and getting crt errors
+
+// conditionals
+
+#if HYP_APPLE
+#define HYP_FEATURES_BINDLESS_TEXTURES 0
+#define HYP_FEATURES_ENABLE_RAYTRACING 0
+#else
+#define HYP_FEATURES_BINDLESS_TEXTURES 1
+#endif
 
 #endif // !HYPERION_DEFINES_H

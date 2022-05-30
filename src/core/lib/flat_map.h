@@ -49,14 +49,19 @@ public:
     bool Erase(const Key &key);
 
     [[nodiscard]] size_t Size() const                   { return m_set.Size(); }
-    [[nodiscard]] Pair *Data() const                    { return m_set.Data(); }
+    [[nodiscard]] Pair *Data()                          { return m_set.Data(); }
+    [[nodiscard]] Pair * const Data() const             { return m_set.Data(); }
     [[nodiscard]] bool Empty() const                    { return m_set.Empty(); }
+
     void Clear()                                        { m_set.Clear(); }
     
     [[nodiscard]] Pair &Front()                         { return m_set.Front(); }
     [[nodiscard]] const Pair &Front() const             { return m_set.Front(); }
     [[nodiscard]] Pair &Back()                          { return m_set.Back(); }
     [[nodiscard]] const Pair &Back() const              { return m_set.Back(); }
+
+    [[nodiscard]] FlatSet<Key> Keys() const;
+    [[nodiscard]] FlatSet<Value> Values() const;
 
     [[nodiscard]] Value &At(const Key &key)             { return Find(key)->second; }
     [[nodiscard]] const Value &At(const Key &key) const { return Find(key)->second; }
@@ -112,7 +117,7 @@ FlatMap<Key, Value>::~FlatMap() = default;
 template <class Key, class Value>
 auto FlatMap<Key, Value>::LowerBound(const Key &key) -> Iterator
 {
-    return std::lower_bound(
+    auto it = std::lower_bound(
         m_set.begin(),
         m_set.end(),
         key,
@@ -120,12 +125,18 @@ auto FlatMap<Key, Value>::LowerBound(const Key &key) -> Iterator
             return lhs.first < rhs;
         }
     );
+
+    if (it == m_set.end() || it->first != key) {
+        return m_set.end();
+    }
+
+    return it;
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::LowerBound(const Key &key) const -> ConstIterator
 {
-    return std::lower_bound(
+    auto it = std::lower_bound(
         m_set.cbegin(),
         m_set.cend(),
         key,
@@ -133,6 +144,12 @@ auto FlatMap<Key, Value>::LowerBound(const Key &key) const -> ConstIterator
             return lhs.first < rhs;
         }
     );
+
+    if (it == m_set.cend() || it->first != key) {
+        return m_set.cend();
+    }
+
+    return it;
 }
 
 template <class Key, class Value>
@@ -215,6 +232,30 @@ template <class Key, class Value>
 bool FlatMap<Key, Value>::Erase(const Key &value)
 {
     return Erase(Find(value));
+}
+
+template <class Key, class Value>
+FlatSet<Key> FlatMap<Key, Value>::Keys() const
+{
+    FlatSet<Key> keys;
+
+    for (const auto &it : *this) {
+        keys.Insert(it.first);    
+    }
+
+    return keys;
+}
+
+template <class Key, class Value>
+FlatSet<Value> FlatMap<Key, Value>::Values() const
+{
+    FlatSet<Value> values;
+
+    for (const auto &it : *this) {
+        values.Insert(it.second);    
+    }
+
+    return values;
 }
 
 } // namespace hyperion

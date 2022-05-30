@@ -11,6 +11,8 @@
 #include <math/math_util.h>
 #include <math/transform.h>
 
+#include <util/defines.h>
+
 #include <cstring>
 
 namespace hyperion {
@@ -172,9 +174,11 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     case Topology::TRIANGLES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         break;
+#if !HYP_APPLE
     case Topology::TRIANGLE_FAN:
-        input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; // not supported on metal
         break;
+#endif
     case Topology::TRIANGLE_STRIP:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
         break;
@@ -190,11 +194,11 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     }
 
     VkPipelineViewportStateCreateInfo viewport_state{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-    VkViewport viewports[] = {viewport};
+    VkViewport viewports[]       = {viewport};
     viewport_state.viewportCount = 1;
     viewport_state.pViewports    = viewports;
 
-    VkRect2D scissors[] = {scissor};
+    VkRect2D scissors[]         = {scissor};
     viewport_state.scissorCount = 1;
     viewport_state.pScissors    = scissors;
 
@@ -277,13 +281,37 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 
     dynamic_state.dynamicStateCount = static_cast<uint32_t>(states.size());
     dynamic_state.pDynamicStates    = states.data();
-    DebugLog(LogType::Info, "Enabling [%d] dynamic states\n", dynamic_state.dynamicStateCount);
+    DebugLog(
+        LogType::Debug,
+        "Enabling [%d] dynamic states\n",
+        dynamic_state.dynamicStateCount
+    );
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 
-    layout_info.setLayoutCount = static_cast<uint32_t>(descriptor_pool->GetDescriptorSetLayouts().size());
-    layout_info.pSetLayouts    = descriptor_pool->GetDescriptorSetLayouts().data();
+    auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
+    const auto max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+
+    DebugLog(
+        LogType::Debug,
+        "Using %llu descriptor set layouts in pipeline\n",
+        used_layouts.size()
+    );
+    
+    if (used_layouts.size() > max_set_layouts) {
+        DebugLog(
+            LogType::Debug,
+            "Device max bound descriptor sets exceeded (%llu > %u)\n",
+            used_layouts.size(),
+            max_set_layouts
+        );
+
+        return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
+    }
+
+    layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
+    layout_info.pSetLayouts    = used_layouts.data();
 
     /* Push constants */
     const VkPushConstantRange push_constant_ranges[] = {
@@ -296,6 +324,11 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 
     layout_info.pushConstantRangeCount = static_cast<uint32_t>(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges    = push_constant_ranges;
+
+    DebugLog(
+        LogType::Debug,
+        "Creating graphics pipeline layout\n"
+    );
 
     HYPERION_VK_CHECK_MSG(
         vkCreatePipelineLayout(device->GetDevice(), &layout_info, nullptr, &this->layout),

@@ -19,6 +19,8 @@
 #include <core/lib/flat_map.h>
 
 #include <rendering/backend/renderer_image.h>
+#include <rendering/backend/renderer_image_view.h>
+#include <rendering/backend/renderer_sampler.h>
 #include <rendering/backend/renderer_semaphore.h>
 #include <rendering/backend/renderer_command_buffer.h>
 

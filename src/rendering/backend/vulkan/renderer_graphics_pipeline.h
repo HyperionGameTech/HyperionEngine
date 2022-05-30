@@ -84,6 +84,6 @@ private:
 };
 
 } // namespace renderer
-}; // namespace hyperion
+} // namespace hyperion
 
 #endif //HYPERION_RENDERER_GRAPHICS_PIPELINE_H

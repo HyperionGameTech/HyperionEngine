@@ -14,7 +14,6 @@ using renderer::DescriptorSet;
 using renderer::DescriptorKey;
 using renderer::SamplerDescriptor;
 
-
 PostProcessingEffect::PostProcessingEffect(Stage stage, uint index)
     : EngineComponentBase(),
       m_full_screen_pass(nullptr, stage == Stage::PRE_SHADING ? DescriptorKey::POST_FX_PRE_STACK : DescriptorKey::POST_FX_POST_STACK, index),

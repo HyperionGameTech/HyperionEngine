@@ -282,14 +282,14 @@ Result Device::SetupAllocator(Instance *instance)
     create_info.device           = this->GetDevice();
     create_info.instance         = instance->GetInstance();
     create_info.pVulkanFunctions = &vkfuncs;
-    create_info.flags            = 0 | (features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    create_info.flags            = 0 | (features->SupportsRaytracing() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
     vmaCreateAllocator(&create_info, &allocator);
 
     HYPERION_RETURN_OK;
 }
 
-Result Device::DestroyAllocator()
+void Device::DebugLogAllocatorStats() const
 {
     if (this->allocator != VK_NULL_HANDLE) {
         char *stats_string;
@@ -298,6 +298,13 @@ Result Device::DestroyAllocator()
         DebugLog(LogType::RenInfo, "Pre-destruction VMA stats:\n%s\n", stats_string);
 
         vmaFreeStatsString(this->allocator, stats_string);
+    }
+}
+
+Result Device::DestroyAllocator()
+{
+    if (this->allocator != VK_NULL_HANDLE) {
+        DebugLogAllocatorStats();
 
         vmaDestroyAllocator(this->allocator);
         this->allocator = VK_NULL_HANDLE;
@@ -383,7 +390,7 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     
     DebugLog(LogType::Debug, "Loading dynamic functions\n");
     features->LoadDynamicFunctions(this);
-    DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->IsRaytracingSupported());
+    DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->SupportsRaytracing());
 
     HYPERION_RETURN_OK;
 }

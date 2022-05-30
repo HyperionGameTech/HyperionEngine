@@ -74,12 +74,35 @@ Result ComputePipeline::Create(Device *device,
         }
     };
 
+    auto result = Result::OK;
+   
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    layout_info.setLayoutCount = uint32_t(descriptor_pool->GetDescriptorSetLayouts().size());
-    layout_info.pSetLayouts    = descriptor_pool->GetDescriptorSetLayouts().data();
 
-    layout_info.pushConstantRangeCount = uint32_t(std::size(push_constant_ranges));
+    auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
+    const auto max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+
+    DebugLog(
+        LogType::Debug,
+        "Using %llu descriptor set layouts in pipeline\n",
+        used_layouts.size()
+    );
+    
+    if (used_layouts.size() > max_set_layouts) {
+        DebugLog(
+            LogType::Debug,
+            "Device max bound descriptor sets exceeded (%llu > %u)\n",
+            used_layouts.size(),
+            max_set_layouts
+        );
+
+        return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
+    }
+
+    layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
+    layout_info.pSetLayouts    = used_layouts.data();
+    
+    layout_info.pushConstantRangeCount = static_cast<uint32_t>(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges    = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(

@@ -56,6 +56,8 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
 
         vkGetPhysicalDeviceFeatures2(m_physical_device, &m_features2);
         
+        // properties
+
 #if HYP_FEATURES_ENABLE_RAYTRACING
         m_raytracing_pipeline_properties = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
@@ -67,9 +69,14 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
             .pNext = &m_raytracing_pipeline_properties
         };
 #else
+        m_indexing_properties = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT,
+            .pNext = VK_NULL_HANDLE
+        };
+
         m_properties2 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-            .pNext = VK_NULL_HANDLE
+            .pNext = &m_indexing_properties
         };
 #endif
 
@@ -88,7 +95,7 @@ void Features::LoadDynamicFunctions(Device *device)
 #if HYP_FEATURES_ENABLE_RAYTRACING
     HYP_LOAD_FN(vkGetBufferDeviceAddressKHR); // currently only used for RT
 
-    if (IsRaytracingSupported() && !IsRaytracingDisabled()) {
+    if (SupportsRaytracing() && !IsRaytracingDisabled()) {
         DebugLog(LogType::Debug, "Raytracing supported, loading raytracing-specific dynamic functions.\n");
 
         HYP_LOAD_FN(vkCmdBuildAccelerationStructuresKHR);

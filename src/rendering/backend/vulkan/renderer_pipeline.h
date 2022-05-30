@@ -11,6 +11,9 @@
 
 namespace hyperion {
 namespace renderer {
+    
+class Device;
+class DescriptorPool;
 
 class Pipeline {
     friend class DescriptorPool;
@@ -58,6 +61,8 @@ public:
     ~Pipeline();
 
 protected:
+    std::vector<VkDescriptorSetLayout> GetDescriptorSetLayouts(Device *device, DescriptorPool *descriptor_pool) const;
+
     VkPipeline pipeline;
     VkPipelineLayout layout;
 };

@@ -5,6 +5,8 @@
 #include <engine.h>
 #include <camera/ortho_camera.h>
 
+#include <rendering/backend/renderer_features.h>
+
 namespace hyperion::v2 {
 
 const Extent3D VoxelConeTracing::voxel_map_size{256};
@@ -230,14 +232,21 @@ void VoxelConeTracing::CreateComputePipelines(Engine *engine)
 
 void VoxelConeTracing::CreateShader(Engine *engine)
 {
-    m_shader = engine->resources.shaders.Add(std::make_unique<Shader>(
-        std::vector<SubShader>{
-            {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.vert.spv")).Read()}},
-            {ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.geom.spv")).Read()}},
-            {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.frag.spv")).Read()}}
-        }
-    ));
+    std::vector<SubShader> sub_shaders = {
+        {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.vert.spv")).Read()}},
+        {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.frag.spv")).Read()}}
+    };
 
+    if (engine->GetDevice()->GetFeatures().SupportsGeometryShaders()) {
+        sub_shaders.push_back({ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/vct/voxelize.geom.spv")).Read()}});
+    } else {
+        DebugLog(
+            LogType::Debug,
+            "Geometry shaders not supported on device, continuing without adding geometry shader to VCT pipeline.\n"
+        );
+    }
+    
+    m_shader = engine->resources.shaders.Add(std::make_unique<Shader>(sub_shaders));
     m_shader->Init(engine);
 }
 
@@ -263,6 +272,7 @@ void VoxelConeTracing::CreateFramebuffer(Engine *engine)
 
 void VoxelConeTracing::CreateDescriptors(Engine *engine)
 {
+    DebugLog(LogType::Debug, "Add voxel cone tracing descriptors\n");
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 

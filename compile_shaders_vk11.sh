@@ -2,7 +2,7 @@
 
 pushd res/vkshaders
 
-VULKAN_TARGET="vulkan1.2"
+VULKAN_TARGET="vulkan1.1"
 glslc --target-env=$VULKAN_TARGET deferred.frag -o deferred_frag.spv
 glslc --target-env=$VULKAN_TARGET deferred.vert -o deferred_vert.spv
 glslc --target-env=$VULKAN_TARGET blit.frag -o blit_frag.spv
@@ -40,15 +40,5 @@ glslc --target-env=$VULKAN_TARGET vct/voxelize.frag -o vct/voxelize.frag.spv
 glslc --target-env=$VULKAN_TARGET vct/voxelize.geom -o vct/voxelize.geom.spv
 glslc --target-env=$VULKAN_TARGET vct/voxelize.vert -o vct/voxelize.vert.spv
 glslc --target-env=$VULKAN_TARGET vct/clear_voxels.comp -o vct/clear_voxels.comp.spv
-
-glslc --target-env=$VULKAN_TARGET rt/test.rgen -o rt/test.rgen.spv
-glslc --target-env=$VULKAN_TARGET rt/test.rmiss -o rt/test.rmiss.spv
-glslc --target-env=$VULKAN_TARGET rt/test.rchit -o rt/test.rchit.spv
-
-glslc --target-env=$VULKAN_TARGET rt/probe.rgen -o rt/probe.rgen.spv
-glslc --target-env=$VULKAN_TARGET rt/probe.rmiss -o rt/probe.rmiss.spv
-glslc --target-env=$VULKAN_TARGET rt/probe.rchit -o rt/probe.rchit.spv
-glslc --target-env=$VULKAN_TARGET rt/probe_update_irradiance.comp -o rt/probe_update_irradiance.comp.spv
-glslc --target-env=$VULKAN_TARGET rt/probe_update_depth.comp -o rt/probe_update_depth.comp.spv
 
 popd

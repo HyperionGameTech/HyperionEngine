@@ -42,7 +42,8 @@ public:
     bool Erase(const T &value);
 
     [[nodiscard]] size_t Size() const                     { return m_vector.size(); }
-    [[nodiscard]] T *Data() const                         { return m_vector.data(); }
+    [[nodiscard]] T *Data()                               { return m_vector.data(); }
+    [[nodiscard]] T * const Data() const                  { return m_vector.data(); }
     [[nodiscard]] bool Empty() const                      { return m_vector.empty(); }
     [[nodiscard]] bool Contains(const T &value) const     { return Find(value) != End(); }
     void Clear()                                          { m_vector.clear(); }

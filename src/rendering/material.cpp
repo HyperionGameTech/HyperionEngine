@@ -2,7 +2,12 @@
 
 #include <engine.h>
 
+#include <rendering/backend/renderer_descriptor_set.h>
+
 namespace hyperion::v2 {
+
+using renderer::DescriptorSet;
+using renderer::SamplerDescriptor;
 
 Material::Material(const char *tag)
     : EngineComponentBase(),
@@ -41,6 +46,57 @@ void Material::Init(Engine *engine)
 
         SetReady(true);
 
+#if !HYP_FEATURES_BINDLESS_TEXTURES
+        // add a descriptor set w/ each texture
+        engine->render_scheduler.Enqueue([this, engine](...) {
+            for (uint frame_index = 0; frame_index < 2; frame_index++) {
+                const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
+                const auto index        = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
+
+                auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
+
+                auto *descriptor_set = descriptor_pool.AddDescriptorSet(std::make_unique<DescriptorSet>(
+                    parent_index,
+                    uint(index),
+                    false
+                ));
+
+                // now add each possible texture (max is 16 because of device limitations)
+                // TODO: only add used texture slots, and fixup indices
+                
+
+                auto *descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(0);
+
+                uint texture_index = 0;
+
+                for (size_t i = 0; i < m_textures.Size(); i++) {
+                    if (auto &texture = m_textures.ValueAt(i)) {
+                        if (texture == nullptr) {
+                            continue;
+                        }
+
+                        descriptor->AddSubDescriptor({
+                            .element_index = texture_index,
+                            .image_view    = &texture->GetImageView(),
+                            .sampler       = &texture->GetSampler()
+                        });
+
+                        ++texture_index;
+
+                        if (texture_index == DescriptorSet::max_material_texture_samplers) {
+                            break;
+                        }
+                    }
+                }
+
+                if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
+                    HYPERION_BUBBLE_ERRORS(descriptor_pool.CreateDescriptorSet(engine->GetDevice(), uint(index)));
+                }
+            }
+
+            HYPERION_RETURN_OK;
+        });
+#endif
         //EnqueueRenderUpdates(engine);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MATERIALS, [this](Engine *engine) {
@@ -106,7 +162,11 @@ void Material::EnqueueRenderUpdates(Engine *engine)
 
         for (size_t i = 0; i < bound_texture_ids.size(); i++) {
             if (bound_texture_ids[i] != Texture::empty_id) {
+#if HYP_FEATURES_BINDLESS_TEXTURES
                 shader_data.texture_index[i] = bound_texture_ids[i].value - 1;
+#else
+                shader_data.texture_index[i] = i;
+#endif
                 shader_data.texture_usage |= 1 << i;
             }
         }

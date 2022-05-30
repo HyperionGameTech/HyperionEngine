@@ -27,10 +27,12 @@ RaytracingPipeline::RaytracingPipeline(std::unique_ptr<ShaderProgram> &&shader_p
 
 RaytracingPipeline::~RaytracingPipeline() = default;
 
-Result RaytracingPipeline::Create(Device *device,
-                                  DescriptorPool *descriptor_pool)
+Result RaytracingPipeline::Create(
+    Device *device,
+    DescriptorPool *descriptor_pool
+)
 {
-    if (!device->GetFeatures().IsRaytracingSupported()) {
+    if (!device->GetFeatures().SupportsRaytracing()) {
         return {Result::RENDERER_ERR, "Raytracing is not supported on this device"};
     }
 
@@ -41,8 +43,29 @@ Result RaytracingPipeline::Create(Device *device,
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    layout_info.setLayoutCount         = uint32_t(descriptor_pool->GetDescriptorSetLayouts().size());
-    layout_info.pSetLayouts            = descriptor_pool->GetDescriptorSetLayouts().data();
+
+    auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
+    const auto max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+
+    DebugLog(
+        LogType::Debug,
+        "Using %llu descriptor set layouts in pipeline\n",
+        used_layouts.size()
+    );
+    
+    if (used_layouts.size() > max_set_layouts) {
+        DebugLog(
+            LogType::Debug,
+            "Device max bound descriptor sets exceeded (%llu > %u)\n",
+            used_layouts.size(),
+            max_set_layouts
+        );
+
+        return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
+    }
+
+    layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
+    layout_info.pSetLayouts    = used_layouts.data();
     
     /* Push constants */
     const VkPushConstantRange push_constant_ranges[] = {
@@ -221,9 +244,7 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device)
 
 #undef SHADER_PRESENT_IN_GROUP
 
-        if (shader_count == 0) {
-            HYP_BREAKPOINT;
-        }
+        AssertThrow(shader_count != 0);
 
         HYPERION_PASS_ERRORS(
             CreateShaderBindingTableEntry(

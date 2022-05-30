@@ -196,7 +196,7 @@ public:
         //zombie->AddController<AudioController>(engine->assets.Load<AudioSource>("sounds/taunt.wav"));
         //zombie->GetController<AudioController>()->Play(1.0f, LoopMode::ONCE);
 
-        scene->GetRootNode()->AddController<BasicPagingController>(Extent3D{8, 8, 8}, Vector3::One());
+        //scene->GetRootNode()->AddController<BasicPagingController>(Extent3D{8, 8, 8}, Vector3::One());
     }
 
     virtual void OnPostInit(Engine *engine) override

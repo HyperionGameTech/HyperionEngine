@@ -1,13 +1,15 @@
 #ifndef HYPERION_RENDERER_DESCRIPTOR_SET_H
 #define HYPERION_RENDERER_DESCRIPTOR_SET_H
 
-#include "renderer_result.h"
+#include <rendering/backend/renderer_result.h>
+
+#include <util/defines.h>
 
 #include <core/lib/range.h>
 #include <core/lib/flat_set.h>
 #include <core/lib/flat_map.h>
 
-#include <util/defines.h>
+#include <types.h>
 
 #include <vulkan/vulkan.h>
 
@@ -40,7 +42,6 @@ enum class DescriptorSetState {
     DESCRIPTOR_CLEAN = 0,
     DESCRIPTOR_DIRTY = 1
 };
-
 
 class Descriptor {
     friend class DescriptorSet;
@@ -133,11 +134,6 @@ public:
         std::vector<VkWriteDescriptorSet> &writes);
 
 protected:
-    struct BufferInfo {
-        std::vector<VkDescriptorBufferInfo> buffers;
-        std::vector<VkDescriptorImageInfo>  images;
-        std::vector<VkWriteDescriptorSetAccelerationStructureKHR> acceleration_structures;
-    };
 
     static VkDescriptorType GetDescriptorType(Mode mode);
 
@@ -148,11 +144,9 @@ protected:
         VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure) const;
 
     Range<uint32_t> m_dirty_sub_descriptors;
-    //FlatSet<SubDescriptor> m_sub_descriptors;
+
     FlatMap<uint32_t, SubDescriptor> m_sub_descriptors;
     std::deque<size_t> m_sub_descriptor_update_indices;
-
-    //BufferInfo m_sub_descriptors_raw;
 
     uint32_t m_binding;
     Mode m_mode;
@@ -170,7 +164,6 @@ enum class DescriptorKey {
     POST_FX_PRE_STACK,
     POST_FX_POST_STACK,
     POST_FX_UNIFORMS,
-
 
     SCENE_BUFFER,
     LIGHTS_BUFFER,
@@ -207,6 +200,8 @@ public:
 
         DESCRIPTOR_SET_INDEX_RAYTRACING,
 
+        DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES,
+
         DESCRIPTOR_SET_INDEX_MAX
     };
     
@@ -225,23 +220,32 @@ public:
         DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1
     };
 
-    static constexpr uint32_t max_descriptor_sets = DESCRIPTOR_SET_INDEX_MAX;
+    static constexpr uint32_t max_descriptor_sets = 5000;
     static constexpr uint32_t max_bindless_resources = 4096;
     static constexpr uint32_t max_sub_descriptor_updates_per_frame = 16;
     static constexpr uint32_t max_bound_descriptor_sets = 4; /* 0 = no cap */
+    static constexpr uint32_t max_material_texture_samplers = 1; // TMP: need to move things around to bump this up
 
     static const std::map<Index, std::map<DescriptorKey, uint32_t>> mappings;
-    static Index GetBaseIndex(Index index); // map index to the real index used (this is per-frame stuff)
-    static Index GetPerFrameIndex(Index index, uint32_t frame_index);
+    static const std::unordered_map<Index, uint> desired_indices;
+    static Index GetBaseIndex(uint index); // map index to the real index used (this is per-frame stuff)
+    static Index GetPerFrameIndex(Index index, uint frame_index);
+    static Index GetPerFrameIndex(Index index, uint instance_index, uint frame_index);
+    static uint GetDesiredIndex(Index index);
 
-    DescriptorSet(Index index, bool bindless);
+    DescriptorSet(Index index, uint real_index, bool bindless);
     DescriptorSet(const DescriptorSet &other) = delete;
     DescriptorSet &operator=(const DescriptorSet &other) = delete;
     ~DescriptorSet();
 
     DescriptorSetState GetState() const { return m_state; }
     Index GetIndex() const              { return m_index; }
+    uint GetRealIndex() const           { return m_real_index; }
     bool IsBindless() const             { return m_bindless; }
+    uint GetDesiredIndex() const        { return GetDesiredIndex(DescriptorSet::Index(GetRealIndex())); }
+
+    /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
+    bool IsTemplate() const             { return GetRealIndex() == static_cast<uint>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)
@@ -327,13 +331,14 @@ private:
     std::vector<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
     DescriptorSetState m_state;
     Index m_index;
+    uint m_real_index;
     bool m_bindless;
 };
 
 struct DescriptorSetBinding {
     struct Declaration {
         DescriptorSet::Index set;
-        uint32_t count; /* default to num total sets - set */
+        uint32_t count = 1;
     } declaration;
 
     /* where we bind to in the shader program */
@@ -387,8 +392,9 @@ class DescriptorPool {
     friend class DescriptorSet;
 
     Result AllocateDescriptorSet(Device *device, VkDescriptorSetLayout *layout, DescriptorSet *out);
-    Result CreateDescriptorSetLayout(Device *device, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
-    Result DestroyDescriptorSetLayout(Device *device, VkDescriptorSetLayout *layout);
+    Result CreateDescriptorSetLayout(Device *device, uint index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
+    Result DestroyDescriptorSetLayout(Device *device, uint index);
+    VkDescriptorSetLayout GetDescriptorSetLayout(uint index);
 
 public:
     static const std::unordered_map<VkDescriptorType, size_t> items_per_set;
@@ -398,24 +404,20 @@ public:
     DescriptorPool &operator=(const DescriptorPool &other) = delete;
     ~DescriptorPool();
 
-    size_t NumDescriptorSets() const { return m_num_descriptor_sets; }
+    size_t NumDescriptorSets() const { return m_descriptor_sets.size(); }
 
-    const std::vector<VkDescriptorSetLayout> &GetDescriptorSetLayouts() const
+    bool IsCreated() const           { return m_is_created; }
+
+    auto &GetDescriptorSetLayouts()
         { return m_descriptor_set_layouts; }
 
+    const auto &GetDescriptorSetLayouts() const
+        { return m_descriptor_set_layouts; }
+
+    void SetDescriptorSetLayout(uint index, VkDescriptorSetLayout layout);
+
     // return new descriptor set
-    template <class ...Args>
-    DescriptorSet &AddDescriptorSet(Args &&... args)
-    {
-        const size_t index = m_num_descriptor_sets++;
-
-        AssertThrow(index < m_descriptor_sets.size());
-
-        m_descriptor_sets[index] = std::make_unique<DescriptorSet>(std::move(args)...);
-
-        return *m_descriptor_sets[index];
-    }
-
+    DescriptorSet *AddDescriptorSet(std::unique_ptr<DescriptorSet> &&descriptor_set);
     DescriptorSet *GetDescriptorSet(DescriptorSet::Index index) const
         { return m_descriptor_sets[index].get(); }
 
@@ -425,6 +427,8 @@ public:
     Result Bind(Device *device, CommandBuffer *cmd, ComputePipeline *pipeline, const DescriptorSetBinding &) const;
     Result Bind(Device *device, CommandBuffer *cmd, RaytracingPipeline *pipeline, const DescriptorSetBinding &) const;
 
+    Result CreateDescriptorSet(Device *device, uint index);
+
 private:
     void BindDescriptorSets(Device *device,
         CommandBuffer *cmd,
@@ -432,11 +436,11 @@ private:
         Pipeline *pipeline,
         const DescriptorSetBinding &binding) const;
 
-    std::array<std::unique_ptr<DescriptorSet>, DescriptorSet::max_descriptor_sets> m_descriptor_sets;
-    size_t m_num_descriptor_sets;
-    std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
+    std::vector<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
+    FlatMap<uint, VkDescriptorSetLayout> m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
     std::vector<VkDescriptorSet> m_descriptor_sets_view;
+    bool m_is_created;
 };
 
 /* Convenience descriptor classes */

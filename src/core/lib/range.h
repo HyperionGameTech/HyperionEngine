@@ -245,6 +245,4 @@ public:
 
 } // namespace hyperion
 
-
-
 #endif

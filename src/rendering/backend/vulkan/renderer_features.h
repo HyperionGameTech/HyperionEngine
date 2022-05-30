@@ -39,11 +39,15 @@ public:
     ~Features() = default;
 
     void SetPhysicalDevice(VkPhysicalDevice);
-    inline VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
 
-    inline bool IsDiscreteGpu() const { return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; }
+    inline VkPhysicalDevice GetPhysicalDevice() const
+        { return m_physical_device; }
 
-    inline const char *GetDeviceName() const { return m_properties.deviceName; }
+    inline bool IsDiscreteGpu() const
+        { return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; }
+
+    inline const char *GetDeviceName() const
+        { return m_properties.deviceName; }
 
     inline const VkPhysicalDeviceProperties &GetPhysicalDeviceProperties() const
         { return m_properties; }
@@ -53,6 +57,9 @@ public:
 
     inline const VkPhysicalDeviceFeatures2 &GetPhysicalDeviceFeatures2() const
         { return m_features2; }
+
+    inline const VkPhysicalDeviceDescriptorIndexingFeatures &GetPhysicalDeviceIndexingFeatures() const
+        { return m_indexing_features; }
 
     inline const VkPhysicalDeviceMemoryProperties &GetPhysicalDeviceMemoryProperties() const
         { return m_memory_properties; }
@@ -97,12 +104,17 @@ public:
 
     DeviceRequirementsResult SatisfiesMinimumRequirements()
     {
-        REQUIRES_VK_FEATURE_MSG(m_features.geometryShader, "Geometry shaders");
         REQUIRES_VK_FEATURE_MSG(m_features.fragmentStoresAndAtomics, "Image stores and atomics in fragment shaders"); /* for imageStore() in fragment shaders */
         REQUIRES_VK_FEATURE_MSG(m_features.shaderSampledImageArrayDynamicIndexing, "Dynamic sampler / image array indexing"); /* for accessing textures based on dynamic index (push constant) */
         REQUIRES_VK_FEATURE_MSG(m_indexing_features.descriptorBindingPartiallyBound && m_indexing_features.runtimeDescriptorArray, "Bindless descriptors"); /* bindless support */
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetSamplers >= 16);
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetUniformBuffers >= 16);
+
+#if HYP_FEATURES_BINDLESS_TEXTURES
+        REQUIRES_VK_FEATURE(m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSamplers >= 4096);
+#else
+        REQUIRES_VK_FEATURE(m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSamplers >= 16);
+#endif
 
         return DeviceRequirementsResult(DeviceRequirementsResult::DEVICE_REQUIREMENTS_OK);
     }
@@ -148,7 +160,11 @@ public:
         return details;
     }
 
-    inline bool IsSupportedFormat(VkFormat format, VkImageTiling tiling, VkFormatFeatureFlags features) const
+    inline bool IsSupportedFormat(
+        VkFormat             format,
+        VkImageTiling        tiling,
+        VkFormatFeatureFlags features
+    ) const
     {
         if (m_physical_device == nullptr) {
             return false;
@@ -222,7 +238,11 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size>
-    inline VkFormat FindSupportedFormat(const std::array<VkFormat, Size> &possible_formats, VkImageTiling tiling, VkFormatFeatureFlags features) const
+    inline VkFormat FindSupportedFormat(
+        const std::array<VkFormat, Size> &possible_formats,
+        VkImageTiling                     tiling,
+        VkFormatFeatureFlags              features
+    ) const
     {
         static_assert(Size > 0, "Size must be greater than zero!");
 
@@ -307,12 +327,14 @@ public:
         return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
     }
 
-    inline Result GetImageFormatProperties(VkFormat format,
+    inline Result GetImageFormatProperties(
+        VkFormat                format,
         VkImageType             type,
         VkImageTiling           tiling,
         VkImageUsageFlags       usage,
         VkImageCreateFlags      flags,
-        VkImageFormatProperties *out_properties) const
+        VkImageFormatProperties *out_properties
+    ) const
     {
         if (m_physical_device == nullptr) {
             return Result(Result::RENDERER_ERR, "Cannot find supported format; physical device is not initialized.");
@@ -329,11 +351,11 @@ public:
         VkImageType             type,
         VkImageTiling           tiling,
         VkImageUsageFlags       usage,
-        VkImageCreateFlags      flags) const
+        VkImageCreateFlags      flags
+    ) const
     {
         VkImageFormatProperties tmp;
 
-        return GetImageFormatProperties(format, type, tiling, usage, flags, &tmp).result == Result::RENDERER_OK;
     }
 
     template <class StructType>
@@ -355,12 +377,14 @@ public:
             : size;
     }
 
-    bool IsRaytracingDisabled() const                         { return !IsRaytracingSupported() || m_is_raytracing_disabled; }
-    bool SetIsRaytracingDisabled(bool is_raytracing_disabled) { m_is_raytracing_disabled = is_raytracing_disabled; }
+    bool SupportsGeometryShaders() const                      { return m_features.geometryShader; }
 
-    bool IsRaytracingSupported() const
+    bool IsRaytracingDisabled() const                         { return !SupportsRaytracing() || m_is_raytracing_disabled; }
+    void SetIsRaytracingDisabled(bool is_raytracing_disabled) { m_is_raytracing_disabled = is_raytracing_disabled; }
+
+    bool SupportsRaytracing() const
     {
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
+#if HYP_FEATURES_ENABLE_RAYTRACING
         return m_raytracing_pipeline_features.rayTracingPipeline
             && m_acceleration_structure_features.accelerationStructure
             && m_buffer_device_address_features.bufferDeviceAddress;
@@ -379,6 +403,7 @@ private:
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_raytracing_pipeline_properties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_acceleration_structure_features;
     VkPhysicalDeviceDescriptorIndexingFeatures       m_indexing_features;
+    VkPhysicalDeviceDescriptorIndexingProperties     m_indexing_properties;
     VkPhysicalDeviceFeatures2                        m_features2;
     VkPhysicalDeviceProperties2                      m_properties2;
 

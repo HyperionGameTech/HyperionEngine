@@ -42,21 +42,26 @@ void DeferredPass::CreateRenderPass(Engine *engine)
 
 void DeferredPass::CreateDescriptors(Engine *engine)
 {
-    engine->render_scheduler.Enqueue([this, engine, &framebuffer = m_framebuffer->GetFramebuffer()](...) {
+    // TODO: this could cause invalidation issues, refactor this class into an EngineComponent and use AttachCallback
+    //engine->callbacks.Once(EngineCallback::CREATE_DESCRIPTOR_SETS, [this, engine](...) {
+    //engine->render_scheduler.Enqueue([this, engine, &framebuffer = m_framebuffer->GetFramebuffer()](...) {
+        auto &framebuffer = m_framebuffer->GetFramebuffer();
         if (!framebuffer.GetAttachmentRefs().empty()) {
             auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
             auto *descriptor = descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(DescriptorKey::DEFERRED_RESULT);
 
             for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
                 descriptor->AddSubDescriptor({
-                    .image_view = attachment_ref->GetImageView(),
-                    .sampler    = attachment_ref->GetSampler()
+                    .element_index = ~0u,
+                    .image_view    = attachment_ref->GetImageView(),
+                    .sampler       = attachment_ref->GetSampler()
                 });
             }
         }
+    //});
 
-        HYPERION_RETURN_OK;
-    });
+    //    HYPERION_RETURN_OK;
+    //});
 }
 
 void DeferredPass::Create(Engine *engine)
