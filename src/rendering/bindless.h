@@ -7,6 +7,7 @@
 #include <core/lib/flat_set.h>
 #include <rendering/backend/renderer_descriptor_set.h>
 #include <rendering/backend/renderer_swapchain.h>
+#include <constants.h>
 
 #include <queue>
 #include <array>
@@ -61,7 +62,7 @@ private:
     FlatSet<Texture::ID> m_texture_ids;
 
     //std::unordered_map<Texture::ID::ValueType, TextureResource> m_texture_resources;
-    std::array<DescriptorSet *, Swapchain::max_frames_in_flight> m_descriptor_sets;
+    std::array<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
     std::mutex m_enqueued_resources_mutex;
 };
 

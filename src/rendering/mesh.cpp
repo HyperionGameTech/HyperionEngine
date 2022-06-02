@@ -107,11 +107,13 @@ void Mesh::Init(Engine *engine)
             m_indices  = {0};
         }
 
-        engine->render_scheduler.Enqueue([this, engine, packed_buffer = BuildVertexBuffer()](...) {
+        engine->render_scheduler.Enqueue([this, packed_buffer = BuildVertexBuffer()](...) {
             using renderer::StagingBuffer;
 
+            auto *engine = GetEngine();
+
             auto *instance = engine->GetInstance();
-            auto *device = engine->GetDevice();
+            auto *device   = engine->GetDevice();
 
             const size_t packed_buffer_size  = packed_buffer.size() * sizeof(float);
             const size_t packed_indices_size = m_indices.size() * sizeof(Index);
@@ -154,10 +156,10 @@ void Mesh::Init(Engine *engine)
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MESHES, [this](Engine *engine) {
             SetReady(false);
 
-            engine->render_scheduler.Enqueue([this, engine](...) {
+            engine->render_scheduler.Enqueue([this](...) {
                 auto result = renderer::Result::OK;
 
-                Device *device = engine->GetInstance()->GetDevice();
+                auto *device = GetEngine()->GetDevice();
                 
                 HYPERION_PASS_ERRORS(m_vbo->Destroy(device), result);
                 HYPERION_PASS_ERRORS(m_ibo->Destroy(device), result);

@@ -156,6 +156,12 @@ public:
     inline RenderListContainer &GetRenderListContainer()             { return m_render_list_container; }
     inline const RenderListContainer &GetRenderListContainer() const { return m_render_list_container; }
 
+    inline auto &GetRenderScheduler()                                { return render_scheduler; }
+    inline const auto &GetRenderScheduler() const                    { return render_scheduler; }
+
+    inline auto &GetShaderData()                                     { return shader_globals; }
+    inline const auto &GetShaderData() const                         { return shader_globals; }
+
     inline Octree &GetOctree() { return m_octree; }
     inline const Octree &GetOctree() const { return m_octree; }
 

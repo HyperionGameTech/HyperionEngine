@@ -9,7 +9,6 @@
 #include <rendering/backend/renderer_shader.h>
 #include <rendering/backend/renderer_buffer.h>
 #include <rendering/backend/renderer_structs.h>
-#include <rendering/backend/renderer_swapchain.h>
 
 #include <math/transform.h>
 
@@ -30,8 +29,6 @@ using renderer::StorageBuffer;
 using renderer::PerFrameData;
 
 class Engine;
-
-constexpr uint32_t max_frames_in_flight = Swapchain::max_frames_in_flight;
 
 struct ShaderGlobals {
     ShaderGlobals(size_t num_buffers)

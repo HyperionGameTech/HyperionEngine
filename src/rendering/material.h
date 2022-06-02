@@ -299,8 +299,9 @@ public:
     }
 
 private:
-    void EnqueueRenderUpdates(Engine *engine);
+    void EnqueueRenderUpdates();
     void EnqueueTextureUpdate(TextureKey key);
+    void EnqueueDescriptorSetCreation();
 
     char *m_tag;
 

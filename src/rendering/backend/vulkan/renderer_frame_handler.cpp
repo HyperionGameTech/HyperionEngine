@@ -1,12 +1,13 @@
 #include "renderer_frame_handler.h"
 
 #include <math/math_util.h>
+#include <constants.h>
 
 namespace hyperion {
 namespace renderer {
 
 FrameHandler::FrameHandler(uint32_t num_frames, NextImageFunction next_image)
-    : m_per_frame_data(MathUtil::Min(num_frames, Swapchain::max_frames_in_flight)),
+    : m_per_frame_data(MathUtil::Min(num_frames, max_frames_in_flight)),
       m_next_image(next_image),
       m_acquired_image_index(0),
       m_current_frame_index(0)

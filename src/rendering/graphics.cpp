@@ -1,9 +1,9 @@
 #include "graphics.h"
-#include "../engine.h"
+#include <engine.h>
+#include <constants.h>
 
 #include <rendering/backend/renderer_descriptor_set.h>
-
-#include "rendering/backend/renderer_graphics_pipeline.h"
+#include <rendering/backend/renderer_graphics_pipeline.h>
 
 namespace hyperion::v2 {
 
@@ -323,7 +323,7 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                 }}
             );
 
-            static_assert(std::size(DescriptorSet::object_buffer_mapping) == Swapchain::max_frames_in_flight);
+            static_assert(std::size(DescriptorSet::object_buffer_mapping) == max_frames_in_flight);
 
             const auto scene_binding = engine->render_state.GetScene();
             const auto scene_cull_id = scene_binding.parent_id ? scene_binding.parent_id : scene_binding.id;
