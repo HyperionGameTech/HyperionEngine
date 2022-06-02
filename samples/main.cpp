@@ -785,9 +785,6 @@ int main()
     rt->Destroy(engine.GetDevice());
 #endif
 
-    engine.Destroy();
-
-
     delete window;
 
     return 0;

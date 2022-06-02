@@ -300,6 +300,7 @@ public:
 
 private:
     void EnqueueRenderUpdates(Engine *engine);
+    void EnqueueTextureUpdate(TextureKey key);
 
     char *m_tag;
 

@@ -182,7 +182,7 @@ void GraphicsPipeline::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](Engine *engine) {
         AssertThrow(!m_fbos.empty());

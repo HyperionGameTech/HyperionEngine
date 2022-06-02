@@ -21,7 +21,7 @@ void Framebuffer::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
     
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_FRAMEBUFFERS, [this](Engine *engine) {
         AssertThrowMsg(m_render_pass != nullptr, "Render pass must be set on framebuffer.");

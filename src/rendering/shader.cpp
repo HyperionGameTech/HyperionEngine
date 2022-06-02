@@ -46,7 +46,7 @@ void Shader::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SHADERS, [this](Engine *engine) {
         for (const auto &sub_shader : m_sub_shaders) {

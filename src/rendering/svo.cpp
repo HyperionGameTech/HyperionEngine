@@ -28,7 +28,7 @@ void SparseVoxelOctree::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](Engine *engine) {
         if (m_voxelizer == nullptr) {

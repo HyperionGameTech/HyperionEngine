@@ -240,7 +240,7 @@ void ShadowRenderer::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](Engine *engine) {
         m_effect.Create(engine);

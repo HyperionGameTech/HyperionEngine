@@ -33,7 +33,7 @@ void PostProcessingEffect::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     m_shader = CreateShader(engine);
     m_shader.Init();

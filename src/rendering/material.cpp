@@ -4,10 +4,13 @@
 
 #include <rendering/backend/renderer_descriptor_set.h>
 
+#include <types.h>
+
 namespace hyperion::v2 {
 
 using renderer::DescriptorSet;
 using renderer::SamplerDescriptor;
+using renderer::CommandBuffer;
 
 Material::Material(const char *tag)
     : EngineComponentBase(),
@@ -31,7 +34,7 @@ void Material::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_MATERIALS, [this](Engine *engine) {
         for (size_t i = 0; i < m_textures.Size(); i++) {
@@ -64,7 +67,6 @@ void Material::Init(Engine *engine)
                 // now add each possible texture (max is 16 because of device limitations)
                 // TODO: only add used texture slots, and fixup indices
                 
-
                 auto *descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(0);
 
                 uint texture_index = 0;
@@ -72,6 +74,8 @@ void Material::Init(Engine *engine)
                 for (size_t i = 0; i < m_textures.Size(); i++) {
                     if (auto &texture = m_textures.ValueAt(i)) {
                         if (texture == nullptr) {
+                            ++texture_index;
+
                             continue;
                         }
 
@@ -155,9 +159,6 @@ void Material::EnqueueRenderUpdates(Engine *engine)
             .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
         };
 
-        std::cout << "SET TEXTURE " << m_id.value << ", " << bound_texture_ids[0].value << "\n";
-
-
         shader_data.texture_usage = 0;
 
         for (size_t i = 0; i < bound_texture_ids.size(); i++) {
@@ -167,6 +168,7 @@ void Material::EnqueueRenderUpdates(Engine *engine)
 #else
                 shader_data.texture_index[i] = i;
 #endif
+
                 shader_data.texture_usage |= 1 << i;
             }
         }
@@ -177,6 +179,35 @@ void Material::EnqueueRenderUpdates(Engine *engine)
     });
 
     m_shader_data_state = ShaderDataState::CLEAN;
+}
+
+void Material::EnqueueTextureUpdate(TextureKey key)
+{
+    // TODO: (thread safety) - cannot copy `texture` w/ IncRef() because it is not
+    // CopyConstructable. So we have to just fetch it from m_textures (in the render thread).
+    // we should try to refactor this to not use std::function at all.
+    GetEngine()->render_scheduler.Enqueue([this, key](CommandBuffer *command_buffer, uint frame_index) {
+        auto &texture            = m_textures.Get(key);
+        const auto texture_index = decltype(m_textures)::EnumToOrdinal(key);
+
+        // update descriptor set for the given frame_index
+        // these scheduled tasks are executed before descriptors sets are updated,
+        // so it won't be updating a descriptor set that is in use
+        auto *engine                    = GetEngine();
+        const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
+        
+        auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
+        auto *descriptor_set  = descriptor_pool.GetDescriptorSet(descriptor_set_index);
+        auto *descriptor      = descriptor_set->GetDescriptor(0);
+
+        descriptor->AddSubDescriptor({
+            .element_index = static_cast<uint>(texture_index),
+            .image_view    = &texture->GetImageView(),
+            .sampler       = &texture->GetSampler()
+        });
+
+        HYPERION_RETURN_OK;
+    });
 }
 
 void Material::SetParameter(MaterialKey key, const Parameter &value)
@@ -207,7 +238,6 @@ void Material::ResetParameters()
     m_parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.08f);
 }
 
-
 void Material::SetTexture(TextureKey key, Ref<Texture> &&texture)
 {
     if (m_textures[key] == texture) {
@@ -216,9 +246,16 @@ void Material::SetTexture(TextureKey key, Ref<Texture> &&texture)
 
     if (texture && IsReady()) {
         texture.Init();
+
+        m_textures.Set(key, std::forward<Ref<Texture>>(texture));
+
+#if !HYP_FEATURES_BINDLESS_TEXTURES
+        EnqueueTextureUpdate(key);
+#endif
+    } else {
+        m_textures.Set(key, std::forward<Ref<Texture>>(texture));
     }
 
-    m_textures.Set(key, std::forward<Ref<Texture>>(texture));
 
     m_shader_data_state |= ShaderDataState::DIRTY;
 }

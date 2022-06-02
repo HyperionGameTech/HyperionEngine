@@ -54,14 +54,51 @@ Engine::Engine(SystemSDL &_system, const char *app_name)
 
 Engine::~Engine()
 {
-    AssertThrowMsg(m_instance == nullptr, "Instance should have been destroyed");
-}
+    m_running = false;
 
-void Engine::SetSpatialTransform(Spatial *spatial, const Transform &transform)
-{
-    AssertThrow(spatial != nullptr);
+    game_thread.Join(); // stop looping in game thread
     
-    spatial->EnqueueRenderUpdates(this);
+    callbacks.Trigger(EngineCallback::DESTROY_ANY, this);
+    callbacks.Trigger(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_MESHES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_MATERIALS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_LIGHTS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_SKELETONS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_SPATIALS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_SHADERS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_TEXTURES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_VOXELIZER, this);
+    callbacks.Trigger(EngineCallback::DESTROY_DESCRIPTOR_SETS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_GRAPHICS_PIPELINES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_COMPUTE_PIPELINES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_RAYTRACING_PIPELINES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_SCENES, this);
+    callbacks.Trigger(EngineCallback::DESTROY_ENVIRONMENTS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_FRAMEBUFFERS, this);
+    callbacks.Trigger(EngineCallback::DESTROY_RENDER_PASSES, this);
+
+    HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
+
+    AssertThrow(m_instance != nullptr);
+    (void)m_instance->GetDevice()->Wait();
+    
+    m_render_list_container.Destroy(this);
+    
+    m_deferred_renderer.Destroy(this);
+
+    for (auto &attachment : m_render_pass_attachments) {
+        HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
+    }
+    
+    resources.Destroy(this);
+
+    if (shader_globals != nullptr) {
+        shader_globals->Destroy(this);
+
+        delete shader_globals;
+    }
+
+    m_instance->Destroy();
 }
 
 void Engine::FindTextureFormatDefaults()
@@ -392,56 +429,6 @@ void Engine::Initialize()
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
     m_running = true;
-}
-
-void Engine::Destroy()
-{
-    m_running = false;
-
-    game_thread.Join(); // stop looping in game thread
-    
-    callbacks.Trigger(EngineCallback::DESTROY_ANY, this);
-    callbacks.Trigger(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_MESHES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_MATERIALS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_LIGHTS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SKELETONS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SPATIALS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SHADERS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_TEXTURES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_VOXELIZER, this);
-    callbacks.Trigger(EngineCallback::DESTROY_DESCRIPTOR_SETS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_GRAPHICS_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_COMPUTE_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_RAYTRACING_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SCENES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_ENVIRONMENTS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_FRAMEBUFFERS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_RENDER_PASSES, this);
-
-    HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
-
-    AssertThrow(m_instance != nullptr);
-    (void)m_instance->GetDevice()->Wait();
-    
-    m_render_list_container.Destroy(this);
-    
-    m_deferred_renderer.Destroy(this);
-
-    for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
-    }
-    
-    resources.Destroy(this);
-
-    if (shader_globals != nullptr) {
-        shader_globals->Destroy(this);
-
-        delete shader_globals;
-    }
-
-    m_instance->Destroy();
-    m_instance.reset();
 }
 
 void Engine::Compile()

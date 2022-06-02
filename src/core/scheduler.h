@@ -91,7 +91,7 @@ public:
         std::unique_lock lock(m_mutex);
 #endif
 
-        return EnqueueInternal(std::move(fn));
+        return EnqueueInternal(std::forward<typename ScheduledFunction::Function>(fn));
     }
     
     /*! \brief Remove a function from the owner thread's queue, if it exists
@@ -148,7 +148,7 @@ public:
             }
         }
 
-        return (dequeue_id = EnqueueInternal(std::move(enqueue_fn)));
+        return (dequeue_id = EnqueueInternal(std::forward<typename ScheduledFunction::Function>(enqueue_fn)));
     }
 
     /*! Wait for all tasks to be completed in another thread.

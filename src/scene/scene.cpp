@@ -29,7 +29,7 @@ void Scene::Init(Engine *engine)
         return;
     }
     
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SCENES, [this](Engine *engine) {
         for (auto &texture : m_environment_textures) {

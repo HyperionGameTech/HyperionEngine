@@ -21,7 +21,7 @@ void RenderPass::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_RENDER_PASSES, [this](Engine *engine) {
         engine->render_scheduler.Enqueue([this, engine](...) {

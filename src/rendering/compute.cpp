@@ -20,7 +20,7 @@ void ComputePipeline::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](Engine *engine) {
         AssertThrow(m_shader != nullptr);

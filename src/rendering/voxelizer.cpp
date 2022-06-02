@@ -25,7 +25,7 @@ void Voxelizer::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](Engine *engine) {
         const auto voxel_map_size_signed = static_cast<int64_t>(voxel_map_size);

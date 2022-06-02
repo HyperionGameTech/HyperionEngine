@@ -28,7 +28,7 @@ void VoxelConeTracing::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](Engine *engine) {
         m_scene = engine->resources.scenes.Add(std::make_unique<Scene>(

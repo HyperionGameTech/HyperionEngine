@@ -49,6 +49,8 @@ using renderer::SemaphoreChain;
 using renderer::Image;
 using renderer::StorageBuffer;
 
+class Engine;
+
 /* Current descriptor / attachment layout */
 
 /*
@@ -110,8 +112,6 @@ struct RenderState {
     }
 };
 
-
-
 struct GraphicsPipelineAttributeSet {
     Ref<Shader>        shader;
     VertexAttributeSet vertex_attributes;
@@ -147,11 +147,11 @@ public:
     Engine(SystemSDL &, const char *app_name);
     ~Engine();
     
-    inline Instance *GetInstance() const { return m_instance.get(); }
-    inline Device   *GetDevice() const { return m_instance ? m_instance->GetDevice() : nullptr; }
+    inline Instance *GetInstance() const                             { return m_instance.get(); }
+    inline Device   *GetDevice() const                               { return m_instance ? m_instance->GetDevice() : nullptr; }
 
-    inline DeferredRenderer &GetDeferredRenderer()             { return m_deferred_renderer; }
-    inline const DeferredRenderer &GetDeferredRenderer() const { return m_deferred_renderer; }
+    inline DeferredRenderer &GetDeferredRenderer()                   { return m_deferred_renderer; }
+    inline const DeferredRenderer &GetDeferredRenderer() const       { return m_deferred_renderer; }
 
     inline RenderListContainer &GetRenderListContainer()             { return m_render_list_container; }
     inline const RenderListContainer &GetRenderListContainer() const { return m_render_list_container; }
@@ -165,11 +165,7 @@ public:
     Ref<GraphicsPipeline> FindOrCreateGraphicsPipeline(const RenderableAttributeSet &renderable_attributes);
     Ref<GraphicsPipeline> AddGraphicsPipeline(std::unique_ptr<GraphicsPipeline> &&pipeline);
 
-    void SetSpatialTransform(Spatial *spatial, const Transform &transform);
-    
-
     void Initialize();
-    void Destroy();
     void PrepareSwapchain();
     void Compile();
 
@@ -178,7 +174,6 @@ public:
     
     void RenderDeferred(Frame *frame);
     void RenderFinalPass(CommandBuffer *command_buffer) const;
-
 
     ShaderGlobals          *shader_globals;
 

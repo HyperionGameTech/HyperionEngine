@@ -46,7 +46,7 @@ void Texture::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init();
+    EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_TEXTURES, [this](Engine *engine) {
         engine->render_scheduler.Enqueue([this, engine](...) {

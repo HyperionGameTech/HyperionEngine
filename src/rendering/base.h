@@ -90,7 +90,8 @@ public:
     EngineComponentBase()
         : CallbackTrackable(),
           m_init_called(false),
-          m_is_ready(false)
+          m_is_ready(false),
+          m_engine(nullptr)
     {
     }
 
@@ -98,19 +99,7 @@ public:
     EngineComponentBase &operator=(const EngineComponentBase &other) = delete;
     ~EngineComponentBase() = default;
 
-    ID GetId() const
-    {
-        if (0 == this) {  // NOLINT(clang-diagnostic-tautological-undefined-compare)
-            DebugLog(
-                LogType::Warn,
-                "Called GetId() on nullptr\n"
-            );
-
-            return empty_id;
-        }
-
-        return m_id;
-    }
+    ID GetId() const          { return m_id; }
 
     /* To be called from ObjectHolder<Type> */
     void SetId(const ID &id)  { m_id = id; }
@@ -119,15 +108,32 @@ public:
     /*! \brief Just a function to store that Init() has been called from a derived class
      * for book-keeping. Use to prevent adding OnInit() callbacks multiple times.
      */
-    void Init()
+    void Init(Engine *engine)
     {
+        AssertThrowMsg(
+            engine != nullptr,
+            "Engine was nullptr!"
+        );
+
         m_init_called = true;
+        m_engine      = engine;
     }
 
 protected:
+    Engine *GetEngine() const
+    {
+        AssertThrowMsg(
+            m_engine != nullptr,
+            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
+        );
+
+        return m_engine;
+    }
+
     void Destroy()
     {
         m_init_called = false;
+        m_engine      = nullptr;
     }
 
     bool IsReady()               { return m_is_ready; }
@@ -146,6 +152,7 @@ protected:
     ID m_id;
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
+    Engine *m_engine;
 };
 
 template <class WrappedType>
@@ -214,7 +221,7 @@ public:
         m_wrapped_destroyed = false;
 #endif
 
-        EngineComponentBase<WrappedType>::Init();
+        EngineComponentBase<WrappedType>::Init(engine);
     }
 
     /* Standard non-specialized destruction function */
