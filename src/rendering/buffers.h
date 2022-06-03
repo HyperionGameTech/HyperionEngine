@@ -89,40 +89,36 @@ struct alignas(256) ObjectShaderData {
 
 static_assert(sizeof(ObjectShaderData) == 256);
 
-struct alignas(256) MaterialShaderData {
-#if HYP_FEATURES_BINDLESS_TEXTURES
-    static constexpr size_t max_bound_textures = sizeof(uint32_t) * CHAR_BIT;
-#else
-    static constexpr size_t max_bound_textures = 16;
-#endif
+struct MaterialShaderData {
+    static constexpr size_t max_bound_textures = 16u;
 
+    // 0
     Vector4 albedo;
 
+    // 16
     float metalness;
     float roughness;
-    float subsurface;
-    float specular;
+    float param_0;
+    float param_1;
 
-    float specular_tint;
-    float anisotropic;
-    float sheen;
-    float sheen_tint;
-
-    float clearcoat;
-    float clearcoat_gloss;
-    float emissiveness;
-    float _padding;
-
+    // 32
     uint32_t uv_flip_s;
     uint32_t uv_flip_t;
     float uv_scale;
     float parallax_height;
 
-    uint32_t texture_index[max_bound_textures];
+    // 48
+    uint32_t texture_index[16];
+
+    // 112
     uint32_t texture_usage;
+    uint32_t _pad0;
+    uint32_t _pad1;
+    uint32_t _pad2;
+    // 128
 };
 
-static_assert(sizeof(MaterialShaderData) == 256);
+static_assert(sizeof(MaterialShaderData) == 128);
 
 struct alignas(256) SceneShaderData {
     static constexpr uint32_t max_environment_textures = 1;

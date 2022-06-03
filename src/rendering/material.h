@@ -205,15 +205,15 @@ public:
         MATERIAL_KEY_ALBEDO                 = 1 << 0,
         MATERIAL_KEY_METALNESS              = 1 << 1,
         MATERIAL_KEY_ROUGHNESS              = 1 << 2,
-        MATERIAL_KEY_SUBSURFACE             = 1 << 3,
-        MATERIAL_KEY_SPECULAR               = 1 << 4,
-        MATERIAL_KEY_SPECULAR_TINT          = 1 << 5,
-        MATERIAL_KEY_ANISOTROPIC            = 1 << 6,
-        MATERIAL_KEY_SHEEN                  = 1 << 7,
-        MATERIAL_KEY_SHEEN_TINT             = 1 << 8,
-        MATERIAL_KEY_CLEARCOAT              = 1 << 9,
-        MATERIAL_KEY_CLEARCOAT_GLOSS        = 1 << 10,
-        MATERIAL_KEY_EMISSIVENESS           = 1 << 11,
+        MATERIAL_KEY_SUBSURFACE             = 1 << 3,  // UNUSED
+        MATERIAL_KEY_SPECULAR               = 1 << 4,  // UNUSED
+        MATERIAL_KEY_SPECULAR_TINT          = 1 << 5,  // UNUSED
+        MATERIAL_KEY_ANISOTROPIC            = 1 << 6,  // UNUSED
+        MATERIAL_KEY_SHEEN                  = 1 << 7,  // UNUSED
+        MATERIAL_KEY_SHEEN_TINT             = 1 << 8,  // UNUSED
+        MATERIAL_KEY_CLEARCOAT              = 1 << 9,  // UNUSED
+        MATERIAL_KEY_CLEARCOAT_GLOSS        = 1 << 10, // UNUSED
+        MATERIAL_KEY_EMISSIVENESS           = 1 << 11, // UNUSED
         MATERIAL_KEY_FLIP_UV                = 1 << 12,
         MATERIAL_KEY_UV_SCALE               = 1 << 13,
         MATERIAL_KEY_PARALLAX_HEIGHT        = 1 << 14,
@@ -299,6 +299,14 @@ public:
     }
 
 private:
+    static constexpr uint max_textures_to_set = MathUtil::Min(
+        max_textures,
+        MaterialShaderData::max_bound_textures,
+        HYP_FEATURES_BINDLESS_TEXTURES
+            ? DescriptorSet::max_bindless_resources
+            : DescriptorSet::max_material_texture_samplers
+    );
+
     void EnqueueRenderUpdates();
     void EnqueueTextureUpdate(TextureKey key);
     void EnqueueDescriptorSetCreation();

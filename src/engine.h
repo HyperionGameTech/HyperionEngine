@@ -11,6 +11,7 @@
 #include <rendering/shader_manager.h>
 #include <rendering/renderable_attributes.h>
 #include <rendering/default_formats.h>
+#include <rendering/dummy_data.h>
 #include <scene/octree.h>
 
 #include "game_thread.h"
@@ -161,6 +162,9 @@ public:
 
     inline auto &GetShaderData()                                     { return shader_globals; }
     inline const auto &GetShaderData() const                         { return shader_globals; }
+    
+    inline auto &GetDummyData()                                      { return m_dummy_data; }
+    inline const auto &GetDummyData() const                          { return m_dummy_data; }
 
     inline Octree &GetOctree() { return m_octree; }
     inline const Octree &GetOctree() const { return m_octree; }
@@ -201,6 +205,7 @@ public:
     GameThread game_thread;
 
 private:
+    void CreateDummyData();
     void FindTextureFormatDefaults();
 
     std::unique_ptr<Instance>         m_instance;
@@ -219,6 +224,8 @@ private:
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
     FlatMap<RenderableAttributeSet, GraphicsPipeline::ID> m_graphics_pipeline_mapping;
+
+    DummyData m_dummy_data;
 };
 
 } // namespace hyperion::v2

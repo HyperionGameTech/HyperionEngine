@@ -5,9 +5,15 @@
 #include "renderer_image.h"
 #include "renderer_structs.h"
 
+#include <util/defines.h>
+
 #include <vulkan/vulkan.h>
 
 #include <array>
+
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK
+    #include <MoltenVK/vk_mvk_moltenvk.h>
+#endif
 
 namespace hyperion {
 namespace renderer {
@@ -27,6 +33,11 @@ public:
         HYP_DECL_FN(vkCmdTraceRaysKHR);
         HYP_DECL_FN(vkGetRayTracingShaderGroupHandlesKHR);
         HYP_DECL_FN(vkCreateRayTracingPipelinesKHR);
+
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
+        HYP_DECL_FN(vkGetMoltenVKConfigurationMVK);
+        HYP_DECL_FN(vkSetMoltenVKConfigurationMVK);
+#endif
 
 #undef HYP_DECL_FN
     } dyn_functions;
@@ -122,6 +133,7 @@ public:
 #undef REQUIRES_VK_FEATURE
 
     void LoadDynamicFunctions(Device *device);
+    void SetDeviceFeatures(Device *device);
 
     SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR _surface) const
     {

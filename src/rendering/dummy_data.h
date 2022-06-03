@@ -9,12 +9,32 @@
 
 namespace hyperion::v2 {
 
+using renderer::TextureImage2D;
+using renderer::ImageView;
+using renderer::Sampler;
+
+class Engine;
+
 class DummyData {
-    struct DummyImage {
-        std::unique_ptr<Image>     image;
-        std::unique_ptr<ImageView> image_view;
-        std::unique_ptr<Sampler>   sampler;
-    } image_data;
+public:
+    DummyData();
+
+#define HYP_DEF_DUMMY_DATA(type, getter, member) \
+    public: \
+        type &Get##getter()             { return member; } \
+        const type &Get##getter() const { return member; } \
+    private: \
+        type member
+
+    HYP_DEF_DUMMY_DATA(TextureImage2D, Image2D1x1R8, m_image_2d_1x1_r8);
+    HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8, m_image_view_2d_1x1_r8);
+    HYP_DEF_DUMMY_DATA(Sampler, Sampler, m_sampler);
+
+#undef HYP_DEF_DUMMY_DATA
+
+public:
+    void Create(Engine *engine);
+    void Destroy(Engine *engine);
 };
 
 } // namespace hyperion::v2

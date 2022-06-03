@@ -52,6 +52,8 @@ void Material::Init(Engine *engine)
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MATERIALS, [this](Engine *engine) {
             m_textures.Clear();
             
+            // TODO: destroy descriptor set
+
             HYP_FLUSH_RENDER_QUEUE(engine);
 
             SetReady(false);
@@ -93,21 +95,19 @@ void Material::EnqueueDescriptorSetCreation()
             
             auto *descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(0);
 
-            uint texture_index = 0;
-
-            for (size_t i = 0; i < m_textures.Size(); i++) {
-                if (auto &texture = m_textures.ValueAt(i)) {
+            for (uint texture_index = 0; texture_index < max_textures_to_set; texture_index++) {
+                if (auto &texture = m_textures.ValueAt(texture_index)) {
                     descriptor->AddSubDescriptor({
                         .element_index = texture_index,
                         .image_view    = &texture->GetImageView(),
                         .sampler       = &texture->GetSampler()
                     });
-                }
-                
-                ++texture_index;
-
-                if (texture_index == DescriptorSet::max_material_texture_samplers) {
-                    break;
+                } else {
+                    descriptor->AddSubDescriptor({
+                        .element_index = texture_index,
+                        .image_view    = &engine->GetDummyData().GetImageView2D1x1R8(),
+                        .sampler       = &engine->GetDummyData().GetSampler()
+                    });
                 }
             }
 
@@ -126,13 +126,7 @@ void Material::EnqueueRenderUpdates()
     
     std::array<Texture::ID, MaterialShaderData::max_bound_textures> bound_texture_ids{};
 
-    const size_t num_bound_textures = MathUtil::Min(
-        m_textures.Size(),
-        MaterialShaderData::max_bound_textures,
-        HYP_FEATURES_BINDLESS_TEXTURES
-            ? DescriptorSet::max_bindless_resources
-            : DescriptorSet::max_material_texture_samplers
-    );
+    const size_t num_bound_textures = max_textures_to_set;
     
     for (size_t i = 0; i < num_bound_textures; i++) {
         if (const auto &texture = m_textures.ValueAt(i)) {
@@ -140,35 +134,36 @@ void Material::EnqueueRenderUpdates()
         }
     }
 
-    GetEngine()->GetRenderScheduler().Enqueue([this, bound_texture_ids](...) {
+    GetEngine()->GetRenderScheduler().Enqueue([this, num_bound_textures, bound_texture_ids](...) {
         MaterialShaderData shader_data{
             .albedo          = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
             .metalness       = GetParameter<float>(MATERIAL_KEY_METALNESS),
             .roughness       = GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
-            .subsurface      = GetParameter<float>(MATERIAL_KEY_SUBSURFACE),
-            .specular        = GetParameter<float>(MATERIAL_KEY_SPECULAR),
-            .specular_tint   = GetParameter<float>(MATERIAL_KEY_SPECULAR_TINT),
-            .anisotropic     = GetParameter<float>(MATERIAL_KEY_ANISOTROPIC),
-            .sheen           = GetParameter<float>(MATERIAL_KEY_SHEEN),
-            .sheen_tint      = GetParameter<float>(MATERIAL_KEY_SHEEN_TINT),
-            .clearcoat       = GetParameter<float>(MATERIAL_KEY_CLEARCOAT),
-            .clearcoat_gloss = GetParameter<float>(MATERIAL_KEY_CLEARCOAT_GLOSS),
-            .emissiveness    = GetParameter<float>(MATERIAL_KEY_EMISSIVENESS),
             .uv_scale        = GetParameter<float>(MATERIAL_KEY_UV_SCALE),
             .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
         };
 
         shader_data.texture_usage = 0;
+        uint num_used_textures = 0;
 
-        for (size_t i = 0; i < bound_texture_ids.size(); i++) {
-            if (bound_texture_ids[i] != Texture::empty_id) {
+        if (num_bound_textures != 0) {
+            for (size_t i = 0; i < bound_texture_ids.size(); i++) {
+                if (bound_texture_ids[i] != Texture::empty_id) {
 #if HYP_FEATURES_BINDLESS_TEXTURES
-                shader_data.texture_index[i] = bound_texture_ids[i].value - 1;
+                    shader_data.texture_index[i] = bound_texture_ids[i].value - 1;
 #else
-                shader_data.texture_index[i] = i;
+                    shader_data.texture_index[i] = i;
 #endif
 
-                shader_data.texture_usage |= 1 << i;
+                    shader_data.texture_usage |= 1 << i;
+
+                    ++num_used_textures;
+
+                    if (num_used_textures == num_bound_textures) {
+                        break;
+                    }
+
+                }
             }
         }
 

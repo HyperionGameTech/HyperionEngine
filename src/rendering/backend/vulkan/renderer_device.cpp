@@ -391,6 +391,8 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     
     DebugLog(LogType::Debug, "Loading dynamic functions\n");
     features->LoadDynamicFunctions(this);
+    features->SetDeviceFeatures(this);
+
     DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->SupportsRaytracing());
 
     HYPERION_RETURN_OK;

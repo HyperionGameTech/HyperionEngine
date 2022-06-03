@@ -164,6 +164,11 @@
 
     #if defined(HYP_VULKAN) && HYP_VULKAN
         #define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1 // moltenvk supports api 1.1
+
+        #if defined(HYP_DEBUG_MODE) && HYP_DEBUG_MODE
+            #define HYP_MOLTENVK 1
+            //#define HYP_MOLTENVK_LINKED 1
+        #endif
     #endif
 #else
     #define HYP_FEATURES_BINDLESS_TEXTURES 1

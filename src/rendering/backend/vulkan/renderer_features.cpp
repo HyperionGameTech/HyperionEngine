@@ -110,7 +110,33 @@ void Features::LoadDynamicFunctions(Device *device)
     }
 #endif
 
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
+    HYP_LOAD_FN(vkGetMoltenVKConfigurationMVK);
+    HYP_LOAD_FN(vkSetMoltenVKConfigurationMVK);
+#endif
+
 #undef HYP_LOAD_FN
+}
+
+void Features::SetDeviceFeatures(Device *device)
+{
+#if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
+    MVKConfiguration *mvk_config = nullptr;
+    size_t sz = 1;
+    dyn_functions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
+
+    mvk_config = new MVKConfiguration[sz];
+
+    for (size_t i = 0; i < sz; i++) {
+#if defined(HYP_DEBUG_MODE) && HYP_DEBUG_MODE
+        mvk_config[i].debugMode = true;
+#endif
+    }
+
+    dyn_functions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
+
+    delete[] mvk_config;
+#endif
 }
 
 } // namespace renderer

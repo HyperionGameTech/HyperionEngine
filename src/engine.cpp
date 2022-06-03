@@ -77,6 +77,8 @@ Engine::~Engine()
     callbacks.Trigger(EngineCallback::DESTROY_FRAMEBUFFERS, this);
     callbacks.Trigger(EngineCallback::DESTROY_RENDER_PASSES, this);
 
+    m_dummy_data.Destroy(this);
+
     HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
 
     AssertThrow(m_instance != nullptr);
@@ -121,9 +123,9 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_DEPTH,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24,
-                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16,
-                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F },
+            std::array{ Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F,
+                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24,
+                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16 },
             VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         )
@@ -285,20 +287,7 @@ void Engine::Initialize()
     shader_globals = new ShaderGlobals(m_instance->GetFrameHandler()->NumFrames());
     shader_globals->Create(this);
 
-    renderer::Image *dummy_image = new renderer::TextureImage2D(
-        renderer::Extent2D(1, 1),
-        renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-        renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        nullptr
-    );
-
-    HYPERION_ASSERT_RESULT(dummy_image->Create(GetDevice()));
-
-    renderer::ImageView *dummy_view = new renderer::ImageView();
-    HYPERION_ASSERT_RESULT(dummy_view->Create(GetDevice(), dummy_image));
-
-    renderer::Sampler *dummy_sampler = new renderer::Sampler();
-    HYPERION_ASSERT_RESULT(dummy_sampler->Create(GetDevice(), dummy_view));
+    m_dummy_data.Create(this);
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
@@ -400,8 +389,8 @@ void Engine::Initialize()
     for (uint i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
         material_textures_descriptor->AddSubDescriptor({
             .element_index = i,
-            .image_view    = dummy_view, // HACK: Todo make a simple throwaway 1x1 image to use
-            .sampler       = dummy_sampler
+            .image_view    = &GetDummyData().GetImageView2D1x1R8(),
+            .sampler       = &GetDummyData().GetSampler(),
         });
     }
 #endif
