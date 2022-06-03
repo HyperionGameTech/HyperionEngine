@@ -11,6 +11,7 @@
 #include <iterator>
 
 #include <system/debug.h>
+#include <util/defines.h>
 
 namespace hyperion {
 namespace renderer {
@@ -277,7 +278,7 @@ Result Device::SetupAllocator(Instance *instance)
     vkfuncs.vkGetDeviceProcAddr   = &vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo create_info{};
-    create_info.vulkanApiVersion = VK_RENDERER_API_VERSION;
+    create_info.vulkanApiVersion = HYP_VULKAN_API_VERSION;
     create_info.physicalDevice   = this->GetPhysicalDevice();
     create_info.device           = this->GetDevice();
     create_info.instance         = instance->GetInstance();

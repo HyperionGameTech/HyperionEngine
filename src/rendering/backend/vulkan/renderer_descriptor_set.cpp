@@ -455,8 +455,8 @@ Result DescriptorPool::Destroy(Device *device)
     auto result = Result::OK;
 
     /* Destroy set layouts */
-    for (auto &it : m_descriptor_set_layouts) {
-        vkDestroyDescriptorSetLayout(device->GetDevice(), it.second, nullptr);
+    for (auto &it : m_descriptor_set_layouts.Values()) {
+        vkDestroyDescriptorSetLayout(device->GetDevice(), it, nullptr);
     }
 
     m_descriptor_set_layouts.Clear();

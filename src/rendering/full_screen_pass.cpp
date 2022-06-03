@@ -238,8 +238,7 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
 
     auto *command_buffer = m_frame_data->At(frame_index).Get<CommandBuffer>();
 
-    HYPERION_PASS_ERRORS(
-        command_buffer->Record(
+    auto record_result = command_buffer->Record(
             engine->GetInstance()->GetDevice(),
             m_pipeline->GetPipeline()->GetConstructionInfo().render_pass,
             [this, engine, frame_index](CommandBuffer *cmd) {
@@ -300,11 +299,9 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
                 full_screen_quad->Render(engine, cmd);
 
                 HYPERION_RETURN_OK;
-            }),
-        result
-    );
+            });
 
-    AssertThrowMsg(result, "Failed to record command buffer. Message: %s", result.message);
+    HYPERION_ASSERT_RESULT(record_result);
 }
 
 void FullScreenPass::Render(Engine * engine, Frame *frame)

@@ -174,7 +174,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     case Topology::TRIANGLES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         break;
-#if !HYP_APPLE
+#ifndef HYP_APPLE
     case Topology::TRIANGLE_FAN:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; // not supported on metal
         break;

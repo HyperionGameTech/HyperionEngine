@@ -2,11 +2,7 @@
 
 namespace hyperion::v2 {
 
-#if !HYP_APPLE
 std::unique_ptr<Mesh> MeshBuilder::Quad(Topology topology)
-#else
-std::unique_ptr<Mesh> MeshBuilder::Quad()
-#endif
 {
     static const std::vector<Vertex> vertices{
         Vertex{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
@@ -22,7 +18,7 @@ std::unique_ptr<Mesh> MeshBuilder::Quad()
 
     std::unique_ptr<Mesh> mesh;
 
-#if !HYP_APPLE
+#ifndef HYP_APPLE
     switch (topology) {
     case Topology::TRIANGLE_FAN: {
         auto [new_vertices, new_indices] = Mesh::CalculateIndices(vertices);
@@ -43,7 +39,7 @@ std::unique_ptr<Mesh> MeshBuilder::Quad()
             VertexAttributeSet::static_mesh
         );
 
-#if !HYP_APPLE
+#ifndef HYP_APPLE
         break;
     }
 #endif

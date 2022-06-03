@@ -39,10 +39,6 @@ void Material::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_MATERIALS, [this](Engine *engine) {
         for (size_t i = 0; i < m_textures.Size(); i++) {
             if (auto &texture = m_textures.ValueAt(i)) {
-                if (texture == nullptr) {
-                    continue;
-                }
-
                 texture.Init();
             }
         }
@@ -78,7 +74,7 @@ void Material::EnqueueDescriptorSetCreation()
 {
     // add a descriptor set w/ each texture
     GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-        auto *engine = GetEngine();
+        const auto *engine = GetEngine();
 
         for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
@@ -101,23 +97,17 @@ void Material::EnqueueDescriptorSetCreation()
 
             for (size_t i = 0; i < m_textures.Size(); i++) {
                 if (auto &texture = m_textures.ValueAt(i)) {
-                    if (texture == nullptr) {
-                        ++texture_index;
-
-                        continue;
-                    }
-
                     descriptor->AddSubDescriptor({
                         .element_index = texture_index,
                         .image_view    = &texture->GetImageView(),
                         .sampler       = &texture->GetSampler()
                     });
+                }
+                
+                ++texture_index;
 
-                    ++texture_index;
-
-                    if (texture_index == DescriptorSet::max_material_texture_samplers) {
-                        break;
-                    }
+                if (texture_index == DescriptorSet::max_material_texture_samplers) {
+                    break;
                 }
             }
 
@@ -138,7 +128,10 @@ void Material::EnqueueRenderUpdates()
 
     const size_t num_bound_textures = MathUtil::Min(
         m_textures.Size(),
-        MaterialShaderData::max_bound_textures
+        MaterialShaderData::max_bound_textures,
+        HYP_FEATURES_BINDLESS_TEXTURES
+            ? DescriptorSet::max_bindless_resources
+            : DescriptorSet::max_material_texture_samplers
     );
     
     for (size_t i = 0; i < num_bound_textures; i++) {
@@ -199,12 +192,12 @@ void Material::EnqueueTextureUpdate(TextureKey key)
         // update descriptor set for the given frame_index
         // these scheduled tasks are executed before descriptors sets are updated,
         // so it won't be updating a descriptor set that is in use
-        auto *engine                    = GetEngine();
+        const auto *engine              = GetEngine();
         const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
-        
-        auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
-        auto *descriptor_set  = descriptor_pool.GetDescriptorSet(descriptor_set_index);
-        auto *descriptor      = descriptor_set->GetDescriptor(0);
+
+        const auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
+        const auto *descriptor_set  = descriptor_pool.GetDescriptorSet(descriptor_set_index);
+        auto       *descriptor      = descriptor_set->GetDescriptor(0);
 
         descriptor->AddSubDescriptor({
             .element_index = static_cast<uint>(texture_index),
@@ -242,6 +235,8 @@ void Material::ResetParameters()
     m_parameters.Set(MATERIAL_KEY_EMISSIVENESS,    0.0f);
     m_parameters.Set(MATERIAL_KEY_UV_SCALE,        Vector2(1.0f));
     m_parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.08f);
+
+    m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Material::SetTexture(TextureKey key, Ref<Texture> &&texture)

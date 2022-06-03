@@ -324,18 +324,18 @@ int main()
 
     SystemEvent event;
 
-    v2::Engine engine(system, "My app");
+    auto *engine = new v2::Engine(system, "My app");
 
-    engine.assets.SetBasePath(v2::FileSystem::Join(HYP_ROOT_DIR, "../res"));
+    engine->assets.SetBasePath(v2::FileSystem::Join(HYP_ROOT_DIR, "../res"));
 
     v2::MyGame my_game;
     
-    auto texture = engine.resources.textures.Add(
-        engine.assets.Load<v2::Texture>("textures/dirt.jpg")
+    auto texture = engine->resources.textures.Add(
+        engine->assets.Load<v2::Texture>("textures/dirt.jpg")
     );
 
-    auto texture2 = engine.resources.textures.Add(
-        engine.assets.Load<v2::Texture>("textures/dummy.jpg")
+    auto texture2 = engine->resources.textures.Add(
+        engine->assets.Load<v2::Texture>("textures/dummy.jpg")
     );
 
 #if HYPERION_VK_TEST_IMAGE_STORE
@@ -349,11 +349,11 @@ int main()
     ImageView image_storage_view;
 #endif
     
-    engine.Initialize();
+    engine->Initialize();
 
-    Device *device = engine.GetInstance()->GetDevice();
+    Device *device = engine->GetInstance()->GetDevice();
 
-    auto *descriptor_set_globals = engine.GetInstance()->GetDescriptorPool()
+    auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
 
 #if HYPERION_VK_TEST_IMAGE_STORE
@@ -363,7 +363,7 @@ int main()
 
     HYPERION_ASSERT_RESULT(image_storage->Create(
         device,
-        engine.GetInstance(),
+        engine->GetInstance(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     ));
 
@@ -372,24 +372,24 @@ int main()
 
 #if HYPERION_VK_TEST_SPARSE_VOXEL_OCTREE
     v2::SparseVoxelOctree svo;
-    svo.Init(&engine);
+    svo.Init(engine);
 #endif
 
-    engine.PrepareSwapchain();
+    engine->PrepareSwapchain();
 
-    engine.shader_manager.SetShader(
+    engine->shader_manager.SetShader(
         v2::ShaderKey::BASIC_VEGETATION,
-        engine.resources.shaders.Add(std::make_unique<v2::Shader>(
+        engine->resources.shaders.Add(std::make_unique<v2::Shader>(
             std::vector<v2::SubShader>{
                 {
                     ShaderModule::Type::VERTEX, {
-                        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/vegetation.vert.spv")).Read(),
+                        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vegetation.vert.spv")).Read(),
                         {.name = "vegetation vert"}
                     }
                 },
                 {
                     ShaderModule::Type::FRAGMENT, {
-                        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/forward_frag.spv")).Read(),
+                        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/forward_frag.spv")).Read(),
                         {.name = "forward frag"}
                     }
                 }
@@ -397,19 +397,19 @@ int main()
         ))
     );
 
-    engine.shader_manager.SetShader(
+    engine->shader_manager.SetShader(
         v2::ShaderKey::BASIC_FORWARD,
-        engine.resources.shaders.Add(std::make_unique<v2::Shader>(
+        engine->resources.shaders.Add(std::make_unique<v2::Shader>(
             std::vector<v2::SubShader>{
                 {
                     ShaderModule::Type::VERTEX, {
-                        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/vert.spv")).Read(),
+                        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vert.spv")).Read(),
                         {.name = "main vert"}
                     }
                 },
                 {
                     ShaderModule::Type::FRAGMENT, {
-                        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/forward_frag.spv")).Read(),
+                        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/forward_frag.spv")).Read(),
                         {.name = "forward frag"}
                     }
                 }
@@ -421,11 +421,11 @@ int main()
 
 #if HYPERION_VK_TEST_IMAGE_STORE
     /* Compute */
-    auto compute_pipeline = engine.resources.compute_pipelines.Add(
+    auto compute_pipeline = engine->resources.compute_pipelines.Add(
         std::make_unique<v2::ComputePipeline>(
-            engine.resources.shaders.Add(std::make_unique<v2::Shader>(
+            engine->resources.shaders.Add(std::make_unique<v2::Shader>(
                 std::vector<v2::SubShader>{
-                    { ShaderModule::Type::COMPUTE, {FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/imagestore.comp.spv")).Read()}}
+                    { ShaderModule::Type::COMPUTE, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/imagestore.comp.spv")).Read()}}
                 }
             ))
         )
@@ -436,54 +436,54 @@ int main()
     auto compute_command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_PRIMARY);
 
     SemaphoreChain compute_semaphore_chain({}, { VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT });
-    AssertThrow(compute_semaphore_chain.Create(engine.GetInstance()->GetDevice()));
+    AssertThrow(compute_semaphore_chain.Create(engine->GetInstance()->GetDevice()));
 
-    HYPERION_ASSERT_RESULT(compute_command_buffer->Create(engine.GetInstance()->GetDevice(), engine.GetInstance()->GetComputeCommandPool()));
+    HYPERION_ASSERT_RESULT(compute_command_buffer->Create(engine->GetInstance()->GetDevice(), engine->GetInstance()->GetComputeCommandPool()));
     
-    for (size_t i = 0; i < engine.GetInstance()->GetFrameHandler()->NumFrames(); i++) {
+    for (size_t i = 0; i < engine->GetInstance()->GetFrameHandler()->NumFrames(); i++) {
         /* Wait for compute to finish */
-        compute_semaphore_chain.SignalsTo(engine.GetInstance()->GetFrameHandler()
+        compute_semaphore_chain.SignalsTo(engine->GetInstance()->GetFrameHandler()
             ->GetPerFrameData()[i].Get<Frame>()
             ->GetPresentSemaphores());
     }
 #endif
     
 
-    PerFrameData<CommandBuffer, Semaphore> per_frame_data(engine.GetInstance()->GetFrameHandler()->NumFrames());
+    PerFrameData<CommandBuffer, Semaphore> per_frame_data(engine->GetInstance()->GetFrameHandler()->NumFrames());
 
     for (uint32_t i = 0; i < per_frame_data.NumFrames(); i++) {
         auto cmd_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
-        AssertThrow(cmd_buffer->Create(engine.GetInstance()->GetDevice(), engine.GetInstance()->GetGraphicsQueue().command_pool));
+        AssertThrow(cmd_buffer->Create(engine->GetInstance()->GetDevice(), engine->GetInstance()->GetGraphicsQueue().command_pool));
 
         per_frame_data[i].Set<CommandBuffer>(std::move(cmd_buffer));
     }
 
     
-    engine.shader_manager.SetShader(
+    engine->shader_manager.SetShader(
         v2::ShaderManager::Key::STENCIL_OUTLINE,
-        engine.resources.shaders.Add(std::make_unique<v2::Shader>(
+        engine->resources.shaders.Add(std::make_unique<v2::Shader>(
             std::vector<v2::SubShader>{
-                {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/outline.vert.spv")).Read()}},
-                {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/outline.frag.spv")).Read()}}
+                {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.vert.spv")).Read()}},
+                {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.frag.spv")).Read()}}
             }
         ))
     );
 
 
     {
-        engine.shader_manager.SetShader(
+        engine->shader_manager.SetShader(
             v2::ShaderManager::Key::BASIC_SKYBOX,
-            engine.resources.shaders.Add(std::make_unique<v2::Shader>(
+            engine->resources.shaders.Add(std::make_unique<v2::Shader>(
                 std::vector<v2::SubShader>{
-                    {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/skybox_vert.spv")).Read()}},
-                    {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/skybox_frag.spv")).Read()}}
+                    {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/skybox_vert.spv")).Read()}},
+                    {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/skybox_frag.spv")).Read()}}
                 }
             ))
         );
 
         /*auto pipeline = std::make_unique<v2::GraphicsPipeline>(
-            engine.shader_manager.GetShader(v2::ShaderManager::Key::BASIC_SKYBOX).IncRef(),
-            engine.GetRenderListContainer().Get(v2::BUCKET_SKYBOX).GetRenderPass().IncRef(),
+            engine->shader_manager.GetShader(v2::ShaderManager::Key::BASIC_SKYBOX).IncRef(),
+            engine->GetRenderListContainer().Get(v2::BUCKET_SKYBOX).GetRenderPass().IncRef(),
             VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
             v2::Bucket::BUCKET_SKYBOX
         );
@@ -491,13 +491,13 @@ int main()
         pipeline->SetDepthTest(false);
         pipeline->SetDepthWrite(false);
         
-        engine.AddGraphicsPipeline(std::move(pipeline));*/
+        engine->AddGraphicsPipeline(std::move(pipeline));*/
     }
     
     {
         auto pipeline = std::make_unique<v2::GraphicsPipeline>(
-            engine.shader_manager.GetShader(v2::ShaderManager::Key::BASIC_FORWARD).IncRef(),
-            engine.GetRenderListContainer().Get(v2::BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
+            engine->shader_manager.GetShader(v2::ShaderManager::Key::BASIC_FORWARD).IncRef(),
+            engine->GetRenderListContainer().Get(v2::BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
             v2::RenderableAttributeSet{
                 .bucket            = v2::Bucket::BUCKET_TRANSLUCENT,
                 .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton
@@ -505,11 +505,11 @@ int main()
         );
         pipeline->SetBlendEnabled(true);
         
-        engine.AddGraphicsPipeline(std::move(pipeline));
+        engine->AddGraphicsPipeline(std::move(pipeline));
     }
     
 
-    my_game.Init(&engine, window);
+    my_game.Init(engine, window);
 
 #if HYPERION_VK_TEST_VCT
     v2::VoxelConeTracing vct({
@@ -517,20 +517,20 @@ int main()
         .aabb = BoundingBox(Vector3(-128), Vector3(128))
     });
 
-    vct.Init(&engine);
+    vct.Init(engine);
 #endif
 
 
 #if HYPERION_VK_TEST_RAYTRACING
     auto rt_shader = std::make_unique<ShaderProgram>();
-    rt_shader->AttachShader(engine.GetDevice(), ShaderModule::Type::RAY_GEN, {
-        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/rt/test.rgen.spv")).Read()
+    rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_GEN, {
+        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/test.rgen.spv")).Read()
     });
-    rt_shader->AttachShader(engine.GetDevice(), ShaderModule::Type::RAY_MISS, {
-        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/rt/test.rmiss.spv")).Read()
+    rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_MISS, {
+        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/test.rmiss.spv")).Read()
     });
-    rt_shader->AttachShader(engine.GetDevice(), ShaderModule::Type::RAY_CLOSEST_HIT, {
-        FileByteReader(v2::FileSystem::Join(engine.assets.GetBasePath(), "vkshaders/rt/test.rchit.spv")).Read()
+    rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_CLOSEST_HIT, {
+        FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/test.rchit.spv")).Read()
     });
 
     auto rt = std::make_unique<RaytracingPipeline>(std::move(rt_shader));
@@ -541,21 +541,21 @@ int main()
     v2::ProbeGrid probe_system({
         .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
     });
-    probe_system.Init(&engine);
+    probe_system.Init(engine);
 
     auto my_tlas = std::make_unique<v2::Tlas>();
 
-    my_tlas->AddBlas(engine.resources.blas.Add(std::make_unique<v2::Blas>(
-        engine.resources.meshes.IncRef(my_game.material_test_obj->GetChild(0)->GetSpatial()->GetMesh()),
+    my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
+        engine->resources.meshes.IncRef(my_game.material_test_obj->GetChild(0)->GetSpatial()->GetMesh()),
         my_game.material_test_obj->GetChild(0)->GetSpatial()->GetTransform()
     )));
     
-    my_tlas->AddBlas(engine.resources.blas.Add(std::make_unique<v2::Blas>(
-        engine.resources.meshes.IncRef(my_game.cube_obj->GetChild(0)->GetSpatial()->GetMesh()),
+    my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
+        engine->resources.meshes.IncRef(my_game.cube_obj->GetChild(0)->GetSpatial()->GetMesh()),
         my_game.cube_obj->GetChild(0)->GetSpatial()->GetTransform()
     )));
 
-    my_tlas->Init(&engine);
+    my_tlas->Init(engine);
     
     Image *rt_image_storage = new StorageImage(
         Extent3D{1024, 1024, 1},
@@ -566,7 +566,7 @@ int main()
 
     ImageView rt_image_storage_view;
 
-    auto *rt_descriptor_set = engine.GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
+    auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
         ->AddSubDescriptor({.acceleration_structure = &my_tlas->Get()});
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
@@ -577,16 +577,16 @@ int main()
 
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,
-        engine.GetInstance(),
+        engine->GetInstance(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     ));
-    HYPERION_ASSERT_RESULT(rt_image_storage_view.Create(engine.GetDevice(), rt_image_storage));
+    HYPERION_ASSERT_RESULT(rt_image_storage_view.Create(engine->GetDevice(), rt_image_storage));
 #endif
 
-    engine.Compile();
+    engine->Compile();
 
 #if HYPERION_VK_TEST_RAYTRACING
-    HYPERION_ASSERT_RESULT(rt->Create(engine.GetDevice(), &engine.GetInstance()->GetDescriptorPool()));
+    HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
 #endif
 
 #if HYPERION_RUN_TESTS
@@ -595,15 +595,15 @@ int main()
 
 
 #if HYPERION_VK_TEST_SPARSE_VOXEL_OCTREE
-    svo.Build(&engine);
+    svo.Build(engine);
 #endif
 
 #if HYPERION_VK_TEST_IMAGE_STORE
     auto compute_fc = std::make_unique<Fence>(true);
-    HYPERION_ASSERT_RESULT(compute_fc->Create(engine.GetDevice()));
+    HYPERION_ASSERT_RESULT(compute_fc->Create(engine->GetDevice()));
 #endif
 
-    engine.game_thread.Start(&engine, &my_game, window);
+    engine->game_thread.Start(engine, &my_game, window);
 
     bool running = true;
 
@@ -621,20 +621,20 @@ int main()
             }
         }
 
-        HYPERION_ASSERT_RESULT(engine.GetInstance()->GetFrameHandler()->PrepareFrame(
-            engine.GetInstance()->GetDevice(),
-            engine.GetInstance()->GetSwapchain()
+        HYPERION_ASSERT_RESULT(engine->GetInstance()->GetFrameHandler()->PrepareFrame(
+            engine->GetInstance()->GetDevice(),
+            engine->GetInstance()->GetSwapchain()
         ));
 
 
-        frame = engine.GetInstance()->GetFrameHandler()->GetCurrentFrameData().Get<Frame>();
+        frame = engine->GetInstance()->GetFrameHandler()->GetCurrentFrameData().Get<Frame>();
         auto *command_buffer = frame->GetCommandBuffer();
-        const uint32_t frame_index = engine.GetInstance()->GetFrameHandler()->GetCurrentFrameIndex();
+        const uint32_t frame_index = engine->GetInstance()->GetFrameHandler()->GetCurrentFrameIndex();
 
-        engine.GetRenderListContainer().AddPendingGraphicsPipelines(&engine);
+        engine->GetRenderListContainer().AddPendingGraphicsPipelines(engine);
 
-        if (auto num_enqueued = engine.render_scheduler.NumEnqueued()) {
-            engine.render_scheduler.Flush([command_buffer, frame_index](auto &fn) {
+        if (auto num_enqueued = engine->render_scheduler.NumEnqueued()) {
+            engine->render_scheduler.Flush([command_buffer, frame_index](auto &fn) {
                 HYPERION_ASSERT_RESULT(fn(command_buffer, frame_index));
             });
 
@@ -654,15 +654,15 @@ int main()
         };
 
         /* Compute */
-        HYPERION_ASSERT_RESULT(compute_fc->WaitForGpu(engine.GetDevice()));
-        HYPERION_ASSERT_RESULT(compute_fc->Reset(engine.GetDevice()));
+        HYPERION_ASSERT_RESULT(compute_fc->WaitForGpu(engine->GetDevice()));
+        HYPERION_ASSERT_RESULT(compute_fc->Reset(engine->GetDevice()));
         
-        HYPERION_ASSERT_RESULT(compute_command_buffer->Reset(engine.GetInstance()->GetDevice()));
-        HYPERION_ASSERT_RESULT(compute_command_buffer->Record(engine.GetInstance()->GetDevice(), nullptr, [&](CommandBuffer *cmd) {
+        HYPERION_ASSERT_RESULT(compute_command_buffer->Reset(engine->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(compute_command_buffer->Record(engine->GetInstance()->GetDevice(), nullptr, [&](CommandBuffer *cmd) {
             compute_pipeline->GetPipeline()->Bind(cmd);
 
-            engine.GetInstance()->GetDescriptorPool().Bind(
-                engine.GetInstance()->GetDevice(),
+            engine->GetInstance()->GetDescriptorPool().Bind(
+                engine->GetInstance()->GetDevice(),
                 cmd,
                 compute_pipeline->GetPipeline(),
                 {{
@@ -677,25 +677,25 @@ int main()
         }));
 
         HYPERION_ASSERT_RESULT(compute_command_buffer->SubmitPrimary(
-            engine.GetInstance()->GetComputeQueue().queue,
+            engine->GetInstance()->GetComputeQueue().queue,
             compute_fc.get(),
             &compute_semaphore_chain
         ));
 #endif
 
-        engine.UpdateBuffersAndDescriptors(frame_index);
+        engine->UpdateBuffersAndDescriptors(frame_index);
 
-        engine.ResetRenderState();
+        engine->ResetRenderState();
 
         /* === rendering === */
-        HYPERION_ASSERT_RESULT(frame->BeginCapture(engine.GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(frame->BeginCapture(engine->GetInstance()->GetDevice()));
 
-        my_game.OnFrameBegin(&engine, frame);
+        my_game.OnFrameBegin(engine, frame);
 
 #if HYPERION_VK_TEST_RAYTRACING
         rt->Bind(frame->GetCommandBuffer());
-        engine.GetInstance()->GetDescriptorPool().Bind(
-            engine.GetDevice(),
+        engine->GetInstance()->GetDescriptorPool().Bind(
+            engine->GetDevice(),
             frame->GetCommandBuffer(),
             rt.get(),
             {
@@ -704,8 +704,8 @@ int main()
                 {.offsets = {0}}
             }
         );
-        engine.GetInstance()->GetDescriptorPool().Bind(
-            engine.GetDevice(),
+        engine->GetInstance()->GetDescriptorPool().Bind(
+            engine->GetDevice(),
             frame->GetCommandBuffer(),
             rt.get(),
             {{
@@ -713,26 +713,26 @@ int main()
                 .count = 1
             }}
         );
-        rt->TraceRays(engine.GetDevice(), frame->GetCommandBuffer(), rt_image_storage->GetExtent());
+        rt->TraceRays(engine->GetDevice(), frame->GetCommandBuffer(), rt_image_storage->GetExtent());
         rt_image_storage->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
             GPUMemory::ResourceState::UNORDERED_ACCESS
         );
 
         
-        probe_system.RenderProbes(&engine, frame->GetCommandBuffer());
-        probe_system.ComputeIrradiance(&engine, frame->GetCommandBuffer());
+        probe_system.RenderProbes(engine, frame->GetCommandBuffer());
+        probe_system.ComputeIrradiance(engine, frame->GetCommandBuffer());
 #endif
 
 #if HYPERION_VK_TEST_VCT
         if (tmp_render_timer == 0.0f || tmp_render_timer > 0.01f) {
-            vct.RenderVoxels(&engine, frame);
+            vct.RenderVoxels(engine, frame);
             tmp_render_timer = 0.0f;
         }
         tmp_render_timer += 0.001f;
 #endif
 
-        engine.RenderDeferred(frame);
+        engine->RenderDeferred(frame);
         
 #if HYPERION_VK_TEST_IMAGE_STORE
         image_storage->GetGPUImage()->InsertBarrier(
@@ -741,19 +741,19 @@ int main()
         );
 #endif
 
-        engine.RenderFinalPass(frame->GetCommandBuffer());
+        engine->RenderFinalPass(frame->GetCommandBuffer());
 
-        HYPERION_ASSERT_RESULT(frame->EndCapture(engine.GetInstance()->GetDevice()));
-        HYPERION_ASSERT_RESULT(frame->Submit(&engine.GetInstance()->GetGraphicsQueue()));
+        HYPERION_ASSERT_RESULT(frame->EndCapture(engine->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(frame->Submit(&engine->GetInstance()->GetGraphicsQueue()));
         
-        my_game.OnFrameEnd(&engine, frame);
+        my_game.OnFrameEnd(engine, frame);
 
-        engine.GetInstance()->GetFrameHandler()->PresentFrame(&engine.GetInstance()->GetGraphicsQueue(), engine.GetInstance()->GetSwapchain());
-        engine.GetInstance()->GetFrameHandler()->NextFrame();
+        engine->GetInstance()->GetFrameHandler()->PresentFrame(&engine->GetInstance()->GetGraphicsQueue(), engine->GetInstance()->GetSwapchain());
+        engine->GetInstance()->GetFrameHandler()->NextFrame();
 
     }
 
-    AssertThrow(engine.GetInstance()->GetDevice()->Wait());
+    AssertThrow(engine->GetInstance()->GetDevice()->Wait());
 
     v2::FullScreenPass::full_screen_quad.reset();// have to do this here for now or else buffer does not get cleared before device is deleted
 
@@ -766,25 +766,27 @@ int main()
 #endif
 
     for (size_t i = 0; i < per_frame_data.NumFrames(); i++) {
-        per_frame_data[i].Get<CommandBuffer>()->Destroy(engine.GetInstance()->GetDevice(), engine.GetInstance()->GetGraphicsCommandPool());
+        per_frame_data[i].Get<CommandBuffer>()->Destroy(engine->GetInstance()->GetDevice(), engine->GetInstance()->GetGraphicsCommandPool());
     }
     per_frame_data.Reset();
 
 #if HYPERION_VK_TEST_IMAGE_STORE
-    compute_command_buffer->Destroy(device, engine.GetInstance()->GetComputeCommandPool());
-    compute_semaphore_chain.Destroy(engine.GetInstance()->GetDevice());
+    compute_command_buffer->Destroy(device, engine->GetInstance()->GetComputeCommandPool());
+    compute_semaphore_chain.Destroy(engine->GetInstance()->GetDevice());
 
-    compute_fc->Destroy(engine.GetDevice());
+    compute_fc->Destroy(engine->GetDevice());
 #endif
 
 #if HYPERION_VK_TEST_RAYTRACING
 
-    rt_image_storage->Destroy(engine.GetDevice());
-    rt_image_storage_view.Destroy(engine.GetDevice());
-    //tlas->Destroy(engine.GetInstance());
-    rt->Destroy(engine.GetDevice());
+    rt_image_storage->Destroy(engine->GetDevice());
+    rt_image_storage_view.Destroy(engine->GetDevice());
+    //tlas->Destroy(engine->GetInstance());
+    rt->Destroy(engine->GetDevice());
 #endif
 
+
+    delete engine;
     delete window;
 
     return 0;

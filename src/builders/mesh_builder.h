@@ -11,11 +11,7 @@ using renderer::Topology;
 
 class MeshBuilder {
 public:
-#if !HYP_APPLE
-    static std::unique_ptr<Mesh> Quad(Topology topology);
-#else
-    static std::unique_ptr<Mesh> Quad();
-#endif
+    static std::unique_ptr<Mesh> Quad(Topology topology = Topology::TRIANGLES);
 };
 
 } // namespace hyperion::v2

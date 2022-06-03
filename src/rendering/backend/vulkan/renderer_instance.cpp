@@ -218,12 +218,12 @@ Result Instance::Initialize(bool load_debug_layers)
     }
 
     VkApplicationInfo app_info{VK_STRUCTURE_TYPE_APPLICATION_INFO};
-    app_info.pApplicationName = app_name;
+    app_info.pApplicationName   = app_name;
     app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-    app_info.pEngineName = engine_name;
-    app_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+    app_info.pEngineName        = engine_name;
+    app_info.engineVersion      = VK_MAKE_VERSION(0, 1, 0);
     // Set target api version
-    app_info.apiVersion = VK_RENDERER_API_VERSION;
+    app_info.apiVersion         = HYP_VULKAN_API_VERSION;
 
     VkInstanceCreateInfo create_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     create_info.pApplicationInfo = &app_info;

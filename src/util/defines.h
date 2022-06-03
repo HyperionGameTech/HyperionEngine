@@ -94,7 +94,7 @@
 #endif
 #endif
 
-#define HYP_USE_EXCEPTIONS     0
+#define HYP_USE_EXCEPTIONS 0
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
     #define HYP_DEBUG_MODE 1
@@ -106,7 +106,7 @@
     #define HYP_ENABLE_BREAKPOINTS 1
 #endif
 
-#if HYP_CLANG_OR_GCC
+#if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
     #define HYP_DEBUG_FUNC_SHORT __FUNCTION__
     #define HYP_DEBUG_FUNC       __PRETTY_FUNCTION__
     #define HYP_DEBUG_LINE       (__LINE__)
@@ -114,7 +114,7 @@
     #if HYP_ENABLE_BREAKPOINTS
         #define HYP_BREAKPOINT       (__builtin_trap())
     #endif
-#elif HYP_MSVC
+#elif defined(HYP_MSVC) && HYP_MSVC
     #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
     #define HYP_DEBUG_FUNC       (__FUNCSIG__)
     #define HYP_DEBUG_LINE       (__LINE__)
@@ -154,15 +154,28 @@
     #endif
 #endif
 
-#define HYP_ENABLE_THREAD_ASSERTION 1 // set to 0 if needing to debug and getting crt errors
+#define HYP_ENABLE_THREAD_ASSERTION 0 // set to 0 if needing to debug and getting crt errors
 
 // conditionals
 
-#if HYP_APPLE
-#define HYP_FEATURES_BINDLESS_TEXTURES 0
-#define HYP_FEATURES_ENABLE_RAYTRACING 0
+#if defined(HYP_APPLE) && HYP_APPLE
+    #define HYP_FEATURES_BINDLESS_TEXTURES 0
+    #define HYP_FEATURES_ENABLE_RAYTRACING 0
+
+    #if defined(HYP_VULKAN) && HYP_VULKAN
+        #define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1 // moltenvk supports api 1.1
+    #endif
 #else
-#define HYP_FEATURES_BINDLESS_TEXTURES 1
+    #define HYP_FEATURES_BINDLESS_TEXTURES 1
+
+    #if defined(HYP_VULKAN) && HYP_VULKAN
+        #define HYP_VULKAN_API_VERSION VK_API_VERSION_1_2
+    #endif
 #endif
+
+
+//testing, to remove
+//#define HYP_FEATURES_BINDLESS_TEXTURES 0
+//#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1
 
 #endif // !HYPERION_DEFINES_H
