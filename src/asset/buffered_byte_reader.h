@@ -159,8 +159,6 @@ public:
         if (Eof()) {
             return {};
         }
-
-        const size_t remaining = max_pos - pos;
         
         std::vector<std::string> lines;
 

@@ -850,10 +850,9 @@ ScratchBuffer::ScratchBuffer()
 
 
 
-GPUImageMemory::GPUImageMemory(VkImageUsageFlags usage_flags)
+GPUImageMemory::GPUImageMemory()
     : GPUMemory(),
-      image(nullptr),
-      usage_flags(usage_flags)
+      image(nullptr)
 {
 }
 

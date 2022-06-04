@@ -81,6 +81,9 @@ public:
 
     Scene *GetScene() const               { return m_effect.GetScene(); }
 
+    const Vector3 &GetOrigin() const      { return m_effect.GetOrigin(); }
+    void SetOrigin(const Vector3 &origin) { m_effect.SetOrigin(origin); }
+
     void SetParentScene(const Ref<Scene> &parent_scene)
     {
         if (parent_scene != nullptr) {

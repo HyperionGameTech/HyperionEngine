@@ -282,3 +282,5 @@ paket-files/
 /res/models/bistro
 
 project/**/*
+xcode_project/**/*
+CMakeFiles/**/*

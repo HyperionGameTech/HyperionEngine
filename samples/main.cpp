@@ -86,7 +86,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/sponza/sponza.obj", //"living_room/living_room.obj",
+            "models/sponza/sponza.obj",//conference/conference.obj",//living_room/living_room.obj",
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -153,7 +153,7 @@ public:
         ));
 
         //test_model->Translate({0, 0, 5});
-        test_model->Scale(0.075f);
+        test_model->Scale(0.055f);
         //test_model->Rotate(Quaternion({ 1, 0, 0 }, MathUtil::DegToRad(90.0f)));
         
         tex1 = engine->resources.textures.Add(
@@ -244,6 +244,8 @@ public:
         timer += delta;
         ++counter;
         scene->Update(engine, delta);
+
+        //scene->GetEnvironment()->GetShadowRenderer(0)->SetOrigin(scene->GetCamera()->GetTranslation());
     
         test_model->Update(engine, delta);
 
@@ -352,9 +354,6 @@ int main()
     engine->Initialize();
 
     Device *device = engine->GetInstance()->GetDevice();
-
-    auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-        .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
 
 #if HYPERION_VK_TEST_IMAGE_STORE
     descriptor_set_globals

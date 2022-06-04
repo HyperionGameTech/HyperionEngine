@@ -163,16 +163,6 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
         descriptor->Create(device, m_descriptor_bindings[i], m_descriptor_writes);
     }
 
-    DebugLog(LogType::Debug, "\t%lu descriptors\n", m_descriptors.size());
-
-    for (auto &it : m_descriptors) {
-        DebugLog(LogType::Debug, "\t\t%lu sub descriptors\n", it->GetSubDescriptors().Size());
-
-        for (auto &it : it->GetSubDescriptors()) {
-            DebugLog(LogType::Debug, "\t\t\tidx: %lu\n", it.second.element_index);
-        }
-    }
-
     //build layout first
     VkDescriptorSetLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     layout_info.pBindings    = m_descriptor_bindings.data();
@@ -261,6 +251,52 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
 Result DescriptorSet::Destroy(Device *device)
 {
     HYPERION_RETURN_OK;
+}
+
+bool DescriptorSet::RemoveDescriptor(DescriptorKey key)
+{
+    return RemoveDescriptor(DescriptorKeyToIndex(key));
+}
+
+bool DescriptorSet::RemoveDescriptor(uint binding)
+{
+    const auto it = std::find_if(
+        m_descriptors.begin(),
+        m_descriptors.end(),
+        [&](const auto &item) {
+            return item->GetBinding() == binding;
+        }
+    );
+
+    if (it == m_descriptors.end()) {
+        return false;
+    }
+
+    m_descriptors.erase(it);
+
+    return true;
+}
+
+Descriptor *DescriptorSet::GetDescriptor(DescriptorKey key) const
+{
+    return GetDescriptor(DescriptorKeyToIndex(key));
+}
+
+Descriptor *DescriptorSet::GetDescriptor(uint binding) const
+{
+    const auto it = std::find_if(
+        m_descriptors.begin(),
+        m_descriptors.end(),
+        [&](const auto &item) {
+            return item->GetBinding() == binding;
+        }
+    );
+
+    if (it == m_descriptors.end()) {
+        return nullptr;
+    }
+
+    return it->get();
 }
 
 void DescriptorSet::ApplyUpdates(Device *device)

@@ -359,17 +359,6 @@ public:
         HYPERION_RETURN_OK;
     }
 
-    inline bool IsSupportedImageFormat(VkFormat format,
-        VkImageType             type,
-        VkImageTiling           tiling,
-        VkImageUsageFlags       usage,
-        VkImageCreateFlags      flags
-    ) const
-    {
-        VkImageFormatProperties tmp;
-
-    }
-
     template <class StructType>
     constexpr size_t PaddedSize() const
     {

@@ -254,7 +254,7 @@ public:
     }
 
     template <class DescriptorType>
-    Descriptor *AddDescriptor(uint32_t binding)
+    Descriptor *AddDescriptor(uint binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
@@ -264,27 +264,11 @@ public:
         return m_descriptors.back().get();
     }
 
-    Descriptor *GetDescriptor(DescriptorKey key) const
-    {
-        return GetDescriptor(DescriptorKeyToIndex(key));
-    }
+    bool RemoveDescriptor(DescriptorKey key);
+    bool RemoveDescriptor(uint binding);
 
-    Descriptor *GetDescriptor(uint32_t binding) const
-    {
-        const auto it = std::find_if(
-            m_descriptors.begin(),
-            m_descriptors.end(),
-            [&](const auto &item) {
-                return item->GetBinding() == binding;
-            }
-        );
-
-        if (it == m_descriptors.end()) {
-            return nullptr;
-        }
-
-        return it->get();
-    }
+    Descriptor *GetDescriptor(DescriptorKey key) const;
+    Descriptor *GetDescriptor(uint binding) const;
 
     template <class DescriptorType>
     Descriptor *GetOrAddDescriptor(DescriptorKey key)
@@ -293,7 +277,7 @@ public:
     }
 
     template <class DescriptorType>
-    Descriptor *GetOrAddDescriptor(uint32_t binding)
+    Descriptor *GetOrAddDescriptor(uint binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 

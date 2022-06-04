@@ -348,7 +348,7 @@ public:
         DEPTH
     };
 
-    GPUImageMemory(VkImageUsageFlags usage_flags);
+    GPUImageMemory();
     GPUImageMemory(const GPUImageMemory &other) = delete;
     GPUImageMemory &operator=(const GPUImageMemory &other) = delete;
     ~GPUImageMemory();
@@ -378,7 +378,6 @@ public:
     VkImage image;
 
 private:
-    VkImageUsageFlags usage_flags;
     std::unordered_map<ImageSubResource, ResourceState> sub_resources;
 };
 

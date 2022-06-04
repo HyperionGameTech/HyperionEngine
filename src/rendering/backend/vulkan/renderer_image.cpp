@@ -389,7 +389,7 @@ Result Image::CreateImage(
 
     *out_image_info = image_info;
 
-    m_image = new GPUImageMemory(m_internal_info.usage_flags);
+    m_image = new GPUImageMemory();
 
     HYPERION_BUBBLE_ERRORS(m_image->Create(device, m_size, &image_info));
 
