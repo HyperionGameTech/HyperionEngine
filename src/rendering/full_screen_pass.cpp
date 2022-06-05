@@ -12,6 +12,7 @@ using renderer::VertexAttributeSet;
 using renderer::Descriptor;
 using renderer::DescriptorSet;
 using renderer::SamplerDescriptor;
+using renderer::FillMode;
 
 std::unique_ptr<Mesh> FullScreenPass::full_screen_quad = MeshBuilder::Quad();
 
@@ -164,14 +165,14 @@ void FullScreenPass::CreatePipeline(Engine *engine)
         m_render_pass.IncRef(),
         RenderableAttributeSet{
             .bucket            = BUCKET_PREPASS,
-            .vertex_attributes = VertexAttributeSet::static_mesh
+            .vertex_attributes = VertexAttributeSet::static_mesh,
+            .fill_mode         = FillMode::FILL
         }
     );
 
     pipeline->AddFramebuffer(m_framebuffer.IncRef());
     pipeline->SetDepthWrite(false);
     pipeline->SetDepthTest(false);
-    pipeline->SetFaceCullMode(FaceCullMode::FRONT);
 
     m_pipeline = engine->AddGraphicsPipeline(std::move(pipeline));
     m_pipeline.Init();

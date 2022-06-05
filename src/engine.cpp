@@ -17,6 +17,7 @@ using renderer::Attachment;
 using renderer::ImageView;
 using renderer::FramebufferObject;
 using renderer::DescriptorKey;
+using renderer::FillMode;
 
 const FlatMap<EngineThread, ThreadId> Engine::thread_ids{
     std::make_pair(THREAD_MAIN, ThreadId{uint(THREAD_MAIN), "MainThread"}),
@@ -260,7 +261,8 @@ void Engine::PrepareSwapchain()
                 render_pass.IncRef(),
                 RenderableAttributeSet{
                     .bucket            = BUCKET_SWAPCHAIN,
-                    .vertex_attributes = VertexAttributeSet::static_mesh
+                    .vertex_attributes = VertexAttributeSet::static_mesh,
+                    .fill_mode         = FillMode::FILL  
                 }
             );
         }
@@ -270,7 +272,7 @@ void Engine::PrepareSwapchain()
         ++iteration;
     }
     
-    m_root_pipeline->SetFaceCullMode(FaceCullMode::FRONT);
+    //m_root_pipeline->SetFaceCullMode(FaceCullMode::FRONT);
 
     callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         m_render_list_container.AddFramebuffersToPipelines(this);

@@ -76,8 +76,8 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
 
     for (const auto &it : binding_sizes) {
         this->vertex_binding_descriptions.push_back(VkVertexInputBindingDescription{
-            .binding = it.first,
-            .stride = it.second,
+            .binding   = it.first,
+            .stride    = it.second,
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
         });
     }
@@ -122,9 +122,10 @@ Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_
 
     const uint32_t width = m_construction_info.fbos[0]->GetWidth();
     const uint32_t height = m_construction_info.fbos[0]->GetHeight();
-    
-    SetViewport(0.0f, float(height), float(width), -float(height), 0.0f, 1.0f);
+
     SetScissor(0, 0, width, height);
+    //SetViewport(0.0f, static_cast<float>(height), static_cast<float>(width), -static_cast<float>(height));
+    SetViewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     
     SetDynamicStates({
         VK_DYNAMIC_STATE_VIEWPORT,
@@ -222,7 +223,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     switch (m_construction_info.fill_mode) {
     case FillMode::LINE:
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
-        rasterizer.lineWidth = 2.5f;
+        rasterizer.lineWidth = 1.0f; //2.5f; // have to set VK_DYNAMIC_STATE_LINE_WIDTH and wideLines feature to use any non-1.0 value
         break;
     case FillMode::FILL:
     default:

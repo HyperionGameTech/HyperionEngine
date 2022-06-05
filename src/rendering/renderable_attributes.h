@@ -18,8 +18,8 @@ struct RenderableAttributeSet {
     Bucket             bucket{Bucket::BUCKET_OPAQUE};
     Shader::ID         shader_id{Shader::empty_id};
     VertexAttributeSet vertex_attributes;
-    Topology           topology;
-    FillMode           fill_mode;
+    Topology           topology{Topology::TRIANGLES};
+    FillMode           fill_mode{FillMode::FILL};
     FaceCullMode       cull_faces{FaceCullMode::BACK};
     bool               alpha_blending{false};
     bool               depth_write{true};

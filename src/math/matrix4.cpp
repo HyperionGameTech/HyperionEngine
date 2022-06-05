@@ -1,6 +1,7 @@
 #include "matrix4.h"
 #include "vector3.h"
 #include "quaternion.h"
+#include "rect.h"
 
 #include <string.h>
 
@@ -73,7 +74,7 @@ Matrix4 Matrix4::Scaling(const Vector3 &scale)
 
 Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
 {
-    Matrix4 mat;
+    Matrix4 mat = Zeroes();
 
     float ar = (float)w / (float)h;
     float tan_half_fov = tan(MathUtil::DegToRad(fov / 2.0f));
@@ -81,7 +82,7 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
     
-    mat[1][1] = 1.0f / (tan_half_fov);
+    mat[1][1] = -(1.0f / (tan_half_fov));
     
     mat[2][2] = (-n - f) / range;
     mat[2][3] = (2.0f * f * n) / range;
@@ -89,6 +90,31 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
     mat[3][2] = 1.0f;
     mat[3][3] = 0.0f;
 
+    /*const float aspect_ratio = static_cast<float>(w) / static_cast<float>(h);
+
+    const float scale_y = 1.0f / std::tan(fov / 2.0f);
+    const float scale_x = scale_y / aspect_ratio;
+
+    const float half_width = n / scale_x;
+    const float half_height = n / scale_y;
+
+    const Rect rect = {
+        .left   = -half_width,
+        .right  = half_width,
+        .top    = half_height,
+        .bottom = -half_height
+    };
+
+    const float range = f / (f - n);
+
+    mat[0][0] = 2.0f * n / (rect.right - rect.left);
+    mat[1][1] = 2.0f * n / (rect.top - rect.bottom);
+    mat[2][0] = (rect.left + rect.right) / (rect.left - rect.right);
+    mat[2][1] = (rect.top + rect.bottom) / (rect.bottom - rect.top);
+    mat[2][2] = range;
+    mat[2][3] = 1.0f;
+    mat[3][2] = -n * range;
+*/
     return mat;
 }
 
@@ -96,7 +122,7 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
 {
     Matrix4 mat;
 
-    float x_orth = 2.0f / (r - l);
+    /*float x_orth = 2.0f / (r - l);
     float y_orth = 2.0f / (t - b);
     float z_orth = 2.0f / (f - n);
     float tx = -1.0f * ((r + l) / (r - l));
@@ -106,7 +132,21 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     mat[0] = {x_orth, 0, 0, tx};
     mat[1] = {0, y_orth, 0, ty};
     mat[2] = {0, 0, z_orth, tz};
-    mat[3] = {0, 0, 0, 1};
+    mat[3] = {0, 0, 0, 1};*/
+    
+    float x_orth = 2.0f / (r - l);
+    float y_orth = 2.0f / (t - b);
+    float z_orth = 1.0f / (f - n);
+    float tx = ((r + l) / (l - r));
+    float ty = ((b + t) / (b - t));
+    float tz = ((-n) / (f - n));
+    
+    mat[0] = {x_orth, 0, 0, 0};
+    mat[1] = {0, y_orth, 0, 0};
+    mat[2] = {0, 0, z_orth, 0};
+    mat[3] = {tx, ty, tz, 1};
+    
+    mat.Transpose();
 
     return mat;
 }

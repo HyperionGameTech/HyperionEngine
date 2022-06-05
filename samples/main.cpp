@@ -203,21 +203,21 @@ public:
     {
         scene->GetRootNode()->AddChild(engine->assets.Load<v2::Node>("models/monkey/monkey.obj"));
 
-        auto outline_pipeline = std::make_unique<GraphicsPipeline>(
-            engine->shader_manager.GetShader(ShaderKey::STENCIL_OUTLINE).IncRef(),
-            engine->GetRenderListContainer().Get(BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
-            RenderableAttributeSet{
-                .bucket            = BUCKET_TRANSLUCENT,
-                .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
-                .stencil_state     = {1, renderer::StencilMode::OUTLINE}
-            }
-        );
-        outline_pipeline->SetBlendEnabled(true);
-        auto outline_pipeline_ref = engine->AddGraphicsPipeline(std::move(outline_pipeline));
+    //     auto outline_pipeline = std::make_unique<GraphicsPipeline>(
+    //         engine->shader_manager.GetShader(ShaderKey::STENCIL_OUTLINE).IncRef(),
+    //         engine->GetRenderListContainer().Get(BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
+    //         RenderableAttributeSet{
+    //             .bucket            = BUCKET_TRANSLUCENT,
+    //             .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
+    //             .stencil_state     = {1, renderer::StencilMode::OUTLINE}
+    //         }
+    //     );
+    //     outline_pipeline->SetBlendEnabled(true);
+    //     auto outline_pipeline_ref = engine->AddGraphicsPipeline(std::move(outline_pipeline));
 
         
 
-        outline_pipeline_ref.Init();
+    //     outline_pipeline_ref.Init();
     }
 
     virtual void Teardown(Engine *engine) override
@@ -298,8 +298,8 @@ public:
 
         zombie->Update(engine, delta);
 
-        cube_obj->SetLocalTranslation(scene->GetCamera()->GetTranslation());
-        cube_obj->Update(engine, delta);
+        //cube_obj->SetLocalTranslation(scene->GetCamera()->GetTranslation());
+        //cube_obj->Update(engine, delta);
 
         engine->GetOctree().CalculateVisibility(scene.ptr);
     }
@@ -458,15 +458,15 @@ int main()
     }
 
     
-    engine->shader_manager.SetShader(
-        v2::ShaderManager::Key::STENCIL_OUTLINE,
-        engine->resources.shaders.Add(std::make_unique<v2::Shader>(
-            std::vector<v2::SubShader>{
-                {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.vert.spv")).Read()}},
-                {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.frag.spv")).Read()}}
-            }
-        ))
-    );
+    // engine->shader_manager.SetShader(
+    //     v2::ShaderManager::Key::STENCIL_OUTLINE,
+    //     engine->resources.shaders.Add(std::make_unique<v2::Shader>(
+    //         std::vector<v2::SubShader>{
+    //             {ShaderModule::Type::VERTEX, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.vert.spv")).Read()}},
+    //             {ShaderModule::Type::FRAGMENT, {FileByteReader(v2::FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/outline.frag.spv")).Read()}}
+    //         }
+    //     ))
+    // );
 
 
     {

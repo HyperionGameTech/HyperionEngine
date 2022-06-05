@@ -112,7 +112,10 @@
     #define HYP_DEBUG_LINE       (__LINE__)
 
     #if HYP_ENABLE_BREAKPOINTS
-        #define HYP_BREAKPOINT       (__builtin_trap())
+        #define HYP_BREAKPOINT \
+        { \
+            __asm__ volatile("int $0x03"); \
+        }
     #endif
 #elif defined(HYP_MSVC) && HYP_MSVC
     #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)

@@ -12,7 +12,7 @@ if [[ $? -lt 128 ]] ; then
     esac
 fi
 
-cmake --build . -j 24
+cmake --build . -j 4
 popd
 
 
