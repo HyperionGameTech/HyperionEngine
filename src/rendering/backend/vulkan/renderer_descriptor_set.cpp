@@ -118,7 +118,7 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_ind
 DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint instance_index, uint frame_index)
 {
     if (index == DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
-        return DescriptorSet::Index(uint(index) + 1 + (instance_index * 2) + frame_index);
+        return DescriptorSet::Index(static_cast<uint>(index) + 1 + (instance_index * 2) + frame_index);
     }
 
     return GetPerFrameIndex(index, frame_index);
@@ -166,7 +166,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     //build layout first
     VkDescriptorSetLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     layout_info.pBindings    = m_descriptor_bindings.data();
-    layout_info.bindingCount = static_cast<uint32_t>(m_descriptor_bindings.size());
+    layout_info.bindingCount = static_cast<uint>(m_descriptor_bindings.size());
     layout_info.flags        = 0;
 
     constexpr VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
@@ -177,7 +177,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     );
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo extended_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
-    extended_info.bindingCount  = static_cast<uint32_t>(binding_flags.size());
+    extended_info.bindingCount  = static_cast<uint>(binding_flags.size());
     extended_info.pBindingFlags = binding_flags.data();
     
     layout_info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
@@ -223,7 +223,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
         auto allocate_result = pool->AllocateDescriptorSet(device, &layout, this);
 
         if (!allocate_result) {
-            DebugLog(LogType::Error, "Failed to allocate descriptor set %lu! Message was: %s\n", uint32_t(m_index), allocate_result.message);
+            DebugLog(LogType::Error, "Failed to allocate descriptor set %lu! Message was: %s\n", static_cast<uint>(m_index), allocate_result.message);
 
             return allocate_result;
         }
@@ -234,7 +234,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
             write.dstSet = m_set;
         }
 
-        vkUpdateDescriptorSets(device->GetDevice(), uint32_t(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device->GetDevice(), static_cast<uint>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
 
         m_descriptor_writes.clear();
     }
@@ -299,14 +299,25 @@ Descriptor *DescriptorSet::GetDescriptor(uint binding) const
     return it->get();
 }
 
+uint DescriptorSet::DescriptorKeyToIndex(DescriptorKey key) const
+{
+    auto index_it = mappings.find(m_index);
+    AssertThrowMsg(index_it != mappings.end(), "Cannot add descriptor by key: descriptor set key has no mapping");
+
+    auto key_it = index_it->second.find(key);
+    AssertThrowMsg(key_it != index_it->second.end(), "Cannot add descriptor by key: descriptor key has no mapping");
+
+    return key_it->second;
+}
+
 void DescriptorSet::ApplyUpdates(Device *device)
 {
     for (size_t i = 0; i < m_descriptors.size(); i++) {
         auto &descriptor = m_descriptors[i];
 
-        ///if (!descriptor->m_dirty_sub_descriptors) {
-        //    continue;
-        //}
+        if (!descriptor->m_dirty_sub_descriptors) {
+           continue;
+        }
 
         descriptor->BuildUpdates(device, m_descriptor_writes);
     }
@@ -316,7 +327,7 @@ void DescriptorSet::ApplyUpdates(Device *device)
             write.dstSet = m_set;
         }
 
-        vkUpdateDescriptorSets(device->GetDevice(), uint32_t(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device->GetDevice(), static_cast<uint>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
 
         m_descriptor_writes.clear();
     }
@@ -353,14 +364,14 @@ Result DescriptorPool::Create(Device *device)
     for (auto &it : items_per_set) {
         pool_sizes.push_back({
             it.first,
-            uint32_t(it.second * 1000)
+            uint(it.second * 1000)
         });
     }
 
     VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     pool_info.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     pool_info.maxSets       = DescriptorSet::max_descriptor_sets;
-    pool_info.poolSizeCount = uint32_t(pool_sizes.size());
+    pool_info.poolSizeCount = uint(pool_sizes.size());
     pool_info.pPoolSizes    = pool_sizes.data();
 
     HYPERION_VK_CHECK_MSG(
@@ -429,8 +440,6 @@ Result DescriptorPool::Create(Device *device)
 
         AssertThrowMsg(it == descriptor_set_views_indices.end(), "Duplicate descriptor set index");
 
-        DebugLog(LogType::Debug, "Fake index %u -> %u\n", descriptor_set_index, descriptor_set->GetDesiredIndex());
-
         descriptor_set_views_indices.push_back(std::make_pair(
             descriptor_set->GetDesiredIndex(),
             descriptor_set->m_set
@@ -438,20 +447,6 @@ Result DescriptorPool::Create(Device *device)
 
         descriptor_set_index++;
     }
-
-    /*std::sort(
-        descriptor_set_views_indices.begin(),
-        descriptor_set_views_indices.end(),
-        [](const auto &lhs, const auto &rhs) {
-
-        }
-    )
-
-    m_descriptor_sets_view.resize(descriptor_set_views_indices.size());
-
-    for (size_t i = 0; i < descriptor_set_views_indices.size(); i++) {
-        m_descriptor_sets_view[i] = descriptor_set_views_indices[i].second;
-    }*/
 
     m_descriptor_sets_view.clear();
 
@@ -509,7 +504,7 @@ Result DescriptorPool::Destroy(Device *device)
         vkFreeDescriptorSets(
             device->GetDevice(),
             m_descriptor_pool,
-            uint32_t(m_descriptor_sets_view.size()),
+            uint(m_descriptor_sets_view.size()),
             m_descriptor_sets_view.data()
         ),
         result
@@ -575,10 +570,12 @@ Result DescriptorPool::CreateDescriptorSet(Device *device, uint index)
     return allocate_result;
 }
 
-Result DescriptorPool::Bind(Device *device,
+Result DescriptorPool::Bind(
+    Device *device,
     CommandBuffer *cmd,
     GraphicsPipeline *pipeline,
-    const DescriptorSetBinding &binding) const
+    const DescriptorSetBinding &binding
+) const
 {
     BindDescriptorSets(
         device,
@@ -591,10 +588,12 @@ Result DescriptorPool::Bind(Device *device,
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::Bind(Device *device,
+Result DescriptorPool::Bind(
+    Device *device,
     CommandBuffer *cmd,
     ComputePipeline *pipeline,
-    const DescriptorSetBinding &binding) const
+    const DescriptorSetBinding &binding
+) const
 {
     BindDescriptorSets(
         device,
@@ -607,10 +606,12 @@ Result DescriptorPool::Bind(Device *device,
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::Bind(Device *device,
+Result DescriptorPool::Bind(
+    Device *device,
     CommandBuffer *cmd,
     RaytracingPipeline *pipeline,
-    const DescriptorSetBinding &binding) const
+    const DescriptorSetBinding &binding
+) const
 {
     BindDescriptorSets(
         device,
@@ -674,7 +675,7 @@ void DescriptorPool::BindDescriptorSets(
         binding_index,
         binding.declaration.count,
         &bind_set,
-        static_cast<uint32_t>(binding.offsets.offsets.size()),
+        static_cast<uint>(binding.offsets.offsets.size()),
         binding.offsets.offsets.data()
     );
 }
@@ -726,7 +727,7 @@ Result DescriptorPool::AllocateDescriptorSet(
     alloc_info.descriptorPool     = m_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
 
-    constexpr uint32_t max_bindings = DescriptorSet::max_bindless_resources - 1;
+    constexpr uint max_bindings = DescriptorSet::max_bindless_resources - 1;
 
     VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO};
     count_info.descriptorSetCount = 1;
@@ -750,9 +751,9 @@ Result DescriptorPool::AllocateDescriptorSet(
     }
 }
 
-Descriptor::Descriptor(uint32_t binding, Mode mode)
+Descriptor::Descriptor(uint binding, DescriptorType descriptor_type)
     : m_binding(binding),
-      m_mode(mode),
+      m_descriptor_type(descriptor_type),
       m_descriptor_set(nullptr)
 {
 }
@@ -767,7 +768,7 @@ void Descriptor::Create(
 {
     AssertThrow(m_descriptor_set != nullptr);
 
-    const auto descriptor_type = GetDescriptorType(m_mode);
+    const auto descriptor_type = ToVkDescriptorType(m_descriptor_type);
 
     m_sub_descriptor_update_indices = {};
 
@@ -813,7 +814,7 @@ void Descriptor::Create(
         write.pBufferInfo     = &sub_descriptor.buffer_info;
         write.pImageInfo      = &sub_descriptor.image_info;
         
-        if (m_mode == Mode::ACCELERATION_STRUCTURE) {
+        if (m_descriptor_type == DescriptorType::ACCELERATION_STRUCTURE) {
             write.pNext = &sub_descriptor.acceleration_structure_info;
         }
 
@@ -823,7 +824,7 @@ void Descriptor::Create(
 
 void Descriptor::BuildUpdates(Device *, std::vector<VkWriteDescriptorSet> &writes)
 {
-    const auto descriptor_type = GetDescriptorType(m_mode);
+    const auto descriptor_type = ToVkDescriptorType(m_descriptor_type);
 
     for (auto &it : m_sub_descriptors) {
         auto &sub_descriptor = it.second;
@@ -844,43 +845,12 @@ void Descriptor::BuildUpdates(Device *, std::vector<VkWriteDescriptorSet> &write
         write.pBufferInfo     = &sub_descriptor.buffer_info;
         write.pImageInfo      = &sub_descriptor.image_info;
         
-        if (m_mode == Mode::ACCELERATION_STRUCTURE) {
+        if (m_descriptor_type == DescriptorType::ACCELERATION_STRUCTURE) {
             write.pNext = &sub_descriptor.acceleration_structure_info;
         }
 
         writes.push_back(write);
     }
-    
-    /*uint32_t iteration = 0;
-        
-    while (!m_sub_descriptor_update_indices.empty()) {
-        if (iteration == DescriptorSet::max_sub_descriptor_updates_per_frame) {
-            break;
-        }
-        const size_t sub_descriptor_index = m_sub_descriptor_update_indices.front();
-        auto &sub_descriptor = m_sub_descriptors.At(sub_descriptor_index);
-        UpdateSubDescriptorBuffer(
-            sub_descriptor,
-            sub_descriptor.buffer_info,
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.pNext           = nullptr;
-        write.dstBinding      = m_binding;
-        write.dstArrayElement = sub_descriptor.element_index;
-        write.descriptorCount = 1;
-        write.descriptorType  = descriptor_type;
-        write.pBufferInfo     = &sub_descriptor.buffer_info;
-        write.pImageInfo      = &sub_descriptor.image_info;
-        if (m_mode == Mode::ACCELERATION_STRUCTURE) {
-            write.pNext = &sub_descriptor.acceleration_structure_info;
-        }
-        writes.push_back(write);
-        m_dirty_sub_descriptors = m_dirty_sub_descriptors.Excluding(sub_descriptor_index);
-        m_sub_descriptor_update_indices.pop_back();
-        ++iteration;
-    }
-    if (m_sub_descriptor_update_indices.empty()) {
-        m_dirty_sub_descriptors = {};
-    }*/
 }
 
 void Descriptor::UpdateSubDescriptorBuffer(
@@ -890,11 +860,11 @@ void Descriptor::UpdateSubDescriptorBuffer(
     VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure
 ) const
 {
-    switch (m_mode) {
-    case Mode::UNIFORM_BUFFER: /* fallthrough */
-    case Mode::UNIFORM_BUFFER_DYNAMIC:
-    case Mode::STORAGE_BUFFER:
-    case Mode::STORAGE_BUFFER_DYNAMIC:
+    switch (m_descriptor_type) {
+    case DescriptorType::UNIFORM_BUFFER: /* fallthrough */
+    case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
+    case DescriptorType::STORAGE_BUFFER:
+    case DescriptorType::STORAGE_BUFFER_DYNAMIC:
         AssertThrow(sub_descriptor.buffer != nullptr);
         AssertThrow(sub_descriptor.buffer->buffer != nullptr);
 
@@ -907,7 +877,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
         };
 
         break;
-    case Mode::IMAGE_SAMPLER:
+    case DescriptorType::IMAGE_SAMPLER:
         AssertThrow(sub_descriptor.image_view != nullptr);
         AssertThrow(sub_descriptor.image_view->GetImageView() != nullptr);
 
@@ -921,7 +891,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
         };
 
         break;
-    case Mode::IMAGE_STORAGE:
+    case DescriptorType::IMAGE_STORAGE:
         AssertThrow(sub_descriptor.image_view != nullptr);
         AssertThrow(sub_descriptor.image_view->GetImageView() != nullptr);
 
@@ -932,7 +902,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
         };
 
         break;
-    case Mode::ACCELERATION_STRUCTURE:
+    case DescriptorType::ACCELERATION_STRUCTURE:
         AssertThrow(sub_descriptor.acceleration_structure != nullptr);
         AssertThrow(sub_descriptor.acceleration_structure->GetAccelerationStructure() != nullptr);
 
@@ -948,7 +918,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
     }
 }
 
-uint32_t Descriptor::AddSubDescriptor(SubDescriptor &&sub_descriptor)
+uint Descriptor::AddSubDescriptor(SubDescriptor &&sub_descriptor)
 {
     sub_descriptor.valid = true;
 
@@ -965,7 +935,7 @@ uint32_t Descriptor::AddSubDescriptor(SubDescriptor &&sub_descriptor)
     return element_index;
 }
 
-void Descriptor::RemoveSubDescriptor(uint32_t index)
+void Descriptor::RemoveSubDescriptor(uint index)
 {
     const auto it = m_sub_descriptors.Find(index);
     AssertThrow(it != m_sub_descriptors.End());
@@ -983,7 +953,7 @@ void Descriptor::RemoveSubDescriptor(uint32_t index)
     }
 }
 
-void Descriptor::MarkDirty(uint32_t sub_descriptor_index)
+void Descriptor::MarkDirty(uint sub_descriptor_index)
 {
     m_sub_descriptor_update_indices.push_back(sub_descriptor_index);
 
@@ -994,16 +964,16 @@ void Descriptor::MarkDirty(uint32_t sub_descriptor_index)
     }
 }
 
-VkDescriptorType Descriptor::GetDescriptorType(Mode mode)
+VkDescriptorType Descriptor::ToVkDescriptorType(DescriptorType descriptor_type)
 {
-    switch (mode) {
-    case Mode::UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    case Mode::UNIFORM_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    case Mode::STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    case Mode::STORAGE_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    case Mode::IMAGE_SAMPLER:          return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    case Mode::IMAGE_STORAGE:          return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    case Mode::ACCELERATION_STRUCTURE: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    switch (descriptor_type) {
+    case DescriptorType::UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case DescriptorType::UNIFORM_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    case DescriptorType::STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    case DescriptorType::STORAGE_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+    case DescriptorType::IMAGE_SAMPLER:          return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    case DescriptorType::IMAGE_STORAGE:          return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    case DescriptorType::ACCELERATION_STRUCTURE: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     default:
         AssertThrowMsg(false, "Unsupported descriptor type");
     }

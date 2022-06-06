@@ -305,7 +305,7 @@ void Engine::Initialize()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
-        ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+        ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -348,7 +348,7 @@ void Engine::Initialize()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
-        ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+        ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -378,15 +378,15 @@ void Engine::Initialize()
 #if HYP_FEATURES_BINDLESS_TEXTURES
     m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
-        ->AddDescriptor<renderer::SamplerDescriptor>(0);
+        ->AddDescriptor<renderer::ImageSamplerDescriptor>(0);
 
     m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1)
-        ->AddDescriptor<renderer::SamplerDescriptor>(0);
+        ->AddDescriptor<renderer::ImageSamplerDescriptor>(0);
 #else
     auto *material_textures_descriptor = m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
-        ->AddDescriptor<renderer::SamplerDescriptor>(0);
+        ->AddDescriptor<renderer::ImageSamplerDescriptor>(0);
 
     for (uint i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
         material_textures_descriptor->AddSubDescriptor({

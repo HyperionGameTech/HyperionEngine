@@ -12,7 +12,7 @@ using renderer::VertexAttributeSet;
 using renderer::Descriptor;
 using renderer::DescriptorSet;
 using renderer::DescriptorKey;
-using renderer::SamplerDescriptor;
+using renderer::ImageSamplerDescriptor;
 
 PostProcessingEffect::PostProcessingEffect(Stage stage, uint index)
     : EngineComponentBase(),

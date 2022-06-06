@@ -43,28 +43,28 @@ enum class DescriptorSetState {
     DESCRIPTOR_DIRTY = 1
 };
 
+enum class DescriptorType {
+    UNSET,
+    UNIFORM_BUFFER,
+    UNIFORM_BUFFER_DYNAMIC,
+    STORAGE_BUFFER,
+    STORAGE_BUFFER_DYNAMIC,
+    IMAGE_SAMPLER,
+    IMAGE_STORAGE,
+    ACCELERATION_STRUCTURE
+};
+
 class Descriptor {
     friend class DescriptorSet;
 public:
 
-    enum class Mode {
-        UNSET,
-        UNIFORM_BUFFER,
-        UNIFORM_BUFFER_DYNAMIC,
-        STORAGE_BUFFER,
-        STORAGE_BUFFER_DYNAMIC,
-        IMAGE_SAMPLER,
-        IMAGE_STORAGE,
-        ACCELERATION_STRUCTURE
-    };
-
     struct SubDescriptor {
-        uint32_t element_index = ~0u; /* ~0 == just use index of item added */
+        uint element_index = ~0u; /* ~0 == just use index of item added */
 
         union {
             struct /* BufferData */ {
-                GPUBuffer *buffer;
-                uint32_t range; /* if 0 then it is set to buffer->size */
+                const GPUBuffer *buffer;
+                uint range; /* if 0 then it is set to buffer->size */
 
                 VkDescriptorBufferInfo buffer_info;
             };
@@ -77,7 +77,7 @@ public:
             };
 
             struct /* AccelerationStructureData */ {
-                AccelerationStructure *acceleration_structure;
+                const AccelerationStructure *acceleration_structure;
 
                 VkWriteDescriptorSetAccelerationStructureKHR acceleration_structure_info;
             };
@@ -97,13 +97,13 @@ public:
         }
     };
 
-    Descriptor(uint32_t binding, Mode mode);
+    Descriptor(uint binding, DescriptorType descriptor_type);
     Descriptor(const Descriptor &other) = delete;
     Descriptor &operator=(const Descriptor &other) = delete;
     ~Descriptor();
 
-    uint32_t GetBinding() const           { return m_binding; }
-    void SetBinding(uint32_t binding)     { m_binding = binding; }
+    uint GetBinding() const           { return m_binding; }
+    void SetBinding(uint binding)     { m_binding = binding; }
                                           
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
     auto &GetSubDescriptors()             { return m_sub_descriptors; }
@@ -123,19 +123,21 @@ public:
      * @param sub_descriptor An object containing buffer or image info about the sub descriptor to be added.
      * @returns index of descriptor
      */
-    uint32_t AddSubDescriptor(SubDescriptor &&sub_descriptor);
+    uint AddSubDescriptor(SubDescriptor &&sub_descriptor);
     /*! \brief Remove the sub-descriptor at the given index. */
-    void RemoveSubDescriptor(uint32_t index);
+    void RemoveSubDescriptor(uint index);
     /*! \brief Mark a sub-descriptor as dirty */
-    void MarkDirty(uint32_t sub_descriptor_index);
+    void MarkDirty(uint sub_descriptor_index);
 
-    void Create(Device *device,
+    void Create(
+        Device *device,
         VkDescriptorSetLayoutBinding &binding,
-        std::vector<VkWriteDescriptorSet> &writes);
+        std::vector<VkWriteDescriptorSet> &writes
+    );
 
 protected:
 
-    static VkDescriptorType GetDescriptorType(Mode mode);
+    static VkDescriptorType ToVkDescriptorType(DescriptorType descriptor_type);
 
     void BuildUpdates(Device *device, std::vector<VkWriteDescriptorSet> &writes);
     void UpdateSubDescriptorBuffer(const SubDescriptor &sub_descriptor,
@@ -143,13 +145,13 @@ protected:
         VkDescriptorImageInfo &out_image,
         VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure) const;
 
-    Range<uint32_t> m_dirty_sub_descriptors;
+    Range<uint> m_dirty_sub_descriptors;
 
-    FlatMap<uint32_t, SubDescriptor> m_sub_descriptors;
+    FlatMap<uint, SubDescriptor> m_sub_descriptors;
     std::deque<size_t> m_sub_descriptor_update_indices;
 
-    uint32_t m_binding;
-    Mode m_mode;
+    uint m_binding;
+    DescriptorType m_descriptor_type;
 
 private:
     DescriptorSet *m_descriptor_set;
@@ -220,13 +222,13 @@ public:
         DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1
     };
 
-    static constexpr uint32_t max_descriptor_sets = 5000;
-    static constexpr uint32_t max_bindless_resources = 4096;
-    static constexpr uint32_t max_sub_descriptor_updates_per_frame = 16;
-    static constexpr uint32_t max_bound_descriptor_sets = 4; /* 0 = no cap */
-    static constexpr uint32_t max_material_texture_samplers = 1; // TMP: need to move things around to bump this up
+    static constexpr uint max_descriptor_sets = 5000;
+    static constexpr uint max_bindless_resources = 4096;
+    static constexpr uint max_sub_descriptor_updates_per_frame = 16;
+    static constexpr uint max_bound_descriptor_sets = 4; /* 0 = no cap */
+    static constexpr uint max_material_texture_samplers = 1; // TMP: need to move things around to bump this up
 
-    static const std::map<Index, std::map<DescriptorKey, uint32_t>> mappings;
+    static const std::map<Index, std::map<DescriptorKey, uint>> mappings;
     static const std::unordered_map<Index, uint> desired_indices;
     static Index GetBaseIndex(uint index); // map index to the real index used (this is per-frame stuff)
     static Index GetPerFrameIndex(Index index, uint frame_index);
@@ -299,16 +301,7 @@ public:
     VkDescriptorSet m_set;
 
 private:
-    uint32_t DescriptorKeyToIndex(DescriptorKey key) const
-    {
-        auto index_it = mappings.find(m_index);
-        AssertThrowMsg(index_it != mappings.end(), "Cannot add descriptor by key: descriptor set key has no mapping");
-
-        auto key_it = index_it->second.find(key);
-        AssertThrowMsg(key_it != index_it->second.end(), "Cannot add descriptor by key: descriptor key has no mapping");
-
-        return key_it->second;
-    }
+    uint DescriptorKeyToIndex(DescriptorKey key) const;
 
     std::vector<std::unique_ptr<Descriptor>> m_descriptors;
     std::vector<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
@@ -322,7 +315,7 @@ private:
 struct DescriptorSetBinding {
     struct Declaration {
         DescriptorSet::Index set;
-        uint32_t count = 1;
+        uint count = 1;
     } declaration;
 
     /* where we bind to in the shader program */
@@ -331,7 +324,7 @@ struct DescriptorSetBinding {
     } locations;
 
     struct DynamicOffsets {
-        std::vector<uint32_t> offsets;
+        std::vector<uint> offsets;
     } offsets;
 
     DescriptorSetBinding()
@@ -429,24 +422,21 @@ private:
 
 /* Convenience descriptor classes */
 
-#define HYP_DEFINE_DESCRIPTOR(class_name, mode) \
+#define HYP_DEFINE_DESCRIPTOR(class_name, descriptor_type) \
     class class_name : public Descriptor { \
     public: \
         class_name( \
-            uint32_t binding \
-        ) : Descriptor( \
-            binding, \
-            mode) \
-        {} \
+            uint binding \
+        ) : Descriptor(binding, descriptor_type) {} \
     }
 
-HYP_DEFINE_DESCRIPTOR(UniformBufferDescriptor,        Mode::UNIFORM_BUFFER);
-HYP_DEFINE_DESCRIPTOR(DynamicUniformBufferDescriptor, Mode::UNIFORM_BUFFER_DYNAMIC);
-HYP_DEFINE_DESCRIPTOR(StorageBufferDescriptor,        Mode::STORAGE_BUFFER);
-HYP_DEFINE_DESCRIPTOR(DynamicStorageBufferDescriptor, Mode::STORAGE_BUFFER_DYNAMIC);
-HYP_DEFINE_DESCRIPTOR(SamplerDescriptor,              Mode::IMAGE_SAMPLER);
-HYP_DEFINE_DESCRIPTOR(StorageImageDescriptor,         Mode::IMAGE_STORAGE);
-HYP_DEFINE_DESCRIPTOR(TlasDescriptor,                 Mode::ACCELERATION_STRUCTURE);
+HYP_DEFINE_DESCRIPTOR(UniformBufferDescriptor,        DescriptorType::UNIFORM_BUFFER);
+HYP_DEFINE_DESCRIPTOR(DynamicUniformBufferDescriptor, DescriptorType::UNIFORM_BUFFER_DYNAMIC);
+HYP_DEFINE_DESCRIPTOR(StorageBufferDescriptor,        DescriptorType::STORAGE_BUFFER);
+HYP_DEFINE_DESCRIPTOR(DynamicStorageBufferDescriptor, DescriptorType::STORAGE_BUFFER_DYNAMIC);
+HYP_DEFINE_DESCRIPTOR(ImageSamplerDescriptor,         DescriptorType::IMAGE_SAMPLER);
+HYP_DEFINE_DESCRIPTOR(StorageImageDescriptor,         DescriptorType::IMAGE_STORAGE);
+HYP_DEFINE_DESCRIPTOR(TlasDescriptor,                 DescriptorType::ACCELERATION_STRUCTURE);
 
 #undef HYP_DEFINE_DESCRIPTOR
 

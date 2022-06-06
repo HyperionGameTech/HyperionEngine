@@ -6,7 +6,7 @@
 
 namespace hyperion::v2 {
 
-using renderer::SamplerDescriptor;
+using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
 
 DeferredPass::DeferredPass()
@@ -48,7 +48,7 @@ void DeferredPass::CreateDescriptors(Engine *engine)
         auto &framebuffer = m_framebuffer->GetFramebuffer();
         if (!framebuffer.GetAttachmentRefs().empty()) {
             auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
-            auto *descriptor = descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(DescriptorKey::DEFERRED_RESULT);
+            auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::DEFERRED_RESULT);
 
             for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
                 descriptor->AddSubDescriptor({
@@ -86,7 +86,7 @@ DeferredRenderer::~DeferredRenderer() = default;
 
 void DeferredRenderer::Create(Engine *engine)
 {
-    using renderer::SamplerDescriptor;
+    using renderer::ImageSamplerDescriptor;
 
     m_post_processing.Create(engine);
 
@@ -102,7 +102,7 @@ void DeferredRenderer::Create(Engine *engine)
 
     /* Albedo texture */
     descriptor_set_pass
-        ->AddDescriptor<SamplerDescriptor>(0)
+        ->AddDescriptor<ImageSamplerDescriptor>(0)
         ->AddSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetSampler()
@@ -134,7 +134,7 @@ void DeferredRenderer::Create(Engine *engine)
 
     /* Depth texture */
     descriptor_set_pass
-        ->AddDescriptor<SamplerDescriptor>(1)
+        ->AddDescriptor<ImageSamplerDescriptor>(1)
         ->AddSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetSampler()

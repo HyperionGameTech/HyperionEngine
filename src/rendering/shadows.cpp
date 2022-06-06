@@ -9,7 +9,7 @@
 namespace hyperion::v2 {
 
 using renderer::DescriptorKey;
-using renderer::SamplerDescriptor;
+using renderer::ImageSamplerDescriptor;
 
 ShadowEffect::ShadowEffect()
     : FullScreenPass(),
@@ -88,7 +88,7 @@ void ShadowEffect::CreateDescriptors(Engine *engine)
                     .GetDescriptorSet(descriptor_set_index);
 
                 auto *shadow_map_descriptor = descriptor_set
-                    ->GetOrAddDescriptor<SamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+                    ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
                 
                 for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
                     m_shadow_map_index = shadow_map_descriptor->AddSubDescriptor({

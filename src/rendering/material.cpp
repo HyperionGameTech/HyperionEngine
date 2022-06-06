@@ -9,7 +9,7 @@
 namespace hyperion::v2 {
 
 using renderer::DescriptorSet;
-using renderer::SamplerDescriptor;
+using renderer::ImageSamplerDescriptor;
 using renderer::CommandBuffer;
 
 Material::Material(const char *tag)
@@ -93,7 +93,7 @@ void Material::EnqueueDescriptorSetCreation()
             // now add each possible texture (max is 16 because of device limitations)
             // TODO: only add used texture slots, and fixup indices
             
-            auto *descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(0);
+            auto *descriptor = descriptor_set->AddDescriptor<ImageSamplerDescriptor>(0);
 
             for (uint texture_index = 0; texture_index < max_textures_to_set; texture_index++) {
                 if (auto &texture = m_textures.ValueAt(texture_index)) {

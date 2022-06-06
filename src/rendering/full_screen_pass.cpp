@@ -11,7 +11,7 @@ using renderer::VertexAttribute;
 using renderer::VertexAttributeSet;
 using renderer::Descriptor;
 using renderer::DescriptorSet;
-using renderer::SamplerDescriptor;
+using renderer::ImageSamplerDescriptor;
 using renderer::FillMode;
 
 std::unique_ptr<Mesh> FullScreenPass::full_screen_quad = MeshBuilder::Quad();
@@ -141,7 +141,7 @@ void FullScreenPass::CreateDescriptors(Engine *engine)
     //engine->render_scheduler.Enqueue([this, engine, &framebuffer = m_framebuffer->GetFramebuffer()](...) {
         if (!framebuffer.GetAttachmentRefs().empty()) {
             auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
-            auto *descriptor = descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(m_descriptor_key);
+            auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageSamplerDescriptor>(m_descriptor_key);
 
             AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
 
