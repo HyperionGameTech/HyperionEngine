@@ -724,10 +724,10 @@ int main()
 #endif
 
 #if HYPERION_VK_TEST_VCT
-        if (tmp_render_timer == 0.0f || tmp_render_timer > 0.01f) {
+        //if (tmp_render_timer == 0.0f || tmp_render_timer > 0.01f) {
             vct.RenderVoxels(engine, frame);
             tmp_render_timer = 0.0f;
-        }
+       // }
         tmp_render_timer += 0.001f;
 #endif
 
