@@ -3,6 +3,8 @@
 #include <animation/skeleton.h>
 #include <animation/bone.h>
 
+#include <types.h>
+
 #include <util/xml/sax_parser.h>
 
 #include <algorithm>
@@ -67,7 +69,7 @@ public:
     {
         if (name == "bone") {
             std::string bone_name = attributes.at("name");
-            auto id = StringUtil::Parse<uint32_t>(attributes.at("id"));
+            auto id = StringUtil::Parse<uint>(attributes.at("id"));
 
             m_object.bones.push_back({
                 .name = bone_name,

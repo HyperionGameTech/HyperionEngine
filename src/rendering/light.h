@@ -31,8 +31,7 @@ public:
 
     LightType GetType() const { return m_type; }
 
-    const Vector3 &GetPosition() const
-        { return m_position; }
+    const Vector3 &GetPosition() const { return m_position; }
 
     void SetPosition(const Vector3 &position)
     {
@@ -40,8 +39,7 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    const Vector4 &GetColor() const
-        { return m_color; }
+    const Vector4 &GetColor() const    { return m_color; }
 
     void SetColor(const Vector4 &color)
     {
@@ -49,8 +47,7 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    float GetIntensity() const
-        { return m_intensity; }
+    float GetIntensity() const         { return m_intensity; }
 
     void SetIntensity(float intensity)
     {
@@ -67,7 +64,7 @@ protected:
     float     m_intensity;
 
 private:
-    void EnqueueRenderUpdates(Engine *engine) const;
+    void EnqueueRenderUpdates() const;
 
     mutable ShaderDataState m_shader_data_state;
 };

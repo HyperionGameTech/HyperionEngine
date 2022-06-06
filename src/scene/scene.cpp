@@ -42,9 +42,6 @@ void Scene::Init(Engine *engine)
 
         SetReady(true);
 
-        //EnqueueRenderUpdates(engine);
-
-
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SCENES, [this](Engine *engine) {
             DebugLog(LogType::Debug, "Destroy scene #%lu\t%p\n", m_id.value, (void *)this);
 

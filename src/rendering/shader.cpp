@@ -64,19 +64,21 @@ void Shader::Init(Engine *engine)
                 );
             }
 
-            return m_shader_program->Create(engine->GetDevice());
+            HYPERION_BUBBLE_ERRORS(m_shader_program->Create(engine->GetDevice()));
+            
+            SetReady(true);
+            
+            HYPERION_RETURN_OK;
         });
 
-        SetReady(true);
-
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SHADERS, [this](Engine *engine) {
-            SetReady(false);
-
             engine->render_scheduler.Enqueue([this, engine](...) {
                 return m_shader_program->Destroy(engine->GetDevice());
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+
+            SetReady(false);
         }), engine);
     }));
 }

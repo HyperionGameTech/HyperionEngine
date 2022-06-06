@@ -4,6 +4,7 @@
 #include <rendering/backend/renderer_result.h>
 
 #include <util/defines.h>
+#include <constants.h>
 
 #include <core/lib/range.h>
 #include <core/lib/flat_set.h>
@@ -49,6 +50,8 @@ enum class DescriptorType {
     UNIFORM_BUFFER_DYNAMIC,
     STORAGE_BUFFER,
     STORAGE_BUFFER_DYNAMIC,
+    IMAGE,
+    SAMPLER,
     IMAGE_SAMPLER,
     IMAGE_STORAGE,
     ACCELERATION_STRUCTURE
@@ -176,6 +179,7 @@ enum class DescriptorKey {
     OBJECT_BUFFER,
     SKELETON_BUFFER,
 
+    SAMPLER,
     TEXTURES
 
     // ... 
@@ -226,7 +230,7 @@ public:
     static constexpr uint max_bindless_resources = 4096;
     static constexpr uint max_sub_descriptor_updates_per_frame = 16;
     static constexpr uint max_bound_descriptor_sets = 4; /* 0 = no cap */
-    static constexpr uint max_material_texture_samplers = 1; // TMP: need to move things around to bump this up
+    static constexpr uint max_material_texture_samplers = 16;
 
     static const std::map<Index, std::map<DescriptorKey, uint>> mappings;
     static const std::unordered_map<Index, uint> desired_indices;
@@ -266,6 +270,7 @@ public:
         return m_descriptors.back().get();
     }
 
+    bool RemoveDescriptor(Descriptor *descriptor);
     bool RemoveDescriptor(DescriptorKey key);
     bool RemoveDescriptor(uint binding);
 
@@ -303,6 +308,7 @@ public:
 private:
     uint DescriptorKeyToIndex(DescriptorKey key) const;
 
+    DescriptorPool *m_descriptor_pool;
     std::vector<std::unique_ptr<Descriptor>> m_descriptors;
     std::vector<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
     std::vector<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
@@ -380,16 +386,14 @@ public:
     DescriptorPool(const DescriptorPool &other) = delete;
     DescriptorPool &operator=(const DescriptorPool &other) = delete;
     ~DescriptorPool();
+    
+    VkDescriptorPool GetHandle() const          { return m_descriptor_pool; }
 
-    size_t NumDescriptorSets() const { return m_descriptor_sets.size(); }
+    size_t NumDescriptorSets() const            { return m_descriptor_sets.size(); }
+    bool IsCreated() const                      { return m_is_created; }
 
-    bool IsCreated() const           { return m_is_created; }
-
-    auto &GetDescriptorSetLayouts()
-        { return m_descriptor_set_layouts; }
-
-    const auto &GetDescriptorSetLayouts() const
-        { return m_descriptor_set_layouts; }
+    auto &GetDescriptorSetLayouts()             { return m_descriptor_set_layouts; }
+    const auto &GetDescriptorSetLayouts() const { return m_descriptor_set_layouts; }
 
     void SetDescriptorSetLayout(uint index, VkDescriptorSetLayout layout);
 
@@ -398,6 +402,9 @@ public:
     DescriptorSet *GetDescriptorSet(DescriptorSet::Index index) const
         { return m_descriptor_sets[index].get(); }
 
+    void RemoveDescriptorSet(DescriptorSet *descriptor_set);
+    void RemoveDescriptorSet(uint index);
+
     Result Create(Device *device);
     Result Destroy(Device *device);
     Result Bind(Device *device, CommandBuffer *cmd, GraphicsPipeline *pipeline, const DescriptorSetBinding &) const;
@@ -405,18 +412,26 @@ public:
     Result Bind(Device *device, CommandBuffer *cmd, RaytracingPipeline *pipeline, const DescriptorSetBinding &) const;
 
     Result CreateDescriptorSet(Device *device, uint index);
+    Result DestroyDescriptorSet(Device *device, uint index);
+    Result DestroyPendingDescriptorSets(Device *device, uint frame_index);
 
 private:
-    void BindDescriptorSets(Device *device,
+    void BindDescriptorSets(
+        Device *device,
         CommandBuffer *cmd,
         VkPipelineBindPoint bind_point,
         Pipeline *pipeline,
-        const DescriptorSetBinding &binding) const;
+        const DescriptorSetBinding &binding
+    ) const;
 
     std::vector<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
     FlatMap<uint, VkDescriptorSetLayout> m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
     std::vector<VkDescriptorSet> m_descriptor_sets_view;
+
+    // 1 for each frame in flight
+    std::array<std::deque<uint>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
+
     bool m_is_created;
 };
 
@@ -434,6 +449,8 @@ HYP_DEFINE_DESCRIPTOR(UniformBufferDescriptor,        DescriptorType::UNIFORM_BU
 HYP_DEFINE_DESCRIPTOR(DynamicUniformBufferDescriptor, DescriptorType::UNIFORM_BUFFER_DYNAMIC);
 HYP_DEFINE_DESCRIPTOR(StorageBufferDescriptor,        DescriptorType::STORAGE_BUFFER);
 HYP_DEFINE_DESCRIPTOR(DynamicStorageBufferDescriptor, DescriptorType::STORAGE_BUFFER_DYNAMIC);
+HYP_DEFINE_DESCRIPTOR(ImageDescriptor,                DescriptorType::IMAGE);
+HYP_DEFINE_DESCRIPTOR(SamplerDescriptor,              DescriptorType::SAMPLER);
 HYP_DEFINE_DESCRIPTOR(ImageSamplerDescriptor,         DescriptorType::IMAGE_SAMPLER);
 HYP_DEFINE_DESCRIPTOR(StorageImageDescriptor,         DescriptorType::IMAGE_STORAGE);
 HYP_DEFINE_DESCRIPTOR(TlasDescriptor,                 DescriptorType::ACCELERATION_STRUCTURE);

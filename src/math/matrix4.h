@@ -49,10 +49,10 @@ public:
     Matrix4 operator*(float scalar) const;
     Matrix4 &operator*=(float scalar);
 
-    inline bool operator==(const Matrix4 &other) const
+    bool operator==(const Matrix4 &other) const
     {  return &values[0] == &other.values[0] || !std::memcmp(values, other.values, std::size(values) * sizeof(values[0])); }
 
-    inline bool operator!=(const Matrix4 &other) const { return !operator==(other); }
+    bool operator!=(const Matrix4 &other) const { return !operator==(other); }
 
 #pragma region deprecated
     constexpr float operator()(int i, int j) const { return values[i * 4 + j]; }
@@ -69,7 +69,7 @@ public:
     static Matrix4 Ones();
     static Matrix4 Identity();
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

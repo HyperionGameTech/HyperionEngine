@@ -67,7 +67,7 @@ void AnimationController::Play(float speed, LoopMode loop_mode)
         return;
     }
 
-    if (!MathUtil::InRange(m_animation_index, {0u, static_cast<uint32_t>(m_skeleton->NumAnimations())})) {
+    if (!MathUtil::InRange(m_animation_index, {0u, static_cast<uint>(m_skeleton->NumAnimations())})) {
         m_animation_index = 0;
     }
     
@@ -88,7 +88,7 @@ void AnimationController::Play(const std::string &animation_name, float speed, L
         return;
     }
 
-    m_animation_index = static_cast<uint32_t>(index);
+    m_animation_index = static_cast<uint>(index);
     
     PlaybackController::Play(speed, loop_mode);
 }
@@ -97,7 +97,7 @@ void AnimationController::Stop()
 {
     PlaybackController::Stop();
 
-    m_animation_index = ~0;
+    m_animation_index = ~0u;
 }
 
 }

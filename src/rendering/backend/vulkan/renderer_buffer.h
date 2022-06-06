@@ -272,8 +272,8 @@ public:
 
     void Bind(CommandBuffer *command_buffer);
 
-    inline DatumType GetDatumType() const { return m_datum_type; }
-    inline void SetDatumType(DatumType datum_type) { m_datum_type = datum_type; }
+    DatumType GetDatumType() const          { return m_datum_type; }
+    void SetDatumType(DatumType datum_type) { m_datum_type = datum_type; }
 
 private:
     DatumType m_datum_type = DatumType::UNSIGNED_INT;

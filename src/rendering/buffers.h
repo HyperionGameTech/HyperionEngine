@@ -98,8 +98,8 @@ struct MaterialShaderData {
     // 16
     float metalness;
     float roughness;
-    float param_0;
-    float param_1;
+    uint32_t param_0; // vec4 of 0.0..1.0 values stuffed into uint32
+    uint32_t param_1; // vec4 of 0.0..1.0 values stuffed into uint32
 
     // 32
     uint32_t uv_flip_s;

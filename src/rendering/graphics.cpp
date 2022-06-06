@@ -70,6 +70,8 @@ void GraphicsPipeline::AddSpatial(Ref<Spatial> &&spatial)
     
     m_spatial_notifier.ItemAdded(spatial);
     m_spatials_pending_addition.push_back(std::move(spatial));
+    
+    UpdateEnqueuedSpatialsFlag();
 }
 
 bool GraphicsPipeline::RemoveFromSpatialList(
@@ -111,6 +113,8 @@ bool GraphicsPipeline::RemoveFromSpatialList(
 
         m_spatials_pending_removal.push_back(it->IncRef());
     }
+
+    UpdateEnqueuedSpatialsFlag();
     
     return true;
 }
@@ -166,14 +170,32 @@ void GraphicsPipeline::PerformEnqueuedSpatialUpdates(Engine *engine)
     }
 
     if (!m_spatials_pending_addition.empty()) {
-        m_spatials.insert(
-            m_spatials.end(),
-            std::make_move_iterator(m_spatials_pending_addition.begin()), 
-            std::make_move_iterator(m_spatials_pending_addition.end())
-        );
-
-        m_spatials_pending_addition.clear();
+        // we only add spatials that are fully ready,
+        // keeping ones that aren't finished initializing in the vector,
+        // they should be finished on the next pass
+        
+        auto it = m_spatials_pending_addition.begin();
+        
+        while (it != m_spatials_pending_addition.end()) {
+            if (*it == nullptr) { // just erase nullptr ones
+                it = m_spatials_pending_addition.erase(it);
+                
+                continue;
+            }
+            
+            if ((*it)->IsReady()) {
+                m_spatials.push_back(std::move(*it));
+                it = m_spatials_pending_addition.erase(it);
+                
+                continue;
+            }
+            
+            // not ready, keep looping.
+            ++it;
+        }
     }
+
+    UpdateEnqueuedSpatialsFlag();
 }
 
 void GraphicsPipeline::Init(Engine *engine)
@@ -228,16 +250,20 @@ void GraphicsPipeline::Init(Engine *engine)
                 per_frame_data[i].Set<CommandBuffer>(std::move(command_buffer));
             }
 
-            return m_pipeline->Create(
+            HYPERION_BUBBLE_ERRORS(m_pipeline->Create(
                 engine->GetDevice(),
                 std::move(construction_info),
                 &engine->GetInstance()->GetDescriptorPool()
-            );
+            ));
+            
+            SetReady(true);
+            
+            HYPERION_RETURN_OK;
         });
 
-        SetReady(true);
-
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_GRAPHICS_PIPELINES, [this](Engine *engine) {
+            SetReady(false);
+            
             for (auto &spatial : m_spatials) {
                 if (spatial == nullptr) {
                     continue;
@@ -284,8 +310,6 @@ void GraphicsPipeline::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-
-            SetReady(false);
         }), engine);
     }));
 }
@@ -298,7 +322,7 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
 
     AssertThrow(m_per_frame_data != nullptr);
 
-    if (!m_spatials_pending_addition.empty() || !m_spatials_pending_removal.empty()) {
+    if (m_enqueued_spatials_flag.load()) {
         PerformEnqueuedSpatialUpdates(engine);
     }
 
@@ -372,8 +396,6 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                 }
 
                 if (perform_culling) {
-                    auto *octant = spatial->GetOctree();
-
                     if (auto *octant = spatial->GetOctree()) {
                         const auto &visibility_state = octant->GetVisibilityState();
 
@@ -393,6 +415,10 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
 
                         continue;
                     }
+                }
+                
+                if (!spatial->GetMesh()->IsReady()) {
+                    continue;
                 }
 
                 const auto spatial_index = spatial->GetId().value - 1;
@@ -422,16 +448,16 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                 );
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES
-            /* Per-material texture set */
-            instance->GetDescriptorPool().Bind(
-                device,
-                secondary,
-                m_pipeline.get(),
-                {
-                    {.set = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index), .count = 1},
-                    {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES}
-                }
-            );
+                /* Per-material texture set */
+                instance->GetDescriptorPool().Bind(
+                    device,
+                    secondary,
+                    m_pipeline.get(),
+                    {
+                        {.set = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index), .count = 1},
+                        {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES}
+                    }
+                );
 #endif
 
                 spatial->GetMesh()->Render(engine, secondary);

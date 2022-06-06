@@ -6,7 +6,7 @@ namespace hyperion::v2 {
 
 const std::array<TextureFormatDefault, 5> RenderListContainer::gbuffer_textures = {
     TEXTURE_FORMAT_DEFAULT_COLOR,
-    TEXTURE_FORMAT_DEFAULT_NORMALS,
+    TEXTURE_FORMAT_DEFAULT_GBUFFER,
     TEXTURE_FORMAT_DEFAULT_GBUFFER,
     TEXTURE_FORMAT_DEFAULT_GBUFFER,
     TEXTURE_FORMAT_DEFAULT_DEPTH

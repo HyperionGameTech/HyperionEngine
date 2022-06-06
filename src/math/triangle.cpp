@@ -64,7 +64,7 @@ Vertex &Triangle::Closest(const Vector3 &vec)
 
 const Vertex &Triangle::Closest(const Vector3 &vec) const
 {
-    return Closest(vec);
+    return const_cast<Triangle *>(this)->Closest(vec);
 }
 
 bool Triangle::IntersectRay(const Ray &ray, RayTestResults &out) const

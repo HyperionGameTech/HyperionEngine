@@ -32,20 +32,20 @@ public:
     explicit Vector3(const Vector2 &xy, float z);
     Vector3(const Vector3 &other);
 
-    inline float GetX() const { return x; }
-    inline float &GetX() { return x; }
-    inline Vector3 &SetX(float x) { this->x = x; return *this; }
-    inline float GetY() const { return y; }
-    inline float &GetY() { return y; }
-    inline Vector3 &SetY(float y) { this->y = y; return *this; }
-    inline float GetZ() const { return z; }
-    inline float &GetZ() { return z; }
-    inline Vector3 &SetZ(float z) { this->z = z; return *this; }
+    float GetX() const { return x; }
+    float &GetX() { return x; }
+    Vector3 &SetX(float x) { this->x = x; return *this; }
+    float GetY() const { return y; }
+    float &GetY() { return y; }
+    Vector3 &SetY(float y) { this->y = y; return *this; }
+    float GetZ() const { return z; }
+    float &GetZ() { return z; }
+    Vector3 &SetZ(float z) { this->z = z; return *this; }
 
-    constexpr inline float operator[](size_t index) const
+    constexpr float operator[](size_t index) const
         { return values[index]; }
 
-    constexpr inline float &operator[](size_t index)
+    constexpr float &operator[](size_t index)
         { return values[index]; }
 
     Vector3 &operator=(const Vector3 &other);
@@ -65,17 +65,17 @@ public:
     Vector3 &operator/=(const Vector3 &other);
     bool operator==(const Vector3 &other) const;
     bool operator!=(const Vector3 &other) const;
-    inline Vector3 operator-() const { return operator*(-1.0f); }
-    inline bool operator<(const Vector3 &other) const
+    Vector3 operator-() const { return operator*(-1.0f); }
+    bool operator<(const Vector3 &other) const
     {
         return std::tie(x, y, z) < std::tie(other.x, other.y, other.z);
     }
 
-    //inline bool operator<(const Vector3 &other) const
+    //bool operator<(const Vector3 &other) const
     //    { return x < other.x && y < other.y && z < other.z; }
 
-    constexpr inline float LengthSquared() const { return x * x + y * y + z * z; }
-    inline float Length() const { return std::sqrt(LengthSquared()); }
+    constexpr float LengthSquared() const { return x * x + y * y + z * z; }
+    float Length() const { return std::sqrt(LengthSquared()); }
 
     float DistanceSquared(const Vector3 &other) const;
     float Distance(const Vector3 &other) const;
@@ -89,7 +89,7 @@ public:
     Vector3 &Lerp(const Vector3 &to, const float amt);
     float Dot(const Vector3 &other) const;
 
-    inline Vector4 ToVector4() const { return Vector4(*this, 1.0f); }
+    Vector4 ToVector4() const { return Vector4(*this, 1.0f); }
 
     static Vector3 Abs(const Vector3 &);
     static Vector3 Round(const Vector3 &);
@@ -103,7 +103,7 @@ public:
     static Vector3 UnitY();
     static Vector3 UnitZ();
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

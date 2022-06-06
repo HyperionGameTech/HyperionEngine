@@ -47,6 +47,8 @@ void VoxelConeTracing::Init(Engine *engine)
         CreateDescriptors(engine);
         CreateGraphicsPipeline(engine);
         CreateComputePipelines(engine);
+        
+        SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_VOXELIZER, [this](Engine *engine) {
             m_spatial_observers.Clear();
@@ -64,6 +66,8 @@ void VoxelConeTracing::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+            
+            SetReady(false);
         }), engine);
     }));
 }
@@ -273,6 +277,7 @@ void VoxelConeTracing::CreateFramebuffer(Engine *engine)
 void VoxelConeTracing::CreateDescriptors(Engine *engine)
 {
     DebugLog(LogType::Debug, "Add voxel cone tracing descriptors\n");
+
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 

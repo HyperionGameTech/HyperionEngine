@@ -49,7 +49,7 @@ private:
     Environment            *m_environment;
     std::array<Ref<Texture>, max_environment_textures> m_environment_textures;
 
-    Matrix4 m_last_view_projection_matrix;
+    Matrix4                 m_last_view_projection_matrix;
 
     ScheduledFunctionId     m_render_update_id;
 

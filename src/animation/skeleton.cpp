@@ -35,9 +35,13 @@ void Skeleton::Init(Engine *engine)
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SKELETONS, [this](Engine *engine) {
         EnqueueRenderUpdates(engine);
+        
+        SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SKELETONS, [this](Engine *engine) {
-            /* no-op */
+            HYP_FLUSH_RENDER_QUEUE(engine);
+            
+            SetReady(false);
         }), engine);
     }));
 }

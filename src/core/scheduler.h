@@ -202,7 +202,7 @@ public:
     {
         AssertThrow(std::this_thread::get_id() == m_creation_thread);
         
-        m_sp.WaitUntilValue(0);
+        //m_sp.WaitUntilValue(0);
 
 #if HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_execution_lock.Lock();

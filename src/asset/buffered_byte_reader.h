@@ -16,7 +16,7 @@
 #include <cstring>
 
 namespace hyperion {
-template <size_t BufferSize, class Byte = ubyte>
+template <size_t BufferSize, class Byte = UByte>
 class BufferedReader {
 public:
     static_assert(sizeof(Byte) == 1);

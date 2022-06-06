@@ -81,7 +81,7 @@ bool Ray::TestAabb(const BoundingBox &aabb, int hit_id, const void *user_data, R
 
     out_results.AddHit(RayHit{
         .hitpoint  = hitpoint,
-        .normal    = direction.Normalized(), // TODO: change to be box normal
+        .normal    = -direction.Normalized(), // TODO: change to be box normal
         .distance  = hitpoint.Distance(position),
         .id        = hit_id,
         .user_data = user_data

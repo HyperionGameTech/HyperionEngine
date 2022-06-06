@@ -59,15 +59,13 @@ void Texture::Init(Engine *engine)
 #if HYP_FEATURES_BINDLESS_TEXTURES
             engine->shader_globals->textures.AddResource(this);
 #endif
+            
+            SetReady(true);
 
             HYPERION_RETURN_OK;
         });
-
-        SetReady(true);
         
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_TEXTURES, [this](Engine *engine) {
-            SetReady(false);
-
             engine->render_scheduler.Enqueue([this, engine](...) {
 #if HYP_FEATURES_BINDLESS_TEXTURES
                 engine->shader_globals->textures.RemoveResource(m_id);
@@ -81,6 +79,8 @@ void Texture::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+
+            SetReady(false);
         }), engine);
     }));
 }

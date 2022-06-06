@@ -121,7 +121,7 @@ void Mesh::Init(Engine *engine)
             HYPERION_BUBBLE_ERRORS(m_vbo->Create(device, packed_buffer_size));
             HYPERION_BUBBLE_ERRORS(m_ibo->Create(device, packed_indices_size));
 
-            return instance->GetStagingBufferPool().Use(
+            HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
                 device,
                 [&](renderer::StagingBufferPool::Context &holder) {
                     auto commands = instance->GetSingleTimeCommands();
@@ -148,14 +148,14 @@ void Mesh::Init(Engine *engine)
                     HYPERION_BUBBLE_ERRORS(commands.Execute(device));
 
                     HYPERION_RETURN_OK;
-                });
+                }));
+            
+            SetReady(true);
+        
+            HYPERION_RETURN_OK;
         });
 
-        SetReady(true);
-
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MESHES, [this](Engine *engine) {
-            SetReady(false);
-
             engine->render_scheduler.Enqueue([this](...) {
                 auto result = renderer::Result::OK;
 
@@ -168,6 +168,8 @@ void Mesh::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+
+            SetReady(false);
         }), engine);
     }));
 }
@@ -231,6 +233,8 @@ std::vector<float> Mesh::BuildVertexBuffer()
 void Mesh::Render(Engine *, CommandBuffer *cmd) const
 {
     Engine::AssertOnThread(THREAD_RENDER);
+
+    AssertReady();
 
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 

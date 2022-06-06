@@ -107,6 +107,13 @@ private:
     void OnSpatialRemoved(Spatial *spatial);
 
     void PerformEnqueuedSpatialUpdates(Engine *engine);
+    
+    void UpdateEnqueuedSpatialsFlag()
+    {
+        m_enqueued_spatials_flag.store(
+           !m_spatials_pending_addition.empty() || !m_spatials_pending_removal.empty()
+        );
+    }
 
     std::unique_ptr<renderer::GraphicsPipeline> m_pipeline;
 
@@ -124,6 +131,7 @@ private:
     PerFrameData<CommandBuffer>   *m_per_frame_data;
 
     std::mutex                     m_enqueued_spatials_mutex;
+    std::atomic_bool               m_enqueued_spatials_flag{false};
 
 };
 

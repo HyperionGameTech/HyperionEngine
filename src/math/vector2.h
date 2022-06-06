@@ -26,17 +26,17 @@ public:
     Vector2(float xy);
     Vector2(const Vector2 &other);
 
-    inline float GetX() const { return x; }
-    inline float &GetX() { return x; }
-    inline Vector2 &SetX(float x) { this->x = x; return *this; }
-    inline float GetY() const { return y; }
-    inline float &GetY() { return y; }
-    inline Vector2 &SetY(float y) { this->y = y; return *this; }
+    float GetX() const { return x; }
+    float &GetX() { return x; }
+    Vector2 &SetX(float x) { this->x = x; return *this; }
+    float GetY() const { return y; }
+    float &GetY() { return y; }
+    Vector2 &SetY(float y) { this->y = y; return *this; }
     
-    constexpr inline float operator[](size_t index) const
+    constexpr float operator[](size_t index) const
         { return values[index]; }
 
-    constexpr inline float &operator[](size_t index)
+    constexpr float &operator[](size_t index)
         { return values[index]; }
 
     Vector2 &operator=(const Vector2 &other);
@@ -50,13 +50,13 @@ public:
     Vector2 &operator/=(const Vector2 &other);
     bool operator==(const Vector2 &other) const;
     bool operator!=(const Vector2 &other) const;
-    inline Vector2 operator-() const { return operator*(-1.0f); }
+    Vector2 operator-() const { return operator*(-1.0f); }
 
-    inline bool operator<(const Vector2 &other) const
+    bool operator<(const Vector2 &other) const
         { return x < other.x && y < other.y; }
 
-    constexpr inline float LengthSquared() const { return x * x + y * y; }
-    inline float Length() const { return sqrt(LengthSquared()); }
+    constexpr float LengthSquared() const { return x * x + y * y; }
+    float Length() const { return sqrt(LengthSquared()); }
 
     float Distance(const Vector2 &other) const;
     float DistanceSquared(const Vector2 &other) const;
@@ -75,7 +75,7 @@ public:
     static Vector2 UnitX();
     static Vector2 UnitY();
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

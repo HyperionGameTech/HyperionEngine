@@ -8,8 +8,8 @@ bool Vertex::operator==(const Vertex &other) const
         && texcoord0 == other.texcoord0
         && texcoord1 == other.texcoord1
         && tangent == other.tangent
-        && nboneindices == other.nboneindices
-        && nboneweights == other.nboneweights
+        && num_indices == other.num_indices
+        && num_weights == other.num_weights
         && bone_weights == other.bone_weights
         && bone_indices == other.bone_indices;
 }
@@ -22,8 +22,8 @@ Vertex &Vertex::operator=(const Vertex &other)
     texcoord1 = other.texcoord1;
     tangent = other.tangent;
     bitangent = other.bitangent;
-    nboneindices = other.nboneindices;
-    nboneweights = other.nboneweights;
+    num_indices = other.num_indices;
+    num_weights = other.num_weights;
     bone_weights = other.bone_weights;
     bone_indices = other.bone_indices;
 

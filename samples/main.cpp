@@ -59,6 +59,7 @@ namespace hyperion::v2 {
 class MyGame : public v2::Game {
 
 public:
+    Ref<Material> base_material;//hack
     MyGame()
         : Game()
     {
@@ -83,6 +84,8 @@ public:
             )
         ));
         scene.Init();
+        base_material = engine->resources.materials.Add(std::make_unique<Material>());
+        base_material.Init();
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
@@ -96,6 +99,7 @@ public:
         test_model = std::move(loaded_assets[1]);
         cube_obj = std::move(loaded_assets[2]);
         material_test_obj = std::move(loaded_assets[3]);
+        
         
         auto *grass = scene->GetRootNode()->AddChild(std::move(loaded_assets[4]));
         grass->GetChild(0)->GetSpatial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);

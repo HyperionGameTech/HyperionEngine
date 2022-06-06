@@ -148,28 +148,28 @@ public:
     Engine(SystemSDL &, const char *app_name);
     ~Engine();
     
-    inline Instance *GetInstance() const                             { return m_instance.get(); }
-    inline Device   *GetDevice() const                               { return m_instance ? m_instance->GetDevice() : nullptr; }
+    Instance *GetInstance() const                             { return m_instance.get(); }
+    Device   *GetDevice() const                               { return m_instance ? m_instance->GetDevice() : nullptr; }
 
-    inline DeferredRenderer &GetDeferredRenderer()                   { return m_deferred_renderer; }
-    inline const DeferredRenderer &GetDeferredRenderer() const       { return m_deferred_renderer; }
+    DeferredRenderer &GetDeferredRenderer()                   { return m_deferred_renderer; }
+    const DeferredRenderer &GetDeferredRenderer() const       { return m_deferred_renderer; }
 
-    inline RenderListContainer &GetRenderListContainer()             { return m_render_list_container; }
-    inline const RenderListContainer &GetRenderListContainer() const { return m_render_list_container; }
+    RenderListContainer &GetRenderListContainer()             { return m_render_list_container; }
+    const RenderListContainer &GetRenderListContainer() const { return m_render_list_container; }
 
-    inline auto &GetRenderScheduler()                                { return render_scheduler; }
-    inline const auto &GetRenderScheduler() const                    { return render_scheduler; }
+    auto &GetRenderScheduler()                                { return render_scheduler; }
+    const auto &GetRenderScheduler() const                    { return render_scheduler; }
 
-    inline auto &GetShaderData()                                     { return shader_globals; }
-    inline const auto &GetShaderData() const                         { return shader_globals; }
+    auto &GetShaderData()                                     { return shader_globals; }
+    const auto &GetShaderData() const                         { return shader_globals; }
     
-    inline auto &GetDummyData()                                      { return m_dummy_data; }
-    inline const auto &GetDummyData() const                          { return m_dummy_data; }
+    auto &GetDummyData()                                      { return m_dummy_data; }
+    const auto &GetDummyData() const                          { return m_dummy_data; }
 
-    inline Octree &GetOctree() { return m_octree; }
-    inline const Octree &GetOctree() const { return m_octree; }
+    Octree &GetOctree() { return m_octree; }
+    const Octree &GetOctree() const { return m_octree; }
 
-    inline Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
+    Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
     Ref<GraphicsPipeline> FindOrCreateGraphicsPipeline(const RenderableAttributeSet &renderable_attributes);

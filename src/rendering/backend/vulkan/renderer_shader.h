@@ -11,7 +11,7 @@
 namespace hyperion {
 namespace renderer {
 struct ShaderObject {
-    std::vector<ubyte> bytes;
+    std::vector<UByte> bytes;
 
     struct Metadata {
         std::string name;

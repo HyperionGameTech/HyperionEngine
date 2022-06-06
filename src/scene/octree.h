@@ -135,14 +135,14 @@ private:
     /* Called from Spatial - remove the pointer */
     void OnSpatialRemoved(Engine *engine, Spatial *spatial);
     
-    std::vector<Node> m_nodes;
-    Octree *m_parent;
-    BoundingBox m_aabb;
-    std::array<Octant, 8> m_octants;
-    bool m_is_divided;
-    Root *m_root;
-    VisibilityState m_visibility_state;
-    uint8_t m_index;
+    std::vector<Node>      m_nodes;
+    Octree                *m_parent;
+    BoundingBox            m_aabb;
+    std::array<Octant, 8>  m_octants;
+    bool                   m_is_divided;
+    Root                  *m_root;
+    VisibilityState        m_visibility_state;
+    uint8_t                m_index;
 };
 
 } // namespace hyperion::v2

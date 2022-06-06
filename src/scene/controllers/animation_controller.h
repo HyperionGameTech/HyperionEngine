@@ -5,6 +5,8 @@
 #include "../../animation/bone.h"
 #include "../../animation/animation.h"
 
+#include <types.h>
+
 namespace hyperion::v2 {
 
 class AnimationController : public PlaybackController {
@@ -33,7 +35,7 @@ public:
 private:
     bool FindSkeleton(Node *node);
     
-    uint32_t m_animation_index = ~0u;
+    uint m_animation_index = ~0u;
 
     Ref<Skeleton> m_skeleton;
 

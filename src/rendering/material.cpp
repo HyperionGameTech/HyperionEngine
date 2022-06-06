@@ -9,7 +9,9 @@
 namespace hyperion::v2 {
 
 using renderer::DescriptorSet;
-using renderer::ImageSamplerDescriptor;
+using renderer::DescriptorKey;
+using renderer::ImageDescriptor;
+using renderer::SamplerDescriptor;
 using renderer::CommandBuffer;
 
 Material::Material(const char *tag)
@@ -43,16 +45,19 @@ void Material::Init(Engine *engine)
             }
         }
 
-        SetReady(true);
-
 #if !HYP_FEATURES_BINDLESS_TEXTURES
-        EnqueueDescriptorSetCreation();
+        EnqueueDescriptorSetCreate();
+#else
+        SetReady(true);
 #endif
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MATERIALS, [this](Engine *engine) {
             m_textures.Clear();
-            
-            // TODO: destroy descriptor set
+
+
+#if !HYP_FEATURES_BINDLESS_TEXTURES
+            EnqueueDescriptorSetDestroy();
+#endif
 
             HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -72,7 +77,7 @@ void Material::Update(Engine *engine)
     EnqueueRenderUpdates();
 }
 
-void Material::EnqueueDescriptorSetCreation()
+void Material::EnqueueDescriptorSetCreate()
 {
     // add a descriptor set w/ each texture
     GetEngine()->GetRenderScheduler().Enqueue([this](...) {
@@ -90,23 +95,24 @@ void Material::EnqueueDescriptorSetCreation()
                 false
             ));
 
-            // now add each possible texture (max is 16 because of device limitations)
-            // TODO: only add used texture slots, and fixup indices
+            auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
+
+            sampler_descriptor->AddSubDescriptor({
+                .sampler = &engine->GetDummyData().GetSampler() // TODO: get proper sampler based on req's of image
+            });
             
-            auto *descriptor = descriptor_set->AddDescriptor<ImageSamplerDescriptor>(0);
+            auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
             for (uint texture_index = 0; texture_index < max_textures_to_set; texture_index++) {
                 if (auto &texture = m_textures.ValueAt(texture_index)) {
-                    descriptor->AddSubDescriptor({
+                    image_descriptor->AddSubDescriptor({
                         .element_index = texture_index,
-                        .image_view    = &texture->GetImageView(),
-                        .sampler       = &texture->GetSampler()
+                        .image_view    = &texture->GetImageView()
                     });
                 } else {
-                    descriptor->AddSubDescriptor({
+                    image_descriptor->AddSubDescriptor({
                         .element_index = texture_index,
-                        .image_view    = &engine->GetDummyData().GetImageView2D1x1R8(),
-                        .sampler       = &engine->GetDummyData().GetSampler()
+                        .image_view    = &engine->GetDummyData().GetImageView2D1x1R8()
                     });
                 }
             }
@@ -114,7 +120,29 @@ void Material::EnqueueDescriptorSetCreation()
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
                 HYPERION_BUBBLE_ERRORS(descriptor_pool.CreateDescriptorSet(engine->GetDevice(), uint(index)));
             }
+
+            m_descriptor_sets[frame_index] = descriptor_set;
         }
+        
+        SetReady(true);
+
+        HYPERION_RETURN_OK;
+    });
+}
+
+void Material::EnqueueDescriptorSetDestroy()
+{
+    AssertReady();
+    
+    GetEngine()->GetRenderScheduler().Enqueue([this](...) {
+        const auto *engine = GetEngine();
+        auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
+
+        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
+        }
+        
+        m_descriptor_sets = {};
 
         HYPERION_RETURN_OK;
     });
@@ -134,7 +162,7 @@ void Material::EnqueueRenderUpdates()
         }
     }
 
-    GetEngine()->GetRenderScheduler().Enqueue([this, num_bound_textures, bound_texture_ids](...) {
+    GetEngine()->GetRenderScheduler().Enqueue([this, bound_texture_ids](...) {
         MaterialShaderData shader_data{
             .albedo          = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
             .metalness       = GetParameter<float>(MATERIAL_KEY_METALNESS),
@@ -144,7 +172,6 @@ void Material::EnqueueRenderUpdates()
         };
 
         shader_data.texture_usage = 0;
-        uint num_used_textures = 0;
 
         if (num_bound_textures != 0) {
             for (size_t i = 0; i < bound_texture_ids.size(); i++) {
@@ -157,12 +184,9 @@ void Material::EnqueueRenderUpdates()
 
                     shader_data.texture_usage |= 1 << i;
 
-                    ++num_used_textures;
-
-                    if (num_used_textures == num_bound_textures) {
+                    if (i + 1 == num_bound_textures) {
                         break;
                     }
-
                 }
             }
         }
@@ -180,7 +204,7 @@ void Material::EnqueueTextureUpdate(TextureKey key)
     // TODO: (thread safety) - cannot copy `texture` w/ IncRef() because it is not
     // CopyConstructable. So we have to just fetch it from m_textures (in the render thread).
     // we should try to refactor this to not use std::function at all.
-    GetEngine()->render_scheduler.Enqueue([this, key](CommandBuffer *command_buffer, uint frame_index) {
+    GetEngine()->GetRenderScheduler().Enqueue([this, key](CommandBuffer *command_buffer, uint frame_index) {
         auto &texture            = m_textures.Get(key);
         const auto texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
@@ -192,12 +216,11 @@ void Material::EnqueueTextureUpdate(TextureKey key)
 
         const auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
         const auto *descriptor_set  = descriptor_pool.GetDescriptorSet(descriptor_set_index);
-        auto       *descriptor      = descriptor_set->GetDescriptor(0);
+        auto       *descriptor      = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
 
         descriptor->AddSubDescriptor({
             .element_index = static_cast<uint>(texture_index),
-            .image_view    = &texture->GetImageView(),
-            .sampler       = &texture->GetSampler()
+            .image_view    = &texture->GetImageView()
         });
 
         HYPERION_RETURN_OK;

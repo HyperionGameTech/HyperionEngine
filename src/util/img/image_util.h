@@ -11,11 +11,11 @@ public:
     static inline
     void ConvertBpp(
         size_t width, size_t height, size_t depth,
-        ubyte in_bpp, ubyte out_bpp,
-        const ubyte *const in_bytes,
-        ubyte *out_bytes)
+        UByte in_bpp, UByte out_bpp,
+        const UByte *const in_bytes,
+        UByte *out_bytes)
     {
-        const ubyte min_bpp = MathUtil::Min(in_bpp, out_bpp);
+        const UByte min_bpp = MathUtil::Min(in_bpp, out_bpp);
 
         for (size_t x = 0; x < width; x++) {
             for (size_t y = 0; y < height; y++) {
@@ -24,11 +24,11 @@ public:
                     const size_t in_index  = idx * in_bpp;
                     const size_t out_index = idx * out_bpp;
 
-                    for (ubyte i = 0; i < min_bpp; i++) {
+                    for (UByte i = 0; i < min_bpp; i++) {
                         out_bytes[out_index + i] = in_bytes[in_index + i];
                     }
 
-                    for (ubyte i = min_bpp; i < out_bpp; i++) {
+                    for (UByte i = min_bpp; i < out_bpp; i++) {
                         out_bytes[out_index + i] = 255;
                     }
                 }

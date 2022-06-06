@@ -1,5 +1,4 @@
 #include "perspective_camera.h"
-#include <math/matrix_util.h>
 
 namespace hyperion {
 PerspectiveCamera::PerspectiveCamera(float fov, int width, int height, float _near, float _far)

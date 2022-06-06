@@ -29,23 +29,23 @@ public:
     explicit Vector4(const Vector3 &xyz, float w);
     Vector4(const Vector4 &other);
 
-    inline float GetX() const { return x; }
-    inline float &GetX() { return x; }
-    inline Vector4 &SetX(float x) { this->x = x; return *this; }
-    inline float GetY() const { return y; }
-    inline float &GetY() { return y; }
-    inline Vector4 &SetY(float y) { this->y = y; return *this; }
-    inline float GetZ() const { return z; }
-    inline float &GetZ() { return z; }
-    inline Vector4 &SetZ(float z) { this->z = z; return *this; }
-    inline float GetW() const { return w; }
-    inline float &GetW() { return w; }
-    inline Vector4 &SetW(float w) { this->w = w; return *this; }
+    float GetX() const { return x; }
+    float &GetX() { return x; }
+    Vector4 &SetX(float x) { this->x = x; return *this; }
+    float GetY() const { return y; }
+    float &GetY() { return y; }
+    Vector4 &SetY(float y) { this->y = y; return *this; }
+    float GetZ() const { return z; }
+    float &GetZ() { return z; }
+    Vector4 &SetZ(float z) { this->z = z; return *this; }
+    float GetW() const { return w; }
+    float &GetW() { return w; }
+    Vector4 &SetW(float w) { this->w = w; return *this; }
     
-    constexpr inline float operator[](size_t index) const
+    constexpr float operator[](size_t index) const
         { return values[index]; }
 
-    constexpr inline float &operator[](size_t index)
+    constexpr float &operator[](size_t index)
         { return values[index]; }
 
     Vector4 &operator=(const Vector4 &other);
@@ -61,13 +61,13 @@ public:
     Vector4 &operator/=(const Vector4 &other);
     bool operator==(const Vector4 &other) const;
     bool operator!=(const Vector4 &other) const;
-    inline Vector4 operator-() const { return operator*(-1.0f); }
+    Vector4 operator-() const { return operator*(-1.0f); }
 
-    inline bool operator<(const Vector4 &other) const
+    bool operator<(const Vector4 &other) const
         { return x < other.x && y < other.y && z < other.z && w < other.w; }
 
-    constexpr inline float LengthSquared() const { return x * x + y * y + z * z + w * w; }
-    inline float Length() const                  { return sqrt(LengthSquared()); }
+    constexpr float LengthSquared() const { return x * x + y * y + z * z + w * w; }
+    float Length() const                  { return sqrt(LengthSquared()); }
 
     float DistanceSquared(const Vector4 &other) const;
     float Distance(const Vector4 &other) const;
@@ -91,7 +91,7 @@ public:
     static Vector4 UnitZ();
     static Vector4 UnitW();
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

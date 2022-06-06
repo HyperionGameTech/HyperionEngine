@@ -20,8 +20,8 @@ using renderer::DescriptorKey;
 using renderer::FillMode;
 
 const FlatMap<EngineThread, ThreadId> Engine::thread_ids{
-    std::make_pair(THREAD_MAIN, ThreadId{uint(THREAD_MAIN), "MainThread"}),
-    std::make_pair(THREAD_GAME, ThreadId{uint(THREAD_GAME), "GameThread"})
+    std::make_pair(THREAD_MAIN, ThreadId{static_cast<uint>(THREAD_MAIN), "MainThread"}),
+    std::make_pair(THREAD_GAME, ThreadId{static_cast<uint>(THREAD_GAME), "GameThread"})
 };
 
 #if HYP_ENABLE_THREAD_ASSERTION
@@ -106,6 +106,8 @@ Engine::~Engine()
 
 void Engine::FindTextureFormatDefaults()
 {
+    AssertOnThread(THREAD_RENDER);
+
     const Device *device = m_instance->GetDevice();
 
     m_texture_format_defaults.Set(
@@ -124,9 +126,9 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_DEPTH,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F,
-                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24,
-                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16 },
+            std::array{ Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24,
+                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16,
+                        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F },
             VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         )
@@ -176,6 +178,7 @@ void Engine::FindTextureFormatDefaults()
 
 void Engine::PrepareSwapchain()
 {
+    AssertOnThread(THREAD_RENDER);
 
     auto shader = resources.shaders.Add(std::make_unique<Shader>(
         std::vector<SubShader>{
@@ -186,7 +189,7 @@ void Engine::PrepareSwapchain()
 
     shader->Init(this);
 
-    uint32_t iteration = 0;
+    uint iteration = 0;
     
     auto render_pass = resources.render_passes.Add(std::make_unique<RenderPass>(
         renderer::RenderPassStage::PRESENT,
@@ -282,6 +285,8 @@ void Engine::PrepareSwapchain()
 
 void Engine::Initialize()
 {
+    AssertOnThread(THREAD_RENDER);
+
     HYPERION_ASSERT_RESULT(m_instance->Initialize(true));
 
     FindTextureFormatDefaults();
@@ -384,15 +389,22 @@ void Engine::Initialize()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1)
         ->AddDescriptor<renderer::ImageSamplerDescriptor>(0);
 #else
+    auto *material_sampler_descriptor = m_instance->GetDescriptorPool()
+        .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
+        ->AddDescriptor<renderer::SamplerDescriptor>(renderer::DescriptorKey::SAMPLER);
+
+    material_sampler_descriptor->AddSubDescriptor({
+        .sampler = &GetDummyData().GetSampler()
+    });
+
     auto *material_textures_descriptor = m_instance->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
-        ->AddDescriptor<renderer::ImageSamplerDescriptor>(0);
+        ->AddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::TEXTURES);
 
     for (uint i = 0; i < DescriptorSet::max_material_texture_samplers; i++) {
         material_textures_descriptor->AddSubDescriptor({
             .element_index = i,
-            .image_view    = &GetDummyData().GetImageView2D1x1R8(),
-            .sampler       = &GetDummyData().GetSampler(),
+            .image_view    = &GetDummyData().GetImageView2D1x1R8()
         });
     }
 #endif
@@ -424,6 +436,8 @@ void Engine::Initialize()
 
 void Engine::Compile()
 {
+    AssertOnThread(THREAD_RENDER);
+
     m_deferred_renderer.Create(this);
 
     for (uint32_t i = 0; i < m_instance->GetFrameHandler()->NumFrames(); i++) {
@@ -468,28 +482,7 @@ Ref<GraphicsPipeline> Engine::FindOrCreateGraphicsPipeline(const RenderableAttri
         return resources.graphics_pipelines.Get(it->second);
     }
 
-
     auto &render_list_bucket = m_render_list_container.Get(renderable_attributes.bucket);
-
-    /*Ref<GraphicsPipeline> found_pipeline;
-    
-    for (auto &graphics_pipeline : render_list_bucket.GetGraphicsPipelines()) {
-        if (graphics_pipeline->GetShader()->GetId() != renderable_attributes.shader_id) {
-            continue;
-        }
-
-        if (!(graphics_pipeline->GetVertexAttributes() & renderable_attributes.vertex_attributes)) {
-            continue;
-        }
-
-        found_pipeline = graphics_pipeline.IncRef();
-
-        break;
-    }
-
-    if (found_pipeline != nullptr) {
-        return found_pipeline;
-    }*/
 
     // create a pipeline with the given params
     return AddGraphicsPipeline(std::make_unique<GraphicsPipeline>(
@@ -534,6 +527,8 @@ void Engine::UpdateBuffersAndDescriptors(uint32_t frame_index)
 #if HYP_FEATURES_BINDLESS_TEXTURES
     shader_globals->textures.ApplyUpdates(this, frame_index);
 #endif
+
+    m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
 }
 
 void Engine::RenderDeferred(Frame *frame)

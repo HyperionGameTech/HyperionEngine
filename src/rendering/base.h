@@ -31,20 +31,20 @@ struct Stub {
 #define STUB_CLASS(name) ::hyperion::v2::Stub<name>
 
 #define ENGINE_COMPONENT_DELEGATE_METHODS \
-    inline decltype(m_wrapped) *operator->()             { return &m_wrapped; } \
-    inline const decltype(m_wrapped) *operator->() const { return &m_wrapped; }
+    decltype(m_wrapped) *operator->()             { return &m_wrapped; } \
+    const decltype(m_wrapped) *operator->() const { return &m_wrapped; }
 
 template <class Type, class ...Args>
 struct ID {
     using InnerType = uint32_t;
 
     explicit constexpr operator InnerType() const { return value; }
-    inline constexpr InnerType GetValue() const { return value; }
+    constexpr InnerType GetValue() const { return value; }
 
-    inline constexpr bool operator==(const ID &other) const
+    constexpr bool operator==(const ID &other) const
         { return value == other.value; }
 
-    inline constexpr bool operator<(const ID &other) const
+    constexpr bool operator<(const ID &other) const
         { return value < other.value; }
 
     std::tuple<InnerType, ID<Args>...> value;
@@ -104,6 +104,7 @@ public:
     /* To be called from ObjectHolder<Type> */
     void SetId(const ID &id)  { m_id = id; }
     bool IsInitCalled() const { return m_init_called; }
+    bool IsReady() const      { return m_is_ready; }
 
     /*! \brief Just a function to store that Init() has been called from a derived class
      * for book-keeping. Use to prevent adding OnInit() callbacks multiple times.
@@ -120,23 +121,14 @@ public:
     }
 
 protected:
-    Engine *GetEngine() const
-    {
-        AssertThrowMsg(
-            m_engine != nullptr,
-            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
-        );
-
-        return m_engine;
-    }
+    using Base = EngineComponentBase<Type>;
 
     void Destroy()
     {
         m_init_called = false;
         m_engine      = nullptr;
     }
-
-    bool IsReady()               { return m_is_ready; }
+    
     void SetReady(bool is_ready) { m_is_ready = is_ready; }
 
     HYP_FORCE_INLINE void AssertReady() const
@@ -147,6 +139,16 @@ protected:
             "or the component requires an event to be sent from the Engine instance to determine that "
             "it is ready to be constructed, and this event has not yet been sent.\n"
         );
+    }
+    
+    HYP_FORCE_INLINE Engine *GetEngine() const
+    {
+        AssertThrowMsg(
+            m_engine != nullptr,
+            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
+        );
+
+        return m_engine;
     }
 
     ID m_id;
@@ -191,8 +193,8 @@ public:
         );
     }
 
-    inline WrappedType &Get()             { return m_wrapped; }
-    inline const WrappedType &Get() const { return m_wrapped; }
+    WrappedType &Get()             { return m_wrapped; }
+    const WrappedType &Get() const { return m_wrapped; }
 
     /* Standard non-specialized initialization function */
     template <class ...Args>
@@ -257,8 +259,6 @@ public:
     }
 
 protected:
-    using ThisComponent = EngineComponent<WrappedType>;
-
     WrappedType m_wrapped;
     bool m_wrapped_created;
     bool m_wrapped_destroyed; /* for debug purposes; not really used for anything outside (as objects should be able to be destroyed then recreated) */

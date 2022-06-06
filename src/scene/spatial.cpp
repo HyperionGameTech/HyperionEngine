@@ -59,8 +59,6 @@ void Spatial::Init(Engine *engine)
 
         SetReady(true);
 
-        //EnqueueRenderUpdates(engine);
-
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SPATIALS, [this](Engine *engine) {
             RemoveFromPipelines(engine);
 
@@ -77,13 +75,15 @@ void Spatial::Init(Engine *engine)
 
 void Spatial::Update(Engine *engine)
 {
+    Engine::AssertOnThread(THREAD_GAME);
+
     AssertReady();
 
-    if (m_skeleton != nullptr) {
+    if (m_skeleton != nullptr && m_skeleton->IsReady()) {
         m_skeleton->EnqueueRenderUpdates(engine);
     }
 
-    if (m_material != nullptr) {
+    if (m_material != nullptr && m_material->IsReady()) {
         m_material->Update(engine);
     }
 
@@ -393,6 +393,31 @@ void Spatial::AddToOctree(Engine *engine)
 void Spatial::RemoveFromOctree(Engine *engine)
 {
     m_octree.load()->OnSpatialRemoved(engine, this);
+}
+
+bool Spatial::IsReady() const
+{
+    if (!Base::IsReady()) {
+        return false;
+    }
+    
+    if (m_skeleton != nullptr && !m_skeleton->IsReady()) {
+        return false;
+    }
+    
+    if (m_shader != nullptr && !m_shader->IsReady()) {
+        return false;
+    }
+    
+    if (m_mesh != nullptr && !m_mesh->IsReady()) {
+        return false;
+    }
+
+    if (m_material != nullptr && !m_material->IsReady()) {
+        return false;
+    }
+    
+    return true;
 }
 
 } // namespace hyperion::v2

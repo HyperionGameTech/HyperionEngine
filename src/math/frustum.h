@@ -14,8 +14,8 @@ public:
     Frustum(const Frustum &other);
     Frustum(const Matrix4 &view_proj);
 
-    inline Vector4 &GetPlane(size_t index)             { return m_planes[index]; }
-    inline const Vector4 &GetPlane(size_t index) const { return m_planes[index]; }
+    Vector4 &GetPlane(size_t index)             { return m_planes[index]; }
+    const Vector4 &GetPlane(size_t index) const { return m_planes[index]; }
 
     bool ContainsAabb(const BoundingBox &aabb) const;
 

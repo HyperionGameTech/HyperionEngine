@@ -15,7 +15,7 @@ using renderer::IndirectBuffer;
 
 class ComputePipeline : public EngineComponentBase<STUB_CLASS(ComputePipeline)> {
 public:
-    explicit ComputePipeline(Ref<Shader> &&shader);
+    ComputePipeline(Ref<Shader> &&shader);
     ComputePipeline(const ComputePipeline &) = delete;
     ComputePipeline &operator=(const ComputePipeline &) = delete;
     ~ComputePipeline();

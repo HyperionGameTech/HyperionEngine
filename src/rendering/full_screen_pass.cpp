@@ -282,7 +282,7 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
                     cmd,
                     m_pipeline->GetPipeline(),
                     {
-                        {.set = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, 0, frame_index), .count = 1}, // tmp, make it so we don't have to bind
+                        {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, .count = 1},
                         {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES}
                     }
                 ));

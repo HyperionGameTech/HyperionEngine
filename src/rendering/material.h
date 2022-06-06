@@ -7,6 +7,16 @@
 #include <util/enum_options.h>
 #include <hash_code.h>
 
+#include <array>
+
+namespace hyperion {
+namespace renderer {
+
+class DescriptorSet;
+
+} // namespace renderer
+} // namespace hyperion
+
 namespace hyperion::v2 {
 
 class Material : public EngineComponentBase<STUB_CLASS(Material)> {
@@ -309,7 +319,8 @@ private:
 
     void EnqueueRenderUpdates();
     void EnqueueTextureUpdate(TextureKey key);
-    void EnqueueDescriptorSetCreation();
+    void EnqueueDescriptorSetCreate();
+    void EnqueueDescriptorSetDestroy();
 
     char *m_tag;
 
@@ -318,6 +329,8 @@ private:
 
     MaterialShaderData      m_shader_data;
     mutable ShaderDataState m_shader_data_state;
+
+    std::array<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
 };
 
 class MaterialGroup {

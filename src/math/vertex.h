@@ -10,6 +10,7 @@
 #include "matrix4.h"
 #include <hash_code.h>
 #include <util/defines.h>
+#include <types.h>
 
 #include <array>
 #include <cstring>
@@ -19,10 +20,10 @@ namespace hyperion {
 class Vertex {
 public:
     Vertex()
-        : nboneindices(0),
-          nboneweights(0)
+        : num_indices(0),
+          num_weights(0)
     {
-        for (int i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -30,10 +31,10 @@ public:
 
     Vertex(const Vector3 &position)
         : position(position),
-          nboneindices(0),
-          nboneweights(0)
+          num_indices(0),
+          num_weights(0)
     {
-        for (int i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -42,10 +43,10 @@ public:
     Vertex(const Vector3 &position, const Vector2 &texcoord0)
         : position(position),
           texcoord0(texcoord0),
-          nboneindices(0),
-          nboneweights(0)
+          num_indices(0),
+          num_weights(0)
     {
-        for (int i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -55,10 +56,10 @@ public:
         : position(position),
           normal(normal),
           texcoord0(texcoord0),
-          nboneindices(0),
-          nboneweights(0)
+          num_indices(0),
+          num_weights(0)
     {
-        for (int i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -71,8 +72,8 @@ public:
           texcoord1(other.texcoord1),
           tangent(other.tangent),
           bitangent(other.bitangent),
-          nboneindices(other.nboneindices),
-          nboneweights(other.nboneweights),
+          num_indices(other.num_indices),
+          num_weights(other.num_weights),
           bone_weights(other.bone_weights),
           bone_indices(other.bone_indices)
     {
@@ -87,28 +88,28 @@ public:
     Vertex &operator*=(const Matrix4 &mat);
     Vertex &operator*=(const Transform &transform);
 
-    inline void SetPosition(const Vector3 &vec) { position = vec; }
-    inline const Vector3 &GetPosition() const { return position; }
-    inline void SetNormal(const Vector3 &vec) { normal = vec; }
-    inline const Vector3 &GetNormal() const { return normal; }
-    inline void SetTexCoord0(const Vector2 &vec) { texcoord0 = vec; }
-    inline const Vector2 &GetTexCoord0() const { return texcoord0; }
-    inline void SetTexCoord1(const Vector2 &vec) { texcoord1 = vec; }
-    inline const Vector2 &GetTexCoord1() const { return texcoord1; }
-    inline void SetTangent(const Vector3 &vec) { tangent = vec; }
-    inline const Vector3 &GetTangent() const { return tangent; }
-    inline void SetBitangent(const Vector3 &vec) { bitangent = vec; }
-    inline const Vector3 &GetBitangent() const { return bitangent; }
+    void SetPosition(const Vector3 &vec)  { position = vec; }
+    const Vector3 &GetPosition() const    { return position; }
+    void SetNormal(const Vector3 &vec)    { normal = vec; }
+    const Vector3 &GetNormal() const      { return normal; }
+    void SetTexCoord0(const Vector2 &vec) { texcoord0 = vec; }
+    const Vector2 &GetTexCoord0() const   { return texcoord0; }
+    void SetTexCoord1(const Vector2 &vec) { texcoord1 = vec; }
+    const Vector2 &GetTexCoord1() const   { return texcoord1; }
+    void SetTangent(const Vector3 &vec)   { tangent = vec; }
+    const Vector3 &GetTangent() const     { return tangent; }
+    void SetBitangent(const Vector3 &vec) { bitangent = vec; }
+    const Vector3 &GetBitangent() const   { return bitangent; }
 
-    inline void SetBoneWeight(int i, float val) { bone_weights[i] = val; }
-    inline float GetBoneWeight(int i) const { return bone_weights[i]; }
-    inline void SetBoneIndex(int i, int val) { bone_indices[i] = val; }
-    inline int GetBoneIndex(int i) const { return bone_indices[i]; }
+    void SetBoneWeight(int i, float val) { bone_weights[i] = val; }
+    float GetBoneWeight(int i) const     { return bone_weights[i]; }
+    void SetBoneIndex(int i, int val)    { bone_indices[i] = val; }
+    int GetBoneIndex(int i) const        { return bone_indices[i]; }
 
-    inline void AddBoneWeight(float val) { if (nboneweights < MAX_BONE_WEIGHTS) bone_weights[nboneweights++] = val; }
-    inline void AddBoneIndex(int val)    { if (nboneindices < MAX_BONE_INDICES) bone_indices[nboneindices++] = val; }
+    void AddBoneWeight(float val) { if (num_weights < MAX_BONE_WEIGHTS) bone_weights[num_weights++] = val; }
+    void AddBoneIndex(int val)    { if (num_indices < MAX_BONE_INDICES) bone_indices[num_indices++] = val; }
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(position.GetHashCode());
@@ -117,14 +118,14 @@ public:
         hc.Add(texcoord1.GetHashCode());
         hc.Add(tangent.GetHashCode());
         hc.Add(bitangent.GetHashCode());
-        hc.Add(nboneindices);
-        hc.Add(nboneweights);
+        hc.Add(num_indices);
+        hc.Add(num_weights);
 
-        for (uint32_t i = 0; i < MAX_BONE_INDICES; i++) {
+        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
             hc.Add(bone_indices[i]);
         }
 
-        for (uint32_t i = 0; i < MAX_BONE_WEIGHTS; i++) {
+        for (uint i = 0; i < MAX_BONE_WEIGHTS; i++) {
             hc.Add(bone_weights[i]);
         }
 
@@ -139,11 +140,11 @@ private:
     Vector3 tangent;
     Vector3 bitangent;
 
-    int nboneindices,
-        nboneweights;
+    uint8_t num_indices,
+            num_weights;
 
     std::array<float, MAX_BONE_WEIGHTS> bone_weights;
-    std::array<int, MAX_BONE_INDICES> bone_indices;
+    std::array<int, MAX_BONE_INDICES>   bone_indices;
 };
 
 } // namespace hyperion

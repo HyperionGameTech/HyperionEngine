@@ -54,7 +54,8 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
     {
         DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES,
         {
-            {DescriptorKey::TEXTURES, 0}
+            {DescriptorKey::SAMPLER, 0},
+            {DescriptorKey::TEXTURES, 1}
         }
     }
 #endif
@@ -99,17 +100,27 @@ DescriptorSet::Index DescriptorSet::GetBaseIndex(uint index)
 
 DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_index)
 {
-    if (frame_index == 0) {
-        return GetBaseIndex(uint(index));
-    }
-
-    switch (index) {
+    switch (GetBaseIndex(static_cast<uint>(index))) {
     case DESCRIPTOR_SET_INDEX_SCENE:
-        return DESCRIPTOR_SET_INDEX_SCENE_FRAME_1;
+        return frame_index ? DESCRIPTOR_SET_INDEX_SCENE_FRAME_1 : DESCRIPTOR_SET_INDEX_SCENE;
     case DESCRIPTOR_SET_INDEX_OBJECT:
-        return DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1;
+        return frame_index ? DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1 : DESCRIPTOR_SET_INDEX_OBJECT;
     case DESCRIPTOR_SET_INDEX_BINDLESS:
-        return DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1;
+        return frame_index ? DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1 : DESCRIPTOR_SET_INDEX_BINDLESS;
+    case DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES: {
+        if (index == DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+            return index;
+        }
+        
+        uint frame_base         = static_cast<uint>(index);
+        const auto index_offset = frame_base - (static_cast<uint>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
+
+        if (index_offset % 2 != 0) { // it is for frame 1
+            --frame_base;
+        }
+
+        return DescriptorSet::Index(frame_base + frame_index);
+    }
     }
 
     return index;
@@ -137,6 +148,7 @@ uint DescriptorSet::GetDesiredIndex(Index index)
 
 DescriptorSet::DescriptorSet(Index index, uint real_index, bool bindless)
     : m_set(VK_NULL_HANDLE),
+      m_descriptor_pool(nullptr),
       m_state(DescriptorSetState::DESCRIPTOR_DIRTY),
       m_index(index),
       m_real_index(real_index),
@@ -151,7 +163,10 @@ DescriptorSet::~DescriptorSet()
 
 Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
 {
+    AssertThrow(pool != nullptr);
     AssertThrow(m_descriptor_bindings.size() == m_descriptors.size());
+    
+    m_descriptor_pool = pool;
 
     m_descriptor_writes.clear();
     m_descriptor_writes.reserve(m_descriptors.size());
@@ -184,8 +199,6 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     layout_info.pNext = &extended_info;
 
     VkDescriptorSetLayout layout{};
-
-    DebugLog(LogType::Debug, "%d  num desc set layouts before adding %llu\n", int(m_real_index), pool->GetDescriptorSetLayouts().Size());
 
     if (m_real_index == m_index) { // otherwise no need to create layout
         auto layout_result = pool->CreateDescriptorSetLayout(device, static_cast<uint>(m_index), &layout_info, &layout);
@@ -250,7 +263,25 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
 
 Result DescriptorSet::Destroy(Device *device)
 {
+    AssertThrow(m_descriptor_pool != nullptr);
+    
+    HYPERION_VK_CHECK(vkFreeDescriptorSets(
+        device->GetDevice(),
+        m_descriptor_pool->GetHandle(),
+        1,
+        &m_set
+    ));
+    
+    m_descriptor_pool = nullptr;
+    
     HYPERION_RETURN_OK;
+}
+
+bool DescriptorSet::RemoveDescriptor(Descriptor *descriptor)
+{
+    AssertThrow(descriptor != nullptr);
+
+    return RemoveDescriptor(descriptor->GetBinding());
 }
 
 bool DescriptorSet::RemoveDescriptor(DescriptorKey key)
@@ -336,9 +367,10 @@ void DescriptorSet::ApplyUpdates(Device *device)
 const std::unordered_map<VkDescriptorType, size_t> DescriptorPool::items_per_set{
     {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1},
     {VK_DESCRIPTOR_TYPE_SAMPLER,                4096},
-    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096}, /* sampling imageviews in shader */
-    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          32},          /* imageStore, imageLoad etc */
-    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         64},         /* standard uniform buffer */
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096},
+    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          4096},
+    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          32},
+    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         64},
     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64},
     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         32},
     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32}
@@ -371,7 +403,7 @@ Result DescriptorPool::Create(Device *device)
     VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     pool_info.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     pool_info.maxSets       = DescriptorSet::max_descriptor_sets;
-    pool_info.poolSizeCount = uint(pool_sizes.size());
+    pool_info.poolSizeCount = static_cast<uint>(pool_sizes.size());
     pool_info.pPoolSizes    = pool_sizes.data();
 
     HYPERION_VK_CHECK_MSG(
@@ -453,13 +485,6 @@ Result DescriptorPool::Create(Device *device)
     for (auto &it : descriptor_set_views_indices) {
         AssertThrowMsg(
             it.second != nullptr,
-            "Descriptor set at index %u  = %p\n",
-            it.first,
-            it.second
-        );
-
-        AssertThrowMsg(
-            it.second != nullptr,
             "Descriptor set at index %u is missing",
             it.first
         );
@@ -499,16 +524,6 @@ Result DescriptorPool::Destroy(Device *device)
             HYPERION_PASS_ERRORS(set->Destroy(device), result);
         }
     }
-
-    HYPERION_VK_PASS_ERRORS(
-        vkFreeDescriptorSets(
-            device->GetDevice(),
-            m_descriptor_pool,
-            uint(m_descriptor_sets_view.size()),
-            m_descriptor_sets_view.data()
-        ),
-        result
-    );
     
     // set all to nullptr
     m_descriptor_sets.clear();
@@ -529,7 +544,20 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(std::unique_ptr<DescriptorSet> &
     AssertThrow(descriptor_set != nullptr);
 
     const uint index = descriptor_set->GetRealIndex();
-
+    
+    // remove from any 'pending removal' queues so it doesn't get removed directly after adding
+    for (auto &pending_removal_queue : m_descriptor_sets_pending_destruction) {
+        auto it = std::find(
+            pending_removal_queue.begin(),
+            pending_removal_queue.end(),
+            index
+        );
+        
+        if (it != pending_removal_queue.end()) {
+            pending_removal_queue.erase(it);
+        }
+    }
+    
     if (index >= m_descriptor_sets.size()) {
         if (index == m_descriptor_sets.size()) {
             m_descriptor_sets.emplace_back();
@@ -543,11 +571,88 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(std::unique_ptr<DescriptorSet> &
     return m_descriptor_sets[index].get();
 }
 
+void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
+{
+    AssertThrow(descriptor_set != nullptr);
+
+    RemoveDescriptorSet(descriptor_set->GetRealIndex());
+}
+
+void DescriptorPool::RemoveDescriptorSet(uint index)
+{
+    const auto per_frame_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::Index(index), 0);
+
+    // equals means that the descriptor set is for frame 0
+    const uint queue_index     = per_frame_index == DescriptorSet::Index(index) ? 0 : 1;
+
+    m_descriptor_sets_pending_destruction[queue_index].push_back(index);
+}
+
+Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, uint frame_index)
+{
+    auto &descriptor_set_queue = m_descriptor_sets_pending_destruction[frame_index];
+
+    while (!descriptor_set_queue.empty()) {
+        const auto index = descriptor_set_queue.front();
+
+        HYPERION_BUBBLE_ERRORS(DestroyDescriptorSet(device, index));
+
+        descriptor_set_queue.pop_front();
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+Result DescriptorPool::DestroyDescriptorSet(Device *device, uint index)
+{
+    if (index >= m_descriptor_sets.size()) {
+        return {Result::RENDERER_ERR, "Out of bounds"};
+    }
+
+    DebugLog(
+        LogType::Debug,
+        "Remove descriptor set at index %u\n",
+        index
+    );
+
+    auto &descriptor_set = m_descriptor_sets[index];
+
+    if (descriptor_set == nullptr) {
+        return {Result::RENDERER_ERR, "Descriptor set is nullptr"};
+    }
+
+    const auto desired_index = descriptor_set->GetDesiredIndex();
+    AssertThrowMsg(desired_index < m_descriptor_sets_view.size(), "Bookkeeping incorrect");
+
+    m_descriptor_sets_view[desired_index] = VK_NULL_HANDLE;
+
+    if (desired_index == m_descriptor_sets_view.size() - 1) {
+        uint iteration_index = desired_index;
+
+        do {
+            m_descriptor_sets_view.pop_back();
+            --iteration_index;
+        } while (m_descriptor_sets_view[iteration_index] == VK_NULL_HANDLE);
+    }
+
+    descriptor_set.reset();
+
+    if (index == m_descriptor_sets.size() - 1) {
+        uint iteration_index = index;
+
+        do {
+            m_descriptor_sets.pop_back();
+            --iteration_index;
+        } while (m_descriptor_sets[iteration_index] == nullptr);
+    }
+
+    HYPERION_RETURN_OK;
+}
+
 Result DescriptorPool::CreateDescriptorSet(Device *device, uint index)
 {
     AssertThrow(index < m_descriptor_sets.size());
 
-    
     auto *descriptor_set = m_descriptor_sets[index].get();
     AssertThrow(descriptor_set != nullptr);
 
@@ -555,7 +660,7 @@ Result DescriptorPool::CreateDescriptorSet(Device *device, uint index)
 
     DebugLog(
         LogType::Debug,
-        "Allocate descriptor set %llu\n",
+        "Allocate descriptor set %u\n",
         index
     );
 
@@ -727,6 +832,7 @@ Result DescriptorPool::AllocateDescriptorSet(
     alloc_info.descriptorPool     = m_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
 
+    // bindless stuff
     constexpr uint max_bindings = DescriptorSet::max_bindless_resources - 1;
 
     VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO};
@@ -776,7 +882,11 @@ void Descriptor::Create(
 
     if (m_descriptor_set->IsBindless()) {
         descriptor_count = DescriptorSet::max_bindless_resources;
-    } else if (m_descriptor_set->IsTemplate() && m_descriptor_set->GetIndex() == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+    } else if (
+        m_descriptor_set->IsTemplate()
+        && m_descriptor_set->GetIndex() == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
+        && m_binding == m_descriptor_set->DescriptorKeyToIndex(DescriptorKey::TEXTURES)
+    ) {
         descriptor_count = DescriptorSet::max_material_texture_samplers;
     }
     
@@ -806,7 +916,7 @@ void Descriptor::Create(
         );
         
         VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.pNext           = VK_NULL_HANDLE;
+        write.pNext           = nullptr;
         write.dstBinding      = m_binding;
         write.dstArrayElement = sub_descriptor.element_index;
         write.descriptorCount = 1;
@@ -837,7 +947,7 @@ void Descriptor::BuildUpdates(Device *, std::vector<VkWriteDescriptorSet> &write
         );
         
         VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.pNext           = VK_NULL_HANDLE;
+        write.pNext           = nullptr;
         write.dstBinding      = m_binding;
         write.dstArrayElement = sub_descriptor.element_index;
         write.descriptorCount = 1;
@@ -874,6 +984,28 @@ void Descriptor::UpdateSubDescriptorBuffer(
             .range = sub_descriptor.range != 0
                 ? sub_descriptor.range
                 : sub_descriptor.buffer->size
+        };
+
+        break;
+    case DescriptorType::IMAGE:
+        AssertThrow(sub_descriptor.image_view != nullptr);
+        AssertThrow(sub_descriptor.image_view->GetImageView() != nullptr);
+
+        out_image = {
+            .sampler     = VK_NULL_HANDLE,
+            .imageView   = sub_descriptor.image_view->GetImageView(),
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+
+        break;
+    case DescriptorType::SAMPLER:
+        AssertThrow(sub_descriptor.sampler != nullptr);
+        AssertThrow(sub_descriptor.sampler->GetSampler() != nullptr);
+
+        out_image = {
+            .sampler     = sub_descriptor.sampler->GetSampler(),
+            .imageView   = VK_NULL_HANDLE,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
 
         break;
@@ -971,6 +1103,8 @@ VkDescriptorType Descriptor::ToVkDescriptorType(DescriptorType descriptor_type)
     case DescriptorType::UNIFORM_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     case DescriptorType::STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     case DescriptorType::STORAGE_BUFFER_DYNAMIC: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+    case DescriptorType::IMAGE:                  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    case DescriptorType::SAMPLER:                return VK_DESCRIPTOR_TYPE_SAMPLER;
     case DescriptorType::IMAGE_SAMPLER:          return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     case DescriptorType::IMAGE_STORAGE:          return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     case DescriptorType::ACCELERATION_STRUCTURE: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;

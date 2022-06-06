@@ -21,18 +21,18 @@ public:
     Quaternion(const Vector3 &axis, float radians);
     Quaternion(const Quaternion &other);
 
-    inline float GetX() const { return x; }
-    inline float &GetX() { return x; }
-    inline void SetX(float x) { this->x = x; }
-    inline float GetY() const { return y; }
-    inline float &GetY() { return y; }
-    inline void SetY(float y) { this->y = y; }
-    inline float GetZ() const { return z; }
-    inline float &GetZ() { return z; }
-    inline void SetZ(float z) { this->z = z; }
-    inline float GetW() const { return w; }
-    inline float &GetW() { return w; }
-    inline void SetW(float w) { this->w = w; }
+    float GetX() const { return x; }
+    float &GetX()      { return x; }
+    void SetX(float x) { this->x = x; }
+    float GetY() const { return y; }
+    float &GetY()      { return y; }
+    void SetY(float y) { this->y = y; }
+    float GetZ() const { return z; }
+    float &GetZ()      { return z; }
+    void SetZ(float z) { this->z = z; }
+    float GetW() const { return w; }
+    float &GetW()      { return w; }
+    void SetW(float w) { this->w = w; }
 
     Quaternion &operator=(const Quaternion &other);
     Quaternion operator*(const Quaternion &other) const;

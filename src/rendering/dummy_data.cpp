@@ -9,6 +9,10 @@ DummyData::DummyData()
           renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
           renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
+      ),
+      m_sampler(
+          renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+          renderer::Image::WrapMode::TEXTURE_WRAP_REPEAT
       )
 {
 }

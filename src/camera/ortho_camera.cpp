@@ -1,5 +1,4 @@
 #include "ortho_camera.h"
-#include <math/matrix_util.h>
 
 namespace hyperion {
 OrthoCamera::OrthoCamera(

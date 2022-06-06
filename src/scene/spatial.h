@@ -91,6 +91,8 @@ public:
 
     const BoundingBox &GetLocalAabb() const { return m_local_aabb; }
     const BoundingBox &GetWorldAabb() const { return m_world_aabb; }
+    
+    bool IsReady() const;
 
     void Init(Engine *engine);
     void Update(Engine *engine);
@@ -114,20 +116,20 @@ private:
     void AddToOctree(Engine *engine);
     void RemoveFromOctree(Engine *engine);
 
-    Ref<Mesh> m_mesh;
-    Ref<Shader> m_shader;
-    Transform m_transform;
-    BoundingBox m_local_aabb;
-    BoundingBox m_world_aabb;
-    Ref<Material> m_material;
-    Ref<Skeleton> m_skeleton;
+    Ref<Mesh>              m_mesh;
+    Ref<Shader>            m_shader;
+    Transform              m_transform;
+    BoundingBox            m_local_aabb;
+    BoundingBox            m_world_aabb;
+    Ref<Material>          m_material;
+    Ref<Skeleton>          m_skeleton;
     RenderableAttributeSet m_renderable_attributes;
 
-    std::atomic<Octree *> m_octree{nullptr};
+    std::atomic<Octree *>  m_octree{nullptr};
 
     struct {
         GraphicsPipeline *pipeline = nullptr;
-        bool changed = false;
+        bool changed               = false;
     } m_primary_pipeline;
 
     /* Retains a list of pointers to pipelines that this Spatial is used by,
@@ -135,9 +137,9 @@ private:
      */
     FlatSet<GraphicsPipeline *> m_pipelines;
 
-    mutable ShaderDataState m_shader_data_state;
-    ScheduledFunctionId     m_render_update_id,
-                            m_change_pipeline_id;
+    mutable ShaderDataState     m_shader_data_state;
+    ScheduledFunctionId         m_render_update_id,
+                                m_change_pipeline_id;
 };
 
 } // namespace hyperion::v2

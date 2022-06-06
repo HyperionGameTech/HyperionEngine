@@ -10,7 +10,8 @@ Light::Light(
     const Vector3 &position,
     const Vector4 &color,
     float intensity
-) : m_type(type),
+) : EngineComponentBase(),
+    m_type(type),
     m_position(position),
     m_color(color),
     m_intensity(intensity),
@@ -32,7 +33,7 @@ void Light::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_LIGHTS, [this](Engine *engine) {
-        EnqueueRenderUpdates(engine);
+        EnqueueRenderUpdates();
 
         SetReady(true);
 
@@ -44,7 +45,7 @@ void Light::Init(Engine *engine)
     }));
 }
 
-void Light::EnqueueRenderUpdates(Engine *engine) const
+void Light::EnqueueRenderUpdates() const
 {
     LightShaderData shader_data{
         .position         = Vector4(m_position, m_type == LightType::DIRECTIONAL ? 0.0f : 1.0f),
@@ -53,8 +54,12 @@ void Light::EnqueueRenderUpdates(Engine *engine) const
         .intensity        = m_intensity,
         .shadow_map_index = ~0u
     };
-    
-    engine->shader_globals->lights.Set(m_id.value - 1, shader_data);
+
+    GetEngine()->GetRenderScheduler().Enqueue([this, shader_data](...) {
+        GetEngine()->shader_globals->lights.Set(m_id.value - 1, shader_data);
+
+        HYPERION_RETURN_OK;
+    });
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }

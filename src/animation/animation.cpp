@@ -13,7 +13,7 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         return {time, Transform()};
     }
 
-    for (int i = 0; i < int(keyframes.size() - 1); i++) {
+    for (int i = 0; i < static_cast<int>(keyframes.size() - 1); i++) {
         if (MathUtil::InRange(time, {keyframes[i].GetTime(), keyframes[i + 1].GetTime()})) {
             first  = i;
             second = i + 1;

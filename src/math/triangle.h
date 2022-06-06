@@ -21,13 +21,13 @@ public:
     Triangle operator*(const Transform &transform) const;
     Triangle &operator*=(const Transform &transform);
 
-    inline Vertex &operator[](int index) { return m_points[index]; }
-    inline const Vertex &operator[](int index) const { return m_points[index]; }
-    inline Vertex &GetPoint(int index) { return operator[](index); }
-    inline const Vertex &GetPoint(int index) const { return operator[](index); }
-    inline void SetPoint(int index, const Vertex &value) { m_points[index] = value; }
+    Vertex &operator[](int index) { return m_points[index]; }
+    const Vertex &operator[](int index) const { return m_points[index]; }
+    Vertex &GetPoint(int index) { return operator[](index); }
+    const Vertex &GetPoint(int index) const { return operator[](index); }
+    void SetPoint(int index, const Vertex &value) { m_points[index] = value; }
 
-    inline Vector3 GetCenter() const
+    Vector3 GetCenter() const
     {
         return (m_points[0].GetPosition() + m_points[1].GetPosition() + m_points[2].GetPosition()) / 3.0f;
     }

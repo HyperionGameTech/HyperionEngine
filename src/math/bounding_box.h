@@ -19,14 +19,14 @@ public:
     BoundingBox(const Vector3 &min, const Vector3 &max);
     BoundingBox(const BoundingBox &other);
 
-    inline const Vector3 &GetMin() const       { return min; }
-    inline void SetMin(const Vector3 &min)     { this->min = min; }
-    inline const Vector3 &GetMax() const       { return max; }
-    inline void SetMax(const Vector3 &max)     { this->max = max; }
+    const Vector3 &GetMin() const       { return min; }
+    void SetMin(const Vector3 &min)     { this->min = min; }
+    const Vector3 &GetMax() const       { return max; }
+    void SetMax(const Vector3 &max)     { this->max = max; }
     std::array<Vector3, 8> GetCorners() const;
-    inline Vector3 GetCenter() const           { return (max + min) / 2.0f; }
+    Vector3 GetCenter() const           { return (max + min) / 2.0f; }
     void SetCenter(const Vector3 &center);
-    inline Vector3 GetDimensions() const       { return max - min; }
+    Vector3 GetDimensions() const       { return max - min; }
     void SetDimensions(const Vector3 &dimensions);
 
     BoundingBox operator*(float scalar) const;
@@ -35,14 +35,14 @@ public:
     BoundingBox &operator/=(float scalar);
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
-    inline bool operator==(const BoundingBox &other) const
+    bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
-    inline bool operator!=(const BoundingBox &other) const
+    bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
     BoundingBox &Clear();
     
-    inline bool Empty() const 
+    bool Empty() const
     { 
         return MathUtil::Approximately(min, MathUtil::MaxSafeValue<Vector3>()) && 
                MathUtil::Approximately(max, MathUtil::MinSafeValue<Vector3>());
@@ -58,7 +58,7 @@ public:
     bool ContainsPoint(const Vector3 &vec) const;
     double Area() const;
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 
