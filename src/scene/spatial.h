@@ -6,7 +6,9 @@
 #include <rendering/mesh.h>
 #include <rendering/shader.h>
 #include <rendering/render_bucket.h>
+#include <rendering/buffers.h>
 #include <rendering/renderable_attributes.h>
+#include <rendering/renderable_component.h>
 #include <animation/skeleton.h>
 #include <core/scheduler.h>
 #include <core/lib/flat_set.h>

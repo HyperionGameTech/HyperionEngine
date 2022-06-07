@@ -68,7 +68,7 @@ void Texture::Init(Engine *engine)
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_TEXTURES, [this](Engine *engine) {
             engine->render_scheduler.Enqueue([this, engine](...) {
 #if HYP_FEATURES_BINDLESS_TEXTURES
-                engine->shader_globals->textures.RemoveResource(m_id);
+                engine->shader_globals->textures.RemoveResource(this);
 #endif
 
                 HYPERION_BUBBLE_ERRORS(m_sampler.Destroy(engine->GetInstance()->GetDevice()));

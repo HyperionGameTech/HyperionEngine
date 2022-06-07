@@ -75,7 +75,7 @@ void Spatial::Init(Engine *engine)
 
 void Spatial::Update(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
 
     AssertReady();
 

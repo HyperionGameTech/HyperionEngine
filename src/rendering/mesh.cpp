@@ -232,7 +232,7 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 void Mesh::Render(Engine *, CommandBuffer *cmd) const
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 

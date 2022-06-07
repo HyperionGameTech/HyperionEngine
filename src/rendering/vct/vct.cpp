@@ -74,7 +74,7 @@ void VoxelConeTracing::Init(Engine *engine)
 
 void VoxelConeTracing::RenderVoxels(Engine *engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     auto *command_buffer = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();

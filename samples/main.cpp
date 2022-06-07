@@ -517,7 +517,7 @@ int main()
 #if HYPERION_VK_TEST_VCT
     v2::VoxelConeTracing vct({
         /* scene bounds for vct to capture */
-        .aabb = BoundingBox(Vector3(-128), Vector3(128))
+        .aabb = BoundingBox(Vector3(-64), Vector3(64))
     });
 
     vct.Init(engine);

@@ -56,12 +56,17 @@ void BindlessStorage::AddResource(const Texture *texture)
     }
 
     AssertThrow(indices[0] == indices[1] && indices[0] == (texture->GetId().value - 1));
-
     m_texture_ids.Insert(texture->GetId());
 }
 
-void BindlessStorage::RemoveResource(Texture::ID id)
+void BindlessStorage::RemoveResource(const Texture *texture)
 {
+    if (texture == nullptr) {
+        return;
+    }
+
+    const auto id = texture->GetId();
+
     for (auto *descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
@@ -80,11 +85,12 @@ void BindlessStorage::MarkResourceChanged(const Texture *texture)
 
 bool BindlessStorage::GetResourceIndex(const Texture *texture, uint32_t *out_index) const
 {
-    return GetResourceIndex(texture->GetId(), out_index);
-}
+    if (texture == nullptr) {
+        return false;
+    }
 
-bool BindlessStorage::GetResourceIndex(Texture::ID id, uint32_t *out_index) const
-{
+    const auto id = texture->GetId();
+
     *out_index = id.value - 1;
 
     return m_texture_ids.Contains(id);

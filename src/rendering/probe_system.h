@@ -5,6 +5,7 @@
 #include "compute.h"
 
 #include <rendering/backend/rt/renderer_raytracing_pipeline.h>
+#include <rendering/backend/renderer_structs.h>
 #include <rendering/backend/renderer_image.h>
 
 #include <math/bounding_box.h>
@@ -18,6 +19,8 @@ using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::UniformBuffer;
 using renderer::CommandBuffer;
+using renderer::Extent3D;
+using renderer::Extent2D;
 
 class Engine;
 

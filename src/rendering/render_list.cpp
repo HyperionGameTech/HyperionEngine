@@ -78,7 +78,7 @@ void RenderListContainer::RenderListBucket::AddGraphicsPipeline(Ref<GraphicsPipe
 
 void RenderListContainer::RenderListBucket::AddPendingGraphicsPipelines(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     if (!graphics_pipelines_changed) {
         return;

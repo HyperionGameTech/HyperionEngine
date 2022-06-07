@@ -110,7 +110,7 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
 
 void FullScreenPass::CreatePerFrameData(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     const uint32_t num_frames = engine->GetInstance()->GetFrameHandler()->NumFrames();
 
@@ -134,7 +134,7 @@ void FullScreenPass::CreatePerFrameData(Engine *engine)
 
 void FullScreenPass::CreateDescriptors(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     auto &framebuffer = m_framebuffer->GetFramebuffer();
 
@@ -231,7 +231,7 @@ void FullScreenPass::Destroy(Engine *engine)
 
 void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     using renderer::Result;
 
@@ -307,7 +307,7 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
 
 void FullScreenPass::Render(Engine * engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     m_framebuffer->BeginCapture(frame->GetCommandBuffer());
 

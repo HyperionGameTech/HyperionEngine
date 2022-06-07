@@ -379,7 +379,8 @@ private:
     uint32_t m_id_counter{0};
     std::unordered_map<Enum, CallbackGroup> m_holders;
 
-    std::recursive_mutex rw_callbacks_mutex;
+    std::recursive_mutex rw_callbacks_mutex; // Not ideal having this as a recursive_mutex but at the moment there is no other option as objects can be
+                                             // created nested within other Init() objects. 
     
     void TriggerCallbacks(bool persist, Enum key, Args &&... args)
     {

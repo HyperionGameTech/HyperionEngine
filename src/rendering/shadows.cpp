@@ -205,7 +205,7 @@ void ShadowEffect::Destroy(Engine *engine)
 
 void ShadowEffect::Render(Engine *engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     engine->render_state.BindScene(m_scene);
 
@@ -257,7 +257,7 @@ void ShadowRenderer::Init(Engine *engine)
 
 void ShadowRenderer::Update(Engine *engine, GameCounter::TickUnit delta)
 {
-    Engine::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
 
     AssertReady();
     
@@ -268,7 +268,7 @@ void ShadowRenderer::Update(Engine *engine, GameCounter::TickUnit delta)
 
 void ShadowRenderer::Render(Engine *engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 

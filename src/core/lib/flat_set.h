@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_LIB_FLAT_SET_H
 #define HYPERION_V2_LIB_FLAT_SET_H
 
+#include <util/defines.h>
+
 #include <algorithm>
 #include <vector>
 #include <utility>

@@ -34,61 +34,48 @@ struct Stub {
     decltype(m_wrapped) *operator->()             { return &m_wrapped; } \
     const decltype(m_wrapped) *operator->() const { return &m_wrapped; }
 
-template <class Type, class ...Args>
-struct ID {
-    using InnerType = uint32_t;
+// a non-descript ID (no type attached)
+struct IDBase {
+    using ValueType = uint32_t;
+    
+    explicit constexpr operator ValueType() const { return value; }
+    constexpr ValueType Value() const             { return value; }
+    
+    explicit constexpr operator bool() const      { return bool(value); }
 
-    explicit constexpr operator InnerType() const { return value; }
-    constexpr InnerType GetValue() const { return value; }
-
-    constexpr bool operator==(const ID &other) const
+    constexpr bool operator==(const IDBase &other) const
         { return value == other.value; }
 
-    constexpr bool operator<(const ID &other) const
+    constexpr bool operator!=(const IDBase &other) const
+        { return value != other.value; }
+
+    constexpr bool operator<(const IDBase &other) const
         { return value < other.value; }
 
-    std::tuple<InnerType, ID<Args>...> value;
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(value);
+
+        return hc;
+    }
+
+    ValueType value{0};
 };
 
 template <class Type>
+struct ID : IDBase {};
+
+template <class Type>
 class EngineComponentBase : public CallbackTrackable<EngineCallbacks> {
-protected:
-    template <class ObjectType, class InnerType>
-    struct IdWrapper {
-        using ValueType = InnerType;
-
-        ValueType value{};
-
-        explicit constexpr operator ValueType() const { return value; }
-        explicit constexpr operator bool() const      { return bool(value); }
-
-        constexpr ValueType Value() const { return value; }
-
-        constexpr bool operator==(const IdWrapper &other) const
-            { return value == other.value; }
-
-        constexpr bool operator!=(const IdWrapper &other) const
-            { return value != other.value; }
-
-        constexpr bool operator<(const IdWrapper &other) const
-            { return value < other.value; }
-
-        HashCode GetHashCode() const
-        {
-            HashCode hc;
-            hc.Add(value);
-
-            return hc;
-        }
-    };
-
 public:
-    using ID = IdWrapper<Type, uint32_t>;
+    using ID = ID<Type>;
 
     static constexpr ID empty_id = ID{0};
 
     EngineComponentBase()
         : CallbackTrackable(),
+          m_id(empty_id),
           m_init_called(false),
           m_is_ready(false),
           m_engine(nullptr)

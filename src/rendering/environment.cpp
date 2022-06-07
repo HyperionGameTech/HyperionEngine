@@ -84,7 +84,7 @@ void Environment::RemoveShadowRenderer(Engine *engine, size_t index)
 
 void Environment::Update(Engine *engine, GameCounter::TickUnit delta)
 {
-    Engine::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
 
     AssertReady();
 
@@ -106,7 +106,7 @@ void Environment::UpdateShadows(Engine *engine, GameCounter::TickUnit delta)
 
 void Environment::RenderShadows(Engine *engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 

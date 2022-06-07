@@ -85,7 +85,7 @@ void PostProcessing::Destroy(Engine *engine)
 
 void PostProcessing::CreateUniformBuffer(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
     
     HYPERION_ASSERT_RESULT(m_uniform_buffer.Create(engine->GetDevice(), sizeof(PostProcessingUniforms)));
 
@@ -132,7 +132,7 @@ void PostProcessing::CreateUniformBuffer(Engine *engine)
 
 void PostProcessing::RenderPre(Engine *engine, Frame *frame) const
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     for (auto &it : m_pre_effects) {
         auto &effect = it.second;
@@ -144,7 +144,7 @@ void PostProcessing::RenderPre(Engine *engine, Frame *frame) const
 
 void PostProcessing::RenderPost(Engine *engine, Frame *frame) const
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     for (auto &it : m_post_effects) {
         auto &effect = it.second;

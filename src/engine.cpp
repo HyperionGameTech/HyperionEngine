@@ -19,30 +19,6 @@ using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
 
-const FlatMap<EngineThread, ThreadId> Engine::thread_ids{
-    std::make_pair(THREAD_MAIN, ThreadId{static_cast<uint>(THREAD_MAIN), "MainThread"}),
-    std::make_pair(THREAD_GAME, ThreadId{static_cast<uint>(THREAD_GAME), "GameThread"})
-};
-
-#if HYP_ENABLE_THREAD_ASSERTION
-thread_local ThreadId current_thread_id = Engine::thread_ids.At(THREAD_MAIN);
-#endif
-
-void Engine::AssertOnThread(EngineThreadMask mask)
-{
-#if HYP_ENABLE_THREAD_ASSERTION
-    const auto &current = current_thread_id;
-
-    AssertThrowMsg(
-        (mask & current.value),
-        "Expected current thread to be in mask %u\nBut got \"%s\" (%u)",
-        mask,
-        current.name.CString(),
-        current.value
-    );
-#endif
-}
-
 Engine::Engine(SystemSDL &_system, const char *app_name)
     : shader_globals(nullptr),
       m_instance(new Instance(_system, app_name, "HyperionEngine")),
@@ -106,7 +82,7 @@ Engine::~Engine()
 
 void Engine::FindTextureFormatDefaults()
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     const Device *device = m_instance->GetDevice();
 
@@ -178,7 +154,7 @@ void Engine::FindTextureFormatDefaults()
 
 void Engine::PrepareSwapchain()
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     auto shader = resources.shaders.Add(std::make_unique<Shader>(
         std::vector<SubShader>{
@@ -285,7 +261,7 @@ void Engine::PrepareSwapchain()
 
 void Engine::Initialize()
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     HYPERION_ASSERT_RESULT(m_instance->Initialize(true));
 
@@ -436,7 +412,7 @@ void Engine::Initialize()
 
 void Engine::Compile()
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     m_deferred_renderer.Create(this);
 
@@ -508,14 +484,14 @@ Ref<GraphicsPipeline> Engine::AddGraphicsPipeline(std::unique_ptr<GraphicsPipeli
 
 void Engine::ResetRenderState()
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     render_state.scene_ids = {};
 }
 
 void Engine::UpdateBuffersAndDescriptors(uint32_t frame_index)
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
@@ -533,14 +509,14 @@ void Engine::UpdateBuffersAndDescriptors(uint32_t frame_index)
 
 void Engine::RenderDeferred(Frame *frame)
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     m_deferred_renderer.Render(this, frame);
 }
 
 void Engine::RenderFinalPass(CommandBuffer *command_buffer) const
 {
-    AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     auto *pipeline = m_root_pipeline->GetPipeline();
     const uint32_t acquired_image_index = m_instance->GetFrameHandler()->GetAcquiredImageIndex();

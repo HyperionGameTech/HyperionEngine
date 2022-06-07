@@ -153,7 +153,7 @@ void GraphicsPipeline::OnSpatialRemoved(Spatial *spatial)
 
 void GraphicsPipeline::PerformEnqueuedSpatialUpdates(Engine *engine)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     std::lock_guard guard(m_enqueued_spatials_mutex);
 
@@ -316,7 +316,7 @@ void GraphicsPipeline::Init(Engine *engine)
 
 void GraphicsPipeline::Render(Engine *engine, Frame *frame)
 {
-    Engine::AssertOnThread(THREAD_RENDER);
+    Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 

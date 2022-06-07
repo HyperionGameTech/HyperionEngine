@@ -15,6 +15,7 @@
 #include <scene/octree.h>
 
 #include "game_thread.h"
+#include "threads.h"
 
 #include <core/scheduler.h>
 #include <core/lib/flat_map.h>
@@ -75,14 +76,6 @@ class Engine;
  * |                     | Image storage test  | empty               | empty               | empty               |
  */
 
-using EngineThreadMask = uint;
-
-enum EngineThread : EngineThreadMask {
-    THREAD_MAIN   = 0x01,
-    THREAD_RENDER = 0x01, // for now
-    THREAD_GAME   = 0x02
-};
-
 struct RenderState {
     struct SceneBinding {
         Scene::ID id;
@@ -141,10 +134,6 @@ struct GraphicsPipelineAttributeSet {
  */
 class Engine {
 public:
-    static const FlatMap<EngineThread, ThreadId> thread_ids;
-
-    static void AssertOnThread(EngineThreadMask mask);
-
     Engine(SystemSDL &, const char *app_name);
     ~Engine();
     
