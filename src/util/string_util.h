@@ -183,6 +183,71 @@ public:
 
         return filepath.substr(0, filepath.find_last_of("\\/"));
     }
+
+    static inline std::vector<std::string> SplitPath(const std::string &str)
+    {
+        std::vector<std::string> res;
+        
+        std::string tmp;
+        for (char ch : str) {
+            if (ch == '\\' || ch == '/') {
+                if (!tmp.empty()) {
+                    res.emplace_back(tmp);
+                    tmp.clear();
+                }
+                continue;
+            }
+
+            tmp += ch;
+        }
+
+        // add last
+        if (!tmp.empty()) {
+            res.emplace_back(tmp);
+        }
+
+        return res;
+    }
+
+    static inline std::vector<std::string> CanonicalizePath(const std::vector<std::string> &original)
+    {
+        std::vector<std::string> res;
+
+        for (const auto &str : original) {
+            if (str == ".." && !res.empty()) {
+                res.pop_back();
+            } else if (str != ".") {
+                res.emplace_back(str);
+            }
+        }
+
+        return res;
+    }
+
+    static inline std::string PathToString(const std::vector<std::string> &path)
+    {
+        std::string res;
+        
+        for (size_t i = 0; i < path.size(); i++) {
+            res += path[i];
+            if (i != path.size() - 1) {
+                res += "/";
+            }
+        }
+
+        return res;
+    }
+
+    static inline std::string StripExtension(const std::string &filename)
+    {
+        auto pos = filename.find_last_of(".");
+
+        if (pos == std::string::npos) {
+            return filename;
+        }
+
+        return filename.substr(0, pos);
+    }
     
     static inline bool Parse(const std::string &str, int *out_value)
     {
