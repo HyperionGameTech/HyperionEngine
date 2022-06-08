@@ -157,7 +157,7 @@ public:
         ));
 
         //test_model->Translate({0, 0, 5});
-        test_model->Scale(0.055f);
+        test_model->Scale(0.075f);
         //test_model->Rotate(Quaternion({ 1, 0, 0 }, MathUtil::DegToRad(90.0f)));
         
         tex1 = engine->resources.textures.Add(
