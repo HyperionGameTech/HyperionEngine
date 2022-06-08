@@ -205,10 +205,19 @@ public:
 
     virtual void OnPostInit(Engine *engine) override
     {
-        auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript");
-        if (my_script->Compile()) {
-            my_script->Bake();
-            my_script->Run();
+        if (auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript")) {
+            if (my_script->Compile()) {
+                my_script->Bake();
+                my_script->Run();
+            } else {
+                DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
+
+                for (size_t i = 0; i < my_script->GetErrors().Size(); i++) {
+                    DebugLog(LogType::Error, "Error %llu: %s\n", i, my_script->GetErrors()[i].GetText().c_str());
+                }
+
+                HYP_BREAKPOINT;
+            }
         }
 
 

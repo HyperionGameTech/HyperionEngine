@@ -9,9 +9,11 @@ namespace compiler {
 
 class AstUnaryExpression : public AstExpression {
 public:
-    AstUnaryExpression(const std::shared_ptr<AstExpression> &target,
+    AstUnaryExpression(
+        const std::shared_ptr<AstExpression> &target,
         const Operator *op,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
 
     inline const std::shared_ptr<AstExpression> &GetTarget() const { return m_target; }
 

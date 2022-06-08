@@ -17,7 +17,8 @@ public:
         const std::shared_ptr<AstExpression> &target,
         const std::vector<std::shared_ptr<AstArgument>> &args,
         bool insert_self,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstCallExpression() = default;
 
     inline void AddArgumentToFront(const std::shared_ptr<AstArgument> &arg)

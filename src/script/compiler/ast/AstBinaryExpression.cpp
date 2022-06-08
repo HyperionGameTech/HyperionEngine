@@ -18,14 +18,15 @@
 namespace hyperion {
 namespace compiler {
 
-AstBinaryExpression::AstBinaryExpression(const std::shared_ptr<AstExpression> &left,
+AstBinaryExpression::AstBinaryExpression(
+    const std::shared_ptr<AstExpression> &left,
     const std::shared_ptr<AstExpression> &right,
     const Operator *op,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_left(left),
-      m_right(right),
-      m_op(op)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_left(left),
+    m_right(right),
+    m_op(op)
 {
 }
 

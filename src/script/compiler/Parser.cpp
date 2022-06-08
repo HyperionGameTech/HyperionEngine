@@ -399,6 +399,8 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             res = ParseIfStatement();
         } else if (MatchKeyword(Keyword_while, false)) {
             res = ParseWhileLoop();
+        } else if (MatchKeyword(Keyword_for, false)) {
+            res = ParseForLoop();
         } else if (MatchKeyword(Keyword_print, false)) {
             res = ParsePrintStatement();
         } else if (MatchKeyword(Keyword_try, false)) {
@@ -624,7 +626,7 @@ std::shared_ptr<AstExpression> Parser::ParseParentheses()
 {
     SourceLocation location = CurrentLocation();
     std::shared_ptr<AstExpression> expr;
-    int before_pos = m_token_stream->GetPosition();
+    auto before_pos = m_token_stream->GetPosition();
 
     Expect(TK_OPEN_PARENTH, true);
 
@@ -635,6 +637,7 @@ std::shared_ptr<AstExpression> Parser::ParseParentheses()
         if (Match(TK_CLOSE_PARENTH, true)) {
             // if '()' found, it is a function with empty parameters
             // allow ParseFunctionParameters() to handle parentheses
+            // RRrrrrrollback!
             m_token_stream->SetPosition(before_pos);
             expr = ParseFunctionExpression(false, ParseFunctionParameters());
         } else {
@@ -1236,6 +1239,93 @@ std::shared_ptr<AstWhileLoop> Parser::ParseWhileLoop()
     }
 
     return nullptr;
+}
+
+std::shared_ptr<AstStatement> Parser::ParseForLoop()
+{
+    SourceLocation location = CurrentLocation();
+    const auto before_pos = m_token_stream->GetPosition();
+
+    // use contextual hints (`in` vs `;` to determine if it is a range loop, or c-style for loop)
+    if (Token token = ExpectKeyword(Keyword_for, true)) {
+        if (!ParseVariableDeclaration()) { // needs a variable declaration
+            return nullptr;
+        }
+
+        if (Match(TK_SEMICOLON)) {
+            // not implemented (yet)
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_unexpected_token,
+                m_token_stream->Peek().GetLocation(),
+                m_token_stream->Peek().GetValue()
+            ));
+
+            return nullptr;
+        }
+
+        // rollback
+        m_token_stream->SetPosition(before_pos);
+
+        // parse as for-range loop
+        return ParseForRangeLoop();
+    }
+}
+
+std::shared_ptr<AstForRangeLoop> Parser::ParseForRangeLoop()
+{
+    SourceLocation location = CurrentLocation();
+    const auto before_pos = m_token_stream->GetPosition();
+
+    // use contextual hints (`in` vs `;` to determine if it is a range loop, or c-style for loop)
+    if (Token token = ExpectKeyword(Keyword_for, true)) {
+        auto decl = ParseVariableDeclaration();
+
+        if (decl == nullptr) {
+            return nullptr;
+        }
+
+        // declaration cannot have an assignment in for-range loops
+        if (decl->GetAssignment() != nullptr) {
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_for_range_loop_illegal_assignment,
+                m_token_stream->Peek().GetLocation(),
+                decl->GetName()
+            ));
+
+            return nullptr;
+        }
+
+        // expect 'in' keyword
+
+        if (!ExpectKeyword(Keyword_in, true)) {
+            return nullptr;
+        }
+
+        // the Visit() call of AstForRangeLoop overwrites the assignment to Begin() call
+
+        // parse the expression, what we will be looping over
+        auto expr = ParseExpression();
+
+        if (expr == nullptr) {
+            return nullptr;
+        }
+
+        // parse the block
+        auto block = ParseBlock();
+
+        if (block == nullptr) {
+            return nullptr;
+        }
+
+        return std::make_shared<AstForRangeLoop>(
+            decl,
+            expr,
+            block,
+            location
+        );
+    }
 }
 
 std::shared_ptr<AstPrintStatement> Parser::ParsePrintStatement()

@@ -29,6 +29,7 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "else",     Keyword_else },
     { "for",      Keyword_for },
     { "each",     Keyword_each },
+    { "in",       Keyword_in },
     { "while",    Keyword_while },
     { "do",       Keyword_do },
     { "on",       Keyword_on },

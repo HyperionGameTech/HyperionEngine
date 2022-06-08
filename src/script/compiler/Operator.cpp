@@ -53,6 +53,28 @@ const std::map<std::string, Operator> Operator::unary_operators = {
     { "--", Operator(OP_decrement, 0, ASSIGNMENT | ARITHMETIC, true) }
 };
 
+const Operator *Operator::FindBinaryOperator(Operators op)
+{
+    for (auto &it : binary_operators) {
+        if (it.second.GetOperatorType() == op) {
+            return &it.second;
+        }
+    }
+
+    return nullptr;
+}
+
+const Operator *Operator::FindUnaryOperator(Operators op)
+{
+    for (auto &it : unary_operators) {
+        if (it.second.GetOperatorType() == op) {
+            return &it.second;
+        }
+    }
+
+    return nullptr;
+}
+
 Operator::Operator(Operators op_type,
     int precedence,
     int type,

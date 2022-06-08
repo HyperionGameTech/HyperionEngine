@@ -24,6 +24,10 @@ public:
 
     inline const std::shared_ptr<AstExpression> &GetAssignment() const
         { return m_assignment; }
+
+    inline void SetAssignment(const std::shared_ptr<AstExpression> &assignment)
+        { m_assignment = assignment; }
+
     inline bool IsConst() const  { return m_flags & IdentifierFlags::FLAG_CONST; }
     inline bool IsExport() const { return m_flags & IdentifierFlags::FLAG_EXPORT; }
 

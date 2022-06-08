@@ -51,6 +51,7 @@ enum ErrorMessage {
     Msg_expected_type_got_identifier,
     Msg_missing_type_and_assignment,
     Msg_type_no_default_assignment,
+    Msg_for_range_loop_illegal_assignment,
 
     /* FUNCTIONS */
     Msg_multiple_return_types,

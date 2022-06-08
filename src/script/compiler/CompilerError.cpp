@@ -38,6 +38,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_expected_type_got_identifier, "'%' is an identifier, expected a type" },
     { Msg_missing_type_and_assignment, "No type or assignment has been provided for '%'" },
     { Msg_type_no_default_assignment, "Type '%' has no default assignment" },
+    { Msg_for_range_loop_illegal_assignment, "'%': for-range loop iterator variables cannot have assignments" },
     { Msg_multiple_return_types, "Function has more than one possible return type" },
     { Msg_mismatched_return_type, "Function is marked to return '%', cannot return '%'" },
     { Msg_must_be_explicitly_marked_any, "Function must be explicitly marked to return 'Any'" },

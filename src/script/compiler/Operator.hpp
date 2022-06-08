@@ -61,6 +61,9 @@ public:
     static const std::map<std::string, Operator> binary_operators;
     static const std::map<std::string, Operator> unary_operators;
 
+    static const Operator *FindBinaryOperator(Operators op);
+    static const Operator *FindUnaryOperator(Operators op);
+
     static inline bool IsBinaryOperator(const std::string &str)
         { return binary_operators.find(str) != binary_operators.end(); }
     static inline bool IsBinaryOperator(const std::string &str, const Operator *&out)
