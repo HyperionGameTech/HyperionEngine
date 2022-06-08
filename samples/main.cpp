@@ -205,7 +205,14 @@ public:
 
     virtual void OnPostInit(Engine *engine) override
     {
-        scene->GetRootNode()->AddChild(engine->assets.Load<v2::Node>("models/monkey/monkey.obj"));
+        auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript");
+        if (my_script->Compile()) {
+            my_script->Bake();
+            my_script->Run();
+        }
+
+
+        scene->GetRootNode()->AddChild(engine->assets.Load<Node>("models/monkey/monkey.obj"));
 
     //     auto outline_pipeline = std::make_unique<GraphicsPipeline>(
     //         engine->shader_manager.GetShader(ShaderKey::STENCIL_OUTLINE).IncRef(),

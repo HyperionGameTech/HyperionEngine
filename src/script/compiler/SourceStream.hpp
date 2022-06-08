@@ -1,7 +1,7 @@
 #ifndef SOURCE_STREAM_HPP
 #define SOURCE_STREAM_HPP
 
-#include <script/compiler/SourceFile.hpp>
+#include <script/SourceFile.hpp>
 #include <util/utf8.hpp>
 
 #include <cstddef>

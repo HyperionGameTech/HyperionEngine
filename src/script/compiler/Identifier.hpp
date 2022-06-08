@@ -10,16 +10,20 @@
 namespace hyperion {
 namespace compiler {
 
-enum IdentifierFlags {
-   FLAG_CONST = 1,
-   FLAG_ALIAS = 2,
-   FLAG_MIXIN = 4,
-   FLAG_DECLARED_IN_FUNCTION = 8,
+using IdentifierFlagBits = uint32_t;
+
+enum IdentifierFlags : IdentifierFlagBits {
+    FLAG_NONE                 = 0x0,
+    FLAG_CONST                = 0x1,
+    FLAG_ALIAS                = 0x2,
+    FLAG_MIXIN                = 0x4,
+    FLAG_DECLARED_IN_FUNCTION = 0x8,
+    FLAG_EXPORT               = 0x10
 };
 
 class Identifier {
 public:
-    Identifier(const std::string &name, int index, int flags);
+    Identifier(const std::string &name, int index, IdentifierFlagBits flags);
     Identifier(const Identifier &other);
 
     inline const std::string &GetName() const { return m_name; }
@@ -32,9 +36,8 @@ public:
     inline void DecUseCount() const { m_usecount--; }
     inline int GetUseCount() const { return m_usecount; }
 
-    inline int GetFlags() const { return m_flags; }
-    inline int &GetFlags() { return m_flags; }
-    inline void SetFlags(int flags) { m_flags = flags; }
+    inline IdentifierFlagBits GetFlags() const     { return m_flags; }
+    inline void SetFlags(IdentifierFlagBits flags) { m_flags = flags; }
 
     inline std::shared_ptr<AstExpression> GetCurrentValue() const { return m_current_value; }
     inline void SetCurrentValue(const std::shared_ptr<AstExpression> &expr) { m_current_value = expr; }
@@ -51,7 +54,7 @@ private:
     int m_index;
     int m_stack_location;
     mutable int m_usecount;
-    int m_flags;
+    IdentifierFlagBits m_flags;
     std::shared_ptr<AstExpression> m_current_value;
     SymbolTypePtr_t m_symbol_type;
 };

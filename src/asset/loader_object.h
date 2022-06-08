@@ -21,7 +21,9 @@ enum class LoaderFormat {
 
     TEXTURE_2D,
 
-    WAV_AUDIO
+    WAV_AUDIO,
+
+    SCRIPT_HYPSCRIPT
 };
 
 /* Raw data representing a deserialized form of the resource

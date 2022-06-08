@@ -7,6 +7,7 @@
 #include "skeleton_loaders/ogre_xml_skeleton_loader.h"
 #include "texture_loaders/texture_loader.h"
 #include "audio_loaders/wav_audio_loader.h"
+#include "script_loaders/hypscript_loader.h"
 #include "../scene/node.h"
 
 #include <core/lib/static_map.h>
@@ -78,7 +79,7 @@ class Assets {
 
         LoaderFormat GetResourceFormat() const
         {
-            constexpr StaticMap<const char *, LoaderFormat, 13> extensions{
+            constexpr StaticMap<const char *, LoaderFormat, 14> extensions{
                 std::make_pair(".obj",          LoaderFormat::OBJ_MODEL),
                 std::make_pair(".mtl",          LoaderFormat::MTL_MATERIAL_LIBRARY),
                 std::make_pair(".mesh.xml",     LoaderFormat::OGRE_XML_MODEL),
@@ -91,7 +92,8 @@ class Assets {
                 std::make_pair(".psd",          LoaderFormat::TEXTURE_2D),
                 std::make_pair(".gif",          LoaderFormat::TEXTURE_2D),
                 std::make_pair(".hdr",          LoaderFormat::TEXTURE_2D),
-                std::make_pair(".wav",          LoaderFormat::WAV_AUDIO)
+                std::make_pair(".wav",          LoaderFormat::WAV_AUDIO),
+                std::make_pair(".hypscript",    LoaderFormat::SCRIPT_HYPSCRIPT)
             };
 
             std::string path_lower(filepath);
@@ -198,6 +200,19 @@ class Assets {
             switch (GetResourceFormat()) {
             case LoaderFormat::WAV_AUDIO:
                 return LoadResource(engine, GetLoader<AudioSource, LoaderFormat::WAV_AUDIO>());
+            default:
+                return {.result = {LoaderResult::Status::ERR, "Unexpected file format"}};
+            }
+        }
+    };
+
+    template <>
+    struct HandleAssetFunctor<Script> : HandleAssetFunctorBase {
+        ConstructedAsset<Script> operator()(Engine *engine)
+        {
+            switch (GetResourceFormat()) {
+            case LoaderFormat::SCRIPT_HYPSCRIPT:
+                return LoadResource(engine, GetLoader<Script, LoaderFormat::SCRIPT_HYPSCRIPT>());
             default:
                 return {.result = {LoaderResult::Status::ERR, "Unexpected file format"}};
             }

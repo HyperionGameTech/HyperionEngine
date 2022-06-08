@@ -379,6 +379,8 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             res = ParseDirective();
         } else if (MatchKeyword(Keyword_import, false)) {
             res = ParseImport();
+        } else if (MatchKeyword(Keyword_export, false)) {
+            res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_const, false)) {
             res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_func, false)) {
@@ -387,12 +389,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             } else {
                 res = ParseFunctionExpression();
             }
-        } else if (MatchKeyword(Keyword_async, false)) {
-            res = ParseAsyncExpression();
-        } else if (MatchKeyword(Keyword_pure, false)) {
-            res = ParsePureExpression();
-        } else if (MatchKeyword(Keyword_impure)) {
-            res = ParseImpureExpression();
         } else if (MatchKeyword(Keyword_type, false)) {
             res = ParseTypeDefinition();
         } else if (MatchKeyword(Keyword_alias, false)) {
@@ -564,12 +560,6 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
         expr = ParseNewExpression();
     } else if (MatchKeyword(Keyword_func)) {
         expr = ParseFunctionExpression();
-    } else if (MatchKeyword(Keyword_async)) {
-        expr = ParseAsyncExpression();
-    } else if (MatchKeyword(Keyword_pure)) {
-        expr = ParsePureExpression();
-    } else if (MatchKeyword(Keyword_impure)) {
-        expr = ParseImpureExpression();
     } else if (MatchKeyword(Keyword_valueof)) {
         expr = ParseValueOfExpression();
     } else if (MatchKeyword(Keyword_typeof)) {
@@ -1560,10 +1550,32 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
 {
     const SourceLocation location = CurrentLocation();
 
-    bool is_const = false; // TODO make this do something
+    IdentifierFlagBits flags = IdentifierFlags::FLAG_NONE;
 
-    if (MatchKeyword(Keyword_const, true)) {
-        is_const = true;
+    while (Match(TK_KEYWORD)) {
+        if (MatchKeyword(Keyword_const, true)) {
+            flags |= IdentifierFlags::FLAG_CONST;
+
+            continue;
+        }
+
+        if (MatchKeyword(Keyword_export, true)) {
+            flags |= IdentifierFlags::FLAG_EXPORT;
+
+            continue;
+        }
+
+        // unexpected keyword
+        m_compilation_unit->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_unexpected_token,
+            m_token_stream->Peek().GetLocation(),
+            m_token_stream->Peek().GetValue()
+        ));
+
+        if (m_token_stream->HasNext()) {
+            m_token_stream->Next();
+        }
     }
 
     Token identifier = Token::EMPTY;
@@ -1591,7 +1603,7 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
             identifier.GetValue(),
             type_spec,
             assignment,
-            is_const,
+            flags,
             location
         ));
     }
@@ -2005,8 +2017,8 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
                                     identifier.GetValue(),
                                     nullptr,
                                     expr,
-                                    true, // (free functions are also implicitly const,
-                                          // so set the member to be const as well for consistency)
+                                    IdentifierFlags::FLAG_CONST, // (free functions are also implicitly const,
+                                                                 // so set the member to be const as well for consistency)
                                     identifier.GetLocation()
                                 ));
 

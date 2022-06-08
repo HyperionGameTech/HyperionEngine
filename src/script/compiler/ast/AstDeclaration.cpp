@@ -58,7 +58,7 @@ void AstDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 while (top != nullptr) {
                     if (top->m_value.GetScopeType() == SCOPE_TYPE_FUNCTION) {
                         // set declared in function flag
-                        m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;
+                        m_identifier->SetFlags(m_identifier->GetFlags() | FLAG_DECLARED_IN_FUNCTION);
                         break;
                     }
 

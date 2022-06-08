@@ -1,0 +1,25 @@
+module my_script {
+
+function TestGlobalFunction(name: String, i: Int)
+{
+    var iterator: Int = 0;
+
+    while iterator < i {
+        print "Your name is: " + name;
+        iterator += 1;
+    }
+
+    return iterator;
+}
+
+class TestClass {
+    name: String;
+
+    PrintName() {
+        print "My name is: " + name;
+    }
+}
+
+new TestClass.PrintName();
+
+}

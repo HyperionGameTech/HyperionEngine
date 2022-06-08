@@ -6,11 +6,13 @@
 
 class SourceFile {
 public:
+    SourceFile();
     SourceFile(const std::string &filepath, size_t size);
-    SourceFile(const SourceFile &other) = delete;
+    SourceFile(const SourceFile &other);
+    SourceFile &operator=(const SourceFile &other);
     ~SourceFile();
 
-    SourceFile &operator=(const SourceFile &other) = delete;
+    bool IsValid() const { return m_size != 0; }
 
     // input into buffer
     SourceFile &operator>>(const std::string &str);

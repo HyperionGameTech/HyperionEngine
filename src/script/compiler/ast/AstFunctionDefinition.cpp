@@ -29,7 +29,7 @@ void AstFunctionDefinition::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_identifier) {
         // functions are implicitly const
-        m_identifier->GetFlags() |= FLAG_CONST;
+        m_identifier->SetFlags(m_identifier->GetFlags() | FLAG_CONST);
         m_identifier->SetSymbolType(m_expr->GetSymbolType());
         m_identifier->SetCurrentValue(m_expr);
     }

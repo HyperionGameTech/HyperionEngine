@@ -20,16 +20,17 @@
 namespace hyperion {
 namespace compiler {
 
-AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
+AstVariableDeclaration::AstVariableDeclaration(
+    const std::string &name,
     const std::shared_ptr<AstTypeSpecification> &type_specification,
     const std::shared_ptr<AstExpression> &assignment,
-    bool is_const,
-    const SourceLocation &location)
-    : AstDeclaration(name, location),
-      m_type_specification(type_specification),
-      m_assignment(assignment),
-      m_is_const(is_const),
-      m_assignment_already_visited(false)
+    IdentifierFlagBits flags,
+    const SourceLocation &location
+) : AstDeclaration(name, location),
+    m_type_specification(type_specification),
+    m_assignment(assignment),
+    m_flags(flags),
+    m_assignment_already_visited(false)
 {
 }
 
@@ -175,7 +176,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     AstDeclaration::Visit(visitor, mod);
 
     if (m_identifier != nullptr) {
-        if (m_is_const) {
+        if (IsConst()) {
             m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
         }
 

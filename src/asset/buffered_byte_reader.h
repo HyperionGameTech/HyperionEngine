@@ -83,8 +83,11 @@ public:
     bool IsOpen() const
         { return file->good(); }
 
-    std::streampos Position() const
+    size_t Position() const
         { return pos; }
+
+    size_t Max() const
+        { return max_pos; }
 
     bool Eof() const
         { return pos >= max_pos; }

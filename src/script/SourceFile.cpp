@@ -5,6 +5,14 @@
 #include <stdexcept>
 #include <cstring>
 
+SourceFile::SourceFile()
+    : m_filepath("??"),
+      m_position(0),
+      m_size(0),
+      m_buffer(nullptr)
+{
+}
+
 SourceFile::SourceFile(const std::string &filepath, size_t size)
     : m_filepath(filepath),
       m_position(0),
@@ -14,13 +22,57 @@ SourceFile::SourceFile(const std::string &filepath, size_t size)
     std::memset(m_buffer, '\0', m_size);
 }
 
+SourceFile::SourceFile(const SourceFile &other)
+    : m_filepath(other.m_filepath),
+      m_position(other.m_position),
+      m_size(other.m_size)
+{
+    m_buffer = new char[m_size];
+
+    if (m_size != 0) {
+        std::memcpy(m_buffer, other.m_buffer, m_size);
+    }
+}
+
+SourceFile &SourceFile::operator=(const SourceFile &other)
+{
+    if (&other == this) {
+        return *this;
+    }
+
+    if (m_size != other.m_size) {
+        if (m_buffer != nullptr) {
+            delete[] m_buffer;
+            m_buffer = nullptr;
+        }
+
+        if (other.m_size != 0) {
+            m_buffer = new char[other.m_size];
+        }
+    }
+
+    m_size = other.m_size;
+    m_position = other.m_position;
+    m_filepath = other.m_filepath;
+
+    if (m_buffer != nullptr) {
+        std::memcpy(m_buffer, other.m_buffer, m_size);
+    }
+
+    return *this;
+}
+
 SourceFile::~SourceFile()
 {
-    delete[] m_buffer;
+    if (m_buffer != nullptr) {
+        delete[] m_buffer;
+    }
 }
 
 SourceFile &SourceFile::operator>>(const std::string &str)
 {
+    AssertThrowMsg(m_buffer != nullptr, "Not allocated");
+
     size_t length = str.length();
     // make sure we have enough space in the buffer
     if (m_position + length >= m_size) {
@@ -36,6 +88,7 @@ SourceFile &SourceFile::operator>>(const std::string &str)
 
 void SourceFile::ReadIntoBuffer(const char *data, size_t size)
 {
+    AssertThrowMsg(m_buffer != nullptr, "Not allocated");
     AssertThrow(m_size >= size);
     std::memcpy(m_buffer, data, size);
 }

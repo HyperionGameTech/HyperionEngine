@@ -5,7 +5,7 @@
 namespace hyperion {
 namespace compiler {
 
-Identifier::Identifier(const std::string &name, int index, int flags)
+Identifier::Identifier(const std::string &name, int index, IdentifierFlagBits flags)
     : m_name(name),
       m_index(index),
       m_stack_location(0),
