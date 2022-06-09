@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace hyperion {
+
 class SourceLocation {
 public:
     static const SourceLocation eof;
@@ -26,5 +28,7 @@ private:
     int m_column;
     std::string m_filename;
 };
+
+} // namespace hyperion
 
 #endif

@@ -15,10 +15,11 @@
 namespace hyperion {
 namespace compiler {
 
-AstObject::AstObject(const SymbolTypeWeakPtr_t &symbol_type,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_symbol_type(symbol_type)
+AstObject::AstObject(
+    const SymbolTypeWeakPtr_t &symbol_type,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_symbol_type(symbol_type)
 {
 }
 
@@ -82,10 +83,12 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         const SymbolTypePtr_t &mem_type = std::get<1>(mem);
         AssertThrow(mem_type != nullptr);
 
+        auto &mem_assignment = std::get<2>(mem);
+
         // if there has not been an assignment provided,
         // use the default value of the members's type.
-        if (std::get<2>(mem) != nullptr) {
-            chunk->Append(std::get<2>(mem)->Build(visitor, mod));
+        if (mem_assignment != nullptr) {
+            chunk->Append(mem_assignment->Build(visitor, mod));
         } else {
             // load the data member's default value.
             AssertThrowMsg(mem_type->GetDefaultValue() != nullptr,

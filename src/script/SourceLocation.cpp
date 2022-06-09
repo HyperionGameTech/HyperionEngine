@@ -1,5 +1,7 @@
 #include <script/SourceLocation.hpp>
 
+namespace hyperion {
+
 const SourceLocation SourceLocation::eof(-1, -1, "<eof>");
 
 SourceLocation::SourceLocation(int line, int column,
@@ -35,3 +37,5 @@ bool SourceLocation::operator==(const SourceLocation &other) const
         m_filename == other.m_filename &&
         m_line == other.m_line;
 }
+
+} // namespace hyperion

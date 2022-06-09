@@ -1,6 +1,8 @@
 #include <script/compiler/ast/AstUnaryExpression.hpp>
+#include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
+#include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/Operator.hpp>
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -45,6 +47,38 @@ AstUnaryExpression::AstUnaryExpression(const std::shared_ptr<AstExpression> &tar
 
 void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+    // use a bin op for operators that modify their argument
+    if (m_op->ModifiesValue()) {
+        std::shared_ptr<AstExpression> expr;
+        const Operator *bin_op = nullptr;
+
+        switch (m_op->GetOperatorType()) {
+        case OP_increment:
+            expr.reset(new AstInteger(1, m_location));
+            bin_op = Operator::FindBinaryOperator(Operators::OP_add_assign);
+
+            break;
+        case OP_decrement:
+            expr.reset(new AstInteger(1, m_location));
+            bin_op = Operator::FindBinaryOperator(Operators::OP_subtract_assign);
+
+            break;
+        default:
+            AssertThrowMsg(false, "Unhandled operator type");
+        }
+
+        m_bin_expr.reset(new AstBinaryExpression(
+            m_target,
+            expr,
+            bin_op,
+            m_location
+        ));
+
+        m_bin_expr->Visit(visitor, mod);
+
+        return;
+    }
+
     m_target->Visit(visitor, mod);
 
     SymbolTypePtr_t type = m_target->GetSymbolType();
@@ -90,41 +124,14 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
             )
         );
     }
-
-    if (m_op->ModifiesValue()) {
-        if (type->IsConstType()) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_const_modified,
-                m_target->GetLocation()
-            ));
-        }
-
-        /*if (AstVariable *target_as_var = dynamic_cast<AstVariable*>(m_target.get())) {
-            if (target_as_var->GetProperties().GetIdentifier() != nullptr) {
-                // make sure we are not modifying a const
-                if (target_as_var->GetProperties().GetIdentifier()->GetFlags() & FLAG_CONST) {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_const_modified,
-                        m_target->GetLocation(),
-                        target_as_var->GetName()
-                    ));
-                }
-            }
-        } else*/ if (!(m_target->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)) {
-            // cannot modify an rvalue
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_cannot_modify_rvalue,
-                m_target->GetLocation()
-            ));
-        }
-    }
 }
 
 std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    if (m_bin_expr != nullptr) {
+        return m_bin_expr->Build(visitor, mod);
+    }
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     AssertThrow(m_target != nullptr);
@@ -134,11 +141,18 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
     if (!m_folded) {
         uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_op->GetType() == ARITHMETIC) {
+        if (m_op->GetType() & (ARITHMETIC | BITWISE)) {
             uint8_t opcode = 0;
 
-            if (m_op->GetOperatorType() == Operators::OP_negative) {
+            switch (m_op->GetOperatorType()) {
+            case Operators::OP_negative:
                 opcode = NEG;
+                break;
+            case Operators::OP_bitwise_complement:
+                opcode = NOT;
+                break;
+            default:
+                AssertThrowMsg(false, "Unhandled unary operator type");
             }
 
             auto oper = BytecodeUtil::Make<RawOperation<>>();
@@ -149,7 +163,7 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
             if (m_op->GetOperatorType() == Operators::OP_logical_not) {
                 // the label to jump to the very end, and set the result to false
                 LabelId false_label = chunk->NewLabel();
-                LabelId true_label = chunk->NewLabel();;
+                LabelId true_label = chunk->NewLabel();
 
                 // compare lhs to 0 (false)
                 chunk->Append(BytecodeUtil::Make<Comparison>(Comparison::CMPZ, rp));
@@ -183,6 +197,12 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
 
 void AstUnaryExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_bin_expr != nullptr) {
+        m_bin_expr->Optimize(visitor, mod);
+
+        return;
+    }
+
     m_target->Optimize(visitor, mod);
 
     if (m_op->GetOperatorType() == Operators::OP_positive) {
@@ -204,8 +224,8 @@ Pointer<AstStatement> AstUnaryExpression::Clone() const
 
 Tribool AstUnaryExpression::IsTrue() const
 {
-    if (m_folded) {
-        return m_target->IsTrue();
+    if (m_bin_expr != nullptr) {
+        return m_bin_expr->IsTrue();
     }
 
     return Tribool::Indeterminate();
@@ -213,11 +233,20 @@ Tribool AstUnaryExpression::IsTrue() const
 
 bool AstUnaryExpression::MayHaveSideEffects() const
 {
+    if (m_bin_expr != nullptr) {
+        return m_bin_expr->MayHaveSideEffects();
+    }
+
+
     return m_target->MayHaveSideEffects();
 }
 
 SymbolTypePtr_t AstUnaryExpression::GetSymbolType() const
 {
+    if (m_bin_expr != nullptr) {
+        return m_bin_expr->GetSymbolType();
+    }
+
     return m_target->GetSymbolType();
 }
 

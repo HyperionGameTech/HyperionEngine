@@ -1,6 +1,21 @@
 #ifndef SCRIPT_API_HPP
 #define SCRIPT_API_HPP
 
+#include <script/vm/Object.hpp>
+#include <script/vm/Array.hpp>
+#include <script/vm/ImmutableString.hpp>
+#include <script/vm/Value.hpp>
+
+#include <script/compiler/Configuration.hpp>
+#include <script/compiler/CompilationUnit.hpp>
+#include <script/compiler/Module.hpp>
+#include <script/compiler/type-system/SymbolType.hpp>
+#include <script/compiler/type-system/BuiltinTypes.hpp>
+
+#include <script/Typedefs.hpp>
+
+#include <util/defines.h>
+
 #include <stdint.h>
 #include <sstream>
 
@@ -8,17 +23,21 @@
 #error Script requires a C++ compiler
 #endif
 
-#ifdef _WIN32
-#define ACE_EXPORT extern "C" __declspec(dllexport)
+#if HYP_WINDOWS
+#define HYP_EXPORT extern "C" __declspec(dllexport)
 #else
-#define ACE_EXPORT extern "C"
+#define HYP_EXPORT extern "C"
 #endif
 
-#define ACE_PARAMS hyperion::sdk::Params
+#pragma region Script helper macros
 
-#define ACE_FUNCTION(name) ACE_EXPORT void name(hyperion::sdk::Params params)
+#define HYP_SCRIPT_PARAMS hyperion::sdk::Params
 
-#define ACE_CHECK_ARGS(cmp, amt) \
+#define HYP_SCRIPT_EXPORT_FUNCTION(name) HYP_EXPORT void name(hyperion::sdk::Params params)
+
+#define HYP_SCRIPT_FUNCTION(name) void name(hyperion::sdk::Params params)
+
+#define HYP_SCRIPT_CHECK_ARGS(cmp, amt) \
     do { \
         if (!(params.nargs cmp amt)) { \
             params.handler->state->ThrowException(params.handler->thread, \
@@ -27,153 +46,194 @@
         } \
     } while (false)
 
-#define ACE_RETURN(value) \
+#define HYP_SCRIPT_RETURN(value) \
     do { \
         params.handler->thread->GetRegisters()[0] = value; \
         return; \
     } while (false)
 
+#define HYP_SCRIPT_RETURN_INT32(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::I32; \
+        _res.m_value.i32 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_INT64(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::I64; \
+        _res.m_value.i64 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_FLOAT32(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::F32; \
+        _res.m_value.f32 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_FLOAT64(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::F64; \
+        _res.m_value.f64 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_BOOLEAN(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::BOOLEAN; \
+        _res.m_value.b = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#pragma endregion
+
 namespace hyperion {
-namespace sdk {
 
-// forward declaration
-struct Params;
-
-}
-}
-
-namespace hyperion {
 namespace vm {
+
 
 // forward declarations
-struct InstructionHandler;
-struct ExecutionThread;
+class VM;
 struct VMState;
 struct Value;
-
+struct ExecutionThread;
+struct InstructionHandler;
 class ImmutableString;
-
-}
-}
-
-// native typedefs
-typedef void(*NativeFunctionPtr_t)(hyperion::sdk::Params);
-typedef void(*NativeInitializerPtr_t)(hyperion::vm::VMState*, hyperion::vm::ExecutionThread *thread, hyperion::vm::Value*);
-
-namespace hyperion {
-namespace vm {
-
-typedef uint32_t bc_address_t;
-typedef uint8_t bc_reg_t;
-
-class HeapValue;
-    
-struct Value {
-    enum ValueType {
-        /* These first four types are listed in order of precedence */
-        I32,
-        I64,
-        F32,
-        F64,
-
-        BOOLEAN,
-
-        VALUE_REF,
-
-        HEAP_POINTER,
-        FUNCTION,
-        NATIVE_FUNCTION,
-        ADDRESS,
-        FUNCTION_CALL,
-        TRY_CATCH_INFO
-    } m_type;
-
-    union ValueData {
-        int32_t i32;
-        int64_t i64;
-        float f;
-        double d;
-
-        bool b;
-
-        Value *value_ref;
-
-        HeapValue *ptr;
-
-        struct {
-            bc_address_t m_addr;
-            uint8_t m_nargs;
-            uint8_t m_flags;
-        } func;
-
-        NativeFunctionPtr_t native_func;
-        
-        struct {
-            bc_address_t addr;
-            int32_t varargs_push;
-        } call;
-
-        bc_address_t addr;
-
-        struct {
-            bc_address_t catch_address;
-        } try_catch_info;
-    } m_value;
-
-    Value() = default;
-    explicit Value(const Value &other);
-
-    inline Value::ValueType GetType()  const { return m_type; }
-    inline Value::ValueData GetValue() const { return m_value; }
-
-    inline bool GetInteger(int64_t *out) const
-    {
-        switch (m_type) {
-            case I32: *out = m_value.i32; return true;
-            case I64: *out = m_value.i64; return true;
-            default:                      return false;
-        }
-    }
-
-    inline bool GetFloatingPoint(double *out) const
-    {
-        switch (m_type) {
-            case F32: *out = m_value.f; return true;
-            case F64: *out = m_value.d; return true;
-            default:                    return false;
-        }
-    }
-
-    inline bool GetNumber(double *out) const
-    {
-        switch (m_type) {
-            case I32: *out = m_value.i32; return true;
-            case I64: *out = m_value.i64; return true;
-            case F32: *out = m_value.f;   return true;
-            case F64: *out = m_value.d;   return true;
-            default:                      return false;
-        }
-    }
-
-    void Mark();
-
-    const char *GetTypeString() const;
-    ImmutableString ToString() const;
-    void ToRepresentation(std::stringstream &ss,
-        bool add_type_name = true) const;
-};
 
 } // namespace vm
 
-namespace sdk {
+using namespace compiler;
 
-struct Params {
-    vm::InstructionHandler *handler;
-    vm::Value **args;
-    int nargs;
+class API {
+
+public:
+    struct NativeVariableDefine {
+        std::string name;
+        SymbolTypePtr_t type;
+        NativeInitializerPtr_t initializer_ptr;
+
+        NativeVariableDefine(
+            const std::string &name,
+            const SymbolTypePtr_t &type,
+            NativeInitializerPtr_t initializer_ptr)
+            : name(name),
+              type(type),
+              initializer_ptr(initializer_ptr)
+        {
+        }
+
+        NativeVariableDefine(const NativeVariableDefine &other)
+            : name(other.name),
+              type(other.type),
+              initializer_ptr(other.initializer_ptr)
+        {
+        }
+    };
+
+    struct NativeFunctionDefine {
+        std::string function_name;
+        SymbolTypePtr_t return_type;
+        std::vector<GenericInstanceTypeInfo::Arg> param_types;
+        NativeFunctionPtr_t ptr;
+
+        NativeFunctionDefine(
+            const std::string &function_name,
+            const SymbolTypePtr_t &return_type,
+            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr)
+            : function_name(function_name),
+              return_type(return_type),
+              param_types(param_types),
+              ptr(ptr)
+        {
+        }
+
+        NativeFunctionDefine(const NativeFunctionDefine &other)
+            : function_name(other.function_name),
+              return_type(other.return_type),
+              param_types(other.param_types),
+              ptr(other.ptr)
+        {
+        }
+    };
+
+    struct TypeDefine {
+    public:
+        /*std::string m_name;
+        std::vector<NativeFunctionDefine> m_methods;
+        std::vector<NativeVariableDefine> m_members;
+
+        TypeDefine &Member(const std::string &member_name,
+            const SymbolTypePtr_t &member_type,
+            vm::NativeInitializerPtr_t ptr);
+
+        TypeDefine &Method(const std::string &method_name,
+            const SymbolTypePtr_t &return_type,
+            const std::vector<std::pair<std::string, SymbolTypePtr_t>> &param_types,
+            vm::NativeFunctionPtr_t ptr);*/
+
+        SymbolTypePtr_t m_type;
+    };
+
+    struct ModuleDefine {
+    public:
+        std::string m_name;
+        std::vector<TypeDefine> m_type_defs;
+        std::vector<NativeFunctionDefine> m_function_defs;
+        std::vector<NativeVariableDefine> m_variable_defs;
+
+        ModuleDefine &Type(const SymbolTypePtr_t &type);
+
+        ModuleDefine &Variable(const std::string &variable_name,
+            const SymbolTypePtr_t &variable_type,
+            NativeInitializerPtr_t ptr);
+
+        ModuleDefine &Function(const std::string &function_name,
+            const SymbolTypePtr_t &return_type,
+            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr);
+
+        void BindAll(vm::VM *vm, CompilationUnit *compilation_unit);
+
+    private:
+        void BindNativeVariable(const NativeVariableDefine &def,
+            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+
+        void BindNativeFunction(const NativeFunctionDefine &def,
+            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+
+        void BindType(TypeDefine def,
+            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+
+        std::shared_ptr<compiler::Module> m_created_module;
+    };
 };
 
-} // namespace sdk
+class APIInstance {
+public:
+    APIInstance() {}
+    APIInstance(const APIInstance &other) = delete;
+    ~APIInstance() {}
+
+    API::ModuleDefine &Module(const std::string &name);
+
+    void BindAll(vm::VM *vm, CompilationUnit *compilation_unit);
+
+private:
+    std::vector<API::ModuleDefine> m_module_defs;
+};
+
+}
+
+namespace hyperion {
+
 } // namespace hyperion
 
 

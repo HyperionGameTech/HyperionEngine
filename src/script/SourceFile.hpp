@@ -4,6 +4,8 @@
 #include <string>
 #include <cstddef>
 
+namespace hyperion {
+
 class SourceFile {
 public:
     SourceFile();
@@ -30,5 +32,7 @@ private:
     size_t m_position;
     size_t m_size;
 };
+
+} // namespace hyperion
 
 #endif

@@ -145,6 +145,9 @@ std::unique_ptr<Buildable> AstForRangeLoop::Build(AstVisitor *visitor, Module *m
         // enter the block
         chunk->Append(m_block->Build(visitor, mod));
 
+        // increment the iterator var
+        chunk->Append(m_inc_expr->Build(visitor, mod));
+
         // pop all local variables off the stack
         for (int i = 0; i < m_num_locals; i++) {
             visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
@@ -152,15 +155,19 @@ std::unique_ptr<Buildable> AstForRangeLoop::Build(AstVisitor *visitor, Module *m
 
         chunk->Append(Compiler::PopStack(visitor, m_num_locals));
 
-        // increment the iterator
-        chunk->Append(m_inc_expr->Build(visitor, mod));
-
         // jump back to top here
         chunk->Append(BytecodeUtil::Make<Jump>(Jump::JMP, top_label));
 
-        // set the label's position to after the block,
+        // set the label's position to be after the block,
         // so we can skip it if the condition is false
         chunk->Append(BytecodeUtil::Make<LabelMarker>(break_label));
+
+        // have to pop stack twice for i, end
+        for (int i = 0; i < 2; i++) {
+            visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+        }
+
+        chunk->Append(Compiler::PopStack(visitor, 2));
     } else if (condition_is_true) {
         LabelId top_label = chunk->NewLabel();
         chunk->Append(BytecodeUtil::Make<LabelMarker>(top_label));
@@ -181,11 +188,6 @@ std::unique_ptr<Buildable> AstForRangeLoop::Build(AstVisitor *visitor, Module *m
         }
 
         chunk->Append(Compiler::PopStack(visitor, m_num_locals));
-
-        // only increment iterator if the call may have side effects
-        if (m_inc_expr->MayHaveSideEffects()) {
-            chunk->Append(m_inc_expr->Build(visitor, mod));
-        }
 
         // jump back to top here (loop infinitely)
         chunk->Append(BytecodeUtil::Make<Jump>(Jump::JMP, top_label));

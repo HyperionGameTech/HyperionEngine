@@ -909,6 +909,25 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case NEW_PROTO:
+    {
+        uint8_t dst;
+        bs.Read(&dst);
+
+        uint8_t src;
+        bs.Read(&src);
+
+        if (os != nullptr) {
+            (*os)
+                << "new_proto ["
+                    << "%" << (int)dst << ", "
+                    << "%" << (int)src
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case NEW_ARRAY:
     {
         uint8_t dst;

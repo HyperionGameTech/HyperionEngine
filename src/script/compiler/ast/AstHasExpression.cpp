@@ -49,7 +49,7 @@ void AstHasExpression::Visit(AstVisitor *visitor, Module *mod)
     } else if (auto *type_spec = dynamic_cast<AstTypeSpecification*>(m_target.get())) {
         target_type = type_spec->GetSymbolType();
     } else if (auto *expr = dynamic_cast<AstExpression*>(m_target.get())) {
-        target_type = ident->GetSymbolType();
+        target_type = expr->GetSymbolType();
         m_is_expr = true;
         m_has_side_effects = expr->MayHaveSideEffects();
     }

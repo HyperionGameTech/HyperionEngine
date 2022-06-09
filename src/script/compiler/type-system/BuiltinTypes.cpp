@@ -78,7 +78,34 @@ const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
         {},
         SourceLocation::eof
     )),
-    {},
+    {
+        /*SymbolMember_t {
+            "Begin",
+            BuiltinTypes::FUNCTION,
+            sp<AstFunctionExpression>(new AstFunctionExpression(
+                {},
+                nullptr, // TODO: should be same as <T> 
+                sp<AstBlock>(new AstBlock(SourceLocation::eof)),
+                false,
+                false,
+                false,
+                SourceLocation::eof
+            ))
+        },
+        SymbolMember_t {
+            "End",
+            BuiltinTypes::FUNCTION,
+            sp<AstFunctionExpression>(new AstFunctionExpression(
+                {},
+                nullptr, // TODO: should be same as <T> 
+                sp<AstBlock>(new AstBlock(SourceLocation::eof)),
+                false,
+                false,
+                false,
+                SourceLocation::eof
+            ))
+        }*/
+    },
     GenericTypeInfo { 1 },
     BuiltinTypes::OBJECT
 );

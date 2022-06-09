@@ -11,10 +11,15 @@ namespace compiler {
 
 class AstBinaryExpression : public AstExpression {
 public:
-    AstBinaryExpression(const std::shared_ptr<AstExpression> &left,
+    AstBinaryExpression(
+        const std::shared_ptr<AstExpression> &left,
         const std::shared_ptr<AstExpression> &right,
         const Operator *op,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
+
+    inline bool IsOperatorOverloadingEnabled() const                             { return m_operator_overloading_enabled; }
+    inline void SetOperatorOverloadingEnabled(bool operator_overloading_enabled) { m_operator_overloading_enabled = operator_overloading_enabled; }
 
     inline const std::shared_ptr<AstExpression> &GetLeft() const { return m_left; }
     inline const std::shared_ptr<AstExpression> &GetRight() const { return m_right; }
@@ -33,6 +38,9 @@ private:
     std::shared_ptr<AstExpression> m_left;
     std::shared_ptr<AstExpression> m_right;
     const Operator *m_op;
+
+    std::shared_ptr<AstExpression> m_operator_overload;
+    bool m_operator_overloading_enabled;
 
 #if ACE_ENABLE_LAZY_DECLARATIONS
     // if the expression is lazy declaration

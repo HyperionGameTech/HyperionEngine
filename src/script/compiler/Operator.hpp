@@ -91,7 +91,8 @@ public:
     Operator(Operators op_type,
         int precedence,
         int type,
-        bool modifies_value = false);
+        bool modifies_value = false,
+        bool supports_overloading = false);
     Operator(const Operator &other);
 
     inline Operators GetOperatorType() const
@@ -104,6 +105,8 @@ public:
         { return m_precedence == 0; }
     inline bool ModifiesValue() const
         { return m_modifies_value; }
+    inline bool SupportsOverloading() const
+        { return m_supports_overloading; }
 
     std::string LookupStringValue() const;
 
@@ -112,6 +115,7 @@ private:
     int m_precedence;
     int m_type;
     bool m_modifies_value;
+    bool m_supports_overloading;
 };
 
 } // namespace compiler

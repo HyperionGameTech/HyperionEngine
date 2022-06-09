@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <cstring>
 
+namespace hyperion {
+
 SourceFile::SourceFile()
     : m_filepath("??"),
       m_position(0),
@@ -92,3 +94,5 @@ void SourceFile::ReadIntoBuffer(const char *data, size_t size)
     AssertThrow(m_size >= size);
     std::memcpy(m_buffer, data, size);
 }
+
+} // namespace hyperion

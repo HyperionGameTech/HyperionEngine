@@ -77,6 +77,21 @@ bool Module::IsInTypeDefinition()
     return false;
 }
 
+bool Module::IsInGeneric()
+{
+    TreeNode<Scope> *top = m_scopes.TopNode();
+    
+    while (top != nullptr) {
+        if (top->m_value.GetScopeFlags() & ScopeFunctionFlags::GENERIC_FLAG) {
+            return true;
+        }
+        
+        top = top->m_parent;
+    }
+
+    return false;
+}
+
 Module *Module::LookupNestedModule(const std::string &name)
 {
     AssertThrow(m_tree_link != nullptr);

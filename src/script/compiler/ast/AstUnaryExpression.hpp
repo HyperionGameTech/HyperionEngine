@@ -7,6 +7,8 @@
 namespace hyperion {
 namespace compiler {
 
+class AstBinaryExpression;
+
 class AstUnaryExpression : public AstExpression {
 public:
     AstUnaryExpression(
@@ -31,6 +33,8 @@ private:
     std::shared_ptr<AstExpression> m_target;
     const Operator *m_op;
     bool m_folded;
+
+    std::shared_ptr<AstBinaryExpression> m_bin_expr; // internally use a binary expr for somethings (like ++ and -- operators)
 
     inline Pointer<AstUnaryExpression> CloneImpl() const
     {

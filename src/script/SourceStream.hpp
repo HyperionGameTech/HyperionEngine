@@ -6,6 +6,8 @@
 
 #include <cstddef>
 
+namespace hyperion {
+
 class SourceStream {
 public:
     SourceStream(SourceFile *file);
@@ -24,5 +26,7 @@ private:
     SourceFile *m_file;
     size_t m_position;
 };
+
+} // namespace hyperion
 
 #endif

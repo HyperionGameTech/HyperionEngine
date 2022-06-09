@@ -595,6 +595,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
            (Match(TK_DOT) ||
             Match(TK_OPEN_BRACKET) ||
             Match(TK_OPEN_PARENTH) ||
+            Match(TK_QUESTION_MARK) ||
             (!override_commas && Match(TK_COMMA)) ||
             (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
             MatchKeyword(Keyword_has)))
@@ -602,18 +603,27 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
         if (Match(TK_DOT)) {
             expr = ParseMemberExpression(expr);
         }
+
         if (Match(TK_OPEN_BRACKET)) {
             expr = ParseArrayAccess(expr);
         }
+
         if (Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
         }
+
+        if (Match(TK_QUESTION_MARK)) {
+            expr = ParseTernaryExpression(expr);
+        }
+
         if (!override_fat_arrows && Match(TK_FAT_ARROW)) {
             expr = ParseActionExpression(expr);
         }
+
         if (!override_commas && Match(TK_COMMA)) {
             expr = ParseTupleExpression(expr);
         }
+        
         if (MatchKeyword(Keyword_has)) {
             expr = ParseHasExpression(expr);
         }
@@ -1427,6 +1437,38 @@ std::shared_ptr<AstExpression> Parser::ParseUnaryExpression()
                 token.GetValue()
             ));
         }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<AstExpression> Parser::ParseTernaryExpression(std::shared_ptr<AstExpression> conditional)
+{
+    if (Token token = Expect(TK_QUESTION_MARK, true)) {
+        // parse next ('true' part)
+
+        auto true_expr = ParseExpression();
+
+        if (true_expr == nullptr) {
+            return nullptr;
+        }
+
+        if (!Expect(TK_COLON, true)) {
+            return nullptr;
+        }
+
+        auto false_expr = ParseExpression();
+
+        if (false_expr == nullptr) {
+            return nullptr;
+        }
+
+        return std::shared_ptr<AstTernaryExpression>(new AstTernaryExpression(
+            conditional,
+            true_expr,
+            false_expr,
+            conditional->GetLocation()
+        ));
     }
 
     return nullptr;

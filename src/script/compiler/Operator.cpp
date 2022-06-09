@@ -49,8 +49,8 @@ const std::map<std::string, Operator> Operator::unary_operators = {
     { "-", Operator(OP_negative, 0, ARITHMETIC) },
     { "+", Operator(OP_positive, 0, ARITHMETIC) },
     { "~", Operator(OP_bitwise_complement, 0, BITWISE) },
-    { "++", Operator(OP_increment, 0, ASSIGNMENT | ARITHMETIC, true) },
-    { "--", Operator(OP_decrement, 0, ASSIGNMENT | ARITHMETIC, true) }
+    { "++", Operator(OP_increment, 0, ASSIGNMENT | ARITHMETIC, true, true) },
+    { "--", Operator(OP_decrement, 0, ASSIGNMENT | ARITHMETIC, true, true) }
 };
 
 const Operator *Operator::FindBinaryOperator(Operators op)
@@ -78,11 +78,13 @@ const Operator *Operator::FindUnaryOperator(Operators op)
 Operator::Operator(Operators op_type,
     int precedence,
     int type,
-    bool modifies_value)
-    : m_op_type(op_type),
-      m_precedence(precedence),
-      m_type(type),
-      m_modifies_value(modifies_value)
+    bool modifies_value,
+    bool supports_overloading
+) : m_op_type(op_type),
+    m_precedence(precedence),
+    m_type(type),
+    m_modifies_value(modifies_value),
+    m_supports_overloading(supports_overloading)
 {
 }
 
@@ -90,7 +92,8 @@ Operator::Operator(const Operator &other)
     : m_op_type(other.m_op_type),
       m_precedence(other.m_precedence),
       m_type(other.m_type),
-      m_modifies_value(other.m_modifies_value)
+      m_modifies_value(other.m_modifies_value),
+      m_supports_overloading(other.m_supports_overloading)
 {
 }
 

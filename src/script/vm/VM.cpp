@@ -891,6 +891,17 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
+        case NEW_PROTO: {
+            bc_reg_t dst; bs->Read(&dst);
+            bc_reg_t src; bs->Read(&src);
+
+            handler->NewProto(
+                dst,
+                src
+            );
+
+            break;
+        }
         case NEW_ARRAY: {
             bc_reg_t dst; bs->Read(&dst);
             uint32_t size; bs->Read(&size);

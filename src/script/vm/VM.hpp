@@ -25,6 +25,8 @@
 namespace hyperion {
 namespace vm {
 
+class InstructionHandler;
+
 enum CompareFlags : int {
     NONE = 0x00,
     EQUAL = 0x01,

@@ -8,8 +8,6 @@
 
 namespace hyperion::v2 {
 
-using namespace compiler;
-
 template <>
 struct LoaderObject<Script, LoaderFormat::SCRIPT_HYPSCRIPT> {
     class Loader : public LoaderBase<Script, LoaderFormat::SCRIPT_HYPSCRIPT> {

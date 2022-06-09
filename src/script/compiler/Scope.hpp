@@ -22,9 +22,11 @@ enum ScopeType {
 };
 
 enum ScopeFunctionFlags : int {
-    PURE_FUNCTION_FLAG = 0x01,
-    CLOSURE_FUNCTION_FLAG = 0x02,
-    GENERATOR_FUNCTION_FLAG = 0x04
+    PURE_FUNCTION_FLAG      = 0x01,
+    CLOSURE_FUNCTION_FLAG   = 0x02,
+    GENERATOR_FUNCTION_FLAG = 0x04,
+
+    GENERIC_FLAG            = 0x08
 };
 
 class Scope {

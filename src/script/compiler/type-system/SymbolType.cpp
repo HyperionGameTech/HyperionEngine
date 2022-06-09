@@ -46,15 +46,19 @@ SymbolType::SymbolType(const SymbolType &other)
 
 bool SymbolType::TypeEqual(const SymbolType &other) const
 {
-    if (m_name != other.m_name) {
+    if (GetId() == other.GetId()) {
+        return true;
+    }
+
+    if (GetName() != other.GetName()) {
         return false;
     }
 
-    if (m_type_class != other.m_type_class) {
+    if (GetTypeClass() != other.GetTypeClass()) {
         return false;
     }
 
-    switch (m_type_class) {
+    switch (GetTypeClass()) {
         case TYPE_ALIAS:
             if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
                 return (*sp) == other;
@@ -105,7 +109,10 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
                 AssertThrow(instance_arg_type != nullptr);
                 AssertThrow(other_arg_type != nullptr);
 
-                if (!instance_arg_type->TypeEqual(*other_arg_type)) {
+                //if (!instance_arg_type->TypeEqual(*other_arg_type)) {
+                //    return false;
+                //}
+                if (instance_arg_type->GetId() != other_arg_type->GetId()) {
                     return false;
                 }
             }
@@ -122,14 +129,16 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     }
 
     for (const SymbolMember_t &i : m_members) {
-        AssertThrow(std::get<1>(i) != nullptr);
+        const auto &left_member = std::get<1>(i);
+        AssertThrow(left_member != nullptr);
 
         bool right_member_found = false;
 
         for (const SymbolMember_t &j : other.m_members) {
-            AssertThrow(std::get<1>(j) != nullptr);
+            const auto &right_member = std::get<1>(j);
+            AssertThrow(right_member != nullptr);
 
-            if (std::get<1>(i)->TypeEqual(*std::get<1>(j))) {
+            if (left_member->GetId() == right_member->GetId()) {//left_member->TypeEqual(*right_member)) {
                 right_member_found = true;
                 continue;
             }
@@ -317,6 +326,11 @@ bool SymbolType::FindMember(const std::string &name, SymbolMember_t &out) const
     }
 
     return false;
+}
+
+void SymbolType::AddMember(const SymbolMember_t &member)
+{
+    m_members.push_back(member);
 }
 
 bool SymbolType::HasBase(const SymbolType &base_type) const

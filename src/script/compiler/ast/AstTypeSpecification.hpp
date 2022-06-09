@@ -16,7 +16,8 @@ public:
         const std::string &left,
         const std::vector<std::shared_ptr<AstTypeSpecification>> &generic_params,
         const std::shared_ptr<AstTypeSpecification> &right,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstTypeSpecification() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;

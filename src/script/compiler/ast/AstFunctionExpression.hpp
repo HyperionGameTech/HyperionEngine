@@ -16,13 +16,15 @@ namespace compiler {
 
 class AstFunctionExpression : public AstExpression {
 public:
-    AstFunctionExpression(const std::vector<std::shared_ptr<AstParameter>> &parameters,
+    AstFunctionExpression(
+        const std::vector<std::shared_ptr<AstParameter>> &parameters,
         const std::shared_ptr<AstTypeSpecification> &type_specification,
         const std::shared_ptr<AstBlock> &block,
         bool is_async,
         bool is_pure,
         bool is_generator,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstFunctionExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;

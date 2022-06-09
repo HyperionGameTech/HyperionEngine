@@ -60,13 +60,15 @@ void AstTypeDefinition::Visit(AstVisitor *visitor, Module *mod)
                 m_location
             ));
         } else {
-            // open the scope for data members
-            mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
+            auto &previous_scope = mod->m_scopes.Top();
 
             // handle generic parameter declarations
             std::vector<SymbolTypePtr_t> generic_param_types;
 
             const bool is_generic = !m_generic_params.empty();
+
+            // open the scope for data members
+            mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, is_generic ? GENERIC_FLAG : 0));
 
             for (const std::string &generic_name : m_generic_params) {
                 auto it = std::find_if(
@@ -125,40 +127,18 @@ void AstTypeDefinition::Visit(AstVisitor *visitor, Module *mod)
                 )));
             }
 
-            std::vector<SymbolMember_t> member_types;
-
-            for (const auto &mem : m_members) {
-                if (mem != nullptr) {
-                    mem->Visit(visitor, mod);
-
-                    if (mem->GetIdentifier()) {
-                        std::string mem_name = mem->GetName();
-                        SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
-                        
-                        member_types.push_back(std::make_tuple(
-                            mem_name,
-                            mem_type,
-                            mem->GetAssignment()
-                        ));
-                    }
-                }
-            }
-
-            // close the scope for data members
-            mod->m_scopes.Close();
-
             SymbolTypePtr_t symbol_type;
 
             if (!is_generic) {
                 symbol_type = SymbolType::Object(
                     m_name,
-                    member_types
+                    {}
                 );
             } else {
                 symbol_type = SymbolType::Generic(
                     m_name,
                     nullptr,
-                    member_types, 
+                    {}, 
                     GenericTypeInfo {
                         (int)m_generic_params.size(),
                         generic_param_types
@@ -170,13 +150,36 @@ void AstTypeDefinition::Visit(AstVisitor *visitor, Module *mod)
                     new AstObject(symbol_type, SourceLocation::eof)
                 ));
             }
+            // add the type to the identifier table, so it's usable
+            previous_scope.GetIdentifierTable().AddSymbolType(symbol_type);
+
+            for (const auto &mem : m_members) {
+                if (mem != nullptr) {
+                    mem->Visit(visitor, mod);
+                    // TODO: add all members that /aren't/ functions,
+                    // adding functions later. 
+
+                    // currently this should at least make it work so that
+                    // you're able to use members from the class in member functions,
+                    // as long as they're declared before the member fn
+                    if (mem->GetIdentifier()) {
+                        std::string mem_name = mem->GetName();
+                        SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
+                        
+                        symbol_type->AddMember(std::make_tuple(
+                            mem_name,
+                            mem_type,
+                            mem->GetAssignment()
+                        ));
+                    }
+                }
+            }
+
+            // close the scope for data members
+            mod->m_scopes.Close();
 
             // register the main type
             visitor->GetCompilationUnit()->RegisterType(symbol_type);
-
-            // add the type to the identifier table, so it's usable
-            Scope &top_scope = mod->m_scopes.Top();
-            top_scope.GetIdentifierTable().AddSymbolType(symbol_type);
         }
     }
 }

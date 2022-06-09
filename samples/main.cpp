@@ -44,6 +44,10 @@
 
 #include "rendering/environment.h"
 
+#include <script/Builtins.hpp>
+
+#include <util/utf8.hpp>
+
 using namespace hyperion;
 
 
@@ -206,8 +210,14 @@ public:
     virtual void OnPostInit(Engine *engine) override
     {
         if (auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript")) {
-            if (my_script->Compile()) {
+            APIInstance api_instance;
+            ScriptFunctions::Build(api_instance);
+
+            if (my_script->Compile(api_instance)) {
                 my_script->Bake();
+
+                my_script->Decompile(&utf::cout);
+    
                 my_script->Run();
             } else {
                 DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());

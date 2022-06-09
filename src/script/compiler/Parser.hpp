@@ -25,6 +25,7 @@
 #include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
@@ -123,6 +124,7 @@ private:
     std::shared_ptr<AstExpression> ParseBinaryExpression(int expr_prec,
         std::shared_ptr<AstExpression> left);
     std::shared_ptr<AstExpression> ParseUnaryExpression();
+    std::shared_ptr<AstExpression> ParseTernaryExpression(std::shared_ptr<AstExpression> conditional);
     std::shared_ptr<AstExpression> ParseExpression(bool override_commas = false,
         bool override_fat_arrows = false);
     std::shared_ptr<AstTypeSpecification> ParseTypeSpecification();

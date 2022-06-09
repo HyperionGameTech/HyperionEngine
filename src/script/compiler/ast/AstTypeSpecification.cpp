@@ -90,8 +90,18 @@ void AstTypeSpecification::Visit(AstVisitor *visitor, Module *mod)
                         if (m_symbol_type == nullptr) {
                             // nothing found from lookup,
                             // so create new generic instance
-                            const bool valid_parameters = symbol_type->GetGenericInfo().m_num_parameters == -1
-                                || symbol_type->GetGenericInfo().m_num_parameters == generic_types.size();
+                            const bool valid_parameters = (symbol_type->GetGenericInfo().m_num_parameters == -1
+                                || symbol_type->GetGenericInfo().m_num_parameters == generic_types.size())
+                                && !std::any_of(
+                                        m_generic_params.begin(),
+                                        m_generic_params.end(),
+                                        [](const std::shared_ptr<AstTypeSpecification> &item) {
+                                            const auto &generic_param_symbol_type = item->GetSymbolType();
+
+                                            return generic_param_symbol_type->GetTypeClass() == TYPE_GENERIC_PARAMETER
+                                                || generic_param_symbol_type->GetTypeClass() == TYPE_GENERIC;
+                                        }
+                                    ); // don't try to instantiate when other generic args aren't yet instantiated.
 
                             if (valid_parameters) {
                                 // open the scope for data members

@@ -11,8 +11,11 @@
 #include <script/vm/TypeInfo.hpp>
 
 #include <script/Instructions.hpp>
-#include <system/debug.h>
 #include <script/Typedefs.hpp>
+
+#include <system/debug.h>
+
+#include <util/defines.h>
 
 #include <stdint.h>
 
@@ -33,7 +36,7 @@ struct InstructionHandler {
     {
     }
 
-    inline void StoreStaticString(uint32_t len, const char *str)
+    HYP_FORCE_INLINE void StoreStaticString(uint32_t len, const char *str)
     {
         // the value will be freed on
         // the destructor call of state->m_static_memory
@@ -47,7 +50,7 @@ struct InstructionHandler {
         state->m_static_memory.Store(std::move(sv));
     }
 
-    inline void StoreStaticAddress(bc_address_t addr)
+    HYP_FORCE_INLINE void StoreStaticAddress(bc_address_t addr)
     {
         Value sv;
         sv.m_type = Value::ADDRESS;
@@ -56,7 +59,7 @@ struct InstructionHandler {
         state->m_static_memory.Store(std::move(sv));
     }
 
-    inline void StoreStaticFunction(bc_address_t addr,
+    HYP_FORCE_INLINE void StoreStaticFunction(bc_address_t addr,
         uint8_t nargs,
         uint8_t flags)
     {
@@ -69,7 +72,7 @@ struct InstructionHandler {
         state->m_static_memory.Store(std::move(sv));
     }
 
-    inline void StoreStaticType(const char *type_name,
+    HYP_FORCE_INLINE void StoreStaticType(const char *type_name,
         uint16_t size,
         char **names)
     {
@@ -84,7 +87,7 @@ struct InstructionHandler {
         state->m_static_memory.Store(std::move(sv));
     }
 
-    inline void LoadI32(bc_reg_t reg, aint32 i32)
+    HYP_FORCE_INLINE void LoadI32(bc_reg_t reg, aint32 i32)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -92,7 +95,7 @@ struct InstructionHandler {
         value.m_value.i32 = i32;
     }
 
-    inline void LoadI64(bc_reg_t reg, aint64 i64)
+    HYP_FORCE_INLINE void LoadI64(bc_reg_t reg, aint64 i64)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -100,7 +103,7 @@ struct InstructionHandler {
         value.m_value.i64 = i64;
     }
 
-    inline void LoadF32(bc_reg_t reg, afloat32 f32)
+    HYP_FORCE_INLINE void LoadF32(bc_reg_t reg, afloat32 f32)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -108,7 +111,7 @@ struct InstructionHandler {
         value.m_value.f = f32;
     }
 
-    inline void LoadF64(bc_reg_t reg, afloat64 f64)
+    HYP_FORCE_INLINE void LoadF64(bc_reg_t reg, afloat64 f64)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -116,28 +119,28 @@ struct InstructionHandler {
         value.m_value.d = f64;
     }
 
-    inline void LoadOffset(bc_reg_t reg, uint16_t offset)
+    HYP_FORCE_INLINE void LoadOffset(bc_reg_t reg, uint16_t offset)
     {
         // read value from stack at (sp - offset)
         // into the the register
         thread->m_regs[reg] = thread->m_stack[thread->m_stack.GetStackPointer() - offset];
     }
 
-    inline void LoadIndex(bc_reg_t reg, uint16_t index)
+    HYP_FORCE_INLINE void LoadIndex(bc_reg_t reg, uint16_t index)
     {
         // read value from stack at the index into the the register
         // NOTE: read from main thread
         thread->m_regs[reg] = state->MAIN_THREAD->m_stack[index];
     }
 
-    inline void LoadStatic(bc_reg_t reg, uint16_t index)
+    HYP_FORCE_INLINE void LoadStatic(bc_reg_t reg, uint16_t index)
     {
         // read value from static memory
         // at the index into the the register
         thread->m_regs[reg] = state->m_static_memory[index];
     }
 
-    inline void LoadString(bc_reg_t reg, uint32_t len, const char *str)
+    HYP_FORCE_INLINE void LoadString(bc_reg_t reg, uint32_t len, const char *str)
     {
         // allocate heap value
         HeapValue *hv = state->HeapAlloc(thread);
@@ -151,14 +154,14 @@ struct InstructionHandler {
         }
     }
 
-    inline void LoadAddr(bc_reg_t reg, bc_address_t addr)
+    HYP_FORCE_INLINE void LoadAddr(bc_reg_t reg, bc_address_t addr)
     {
         Value &sv = thread->m_regs[reg];
         sv.m_type = Value::ADDRESS;
         sv.m_value.addr = addr;
     }
 
-    inline void LoadFunc(bc_reg_t reg,
+    HYP_FORCE_INLINE void LoadFunc(bc_reg_t reg,
         bc_address_t addr,
         uint8_t nargs,
         uint8_t flags)
@@ -170,7 +173,7 @@ struct InstructionHandler {
         sv.m_value.func.m_flags = flags;
     }
 
-    inline void LoadType(bc_reg_t reg,
+    HYP_FORCE_INLINE void LoadType(bc_reg_t reg,
         uint16_t type_name_len,
         const char *type_name,
         uint16_t size,
@@ -188,7 +191,7 @@ struct InstructionHandler {
         sv.m_value.ptr = hv;
     }
 
-    inline void LoadMem(bc_reg_t dst, bc_reg_t src, uint8_t index)
+    HYP_FORCE_INLINE void LoadMem(bc_reg_t dst, bc_reg_t src, uint8_t index)
     {
         Value &sv = thread->m_regs[src];
         
@@ -217,7 +220,7 @@ struct InstructionHandler {
         );
     }
 
-    inline void LoadMemHash(bc_reg_t dst_reg, bc_reg_t src_reg, uint32_t hash)
+    HYP_FORCE_INLINE void LoadMemHash(bc_reg_t dst_reg, bc_reg_t src_reg, uint32_t hash)
     {
         Value &sv = thread->m_regs[src_reg];
 
@@ -249,7 +252,7 @@ struct InstructionHandler {
         );
     }
 
-    inline void LoadArrayIdx(bc_reg_t dst_reg, bc_reg_t src_reg, bc_reg_t index_reg)
+    HYP_FORCE_INLINE void LoadArrayIdx(bc_reg_t dst_reg, bc_reg_t src_reg, bc_reg_t index_reg)
     {
         Value &sv = thread->m_regs[src_reg];
 
@@ -278,7 +281,7 @@ struct InstructionHandler {
         if (!thread->m_regs[index_reg].GetInteger(&key.index)) {
             state->ThrowException(
                 thread,
-                Exception("Array index must be of type Int or String")
+                Exception("Array index must be integer")
             );
             return;
         }
@@ -315,14 +318,14 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = array->AtIndex(key.index);
     }
 
-    inline void LoadRef(bc_reg_t dst_reg, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void LoadRef(bc_reg_t dst_reg, bc_reg_t src_reg)
     {
         Value &src = thread->m_regs[dst_reg];
         src.m_type = Value::VALUE_REF;
         src.m_value.value_ref = &thread->m_regs[src_reg];
     }
 
-    inline void LoadDeref(bc_reg_t dst_reg, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void LoadDeref(bc_reg_t dst_reg, bc_reg_t src_reg)
     {
         Value &src = thread->m_regs[src_reg];
         AssertThrowMsg(src.m_type == Value::VALUE_REF, "Value type must be VALUE_REF in order to deref");
@@ -331,42 +334,42 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = *src.m_value.value_ref;
     }
 
-    inline void LoadNull(bc_reg_t reg)
+    HYP_FORCE_INLINE void LoadNull(bc_reg_t reg)
     {
         Value &sv = thread->m_regs[reg];
         sv.m_type = Value::HEAP_POINTER;
         sv.m_value.ptr = nullptr;
     }
 
-    inline void LoadTrue(bc_reg_t reg)
+    HYP_FORCE_INLINE void LoadTrue(bc_reg_t reg)
     {
         Value &sv = thread->m_regs[reg];
         sv.m_type = Value::BOOLEAN;
         sv.m_value.b = true;
     }
 
-    inline void LoadFalse(bc_reg_t reg)
+    HYP_FORCE_INLINE void LoadFalse(bc_reg_t reg)
     {
         Value &sv = thread->m_regs[reg];
         sv.m_type = Value::BOOLEAN;
         sv.m_value.b = false;
     }
 
-    inline void MovOffset(uint16_t offset, bc_reg_t reg)
+    HYP_FORCE_INLINE void MovOffset(uint16_t offset, bc_reg_t reg)
     {
         // copy value from register to stack value at (sp - offset)
         thread->m_stack[thread->m_stack.GetStackPointer() - offset] =
             thread->m_regs[reg];
     }
 
-    inline void MovIndex(uint16_t index, bc_reg_t reg)
+    HYP_FORCE_INLINE void MovIndex(uint16_t index, bc_reg_t reg)
     {
         // copy value from register to stack value at index
         // NOTE: storing on main thread
         state->MAIN_THREAD->m_stack[index] = thread->m_regs[reg];
     }
 
-    inline void MovMem(bc_reg_t dst_reg, uint8_t index, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void MovMem(bc_reg_t dst_reg, uint8_t index, bc_reg_t src_reg)
     {
         Value &sv = thread->m_regs[dst_reg];
         if (sv.m_type != Value::HEAP_POINTER) {
@@ -409,7 +412,7 @@ struct InstructionHandler {
         object->GetMember(index).value = thread->m_regs[src_reg];
     }
 
-    inline void MovMemHash(bc_reg_t dst_reg, uint32_t hash, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void MovMemHash(bc_reg_t dst_reg, uint32_t hash, bc_reg_t src_reg)
     {
         Value &sv = thread->m_regs[dst_reg];
 
@@ -452,7 +455,7 @@ struct InstructionHandler {
         member->value = thread->m_regs[src_reg];
     }
 
-    inline void MovArrayIdx(bc_reg_t dst_reg, uint32_t index, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void MovArrayIdx(bc_reg_t dst_reg, uint32_t index, bc_reg_t src_reg)
     {
         Value &sv = thread->m_regs[dst_reg];
 
@@ -505,12 +508,12 @@ struct InstructionHandler {
         array->AtIndex(index) = thread->m_regs[src_reg];
     }
 
-    inline void MovReg(bc_reg_t dst_reg, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void MovReg(bc_reg_t dst_reg, bc_reg_t src_reg)
     {
         thread->m_regs[dst_reg] = thread->m_regs[src_reg];
     }
 
-    inline void HasMemHash(bc_reg_t dst_reg, bc_reg_t src_reg, uint32_t hash)
+    HYP_FORCE_INLINE void HasMemHash(bc_reg_t dst_reg, bc_reg_t src_reg, uint32_t hash)
     {
         Value &src = thread->m_regs[src_reg];
 
@@ -528,23 +531,23 @@ struct InstructionHandler {
         dst.m_value.b = false;
     }
 
-    inline void Push(bc_reg_t reg)
+    HYP_FORCE_INLINE void Push(bc_reg_t reg)
     {
         // push a copy of the register value to the top of the stack
         thread->m_stack.Push(thread->m_regs[reg]);
     }
 
-    inline void Pop()
+    HYP_FORCE_INLINE void Pop()
     {
         thread->m_stack.Pop();
     }
 
-    inline void PopN(uint8_t n)
+    HYP_FORCE_INLINE void PopN(uint8_t n)
     {
         thread->m_stack.Pop(n);
     }
 
-    inline void PushArray(bc_reg_t dst_reg, bc_reg_t src_reg)
+    HYP_FORCE_INLINE void PushArray(bc_reg_t dst_reg, bc_reg_t src_reg)
     {
         Value &dst = thread->m_regs[dst_reg];
         if (dst.m_type != Value::HEAP_POINTER) {
@@ -576,50 +579,50 @@ struct InstructionHandler {
         array->Push(thread->m_regs[src_reg]);
     }
 
-    inline void Echo(bc_reg_t reg)
+    HYP_FORCE_INLINE void Echo(bc_reg_t reg)
     {
         VM::Print(thread->m_regs[reg]);
     }
 
-    inline void EchoNewline()
+    HYP_FORCE_INLINE void EchoNewline()
     {
         utf::fputs(UTF8_CSTR("\n"), stdout);
     }
 
-    inline void Jmp(bc_address_t addr)
+    HYP_FORCE_INLINE void Jmp(bc_address_t addr)
     {
         bs->Seek(addr);
     }
 
-    inline void Je(bc_address_t addr)
+    HYP_FORCE_INLINE void Je(bc_address_t addr)
     {
         if (thread->m_regs.m_flags == EQUAL) {
             bs->Seek(addr);
         }
     }
 
-    inline void Jne(bc_address_t addr)
+    HYP_FORCE_INLINE void Jne(bc_address_t addr)
     {
         if (thread->m_regs.m_flags != EQUAL) {
             bs->Seek(addr);
         }
     }
 
-    inline void Jg(bc_address_t addr)
+    HYP_FORCE_INLINE void Jg(bc_address_t addr)
     {
         if (thread->m_regs.m_flags == GREATER) {
             bs->Seek(addr);
         }
     }
 
-    inline void Jge(bc_address_t addr)
+    HYP_FORCE_INLINE void Jge(bc_address_t addr)
     {
         if (thread->m_regs.m_flags == GREATER || thread->m_regs.m_flags == EQUAL) {
             bs->Seek(addr);
         }
     }
 
-    inline void Call(bc_reg_t reg, uint8_t nargs)
+    HYP_FORCE_INLINE void Call(bc_reg_t reg, uint8_t nargs)
     {
         VM::Invoke(
             this,
@@ -628,7 +631,7 @@ struct InstructionHandler {
         );
     }
 
-    inline void Ret()
+    HYP_FORCE_INLINE void Ret()
     {
         // get top of stack (should be the address before jumping)
         Value &top = thread->GetStack().Top();
@@ -646,7 +649,7 @@ struct InstructionHandler {
         thread->m_func_depth--;
     }
 
-    inline void BeginTry(bc_address_t addr)
+    HYP_FORCE_INLINE void BeginTry(bc_address_t addr)
     {
         thread->m_exception_state.m_try_counter++;
 
@@ -659,7 +662,7 @@ struct InstructionHandler {
         thread->m_stack.Push(info);
     }
 
-    inline void EndTry()
+    HYP_FORCE_INLINE void EndTry()
     {
         // pop the try catch info from the stack
         AssertThrow(thread->m_stack.Top().m_type == Value::TRY_CATCH_INFO);
@@ -670,7 +673,7 @@ struct InstructionHandler {
         thread->m_exception_state.m_try_counter--;
     }
 
-    inline void New(bc_reg_t dst, bc_reg_t src)
+    HYP_FORCE_INLINE void New(bc_reg_t dst, bc_reg_t src)
     {
         // read value from register
         Value &type_sv = thread->m_regs[src];
@@ -692,7 +695,29 @@ struct InstructionHandler {
         sv.m_value.ptr = hv;
     }
 
-    inline void NewArray(bc_reg_t dst, uint32_t size)
+    HYP_FORCE_INLINE void NewProto(bc_reg_t dst, bc_reg_t src)
+    {
+        // read value from register
+        Value &proto = thread->m_regs[src];
+        AssertThrow(proto.m_type == Value::HEAP_POINTER);
+
+        Object *proto_ptr = proto.m_value.ptr->GetPointer<Object>();
+        AssertThrow(proto_ptr != nullptr);
+
+        // allocate heap object
+        HeapValue *hv = state->HeapAlloc(thread);
+        AssertThrow(hv != nullptr);
+        
+        // create the Object as a copy of the prototype
+        hv->Assign(Object(*proto_ptr));
+
+        // assign register value to the allocated object
+        Value &sv = thread->m_regs[dst];
+        sv.m_type = Value::HEAP_POINTER;
+        sv.m_value.ptr = hv;
+    }
+
+    HYP_FORCE_INLINE void NewArray(bc_reg_t dst, uint32_t size)
     {
         // allocate heap object
         HeapValue *hv = state->HeapAlloc(thread);
@@ -706,7 +731,7 @@ struct InstructionHandler {
         sv.m_value.ptr = hv;
     }
 
-    inline void Cmp(bc_reg_t lhs_reg, bc_reg_t rhs_reg)
+    HYP_FORCE_INLINE void Cmp(bc_reg_t lhs_reg, bc_reg_t rhs_reg)
     {
         // dropout early for comparing something against itself
         if (lhs_reg == rhs_reg) {
@@ -764,7 +789,7 @@ struct InstructionHandler {
         }
     }
 
-    inline void CmpZ(bc_reg_t reg)
+    HYP_FORCE_INLINE void CmpZ(bc_reg_t reg)
     {
         // load values from registers
         Value *lhs = &thread->m_regs[reg];
@@ -799,7 +824,8 @@ struct InstructionHandler {
         }
     }
 
-    inline void Add(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Add(
+        bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -845,7 +871,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Sub(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Sub(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -891,7 +917,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Mul(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Mul(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -937,7 +963,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Div(bc_reg_t lhs_reg, bc_reg_t rhs_reg, bc_reg_t dst_reg)
+    HYP_FORCE_INLINE void Div(bc_reg_t lhs_reg, bc_reg_t rhs_reg, bc_reg_t dst_reg)
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];
@@ -991,7 +1017,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Mod(bc_reg_t lhs_reg, bc_reg_t rhs_reg, bc_reg_t dst_reg)
+    HYP_FORCE_INLINE void Mod(bc_reg_t lhs_reg, bc_reg_t rhs_reg, bc_reg_t dst_reg)
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];
@@ -1051,7 +1077,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void And(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void And(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -1087,7 +1113,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Or(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Or(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -1123,7 +1149,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Xor(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Xor(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -1159,7 +1185,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Shl(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Shl(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -1195,7 +1221,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Shr(bc_reg_t lhs_reg,
+    HYP_FORCE_INLINE void Shr(bc_reg_t lhs_reg,
         bc_reg_t rhs_reg,
         bc_reg_t dst_reg)
     {
@@ -1231,7 +1257,7 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
-    inline void Neg(bc_reg_t reg)
+    HYP_FORCE_INLINE void Neg(bc_reg_t reg)
     {
         // load value from register
         Value *value = &thread->m_regs[reg];
@@ -1264,66 +1290,6 @@ struct InstructionHandler {
             return;
         }
     }
-
-    #if 0
-    inline void StoreStaticString(uint32_t len, const char *str);
-    void StoreStaticAddress(bc_address_t addr);
-    void StoreStaticFunction(bc_address_t addr,
-        uint8_t nargs, uint8_t is_variadic);
-    void StoreStaticType(const char *type_name,
-        uint16_t size, char **names);
-    void LoadI32(bc_reg_t reg, aint32 i32);
-    void LoadI64(bc_reg_t reg, aint64 i64);
-    void LoadF32(bc_reg_t reg, afloat32 f32);
-    void LoadF64(bc_reg_t reg, afloat64 f64);
-    void LoadOffset(bc_reg_t reg, uint8_t offset);
-    void LoadIndex(bc_reg_t reg, uint16_t index);
-    void LoadStatic(bc_reg_t reg, uint16_t index);
-    void LoadString(bc_reg_t reg, uint32_t len, const char *str);
-    void LoadAddr(bc_reg_t reg, uint8_t addr);
-    void LoadFunc(bc_reg_t reg, bc_address_t addr,
-        uint8_t nargs, uint8_t is_variadic);
-    void LoadType(bc_reg_t reg, uint16_t type_name_len,
-        const char *type_name, uint16_t size, char **names);
-    void LoadMem(uint8_t dst, uint8_t src, uint8_t index);
-    void LoadMemHash(uint8_t dst, uint8_t src, uint32_t hash);
-    void LoadArrayIdx(uint8_t dst, uint8_t src, uint8_t index_reg);
-    void LoadNull(bc_reg_t reg);
-    void LoadTrue(bc_reg_t reg);
-    void LoadFalse(bc_reg_t reg);
-    void MovOffset(uint16_t offset, bc_reg_t reg);
-    void MovIndex(uint16_t index, bc_reg_t reg);
-    void MovMem(uint8_t dst, uint8_t index, uint8_t src);
-    void MovMemHash(uint8_t dst, uint32_t hash, uint8_t src);
-    void MovArrayIdx(uint8_t dst, uint32_t index, uint8_t src);
-    void MovReg(uint8_t dst, uint8_t src);
-    void HashMemHash(uint8_t dst, uint8_t src, uint32_t hash);
-    void Push(bc_reg_t reg);
-    void Pop(ExecutionThread *thread);
-    void PopN(uint8_t n);
-    void PushArray(uint8_t dst, uint8_t src);
-    void Echo(bc_reg_t reg);
-    void EchoNewline(ExecutionThread *thread);
-    void Jmp(bc_reg_t reg);
-    void Je(bc_reg_t reg);
-    void Jne(bc_reg_t reg);
-    void Jg(bc_reg_t reg);
-    void Jge(bc_reg_t reg);
-    void Call(bc_reg_t reg, uint8_t nargs);
-    void Ret(ExecutionThread *thread);
-    void BeginTry(bc_reg_t reg);
-    void EndTry(ExecutionThread *thread);
-    void New(uint8_t dst, uint8_t src);
-    void NewArray(uint8_t dst, uint32_t size);
-    void Cmp(uint8_t lhs_reg, uint8_t rhs_reg);
-    void CmpZ(bc_reg_t reg);
-    void Add(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Sub(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Mul(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Div(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Neg(bc_reg_t reg);
-
-    #endif
 };
 
 } // namespace vm

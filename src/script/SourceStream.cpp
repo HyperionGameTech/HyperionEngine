@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+namespace hyperion {
+
 SourceStream::SourceStream(SourceFile *file)
     : m_file(file),
       m_position(0)
@@ -127,3 +129,5 @@ void SourceStream::Read(char *ptr, size_t num_bytes)
         ptr[i] = m_file->GetBuffer()[m_position++];
     }
 }
+
+} // namespace hyperion

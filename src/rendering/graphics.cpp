@@ -86,6 +86,8 @@ bool GraphicsPipeline::RemoveFromSpatialList(
         spatials.begin(),
         spatials.end(),
         [&id](const auto &item) {
+            AssertThrow(item != nullptr); // if this comes up, debug it. trying to catch a threading issue
+
             return item->GetId() == id;
         }
     );
@@ -96,14 +98,12 @@ bool GraphicsPipeline::RemoveFromSpatialList(
 
     auto &found_spatial = *it;
 
-    if (found_spatial != nullptr) {
-        if (dispatch_item_removed) {
-            m_spatial_notifier.ItemRemoved(found_spatial);
-        }
+    if (dispatch_item_removed) {
+        m_spatial_notifier.ItemRemoved(found_spatial);
+    }
 
-        if (call_on_removed) {
-            found_spatial->OnRemovedFromPipeline(this);
-        }
+    if (call_on_removed) {
+        found_spatial->OnRemovedFromPipeline(this);
     }
 
     if (remove_immediately) {
