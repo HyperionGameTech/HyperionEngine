@@ -8,8 +8,7 @@
 
 #include <util/utf8.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class Lexer {
 public:
@@ -57,7 +56,6 @@ private:
     bool SkipWhitespace();
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

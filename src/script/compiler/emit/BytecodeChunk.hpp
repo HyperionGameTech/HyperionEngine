@@ -8,8 +8,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 struct BytecodeChunk final : public Buildable {
     std::vector<LabelInfo> labels;
@@ -41,7 +40,6 @@ struct BytecodeChunk final : public Buildable {
     std::vector<std::unique_ptr<Buildable>> buildables;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

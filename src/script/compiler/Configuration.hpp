@@ -5,14 +5,12 @@
 #include <map>
 #include <fstream>
 
-#define ACE_ENABLE_BLOCK_EXPRESSIONS 0
+#define ACE_ENABLE_BLOCK_EXPRESSIONS 1
 #define ACE_ENABLE_LAZY_DECLARATIONS 0
-#define ACE_ANY_ONLY_FUNCTION_PARAMATERS 0
 #define ACE_ALLOW_IDENTIFIERS_OTHER_MODULES 0
 #define ACE_ENABLE_CONFIG_FILE 0
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 struct Config {
     static const int max_data_members;
@@ -24,7 +22,6 @@ struct Config {
     static bool cull_unused_objects;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

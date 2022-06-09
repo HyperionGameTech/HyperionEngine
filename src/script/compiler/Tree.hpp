@@ -8,8 +8,7 @@
 #include <stack>
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 template <typename T>
 struct TreeNode {
@@ -158,7 +157,6 @@ private:
     TreeNode<T> *m_top;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compielr
 
 #endif

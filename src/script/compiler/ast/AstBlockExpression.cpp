@@ -18,8 +18,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstBlockExpression::AstBlockExpression(
     const std::shared_ptr<AstBlock> &block,
@@ -82,6 +81,7 @@ void AstBlockExpression::Visit(AstVisitor *visitor, Module *mod)
         closure_block->AddChild(std::get<1>(tup));
     }
     
+    // this closure object be the last item in the expression, so it will be returned.
     m_result_closure.reset(new AstFunctionExpression(
         {},
         nullptr,
@@ -171,13 +171,12 @@ bool AstBlockExpression::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstBlockExpression::GetSymbolType() const
+SymbolTypePtr_t AstBlockExpression::GetExprType() const
 {
     AssertThrow(m_result_closure != nullptr);
-    AssertThrow(m_result_closure->GetSymbolType() != nullptr);
+    AssertThrow(m_result_closure->GetExprType() != nullptr);
 
-    return m_result_closure->GetSymbolType();
+    return m_result_closure->GetExprType();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

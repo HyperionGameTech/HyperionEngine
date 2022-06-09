@@ -3,8 +3,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstObject : public AstExpression {
 public:
@@ -19,7 +18,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 private:
     SymbolTypeWeakPtr_t m_symbol_type;
@@ -33,7 +32,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

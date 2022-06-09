@@ -1,6 +1,10 @@
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
+
+#include <script/compiler/type-system/BuiltinTypes.hpp>
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
@@ -8,8 +12,7 @@
 #include <system/debug.h>
 #include <util/string_util.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstModuleDeclaration::AstModuleDeclaration(
     const std::string &name,
@@ -121,5 +124,4 @@ Pointer<AstStatement> AstModuleDeclaration::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

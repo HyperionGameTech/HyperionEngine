@@ -10,8 +10,7 @@
 
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class DecompilationUnit {
 public:
@@ -29,7 +28,6 @@ public:
         utf::utf8_ostream *os = nullptr);
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

@@ -6,8 +6,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstBlock : public AstStatement {
 public:
@@ -46,7 +45,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

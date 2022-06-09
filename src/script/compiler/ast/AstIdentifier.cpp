@@ -1,4 +1,5 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Scope.hpp>
@@ -9,8 +10,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstIdentifier::AstIdentifier(const std::string &name, const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
@@ -29,9 +29,10 @@ void AstIdentifier::PerformLookup(AstVisitor *visitor, Module *mod)
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     } else if (mod->LookupNestedModule(m_name) != nullptr) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_MODULE);
-    } else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
+    }/* else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
-    } else {
+    } */
+    else {
         // nothing was found
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_NOT_FOUND);
     }
@@ -69,22 +70,38 @@ void AstIdentifier::Visit(AstVisitor *visitor, Module *mod)
     CheckInFunction(visitor, mod);
 }
 
-SymbolTypePtr_t AstIdentifier::GetSymbolType() const
-{
-    if (m_properties.GetIdentifier() != nullptr) {
-        return m_properties.GetIdentifier()->GetSymbolType();
-    } else if (m_properties.m_found_type != nullptr) {
-        return m_properties.m_found_type;
-    }
-
-    return BuiltinTypes::UNDEFINED;
-}
-
 int AstIdentifier::GetStackOffset(int stack_size) const
 {
     AssertThrow(m_properties.GetIdentifier() != nullptr);
     return stack_size - m_properties.GetIdentifier()->GetStackLocation();
 }
 
-} // namespace compiler
-} // namespace hyperion
+const AstExpression *AstIdentifier::GetValueOf() const
+{
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        if (ident->GetFlags() & IdentifierFlags::FLAG_CONST) {
+            if (const auto current_value = ident->GetCurrentValue()) {
+                return current_value->GetValueOf();
+            }
+        }
+    }
+
+    return this;
+}
+
+AstTypeObject *AstIdentifier::ExtractTypeObject() const
+{
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        if (const auto current_value = ident->GetCurrentValue()) {
+            if (AstIdentifier *nested_identifier = dynamic_cast<AstIdentifier*>(current_value.get())) {
+                return nested_identifier->ExtractTypeObject();
+            } else if (AstTypeObject *type_object = dynamic_cast<AstTypeObject*>(current_value.get())) {
+                return type_object;
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+} // namespace hyperion::compiler

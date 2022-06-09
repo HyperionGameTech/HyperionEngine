@@ -3,8 +3,7 @@
 
 #include <script/compiler/ast/AstConstant.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstFloat : public AstConstant {
 public:
@@ -19,9 +18,9 @@ public:
     virtual bool IsNumber() const override;
     virtual hyperion::aint32 IntValue() const override;
     virtual hyperion::afloat32 FloatValue() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
-    virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, AstConstant *right) const override;
+    virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
 private:
     hyperion::afloat32 m_value;
@@ -35,7 +34,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

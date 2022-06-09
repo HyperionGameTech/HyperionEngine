@@ -3,8 +3,7 @@
 
 #include <cstring>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 StaticObject::StaticObject()
     : m_id(0),
@@ -156,5 +155,4 @@ bool StaticObject::operator==(const StaticObject &other) const
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

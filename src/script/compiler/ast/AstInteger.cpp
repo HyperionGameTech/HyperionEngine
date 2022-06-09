@@ -14,8 +14,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstInteger::AstInteger(hyperion::aint32 value, const SourceLocation &location)
     : AstConstant(location),
@@ -56,12 +55,12 @@ hyperion::afloat32 AstInteger::FloatValue() const
     return (hyperion::afloat32)m_value;
 }
 
-SymbolTypePtr_t AstInteger::GetSymbolType() const
+SymbolTypePtr_t AstInteger::GetExprType() const
 {
     return BuiltinTypes::INT;
 }
 
-std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_add:
@@ -164,7 +163,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
         case OP_bitwise_xor:
             // right must be integer
-            if (!right->IsNumber() || right->GetSymbolType() != BuiltinTypes::INT) {
+            if (!right->IsNumber() || right->GetExprType() != BuiltinTypes::INT) {
                 return nullptr;
             }
 
@@ -173,7 +172,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
         case OP_bitwise_and:
             // right must be integer
-            if (!right->IsNumber() || right->GetSymbolType() != BuiltinTypes::INT) {
+            if (!right->IsNumber() || right->GetExprType() != BuiltinTypes::INT) {
                 return nullptr;
             }
 
@@ -182,7 +181,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
         case OP_bitwise_or:
             // right must be integer
-            if (!right->IsNumber() || right->GetSymbolType() != BuiltinTypes::INT) {
+            if (!right->IsNumber() || right->GetExprType() != BuiltinTypes::INT) {
                 return nullptr;
             }
 
@@ -191,7 +190,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
         case OP_bitshift_left:
             // right must be integer
-            if (!right->IsNumber() || right->GetSymbolType() != BuiltinTypes::INT) {
+            if (!right->IsNumber() || right->GetExprType() != BuiltinTypes::INT) {
                 return nullptr;
             }
 
@@ -200,7 +199,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
         case OP_bitshift_right:
             // right must be integer
-            if (!right->IsNumber() || right->GetSymbolType() != BuiltinTypes::INT) {
+            if (!right->IsNumber() || right->GetExprType() != BuiltinTypes::INT) {
                 return nullptr;
             }
 
@@ -213,7 +212,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
-                if (dynamic_cast<AstNil*>(right)) {
+                if (dynamic_cast<const AstNil*>(right)) {
                     // rhs is null, return false
                     return std::shared_ptr<AstFalse>(
                         new AstFalse(m_location));
@@ -237,7 +236,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
 
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
-                if (dynamic_cast<AstNil*>(right)) {
+                if (dynamic_cast<const AstNil*>(right)) {
                     if (this_true == 1) {
                         return std::shared_ptr<AstTrue>(new AstTrue(m_location));
                     } else if (this_true == 0) {
@@ -261,6 +260,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
             if (!right->IsNumber()) {
                 return nullptr;
             }
+
             if (IntValue() < right->IntValue()) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             } else {
@@ -271,6 +271,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
             if (!right->IsNumber()) {
                 return nullptr;
             }
+
             if (IntValue() > right->IntValue()) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             } else {
@@ -281,6 +282,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
             if (!right->IsNumber()) {
                 return nullptr;
             }
+
             if (IntValue() <= right->IntValue()) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             } else {
@@ -291,6 +293,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
             if (!right->IsNumber()) {
                 return nullptr;
             }
+
             if (IntValue() >= right->IntValue()) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             } else {
@@ -301,6 +304,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
             if (!right->IsNumber()) {
                 return nullptr;
             }
+
             if (IntValue() == right->IntValue()) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             } else {
@@ -325,5 +329,4 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, AstCo
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

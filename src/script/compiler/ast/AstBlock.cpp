@@ -10,8 +10,7 @@
 
 #include <limits>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstBlock::AstBlock(const std::vector<std::shared_ptr<AstStatement>> &children, 
     const SourceLocation &location)
@@ -92,5 +91,4 @@ Pointer<AstStatement> AstBlock::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

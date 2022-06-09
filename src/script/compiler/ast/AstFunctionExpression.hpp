@@ -11,20 +11,17 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstFunctionExpression : public AstExpression {
 public:
-    AstFunctionExpression(
-        const std::vector<std::shared_ptr<AstParameter>> &parameters,
-        const std::shared_ptr<AstTypeSpecification> &type_specification,
+    AstFunctionExpression(const std::vector<std::shared_ptr<AstParameter>> &parameters,
+        const std::shared_ptr<AstTypeSpecification> &return_type_specification,
         const std::shared_ptr<AstBlock> &block,
         bool is_async,
         bool is_pure,
         bool is_generator,
-        const SourceLocation &location
-    );
+        const SourceLocation &location);
     virtual ~AstFunctionExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -35,14 +32,14 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
     
     inline const SymbolTypePtr_t &GetReturnType() const { return m_return_type; }
     inline void SetReturnType(const SymbolTypePtr_t &return_type) { m_return_type = return_type; }
 
 protected:
     std::vector<std::shared_ptr<AstParameter>> m_parameters;
-    std::shared_ptr<AstTypeSpecification> m_type_specification;
+    std::shared_ptr<AstTypeSpecification> m_return_type_specification;
     std::shared_ptr<AstBlock> m_block;
     bool m_is_async;
     bool m_is_pure;
@@ -72,7 +69,7 @@ protected:
     {
         return Pointer<AstFunctionExpression>(new AstFunctionExpression(
             CloneAllAstNodes(m_parameters),
-            CloneAstNode(m_type_specification),
+            CloneAstNode(m_return_type_specification),
             CloneAstNode(m_block),
             m_is_async,
             m_is_pure,
@@ -82,7 +79,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

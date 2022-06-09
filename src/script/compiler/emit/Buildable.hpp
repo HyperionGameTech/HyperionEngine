@@ -5,8 +5,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 using byte = uint8_t;
 using Buffer = std::basic_streambuf<byte>;
@@ -30,7 +29,6 @@ struct Buildable {
     virtual ~Buildable() = default;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

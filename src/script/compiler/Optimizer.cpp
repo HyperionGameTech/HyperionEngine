@@ -6,8 +6,7 @@
 
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 std::shared_ptr<AstConstant> Optimizer::ConstantFold(
     std::shared_ptr<AstExpression> &left,
@@ -15,66 +14,16 @@ std::shared_ptr<AstConstant> Optimizer::ConstantFold(
     Operators op_type,
     AstVisitor *visitor)
 {
-    AstConstant *left_as_constant  = dynamic_cast<AstConstant*>(left.get());
-    AstConstant *right_as_constant = dynamic_cast<AstConstant*>(right.get());
+    AssertThrow(left != nullptr);
+    AssertThrow(right != nullptr);
+
+    const AstConstant *left_as_constant  = dynamic_cast<const AstConstant*>(left->GetValueOf());
+    const AstConstant *right_as_constant = dynamic_cast<const AstConstant*>(right->GetValueOf());
 
     std::shared_ptr<AstConstant> result;
 
     if (left_as_constant != nullptr && right_as_constant != nullptr) {
         result = left_as_constant->HandleOperator(op_type, right_as_constant);
-
-        /*// perform operations on these constants
-        switch (op_type) {
-            case Operators::OP_add:
-                result = (*left_as_constant) + right_as_constant;
-                break;
-            case Operators::OP_subtract:
-                result = (*left_as_constant) - right_as_constant;
-                break;
-            case Operators::OP_multiply:
-                result = (*left_as_constant) * right_as_constant;
-                break;
-            case Operators::OP_divide:
-                result = (*left_as_constant) / right_as_constant;
-                break;
-            case Operators::OP_modulus:
-                result = (*left_as_constant) % right_as_constant;
-                break;
-            case Operators::OP_bitwise_xor:
-                result = (*left_as_constant) ^ right_as_constant;
-                break;
-            case Operators::OP_bitwise_and:
-                result = (*left_as_constant) & right_as_constant;
-                break;
-            case Operators::OP_bitshift_left:
-                result = (*left_as_constant) << right_as_constant;
-                break;
-            case Operators::OP_bitshift_right:
-                result = (*left_as_constant) >> right_as_constant;
-                break;
-            case Operators::OP_logical_and:
-                result = (*left_as_constant) && right_as_constant;
-                break;
-            case Operators::OP_logical_or:
-                result = (*left_as_constant) || right_as_constant;
-                break;
-            case Operators::OP_less:
-                result = (*left_as_constant) < right_as_constant;
-                break;
-            case Operators::OP_greater:
-                result = (*left_as_constant) > right_as_constant;
-                break;
-            case Operators::OP_less_eql:
-                result = (*left_as_constant) <= right_as_constant;
-                break;
-            case Operators::OP_greater_eql:
-                result = (*left_as_constant) >= right_as_constant;
-                break;
-            case Operators::OP_equals:
-                result = left_as_constant->Equals(right_as_constant);
-                break;
-        }*/
-
         // don't have to worry about assignment operations,
         // because at this point both sides are const and literal.
     }
@@ -157,5 +106,4 @@ void Optimizer::OptimizeInner()
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

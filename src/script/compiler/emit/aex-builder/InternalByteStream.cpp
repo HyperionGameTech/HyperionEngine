@@ -1,10 +1,9 @@
-#include <script/compiler/emit/codegen/InternalByteStream.hpp>
+#include <script/compiler/emit/aex-builder/InternalByteStream.hpp>
 
 #include <system/debug.h>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 void InternalByteStream::MarkLabel(LabelId label_id)
 {
@@ -57,5 +56,4 @@ std::vector<std::uint8_t> &InternalByteStream::Bake()
     return m_stream;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

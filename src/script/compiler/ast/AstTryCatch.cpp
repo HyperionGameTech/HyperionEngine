@@ -10,8 +10,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstTryCatch::AstTryCatch(const std::shared_ptr<AstBlock> &try_block,
     const std::shared_ptr<AstBlock> &catch_block,
@@ -91,5 +90,4 @@ Pointer<AstStatement> AstTryCatch::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

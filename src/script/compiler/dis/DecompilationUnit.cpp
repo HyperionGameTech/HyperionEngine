@@ -6,8 +6,7 @@
 #include <cstring>
 #include <cstdio>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 DecompilationUnit::DecompilationUnit()
 {
@@ -360,15 +359,11 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "load_type ["
                     << "%" << (int)reg << ", "
-                    << "str(" << type_name.data() << ")"
-                    << "u16(" << (int)size << "), ";
+                    << "str(" << type_name.data() << "), "
+                    << "u16(" << (int)size << ")";
 
             for (int i = 0; i < size; i++) {
-                (*os)
-                    << "str(" << names[i].data() << ")";
-                if (i != size - 1) {
-                    (*os) << ", ";
-                }
+                (*os) << ", str(" << names[i].data() << ")";
             }
                     
             (*os)
@@ -909,25 +904,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case NEW_PROTO:
-    {
-        uint8_t dst;
-        bs.Read(&dst);
-
-        uint8_t src;
-        bs.Read(&src);
-
-        if (os != nullptr) {
-            (*os)
-                << "new_proto ["
-                    << "%" << (int)dst << ", "
-                    << "%" << (int)src
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
     case NEW_ARRAY:
     {
         uint8_t dst;
@@ -1227,6 +1203,21 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case TRACEMAP:
+    {
+        uint32_t len;
+        bs.Read(&len);
+
+        if (os != nullptr) {
+            (*os)
+                << "tracemap ["
+                    << "u32(" << len << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case EXIT:
     {
         if (os != nullptr) {
@@ -1269,5 +1260,4 @@ InstructionStream DecompilationUnit::Decompile(hyperion::vm::BytecodeStream &bs,
     return is;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

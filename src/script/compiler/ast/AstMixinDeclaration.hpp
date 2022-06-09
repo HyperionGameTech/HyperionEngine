@@ -11,18 +11,15 @@
 #include <memory>
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstMixinDeclaration : public AstDeclaration {
 public:
     AstMixinDeclaration(const std::string &name,
-        const std::string &mixin_expr,
+        const std::shared_ptr<AstExpression> &expr,
         const SourceLocation &location);
     virtual ~AstMixinDeclaration() = default;
 
-    inline const std::string &GetMixinExpr() const
-        { return m_mixin_expr; }
     inline void SetPreventShadowing(bool prevent_shadowing)
         { m_prevent_shadowing = prevent_shadowing; }
 
@@ -33,7 +30,8 @@ public:
     virtual Pointer<AstStatement> Clone() const override;
 
 protected:
-    std::string m_mixin_expr;
+    std::shared_ptr<AstExpression> m_expr;
+    //std::string m_mixin_expr;
     bool m_prevent_shadowing;
 
     // created if there is a shadowed object to allow referencing it
@@ -43,13 +41,12 @@ protected:
     {
         return Pointer<AstMixinDeclaration>(new AstMixinDeclaration(
             m_name,
-            m_mixin_expr,
+            CloneAstNode(m_expr),
             m_location
         ));
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

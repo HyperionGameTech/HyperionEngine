@@ -4,8 +4,7 @@
 #include <string>
 #include <map>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class TypeContract {
 public:
@@ -23,7 +22,6 @@ private:
     static const std::map<TypeContract::Type, std::string> type_contract_strings;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

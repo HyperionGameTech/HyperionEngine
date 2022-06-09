@@ -1,6 +1,7 @@
 #include <script/compiler/ast/AstActionExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
@@ -16,8 +17,7 @@
 #include <limits>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstActionExpression::AstActionExpression(
     const std::vector<std::shared_ptr<AstArgument>> &actions,
@@ -62,6 +62,7 @@ void AstActionExpression::Visit(AstVisitor *visitor, Module *mod)
     std::shared_ptr<AstArgument> self_arg((new AstArgument(
         m_target,
         false,
+        false,
         "",
         SourceLocation::eof
     )));
@@ -88,7 +89,7 @@ void AstActionExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 
-    SymbolTypePtr_t target_type = m_target->GetSymbolType();
+    SymbolTypePtr_t target_type = m_target->GetExprType();
     AssertThrow(target_type != nullptr);
 
     if (target_type != BuiltinTypes::ANY) {
@@ -162,13 +163,11 @@ bool AstActionExpression::MayHaveSideEffects() const
     return m_member_found != 0;
 }
 
-SymbolTypePtr_t AstActionExpression::GetSymbolType() const
+SymbolTypePtr_t AstActionExpression::GetExprType() const
 {
     AssertThrow(m_expr != nullptr);
-    AssertThrow(m_expr->GetSymbolType() != nullptr);
-
-    return m_expr->GetSymbolType();
+    AssertThrow(m_expr->GetExprType() != nullptr);
+    return m_expr->GetExprType();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

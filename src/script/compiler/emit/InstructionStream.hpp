@@ -8,8 +8,7 @@
 #include <ostream>
 #include <cstdint>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class InstructionStream {
     //friend std::ostream &operator<<(std::ostream &os, InstructionStream instruction_stream);
@@ -58,7 +57,6 @@ private:
     std::vector<StaticObject> m_static_objects;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

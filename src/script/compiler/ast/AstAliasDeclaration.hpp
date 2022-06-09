@@ -4,12 +4,12 @@
 #include <script/compiler/ast/AstDeclaration.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstAliasDeclaration : public AstDeclaration {
 public:
@@ -40,7 +40,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

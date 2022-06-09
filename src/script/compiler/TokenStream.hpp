@@ -6,8 +6,7 @@
 
 #include <vector>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 struct TokenStreamInfo {
     std::string filepath;
@@ -54,7 +53,6 @@ private:
     TokenStreamInfo m_info;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

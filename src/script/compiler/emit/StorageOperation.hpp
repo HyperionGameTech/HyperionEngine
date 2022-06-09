@@ -8,8 +8,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum class Operations {
     LOAD,
@@ -125,7 +124,6 @@ struct StorageOperation : public Buildable {
     };
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

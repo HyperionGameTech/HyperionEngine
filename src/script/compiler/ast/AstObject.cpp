@@ -12,14 +12,12 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
-AstObject::AstObject(
-    const SymbolTypeWeakPtr_t &symbol_type,
-    const SourceLocation &location
-) : AstExpression(location, ACCESS_MODE_LOAD),
-    m_symbol_type(symbol_type)
+AstObject::AstObject(const SymbolTypeWeakPtr_t &symbol_type,
+    const SourceLocation &location)
+    : AstExpression(location, ACCESS_MODE_LOAD),
+      m_symbol_type(symbol_type)
 {
 }
 
@@ -83,12 +81,10 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         const SymbolTypePtr_t &mem_type = std::get<1>(mem);
         AssertThrow(mem_type != nullptr);
 
-        auto &mem_assignment = std::get<2>(mem);
-
         // if there has not been an assignment provided,
         // use the default value of the members's type.
-        if (mem_assignment != nullptr) {
-            chunk->Append(mem_assignment->Build(visitor, mod));
+        if (std::get<2>(mem) != nullptr) {
+            chunk->Append(std::get<2>(mem)->Build(visitor, mod));
         } else {
             // load the data member's default value.
             AssertThrowMsg(mem_type->GetDefaultValue() != nullptr,
@@ -218,12 +214,12 @@ bool AstObject::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstObject::GetSymbolType() const
+SymbolTypePtr_t AstObject::GetExprType() const
 {
     auto sp = m_symbol_type.lock();
     AssertThrow(sp != nullptr);
+
     return sp;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

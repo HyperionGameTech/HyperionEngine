@@ -8,11 +8,10 @@
 
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstParameter::AstParameter(const std::string &name, 
-    const std::shared_ptr<AstTypeSpecification> &type_spec, 
+    const std::shared_ptr<AstPrototypeSpecification> &type_spec, 
     const std::shared_ptr<AstExpression> &default_param, 
     bool is_variadic,
     bool is_const,
@@ -35,15 +34,15 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
     if (m_type_spec != nullptr) {
         m_type_spec->Visit(visitor, mod);
 
-        AssertThrow(m_type_spec->GetSymbolType() != nullptr);
-        symbol_type = m_type_spec->GetSymbolType();
+        AssertThrow(m_type_spec->GetHeldType() != nullptr);
+        symbol_type = m_type_spec->GetHeldType();
     }
 
     if (m_default_param != nullptr) {
         m_default_param->Visit(visitor, mod);
 
-        AssertThrow(m_default_param->GetSymbolType() != nullptr);
-        const SymbolTypePtr_t default_param_type = m_default_param->GetSymbolType();
+        AssertThrow(m_default_param->GetExprType() != nullptr);
+        const SymbolTypePtr_t default_param_type = m_default_param->GetExprType();
 
         // make sure the types are compatible
         if (m_type_spec != nullptr && !symbol_type->TypeCompatible(*default_param_type, true)) {
@@ -122,5 +121,4 @@ Pointer<AstStatement> AstParameter::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

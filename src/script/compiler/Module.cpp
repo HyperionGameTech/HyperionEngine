@@ -1,10 +1,8 @@
 #include <script/compiler/Module.hpp>
-#include <script/compiler/Configuration.hpp>
 
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 Module::Module(const std::string &name,
     const SourceLocation &location)
@@ -47,42 +45,17 @@ std::string Module::GenerateFullModuleName() const
     return m_name;
 }
 
-bool Module::IsInFunction()
+bool Module::IsInGlobalScope() const
 {
-    TreeNode<Scope> *top = m_scopes.TopNode();
-    
-    while (top != nullptr) {
-        if (top->m_value.GetScopeType() == SCOPE_TYPE_FUNCTION) {
-            return true;
-        }
-        
-        top = top->m_parent;
-    }
-
-    return false;
+    return m_scopes.TopNode()->m_parent == nullptr;
 }
 
-bool Module::IsInTypeDefinition()
+bool Module::IsInScopeOfType(ScopeType scope_type) const
 {
-    TreeNode<Scope> *top = m_scopes.TopNode();
-    
-    while (top != nullptr) {
-        if (top->m_value.GetScopeType() == SCOPE_TYPE_TYPE_DEFINITION) {
-            return true;
-        }
-        
-        top = top->m_parent;
-    }
+    const TreeNode<Scope> *top = m_scopes.TopNode();
 
-    return false;
-}
-
-bool Module::IsInGeneric()
-{
-    TreeNode<Scope> *top = m_scopes.TopNode();
-    
     while (top != nullptr) {
-        if (top->m_value.GetScopeFlags() & ScopeFunctionFlags::GENERIC_FLAG) {
+        if (top->m_value.GetScopeType() == scope_type) {
             return true;
         }
         
@@ -110,7 +83,7 @@ Module *Module::LookupNestedModule(const std::string &name)
     return nullptr;
 }
 
-Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_only)
+Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules)
 {
     TreeNode<Scope> *top = m_scopes.TopNode();
 
@@ -127,27 +100,27 @@ Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_on
         top = top->m_parent;
     }
 
-#if ACE_ALLOW_IDENTIFIERS_OTHER_MODULES
-    if (m_tree_link != nullptr && m_tree_link->m_parent != nullptr) {
-        if (Module *other = m_tree_link->m_parent->m_value) {
-            if (other->GetLocation().GetFileName() == m_location.GetFileName()) {
-                return other->LookUpIdentifier(name, false);
-            } else {
-                // we are outside of file scope, so loop until root/global module found
-                const TreeNode<Module*> *mod_link = m_tree_link->m_parent;
+    if (outside_modules) {
+        if (m_tree_link != nullptr && m_tree_link->m_parent != nullptr) {
+            if (Module *other = m_tree_link->m_parent->m_value) {
+                if (other->GetLocation().GetFileName() == m_location.GetFileName()) {
+                    return other->LookUpIdentifier(name, false);
+                } else {
+                    // we are outside of file scope, so loop until root/global module found
+                    const TreeNode<Module*> *mod_link = m_tree_link->m_parent;
 
-                while (mod_link->m_parent != nullptr) {
-                    mod_link = mod_link->m_parent;
+                    while (mod_link->m_parent != nullptr) {
+                        mod_link = mod_link->m_parent;
+                    }
+
+                    AssertThrow(mod_link->m_value != nullptr);
+                    AssertThrow(mod_link->m_value->GetName() == hyperion::compiler::Config::global_module_name);
+
+                    return mod_link->m_value->LookUpIdentifier(name, false);
                 }
-
-                AssertThrow(mod_link->m_value != nullptr);
-                AssertThrow(mod_link->m_value->GetName() == hyperion::compiler::Config::global_module_name);
-
-                return mod_link->m_value->LookUpIdentifier(name, false);
             }
         }
     }
-#endif
 
     return nullptr;
 }
@@ -232,5 +205,4 @@ SymbolTypePtr_t Module::PerformLookup(
     return nullptr;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

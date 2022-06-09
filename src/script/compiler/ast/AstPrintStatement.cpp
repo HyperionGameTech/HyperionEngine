@@ -8,8 +8,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstPrintStatement::AstPrintStatement(const std::shared_ptr<AstArgumentList> &arg_list,
         const SourceLocation &location)
@@ -72,5 +71,4 @@ Pointer<AstStatement> AstPrintStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

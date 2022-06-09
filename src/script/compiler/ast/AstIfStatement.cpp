@@ -10,8 +10,7 @@
 
 #include <cstdio>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstIfStatement::AstIfStatement(const std::shared_ptr<AstExpression> &conditional,
     const std::shared_ptr<AstBlock> &block,
@@ -93,5 +92,4 @@ Pointer<AstStatement> AstIfStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

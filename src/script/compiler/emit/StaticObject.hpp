@@ -6,8 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 struct StaticFunction {
     uint32_t m_addr;
@@ -51,7 +50,6 @@ struct StaticObject {
     bool operator==(const StaticObject &other) const;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

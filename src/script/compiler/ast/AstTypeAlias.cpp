@@ -5,8 +5,7 @@
 #include <system/debug.h>
 #include <util/utf8.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstTypeAlias::AstTypeAlias(
     const std::string &name,
@@ -25,7 +24,7 @@ void AstTypeAlias::Visit(AstVisitor *visitor, Module *mod)
 
     m_aliasee->Visit(visitor, mod);
 
-    SymbolTypePtr_t aliasee_type = m_aliasee->GetSymbolType();
+    SymbolTypePtr_t aliasee_type = m_aliasee->GetSpecifiedType();
     AssertThrow(aliasee_type != nullptr);
 
     // make sure name isn't already defined
@@ -63,5 +62,4 @@ Pointer<AstStatement> AstTypeAlias::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

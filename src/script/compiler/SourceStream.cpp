@@ -2,8 +2,7 @@
 
 #include <stdexcept>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 SourceStream::SourceStream(SourceFile *file)
     : m_file(file),
@@ -131,5 +130,4 @@ void SourceStream::Read(char *ptr, size_t num_bytes)
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

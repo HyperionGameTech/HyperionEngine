@@ -7,8 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstTupleExpression : public AstExpression {
 public:
@@ -27,7 +26,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
     std::vector<std::shared_ptr<AstArgument>> m_members;
@@ -44,7 +43,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

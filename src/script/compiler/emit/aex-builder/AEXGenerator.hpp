@@ -1,8 +1,8 @@
-#ifndef CODEGEN_HPP
-#define CODEGEN_HPP
+#ifndef AEX_GENERATOR_HPP
+#define AEX_GENERATOR_HPP
 
-#include <script/compiler/emit/codegen/InternalByteStream.hpp>
 #include <script/compiler/emit/BuildableVisitor.hpp>
+#include <script/compiler/emit/aex-builder/InternalByteStream.hpp>
 
 #include <system/debug.h>
 
@@ -11,13 +11,12 @@
 #include <vector>
 #include <cstdint>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
-class CodeGenerator : public BuildableVisitor {
+class AEXGenerator : public BuildableVisitor {
 public:
-    CodeGenerator(BuildParams &build_params);
-    virtual ~CodeGenerator() = default;
+    AEXGenerator(BuildParams &build_params);
+    virtual ~AEXGenerator() = default;
 
     inline InternalByteStream &GetInternalByteStream() { return m_ibs; }
     inline const InternalByteStream &GetInternalByteStream() const { return m_ibs; }
@@ -50,7 +49,6 @@ private:
     InternalByteStream m_ibs;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

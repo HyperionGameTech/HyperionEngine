@@ -1,7 +1,6 @@
 #include <script/compiler/Scope.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 Scope::Scope()
     : m_scope_type(SCOPE_TYPE_NORMAL),
@@ -24,5 +23,4 @@ Scope::Scope(const Scope &other)
 {
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

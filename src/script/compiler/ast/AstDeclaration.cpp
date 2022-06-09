@@ -2,8 +2,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstDeclaration::AstDeclaration(
     const std::string &name,
@@ -58,7 +57,7 @@ void AstDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 while (top != nullptr) {
                     if (top->m_value.GetScopeType() == SCOPE_TYPE_FUNCTION) {
                         // set declared in function flag
-                        m_identifier->SetFlags(m_identifier->GetFlags() | FLAG_DECLARED_IN_FUNCTION);
+                        m_identifier->GetFlags() |= FLAG_DECLARED_IN_FUNCTION;
                         break;
                     }
 
@@ -69,5 +68,4 @@ void AstDeclaration::Visit(AstVisitor *visitor, Module *mod)
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

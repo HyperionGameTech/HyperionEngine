@@ -1,5 +1,4 @@
 #include <script/compiler/ast/AstMixinDeclaration.hpp>
-#include <script/compiler/ast/AstMixin.hpp>
 #include <script/compiler/AstVisitor.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -8,15 +7,14 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstMixinDeclaration::AstMixinDeclaration(
     const std::string &name,
-    const std::string &mixin_expr,
+    const std::shared_ptr<AstExpression> &expr,
     const SourceLocation &location)
     : AstDeclaration(name, location),
-      m_mixin_expr(mixin_expr),
+      m_expr(expr),
       m_prevent_shadowing(true)
 {
 }
@@ -25,6 +23,7 @@ void AstMixinDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
+    AssertThrow(m_expr != nullptr);
 
     if (mod->LookUpIdentifier(m_name, true) != nullptr) {
         // a collision was found, add an error
@@ -46,7 +45,9 @@ void AstMixinDeclaration::Visit(AstVisitor *visitor, Module *mod)
                             m_name,
                             m_location
                         )),
-                        false,
+                        {},
+                        false, // not const
+                        false, // not generic
                         m_location
                     ));
 
@@ -55,16 +56,10 @@ void AstMixinDeclaration::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        std::shared_ptr<AstMixin> mixin_expr(new AstMixin(
-            m_name,
-            m_mixin_expr,
-            m_location
-        ));
-
         Scope &scope = mod->m_scopes.Top();
         if ((m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name, FLAG_MIXIN | FLAG_ALIAS))) {
             m_identifier->SetSymbolType(BuiltinTypes::ANY);
-            m_identifier->SetCurrentValue(mixin_expr);
+            m_identifier->SetCurrentValue(m_expr); // do not visit - will be visited upon mix
         }
     }
 }
@@ -90,5 +85,4 @@ Pointer<AstStatement> AstMixinDeclaration::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

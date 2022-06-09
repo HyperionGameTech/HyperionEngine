@@ -11,8 +11,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstAliasDeclaration::AstAliasDeclaration(
     const std::string &name,
@@ -31,7 +30,7 @@ void AstAliasDeclaration::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_aliasee != nullptr);
     m_aliasee->Visit(visitor, mod);
 
-    AssertThrow(m_aliasee->GetSymbolType() != nullptr);
+    AssertThrow(m_aliasee->GetExprType() != nullptr);
 
     if (mod->LookUpIdentifier(m_name, true) != nullptr) {
         // a collision was found, add an error
@@ -43,8 +42,30 @@ void AstAliasDeclaration::Visit(AstVisitor *visitor, Module *mod)
         ));
     } else {
         Scope &scope = mod->m_scopes.Top();
-        if ((m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name, FLAG_ALIAS))) {
-            m_identifier->SetSymbolType(m_aliasee->GetSymbolType());
+        /*m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name, FLAG_ALIAS);
+        AssertThrow(m_identifier != nullptr);
+
+        m_identifier->SetSymbolType(m_aliasee->GetExprType());
+        m_identifier->SetCurrentValue(m_aliasee);*/
+
+        if (AstIdentifier *aliasee_ident = dynamic_cast<AstIdentifier*>(m_aliasee.get())) {
+            AssertThrow(aliasee_ident->GetProperties().GetIdentifier() != nullptr);
+
+            m_identifier = scope.GetIdentifierTable().AddAlias(m_name, aliasee_ident->GetProperties().GetIdentifier());
+            AssertThrow(m_identifier != nullptr);
+        } else {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_WARN,
+                Msg_alias_must_be_identifier,
+                m_location,
+                m_name
+            ));
+
+            // work like a mixin
+            m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name, FLAG_ALIAS);
+            AssertThrow(m_identifier != nullptr);
+
+            m_identifier->SetSymbolType(m_aliasee->GetExprType());
             m_identifier->SetCurrentValue(m_aliasee);
         }
     }
@@ -64,5 +85,4 @@ Pointer<AstStatement> AstAliasDeclaration::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

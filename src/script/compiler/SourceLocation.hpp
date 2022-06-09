@@ -3,8 +3,7 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class SourceLocation {
 public:
@@ -30,7 +29,6 @@ private:
     std::string m_filename;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

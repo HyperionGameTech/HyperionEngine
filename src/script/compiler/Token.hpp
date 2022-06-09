@@ -5,8 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum TokenClass {
     TK_EMPTY,
@@ -22,7 +21,6 @@ enum TokenClass {
     TK_SEMICOLON,
     TK_COLON,
     TK_DOUBLE_COLON,
-    TK_DEFINE,
     TK_QUESTION_MARK,
     TK_DOT,
     TK_ELLIPSIS,
@@ -74,7 +72,6 @@ private:
     SourceLocation m_location;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

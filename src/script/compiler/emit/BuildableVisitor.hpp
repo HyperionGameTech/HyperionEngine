@@ -5,8 +5,7 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class BuildableVisitor {
 public:
@@ -38,7 +37,6 @@ public:
     virtual void Visit(RawOperation<> *) = 0;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

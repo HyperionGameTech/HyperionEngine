@@ -9,8 +9,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 InstructionStream::InstructionStream()
     : //m_position(0),
@@ -41,5 +40,11 @@ int InstructionStream::FindStaticObject(const StaticObject &static_object) const
     return -1;
 }
 
-} // namespace compiler
-} // namespace hyperion
+/*InstructionStream &InstructionStream::operator<<(const Instruction<> &instruction)
+{
+    m_data.push_back(instruction);
+    for (const std::vector<char> &operand : instruction.m_data) {
+        m_position += operand.size();
+    }
+    return *this;
+}*/

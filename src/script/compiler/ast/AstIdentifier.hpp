@@ -7,11 +7,11 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 // forward declaration
 class Scope;
+class AstTypeObject;
 
 struct AstIdentifierProperties {
     Identifier *m_identifier = nullptr;
@@ -20,6 +20,7 @@ struct AstIdentifierProperties {
 
     bool m_is_in_function = false;
     bool m_is_in_pure_function = false;
+
     int m_depth = 0;
     Scope *m_function_scope = nullptr;
 
@@ -61,7 +62,12 @@ public:
 
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override = 0;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override = 0;
+
+    virtual const AstExpression *GetValueOf() const override;
+
+    /** temporary, used for extracting a type object located in the stored value */
+    AstTypeObject *ExtractTypeObject() const;
 
 protected:
     std::string m_name;
@@ -71,7 +77,6 @@ protected:
     int GetStackOffset(int stack_size) const;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

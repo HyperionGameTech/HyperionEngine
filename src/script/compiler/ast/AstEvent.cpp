@@ -13,8 +13,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstConstantEvent::AstConstantEvent(const std::shared_ptr<AstConstant> &key,
     const std::shared_ptr<AstFunctionExpression> &trigger,
@@ -122,10 +121,9 @@ bool AstEvent::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstEvent::GetSymbolType() const
+SymbolTypePtr_t AstEvent::GetExprType() const
 {
     return BuiltinTypes::EVENT;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

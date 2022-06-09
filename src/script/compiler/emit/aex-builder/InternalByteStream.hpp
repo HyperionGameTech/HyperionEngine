@@ -8,8 +8,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class InternalByteStream {
 public:
@@ -38,6 +37,7 @@ public:
 
     void MarkLabel(LabelId label_id);
     void AddFixup(LabelId label_id, size_t offset = 0);
+
     std::vector<std::uint8_t> &Bake();
 
 private:
@@ -46,7 +46,6 @@ private:
     std::vector<Fixup> m_fixups;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

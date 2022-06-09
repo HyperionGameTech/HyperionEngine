@@ -11,8 +11,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstReturnStatement::AstReturnStatement(const std::shared_ptr<AstExpression> &expr,
     const SourceLocation &location)
@@ -44,7 +43,7 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
     if (in_function) {
         AssertThrow(top != nullptr);
         // add return type
-        top->m_value.AddReturnType(m_expr->GetSymbolType(), m_location);
+        top->m_value.AddReturnType(m_expr->GetExprType(), m_location);
     } else {
         // error; 'return' not allowed outside of a function
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -83,5 +82,4 @@ Pointer<AstStatement> AstReturnStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

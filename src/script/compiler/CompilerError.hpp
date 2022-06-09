@@ -7,8 +7,7 @@
 #include <sstream>
 #include <map>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum ErrorLevel {
     LEVEL_INFO,
@@ -20,11 +19,14 @@ enum ErrorMessage {
     /* Fatal errors */
     Msg_internal_error,
     Msg_custom_error,
+    Msg_not_implemented,
     Msg_illegal_syntax,
     Msg_illegal_expression,
     Msg_illegal_operator,
     Msg_invalid_operator_for_type,
+    Msg_invalid_symbol_query,
     Msg_const_modified,
+    Msg_const_missing_assignment,
     Msg_cannot_modify_rvalue,
     Msg_prohibited_action_attribute,
     Msg_unbalanced_expression,
@@ -51,7 +53,9 @@ enum ErrorMessage {
     Msg_expected_type_got_identifier,
     Msg_missing_type_and_assignment,
     Msg_type_no_default_assignment,
-    Msg_for_range_loop_illegal_assignment,
+    Msg_expression_not_generic,
+    Msg_too_many_generic_args,
+    Msg_too_few_generic_args,
 
     /* FUNCTIONS */
     Msg_multiple_return_types,
@@ -70,20 +74,29 @@ enum ErrorMessage {
     Msg_not_an_array,
 
     /* TYPES */
+    Msg_not_a_type,
     Msg_undefined_type,
     Msg_redefined_type,
     Msg_redefined_builtin_type,
     Msg_type_not_defined_globally,
     Msg_identifier_is_type,
     Msg_mismatched_types,
+    Msg_mismatched_types_assignment,
     Msg_implicit_any_mismatch,
     Msg_type_not_generic,
     Msg_generic_parameters_missing,
     Msg_generic_parameter_redeclared,
+    Msg_generic_expression_no_arguments_provided,
+    Msg_generic_expression_must_be_const,
+    Msg_generic_expression_invalid_arguments,
+    Msg_generic_expression_requires_assignment,
+    Msg_generic_argument_must_be_literal,
     Msg_not_a_data_member,
 
     Msg_bitwise_operands_must_be_int,
     Msg_bitwise_operand_must_be_int,
+    Msg_arithmetic_operands_must_be_numbers,
+    Msg_arithmetic_operand_must_be_numbers,
     Msg_expected_token,
     Msg_unknown_directive,
     Msg_unknown_module,
@@ -169,7 +182,6 @@ private:
     std::string m_text;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

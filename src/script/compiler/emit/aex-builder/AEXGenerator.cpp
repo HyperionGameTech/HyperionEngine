@@ -1,20 +1,19 @@
-#include <script/compiler/emit/codegen/Codegen.hpp>
+#include <script/compiler/emit/aex-builder/AEXGenerator.hpp>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
-CodeGenerator::CodeGenerator(BuildParams &build_params)
+AEXGenerator::AEXGenerator(BuildParams &build_params)
     : build_params(build_params)
 {
 }
 
-void CodeGenerator::Visit(BytecodeChunk *chunk)
+void AEXGenerator::Visit(BytecodeChunk *chunk)
 {
     BuildParams new_params;
     new_params.block_offset = build_params.block_offset + m_ibs.GetSize();
 
-    CodeGenerator chunk_generator(new_params);
+    AEXGenerator chunk_generator(new_params);
     for (auto &buildable : chunk->buildables) {
         chunk_generator.BuildableVisitor::Visit(buildable.get());
     }
@@ -26,12 +25,12 @@ void CodeGenerator::Visit(BytecodeChunk *chunk)
     m_ibs.Put(chunk_bytes.data(), chunk_bytes.size());
 }
 
-void CodeGenerator::Visit(LabelMarker *node)
+void AEXGenerator::Visit(LabelMarker *node)
 {
     m_ibs.MarkLabel(node->id);
 }
 
-void CodeGenerator::Visit(Jump *node)
+void AEXGenerator::Visit(Jump *node)
 {
     switch (node->jump_class) {
         case Jump::JumpClass::JMP:
@@ -56,7 +55,7 @@ void CodeGenerator::Visit(Jump *node)
     m_ibs.AddFixup(node->label_id, build_params.block_offset);
 }
 
-void CodeGenerator::Visit(Comparison *node)
+void AEXGenerator::Visit(Comparison *node)
 {
     switch (node->comparison_class) {
         case Comparison::ComparisonClass::CMP:
@@ -74,25 +73,25 @@ void CodeGenerator::Visit(Comparison *node)
     }
 }
 
-void CodeGenerator::Visit(FunctionCall *node)
+void AEXGenerator::Visit(FunctionCall *node)
 {
     m_ibs.Put(Instructions::CALL);
     m_ibs.Put(node->reg);
     m_ibs.Put(node->nargs);
 }
 
-void CodeGenerator::Visit(Return *node)
+void AEXGenerator::Visit(Return *node)
 {
     m_ibs.Put(Instructions::RET);
 }
 
-void CodeGenerator::Visit(StoreLocal *node)
+void AEXGenerator::Visit(StoreLocal *node)
 {
     m_ibs.Put(Instructions::PUSH);
     m_ibs.Put(node->reg);
 }
 
-void CodeGenerator::Visit(PopLocal *node)
+void AEXGenerator::Visit(PopLocal *node)
 {
     if (node->amt > 1) {
         m_ibs.Put(Instructions::POP_N);
@@ -104,49 +103,49 @@ void CodeGenerator::Visit(PopLocal *node)
     }
 }
 
-void CodeGenerator::Visit(LoadRef *node)
+void AEXGenerator::Visit(LoadRef *node)
 {
     m_ibs.Put(Instructions::LOAD_REF);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
 
-void CodeGenerator::Visit(LoadDeref *node)
+void AEXGenerator::Visit(LoadDeref *node)
 {
     m_ibs.Put(Instructions::LOAD_DEREF);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
 
-void CodeGenerator::Visit(ConstI32 *node)
+void AEXGenerator::Visit(ConstI32 *node)
 {
     m_ibs.Put(Instructions::LOAD_I32);
     m_ibs.Put(node->reg);
     m_ibs.Put((byte*)&node->value, sizeof(node->value));
 }
 
-void CodeGenerator::Visit(ConstI64 *node)
+void AEXGenerator::Visit(ConstI64 *node)
 {
     m_ibs.Put(Instructions::LOAD_I64);
     m_ibs.Put(node->reg);
     m_ibs.Put((byte*)&node->value, sizeof(node->value));
 }
 
-void CodeGenerator::Visit(ConstF32 *node)
+void AEXGenerator::Visit(ConstF32 *node)
 {
     m_ibs.Put(Instructions::LOAD_F32);
     m_ibs.Put(node->reg);
     m_ibs.Put((byte*)&node->value, sizeof(node->value));
 }
 
-void CodeGenerator::Visit(ConstF64 *node)
+void AEXGenerator::Visit(ConstF64 *node)
 {
     m_ibs.Put(Instructions::LOAD_F64);
     m_ibs.Put(node->reg);
     m_ibs.Put((byte*)&node->value, sizeof(node->value));
 }
 
-void CodeGenerator::Visit(ConstBool *node)
+void AEXGenerator::Visit(ConstBool *node)
 {
     m_ibs.Put(node->value
         ? Instructions::LOAD_TRUE
@@ -154,19 +153,19 @@ void CodeGenerator::Visit(ConstBool *node)
     m_ibs.Put(node->reg);
 }
 
-void CodeGenerator::Visit(ConstNull *node)
+void AEXGenerator::Visit(ConstNull *node)
 {
     m_ibs.Put(Instructions::LOAD_NULL);
     m_ibs.Put(node->reg);
 }
 
-void CodeGenerator::Visit(BuildableTryCatch *node)
+void AEXGenerator::Visit(BuildableTryCatch *node)
 {
     m_ibs.Put(Instructions::BEGIN_TRY);
     m_ibs.AddFixup(node->catch_label_id, build_params.block_offset);
 }
 
-void CodeGenerator::Visit(BuildableFunction *node)
+void AEXGenerator::Visit(BuildableFunction *node)
 {
     // TODO: make it store and load statically
     m_ibs.Put(Instructions::LOAD_FUNC);
@@ -176,7 +175,7 @@ void CodeGenerator::Visit(BuildableFunction *node)
     m_ibs.Put(node->flags);
 }
 
-void CodeGenerator::Visit(BuildableType *node)
+void AEXGenerator::Visit(BuildableType *node)
 {
     // TODO: make it store and load statically
     m_ibs.Put(Instructions::LOAD_TYPE);
@@ -196,7 +195,7 @@ void CodeGenerator::Visit(BuildableType *node)
     }
 }
 
-void CodeGenerator::Visit(BuildableString *node)
+void AEXGenerator::Visit(BuildableString *node)
 {
     uint32_t len = node->value.length();
 
@@ -207,7 +206,7 @@ void CodeGenerator::Visit(BuildableString *node)
     m_ibs.Put((byte*)&node->value[0], node->value.length());
 }
 
-void CodeGenerator::Visit(StorageOperation *node)
+void AEXGenerator::Visit(StorageOperation *node)
 {
     switch (node->method) {
         case Methods::LOCAL:
@@ -374,11 +373,10 @@ void CodeGenerator::Visit(StorageOperation *node)
     }
 }
 
-void CodeGenerator::Visit(RawOperation<> *node)
+void AEXGenerator::Visit(RawOperation<> *node)
 {
     m_ibs.Put(node->opcode);
     m_ibs.Put((byte*)&node->data[0], node->data.size());
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

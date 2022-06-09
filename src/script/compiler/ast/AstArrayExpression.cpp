@@ -14,8 +14,7 @@
 
 #include <unordered_set>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstArrayExpression::AstArrayExpression(const std::vector<std::shared_ptr<AstExpression>> &members,
     const SourceLocation &location)
@@ -33,8 +32,8 @@ void AstArrayExpression::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(member != nullptr);
         member->Visit(visitor, mod);
 
-        if (member->GetSymbolType() != nullptr) {
-            held_types.insert(member->GetSymbolType());
+        if (member->GetExprType() != nullptr) {
+            held_types.insert(member->GetExprType());
         } else {
             held_types.insert(BuiltinTypes::ANY);
         }
@@ -221,7 +220,7 @@ bool AstArrayExpression::MayHaveSideEffects() const
     return side_effects;
 }
 
-SymbolTypePtr_t AstArrayExpression::GetSymbolType() const
+SymbolTypePtr_t AstArrayExpression::GetExprType() const
 {
     return SymbolType::GenericInstance(
         BuiltinTypes::ARRAY,
@@ -233,5 +232,4 @@ SymbolTypePtr_t AstArrayExpression::GetSymbolType() const
     );
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

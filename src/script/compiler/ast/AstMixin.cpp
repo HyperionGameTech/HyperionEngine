@@ -5,7 +5,7 @@
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
-#include <script/SourceFile.hpp>
+#include <script/compiler/SourceFile.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
@@ -17,8 +17,7 @@
 
 #include <script/Instructions.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstMixin::AstMixin(const std::string &name,
     const std::string &mixin_expr,
@@ -147,7 +146,7 @@ bool AstMixin::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstMixin::GetSymbolType() const
+SymbolTypePtr_t AstMixin::GetExprType() const
 {
     AssertThrow(!m_statements.empty());
 
@@ -155,9 +154,7 @@ SymbolTypePtr_t AstMixin::GetSymbolType() const
         dynamic_cast<AstExpression*>(m_statements.back().get());
 
     AssertThrow(last_as_expr != nullptr);
-
-    return last_as_expr->GetSymbolType();
+    return last_as_expr->GetExprType();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

@@ -7,8 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstFunctionDefinition : public AstDeclaration {
 public:
@@ -39,7 +38,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

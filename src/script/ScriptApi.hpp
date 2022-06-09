@@ -46,6 +46,15 @@
         } \
     } while (false)
 
+#define HYP_SCRIPT_THROW(exception) \
+    do { \
+        params.handler->state->ThrowException( \
+            params.handler->thread, \
+            exception \
+        ); \
+        return; \
+    } while (0)
+
 #define HYP_SCRIPT_RETURN(value) \
     do { \
         params.handler->thread->GetRegisters()[0] = value; \

@@ -13,10 +13,10 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
-AstVariable::AstVariable(const std::string &name,
+AstVariable::AstVariable(
+    const std::string &name,
     const SourceLocation &location)
     : AstIdentifier(name, location),
       m_should_inline(false)
@@ -34,50 +34,59 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(m_properties.GetIdentifier() != nullptr);
 
             // clone the AST node so we don't double-visit
-            m_inline_value = CloneAstNode(m_properties.GetIdentifier()->GetCurrentValue());
+            if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
+                m_inline_value = current_value;//CloneAstNode(current_value);
+            }
 
             // if alias or const, load direct value.
             // if it's an alias then it will just refer to whatever other variable
             // is being referenced. if it is const, load the direct value held in the variable
             const bool is_alias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
             const bool is_mixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
-            const bool is_const = AstIdentifier::GetSymbolType()->IsConstType();
+            const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
 
-            bool force_inline = false;
+            const SymbolTypePtr_t ident_type = m_properties.GetIdentifier()->GetSymbolType();
+            AssertThrow(ident_type != nullptr);
+
+            const bool is_const = ident_type->IsConstType() || (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST);
+
+            const bool force_inline = is_alias || is_mixin;
 
             // NOTE: if we are loading a const and current_value == nullptr, proceed with loading the
             // normal way.
-            if (is_alias || is_mixin) {
+            if (force_inline) {
                 AssertThrow(m_inline_value != nullptr);
-                force_inline = true;
             }
 
-            m_should_inline = force_inline || is_const;
+            m_should_inline = force_inline || (!is_generic && is_const);
+
+            if (m_inline_value == nullptr) {
+                m_should_inline = false;
+            }
 
             if (m_should_inline) {
                 // set access options for this variable based on those of the current value
-                AstExpression::m_access_options = m_inline_value->GetAccessOptions();
-
+                m_access_options = m_inline_value->GetAccessOptions();
                 // if alias, accept the current value instead
                 m_inline_value->Visit(visitor, mod);
             }
 
-            if (!force_inline) {
-                if (m_should_inline) {
-                    if (const SymbolTypePtr_t value_type = m_inline_value->GetSymbolType()) {
-                        // only load basic types inline.
-                        if (value_type->GetTypeClass() != SymbolTypeClass::TYPE_BUILTIN) {
-                            m_should_inline = false;
-                        }
-                    }
+            // if it is alias or mixin, update symbol type of this expression
+            if (force_inline) {
+                if (SymbolTypePtr_t inline_value_type = m_inline_value->GetExprType()) {
+                    // set symbol type to match alias inline value
+                    m_properties.GetIdentifier()->SetSymbolType(inline_value_type);
                 }
-                // AssertThrow(m_properties.GetIdentifier()->GetSymbolType() != nullptr);
-                // if (m_properties.GetIdentifier()->GetSymbolType()->IsConstType()) {
-                //     // for const, set access options to only load
-                //     AstExpression::m_access_options = AccessMode::ACCESS_MODE_LOAD;
-                // }
+            } else {
+                // if the value to be inlined is not literal - do not inline
+                if (m_should_inline && !m_inline_value->IsLiteral()) {
+                    m_should_inline = false;
+                }
 
-                m_properties.GetIdentifier()->IncUseCount();
+                // increase usage count for variable loads (non-inlined)
+                if (!m_should_inline) {
+                    m_properties.GetIdentifier()->IncUseCount();
+                }
 
                 if (m_properties.IsInFunction()) {
                     if (m_properties.IsInPureFunction()) {
@@ -181,6 +190,9 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
         } else {
             int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
             int stack_location = m_properties.GetIdentifier()->GetStackLocation();
+
+            AssertThrow(stack_location != -1);
+
             int offset = stack_size - stack_location;
 
             // get active register
@@ -244,5 +256,37 @@ bool AstVariable::MayHaveSideEffects() const
     return false;
 }
 
-} // namespace compiler
-} // namespace hyperion
+bool AstVariable::IsLiteral() const
+{
+    const Identifier *ident = m_properties.GetIdentifier();
+    AssertThrow(ident != nullptr);
+
+    const Identifier *ident_unaliased = ident->Unalias();
+    AssertThrow(ident_unaliased != nullptr);
+
+    const SymbolTypePtr_t ident_type = ident_unaliased->GetSymbolType();
+    AssertThrow(ident_type != nullptr);
+
+    const bool is_const = ident_type->IsConstType();
+    const bool is_generic = ident_unaliased->GetFlags() && IdentifierFlags::FLAG_GENERIC;
+
+    return is_const || is_generic;
+}
+
+SymbolTypePtr_t AstVariable::GetExprType() const
+{
+    if (m_should_inline) {
+        AssertThrow(m_inline_value != nullptr);
+        return m_inline_value->GetExprType();
+    }
+
+    if (m_properties.GetIdentifier() != nullptr) {
+        if (m_properties.GetIdentifier()->GetSymbolType() != nullptr) {
+            return m_properties.GetIdentifier()->GetSymbolType();
+        }
+    }
+
+    return BuiltinTypes::UNDEFINED;
+}
+
+} // namespace hyperion::compiler

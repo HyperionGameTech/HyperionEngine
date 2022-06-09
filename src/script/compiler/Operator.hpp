@@ -4,8 +4,7 @@
 #include <map>
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum OperatorType {
     ARITHMETIC = 1,
@@ -61,9 +60,6 @@ public:
     static const std::map<std::string, Operator> binary_operators;
     static const std::map<std::string, Operator> unary_operators;
 
-    static const Operator *FindBinaryOperator(Operators op);
-    static const Operator *FindUnaryOperator(Operators op);
-
     static inline bool IsBinaryOperator(const std::string &str)
         { return binary_operators.find(str) != binary_operators.end(); }
     static inline bool IsBinaryOperator(const std::string &str, const Operator *&out)
@@ -91,8 +87,7 @@ public:
     Operator(Operators op_type,
         int precedence,
         int type,
-        bool modifies_value = false,
-        bool supports_overloading = false);
+        bool modifies_value = false);
     Operator(const Operator &other);
 
     inline Operators GetOperatorType() const
@@ -105,8 +100,6 @@ public:
         { return m_precedence == 0; }
     inline bool ModifiesValue() const
         { return m_modifies_value; }
-    inline bool SupportsOverloading() const
-        { return m_supports_overloading; }
 
     std::string LookupStringValue() const;
 
@@ -115,10 +108,8 @@ private:
     int m_precedence;
     int m_type;
     bool m_modifies_value;
-    bool m_supports_overloading;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

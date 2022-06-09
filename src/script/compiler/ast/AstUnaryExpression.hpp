@@ -4,18 +4,13 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Operator.hpp>
 
-namespace hyperion {
-namespace compiler {
-
-class AstBinaryExpression;
+namespace hyperion::compiler {
 
 class AstUnaryExpression : public AstExpression {
 public:
-    AstUnaryExpression(
-        const std::shared_ptr<AstExpression> &target,
+    AstUnaryExpression(const std::shared_ptr<AstExpression> &target,
         const Operator *op,
-        const SourceLocation &location
-    );
+        const SourceLocation &location);
 
     inline const std::shared_ptr<AstExpression> &GetTarget() const { return m_target; }
 
@@ -27,14 +22,12 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 private:
     std::shared_ptr<AstExpression> m_target;
     const Operator *m_op;
     bool m_folded;
-
-    std::shared_ptr<AstBinaryExpression> m_bin_expr; // internally use a binary expr for somethings (like ++ and -- operators)
 
     inline Pointer<AstUnaryExpression> CloneImpl() const
     {
@@ -46,7 +39,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

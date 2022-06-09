@@ -3,6 +3,7 @@
 #include <script/compiler/emit/StaticObject.hpp>
 #include <script/compiler/emit/NamesPair.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -10,8 +11,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 CompilationUnit::CompilationUnit()
     : m_module_index(0),
@@ -23,22 +23,17 @@ CompilationUnit::CompilationUnit()
     m_global_module->SetImportTreeLink(m_module_tree.TopNode());
 
     Scope &top = m_global_module->m_scopes.Top();
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::ANY);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::INT);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::FLOAT);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::NUMBER);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::BOOLEAN);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::STRING);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::FUNCTION);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::ARRAY);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::TUPLE);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::MAYBE);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::CONST_TYPE);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::NULL_TYPE);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::EVENT);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::EVENT_ARRAY);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::BLOCK_TYPE);
-    top.GetIdentifierTable().AddSymbolType(BuiltinTypes::CLOSURE_TYPE);
+
+    top.GetIdentifierTable().BindTypeToIdentifier("Object", BuiltinTypes::OBJECT);
+    top.GetIdentifierTable().BindTypeToIdentifier("Any", BuiltinTypes::ANY);
+    top.GetIdentifierTable().BindTypeToIdentifier("Tuple", BuiltinTypes::TUPLE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Maybe", BuiltinTypes::MAYBE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Const", BuiltinTypes::CONST_TYPE);
+    //top.GetIdentifierTable().BindTypeToIdentifier("Null", BuiltinTypes::NULL_TYPE);
+    top.GetIdentifierTable().BindTypeToIdentifier("$Event", BuiltinTypes::EVENT);
+    top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
+    //top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::TYPE_TYPE);
 
     m_module_tree.TopNode()->m_value = m_global_module.get();
 }
@@ -114,5 +109,4 @@ Module *CompilationUnit::LookupModule(const std::string &name)
     return nullptr;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

@@ -6,8 +6,7 @@
 
 #include <script/Typedefs.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstConstant : public AstExpression {
 public:
@@ -17,7 +16,8 @@ public:
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
-    
+
+    virtual bool IsLiteral() const override { return true; }
     virtual Pointer<AstStatement> Clone() const override = 0;
 
     virtual Tribool IsTrue() const override = 0;
@@ -26,10 +26,9 @@ public:
     virtual hyperion::aint32 IntValue() const = 0;
     virtual hyperion::afloat32 FloatValue() const = 0;
 
-    virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, AstConstant *right) const = 0;
+    virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

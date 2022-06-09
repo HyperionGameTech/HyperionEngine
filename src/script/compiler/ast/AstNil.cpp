@@ -12,8 +12,7 @@
 
 #include <script/Instructions.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstNil::AstNil(const SourceLocation &location)
     : AstConstant(location)
@@ -53,12 +52,12 @@ hyperion::afloat32 AstNil::FloatValue() const
     return 0.0f;
 }
 
-SymbolTypePtr_t AstNil::GetSymbolType() const
+SymbolTypePtr_t AstNil::GetExprType() const
 {
     return BuiltinTypes::NULL_TYPE;
 }
 
-std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
@@ -69,7 +68,7 @@ std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, AstConsta
         case OP_logical_or:
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
-                if (dynamic_cast<AstNil*>(right) != nullptr) {
+                if (dynamic_cast<const AstNil*>(right) != nullptr) {
                     return std::shared_ptr<AstFalse>(new AstFalse(m_location));
                 }
                 return nullptr;
@@ -81,7 +80,7 @@ std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, AstConsta
             ));
 
         case OP_equals:
-            if (dynamic_cast<AstNil*>(right) != nullptr) {
+            if (dynamic_cast<const AstNil*>(right) != nullptr) {
                 // only another null value should be equal
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             }
@@ -96,5 +95,4 @@ std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, AstConsta
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

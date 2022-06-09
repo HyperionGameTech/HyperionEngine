@@ -8,8 +8,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstCallExpression : public AstExpression {
 public:
@@ -17,8 +16,7 @@ public:
         const std::shared_ptr<AstExpression> &target,
         const std::vector<std::shared_ptr<AstArgument>> &args,
         bool insert_self,
-        const SourceLocation &location
-    );
+        const SourceLocation &location);
     virtual ~AstCallExpression() = default;
 
     inline void AddArgumentToFront(const std::shared_ptr<AstArgument> &arg)
@@ -44,7 +42,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
     std::shared_ptr<AstExpression> m_target;
@@ -67,7 +65,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

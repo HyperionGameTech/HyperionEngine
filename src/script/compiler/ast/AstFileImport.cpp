@@ -1,16 +1,17 @@
 #include <script/compiler/ast/AstFileImport.hpp>
-#include <script/SourceFile.hpp>
+#include <script/compiler/SourceFile.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
+#include <util/string_util.h>
+
 #include <fstream>
 #include <iostream>
 #include <functional>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstFileImport::AstFileImport(
     const std::string &path,
@@ -44,5 +45,4 @@ Pointer<AstStatement> AstFileImport::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

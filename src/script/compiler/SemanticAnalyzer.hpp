@@ -11,8 +11,7 @@
 #include <string>
 #include <utility>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 // forward declaration
 class Module;
@@ -30,12 +29,28 @@ public:
 
         static IdentifierLookupResult LookupIdentifier(AstVisitor *visitor, Module *mod, const std::string &name);
 
-        static std::pair<SymbolTypePtr_t, std::vector<std::shared_ptr<AstArgument>>>
-        SubstituteFunctionArgs(
+
+        static std::vector<std::shared_ptr<AstArgument>> SubstituteGenericArgs(
+            AstVisitor *visitor,
+            Module *mod,
+            const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
+            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const SourceLocation &location
+        );
+
+        static FunctionTypeSignature_t SubstituteFunctionArgs(
             AstVisitor *visitor,
             Module *mod, 
             const SymbolTypePtr_t &identifier_type, 
             const std::vector<std::shared_ptr<AstArgument>> &args,
+            const SourceLocation &location
+        );
+
+        static void EnsureLooseTypeAssignmentCompatibility(
+            AstVisitor *visitor,
+            Module *mod,
+            const SymbolTypePtr_t &symbol_type,
+            const SymbolTypePtr_t &assignment_type,
             const SourceLocation &location
         );
 
@@ -106,7 +121,6 @@ public:
     // virtual void Visit(AstYieldStatement *);
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

@@ -16,8 +16,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstModuleProperty::AstModuleProperty(
     const std::string &field_name,
@@ -48,8 +47,8 @@ void AstModuleProperty::Visit(AstVisitor *visitor, Module *mod)
     if (m_expr_value != nullptr) {
       m_expr_value->Visit(visitor, mod);
 
-      AssertThrow(m_expr_value->GetSymbolType() != nullptr);
-      m_expr_type = m_expr_value->GetSymbolType();
+      AssertThrow(m_expr_value->GetExprType() != nullptr);
+      m_expr_type = m_expr_value->GetExprType();
     } else {
       visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
           LEVEL_ERROR,
@@ -96,11 +95,10 @@ bool AstModuleProperty::MayHaveSideEffects() const
     }
 }
 
-SymbolTypePtr_t AstModuleProperty::GetSymbolType() const
+SymbolTypePtr_t AstModuleProperty::GetExprType() const
 {
     AssertThrow(m_expr_type != nullptr);
     return m_expr_type;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

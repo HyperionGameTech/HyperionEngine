@@ -1,6 +1,8 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
@@ -18,8 +20,7 @@
 
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstMember::AstMember(
     const std::string &field_name,
@@ -28,7 +29,8 @@ AstMember::AstMember(
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_field_name(field_name),
       m_target(target),
-      m_symbol_type(BuiltinTypes::UNDEFINED)
+      m_symbol_type(BuiltinTypes::UNDEFINED),
+      m_found_index(-1)
 {
 }
 
@@ -38,9 +40,11 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     m_target->Visit(visitor, mod);
 
     m_access_options = m_target->GetAccessOptions();
-    m_target_type = m_target->GetSymbolType();
 
+    m_target_type = m_target->GetExprType();
     AssertThrow(m_target_type != nullptr);
+
+    const SymbolTypePtr_t original_type = m_target_type;
 
     // start looking at the target type,
     // iterate through base type
@@ -54,9 +58,50 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(m_target_type != nullptr);
             }
         }
-        
-        if ((field_type = m_target_type->FindMember(m_field_name)) != nullptr) {
+
+        if (m_target_type == BuiltinTypes::ANY) {
+            field_type = BuiltinTypes::ANY;
             break;
+        }
+
+        if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
+            // get member index from name
+            for (size_t i = 0; i < proto_type->GetMembers().size(); i++) {
+                const SymbolMember_t &mem = proto_type->GetMembers()[i];
+
+                if (std::get<0>(mem) == m_field_name) {
+                    m_found_index = i;
+                    field_type = std::get<1>(mem);
+                    break;
+                }
+            }
+
+            if (m_found_index != -1) {
+                break;
+            }
+        }
+
+        const AstExpression *value_of = m_target->GetValueOf();
+        AssertThrow(value_of != nullptr);
+
+        if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject*>(value_of)) {
+            AssertThrow(as_type_object->GetHeldType() != nullptr);
+            auto instance_type = as_type_object->GetHeldType();
+
+            // get member index from name
+            for (size_t i = 0; i < instance_type->GetMembers().size(); i++) {
+                const SymbolMember_t &mem = instance_type->GetMembers()[i];
+
+                if (std::get<0>(mem) == m_field_name) {
+                    m_found_index = i;
+                    field_type = std::get<1>(mem);
+                    break;
+                }
+            }
+
+            if (m_found_index != -1) {
+                break;
+            }
         }
 
         if (auto base = m_target_type->GetBaseType()) {
@@ -75,20 +120,16 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_target_type != nullptr);
 
-    if (m_target_type != BuiltinTypes::ANY) {
-        if (field_type != nullptr) {
-            m_symbol_type = field_type;
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_not_a_data_member,
-                m_location,
-                m_field_name,
-                m_target->GetSymbolType()->GetName()
-            ));
-        }
+    if (field_type != nullptr) {
+        m_symbol_type = field_type;
     } else {
-        m_symbol_type = BuiltinTypes::ANY;
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_data_member,
+            m_location,
+            m_field_name,
+            original_type->GetName()
+        ));
     }
 }
 
@@ -114,35 +155,25 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
                 break;
         }
     } else {
-        int found_index = -1;
+        AssertThrow(m_found_index != -1);
 
-        // get member index from name
-        for (size_t i = 0; i < m_target_type->GetMembers().size(); i++) {
-            if (std::get<0>(m_target_type->GetMembers()[i]) == m_field_name) {
-                found_index = i;
+        switch (m_access_mode) {
+            case ACCESS_MODE_LOAD:
+                // just load the data member.
+                chunk->Append(Compiler::LoadMemberAtIndex(
+                    visitor,
+                    mod,
+                    m_found_index
+                ));
                 break;
-            }
-        }
-
-        if (found_index != -1) {
-            switch (m_access_mode) {
-                case ACCESS_MODE_LOAD:
-                    // just load the data member.
-                    chunk->Append(Compiler::LoadMemberAtIndex(
-                        visitor,
-                        mod,
-                        found_index
-                    ));
-                    break;
-                case ACCESS_MODE_STORE:
-                    // we are in storing mode, so store to LAST item in the member expr.
-                    chunk->Append(Compiler::StoreMemberAtIndex(
-                        visitor,
-                        mod,
-                        found_index
-                    ));
-                    break;
-            }
+            case ACCESS_MODE_STORE:
+                // we are in storing mode, so store to LAST item in the member expr.
+                chunk->Append(Compiler::StoreMemberAtIndex(
+                    visitor,
+                    mod,
+                    m_found_index
+                ));
+                break;
         }
     }
 
@@ -174,11 +205,10 @@ bool AstMember::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstMember::GetSymbolType() const
+SymbolTypePtr_t AstMember::GetExprType() const
 {
     AssertThrow(m_symbol_type != nullptr);
     return m_symbol_type;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

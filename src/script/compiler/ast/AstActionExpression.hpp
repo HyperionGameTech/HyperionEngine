@@ -10,8 +10,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstActionExpression : public AstExpression {
 public:
@@ -31,7 +30,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
     std::vector<std::shared_ptr<AstArgument>> m_actions;
@@ -54,7 +53,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

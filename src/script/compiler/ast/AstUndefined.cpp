@@ -2,8 +2,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstUndefined::AstUndefined(const SourceLocation &location)
     : AstConstant(location)
@@ -40,15 +39,14 @@ hyperion::afloat32 AstUndefined::FloatValue() const
     return 0.0f;
 }
 
-SymbolTypePtr_t AstUndefined::GetSymbolType() const
+SymbolTypePtr_t AstUndefined::GetExprType() const
 {
     return BuiltinTypes::UNDEFINED;
 }
 
-std::shared_ptr<AstConstant> AstUndefined::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstUndefined::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     return nullptr;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

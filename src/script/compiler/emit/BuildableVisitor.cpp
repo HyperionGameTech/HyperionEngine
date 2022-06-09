@@ -1,7 +1,6 @@
 #include <script/compiler/emit/BuildableVisitor.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 void BuildableVisitor::Visit(Buildable *buildable)
 {
@@ -50,5 +49,4 @@ void BuildableVisitor::Visit(Buildable *buildable)
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

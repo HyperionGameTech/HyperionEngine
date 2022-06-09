@@ -1,7 +1,6 @@
 #include <script/compiler/TypeContract.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 const std::map<TypeContract::Type, std::string> TypeContract::type_contract_strings = {
     { TypeContract::Type::TC_IS, "is" },
@@ -25,5 +24,4 @@ TypeContract::Type TypeContract::FromString(const std::string &str)
     return TypeContract::Type::TC_INVALID;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

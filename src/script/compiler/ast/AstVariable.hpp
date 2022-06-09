@@ -4,8 +4,7 @@
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstVariable : public AstIdentifier {
 public:
@@ -16,10 +15,12 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
+    virtual bool IsLiteral() const override;
     virtual Pointer<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 private:
     // set while analyzing
@@ -38,7 +39,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

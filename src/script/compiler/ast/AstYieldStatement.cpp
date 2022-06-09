@@ -12,8 +12,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstYieldStatement::AstYieldStatement(const std::shared_ptr<AstExpression> &expr,
     const SourceLocation &location)
@@ -52,6 +51,7 @@ void AstYieldStatement::Visit(AstVisitor *visitor, Module *mod)
             )),
             { std::shared_ptr<AstArgument>(new AstArgument(
                 m_expr,
+                false,
                 false,
                 "",
                 m_location
@@ -95,5 +95,4 @@ Pointer<AstStatement> AstYieldStatement::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

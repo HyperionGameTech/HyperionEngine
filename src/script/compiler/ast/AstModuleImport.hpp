@@ -5,8 +5,7 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstModuleImportPart : public AstStatement {
 public:
@@ -66,7 +65,6 @@ protected:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

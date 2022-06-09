@@ -12,8 +12,7 @@
 #include <limits>
 #include <cmath>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstFloat::AstFloat(hyperion::afloat32 value, const SourceLocation &location)
     : AstConstant(location),
@@ -54,12 +53,12 @@ hyperion::afloat32 AstFloat::FloatValue() const
     return m_value;
 }
 
-SymbolTypePtr_t AstFloat::GetSymbolType() const
+SymbolTypePtr_t AstFloat::GetExprType() const
 {
     return BuiltinTypes::FLOAT;
 }
 
-std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_add:
@@ -116,7 +115,7 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, AstCons
 
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
-                if (dynamic_cast<AstNil*>(right)) {
+                if (dynamic_cast<const AstNil*>(right)) {
                     // rhs is null, return false
                     return std::shared_ptr<AstFalse>(new AstFalse(m_location));
                 }
@@ -139,7 +138,7 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, AstCons
 
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
-                if (dynamic_cast<AstNil*>(right)) {
+                if (dynamic_cast<const AstNil*>(right)) {
                     if (this_true == 1) {
                         return std::shared_ptr<AstTrue>(new AstTrue(m_location));
                     } else if (this_true == 0) {
@@ -224,5 +223,4 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, AstCons
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

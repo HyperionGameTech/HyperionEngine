@@ -1,9 +1,6 @@
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
-#include <script/compiler/ast/AstCallExpression.hpp>
-#include <script/compiler/ast/AstHasExpression.hpp>
-#include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/Operator.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Optimizer.hpp>
@@ -18,19 +15,16 @@
 
 #include <script/Instructions.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
-AstBinaryExpression::AstBinaryExpression(
-    const std::shared_ptr<AstExpression> &left,
+AstBinaryExpression::AstBinaryExpression(const std::shared_ptr<AstExpression> &left,
     const std::shared_ptr<AstExpression> &right,
     const Operator *op,
-    const SourceLocation &location
-) : AstExpression(location, ACCESS_MODE_LOAD),
-    m_left(left),
-    m_right(right),
-    m_op(op),
-    m_operator_overloading_enabled(true)
+    const SourceLocation &location)
+    : AstExpression(location, ACCESS_MODE_LOAD),
+      m_left(left),
+      m_right(right),
+      m_op(op)
 {
 }
 
@@ -49,65 +43,9 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 #endif
 
     m_left->Visit(visitor, mod);
-
-    if (m_operator_overloading_enabled && m_op->SupportsOverloading()) {
-        // look for operator overloading
-        SymbolTypePtr_t target_type = m_left->GetSymbolType();
-        AssertThrow(target_type != nullptr);
-
-        const auto operator_string = m_op->LookupStringValue();
-        const auto overload_function_name = "operator" + operator_string;
-
-        auto call_operator_overload_expr = std::shared_ptr<AstCallExpression>(new AstCallExpression(
-            std::shared_ptr<AstMember>(new AstMember(
-                overload_function_name,
-                CloneAstNode(m_left),
-                m_location
-            )),
-            {
-                std::shared_ptr<AstArgument>(new AstArgument(
-                    m_right,
-                    false,
-                    "other",
-                    m_location
-                ))
-            }, // use right hand side as arg
-            true,
-            m_location
-        ));
-
-        if (target_type == BuiltinTypes::ANY) {
-            auto sub_bin_expr = std::static_pointer_cast<AstBinaryExpression>(Clone());
-            sub_bin_expr->SetOperatorOverloadingEnabled(false); // don't look for overload again
-
-            m_operator_overload.reset(new AstTernaryExpression(
-                std::shared_ptr<AstHasExpression>(new AstHasExpression(
-                    CloneAstNode(m_left),
-                    overload_function_name,
-                    m_location
-                )),
-                call_operator_overload_expr,
-                sub_bin_expr,
-                m_location
-            ));
-
-            m_operator_overload->Visit(visitor, mod);
-        } else if (target_type->FindMember(overload_function_name)) {
-            m_operator_overload = call_operator_overload_expr;
-        }
-
-        if (m_operator_overload != nullptr) {
-            m_operator_overload->Visit(visitor, mod);
-
-            return;
-        }
-    }
-
-    // end operator overloading
-
     m_right->Visit(visitor, mod);
 
-    SymbolTypePtr_t left_type = m_left->GetSymbolType();
+    SymbolTypePtr_t left_type = m_left->GetExprType();
     SymbolTypePtr_t left_type_unboxed = left_type;
     
     if (left_type->GetTypeClass() == TYPE_GENERIC_INSTANCE && left_type->IsBoxedType()) {
@@ -116,7 +54,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(left_type_unboxed != nullptr);
 
-    SymbolTypePtr_t right_type = m_right->GetSymbolType();
+    SymbolTypePtr_t right_type = m_right->GetExprType();
     SymbolTypePtr_t right_type_unboxed = right_type;
     
     if (right_type->GetTypeClass() == TYPE_GENERIC_INSTANCE && right_type->IsBoxedType()) {
@@ -124,7 +62,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     AssertThrow(right_type_unboxed != nullptr);
-    
+
     if (m_op->GetType() & BITWISE) {
         // no bitwise operators on floats allowed.
         visitor->Assert(
@@ -132,12 +70,27 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
             (right_type_unboxed == BuiltinTypes::INT || right_type_unboxed == BuiltinTypes::ANY),
             CompilerError(
                 LEVEL_ERROR,
-                Msg_bitwise_operands_must_be_int, m_location,
+                Msg_bitwise_operands_must_be_int,
+                m_location,
                 left_type_unboxed->GetName(),
                 right_type_unboxed->GetName()
             )
         );
-    }
+    } /*else if (m_op->GetType() & ARITHMETIC) {
+        // arithmetic operators are only for numbers
+        visitor->Assert(
+            left_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false) &&
+            right_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false),
+            CompilerError(
+                LEVEL_ERROR,
+                Msg_arithmetic_operands_must_be_numbers,
+                m_location,
+                m_op->LookupStringValue(),
+                left_type_unboxed->GetName(),
+                right_type_unboxed->GetName()
+            )
+        );
+    }*/
 
     if (m_op->ModifiesValue()) {
         SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
@@ -148,27 +101,24 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         );
         
-        // make sure we are not modifying a const
+        // make sure we are not modifying a constant
         if (left_type->IsConstType()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_const_modified,
-                m_left->GetLocation()
+                m_location
             ));
-        }
-
-        /*if (AstVariable *left_as_var = dynamic_cast<AstVariable*>(m_left.get())) {
-            if (left_as_var->GetProperties().GetIdentifier() != nullptr) {
-                if (left_as_var->GetProperties().GetIdentifier()->GetFlags() & FLAG_CONST) {
+        } else if (AstIdentifier *left_ident = dynamic_cast<AstIdentifier*>(m_left.get())) {
+            if (left_ident->GetProperties().GetIdentifier() != nullptr) {
+                if (left_ident->GetProperties().GetIdentifier()->GetFlags() & FLAG_CONST) {
                     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
                         Msg_const_modified,
-                        m_left->GetLocation(),
-                        left_as_var->GetName()
+                        m_location
                     ));
                 }
             }
-        }*/
+        }
         
         // make sure left hand side is suitable for assignment
         if (!(m_left->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)) {
@@ -194,10 +144,6 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    if (m_operator_overload != nullptr) {
-        return m_operator_overload->Build(visitor, mod);
-    }
-
 #if ACE_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         return m_variable_declaration->Build(visitor, mod);
@@ -588,12 +534,6 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
 
 void AstBinaryExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    if (m_operator_overload != nullptr) {
-        m_operator_overload->Optimize(visitor, mod);
-
-        return;
-    }
-
 #if ACE_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         m_variable_declaration->Optimize(visitor, mod);
@@ -602,10 +542,13 @@ void AstBinaryExpression::Optimize(AstVisitor *visitor, Module *mod)
 #endif
 
     AssertThrow(m_left != nullptr);
-    AssertThrow(m_right != nullptr);
 
     m_left->Optimize(visitor, mod);
     m_left = Optimizer::OptimizeExpr(m_left, visitor, mod);
+
+    if (m_right == nullptr) {
+        return;
+    }
 
     m_right->Optimize(visitor, mod);
     m_right = Optimizer::OptimizeExpr(m_right, visitor, mod);
@@ -635,10 +578,6 @@ Pointer<AstStatement> AstBinaryExpression::Clone() const
 
 Tribool AstBinaryExpression::IsTrue() const
 {
-    if (m_operator_overload != nullptr) {
-        return m_operator_overload->IsTrue();
-    }
-
     // if (m_member_access) {
     //     return m_member_access->IsTrue();
     // } else {
@@ -655,9 +594,6 @@ Tribool AstBinaryExpression::IsTrue() const
 
 bool AstBinaryExpression::MayHaveSideEffects() const
 {
-    if (m_operator_overload != nullptr) {
-        return m_operator_overload->MayHaveSideEffects();
-    }
     // if (m_member_access) {
     //     return m_member_access->MayHaveSideEffects();
     // } else {
@@ -676,24 +612,24 @@ bool AstBinaryExpression::MayHaveSideEffects() const
     //}
 }
 
-SymbolTypePtr_t AstBinaryExpression::GetSymbolType() const
+SymbolTypePtr_t AstBinaryExpression::GetExprType() const
 {
-    if (m_operator_overload != nullptr) {
-        return m_operator_overload->GetSymbolType();
+    AssertThrow(m_op != nullptr);
+    if ((m_op->GetType() & LOGICAL) || (m_op->GetType() & COMPARISON)) {
+        return BuiltinTypes::BOOLEAN;
     }
-
     // if (m_member_access) {
-    //     return m_member_access->GetSymbolType();
+    //     return m_member_access->GetExprType();
     // } else {
         AssertThrow(m_left != nullptr);
 
-        SymbolTypePtr_t l_type_ptr = m_left->GetSymbolType();
+        SymbolTypePtr_t l_type_ptr = m_left->GetExprType();
         AssertThrow(l_type_ptr != nullptr);
 
         if (m_right != nullptr) {
             // the right was not optimized away,
             // return type promotion
-            SymbolTypePtr_t r_type_ptr = m_right->GetSymbolType();
+            SymbolTypePtr_t r_type_ptr = m_right->GetExprType();
 
             AssertThrow(r_type_ptr != nullptr);
 
@@ -730,7 +666,9 @@ std::shared_ptr<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaratio
                 var_name,
                 nullptr,
                 m_right,
-                false,
+                {},
+                false, // not const
+                false, // not generic
                 m_left->GetLocation()
             ));
         }
@@ -738,7 +676,7 @@ std::shared_ptr<AstVariableDeclaration> AstBinaryExpression::CheckLazyDeclaratio
 
     return nullptr;
 }
+
 #endif
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

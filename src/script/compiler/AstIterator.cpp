@@ -1,7 +1,10 @@
 #include <script/compiler/AstIterator.hpp>
+#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 
-namespace hyperion {
-namespace compiler {
+#include <script/compiler/type-system/BuiltinTypes.hpp>
+
+namespace hyperion::compiler {
 
 AstIterator::AstIterator()
     : m_position(0)
@@ -14,5 +17,4 @@ AstIterator::AstIterator(const AstIterator &other)
 {
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

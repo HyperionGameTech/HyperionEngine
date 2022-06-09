@@ -31,6 +31,7 @@ struct Params {
 };
 
 } // namespace sdk
+
 } // namespace hyperion
 
 // native typedefs

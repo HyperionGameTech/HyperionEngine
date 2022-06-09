@@ -8,8 +8,7 @@
 
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 // forward declarations
 class AstConstant;
@@ -40,7 +39,6 @@ private:
     void OptimizeInner();
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

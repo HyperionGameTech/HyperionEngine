@@ -10,8 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 using namespace utf;
 
@@ -102,7 +101,7 @@ Token Lexer::NextToken()
         }*/
     } else if (ch[0] == '#') {
         return ReadDirective();
-    }  else if (ch[0] == '_' || utf32_isalpha(ch[0])) {
+    }  else if (utf32_isalpha(ch[0]) || ch[0] == '_' || ch[0] == '$') {
         return ReadIdentifier();
     } else if (ch[0] == '<' && ch[1] == '-') {
         for (int i = 0; i < 2; i++) {
@@ -150,13 +149,6 @@ Token Lexer::NextToken()
                 m_source_location.GetColumn() += pos_change;
             }
             return Token(TK_DOUBLE_COLON, "::", location);
-        } else if (ch[1] == '=') {
-            for (int i = 0; i < 2; i++) {
-                int pos_change = 0;
-                m_source_stream.Next(pos_change);
-                m_source_location.GetColumn() += pos_change;
-            }
-            return Token(TK_DEFINE, ":=", location);
         } else {
             int pos_change = 0;
             m_source_stream.Next(pos_change);
@@ -568,7 +560,7 @@ Token Lexer::ReadIdentifier()
     // the character as a utf-32 character
     u32char ch = m_source_stream.Peek();
 
-    while (utf32_isdigit(ch) || ch == (u32char)('_') || utf32_isalpha(ch)) {
+    while (utf32_isdigit(ch) || utf32_isalpha(ch) || ch == '_' || ch == '$') {
         int pos_change = 0;
         ch = m_source_stream.Next(pos_change);
         m_source_location.GetColumn() += pos_change;
@@ -576,13 +568,6 @@ Token Lexer::ReadIdentifier()
         value.append(utf::get_bytes(ch));
         // set ch to be the next character in the buffer
         ch = m_source_stream.Peek();
-    }
-
-    // read operator in the case that the string is "operator", like c++
-    if (value == "operator") {
-        if (Token operator_token = ReadOperator()) {
-            value += operator_token.GetValue();
-        }
     }
 
     return Token(Keyword::IsKeyword(value) ? TK_KEYWORD : TK_IDENT, value, location);
@@ -621,5 +606,4 @@ bool Lexer::SkipWhitespace()
     return had_newline;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

@@ -9,8 +9,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstArgumentList::AstArgumentList(
     const std::vector<std::shared_ptr<AstArgument>> &args,
@@ -72,10 +71,9 @@ bool AstArgumentList::MayHaveSideEffects() const
     return false;
 }
 
-SymbolTypePtr_t AstArgumentList::GetSymbolType() const
+SymbolTypePtr_t AstArgumentList::GetExprType() const
 {
     return BuiltinTypes::ANY;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

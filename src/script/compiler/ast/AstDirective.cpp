@@ -5,8 +5,7 @@
 
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstDirective::AstDirective(const std::string &key,
     const std::vector<std::string> &args,
@@ -71,5 +70,4 @@ Pointer<AstStatement> AstDirective::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

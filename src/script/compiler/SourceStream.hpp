@@ -1,13 +1,12 @@
 #ifndef SOURCE_STREAM_HPP
 #define SOURCE_STREAM_HPP
 
-#include <script/SourceFile.hpp>
+#include <script/compiler/SourceFile.hpp>
 #include <util/utf8.hpp>
 
 #include <cstddef>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class SourceStream {
 public:
@@ -28,7 +27,6 @@ private:
     size_t m_position;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

@@ -1,7 +1,6 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 void StorageOperation::StrategyBuilder::ByIndex(int index)
 {
@@ -99,5 +98,4 @@ StorageOperation::OperationBuilder StorageOperation::GetBuilder()
     return OperationBuilder(this);
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

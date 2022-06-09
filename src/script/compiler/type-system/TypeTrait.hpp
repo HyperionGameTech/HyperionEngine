@@ -3,8 +3,7 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class TypeTrait {
 public:
@@ -16,7 +15,6 @@ private:
     std::string m_name;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

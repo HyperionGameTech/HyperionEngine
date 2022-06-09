@@ -8,8 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstFalse::AstFalse(const SourceLocation &location)
     : AstConstant(location)
@@ -48,12 +47,12 @@ hyperion::afloat32 AstFalse::FloatValue() const
     return 0.0f;
 }
 
-SymbolTypePtr_t AstFalse::GetSymbolType() const
+SymbolTypePtr_t AstFalse::GetExprType() const
 {
     return BuiltinTypes::BOOLEAN;
 }
 
-std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
@@ -70,7 +69,7 @@ std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, AstCons
             }
 
         case OP_equals:
-            if (dynamic_cast<AstFalse*>(right) != nullptr) {
+            if (dynamic_cast<const AstFalse*>(right) != nullptr) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             }
             return std::shared_ptr<AstFalse>(new AstFalse(m_location));
@@ -83,5 +82,4 @@ std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, AstCons
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

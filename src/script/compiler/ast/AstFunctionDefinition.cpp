@@ -9,8 +9,7 @@
 #include <script/Instructions.hpp>
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstFunctionDefinition::AstFunctionDefinition(const std::string &name,
     const std::shared_ptr<AstFunctionExpression> &expr,
@@ -27,10 +26,10 @@ void AstFunctionDefinition::Visit(AstVisitor *visitor, Module *mod)
 
     AstDeclaration::Visit(visitor, mod);
 
-    if (m_identifier) {
+    if (m_identifier != nullptr) {
         // functions are implicitly const
-        m_identifier->SetFlags(m_identifier->GetFlags() | FLAG_CONST);
-        m_identifier->SetSymbolType(m_expr->GetSymbolType());
+        m_identifier->GetFlags() |= FLAG_CONST;
+        m_identifier->SetSymbolType(m_expr->GetExprType());
         m_identifier->SetCurrentValue(m_expr);
     }
 }
@@ -74,5 +73,4 @@ Pointer<AstStatement> AstFunctionDefinition::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

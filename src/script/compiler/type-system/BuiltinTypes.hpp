@@ -3,15 +3,17 @@
 
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class SymbolType;
 using SymbolTypePtr_t = std::shared_ptr<SymbolType>;
 
 struct BuiltinTypes {
+    static const SymbolTypePtr_t PRIMITIVE_TYPE;
+    static const SymbolTypePtr_t TRAIT_TYPE;
     static const SymbolTypePtr_t UNDEFINED;
     static const SymbolTypePtr_t OBJECT;
+    static const SymbolTypePtr_t TYPE_TYPE;
     static const SymbolTypePtr_t ANY;
     static const SymbolTypePtr_t INT;
     static const SymbolTypePtr_t FLOAT;
@@ -25,7 +27,6 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t NULL_TYPE;
     static const SymbolTypePtr_t EVENT;
     static const SymbolTypePtr_t EVENT_IMPL;
-    static const SymbolTypePtr_t EVENT_ARRAY;
     static const SymbolTypePtr_t MODULE_INFO;
     static const SymbolTypePtr_t GENERATOR;
     static const SymbolTypePtr_t BOXED_TYPE;
@@ -33,9 +34,10 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t CONST_TYPE;
     static const SymbolTypePtr_t BLOCK_TYPE;
     static const SymbolTypePtr_t CLOSURE_TYPE;
+    static const SymbolTypePtr_t META_CLOSURE_TYPE;
+    static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

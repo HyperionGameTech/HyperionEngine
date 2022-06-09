@@ -1,7 +1,9 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/AstVisitor.hpp>
+#include <script/compiler/Compiler.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Scope.hpp>
@@ -19,12 +21,11 @@
 #include <vector>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstFunctionExpression::AstFunctionExpression(
     const std::vector<std::shared_ptr<AstParameter>> &parameters,
-    const std::shared_ptr<AstTypeSpecification> &type_specification,
+    const std::shared_ptr<AstTypeSpecification> &return_type_specification,
     const std::shared_ptr<AstBlock> &block,
     bool is_async,
     bool is_pure,
@@ -32,7 +33,7 @@ AstFunctionExpression::AstFunctionExpression(
     const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_parameters(parameters),
-      m_type_specification(type_specification),
+      m_return_type_specification(return_type_specification),
       m_block(block),
       m_is_async(is_async),
       m_is_pure(is_pure),
@@ -133,7 +134,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 false,
                 m_location
             )) },
-            m_type_specification,
+            m_return_type_specification,
             m_block,
             m_is_async,
             m_is_pure,
@@ -177,9 +178,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(m_generator_closure != nullptr);
         m_generator_closure->Visit(visitor, mod);
 
-        AssertThrow(m_generator_closure->GetSymbolType() != nullptr);
-
-        m_return_type = m_generator_closure->GetSymbolType();
+        AssertThrow(m_generator_closure->GetExprType() != nullptr);
+        m_return_type = m_generator_closure->GetExprType();
     } else {
         // function body
         if (m_block != nullptr) {
@@ -187,9 +187,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_block->Visit(visitor, mod);
         }
 
-        if (m_type_specification != nullptr) {
-            m_type_specification->Visit(visitor, mod);
-            m_return_type = m_type_specification->GetSymbolType();
+        if (m_return_type_specification != nullptr) {
+            m_return_type_specification->Visit(visitor, mod);
+
+            AssertThrow(m_return_type_specification->GetSpecifiedType() != nullptr);
+            m_return_type = m_return_type_specification->GetSpecifiedType();
         }
 
         const Scope &function_scope = mod->m_scopes.Top();
@@ -208,7 +210,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                     }
                 } */
 
-                if (m_type_specification != nullptr) {
+                if (m_return_type_specification != nullptr) {
                     // strict mode, because user specifically stated the intended return type
                     if (!m_return_type->TypeCompatible(*it.first, true)) {
                         // error; does not match what user specified
@@ -261,12 +263,11 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
         
-        SymbolMember_t closure_member;
-        std::get<0>(closure_member) = ident->GetName();
-        std::get<1>(closure_member) = ident->GetSymbolType();
-        std::get<2>(closure_member) = current_value;
-        
-        closure_obj_members.push_back(closure_member);
+        closure_obj_members.push_back(SymbolMember_t {
+            ident->GetName(),
+            ident->GetSymbolType(),
+            current_value
+        });
     }
 
     // close parameter scope
@@ -310,10 +311,12 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_is_closure) {
         // add $invoke to call this object
-        SymbolMember_t invoke_member;
-        std::get<0>(invoke_member) = "$invoke";
-        std::get<1>(invoke_member) = m_symbol_type;
-        closure_obj_members.push_back(invoke_member);
+
+        closure_obj_members.push_back(SymbolMember_t {
+            "$invoke",
+            m_symbol_type,
+            nullptr
+        });
 
         // visit each member
         for (auto &member : closure_obj_members) {
@@ -332,7 +335,28 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         visitor->GetCompilationUnit()->GetCurrentModule()->
             m_scopes.Root().GetIdentifierTable().AddSymbolType(closure_base_type);
 
-        m_closure_type = SymbolType::Extend(closure_base_type, closure_obj_members);
+        SymbolTypePtr_t prototype_type = SymbolType::Object(
+            "ClosureInstance", // Prototype type
+            closure_obj_members,
+            BuiltinTypes::OBJECT
+        );
+
+        auto prototype_value = std::shared_ptr<AstTypeObject>(new AstTypeObject(
+            prototype_type,
+            nullptr,
+            m_location
+        ));
+
+        m_closure_type = SymbolType::Extend(
+            closure_base_type,
+            {
+                SymbolMember_t {
+                    "$proto",
+                    prototype_type,
+                    prototype_value
+                }
+            }
+        );
 
         // register type
         visitor->GetCompilationUnit()->RegisterType(m_closure_type);
@@ -341,9 +365,9 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         visitor->GetCompilationUnit()->GetCurrentModule()->
             m_scopes.Root().GetIdentifierTable().AddSymbolType(m_closure_type);
 
-        AssertThrow(m_closure_type->GetDefaultValue() != nullptr);
+        AssertThrow(prototype_value != nullptr);
 
-        m_closure_object = m_closure_type->GetDefaultValue();
+        m_closure_object = prototype_value;
         m_closure_object->Visit(visitor, mod);
     }
 }
@@ -423,21 +447,17 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
         chunk->Append(m_closure_object->Build(visitor, mod));
 
         const uint32_t hash = hash_fnv_1("$invoke");
-
-        auto instr_mov_mem_hash = BytecodeUtil::Make<RawOperation<>>();
-        instr_mov_mem_hash->opcode = MOV_MEM_HASH;
-        instr_mov_mem_hash->Accept<uint8_t>(rp); // dst
-        instr_mov_mem_hash->Accept<uint32_t>(hash); // hash
-        instr_mov_mem_hash->Accept<uint8_t>(func_expr_reg); // src
-        chunk->Append(std::move(instr_mov_mem_hash));
+        chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
         
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         
-        // swap regs, so the closure object returned
+        //AssertThrowMsg(rp == 0, "Register position should be 0 to return closure object");
+
+        // swap regs, so the closure object returned (put on register zero)
         auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();
         instr_mov_reg->opcode = MOV_REG;
-        instr_mov_reg->Accept<uint8_t>(rp); // dst
+        instr_mov_reg->Accept<uint8_t>(0); // dst
         instr_mov_reg->Accept<uint8_t>(closure_obj_reg); // src
         chunk->Append(std::move(instr_mov_reg));
     }
@@ -474,7 +494,7 @@ bool AstFunctionExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypePtr_t AstFunctionExpression::GetSymbolType() const
+SymbolTypePtr_t AstFunctionExpression::GetExprType() const
 {
     if (m_is_closure && m_closure_type != nullptr) {
         return m_closure_type;
@@ -482,5 +502,4 @@ SymbolTypePtr_t AstFunctionExpression::GetSymbolType() const
     return m_symbol_type;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

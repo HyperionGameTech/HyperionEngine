@@ -1,7 +1,6 @@
 #include <script/compiler/SourceLocation.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 const SourceLocation SourceLocation::eof(-1, -1, "<eof>");
 
@@ -39,5 +38,4 @@ bool SourceLocation::operator==(const SourceLocation &other) const
         m_line == other.m_line;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

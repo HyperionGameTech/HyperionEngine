@@ -7,8 +7,9 @@
 
 #include <script/Tribool.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
+
+class AstTypeObject;
 
 class AstExpression : public AstStatement {
 public:
@@ -20,15 +21,23 @@ public:
         { return m_access_options; }
 
     inline AccessMode GetAccessMode() const
-        { return m_access_mode; }
+      { return m_access_mode; }
     inline void SetAccessMode(AccessMode access_mode)
-        { m_access_mode = access_mode; }
+      { m_access_mode = access_mode; }
+
+    SymbolTypePtr_t GetMemberType(const std::string &name) const;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override = 0;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override = 0;
     
     virtual Pointer<AstStatement> Clone() const override = 0;
+
+    /**
+     * Overridden by derived classes to allow "constexpr"-type functionality.
+     */
+    virtual bool IsLiteral() const { return false; }
+    virtual const AstExpression *GetValueOf() const { return this; }
 
     /** Determine whether the expression would evaluate to true.
         Returns -1 if it cannot be evaluated at compile time.
@@ -37,7 +46,7 @@ public:
     inline int IsFalse() const { int t = IsTrue(); return (t == -1) ? t : !t; }
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
-    virtual SymbolTypePtr_t GetSymbolType() const = 0;
+    virtual SymbolTypePtr_t GetExprType() const = 0;
 
     bool m_is_standalone;
 
@@ -46,7 +55,6 @@ protected:
     int m_access_options;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

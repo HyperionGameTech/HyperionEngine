@@ -4,6 +4,7 @@
 #include <script/compiler/Scope.hpp>
 #include <script/compiler/SourceLocation.hpp>
 #include <script/compiler/Tree.hpp>
+#include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <vector>
@@ -11,8 +12,7 @@
 #include <unordered_set>
 #include <functional>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class Module {
 public:
@@ -41,17 +41,11 @@ public:
         relative to the global scope */
     std::string GenerateFullModuleName() const;
 
-    /** Reverse iterate the scopes starting from the currently opened scope,
-        checking if the scope is nested within a function */
-    bool IsInFunction();
+    bool IsInGlobalScope() const;
 
     /** Reverse iterate the scopes starting from the currently opened scope,
-        checking if the scope is nested within a type definition */
-    bool IsInTypeDefinition();
-
-    /** Reverse iterate the scopes starting from the currently opened scope,
-        checking if the scope is nested within any generic definition */
-    bool IsInGeneric();
+        checking if the scope is nested within a scope of the given type. */
+    bool IsInScopeOfType(ScopeType scope_type) const;
 
     /** Look up a child module of this module */
     Module *LookupNestedModule(const std::string &name);
@@ -61,7 +55,7 @@ public:
         If this_scope_only is set to true, only the current scope will be
         searched.
     */
-    Identifier *LookUpIdentifier(const std::string &name, bool this_scope_only);
+    Identifier *LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules=ACE_ALLOW_IDENTIFIERS_OTHER_MODULES);
     
     /** Check to see if the identifier exists in this scope or above this one.
         Will only search the number of depth levels it is given.
@@ -92,7 +86,6 @@ private:
         std::function<SymbolTypePtr_t(Module *mod)>);
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

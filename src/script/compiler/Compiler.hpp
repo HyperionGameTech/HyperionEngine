@@ -3,14 +3,14 @@
 
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
+#include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/emit/BytecodeChunk.hpp>
 
 #include <system/debug.h>
 
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class Compiler : public AstVisitor {
 public:
@@ -41,7 +41,15 @@ public:
         AstVisitor *visitor,
         Module *mod,
         const std::shared_ptr<AstExpression> &target,
-        uint8_t nargs);
+        uint8_t nargs
+    );
+
+    static std::unique_ptr<Buildable> BuildMethodCall(
+        AstVisitor *visitor,
+        Module *mod,
+        const std::shared_ptr<AstMember> &target,
+        const std::vector<std::shared_ptr<AstArgument>> &args
+    );
 
     static std::unique_ptr<Buildable> LoadMemberFromHash(AstVisitor *visitor, Module *mod, uint32_t hash);
 
@@ -93,7 +101,6 @@ public:
     std::unique_ptr<BytecodeChunk> Compile();
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

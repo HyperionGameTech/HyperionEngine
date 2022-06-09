@@ -6,8 +6,7 @@
 #include <vector>
 #include <cstdint>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 // fwd declarations
 struct BytecodeChunk;
@@ -24,7 +23,6 @@ public:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

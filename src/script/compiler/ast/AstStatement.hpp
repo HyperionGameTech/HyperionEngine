@@ -8,10 +8,9 @@
 #include <vector>
 #include <sstream>
 
-template <typename T> using Pointer = std::shared_ptr<T>;
+namespace hyperion::compiler {
 
-namespace hyperion {
-namespace compiler {
+template <typename T> using Pointer = std::shared_ptr<T>;
 
 // Forward declarations
 class AstVisitor;
@@ -60,7 +59,6 @@ CloneAllAstNodes(const std::vector<std::shared_ptr<T>> &stmts)
     return res;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

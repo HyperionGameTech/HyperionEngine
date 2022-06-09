@@ -180,7 +180,6 @@ enum Instructions : char {
     END_TRY,
 
     NEW,       // new [% dst, % src_type_reg]
-    NEW_PROTO, // new_proto [% dst, % src]
     NEW_ARRAY, // new_array [% dst, u32 size]
 
     /* Compare two register values */
@@ -204,6 +203,9 @@ enum Instructions : char {
     /* Unary operations */
     NEG, // neg [% src] - mathematical negation
     NOT, // not [% src] - bitwise complement
+
+    /* Binary to source trace map functionality */
+    TRACEMAP, // tracemap [u32 length]
 
     /* Signifies the end of the stream */
     EXIT,

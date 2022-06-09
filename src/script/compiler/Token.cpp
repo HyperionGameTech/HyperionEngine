@@ -1,7 +1,6 @@
 #include <script/compiler/Token.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::eof);
 
@@ -20,7 +19,6 @@ std::string Token::TokenTypeToString(TokenClass token_class)
         case TK_SEMICOLON:     return ";";
         case TK_COLON:         return ":";
         case TK_DOUBLE_COLON:  return "::";
-        case TK_DEFINE:        return ":=";
         case TK_QUESTION_MARK: return "?";
         case TK_DOT:           return ".";
         case TK_ELLIPSIS:      return "...";
@@ -63,5 +61,4 @@ bool Token::IsContinuationToken() const
            m_token_class == TK_OPEN_BRACE;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

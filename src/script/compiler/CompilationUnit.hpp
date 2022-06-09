@@ -13,8 +13,7 @@
 #include <memory>
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class CompilationUnit {
 public:
@@ -69,7 +68,6 @@ private:
     std::shared_ptr<Module> m_global_module;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

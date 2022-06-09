@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 #include <tuple>
+#include <utility>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 template <typename T> using sp = std::shared_ptr<T>;
 template <typename T> using wp = std::weak_ptr<T>;
@@ -16,10 +16,12 @@ template <typename T> using vec = std::vector<T>;
 // forward declaration
 class SymbolType;
 class AstExpression;
+class AstArgument;
 
-typedef sp<SymbolType> SymbolTypePtr_t;
-typedef wp<SymbolType> SymbolTypeWeakPtr_t;
-typedef std::tuple<std::string, SymbolTypePtr_t, sp<AstExpression>> SymbolMember_t;
+using SymbolTypePtr_t = sp<SymbolType>;
+using SymbolTypeWeakPtr_t = wp<SymbolType>;
+using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, sp<AstExpression>>;
+using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<std::shared_ptr<AstArgument>>>;
 
 enum SymbolTypeClass {
     TYPE_BUILTIN,
@@ -83,9 +85,22 @@ public:
         const vec<SymbolMember_t> &members
     );
 
+    static SymbolTypePtr_t Object(
+        const std::string &name,
+        const vec<SymbolMember_t> &members,
+        const SymbolTypePtr_t &base
+    );
+
     /** A generic type template. Members may have the type class TYPE_GENERIC_PARAMETER.
         They will be substituted when an instance of the generic type is created.
     */
+    static SymbolTypePtr_t Generic(
+        const std::string &name,
+        const vec<SymbolMember_t> &members, 
+        const GenericTypeInfo &info,
+        const SymbolTypePtr_t &base
+    );
+    
     static SymbolTypePtr_t Generic(
         const std::string &name, 
         const sp<AstExpression> &default_value, 
@@ -105,8 +120,20 @@ public:
     );
     
     static SymbolTypePtr_t Extend(
+        const std::string &name,
         const SymbolTypePtr_t &base,
         const vec<SymbolMember_t> &members
+    );
+    
+    static SymbolTypePtr_t Extend(
+        const SymbolTypePtr_t &base,
+        const vec<SymbolMember_t> &members
+    );
+    
+    static SymbolTypePtr_t PrototypedObject(
+        const std::string &name,
+        const SymbolTypePtr_t &base,
+        const vec<SymbolMember_t> &prototype_members
     );
 
     static SymbolTypePtr_t TypePromotion(
@@ -196,7 +223,9 @@ public:
     inline bool operator!=(const SymbolType &other) const { return !operator==(other); }
     const SymbolTypePtr_t FindMember(const std::string &name) const;
     bool FindMember(const std::string &name, SymbolMember_t &out) const;
-    void AddMember(const SymbolMember_t &member);
+    const SymbolTypePtr_t FindPrototypeMember(const std::string &name) const;
+    bool FindPrototypeMember(const std::string &name, SymbolMember_t &out) const;
+    const sp<AstExpression> GetPrototypeValue() const;
 
     /** Search the inheritance chain to see if the given type
         is a base of this type. */
@@ -233,7 +262,6 @@ private:
     int m_id;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

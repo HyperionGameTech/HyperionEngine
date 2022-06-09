@@ -6,8 +6,7 @@
 #include <system/debug.h>
 #include <util/utf8.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 SymbolType::SymbolType(const std::string &name, 
     SymbolTypeClass type_class, 
@@ -46,19 +45,15 @@ SymbolType::SymbolType(const SymbolType &other)
 
 bool SymbolType::TypeEqual(const SymbolType &other) const
 {
-    if (GetId() == other.GetId()) {
-        return true;
-    }
-
-    if (GetName() != other.GetName()) {
+    if (m_name != other.m_name) {
         return false;
     }
 
-    if (GetTypeClass() != other.GetTypeClass()) {
+    if (m_type_class != other.m_type_class) {
         return false;
     }
 
-    switch (GetTypeClass()) {
+    switch (m_type_class) {
         case TYPE_ALIAS:
             if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
                 return (*sp) == other;
@@ -109,10 +104,7 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
                 AssertThrow(instance_arg_type != nullptr);
                 AssertThrow(other_arg_type != nullptr);
 
-                //if (!instance_arg_type->TypeEqual(*other_arg_type)) {
-                //    return false;
-                //}
-                if (instance_arg_type->GetId() != other_arg_type->GetId()) {
+                if (!instance_arg_type->TypeEqual(*other_arg_type)) {
                     return false;
                 }
             }
@@ -129,16 +121,14 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     }
 
     for (const SymbolMember_t &i : m_members) {
-        const auto &left_member = std::get<1>(i);
-        AssertThrow(left_member != nullptr);
+        AssertThrow(std::get<1>(i) != nullptr);
 
         bool right_member_found = false;
 
         for (const SymbolMember_t &j : other.m_members) {
-            const auto &right_member = std::get<1>(j);
-            AssertThrow(right_member != nullptr);
+            AssertThrow(std::get<1>(j) != nullptr);
 
-            if (left_member->GetId() == right_member->GetId()) {//left_member->TypeEqual(*right_member)) {
+            if (std::get<1>(i)->TypeEqual(*std::get<1>(j))) {
                 right_member_found = true;
                 continue;
             }
@@ -156,6 +146,10 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
 bool SymbolType::TypeCompatible(const SymbolType &right,
     bool strict_numbers, bool strict_const) const
 {
+    if (TypeEqual(*BuiltinTypes::UNDEFINED) || right.TypeEqual(*BuiltinTypes::UNDEFINED)) {
+        return false;
+    }
+
     if (TypeEqual(right)) {
         return true;
     }
@@ -271,26 +265,6 @@ bool SymbolType::TypeCompatible(const SymbolType &right,
 
             break;
         }
-        case TYPE_BUILTIN: {
-            if (!TypeEqual(*BuiltinTypes::UNDEFINED) && !right.TypeEqual(*BuiltinTypes::UNDEFINED)) {
-                if (TypeEqual(*BuiltinTypes::NUMBER)) {
-                    return (right.TypeEqual(*BuiltinTypes::INT) ||
-                            right.TypeEqual(*BuiltinTypes::FLOAT));
-                } else if (!strict_numbers) {
-                    if (TypeEqual(*BuiltinTypes::INT) || TypeEqual(*BuiltinTypes::FLOAT)) {
-                        return (right.TypeEqual(*BuiltinTypes::NUMBER) ||
-                                right.TypeEqual(*BuiltinTypes::FLOAT) ||
-                                right.TypeEqual(*BuiltinTypes::INT));
-                    }
-                }
-            }
-
-            return false;
-        }
-        
-        case TYPE_USER_DEFINED:
-            // only allow incompatible assignment for the Any type
-            return false;
 
         case TYPE_GENERIC_PARAMETER: {
             if (auto sp = m_generic_param_info.m_substitution.lock()) {
@@ -300,6 +274,20 @@ bool SymbolType::TypeCompatible(const SymbolType &right,
             // uninstantiated generic parameters are compatible with anything
             return true;
         }
+
+        default:
+            if (TypeEqual(*BuiltinTypes::NUMBER)) {
+                return (right.TypeEqual(*BuiltinTypes::INT) ||
+                        right.TypeEqual(*BuiltinTypes::FLOAT));
+            } else if (!strict_numbers) {
+                if (TypeEqual(*BuiltinTypes::INT) || TypeEqual(*BuiltinTypes::FLOAT)) {
+                    return (right.TypeEqual(*BuiltinTypes::NUMBER) ||
+                            right.TypeEqual(*BuiltinTypes::FLOAT) ||
+                            right.TypeEqual(*BuiltinTypes::INT));
+                }
+            }
+
+            return false;
     }
 
     return true;
@@ -328,9 +316,44 @@ bool SymbolType::FindMember(const std::string &name, SymbolMember_t &out) const
     return false;
 }
 
-void SymbolType::AddMember(const SymbolMember_t &member)
+const SymbolTypePtr_t SymbolType::FindPrototypeMember(const std::string &name) const
 {
-    m_members.push_back(member);
+    if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
+        if (proto_type == BuiltinTypes::ANY) {
+            return BuiltinTypes::ANY;
+        }
+
+        return proto_type->FindMember(name);
+    }
+
+    return nullptr;
+}
+
+
+bool SymbolType::FindPrototypeMember(const std::string &name, SymbolMember_t &out) const
+{
+    if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
+        return proto_type->FindMember(name, out);
+    }
+
+    return false;
+}
+
+const sp<AstExpression> SymbolType::GetPrototypeValue() const
+{
+    SymbolMember_t proto_mem;
+
+    if (FindMember("$proto", proto_mem)) {
+        if (auto value = std::get<2>(proto_mem)) {
+            return value;
+        }
+
+        if (auto proto_type = std::get<1>(proto_mem)) {
+            return proto_type->GetPrototypeValue();
+        }
+    }
+
+    return nullptr;
 }
 
 bool SymbolType::HasBase(const SymbolType &base_type) const
@@ -439,7 +462,7 @@ SymbolTypePtr_t SymbolType::Primitive(const std::string &name,
     return SymbolTypePtr_t(new SymbolType(
         name,
         TYPE_BUILTIN,
-        BuiltinTypes::OBJECT,
+        BuiltinTypes::TYPE_TYPE,
         default_value,
         {}
     ));
@@ -464,7 +487,7 @@ SymbolTypePtr_t SymbolType::Object(const std::string &name,
     SymbolTypePtr_t symbol_type(new SymbolType(
         name,
         TYPE_USER_DEFINED,
-        BuiltinTypes::OBJECT,
+        BuiltinTypes::TYPE_TYPE,
         nullptr,
         members
     ));
@@ -476,7 +499,44 @@ SymbolTypePtr_t SymbolType::Object(const std::string &name,
     return symbol_type;
 }
 
-SymbolTypePtr_t SymbolType::Generic(const std::string &name, 
+SymbolTypePtr_t SymbolType::Object(const std::string &name,
+    const vec<SymbolMember_t> &members,
+    const SymbolTypePtr_t &base)
+{
+    SymbolTypePtr_t symbol_type(new SymbolType(
+        name,
+        TYPE_USER_DEFINED,
+        base,
+        nullptr,
+        members
+    ));
+
+    symbol_type->SetDefaultValue(sp<AstObject>(
+        new AstObject(symbol_type, SourceLocation::eof)
+    ));
+    
+    return symbol_type;
+}
+
+SymbolTypePtr_t SymbolType::Generic(const std::string &name,
+    const vec<SymbolMember_t> &members, 
+    const GenericTypeInfo &info,
+    const SymbolTypePtr_t &base)
+{
+    SymbolTypePtr_t res(new SymbolType(
+        name,
+        TYPE_GENERIC,
+        base,
+        nullptr,
+        members
+    ));
+    
+    res->m_generic_info = info;
+    
+    return res;
+}
+
+SymbolTypePtr_t SymbolType::Generic(const std::string &name,
     const sp<AstExpression> &default_value,
     const vec<SymbolMember_t> &members, 
     const GenericTypeInfo &info,
@@ -534,8 +594,11 @@ SymbolTypePtr_t SymbolType::GenericInstance(
                     has_return_type = true;
                     return_type_name = generic_arg_type->GetName();
                 } else {
-                    name += generic_arg_name;
-                    name += ": ";
+                    if (!generic_arg_name.empty()) {
+                        name += generic_arg_name;
+                        name += ": ";
+                    }
+
                     name += generic_arg_type->GetName();
                     if (i != info.m_generic_args.size() - 1) {
                         name += ", ";
@@ -637,12 +700,34 @@ SymbolTypePtr_t SymbolType::GenericParameter(
     SymbolTypePtr_t res(new SymbolType(
         name,
         TYPE_GENERIC_PARAMETER,
-        nullptr
+        BuiltinTypes::TYPE_TYPE
     ));
 
     res->m_generic_param_info.m_substitution = substitution;
     
     return res;
+}
+
+SymbolTypePtr_t SymbolType::Extend(
+    const std::string &name,
+    const SymbolTypePtr_t &base,
+    const vec<SymbolMember_t> &members)
+{
+    SymbolTypePtr_t symbol_type(new SymbolType(
+        name,
+        base->GetTypeClass() == TYPE_BUILTIN
+            ? TYPE_USER_DEFINED
+            : base->GetTypeClass(),
+        base,
+        base->GetDefaultValue(),
+        members
+    ));
+
+    symbol_type->SetDefaultValue(sp<AstObject>(
+        new AstObject(symbol_type, SourceLocation::eof)
+    ));
+    
+    return symbol_type;
 }
 
 SymbolTypePtr_t SymbolType::Extend(
@@ -664,6 +749,27 @@ SymbolTypePtr_t SymbolType::Extend(
     ));
     
     return symbol_type;
+}
+    
+SymbolTypePtr_t PrototypedObject(
+    const std::string &name,
+    const SymbolTypePtr_t &base,
+    const vec<SymbolMember_t> &prototype_members)
+{
+    return SymbolType::Extend(
+        name,
+        base,
+        std::vector<SymbolMember_t> {
+            SymbolMember_t {
+                "$proto",
+                SymbolType::Object(
+                    name + "Instance",
+                    prototype_members
+                ),
+                nullptr
+            }
+        }
+    );
 }
 
 SymbolTypePtr_t SymbolType::TypePromotion(
@@ -756,7 +862,7 @@ SymbolTypePtr_t SymbolType::GenericPromotion(
                             // if left is a Boxed type and still generic (no params),
                             // e.i Const or Maybe, fill it with the assignment type
                             std::vector<GenericInstanceTypeInfo::Arg> generic_types {
-                                { "of", rptr }
+                                { "", rptr }
                             };
                             
                             return SymbolType::GenericInstance(
@@ -781,7 +887,7 @@ SymbolTypePtr_t SymbolType::GenericPromotion(
                 AssertThrow(inner_type != nullptr);
 
                 std::vector<GenericInstanceTypeInfo::Arg> new_generic_types {
-                    { "of", SymbolType::GenericPromotion(inner_type, rptr) }
+                    { "", SymbolType::GenericPromotion(inner_type, rptr) }
                 };
                 
                 return SymbolType::GenericInstance(
@@ -855,5 +961,4 @@ SymbolTypePtr_t SymbolType::SubstituteGenericParams(
     return lptr;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

@@ -1,7 +1,6 @@
 #include <script/compiler/Keywords.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "module",   Keyword_module },
@@ -10,16 +9,14 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "use",      Keyword_use },
     { "let",      Keyword_let },
     { "const",    Keyword_const },
+    { "static",   Keyword_static },
+    { "generic",  Keyword_generic },
     { "ref",      Keyword_ref },
     { "val",      Keyword_val },
-    { "var",      Keyword_var },
-    { "function", Keyword_func },
-    { "struct",   Keyword_struct },
-    { "class",    Keyword_class },
+    { "func",     Keyword_func },
     { "type",     Keyword_type },
     { "alias",    Keyword_alias },
     { "mixin",    Keyword_mixin },
-    { "delete",   Keyword_delete },
     { "as",       Keyword_as },
     { "has",      Keyword_has },
     { "new",      Keyword_new },
@@ -28,7 +25,6 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "if",       Keyword_if },
     { "else",     Keyword_else },
     { "for",      Keyword_for },
-    { "each",     Keyword_each },
     { "in",       Keyword_in },
     { "while",    Keyword_while },
     { "do",       Keyword_do },
@@ -49,6 +45,8 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "impure",   Keyword_impure },
     { "valueof",  Keyword_valueof },
     { "typeof",   Keyword_typeof },
+    { "$meta",    Keyword_meta },
+    { "syntax",   Keyword_syntax }
 };
 
 bool Keyword::IsKeyword(const std::string &str)
@@ -66,5 +64,4 @@ std::string Keyword::ToString(Keywords keyword)
     return "";
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

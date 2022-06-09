@@ -7,8 +7,7 @@
 #include <string>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstTypeSpecification: public AstStatement {
 public:
@@ -16,8 +15,7 @@ public:
         const std::string &left,
         const std::vector<std::shared_ptr<AstTypeSpecification>> &generic_params,
         const std::shared_ptr<AstTypeSpecification> &right,
-        const SourceLocation &location
-    );
+        const SourceLocation &location);
     virtual ~AstTypeSpecification() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -26,7 +24,7 @@ public:
     
     virtual Pointer<AstStatement> Clone() const override;
 
-    inline const SymbolTypePtr_t &GetSymbolType() const { return m_symbol_type; }
+    inline const SymbolTypePtr_t &GetSpecifiedType() const { return m_symbol_type; }
     inline const SymbolTypePtr_t &GetOriginalType() const { return m_original_type; }
 
 private:
@@ -52,7 +50,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

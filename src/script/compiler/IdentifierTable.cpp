@@ -1,13 +1,13 @@
 #include <script/compiler/IdentifierTable.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 
 #include <system/debug.h>
 
 #include <unordered_set>
 #include <algorithm>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 IdentifierTable::IdentifierTable()
     : m_identifier_index(0)
@@ -38,21 +38,41 @@ int IdentifierTable::CountUsedVariables() const
 Identifier *IdentifierTable::AddAlias(const std::string &name, Identifier *aliasee)
 {
     AssertThrow(aliasee != nullptr);
-    
-    m_identifiers.push_back(std::shared_ptr<Identifier>(new Identifier(name,
-        aliasee->GetIndex(), aliasee->GetFlags() | FLAG_ALIAS)));
+
+    m_identifiers.push_back(std::shared_ptr<Identifier>(new Identifier(
+        name,
+        aliasee->GetIndex(),
+        aliasee->GetFlags() | FLAG_ALIAS,
+        aliasee
+    )));
     
     return m_identifiers.back().get();
 }
 
-Identifier *IdentifierTable::AddIdentifier(const std::string &name, int flags)
+Identifier *IdentifierTable::AddIdentifier(const std::string &name,
+    int flags,
+    std::shared_ptr<AstExpression> current_value,
+    SymbolTypePtr_t symbol_type)
 {
-    m_identifiers.push_back(std::shared_ptr<Identifier>(new Identifier(
+    std::shared_ptr<Identifier> ident(new Identifier(
         name,
         m_identifier_index++,
         flags
-    )));
-    
+    ));
+
+    if (current_value != nullptr) {
+        ident->SetCurrentValue(current_value);
+
+        if (symbol_type == nullptr) {
+            ident->SetSymbolType(symbol_type);
+        }
+    }
+
+    if (symbol_type != nullptr) {
+        ident->SetSymbolType(symbol_type);
+    }
+
+    m_identifiers.push_back(ident);
     return m_identifiers.back().get();
 }
 
@@ -61,12 +81,19 @@ Identifier *IdentifierTable::LookUpIdentifier(const std::string &name)
     for (auto &ident : m_identifiers) {
         if (ident != nullptr) {
             if (ident->GetName() == name) {
-                return ident.get();
+                return ident.get()->Unalias();
             }
         }
     }
 
     return nullptr;
+}
+
+void IdentifierTable::BindTypeToIdentifier(const std::string &name, SymbolTypePtr_t symbol_type)
+{
+    AddIdentifier(name, 0, std::shared_ptr<AstTypeObject>(new AstTypeObject(
+        symbol_type, nullptr, SourceLocation::eof
+    )), symbol_type->GetBaseType());
 }
 
 SymbolTypePtr_t IdentifierTable::LookupSymbolType(const std::string &name) const
@@ -128,5 +155,4 @@ void IdentifierTable::AddSymbolType(const SymbolTypePtr_t &type)
     m_symbol_types.push_back(type);
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

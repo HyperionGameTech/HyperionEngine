@@ -7,8 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstModuleDeclaration : public AstDeclaration {
 public:
@@ -35,6 +34,8 @@ private:
     std::vector<std::shared_ptr<AstStatement>> m_children;
     std::shared_ptr<Module> m_module;
 
+    void AddBuiltinHeader();
+
     inline Pointer<AstModuleDeclaration> CloneImpl() const
     {
         return Pointer<AstModuleDeclaration>(new AstModuleDeclaration(
@@ -45,7 +46,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

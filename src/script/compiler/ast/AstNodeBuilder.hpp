@@ -13,8 +13,7 @@
 #include <vector>
 #include <utility>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 template <typename T>
 using sp = std::shared_ptr<T>;
@@ -75,7 +74,6 @@ private:
     ModuleBuilder *m_parent;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

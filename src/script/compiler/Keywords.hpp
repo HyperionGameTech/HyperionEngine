@@ -4,8 +4,7 @@
 #include <string>
 #include <map>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum Keywords {
     Keyword_module,
@@ -14,16 +13,14 @@ enum Keywords {
     Keyword_use,
     Keyword_let,
     Keyword_const,
+    Keyword_static,
+    Keyword_generic,
     Keyword_ref,
     Keyword_val,
-    Keyword_var,
     Keyword_func,
-    Keyword_class,
-    Keyword_struct,
     Keyword_type,
     Keyword_alias,
     Keyword_mixin,
-    Keyword_delete,
     Keyword_as,
     Keyword_has,
     Keyword_new,
@@ -32,7 +29,6 @@ enum Keywords {
     Keyword_if,
     Keyword_else,
     Keyword_for,
-    Keyword_each,
     Keyword_in,
     Keyword_while,
     Keyword_do,
@@ -52,7 +48,9 @@ enum Keywords {
     Keyword_pure,
     Keyword_impure,
     Keyword_valueof,
-    Keyword_typeof
+    Keyword_typeof,
+    Keyword_meta,
+    Keyword_syntax
 };
 
 class Keyword {
@@ -65,7 +63,6 @@ private:
     static const std::map<std::string, Keywords> keyword_strings;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

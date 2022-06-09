@@ -7,10 +7,7 @@
 #include <vector>
 #include <memory>
 
-namespace hyperion {
-namespace compiler {
-
-class AstMixinDeclaration;
+namespace hyperion::compiler {
 
 class AstMixin : public AstExpression {
 public:
@@ -26,7 +23,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 private:
     std::string m_name;
@@ -45,7 +42,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

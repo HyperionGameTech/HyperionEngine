@@ -15,8 +15,7 @@
 
 #include <sstream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstWhileLoop::AstWhileLoop(const std::shared_ptr<AstExpression> &conditional,
     const std::shared_ptr<AstBlock> &block,
@@ -146,5 +145,4 @@ Pointer<AstStatement> AstWhileLoop::Clone() const
     return CloneImpl();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

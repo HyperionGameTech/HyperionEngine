@@ -1,8 +1,7 @@
 #ifndef ENUMS_HPP
 #define ENUMS_HPP
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 enum AccessMode {
     ACCESS_MODE_LOAD = 1,
@@ -17,7 +16,6 @@ enum IdentifierType {
     IDENTIFIER_TYPE_TYPE
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

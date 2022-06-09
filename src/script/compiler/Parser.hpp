@@ -14,9 +14,12 @@
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTupleExpression.hpp>
 #include <script/compiler/ast/AstTypeDefinition.hpp>
+#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstPrototypeDefinition.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/ast/AstMixinDeclaration.hpp>
+#include <script/compiler/ast/AstMixin.hpp>
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstImport.hpp>
@@ -25,7 +28,6 @@
 #include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
-#include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstUnaryExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
@@ -45,20 +47,24 @@
 #include <script/compiler/ast/AstBlockExpression.hpp>
 #include <script/compiler/ast/AstIfStatement.hpp>
 #include <script/compiler/ast/AstWhileLoop.hpp>
-#include <script/compiler/ast/AstForRangeLoop.hpp>
+#include <script/compiler/ast/AstForLoop.hpp>
 #include <script/compiler/ast/AstPrintStatement.hpp>
 #include <script/compiler/ast/AstTryCatch.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstEvent.hpp>
 #include <script/compiler/ast/AstActionExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstYieldStatement.hpp>
+#include <script/compiler/ast/AstMetaBlock.hpp>
+#include <script/compiler/ast/AstSymbolQuery.hpp>
+#include <script/compiler/ast/AstTemplateExpression.hpp>
+#include <script/compiler/ast/AstTemplateInstantiation.hpp>
+#include <script/compiler/ast/AstSyntaxDefinition.hpp>
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class Parser {
 public:
@@ -79,6 +85,7 @@ private:
     Token MatchKeyword(Keywords keyword, bool read = false);
     Token MatchKeywordAhead(Keywords keyword, int n);
     Token MatchOperator(const std::string &op, bool read = false);
+    Token MatchOperatorAhead(const std::string &op, int n);
     Token Expect(TokenClass token_class, bool read = false);
     Token ExpectKeyword(Keywords keyword, bool read = false);
     Token ExpectOperator(const std::string &op, bool read = false);
@@ -92,9 +99,14 @@ private:
     std::shared_ptr<AstStatement> ParseStatement(bool top_level = false);
     std::shared_ptr<AstModuleDeclaration> ParseModuleDeclaration();
     std::shared_ptr<AstDirective> ParseDirective();
-    std::shared_ptr<AstExpression> ParseTerm(bool override_commas = false,
-        bool override_fat_arrows = false);
+    std::shared_ptr<AstExpression> ParseTerm(
+        bool override_commas = false,
+        bool override_fat_arrows = false,
+        bool override_angle_brackets = false,
+        bool override_square_brackets = false
+    );
     std::shared_ptr<AstExpression> ParseParentheses();
+    std::shared_ptr<AstExpression> ParseAngleBrackets(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstInteger> ParseIntegerLiteral();
     std::shared_ptr<AstFloat> ParseFloatLiteral();
     std::shared_ptr<AstString> ParseStringLiteral();
@@ -102,13 +114,15 @@ private:
     std::shared_ptr<AstArgument> ParseArgument(std::shared_ptr<AstExpression> expr);
     std::shared_ptr<AstArgumentList> ParseArguments(bool require_parentheses = true,
         const std::shared_ptr<AstExpression> &expr = nullptr);
-    std::shared_ptr<AstCallExpression> ParseCallExpression(std::shared_ptr<AstExpression> target);
+    std::shared_ptr<AstCallExpression> ParseCallExpression(std::shared_ptr<AstExpression> target,
+        bool require_parentheses = true);
     std::shared_ptr<AstModuleAccess> ParseModuleAccess();
     std::shared_ptr<AstModuleProperty> ParseModuleProperty();
     std::shared_ptr<AstMember> ParseMemberExpression(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstArrayAccess> ParseArrayAccess(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstHasExpression> ParseHasExpression(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstActionExpression> ParseActionExpression(std::shared_ptr<AstExpression> expr);
+    std::shared_ptr<AstTemplateInstantiation> ParseTemplateInstantiation(std::shared_ptr<AstIdentifier> expr);
     std::shared_ptr<AstNewExpression> ParseNewExpression();
     std::shared_ptr<AstTrue> ParseTrue();
     std::shared_ptr<AstFalse> ParseFalse();
@@ -117,19 +131,21 @@ private:
     std::shared_ptr<AstBlockExpression> ParseBlockExpression();
     std::shared_ptr<AstIfStatement> ParseIfStatement();
     std::shared_ptr<AstWhileLoop> ParseWhileLoop();
-    std::shared_ptr<AstStatement> ParseForLoop();
-    std::shared_ptr<AstForRangeLoop> ParseForRangeLoop();
+    std::shared_ptr<AstForLoop> ParseForLoop();
     std::shared_ptr<AstPrintStatement> ParsePrintStatement();
     std::shared_ptr<AstTryCatch> ParseTryCatchStatement();
     std::shared_ptr<AstExpression> ParseBinaryExpression(int expr_prec,
         std::shared_ptr<AstExpression> left);
     std::shared_ptr<AstExpression> ParseUnaryExpression();
-    std::shared_ptr<AstExpression> ParseTernaryExpression(std::shared_ptr<AstExpression> conditional);
-    std::shared_ptr<AstExpression> ParseExpression(bool override_commas = false,
-        bool override_fat_arrows = false);
+    std::shared_ptr<AstExpression> ParseExpression(
+        bool override_commas = false,
+        bool override_fat_arrows = false,
+        bool override_angle_brackets = false
+    );
     std::shared_ptr<AstTypeSpecification> ParseTypeSpecification();
-    std::shared_ptr<AstExpression> ParseAssignment();
-    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool allow_keyword_names = false,
+    std::shared_ptr<AstPrototypeSpecification> ParsePrototypeSpecification();
+    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool require_keyword = true,
+        bool allow_keyword_names = false,
         bool allow_quoted_names = false);
     std::shared_ptr<AstFunctionDefinition> ParseFunctionDefinition(bool require_keyword = true);
     std::shared_ptr<AstFunctionExpression> ParseFunctionExpression(bool require_keyword = true,
@@ -146,17 +162,21 @@ private:
     std::shared_ptr<AstTypeOfExpression> ParseTypeOfExpression();
     std::vector<std::shared_ptr<AstParameter>> ParseFunctionParameters();
     std::shared_ptr<AstStatement> ParseTypeDefinition();
+    std::shared_ptr<AstTypeExpression> ParseTypeExpression();
     std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
     std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();
+    std::shared_ptr<AstMixin> ParseMixinExpression(const std::string &name);
     std::shared_ptr<AstImport> ParseImport();
     std::shared_ptr<AstFileImport> ParseFileImport();
     std::shared_ptr<AstModuleImport> ParseModuleImport();
     std::shared_ptr<AstModuleImportPart> ParseModuleImportPart(bool allow_braces = false);
     std::shared_ptr<AstReturnStatement> ParseReturnStatement();
     std::shared_ptr<AstYieldStatement> ParseYieldStatement();
+    std::shared_ptr<AstMetaBlock> ParseMetaBlock();
+    std::shared_ptr<AstExpression> ParseMetaProperty();
+    std::shared_ptr<AstSyntaxDefinition> ParseSyntaxDefinition();
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

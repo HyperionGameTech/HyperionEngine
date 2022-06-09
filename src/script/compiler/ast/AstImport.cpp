@@ -2,20 +2,18 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/Compiler.hpp>
-#include <script/SourceFile.hpp>
+#include <script/compiler/SourceFile.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 
 #include <util/string_util.h>
-#include <system/debug.h>
 
 #include <fstream>
 #include <iostream>
 #include <functional>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstImport::AstImport(const SourceLocation &location)
     : AstStatement(location)
@@ -51,10 +49,7 @@ void AstImport::CopyModules(
     }
 
     // function to copy nested modules 
-    std::function<void(TreeNode<Module*>*)> copy_nodes =
-
-    [visitor, &copy_nodes, &update_tree_link](TreeNode<Module*> *link)
-    {
+    std::function<void(TreeNode<Module*>*)> copy_nodes = [visitor, &copy_nodes, &update_tree_link](TreeNode<Module*> *link) {
         AssertThrow(link != nullptr);
         AssertThrow(link->m_value != nullptr);
 
@@ -108,6 +103,16 @@ void AstImport::PerformImport(
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
+
+    if (!mod->IsInGlobalScope()) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_import_outside_global,
+            m_location
+        ));
+
+        return;
+    }
 
     // parse path into vector
     std::vector<std::string> path_vec = StringUtil::SplitPath(filepath);
@@ -213,5 +218,4 @@ void AstImport::Optimize(AstVisitor *visitor, Module *mod)
     optimizer.Optimize();
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

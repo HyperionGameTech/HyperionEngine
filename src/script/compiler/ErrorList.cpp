@@ -6,8 +6,7 @@
 #include <map>
 #include <fstream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 ErrorList::ErrorList()
 {
@@ -27,7 +26,7 @@ bool ErrorList::HasFatalErrors() const
             }
         }
     }
-
+    
     return false;
 }
 
@@ -101,5 +100,4 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
     return os;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

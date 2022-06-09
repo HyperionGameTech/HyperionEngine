@@ -1,7 +1,6 @@
 #include <script/compiler/TokenStream.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 TokenStream::TokenStream(const TokenStreamInfo &info)
     : m_position(0),
@@ -9,5 +8,4 @@ TokenStream::TokenStream(const TokenStreamInfo &info)
 {
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

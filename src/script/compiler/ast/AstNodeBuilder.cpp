@@ -4,8 +4,7 @@
 
 #include <system/debug.h>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 ModuleBuilder AstNodeBuilder::Module(const std::string &name)
 {
@@ -90,5 +89,4 @@ sp<AstExpression> FunctionBuilder::Call(const std::vector<sp<AstArgument>> &args
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

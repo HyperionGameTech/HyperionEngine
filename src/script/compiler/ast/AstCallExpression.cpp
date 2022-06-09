@@ -16,8 +16,7 @@
 #include <limits>
 #include <iostream>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstCallExpression::AstCallExpression(
     const std::shared_ptr<AstExpression> &target,
@@ -38,7 +37,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
-    SymbolTypePtr_t target_type = m_target->GetSymbolType();
+    SymbolTypePtr_t target_type = m_target->GetExprType();
     AssertThrow(target_type != nullptr);
 
     if (m_insert_self) {
@@ -51,6 +50,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
             std::shared_ptr<AstArgument> self_arg(new AstArgument(
                 target_mem->GetTarget(),
+                false,
                 true,
                 "self",
                 target_mem->GetTarget()->GetLocation()
@@ -61,12 +61,24 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    if (SymbolTypePtr_t call_member_type = target_type->FindMember("$invoke")) {
+    // allow unboxing
+    SymbolTypePtr_t unboxed_type = target_type;
+
+    if (target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
+        if (target_type->IsBoxedType()) {
+            unboxed_type = target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
+        }
+    }
+
+    AssertThrow(unboxed_type != nullptr);
+
+    if (SymbolTypePtr_t call_member_type = unboxed_type->FindPrototypeMember("$invoke")) {
         m_is_method_call = true;
 
         // closure objects have a self parameter for the '$invoke' call.
         std::shared_ptr<AstArgument> self_arg(new AstArgument(
             m_target,
+            false,
             false,
             "__closure_self",
             m_target->GetLocation()
@@ -77,15 +89,15 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
         m_target.reset(new AstMember(
             "$invoke",
-            m_target,
+            CloneAstNode(m_target),
             m_location
         ));
         
         AssertThrow(m_target != nullptr);
         m_target->Visit(visitor, mod);
 
-        target_type = call_member_type;
-        AssertThrow(target_type != nullptr);
+        unboxed_type = call_member_type;
+        AssertThrow(unboxed_type != nullptr);
     }
 
     // visit each argument
@@ -98,26 +110,15 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    SymbolTypePtr_t unboxed_type = target_type;
-
-    // allow unboxing
-    if (target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
-        if (target_type->IsBoxedType()) {
-            unboxed_type = target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-        }
-    }
-
-    AssertThrow(unboxed_type != nullptr);
-
-    auto substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-        visitor, 
-        mod,
-        unboxed_type,
-        m_args,
-        m_location
+    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+        visitor, mod, unboxed_type, m_args, m_location
     );
 
-    if (substituted.first == nullptr) {
+    if (substituted.first != nullptr) {
+        m_return_type = substituted.first;
+        // change args to be newly ordered vector
+        m_args = substituted.second;
+    } else {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -125,10 +126,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location,
             target_type->GetName()
         ));
-    } else {
-        m_return_type = substituted.first;
-        // change args to be newly ordered vector
-        m_args = substituted.second;
     }
 }
 
@@ -193,11 +190,10 @@ bool AstCallExpression::MayHaveSideEffects() const
     return true;
 }
 
-SymbolTypePtr_t AstCallExpression::GetSymbolType() const
+SymbolTypePtr_t AstCallExpression::GetExprType() const
 {
     AssertThrow(m_return_type != nullptr);
     return m_return_type;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

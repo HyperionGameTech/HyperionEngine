@@ -8,8 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstString::AstString(const std::string &value, const SourceLocation &location)
     : AstConstant(location),
@@ -58,12 +57,12 @@ hyperion::afloat32 AstString::FloatValue() const
     return 0.0f;
 }
 
-SymbolTypePtr_t AstString::GetSymbolType() const
+SymbolTypePtr_t AstString::GetExprType() const
 {
     return BuiltinTypes::STRING;
 }
 
-std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, AstConstant *right) const
+std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
@@ -81,7 +80,7 @@ std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, AstCon
             return std::shared_ptr<AstTrue>(new AstTrue(m_location));
 
         case OP_equals:
-            if (AstString *right_string = dynamic_cast<AstString*>(right)) {
+            if (const AstString *right_string = dynamic_cast<const AstString*>(right)) {
                 if (m_value == right_string->GetValue()) {
                     return std::shared_ptr<AstTrue>(new AstTrue(m_location));
                 } else {
@@ -96,5 +95,4 @@ std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, AstCon
     }
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

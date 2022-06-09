@@ -5,16 +5,13 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstHasExpression : public AstExpression {
 public:
-    AstHasExpression(
-        const std::shared_ptr<AstStatement> &target,
-        const std::string &field_name,
-        const SourceLocation &location
-    );
+    AstHasExpression(const std::shared_ptr<AstStatement> &target,
+      const std::string &field_name,
+      const SourceLocation &location);
     virtual ~AstHasExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -25,7 +22,7 @@ public:
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
-    virtual SymbolTypePtr_t GetSymbolType() const override;
+    virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
     std::shared_ptr<AstStatement> m_target;
@@ -49,7 +46,6 @@ private:
     }
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

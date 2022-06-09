@@ -9,8 +9,7 @@
 #include <system/debug.h>
 #include <script/Hasher.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstModuleAccess::AstModuleAccess(const std::string &target,
     const std::shared_ptr<AstExpression> &expr,
@@ -79,18 +78,26 @@ Pointer<AstStatement> AstModuleAccess::Clone() const
 
 Tribool AstModuleAccess::IsTrue() const
 {
+    AssertThrow(m_expr != nullptr);
     return m_expr->IsTrue();
 }
 
 bool AstModuleAccess::MayHaveSideEffects() const
 {
+    AssertThrow(m_expr != nullptr);
     return m_expr->MayHaveSideEffects();
 }
 
-SymbolTypePtr_t AstModuleAccess::GetSymbolType() const
+SymbolTypePtr_t AstModuleAccess::GetExprType() const
 {
-    return m_expr->GetSymbolType();
+    AssertThrow(m_expr != nullptr);
+    return m_expr->GetExprType();
 }
 
-} // namespace compiler
-} // namespace hyperion
+const AstExpression *AstModuleAccess::GetValueOf() const
+{
+    AssertThrow(m_expr != nullptr);
+    return m_expr->GetValueOf();
+}
+
+} // namespace hyperion::compiler

@@ -6,8 +6,7 @@
 
 #include <string>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstDeclaration : public AstStatement {
 public:
@@ -30,7 +29,6 @@ protected:
     Identifier *m_identifier;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

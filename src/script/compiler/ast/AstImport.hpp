@@ -6,8 +6,7 @@
 #include <script/compiler/Module.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 class AstImport : public AstStatement {
 public:
@@ -42,7 +41,6 @@ protected:
         const std::string &parent_module_name = ""*/);
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

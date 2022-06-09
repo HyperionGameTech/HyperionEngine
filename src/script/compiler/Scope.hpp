@@ -9,8 +9,7 @@
 #include <utility>
 #include <map>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 typedef std::pair<SymbolTypePtr_t, SourceLocation> ReturnType_t;
 
@@ -22,11 +21,10 @@ enum ScopeType {
 };
 
 enum ScopeFunctionFlags : int {
-    PURE_FUNCTION_FLAG      = 0x01,
-    CLOSURE_FUNCTION_FLAG   = 0x02,
-    GENERATOR_FUNCTION_FLAG = 0x04,
-
-    GENERIC_FLAG            = 0x08
+    PURE_FUNCTION_FLAG          = 0b00000001,
+    CLOSURE_FUNCTION_FLAG       = 0b00000010,
+    GENERATOR_FUNCTION_FLAG     = 0b00000100,
+    UNINSTANTIATED_GENERIC_FLAG = 0b00001000
 };
 
 class Scope {
@@ -40,14 +38,18 @@ public:
         { return m_identifier_table; }
     inline const IdentifierTable &GetIdentifierTable() const
         { return m_identifier_table; }
+
     inline ScopeType GetScopeType() const
         { return m_scope_type; }
+
     inline int GetScopeFlags() const
         { return m_scope_flags; }
+
     inline void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
         { m_return_types.push_back({type, location}); }
     inline const std::vector<ReturnType_t> &GetReturnTypes() const
         { return m_return_types; }
+
     inline Identifier *FindClosureCapture(const std::string &name) 
     {
         auto it = m_closure_captures.find(name);
@@ -66,7 +68,6 @@ private:
     std::map<std::string, Identifier*> m_closure_captures;
 };
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler
 
 #endif

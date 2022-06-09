@@ -1,7 +1,6 @@
 #include <script/compiler/ast/AstConstant.hpp>
 
-namespace hyperion {
-namespace compiler {
+namespace hyperion::compiler {
 
 AstConstant::AstConstant(const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD)
@@ -24,5 +23,4 @@ bool AstConstant::MayHaveSideEffects() const
     return false;
 }
 
-} // namespace compiler
-} // namespace hyperion
+} // namespace hyperion::compiler

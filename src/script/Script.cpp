@@ -10,7 +10,7 @@
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/dis/DecompilationUnit.hpp>
-#include <script/compiler/emit/codegen/Codegen.hpp>
+#include <script/compiler/emit/aex-builder/AEXGenerator.hpp>
 #include <script/compiler/dis/DecompilationUnit.hpp>
 
 #include <script/ScriptApi.hpp>
@@ -97,7 +97,7 @@ void Script::Bake(BuildParams &build_params)
 {
     AssertThrow(IsCompiled());
 
-    CodeGenerator code_generator(build_params);
+    AEXGenerator code_generator(build_params);
     code_generator.Visit(m_bytecode_chunk.get());
 
     m_baked_bytes = code_generator.GetInternalByteStream().Bake();
