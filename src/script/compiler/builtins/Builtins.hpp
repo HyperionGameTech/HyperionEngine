@@ -1,7 +1,7 @@
 #ifndef BUILTINS_HPP
 #define BUILTINS_HPP
 
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/ast/AstExpression.hpp>

@@ -3,6 +3,7 @@
 
 #include <script/vm/BytecodeStream.hpp>
 #include <script/vm/VMState.hpp>
+#include <script/vm/StackTrace.hpp>
 
 #include <array>
 #include <limits>
@@ -24,8 +25,6 @@
 
 namespace hyperion {
 namespace vm {
-
-class InstructionHandler;
 
 enum CompareFlags : int {
     NONE = 0x00,
@@ -98,6 +97,8 @@ public:
     }
 
 private:
+    StackTrace CreateStackTrace(ExecutionThread *thread);
+
     VMState m_state;
 };
 

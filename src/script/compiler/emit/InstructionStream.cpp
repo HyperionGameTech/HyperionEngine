@@ -48,3 +48,5 @@ int InstructionStream::FindStaticObject(const StaticObject &static_object) const
     }
     return *this;
 }*/
+
+} // namespace hyperion::compiler

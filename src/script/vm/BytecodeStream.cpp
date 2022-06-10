@@ -41,5 +41,20 @@ BytecodeStream &BytecodeStream::operator=(const BytecodeStream &other)
     return *this;
 }
 
+void BytecodeStream::ReadZeroTerminatedString(char *ptr)
+{
+    char ch = 0;
+    size_t i = 0;
+
+    do {
+        if (m_position >= m_size) {
+            throw std::out_of_range("attempted to read past the limit");
+        }
+
+        ptr[i++] = ch = m_buffer[m_position++];
+
+    } while (ch != 0);
+}
+
 } // namespace vm
 } // namespace hyperion

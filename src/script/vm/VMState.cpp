@@ -60,6 +60,27 @@ void VMState::ThrowException(ExecutionThread *thread, const Exception &exception
     }
 }
 
+void VMState::CloneValue(const Value &other, ExecutionThread *thread, Value &out)
+{
+    switch (other.m_type) {
+        case Value::HEAP_POINTER:
+            if (other.m_value.ptr != nullptr) {
+                HeapValue *hv = HeapAlloc(thread);
+                AssertThrow(hv != nullptr);
+
+                hv->AssignCopy(*other.m_value.ptr);
+
+                out.m_type = Value::HEAP_POINTER;
+                out.m_value.ptr = hv;
+
+                break;
+            }
+            // fallthrough
+        default:
+            out = Value(other);
+    }
+}
+
 HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 {
     AssertThrow(thread != nullptr);
@@ -72,7 +93,7 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
             char buffer[256];
             std::sprintf(
                 buffer,
-                "heap overflow, heap size is %zu, max is %zu",
+                "heap overflow, heap size is %zu, max is %d",
                 heap_size,
                 GC_THRESHOLD_MAX
             );
@@ -80,6 +101,7 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
             return nullptr;
         }
 
+#if ENABLE_GC
         if (enable_auto_gc) {
             // run the gc
             GC();
@@ -94,6 +116,7 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
                 );
             }
         }
+#endif
     }
 
     return m_heap.Alloc();

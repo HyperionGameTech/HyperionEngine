@@ -3,7 +3,7 @@
 
 #include <script/compiler/IdentifierTable.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 
 #include <vector>
 #include <utility>

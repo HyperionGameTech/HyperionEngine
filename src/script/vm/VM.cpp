@@ -2,6 +2,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/HeapValue.hpp>
 #include <script/vm/Array.hpp>
+#include <script/vm/Slice.hpp>
 #include <script/vm/Object.hpp>
 #include <script/vm/ImmutableString.hpp>
 #include <script/vm/TypeInfo.hpp>
@@ -21,6 +22,8 @@
 namespace hyperion {
 namespace vm {
 
+static std::mutex mtx;
+
 VM::VM()
 {
     m_state.m_vm = non_owning_ptr<VM>(this);
@@ -34,12 +37,12 @@ VM::~VM()
 
 void VM::PushNativeFunctionPtr(NativeFunctionPtr_t ptr)
 {
-    AssertThrow(m_state.GetNumThreads() > 0);
-
     Value sv;
     sv.m_type = Value::NATIVE_FUNCTION;
     sv.m_value.native_func = ptr;
-    m_state.MAIN_THREAD->m_stack.Push(sv);
+
+    AssertThrow(m_state.GetMainThread() != nullptr);
+    m_state.GetMainThread()->m_stack.Push(sv);
 }
 
 void VM::Print(const Value &value)
@@ -71,6 +74,7 @@ void VM::Print(const Value &value)
             } else {
                 VM::Print(*value.m_value.value_ref);
             }
+
             break;
 
         case Value::HEAP_POINTER: {
@@ -164,7 +168,7 @@ void VM::Invoke(InstructionHandler *handler,
             value.m_value.native_func(params);
 
             // re-enable auto gc
-            state->enable_auto_gc = true;
+            state->enable_auto_gc = ENABLE_GC;
 
             delete[] args;
 
@@ -252,8 +256,7 @@ void VM::Invoke(InstructionHandler *handler,
         Value previous_addr;
         previous_addr.m_type = Value::FUNCTION_CALL;
         previous_addr.m_value.call.varargs_push = 0;
-        // store current address
-        previous_addr.m_value.call.addr = (uint32_t)bs->Position();
+        previous_addr.m_value.call.return_address = (uint32_t)bs->Position();
 
         if (value.m_value.func.m_flags & FunctionFlags::VARIADIC) {
             // for each argument that is over the expected size, we must pop it from
@@ -300,12 +303,51 @@ void VM::Invoke(InstructionHandler *handler,
     }
 }
 
+StackTrace VM::CreateStackTrace(ExecutionThread *thread)
+{
+    StackTrace stack_trace;
+
+    const size_t max_stack_trace_size = sizeof(stack_trace.call_addresses) / sizeof(stack_trace.call_addresses[0]);
+
+    for (size_t i = 0; i < max_stack_trace_size; i++) {
+        stack_trace.call_addresses[i] = -1;
+    }
+
+    size_t num_recorded_call_addresses = 0;
+
+    for (size_t sp = thread->m_stack.GetStackPointer(); sp != 0; sp--) {
+        if (num_recorded_call_addresses >= max_stack_trace_size) {
+            break;
+        }
+
+        const Value &top = thread->m_stack[sp - 1];
+
+        if (top.m_type == Value::FUNCTION_CALL) {
+            stack_trace.call_addresses[num_recorded_call_addresses++] = (int)top.m_value.call.return_address;
+        }
+    }
+
+    return stack_trace;
+}
+
 void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 {
+    std::lock_guard<std::mutex> lock(mtx);
+
     ExecutionThread *thread = handler->thread;
     BytecodeStream *bs = handler->bs;
     
     if (thread->m_exception_state.HasExceptionOccurred()) {
+        StackTrace stack_trace = CreateStackTrace(thread);
+
+        std::cout << "stack_trace = \n";
+
+        for (size_t i = 0; i < sizeof(stack_trace.call_addresses) / sizeof(stack_trace.call_addresses[0]); i++) {
+            std::cout << "\t" << std::hex << stack_trace.call_addresses[i] << "\n";
+        }
+
+        std::cout << "=====\n";
+
         if (thread->m_exception_state.m_try_counter > 0) {
             // handle exception
             thread->m_exception_state.m_try_counter--;
@@ -891,17 +933,6 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
-        case NEW_PROTO: {
-            bc_reg_t dst; bs->Read(&dst);
-            bc_reg_t src; bs->Read(&src);
-
-            handler->NewProto(
-                dst,
-                src
-            );
-
-            break;
-        }
         case NEW_ARRAY: {
             bc_reg_t dst; bs->Read(&dst);
             uint32_t size; bs->Read(&size);
@@ -1072,6 +1103,37 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
+        case TRACEMAP: {
+            uint32_t len; bs->Read(&len);
+
+            uint32_t stringmap_count;
+            bs->Read(&stringmap_count);
+
+            Tracemap::StringmapEntry *stringmap = nullptr;
+
+            if (stringmap_count != 0) {
+                stringmap = new Tracemap::StringmapEntry[stringmap_count];
+
+                for (uint32_t i = 0; i < stringmap_count; i++) {
+                    bs->Read(&stringmap[i].entry_type);
+                    bs->ReadZeroTerminatedString((char*)&stringmap[i].data);
+                }
+            }
+
+            uint32_t linemap_count;
+            bs->Read(&linemap_count);
+
+            Tracemap::LinemapEntry *linemap = nullptr;
+
+            if (linemap_count != 0) {
+                linemap = new Tracemap::LinemapEntry[linemap_count];
+                bs->ReadBytes((char*)linemap, sizeof(Tracemap::LinemapEntry) * linemap_count);
+            }
+
+            m_state.m_tracemap.Set(std::move(stringmap), std::move(linemap));
+
+            break;
+        }
         default: {
             int64_t last_pos = (int64_t)bs->Position() - sizeof(uint8_t);
             utf::printf(UTF8_CSTR("unknown instruction '%d' referenced at location: 0x%" PRIx64 "\n"), code, last_pos);
@@ -1084,7 +1146,7 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 void VM::Execute(BytecodeStream *bs)
 {
     AssertThrow(bs != nullptr);
-    AssertThrow(m_state.GetNumThreads() > 0);
+    AssertThrow(m_state.GetNumThreads() != 0);
 
     InstructionHandler handler(
         &m_state,

@@ -15,6 +15,7 @@ namespace hyperion {
 namespace vm {
 
 struct Member {
+    char name[255];
     uint32_t hash;
     Value value;
 };
@@ -29,6 +30,8 @@ public:
 
     void Push(uint32_t hash, Member *member);
     Member *Get(uint32_t hash);
+
+    inline size_t GetSize() const { return m_size; }
 
 private:
     struct ObjectBucket {
@@ -53,7 +56,11 @@ private:
 
 class Object {
 public:
-    Object(TypeInfo *type_ptr, const Value &type_ptr_value);
+    static const uint32_t PROTO_MEMBER_HASH;
+
+    // construct from prototype (holds pointer)
+    Object(HeapValue *proto);
+    Object(const Member *members, size_t size, HeapValue *proto=nullptr);
     Object(const Object &other);
     ~Object();
 
@@ -68,18 +75,17 @@ public:
         { return m_members[index]; }
     inline const Member &GetMember(int index) const
         { return m_members[index]; }
-    inline TypeInfo *GetTypePtr() const
-        { return m_type_ptr; }
-    inline Value &GetTypePtrValue()
-        { return m_type_ptr_value; }
-    inline const Value &GetTypePtrValue() const
-        { return m_type_ptr_value; }
+
+    inline ObjectMap *GetObjectMap() const { return m_object_map; }
+
+    inline size_t GetSize() const { return m_object_map->GetSize(); }
+    inline HeapValue *GetPrototype() const { return m_proto; }
     
     void GetRepresentation(std::stringstream &ss, bool add_type_name = true) const;
 
 private:
-    TypeInfo *m_type_ptr;
-    Value m_type_ptr_value;
+    HeapValue *m_proto;
+
     ObjectMap *m_object_map;
     Member *m_members;
 };

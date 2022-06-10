@@ -1,7 +1,7 @@
 #ifndef AST_STATEMENT_HPP
 #define AST_STATEMENT_HPP
 
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 #include <script/compiler/emit/Buildable.hpp>
 
 #include <memory>

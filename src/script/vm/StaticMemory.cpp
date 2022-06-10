@@ -1,5 +1,4 @@
 #include <script/vm/StaticMemory.hpp>
-#include <script/vm/HeapValue.hpp>
 
 namespace hyperion {
 namespace vm {

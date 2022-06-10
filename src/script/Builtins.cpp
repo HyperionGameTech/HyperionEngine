@@ -45,10 +45,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::ArraySize)
             len = data.array_ptr->GetSize();
         } else if ((data.obj_ptr = target_ptr->GetValue().ptr->GetPointer<Object>()) != nullptr) {
             // get number of members in object
-            const TypeInfo *type_ptr = data.obj_ptr->GetTypePtr();
-            AssertThrow(type_ptr != nullptr);
-
-            len = type_ptr->GetSize();
+            len = data.obj_ptr->GetSize();
         } else {
             params.handler->state->ThrowException(params.handler->thread, e);
         }

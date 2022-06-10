@@ -2,7 +2,7 @@
 #define PARSER_HPP
 
 #include <script/compiler/TokenStream.hpp>
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/Keywords.hpp>

@@ -1,13 +1,13 @@
 #include <script/compiler/builtins/Builtins.hpp>
-#include <script/compiler/SourceFile.hpp>
-#include <script/compiler/SourceStream.hpp>
+#include <script/SourceFile.hpp>
+#include <script/SourceStream.hpp>
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 
 namespace hyperion::compiler {
 

@@ -2,7 +2,7 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Optimizer.hpp>
 #include <script/compiler/Compiler.hpp>
-#include <script/compiler/SourceFile.hpp>
+#include <script/SourceFile.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>

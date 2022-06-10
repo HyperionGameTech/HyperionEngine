@@ -1,7 +1,7 @@
 #ifndef COMPILER_ERROR_HPP
 #define COMPILER_ERROR_HPP
 
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 
 #include <string>
 #include <sstream>

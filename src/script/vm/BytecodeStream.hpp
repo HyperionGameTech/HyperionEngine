@@ -46,6 +46,8 @@ public:
     inline bool Eof() const
         { return m_position >= m_size; }
 
+    void ReadZeroTerminatedString(char *ptr);
+
 private:
     const char *m_buffer;
     size_t m_size;

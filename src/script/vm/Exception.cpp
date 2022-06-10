@@ -83,6 +83,11 @@ Exception Exception::InvalidArgsException(const char *expected_str, int received
     return Exception(buffer);
 }
 
+Exception Exception::InvalidConstructorException()
+{
+    return Exception("Invalid constructor");
+}
+
 Exception Exception::NullReferenceException()
 {
     return Exception("Null reference exception");

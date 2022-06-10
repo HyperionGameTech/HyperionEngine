@@ -5,7 +5,7 @@
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
-#include <script/compiler/SourceFile.hpp>
+#include <script/SourceFile.hpp>
 #include <script/compiler/Lexer.hpp>
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>

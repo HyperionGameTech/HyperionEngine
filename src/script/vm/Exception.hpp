@@ -20,6 +20,7 @@ public:
     static Exception InvalidOperationException(const char *op_name, const char *type_str);
     static Exception InvalidArgsException(int expected, int received, bool variadic = false);
     static Exception InvalidArgsException(const char *expected_str, int received);
+    static Exception InvalidConstructorException();
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();
     static Exception OutOfBoundsException();

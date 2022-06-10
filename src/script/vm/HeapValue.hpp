@@ -44,11 +44,33 @@ public:
     inline bool TypeCompatible() const 
         { return GetTypeId() == GetTypeId<typename std::decay<T>::type>(); }
 
+    inline void AssignCopy(HeapValue &other)
+    {
+        if (m_holder != nullptr) {
+            delete m_holder;
+        }
+
+        if (other.m_holder != nullptr) {
+            // receive a new pointer via Clone() which will now be managed by this instance
+            m_holder = other.m_holder->Clone();
+            // call virtual GetVoidPointer() method because we can't access the m_value,
+            // as m_holder is a virtual base class.
+            m_ptr = m_holder->GetVoidPointer();
+        } else {
+            m_holder = nullptr;
+            m_ptr = nullptr;
+        }
+    }
+
     template <typename T>
     inline void Assign(const T &value)
     {
-        if (m_holder != nullptr) { delete m_holder; }
+        if (m_holder != nullptr) {
+            delete m_holder;
+        }
+
         auto holder = new DerivedHolder<typename std::decay<T>::type>(value);
+
         m_ptr = reinterpret_cast<void*>(&holder->m_value);
         m_holder = holder;
     }
@@ -56,14 +78,20 @@ public:
     template <typename T>
     inline T &Get()
     {
-        if (!TypeCompatible<T>()) { throw std::bad_cast(); }
+        if (!TypeCompatible<T>()) {
+            throw std::bad_cast();
+        }
+
         return *reinterpret_cast<typename std::decay<T>::type*>(m_ptr);
     }
 
     template <typename T>
     inline const T &Get() const
     {
-        if (!TypeCompatible<T>()) { throw std::bad_cast(); }
+        if (!TypeCompatible<T>()) {
+            throw std::bad_cast();
+        }
+
         return *reinterpret_cast<const typename std::decay<T>::type*>(m_ptr);
     }
 
@@ -75,12 +103,18 @@ public:
     inline auto GetPointer() -> typename std::decay<T>::type*
         { return TypeCompatible<T>() ? GetRawPointer<T>() : nullptr; }
 
+    void Mark();
+
 private:
     // base class for an 'any' holder with pure virtual functions
     struct BaseHolder {
         BaseHolder(size_t type_id) : m_type_id(type_id) {}
         virtual ~BaseHolder() = default;
+
         virtual bool operator==(const BaseHolder &other) const = 0;
+        virtual BaseHolder *Clone() const = 0;
+        virtual void *GetVoidPointer() const = 0;
+
         size_t m_type_id;
     };
 
@@ -88,11 +122,20 @@ private:
     template <typename T> struct DerivedHolder : public BaseHolder {
         explicit DerivedHolder(const T &value) : BaseHolder(GetTypeId<T>()), m_value(value) {}
 
+        virtual ~DerivedHolder()
+        {
+        }
+
         virtual bool operator==(const BaseHolder &other) const override
         {
             const DerivedHolder<T> *other_casted = dynamic_cast<const DerivedHolder<T>*>(&other);
             return (other_casted != nullptr && other_casted->m_value == m_value);
         }
+
+        // note: returns raw pointer which must be explicitly deleted
+        // by receiver
+        virtual BaseHolder *Clone() const override { return new DerivedHolder<T>(m_value); }
+        virtual void *GetVoidPointer() const override { return (void*)&m_value; }
 
         T m_value;
     };

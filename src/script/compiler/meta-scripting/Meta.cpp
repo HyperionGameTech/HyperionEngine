@@ -1,5 +1,5 @@
 #include <script/compiler/meta-scripting/Meta.hpp>
-#include <ace-sdk/ace-sdk.hpp>
+#include <script/ScriptApi.hpp>
 
 #include <script/vm/InstructionHandler.hpp>
 #include <script/vm/Value.hpp>
@@ -9,7 +9,7 @@ namespace hyperion::compiler {
 
 void MetaDefine(sdk::Params params)
 {
-    ACE_CHECK_ARGS(==, 4);
+    HYP_SCRIPT_CHECK_ARGS(==, 4);
 
     // arguments should be:
     //   __meta_context object (UserData)

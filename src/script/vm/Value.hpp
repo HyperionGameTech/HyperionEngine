@@ -37,12 +37,15 @@ struct Params {
 // native typedefs
 typedef void(*NativeFunctionPtr_t)(hyperion::sdk::Params);
 typedef void(*NativeInitializerPtr_t)(hyperion::vm::VMState*, hyperion::vm::ExecutionThread *thread, hyperion::vm::Value*);
+typedef void *UserData_t;
 
 namespace hyperion {
 namespace vm {
     
 struct Value {
     enum ValueType {
+        NONE,
+
         /* These first four types are listed in order of precedence */
         I32,
         I64,
@@ -56,6 +59,7 @@ struct Value {
         HEAP_POINTER,
         FUNCTION,
         NATIVE_FUNCTION,
+        USER_DATA,
         ADDRESS,
         FUNCTION_CALL,
         TRY_CATCH_INFO
@@ -80,9 +84,10 @@ struct Value {
         } func;
 
         NativeFunctionPtr_t native_func;
+        UserData_t user_data;
         
         struct {
-            bc_address_t addr;
+            bc_address_t return_address;
             int32_t varargs_push;
         } call;
 

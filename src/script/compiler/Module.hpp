@@ -2,7 +2,7 @@
 #define MODULE_HPP
 
 #include <script/compiler/Scope.hpp>
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 #include <script/compiler/Tree.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>

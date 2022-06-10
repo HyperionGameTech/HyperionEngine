@@ -1,5 +1,5 @@
 #include <script/vm/ImmutableString.hpp>
-
+#include <iostream>
 namespace hyperion {
 namespace vm {
   
@@ -10,6 +10,7 @@ ImmutableString::ImmutableString(const char *str)
 
     m_data = new char[len + 1];
     std::strcpy(m_data, str);
+    m_data[len] = '\0';
 }
   
 ImmutableString::ImmutableString(const char *str, size_t len)
@@ -17,6 +18,7 @@ ImmutableString::ImmutableString(const char *str, size_t len)
     m_length = len;
     m_data = new char[len + 1];
     std::strcpy(m_data, str);
+    m_data[len] = '\0';
 }
 
 ImmutableString::ImmutableString(const ImmutableString &other)
@@ -24,6 +26,7 @@ ImmutableString::ImmutableString(const ImmutableString &other)
     m_length = other.m_length;
     m_data = new char[m_length + 1];
     std::strcpy(m_data, other.m_data);
+    m_data[m_length] = '\0';
 }
 
 ImmutableString::~ImmutableString()

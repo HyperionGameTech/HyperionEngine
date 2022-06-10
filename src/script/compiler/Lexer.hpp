@@ -1,9 +1,9 @@
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
-#include <script/compiler/SourceStream.hpp>
+#include <script/SourceStream.hpp>
 #include <script/compiler/TokenStream.hpp>
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
 #include <util/utf8.hpp>

@@ -6,9 +6,11 @@
 #include <script/vm/HeapMemory.hpp>
 #include <script/vm/Exception.hpp>
 #include <script/vm/BytecodeStream.hpp>
+#include <script/vm/Tracemap.hpp>
 
 #include <util/non_owning_ptr.h>
 
+#define ENABLE_GC 1
 #define GC_THRESHOLD_MIN 20
 #define GC_THRESHOLD_MAX 1000
 
@@ -69,9 +71,10 @@ struct VMState {
     Heap m_heap;
     StaticMemory m_static_memory;
     non_owning_ptr<VM> m_vm;
+    Tracemap m_tracemap;
 
     bool good = true;
-    bool enable_auto_gc = true;
+    bool enable_auto_gc = ENABLE_GC;
     int m_max_heap_objects = GC_THRESHOLD_MIN;
 
     /** Reset the state of the VM, destroying all heap objects,
@@ -83,18 +86,23 @@ struct VMState {
     HeapValue *HeapAlloc(ExecutionThread *thread);
     void GC();
 
+    void CloneValue(const Value &other, ExecutionThread *thread, Value &out);
+
     /** Add a thread */
     ExecutionThread *CreateThread();
     /** Destroy thread with ID */
     void DestroyThread(int id);
+    
     /** Get the number of threads currently in use */
-    inline int GetNumThreads() const { return m_num_threads; }
+    inline size_t GetNumThreads() const { return m_num_threads; }
+    inline ExecutionThread *GetMainThread() const { AssertThrow(m_num_threads != 0); return m_threads[0]; }
 
     inline Heap &GetHeap() { return m_heap; }
     inline StaticMemory &GetStaticMemory() { return m_static_memory; }
+    
 
 private:
-    int m_num_threads = 0;
+    size_t m_num_threads = 0;
 };
 
 } // namespace vm

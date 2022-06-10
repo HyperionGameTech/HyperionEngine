@@ -10,6 +10,8 @@
 namespace hyperion {
 namespace vm {
 
+const uint32_t Object::PROTO_MEMBER_HASH = hash_fnv_1("$proto");
+
 ObjectMap::ObjectBucket::ObjectBucket()
     : m_data(new Member*[DEFAULT_BUCKET_CAPACITY]),
       m_capacity(DEFAULT_BUCKET_CAPACITY),
@@ -131,60 +133,77 @@ ObjectMap &ObjectMap::operator=(const ObjectMap &other)
 
 void ObjectMap::Push(uint32_t hash, Member *member)
 {
+    AssertThrow(m_size != 0);
     m_buckets[hash % m_size].Push(member);
 }
 
 Member *ObjectMap::Get(uint32_t hash)
 {
+    if (m_size == 0) {
+        return nullptr;
+    }
+
     Member *res = nullptr;
     m_buckets[hash % m_size].Lookup(hash, &res);
+
     return res;
 }
 
-Object::Object(TypeInfo *type_ptr,
-    const Value &type_ptr_value)
-    : m_type_ptr(type_ptr),
-      m_type_ptr_value(type_ptr_value)
+Object::Object(HeapValue *proto)
+    : m_proto(proto)
 {
-    AssertThrow(m_type_ptr != nullptr);
-    size_t size = m_type_ptr->GetSize();
+    AssertThrow(proto != nullptr);
 
-    auto **names = m_type_ptr->GetNames();
-    AssertThrow(names != nullptr);
+    const Object *proto_obj = proto->GetPointer<Object>();
+    AssertThrow(proto_obj != nullptr);
+
+    size_t size = proto_obj->GetSize();
+
+    // auto **names = m_type_ptr->GetNames();
+    // AssertThrow(names != nullptr);
 
     m_members = new Member[size];
+    std::memcpy(m_members, proto_obj->GetMembers(), sizeof(Member) * size);
+
+    AssertThrow(proto_obj->GetObjectMap() != nullptr);
+    m_object_map = new ObjectMap(*proto_obj->GetObjectMap());
+
+    /*// compute hash for member name
+    uint32_t hash = hash_fnv_1(names[i]);
+    m_members[i].hash = hash;
+    
+    m_object_map->Push(hash, &m_members[i]);*/
+}
+
+Object::Object(const Member *members, size_t size, HeapValue *proto)
+    : m_proto(proto)
+{
+    AssertThrow(members != nullptr);
+
     m_object_map = new ObjectMap(size);
+    m_members = new Member[size];
+
+    std::memcpy(m_members, members, sizeof(Member) * size);
 
     for (size_t i = 0; i < size; i++) {
-        // compute hash for member name
-        uint32_t hash = hash_fnv_1(names[i]);
-        m_members[i].hash = hash;
-        
-        m_object_map->Push(hash, &m_members[i]);
+        m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 }
 
 Object::Object(const Object &other)
-    : m_type_ptr(other.m_type_ptr),
-      m_type_ptr_value(other.m_type_ptr_value)
+    : m_proto(other.m_proto)
 {
-    AssertThrow(m_type_ptr != nullptr);
-    size_t size = m_type_ptr->GetSize();
-
-    auto **names = m_type_ptr->GetNames();
-    AssertThrow(names != nullptr);
+    const size_t size = other.GetSize();
 
     m_members = new Member[size];
-    m_object_map = new ObjectMap(size);
 
-    // copy all members
+    AssertThrow(other.GetObjectMap() != nullptr);
+    m_object_map = new ObjectMap(*other.GetObjectMap());
+
+    std::memcpy(m_members, other.m_members, sizeof(Member) * size);
+
     for (size_t i = 0; i < size; i++) {
-        m_members[i] = other.m_members[i];
-        // compute hash for member name
-        uint32_t hash = hash_fnv_1(names[i]);
-        m_members[i].hash = hash;
-        
-        m_object_map->Push(hash, &m_members[i]);
+        m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 }
 
@@ -196,23 +215,14 @@ Object::~Object()
 
 void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const
 {
-    // get type
-    AssertThrow(m_type_ptr != nullptr);
-    const size_t size = m_type_ptr->GetSize();
+    const size_t size = GetSize();
 
-    if (add_type_name) {
-        // add the type name
-        ss << m_type_ptr->GetName();
-    }
-
-    ss << '{';
+    ss << "{ ";
 
     for (size_t i = 0; i < size; i++) {
         vm::Member &mem = m_members[i];
 
-        ss << '\"';
-        ss << m_type_ptr->GetMemberName(i);
-        ss << "\":";
+        ss << mem.name << ": ";
 
         if (mem.value.m_type == Value::HEAP_POINTER &&
             mem.value.m_value.ptr != nullptr &&
@@ -223,11 +233,11 @@ void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const
         }
 
         if (i != size - 1) {
-            ss << ',';
+            ss << ", ";
         }
     }
 
-    ss << '}';
+    ss << " }";
 }
 
 } // namespace vm

@@ -1,7 +1,7 @@
 #ifndef TOKEN_HPP
 #define TOKEN_HPP
 
-#include <script/compiler/SourceLocation.hpp>
+#include <script/SourceLocation.hpp>
 
 #include <string>
 
