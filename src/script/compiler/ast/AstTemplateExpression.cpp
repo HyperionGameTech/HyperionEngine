@@ -1,4 +1,6 @@
 #include <script/compiler/ast/AstTemplateExpression.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
@@ -37,6 +39,15 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     // for things that may be used in the expression
     for (auto &generic_param : m_generic_params) {
         AssertThrow(generic_param != nullptr);
+
+        generic_param->SetIsGenericParam(true);
+
+        if (generic_param->GetPrototypeSpecification() == nullptr) {
+            generic_param->SetPrototypeSpecification(std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                std::shared_ptr<AstVariable>(new AstVariable("Any", m_location)),
+                m_location
+            )));
+        }
 
         // gross, but we gotta do this our else on first pass,
         // these will just refer to the wrong memory
@@ -143,10 +154,19 @@ bool AstTemplateExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstTemplateExpression::GetExprType() const
 {
-    // AssertThrow(m_expr != nullptr);
-    // return m_expr->GetExprType();
+    //AssertThrow(m_expr != nullptr);
+    //return m_expr->GetExprType();
     AssertThrow(m_symbol_type != nullptr);
     return m_symbol_type;
+}
+
+const AstExpression *AstTemplateExpression::GetDeepValueOf() const
+{
+    if (m_expr != nullptr) {
+        return m_expr->GetDeepValueOf();
+    }
+
+    return AstExpression::GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

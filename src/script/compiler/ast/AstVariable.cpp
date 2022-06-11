@@ -33,10 +33,12 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
         case IDENTIFIER_TYPE_VARIABLE: {
             AssertThrow(m_properties.GetIdentifier() != nullptr);
 
+#if ACE_ENABLE_VARIABLE_INLINING
             // clone the AST node so we don't double-visit
             if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
                 m_inline_value = current_value;//CloneAstNode(current_value);
             }
+#endif
 
             // if alias or const, load direct value.
             // if it's an alias then it will just refer to whatever other variable
@@ -50,6 +52,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 
             const bool is_const = ident_type->IsConstType() || (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST);
 
+#if ACE_ENABLE_VARIABLE_INLINING
             const bool force_inline = is_alias || is_mixin;
 
             // NOTE: if we are loading a const and current_value == nullptr, proceed with loading the
@@ -70,6 +73,10 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                 // if alias, accept the current value instead
                 m_inline_value->Visit(visitor, mod);
             }
+#else
+            static constexpr bool force_inline = false;
+            m_should_inline = false;
+#endif
 
             // if it is alias or mixin, update symbol type of this expression
             if (force_inline) {
@@ -78,6 +85,8 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                     m_properties.GetIdentifier()->SetSymbolType(inline_value_type);
                 }
             } else {
+
+#if ACE_ENABLE_VARIABLE_INLINING
                 // if the value to be inlined is not literal - do not inline
                 if (m_should_inline && !m_inline_value->IsLiteral()) {
                     m_should_inline = false;
@@ -85,8 +94,12 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 
                 // increase usage count for variable loads (non-inlined)
                 if (!m_should_inline) {
+#endif
                     m_properties.GetIdentifier()->IncUseCount();
+
+#if ACE_ENABLE_VARIABLE_INLINING
                 }
+#endif
 
                 if (m_properties.IsInFunction()) {
                     if (m_properties.IsInPureFunction()) {
@@ -180,6 +193,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
     } else {
         AssertThrow(m_properties.GetIdentifier() != nullptr);
 
+#if ACE_ENABLE_VARIABLE_INLINING
         if (m_should_inline) {
             // if alias, accept the current value instead
             const AccessMode current_access_mode = m_inline_value->GetAccessMode();
@@ -188,6 +202,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
             // reset access mode
             m_inline_value->SetAccessMode(current_access_mode);
         } else {
+#endif
             int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
             int stack_location = m_properties.GetIdentifier()->GetStackLocation();
 
@@ -224,7 +239,10 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
                     chunk->Append(std::move(instr_mov_index));
                 }
             }
+
+#if ACE_ENABLE_VARIABLE_INLINING
         }
+#endif
     }
 
     return std::move(chunk);

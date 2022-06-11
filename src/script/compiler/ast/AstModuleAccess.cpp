@@ -100,4 +100,10 @@ const AstExpression *AstModuleAccess::GetValueOf() const
     return m_expr->GetValueOf();
 }
 
+const AstExpression *AstModuleAccess::GetDeepValueOf() const
+{
+    AssertThrow(m_expr != nullptr);
+    return m_expr->GetDeepValueOf();
+}
+
 } // namespace hyperion::compiler

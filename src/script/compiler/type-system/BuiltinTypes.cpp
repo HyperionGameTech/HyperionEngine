@@ -51,8 +51,8 @@ const SymbolTypePtr_t BuiltinTypes::OBJECT = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::TYPE_TYPE = SymbolType::Extend(
-    "Type",
+const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
+    "Class",
     BuiltinTypes::OBJECT,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
@@ -80,7 +80,7 @@ const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Primitive(
 
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
     "Int",
-    BuiltinTypes::TYPE_TYPE,
+    BuiltinTypes::CLASS_TYPE,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
             "$proto",
@@ -91,9 +91,9 @@ const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
@@ -104,13 +104,13 @@ const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
 /*const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Primitive(
     "Int",
     sp<AstInteger>(new AstInteger(0, SourceLocation::eof)),
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );*/
 
 
 const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Extend(
     "Float",
-    BuiltinTypes::TYPE_TYPE,
+    BuiltinTypes::CLASS_TYPE,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
             "$proto",
@@ -121,9 +121,9 @@ const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Extend(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
@@ -142,7 +142,7 @@ const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Extend(
 // );
 const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Extend(
     "Number",
-    BuiltinTypes::TYPE_TYPE,
+    BuiltinTypes::CLASS_TYPE,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
             "$proto",
@@ -153,9 +153,9 @@ const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Extend(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
@@ -171,7 +171,7 @@ const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Extend(
 
 const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Extend(
     "Bool",
-    BuiltinTypes::TYPE_TYPE,
+    BuiltinTypes::CLASS_TYPE,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
             "$proto",
@@ -182,9 +182,9 @@ const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Extend(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
@@ -200,7 +200,7 @@ const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Extend(
 
 const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
     "String",
-    BuiltinTypes::TYPE_TYPE,
+    BuiltinTypes::CLASS_TYPE,
     std::vector<SymbolMember_t> {
         SymbolMember_t {
             "$proto",
@@ -211,9 +211,9 @@ const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
@@ -234,7 +234,7 @@ const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
     )),
     {},
     GenericTypeInfo{ -1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
@@ -251,16 +251,16 @@ const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
         }
     },
     GenericTypeInfo { 1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::TUPLE = SymbolType::Generic(
@@ -271,7 +271,7 @@ const SymbolTypePtr_t BuiltinTypes::TUPLE = SymbolType::Generic(
     )),
     {},
     GenericTypeInfo { -1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
@@ -282,13 +282,13 @@ const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
     )),
     {},
     GenericTypeInfo { 1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "Null",
     sp<AstNil>(new AstNil(SourceLocation::eof)),
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::EVENT_IMPL = SymbolType::Object(
@@ -312,7 +312,7 @@ const SymbolTypePtr_t BuiltinTypes::EVENT = SymbolType::Generic(
     BuiltinTypes::UNDEFINED->GetDefaultValue(),
     {},
     GenericTypeInfo { 1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::MODULE_INFO = SymbolType::Object(
@@ -344,7 +344,7 @@ const SymbolTypePtr_t BuiltinTypes::GENERATOR = SymbolType::Generic(
     )),
     {},
     GenericTypeInfo{ 1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::BOXED_TYPE = SymbolType::Generic(
@@ -382,7 +382,7 @@ const SymbolTypePtr_t BuiltinTypes::BLOCK_TYPE = SymbolType::Generic(
     nullptr,
     {},
     GenericTypeInfo { -1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::CLOSURE_TYPE = SymbolType::Generic(
@@ -412,16 +412,16 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
         },
         SymbolMember_t {
             "base",
-            BuiltinTypes::TYPE_TYPE,
+            BuiltinTypes::CLASS_TYPE,
             sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
+                BuiltinTypes::CLASS_TYPE,
                 nullptr,
                 SourceLocation::eof
             )),
         }
     },
     GenericTypeInfo { -1 },
-    BuiltinTypes::TYPE_TYPE
+    BuiltinTypes::CLASS_TYPE
 );
 
 

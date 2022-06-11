@@ -40,7 +40,7 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
     /*AssertThrow(m_proto->GetExprType() != nullptr);
     m_constructor_type = m_proto->GetExprType();
 
-    const bool is_type = m_constructor_type == BuiltinTypes::TYPE_TYPE;*/
+    const bool is_type = m_constructor_type == BuiltinTypes::CLASS_TYPE;*/
     AssertThrow(m_proto->GetHeldType() != nullptr);
     m_instance_type = m_proto->GetHeldType();
 

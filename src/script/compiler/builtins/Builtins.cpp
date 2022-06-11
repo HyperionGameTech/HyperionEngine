@@ -5,6 +5,7 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 #include <script/SourceLocation.hpp>
@@ -15,8 +16,8 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 
 Builtins::Builtins()
 {
-    m_vars["Type"].reset(new AstTypeObject(
-        BuiltinTypes::TYPE_TYPE, nullptr, SourceLocation::eof
+    m_vars["Class"].reset(new AstTypeObject(
+        BuiltinTypes::CLASS_TYPE, nullptr, SourceLocation::eof
     ));
 
     m_vars["Null"].reset(new AstTypeObject(
@@ -47,8 +48,17 @@ Builtins::Builtins()
         BuiltinTypes::FUNCTION, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Array"].reset(new AstTypeObject(
-        BuiltinTypes::ARRAY, nullptr, SourceLocation::eof
+    m_vars["Array"].reset(new AstTemplateExpression(
+        sp<AstTypeObject>(new AstTypeObject(
+            BuiltinTypes::ARRAY, nullptr, SourceLocation::eof
+        )),
+        {
+            sp<AstParameter>(new AstParameter(
+                "of", nullptr, nullptr, false, false, SourceLocation::eof
+            ))
+        },
+        nullptr,
+        SourceLocation::eof
     ));
 
     for (const auto &it : m_vars) {

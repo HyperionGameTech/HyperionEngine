@@ -17,7 +17,7 @@ enum Keywords {
     Keyword_ref,
     Keyword_val,
     Keyword_func,
-    Keyword_type,
+    Keyword_class,
     Keyword_alias,
     Keyword_mixin,
     Keyword_enum,

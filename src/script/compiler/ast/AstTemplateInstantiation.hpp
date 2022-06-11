@@ -32,6 +32,9 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
+    virtual const AstExpression *GetValueOf() const override;
+    virtual const AstExpression *GetDeepValueOf() const override;
+
 private:
     std::shared_ptr<AstExpression> m_expr;
     std::vector<std::shared_ptr<AstArgument>> m_generic_args;
@@ -40,6 +43,7 @@ private:
     //std::shared_ptr<AstExpression> m_inst_expr;
     //std::vector<std::shared_ptr<AstAliasDeclaration>> m_mixin_overrides;
     //std::vector<std::shared_ptr<AstVariableDeclaration>> m_param_overrides;
+    std::shared_ptr<AstExpression> m_inner_expr;
     std::shared_ptr<AstBlock> m_block;
     SymbolTypePtr_t m_return_type;
 

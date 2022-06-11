@@ -11,6 +11,7 @@
 #define ACE_ALLOW_IDENTIFIERS_OTHER_MODULES 0
 #define ACE_ENABLE_CONFIG_FILE 0
 #define ACE_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE 0 // new String() => load_str [%0, u32(0), ""]
+#define ACE_ENABLE_VARIABLE_INLINING 0
 
 namespace hyperion::compiler {
 

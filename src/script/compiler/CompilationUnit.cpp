@@ -33,7 +33,7 @@ CompilationUnit::CompilationUnit()
     top.GetIdentifierTable().BindTypeToIdentifier("$Event", BuiltinTypes::EVENT);
     top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
     top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
-    //top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::TYPE_TYPE);
+    //top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::CLASS_TYPE);
 
     m_module_tree.TopNode()->m_value = m_global_module.get();
 }
@@ -57,7 +57,7 @@ CompilationUnit::~CompilationUnit()
     top.GetIdentifierTable().BindTypeToIdentifier("$Event", BuiltinTypes::EVENT);
     top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
     top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
-    top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::TYPE_TYPE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::CLASS_TYPE);
     top.GetIdentifierTable().BindTypeToIdentifier("String", BuiltinTypes::STRING);
     top.GetIdentifierTable().BindTypeToIdentifier("Array", BuiltinTypes::ARRAY);
     top.GetIdentifierTable().BindTypeToIdentifier("Int", BuiltinTypes::INT);

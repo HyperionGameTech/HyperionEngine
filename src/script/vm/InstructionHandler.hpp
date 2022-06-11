@@ -127,9 +127,18 @@ struct InstructionHandler {
 
     inline void LoadIndex(bc_reg_t reg, uint16_t index)
     {
+        const auto &stk = state->MAIN_THREAD->m_stack;
+
+        AssertThrowMsg(
+            index < stk.GetStackPointer(),
+            "Stack index out of bounds (%u >= %llu)",
+            index,
+            stk.GetStackPointer()
+        );
+
         // read value from stack at the index into the the register
         // NOTE: read from main thread
-        thread->m_regs[reg] = state->MAIN_THREAD->m_stack[index];
+        thread->m_regs[reg] = stk[index];
     }
 
     inline void LoadStatic(bc_reg_t reg, uint16_t index)
@@ -680,7 +689,7 @@ struct InstructionHandler {
     {
         // read value from register
         Value &proto_sv = thread->m_regs[src];
-        AssertThrowMsg(proto_sv.m_type == Value::HEAP_POINTER, "NEW operand should be a pointer type");
+        AssertThrowMsg(proto_sv.m_type == Value::HEAP_POINTER, "NEW operand must be a pointer type (%d), got %d", Value::HEAP_POINTER, proto_sv.m_type);
 
         // the NEW instruction makes a copy of the $proto data member
         // of the prototype object.

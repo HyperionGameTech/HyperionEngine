@@ -70,7 +70,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     );
 
     // TODO: allow custom bases (which would have to extend Type somewhere)
-    SymbolTypePtr_t base_type = BuiltinTypes::TYPE_TYPE;
+    SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
 
     std::vector<SymbolMember_t> static_members;
 
@@ -199,6 +199,12 @@ const AstExpression *AstTypeExpression::GetValueOf() const
 {
     AssertThrow(m_expr != nullptr);
     return m_expr->GetValueOf();
+}
+
+const AstExpression *AstTypeExpression::GetDeepValueOf() const
+{
+    AssertThrow(m_expr != nullptr);
+    return m_expr->GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

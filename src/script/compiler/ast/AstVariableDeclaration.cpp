@@ -120,7 +120,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 } else if (symbol_type->GetTypeClass() == TYPE_GENERIC) {
                     const bool no_parameters_required = symbol_type->GetGenericInfo().m_num_parameters == -1;
 
-                    if (no_parameters_required) {
+                    if (!no_parameters_required) {
                         // @TODO - idk. instantiate generic? it works for now, example being 'Function' type
                     } else {
                         // generic not yet instantiated; assignment does not fulfill enough to complete the type.
@@ -182,15 +182,17 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        if (symbol_type == BuiltinTypes::ANY) {
-            no_default_assignment = false;
-        }
+        // if (symbol_type == BuiltinTypes::ANY) {
+        //     no_default_assignment = false;
+        // }
 
         if (no_default_assignment) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_type_no_default_assignment,
-                m_location,
+                m_proto != nullptr
+                    ? m_proto->GetLocation()
+                    : m_location,
                 symbol_type->GetName()
             ));
         }

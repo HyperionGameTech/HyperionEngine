@@ -47,19 +47,27 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(constructor_type != nullptr);
 
-    m_symbol_type = BuiltinTypes::ANY; // defaults to dynamic type.
-    m_prototype_type = BuiltinTypes::ANY;
+    m_symbol_type = BuiltinTypes::UNDEFINED;
+    m_prototype_type = BuiltinTypes::UNDEFINED;
 
-    if (constructor_type != BuiltinTypes::ANY_TYPE) {
-        const bool is_type = constructor_type == BuiltinTypes::TYPE_TYPE ||
-            constructor_type->HasBase(*BuiltinTypes::TYPE_TYPE);
+    if (constructor_type != BuiltinTypes::ANY_TYPE && !constructor_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
+        bool is_type = false;
 
-        if (is_type) {
-            const AstExpression *value_of = m_proto->GetValueOf();
+        if (constructor_type == BuiltinTypes::CLASS_TYPE || constructor_type->HasBase(*BuiltinTypes::CLASS_TYPE)) {
+            const AstExpression *value_of = m_proto->GetDeepValueOf(); // GetDeepValueOf() returns the non-wrapped generic AstTypeObject*
+            const AstTypeObject *type_obj = nullptr;
 
-            // FIXME: this dynamic_casting stuff is nasty and we need a better way other than GetValueOf()
-            // and such. having 2 separate ways of getting expression types (AstTypeObject vs. the internal SymbolType)
-            if (const AstTypeObject *type_obj = dynamic_cast<const AstTypeObject*>(value_of)) {
+            if (value_of != nullptr) {
+                if (!(type_obj = dynamic_cast<const AstTypeObject *>(value_of))) {
+                    if (const AstIdentifier *ident = dynamic_cast<const AstIdentifier *>(value_of)) {
+                        type_obj = ident->ExtractTypeObject();
+                    }
+                }
+            }
+
+            if (type_obj != nullptr) {
+                is_type = true;
+                
                 AssertThrow(type_obj->GetHeldType() != nullptr);
                 m_symbol_type = type_obj->GetHeldType();
 
@@ -72,9 +80,27 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
                     if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
                         m_default_value = std::get<2>(proto_member);
                     }
+                } else {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_type_missing_prototype,
+                        m_location,
+                        constructor_type->GetName()
+                    ));
                 }
+            } else {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_not_a_constant_type,
+                    m_location,
+                    value_of != nullptr && value_of->GetExprType() != nullptr
+                        ? value_of->GetExprType()->GetName()
+                        : "<Cannot find value of>"
+                ));
             }
-        } else {
+        }
+        
+        if (!is_type) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_not_a_type,
@@ -85,6 +111,8 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     } else {
         // if not, it is a dynamic type
         m_default_value = BuiltinTypes::ANY->GetDefaultValue();
+        m_symbol_type = BuiltinTypes::ANY;
+        m_prototype_type = BuiltinTypes::ANY_TYPE;
     }
 }
 

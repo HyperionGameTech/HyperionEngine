@@ -220,11 +220,12 @@ public:
     
                 my_script->Run();
             } else {
-                DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
+                /*DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
 
                 for (size_t i = 0; i < my_script->GetErrors().Size(); i++) {
                     DebugLog(LogType::Error, "Error %llu: %s\n", i, my_script->GetErrors()[i].GetText().c_str());
-                }
+                }*/
+                my_script->GetErrors().WriteOutput(utf::cout);
 
                 HYP_BREAKPOINT;
             }

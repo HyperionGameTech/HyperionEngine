@@ -124,7 +124,9 @@
 
     #if HYP_ENABLE_BREAKPOINTS
         #if defined(HYP_ARM) && HYP_ARM
-            #define HYP_BREAKPOINT { asm(".inst 0xd4200000"); }
+            #define HYP_BREAKPOINT { __builtin_trap(); }
+            //#define HYP_BREAKPOINT { asm("brk #0xF000"); }
+            //#define HYP_BREAKPOINT { asm(".inst 0xd4200000"); }
         #else
             #define HYP_BREAKPOINT { __asm__ volatile("int $0x03"); }
         #endif

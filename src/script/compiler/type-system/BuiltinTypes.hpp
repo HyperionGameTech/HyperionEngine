@@ -13,7 +13,7 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t TRAIT_TYPE;
     static const SymbolTypePtr_t UNDEFINED;
     static const SymbolTypePtr_t OBJECT;
-    static const SymbolTypePtr_t TYPE_TYPE;
+    static const SymbolTypePtr_t CLASS_TYPE;
     static const SymbolTypePtr_t ENUM_TYPE;
     static const SymbolTypePtr_t ANY_TYPE; // any base, used for internal detection
     static const SymbolTypePtr_t ANY;

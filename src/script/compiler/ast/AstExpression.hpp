@@ -38,6 +38,7 @@ public:
      */
     virtual bool IsLiteral() const { return false; }
     virtual const AstExpression *GetValueOf() const { return this; }
+    virtual const AstExpression *GetDeepValueOf() const { return GetValueOf(); }
 
     /** Determine whether the expression would evaluate to true.
         Returns -1 if it cannot be evaluated at compile time.

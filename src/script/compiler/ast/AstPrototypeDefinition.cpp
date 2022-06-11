@@ -74,7 +74,7 @@ void AstPrototypeDefinition::Visit(AstVisitor *visitor, Module *mod)
             Identifier *generic_param_ident = mod->m_scopes.Top().GetIdentifierTable().AddIdentifier(generic_name);
             AssertThrow(generic_param_ident != nullptr);
 
-            generic_param_ident->SetSymbolType(BuiltinTypes::TYPE_TYPE);
+            generic_param_ident->SetSymbolType(BuiltinTypes::CLASS_TYPE);
             generic_param_ident->SetCurrentValue(generic_param_type->GetDefaultValue());
         }
 
@@ -165,7 +165,7 @@ void AstPrototypeDefinition::Visit(AstVisitor *visitor, Module *mod)
     );
 
     // TODO: allow custom bases (which would have to extend Type somewhere)
-    SymbolTypePtr_t base_type = BuiltinTypes::TYPE_TYPE;
+    SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
 
     std::vector<SymbolMember_t> static_members;
 

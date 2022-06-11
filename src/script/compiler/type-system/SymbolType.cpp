@@ -469,7 +469,7 @@ SymbolTypePtr_t SymbolType::Primitive(const std::string &name,
     return SymbolTypePtr_t(new SymbolType(
         name,
         TYPE_BUILTIN,
-        BuiltinTypes::TYPE_TYPE,
+        BuiltinTypes::CLASS_TYPE,
         default_value,
         {}
     ));
@@ -494,7 +494,7 @@ SymbolTypePtr_t SymbolType::Object(const std::string &name,
     SymbolTypePtr_t symbol_type(new SymbolType(
         name,
         TYPE_USER_DEFINED,
-        BuiltinTypes::TYPE_TYPE,
+        BuiltinTypes::CLASS_TYPE,
         nullptr,
         members
     ));
@@ -707,7 +707,7 @@ SymbolTypePtr_t SymbolType::GenericParameter(
     SymbolTypePtr_t res(new SymbolType(
         name,
         TYPE_GENERIC_PARAMETER,
-        BuiltinTypes::TYPE_TYPE
+        BuiltinTypes::CLASS_TYPE
     ));
 
     res->m_generic_param_info.m_substitution = substitution;

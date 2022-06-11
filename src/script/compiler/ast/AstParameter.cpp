@@ -20,7 +20,8 @@ AstParameter::AstParameter(const std::string &name,
       m_type_spec(type_spec),
       m_default_param(default_param),
       m_is_variadic(is_variadic),
-      m_is_const(is_const)
+      m_is_const(is_const),
+      m_is_generic_param(false)
 {
 }
 
@@ -29,32 +30,40 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
     AstDeclaration::Visit(visitor, mod);
 
     // params are `Any` by default
-    SymbolTypePtr_t symbol_type = BuiltinTypes::ANY;
+    SymbolTypePtr_t symbol_type, specified_symbol_type;
 
     if (m_type_spec != nullptr) {
         m_type_spec->Visit(visitor, mod);
 
-        AssertThrow(m_type_spec->GetHeldType() != nullptr);
-        symbol_type = m_type_spec->GetHeldType();
+        specified_symbol_type = m_type_spec->GetHeldType();
+        AssertThrow(specified_symbol_type != nullptr);
+
+        symbol_type = specified_symbol_type;
+    } else {
+        symbol_type = BuiltinTypes::ANY;
     }
 
     if (m_default_param != nullptr) {
         m_default_param->Visit(visitor, mod);
 
-        AssertThrow(m_default_param->GetExprType() != nullptr);
         const SymbolTypePtr_t default_param_type = m_default_param->GetExprType();
+        AssertThrow(default_param_type != nullptr);
 
-        // make sure the types are compatible
-        if (m_type_spec != nullptr && !symbol_type->TypeCompatible(*default_param_type, true)) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_arg_type_incompatible,
-                m_default_param->GetLocation(),
-                symbol_type->GetName(),
-                default_param_type->GetName()
-            ));
-        } else {
+        if (specified_symbol_type == nullptr) { // no symbol type specified; just set to the default arg type
             symbol_type = default_param_type;
+        } else { // have to check compatibility
+           AssertThrow(symbol_type == specified_symbol_type); // just sanity check, assigned above
+           
+           // verify types compatible
+           if (!specified_symbol_type->TypeCompatible(*default_param_type, true)) {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_arg_type_incompatible,
+                    m_default_param->GetLocation(),
+                    symbol_type->GetName(),
+                    default_param_type->GetName()
+                ));
+            }
         }
     }
 
@@ -94,19 +103,11 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
     // set identifier stack location
     m_identifier->SetStackLocation(stack_location);
 
-
     if (m_default_param != nullptr) {
         chunk->Append(m_default_param->Build(visitor, mod));
 
         uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         chunk->Append(BytecodeUtil::Make<StoreLocal>(rp));
-
-        /*// get active register
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        // add instruction to store on stack
-        visitor->GetCompilationUnit()->GetInstructionStream() <<
-            Instruction<uint8_t, uint8_t>(PUSH, rp);*/
     }
 
     // increment stack size

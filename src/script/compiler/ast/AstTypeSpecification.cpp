@@ -63,10 +63,10 @@ void AstTypeSpecification::Visit(AstVisitor *visitor, Module *mod)
             //SymbolTypePtr_t symbol_type = left_var.GetExprType();//mod->LookupSymbolType(m_left);
             //AssertThrow(symbol_type != nullptr);
 
-            if (expr_type == BuiltinTypes::ANY || (expr_type == BuiltinTypes::TYPE_TYPE && symbol_type == nullptr)) {
+            if (expr_type == BuiltinTypes::ANY || (expr_type == BuiltinTypes::CLASS_TYPE && symbol_type == nullptr)) {
                 // ???
                 m_symbol_type = BuiltinTypes::ANY;
-            } else if (!symbol_type->IsOrHasBase(*BuiltinTypes::TYPE_TYPE) && !symbol_type->IsOrHasBase(*BuiltinTypes::TRAIT_TYPE)) {
+            } else if (!symbol_type->IsOrHasBase(*BuiltinTypes::CLASS_TYPE) && !symbol_type->IsOrHasBase(*BuiltinTypes::TRAIT_TYPE)) {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_not_a_type,

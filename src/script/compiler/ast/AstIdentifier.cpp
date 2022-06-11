@@ -79,23 +79,36 @@ int AstIdentifier::GetStackOffset(int stack_size) const
 const AstExpression *AstIdentifier::GetValueOf() const
 {
     if (const Identifier *ident = m_properties.GetIdentifier()) {
-        if (ident->GetFlags() & IdentifierFlags::FLAG_CONST) {
+        if (ident->GetFlags() & (IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC)) {
             if (const auto current_value = ident->GetCurrentValue()) {
                 return current_value->GetValueOf();
             }
         }
     }
 
-    return this;
+    return AstExpression::GetValueOf();
 }
 
-AstTypeObject *AstIdentifier::ExtractTypeObject() const
+const AstExpression *AstIdentifier::GetDeepValueOf() const
+{
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        if (ident->GetFlags() & (IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC)) {
+            if (const auto current_value = ident->GetCurrentValue()) {
+                return current_value->GetDeepValueOf();
+            }
+        }
+    }
+
+    return AstExpression::GetDeepValueOf();
+}
+
+const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 {
     if (const Identifier *ident = m_properties.GetIdentifier()) {
         if (const auto current_value = ident->GetCurrentValue()) {
-            if (AstIdentifier *nested_identifier = dynamic_cast<AstIdentifier*>(current_value.get())) {
+            if (auto *nested_identifier = dynamic_cast<const AstIdentifier *>(current_value.get())) {
                 return nested_identifier->ExtractTypeObject();
-            } else if (AstTypeObject *type_object = dynamic_cast<AstTypeObject*>(current_value.get())) {
+            } else if (auto *type_object = dynamic_cast<const AstTypeObject *>(current_value.get())) {
                 return type_object;
             }
         }

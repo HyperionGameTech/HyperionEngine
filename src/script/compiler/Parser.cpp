@@ -393,7 +393,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             res = ParseDirective();
         } else if (MatchKeyword(Keyword_import, false)) {
             res = ParseImport();
-        } else if (MatchKeyword(Keyword_const, false) || MatchKeyword(Keyword_generic)) {
+        } else if (MatchKeyword(Keyword_let, false) || MatchKeyword(Keyword_const, false) || MatchKeyword(Keyword_generic)) {
             res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_func, false)) {
             if (MatchAhead(TK_IDENT, 1)) {
@@ -407,7 +407,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             res = ParsePureExpression();
         } else if (MatchKeyword(Keyword_impure)) {
             res = ParseImpureExpression();
-        } else if (MatchKeyword(Keyword_type, false)) {
+        } else if (MatchKeyword(Keyword_class, false)) {
             res = ParseTypeDefinition();
         } else if (MatchKeyword(Keyword_alias, false)) {
             res = ParseAliasDeclaration();
@@ -434,8 +434,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
         } else {
             res = ParseExpression();
         }
-    } else if (Match(TK_IDENT, false) && (MatchAhead(TK_COLON, 1) || MatchAhead(TK_DEFINE, 1) || MatchOperatorAhead("<", 1))) {
-        res = ParseVariableDeclaration();
     } else if (Match(TK_OPEN_BRACE, false)) {
         res = ParseBlock();
     } else {
@@ -604,7 +602,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
         expr = ParseTypeOfExpression();
     } else if (MatchKeyword(Keyword_meta)) {
         expr = ParseMetaProperty();
-    } else if (MatchKeyword(Keyword_type)) {
+    } else if (MatchKeyword(Keyword_class)) {
         expr = ParseTypeExpression();
     } else if (MatchKeyword(Keyword_enum)) {
         expr = ParseEnumExpression();
@@ -1518,6 +1516,8 @@ std::shared_ptr<AstExpression> Parser::ParseExpression(bool override_commas,
 
 std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
 {
+    const SourceLocation location = CurrentLocation();
+
     if (auto term = ParseTerm(true, true, false, true)) {
         //while (Match(TK_OPEN_BRACKET) || Match(TK_QUESTION_MARK)) {
             // question mark at the end of a type is syntactical sugar for `Maybe(T)`
@@ -1563,7 +1563,7 @@ std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
 
         return std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
             term,
-            term->GetLocation()
+            location
         ));
     }
 
@@ -1762,17 +1762,35 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
 
     std::set<Keywords> used_specifiers;
 
-    while (MatchKeyword(Keyword_generic) || MatchKeyword(Keyword_const)) {
-        if (MatchKeyword(Keyword_const, true) && used_specifiers.find(Keyword_const) == used_specifiers.end()) {
-            used_specifiers.insert(Keyword_const);
-        } else if (MatchKeyword(Keyword_generic, true) && used_specifiers.find(Keyword_generic) == used_specifiers.end()) {
-            used_specifiers.insert(Keyword_generic);
-        } else {
+    const Keywords prefix_keywords[] = {
+        Keyword_let,
+        Keyword_const,
+        Keyword_generic
+    };
+
+    while (Match(TK_KEYWORD, false)) {
+        bool found_keyword = false;
+
+        for (const Keywords &keyword : prefix_keywords) {
+            if (MatchKeyword(keyword, true)) {
+                if (used_specifiers.find(keyword) == used_specifiers.end()) {
+                    used_specifiers.insert(keyword);
+
+                    found_keyword = true;
+
+                    break;
+                }
+            }
+        }
+
+        if (!found_keyword) {
+            Token token = m_token_stream->Next();
+
             m_compilation_unit->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_unexpected_token,
-                m_token_stream->Peek().GetLocation(),
-                m_token_stream->Peek().GetValue()
+                token.GetLocation(),
+                token.GetValue()
             ));
 
             break;
@@ -1915,7 +1933,7 @@ std::shared_ptr<AstFunctionExpression> Parser::ParseFunctionExpression(
 
         if (Match(TK_RIGHT_ARROW, true)) {
             // read return type for functions
-            type_spec = ParseTypeSpecification();
+            type_spec = ParseTypeSpecification(); // TODO should be protoype
         }
 
         bool is_generator = false;
@@ -2199,7 +2217,7 @@ std::vector<std::shared_ptr<AstParameter>> Parser::ParseFunctionParameters()
 
 std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 {
-    if (Token token = ExpectKeyword(Keyword_type, true)) {
+    if (Token token = ExpectKeyword(Keyword_class, true)) {
         // type names may not be a keyword
         if (Token identifier = ExpectIdentifier(false, true)) {
             std::vector<std::string> generic_params;
@@ -2378,7 +2396,7 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 
 std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression()
 {
-    if (Token token = ExpectKeyword(Keyword_type, true)) {
+    if (Token token = ExpectKeyword(Keyword_class, true)) {
         std::vector<std::shared_ptr<AstVariableDeclaration>> members;
         std::vector<std::shared_ptr<AstVariableDeclaration>> static_members;
 

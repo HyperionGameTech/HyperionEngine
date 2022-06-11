@@ -51,12 +51,22 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     m_block.reset(new AstBlock({}, m_location));
 
-    if (m_expr->GetExprType() != BuiltinTypes::ANY) {
+    const auto &expr_type = m_expr->GetExprType();
+    AssertThrow(expr_type != nullptr);
+
+    if (expr_type == BuiltinTypes::ANY) { // 'Any' is not usable for generic inst
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_expression_not_generic,
+            m_expr->GetLocation(),
+            expr_type->GetName()
+        ));
+    } else {
         // temporarily define all generic parameters.
         const AstExpression *value_of = m_expr->GetValueOf();
         // no need to check if null because if it is the template_expr cast will return null
 
-        m_return_type = BuiltinTypes::ANY;
+        m_return_type = BuiltinTypes::UNDEFINED;
 
         if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
             FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
@@ -86,9 +96,9 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
                 AssertThrow(template_expr->GetInnerExpression() != nullptr);
 
-                const auto &inner_expr = CloneAstNode(template_expr->GetInnerExpression());
+                m_inner_expr = CloneAstNode(template_expr->GetInnerExpression());
 
-                m_block->AddChild(inner_expr);
+                m_block->AddChild(m_inner_expr);
                 m_block->Visit(visitor, mod);
 
                 // if (const AstTypeObject *inner_expr_as_type_object = dynamic_cast<const AstTypeObject*>(inner_expr->GetValueOf())) {
@@ -102,7 +112,6 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                 ? type_object->GetHeldType()
                 : type_object->GetExprType();
 
-
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_expression_not_generic,
@@ -112,19 +121,13 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                     : "??"
             ));
         } else {
-            const auto expr_type = m_expr->GetExprType();
-            
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_expression_not_generic,
                 m_expr->GetLocation(),
-                expr_type != nullptr
-                    ? expr_type->GetName()
-                    : "??"
+                expr_type->GetName()
             ));
         }
-    } else {
-        m_return_type = BuiltinTypes::ANY;
     }
 
     mod->m_scopes.Close();
@@ -190,7 +193,26 @@ bool AstTemplateInstantiation::MayHaveSideEffects() const
 SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
 {
     AssertThrow(m_return_type != nullptr);
+
     return m_return_type;
+}
+
+const AstExpression *AstTemplateInstantiation::GetValueOf() const
+{
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->GetValueOf();
+    }
+
+    return AstExpression::GetValueOf();
+}
+
+const AstExpression *AstTemplateInstantiation::GetDeepValueOf() const
+{
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->GetDeepValueOf();
+    }
+
+    return AstExpression::GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

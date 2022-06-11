@@ -65,9 +65,10 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override = 0;
 
     virtual const AstExpression *GetValueOf() const override;
+    virtual const AstExpression *GetDeepValueOf() const override;
 
     /** temporary, used for extracting a type object located in the stored value */
-    AstTypeObject *ExtractTypeObject() const;
+    const AstTypeObject *ExtractTypeObject() const;
 
 protected:
     std::string m_name;
