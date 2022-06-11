@@ -3,7 +3,6 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>

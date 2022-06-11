@@ -25,7 +25,7 @@ namespace hyperion::compiler {
 
 AstFunctionExpression::AstFunctionExpression(
     const std::vector<std::shared_ptr<AstParameter>> &parameters,
-    const std::shared_ptr<AstTypeSpecification> &return_type_specification,
+    const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
     const std::shared_ptr<AstBlock> &block,
     bool is_async,
     bool is_pure,
@@ -190,8 +190,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         if (m_return_type_specification != nullptr) {
             m_return_type_specification->Visit(visitor, mod);
 
-            AssertThrow(m_return_type_specification->GetSpecifiedType() != nullptr);
-            m_return_type = m_return_type_specification->GetSpecifiedType();
+            AssertThrow(m_return_type_specification->GetHeldType() != nullptr);
+            m_return_type = m_return_type_specification->GetHeldType();
         }
 
         const Scope &function_scope = mod->m_scopes.Top();

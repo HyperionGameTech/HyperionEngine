@@ -1201,7 +1201,6 @@ std::shared_ptr<AstNewExpression> Parser::ParseNewExpression()
 {
     if (Token token = ExpectKeyword(Keyword_new, true)) {
         if (auto proto = ParsePrototypeSpecification()) {
-        //if (auto type_spec = ParseTypeSpecification()) {
             std::shared_ptr<AstArgumentList> arg_list;
 
             if (Match(TK_OPEN_PARENTH, false)) {
@@ -1570,71 +1569,6 @@ std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
     return nullptr;
 }
 
-std::shared_ptr<AstTypeSpecification> Parser::ParseTypeSpecification()
-{
-    if (Token left = Expect(TK_IDENT, true)) {
-        std::string left_name = left.GetValue();
-
-        std::shared_ptr<AstTypeSpecification> right;
-        // module access of type
-        if (Match(TK_DOUBLE_COLON, true)) {
-            // read next part
-            right = ParseTypeSpecification();
-        }
-
-        // check generics
-        std::vector<std::shared_ptr<AstTypeSpecification>> generic_params;
-        if (MatchOperator("<", true)) {
-            do {
-                if (std::shared_ptr<AstTypeSpecification> generic_param = ParseTypeSpecification()) {
-                    generic_params.push_back(generic_param);
-                }
-            } while (Match(TK_COMMA, true));
-
-            ExpectOperator(">", true);
-        }
-
-        while (Match(TK_OPEN_BRACKET) || Match(TK_QUESTION_MARK)) {
-            // question mark at the end of a type is syntactical sugar for `Maybe(T)`
-            if (Match(TK_QUESTION_MARK, true)) {
-                std::shared_ptr<AstTypeSpecification> inner(new AstTypeSpecification(
-                    left_name,
-                    generic_params,
-                    right,
-                    left.GetLocation()
-                ));
-
-                left_name = BuiltinTypes::MAYBE->GetName();
-                generic_params = { inner };
-                right = nullptr;
-            } else if (Match(TK_OPEN_BRACKET, true)) {
-                // array braces at the end of a type are syntactical sugar for `Array(T)`
-                std::shared_ptr<AstTypeSpecification> inner(new AstTypeSpecification(
-                    left_name,
-                    generic_params,
-                    right,
-                    left.GetLocation()
-                ));
-
-                left_name = BuiltinTypes::ARRAY->GetName();
-                generic_params = { inner };
-                right = nullptr;
-
-                Expect(TK_CLOSE_BRACKET, true);
-            }
-        }
-
-        return std::shared_ptr<AstTypeSpecification>(new AstTypeSpecification(
-            left_name,
-            generic_params,
-            right,
-            left.GetLocation()
-        ));
-    }
-
-    return nullptr;
-}
-
 #if 0
 std::shared_ptr<AstTypeContractExpression> Parser::ParseTypeContract()
 {
@@ -1837,7 +1771,6 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
             m_template_argument_depth--;
         }
 
-        //std::shared_ptr<AstTypeSpecification> type_spec;
         std::shared_ptr<AstPrototypeSpecification> proto;
         std::shared_ptr<AstExpression> assignment;
 
@@ -1929,11 +1862,11 @@ std::shared_ptr<AstFunctionExpression> Parser::ParseFunctionExpression(
             }
         }
 
-        std::shared_ptr<AstTypeSpecification> type_spec;
+        std::shared_ptr<AstPrototypeSpecification> type_spec;
 
         if (Match(TK_RIGHT_ARROW, true)) {
             // read return type for functions
-            type_spec = ParseTypeSpecification(); // TODO should be protoype
+            type_spec = ParsePrototypeSpecification();
         }
 
         bool is_generator = false;
@@ -2238,7 +2171,7 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 
             // check type alias
             if (MatchOperator("=", true)) {
-                if (auto aliasee = ParseTypeSpecification()) {
+                if (auto aliasee = ParsePrototypeSpecification()) {
                     return std::shared_ptr<AstTypeAlias>(new AstTypeAlias(
                         identifier.GetValue(), 
                         aliasee,

@@ -2,7 +2,7 @@
 #define AST_TYPE_EXPRESSION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 
@@ -16,7 +16,7 @@ class AstTypeExpression : public AstExpression {
 public:
     AstTypeExpression(
         const std::string &name,
-        const std::shared_ptr<AstTypeSpecification> &base_specification,
+        const std::shared_ptr<AstPrototypeSpecification> &base_specification,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
         const SourceLocation &location);
@@ -45,7 +45,7 @@ public:
 
 protected:
     std::string m_name;
-    std::shared_ptr<AstTypeSpecification> m_base_specification;
+    std::shared_ptr<AstPrototypeSpecification> m_base_specification;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
     int m_num_members;

@@ -9,7 +9,7 @@ namespace hyperion::compiler {
 
 AstTypeAlias::AstTypeAlias(
     const std::string &name,
-    const std::shared_ptr<AstTypeSpecification> &aliasee,
+    const std::shared_ptr<AstPrototypeSpecification> &aliasee,
     const SourceLocation &location)
     : AstStatement(location),
       m_name(name),
@@ -24,7 +24,7 @@ void AstTypeAlias::Visit(AstVisitor *visitor, Module *mod)
 
     m_aliasee->Visit(visitor, mod);
 
-    SymbolTypePtr_t aliasee_type = m_aliasee->GetSpecifiedType();
+    SymbolTypePtr_t aliasee_type = m_aliasee->GetHeldType();
     AssertThrow(aliasee_type != nullptr);
 
     // make sure name isn't already defined

@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstObject.hpp>
 
@@ -15,13 +15,15 @@ namespace hyperion::compiler {
 
 class AstFunctionExpression : public AstExpression {
 public:
-    AstFunctionExpression(const std::vector<std::shared_ptr<AstParameter>> &parameters,
-        const std::shared_ptr<AstTypeSpecification> &return_type_specification,
+    AstFunctionExpression(
+        const std::vector<std::shared_ptr<AstParameter>> &parameters,
+        const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
         const std::shared_ptr<AstBlock> &block,
         bool is_async,
         bool is_pure,
         bool is_generator,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstFunctionExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -39,7 +41,7 @@ public:
 
 protected:
     std::vector<std::shared_ptr<AstParameter>> m_parameters;
-    std::shared_ptr<AstTypeSpecification> m_return_type_specification;
+    std::shared_ptr<AstPrototypeSpecification> m_return_type_specification;
     std::shared_ptr<AstBlock> m_block;
     bool m_is_async;
     bool m_is_pure;

@@ -25,7 +25,6 @@ namespace hyperion::compiler {
 
 AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
     const std::shared_ptr<AstPrototypeSpecification> &proto,
-    //const std::shared_ptr<AstTypeSpecification> &type_specification,
     const std::shared_ptr<AstExpression> &assignment,
     const std::vector<std::shared_ptr<AstParameter>> &template_params,
     bool is_const,

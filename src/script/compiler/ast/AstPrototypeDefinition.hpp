@@ -2,7 +2,7 @@
 #define AST_PROTOTYPE_DEFINITION_HPP
 
 #include <script/compiler/ast/AstDeclaration.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstEvent.hpp>
 
 #include <string>
@@ -14,7 +14,7 @@ namespace hyperion::compiler {
 class AstPrototypeDefinition : public AstDeclaration {
 public:
     AstPrototypeDefinition(const std::string &name,
-        const std::shared_ptr<AstTypeSpecification> &base_specification,
+        const std::shared_ptr<AstPrototypeSpecification> &base_specification,
         const std::vector<std::string> &generic_params,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
@@ -34,7 +34,7 @@ public:
     virtual Pointer<AstStatement> Clone() const override;
 
 protected:
-    std::shared_ptr<AstTypeSpecification> m_base_specification;
+    std::shared_ptr<AstPrototypeSpecification> m_base_specification;
     std::vector<std::string> m_generic_params;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;

@@ -19,7 +19,7 @@ namespace hyperion::compiler {
 
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
-    const std::shared_ptr<AstTypeSpecification> &base_specification,
+    const std::shared_ptr<AstPrototypeSpecification> &base_specification,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
     const SourceLocation &location)

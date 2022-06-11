@@ -13,7 +13,6 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTupleExpression.hpp>
-#include <script/compiler/ast/AstTypeDefinition.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstPrototypeDefinition.hpp>
@@ -145,7 +144,6 @@ private:
         bool override_fat_arrows = false,
         bool override_angle_brackets = false
     );
-    std::shared_ptr<AstTypeSpecification> ParseTypeSpecification();
     std::shared_ptr<AstPrototypeSpecification> ParsePrototypeSpecification();
     std::shared_ptr<AstExpression> ParseAssignment();
     std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool allow_keyword_names = false,

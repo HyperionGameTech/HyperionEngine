@@ -4,7 +4,6 @@
 #include <script/compiler/ast/AstDeclaration.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -16,7 +15,6 @@ class AstVariableDeclaration : public AstDeclaration {
 public:
     AstVariableDeclaration(const std::string &name,
         const std::shared_ptr<AstPrototypeSpecification> &proto,
-        //const std::shared_ptr<AstTypeSpecification> &type_specification,
         const std::shared_ptr<AstExpression> &assignment,
         const std::vector<std::shared_ptr<AstParameter>> &template_params,
         bool is_const,
@@ -39,7 +37,6 @@ public:
 
 protected:
     std::shared_ptr<AstPrototypeSpecification> m_proto;
-    //std::shared_ptr<AstTypeSpecification> m_type_specification;
     std::shared_ptr<AstExpression> m_assignment;
     std::vector<std::shared_ptr<AstParameter>> m_template_params;
     bool m_is_const;

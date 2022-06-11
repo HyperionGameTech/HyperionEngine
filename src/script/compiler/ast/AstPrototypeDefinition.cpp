@@ -19,7 +19,7 @@
 namespace hyperion::compiler {
 
 AstPrototypeDefinition::AstPrototypeDefinition(const std::string &name,
-    const std::shared_ptr<AstTypeSpecification> &base_specification,
+    const std::shared_ptr<AstPrototypeSpecification> &base_specification,
     const std::vector<std::string> &generic_params,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,

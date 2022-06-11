@@ -2,7 +2,7 @@
 #define AST_TYPE_ALIAS_HPP
 
 #include <script/compiler/ast/AstStatement.hpp>
-#include <script/compiler/ast/AstTypeSpecification.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <string>
@@ -14,7 +14,7 @@ class AstTypeAlias: public AstStatement {
 public:
     AstTypeAlias(
         const std::string &name,
-        const std::shared_ptr<AstTypeSpecification> &aliasee,
+        const std::shared_ptr<AstPrototypeSpecification> &aliasee,
         const SourceLocation &location);
     virtual ~AstTypeAlias() = default;
 
@@ -26,7 +26,7 @@ public:
 
 private:
     std::string m_name;
-    std::shared_ptr<AstTypeSpecification> m_aliasee;
+    std::shared_ptr<AstPrototypeSpecification> m_aliasee;
 
     inline Pointer<AstTypeAlias> CloneImpl() const
     {
