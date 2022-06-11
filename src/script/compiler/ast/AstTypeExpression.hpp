@@ -15,11 +15,16 @@ namespace hyperion::compiler {
 class AstTypeExpression : public AstExpression {
 public:
     AstTypeExpression(
+        const std::string &name,
         const std::shared_ptr<AstTypeSpecification> &base_specification,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
         const SourceLocation &location);
     virtual ~AstTypeExpression() = default;
+
+    inline const std::string &GetName() const { return m_name; }
+    /** enable setting to that variable declarations can change the type name */
+    inline void SetName(const std::string &name) { m_name = name; }
 
     inline const std::vector<std::shared_ptr<AstVariableDeclaration>>
         &GetMembers() const { return m_members; }
@@ -38,6 +43,7 @@ public:
     virtual const AstExpression *GetValueOf() const override;
 
 protected:
+    std::string m_name;
     std::shared_ptr<AstTypeSpecification> m_base_specification;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
@@ -50,6 +56,7 @@ protected:
     inline Pointer<AstTypeExpression> CloneImpl() const
     {
         return Pointer<AstTypeExpression>(new AstTypeExpression(
+            m_name,
             CloneAstNode(m_base_specification),
             CloneAllAstNodes(m_members),
             CloneAllAstNodes(m_static_members),

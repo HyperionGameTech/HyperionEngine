@@ -12,6 +12,7 @@
 #include <script/compiler/dis/DecompilationUnit.hpp>
 #include <script/compiler/emit/aex-builder/AEXGenerator.hpp>
 #include <script/compiler/dis/DecompilationUnit.hpp>
+#include <script/compiler/builtins/Builtins.hpp>
 
 #include <script/ScriptApi.hpp>
 
@@ -22,7 +23,8 @@ namespace hyperion {
 using namespace compiler;
 
 Script::Script(const SourceFile &source_file)
-    : m_source_file(source_file)
+    : m_source_file(source_file),
+      m_bytecode_chunk(new BytecodeChunk())
 {
 
 }
@@ -32,8 +34,6 @@ bool Script::Compile(APIInstance &api_instance)
     if (!m_source_file.IsValid()) {
         return false;
     }
-
-    m_compilation_unit.BindDefaultTypes();
 
     // bind all set vars if an api instance has been set
     api_instance.BindAll(&m_vm, &m_compilation_unit);
@@ -48,6 +48,10 @@ bool Script::Compile(APIInstance &api_instance)
     lex.Analyze();
 
     AstIterator ast_iterator;
+
+    Builtins builtins;
+    builtins.Visit(&m_compilation_unit);
+
     Parser parser(&ast_iterator, &token_stream, &m_compilation_unit);
     parser.Parse();
 
@@ -67,11 +71,22 @@ bool Script::Compile(APIInstance &api_instance)
         // compile into bytecode instructions
         ast_iterator.ResetPosition();
 
+
         Compiler compiler(&ast_iterator, &m_compilation_unit);
 
-        if ((m_bytecode_chunk = compiler.Compile())) {
-            return true;
+        if (auto builtins_result = builtins.Build(&m_compilation_unit)) {            
+            m_bytecode_chunk->Append(std::move(builtins_result));
+        } else {
+            return false;
         }
+
+        if (auto compile_result = compiler.Compile()) {
+            m_bytecode_chunk->Append(std::move(compile_result));
+        } else {
+            return false;
+        }
+
+        return true;
     }
 
     return false;

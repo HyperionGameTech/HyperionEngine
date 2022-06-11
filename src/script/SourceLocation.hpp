@@ -10,6 +10,7 @@ public:
     static const SourceLocation eof;
 
 public:
+    SourceLocation();
     SourceLocation(int line, int column, const std::string &filename);
     SourceLocation(const SourceLocation &other);
 

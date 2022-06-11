@@ -36,8 +36,6 @@ public:
     inline AstNodeBuilder &GetAstNodeBuilder() { return m_ast_node_builder; }
     inline const AstNodeBuilder &GetAstNodeBuilder() const { return m_ast_node_builder; }
 
-    void BindDefaultTypes();
-
     /**
         Allows a non-builtin type to be used
     */

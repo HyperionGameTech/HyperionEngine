@@ -1,7 +1,6 @@
 #include <script/compiler/Keywords.hpp>
 
 namespace hyperion::compiler {
-
 const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "module",   Keyword_module },
     { "import",   Keyword_import },
@@ -17,6 +16,7 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "type",     Keyword_type },
     { "alias",    Keyword_alias },
     { "mixin",    Keyword_mixin },
+    { "enum",     Keyword_enum },
     { "as",       Keyword_as },
     { "has",      Keyword_has },
     { "new",      Keyword_new },

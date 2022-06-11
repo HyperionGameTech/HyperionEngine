@@ -268,7 +268,7 @@ bool AstVariable::IsLiteral() const
     AssertThrow(ident_type != nullptr);
 
     const bool is_const = ident_type->IsConstType();
-    const bool is_generic = ident_unaliased->GetFlags() && IdentifierFlags::FLAG_GENERIC;
+    const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
 
     return is_const || is_generic;
 }

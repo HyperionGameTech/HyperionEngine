@@ -37,6 +37,7 @@ public:
     inline void SetImportTreeLink(TreeNode<Module*> *tree_link)
         { m_tree_link = tree_link; }
 
+    std::unordered_set<std::string> GenerateAllScanPaths() const;
     /** Create a string of the module name (including parent module names)
         relative to the global scope */
     std::string GenerateFullModuleName() const;

@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/ast/AstMixinDeclaration.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
@@ -57,7 +58,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
         m_return_type = BuiltinTypes::ANY;
 
-        if (const AstTemplateExpression *template_expr = dynamic_cast<const AstTemplateExpression*>(value_of)) {
+        if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
             FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 visitor, mod, template_expr->GetExprType(), m_generic_args, m_location
             );
@@ -96,12 +97,30 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
                 // TODO: Cache instantiations so we don't create a new one for every set of arguments
             }
-        } else {
+        } else if (const auto *type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
+            const auto type_object_type = type_object->GetHeldType() != nullptr
+                ? type_object->GetHeldType()
+                : type_object->GetExprType();
+
+
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_expression_not_generic,
                 m_expr->GetLocation(),
-                m_expr->GetExprType()->GetName()
+                type_object_type != nullptr
+                    ? type_object_type->GetName()
+                    : "??"
+            ));
+        } else {
+            const auto expr_type = m_expr->GetExprType();
+            
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_expression_not_generic,
+                m_expr->GetLocation(),
+                expr_type != nullptr
+                    ? expr_type->GetName()
+                    : "??"
             ));
         }
     } else {

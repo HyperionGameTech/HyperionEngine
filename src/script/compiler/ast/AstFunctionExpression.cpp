@@ -452,7 +452,7 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         
-        //AssertThrowMsg(rp == 0, "Register position should be 0 to return closure object");
+        //ASSERT_MSG(rp == 0, "Register position should be 0 to return closure object");
 
         // swap regs, so the closure object returned (put on register zero)
         auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();

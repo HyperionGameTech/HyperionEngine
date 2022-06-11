@@ -1,6 +1,7 @@
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstBlockExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
@@ -77,8 +78,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             m_location,
             m_name
         ));
-
-        return;
     } else {
         // the is_default_assigned flag means that errors will /not/ be shown if
         // the assignment type and the user-supplied type differ.
@@ -97,27 +96,43 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
             AssertThrow(m_proto->GetHeldType() != nullptr);
             symbol_type = m_proto->GetHeldType();
+#if ACE_ANY_ONLY_FUNCTION_PARAMATERS
+            if (symbol_type == BuiltinTypes::ANY) {
+                // Any type is reserved for method parameters
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_any_reserved_for_parameters,
+                    m_location
+                ));
+            }
+#endif
 
             // if no assignment provided, set the assignment to be the default value of the provided type
             if (m_real_assignment == nullptr) {
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const std::shared_ptr<AstExpression> &default_value = m_proto->GetDefaultValue()) {
+                if (const std::shared_ptr<AstExpression> default_value = m_proto->GetDefaultValue()) {
                     // Assign variable to the default value for the specified type.
                     m_real_assignment = CloneAstNode(default_value);
                     // built-in assignment, turn off strict mode
                     is_default_assigned = true;
                 } else if (symbol_type->GetTypeClass() == TYPE_GENERIC) {
-                    // generic not yet promoted to an instance.
-                    // since there is no assignment to go by, we can't promote it
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_generic_parameters_missing,
-                        m_location,
-                        symbol_type->GetName(),
-                        symbol_type->GetGenericInfo().m_num_parameters
-                    ));
+                    const bool no_parameters_required = symbol_type->GetGenericInfo().m_num_parameters == -1;
+
+                    if (no_parameters_required) {
+                        // @TODO - idk. instantiate generic? it works for now, example being 'Function' type
+                    } else {
+                        // generic not yet instantiated; assignment does not fulfill enough to complete the type.
+                        // since there is no assignment to go by, we can't promote it
+                        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                            LEVEL_ERROR,
+                            Msg_generic_parameters_missing,
+                            m_location,
+                            symbol_type->GetName(),
+                            symbol_type->GetGenericInfo().m_num_parameters
+                        ));
+                    }
                 } else if (!symbol_type->IsGenericParameter()) { // generic parameters will be resolved upon instantiation
                     // no default assignment for this type
                     no_default_assignment = true;
@@ -129,6 +144,14 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             // no assignment found - set to undefined (instead of a null pointer)
             m_real_assignment.reset(new AstUndefined(m_location));
         }
+
+        // if the variable has been assigned to an anonymous type,
+        // rename the type to be the name of this variable
+        if (AstTypeExpression *as_type_expr = dynamic_cast<AstTypeExpression*>(m_real_assignment.get())) {
+            as_type_expr->SetName(m_name);
+        } else if (AstEnumExpression *as_enum_expr = dynamic_cast<AstEnumExpression*>(m_real_assignment.get())) {
+            as_enum_expr->SetName(m_name);
+        } // @TODO more polymorphic way of doing this..
 
         // visit assignment
         m_real_assignment->Visit(visitor, mod);
@@ -159,6 +182,10 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
+        if (symbol_type == BuiltinTypes::ANY) {
+            no_default_assignment = false;
+        }
+
         if (no_default_assignment) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -176,6 +203,17 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
     AstDeclaration::Visit(visitor, mod);
 
+    if (symbol_type == nullptr) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_could_not_deduce_type_for_expression,
+            m_location,
+            m_name
+        ));
+
+        return;
+    }
+
     if (m_identifier != nullptr) {
         if (m_is_const || m_is_generic) {
             m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
@@ -185,8 +223,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             //m_identifier->SetTemplateParams(ident_template_params);
             m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
         }
-
-        AssertThrow(symbol_type != nullptr);
 
         m_identifier->SetSymbolType(symbol_type);
         m_identifier->SetCurrentValue(m_real_assignment);
@@ -204,7 +240,7 @@ std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Mo
 
     AssertThrow(m_real_assignment != nullptr);
 
-    if (!hyperion::compiler::Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
+    if (!Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
         // update identifier stack location to be current stack size.
         m_identifier->SetStackLocation(visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize());
 

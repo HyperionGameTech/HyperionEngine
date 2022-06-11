@@ -25,7 +25,7 @@ int IdentifierTable::CountUsedVariables() const
     std::unordered_set<int> used_variables;
     
     for (auto &ident : m_identifiers) {
-        if (!hyperion::compiler::Config::cull_unused_objects || ident->GetUseCount() > 0) {
+        if (!Config::cull_unused_objects || ident->GetUseCount() > 0) {
             if (used_variables.find(ident->GetIndex()) == used_variables.end()) {
                 used_variables.insert(ident->GetIndex());
             }
@@ -73,6 +73,7 @@ Identifier *IdentifierTable::AddIdentifier(const std::string &name,
     }
 
     m_identifiers.push_back(ident);
+
     return m_identifiers.back().get();
 }
 
@@ -91,9 +92,12 @@ Identifier *IdentifierTable::LookUpIdentifier(const std::string &name)
 
 void IdentifierTable::BindTypeToIdentifier(const std::string &name, SymbolTypePtr_t symbol_type)
 {
-    AddIdentifier(name, 0, std::shared_ptr<AstTypeObject>(new AstTypeObject(
-        symbol_type, nullptr, SourceLocation::eof
-    )), symbol_type->GetBaseType());
+    AddIdentifier(
+        name,
+        0,
+        std::shared_ptr<AstTypeObject>(new AstTypeObject(symbol_type, nullptr, SourceLocation::eof)),
+        symbol_type->GetBaseType()
+    );
 }
 
 SymbolTypePtr_t IdentifierTable::LookupSymbolType(const std::string &name) const

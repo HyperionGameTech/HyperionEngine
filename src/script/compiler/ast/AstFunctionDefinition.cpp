@@ -38,7 +38,7 @@ std::unique_ptr<Buildable> AstFunctionDefinition::Build(AstVisitor *visitor, Mod
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    if (!hyperion::compiler::Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
+    if (!Config::cull_unused_objects || m_identifier->GetUseCount() > 0) {
         // get current stack size
         int stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
         // set identifier stack location

@@ -15,7 +15,8 @@ SymbolType::SymbolType(const std::string &name,
       m_type_class(type_class),
       m_base(base),
       m_default_value(nullptr),
-      m_id(-1)
+      m_id(-1),
+      m_flags(0)
 {
 }
 
@@ -29,7 +30,8 @@ SymbolType::SymbolType(const std::string &name,
       m_base(base),
       m_default_value(default_value),
       m_members(members),
-      m_id(0)
+      m_id(0),
+      m_flags(0)
 {
 }
 
@@ -39,7 +41,8 @@ SymbolType::SymbolType(const SymbolType &other)
       m_base(other.m_base),
       m_default_value(other.m_default_value),
       m_members(other.m_members),
-      m_id(other.m_id)
+      m_id(other.m_id),
+      m_flags(other.m_flags)
 {
 }
 
@@ -356,6 +359,11 @@ const sp<AstExpression> SymbolType::GetPrototypeValue() const
     return nullptr;
 }
 
+bool SymbolType::IsOrHasBase(const SymbolType &base_type) const
+{
+    return TypeEqual(base_type ) || HasBase(base_type);
+}
+
 bool SymbolType::HasBase(const SymbolType &base_type) const
 {
     if (SymbolTypePtr_t this_base = GetBaseType()) {
@@ -427,8 +435,7 @@ bool SymbolType::IsBoxedType() const
 
 bool SymbolType::IsGenericParameter() const
 {
-    if (m_type_class == TYPE_GENERIC_PARAMETER &&
-        m_generic_param_info.m_substitution.lock() == nullptr) {
+    if (m_type_class == TYPE_GENERIC_PARAMETER && m_generic_param_info.m_substitution.lock() == nullptr) {
         // right is a generic paramter that has not yet been substituted
         return true;
     }

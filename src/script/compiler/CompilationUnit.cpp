@@ -20,13 +20,29 @@ CompilationUnit::CompilationUnit()
           SourceLocation::eof
       ))
 {
+    m_global_module->SetImportTreeLink(m_module_tree.TopNode());
+
+    Scope &top = m_global_module->m_scopes.Top();
+
+    top.GetIdentifierTable().BindTypeToIdentifier("Object", BuiltinTypes::OBJECT);
+    top.GetIdentifierTable().BindTypeToIdentifier("Any", BuiltinTypes::ANY);
+    top.GetIdentifierTable().BindTypeToIdentifier("Tuple", BuiltinTypes::TUPLE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Maybe", BuiltinTypes::MAYBE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Const", BuiltinTypes::CONST_TYPE);
+    //top.GetIdentifierTable().BindTypeToIdentifier("Null", BuiltinTypes::NULL_TYPE);
+    top.GetIdentifierTable().BindTypeToIdentifier("$Event", BuiltinTypes::EVENT);
+    top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
+    top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
+    //top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::TYPE_TYPE);
+
+    m_module_tree.TopNode()->m_value = m_global_module.get();
 }
 
 CompilationUnit::~CompilationUnit()
 {
 }
 
-void CompilationUnit::BindDefaultTypes()
+/*void CompilationUnit::BindDefaultTypes()
 {
     m_global_module->SetImportTreeLink(m_module_tree.TopNode());
 
@@ -51,7 +67,8 @@ void CompilationUnit::BindDefaultTypes()
     top.GetIdentifierTable().BindTypeToIdentifier("Function", BuiltinTypes::FUNCTION);
 
     m_module_tree.TopNode()->m_value = m_global_module.get();
-}
+
+}*/
 
 void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
 {

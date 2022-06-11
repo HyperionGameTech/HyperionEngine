@@ -14,6 +14,8 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t UNDEFINED;
     static const SymbolTypePtr_t OBJECT;
     static const SymbolTypePtr_t TYPE_TYPE;
+    static const SymbolTypePtr_t ENUM_TYPE;
+    static const SymbolTypePtr_t ANY_TYPE; // any base, used for internal detection
     static const SymbolTypePtr_t ANY;
     static const SymbolTypePtr_t INT;
     static const SymbolTypePtr_t FLOAT;
@@ -31,6 +33,7 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t GENERATOR;
     static const SymbolTypePtr_t BOXED_TYPE;
     static const SymbolTypePtr_t MAYBE;
+    static const SymbolTypePtr_t CONST_TYPE_TYPE;
     static const SymbolTypePtr_t CONST_TYPE;
     static const SymbolTypePtr_t BLOCK_TYPE;
     static const SymbolTypePtr_t CLOSURE_TYPE;

@@ -19,6 +19,8 @@ public:
 
     inline const std::shared_ptr<AstExpression> &GetDefaultValue() const
         { return m_default_param; }
+    inline void SetDefaultValue(const std::shared_ptr<AstExpression> &default_param)
+        { m_default_param = default_param; } // used internally by AstTemplateExpression
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;

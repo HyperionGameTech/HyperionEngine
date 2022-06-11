@@ -66,8 +66,7 @@ void AstTypeSpecification::Visit(AstVisitor *visitor, Module *mod)
             if (expr_type == BuiltinTypes::ANY || (expr_type == BuiltinTypes::TYPE_TYPE && symbol_type == nullptr)) {
                 // ???
                 m_symbol_type = BuiltinTypes::ANY;
-            } else if (symbol_type != BuiltinTypes::TYPE_TYPE && !symbol_type->HasBase(*BuiltinTypes::TYPE_TYPE) &&
-                symbol_type != BuiltinTypes::TRAIT_TYPE && !symbol_type->HasBase(*BuiltinTypes::TRAIT_TYPE)) {
+            } else if (!symbol_type->IsOrHasBase(*BuiltinTypes::TYPE_TYPE) && !symbol_type->IsOrHasBase(*BuiltinTypes::TRAIT_TYPE)) {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_not_a_type,
@@ -76,9 +75,9 @@ void AstTypeSpecification::Visit(AstVisitor *visitor, Module *mod)
                 ));
             } else {
                 // get type of the '$proto' member, which is an instance type
-                if (SymbolTypePtr_t proto_member_type = symbol_type->FindMember("$proto")) {
-                    symbol_type = proto_member_type;
-                }
+                // if (SymbolTypePtr_t proto_member_type = symbol_type->FindMember("$proto")) {
+                //     symbol_type = proto_member_type;
+                // }
 
                 m_original_type = symbol_type;
 
@@ -111,8 +110,12 @@ void AstTypeSpecification::Visit(AstVisitor *visitor, Module *mod)
                             if (m_symbol_type == nullptr) {
                                 // nothing found from lookup,
                                 // so create new generic instance
-                                const bool valid_parameters = symbol_type->GetGenericInfo().m_num_parameters == -1
-                                    || symbol_type->GetGenericInfo().m_num_parameters == generic_types.size();
+                                const bool num_provided_parameters_matches =
+                                    symbol_type->GetGenericInfo().m_num_parameters == generic_types.size();
+
+                                const bool no_parameters_required = symbol_type->GetGenericInfo().m_num_parameters == -1;
+
+                                const bool valid_parameters = no_parameters_required || num_provided_parameters_matches;
 
                                 if (valid_parameters) {
                                     // open the scope for data members

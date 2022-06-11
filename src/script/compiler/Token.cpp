@@ -19,6 +19,7 @@ std::string Token::TokenTypeToString(TokenClass token_class)
         case TK_SEMICOLON:     return ";";
         case TK_COLON:         return ":";
         case TK_DOUBLE_COLON:  return "::";
+        case TK_DEFINE:        return ":=";
         case TK_QUESTION_MARK: return "?";
         case TK_DOT:           return ".";
         case TK_ELLIPSIS:      return "...";

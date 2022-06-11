@@ -1,4 +1,5 @@
 #include <script/compiler/ast/AstTemplateExpression.hpp>
+#include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -36,6 +37,15 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     // for things that may be used in the expression
     for (auto &generic_param : m_generic_params) {
         AssertThrow(generic_param != nullptr);
+
+        // gross, but we gotta do this our else on first pass,
+        // these will just refer to the wrong memory
+        if (generic_param->GetDefaultValue() == nullptr) {
+            generic_param->SetDefaultValue(std::shared_ptr<AstNil>(
+                new AstNil(generic_param->GetLocation())
+            ));
+        }
+
         generic_param->Visit(visitor, mod);
     }
 
@@ -46,7 +56,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_expr->GetExprType() != nullptr);
 
     std::vector<GenericInstanceTypeInfo::Arg> generic_param_types;
-    generic_param_types.reserve(m_generic_params.size() + 1);
+    generic_param_types.reserve(m_generic_params.size() + 1); // anotha one
     
     SymbolTypePtr_t expr_return_type;
 
@@ -76,8 +86,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     });
 
     for (size_t i = 0; i < m_generic_params.size(); i++) {
-        const auto &param = m_generic_params[i];
-
+        const std::shared_ptr<AstParameter> &param = m_generic_params[i];
         AssertThrow(param != nullptr);
 
         generic_param_types.push_back(GenericInstanceTypeInfo::Arg {

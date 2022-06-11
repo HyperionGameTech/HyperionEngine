@@ -33,14 +33,21 @@ const SymbolTypePtr_t BuiltinTypes::UNDEFINED = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::OBJECT = SymbolType::Primitive(
-    "Object",
-    nullptr,
+const SymbolTypePtr_t BuiltinTypes::ANY_TYPE = SymbolType::Primitive(
+    "AnyType",
+    sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
+
 const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
     "Any",
     sp<AstNil>(new AstNil(SourceLocation::eof)),
+    BuiltinTypes::ANY_TYPE
+);
+
+const SymbolTypePtr_t BuiltinTypes::OBJECT = SymbolType::Primitive(
+    "Object",
+    nullptr,
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
@@ -65,30 +72,11 @@ const SymbolTypePtr_t BuiltinTypes::TYPE_TYPE = SymbolType::Extend(
     }
 );
 
-/*const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Extend(
-    "Any",
-    BuiltinTypes::TYPE_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "AnyInstance", nullptr
-            ),
-            sp<AstNil>(new AstNil(SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::TYPE_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::TYPE_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
-);*/
-
-
+const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Primitive(
+    "Enum",
+    sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
+);
 
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
     "Int",
@@ -375,12 +363,18 @@ const SymbolTypePtr_t BuiltinTypes::MAYBE = SymbolType::Generic(
     BuiltinTypes::BOXED_TYPE
 );
 
+const SymbolTypePtr_t BuiltinTypes::CONST_TYPE_TYPE = SymbolType::Primitive(
+    "ConstType",
+    sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
+);
+
 const SymbolTypePtr_t BuiltinTypes::CONST_TYPE = SymbolType::Generic(
     "Const",
     nullptr,
     {},
     GenericTypeInfo { 1 },
-    BuiltinTypes::BOXED_TYPE
+    BuiltinTypes::CONST_TYPE_TYPE
 );
 
 const SymbolTypePtr_t BuiltinTypes::BLOCK_TYPE = SymbolType::Generic(
@@ -429,5 +423,6 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     GenericTypeInfo { -1 },
     BuiltinTypes::TYPE_TYPE
 );
+
 
 } // namespace hyperion::compiler

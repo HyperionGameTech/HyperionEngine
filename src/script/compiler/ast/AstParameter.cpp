@@ -94,17 +94,20 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
     // set identifier stack location
     m_identifier->SetStackLocation(stack_location);
 
-    if (m_default_param != nullptr) {
-        /*m_default_param->Build(visitor, mod);
 
-        // get active register
+    if (m_default_param != nullptr) {
+        chunk->Append(m_default_param->Build(visitor, mod));
+
+        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        chunk->Append(BytecodeUtil::Make<StoreLocal>(rp));
+
+        /*// get active register
         uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         // add instruction to store on stack
         visitor->GetCompilationUnit()->GetInstructionStream() <<
             Instruction<uint8_t, uint8_t>(PUSH, rp);*/
     }
-
 
     // increment stack size
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();

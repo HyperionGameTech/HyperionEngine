@@ -15,6 +15,7 @@
 #include <script/compiler/ast/AstTupleExpression.hpp>
 #include <script/compiler/ast/AstTypeDefinition.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
+#include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstPrototypeDefinition.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
@@ -76,6 +77,8 @@ public:
     void Parse(bool expect_module_decl = true);
 
 private:
+    int m_template_argument_depth = 0; // until a better way is found..
+
     AstIterator *m_ast_iterator;
     TokenStream *m_token_stream;
     CompilationUnit *m_compilation_unit;
@@ -144,8 +147,8 @@ private:
     );
     std::shared_ptr<AstTypeSpecification> ParseTypeSpecification();
     std::shared_ptr<AstPrototypeSpecification> ParsePrototypeSpecification();
-    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool require_keyword = true,
-        bool allow_keyword_names = false,
+    std::shared_ptr<AstExpression> ParseAssignment();
+    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool allow_keyword_names = false,
         bool allow_quoted_names = false);
     std::shared_ptr<AstFunctionDefinition> ParseFunctionDefinition(bool require_keyword = true);
     std::shared_ptr<AstFunctionExpression> ParseFunctionExpression(bool require_keyword = true,
@@ -163,6 +166,7 @@ private:
     std::vector<std::shared_ptr<AstParameter>> ParseFunctionParameters();
     std::shared_ptr<AstStatement> ParseTypeDefinition();
     std::shared_ptr<AstTypeExpression> ParseTypeExpression();
+    std::shared_ptr<AstEnumExpression> ParseEnumExpression();
     std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
     std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();
     std::shared_ptr<AstMixin> ParseMixinExpression(const std::string &name);
