@@ -48,41 +48,42 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     m_symbol_type = BuiltinTypes::ANY; // defaults to dynamic type.
     m_prototype_type = BuiltinTypes::ANY;
 
-    if (constructor_type != BuiltinTypes::ANY) {
-        const bool is_type = constructor_type == BuiltinTypes::TYPE_TYPE ||
-            constructor_type->HasBase(*BuiltinTypes::TYPE_TYPE);
+    if (constructor_type == BuiltinTypes::ANY) { // dynamic type
+        m_default_value = BuiltinTypes::ANY->GetDefaultValue();
 
-        if (is_type) {
-            const AstExpression *value_of = m_proto->GetValueOf();
+        return;
+    }
 
-            // FIXME: this dynamic_casting stuff is nasty and we need a better way other than GetValueOf()
-            // and such. having 2 separate ways of getting expression types (AstTypeObject vs. the internal SymbolType)
-            if (const AstTypeObject *type_obj = dynamic_cast<const AstTypeObject*>(value_of)) {
-                AssertThrow(type_obj->GetHeldType() != nullptr);
-                m_symbol_type = type_obj->GetHeldType();
+    const bool is_type = constructor_type == BuiltinTypes::TYPE_TYPE ||
+        constructor_type->HasBase(*BuiltinTypes::TYPE_TYPE);
 
-                SymbolMember_t proto_member;
-                if (m_symbol_type->FindMember("$proto", proto_member)) {
-                    m_prototype_type = std::get<1>(proto_member);
+    if (is_type) {
+        const AstExpression *value_of = m_proto->GetValueOf();
 
-                    // only give default value IFF it is a built-in type
-                    // this is to prevent huge prototypes being inlined.
-                    if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
-                        m_default_value = std::get<2>(proto_member);
-                    }
+        // FIXME: this dynamic_casting stuff is nasty and we need a better way other than GetValueOf()
+        // and such. having 2 separate ways of getting expression types (AstTypeObject vs. the internal SymbolType)
+        if (const AstTypeObject *type_obj = dynamic_cast<const AstTypeObject*>(value_of)) {
+            AssertThrow(type_obj->GetHeldType() != nullptr);
+            m_symbol_type = type_obj->GetHeldType();
+
+            SymbolMember_t proto_member;
+            if (m_symbol_type->FindMember("$proto", proto_member)) {
+                m_prototype_type = std::get<1>(proto_member);
+
+                // only give default value IFF it is a built-in type
+                // this is to prevent huge prototypes being inlined.
+                if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
+                    m_default_value = std::get<2>(proto_member);
                 }
             }
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_not_a_type,
-                m_location,
-                constructor_type->GetName()
-            ));
         }
     } else {
-        // if not, it is a dynamic type
-        m_default_value = BuiltinTypes::ANY->GetDefaultValue();
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_type,
+            m_location,
+            constructor_type->GetName()
+        ));
     }
 }
 

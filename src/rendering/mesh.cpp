@@ -73,7 +73,7 @@ Mesh::Mesh(
 ) : Mesh(
         vertices,
         indices,
-        VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
+        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
         flags
     )
 {
@@ -95,10 +95,12 @@ void Mesh::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_MESHES, [this](Engine *engine) {
         DebugLog(LogType::Info, "Init mesh with %llu vertices and %llu indices\n", m_vertices.size(), m_indices.size());
 
+        AssertThrowMsg(m_vertex_attributes != 0, "No vertex attributes set on mesh");
+
         if (m_vertices.empty() || m_indices.empty()) {
             DebugLog(
                 LogType::Warn,
-                "Attempt to create Mesh #%lu with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
+                "Attempt to create Mesh #%u with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
                 m_id.value
             );
 

@@ -33,6 +33,8 @@ bool Script::Compile(APIInstance &api_instance)
         return false;
     }
 
+    m_compilation_unit.BindDefaultTypes();
+
     // bind all set vars if an api instance has been set
     api_instance.BindAll(&m_vm, &m_compilation_unit);
 

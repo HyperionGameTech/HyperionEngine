@@ -605,7 +605,10 @@ Result GPUBuffer::Create(Device *device, size_t size)
     GPUMemory::Create();
     
     if (size == 0) {
-        return {Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors \n"};
+#if HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif
+        return {Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n"};
     }
 
     DebugLog(

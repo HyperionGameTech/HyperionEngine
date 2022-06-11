@@ -77,6 +77,8 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             m_location,
             m_name
         ));
+
+        return;
     } else {
         // the is_default_assigned flag means that errors will /not/ be shown if
         // the assignment type and the user-supplied type differ.
@@ -101,7 +103,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const std::shared_ptr<AstExpression> default_value = m_proto->GetDefaultValue()) {
+                if (const std::shared_ptr<AstExpression> &default_value = m_proto->GetDefaultValue()) {
                     // Assign variable to the default value for the specified type.
                     m_real_assignment = CloneAstNode(default_value);
                     // built-in assignment, turn off strict mode

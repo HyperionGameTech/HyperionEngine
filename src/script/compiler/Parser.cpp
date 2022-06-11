@@ -1795,7 +1795,7 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
         std::shared_ptr<AstExpression> assignment;
 
-        if (Token op = MatchOperator("=", true)) {
+        if (MatchOperator("=", true) || MatchOperator(":=", true)) {
             // read assignment expression
             const SourceLocation expr_location = CurrentLocation();
 

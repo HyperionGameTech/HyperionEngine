@@ -238,7 +238,7 @@ public:
     //         engine->GetRenderListContainer().Get(BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
     //         RenderableAttributeSet{
     //             .bucket            = BUCKET_TRANSLUCENT,
-    //             .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
+    //             .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
     //             .stencil_state     = {1, renderer::StencilMode::OUTLINE}
     //         }
     //     );
@@ -513,7 +513,7 @@ int main()
         /*auto pipeline = std::make_unique<v2::GraphicsPipeline>(
             engine->shader_manager.GetShader(v2::ShaderManager::Key::BASIC_SKYBOX).IncRef(),
             engine->GetRenderListContainer().Get(v2::BUCKET_SKYBOX).GetRenderPass().IncRef(),
-            VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton,
+            renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
             v2::Bucket::BUCKET_SKYBOX
         );
         pipeline->SetFaceCullMode(FaceCullMode::FRONT);
@@ -529,7 +529,7 @@ int main()
             engine->GetRenderListContainer().Get(v2::BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
             v2::RenderableAttributeSet{
                 .bucket            = v2::Bucket::BUCKET_TRANSLUCENT,
-                .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton
+                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
             }
         );
         pipeline->SetBlendEnabled(true);

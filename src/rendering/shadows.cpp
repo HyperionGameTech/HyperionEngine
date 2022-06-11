@@ -110,7 +110,7 @@ void ShadowEffect::CreatePipeline(Engine *engine)
         m_render_pass.IncRef(),
         RenderableAttributeSet{
             .bucket            = BUCKET_PREPASS,
-            .vertex_attributes = VertexAttributeSet::static_mesh | VertexAttributeSet::skeleton
+            .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
         }
     );
 

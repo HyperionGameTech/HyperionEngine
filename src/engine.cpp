@@ -240,7 +240,7 @@ void Engine::PrepareSwapchain()
                 render_pass.IncRef(),
                 RenderableAttributeSet{
                     .bucket            = BUCKET_SWAPCHAIN,
-                    .vertex_attributes = VertexAttributeSet::static_mesh,
+                    .vertex_attributes = renderer::static_mesh_vertex_attributes,
                     .fill_mode         = FillMode::FILL  
                 }
             );

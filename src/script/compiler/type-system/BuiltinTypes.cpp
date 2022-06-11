@@ -33,15 +33,14 @@ const SymbolTypePtr_t BuiltinTypes::UNDEFINED = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
-    "Any",
-    sp<AstNil>(new AstNil(SourceLocation::eof)),
-    BuiltinTypes::TRAIT_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::OBJECT = SymbolType::Primitive(
     "Object",
     nullptr,
+    BuiltinTypes::PRIMITIVE_TYPE
+);
+const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
+    "Any",
+    sp<AstNil>(new AstNil(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
@@ -65,6 +64,31 @@ const SymbolTypePtr_t BuiltinTypes::TYPE_TYPE = SymbolType::Extend(
         }
     }
 );
+
+/*const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Extend(
+    "Any",
+    BuiltinTypes::TYPE_TYPE,
+    std::vector<SymbolMember_t> {
+        SymbolMember_t {
+            "$proto",
+            SymbolType::Primitive(
+                "AnyInstance", nullptr
+            ),
+            sp<AstNil>(new AstNil(SourceLocation::eof))
+        },
+        SymbolMember_t {
+            "base",
+            BuiltinTypes::TYPE_TYPE,
+            sp<AstTypeObject>(new AstTypeObject(
+                BuiltinTypes::TYPE_TYPE,
+                nullptr,
+                SourceLocation::eof
+            )),
+        }
+    }
+);*/
+
+
 
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
     "Int",

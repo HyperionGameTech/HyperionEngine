@@ -18,6 +18,8 @@ std::unique_ptr<Mesh> MeshBuilder::Quad(Topology topology)
 
     std::unique_ptr<Mesh> mesh;
 
+    const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
+
 #ifndef HYP_APPLE
     switch (topology) {
     case Topology::TRIANGLE_FAN: {
@@ -26,7 +28,7 @@ std::unique_ptr<Mesh> MeshBuilder::Quad(Topology topology)
         mesh = std::make_unique<Mesh>(
             new_vertices,
             new_indices,
-            VertexAttributeSet::static_mesh
+            vertex_attributes
         );
 
         break;
@@ -36,7 +38,7 @@ std::unique_ptr<Mesh> MeshBuilder::Quad(Topology topology)
         mesh = std::make_unique<Mesh>(
             vertices,
             indices, 
-            VertexAttributeSet::static_mesh
+            vertex_attributes
         );
 
 #ifndef HYP_APPLE

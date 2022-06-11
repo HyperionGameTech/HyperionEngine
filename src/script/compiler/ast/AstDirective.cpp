@@ -37,8 +37,12 @@ void AstDirective::Visit(AstVisitor *visitor, Module *mod)
             }
             
             for (const std::string &path_arg : m_args) {
+                const auto scan_path = current_dir + path_arg;
+
                 // create relative path
-                mod->AddScanPath(current_dir + path_arg);
+                DebugLog(LogType::Info, "[Script] add scan path %s\n", scan_path.c_str());
+
+                mod->AddScanPath(scan_path);
             }
         }
     } else if (m_key == "strict") {

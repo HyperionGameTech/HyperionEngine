@@ -165,7 +165,7 @@ void FullScreenPass::CreatePipeline(Engine *engine)
         m_render_pass.IncRef(),
         RenderableAttributeSet{
             .bucket            = BUCKET_PREPASS,
-            .vertex_attributes = VertexAttributeSet::static_mesh,
+            .vertex_attributes = renderer::static_mesh_vertex_attributes,
             .fill_mode         = FillMode::FILL
         }
     );

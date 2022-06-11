@@ -148,16 +148,15 @@ struct VertexAttribute {
 };
 
 struct VertexAttributeSet {
-    static const VertexAttributeSet static_mesh,
-                                       skeleton;
-
     uint64_t flag_mask;
 
-    VertexAttributeSet()
+    constexpr VertexAttributeSet()
         : flag_mask(0) {}
-    VertexAttributeSet(uint64_t flag_mask)
+    constexpr VertexAttributeSet(uint64_t flag_mask)
         : flag_mask(flag_mask) {}
-    VertexAttributeSet(const VertexAttributeSet &other)
+    constexpr VertexAttributeSet(VertexAttribute::Type flags)
+        : flag_mask(static_cast<uint64_t>(flags)) {}
+    constexpr VertexAttributeSet(const VertexAttributeSet &other)
         : flag_mask(other.flag_mask) {}
 
     VertexAttributeSet &operator=(const VertexAttributeSet &other)
@@ -171,21 +170,21 @@ struct VertexAttributeSet {
 
     explicit operator bool() const { return bool(flag_mask); }
 
-    bool operator==(const VertexAttributeSet &other) const { return flag_mask == other.flag_mask; }
+    bool operator==(const VertexAttributeSet &other) const              { return flag_mask == other.flag_mask; }
 
-    VertexAttributeSet operator~() const { return ~flag_mask; }
+    VertexAttributeSet operator~() const                                { return ~flag_mask; }
 
     VertexAttributeSet operator&(const VertexAttributeSet &other) const { return {flag_mask & other.flag_mask}; }
     VertexAttributeSet &operator&=(const VertexAttributeSet &other)     { flag_mask &= other.flag_mask; return *this; }
-    VertexAttributeSet operator&(uint64_t flags) const { return {flag_mask & flags}; }
-    VertexAttributeSet &operator&=(uint64_t flags)     { flag_mask &= flags; return *this; }
+    VertexAttributeSet operator&(uint64_t flags) const                  { return {flag_mask & flags}; }
+    VertexAttributeSet &operator&=(uint64_t flags)                      { flag_mask &= flags; return *this; }
     
     VertexAttributeSet operator|(const VertexAttributeSet &other) const { return {flag_mask | other.flag_mask}; }
     VertexAttributeSet &operator|=(const VertexAttributeSet &other)     { flag_mask |= other.flag_mask; return *this; }
-    VertexAttributeSet operator|(uint64_t flags) const { return {flag_mask | flags}; }
-    VertexAttributeSet &operator|=(uint64_t flags)     { flag_mask |= flags; return *this; }
+    VertexAttributeSet operator|(uint64_t flags) const                  { return {flag_mask | flags}; }
+    VertexAttributeSet &operator|=(uint64_t flags)                      { flag_mask |= flags; return *this; }
 
-    bool operator<(const VertexAttributeSet &other) const { return flag_mask < other.flag_mask; }
+    bool operator<(const VertexAttributeSet &other) const               { return flag_mask < other.flag_mask; }
 
     bool Has(VertexAttribute::Type type) const { return bool(operator&(uint64_t(type))); }
 
@@ -247,6 +246,21 @@ struct VertexAttributeSet {
         return hc;
     }
 };
+
+constexpr VertexAttributeSet static_mesh_vertex_attributes(
+    VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT
+);
+
+constexpr VertexAttributeSet skeleton_vertex_attributes(
+    VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS
+    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES
+);
+
 
 struct QueueFamilyIndices {
     using Index = uint32_t;

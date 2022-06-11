@@ -4,20 +4,6 @@
 
 namespace hyperion::renderer {
 
-const VertexAttributeSet VertexAttributeSet::static_mesh = {
-    VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT
-};
-
-const VertexAttributeSet VertexAttributeSet::skeleton = {
-    VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES
-};
-
 const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
     std::make_pair(MESH_INPUT_ATTRIBUTE_POSITION,     VertexAttribute{.location = 0, .binding = 0, .size = 3 * sizeof(float)}),
     std::make_pair(MESH_INPUT_ATTRIBUTE_NORMAL,       VertexAttribute{.location = 1, .binding = 0, .size = 3 * sizeof(float)}),

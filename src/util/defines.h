@@ -81,15 +81,26 @@
     #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
+#ifdef __arm__
+    #define HYP_ARM 1
+#endif
+
 #ifdef __APPLE__
 
 #define HYP_APPLE 1
 
 #include <TargetConditionals.h>
 
+#ifndef HYP_ARM
+    // for m1
+    #if TARGET_CPU_ARM64
+        #define HYP_ARM 1
+    #endif
+#endif
+
 #if (TARGET_IPHONE_SIMULATOR == 1) || (TARGET_OS_IPHONE == 1)
     #define HYP_IOS 1
-#elif (TARGET_OS_MAC == 1)
+#elif (TARGET_OS_OSX == 1)
     #define HYP_MACOS 1
 #endif
 #endif
@@ -112,10 +123,11 @@
     #define HYP_DEBUG_LINE       (__LINE__)
 
     #if HYP_ENABLE_BREAKPOINTS
-        #define HYP_BREAKPOINT \
-        { \
-            __asm__ volatile("int $0x03"); \
-        }
+        #if defined(HYP_ARM) && HYP_ARM
+            #define HYP_BREAKPOINT { asm(".inst 0xd4200000"); }
+        #else
+            #define HYP_BREAKPOINT { __asm__ volatile("int $0x03"); }
+        #endif
     #endif
 #elif defined(HYP_MSVC) && HYP_MSVC
     #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)

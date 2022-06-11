@@ -17,7 +17,7 @@ using renderer::StencilState;
 struct RenderableAttributeSet {
     Bucket             bucket{Bucket::BUCKET_OPAQUE};
     Shader::ID         shader_id{Shader::empty_id};
-    VertexAttributeSet vertex_attributes;
+    VertexAttributeSet vertex_attributes{renderer::static_mesh_vertex_attributes};
     Topology           topology{Topology::TRIANGLES};
     FillMode           fill_mode{FillMode::FILL};
     FaceCullMode       cull_faces{FaceCullMode::BACK};

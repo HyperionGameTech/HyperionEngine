@@ -5,11 +5,16 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
+#include <util/fs/fs_util.h>
+
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <functional>
 
 namespace hyperion::compiler {
+
+using v2::FileSystem;
 
 AstModuleImportPart::AstModuleImportPart(
     const std::string &left,
@@ -90,6 +95,8 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
         first->SetPullInModules(false);
     }
 
+    std::vector<std::string> tried_paths;
+
     // if this is not a direct import (i.e `import range`),
     // we will allow duplicates in imports like `import range::{_Detail_}`
     // and we won't import the 'range' module again
@@ -103,9 +110,9 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
         }
 
         std::ifstream file;
-        std::string found_path;
 
         std::unordered_set<std::string> scan_paths;
+        std::string found_path;
 
         // add current directory as first.
         scan_paths.insert(current_dir);
@@ -128,23 +135,20 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
         // iterate through library paths to try and find a file
         for (const std::string &scan_path : scan_paths) {
             const std::string &filename = first->GetLeft();
-            const std::string ext = ".ace";
+            const std::string ext = ".hypscript";
 
-            // create relative path
-            std::string relative_path;
-            if (!current_dir.empty()) {
-                relative_path += current_dir + "/";
-            }
-            relative_path += scan_path + "/";
+            found_path = FileSystem::Join(scan_path, filename + ext);
+            tried_paths.push_back(found_path);
 
-            found_path = relative_path + filename + ext;
             if (AstImport::TryOpenFile(found_path, file)) {
                 opened = true;
                 break;
             }
 
             // try it without extension
-            found_path = relative_path + filename;
+            found_path = FileSystem::Join(scan_path, filename);
+            tried_paths.push_back(found_path);
+
             if (AstImport::TryOpenFile(found_path, file)) {
                 opened = true;
                 break;
@@ -166,11 +170,23 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
             part->Visit(visitor, mod);
         }
     } else {
+        std::stringstream tried_paths_string;
+        tried_paths_string << "[";
+
+        for (size_t i = 0; i < tried_paths.size(); i++) {
+            tried_paths_string << '"' << tried_paths[i] << '"';
+
+            if (i != tried_paths.size() - 1) {
+                tried_paths_string << ", ";
+            }
+        }
+
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_could_not_find_module,
             m_location,
-            first->GetLeft()
+            first->GetLeft(),
+            tried_paths_string.str()
         ));
     }
 }
