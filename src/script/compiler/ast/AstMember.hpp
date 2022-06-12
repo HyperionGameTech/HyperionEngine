@@ -26,6 +26,9 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+  
+    virtual const AstExpression *GetValueOf() const override;
+    virtual const AstExpression *GetDeepValueOf() const override;
 
 protected:
     std::string m_field_name;

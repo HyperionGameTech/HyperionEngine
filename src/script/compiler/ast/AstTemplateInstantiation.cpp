@@ -82,7 +82,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                     AssertThrow(args_substituted[i]->GetExpr() != nullptr);
 
                     if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
-                        m_block->AddChild(std::shared_ptr<AstVariableDeclaration>(new AstVariableDeclaration(
+                        std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
                             template_expr->GetGenericParameters()[i]->GetName(),
                             nullptr,
                             CloneAstNode(args_substituted[i]->GetExpr()),
@@ -90,13 +90,19 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                             true, // const
                             false, // generic
                             args_substituted[i]->GetLocation()
-                        )));
+                        ));
+
+                        //param_override->Visit(visitor, mod);
+
+                        // m_param_overrides.push_back(param_override);
+                        m_block->AddChild(param_override);
                     }
                 }
 
                 AssertThrow(template_expr->GetInnerExpression() != nullptr);
 
                 m_inner_expr = CloneAstNode(template_expr->GetInnerExpression());
+                //m_inner_expr->Visit(visitor, mod);
 
                 m_block->AddChild(m_inner_expr);
                 m_block->Visit(visitor, mod);
@@ -144,9 +150,9 @@ std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, 
     //     chunk->Append(it->Build(visitor, mod));
     // }
 
-    // // visit the expression
-    // AssertThrow(m_inst_expr != nullptr);
-    // chunk->Append(m_inst_expr->Build(visitor, mod));
+    // // // visit the expression
+    // AssertThrow(m_inner_expr != nullptr);
+    // chunk->Append(m_inner_expr->Build(visitor, mod));
 
     AssertThrow(m_block != nullptr);
     chunk->Append(m_block->Build(visitor, mod));
@@ -168,8 +174,8 @@ void AstTemplateInstantiation::Optimize(AstVisitor *visitor, Module *mod)
     // }
 
     // // optimize the expression
-    // AssertThrow(m_inst_expr != nullptr);
-    // m_inst_expr->Optimize(visitor, mod);
+    // AssertThrow(m_inner_expr != nullptr);
+    // m_inner_expr->Optimize(visitor, mod);
 
     AssertThrow(m_block != nullptr);
     m_block->Optimize(visitor, mod);

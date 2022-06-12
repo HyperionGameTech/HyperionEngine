@@ -39,7 +39,6 @@ void Value::Mark()
 
             if (ptr != nullptr && !(ptr->GetFlags() & GC_MARKED)) {
                 ptr->Mark();
-                ptr->GetFlags() |= GC_MARKED;
             }
         }
 

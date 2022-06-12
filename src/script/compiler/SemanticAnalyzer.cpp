@@ -9,6 +9,7 @@
 
 #include <set>
 #include <iostream>
+#include <sstream>
 
 namespace hyperion::compiler {
 
@@ -214,12 +215,33 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
 
                 res_args[found_index] = std::get<1>(arg);
             } else {
+                std::stringstream ss;
+
+                ss << "[";
+
+                for (size_t i = 0; i < generic_args.size(); i++) {
+                    const auto &arg = generic_args[i];
+
+                    if (!arg.m_name.empty()) {
+                        ss << arg.m_name << ": " << (arg.m_type != nullptr ? arg.m_type->GetName() : "??");
+                    } else {
+                        ss << "$" << i << ": " << (arg.m_type != nullptr ? arg.m_type->GetName() : "??");
+                    }
+
+                    if (i != generic_args.size() - 1) {
+                        ss << ", ";
+                    }
+                }
+
+                ss << "]";
+
                 // not found so add error
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_named_arg_not_found,
                     std::get<1>(arg)->GetLocation(),
-                    std::get<0>(arg).name
+                    std::get<0>(arg).name,
+                    ss.str()
                 ));
             }
         }

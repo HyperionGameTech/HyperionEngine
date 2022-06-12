@@ -12,9 +12,9 @@
 
 #define ENABLE_GC 1
 #define GC_THRESHOLD_MIN 20
-#define GC_THRESHOLD_MAX 1000
+#define GC_THRESHOLD_MAX 5000
 
-#define VM_MAX_THREADS 8
+#define VM_MAX_THREADS 1//8
 #define VM_NUM_REGISTERS 8
 
 namespace hyperion {

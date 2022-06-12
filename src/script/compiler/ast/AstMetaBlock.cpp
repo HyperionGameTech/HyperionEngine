@@ -118,6 +118,8 @@ void AstMetaBlock::Visit(AstVisitor *visitor, Module *mod)
             // assign the out value to this
             out->m_type = vm::Value::ValueType::HEAP_POINTER;
             out->m_value.ptr = object;
+
+            object->Mark();
         });
     
     meta_api.BindAll(&vm, &compilation_unit);

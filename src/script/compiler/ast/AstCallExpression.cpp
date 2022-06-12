@@ -43,7 +43,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_insert_self) {
         // if the target is a member expression,
         // place it as 'self' argument to the call
-        if (AstMember *target_mem = dynamic_cast<AstMember*>(m_target.get())) {
+        if (auto *target_mem = dynamic_cast<const AstMember *>(m_target.get())) {
             m_is_method_call = true;
 
             AssertThrow(target_mem->GetTarget() != nullptr);
@@ -110,8 +110,19 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
+    DebugLog(
+        LogType::Debug,
+        "Substitute args for type %s   %s\n",
+        unboxed_type->GetName().c_str(),
+        typeid(*m_target).name()
+    );
+
     FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-        visitor, mod, unboxed_type, m_args, m_location
+        visitor,
+        mod,
+        unboxed_type,
+        m_args,
+        m_location
     );
 
     if (substituted.first != nullptr) {

@@ -223,16 +223,32 @@ const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
 
 const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
     "Function",
-    sp<AstFunctionExpression>(new AstFunctionExpression(
-        {},
-        nullptr,
-        sp<AstBlock>(new AstBlock(SourceLocation::eof)),
-        false,
-        false,
-        false,
-        SourceLocation::eof
-    )),
-    {},
+    std::vector<SymbolMember_t> {
+        SymbolMember_t {
+            "$proto",
+            SymbolType::Primitive(
+                "FunctionInstance", nullptr
+            ),
+            sp<AstFunctionExpression>(new AstFunctionExpression(
+                {},
+                nullptr,
+                sp<AstBlock>(new AstBlock(SourceLocation::eof)),
+                false,
+                false,
+                false,
+                SourceLocation::eof
+            ))
+        },
+        SymbolMember_t {
+            "base",
+            BuiltinTypes::CLASS_TYPE,
+            sp<AstTypeObject>(new AstTypeObject(
+                BuiltinTypes::CLASS_TYPE,
+                nullptr,
+                SourceLocation::eof
+            )),
+        }
+    },
     GenericTypeInfo{ -1 },
     BuiltinTypes::CLASS_TYPE
 );

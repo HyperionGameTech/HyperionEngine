@@ -11,8 +11,6 @@
 namespace hyperion {
 namespace vm {
 
-static std::mutex mtx;
-
 VMState::VMState()
 {
     for (int i = 0; i < VM_MAX_THREADS; i++) {
@@ -73,6 +71,8 @@ void VMState::CloneValue(const Value &other, ExecutionThread *thread, Value &out
                 out.m_type = Value::HEAP_POINTER;
                 out.m_value.ptr = hv;
 
+                hv->Mark();
+
                 break;
             }
             // fallthrough
@@ -124,8 +124,6 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 
 void VMState::GC()
 {
-    std::lock_guard<std::mutex> lock(mtx);
-
     // mark stack objects on each thread
     for (int i = 0; i < VM_MAX_THREADS; i++) {
         if (m_threads[i] != nullptr) {
@@ -137,8 +135,6 @@ void VMState::GC()
     }
 
     m_heap.Sweep();
-
-    //utf::cout << "gc()\n";
 }
 
 ExecutionThread *VMState::CreateThread()

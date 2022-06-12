@@ -148,7 +148,7 @@ private:
     std::shared_ptr<AstExpression> ParseAssignment();
     std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool allow_keyword_names = false,
         bool allow_quoted_names = false);
-    std::shared_ptr<AstFunctionDefinition> ParseFunctionDefinition(bool require_keyword = true);
+    std::shared_ptr<AstStatement> ParseFunctionDefinition(bool require_keyword = true);
     std::shared_ptr<AstFunctionExpression> ParseFunctionExpression(bool require_keyword = true,
         std::vector<std::shared_ptr<AstParameter>> params = {},
         bool is_async = false,
@@ -162,8 +162,13 @@ private:
     std::shared_ptr<AstExpression> ParseValueOfExpression();
     std::shared_ptr<AstTypeOfExpression> ParseTypeOfExpression();
     std::vector<std::shared_ptr<AstParameter>> ParseFunctionParameters();
+    std::vector<std::shared_ptr<AstParameter>> ParseGenericParameters();
     std::shared_ptr<AstStatement> ParseTypeDefinition();
-    std::shared_ptr<AstTypeExpression> ParseTypeExpression();
+    std::shared_ptr<AstTypeExpression> ParseTypeExpression(
+        bool require_keyword = true,
+        bool allow_identifier = true,
+        std::string type_name = "<Anonymous Type>"
+    );
     std::shared_ptr<AstEnumExpression> ParseEnumExpression();
     std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
     std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();

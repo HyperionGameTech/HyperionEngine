@@ -20,15 +20,18 @@ HeapValue::~HeapValue()
 {
     if (m_holder != nullptr) {
         delete m_holder;
+        m_holder = nullptr;
     }
 }
 
 void HeapValue::Mark()
 {
+    m_flags |= GC_MARKED;
+
     if (Object *object = GetPointer<Object>()) {
         HeapValue *proto = nullptr;
 
-        do {
+        //do {
             const size_t size = object->GetSize();
 
             for (size_t i = 0; i < size; i++) {
@@ -36,15 +39,15 @@ void HeapValue::Mark()
             }
 
             if ((proto = object->GetPrototype()) != nullptr) {
-                proto->GetFlags() |= GC_MARKED;
+                proto->Mark();
 
                 // get object value of prototype
-                if ((object = proto->GetPointer<Object>()) == nullptr) {
-                    // if prototype is not an object (has been modified to another value), we're done.
-                    return;
-                }
+                // if ((object = proto->GetPointer<Object>()) == nullptr) {
+                //     // if prototype is not an object (has been modified to another value), we're done.
+                //     return;
+                // }
             }
-        } while (proto != nullptr);
+        //} while (proto != nullptr);
     } else if (Array *array = GetPointer<Array>()) {
         const size_t size = array->GetSize();
 

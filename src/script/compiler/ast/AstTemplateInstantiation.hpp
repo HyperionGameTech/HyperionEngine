@@ -42,7 +42,7 @@ private:
     // set while analyzing
     //std::shared_ptr<AstExpression> m_inst_expr;
     //std::vector<std::shared_ptr<AstAliasDeclaration>> m_mixin_overrides;
-    //std::vector<std::shared_ptr<AstVariableDeclaration>> m_param_overrides;
+    // std::vector<std::shared_ptr<AstVariableDeclaration>> m_param_overrides;
     std::shared_ptr<AstExpression> m_inner_expr;
     std::shared_ptr<AstBlock> m_block;
     SymbolTypePtr_t m_return_type;

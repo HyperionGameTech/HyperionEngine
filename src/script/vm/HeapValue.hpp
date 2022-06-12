@@ -12,6 +12,7 @@ namespace vm {
 
 enum HeapValueFlags {
     GC_MARKED = 0x01,
+    GC_DESTROYED = 0x02 // for debug
 };
 
 class HeapValue {
@@ -48,6 +49,7 @@ public:
     {
         if (m_holder != nullptr) {
             delete m_holder;
+            m_holder = nullptr;
         }
 
         if (other.m_holder != nullptr) {
@@ -57,7 +59,6 @@ public:
             // as m_holder is a virtual base class.
             m_ptr = m_holder->GetVoidPointer();
         } else {
-            m_holder = nullptr;
             m_ptr = nullptr;
         }
     }
@@ -67,6 +68,7 @@ public:
     {
         if (m_holder != nullptr) {
             delete m_holder;
+            m_holder = nullptr;
         }
 
         auto holder = new DerivedHolder<typename std::decay<T>::type>(value);

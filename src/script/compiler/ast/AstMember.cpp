@@ -84,7 +84,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         const AstExpression *value_of = m_target->GetValueOf();
         AssertThrow(value_of != nullptr);
 
-        if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject*>(value_of)) {
+        if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
             AssertThrow(as_type_object->GetHeldType() != nullptr);
             auto instance_type = as_type_object->GetHeldType();
 
@@ -209,6 +209,24 @@ SymbolTypePtr_t AstMember::GetExprType() const
 {
     AssertThrow(m_symbol_type != nullptr);
     return m_symbol_type;
+}
+
+const AstExpression *AstMember::GetValueOf() const
+{
+    // if (m_symbol_type != nullptr && m_symbol_type->GetDefaultValue() != nullptr) {
+    //     return m_symbol_type->GetDefaultValue()->GetValueOf();
+    // }
+
+    return AstExpression::GetValueOf();
+}
+
+const AstExpression *AstMember::GetDeepValueOf() const
+{
+    // if (m_symbol_type != nullptr && m_symbol_type->GetDefaultValue() != nullptr) {
+    //     return m_symbol_type->GetDefaultValue()->GetDeepValueOf();
+    // }
+
+    return AstExpression::GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

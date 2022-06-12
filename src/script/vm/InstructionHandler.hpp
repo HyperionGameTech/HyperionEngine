@@ -150,15 +150,15 @@ struct InstructionHandler {
 
     inline void LoadString(bc_reg_t reg, uint32_t len, const char *str)
     {
-        // allocate heap value
-        HeapValue *hv = state->HeapAlloc(thread);
-        if (hv != nullptr) {
+        if (HeapValue *hv = state->HeapAlloc(thread)) {
             hv->Assign(ImmutableString(str));
 
             // assign register value to the allocated object
             Value &sv = thread->m_regs[reg];
             sv.m_type = Value::HEAP_POINTER;
             sv.m_value.ptr = hv;
+
+            hv->Mark();
         }
     }
 
@@ -208,6 +208,8 @@ struct InstructionHandler {
         Value &sv = thread->m_regs[reg];
         sv.m_type = Value::HEAP_POINTER;
         sv.m_value.ptr = hv;
+
+        hv->Mark();
     }
 
     inline void LoadMem(bc_reg_t dst, bc_reg_t src, uint8_t index)
@@ -718,6 +720,8 @@ struct InstructionHandler {
 
                 res.m_type = Value::HEAP_POINTER;
                 res.m_value.ptr = hv;
+
+                hv->Mark();
             } else {
                 state->ThrowException(
                     thread,
@@ -759,6 +763,8 @@ struct InstructionHandler {
         Value &sv = thread->m_regs[dst];
         sv.m_type = Value::HEAP_POINTER;
         sv.m_value.ptr = hv;
+
+        hv->Mark();
     }
 
     inline void Cmp(bc_reg_t lhs_reg, bc_reg_t rhs_reg)

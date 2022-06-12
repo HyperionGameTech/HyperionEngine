@@ -119,7 +119,6 @@ void Heap::Purge()
 HeapValue *Heap::Alloc()
 {
     HeapNode *node = new HeapNode;
-    node->value.GetFlags() |= GC_MARKED; // mark by default
 
     node->after = nullptr;
     
@@ -159,6 +158,9 @@ void Heap::Sweep()
                 // set the head to be this node here
                 m_head = before;
             }
+
+            AssertThrow(!(last->value.GetFlags() & GC_DESTROYED));
+            last->value.GetFlags() |= GC_DESTROYED;
 
             // delete the middle node
             delete last;

@@ -22,8 +22,6 @@
 namespace hyperion {
 namespace vm {
 
-static std::mutex mtx;
-
 VM::VM()
 {
     m_state.m_vm = non_owning_ptr<VM>(this);
@@ -289,6 +287,8 @@ void VM::Invoke(InstructionHandler *handler,
             array_value.m_type = Value::HEAP_POINTER;
             array_value.m_value.ptr = hv;
 
+            hv->Mark();
+
             // push the array to the stack
             thread->GetStack().Push(array_value);
         }
@@ -332,8 +332,6 @@ StackTrace VM::CreateStackTrace(ExecutionThread *thread)
 
 void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 {
-    std::lock_guard<std::mutex> lock(mtx);
-
     ExecutionThread *thread = handler->thread;
     BytecodeStream *bs = handler->bs;
     

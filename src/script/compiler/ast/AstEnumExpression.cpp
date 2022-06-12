@@ -36,8 +36,6 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 
     std::vector<SymbolMember_t> members;
 
-    std::cout << "m_entries.size() " << m_entries.size() << "\n" << std::endl;
-
     for (size_t i = 0; i < m_entries.size(); i++) {
         EnumEntry &entry = m_entries[i];
 

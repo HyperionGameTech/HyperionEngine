@@ -52,10 +52,10 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
         if (specified_symbol_type == nullptr) { // no symbol type specified; just set to the default arg type
             symbol_type = default_param_type;
         } else { // have to check compatibility
-           AssertThrow(symbol_type == specified_symbol_type); // just sanity check, assigned above
+            AssertThrow(symbol_type == specified_symbol_type); // just sanity check, assigned above
            
-           // verify types compatible
-           if (!specified_symbol_type->TypeCompatible(*default_param_type, true)) {
+            // verify types compatible
+            if (!specified_symbol_type->TypeCompatible(*default_param_type, true)) {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_arg_type_incompatible,
