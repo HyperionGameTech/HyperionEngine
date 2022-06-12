@@ -9,7 +9,6 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "let",      Keyword_let },
     { "const",    Keyword_const },
     { "static",   Keyword_static },
-    { "generic",  Keyword_generic },
     { "ref",      Keyword_ref },
     { "function", Keyword_func },
     { "class",    Keyword_class },

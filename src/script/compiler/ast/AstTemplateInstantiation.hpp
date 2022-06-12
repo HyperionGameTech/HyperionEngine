@@ -45,7 +45,6 @@ private:
     // std::vector<std::shared_ptr<AstVariableDeclaration>> m_param_overrides;
     std::shared_ptr<AstExpression> m_inner_expr;
     std::shared_ptr<AstBlock> m_block;
-    SymbolTypePtr_t m_return_type;
 
     inline Pointer<AstTemplateInstantiation> CloneImpl() const
     {

@@ -13,7 +13,6 @@ enum Keywords {
     Keyword_let,
     Keyword_const,
     Keyword_static,
-    Keyword_generic,
     Keyword_ref,
     Keyword_val,
     Keyword_func,

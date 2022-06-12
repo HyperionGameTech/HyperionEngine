@@ -393,7 +393,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
             res = ParseDirective();
         } else if (MatchKeyword(Keyword_import, false)) {
             res = ParseImport();
-        } else if (MatchKeyword(Keyword_let, false) || MatchKeyword(Keyword_const, false) || MatchKeyword(Keyword_generic)) {
+        } else if (MatchKeyword(Keyword_let, false) || MatchKeyword(Keyword_const, false)) {
             res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_func, false)) {
             if (MatchAhead(TK_IDENT, 1)) {
@@ -1698,8 +1698,7 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
 
     const Keywords prefix_keywords[] = {
         Keyword_let,
-        Keyword_const,
-        Keyword_generic
+        Keyword_const
     };
 
     while (Match(TK_KEYWORD, false)) {
@@ -1732,7 +1731,7 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
     }
 
     const bool is_const = used_specifiers.find(Keyword_const) != used_specifiers.end();
-    const bool is_generic = used_specifiers.find(Keyword_generic) != used_specifiers.end();
+    bool is_generic = false;
 
     Token identifier = Token::EMPTY;
     
@@ -1751,18 +1750,9 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(bool al
         std::vector<std::shared_ptr<AstParameter>> template_expr_params;
 
         if (Token lt = MatchOperator("<", false)) {
+            is_generic = true;
+
             template_expr_params = ParseGenericParameters();
-
-            // give an error if 'generic' keyword not specified.
-            if (!is_generic) { 
-                m_compilation_unit->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_expected_token,
-                    lt.GetLocation(),
-                    Keyword::ToString(Keyword_generic)
-                ));
-            }
-
             template_expr_location = lt.GetLocation();
         }
 
@@ -2457,7 +2447,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
                 is_static = true;
             }
 
-            if (MatchKeyword(Keyword_generic, true) || MatchKeyword(Keyword_let, true)) {
+            if (MatchKeyword(Keyword_let, true)) {
                 is_variable = true;
             }
 

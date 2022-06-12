@@ -35,6 +35,8 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
+    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
+
     // visit params before expression to make declarations
     // for things that may be used in the expression
     for (auto &generic_param : m_generic_params) {
@@ -113,6 +115,8 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
             generic_param_types
         }
     );
+
+    mod->m_scopes.Close();
 }
 
 std::unique_ptr<Buildable> AstTemplateExpression::Build(AstVisitor *visitor, Module *mod)

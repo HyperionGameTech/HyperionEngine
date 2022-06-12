@@ -36,12 +36,10 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
-    // visit the expression
-    AssertThrow(m_expr != nullptr);
-    m_expr->Visit(visitor, mod);
+    m_block.reset(new AstBlock({}, m_location));
 
     mod->m_scopes.Open(Scope(
-        SCOPE_TYPE_NORMAL, 0
+        SCOPE_TYPE_GENERIC_INSTANTIATION, 0
     ));
 
     for (auto &arg : m_generic_args) {
@@ -49,7 +47,9 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, mod);
     }
 
-    m_block.reset(new AstBlock({}, m_location));
+    // visit the expression
+    AssertThrow(m_expr != nullptr);
+    m_expr->Visit(visitor, mod);
 
     const auto &expr_type = m_expr->GetExprType();
     AssertThrow(expr_type != nullptr);
@@ -64,16 +64,12 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     } else {
         // temporarily define all generic parameters.
         const AstExpression *value_of = m_expr->GetValueOf();
-        // no need to check if null because if it is the template_expr cast will return null
-
-        m_return_type = BuiltinTypes::UNDEFINED;
 
         if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
             FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 visitor, mod, template_expr->GetExprType(), m_generic_args, m_location
             );
 
-            m_return_type = substituted.first;
             const auto args_substituted = substituted.second;
 
             // there can be more because of varargs
@@ -92,9 +88,6 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                             args_substituted[i]->GetLocation()
                         ));
 
-                        //param_override->Visit(visitor, mod);
-
-                        // m_param_overrides.push_back(param_override);
                         m_block->AddChild(param_override);
                     }
                 }
@@ -102,14 +95,9 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(template_expr->GetInnerExpression() != nullptr);
 
                 m_inner_expr = CloneAstNode(template_expr->GetInnerExpression());
-                //m_inner_expr->Visit(visitor, mod);
 
                 m_block->AddChild(m_inner_expr);
                 m_block->Visit(visitor, mod);
-
-                // if (const AstTypeObject *inner_expr_as_type_object = dynamic_cast<const AstTypeObject*>(inner_expr->GetValueOf())) {
-                //     m_return_type = inner_expr_as_type_object->GetHeldType();
-                // }
 
                 // TODO: Cache instantiations so we don't create a new one for every set of arguments
             }
@@ -146,20 +134,8 @@ std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, 
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    // for (auto &it : m_param_overrides/*m_mixin_overrides*/) {
-    //     chunk->Append(it->Build(visitor, mod));
-    // }
-
-    // // // visit the expression
-    // AssertThrow(m_inner_expr != nullptr);
-    // chunk->Append(m_inner_expr->Build(visitor, mod));
-
     AssertThrow(m_block != nullptr);
     chunk->Append(m_block->Build(visitor, mod));
-
-
-    // pop stack for all mixin values
-    //chunk->Append(Compiler::PopStack(visitor, m_mixin_overrides.size()));
 
     return std::move(chunk);
 }
@@ -168,14 +144,6 @@ void AstTemplateInstantiation::Optimize(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
-
-    // for (auto &it : m_param_overrides/*m_mixin_overrides*/) {
-    //     it->Optimize(visitor, mod);
-    // }
-
-    // // optimize the expression
-    // AssertThrow(m_inner_expr != nullptr);
-    // m_inner_expr->Optimize(visitor, mod);
 
     AssertThrow(m_block != nullptr);
     m_block->Optimize(visitor, mod);
@@ -188,19 +156,33 @@ Pointer<AstStatement> AstTemplateInstantiation::Clone() const
 
 Tribool AstTemplateInstantiation::IsTrue() const
 {
-    return Tribool::Indeterminate();
+    AssertThrow(m_inner_expr != nullptr);
+
+    return m_inner_expr->IsTrue();
 }
 
 bool AstTemplateInstantiation::MayHaveSideEffects() const
 {
-    return true;
+    AssertThrow(m_inner_expr != nullptr);
+
+    for (auto &arg : m_generic_args) {
+        AssertThrow(arg != nullptr);
+
+        if (arg->MayHaveSideEffects()) {
+            return true;
+        }
+    }
+
+    return m_inner_expr->MayHaveSideEffects();
 }
 
 SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
 {
-    AssertThrow(m_return_type != nullptr);
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->GetExprType();
+    }
 
-    return m_return_type;
+    return BuiltinTypes::UNDEFINED;
 }
 
 const AstExpression *AstTemplateInstantiation::GetValueOf() const
