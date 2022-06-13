@@ -65,6 +65,11 @@ Exception Exception::InvalidOperationException(const char *op_name, const char *
     return Exception(buffer);
 }
 
+Exception Exception::InvalidBitwiseArgument()
+{
+    return Exception("Invalid argument to bitwise operation");
+}
+
 Exception Exception::InvalidArgsException(int expected, int received, bool variadic)
 {
     char buffer[256];

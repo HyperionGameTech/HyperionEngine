@@ -131,6 +131,20 @@ void AEXGenerator::Visit(ConstI64 *node)
     m_ibs.Put((byte*)&node->value, sizeof(node->value));
 }
 
+void AEXGenerator::Visit(ConstU32 *node)
+{
+    m_ibs.Put(Instructions::LOAD_U32);
+    m_ibs.Put(node->reg);
+    m_ibs.Put((byte*)&node->value, sizeof(node->value));
+}
+
+void AEXGenerator::Visit(ConstU64 *node)
+{
+    m_ibs.Put(Instructions::LOAD_U64);
+    m_ibs.Put(node->reg);
+    m_ibs.Put((byte*)&node->value, sizeof(node->value));
+}
+
 void AEXGenerator::Visit(ConstF32 *node)
 {
     m_ibs.Put(Instructions::LOAD_F32);

@@ -281,11 +281,13 @@ bool SymbolType::TypeCompatible(const SymbolType &right,
         default:
             if (TypeEqual(*BuiltinTypes::NUMBER)) {
                 return (right.TypeEqual(*BuiltinTypes::INT) ||
+                        right.TypeEqual(*BuiltinTypes::UNSIGNED_INT) ||
                         right.TypeEqual(*BuiltinTypes::FLOAT));
             } else if (!strict_numbers) {
-                if (TypeEqual(*BuiltinTypes::INT) || TypeEqual(*BuiltinTypes::FLOAT)) {
+                if (TypeEqual(*BuiltinTypes::INT) || TypeEqual(*BuiltinTypes::UNSIGNED_INT) || TypeEqual(*BuiltinTypes::FLOAT)) {
                     return (right.TypeEqual(*BuiltinTypes::NUMBER) ||
                             right.TypeEqual(*BuiltinTypes::FLOAT) ||
+                            right.TypeEqual(*BuiltinTypes::UNSIGNED_INT) ||
                             right.TypeEqual(*BuiltinTypes::INT));
                 }
             }
@@ -806,32 +808,44 @@ SymbolTypePtr_t SymbolType::TypePromotion(
         return BuiltinTypes::ANY;//lptr;
     } else if (lptr->TypeEqual(*BuiltinTypes::NUMBER)) {
         return rptr->TypeEqual(*BuiltinTypes::INT) ||
-               rptr->TypeEqual(*BuiltinTypes::FLOAT)
+               rptr->TypeEqual(*BuiltinTypes::FLOAT) ||
+               rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
                ? BuiltinTypes::NUMBER
                : BuiltinTypes::UNDEFINED;
     } else if (lptr->TypeEqual(*BuiltinTypes::INT)) {
+        if (rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)) {
+            return BuiltinTypes::UNSIGNED_INT;
+        }
+
         return rptr->TypeEqual(*BuiltinTypes::NUMBER) ||
                rptr->TypeEqual(*BuiltinTypes::FLOAT)
                ? (use_number ? BuiltinTypes::NUMBER : rptr)
                : BuiltinTypes::UNDEFINED;
     } else if (lptr->TypeEqual(*BuiltinTypes::FLOAT)) {
         return rptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               rptr->TypeEqual(*BuiltinTypes::INT)
+               rptr->TypeEqual(*BuiltinTypes::INT) ||
+               rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
                ? (use_number ? BuiltinTypes::NUMBER : lptr)
                : BuiltinTypes::UNDEFINED;
     } else if (rptr->TypeEqual(*BuiltinTypes::NUMBER)) {
         return lptr->TypeEqual(*BuiltinTypes::INT) ||
-               lptr->TypeEqual(*BuiltinTypes::FLOAT)
+               lptr->TypeEqual(*BuiltinTypes::FLOAT) ||
+               rptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
                ? BuiltinTypes::NUMBER
                : BuiltinTypes::UNDEFINED;
     } else if (rptr->TypeEqual(*BuiltinTypes::INT)) {
+        if (lptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)) {
+            return BuiltinTypes::UNSIGNED_INT;
+        }
+
         return lptr->TypeEqual(*BuiltinTypes::NUMBER) ||
                lptr->TypeEqual(*BuiltinTypes::FLOAT)
                ? (use_number ? BuiltinTypes::NUMBER : lptr)
                : BuiltinTypes::UNDEFINED;
     } else if (rptr->TypeEqual(*BuiltinTypes::FLOAT)) {
         return lptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               lptr->TypeEqual(*BuiltinTypes::INT)
+               lptr->TypeEqual(*BuiltinTypes::INT) ||
+               lptr->TypeEqual(*BuiltinTypes::UNSIGNED_INT)
                ? (use_number ? BuiltinTypes::NUMBER : rptr)
                : BuiltinTypes::UNDEFINED;
     }

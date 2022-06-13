@@ -15,7 +15,6 @@
 #include <script/compiler/ast/AstTupleExpression.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
-#include <script/compiler/ast/AstPrototypeDefinition.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/ast/AstMixinDeclaration.hpp>
@@ -169,7 +168,12 @@ private:
         bool allow_identifier = true,
         std::string type_name = "<Anonymous Type>"
     );
-    std::shared_ptr<AstEnumExpression> ParseEnumExpression();
+    std::shared_ptr<AstStatement> ParseEnumDefinition();
+    std::shared_ptr<AstEnumExpression> ParseEnumExpression(
+        bool require_keyword = true,
+        bool allow_identifier = true,
+        std::string enum_name = "<Anonymous Enum>"
+    );
     std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
     std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();
     std::shared_ptr<AstMixin> ParseMixinExpression(const std::string &name);

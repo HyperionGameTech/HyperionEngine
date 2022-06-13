@@ -18,6 +18,113 @@
 #include <stdint.h>
 #include <cstring>
 
+#define HYP_NUMERIC_OPERATION(a, b, oper) \
+    do { \
+        switch (result.m_type) { \
+            case Value::I32: \
+                result.m_value.i32 = a.i oper b.i; \
+                break; \
+            case Value::I64: \
+                result.m_value.i64 = a.i oper b.i; \
+                break; \
+            case Value::U32: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u32 = static_cast<auint32>(a.i); \
+                } else { \
+                    result.m_value.u32 = a.u; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u32 oper##= static_cast<auint32>(b.i); \
+                } else { \
+                    result.m_value.u32 oper##= b.u; \
+                } \
+                break; \
+            case Value::U64: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u64 = static_cast<auint64>(a.i); \
+                } else { \
+                    result.m_value.u64 = a.u; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u64 oper##= static_cast<auint32>(b.i); \
+                } else { \
+                    result.m_value.u64 oper##= b.u; \
+                } \
+                break; \
+            case Value::F32: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.f = static_cast<afloat32>(a.i); \
+                } else if (a.flags & Number::FLAG_UNSIGNED) { \
+                    result.m_value.f = static_cast<afloat32>(a.u); \
+                } else { \
+                    result.m_value.f = a.f; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.f oper##= static_cast<afloat32>(b.i); \
+                } else if (a.flags & Number::FLAG_UNSIGNED) { \
+                    result.m_value.f oper##= static_cast<afloat32>(b.u); \
+                } else { \
+                    result.m_value.f oper##= a.f; \
+                } \
+                break; \
+            case Value::F64: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.d = static_cast<afloat64>(a.i); \
+                } else if (a.flags & Number::FLAG_UNSIGNED) { \
+                    result.m_value.d = static_cast<afloat64>(a.u); \
+                } else { \
+                    result.m_value.d = a.f; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.d oper##= static_cast<afloat64>(b.i); \
+                } else if (a.flags & Number::FLAG_UNSIGNED) { \
+                    result.m_value.d oper##= static_cast<afloat64>(b.u); \
+                } else { \
+                    result.m_value.d oper##= a.f; \
+                } \
+                break; \
+        } \
+    } while (0)
+
+#define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper) \
+    do { \
+        switch (result.m_type) { \
+            case Value::I32: \
+                result.m_value.i32 = a.i oper b.i; \
+                break; \
+            case Value::I64: \
+                result.m_value.i64 = a.i oper b.i; \
+                break; \
+            case Value::U32: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u32 = static_cast<auint32>(a.i); \
+                } else { \
+                    result.m_value.u32 = a.u; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u32 oper##= static_cast<auint32>(b.i); \
+                } else { \
+                    result.m_value.u32 oper##= b.u; \
+                } \
+                break; \
+            case Value::U64: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u64 = static_cast<auint64>(a.i); \
+                } else { \
+                    result.m_value.u64 = a.u; \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u64 oper##= static_cast<auint32>(b.i); \
+                } else { \
+                    result.m_value.u64 oper##= b.u; \
+                } \
+                break; \
+            default: \
+                state->ThrowException(thread, Exception::InvalidBitwiseArgument()); \
+                break; \
+        } \
+    } while (0)
+
 namespace hyperion {
 namespace vm {
 
@@ -100,6 +207,22 @@ struct InstructionHandler {
         Value &value = thread->m_regs[reg];
         value.m_type = Value::I64;
         value.m_value.i64 = i64;
+    }
+
+    inline void LoadU32(bc_reg_t reg, auint32 u32)
+    {
+        // get register value given
+        Value &value = thread->m_regs[reg];
+        value.m_type = Value::U32;
+        value.m_value.u32 = u32;
+    }
+
+    inline void LoadU64(bc_reg_t reg, auint64 u64)
+    {
+        // get register value given
+        Value &value = thread->m_regs[reg];
+        value.m_type = Value::U64;
+        value.m_value.u64 = u64;
     }
 
     inline void LoadF32(bc_reg_t reg, afloat32 f32)
@@ -781,11 +904,15 @@ struct InstructionHandler {
 
         union {
             aint64 i;
+            auint64 u;
             afloat64 f;
         } a, b;
 
-        // compare integers
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
+        if (lhs->GetUnsigned(&a.u) && rhs->GetUnsigned(&b.u)) {
+            thread->m_regs.m_flags = (a.u == b.u)
+                ? EQUAL : ((a.u > b.u)
+                ? GREATER : NONE);
+        } else if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
             thread->m_regs.m_flags = (a.i == b.i)
                 ? EQUAL : ((a.i > b.i)
                 ? GREATER : NONE);
@@ -871,25 +998,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        union {
-            aint64 i;
-            afloat64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            aint64 result_value = a.i + b.i;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
-        } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
-            afloat64 result_value = a.f + b.f;
-            if (result.m_type == Value::F32) {
-                result.m_value.f = result_value;
-            } else {
-                result.m_value.d = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION(a, b, +);
         } else {
             state->ThrowException(
                 thread,
@@ -917,25 +1029,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        union {
-            aint64 i;
-            afloat64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            aint64 result_value = a.i - b.i;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
-        } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
-            afloat64 result_value = a.f - b.f;
-            if (result.m_type == Value::F32) {
-                result.m_value.f = result_value;
-            } else {
-                result.m_value.d = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION(a, b, -);
         } else {
             state->ThrowException(
                 thread,
@@ -963,25 +1060,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        union {
-            aint64 i;
-            afloat64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            aint64 result_value = a.i * b.i;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
-        } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
-            afloat64 result_value = a.f * b.f;
-            if (result.m_type == Value::F32) {
-                result.m_value.f = result_value;
-            } else {
-                result.m_value.d = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION(a, b, *);
         } else {
             state->ThrowException(
                 thread,
@@ -1007,34 +1089,120 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        union {
-            aint64 i;
-            afloat64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            if (b.i == 0) {
-                // division by zero
-                state->ThrowException(thread, Exception::DivisionByZeroException());
-            } else {
-                aint64 result_value = a.i / b.i;
-                if (result.m_type == Value::I32) {
-                    result.m_value.i32 = result_value;
-                } else {
-                    result.m_value.i64 = result_value;
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            switch (result.m_type) {
+            case Value::I32:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
                 }
-            }
-        } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
-            if (b.f == 0.0) {
-                // division by zero
-                state->ThrowException(thread, Exception::DivisionByZeroException());
-            } else {
-                afloat64 result_value = a.f / b.f;
-                if (result.m_type == Value::F32) {
-                    result.m_value.f = result_value;
-                } else {
-                    result.m_value.d = result_value;
+                result.m_value.i32 = a.i / b.i;
+                break;
+            case Value::I64:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
                 }
+                result.m_value.i64 = a.i / b.i;
+                break;
+            case Value::U32:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u32 = static_cast<auint32>(a.i);
+                } else {
+                    result.m_value.u32 = a.u;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u32 = result.m_value.u32 / static_cast<auint32>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u32 = result.m_value.u32 / b.u;
+                }
+                break;
+            case Value::U64:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u64 = static_cast<auint64>(a.i);
+                } else {
+                    result.m_value.u64 = a.u;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u64 = result.m_value.u64 / static_cast<auint32>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u64 = result.m_value.u64 / b.u;
+                }
+                break;
+            case Value::F32:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.f = static_cast<afloat32>(a.i);
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    result.m_value.f = static_cast<afloat32>(a.u);
+                } else {
+                    result.m_value.f = a.f;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    result.m_value.f = result.m_value.f / static_cast<afloat32>(b.i);
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.f = result.m_value.f / static_cast<afloat32>(b.u);
+                } else {
+                    if (b.f == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.f = result.m_value.f / a.f;
+                }
+                break;
+            case Value::F64:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.d = static_cast<afloat64>(a.i);
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    result.m_value.d = static_cast<afloat64>(a.u);
+                } else {
+                    result.m_value.d = a.f;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = result.m_value.d / static_cast<afloat64>(b.i);
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = result.m_value.d / static_cast<afloat64>(b.u);
+                } else {
+                    if (b.f == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = result.m_value.d / a.f;
+                }
+                break;
             }
         } else {
             state->ThrowException(
@@ -1061,40 +1229,120 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        union {
-            aint64 i;
-            afloat64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            if (b.i == 0) {
-                // division by zero
-                state->ThrowException(
-                    thread,
-                    Exception::DivisionByZeroException()
-                );
-            } else {
-                aint64 result_value = a.i % b.i;
-                if (result.m_type == Value::I32) {
-                    result.m_value.i32 = result_value;
-                } else {
-                    result.m_value.i64 = result_value;
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            switch (result.m_type) {
+            case Value::I32:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
                 }
-            }
-        } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
-            if (b.f == 0.0) {
-                // division by zero
-                state->ThrowException(
-                    thread,
-                    Exception::DivisionByZeroException()
-                );
-            } else {
-                afloat64 result_value = std::fmod(a.f, b.f);
-                if (result.m_type == Value::F32) {
-                    result.m_value.f = result_value;
-                } else {
-                    result.m_value.d = result_value;
+                result.m_value.i32 = a.i % b.i;
+                break;
+            case Value::I64:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
                 }
+                result.m_value.i64 = a.i % b.i;
+                break;
+            case Value::U32:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u32 = static_cast<auint32>(a.i);
+                } else {
+                    result.m_value.u32 = a.u;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u32 = result.m_value.u32 % static_cast<auint32>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u32 = result.m_value.u32 % b.u;
+                }
+                break;
+            case Value::U64:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u64 = static_cast<auint64>(a.i);
+                } else {
+                    result.m_value.u64 = a.u;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u64 = result.m_value.u64 % static_cast<auint32>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u64 = result.m_value.u64 % b.u;
+                }
+                break;
+            case Value::F32:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.f = static_cast<afloat32>(a.i);
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    result.m_value.f = static_cast<afloat32>(a.u);
+                } else {
+                    result.m_value.f = a.f;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<afloat32>(b.i));
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<afloat32>(b.u));
+                } else {
+                    if (b.f == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.f = std::fmodf(result.m_value.f, a.f);
+                }
+                break;
+            case Value::F64:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.d = static_cast<afloat64>(a.i);
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    result.m_value.d = static_cast<afloat64>(a.u);
+                } else {
+                    result.m_value.d = a.f;
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = std::fmod(result.m_value.d, static_cast<afloat64>(b.i));
+                } else if (a.flags & Number::FLAG_UNSIGNED) {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = std::fmod(result.m_value.d, static_cast<afloat64>(b.u));
+                } else {
+                    if (b.f == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.d = std::fmod(result.m_value.d, a.f);
+                }
+                break;
             }
         } else {
             state->ThrowException(
@@ -1123,15 +1371,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        aint64 a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a) && rhs->GetInteger(&b)) {
-            aint64 result_value = a & b;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION_BITWISE(a, b, &);
         } else {
             state->ThrowException(
                 thread,
@@ -1159,15 +1402,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        aint64 a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a) && rhs->GetInteger(&b)) {
-            aint64 result_value = a | b;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION_BITWISE(a, b, |);
         } else {
             state->ThrowException(
                 thread,
@@ -1195,15 +1433,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        aint64 a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a) && rhs->GetInteger(&b)) {
-            aint64 result_value = a ^ b;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION_BITWISE(a, b, ^);
         } else {
             state->ThrowException(
                 thread,
@@ -1231,15 +1464,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        aint64 a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a) && rhs->GetInteger(&b)) {
-            aint64 result_value = a << b;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION_BITWISE(a, b, <<);
         } else {
             state->ThrowException(
                 thread,
@@ -1267,15 +1495,10 @@ struct InstructionHandler {
         Value result;
         result.m_type = MATCH_TYPES(lhs->m_type, rhs->m_type);
 
-        aint64 a, b;
+        Number a, b;
 
-        if (lhs->GetInteger(&a) && rhs->GetInteger(&b)) {
-            aint64 result_value = a >> b;
-            if (result.m_type == Value::I32) {
-                result.m_value.i32 = result_value;
-            } else {
-                result.m_value.i64 = result_value;
-            }
+        if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
+            HYP_NUMERIC_OPERATION_BITWISE(a, b, >>);
         } else {
             state->ThrowException(
                 thread,
@@ -1292,6 +1515,37 @@ struct InstructionHandler {
         thread->m_regs[dst_reg] = result;
     }
 
+    inline void Not(bc_reg_t reg)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[reg];
+
+        union {
+            aint64 i;
+            auint64 u;
+        };
+
+        if (value->GetInteger(&i)) {
+            if (value->m_type == Value::I32) {
+                value->m_value.i32 = ~i;
+            } else {
+                value->m_value.i64 = ~i;
+            }
+        } else if (value->GetUnsigned(&u)) {
+            if (value->m_type == Value::U32) {
+                value->m_value.u32 = ~u;
+            } else {
+                value->m_value.u64 = ~u;
+            }
+        } else {
+            state->ThrowException(
+                thread,
+                Exception::InvalidBitwiseArgument()
+            );
+            return;
+        }
+    }
+
     inline void Neg(bc_reg_t reg)
     {
         // load value from register
@@ -1299,6 +1553,7 @@ struct InstructionHandler {
 
         union {
             aint64 i;
+            auint64 u;
             afloat64 f;
         };
 
@@ -1307,6 +1562,12 @@ struct InstructionHandler {
                 value->m_value.i32 = -i;
             } else {
                 value->m_value.i64 = -i;
+            }
+        } else if (value->GetUnsigned(&u)) {
+            if (value->m_type == Value::U32) {
+                value->m_value.u32 = -u;
+            } else {
+                value->m_value.u64 = -u;
             }
         } else if (value->GetFloatingPoint(&f)) {
             if (value->m_type == Value::F32) {

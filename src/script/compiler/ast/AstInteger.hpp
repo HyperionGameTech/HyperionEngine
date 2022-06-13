@@ -18,6 +18,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool IsNumber() const override;
     virtual hyperion::aint32 IntValue() const override;
+    virtual hyperion::auint32 UnsignedValue() const override;
     virtual hyperion::afloat32 FloatValue() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 

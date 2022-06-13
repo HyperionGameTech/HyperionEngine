@@ -24,6 +24,10 @@ void BuildableVisitor::Visit(Buildable *buildable)
         Visit(node);
     } else if (auto *node = dynamic_cast<ConstI64*>(buildable)) {
         Visit(node);
+    } else if (auto *node = dynamic_cast<ConstU32*>(buildable)) {
+        Visit(node);
+    } else if (auto *node = dynamic_cast<ConstU64*>(buildable)) {
+        Visit(node);
     } else if (auto *node = dynamic_cast<ConstF32*>(buildable)) {
         Visit(node);
     } else if (auto *node = dynamic_cast<ConstF64*>(buildable)) {

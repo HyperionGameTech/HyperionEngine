@@ -81,6 +81,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
+        // for statics
         const AstExpression *value_of = m_target->GetValueOf();
         AssertThrow(value_of != nullptr);
 
@@ -95,6 +96,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                 if (std::get<0>(mem) == m_field_name) {
                     m_found_index = i;
                     field_type = std::get<1>(mem);
+
                     break;
                 }
             }

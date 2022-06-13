@@ -472,6 +472,28 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
+        case LOAD_U32: {
+            bc_reg_t reg; bs->Read(&reg);
+            uint32_t u32; bs->Read(&u32);
+
+            handler->LoadU32(
+                reg,
+                u32
+            );
+
+            break;
+        }
+        case LOAD_U64: {
+            bc_reg_t reg; bs->Read(&reg);
+            uint64_t u64; bs->Read(&u64);
+
+            handler->LoadU64(
+                reg,
+                u64
+            );
+
+            break;
+        }
         case LOAD_F32: {
             bc_reg_t reg; bs->Read(&reg);
             float f32; bs->Read(&f32);
@@ -1096,6 +1118,15 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
             bc_reg_t reg; bs->Read(&reg);
 
             handler->Neg(
+                reg
+            );
+
+            break;
+        }
+        case NOT: {
+            bc_reg_t reg; bs->Read(&reg);
+
+            handler->Not(
                 reg
             );
 

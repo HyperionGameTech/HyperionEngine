@@ -1,8 +1,6 @@
 #ifndef ACE_TYPEDEFS_HPP
 #define ACE_TYPEDEFS_HPP
 
-#include <script/Script.hpp>
-
 #include <stdint.h>
 
 namespace hyperion {
@@ -17,6 +15,8 @@ struct ExecutionThread;
 
 typedef int32_t aint32;
 typedef int64_t aint64;
+typedef uint32_t auint32;
+typedef uint64_t auint64;
 typedef float   afloat32;
 typedef double  afloat64;
 

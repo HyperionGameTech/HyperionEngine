@@ -48,6 +48,11 @@ hyperion::aint32 AstFloat::IntValue() const
     return (hyperion::aint32)m_value;
 }
 
+hyperion::auint32 AstFloat::UnsignedValue() const
+{
+    return (hyperion::auint32)m_value;
+}
+
 hyperion::afloat32 AstFloat::FloatValue() const
 {
     return m_value;

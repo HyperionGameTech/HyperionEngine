@@ -25,6 +25,8 @@ public:
     virtual void Visit(LoadDeref *) = 0;
     virtual void Visit(ConstI32 *) = 0;
     virtual void Visit(ConstI64 *) = 0;
+    virtual void Visit(ConstU32 *) = 0;
+    virtual void Visit(ConstU64 *) = 0;
     virtual void Visit(ConstF32 *) = 0;
     virtual void Visit(ConstF64 *) = 0;
     virtual void Visit(ConstBool *) = 0;

@@ -416,7 +416,7 @@ void SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
     AssertThrow(symbol_type != nullptr);
     AssertThrow(assignment_type != nullptr);
 
-    if (!symbol_type->TypeCompatible(*assignment_type, true)) {
+    if (!symbol_type->TypeCompatible(*assignment_type, false)) {
         CompilerError error(
             LEVEL_ERROR,
             Msg_mismatched_types_assignment,

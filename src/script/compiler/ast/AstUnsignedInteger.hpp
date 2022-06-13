@@ -1,14 +1,15 @@
-#ifndef AST_FLOAT_HPP
-#define AST_FLOAT_HPP
+#ifndef AST_UNSIGNED_INTEGER_HPP
+#define AST_UNSIGNED_INTEGER_HPP
 
 #include <script/compiler/ast/AstConstant.hpp>
 
+#include <cstdint>
+
 namespace hyperion::compiler {
 
-class AstFloat : public AstConstant {
+class AstUnsignedInteger : public AstConstant {
 public:
-    AstFloat(hyperion::afloat32 value,
-        const SourceLocation &location);
+    AstUnsignedInteger(hyperion::auint32 value, const SourceLocation &location);
 
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     
@@ -24,11 +25,11 @@ public:
     virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
 private:
-    hyperion::afloat32 m_value;
+    hyperion::auint32 m_value;
 
-    inline Pointer<AstFloat> CloneImpl() const
+    inline Pointer<AstUnsignedInteger> CloneImpl() const
     {
-        return Pointer<AstFloat>(new AstFloat(
+        return Pointer<AstUnsignedInteger>(new AstUnsignedInteger(
             m_value,
             m_location
         ));

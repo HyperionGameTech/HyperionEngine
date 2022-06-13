@@ -56,6 +56,7 @@ enum ErrorMessage {
     Msg_expression_not_generic,
     Msg_too_many_generic_args,
     Msg_too_few_generic_args,
+    Msg_enum_assignment_not_constant,
 
     /* FUNCTIONS */
     Msg_multiple_return_types,

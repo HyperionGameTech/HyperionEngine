@@ -2,7 +2,7 @@
 #define AST_ENUM_EXPRESSION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstTypeExpression.hpp>
 
 #include <string>
 #include <memory>
@@ -46,9 +46,7 @@ protected:
     std::string m_name;
     std::vector<EnumEntry> m_entries;
 
-    SymbolTypePtr_t m_symbol_type;
-
-    std::shared_ptr<AstTypeObject> m_expr;
+    std::shared_ptr<AstTypeExpression> m_expr;
 
     inline Pointer<AstEnumExpression> CloneImpl() const
     {

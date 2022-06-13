@@ -66,8 +66,8 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_op->GetType() & BITWISE) {
         // no bitwise operators on floats allowed.
         visitor->Assert(
-            (left_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::ANY) &&
-            (right_type_unboxed == BuiltinTypes::INT || right_type_unboxed == BuiltinTypes::ANY),
+            (left_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT || left_type_unboxed == BuiltinTypes::ANY) &&
+            (right_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT || right_type_unboxed == BuiltinTypes::ANY),
             CompilerError(
                 LEVEL_ERROR,
                 Msg_bitwise_operands_must_be_int,

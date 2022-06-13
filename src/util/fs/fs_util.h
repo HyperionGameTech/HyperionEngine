@@ -5,6 +5,7 @@
 #include <util/string_util.h>
 
 #include <string>
+#include <array>
 
 namespace hyperion::v2 {
 

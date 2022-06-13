@@ -166,6 +166,44 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case LOAD_U32:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint32_t val;
+        bs.Read(&val);
+
+        if (os != nullptr) {
+            (*os)
+                << "load_u32 ["
+                    << "%" << (int)reg << ", "
+                    << "u32(" << val << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case LOAD_U64:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint64_t val;
+        bs.Read(&val);
+
+        if (os != nullptr) {
+            (*os)
+                << "load_u64 ["
+                    << "%" << (int)reg << ", "
+                    << "u64(" << val << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case LOAD_F32:
     {
         uint8_t reg;

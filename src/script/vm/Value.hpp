@@ -2,6 +2,7 @@
 #define VALUE_HPP
 
 #include <script/vm/ImmutableString.hpp>
+#include <script/Typedefs.hpp>
 
 #include <sstream>
 #include <cstdint>
@@ -15,10 +16,33 @@ typedef uint32_t bc_address_t;
 typedef uint8_t bc_reg_t;
 
 struct Value;
+
 class InstructionHandler;
 class ExecutionThread;
 class HeapValue;
 struct VMState;
+
+struct Number {
+    using FlagBits = uint32_t;
+
+    enum Flags : FlagBits {
+        FLAG_NONE           = 0x00,
+        FLAG_SIGNED         = 0x01,
+        FLAG_UNSIGNED       = 0x02,
+        FLAG_FLOATING_POINT = 0x04,
+
+        FLAG_32_BIT         = 0x08,
+        FLAG_64_BIT         = 0x10
+    };
+
+    FlagBits flags;
+
+    union {
+        aint64 i;
+        auint64 u;
+        afloat64 f;
+    };
+};
 
 } // namespace vm
 
@@ -46,9 +70,11 @@ struct Value {
     enum ValueType {
         NONE,
 
-        /* These first four types are listed in order of precedence */
+        /* These first types are listed in order of precedence */
         I32,
         I64,
+        U32,
+        U64,
         F32,
         F64,
 
@@ -68,6 +94,8 @@ struct Value {
     union ValueData {
         int32_t i32;
         int64_t i64;
+        uint32_t u32;
+        uint64_t u64;
         float f;
         double d;
 
@@ -104,12 +132,32 @@ struct Value {
     inline Value::ValueType GetType()  const { return m_type; }
     inline Value::ValueData GetValue() const { return m_value; }
 
+    inline bool GetUnsigned(uint64_t *out) const
+    {
+        switch (m_type) {
+            case U32: *out = m_value.u32; return true;
+            case U64: *out = m_value.u64; return true;
+            default:                      return false;
+        }
+    }
+
     inline bool GetInteger(int64_t *out) const
     {
         switch (m_type) {
             case I32: *out = m_value.i32; return true;
             case I64: *out = m_value.i64; return true;
             default:                      return false;
+        }
+    }
+
+    inline bool GetSignedOrUnsigned(Number *out) const
+    {
+        switch (m_type) {
+            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;   return true;
+            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;   return true;
+            case U32: out->u = m_value.u32; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT; return true;
+            case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT; return true;
+            default:                        return false;
         }
     }
 
@@ -127,8 +175,23 @@ struct Value {
         switch (m_type) {
             case I32: *out = m_value.i32; return true;
             case I64: *out = m_value.i64; return true;
+            case U32: *out = m_value.u32; return true;
+            case U64: *out = m_value.u64; return true;
             case F32: *out = m_value.f;   return true;
             case F64: *out = m_value.d;   return true;
+            default:                      return false;
+        }
+    }
+
+    inline bool GetNumber(Number *out) const
+    {
+        switch (m_type) {
+            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         return true;
+            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         return true;
+            case U32: out->u = m_value.u32; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       return true;
+            case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       return true;
+            case F32: out->f = m_value.f;   out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; return true;
+            case F64: out->f = m_value.d;   out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; return true;
             default:                      return false;
         }
     }

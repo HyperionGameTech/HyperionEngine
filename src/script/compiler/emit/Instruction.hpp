@@ -176,6 +176,34 @@ struct ConstI64 : public Buildable {
     virtual ~ConstI64() = default;
 };
 
+struct ConstU32 : public Buildable {
+    RegIndex reg;
+    uint32_t value;
+
+    ConstU32() = default;
+    ConstU32(RegIndex reg, uint32_t value)
+        : reg(reg),
+          value(value)
+    {
+    }
+
+    virtual ~ConstU32() = default;
+};
+
+struct ConstU64 : public Buildable {
+    RegIndex reg;
+    uint64_t value;
+
+    ConstU64() = default;
+    ConstU64(RegIndex reg, uint64_t value)
+        : reg(reg),
+          value(value)
+    {
+    }
+
+    virtual ~ConstU64() = default;
+};
+
 struct ConstF32 : public Buildable {
     RegIndex reg;
     float value;

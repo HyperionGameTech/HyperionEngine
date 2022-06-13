@@ -27,54 +27,74 @@ AstEnumExpression::AstEnumExpression(
 }
 
 void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
-{   
-    AssertThrow(visitor != nullptr && mod != nullptr);
+{
+    int64_t enum_counter = 0;
 
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
+    std::shared_ptr<AstPrototypeSpecification> underlying_type(new AstPrototypeSpecification(
+        std::shared_ptr<AstVariable>(new AstVariable(
+            BuiltinTypes::INT->GetName(), // m_name
+            m_location
+        )),
+        m_location
+    ));
 
-    SymbolTypePtr_t inner_type = BuiltinTypes::INT;
+    std::vector<std::shared_ptr<AstVariableDeclaration>> enum_members;
+    enum_members.reserve(m_entries.size());
 
-    std::vector<SymbolMember_t> members;
+    for (auto &entry : m_entries) {
+        bool assignment_ok = false;
 
-    for (size_t i = 0; i < m_entries.size(); i++) {
-        EnumEntry &entry = m_entries[i];
+        if (entry.assignment != nullptr) {
+            if (const auto *deep_value = entry.assignment->GetDeepValueOf()) {
+                if (deep_value->IsLiteral()) {
+                    if (const auto *as_constant = dynamic_cast<const AstConstant *>(deep_value)) {
+                        enum_counter = as_constant->IntValue(); // for next item to use the incremented value from
+                        assignment_ok = true;
+                    }
+                }
+            }
+        } else {
+            entry.assignment.reset(new AstInteger(
+                enum_counter,
+                entry.location
+            ));
+    
+            assignment_ok = true;
+        }
 
-        if (entry.assignment == nullptr) {
-            entry.assignment = std::shared_ptr<AstInteger>(new AstInteger(
-                i, entry.location
+        if (assignment_ok) {
+            enum_members.emplace_back(new AstVariableDeclaration(
+                entry.name,
+                CloneAstNode(underlying_type),
+                entry.assignment,
+                {},
+                true, // it's const,
+                false, // not generic,
+                entry.location
+            ));
+        } else {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_enum_assignment_not_constant,
+                entry.location,
+                entry.name
             ));
         }
 
-        entry.assignment->Visit(visitor, mod);
-
-        const SymbolTypePtr_t entry_type = entry.assignment->GetExprType();
-
-        SemanticAnalyzer::Helpers::EnsureLooseTypeAssignmentCompatibility(
-            visitor,
-            mod,
-            inner_type,
-            entry.assignment->GetExprType(),
-            entry.assignment->GetLocation()
-        );
-
-        members.push_back(std::make_tuple(
-            entry.name,
-            entry_type,
-            entry.assignment
-        ));
+        ++enum_counter;
     }
 
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
-
-    m_symbol_type = SymbolType::Extend(
+    m_expr.reset(new AstTypeExpression(
         m_name,
-        BuiltinTypes::ENUM_TYPE,
-        members
-    );
-
-    m_expr.reset(new AstTypeObject(
-        m_symbol_type,
-        nullptr,
+        std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+            std::shared_ptr<AstVariable>(new AstVariable(
+                "Enum",
+                m_location
+            )),
+            m_location
+        )),
+        {},
+        enum_members,
         m_location
     ));
 
@@ -84,9 +104,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstEnumExpression::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_expr != nullptr);
-    auto buildable = m_expr->Build(visitor, mod);
-
-    return std::move(buildable);
+    return m_expr->Build(visitor, mod);
 }
 
 void AstEnumExpression::Optimize(AstVisitor *visitor, Module *mod)
@@ -112,7 +130,8 @@ Tribool AstEnumExpression::IsTrue() const
 
 bool AstEnumExpression::MayHaveSideEffects() const
 {
-    return true;
+    AssertThrow(m_expr != nullptr);
+    return m_expr->MayHaveSideEffects();
 }
 
 SymbolTypePtr_t AstEnumExpression::GetExprType() const

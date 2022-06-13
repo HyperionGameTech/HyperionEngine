@@ -118,6 +118,8 @@ enum Instructions : char {
     /* Load a value into a register */
     LOAD_I32,      // load_i32      [% reg, i32 val]
     LOAD_I64,      // load_i64      [% reg, i64 val]
+    LOAD_U32,      // load_u32      [% reg, u32 val]
+    LOAD_U64,      // load_u64      [% reg, u64 val]
     LOAD_F32,      // load_f32      [% reg, f32 val]
     LOAD_F64,      // load_f64      [% reg, f64 val]
     LOAD_OFFSET,   // load_offset   [% reg, u16 offset]

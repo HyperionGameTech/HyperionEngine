@@ -33,6 +33,8 @@ public:
     virtual void Visit(LoadDeref *);
     virtual void Visit(ConstI32 *);
     virtual void Visit(ConstI64 *);
+    virtual void Visit(ConstU32 *);
+    virtual void Visit(ConstU64 *);
     virtual void Visit(ConstF32 *);
     virtual void Visit(ConstF64 *);
     virtual void Visit(ConstBool *);

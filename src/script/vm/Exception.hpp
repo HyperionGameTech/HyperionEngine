@@ -18,6 +18,7 @@ public:
     static Exception InvalidOperationException(const char *op_name,
         const char *left_type_str, const char *right_type_str);
     static Exception InvalidOperationException(const char *op_name, const char *type_str);
+    static Exception InvalidBitwiseArgument();
     static Exception InvalidArgsException(int expected, int received, bool variadic = false);
     static Exception InvalidArgsException(const char *expected_str, int received);
     static Exception InvalidConstructorException();

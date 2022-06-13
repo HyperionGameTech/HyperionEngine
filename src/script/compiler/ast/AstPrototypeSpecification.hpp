@@ -2,7 +2,7 @@
 #define AST_PROTOTYPE_SPECIFICATION_HPP
 
 #include <script/compiler/ast/AstStatement.hpp>
-#include <script/compiler/ast/AstExpression.hpp>
+#include <script/compiler/ast/AstTypeHolder.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <string>

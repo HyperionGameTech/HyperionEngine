@@ -24,6 +24,7 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual bool IsNumber() const = 0;
     virtual hyperion::aint32 IntValue() const = 0;
+    virtual hyperion::auint32 UnsignedValue() const;
     virtual hyperion::afloat32 FloatValue() const = 0;
 
     virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
