@@ -36,6 +36,29 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 {   
     AssertThrow(visitor != nullptr && mod != nullptr);
 
+    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
+
+    m_self_type.reset(new AstVariableDeclaration(
+        BuiltinTypes::SELF_TYPE->GetName(),
+        std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+            std::shared_ptr<AstVariable>(new AstVariable(
+                BuiltinTypes::CLASS_TYPE->GetName(),//"int",//m_name,
+                m_location
+            )),
+            m_location
+        )),
+        std::shared_ptr<AstVariable>(new AstVariable(
+            "int",//m_name,
+            m_location
+        )),
+        {},
+        true,
+        false,
+        m_location
+    ));
+
+    m_self_type->Visit(visitor, mod);
+
     // ===== INSTANCE DATA MEMBERS =====
 
     // open the scope for data members
@@ -138,6 +161,9 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     // close the scope for static data members
+    mod->m_scopes.Close();
+
+    // close scope for Self var
     mod->m_scopes.Close();
 
     m_symbol_type = SymbolType::Extend(

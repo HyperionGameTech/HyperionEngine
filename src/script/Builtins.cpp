@@ -544,10 +544,10 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                 { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr}) },
                 {
                     "Add",
-                    BuiltinTypes::ANY,
+                    BuiltinTypes::SELF_TYPE,
                     {
-                        { "self", BuiltinTypes::ANY },
-                        { "other", BuiltinTypes::ANY }
+                        { "self", BuiltinTypes::SELF_TYPE },
+                        { "other", BuiltinTypes::SELF_TYPE }
                     },
                     Vector3Add2
                 },
@@ -555,7 +555,7 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                     "Init",
                     BuiltinTypes::VOID,
                     {
-                        { "self", BuiltinTypes::ANY }
+                        { "self", BuiltinTypes::SELF_TYPE }
                     },
                     Vector3Init
                 },
@@ -563,7 +563,7 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                     "x",
                     BuiltinTypes::FLOAT,
                     {
-                        { "self", BuiltinTypes::ANY }
+                        { "self", BuiltinTypes::SELF_TYPE }
                     },
                     [](sdk::Params params)
                     {

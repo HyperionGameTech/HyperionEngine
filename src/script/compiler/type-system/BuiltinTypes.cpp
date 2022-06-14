@@ -454,5 +454,11 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     BuiltinTypes::CLASS_TYPE
 );
 
+const SymbolTypePtr_t BuiltinTypes::SELF_TYPE = SymbolType::Primitive(
+    "Self",
+    sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
+);
+
 
 } // namespace hyperion::compiler
