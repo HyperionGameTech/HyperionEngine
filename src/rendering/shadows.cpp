@@ -130,13 +130,13 @@ void ShadowEffect::CreatePipeline(Engine *engine)
                         continue;
                     }
 
-                    m_spatial_observers.Insert(pipelines[i]->GetId(), pipelines[i]->GetSpatialNotifier().Add(Observer<Ref<Spatial>>(
-                        [this](Ref<Spatial> *items, size_t count) {
+                    m_spatial_observers.Insert(pipelines[i]->GetId(), pipelines[i]->GetSpatialNotifier().Add(Observer<Spatial *>(
+                        [this](Spatial **items, size_t count) {
                             for (size_t i = 0; i < count; i++) {
-                                m_pipeline->AddSpatial(items[i].IncRef());
+                                m_pipeline->AddSpatial(items[i]);
                             }
                         },
-                        [this](Ref<Spatial> *items, size_t count) {
+                        [this](Spatial **items, size_t count) {
                             for (size_t i = 0; i < count; i++) {
                                 m_pipeline->RemoveSpatial(items[i]->GetId());
                             }

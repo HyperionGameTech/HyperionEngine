@@ -455,14 +455,14 @@ Ref<GraphicsPipeline> Engine::FindOrCreateGraphicsPipeline(const RenderableAttri
     const auto it = m_graphics_pipeline_mapping.Find(renderable_attributes);
 
     if (it != m_graphics_pipeline_mapping.End()) {
-        return resources.graphics_pipelines.Get(it->second);
+        return resources.graphics_pipelines.Lookup(it->second);
     }
 
     auto &render_list_bucket = m_render_list_container.Get(renderable_attributes.bucket);
 
     // create a pipeline with the given params
     return AddGraphicsPipeline(std::make_unique<GraphicsPipeline>(
-        resources.shaders.Get(renderable_attributes.shader_id),
+        resources.shaders.Lookup(renderable_attributes.shader_id),
         render_list_bucket.GetRenderPass().IncRef(),
         renderable_attributes
     ));

@@ -306,7 +306,7 @@ void Spatial::AddToPipeline(Engine *engine)
 void Spatial::AddToPipeline(Engine *engine, GraphicsPipeline *pipeline)
 {
     if (!m_pipelines.Contains(pipeline)) {
-        pipeline->AddSpatial(engine->resources.spatials.IncRef(this));
+        pipeline->AddSpatial(this);
     }
 }
 

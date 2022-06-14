@@ -122,7 +122,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
     for (auto &pipeline : engine->GetRenderListContainer().Get(Bucket::BUCKET_OPAQUE).GetGraphicsPipelines()) {
         for (auto &spatial : pipeline->GetSpatials()) {
             if (spatial != nullptr) {
-                m_pipeline->AddSpatial(spatial.IncRef());
+                m_pipeline->AddSpatial(spatial);
             }
         }
     }

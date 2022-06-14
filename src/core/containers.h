@@ -983,37 +983,19 @@ public:
         
         return Ref(ptr, this);
     }
-    
-    [[nodiscard]] Ref IncRef(T *ptr)
-    {
-        AssertThrow(ptr != nullptr);
 
-        ++m_ref_map.Get(ptr->GetId()).count;
-        
-        return Ref(ptr, this);
-    }
-    
-    [[nodiscard]] Ref Get(T *ptr)
+    [[nodiscard]] Ref Lookup(typename T::ID id)
     {
-       return this->IncRef(ptr);
-    }
+        std::lock_guard guard(m_mutex);
 
-    [[nodiscard]] Ref Get(typename T::ID id)
-    {
         T *ptr = m_holder.Get(id);
 
         if (ptr == nullptr) {
             return nullptr;
         }
 
-        return this->IncRef(ptr);
+        return IncRef(ptr);//ptr.IncRef();
     }
-
-    [[nodiscard]] Ref Get(T *ptr) const
-        { return const_cast<const RefCounter *>(this)->Get(ptr); }
-
-    [[nodiscard]] Ref Get(typename T::ID id) const
-        { return const_cast<const RefCounter *>(this)->Get(id); }
 
     size_t GetRefCount(typename T::ID id) const
     {
@@ -1029,6 +1011,15 @@ public:
 
 private:
     friend class Ref;
+
+    [[nodiscard]] Ref IncRef(T *ptr)
+    {
+        AssertThrow(ptr != nullptr);
+
+        ++m_ref_map.Get(ptr->GetId()).count;
+        
+        return Ref(ptr, this);
+    }
 
     void Release(const T *ptr)
     {

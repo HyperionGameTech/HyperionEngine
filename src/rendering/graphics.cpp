@@ -24,7 +24,7 @@ GraphicsPipeline::GraphicsPipeline(
     m_render_pass(std::move(render_pass)),
     m_renderable_attributes(renderable_attributes),
     m_per_frame_data(nullptr),
-    m_spatial_notifier([this]() -> std::vector<std::pair<Ref<Spatial> *, size_t>> {
+    m_spatial_notifier([this]() -> std::vector<std::pair<Spatial **, size_t>> {
         return {
             std::make_pair(m_spatials.data(), m_spatials.size()),
             std::make_pair(m_spatials_pending_addition.data(), m_spatials_pending_addition.size())
@@ -55,7 +55,7 @@ void GraphicsPipeline::RemoveFramebuffer(Framebuffer::ID id)
     m_fbos.erase(it);
 }
 
-void GraphicsPipeline::AddSpatial(Ref<Spatial> &&spatial)
+void GraphicsPipeline::AddSpatial(Spatial *spatial)
 {
     AssertThrow(spatial != nullptr);
     AssertThrowMsg(
@@ -63,7 +63,10 @@ void GraphicsPipeline::AddSpatial(Ref<Spatial> &&spatial)
         "Pipeline vertex attributes does not satisfy the required vertex attributes of the spatial."
     );
 
-    spatial.Init();
+    if (IsInitCalled()) {
+        spatial->Init(GetEngine());
+    }
+
     spatial->OnAddedToPipeline(this);
     
     std::lock_guard guard(m_enqueued_spatials_mutex);
@@ -76,7 +79,7 @@ void GraphicsPipeline::AddSpatial(Ref<Spatial> &&spatial)
 
 bool GraphicsPipeline::RemoveFromSpatialList(
     Spatial::ID id,
-    std::vector<Ref<Spatial>> &spatials,
+    std::vector<Spatial *> &spatials,
     bool call_on_removed,
     bool dispatch_item_removed,
     bool remove_immediately
@@ -111,7 +114,7 @@ bool GraphicsPipeline::RemoveFromSpatialList(
     } else {
         std::lock_guard guard(m_enqueued_spatials_mutex);
 
-        m_spatials_pending_removal.push_back(it->IncRef());
+        m_spatials_pending_removal.push_back(*it);
     }
 
     UpdateEnqueuedSpatialsFlag();
@@ -159,7 +162,7 @@ void GraphicsPipeline::PerformEnqueuedSpatialUpdates(Engine *engine)
 
     if (!m_spatials_pending_removal.empty()) {
         for (auto &spatial : m_spatials_pending_removal) {
-            const auto it = std::find(m_spatials.begin(), m_spatials.end(), spatial.ptr); // oof
+            const auto it = std::find(m_spatials.begin(), m_spatials.end(), spatial); // oof
 
             if (it != m_spatials.end()) {
                 m_spatials.erase(it);
@@ -184,7 +187,7 @@ void GraphicsPipeline::PerformEnqueuedSpatialUpdates(Engine *engine)
             }
             
             if ((*it)->IsReady()) {
-                m_spatials.push_back(std::move(*it));
+                m_spatials.push_back(*it);
                 it = m_spatials_pending_addition.erase(it);
                 
                 continue;
@@ -216,6 +219,14 @@ void GraphicsPipeline::Init(Engine *engine)
 
         AssertThrow(m_shader != nullptr);
         m_shader.Init();
+
+        for (auto *spatial : m_spatials) {
+            if (spatial == nullptr) {
+                continue;
+            }
+
+            spatial->Init(engine);
+        }
 
         engine->render_scheduler.Enqueue([this, engine](...) {
             renderer::GraphicsPipeline::ConstructionInfo construction_info{

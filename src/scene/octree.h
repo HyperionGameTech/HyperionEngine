@@ -49,7 +49,7 @@ public:
     };
 
     struct Node {
-        Ref<Spatial> spatial;
+        Spatial     *spatial;
         BoundingBox  aabb;
 
         VisibilityState *visibility_state = nullptr;

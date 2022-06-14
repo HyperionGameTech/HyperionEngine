@@ -193,7 +193,7 @@ void Octree::ClearInternal(Engine *engine, std::vector<Node> &out_nodes)
         node.spatial->OnRemovedFromOctree(this);
 
         if (m_root != nullptr) {
-            auto it = m_root->node_to_octree.find(node.spatial.ptr);
+            auto it = m_root->node_to_octree.find(node.spatial);
 
             if (it != m_root->node_to_octree.end()) {
                 m_root->node_to_octree.erase(it);
@@ -252,7 +252,7 @@ bool Octree::Insert(Engine *engine, Spatial *spatial)
 bool Octree::InsertInternal(Engine *engine, Spatial *spatial)
 {
     m_nodes.push_back(Node{
-        .spatial          = engine->resources.spatials.IncRef(spatial),
+        .spatial          = spatial,
         .aabb             = spatial->GetWorldAabb(),
         .visibility_state = &m_visibility_state
     });
@@ -491,7 +491,7 @@ bool Octree::Move(Engine *engine, Spatial *spatial, const std::vector<Node>::ite
         }
 
         m_nodes.push_back(Node{
-            .spatial          = engine->resources.spatials.IncRef(spatial),
+            .spatial          = spatial,
             .aabb             = spatial->GetWorldAabb(),
             .visibility_state = &m_visibility_state
         });
@@ -571,7 +571,7 @@ bool Octree::Rebuild(Engine *engine, const BoundingBox &new_aabb)
     m_aabb = new_aabb;
 
     for (auto &node : new_nodes) {
-        Insert(engine, node.spatial.ptr);
+        Insert(engine, node.spatial);
     }
 
     return true;

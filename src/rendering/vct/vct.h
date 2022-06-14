@@ -74,7 +74,7 @@ private:
     UniformBuffer         m_uniform_buffer;
     
     std::vector<ObserverRef<Ref<GraphicsPipeline>>>          m_pipeline_observers;
-    FlatMap<GraphicsPipeline::ID, ObserverRef<Ref<Spatial>>> m_spatial_observers;
+    FlatMap<GraphicsPipeline::ID, ObserverRef<Spatial *>>    m_spatial_observers;
 
 };
 
