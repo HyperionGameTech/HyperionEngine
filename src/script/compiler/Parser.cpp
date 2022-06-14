@@ -956,29 +956,11 @@ std::shared_ptr<AstArgument> Parser::ParseArgument(std::shared_ptr<AstExpression
     return nullptr;
 }
 
-std::shared_ptr<AstArgumentList> Parser::ParseArguments(
-    bool require_parentheses,
-    const std::shared_ptr<AstExpression> &expr)
+std::shared_ptr<AstArgumentList> Parser::ParseArguments(bool require_parentheses)
 {
     const SourceLocation location = CurrentLocation();
 
     std::vector<std::shared_ptr<AstArgument>> args;
-
-    // if expr is not null, then add it as first argument
-    if (expr != nullptr) {
-        require_parentheses = false;
-
-        args.push_back(ParseArgument(expr));
-
-        // read any commas after
-        if (!Match(TK_COMMA, true)) {
-            // if no commas matched, return what we have now
-            return std::shared_ptr<AstArgumentList>(new AstArgumentList(
-                args,
-                location
-            ));
-        }
-    }
 
     if (require_parentheses) {
         Expect(TK_OPEN_PARENTH, true);
@@ -1013,7 +995,7 @@ std::shared_ptr<AstCallExpression> Parser::ParseCallExpression(std::shared_ptr<A
             return std::shared_ptr<AstCallExpression>(new AstCallExpression(
                 target,
                 args->GetArguments(),
-                true, // allow 'self'
+                true, // allow 'self' to be inserted
                 target->GetLocation()
             ));
         }

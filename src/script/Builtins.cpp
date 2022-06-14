@@ -9,6 +9,127 @@ namespace hyperion {
 using namespace vm;
 using namespace compiler;
 
+HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Object *left_object = nullptr,
+               *right_object = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        return;
+    }
+
+    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
+        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        return;
+    }
+    
+    vm::Member *left_x = nullptr,
+               *left_y = nullptr,
+               *left_z = nullptr,
+               *right_x = nullptr,
+               *right_y = nullptr,
+               *right_z = nullptr;
+
+    afloat64 left_x_num,
+             left_y_num,
+             left_z_num,
+             right_x_num,
+             right_y_num,
+             right_z_num;
+
+    AssertThrow((left_x = left_object->LookupMemberFromHash(hash_fnv_1("x"))) && left_x->value.GetFloatingPointCoerce(&left_x_num));
+    AssertThrow((left_y = left_object->LookupMemberFromHash(hash_fnv_1("y"))) && left_y->value.GetFloatingPointCoerce(&left_y_num));
+    AssertThrow((left_z = left_object->LookupMemberFromHash(hash_fnv_1("z"))) && left_z->value.GetFloatingPointCoerce(&left_z_num));
+
+    AssertThrow((right_x = right_object->LookupMemberFromHash(hash_fnv_1("x"))) && right_x->value.GetFloatingPointCoerce(&right_x_num));
+    AssertThrow((right_y = right_object->LookupMemberFromHash(hash_fnv_1("y"))) && right_y->value.GetFloatingPointCoerce(&right_y_num));
+    AssertThrow((right_z = right_object->LookupMemberFromHash(hash_fnv_1("z"))) && right_z->value.GetFloatingPointCoerce(&right_z_num));
+
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
+    result_value.LookupMemberFromHash(hash_fnv_1("x"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_x_num + right_x_num)});
+    result_value.LookupMemberFromHash(hash_fnv_1("y"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_y_num + right_y_num)});
+    result_value.LookupMemberFromHash(hash_fnv_1("z"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_z_num + right_z_num)});
+
+    ptr->Assign(result_value);
+
+    HYP_SCRIPT_RETURN_OBJECT(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add2)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Object *left_object = nullptr,
+               *right_object = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        return;
+    }
+
+    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
+        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        return;
+    }
+
+    vm::Member *left_member = nullptr,
+               *right_member = nullptr;
+    
+    Vector3 *left_vector3 = nullptr,
+            *right_vector3 = nullptr;
+
+    AssertThrow((left_member = left_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && left_member->value.GetPointer(&left_vector3));
+    AssertThrow((right_member = right_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && right_member->value.GetPointer(&right_vector3));
+
+    vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr_result != nullptr);
+
+    ptr_result->Assign(*left_vector3 + *right_vector3);
+    ptr_result->Mark();
+
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
+    result_value.LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
+    ptr->Assign(result_value);
+
+    HYP_SCRIPT_RETURN_OBJECT(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Init)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Object *self = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Init() expects one argument of type Vector3"));
+        return;
+    }
+
+    vm::Member *self_member = nullptr;
+    AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+    
+    vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr_result != nullptr);
+    ptr_result->Assign(Vector3());
+    ptr_result->Mark();
+
+    self->LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
+}
+
 HYP_SCRIPT_FUNCTION(ScriptFunctions::ArraySize)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
@@ -397,6 +518,130 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Free)
 void ScriptFunctions::Build(APIInstance &api_instance)
 {
     api_instance.Module(hyperion::compiler::Config::global_module_name)
+        .Variable("SCRIPT_VERSION", 200)
+        .Variable("ENGINE_VERSION", 200)
+        .Class(
+            "Vector3",
+            {
+                { "x", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
+                { "y", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
+                { "z", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
+
+                {
+                    "Add",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    Vector3Add
+                }
+            }
+        )
+        .Class(
+            "vec3",
+            {
+                { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr}) },
+                {
+                    "Add",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    Vector3Add2
+                },
+                { // tmp until custom constructors work
+                    "Init",
+                    BuiltinTypes::VOID,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    Vector3Init
+                },
+                {
+                    "x",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    [](sdk::Params params)
+                    {
+                        HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+                        vm::Object *self = nullptr;
+
+                        if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+                            !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+                            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::x() expects one argument of type Vector3"));
+                            return;
+                        }
+
+                        vm::Member *self_member = nullptr;
+                        AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+                        Vector3 *self_vector3 = nullptr;
+                        AssertThrow(self_member->value.GetPointer(&self_vector3));
+                        
+                        HYP_SCRIPT_RETURN_FLOAT32(self_vector3->x);
+                    }
+                },
+                {
+                    "y",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    [](sdk::Params params)
+                    {
+                        HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+                        vm::Object *self = nullptr;
+
+                        if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+                            !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+                            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::y() expects one argument of type Vector3"));
+                            return;
+                        }
+
+                        vm::Member *self_member = nullptr;
+                        AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+                        Vector3 *self_vector3 = nullptr;
+                        AssertThrow(self_member->value.GetPointer(&self_vector3));
+                        
+                        HYP_SCRIPT_RETURN_FLOAT32(self_vector3->y);
+                    }
+                },
+                {
+                    "z",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    [](sdk::Params params)
+                    {
+                        HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+                        vm::Object *self = nullptr;
+
+                        if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+                            !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+                            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::z() expects one argument of type Vector3"));
+                            return;
+                        }
+
+                        vm::Member *self_member = nullptr;
+                        AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+                        Vector3 *self_vector3 = nullptr;
+                        AssertThrow(self_member->value.GetPointer(&self_vector3));
+                        
+                        HYP_SCRIPT_RETURN_FLOAT32(self_vector3->z);
+                    }
+                }
+            }
+        )
         .Function(
             "ArraySize",
             BuiltinTypes::INT,

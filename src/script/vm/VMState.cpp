@@ -128,6 +128,7 @@ void VMState::GC()
     for (int i = 0; i < VM_MAX_THREADS; i++) {
         if (m_threads[i] != nullptr) {
             m_threads[i]->m_stack.MarkAll();
+
             for (int j = 0; j < VM_NUM_REGISTERS; j++) {
                 m_threads[i]->GetRegisters()[j].Mark();
             }

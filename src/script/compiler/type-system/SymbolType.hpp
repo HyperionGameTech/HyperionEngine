@@ -113,6 +113,11 @@ public:
         const SymbolTypePtr_t &base
     );
 
+    static SymbolTypePtr_t Function(
+        const SymbolTypePtr_t &return_type,
+        const std::vector<GenericInstanceTypeInfo::Arg> &params
+    );
+
     static SymbolTypePtr_t GenericInstance(
         const SymbolTypePtr_t &base,
         const GenericInstanceTypeInfo &info

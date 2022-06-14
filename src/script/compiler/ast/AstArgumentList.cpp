@@ -68,6 +68,14 @@ Tribool AstArgumentList::IsTrue() const
 
 bool AstArgumentList::MayHaveSideEffects() const
 {
+    for (const std::shared_ptr<AstArgument> &arg : m_args) {
+        AssertThrow(arg != nullptr);
+        
+        if (arg->MayHaveSideEffects()) {
+            return true;
+        }
+    }
+
     return false;
 }
 

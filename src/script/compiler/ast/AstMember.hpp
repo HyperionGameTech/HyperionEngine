@@ -13,9 +13,6 @@ public:
       const SourceLocation &location
     );
     virtual ~AstMember() = default;
-
-    inline const std::shared_ptr<AstExpression> &GetTarget() const
-      { return m_target; }
     
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -29,6 +26,7 @@ public:
   
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+    virtual AstExpression *GetTarget() const override;
 
 protected:
     std::string m_field_name;

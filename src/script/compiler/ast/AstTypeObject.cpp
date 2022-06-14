@@ -15,12 +15,13 @@
 
 namespace hyperion::compiler {
 
-AstTypeObject::AstTypeObject(const SymbolTypePtr_t &symbol_type,
+AstTypeObject::AstTypeObject(
+    const SymbolTypePtr_t &symbol_type,
     const std::shared_ptr<AstVariable> &proto,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_symbol_type(symbol_type),
-      m_proto(proto)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_symbol_type(symbol_type),
+    m_proto(proto)
 {
 }
 

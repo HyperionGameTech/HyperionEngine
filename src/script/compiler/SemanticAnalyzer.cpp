@@ -192,6 +192,7 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
         // handle named arguments first
         for (size_t i = 0; i < named_args.size(); i++) {
             const ArgDataPair &arg = named_args[i];
+            AssertThrow(std::get<1>(arg) != nullptr);
 
             const int found_index = ArgIndex(
                 i,
@@ -249,6 +250,7 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
         // handle unnamed arguments
         for (size_t i = 0; i < unnamed_args.size(); i++) {
             const ArgDataPair &arg = unnamed_args[i];
+            AssertThrow(std::get<1>(arg) != nullptr);
 
             const int found_index = ArgIndex(
                 i,
@@ -324,7 +326,10 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
         ));
     }
 
-    // return the "return type" of the function
+    // while (!res_args.empty() && res_args.back() == nullptr) {
+    //     res_args.pop_back();
+    // }
+
     return res_args;
 }
 

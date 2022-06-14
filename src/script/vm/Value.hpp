@@ -1,6 +1,7 @@
 #ifndef VALUE_HPP
 #define VALUE_HPP
 
+#include <script/vm/HeapValue.hpp>
 #include <script/vm/ImmutableString.hpp>
 #include <script/Typedefs.hpp>
 
@@ -62,7 +63,7 @@ struct Params {
 
 // native typedefs
 typedef void(*NativeFunctionPtr_t)(hyperion::sdk::Params);
-typedef void(*NativeInitializerPtr_t)(hyperion::vm::VMState*, hyperion::vm::ExecutionThread *thread, hyperion::vm::Value*);
+typedef void(*NativeInitializerPtr_t)(hyperion::vm::VMState *, hyperion::vm::ExecutionThread *thread, hyperion::vm::Value *);
 typedef void *UserData_t;
 
 namespace hyperion {
@@ -129,7 +130,8 @@ struct Value {
     } m_value;
 
     Value() = default;
-    explicit Value(const Value &other);
+    Value(const Value &other);
+    Value(ValueType value_type, ValueData value_data);
 
     HYP_FORCE_INLINE Value::ValueType GetType()  const        { return m_type; }
     HYP_FORCE_INLINE Value::ValueData &GetValue()             { return m_value; }
@@ -164,13 +166,32 @@ struct Value {
         }
     }
 
-    HYP_FORCE_INLINE bool GetFloatingPoint(double *out) const
+    HYP_FORCE_INLINE bool GetFloatingPoint(afloat64 *out) const
     {
         switch (m_type) {
             case F32: *out = m_value.f; return true;
             case F64: *out = m_value.d; return true;
             default:                    return false;
         }
+    }
+
+    HYP_FORCE_INLINE bool GetFloatingPointCoerce(afloat64 *out) const
+    {
+        Number num;
+
+        if (!GetNumber(&num)) {
+            return false;
+        }
+
+        if (num.flags & Number::FLAG_UNSIGNED) {
+            *out = static_cast<afloat64>(num.u);
+        } else if (num.flags & Number::FLAG_SIGNED) {
+            *out = static_cast<afloat64>(num.i);
+        } else {
+            *out = num.f;
+        }
+
+        return true;
     }
 
     HYP_FORCE_INLINE bool GetNumber(double *out) const
@@ -197,6 +218,28 @@ struct Value {
             case F64: out->f = m_value.d;   out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; return true;
             default:                      return false;
         }
+    }
+
+    template <class T>
+    bool GetPointer(T **out) const
+    {
+        if (m_type != HEAP_POINTER) {
+            return false;
+        }
+
+        return (*out = m_value.ptr->GetPointer<T>()) != nullptr;
+    }
+
+    template <class T>
+    bool GetUserData(T **out) const
+    {
+        if (m_type != USER_DATA) {
+            return false;
+        }
+
+        *out = reinterpret_cast<T *>(m_value.user_data);
+
+        return true;
     }
 
     void Mark();

@@ -72,6 +72,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
                 m_symbol_type = type_obj->GetHeldType();
 
                 SymbolMember_t proto_member;
+
                 if (m_symbol_type->FindMember("$proto", proto_member)) {
                     m_prototype_type = std::get<1>(proto_member);
 

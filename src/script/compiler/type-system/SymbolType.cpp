@@ -2,6 +2,9 @@
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
 #include <script/compiler/ast/AstObject.hpp>
+#include <script/compiler/ast/AstParameter.hpp>
+#include <script/compiler/ast/AstBlock.hpp>
+#include <script/compiler/ast/AStFunctionExpression.hpp>
 
 #include <system/debug.h>
 #include <util/utf8.hpp>
@@ -562,6 +565,42 @@ SymbolTypePtr_t SymbolType::Generic(const std::string &name,
     res->m_generic_info = info;
     
     return res;
+}
+
+SymbolTypePtr_t SymbolType::Function(
+    const SymbolTypePtr_t &return_type,
+    const std::vector<GenericInstanceTypeInfo::Arg> &params
+)
+{
+    std::vector<std::shared_ptr<AstParameter>> parameters; // TODO
+    std::shared_ptr<AstBlock> block(new AstBlock(SourceLocation::eof));
+    std::shared_ptr<AstFunctionExpression> value(new AstFunctionExpression(
+        parameters, nullptr, block, false, false, false, SourceLocation::eof
+    ));
+
+    value->SetReturnType(return_type);
+
+    std::vector<GenericInstanceTypeInfo::Arg> generic_param_types;
+    generic_param_types.reserve(params.size() + 1);
+
+    generic_param_types.push_back({
+        "@return", return_type
+    });
+
+    for (auto &it : params) {
+        generic_param_types.push_back(it);
+    }
+
+    auto function_type = GenericInstance(
+        BuiltinTypes::FUNCTION,
+        GenericInstanceTypeInfo{generic_param_types}
+    );
+
+    AssertThrow(function_type != nullptr);
+
+    function_type->SetDefaultValue(value);
+
+    return function_type;
 }
 
 SymbolTypePtr_t SymbolType::GenericInstance(

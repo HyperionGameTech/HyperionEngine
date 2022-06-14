@@ -56,7 +56,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_closure_capture_must_be_parameter, "'%' was declared in a function above this one, and must be passed as a parameter to be captured" },
     { Msg_pure_function_scope, "variables declared from an outside scope may not be used in a pure function" },
     { Msg_not_an_array, "Subscript operator invalid on type '%'" },
-    { Msg_not_a_type, "Expression must be of typeclass 'Type', found '%'" },
+    { Msg_not_a_type, "Expression must be of typeclass 'Class', found '%'" },
     { Msg_undefined_type, "'%' is not a built-in or user-defined type" },
     { Msg_redefined_type, "Type '%' has already been defined in this module" },
     { Msg_redefined_builtin_type, "Cannot create type '%', it is a built-in type" },

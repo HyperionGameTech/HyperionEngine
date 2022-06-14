@@ -60,9 +60,12 @@ public:
 
     // construct from prototype (holds pointer)
     Object(HeapValue *proto);
-    Object(const Member *members, size_t size, HeapValue *proto=nullptr);
+    Object(const Member *members, size_t size, HeapValue *proto = nullptr);
     Object(const Object &other);
     ~Object();
+
+    Object &operator=(const Object &other) = delete;
+    Object &operator=(Object &&other) noexcept = delete;
 
     // compare by memory address
     inline bool operator==(const Object &other) const { return this == &other; }

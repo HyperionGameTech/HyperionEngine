@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
+#include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
@@ -229,6 +230,19 @@ const AstExpression *AstMember::GetDeepValueOf() const
     // }
 
     return AstExpression::GetDeepValueOf();
+}
+
+AstExpression *AstMember::GetTarget() const
+{
+    if (m_target != nullptr) {
+        // if (auto *nested_target = m_target->GetTarget()) {
+        //     return nested_target;
+        // }
+
+        return m_target.get();
+    }
+
+    return AstExpression::GetTarget();
 }
 
 } // namespace hyperion::compiler

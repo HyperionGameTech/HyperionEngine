@@ -87,9 +87,9 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             base_found = true;
         }
 
-        if (proto_found && base_found) {
-            break; // no need to keep searching
-        }
+        // if (proto_found && base_found) {
+        //     break; // no need to keep searching
+        // }
     }
 
     if (!proto_found) { // no custom '$proto' member, add default.

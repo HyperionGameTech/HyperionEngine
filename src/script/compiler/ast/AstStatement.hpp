@@ -48,8 +48,29 @@ CloneAstNode(const std::shared_ptr<T> &stmt)
 }
 
 template <typename T>
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::shared_ptr<T>>::type
+CloneAstNode(const T *stmt) 
+{ 
+    return (stmt != nullptr) 
+        ? std::static_pointer_cast<T>(stmt->Clone()) 
+        : nullptr; 
+}
+
+template <typename T>
 typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<std::shared_ptr<T>>>::type
 CloneAllAstNodes(const std::vector<std::shared_ptr<T>> &stmts) 
+{
+    std::vector<std::shared_ptr<T>> res;
+    res.reserve(stmts.size());
+    for (auto &stmt : stmts) {
+        res.push_back(CloneAstNode(stmt));
+    }
+    return res;
+}
+
+template <typename T>
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<std::shared_ptr<T>>>::type
+CloneAllAstNodes(const std::vector<T *> &stmts) 
 {
     std::vector<std::shared_ptr<T>> res;
     res.reserve(stmts.size());

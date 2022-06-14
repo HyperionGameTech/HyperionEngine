@@ -27,7 +27,7 @@ ObjectMap::ObjectBucket::ObjectBucket(const ObjectBucket &other)
     std::memcpy(
         m_data,
         other.m_data,
-        sizeof(Member*) * other.m_size
+        sizeof(Member *) * other.m_size
     );
 }
 
@@ -165,8 +165,11 @@ Object::Object(HeapValue *proto)
     m_members = new Member[size];
     std::memcpy(m_members, proto_obj->GetMembers(), sizeof(Member) * size);
 
-    AssertThrow(proto_obj->GetObjectMap() != nullptr);
-    m_object_map = new ObjectMap(*proto_obj->GetObjectMap());
+    m_object_map = new ObjectMap(size);
+    for (size_t i = 0; i < size; i++) {
+        m_object_map->Push(m_members[i].hash, &m_members[i]);
+    }
+
 
     /*// compute hash for member name
     uint32_t hash = hash_fnv_1(names[i]);
@@ -180,11 +183,10 @@ Object::Object(const Member *members, size_t size, HeapValue *proto)
 {
     AssertThrow(members != nullptr);
 
-    m_object_map = new ObjectMap(size);
     m_members = new Member[size];
-
     std::memcpy(m_members, members, sizeof(Member) * size);
 
+    m_object_map = new ObjectMap(size);
     for (size_t i = 0; i < size; i++) {
         m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
@@ -209,8 +211,13 @@ Object::Object(const Object &other)
 
 Object::~Object()
 {
+    m_proto = nullptr;
+
     delete m_object_map;
+    m_object_map = nullptr;
+
     delete[] m_members;
+    m_members = nullptr;
 }
 
 void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const

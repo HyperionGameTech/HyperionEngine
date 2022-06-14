@@ -22,14 +22,17 @@ AstCallExpression::AstCallExpression(
     const std::shared_ptr<AstExpression> &target,
     const std::vector<std::shared_ptr<AstArgument>> &args,
     bool insert_self,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_target(target),
-      m_args(args),
-      m_insert_self(insert_self),
-      m_return_type(BuiltinTypes::UNDEFINED),
-      m_is_method_call(false)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_target(target),
+    m_args(args),
+    m_insert_self(insert_self),
+    m_return_type(BuiltinTypes::UNDEFINED),
+    m_is_method_call(false)
 {
+    for (auto &arg : m_args) {
+        AssertThrow(arg != nullptr);
+    }
 }
 
 void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
@@ -40,24 +43,61 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t target_type = m_target->GetExprType();
     AssertThrow(target_type != nullptr);
 
+    m_substituted_args = m_args;
+
     if (m_insert_self) {
         // if the target is a member expression,
         // place it as 'self' argument to the call
-        if (auto *target_mem = dynamic_cast<const AstMember *>(m_target.get())) {
+        /*if (auto *target_mem = dynamic_cast<const AstMember *>(m_target.get())) {
             m_is_method_call = true;
 
-            AssertThrow(target_mem->GetTarget() != nullptr);
+            const auto self_target = CloneAstNode(target_mem->GetTarget());
+            AssertThrow(self_target != nullptr);
 
             std::shared_ptr<AstArgument> self_arg(new AstArgument(
-                target_mem->GetTarget(),
+                self_target,
                 false,
                 true,
                 "self",
-                target_mem->GetTarget()->GetLocation()
+                self_target->GetLocation()
             ));
             
             // insert at front
-            m_args.insert(m_args.begin(), self_arg);
+            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+        } else if (dynamic_cast<const AstCallExpression *>(m_target.get())) {
+            m_is_method_call = true;
+
+            const auto self_target = m_target;//CloneAstNode(m_target);
+            AssertThrow(self_target != nullptr);
+
+            std::shared_ptr<AstArgument> self_arg(new AstArgument(
+                self_target,
+                false,
+                true,
+                "self",
+                self_target->GetLocation()
+            ));
+            
+            // insert at front
+            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+        }*/
+
+        if (const auto *left_target = m_target->GetTarget()) {
+            m_is_method_call = true;
+
+            const auto self_target = CloneAstNode(left_target);
+            AssertThrow(self_target != nullptr);
+
+            std::shared_ptr<AstArgument> self_arg(new AstArgument(
+                self_target,
+                false,
+                true,
+                "self",
+                self_target->GetLocation()
+            ));
+            
+            // insert at front
+            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
         }
     }
 
@@ -85,7 +125,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         ));
         
         // insert at front
-        m_args.insert(m_args.begin(), self_arg);
+        m_substituted_args.insert(m_substituted_args.begin(), self_arg);
 
         m_target.reset(new AstMember(
             "$invoke",
@@ -101,7 +141,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     // visit each argument
-    for (auto &arg : m_args) {
+    for (auto &arg : m_substituted_args) {
         AssertThrow(arg != nullptr);
 
         // note, visit in current module rather than module access
@@ -121,14 +161,14 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         visitor,
         mod,
         unboxed_type,
-        m_args,
+        m_substituted_args,
         m_location
     );
 
     if (substituted.first != nullptr) {
         m_return_type = substituted.first;
         // change args to be newly ordered vector
-        m_args = substituted.second;
+        m_substituted_args = substituted.second;
     } else {
         // not a function type
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -150,20 +190,20 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
     chunk->Append(Compiler::BuildArgumentsStart(
         visitor,
         mod,
-        m_args//args_sorted
+        m_substituted_args
     ));
 
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
         m_target,
-        (uint8_t)m_args.size()
+        static_cast<uint8_t>(m_substituted_args.size())
     ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
-        m_args.size()
+        m_substituted_args.size()
     ));
 
     return std::move(chunk);
@@ -176,7 +216,7 @@ void AstCallExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_target->Optimize(visitor, mod);
 
     // optimize each argument
-    for (auto &arg : m_args) {
+    for (auto &arg : m_substituted_args) {
         if (arg != nullptr) {
             arg->Optimize(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
         }
@@ -205,6 +245,19 @@ SymbolTypePtr_t AstCallExpression::GetExprType() const
 {
     AssertThrow(m_return_type != nullptr);
     return m_return_type;
+}
+
+AstExpression *AstCallExpression::GetTarget() const
+{
+    if (m_target != nullptr) {
+        if (auto *nested_target = m_target->GetTarget()) {
+            return nested_target;
+        }
+
+        return m_target.get();
+    }
+
+    return AstExpression::GetTarget();
 }
 
 } // namespace hyperion::compiler

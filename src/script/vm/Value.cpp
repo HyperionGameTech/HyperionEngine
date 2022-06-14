@@ -4,7 +4,6 @@
 #include <script/vm/MemoryBuffer.hpp>
 #include <script/vm/Slice.hpp>
 #include <script/vm/ImmutableString.hpp>
-#include <script/vm/HeapValue.hpp>
 
 #include <system/debug.h>
 
@@ -24,6 +23,12 @@ static const ImmutableString BOOLEAN_STRINGS[2] = {
 Value::Value(const Value &other)
     : m_type(other.m_type),
       m_value(other.m_value)
+{
+}
+
+Value::Value(ValueType value_type, ValueData value_data)
+    : m_type(value_type),
+      m_value(value_data)
 {
 }
 

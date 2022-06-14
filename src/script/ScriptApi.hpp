@@ -61,6 +61,16 @@
         return; \
     } while (false)
 
+#define HYP_SCRIPT_RETURN_OBJECT(ptr) \
+    do { \
+        AssertThrow(ptr != nullptr); \
+        ptr->Mark(); \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::HEAP_POINTER; \
+        _res.m_value.ptr = ptr; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
 #define HYP_SCRIPT_RETURN_INT32(value) \
     do { \
         vm::Value _res; \
@@ -81,7 +91,7 @@
     do { \
         vm::Value _res; \
         _res.m_type      = vm::Value::F32; \
-        _res.m_value.f32 = value; \
+        _res.m_value.f   = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
@@ -89,7 +99,7 @@
     do { \
         vm::Value _res; \
         _res.m_type      = vm::Value::F64; \
-        _res.m_value.f64 = value; \
+        _res.m_value.d   = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
@@ -111,7 +121,7 @@ namespace vm {
 // forward declarations
 class VM;
 struct VMState;
-struct Value;
+//struct Value;
 struct ExecutionThread;
 struct InstructionHandler;
 class ImmutableString;
@@ -126,42 +136,35 @@ public:
     struct NativeVariableDefine {
         std::string name;
         SymbolTypePtr_t type;
-
-        enum { INITIALIZER, USER_DATA } value_type;
-        union NativeVariableData {
-            NativeInitializerPtr_t initializer_ptr;
-            UserData_t user_data;
-
-            NativeVariableData(NativeInitializerPtr_t initializer_ptr)
-                : initializer_ptr(initializer_ptr)
-            {
-            }
-
-            NativeVariableData(UserData_t user_data)
-                : user_data(user_data)
-            {
-            }
-        } value;
+        enum { INITIALIZER, VALUE } value_type;
+        NativeInitializerPtr_t initializer_ptr;
+        vm::Value value;
+        bool is_const;
+        std::shared_ptr<AstExpression> current_value; // defaults to DefaultValue() of type
 
         NativeVariableDefine(
             const std::string &name,
             const SymbolTypePtr_t &type,
-            NativeInitializerPtr_t initializer_ptr)
-            : name(name),
-              type(type),
-              value_type(INITIALIZER),
-              value(initializer_ptr)
+            NativeInitializerPtr_t initializer_ptr,
+            bool is_const = false
+        ) : name(name),
+            type(type),
+            value_type(INITIALIZER),
+            initializer_ptr(initializer_ptr),
+            is_const(is_const)
         {
         }
 
         NativeVariableDefine(
             const std::string &name,
             const SymbolTypePtr_t &type,
-            UserData_t user_data)
-            : name(name),
-              type(type),
-              value_type(USER_DATA),
-              value(user_data)
+            const vm::Value &value,
+            bool is_const = false
+        ) : name(name),
+            type(type),
+            value_type(VALUE),
+            value(value),
+            is_const(is_const)
         {
         }
 
@@ -169,7 +172,10 @@ public:
             : name(other.name),
               type(other.type),
               value_type(other.value_type),
-              value(other.value)
+              initializer_ptr(other.initializer_ptr),
+              value(other.value),
+              is_const(other.is_const),
+              current_value(other.current_value)
         {
         }
     };
@@ -180,15 +186,17 @@ public:
         std::vector<GenericInstanceTypeInfo::Arg> param_types;
         NativeFunctionPtr_t ptr;
 
+        NativeFunctionDefine() = default;
+
         NativeFunctionDefine(
             const std::string &function_name,
             const SymbolTypePtr_t &return_type,
             const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr)
-            : function_name(function_name),
-              return_type(return_type),
-              param_types(param_types),
-              ptr(ptr)
+            NativeFunctionPtr_t ptr
+        ) : function_name(function_name),
+            return_type(return_type),
+            param_types(param_types),
+            ptr(ptr)
         {
         }
 
@@ -201,22 +209,88 @@ public:
         }
     };
 
-    struct TypeDefine {
-    public:
-        /*std::string m_name;
-        std::vector<NativeFunctionDefine> m_methods;
-        std::vector<NativeVariableDefine> m_members;
+    struct NativeMemberDefine {
+        std::string name;
+        enum { MEMBER_TYPE_VALUE, MEMBER_TYPE_FUNCTION } member_type;
+        vm::Value value;
+        SymbolTypePtr_t value_type;
+        NativeFunctionDefine fn;
 
-        TypeDefine &Member(const std::string &member_name,
-            const SymbolTypePtr_t &member_type,
-            vm::NativeInitializerPtr_t ptr);
+        NativeMemberDefine(
+            const std::string &name,
+            const SymbolTypePtr_t &value_type,
+            const vm::Value &value
+        ) : name(name),
+            member_type(MEMBER_TYPE_VALUE),
+            value(value),
+            value_type(value_type)
+        {
+        }
 
-        TypeDefine &Method(const std::string &method_name,
+        NativeMemberDefine(
+            const std::string &name,
+            const NativeFunctionDefine &fn
+        ) : name(name),
+            member_type(MEMBER_TYPE_FUNCTION),
+            fn(fn)
+        {
+        }
+
+        NativeMemberDefine(
+            const std::string &name,
             const SymbolTypePtr_t &return_type,
-            const std::vector<std::pair<std::string, SymbolTypePtr_t>> &param_types,
-            vm::NativeFunctionPtr_t ptr);*/
+            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            NativeFunctionPtr_t ptr
+        ) : NativeMemberDefine(
+                name,
+                NativeFunctionDefine(
+                    name,
+                    return_type,
+                    param_types,
+                    ptr
+                )
+            )
+        {
+        }
 
-        SymbolTypePtr_t m_type;
+        NativeMemberDefine(const NativeMemberDefine &other)
+            : name(other.name),
+              member_type(other.member_type),
+              value(other.value),
+              value_type(other.value_type),
+              fn(other.fn)
+        {
+        }
+    };
+
+    struct TypeDefine {
+        std::string name;
+        SymbolTypePtr_t base_class;
+        std::vector<NativeMemberDefine> members;
+
+        TypeDefine() = default;
+        TypeDefine(const TypeDefine &other) = default;
+
+        TypeDefine(
+            const std::string &name,
+            const SymbolTypePtr_t &base_class,
+            const std::vector<NativeMemberDefine> &members
+        ) : name(name),
+            base_class(base_class),
+            members(members)
+        {
+        }
+
+        TypeDefine(
+            const std::string &name,
+            const std::vector<NativeMemberDefine> &members
+        ) : TypeDefine(
+                name,
+                nullptr,
+                members
+            )
+        {
+        }
     };
 
     struct ModuleDefine {
@@ -227,32 +301,91 @@ public:
         std::vector<NativeVariableDefine> m_variable_defs;
         std::shared_ptr<Module> m_mod;
 
-        ModuleDefine &Type(const SymbolTypePtr_t &type);
+        ModuleDefine &Class(
+            const std::string &class_name,
+            const std::vector<NativeMemberDefine> &members
+        );
 
-        ModuleDefine &Variable(const std::string &variable_name,
+        ModuleDefine &Class(
+            const std::string &class_name,
+            const SymbolTypePtr_t &base_class,
+            const std::vector<NativeMemberDefine> &members
+        );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
             const SymbolTypePtr_t &variable_type,
-            NativeInitializerPtr_t ptr);
+            NativeInitializerPtr_t ptr
+        );
 
-        ModuleDefine &Variable(const std::string &variable_name,
+        ModuleDefine &Variable(
+            const std::string &variable_name,
             const SymbolTypePtr_t &variable_type,
-            UserData_t ptr);
+            const vm::Value &value
+        );
 
-        ModuleDefine &Function(const std::string &function_name,
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            aint32 int_value
+        );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            aint64 int_value
+        );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            auint32 int_value
+        );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            auint64 int_value
+        );
+
+        // ModuleDefine &Variable(
+        //     const std::string &variable_name,
+        //     const SymbolTypePtr_t &object_type,
+        //     const std::vector<NativeVariableDefine> &object_members
+        // );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            const SymbolTypePtr_t &variable_type,
+            UserData_t ptr
+        );
+
+        ModuleDefine &Function(
+            const std::string &function_name,
             const SymbolTypePtr_t &return_type,
             const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
-            NativeFunctionPtr_t ptr);
+            NativeFunctionPtr_t ptr
+        );
 
         void BindAll(vm::VM *vm, CompilationUnit *compilation_unit);
 
     private:
-        void BindNativeVariable(const NativeVariableDefine &def,
-            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+        void BindNativeVariable(
+            NativeVariableDefine &def,
+            Module *mod,
+            vm::VM *vm,
+            CompilationUnit *compilation_unit
+        );
 
-        void BindNativeFunction(const NativeFunctionDefine &def,
-            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+        void BindNativeFunction(
+            NativeFunctionDefine &def,
+            Module *mod,
+            vm::VM *vm,
+            CompilationUnit *compilation_unit
+        );
 
-        void BindType(TypeDefine def,
-            Module *mod, vm::VM *vm, CompilationUnit *compilation_unit);
+        void BindType(
+            TypeDefine def,
+            Module *mod,
+            vm::VM *vm,
+            CompilationUnit *compilation_unit
+        );
     };
 };
 

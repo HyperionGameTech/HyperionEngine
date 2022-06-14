@@ -14,10 +14,11 @@
 
 namespace hyperion::compiler {
 
-AstObject::AstObject(const SymbolTypeWeakPtr_t &symbol_type,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_symbol_type(symbol_type)
+AstObject::AstObject(
+    const SymbolTypeWeakPtr_t &symbol_type,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_symbol_type(symbol_type)
 {
 }
 

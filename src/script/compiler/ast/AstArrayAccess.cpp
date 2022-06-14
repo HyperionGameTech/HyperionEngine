@@ -158,4 +158,17 @@ SymbolTypePtr_t AstArrayAccess::GetExprType() const
     return BuiltinTypes::ANY;
 }
 
+AstExpression *AstArrayAccess::GetTarget() const
+{
+    if (m_target != nullptr) {
+        if (auto *nested_target = m_target->GetTarget()) {
+            return nested_target;
+        }
+
+        return m_target.get();
+    }
+
+    return AstExpression::GetTarget();
+}
+
 } // namespace hyperion::compiler
