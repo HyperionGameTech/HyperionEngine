@@ -60,6 +60,10 @@ void Spatial::Init(Engine *engine)
         SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SPATIALS, [this](Engine *engine) {
+            m_skeleton = nullptr;
+            m_material = nullptr;
+            m_mesh     = nullptr;
+            
             RemoveFromPipelines(engine);
 
             if (m_octree != nullptr) {

@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_CORE_CONTAINERS_H
 #define HYPERION_V2_CORE_CONTAINERS_H
 
+#include <core/lib/flat_map.h>
+
 #include <math/math_util.h>
 
 #include <vector>
@@ -17,33 +19,6 @@
 namespace hyperion::v2 {
 
 class Engine;
-
-template <class T>
-struct ObjectIdHolder {
-    std::vector<typename T::ID> ids;
-
-    inline constexpr size_t Size() const
-        { return ids.size(); }
-    
-    void Add(typename T::ID id)
-    {
-        ids.push_back(id);
-    }
-
-    void Remove(typename T::ID id)
-    {
-        const auto it = std::find(ids.begin(), ids.end(), id);
-
-        if (it != ids.end()) {
-            ids.erase(it);
-        }
-    }
-
-    bool Has(typename T::ID id) const
-    {
-        return std::any_of(ids.begin(), ids.end(), [id](auto &it) { return it == id; });
-    }
-};
 
 template <class Group>
 struct CallbackRef {
@@ -562,19 +537,6 @@ enum class EngineCallback {
 
 using EngineCallbacks = Callbacks<EngineCallback, Engine *>;
 
-enum class AssetCallback {
-    NONE,
-
-    ON_LOAD_START,
-    ON_LOAD_FAIL,
-    ON_LOAD,
-
-    ON_UNLOAD
-};
-
-template <class Result, class T>
-using AssetCallbacks = Callbacks<AssetCallback, Result, T *>;
-
 /* v1 callback utility used by octree */
 template <class CallbacksClass>
 struct ComponentEvents {
@@ -612,69 +574,6 @@ struct ComponentEvents {
                   on_deinit,
                   on_update;
 };
-
-
-
-/* Map from ObjectType::ID to another resource */
-template <class ObjectType, class ValueType>
-class ObjectMap {
-public:
-    ObjectMap() = default;
-    ObjectMap(const ObjectMap &other) = delete;
-    ObjectMap &operator=(const ObjectMap &other) = delete;
-    ObjectMap(ObjectMap &&other) noexcept
-        : m_map(std::move(other.m_map))
-    {}
-    ~ObjectMap() = default;
-
-    ObjectMap &operator=(ObjectMap &&other) noexcept
-    {
-        m_map = std::move(other.m_map);
-
-        return *this;
-    }
-
-    bool Has(typename ObjectType::ID id) const
-    {
-        return m_map.find(id.value) != m_map.end();
-    }
-
-    ValueType &Get(typename ObjectType::ID id)
-        { return m_map.at(id.value); }
-
-    const ValueType &Get(typename ObjectType::ID id) const
-        { return m_map.at(id.value); }
-
-    void Set(typename ObjectType::ID id, ValueType &&value)
-    {
-        m_map[id.value] = std::move(value);
-    }
-
-    void Remove(typename ObjectType::ID id)
-    {
-        m_map.erase(id.value);
-    }
-
-    void Clear()
-    {
-        m_map.clear();
-    }
-
-    size_t Size() const
-    {
-        return m_map.size();
-    }
-
-    inline ValueType &operator[](typename ObjectType::ID id)
-        { return m_map[id.value]; }
-
-    auto begin() { return m_map.begin(); }
-    auto end() { return m_map.end(); }
-
-private:
-    std::unordered_map<typename ObjectType::ID::ValueType, ValueType> m_map;
-};
-
 
 /* New ObjectHolder class that does not call Destroy,
  * as new component types will not have Destroy() rather using
@@ -778,12 +677,13 @@ class RefCounter {
     using ArgsTuple = typename CallbacksClass::ArgsTuple;
 
     struct RefCount {
+        RefCounter          *ref_manager{nullptr};
         std::atomic_uint32_t count{0};
     };
 
-    ObjectVector<T, CallbacksClass>   m_holder;
-    mutable ObjectMap<T, RefCount>    m_ref_map;
+    FlatMap<typename T::ID, RefCount *>        m_ref_count_holder;
 
+    ObjectVector<T, CallbacksClass>   m_holder;
     ArgsTuple                         m_init_args{};
 
 public:
@@ -797,10 +697,13 @@ public:
         {
         }
 
-        Ref(T *ptr, RefCounter *ref_counter)
+        Ref(T *ptr, RefCount *ref_count)
             : ptr(ptr),
-              m_ref_counter(ref_counter)
+              m_ref_count(ref_count)
         {
+            if (m_ref_count != nullptr) {
+                ++m_ref_count->count;
+            }
         }
 
         Ref(const Ref &other) = delete;
@@ -808,10 +711,10 @@ public:
 
         Ref(Ref &&other) noexcept
             : ptr(other.ptr),
-              m_ref_counter(other.m_ref_counter)
+              m_ref_count(other.m_ref_count)
         {
-            other.ptr = nullptr;
-            other.m_ref_counter = nullptr;
+            other.ptr         = nullptr;
+            other.m_ref_count = nullptr;
         }
 
         Ref &operator=(Ref &&other) noexcept
@@ -824,18 +727,18 @@ public:
                 Release();
             }
 
-            ptr = other.ptr;
-            m_ref_counter = other.m_ref_counter;
+            ptr         = other.ptr;
+            m_ref_count = other.m_ref_count;
 
-            other.ptr           = nullptr;
-            other.m_ref_counter = nullptr;
+            other.ptr         = nullptr;
+            other.m_ref_count = nullptr;
 
             return *this;
         }
 
         ~Ref()
         {
-            if (ptr != nullptr) {
+            if (m_ref_count != nullptr) {
                 Release();
             }
         }
@@ -856,7 +759,7 @@ public:
             { return ptr != nullptr; }
 
         bool operator==(const Ref &other) const
-            { return &other == this || (ptr == other.ptr && m_ref_counter == other.m_ref_counter); }
+            { return &other == this || (ptr == other.ptr && m_ref_count == other.m_ref_count); }
 
         bool operator!=(const Ref &other) const
             { return !operator==(other); }
@@ -871,7 +774,13 @@ public:
             
             if (!ptr->IsInitCalled()) {
                 /* Call ptr->Init() with the ref counter's pre-bound args */
-                std::apply(&T::Init, std::tuple_cat(std::make_tuple(ptr), m_ref_counter->m_init_args));
+                std::apply(
+                    &T::Init,
+                    std::tuple_cat(
+                        std::make_tuple(ptr),
+                        m_ref_count->ref_manager->m_init_args
+                    )
+                );
             }
         }
 
@@ -895,7 +804,9 @@ public:
         {
             AssertState();
 
-            return m_ref_counter->IncRef(ptr);
+            //return m_ref_counter->IncRef(ptr);
+
+            return Ref(ptr, m_ref_count);
         }
 
         size_t GetRefCount() const
@@ -904,64 +815,74 @@ public:
                 return 0;
             }
 
-            return m_ref_counter->GetRefCount(ptr->GetId());
+            return m_ref_count->count.load();
         }
 
         T *ptr;
 
     private:
         bool Valid() const
-            { return ptr != nullptr && m_ref_counter != nullptr; }
+            { return ptr != nullptr && m_ref_count != nullptr; }
 
         void AssertState()
         {
             AssertThrowMsg(ptr != nullptr,           "underlying pointer was null");
-            AssertThrowMsg(m_ref_counter != nullptr, "ref counter not set");
+            AssertThrowMsg(m_ref_count != nullptr,   "ref counter not set");
         }
 
         void Release()
         {
             AssertState();
 
-            m_ref_counter->Release(ptr);
+            //m_ref_counter->Release(ptr);
 
-            ptr = nullptr;
-            m_ref_counter = nullptr;
+            AssertThrowMsg(m_ref_count->count != 0, "Cannot decrement refcount when already at zero");
+            
+            if (!--m_ref_count->count) {
+                m_ref_count->ref_manager->Release(ptr);
+            }
+
+            ptr         = nullptr;
+            m_ref_count = nullptr;
         }
 
-        RefCounter *m_ref_counter;
+        //RefCounter *m_ref_counter;
+
+        RefCount *m_ref_count = nullptr;
     };
 
     RefCounter(CallbacksClass &callbacks)
-        : m_holder(callbacks),
-          m_ref_map{}
+        : m_holder(callbacks)
     {
     }
 
     RefCounter(CallbacksClass &callbacks, ArgsTuple &&bind_init_args)
         : m_holder(callbacks),
-          m_ref_map{},
           m_init_args(std::move(bind_init_args))
     {
     }
 
     ~RefCounter()
     {
-        for (auto &it : m_ref_map) {
-            auto &rc = it.second;
-
-            if (rc.count == 0) { /* not yet initialized */
-                DebugLog(
-                    LogType::Warn,
-                    "Ref to object of type %s was never initialized\n",
-                    typeid(T).name()
-                );
-            } else {
-                --rc.count;
-            }
-
-            AssertThrowMsg(rc.count == 0, "Destructor called while object still in use elsewhere");
+        for (auto &it : m_ref_count_holder) {
+            AssertThrow(it.second != nullptr);
+            AssertThrowMsg(it.second->count.load() <= 1, "Ref<%s> with id #%u still in use", typeid(T).name(), it.first.value);
         }
+        // for (auto &it : m_ref_map) {
+        //     auto &rc = it.second;
+
+        //     if (rc.count == 0) { /* not yet initialized */
+        //         DebugLog(
+        //             LogType::Warn,
+        //             "Ref to object of type %s was never initialized\n",
+        //             typeid(T).name()
+        //         );
+        //     } else {
+        //         --rc.count;
+        //     }
+
+        //     AssertThrowMsg(rc.count == 0, "Destructor called while object still in use elsewhere");
+        // }
     }
 
     /*! \brief Sets the args tuple that is passed to Init() for any newly acquired object. */
@@ -976,12 +897,20 @@ public:
             return nullptr;
         }
 
-        //std::lock_guard guard(m_mutex);
+        std::lock_guard guard(m_mutex);
 
         T *ptr = m_holder.Add(std::move(object));
-        m_ref_map[ptr->GetId()].count = 1;
-        
-        return Ref(ptr, this);
+        //m_ref_map[ptr->GetId()].count = 1;
+
+        auto it = m_ref_count_holder.Find(ptr->GetId());
+        AssertThrowMsg(it == m_ref_count_holder.End(), "ptr with id %u already exists!", ptr->GetId().value);
+
+        auto insert_result = m_ref_count_holder.Insert(ptr->GetId(), new RefCount{.ref_manager = this});
+        AssertThrow(insert_result.second);
+
+        auto &iterator = insert_result.first;
+
+        return Ref(ptr, iterator->second);
     }
 
     [[nodiscard]] Ref Lookup(typename T::ID id)
@@ -994,16 +923,13 @@ public:
             return nullptr;
         }
 
-        return IncRef(ptr);//ptr.IncRef();
-    }
+        auto it = m_ref_count_holder.Find(id);
 
-    size_t GetRefCount(typename T::ID id) const
-    {
-        if (!m_ref_map.Has(id)) {
-            return 0;
+        if (it == m_ref_count_holder.End()) {
+            return nullptr;
         }
 
-        return m_ref_map.Get(id).count;
+        return Ref(ptr, it->second);
     }
 
     auto &Objects() { return m_holder.objects; }
@@ -1012,14 +938,14 @@ public:
 private:
     friend class Ref;
 
-    [[nodiscard]] Ref IncRef(T *ptr)
-    {
-        AssertThrow(ptr != nullptr);
+    // [[nodiscard]] Ref IncRef(T *ptr)
+    // {
+    //     AssertThrow(ptr != nullptr);
 
-        ++m_ref_map.Get(ptr->GetId()).count;
+    //     ++m_ref_map.Get(ptr->GetId()).count;
         
-        return Ref(ptr, this);
-    }
+    //     return Ref(ptr, this);
+    // }
 
     void Release(const T *ptr)
     {
@@ -1028,15 +954,23 @@ private:
 
         //std::lock_guard guard(m_mutex);
         
-        AssertThrowMsg(m_ref_map.Has(id), "Refcount not set");
+        // AssertThrowMsg(m_ref_map.Has(id), "Refcount not set");
 
-        auto &counter = m_ref_map.Get(id);
-        AssertThrowMsg(counter.count != 0, "Cannot decrement refcount when already at zero");
+        // auto &counter = m_ref_map.Get(id);
+        // AssertThrowMsg(counter.count != 0, "Cannot decrement refcount when already at zero");
         
-        if (!--counter.count) {
-            m_ref_map.Remove(id);
-            m_holder.Remove(id);
-        }
+        // if (!--counter.count) {
+        //     m_ref_map.Remove(id);
+        //     m_holder.Remove(id);
+        // }
+
+        m_holder.Remove(id);
+
+        auto it = m_ref_count_holder.Find(id);
+        AssertThrowMsg(it != m_ref_count_holder.End(), "%u not found in ref count holder map!", id.value);
+
+        delete it->second;
+        m_ref_count_holder.Erase(id);
     }
 
     std::mutex m_mutex;

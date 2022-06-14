@@ -66,6 +66,7 @@ enum class StoreOperation {
     STORE
 };
 
+// for making it easier to track holders
 #define HYP_ATTACHMENT_REF_INSTANCE \
     ::hyperion::renderer::AttachmentRefInstance{ \
         .cls = typeid(*this).name(),     \
