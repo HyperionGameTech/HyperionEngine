@@ -371,7 +371,10 @@ int Parser::OperatorPrecedence(const Operator *&out)
     return -1;
 }
 
-std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
+std::shared_ptr<AstStatement> Parser::ParseStatement(
+    bool top_level,
+    bool read_terminators
+)
 {
     std::shared_ptr<AstStatement> res;
 
@@ -448,7 +451,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(bool top_level)
         res = expr;
     }
 
-    if (res != nullptr && m_token_stream->HasNext()) {
+    if (read_terminators && res != nullptr && m_token_stream->HasNext()) {
         ExpectEndOfStmt();
     }
 
@@ -636,7 +639,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
     while (expr != nullptr &&
            (Match(TK_DOT) ||
             Match(TK_OPEN_PARENTH) ||
-            (!override_commas && Match(TK_COMMA)) ||
+            // (!override_commas && Match(TK_COMMA)) ||
             (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
             (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
             //(!override_angle_brackets && MatchOperator("<")) ||
@@ -658,9 +661,9 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
             expr = ParseActionExpression(expr);
         }
 
-        if (!override_commas && Match(TK_COMMA)) {
-            expr = ParseTupleExpression(expr);
-        }
+        // if (!override_commas && Match(TK_COMMA)) {
+        //     expr = ParseTupleExpression(expr);
+        // }
 
         if (!override_angle_brackets && MatchOperator("<")) {
             expr = ParseAngleBrackets(expr);
@@ -1296,8 +1299,16 @@ std::shared_ptr<AstBlockExpression> Parser::ParseBlockExpression()
 std::shared_ptr<AstIfStatement> Parser::ParseIfStatement()
 {
     if (Token token = ExpectKeyword(Keyword_if, true)) {
+        if (!Expect(TK_OPEN_PARENTH, true)) {
+            return nullptr;
+        }
+
         std::shared_ptr<AstExpression> conditional;
         if (!(conditional = ParseExpression())) {
+            return nullptr;
+        }
+
+        if (!Expect(TK_CLOSE_PARENTH, true)) {
             return nullptr;
         }
 
@@ -1340,8 +1351,16 @@ std::shared_ptr<AstIfStatement> Parser::ParseIfStatement()
 std::shared_ptr<AstWhileLoop> Parser::ParseWhileLoop()
 {
     if (Token token = ExpectKeyword(Keyword_while, true)) {
+        if (!Expect(TK_OPEN_PARENTH, true)) {
+            return nullptr;
+        }
+
         std::shared_ptr<AstExpression> conditional;
         if (!(conditional = ParseExpression())) {
+            return nullptr;
+        }
+
+        if (!Expect(TK_CLOSE_PARENTH, true)) {
             return nullptr;
         }
 
@@ -1360,9 +1379,81 @@ std::shared_ptr<AstWhileLoop> Parser::ParseWhileLoop()
     return nullptr;
 }
 
-std::shared_ptr<AstForLoop> Parser::ParseForLoop()
+std::shared_ptr<AstStatement> Parser::ParseForLoop()
+{
+    const auto position_before = m_token_stream->GetPosition();
+
+    if (Token token = ExpectKeyword(Keyword_for, true)) {
+        if (!Expect(TK_OPEN_PARENTH, true)) {
+            return nullptr;
+        }
+
+        std::shared_ptr<AstStatement> decl_part;
+
+        if (!Match(TK_SEMICOLON)) {
+            if ((decl_part = ParseStatement(false, false))) { // do not eat ';'
+                if (!Match(TK_SEMICOLON)) {
+                    m_token_stream->SetPosition(position_before);
+
+                    return ParseForEachLoop();
+                }
+            } else {
+                return nullptr;
+            }
+        }
+
+        if (!Expect(TK_SEMICOLON, true)) {
+            return nullptr;
+        }
+
+        std::shared_ptr<AstExpression> condition_part;
+
+        if (!Match(TK_SEMICOLON)) {
+            if (!(condition_part = ParseExpression())) {
+                return nullptr;
+            }
+        }
+
+        if (!Expect(TK_SEMICOLON, true)) {
+            return nullptr;
+        }
+
+        std::shared_ptr<AstExpression> increment_part;
+
+        if (!Match(TK_CLOSE_PARENTH)) {
+            if (!(increment_part = ParseExpression())) {
+                return nullptr;
+            }
+        }
+
+        if (!Expect(TK_CLOSE_PARENTH, true)) {
+            return nullptr;
+        }
+
+        std::shared_ptr<AstBlock> block;
+        if (!(block = ParseBlock())) {
+            return nullptr;
+        }
+
+        return std::shared_ptr<AstForLoop>(new AstForLoop(
+            decl_part,
+            condition_part,
+            increment_part,
+            block,
+            token.GetLocation()
+        ));
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<AstForEachLoop> Parser::ParseForEachLoop()
 {
     if (Token token = ExpectKeyword(Keyword_for, true)) {
+        if (!Expect(TK_OPEN_PARENTH, true)) {
+            return nullptr;
+        }
+
         std::vector<std::shared_ptr<AstParameter>> params = ParseFunctionParameters();
 
         ExpectKeyword(Keyword_in, true);
@@ -1371,13 +1462,17 @@ std::shared_ptr<AstForLoop> Parser::ParseForLoop()
         if ((iteree = ParseExpression()) == nullptr) {
             return nullptr;
         }
+        
+        if (!Expect(TK_CLOSE_PARENTH, true)) {
+            return nullptr;
+        }
 
         std::shared_ptr<AstBlock> block;
         if ((block = ParseBlock()) == nullptr) {
             return nullptr;
         }
 
-        return std::shared_ptr<AstForLoop>(new AstForLoop(
+        return std::shared_ptr<AstForEachLoop>(new AstForEachLoop(
             params,
             iteree,
             block,
@@ -2420,7 +2515,11 @@ std::shared_ptr<AstStatement> Parser::ParseEnumDefinition()
 {
     if (Token token = ExpectKeyword(Keyword_enum, true)) {
         if (Token identifier = ExpectIdentifier(false, true)) {
-            auto assignment = ParseEnumExpression(false, false, identifier.GetValue());
+            auto assignment = ParseEnumExpression(
+                false,
+                false,
+                identifier.GetValue()
+            );
 
             if (assignment == nullptr) {
                 // could not parse type expr
@@ -2459,6 +2558,13 @@ std::shared_ptr<AstEnumExpression> Parser::ParseEnumExpression(
             enum_name = ident.GetValue();
         }
     }
+
+    std::shared_ptr<AstPrototypeSpecification> underlying_type;
+
+    if (Match(TK_COLON, true)) {
+        // underlying type
+        underlying_type = ParsePrototypeSpecification();
+    }
     
     std::vector<EnumEntry> entries;
 
@@ -2491,6 +2597,7 @@ std::shared_ptr<AstEnumExpression> Parser::ParseEnumExpression(
         return std::shared_ptr<AstEnumExpression>(new AstEnumExpression(
             enum_name,
             entries,
+            underlying_type,
             location
         ));
     }
@@ -2667,12 +2774,16 @@ std::shared_ptr<AstReturnStatement> Parser::ParseReturnStatement()
     const SourceLocation location = CurrentLocation();
 
     if (Token token = ExpectKeyword(Keyword_return, true)) {
-        if (auto expr = ParseExpression()) {
-            return std::shared_ptr<AstReturnStatement>(new AstReturnStatement(
-                expr,
-                location
-            ));
+        std::shared_ptr<AstExpression> expr;
+
+        if (!Match(TK_SEMICOLON, true)) {
+            expr = ParseExpression();
         }
+
+        return std::shared_ptr<AstReturnStatement>(new AstReturnStatement(
+            expr,
+            location
+        ));
     }
 
     return nullptr;

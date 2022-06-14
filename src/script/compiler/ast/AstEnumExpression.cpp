@@ -19,10 +19,12 @@ namespace hyperion::compiler {
 AstEnumExpression::AstEnumExpression(
     const std::string &name,
     const std::vector<EnumEntry> &entries,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_name(name),
-      m_entries(entries)
+    const std::shared_ptr<AstPrototypeSpecification> &underlying_type,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_name(name),
+    m_entries(entries),
+    m_underlying_type(underlying_type)
 {
 }
 
@@ -30,13 +32,17 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 {
     int64_t enum_counter = 0;
 
-    std::shared_ptr<AstPrototypeSpecification> underlying_type(new AstPrototypeSpecification(
-        std::shared_ptr<AstVariable>(new AstVariable(
-            BuiltinTypes::INT->GetName(), // m_name
+    if (m_underlying_type == nullptr) {
+        m_underlying_type.reset(new AstPrototypeSpecification(
+            std::shared_ptr<AstVariable>(new AstVariable(
+                BuiltinTypes::INT->GetName(), // m_name
+                m_location
+            )),
             m_location
-        )),
-        m_location
-    ));
+        ));
+    }
+
+    m_underlying_type->Visit(visitor, mod);
 
     std::vector<std::shared_ptr<AstVariableDeclaration>> enum_members;
     enum_members.reserve(m_entries.size());
@@ -65,7 +71,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
         if (assignment_ok) {
             enum_members.emplace_back(new AstVariableDeclaration(
                 entry.name,
-                CloneAstNode(underlying_type),
+                CloneAstNode(m_underlying_type),
                 entry.assignment,
                 {},
                 true, // it's const,

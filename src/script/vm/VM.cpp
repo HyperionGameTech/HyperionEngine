@@ -789,6 +789,19 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
+        case MOV_ARRAYIDX_REG: {
+            bc_reg_t dst; bs->Read(&dst);
+            bc_reg_t index_reg; bs->Read(&index_reg);
+            bc_reg_t src; bs->Read(&src);
+
+            handler->MovArrayIdxReg(
+                dst,
+                index_reg,
+                src
+            );
+
+            break;
+        }
         case MOV_REG: {
             bc_reg_t dst; bs->Read(&dst);
             bc_reg_t src; bs->Read(&src);

@@ -1015,9 +1015,6 @@ public:
     [[nodiscard]] Ref Get(typename T::ID id) const
         { return const_cast<const RefCounter *>(this)->Get(id); }
 
-    constexpr T *operator[](typename T::ID id)             { return m_holder.Get(id); }
-    constexpr const T *operator[](typename T::ID id) const { return m_holder.Get(id); }
-
     size_t GetRefCount(typename T::ID id) const
     {
         if (!m_ref_map.Has(id)) {

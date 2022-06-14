@@ -4,6 +4,8 @@
 #include <script/vm/ImmutableString.hpp>
 #include <script/Typedefs.hpp>
 
+#include <util/defines.h>
+
 #include <sstream>
 #include <cstdint>
 
@@ -92,16 +94,16 @@ struct Value {
     } m_type;
 
     union ValueData {
-        int32_t i32;
-        int64_t i64;
-        uint32_t u32;
-        uint64_t u64;
-        float f;
-        double d;
+        aint32     i32;
+        aint64     i64;
+        auint32    u32;
+        auint64    u64;
+        afloat32   f;
+        afloat64   d;
 
-        bool b;
+        bool       b;
 
-        Value *value_ref;
+        Value     *value_ref;
 
         HeapValue *ptr;
 
@@ -112,27 +114,28 @@ struct Value {
         } func;
 
         NativeFunctionPtr_t native_func;
-        UserData_t user_data;
+        UserData_t          user_data;
         
         struct {
-            bc_address_t return_address;
-            int32_t varargs_push;
+            bc_address_t    return_address;
+            int32_t         varargs_push;
         } call;
 
-        bc_address_t addr;
+        bc_address_t        addr;
 
         struct {
-            bc_address_t catch_address;
+            bc_address_t    catch_address;
         } try_catch_info;
     } m_value;
 
     Value() = default;
     explicit Value(const Value &other);
 
-    inline Value::ValueType GetType()  const { return m_type; }
-    inline Value::ValueData GetValue() const { return m_value; }
+    HYP_FORCE_INLINE Value::ValueType GetType()  const        { return m_type; }
+    HYP_FORCE_INLINE Value::ValueData &GetValue()             { return m_value; }
+    HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
 
-    inline bool GetUnsigned(uint64_t *out) const
+    HYP_FORCE_INLINE bool GetUnsigned(uint64_t *out) const
     {
         switch (m_type) {
             case U32: *out = m_value.u32; return true;
@@ -141,7 +144,7 @@ struct Value {
         }
     }
 
-    inline bool GetInteger(int64_t *out) const
+    HYP_FORCE_INLINE bool GetInteger(int64_t *out) const
     {
         switch (m_type) {
             case I32: *out = m_value.i32; return true;
@@ -150,7 +153,7 @@ struct Value {
         }
     }
 
-    inline bool GetSignedOrUnsigned(Number *out) const
+    HYP_FORCE_INLINE bool GetSignedOrUnsigned(Number *out) const
     {
         switch (m_type) {
             case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;   return true;
@@ -161,7 +164,7 @@ struct Value {
         }
     }
 
-    inline bool GetFloatingPoint(double *out) const
+    HYP_FORCE_INLINE bool GetFloatingPoint(double *out) const
     {
         switch (m_type) {
             case F32: *out = m_value.f; return true;
@@ -170,7 +173,7 @@ struct Value {
         }
     }
 
-    inline bool GetNumber(double *out) const
+    HYP_FORCE_INLINE bool GetNumber(double *out) const
     {
         switch (m_type) {
             case I32: *out = m_value.i32; return true;
@@ -183,7 +186,7 @@ struct Value {
         }
     }
 
-    inline bool GetNumber(Number *out) const
+    HYP_FORCE_INLINE bool GetNumber(Number *out) const
     {
         switch (m_type) {
             case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         return true;

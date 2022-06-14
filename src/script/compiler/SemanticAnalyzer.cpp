@@ -55,7 +55,7 @@ void CheckArgTypeCompatible(
     // @NOTE: do not add error for undefined, it causes too many unnecessary errors
     //        that would've already been conveyed via 'not declared' errors
     if (arg_type != BuiltinTypes::UNDEFINED) {
-        if (!param_type->TypeCompatible(*arg_type, true)) {
+        if (!param_type->TypeCompatible(*arg_type, false)) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_arg_type_incompatible,

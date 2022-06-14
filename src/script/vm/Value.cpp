@@ -1,6 +1,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/Object.hpp>
 #include <script/vm/Array.hpp>
+#include <script/vm/MemoryBuffer.hpp>
 #include <script/vm/Slice.hpp>
 #include <script/vm/ImmutableString.hpp>
 #include <script/vm/HeapValue.hpp>
@@ -66,6 +67,8 @@ const char *Value::GetTypeString() const
                 return "string";
             } else if (m_value.ptr->GetPointer<Array>() || m_value.ptr->GetPointer<Slice>()) {
                 return "array";
+            } else if (m_value.ptr->GetPointer<MemoryBuffer>()) {
+                return "void *";
             } else if (Object *object = m_value.ptr->GetPointer<Object>()) {
                 return "object"; // TODO prototype name
             }
@@ -138,6 +141,11 @@ ImmutableString Value::ToString() const
             } else if (Array *array = m_value.ptr->GetPointer<Array>()) {
                 std::stringstream ss;
                 array->GetRepresentation(ss, true);
+                const std::string &str = ss.str();
+                return ImmutableString(str.c_str());
+            } else if (MemoryBuffer *memory_buffer = m_value.ptr->GetPointer<MemoryBuffer>()) {
+                std::stringstream ss;
+                memory_buffer->GetRepresentation(ss, true);
                 const std::string &str = ss.str();
                 return ImmutableString(str.c_str());
             } else if (Slice *slice = m_value.ptr->GetPointer<Slice>()) {

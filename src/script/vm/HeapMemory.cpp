@@ -2,6 +2,7 @@
 
 #include <script/vm/Object.hpp>
 #include <script/vm/Array.hpp>
+#include <script/vm/MemoryBuffer.hpp>
 #include <script/vm/Slice.hpp>
 #include <script/vm/Value.hpp>
 #include <script/vm/ImmutableString.hpp>
@@ -35,6 +36,7 @@ std::ostream &operator<<(std::ostream &os, const Heap &heap)
             union {
                 ImmutableString *str_ptr;
                 Array *array_ptr;
+                MemoryBuffer *memory_buffer_ptr;
                 Slice *slice_ptr;
                 Object *obj_ptr;
                 TypeInfo *type_info_ptr;
@@ -56,6 +58,14 @@ std::ostream &operator<<(std::ostream &os, const Heap &heap)
                 
                 std::stringstream ss;
                 data.array_ptr->GetRepresentation(ss, false);
+                os << ss.rdbuf();
+            } else if ((data.memory_buffer_ptr = tmp_head->value.GetPointer<MemoryBuffer>()) != nullptr) {
+                os << "MemoryBuffer" << "| ";
+
+                os << std::setw(16);
+                
+                std::stringstream ss;
+                data.memory_buffer_ptr->GetRepresentation(ss, false);
                 os << ss.rdbuf();
             } else if ((data.slice_ptr = tmp_head->value.GetPointer<Slice>()) != nullptr) {
                 os << "ArraySlice" << "| ";

@@ -36,7 +36,6 @@ enum Keywords {
     Keyword_catch,
     Keyword_throw,
     Keyword_null,
-    Keyword_void,
     Keyword_true,
     Keyword_false,
     Keyword_return,

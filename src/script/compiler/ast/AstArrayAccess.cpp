@@ -56,6 +56,7 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
     bool target_side_effects = m_target->MayHaveSideEffects();
     bool index_side_effects = m_index->MayHaveSideEffects();
     
+    uint8_t rp_before = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     uint8_t rp;
     uint8_t r0, r1;
 
@@ -92,6 +93,14 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
         instr->Accept<uint8_t>(r0); // destination
         instr->Accept<uint8_t>(r0); // source
         instr->Accept<uint8_t>(r1); // index
+
+        chunk->Append(std::move(instr));
+    } else if (m_access_mode == ACCESS_MODE_STORE) {
+        auto instr = BytecodeUtil::Make<RawOperation<>>();
+        instr->opcode = MOV_ARRAYIDX_REG;
+        instr->Accept<uint8_t>(r0); // destination
+        instr->Accept<uint8_t>(r1); // index
+        instr->Accept<uint8_t>(rp_before - 1); // source
 
         chunk->Append(std::move(instr));
     }

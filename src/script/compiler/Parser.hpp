@@ -47,6 +47,7 @@
 #include <script/compiler/ast/AstIfStatement.hpp>
 #include <script/compiler/ast/AstWhileLoop.hpp>
 #include <script/compiler/ast/AstForLoop.hpp>
+#include <script/compiler/ast/AstForEachLoop.hpp>
 #include <script/compiler/ast/AstPrintStatement.hpp>
 #include <script/compiler/ast/AstTryCatch.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
@@ -97,7 +98,10 @@ private:
     void SkipStatementTerminators();
     int OperatorPrecedence(const Operator *&out);
 
-    std::shared_ptr<AstStatement> ParseStatement(bool top_level = false);
+    std::shared_ptr<AstStatement> ParseStatement(
+        bool top_level = false,
+        bool read_terminators = true
+    );
     std::shared_ptr<AstModuleDeclaration> ParseModuleDeclaration();
     std::shared_ptr<AstDirective> ParseDirective();
     std::shared_ptr<AstExpression> ParseTerm(
@@ -132,7 +136,8 @@ private:
     std::shared_ptr<AstBlockExpression> ParseBlockExpression();
     std::shared_ptr<AstIfStatement> ParseIfStatement();
     std::shared_ptr<AstWhileLoop> ParseWhileLoop();
-    std::shared_ptr<AstForLoop> ParseForLoop();
+    std::shared_ptr<AstStatement> ParseForLoop();
+    std::shared_ptr<AstForEachLoop> ParseForEachLoop();
     std::shared_ptr<AstPrintStatement> ParsePrintStatement();
     std::shared_ptr<AstTryCatch> ParseTryCatchStatement();
     std::shared_ptr<AstExpression> ParseBinaryExpression(int expr_prec,

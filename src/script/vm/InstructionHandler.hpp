@@ -6,6 +6,7 @@
 #include <script/vm/Value.hpp>
 #include <script/vm/HeapValue.hpp>
 #include <script/vm/Array.hpp>
+#include <script/vm/MemoryBuffer.hpp>
 #include <script/vm/Object.hpp>
 #include <script/vm/ImmutableString.hpp>
 #include <script/vm/TypeInfo.hpp>
@@ -64,7 +65,7 @@
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
                     result.m_value.f oper##= static_cast<afloat32>(b.u); \
                 } else { \
-                    result.m_value.f oper##= a.f; \
+                    result.m_value.f oper##= b.f; \
                 } \
                 break; \
             case Value::F64: \
@@ -80,7 +81,7 @@
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
                     result.m_value.d oper##= static_cast<afloat64>(b.u); \
                 } else { \
-                    result.m_value.d oper##= a.f; \
+                    result.m_value.d oper##= b.f; \
                 } \
                 break; \
         } \
@@ -427,11 +428,44 @@ struct InstructionHandler {
         }
 
         Array *array = ptr->GetPointer<Array>();
+
         if (array == nullptr) {
+            if (auto *memory_buffer = ptr->GetPointer<MemoryBuffer>()) {
+                if ((size_t)key.index >= memory_buffer->GetSize()) {
+                    state->ThrowException(
+                        thread,
+                        Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+
+                if (key.index < 0) {
+                    // wrap around (python style)
+                    key.index = (aint64)(memory_buffer->GetSize() + key.index);
+                    if (key.index < 0 || (size_t)key.index >= memory_buffer->GetSize()) {
+                        state->ThrowException(
+                            thread,
+                            Exception::OutOfBoundsException()
+                        );
+                        return;
+                    }
+                }
+
+                Value memory_buffer_data;
+                memory_buffer_data.m_type = Value::I32;
+                memory_buffer_data.m_value.i32 = static_cast<aint32>(reinterpret_cast<char *>(memory_buffer->GetBuffer())[key.index]);
+
+                thread->m_regs[dst_reg] = memory_buffer_data;
+
+                return;
+            }
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array")
+                Exception("Not an Array or MemoryBuffer")
             );
+
             return;
         }
         
@@ -599,7 +633,7 @@ struct InstructionHandler {
         if (sv.m_type != Value::HEAP_POINTER) {
             state->ThrowException(
                 thread,
-                Exception("Not an Array")
+                Exception("Not an Array or MemoryBuffer")
             );
             return;
         }
@@ -614,10 +648,53 @@ struct InstructionHandler {
         }
 
         Array *array = hv->GetPointer<Array>();
+
         if (array == nullptr) {
+            if (auto *memory_buffer = hv->GetPointer<MemoryBuffer>()) {
+                if ((size_t)index >= memory_buffer->GetSize()) {
+                    state->ThrowException(
+                        thread,
+                        Exception::OutOfBoundsException()
+                    );
+
+                    return;
+                }
+
+                if (index < 0) {
+                    // wrap around (python style)
+                    index = (aint64)(memory_buffer->GetSize() + index);
+                    if (index < 0 || (size_t)index >= memory_buffer->GetSize()) {
+                        state->ThrowException(
+                            thread,
+                            Exception::OutOfBoundsException()
+                        );
+                        return;
+                    }
+                }
+
+                Number dst_data;
+
+                if (!thread->m_regs[src_reg].GetSignedOrUnsigned(&dst_data)) {
+                    state->ThrowException(
+                        thread,
+                        Exception::InvalidArgsException("integer")
+                    );
+
+                    return;
+                }
+
+                reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index] = dst_data.flags & Number::FLAG_SIGNED
+                    ? static_cast<auint64>(dst_data.i)
+                    : dst_data.u;
+
+                HYP_BREAKPOINT;
+
+                return;
+            }
+
             state->ThrowException(
                 thread,
-                Exception("Not an Array")
+                Exception("Not an Array or MemoryBuffer")
             );
             return;
         }
@@ -643,6 +720,149 @@ struct InstructionHandler {
         }*/
         
         array->AtIndex(index) = thread->m_regs[src_reg];
+    }
+
+    inline void MovArrayIdxReg(bc_reg_t dst_reg, bc_reg_t index_reg, bc_reg_t src_reg)
+    {
+        Value &sv = thread->m_regs[dst_reg];
+
+        if (sv.m_type != Value::HEAP_POINTER) {
+            state->ThrowException(
+                thread,
+                Exception("Not an Array or MemoryBuffer")
+            );
+            return;
+        }
+
+        HeapValue *hv = sv.m_value.ptr;
+        if (hv == nullptr) {
+            state->ThrowException(
+                thread,
+                Exception::NullReferenceException()
+            );
+            return;
+        }
+
+        Array *array = hv->GetPointer<Array>();
+
+        Number index;
+        Value &index_register_value = thread->m_regs[index_reg];
+
+        if (!index_register_value.GetSignedOrUnsigned(&index)) {
+            state->ThrowException(
+                thread,
+                Exception::InvalidArgsException("integer")
+            );
+
+            return;
+        }
+
+        if (array == nullptr) {
+            if (auto *memory_buffer = hv->GetPointer<MemoryBuffer>()) {
+                Number dst_data;
+
+                if (!thread->m_regs[src_reg].GetSignedOrUnsigned(&dst_data)) {
+                    state->ThrowException(
+                        thread,
+                        Exception::InvalidArgsException("integer")
+                    );
+
+                    return;
+                }
+
+                if (index.flags & Number::FLAG_SIGNED) {
+                    aint64 index_value = index.i;
+
+                    if ((size_t)index_value >= memory_buffer->GetSize()) {
+                        state->ThrowException(
+                            thread,
+                            Exception::OutOfBoundsException()
+                        );
+
+                        return;
+                    }
+
+                    if (index_value < 0) {
+                        // wrap around (python style)
+                        index_value = (aint64)(memory_buffer->GetSize() + index_value);
+                        if (index_value < 0 || (size_t)index_value >= memory_buffer->GetSize()) {
+                            state->ThrowException(
+                                thread,
+                                Exception::OutOfBoundsException()
+                            );
+                            return;
+                        }
+                    }
+
+                    reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index_value] = dst_data.flags & Number::FLAG_SIGNED
+                        ? static_cast<auint64>(dst_data.i)
+                        : dst_data.u;
+                } else { // unsigned
+                    auint64 index_value = index.u;
+
+                    if ((size_t)index_value >= memory_buffer->GetSize()) {
+                        state->ThrowException(
+                            thread,
+                            Exception::OutOfBoundsException()
+                        );
+
+                        return;
+                    }
+
+                    reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index_value] = dst_data.flags & Number::FLAG_SIGNED
+                        ? static_cast<auint64>(dst_data.i)
+                        : dst_data.u;
+                }
+
+                return;
+            }
+
+            state->ThrowException(
+                thread,
+                Exception("Not an Array or MemoryBuffer")
+            );
+            return;
+        }
+
+        if (index.flags & Number::FLAG_SIGNED) {
+            aint64 index_value = index.i;
+
+            if ((size_t)index_value >= array->GetSize()) {
+                state->ThrowException(
+                    thread,
+                    Exception::OutOfBoundsException()
+                );
+
+                return;
+            }
+
+            if (index_value < 0) {
+                // wrap around (python style)
+                index_value = (aint64)(array->GetSize() + index_value);
+                if (index_value < 0 || (size_t)index_value >= array->GetSize()) {
+                    state->ThrowException(
+                        thread,
+                        Exception::OutOfBoundsException()
+                    );
+                    return;
+                }
+            }
+
+            array->AtIndex(index_value) = thread->m_regs[src_reg];
+        } else { // unsigned
+            auint64 index_value = index.u;
+
+            if ((size_t)index_value >= array->GetSize()) {
+                state->ThrowException(
+                    thread,
+                    Exception::OutOfBoundsException()
+                );
+
+                return;
+            }
+
+            array->AtIndex(index_value) = thread->m_regs[src_reg];
+        }
     }
 
     inline void MovReg(bc_reg_t dst_reg, bc_reg_t src_reg)
@@ -1172,7 +1392,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.f = result.m_value.f / a.f;
+                    result.m_value.f = result.m_value.f / b.f;
                 }
                 break;
             case Value::F64:
@@ -1200,7 +1420,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.d = result.m_value.d / a.f;
+                    result.m_value.d = result.m_value.d / b.f;
                 }
                 break;
             }

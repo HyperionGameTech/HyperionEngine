@@ -1,8 +1,9 @@
-#ifndef AST_FOR_LOOP_HPP
-#define AST_FOR_LOOP_HPP
+#ifndef AST_FOR_EACH_LOOP_HPP
+#define AST_FOR_EACH_LOOP_HPP
 
 #include <script/compiler/ast/AstStatement.hpp>
-#include <script/compiler/ast/AstVariableDeclaration.hpp>
+#include <script/compiler/ast/AstActionExpression.hpp>
+#include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
@@ -12,16 +13,13 @@
 
 namespace hyperion::compiler {
 
-class AstForLoop : public AstStatement {
+class AstForEachLoop : public AstStatement {
 public:
-    AstForLoop(
-        const std::shared_ptr<AstStatement> &decl_part,
-        const std::shared_ptr<AstExpression> &condition_part,
-        const std::shared_ptr<AstExpression> &increment_part,
+    AstForEachLoop(const std::vector<std::shared_ptr<AstParameter>> &params,
+        const std::shared_ptr<AstExpression> &iteree,
         const std::shared_ptr<AstBlock> &block,
-        const SourceLocation &location
-    );
-    virtual ~AstForLoop() = default;
+        const SourceLocation &location);
+    virtual ~AstForEachLoop() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -30,21 +28,18 @@ public:
     virtual Pointer<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstStatement> m_decl_part;
-    std::shared_ptr<AstExpression> m_condition_part;
-    std::shared_ptr<AstExpression> m_increment_part;
+    std::vector<std::shared_ptr<AstParameter>> m_params;
+    std::shared_ptr<AstExpression> m_iteree;
     std::shared_ptr<AstBlock> m_block;
     int m_num_locals;
-    int m_num_used_initializers;
 
     std::shared_ptr<AstExpression> m_expr;
 
-    inline Pointer<AstForLoop> CloneImpl() const
+    inline Pointer<AstForEachLoop> CloneImpl() const
     {
-        return Pointer<AstForLoop>(new AstForLoop(
-            CloneAstNode(m_decl_part),
-            CloneAstNode(m_condition_part),
-            CloneAstNode(m_increment_part),
+        return Pointer<AstForEachLoop>(new AstForEachLoop(
+            CloneAllAstNodes(m_params),
+            CloneAstNode(m_iteree),
             CloneAstNode(m_block),
             m_location
         ));

@@ -23,8 +23,9 @@ AstReturnStatement::AstReturnStatement(const std::shared_ptr<AstExpression> &exp
 
 void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_expr != nullptr);
-    m_expr->Visit(visitor, mod);
+    if (m_expr != nullptr) {
+        m_expr->Visit(visitor, mod);
+    }
 
     // transverse the scope tree to make sure we are in a function
     bool in_function = false;
@@ -43,7 +44,12 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
     if (in_function) {
         AssertThrow(top != nullptr);
         // add return type
-        top->m_value.AddReturnType(m_expr->GetExprType(), m_location);
+
+        if (m_expr != nullptr) {
+            top->m_value.AddReturnType(m_expr->GetExprType(), m_location);
+        } else {
+            top->m_value.AddReturnType(BuiltinTypes::VOID, m_location);
+        }
     } else {
         // error; 'return' not allowed outside of a function
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -58,8 +64,9 @@ std::unique_ptr<Buildable> AstReturnStatement::Build(AstVisitor *visitor, Module
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    AssertThrow(m_expr != nullptr);
-    chunk->Append(m_expr->Build(visitor, mod));
+    if (m_expr != nullptr) {
+        chunk->Append(m_expr->Build(visitor, mod));
+    }
 
     chunk->Append(Compiler::PopStack(visitor, m_num_pops));
 
@@ -73,8 +80,9 @@ std::unique_ptr<Buildable> AstReturnStatement::Build(AstVisitor *visitor, Module
 
 void AstReturnStatement::Optimize(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_expr != nullptr);
-    m_expr->Optimize(visitor, mod);
+    if (m_expr != nullptr) {
+        m_expr->Optimize(visitor, mod);
+    }
 }
 
 Pointer<AstStatement> AstReturnStatement::Clone() const

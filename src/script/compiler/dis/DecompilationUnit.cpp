@@ -670,6 +670,29 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case MOV_ARRAYIDX_REG:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint8_t idx;
+        bs.Read(&idx);
+
+        uint8_t src;
+        bs.Read(&src);
+
+        if (os != nullptr) {
+            (*os)
+                << "mov_arrayidx_reg ["
+                    << "%" << (int)reg << ", "
+                    << "%" << (int)idx << ", "
+                    << "%" << (int)src << ""
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case MOV_REG:
     {
         uint8_t dst;

@@ -2,6 +2,7 @@
 #define AST_ENUM_EXPRESSION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeExpression.hpp>
 
 #include <string>
@@ -21,7 +22,9 @@ public:
     AstEnumExpression(
         const std::string &name,
         const std::vector<EnumEntry> &entries,
-        const SourceLocation &location);
+        const std::shared_ptr<AstPrototypeSpecification> &underlying_type,
+        const SourceLocation &location
+    );
     virtual ~AstEnumExpression() = default;
 
     inline const std::string &GetName() const { return m_name; }
@@ -43,16 +46,18 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
 
 protected:
-    std::string m_name;
-    std::vector<EnumEntry> m_entries;
+    std::string                                m_name;
+    std::vector<EnumEntry>                     m_entries;
+    std::shared_ptr<AstPrototypeSpecification> m_underlying_type;
 
-    std::shared_ptr<AstTypeExpression> m_expr;
+    std::shared_ptr<AstTypeExpression>         m_expr;
 
     inline Pointer<AstEnumExpression> CloneImpl() const
     {
         return Pointer<AstEnumExpression>(new AstEnumExpression(
             m_name,
             m_entries,
+            CloneAstNode(m_underlying_type),
             m_location
         ));
     }

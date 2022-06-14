@@ -21,6 +21,7 @@ public:
     static Exception InvalidBitwiseArgument();
     static Exception InvalidArgsException(int expected, int received, bool variadic = false);
     static Exception InvalidArgsException(const char *expected_str, int received);
+    static Exception InvalidArgsException(const char *expected_str);
     static Exception InvalidConstructorException();
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();

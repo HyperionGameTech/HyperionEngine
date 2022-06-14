@@ -88,6 +88,13 @@ Exception Exception::InvalidArgsException(const char *expected_str, int received
     return Exception(buffer);
 }
 
+Exception Exception::InvalidArgsException(const char *expected_str)
+{
+    char buffer[256];
+    std::sprintf(buffer, "Invalid arguments: expected %s", expected_str);
+    return Exception(buffer);
+}
+
 Exception Exception::InvalidConstructorException()
 {
     return Exception("Invalid constructor");
