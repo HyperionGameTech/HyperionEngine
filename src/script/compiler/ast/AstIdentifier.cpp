@@ -29,10 +29,9 @@ void AstIdentifier::PerformLookup(AstVisitor *visitor, Module *mod)
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     } else if (mod->LookupNestedModule(m_name) != nullptr) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_MODULE);
-    }/* else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
+    } else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
-    } */
-    else {
+    } else {
         // nothing was found
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_NOT_FOUND);
     }

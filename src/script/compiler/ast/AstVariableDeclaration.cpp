@@ -263,6 +263,11 @@ std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Mo
             chunk->Append(std::move(instr_push));
         }
 
+        { // add a comment for debugging to know where the var exists 
+            chunk->Append(BytecodeUtil::Make<Comment>(" Var `" + m_name + "` at stack location: "
+                + std::to_string(m_identifier->GetStackLocation())));
+        }
+
         // increment stack size
         visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
     } else {

@@ -45,7 +45,7 @@ std::unique_ptr<Buildable> Compiler::BuildArgumentsStart(
         visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::BuildArgumentsEnd(
@@ -69,11 +69,15 @@ std::unique_ptr<Buildable> Compiler::BuildCall(
     AstVisitor *visitor,
     Module *mod,
     const std::shared_ptr<AstExpression> &target,
-    uint8_t nargs)
+    uint8_t nargs
+)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    chunk->Append(target->Build(visitor, mod));
+    // if no target provided, do not build it in
+    if (target != nullptr) {
+        chunk->Append(target->Build(visitor, mod));
+    }
 
     // get active register
     uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();

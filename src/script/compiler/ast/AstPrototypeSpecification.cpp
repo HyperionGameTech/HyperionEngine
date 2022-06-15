@@ -21,7 +21,7 @@ namespace hyperion::compiler {
 AstPrototypeSpecification::AstPrototypeSpecification(
     const std::shared_ptr<AstExpression> &proto,
     const SourceLocation &location)
-    : AstStatement(location),
+    : AstExpression(location, ACCESS_MODE_LOAD),
       m_proto(proto)
 {
 }
@@ -41,6 +41,12 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     const auto expr_type = value_of->GetExprType();
     AssertThrow(expr_type != nullptr);
 
+    SymbolTypePtr_t unaliased;
+
+    if (!expr_type->IsAlias() || !(unaliased = expr_type->GetUnaliased())) {
+        unaliased = expr_type;
+    }
+
     if (value_of != nullptr) {
         if (!(type_obj = dynamic_cast<const AstTypeObject *>(value_of))) {
             if ((identifier = dynamic_cast<const AstIdentifier *>(value_of))) {
@@ -52,7 +58,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     m_symbol_type = BuiltinTypes::UNDEFINED;
     m_prototype_type = BuiltinTypes::UNDEFINED;
 
-    if (expr_type == BuiltinTypes::ANY_TYPE || expr_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
+    if (unaliased == BuiltinTypes::ANY_TYPE || unaliased->HasBase(*BuiltinTypes::ANY_TYPE)) {
         // it is a dynamic type
         m_symbol_type = BuiltinTypes::ANY;
         m_prototype_type = BuiltinTypes::ANY_TYPE;
@@ -73,23 +79,26 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (found_symbol_type != nullptr) {
-        m_symbol_type = found_symbol_type;
-
-        SymbolMember_t proto_member;
-
-        if (m_symbol_type->FindMember("$proto", proto_member)) {
-            m_prototype_type = std::get<1>(proto_member);
-
-            if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
-                m_default_value = std::get<2>(proto_member);
-            }
+        if (FindPrototypeType(found_symbol_type)) {
+            m_symbol_type = found_symbol_type;
         } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_type_missing_prototype,
-                m_location,
-                expr_type->GetName()
-            ));
+            SymbolTypePtr_t unaliased;
+
+            if (unaliased != expr_type && unaliased != nullptr) {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_type_missing_prototype,
+                    m_location,
+                    expr_type->GetName() + " (expanded: " + unaliased->GetName() + ")"
+                ));
+            } else {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_type_missing_prototype,
+                    m_location,
+                    expr_type->GetName()
+                ));
+            }
         }
     } else {
         // m_symbol_type = constructor_type;
@@ -117,9 +126,63 @@ void AstPrototypeSpecification::Optimize(AstVisitor *visitor, Module *mod)
     m_proto->Optimize(visitor, mod);
 }
 
+bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_type)
+{
+    SymbolMember_t proto_member;
+
+    if (symbol_type->FindMember("$proto", proto_member)) {
+        m_prototype_type = std::get<1>(proto_member);
+
+        if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
+            m_default_value = std::get<2>(proto_member);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 Pointer<AstStatement> AstPrototypeSpecification::Clone() const
 {
     return CloneImpl();
+}
+
+Tribool AstPrototypeSpecification::IsTrue() const
+{
+    return Tribool::True();
+}
+
+bool AstPrototypeSpecification::MayHaveSideEffects() const
+{
+    return false;
+}
+
+SymbolTypePtr_t AstPrototypeSpecification::GetExprType() const
+{
+    if (m_proto != nullptr) {
+        return m_proto->GetExprType();
+    }
+
+    return nullptr;
+}
+
+const AstExpression *AstPrototypeSpecification::GetValueOf() const
+{
+    if (m_proto != nullptr) {
+        return m_proto->GetValueOf();
+    }
+
+    return AstExpression::GetValueOf();
+}
+
+const AstExpression *AstPrototypeSpecification::GetDeepValueOf() const
+{
+    if (m_proto != nullptr) {
+        return m_proto->GetDeepValueOf();
+    }
+
+    return AstExpression::GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

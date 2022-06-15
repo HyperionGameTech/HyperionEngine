@@ -157,6 +157,8 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
             case ACCESS_MODE_STORE:
                 chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
                 break;
+            default:
+                AssertThrowMsg(false, "unknown access mode");
         }
     } else {
         AssertThrow(m_found_index != -1);
@@ -178,7 +180,18 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
                     m_found_index
                 ));
                 break;
+            default:
+                AssertThrowMsg(false, "unknown access mode");
         }
+    }
+
+    switch (m_access_mode) {
+        case ACCESS_MODE_LOAD:
+            chunk->Append(BytecodeUtil::Make<Comment>("Load member " + m_field_name));
+            break;
+        case ACCESS_MODE_STORE:
+            chunk->Append(BytecodeUtil::Make<Comment>("Store member " + m_field_name));
+            break;
     }
 
     return std::move(chunk);

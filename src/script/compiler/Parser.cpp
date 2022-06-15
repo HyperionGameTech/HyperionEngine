@@ -1075,11 +1075,24 @@ std::shared_ptr<AstMember> Parser::ParseMemberExpression(std::shared_ptr<AstExpr
         : ExpectIdentifier(true, true);
 
     if (ident) {
-        return std::shared_ptr<AstMember>(new AstMember(
-            ident.GetValue(),
-            target,
-            ident.GetLocation()
-        ));
+        if (Match(TK_OPEN_PARENTH)) {
+            if (auto argument_list = ParseArguments()) {
+                return std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+                    ident.GetValue(),
+                    target,
+                    argument_list,
+                    ident.GetLocation()
+                ));
+            } else {
+                return nullptr;
+            }
+        } else {
+            return std::shared_ptr<AstMember>(new AstMember(
+                ident.GetValue(),
+                target,
+                ident.GetLocation()
+            ));
+        }
     }
 
     return nullptr;
@@ -1197,8 +1210,8 @@ std::shared_ptr<AstNewExpression> Parser::ParseNewExpression()
 
             return std::shared_ptr<AstNewExpression>(new AstNewExpression(
                 proto,
-                //type_spec,
                 arg_list,
+                true, // enable construct call
                 token.GetLocation()
             ));
         }

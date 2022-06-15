@@ -1176,6 +1176,13 @@ void VM::HandleInstruction(InstructionHandler *handler, uint8_t code)
 
             break;
         }
+        case REM: {
+            uint32_t len; bs->Read(&len);
+            // just skip comment
+            bs->Skip(len);
+
+            break;
+        }
         default: {
             int64_t last_pos = (int64_t)bs->Position() - sizeof(uint8_t);
             utf::printf(UTF8_CSTR("unknown instruction '%d' referenced at location: 0x%" PRIx64 "\n"), code, last_pos);

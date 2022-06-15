@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -21,11 +22,12 @@ namespace hyperion::compiler {
 AstNewExpression::AstNewExpression(
     const std::shared_ptr<AstPrototypeSpecification> &proto,
     const std::shared_ptr<AstArgumentList> &arg_list,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_proto(proto),
-      m_arg_list(arg_list),
-      m_is_dynamic_type(false)
+    bool enable_constructor_call,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_proto(proto),
+    m_arg_list(arg_list),
+    m_enable_constructor_call(enable_constructor_call)
 {
 }
 
@@ -36,6 +38,10 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_proto != nullptr);
     m_proto->Visit(visitor, mod);
+
+    if (m_arg_list != nullptr) {
+        AssertThrowMsg(m_enable_constructor_call, "Args provided for non-constructor call new expr");
+    }
 
     /*AssertThrow(m_proto->GetExprType() != nullptr);
     m_constructor_type = m_proto->GetExprType();
@@ -58,7 +64,80 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
                 ? m_proto->GetExprType()->GetName()
                 : "??"
         ));
+
+        return;
     }
+
+    // TODO!!! this currently wont' work with <Any>s, but
+    // I wrote code for a ternary operator w/ AstHasExpression
+    // we can use to build in the dynamic has $construct check at
+    // runtime, and call it if it exists.
+
+    if (m_enable_constructor_call) {
+        if (m_prototype_type->FindMember("$construct")) {
+            m_constructor_call.reset(new AstMemberCallExpression(
+                "$construct",
+                std::shared_ptr<AstNewExpression>(new AstNewExpression(
+                    CloneAstNode(m_proto),
+                    nullptr, // no args
+                    false, // do not enable constructor call
+                    m_location
+                )),
+                m_arg_list,
+                m_location
+            ));
+
+            m_constructor_call->Visit(visitor, mod);
+        }
+    }
+
+    // AssertThrow(m_prototype_type != nullptr);
+
+    // // look for '$construct' member
+    // SymbolMember_t construct_member;
+
+    // if (m_prototype_type->FindMember("$construct", construct_member)) {
+    //     std::vector<std::shared_ptr<AstArgument>> constructor_arguments;
+    //     constructor_arguments.reserve(1 + (m_arg_list != nullptr ? m_arg_list->GetArguments().size() : static_cast<size_t>(0)));
+        
+    //     // add 'self'
+    //     // if target for the call expr is not a member expr it will not add 'self', so
+    //     // we add it manually
+    //     constructor_arguments.push_back(std::shared_ptr<AstArgument>(new AstArgument(
+    //         CloneAstNode(m_proto->GetExpr()),
+    //         false,
+    //         true,
+    //         "self",
+    //         m_arg_list != nullptr
+    //             ? m_arg_list->GetLocation()
+    //             : m_location
+    //     )));
+        
+    //     if (m_arg_list != nullptr) {
+    //         for (auto &arg : m_arg_list->GetArguments()) {
+    //             constructor_arguments.push_back(arg);
+    //         }
+    //     }
+
+    //     if (auto &construct_member_value = std::get<2>(construct_member)) {
+    //         //m_object_value = std::get<2>(proto_member); // NOTE: may be null causing NEW operand to be emitted
+    //         m_constructor_call.reset(new AstCallExpression(
+    //             //std::shared_ptr<AstMember>(new AstMember(
+    //             //    "$construct",
+    //                 construct_member_value,
+    //             //    m_location
+    //             //)),
+    //             constructor_arguments,
+    //             true,
+    //             m_location
+    //         ));
+
+    //         m_constructor_call->Visit(visitor, mod);
+    //     } else {
+    //         AssertThrowMsg(false, "Cannot extract $construct member value");
+    //     }
+    // }
+
 
     /*BuiltinTypes::ANY;
 
@@ -143,6 +222,10 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    if (m_constructor_call != nullptr) {
+        return m_constructor_call->Build(visitor, mod);
+    }
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     AssertThrow(m_prototype_type != nullptr);
@@ -168,6 +251,10 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
 #if ACE_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
     }
 #endif
+
+    // if (m_constructor_call != nullptr) {
+    //     chunk->Append(m_constructor_call->Build(visitor, mod));
+    // }
     
     
     /*AssertThrow(m_proto != nullptr);
@@ -197,6 +284,12 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
 
 void AstNewExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_constructor_call != nullptr) {
+        m_constructor_call->Optimize(visitor, mod);
+
+        return;
+    }
+
     // AssertThrow(m_type_expr != nullptr);
     // m_type_expr->Optimize(visitor, mod);
     AssertThrow(m_proto != nullptr);
@@ -204,6 +297,10 @@ void AstNewExpression::Optimize(AstVisitor *visitor, Module *mod)
 
     if (m_object_value != nullptr) {
         m_object_value->Optimize(visitor, mod);
+    }
+
+    if (m_constructor_call != nullptr) {
+        m_constructor_call->Optimize(visitor, mod);
     }
 
     /*if (!m_is_dynamic_type) {
@@ -224,6 +321,10 @@ Pointer<AstStatement> AstNewExpression::Clone() const
 
 Tribool AstNewExpression::IsTrue() const
 {
+    if (m_constructor_call != nullptr) {
+        return m_constructor_call->IsTrue();
+    }
+
     if (m_object_value != nullptr) {
         return m_object_value->IsTrue();
     }
@@ -233,17 +334,34 @@ Tribool AstNewExpression::IsTrue() const
 
 bool AstNewExpression::MayHaveSideEffects() const
 {
+    if (m_constructor_call != nullptr) {
+        return m_constructor_call->MayHaveSideEffects();
+    }
+
     return true;
 }
 
 SymbolTypePtr_t AstNewExpression::GetExprType() const
 {
+    if (m_constructor_call != nullptr) {
+        return m_constructor_call->GetExprType();
+    }
+
     AssertThrow(m_instance_type != nullptr);
     return m_instance_type;
     // AssertThrow(m_type_expr != nullptr);
     // AssertThrow(m_type_expr->GetSpecifiedType() != nullptr);
 
     // return m_type_expr->GetSpecifiedType();
+}
+
+AstExpression *AstNewExpression::GetTarget() const
+{
+    if (m_constructor_call != nullptr) {
+        return m_constructor_call->GetTarget();
+    }
+
+    return m_object_value.get();
 }
 
 } // namespace hyperion::compiler

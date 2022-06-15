@@ -44,6 +44,7 @@ public:
     virtual void Visit(BuildableType *);
     virtual void Visit(BuildableString *);
     virtual void Visit(StorageOperation *);
+    virtual void Visit(Comment *);
     virtual void Visit(RawOperation<> *);
 
 private:
