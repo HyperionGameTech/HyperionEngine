@@ -2310,7 +2310,14 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 
             return std::shared_ptr<AstVariableDeclaration>(new AstVariableDeclaration(
                 identifier.GetValue(),
-                nullptr, // prototype specification
+                /*std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    std::shared_ptr<AstVariable>(new AstVariable(
+                        BuiltinTypes::CLASS_TYPE->GetName(),
+                        token.GetLocation()
+                    )),
+                    token.GetLocation()
+                )),*/
+                nullptr,
                 assignment,
                 {}, //template_expr_params,
                 true, // it is constant

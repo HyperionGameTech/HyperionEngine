@@ -36,66 +36,55 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 {   
     AssertThrow(visitor != nullptr && mod != nullptr);
 
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
-
-    m_self_type.reset(new AstVariableDeclaration(
-        BuiltinTypes::SELF_TYPE->GetName(),
-        std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-            std::shared_ptr<AstVariable>(new AstVariable(
-                BuiltinTypes::CLASS_TYPE->GetName(),//"int",//m_name,
-                m_location
-            )),
-            m_location
-        )),
-        std::shared_ptr<AstVariable>(new AstVariable(
-            "int",//m_name,
-            m_location
-        )),
-        {},
-        true,
-        false,
-        m_location
-    ));
-
-    m_self_type->Visit(visitor, mod);
-
-    // ===== INSTANCE DATA MEMBERS =====
-
-    // open the scope for data members
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
-
-    std::vector<SymbolMember_t> member_types;
-
-    for (const auto &mem : m_members) {
-        if (mem != nullptr) {
-            mem->Visit(visitor, mod);
-
-            AssertThrow(mem->GetIdentifier() != nullptr);
-
-            std::string mem_name = mem->GetName();
-            SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
-            
-            member_types.push_back(std::make_tuple(
-                mem_name,
-                mem_type,
-                mem->GetRealAssignment()
-            ));
-        }
-    }
-
-    // close the scope for data members
-    mod->m_scopes.Close();
-
-    SymbolTypePtr_t prototype_type = SymbolType::Object(
+    auto prototype_type = SymbolType::Object(
         m_name + "Instance", // Prototype type
-        member_types,
+        {},
         BuiltinTypes::OBJECT
     );
 
     // TODO: allow custom bases (which would have to extend Type somewhere)
-    SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
+    auto base_type = BuiltinTypes::CLASS_TYPE;
 
-    std::vector<SymbolMember_t> static_members;
+    m_symbol_type = SymbolType::Extend(
+        m_name,
+        base_type,
+        {}
+    );
+
+    m_expr.reset(new AstTypeObject(
+        m_symbol_type,
+        nullptr, // prototype - TODO
+        m_location
+    ));
+
+    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
+
+    // m_outside_members.emplace_back(new AstVariableDeclaration(
+    //     BuiltinTypes::SELF_TYPE->GetName(),
+    //     nullptr,
+    //     CloneAstNode(m_expr),
+    //     {},
+    //     true,
+    //     false,
+    //     m_location
+    // ));
+
+    // declare current type name so it can be used in members
+    // m_outside_members.emplace_back(new AstVariableDeclaration(
+    //     m_name,
+    //     nullptr,
+    //     CloneAstNode(m_expr),
+    //     {},
+    //     true,
+    //     false,
+    //     m_location
+    // ));
+
+    mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(m_symbol_type);
+
+    for (auto &outside_member : m_outside_members) {
+        outside_member->Visit(visitor, mod);
+    }
 
     // check if one with the name $proto already exists.
     bool proto_found = false;
@@ -109,14 +98,10 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         } else if (mem->GetName() == "base") {
             base_found = true;
         }
-
-        // if (proto_found && base_found) {
-        //     break; // no need to keep searching
-        // }
     }
 
     if (!proto_found) { // no custom '$proto' member, add default.
-        static_members.push_back(SymbolMember_t {
+        m_symbol_type->AddMember(SymbolMember_t {
             "$proto",
             prototype_type,
             std::shared_ptr<AstTypeObject>(new AstTypeObject(
@@ -128,7 +113,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (!base_found) { // no custom 'base' member, add default
-        static_members.push_back(SymbolMember_t {
+        m_symbol_type->AddMember(SymbolMember_t {
             "base",
             base_type,
             std::shared_ptr<AstTypeObject>(new AstTypeObject(
@@ -153,7 +138,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(mem->GetIdentifier() != nullptr);
         SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
         
-        static_members.push_back(SymbolMember_t {
+        m_symbol_type->AddMember(SymbolMember_t {
             mem_name,
             mem_type,
             mem->GetRealAssignment()
@@ -163,34 +148,61 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     // close the scope for static data members
     mod->m_scopes.Close();
 
-    // close scope for Self var
+    // ===== INSTANCE DATA MEMBERS =====
+
+    // open the scope for data members
+    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
+
+    for (const auto &mem : m_members) {
+        if (mem != nullptr) {
+            mem->Visit(visitor, mod);
+
+            AssertThrow(mem->GetIdentifier() != nullptr);
+
+            std::string mem_name = mem->GetName();
+            SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
+            
+            prototype_type->AddMember(SymbolMember_t(
+                mem_name,
+                mem_type,
+                mem->GetRealAssignment()
+            ));
+        }
+    }
+
+    // close the scope for data members
     mod->m_scopes.Close();
 
-    m_symbol_type = SymbolType::Extend(
-        m_name,
-        base_type,
-        static_members
-    );
-
-    m_expr.reset(new AstTypeObject(
-        m_symbol_type,
-        nullptr, // prototype - TODO
-        m_location
-    ));
+    // close scope for Self var
+    mod->m_scopes.Close();
 
     m_expr->Visit(visitor, mod);
 }
 
 std::unique_ptr<Buildable> AstTypeExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_expr != nullptr);
-    auto buildable = m_expr->Build(visitor, mod);
+    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    return std::move(buildable);
+    // for (auto &outside_member : m_outside_members) {
+    //     AssertThrow(outside_member != nullptr);
+
+    //     chunk->Append(outside_member->Build(visitor, mod));
+    // }
+
+    AssertThrow(m_expr != nullptr);
+    chunk->Append(m_expr->Build(visitor, mod));
+
+    return chunk;
 }
 
 void AstTypeExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    // for (auto &outside_member : m_outside_members) {
+    //     AssertThrow(outside_member != nullptr);
+    
+    //     outside_member->Optimize(visitor, mod);
+    // }
+
     AssertThrow(m_expr != nullptr);
     m_expr->Optimize(visitor, mod);
 }

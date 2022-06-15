@@ -692,8 +692,6 @@ struct InstructionHandler {
                     ? static_cast<auint64>(dst_data.i)
                     : dst_data.u;
 
-                HYP_BREAKPOINT;
-
                 return;
             }
 

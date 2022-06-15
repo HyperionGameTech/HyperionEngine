@@ -195,6 +195,9 @@ public:
     inline const vec<SymbolMember_t> &GetMembers() const
         { return m_members; }
 
+    inline void AddMember(const SymbolMember_t &member)
+        { m_members.push_back(member); }
+
     inline AliasTypeInfo &GetAliasInfo()
         { return m_alias_info; }
     inline const AliasTypeInfo &GetAliasInfo() const

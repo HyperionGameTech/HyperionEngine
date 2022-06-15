@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstObject.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
-#include <script/compiler/ast/AStFunctionExpression.hpp>
+#include <script/compiler/ast/AstFunctionExpression.hpp>
 
 #include <system/debug.h>
 #include <util/utf8.hpp>
@@ -72,7 +72,7 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
                 return false;
             }
 
-            if (!((*m_function_info.m_return_type) == (*other.m_function_info.m_return_type))) {
+            if (!(*m_function_info.m_return_type == *other.m_function_info.m_return_type)) {
                 return false;
             }
 
@@ -110,9 +110,17 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
                 AssertThrow(instance_arg_type != nullptr);
                 AssertThrow(other_arg_type != nullptr);
 
-                if (!instance_arg_type->TypeEqual(*other_arg_type)) {
-                    return false;
+                if (instance_arg_type != other_arg_type) {
+                    return false; // have to do this for now to prevent infinte recursion
                 }
+
+                // if (instance_arg_type == other_arg_type) {
+                //     continue;
+                // }
+
+                // if (!instance_arg_type->TypeEqual(*other_arg_type)) {
+                //     return false;
+                // }
             }
 
             // do not go to end (where members are compared)
@@ -127,15 +135,18 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     }
 
     for (const SymbolMember_t &i : m_members) {
-        AssertThrow(std::get<1>(i) != nullptr);
+        auto &left_type = std::get<1>(i);
+        AssertThrow(left_type != nullptr);
 
         bool right_member_found = false;
 
         for (const SymbolMember_t &j : other.m_members) {
-            AssertThrow(std::get<1>(j) != nullptr);
+            auto &right_type = std::get<1>(j);
+            AssertThrow(right_type != nullptr);
 
-            if (std::get<1>(i)->TypeEqual(*std::get<1>(j))) {
+            if (left_type == right_type || left_type->TypeEqual(*right_type)) {
                 right_member_found = true;
+
                 continue;
             }
         }

@@ -167,6 +167,8 @@ SymbolTypePtr_t AstTemplateExpression::GetExprType() const
 const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 {
     if (m_expr != nullptr) {
+        AssertThrow(m_expr.get() != this);
+
         return m_expr->GetDeepValueOf();
     }
 

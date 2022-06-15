@@ -41,12 +41,24 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
     m_constructor_type = m_proto->GetExprType();
 
     const bool is_type = m_constructor_type == BuiltinTypes::CLASS_TYPE;*/
-    AssertThrow(m_proto->GetHeldType() != nullptr);
-    m_instance_type = m_proto->GetHeldType();
-
     
-    m_object_value = m_proto->GetDefaultValue(); // may be nullptr
-    m_prototype_type = m_proto->GetPrototypeType();
+    m_instance_type = BuiltinTypes::UNDEFINED;
+    m_prototype_type = BuiltinTypes::UNDEFINED;
+
+    if (const auto &held_type = m_proto->GetHeldType()) {
+        m_instance_type = held_type;
+        m_object_value = m_proto->GetDefaultValue(); // may be nullptr
+        m_prototype_type = m_proto->GetPrototypeType();
+    } else {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_type,
+            m_location,
+            m_proto->GetExprType() != nullptr
+                ? m_proto->GetExprType()->GetName()
+                : "??"
+        ));
+    }
 
     /*BuiltinTypes::ANY;
 
@@ -132,9 +144,6 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    //AssertThrow(m_type_expr != nullptr);
-    //chunk->Append(m_type_expr->Build(visitor, mod));
 
     AssertThrow(m_prototype_type != nullptr);
 

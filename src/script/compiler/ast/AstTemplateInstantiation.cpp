@@ -197,6 +197,8 @@ const AstExpression *AstTemplateInstantiation::GetValueOf() const
 const AstExpression *AstTemplateInstantiation::GetDeepValueOf() const
 {
     if (m_inner_expr != nullptr) {
+        AssertThrow(m_inner_expr.get() != this);
+
         return m_inner_expr->GetDeepValueOf();
     }
 

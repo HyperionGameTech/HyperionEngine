@@ -74,7 +74,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_generic_expression_requires_assignment, "'%' is missing assignment (all generics must have a value)" },
     { Msg_generic_argument_must_be_literal, "Generic argument is not resolvable at compile-time" },
     { Msg_not_a_data_member, "'%' is not a member of type '%'" },
-    { Msg_not_a_constant_type, "Cannot use '%' statically as a type, because it is not constant. User `type %` instead to define the type, or use a common base class." },
+    { Msg_not_a_constant_type, "Cannot use instance of % statically as a type because it is not a constant" },
     { Msg_type_missing_prototype, "Type '%' is missing '$proto' member." },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be 'Int', got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be 'Int', got '%'" },

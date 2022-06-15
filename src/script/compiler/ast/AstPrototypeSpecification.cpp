@@ -34,87 +34,70 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_proto != nullptr);
     m_proto->Visit(visitor, mod);
 
-    SymbolTypePtr_t constructor_type;
+    const AstExpression *value_of = m_proto->GetDeepValueOf(); // GetDeepValueOf() returns the non-wrapped generic AstTypeObject*
+    const AstTypeObject *type_obj = nullptr;
+    const AstIdentifier *identifier = nullptr;
 
-    if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject*>(m_proto->GetValueOf())) {
-        constructor_type = as_type_object->GetHeldType();
-    } else {
-        AssertThrow(m_proto->GetExprType() != nullptr);
-        constructor_type = m_proto->GetExprType();
+    const auto expr_type = value_of->GetExprType();
+    AssertThrow(expr_type != nullptr);
+
+    if (value_of != nullptr) {
+        if (!(type_obj = dynamic_cast<const AstTypeObject *>(value_of))) {
+            if ((identifier = dynamic_cast<const AstIdentifier *>(value_of))) {
+                type_obj = identifier->ExtractTypeObject();
+            }
+        }
     }
-
-    //printf("expr type: %s\n", m_proto->GetExprType()->GetName().c_str());
-
-    AssertThrow(constructor_type != nullptr);
 
     m_symbol_type = BuiltinTypes::UNDEFINED;
     m_prototype_type = BuiltinTypes::UNDEFINED;
 
-    if (constructor_type != BuiltinTypes::ANY_TYPE && !constructor_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
-        bool is_type = false;
+    if (expr_type == BuiltinTypes::ANY_TYPE || expr_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
+        // it is a dynamic type
+        m_symbol_type = BuiltinTypes::ANY;
+        m_prototype_type = BuiltinTypes::ANY_TYPE;
 
-        if (constructor_type == BuiltinTypes::CLASS_TYPE || constructor_type->HasBase(*BuiltinTypes::CLASS_TYPE)) {
-            const AstExpression *value_of = m_proto->GetDeepValueOf(); // GetDeepValueOf() returns the non-wrapped generic AstTypeObject*
-            const AstTypeObject *type_obj = nullptr;
+        return;
+    }
 
-            if (value_of != nullptr) {
-                if (!(type_obj = dynamic_cast<const AstTypeObject *>(value_of))) {
-                    if (const AstIdentifier *ident = dynamic_cast<const AstIdentifier *>(value_of)) {
-                        type_obj = ident->ExtractTypeObject();
-                    }
-                }
-            }
+    SymbolTypePtr_t found_symbol_type;
 
-            if (type_obj != nullptr) {
-                is_type = true;
-                
-                AssertThrow(type_obj->GetHeldType() != nullptr);
-                m_symbol_type = type_obj->GetHeldType();
+    if (type_obj != nullptr) {
+        AssertThrow(type_obj->GetHeldType() != nullptr);
+        found_symbol_type = type_obj->GetHeldType();
+    } else if (identifier != nullptr) {
+        found_symbol_type = mod->LookupSymbolType(identifier->GetName());
+    }
 
-                SymbolMember_t proto_member;
+    if (found_symbol_type != nullptr) {
+        m_symbol_type = found_symbol_type;
 
-                if (m_symbol_type->FindMember("$proto", proto_member)) {
-                    m_prototype_type = std::get<1>(proto_member);
+        SymbolMember_t proto_member;
 
-                    // only give default value IFF it is a built-in type
-                    // this is to prevent huge prototypes being inlined.
-                    if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
-                        m_default_value = std::get<2>(proto_member);
-                    }
-                } else {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_type_missing_prototype,
-                        m_location,
-                        constructor_type->GetName()
-                    ));
-                }
-            } else {
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_not_a_constant_type,
-                    m_location,
-                    value_of != nullptr && value_of->GetExprType() != nullptr
-                        ? value_of->GetExprType()->GetName()
-                        : "<Cannot find value of>"
-                ));
-            }
-        }
-        
-        if (!is_type) {
+        if (m_symbol_type->FindMember("$proto", proto_member)) {
+            m_prototype_type = std::get<1>(proto_member);
+        } else {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
-                Msg_not_a_type,
+                Msg_type_missing_prototype,
                 m_location,
-                constructor_type->GetName()
+                expr_type->GetName()
             ));
         }
     } else {
-        // if not, it is a dynamic type
-        m_default_value = BuiltinTypes::ANY->GetDefaultValue();
-        m_symbol_type = BuiltinTypes::ANY;
-        m_prototype_type = BuiltinTypes::ANY_TYPE;
+        // m_symbol_type = constructor_type;
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_not_a_constant_type,
+            m_location,
+            value_of != nullptr && value_of->GetExprType() != nullptr
+                ? value_of->GetExprType()->GetName()
+                : "<Cannot find value of>"
+        ));
     }
+
+    AssertThrow(m_symbol_type != nullptr);
+    AssertThrow(m_prototype_type != nullptr);
 }
 
 std::unique_ptr<Buildable> AstPrototypeSpecification::Build(AstVisitor *visitor, Module *mod)

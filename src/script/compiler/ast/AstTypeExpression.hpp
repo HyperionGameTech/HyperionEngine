@@ -53,7 +53,7 @@ protected:
     SymbolTypePtr_t m_symbol_type;
 
     std::shared_ptr<AstTypeObject> m_expr;
-    std::shared_ptr<AstVariableDeclaration> m_self_type;
+    std::vector<std::shared_ptr<AstVariableDeclaration>> m_outside_members;
 
     inline Pointer<AstTypeExpression> CloneImpl() const
     {

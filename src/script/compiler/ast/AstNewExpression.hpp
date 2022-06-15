@@ -16,7 +16,8 @@ public:
     AstNewExpression(
         const std::shared_ptr<AstPrototypeSpecification> &proto,
         const std::shared_ptr<AstArgumentList> &arg_list,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstNewExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;

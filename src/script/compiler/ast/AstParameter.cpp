@@ -15,13 +15,13 @@ AstParameter::AstParameter(const std::string &name,
     const std::shared_ptr<AstExpression> &default_param, 
     bool is_variadic,
     bool is_const,
-    const SourceLocation &location)
-    : AstDeclaration(name, location),
-      m_type_spec(type_spec),
-      m_default_param(default_param),
-      m_is_variadic(is_variadic),
-      m_is_const(is_const),
-      m_is_generic_param(false)
+    const SourceLocation &location
+) : AstDeclaration(name, location),
+    m_type_spec(type_spec),
+    m_default_param(default_param),
+    m_is_variadic(is_variadic),
+    m_is_const(is_const),
+    m_is_generic_param(false)
 {
 }
 
@@ -30,15 +30,15 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
     AstDeclaration::Visit(visitor, mod);
 
     // params are `Any` by default
-    SymbolTypePtr_t symbol_type, specified_symbol_type;
+    SymbolTypePtr_t symbol_type = BuiltinTypes::UNDEFINED,
+                    specified_symbol_type;
 
     if (m_type_spec != nullptr) {
         m_type_spec->Visit(visitor, mod);
 
-        specified_symbol_type = m_type_spec->GetHeldType();
-        AssertThrow(specified_symbol_type != nullptr);
-
-        symbol_type = specified_symbol_type;
+        if ((specified_symbol_type = m_type_spec->GetHeldType())) {
+            symbol_type = specified_symbol_type;
+        }
     } else {
         symbol_type = BuiltinTypes::ANY;
     }

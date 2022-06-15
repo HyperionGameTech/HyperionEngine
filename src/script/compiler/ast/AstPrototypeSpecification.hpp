@@ -23,9 +23,11 @@ public:
     
     virtual Pointer<AstStatement> Clone() const override;
 
+    inline SymbolTypePtr_t GetExprType() const { return m_proto != nullptr ? m_proto->GetExprType() : nullptr; }
+
     inline const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
     inline const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
-    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_default_value; }
+    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_symbol_type->GetDefaultValue(); }
 
 private:
     std::shared_ptr<AstExpression> m_proto;

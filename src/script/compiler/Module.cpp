@@ -195,7 +195,8 @@ SymbolTypePtr_t Module::LookupGenericInstance(
 
 SymbolTypePtr_t Module::PerformLookup(
     std::function<SymbolTypePtr_t(TreeNode<Scope>*)> pred1,
-    std::function<SymbolTypePtr_t(Module *mod)> pred2)
+    std::function<SymbolTypePtr_t(Module *mod)> pred2
+)
 {
     TreeNode<Scope> *top = m_scopes.TopNode();
 

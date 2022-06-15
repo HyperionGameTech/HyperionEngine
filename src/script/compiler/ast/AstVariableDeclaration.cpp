@@ -29,19 +29,31 @@ AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
     const std::vector<std::shared_ptr<AstParameter>> &template_params,
     bool is_const,
     bool is_generic,
-    const SourceLocation &location)
-    : AstDeclaration(name, location),
-      m_proto(proto),
-      m_assignment(assignment),
-      m_template_params(template_params),
-      m_is_const(is_const),
-      m_is_generic(is_generic),
-      m_assignment_already_visited(false)
+    const SourceLocation &location
+) : AstDeclaration(name, location),
+    m_proto(proto),
+    m_assignment(assignment),
+    m_template_params(template_params),
+    m_is_const(is_const),
+    m_is_generic(is_generic),
+    m_assignment_already_visited(false)
 {
 }
 
 void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
+    AstDeclaration::Visit(visitor, mod);
+
+    if (m_identifier != nullptr) {
+        if (m_is_const || m_is_generic) {
+            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
+        }
+
+        if (m_is_generic) {
+            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
+        }
+    }
+
     SymbolTypePtr_t symbol_type;
 
     // set when this is a generic expression.
@@ -95,6 +107,11 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
             AssertThrow(m_proto->GetHeldType() != nullptr);
             symbol_type = m_proto->GetHeldType();
+
+            if (m_identifier != nullptr) {
+                m_identifier->SetSymbolType(symbol_type);
+            }
+
 #if ACE_ANY_ONLY_FUNCTION_PARAMATERS
             if (symbol_type == BuiltinTypes::ANY) {
                 // Any type is reserved for method parameters
@@ -146,9 +163,9 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
         // if the variable has been assigned to an anonymous type,
         // rename the type to be the name of this variable
-        if (AstTypeExpression *as_type_expr = dynamic_cast<AstTypeExpression*>(m_real_assignment.get())) {
+        if (AstTypeExpression *as_type_expr = dynamic_cast<AstTypeExpression *>(m_real_assignment.get())) {
             as_type_expr->SetName(m_name);
-        } else if (AstEnumExpression *as_enum_expr = dynamic_cast<AstEnumExpression*>(m_real_assignment.get())) {
+        } else if (AstEnumExpression *as_enum_expr = dynamic_cast<AstEnumExpression *>(m_real_assignment.get())) {
             as_enum_expr->SetName(m_name);
         } // @TODO more polymorphic way of doing this..
 
@@ -202,8 +219,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         mod->m_scopes.Close();
     }
 
-    AstDeclaration::Visit(visitor, mod);
-
     if (symbol_type == nullptr) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -216,15 +231,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (m_identifier != nullptr) {
-        if (m_is_const || m_is_generic) {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
-        }
-
-        if (m_is_generic/*is_generic*/) {
-            //m_identifier->SetTemplateParams(ident_template_params);
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
-        }
-
         m_identifier->SetSymbolType(symbol_type);
         m_identifier->SetCurrentValue(m_real_assignment);
     }

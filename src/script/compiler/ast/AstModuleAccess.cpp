@@ -102,7 +102,7 @@ const AstExpression *AstModuleAccess::GetValueOf() const
 
 const AstExpression *AstModuleAccess::GetDeepValueOf() const
 {
-    AssertThrow(m_expr != nullptr);
+    AssertThrow(m_expr != nullptr && m_expr.get() != this);
     return m_expr->GetDeepValueOf();
 }
 
