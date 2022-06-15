@@ -29,10 +29,9 @@ void AstIdentifier::PerformLookup(AstVisitor *visitor, Module *mod)
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_VARIABLE);
     } else if (mod->LookupNestedModule(m_name) != nullptr) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_MODULE);
-    }/* else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
+    } else if ((m_properties.m_found_type = mod->LookupSymbolType(m_name))) {
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_TYPE);
-    } */
-    else {
+    } else {
         // nothing was found
         m_properties.SetIdentifierType(IDENTIFIER_TYPE_NOT_FOUND);
     }
@@ -127,6 +126,29 @@ const AstTypeObject *AstIdentifier::ExtractTypeObject() const
     }
 
     return nullptr;
+}
+
+ExprAccessBits AstIdentifier::GetExprAccess() const
+{
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        ExprAccessBits expr_access_bits = 0;
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PUBLIC) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PUBLIC;
+        }
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PRIVATE) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PRIVATE;
+        }
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PROTECTED) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PROTECTED;
+        }
+
+        return expr_access_bits;
+    }
+
+    return AstExpression::GetExprAccess();
 }
 
 } // namespace hyperion::compiler

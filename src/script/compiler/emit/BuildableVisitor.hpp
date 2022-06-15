@@ -36,6 +36,7 @@ public:
     virtual void Visit(BuildableType *) = 0;
     virtual void Visit(BuildableString *) = 0;
     virtual void Visit(StorageOperation *) = 0;
+    virtual void Visit(Comment *) = 0;
     virtual void Visit(RawOperation<> *) = 0;
 };
 

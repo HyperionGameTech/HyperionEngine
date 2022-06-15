@@ -75,8 +75,7 @@ Builtins::Builtins()
             nullptr,
             it.second,
             {},
-            true, // const
-            false, // not generic 
+            IdentifierFlags::FLAG_CONST,
             BUILTIN_SOURCE_LOCATION
         )));
     }

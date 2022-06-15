@@ -48,8 +48,18 @@ MemoryBuffer &MemoryBuffer::operator=(const MemoryBuffer &other)
     return *this;
 }
 
-void MemoryBuffer::GetRepresentation(std::stringstream &ss, bool add_type_name) const
+void MemoryBuffer::GetRepresentation(
+    std::stringstream &ss,
+    bool add_type_name,
+    int depth
+) const
 {
+    if (depth == 0) {
+        ss << "MemoryBuffer(" << m_buffer << ")\n";
+
+        return;
+    }
+
     // convert all array elements to string
     for (size_t i = 0; i < m_size; i++) {
         ss << "\\0x" << std::hex << static_cast<uint16_t>(reinterpret_cast<unsigned char *>(m_buffer)[i]) << std::dec;

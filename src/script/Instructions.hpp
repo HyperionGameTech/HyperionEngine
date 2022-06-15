@@ -211,6 +211,10 @@ enum Instructions : char {
     /* Binary to source trace map functionality */
     TRACEMAP, // tracemap [u32 length]
 
+    /* Comment (for debugging) */
+
+    REM, // rem [u32 len, byte[len] str]
+
     /* Signifies the end of the stream */
     EXIT,
 };

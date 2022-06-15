@@ -229,6 +229,8 @@ public:
     inline int GetFlags() const { return m_flags; }
     inline int &GetFlags() { return m_flags; }
 
+    inline bool IsAlias() const { return m_type_class == TYPE_ALIAS; }
+
     bool TypeEqual(const SymbolType &other) const;
     bool TypeCompatible(const SymbolType &other,
         bool strict_numbers,

@@ -360,9 +360,11 @@ struct InstructionHandler {
             }
         }
 
+        HYP_BREAKPOINT;
+
         state->ThrowException(
             thread,
-            Exception("Not an Object")
+            Exception("Cannot access member by index: Not an Object")
         );
     }
 
@@ -394,7 +396,7 @@ struct InstructionHandler {
 
         state->ThrowException(
             thread,
-            Exception("Not an Object")
+            Exception("Cannot access member by hash: Not an Object")
         );
     }
 
@@ -554,7 +556,7 @@ struct InstructionHandler {
         if (sv.m_type != Value::HEAP_POINTER) {
             state->ThrowException(
                 thread,
-                Exception("Not an Object")
+                Exception("Cannot assign member by index: Not an Object")
             );
             return;
         }
@@ -572,7 +574,7 @@ struct InstructionHandler {
         if (object == nullptr) {
             state->ThrowException(
                 thread,
-                Exception("Not an Object")
+                Exception("Cannot assign member by index: Not an Object")
             );
             return;
         }
@@ -595,7 +597,7 @@ struct InstructionHandler {
         if (sv.m_type != Value::HEAP_POINTER) {
             state->ThrowException(
                 thread,
-                Exception("Not an Object")
+                Exception("Cannot assign member by hash: Not an Object")
             );
             return;
         }
@@ -613,7 +615,7 @@ struct InstructionHandler {
         if (object == nullptr) {
             state->ThrowException(
                 thread,
-                Exception("Not an Object")
+                Exception("Cannot assign member by hash: Not an Object")
             );
             return;
         }
@@ -1048,10 +1050,13 @@ struct InstructionHandler {
         AssertThrow(proto_mem != nullptr);
 
         if (proto_mem->value.m_value.ptr == nullptr) {
+            HYP_BREAKPOINT;
             state->ThrowException(
                 thread,
                 Exception::NullReferenceException()
             );
+
+            return;
         }
 
         Value &res = thread->m_regs[dst];

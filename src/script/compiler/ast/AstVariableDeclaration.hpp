@@ -5,6 +5,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/compiler/Identifier.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <memory>
@@ -17,8 +18,7 @@ public:
         const std::shared_ptr<AstPrototypeSpecification> &proto,
         const std::shared_ptr<AstExpression> &assignment,
         const std::vector<std::shared_ptr<AstParameter>> &template_params,
-        bool is_const,
-        bool is_generic,
+        IdentifierFlagBits flags,
         const SourceLocation &location);
     virtual ~AstVariableDeclaration() = default;
 
@@ -27,7 +27,8 @@ public:
     inline const std::shared_ptr<AstExpression> &GetRealAssignment() const
         { return m_real_assignment; }
 
-    inline bool IsConst() const { return m_is_const; }
+    inline bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
+    inline bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -39,8 +40,7 @@ protected:
     std::shared_ptr<AstPrototypeSpecification> m_proto;
     std::shared_ptr<AstExpression> m_assignment;
     std::vector<std::shared_ptr<AstParameter>> m_template_params;
-    bool m_is_const;
-    bool m_is_generic;
+    IdentifierFlagBits m_flags;
 
     // set while analyzing
     bool m_assignment_already_visited;
@@ -56,8 +56,7 @@ protected:
             //CloneAstNode(m_type_specification),
             CloneAstNode(m_assignment),
             CloneAllAstNodes(m_template_params),
-            m_is_const,
-            m_is_generic,
+            m_flags,
             m_location
         ));
     }

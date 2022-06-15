@@ -46,6 +46,8 @@ void BuildableVisitor::Visit(Buildable *buildable)
         Visit(node);
     } else if (auto *node = dynamic_cast<StorageOperation*>(buildable)) {
         Visit(node);
+    } else if (auto *node = dynamic_cast<Comment*>(buildable)) {
+        Visit(node);
     } else if (auto *node = dynamic_cast<RawOperation<>*>(buildable)) {
         Visit(node);
     } else {

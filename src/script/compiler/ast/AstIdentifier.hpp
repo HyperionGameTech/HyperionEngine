@@ -63,6 +63,7 @@ public:
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override = 0;
     virtual SymbolTypePtr_t GetExprType() const override = 0;
+    virtual ExprAccessBits GetExprAccess() const override;
 
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;

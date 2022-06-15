@@ -122,6 +122,10 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
             chunk->Append(std::move(instr_mov_mem));
         }
 
+        { // comment for debug
+            chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(mem)));
+        }
+
         // unclaim register
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
         // get register position

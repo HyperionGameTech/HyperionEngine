@@ -2,6 +2,7 @@
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
@@ -82,6 +83,10 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             m_substituted_args.insert(m_substituted_args.begin(), self_arg);
         }*/
 
+        /*if (const auto *new_target = dynamic_cast<const AstNewExpression *>(m_target.get())) {
+
+        } else */
+        
         if (const auto *left_target = m_target->GetTarget()) {
             m_is_method_call = true;
 
@@ -112,23 +117,34 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(unboxed_type != nullptr);
 
-    if (SymbolTypePtr_t call_member_type = unboxed_type->FindPrototypeMember("$invoke")) {
+    SymbolTypePtr_t call_member_type;
+    std::string call_member_name;
+
+    if ((call_member_type = unboxed_type->FindPrototypeMember("$invoke"))) {
+        call_member_name = "$invoke";
+    } else if ((call_member_type = unboxed_type->FindPrototypeMember("$construct"))) {
+        call_member_name = "$construct";
+    }
+
+    if (call_member_type != nullptr) {
         m_is_method_call = true;
 
-        // closure objects have a self parameter for the '$invoke' call.
-        std::shared_ptr<AstArgument> self_arg(new AstArgument(
-            m_target,
-            false,
-            false,
-            "__closure_self",
-            m_target->GetLocation()
-        ));
-        
-        // insert at front
-        m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+        // if (call_member_name == "$invoke") {
+            // closure objects have a self parameter for the '$invoke' call.
+            std::shared_ptr<AstArgument> self_arg(new AstArgument(
+                m_target,
+                false,
+                false,
+                "__closure_self",
+                m_target->GetLocation()
+            ));
+            
+            // insert at front
+            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+        // }
 
         m_target.reset(new AstMember(
-            "$invoke",
+            call_member_name,
             CloneAstNode(m_target),
             m_location
         ));

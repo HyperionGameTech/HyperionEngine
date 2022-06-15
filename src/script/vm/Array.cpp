@@ -116,8 +116,18 @@ void Array::Pop()
     m_size--;
 }
 
-void Array::GetRepresentation(std::stringstream &ss, bool add_type_name) const
+void Array::GetRepresentation(
+    std::stringstream &ss,
+    bool add_type_name,
+    int depth
+) const
 {
+    if (depth == 0) {
+        ss << "[...]";
+
+        return;
+    }
+
     // convert array list to string
     const char sep_str[3] = ", ";
 
@@ -125,7 +135,11 @@ void Array::GetRepresentation(std::stringstream &ss, bool add_type_name) const
 
     // convert all array elements to string
     for (size_t i = 0; i < m_size; i++) {
-        m_buffer[i].ToRepresentation(ss, add_type_name);
+        m_buffer[i].ToRepresentation(
+            ss,
+            add_type_name,
+            depth - 1
+        );
 
         if (i != m_size - 1) {
             ss << sep_str;

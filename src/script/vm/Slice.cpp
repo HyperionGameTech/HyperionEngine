@@ -35,9 +35,19 @@ Slice &Slice::operator=(const Slice &other)
     AssertThrow(m_end >= m_start);
 }
 
-void Slice::GetRepresentation(std::stringstream &ss, bool add_type_name) const
+void Slice::GetRepresentation(
+    std::stringstream &ss,
+    bool add_type_name,
+    int depth
+) const
 {
     AssertThrow(m_ary != nullptr);
+
+    if (depth == 0) {
+        ss << "[...]";
+
+        return;
+    }
 
     // convert array list to string
     const char sep_str[3] = ", ";
@@ -46,7 +56,11 @@ void Slice::GetRepresentation(std::stringstream &ss, bool add_type_name) const
 
     // convert all array elements to string
     for (size_t i = m_start; i < m_end; i++) {
-        m_ary->AtIndex(i).ToRepresentation(ss, add_type_name);
+        m_ary->AtIndex(i).ToRepresentation(
+            ss,
+            add_type_name,
+            depth - 1
+        );
 
         if (i != m_end - 1) {
             ss << sep_str;

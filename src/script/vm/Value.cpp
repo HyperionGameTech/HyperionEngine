@@ -95,6 +95,8 @@ ImmutableString Value::ToString() const
     const size_t buf_size = 256;
     char buf[buf_size] = {0};
 
+    const int depth = 3;
+
     switch (m_type) {
         case Value::I32: {
             int n = snprintf(buf, buf_size, "%d", m_value.i32);
@@ -145,25 +147,25 @@ ImmutableString Value::ToString() const
                 return *string;
             } else if (Array *array = m_value.ptr->GetPointer<Array>()) {
                 std::stringstream ss;
-                array->GetRepresentation(ss, true);
+                array->GetRepresentation(ss, true, depth);
                 const std::string &str = ss.str();
                 return ImmutableString(str.c_str());
             } else if (MemoryBuffer *memory_buffer = m_value.ptr->GetPointer<MemoryBuffer>()) {
                 std::stringstream ss;
-                memory_buffer->GetRepresentation(ss, true);
+                memory_buffer->GetRepresentation(ss, true, depth);
                 const std::string &str = ss.str();
                 return ImmutableString(str.c_str());
             } else if (Slice *slice = m_value.ptr->GetPointer<Slice>()) {
                 std::stringstream ss;
-                slice->GetRepresentation(ss, true);
+                slice->GetRepresentation(ss, true, depth);
                 const std::string &str = ss.str();
                 return ImmutableString(str.c_str());
-            } /*else if (Object *object = m_value.ptr->GetPointer<Object>()) {
+            } else if (Object *object = m_value.ptr->GetPointer<Object>()) {
                 std::stringstream ss;
-                object->GetRepresentation(ss, true);
+                object->GetRepresentation(ss, true, depth);
                 const std::string &str = ss.str();
                 return ImmutableString(str.c_str());
-            } */ else {
+            } else {
                 // return memory address as string
                 int n = snprintf(buf, buf_size, "%p", (void*)m_value.ptr);
                 return ImmutableString(buf, n);
@@ -176,12 +178,22 @@ ImmutableString Value::ToString() const
     }
 }
 
-void Value::ToRepresentation(std::stringstream &ss, bool add_type_name) const
+void Value::ToRepresentation(
+    std::stringstream &ss,
+    bool add_type_name,
+    int depth
+) const
 {
     switch (m_type) {
         case Value::VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
-            m_value.value_ref->ToRepresentation(ss, add_type_name);
+
+            m_value.value_ref->ToRepresentation(
+                ss,
+                add_type_name,
+                depth - 1
+            );
+
             return;
 
         case Value::HEAP_POINTER:
@@ -192,11 +204,11 @@ void Value::ToRepresentation(std::stringstream &ss, bool add_type_name) const
                 ss << string->GetData();
                 ss << '\"';
             } else if (Array *array = m_value.ptr->GetPointer<Array>()) {
-                array->GetRepresentation(ss, add_type_name);
+                array->GetRepresentation(ss, add_type_name, depth - 1);
             } else if (Slice *slice = m_value.ptr->GetPointer<Slice>()) {
-                slice->GetRepresentation(ss, add_type_name);
+                slice->GetRepresentation(ss, add_type_name, depth - 1);
             } else if (Object *object = m_value.ptr->GetPointer<Object>()) {
-                object->GetRepresentation(ss, add_type_name);
+                object->GetRepresentation(ss, add_type_name, depth - 1);
             } else {
                 if (add_type_name) {
                     ss << GetTypeString();

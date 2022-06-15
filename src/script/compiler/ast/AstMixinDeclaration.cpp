@@ -46,8 +46,7 @@ void AstMixinDeclaration::Visit(AstVisitor *visitor, Module *mod)
                             m_location
                         )),
                         {},
-                        false, // not const
-                        false, // not generic
+                        0,
                         m_location
                     ));
 

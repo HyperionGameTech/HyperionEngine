@@ -1279,6 +1279,27 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case REM:
+    {
+        uint32_t len;
+        bs.Read(&len);
+
+        // read string based on length
+        char *str = new char[len + 1];
+        bs.Read(str, len);
+        str[len] = '\0';
+
+        if (os != nullptr) {
+            (*os)
+                << "\t; "
+                << str
+                << std::endl;
+        }
+
+        delete[] str;
+
+        break;
+    }
     case EXIT:
     {
         if (os != nullptr) {

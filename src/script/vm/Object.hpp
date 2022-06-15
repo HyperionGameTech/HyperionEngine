@@ -84,7 +84,11 @@ public:
     inline size_t GetSize() const { return m_object_map->GetSize(); }
     inline HeapValue *GetPrototype() const { return m_proto; }
     
-    void GetRepresentation(std::stringstream &ss, bool add_type_name = true) const;
+    void GetRepresentation(
+        std::stringstream &ss,
+        bool add_type_name = true,
+        int depth = 3
+    ) const;
 
 private:
     HeapValue *m_proto;

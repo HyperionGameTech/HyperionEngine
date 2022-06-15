@@ -25,11 +25,6 @@ public:
         { m_args.push_back(arg); }
     inline const std::vector<std::shared_ptr<AstArgument>> &GetArguments() const
         { return m_args; }
-
-    inline void SetArgumentOrdering(const std::vector<int> &arg_ordering)
-        { m_arg_ordering = arg_ordering; }
-    inline std::vector<int> GetArgumentOrdering() const
-        { return m_arg_ordering; }
     
     inline const SymbolTypePtr_t &GetReturnType() const
         { return m_return_type; }
@@ -55,7 +50,6 @@ protected:
 
     // set while analyzing
     std::vector<std::shared_ptr<AstArgument>> m_substituted_args;
-    std::vector<int> m_arg_ordering;
     SymbolTypePtr_t m_return_type;
     bool m_is_method_call;
 

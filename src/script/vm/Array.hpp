@@ -31,7 +31,11 @@ public:
     void PushMany(size_t n, Value **values);
     void Pop();
 
-    void GetRepresentation(std::stringstream &ss, bool add_type_name = true) const;
+    void GetRepresentation(
+        std::stringstream &ss,
+        bool add_type_name = true,
+        int depth = 3
+    ) const;
 
 private:
     size_t m_size;

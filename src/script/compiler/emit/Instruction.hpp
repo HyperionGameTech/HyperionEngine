@@ -288,6 +288,17 @@ struct BinOp final : public Instruction {
     RegIndex reg_lhs;
     RegIndex reg_rhs;
     RegIndex reg_dst;
+
+    virtual ~BinOp() = default;
+};
+
+struct Comment final : public Instruction {
+    std::string value;
+
+    Comment() = default;
+    Comment(const std::string &value) : value(value) {}
+    Comment(const Comment &other) = default;
+    virtual ~Comment() = default;
 };
 
 template <class...Args>

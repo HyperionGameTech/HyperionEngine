@@ -3,7 +3,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
-#include <script/compiler/ast/AstCallExpression.hpp>
+#include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -16,6 +16,7 @@ public:
     AstNewExpression(
         const std::shared_ptr<AstPrototypeSpecification> &proto,
         const std::shared_ptr<AstArgumentList> &arg_list,
+        bool enable_constructor_call,
         const SourceLocation &location
     );
     virtual ~AstNewExpression() = default;
@@ -29,24 +30,27 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual AstExpression *GetTarget() const override;
 
 private:
     std::shared_ptr<AstPrototypeSpecification> m_proto;
     std::shared_ptr<AstArgumentList> m_arg_list;
+    bool m_enable_constructor_call;
 
     /** Set while analyzing */
     std::shared_ptr<AstExpression> m_object_value;
     SymbolTypePtr_t m_instance_type;
     SymbolTypePtr_t m_prototype_type;
-    std::shared_ptr<AstCallExpression> m_constructor_call;
-    std::shared_ptr<AstStatement> m_dynamic_check;
-    bool m_is_dynamic_type;
+    std::shared_ptr<AstMemberCallExpression> m_constructor_call;
+    // std::shared_ptr<AstStatement> m_dynamic_check;
+    // bool m_is_dynamic_type;
 
     inline Pointer<AstNewExpression> CloneImpl() const
     {
         return Pointer<AstNewExpression>(new AstNewExpression(
             CloneAstNode(m_proto),
             CloneAstNode(m_arg_list),
+            m_enable_constructor_call,
             m_location
         ));
     }

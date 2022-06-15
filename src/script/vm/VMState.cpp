@@ -44,6 +44,8 @@ void VMState::ThrowException(ExecutionThread *thread, const Exception &exception
 {
     thread->m_exception_state.m_exception_occured = true;
 
+    HYP_BREAKPOINT;
+
     if (thread->m_exception_state.m_try_counter <= 0) {
         // exception cannot be handled, no try block found
         if (thread->m_id == 0) {

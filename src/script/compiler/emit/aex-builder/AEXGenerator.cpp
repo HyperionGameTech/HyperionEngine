@@ -387,6 +387,15 @@ void AEXGenerator::Visit(StorageOperation *node)
     }
 }
 
+void AEXGenerator::Visit(Comment *node)
+{
+    uint32_t len = node->value.length();
+
+    m_ibs.Put(Instructions::REM);
+    m_ibs.Put((byte*)&len, sizeof(len));
+    m_ibs.Put((byte*)&node->value[0], node->value.length());
+}
+
 void AEXGenerator::Visit(RawOperation<> *node)
 {
     m_ibs.Put(node->opcode);

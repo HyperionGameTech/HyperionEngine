@@ -59,27 +59,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
 
-    // m_outside_members.emplace_back(new AstVariableDeclaration(
-    //     BuiltinTypes::SELF_TYPE->GetName(),
-    //     nullptr,
-    //     CloneAstNode(m_expr),
-    //     {},
-    //     true,
-    //     false,
-    //     m_location
-    // ));
-
-    // declare current type name so it can be used in members
-    // m_outside_members.emplace_back(new AstVariableDeclaration(
-    //     m_name,
-    //     nullptr,
-    //     CloneAstNode(m_expr),
-    //     {},
-    //     true,
-    //     false,
-    //     m_location
-    // ));
-
+    // add symbol type to be usable within members
     mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(m_symbol_type);
 
     for (auto &outside_member : m_outside_members) {
@@ -155,6 +135,10 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     for (const auto &mem : m_members) {
         if (mem != nullptr) {
+            if (mem->GetName() == "construct") {//m_name) { // it is the constructor
+                mem->SetName("$construct");
+            }
+
             mem->Visit(visitor, mod);
 
             AssertThrow(mem->GetIdentifier() != nullptr);

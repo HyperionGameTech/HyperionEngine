@@ -13,6 +13,7 @@ enum TokenClass {
     TK_FLOAT,
     TK_STRING,
     TK_IDENT,
+    TK_LABEL,
     TK_KEYWORD,
     TK_OPERATOR,
     TK_DIRECTIVE,

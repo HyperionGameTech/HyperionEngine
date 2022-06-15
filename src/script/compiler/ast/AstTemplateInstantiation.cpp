@@ -83,8 +83,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                             nullptr,
                             CloneAstNode(args_substituted[i]->GetExpr()),
                             {},
-                            true, // const
-                            false, // generic
+                            IdentifierFlags::FLAG_CONST,
                             args_substituted[i]->GetLocation()
                         ));
 
