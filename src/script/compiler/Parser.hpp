@@ -6,6 +6,7 @@
 #include <script/compiler/CompilationUnit.hpp>
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/Keywords.hpp>
+#include <script/compiler/Identifier.hpp>
 #include <script/compiler/ast/AstModuleDeclaration.hpp>
 #include <script/compiler/ast/AstDirective.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
@@ -149,8 +150,11 @@ private:
     );
     std::shared_ptr<AstPrototypeSpecification> ParsePrototypeSpecification();
     std::shared_ptr<AstExpression> ParseAssignment();
-    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(bool allow_keyword_names = false,
-        bool allow_quoted_names = false);
+    std::shared_ptr<AstVariableDeclaration> ParseVariableDeclaration(
+        bool allow_keyword_names = false,
+        bool allow_quoted_names = false,
+        IdentifierFlagBits flags = 0
+    );
     std::shared_ptr<AstStatement> ParseFunctionDefinition(bool require_keyword = true);
     std::shared_ptr<AstFunctionExpression> ParseFunctionExpression(bool require_keyword = true,
         std::vector<std::shared_ptr<AstParameter>> params = {},

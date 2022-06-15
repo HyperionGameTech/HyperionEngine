@@ -74,8 +74,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
                 CloneAstNode(m_underlying_type),
                 entry.assignment,
                 {},
-                true, // it's const,
-                false, // not generic,
+                IdentifierFlags::FLAG_CONST,
                 entry.location
             ));
         } else {

@@ -220,11 +220,21 @@ Object::~Object()
     m_members = nullptr;
 }
 
-void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const
+void Object::GetRepresentation(
+    std::stringstream &ss,
+    bool add_type_name,
+    int depth
+) const
 {
+    if (depth == 0) {
+        ss << static_cast<const void *>(this);
+
+        return;
+    }
+
     const size_t size = GetSize();
 
-    ss << "{ ";
+    ss << "{";
 
     for (size_t i = 0; i < size; i++) {
         vm::Member &mem = m_members[i];
@@ -233,10 +243,18 @@ void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const
 
         if (mem.value.m_type == Value::HEAP_POINTER &&
             mem.value.m_value.ptr != nullptr &&
-            mem.value.m_value.ptr->GetRawPointer<void>() == (void*)this) {
-            ss << "<circular reference>";
+            mem.value.m_value.ptr->GetRawPointer<void>() == static_cast<const void *>(this)) {
+            mem.value.ToRepresentation(
+                ss,
+                add_type_name,
+                0 // prevent circular reference causing infinite loop
+            );
         } else {
-            mem.value.ToRepresentation(ss, add_type_name);
+            mem.value.ToRepresentation(
+                ss,
+                add_type_name,
+                depth - 1
+            );
         }
 
         if (i != size - 1) {
@@ -244,7 +262,7 @@ void Object::GetRepresentation(std::stringstream &ss, bool add_type_name) const
         }
     }
 
-    ss << " }";
+    ss << "}";
 }
 
 } // namespace vm

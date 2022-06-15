@@ -20,7 +20,11 @@ public:
     inline size_t GetSize() const { return m_size; }
     inline void *GetBuffer() const { return m_buffer; }
 
-    void GetRepresentation(std::stringstream &ss, bool add_type_name = true) const;
+    void GetRepresentation(
+        std::stringstream &ss,
+        bool add_type_name = true,
+        int depth = 3
+    ) const;
 
 private:
     size_t m_size;

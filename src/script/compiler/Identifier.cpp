@@ -4,15 +4,19 @@
 
 namespace hyperion::compiler {
 
-Identifier::Identifier(const std::string &name, int index, int flags, Identifier *aliasee)
-    : m_name(name),
-      m_index(index),
-      m_stack_location(-1),
-      m_usecount(0),
-      m_flags(flags),
-      m_aliasee(aliasee),
-      m_symbol_type(BuiltinTypes::UNDEFINED),
-      m_is_reassigned(false)
+Identifier::Identifier(
+  const std::string &name,
+  int index,
+  IdentifierFlagBits flags,
+  Identifier *aliasee
+) : m_name(name),
+    m_index(index),
+    m_stack_location(-1),
+    m_usecount(0),
+    m_flags(flags),
+    m_aliasee(aliasee),
+    m_symbol_type(BuiltinTypes::UNDEFINED),
+    m_is_reassigned(false)
 {
 }
 

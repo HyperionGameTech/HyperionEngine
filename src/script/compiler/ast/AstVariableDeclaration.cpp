@@ -27,15 +27,13 @@ AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
     const std::shared_ptr<AstPrototypeSpecification> &proto,
     const std::shared_ptr<AstExpression> &assignment,
     const std::vector<std::shared_ptr<AstParameter>> &template_params,
-    bool is_const,
-    bool is_generic,
+    IdentifierFlagBits flags,
     const SourceLocation &location
 ) : AstDeclaration(name, location),
     m_proto(proto),
     m_assignment(assignment),
     m_template_params(template_params),
-    m_is_const(is_const),
-    m_is_generic(is_generic),
+    m_flags(flags),
     m_assignment_already_visited(false)
 {
 }
@@ -45,13 +43,15 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     AstDeclaration::Visit(visitor, mod);
 
     if (m_identifier != nullptr) {
-        if (m_is_const || m_is_generic) {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
-        }
+        // if (m_is_const || m_is_generic) {
+        //     m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
+        // }
 
-        if (m_is_generic) {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
-        }
+        // if (m_is_generic) {
+        //     m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
+        // }
+
+        m_identifier->GetFlags() |= m_flags;
     }
 
     SymbolTypePtr_t symbol_type;
@@ -63,7 +63,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     const bool has_user_assigned = m_assignment != nullptr;
     const bool has_user_specified_type = m_proto != nullptr;
 
-    if (m_is_const) {
+    if (IsConst()) {
         if (!has_user_assigned) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -77,7 +77,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         m_real_assignment = m_assignment;
     }
 
-    if (m_is_generic) {
+    if (IsGeneric()) {
         mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
     }
 
@@ -214,7 +214,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    if (m_is_generic) {
+    if (IsGeneric()) {
         // close template param scope
         mod->m_scopes.Close();
     }

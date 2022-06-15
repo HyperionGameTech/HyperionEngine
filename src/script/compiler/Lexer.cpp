@@ -565,7 +565,7 @@ Token Lexer::ReadIdentifier()
     std::string value;
 
     // the character as a utf-32 character
-    u32char ch = m_source_stream.Peek();
+    auto ch = m_source_stream.Peek();
 
     while (utf32_isdigit(ch) || utf32_isalpha(ch) || ch == '_' || ch == '$') {
         int pos_change = 0;
@@ -575,6 +575,14 @@ Token Lexer::ReadIdentifier()
         value.append(utf::get_bytes(ch));
         // set ch to be the next character in the buffer
         ch = m_source_stream.Peek();
+
+        // if (ch == ':') {
+        //     int pos_change = 0;
+        //     ch = m_source_stream.Next(pos_change);
+        //     m_source_location.GetColumn() += pos_change;
+            
+        //     return Token(TK_LABEL, value, location);
+        // }
     }
 
     return Token(Keyword::IsKeyword(value) ? TK_KEYWORD : TK_IDENT, value, location);

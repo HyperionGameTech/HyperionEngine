@@ -11,6 +11,7 @@ std::string Token::TokenTypeToString(TokenClass token_class)
         case TK_FLOAT:         return "float";
         case TK_STRING:        return "string";
         case TK_IDENT:         return "identifier";
+        case TK_LABEL:         return "label";
         case TK_KEYWORD:       return "keyword";
         case TK_OPERATOR:      return "operator";
         case TK_DIRECTIVE:     return "directive";

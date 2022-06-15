@@ -27,7 +27,7 @@ public:
 
     inline const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
     inline const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
-    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_symbol_type->GetDefaultValue(); }
+    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_default_value; }//m_symbol_type->GetDefaultValue(); }
 
 private:
     std::shared_ptr<AstExpression> m_proto;

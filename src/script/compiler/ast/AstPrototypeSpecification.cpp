@@ -56,6 +56,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         // it is a dynamic type
         m_symbol_type = BuiltinTypes::ANY;
         m_prototype_type = BuiltinTypes::ANY_TYPE;
+        m_default_value = BuiltinTypes::ANY->GetDefaultValue();
 
         return;
     }
@@ -66,7 +67,9 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(type_obj->GetHeldType() != nullptr);
         found_symbol_type = type_obj->GetHeldType();
     } else if (identifier != nullptr) {
-        //found_symbol_type = mod->LookupSymbolType(identifier->GetName());
+        if ((found_symbol_type = mod->LookupSymbolType(identifier->GetName()))) {
+            found_symbol_type = found_symbol_type->GetUnaliased();
+        }
     }
 
     if (found_symbol_type != nullptr) {
@@ -76,6 +79,10 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
 
         if (m_symbol_type->FindMember("$proto", proto_member)) {
             m_prototype_type = std::get<1>(proto_member);
+
+            if (m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
+                m_default_value = std::get<2>(proto_member);
+            }
         } else {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,

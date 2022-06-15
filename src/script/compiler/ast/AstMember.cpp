@@ -70,6 +70,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             for (size_t i = 0; i < proto_type->GetMembers().size(); i++) {
                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
 
+
                 if (std::get<0>(mem) == m_field_name) {
                     m_found_index = i;
                     field_type = std::get<1>(mem);

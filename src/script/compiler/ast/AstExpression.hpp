@@ -11,6 +11,14 @@ namespace hyperion::compiler {
 
 class AstTypeObject;
 
+using ExprAccessBits = uint32_t;
+
+enum ExprAccess : ExprAccessBits {
+    EXPR_ACCESS_PUBLIC    = 1 << 0,
+    EXPR_ACCESS_PRIVATE   = 1 << 1,
+    EXPR_ACCESS_PROTECTED = 1 << 2
+};
+
 class AstExpression : public AstStatement {
 public:
     AstExpression(const SourceLocation &location,
@@ -49,6 +57,7 @@ public:
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
+    virtual ExprAccessBits GetExprAccess() const { return ExprAccess::EXPR_ACCESS_PUBLIC; }
 
     bool m_is_standalone;
 

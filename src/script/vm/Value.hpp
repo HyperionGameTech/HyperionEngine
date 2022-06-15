@@ -246,8 +246,11 @@ struct Value {
 
     const char *GetTypeString() const;
     ImmutableString ToString() const;
-    void ToRepresentation(std::stringstream &ss,
-        bool add_type_name = true) const;
+    void ToRepresentation(
+        std::stringstream &ss,
+        bool add_type_name = true,
+        int depth = 3
+    ) const;
 };
 
 } // namespace vm

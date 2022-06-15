@@ -12,9 +12,11 @@ namespace hyperion::compiler {
 
 class Lexer {
 public:
-    Lexer(const SourceStream &source_stream,
+    Lexer(
+        const SourceStream &source_stream,
         TokenStream *token_stream,
-        CompilationUnit *compilation_unit);
+        CompilationUnit *compilation_unit
+    );
     Lexer(const Lexer &other);
 
     /** Forms the given TokenStream from the given SourceStream */

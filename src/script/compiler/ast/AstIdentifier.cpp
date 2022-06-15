@@ -129,4 +129,27 @@ const AstTypeObject *AstIdentifier::ExtractTypeObject() const
     return nullptr;
 }
 
+ExprAccessBits AstIdentifier::GetExprAccess() const
+{
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        ExprAccessBits expr_access_bits = 0;
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PUBLIC) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PUBLIC;
+        }
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PRIVATE) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PRIVATE;
+        }
+
+        if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PROTECTED) {
+            expr_access_bits |= ExprAccess::EXPR_ACCESS_PROTECTED;
+        }
+
+        return expr_access_bits;
+    }
+
+    return AstExpression::GetExprAccess();
+}
+
 } // namespace hyperion::compiler

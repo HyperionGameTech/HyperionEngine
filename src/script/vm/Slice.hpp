@@ -21,7 +21,11 @@ public:
     inline Value &AtIndex(int index) { return m_ary->AtIndex(m_start + index); }
     inline const Value &AtIndex(int index) const { return m_ary->AtIndex(m_start + index); }
 
-    void GetRepresentation(std::stringstream &ss, bool add_type_name = true) const;
+    void GetRepresentation(
+        std::stringstream &ss,
+        bool add_type_name = true,
+        int depth = 3
+    ) const;
 
 private:
     Array *m_ary;

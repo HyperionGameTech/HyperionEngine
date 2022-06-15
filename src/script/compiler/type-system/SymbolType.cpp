@@ -397,6 +397,10 @@ SymbolTypePtr_t SymbolType::GetUnaliased()
 {
     if (m_type_class == TYPE_ALIAS) {
         if (const SymbolTypePtr_t aliasee = m_alias_info.m_aliasee.lock()) {
+            if (aliasee.get() == this) {
+                return aliasee;
+            }
+
             return aliasee->GetUnaliased();
         }
     }
@@ -461,7 +465,8 @@ bool SymbolType::IsGenericParameter() const
 
 SymbolTypePtr_t SymbolType::Alias(
     const std::string &name,
-    const AliasTypeInfo &info)
+    const AliasTypeInfo &info
+)
 {
     if (auto sp = info.m_aliasee.lock()) {
         SymbolTypePtr_t res(new SymbolType(

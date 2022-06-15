@@ -59,28 +59,27 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
 
+    // add symbol type to be usable within members
+    mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(m_symbol_type);
+
+    // declare Self as var to be usable within members
     // m_outside_members.emplace_back(new AstVariableDeclaration(
     //     BuiltinTypes::SELF_TYPE->GetName(),
     //     nullptr,
-    //     CloneAstNode(m_expr),
+    //     std::shared_ptr<AstVariable>(new AstVariable( // Self = <class name>
+    //         m_name,
+    //         m_location
+    //     )),
     //     {},
     //     true,
     //     false,
     //     m_location
     // ));
 
-    // declare current type name so it can be used in members
-    // m_outside_members.emplace_back(new AstVariableDeclaration(
-    //     m_name,
-    //     nullptr,
-    //     CloneAstNode(m_expr),
-    //     {},
-    //     true,
-    //     false,
-    //     m_location
+    // mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(SymbolType::Alias(
+    //     BuiltinTypes::SELF_TYPE->GetName(),
+    //     { m_symbol_type }
     // ));
-
-    mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(m_symbol_type);
 
     for (auto &outside_member : m_outside_members) {
         outside_member->Visit(visitor, mod);
