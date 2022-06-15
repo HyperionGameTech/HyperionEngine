@@ -1048,10 +1048,13 @@ struct InstructionHandler {
         AssertThrow(proto_mem != nullptr);
 
         if (proto_mem->value.m_value.ptr == nullptr) {
+            HYP_BREAKPOINT;
             state->ThrowException(
                 thread,
                 Exception::NullReferenceException()
             );
+
+            return;
         }
 
         Value &res = thread->m_regs[dst];

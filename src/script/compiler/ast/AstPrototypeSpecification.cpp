@@ -66,7 +66,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(type_obj->GetHeldType() != nullptr);
         found_symbol_type = type_obj->GetHeldType();
     } else if (identifier != nullptr) {
-        found_symbol_type = mod->LookupSymbolType(identifier->GetName());
+        //found_symbol_type = mod->LookupSymbolType(identifier->GetName());
     }
 
     if (found_symbol_type != nullptr) {
@@ -90,9 +90,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
             LEVEL_ERROR,
             Msg_not_a_constant_type,
             m_location,
-            value_of != nullptr && value_of->GetExprType() != nullptr
-                ? value_of->GetExprType()->GetName()
-                : "<Cannot find value of>"
+            expr_type->GetName()
         ));
     }
 
