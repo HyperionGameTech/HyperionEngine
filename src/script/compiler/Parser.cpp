@@ -530,10 +530,13 @@ std::shared_ptr<AstDirective> Parser::ParseDirective()
     return nullptr;
 }
 
-std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
+std::shared_ptr<AstExpression> Parser::ParseTerm(
+    bool override_commas,
     bool override_fat_arrows,
     bool override_angle_brackets,
-    bool override_square_brackets)
+    bool override_square_brackets,
+    bool override_parentheses
+)
 {
     Token token = m_token_stream->Peek();
     
@@ -638,7 +641,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
 
     while (expr != nullptr &&
            (Match(TK_DOT) ||
-            Match(TK_OPEN_PARENTH) ||
+            (!override_parentheses && Match(TK_OPEN_PARENTH)) ||
             // (!override_commas && Match(TK_COMMA)) ||
             (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
             (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
@@ -653,7 +656,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(bool override_commas,
             expr = ParseArrayAccess(expr);
         }
 
-        if (Match(TK_OPEN_PARENTH)) {
+        if (!override_parentheses && Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
         }
 
@@ -1609,7 +1612,13 @@ std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
 {
     const SourceLocation location = CurrentLocation();
 
-    if (auto term = ParseTerm(true, true, false, true)) {
+    if (auto term = ParseTerm(
+        true,  // override commas
+        true,  // override =>
+        false, // override <>
+        true,  // override []
+        true   // override ()
+    )) {
         //while (Match(TK_OPEN_BRACKET) || Match(TK_QUESTION_MARK)) {
             // question mark at the end of a type is syntactical sugar for `Maybe(T)`
             /*if (Token token = Match(TK_QUESTION_MARK, true)) {
@@ -1648,7 +1657,9 @@ std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
                     term->GetLocation()
                 ));
 
-                Expect(TK_CLOSE_BRACKET, true);
+                if (!Expect(TK_CLOSE_BRACKET, true)) {
+                    return nullptr;
+                }
             }
         //}
 

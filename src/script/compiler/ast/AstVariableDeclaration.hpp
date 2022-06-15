@@ -19,13 +19,19 @@ public:
         const std::shared_ptr<AstExpression> &assignment,
         const std::vector<std::shared_ptr<AstParameter>> &template_params,
         IdentifierFlagBits flags,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstVariableDeclaration() = default;
 
     inline const std::shared_ptr<AstExpression> &GetAssignment() const
         { return m_assignment; }
     inline const std::shared_ptr<AstExpression> &GetRealAssignment() const
         { return m_real_assignment; }
+
+    inline const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
+        { return m_proto; }
+    inline void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &proto)
+        { m_proto = proto; }
 
     inline bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
     inline bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }

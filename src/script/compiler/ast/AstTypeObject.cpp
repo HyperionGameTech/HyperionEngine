@@ -38,56 +38,17 @@ void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod)
 {
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
     AssertThrow(m_symbol_type != nullptr);
 
-    // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    //const uint8_t proto_rp = rp;
-
-    // load the type object using new(proto) instruction, where proto is the base class of this.
-    // TODO: base class stuff. for now load null as proto of this type
-    /*if (m_proto != nullptr) {
-        chunk->Append(m_proto->Build(visitor, mod));
-    } else {
-        // load null
-        chunk->Append(AstNil(m_location).Build(visitor, mod));
-    }
-
-    // increase register usage for the prototype
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-
-    // TODO: instantiate static members. this class could prob be merged w/ AstObject
-
-    auto instr_new = BytecodeUtil::Make<RawOperation<>>();
-    instr_new->opcode = NEW;
-    instr_new->Accept<uint8_t>(rp); // dst
-    instr_new->Accept<uint8_t>(proto_rp); // src (holds proto)
-    chunk->Append(std::move(instr_new));*/
-
-    /*auto instr_type = BytecodeUtil::Make<BuildableType>();
-    instr_type->reg = rp;
-    instr_type->name = sp->GetName();
-    for (const SymbolMember_t &mem : sp->GetMembers()) {
-        instr_type->members.push_back(std::get<0>(mem));
-    }
-
-    chunk->Append(std::move(instr_type));*/
-
-    //visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
-
+    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName()));
 
     // get active register
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     // store object's register location
     const uint8_t obj_reg = rp;
-    // store the original register location of the object
-    const uint8_t original_obj_reg = obj_reg;
 
-    {
+    { // load the type into register obj_reg
         auto instr_type = BytecodeUtil::Make<BuildableType>();
         instr_type->reg = obj_reg;
         instr_type->name = m_symbol_type->GetName();
@@ -99,28 +60,25 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         chunk->Append(std::move(instr_type));
     }
 
-    // push the class to the stack
-    const auto class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    // use above as self arg so PUSH
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    { // add instruction to store on stack
-        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
-        instr_push->opcode = PUSH;
-        instr_push->Accept<uint8_t>(rp);
-        chunk->Append(std::move(instr_push));
-    }
-
-    // increment stack size for class
-    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-
-
     if (!m_symbol_type->GetMembers().empty()) {
-        bool any_members_side_effects = false;
+        // push the class to the stack
+        const auto class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
-        // for each data member, load the default value
-        int i = 0;
+        // use above as self arg so PUSH
+        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        { // add instruction to store on stack
+            auto instr_push = BytecodeUtil::Make<RawOperation<>>();
+            instr_push->opcode = PUSH;
+            instr_push->Accept<uint8_t>(rp);
+            chunk->Append(std::move(instr_push));
+        }
+
+        // increment stack size for class
+        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+        int member_index = 0;
+
         for (const auto &mem : m_symbol_type->GetMembers()) {
             const SymbolTypePtr_t &mem_type = std::get<1>(mem);
             AssertThrow(mem_type != nullptr);
@@ -152,7 +110,7 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
                 auto instr_mov_mem = BytecodeUtil::Make<RawOperation<>>();
                 instr_mov_mem->opcode = MOV_MEM;
                 instr_mov_mem->Accept<uint8_t>(rp);
-                instr_mov_mem->Accept<uint8_t>(i); // index
+                instr_mov_mem->Accept<uint8_t>(member_index);
                 instr_mov_mem->Accept<uint8_t>(obj_reg);
                 chunk->Append(std::move(instr_mov_mem));
             }
@@ -164,27 +122,26 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
                 chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(mem)));
             }
 
-            i++;
+            member_index++;
         }
 
-        // decrease register usage for type
-        //visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+        // "return" our class to the last used register before popping
+        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        const int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+
+        { // load class from stack into register
+            auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
+            instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(stack_size - class_stack_location);
+            chunk->Append(std::move(instr_load_offset));
+        }
+
+        // pop class off stack
+        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+        chunk->Append(Compiler::PopStack(visitor, 1));
+    } else {
+        AssertThrow(obj_reg == visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister());
     }
-
-    // "return" our class to the last used register before popping
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-    const int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-
-    { // load class from stack into register
-        auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
-        instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(stack_size - class_stack_location);
-        chunk->Append(std::move(instr_load_offset));
-    }
-
-    // pop class off stack
-    visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-    chunk->Append(Compiler::PopStack(visitor, 1));
 
     chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbol_type->GetName()));
 
