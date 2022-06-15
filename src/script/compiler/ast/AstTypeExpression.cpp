@@ -135,7 +135,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     for (const auto &mem : m_members) {
         if (mem != nullptr) {
-            if (mem->GetName() == "construct") {//m_name) { // it is the constructor
+            if (mem->GetName() == m_name) { // it is the constructor
                 mem->SetName("$construct");
             }
 
