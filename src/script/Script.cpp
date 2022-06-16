@@ -118,15 +118,54 @@ void Script::Bake(BuildParams &build_params)
     code_generator.Visit(m_bytecode_chunk.get());
 
     m_baked_bytes = code_generator.GetInternalByteStream().Bake();
+    m_bs = BytecodeStream(reinterpret_cast<const char *>(m_baked_bytes.data()), m_baked_bytes.size());
 }
 
 void Script::Run()
 {
     AssertThrow(IsCompiled() && IsBaked());
 
-    BytecodeStream bytecode_stream(reinterpret_cast<const char *>(m_baked_bytes.data()), m_baked_bytes.size());
+    m_vm.Execute(&m_bs);
+}
 
-    m_vm.Execute(&bytecode_stream);
+void Script::CallFunction(const char *name)
+{
+    CallFunction(name, nullptr, 0);
+}
+void Script::CallFunction(const char *name, Value *args, size_t num_args)
+{
+    CallFunction(hash_fnv_1(name), args, num_args);    
+}
+
+void Script::CallFunction(HashFnv1 hash)
+{
+    CallFunction(hash, nullptr, 0);
+}
+
+void Script::CallFunction(HashFnv1 hash, Value *args, size_t num_args)
+{
+    auto *main_thread = m_vm.GetState().GetMainThread();
+
+    Value function_value;
+    AssertThrow(GetExportedSymbols().Find(hash, &function_value));
+
+    if (num_args != 0) {
+        AssertThrow(args != nullptr);
+
+        for (size_t i = 0; i < num_args; i++) {
+            main_thread->m_stack.Push(args[i]);
+        }
+    }
+
+    m_vm.InvokeNow(
+        &m_bs,
+        function_value,
+        num_args
+    );
+
+    if (num_args != 0) {
+        main_thread->m_stack.Pop(num_args);
+    }
 }
 
 } // namespace hyperion

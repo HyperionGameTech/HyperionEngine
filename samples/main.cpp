@@ -220,9 +220,10 @@ public:
     
                 my_script->Run();
 
-                vm::Value exported_value;
-                if (my_script->GetExportedSymbols().Find("MY_FOO", &exported_value)) {
-                    DebugLog(LogType::Debug, "MY_FOO = %d\n", exported_value.m_value.i32);
+                for (int i = 0; i < 5; i++) {
+                    vm::Value args[] = { vm::Value(vm::Value::I32, {.i32 = i}) };
+
+                    my_script->CallFunction("OnTick", args, 1);
                 }
             } else {
                 /*DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());

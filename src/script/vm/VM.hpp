@@ -48,9 +48,17 @@ public:
     inline const VMState &GetState() const { return m_state; }
 
     static void Print(const Value &value);
-    static void Invoke(InstructionHandler *handler,
+    static void Invoke(
+        InstructionHandler *handler,
         const Value &value,
-        uint8_t nargs);
+        uint8_t nargs
+    );
+
+    void InvokeNow(
+        BytecodeStream *bs,
+        const Value &value,
+        uint8_t nargs
+    );
 
     void Execute(BytecodeStream *bs);
 
@@ -100,6 +108,8 @@ private:
     void CreateStackTrace(ExecutionThread *thread, StackTrace *out);
 
     VMState m_state;
+
+    uint32_t m_invoke_now_level;
 };
 
 } // namespace vm

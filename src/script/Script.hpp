@@ -36,6 +36,9 @@ public:
     ExportedSymbolTable &GetExportedSymbols() { return m_vm.GetState().GetExportedSymbols(); }
     const ExportedSymbolTable &GetExportedSymbols() const { return m_vm.GetState().GetExportedSymbols(); }
 
+    VM &GetVM() { return m_vm; }
+    const VM &GetVM() const { return m_vm; }
+
     bool IsBaked() const               { return !m_baked_bytes.empty(); }
     bool IsCompiled() const            { return m_bytecode_chunk != nullptr; }
 
@@ -48,6 +51,11 @@ public:
 
     void Run();
 
+    void CallFunction(const char *name);
+    void CallFunction(const char *name, Value *args, size_t num_args);
+    void CallFunction(HashFnv1 hash);
+    void CallFunction(HashFnv1 hash, Value *args, size_t num_args);
+
 private:
     SourceFile                     m_source_file;
     CompilationUnit                m_compilation_unit;
@@ -58,6 +66,7 @@ private:
     Bytes                          m_baked_bytes;
 
     VM                             m_vm;
+    BytecodeStream                 m_bs;
 };
 
 } // namespace hyperion
