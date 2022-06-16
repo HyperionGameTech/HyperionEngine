@@ -93,7 +93,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/sponza/sponza.obj",//conference/conference.obj",//living_room/living_room.obj",
+            "models/lim/lim.obj",//conference/conference.obj",//living_room/living_room.obj",
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -161,7 +161,7 @@ public:
         ));
 
         //test_model->Translate({0, 0, 5});
-        test_model->Scale(0.075f);
+        test_model->Scale(3.075f);
         //test_model->Rotate(Quaternion({ 1, 0, 0 }, MathUtil::DegToRad(90.0f)));
         
         tex1 = engine->resources.textures.Add(
@@ -219,6 +219,11 @@ public:
                 my_script->Decompile(&utf::cout);
     
                 my_script->Run();
+
+                vm::Value exported_value;
+                if (my_script->GetExportedSymbols().Find("MY_FOO", &exported_value)) {
+                    DebugLog(LogType::Debug, "MY_FOO = %d\n", exported_value.m_value.i32);
+                }
             } else {
                 /*DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
 

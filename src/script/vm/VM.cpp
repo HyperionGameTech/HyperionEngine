@@ -870,19 +870,6 @@ void VM::Execute(BytecodeStream *bs)
 
             break;
         }
-        case ECHO: {
-            bc_reg_t reg; bs->Read(&reg);
-            handler.Echo(
-                reg
-            );
-
-            break;
-        }
-        case ECHO_NEWLINE: {
-            handler.EchoNewline();
-
-            break;
-        }
         case JMP: {
             //bc_reg_t reg; bs->Read(&reg);
             bc_address_t addr;
@@ -1190,6 +1177,17 @@ void VM::Execute(BytecodeStream *bs)
             uint32_t len; bs->Read(&len);
             // just skip comment
             bs->Skip(len);
+
+            break;
+        }
+        case EXPORT: {
+            bc_reg_t reg; bs->Read(&reg);
+            uint32_t hash; bs->Read(&hash);
+
+            handler.ExportSymbol(
+                reg,
+                hash
+            );
 
             break;
         }

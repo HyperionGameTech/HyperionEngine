@@ -124,6 +124,8 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 
 void VMState::GC()
 {
+    m_exported_symbols.MarkAll();
+
     // mark stack objects on each thread
     for (int i = 0; i < VM_MAX_THREADS; i++) {
         if (m_threads[i] != nullptr) {

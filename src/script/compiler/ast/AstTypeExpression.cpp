@@ -229,4 +229,9 @@ const AstExpression *AstTypeExpression::GetDeepValueOf() const
     return m_expr->GetDeepValueOf();
 }
 
+const std::string &AstTypeExpression::GetName() const
+{
+    return m_name;
+}
+
 } // namespace hyperion::compiler

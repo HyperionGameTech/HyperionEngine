@@ -33,6 +33,9 @@ public:
 
     const ErrorList &GetErrors() const { return m_errors; }
 
+    ExportedSymbolTable &GetExportedSymbols() { return m_vm.GetState().GetExportedSymbols(); }
+    const ExportedSymbolTable &GetExportedSymbols() const { return m_vm.GetState().GetExportedSymbols(); }
+
     bool IsBaked() const               { return !m_baked_bytes.empty(); }
     bool IsCompiled() const            { return m_bytecode_chunk != nullptr; }
 

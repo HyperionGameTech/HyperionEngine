@@ -6,10 +6,10 @@ namespace hyperion::compiler {
 
 AstDeclaration::AstDeclaration(
     const std::string &name,
-    const SourceLocation &location)
-    : AstStatement(location),
-      m_name(name),
-      m_identifier(nullptr)
+    const SourceLocation &location
+) : AstStatement(location),
+    m_name(name),
+    m_identifier(nullptr)
 {
 }
 
@@ -54,6 +54,11 @@ void AstDeclaration::Visit(AstVisitor *visitor, Module *mod)
             }
         }
     }
+}
+
+const std::string &AstDeclaration::GetName() const
+{
+    return m_name;
 }
 
 } // namespace hyperion::compiler

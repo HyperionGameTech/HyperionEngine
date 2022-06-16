@@ -21,6 +21,10 @@ typedef std::shared_ptr<SymbolType> SymbolTypePtr_t;
 
 class AstStatement {
     friend class AstIterator;
+
+protected:
+    static const std::string unnamed;
+
 public:
     AstStatement(const SourceLocation &location);
     virtual ~AstStatement() = default;
@@ -31,6 +35,8 @@ public:
     virtual void Visit(AstVisitor *visitor, Module *mod) = 0;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) = 0;
+
+    virtual const std::string &GetName() const { return unnamed; }
     
     virtual Pointer<AstStatement> Clone() const = 0;
 

@@ -159,5 +159,13 @@ Exception Exception::LibraryFunctionLoadException(const char *func_name)
     return Exception(buffer);
 }
 
+Exception Exception::DuplicateExportException()
+{
+    char buffer[256];
+    std::snprintf(buffer, 256, "Duplicate exported symbol");
+
+    return Exception(buffer);
+}
+
 } // namespace vm
 } // namespace hyperion

@@ -7,6 +7,7 @@
 #include <script/vm/Exception.hpp>
 #include <script/vm/BytecodeStream.hpp>
 #include <script/vm/Tracemap.hpp>
+#include <script/vm/ExportedSymbolTable.hpp>
 
 #include <util/non_owning_ptr.h>
 
@@ -72,6 +73,7 @@ struct VMState {
     StaticMemory m_static_memory;
     non_owning_ptr<VM> m_vm;
     Tracemap m_tracemap;
+    ExportedSymbolTable m_exported_symbols;
 
     bool good = true;
     bool enable_auto_gc = ENABLE_GC;
@@ -99,7 +101,9 @@ struct VMState {
 
     inline Heap &GetHeap() { return m_heap; }
     inline StaticMemory &GetStaticMemory() { return m_static_memory; }
-    
+
+    inline ExportedSymbolTable &GetExportedSymbols() { return m_exported_symbols; }
+    inline const ExportedSymbolTable &GetExportedSymbols() const { return m_exported_symbols; }
 
 private:
     size_t m_num_threads = 0;

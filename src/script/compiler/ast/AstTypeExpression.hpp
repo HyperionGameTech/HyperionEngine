@@ -22,7 +22,6 @@ public:
         const SourceLocation &location);
     virtual ~AstTypeExpression() = default;
 
-    inline const std::string &GetName() const { return m_name; }
     /** enable setting to that variable declarations can change the type name */
     inline void SetName(const std::string &name) { m_name = name; }
 
@@ -42,6 +41,8 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+
+    virtual const std::string &GetName() const override;
 
 protected:
     std::string m_name;

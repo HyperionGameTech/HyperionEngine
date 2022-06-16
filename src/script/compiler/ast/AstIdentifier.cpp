@@ -151,4 +151,9 @@ ExprAccessBits AstIdentifier::GetExprAccess() const
     return AstExpression::GetExprAccess();
 }
 
+const std::string &AstIdentifier::GetName() const
+{
+    return m_name;
+}
+
 } // namespace hyperion::compiler

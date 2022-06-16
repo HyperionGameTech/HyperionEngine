@@ -59,13 +59,41 @@ enum class Instructions_2 {
     CALL,
     RET,
 
-    PRINT,
-
     ADD,
+    ADD_I32, // reserved, awaiting impl
+    ADD_I64, // reserved, awaiting impl
+    ADD_U32, // reserved, awaiting impl
+    ADD_U64, // reserved, awaiting impl
+    ADD_F32, // reserved, awaiting impl
+    ADD_F64, // reserved, awaiting impl
     SUB,
+    SUB_I32, // reserved, awaiting impl
+    SUB_I64, // reserved, awaiting impl
+    SUB_U32, // reserved, awaiting impl
+    SUB_U64, // reserved, awaiting impl
+    SUB_F32, // reserved, awaiting impl
+    SUB_F64, // reserved, awaiting impl
     MUL,
+    MUL_I32, // reserved, awaiting impl
+    MUL_I64, // reserved, awaiting impl
+    MUL_U32, // reserved, awaiting impl
+    MUL_U64, // reserved, awaiting impl
+    MUL_F32, // reserved, awaiting impl
+    MUL_F64, // reserved, awaiting impl
     DIV,
+    DIV_I32, // reserved, awaiting impl
+    DIV_I64, // reserved, awaiting impl
+    DIV_U32, // reserved, awaiting impl
+    DIV_U64, // reserved, awaiting impl
+    DIV_F32, // reserved, awaiting impl
+    DIV_F64, // reserved, awaiting impl
     MOD,
+    MOD_I32, // reserved, awaiting impl
+    MOD_I64, // reserved, awaiting impl
+    MOD_U32, // reserved, awaiting impl
+    MOD_U64, // reserved, awaiting impl
+    MOD_F32, // reserved, awaiting impl
+    MOD_F64, // reserved, awaiting impl
 
     NEG,
     NOT,
@@ -167,9 +195,6 @@ enum Instructions : char {
     /* Push a value to the array in %dst_array */
     PUSH_ARRAY, // push_array [% dst, % src]
 
-    ECHO,         // echo [% reg]
-    ECHO_NEWLINE, // echo_newline
-
     /* Jump to address stored in register */
     JMP, // jmp [% reg]
     JE,  // je [% reg]
@@ -212,8 +237,9 @@ enum Instructions : char {
     TRACEMAP, // tracemap [u32 length]
 
     /* Comment (for debugging) */
-
     REM, // rem [u32 len, byte[len] str]
+    /* Export a symbol from register value by name */
+    EXPORT, // export [% src, u32 len, byte[len] str]
 
     /* Signifies the end of the stream */
     EXIT,

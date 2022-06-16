@@ -33,6 +33,7 @@ public:
     static Exception UnopenedFileCloseException();
     static Exception LibraryLoadException(const char *lib_name);
     static Exception LibraryFunctionLoadException(const char *func_name);
+    static Exception DuplicateExportException();
 
 private:
     char *m_str;

@@ -50,7 +50,6 @@ public:
     void PerformLookup(AstVisitor *visitor, Module *mod);
     void CheckInFunction(AstVisitor *visitor, Module *mod);
 
-    inline const std::string &GetName() const { return m_name; }
     inline AstIdentifierProperties &GetProperties() { return m_properties; }
     inline const AstIdentifierProperties &GetProperties() const { return m_properties; }
 
@@ -67,6 +66,8 @@ public:
 
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+
+    virtual const std::string &GetName() const override;
 
     /** temporary, used for extracting a type object located in the stored value */
     const AstTypeObject *ExtractTypeObject() const;

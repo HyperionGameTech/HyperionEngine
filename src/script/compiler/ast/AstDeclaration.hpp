@@ -14,7 +14,6 @@ public:
         const SourceLocation &location);
     virtual ~AstDeclaration() = default;
 
-    inline const std::string &GetName() const { return m_name; }
     inline void SetName(const std::string &name) { m_name = name; }
     inline Identifier *GetIdentifier() const { return m_identifier; }
 
@@ -23,6 +22,8 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override = 0;
     
     virtual Pointer<AstStatement> Clone() const override = 0;
+
+    virtual const std::string &GetName() const override;
 
 protected:
     std::string m_name;

@@ -939,16 +939,6 @@ struct InstructionHandler {
         array->Push(thread->m_regs[src_reg]);
     }
 
-    HYP_FORCE_INLINE void Echo(bc_reg_t reg)
-    {
-        VM::Print(thread->m_regs[reg]);
-    }
-
-    HYP_FORCE_INLINE void EchoNewline()
-    {
-        utf::fputs(UTF8_CSTR("\n"), stdout);
-    }
-
     HYP_FORCE_INLINE void Jmp(bc_address_t addr)
     {
         bs->Seek(addr);
@@ -1771,6 +1761,16 @@ struct InstructionHandler {
         }
     }
 
+    HYP_FORCE_INLINE void ExportSymbol(bc_reg_t reg, uint32_t hash)
+    {
+        if (!state->GetExportedSymbols().Store(hash, thread->m_regs[reg]).second) {
+            state->ThrowException(
+                thread,
+                Exception::DuplicateExportException()
+            );
+        }
+    }
+
     HYP_FORCE_INLINE void Neg(bc_reg_t reg)
     {
         // load value from register
@@ -1811,66 +1811,6 @@ struct InstructionHandler {
             return;
         }
     }
-
-    #if 0
-    HYP_FORCE_INLINE void StoreStaticString(uint32_t len, const char *str);
-    void StoreStaticAddress(bc_address_t addr);
-    void StoreStaticFunction(bc_address_t addr,
-        uint8_t nargs, uint8_t is_variadic);
-    void StoreStaticType(const char *type_name,
-        uint16_t size, char **names);
-    void LoadI32(bc_reg_t reg, aint32 i32);
-    void LoadI64(bc_reg_t reg, aint64 i64);
-    void LoadF32(bc_reg_t reg, afloat32 f32);
-    void LoadF64(bc_reg_t reg, afloat64 f64);
-    void LoadOffset(bc_reg_t reg, uint8_t offset);
-    void LoadIndex(bc_reg_t reg, uint16_t index);
-    void LoadStatic(bc_reg_t reg, uint16_t index);
-    void LoadString(bc_reg_t reg, uint32_t len, const char *str);
-    void LoadAddr(bc_reg_t reg, uint8_t addr);
-    void LoadFunc(bc_reg_t reg, bc_address_t addr,
-        uint8_t nargs, uint8_t is_variadic);
-    void LoadType(bc_reg_t reg, uint16_t type_name_len,
-        const char *type_name, uint16_t size, char **names);
-    void LoadMem(uint8_t dst, uint8_t src, uint8_t index);
-    void LoadMemHash(uint8_t dst, uint8_t src, uint32_t hash);
-    void LoadArrayIdx(uint8_t dst, uint8_t src, uint8_t index_reg);
-    void LoadNull(bc_reg_t reg);
-    void LoadTrue(bc_reg_t reg);
-    void LoadFalse(bc_reg_t reg);
-    void MovOffset(uint16_t offset, bc_reg_t reg);
-    void MovIndex(uint16_t index, bc_reg_t reg);
-    void MovMem(uint8_t dst, uint8_t index, uint8_t src);
-    void MovMemHash(uint8_t dst, uint32_t hash, uint8_t src);
-    void MovArrayIdx(uint8_t dst, uint32_t index, uint8_t src);
-    void MovReg(uint8_t dst, uint8_t src);
-    void HashMemHash(uint8_t dst, uint8_t src, uint32_t hash);
-    void Push(bc_reg_t reg);
-    void Pop(ExecutionThread *thread);
-    void PopN(uint8_t n);
-    void PushArray(uint8_t dst, uint8_t src);
-    void Echo(bc_reg_t reg);
-    void EchoNewline(ExecutionThread *thread);
-    void Jmp(bc_reg_t reg);
-    void Je(bc_reg_t reg);
-    void Jne(bc_reg_t reg);
-    void Jg(bc_reg_t reg);
-    void Jge(bc_reg_t reg);
-    void Call(bc_reg_t reg, uint8_t nargs);
-    void Ret(ExecutionThread *thread);
-    void BeginTry(bc_reg_t reg);
-    void EndTry(ExecutionThread *thread);
-    void New(uint8_t dst, uint8_t src);
-    void NewArray(uint8_t dst, uint32_t size);
-    void Cmp(uint8_t lhs_reg, uint8_t rhs_reg);
-    void CmpZ(bc_reg_t reg);
-    void Add(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Sub(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Mul(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Div(uint8_t lhs_reg, uint8_t rhs_reg, uint8_t dst_reg);
-    void Neg(bc_reg_t reg);
-
-    #endif
 };
 
 } // namespace vm

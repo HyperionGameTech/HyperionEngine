@@ -396,6 +396,8 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseDirective();
         } else if (MatchKeyword(Keyword_import, false)) {
             res = ParseImport();
+        } else if (MatchKeyword(Keyword_export, false)) {
+            res = ParseExportStatement();
         } else if (MatchKeyword(Keyword_let, false) || MatchKeyword(Keyword_const, false)) {
             res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_func, false)) {
@@ -424,8 +426,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseWhileLoop();
         } else if (MatchKeyword(Keyword_for, false)) {
             res = ParseForLoop();
-        } else if (MatchKeyword(Keyword_print, false)) {
-            res = ParsePrintStatement();
         } else if (MatchKeyword(Keyword_try, false)) {
             res = ParseTryCatchStatement();
         } else if (MatchKeyword(Keyword_return, false)) {
@@ -1490,20 +1490,6 @@ std::shared_ptr<AstForEachLoop> Parser::ParseForEachLoop()
             block,
             token.GetLocation()
         ));
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<AstPrintStatement> Parser::ParsePrintStatement()
-{
-    if (Token token = ExpectKeyword(Keyword_print, true)) {
-        if (auto arg_list = ParseArguments(false)) {
-            return std::shared_ptr<AstPrintStatement>(new AstPrintStatement(
-                arg_list,
-                token.GetLocation()
-            ));
-        }
     }
 
     return nullptr;
@@ -2828,6 +2814,20 @@ std::shared_ptr<AstImport> Parser::ParseImport()
             return ParseFileImport();
         } else if (MatchAhead(TK_IDENT, 1)) {
             return ParseModuleImport();
+        }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<AstExportStatement> Parser::ParseExportStatement()
+{
+    if (auto export_token = ExpectKeyword(Keyword_export, true)) {
+        if (auto stmt = ParseStatement()) {
+            return std::shared_ptr<AstExportStatement>(new AstExportStatement(
+                stmt,
+                export_token.GetLocation()
+            ));
         }
     }
 

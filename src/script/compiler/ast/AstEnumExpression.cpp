@@ -157,4 +157,9 @@ const AstExpression *AstEnumExpression::GetDeepValueOf() const
     return m_expr->GetDeepValueOf();
 }
 
+const std::string &AstEnumExpression::GetName() const
+{
+    return m_name;
+}
+
 } // namespace hyperion::compiler

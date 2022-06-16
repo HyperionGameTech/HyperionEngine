@@ -22,9 +22,7 @@ public:
       { return m_expr; }
 
     inline bool IsSplat() const { return m_is_splat; }
-
     inline bool IsNamed() const { return m_is_named; }
-    inline const std::string &GetName() const { return m_name; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -37,6 +35,7 @@ public:
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
+    virtual const std::string &GetName() const override;
 
 private:
     std::shared_ptr<AstExpression> m_expr;

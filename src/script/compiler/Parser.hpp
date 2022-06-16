@@ -23,6 +23,7 @@
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstImport.hpp>
+#include <script/compiler/ast/AstExportStatement.hpp>
 #include <script/compiler/ast/AstFileImport.hpp>
 #include <script/compiler/ast/AstModuleImport.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
@@ -51,7 +52,6 @@
 #include <script/compiler/ast/AstWhileLoop.hpp>
 #include <script/compiler/ast/AstForLoop.hpp>
 #include <script/compiler/ast/AstForEachLoop.hpp>
-#include <script/compiler/ast/AstPrintStatement.hpp>
 #include <script/compiler/ast/AstTryCatch.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
@@ -141,7 +141,6 @@ private:
     std::shared_ptr<AstWhileLoop> ParseWhileLoop();
     std::shared_ptr<AstStatement> ParseForLoop();
     std::shared_ptr<AstForEachLoop> ParseForEachLoop();
-    std::shared_ptr<AstPrintStatement> ParsePrintStatement();
     std::shared_ptr<AstTryCatch> ParseTryCatchStatement();
     std::shared_ptr<AstExpression> ParseBinaryExpression(
         int expr_prec,
@@ -196,6 +195,7 @@ private:
     std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();
     std::shared_ptr<AstMixin> ParseMixinExpression(const std::string &name);
     std::shared_ptr<AstImport> ParseImport();
+    std::shared_ptr<AstExportStatement> ParseExportStatement();
     std::shared_ptr<AstFileImport> ParseFileImport();
     std::shared_ptr<AstModuleImport> ParseModuleImport();
     std::shared_ptr<AstModuleImportPart> ParseModuleImportPart(bool allow_braces = false);

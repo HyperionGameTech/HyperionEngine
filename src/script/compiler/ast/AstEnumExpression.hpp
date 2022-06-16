@@ -27,7 +27,6 @@ public:
     );
     virtual ~AstEnumExpression() = default;
 
-    inline const std::string &GetName() const { return m_name; }
     inline void SetName(const std::string &name) { m_name = name; }
 
     inline const std::vector<EnumEntry> &GetEntries() const { return m_entries; }
@@ -44,6 +43,7 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+    virtual const std::string &GetName() const override;
 
 protected:
     std::string                                m_name;

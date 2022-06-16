@@ -793,31 +793,6 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case ECHO:
-    {
-        uint8_t reg;
-        bs.Read(&reg);
-
-        if (os != nullptr) {
-            (*os)
-                << "echo ["
-                    << "%" << (int)reg
-                << "]"
-                << std::endl;
-        }
-
-        break;
-    }
-    case ECHO_NEWLINE:
-    {
-        if (os != nullptr) {
-            (*os)
-                << "echo_newline"
-                << std::endl;
-        }
-
-        break;
-    }
     case JMP:
     {
         uint32_t addr;
@@ -1297,6 +1272,25 @@ void DecompilationUnit::DecodeNext(
         }
 
         delete[] str;
+
+        break;
+    }
+    case EXPORT:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint32_t hash;
+        bs.Read(&hash);
+
+        if (os != nullptr) {
+            (*os)
+                << "export ["
+                    << "%" << (int)reg << ", "
+                    << "u32(" << hash << ")"
+                << "]"
+                << std::endl;
+        }
 
         break;
     }

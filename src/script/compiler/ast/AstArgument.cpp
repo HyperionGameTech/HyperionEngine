@@ -74,4 +74,9 @@ SymbolTypePtr_t AstArgument::GetExprType() const
     return m_expr->GetExprType();
 }
 
+const std::string &AstArgument::GetName() const
+{
+    return m_name;
+}
+
 } // namespace hyperion::compiler

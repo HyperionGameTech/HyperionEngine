@@ -53,7 +53,7 @@ void AstBlockExpression::Visit(AstVisitor *visitor, Module *mod)
 
         m_children.push_back(child);
 
-        if (auto *decl = dynamic_cast<AstVariableDeclaration*>(child.get())) {
+        if (auto *decl = dynamic_cast<AstDeclaration *>(child.get())) {
             // rewrite name of variable.
             // prefix the original with $__ to hide it,
             // and create an alias with the original name pointing to this.<var name>

@@ -1,4 +1,5 @@
 #include <script/compiler/emit/aex-builder/AEXGenerator.hpp>
+#include <script/Hasher.hpp>
 #include <iostream>
 
 namespace hyperion::compiler {
@@ -394,6 +395,15 @@ void AEXGenerator::Visit(Comment *node)
     m_ibs.Put(Instructions::REM);
     m_ibs.Put((byte*)&len, sizeof(len));
     m_ibs.Put((byte*)&node->value[0], node->value.length());
+}
+
+void AEXGenerator::Visit(SymbolExport *node)
+{
+    uint32_t hash = hash_fnv_1(node->name.c_str());
+
+    m_ibs.Put(Instructions::EXPORT);
+    m_ibs.Put((byte*)&node->reg, sizeof(node->reg));
+    m_ibs.Put((byte*)&hash, sizeof(hash));
 }
 
 void AEXGenerator::Visit(RawOperation<> *node)

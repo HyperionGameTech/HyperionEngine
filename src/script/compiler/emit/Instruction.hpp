@@ -301,6 +301,16 @@ struct Comment final : public Instruction {
     virtual ~Comment() = default;
 };
 
+struct SymbolExport final : public Instruction {
+    RegIndex reg;
+    std::string name;
+
+    SymbolExport() = default;
+    SymbolExport(RegIndex reg, const std::string &name) : reg(reg), name(name) {}
+    SymbolExport(const SymbolExport &other) = default;
+    virtual ~SymbolExport() = default;
+};
+
 template <class...Args>
 struct RawOperation final : public Instruction {
     std::vector<char> data;
