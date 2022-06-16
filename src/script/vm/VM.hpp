@@ -52,7 +52,6 @@ public:
         const Value &value,
         uint8_t nargs);
 
-    void HandleInstruction(InstructionHandler *handler, uint8_t code);
     void Execute(BytecodeStream *bs);
 
     /** Returns -1 on error */
@@ -97,7 +96,8 @@ public:
     }
 
 private:
-    StackTrace CreateStackTrace(ExecutionThread *thread);
+    void HandleException(InstructionHandler *handler);
+    void CreateStackTrace(ExecutionThread *thread, StackTrace *out);
 
     VMState m_state;
 };

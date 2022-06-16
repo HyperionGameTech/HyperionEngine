@@ -61,13 +61,13 @@
         return; \
     } while (false)
 
-#define HYP_SCRIPT_RETURN_OBJECT(ptr) \
+#define HYP_SCRIPT_RETURN_OBJECT(value) \
     do { \
-        AssertThrow(ptr != nullptr); \
-        ptr->Mark(); \
+        AssertThrow(value != nullptr); \
+        value->Mark(); \
         vm::Value _res; \
         _res.m_type      = vm::Value::HEAP_POINTER; \
-        _res.m_value.ptr = ptr; \
+        _res.m_value.ptr = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 

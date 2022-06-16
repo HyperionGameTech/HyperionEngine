@@ -125,9 +125,12 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Init)
     vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
     AssertThrow(ptr_result != nullptr);
     ptr_result->Assign(Vector3());
-    ptr_result->Mark();
 
     self->LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
+
+    ptr_result->Mark();
+
+    HYP_SCRIPT_RETURN_OBJECT(params.args[0]->GetValue().ptr);
 }
 
 HYP_SCRIPT_FUNCTION(ScriptFunctions::ArraySize)
@@ -551,9 +554,9 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                     },
                     Vector3Add2
                 },
-                { // tmp until custom constructors work
-                    "Init",
-                    BuiltinTypes::VOID,
+                {
+                    "$construct",
+                    BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY }
                     },
