@@ -615,7 +615,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
     } else if (MatchKeyword(Keyword_enum)) {
         expr = ParseEnumExpression();
     } else if (Match(TK_OPERATOR)) {
-        expr = ParseUnaryExpression();
+        expr = ParseUnaryExpressionPrefix();
     } else {
         if (token.GetTokenClass() == TK_NEWLINE) {
             m_compilation_unit->GetErrorList().AddError(CompilerError(
@@ -639,15 +639,25 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         return nullptr;
     }
 
-    while (expr != nullptr &&
-           (Match(TK_DOT) ||
-            (!override_parentheses && Match(TK_OPEN_PARENTH)) ||
-            // (!override_commas && Match(TK_COMMA)) ||
-            (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
-            (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
-            //(!override_angle_brackets && MatchOperator("<")) ||
-            MatchKeyword(Keyword_has)))
+    auto operator_token = Token::EMPTY;
+
+    while (expr != nullptr && (
+        Match(TK_DOT) ||
+        (!override_parentheses && Match(TK_OPEN_PARENTH)) ||
+        // (!override_commas && Match(TK_COMMA)) ||
+        Match(TK_QUESTION_MARK) ||
+        (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
+        (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
+        //(!override_angle_brackets && MatchOperator("<")) ||
+        MatchKeyword(Keyword_has) ||
+        ((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
+    ))
     {
+        if (operator_token) {
+            expr = ParseUnaryExpressionPostfix(expr);
+            operator_token = Token::EMPTY;
+        }
+
         if (Match(TK_DOT)) {
             expr = ParseMemberExpression(expr);
         }
@@ -658,6 +668,10 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
 
         if (!override_parentheses && Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
+        }
+
+        if (Match(TK_QUESTION_MARK)) {
+            expr = ParseTernaryExpression(expr);
         }
 
         if (!override_fat_arrows && Match(TK_FAT_ARROW)) {
@@ -1556,12 +1570,12 @@ std::shared_ptr<AstExpression> Parser::ParseBinaryExpression(int expr_prec,
     return nullptr;
 }
 
-std::shared_ptr<AstExpression> Parser::ParseUnaryExpression()
+std::shared_ptr<AstExpression> Parser::ParseUnaryExpressionPrefix()
 {
     // read the operator token
     if (Token token = Expect(TK_OPERATOR, true)) {
         const Operator *op = nullptr;
-        if (Operator::IsUnaryOperator(token.GetValue(), op)) {
+        if (Operator::IsUnaryOperator(token.GetValue(), OperatorType::PREFIX, op)) {
             if (auto term = ParseTerm()) {
                 return std::shared_ptr<AstUnaryExpression>(new AstUnaryExpression(
                     term,
@@ -1580,6 +1594,63 @@ std::shared_ptr<AstExpression> Parser::ParseUnaryExpression()
                 token.GetValue()
             ));
         }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<AstExpression> Parser::ParseUnaryExpressionPostfix(const std::shared_ptr<AstExpression> &expr)
+{
+    // read the operator token
+    if (Token token = Expect(TK_OPERATOR, true)) {
+        const Operator *op = nullptr;
+        if (Operator::IsUnaryOperator(token.GetValue(), OperatorType::POSTFIX, op)) {
+            return std::shared_ptr<AstUnaryExpression>(new AstUnaryExpression(
+                expr,
+                op,
+                token.GetLocation()
+            ));
+        } else {
+            // internal error: operator not defined
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_illegal_operator,
+                token.GetLocation(),
+                token.GetValue()
+            ));
+        }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<AstExpression> Parser::ParseTernaryExpression(const std::shared_ptr<AstExpression> &conditional)
+{
+    if (Token token = Expect(TK_QUESTION_MARK, true)) {
+        // parse next ('true' part)
+
+        auto true_expr = ParseExpression();
+
+        if (true_expr == nullptr) {
+            return nullptr;
+        }
+
+        if (!Expect(TK_COLON, true)) {
+            return nullptr;
+        }
+
+        auto false_expr = ParseExpression();
+
+        if (false_expr == nullptr) {
+            return nullptr;
+        }
+
+        return std::shared_ptr<AstTernaryExpression>(new AstTernaryExpression(
+            conditional,
+            true_expr,
+            false_expr,
+            conditional->GetLocation()
+        ));
     }
 
     return nullptr;
