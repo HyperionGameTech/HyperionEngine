@@ -585,6 +585,13 @@ Token Lexer::ReadIdentifier()
         // }
     }
 
+    // read operator in the case that the string is "operator", like c++
+    if (value == "operator") {
+        if (Token operator_token = ReadOperator()) {
+            value += operator_token.GetValue();
+        }
+    }
+
     return Token(Keyword::IsKeyword(value) ? TK_KEYWORD : TK_IDENT, value, location);
 }
 

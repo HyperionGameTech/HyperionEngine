@@ -6,12 +6,17 @@
 
 namespace hyperion::compiler {
 
-enum OperatorType {
+using OperatorTypeBits = uint32_t;
+
+enum OperatorType : OperatorTypeBits {
     ARITHMETIC = 1,
-    BITWISE = 2,
-    LOGICAL = 4,
+    BITWISE    = 2,
+    LOGICAL    = 4,
     COMPARISON = 8,
     ASSIGNMENT = 16,
+
+    PREFIX     = 32,
+    POSTFIX    = 64
 };
 
 enum Operators {
@@ -60,34 +65,119 @@ public:
     static const std::map<std::string, Operator> binary_operators;
     static const std::map<std::string, Operator> unary_operators;
 
-    static inline bool IsBinaryOperator(const std::string &str)
-        { return binary_operators.find(str) != binary_operators.end(); }
+    static inline bool IsBinaryOperator(const std::string &str, OperatorTypeBits match_bits = 0)
+    {
+        const auto it = binary_operators.find(str);
+
+        if (it == binary_operators.end()) {
+            return false;
+        }
+
+        if (match_bits == 0) {
+            return true;
+        }
+
+        return bool(it->second.GetType() & match_bits);
+    }
+
     static inline bool IsBinaryOperator(const std::string &str, const Operator *&out)
     {
-        auto it = binary_operators.find(str);
-        if (it != binary_operators.end()) {
-            out = &it->second;
-            return true;
+        const auto it = binary_operators.find(str);
+
+        if (it == binary_operators.end()) {
+            return false;
         }
-        return false;
+
+        out = &it->second;
+
+        return true;
     }
-    static inline bool IsUnaryOperator(const std::string &str)
-        { return unary_operators.find(str) != unary_operators.end(); }
-    static inline bool IsUnaryOperator(const std::string &str, const Operator *&out)
+
+    static inline bool IsBinaryOperator(const std::string &str, OperatorTypeBits match_bits, const Operator *&out)
     {
-        auto it = unary_operators.find(str);
-        if (it != unary_operators.end()) {
+        const auto it = binary_operators.find(str);
+
+        if (it == binary_operators.end()) {
+            return false;
+        }
+
+        if (match_bits == 0) {
             out = &it->second;
+
             return true;
         }
+
+        if (it->second.GetType() & match_bits) {
+            out = &it->second;
+
+            return true;
+        }
+
         return false;
     }
 
+    static inline bool IsUnaryOperator(const std::string &str, OperatorTypeBits match_bits = 0)
+    {
+        const auto it = unary_operators.find(str);
+
+        if (it == unary_operators.end()) {
+            return false;
+        }
+
+        if (match_bits == 0) {
+            return true;
+        }
+
+        return bool(it->second.GetType() & match_bits);
+    }
+
+    static inline bool IsUnaryOperator(const std::string &str, const Operator *&out)
+    {
+        const auto it = unary_operators.find(str);
+
+        if (it == unary_operators.end()) {
+            return false;
+        }
+
+        out = &it->second;
+
+        return true;
+    }
+
+    static inline bool IsUnaryOperator(const std::string &str, OperatorTypeBits match_bits, const Operator *&out)
+    {
+        const auto it = unary_operators.find(str);
+
+        if (it == unary_operators.end()) {
+            return false;
+        }
+
+        if (match_bits == 0) {
+            out = &it->second;
+
+            return true;
+        }
+
+        if (it->second.GetType() & match_bits) {
+            out = &it->second;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    static const Operator *FindBinaryOperator(Operators op);
+    static const Operator *FindUnaryOperator(Operators op);
+
 public:
-    Operator(Operators op_type,
+    Operator(
+        Operators op_type,
         int precedence,
         int type,
-        bool modifies_value = false);
+        bool modifies_value = false,
+        bool supports_overloading = false
+    );
     Operator(const Operator &other);
 
     inline Operators GetOperatorType() const
@@ -100,6 +190,8 @@ public:
         { return m_precedence == 0; }
     inline bool ModifiesValue() const
         { return m_modifies_value; }
+    inline bool SupportsOverloading() const
+        { return m_supports_overloading; }
 
     std::string LookupStringValue() const;
 
@@ -108,6 +200,7 @@ private:
     int m_precedence;
     int m_type;
     bool m_modifies_value;
+    bool m_supports_overloading;
 };
 
 } // namespace hyperion::compiler

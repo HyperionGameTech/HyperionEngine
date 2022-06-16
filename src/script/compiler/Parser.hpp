@@ -30,6 +30,7 @@
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstUnaryExpression.hpp>
+#include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
@@ -142,9 +143,15 @@ private:
     std::shared_ptr<AstForEachLoop> ParseForEachLoop();
     std::shared_ptr<AstPrintStatement> ParsePrintStatement();
     std::shared_ptr<AstTryCatch> ParseTryCatchStatement();
-    std::shared_ptr<AstExpression> ParseBinaryExpression(int expr_prec,
-        std::shared_ptr<AstExpression> left);
-    std::shared_ptr<AstExpression> ParseUnaryExpression();
+    std::shared_ptr<AstExpression> ParseBinaryExpression(
+        int expr_prec,
+        std::shared_ptr<AstExpression> left
+    );
+    std::shared_ptr<AstExpression> ParseUnaryExpressionPrefix();
+    std::shared_ptr<AstExpression> ParseUnaryExpressionPostfix(const std::shared_ptr<AstExpression> &expr);
+    std::shared_ptr<AstExpression> ParseTernaryExpression(
+        const std::shared_ptr<AstExpression> &conditional
+    );
     std::shared_ptr<AstExpression> ParseExpression(
         bool override_commas = false,
         bool override_fat_arrows = false,
@@ -164,7 +171,8 @@ private:
         bool is_pure = false);
     std::shared_ptr<AstArrayExpression> ParseArrayExpression();
     std::shared_ptr<AstTupleExpression> ParseTupleExpression(
-        const std::shared_ptr<AstExpression> &expr = nullptr);
+        const std::shared_ptr<AstExpression> &expr = nullptr
+    );
     std::shared_ptr<AstExpression> ParseAsyncExpression();
     std::shared_ptr<AstExpression> ParsePureExpression();
     std::shared_ptr<AstExpression> ParseImpureExpression();

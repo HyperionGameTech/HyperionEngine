@@ -1,6 +1,10 @@
 #include <script/compiler/ast/AstBinaryExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
+#include <script/compiler/ast/AstArgument.hpp>
+#include <script/compiler/ast/AstMemberCallExpression.hpp>
+#include <script/compiler/ast/AstTernaryExpression.hpp>
+#include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/Operator.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Optimizer.hpp>
@@ -17,14 +21,16 @@
 
 namespace hyperion::compiler {
 
-AstBinaryExpression::AstBinaryExpression(const std::shared_ptr<AstExpression> &left,
+AstBinaryExpression::AstBinaryExpression(
+    const std::shared_ptr<AstExpression> &left,
     const std::shared_ptr<AstExpression> &right,
     const Operator *op,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_left(left),
-      m_right(right),
-      m_op(op)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_left(left),
+    m_right(right),
+    m_op(op),
+    m_operator_overloading_enabled(true)
 {
 }
 
@@ -43,6 +49,62 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 #endif
 
     m_left->Visit(visitor, mod);
+
+    // operator overloading
+    if (m_operator_overloading_enabled && m_op->SupportsOverloading()) {
+        // look for operator overloading
+        SymbolTypePtr_t target_type = m_left->GetExprType();
+        AssertThrow(target_type != nullptr);
+
+        target_type = target_type->GetUnaliased();
+        AssertThrow(target_type != nullptr);
+
+        const auto operator_string = m_op->LookupStringValue();
+        const auto overload_function_name = "operator" + operator_string;
+
+        auto call_operator_overload_expr = std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+            overload_function_name,
+            CloneAstNode(m_left),
+            std::shared_ptr<AstArgumentList>(new AstArgumentList(
+                {
+                    std::shared_ptr<AstArgument>(new AstArgument(
+                        m_right,
+                        false,
+                        false,
+                        "other",
+                        m_location
+                    ))
+                },
+                m_location
+            )), // use right hand side as arg
+            m_location
+        ));
+
+        if (target_type == BuiltinTypes::ANY_TYPE || target_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
+            auto sub_bin_expr = std::static_pointer_cast<AstBinaryExpression>(Clone());
+            sub_bin_expr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
+
+            m_operator_overload.reset(new AstTernaryExpression(
+                std::shared_ptr<AstHasExpression>(new AstHasExpression(
+                    CloneAstNode(m_left),
+                    overload_function_name,
+                    m_location
+                )),
+                call_operator_overload_expr,
+                sub_bin_expr,
+                m_location
+            ));
+        } else if (target_type->FindPrototypeMember(overload_function_name)) {
+            m_operator_overload = call_operator_overload_expr;
+        }
+
+        if (m_operator_overload != nullptr) {
+            m_operator_overload->Visit(visitor, mod);
+
+            return;
+        }
+    }
+
     m_right->Visit(visitor, mod);
 
     SymbolTypePtr_t left_type = m_left->GetExprType();
@@ -76,7 +138,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 right_type_unboxed->GetName()
             )
         );
-    } /*else if (m_op->GetType() & ARITHMETIC) {
+    } else if (m_op->GetType() & ARITHMETIC) {
         // arithmetic operators are only for numbers
         visitor->Assert(
             left_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false) &&
@@ -90,7 +152,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 right_type_unboxed->GetName()
             )
         );
-    }*/
+    }
 
     if (m_op->ModifiesValue()) {
         SemanticAnalyzer::Helpers::EnsureTypeAssignmentCompatibility(
@@ -144,6 +206,10 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    if (m_operator_overload != nullptr) {
+        return m_operator_overload->Build(visitor, mod);
+    }
+
 #if ACE_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         return m_variable_declaration->Build(visitor, mod);
@@ -157,7 +223,7 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
         m_right.get()
     };
 
-    if (m_op->GetType() == ARITHMETIC || m_op->GetType() == BITWISE) {
+    if (bool(m_op->GetType() & (ARITHMETIC | BITWISE)) && !(m_op->GetType() & ASSIGNMENT)) {
         uint8_t opcode = 0;
 
         switch (m_op->GetOperatorType()) {
@@ -196,7 +262,7 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
         chunk->Append(Compiler::BuildBinOp(opcode, visitor, mod, info));
 
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
-    } else if (m_op->GetType() == LOGICAL) {
+    } else if (m_op->GetType() & LOGICAL) {
         std::shared_ptr<AstExpression> first = nullptr;
         std::shared_ptr<AstExpression> second = nullptr;
 
@@ -380,7 +446,7 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
             chunk->Append(BytecodeUtil::Make<ConstBool>(rp, true));
             chunk->Append(BytecodeUtil::Make<LabelMarker>(false_label));
         }
-    } else if (m_op->GetType() == COMPARISON) {
+    } else if (m_op->GetType() & COMPARISON) {
         uint8_t rp;
         
         Jump::JumpClass jump_class;
@@ -534,6 +600,12 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
 
 void AstBinaryExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_operator_overload != nullptr) {
+        m_operator_overload->Optimize(visitor, mod);
+
+        return;
+    }
+
 #if ACE_ENABLE_LAZY_DECLARATIONS
     if (m_variable_declaration != nullptr) {
         m_variable_declaration->Optimize(visitor, mod);
@@ -594,6 +666,10 @@ Tribool AstBinaryExpression::IsTrue() const
 
 bool AstBinaryExpression::MayHaveSideEffects() const
 {
+    if (m_operator_overload != nullptr) {
+        return m_operator_overload->MayHaveSideEffects();
+    }
+
     // if (m_member_access) {
     //     return m_member_access->MayHaveSideEffects();
     // } else {
@@ -614,7 +690,12 @@ bool AstBinaryExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstBinaryExpression::GetExprType() const
 {
+    if (m_operator_overload != nullptr) {
+        return m_operator_overload->GetExprType();
+    }
+
     AssertThrow(m_op != nullptr);
+
     if ((m_op->GetType() & LOGICAL) || (m_op->GetType() & COMPARISON)) {
         return BuiltinTypes::BOOLEAN;
     }

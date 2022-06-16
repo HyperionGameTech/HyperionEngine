@@ -338,7 +338,7 @@ bool SymbolType::FindMember(const std::string &name, SymbolMember_t &out) const
 const SymbolTypePtr_t SymbolType::FindPrototypeMember(const std::string &name) const
 {
     if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
-        if (proto_type == BuiltinTypes::ANY) {
+        if (proto_type == BuiltinTypes::ANY_TYPE || proto_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
             return BuiltinTypes::ANY;
         }
 
