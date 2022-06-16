@@ -8,7 +8,8 @@ namespace hyperion {
 class ScriptFunctions {
 public:
     static HYP_SCRIPT_FUNCTION(Vector3Add);
-    static HYP_SCRIPT_FUNCTION(Vector3Add2);
+    static HYP_SCRIPT_FUNCTION(Vector3Sub);
+    static HYP_SCRIPT_FUNCTION(Vector3ToString);
     static HYP_SCRIPT_FUNCTION(Vector3Init);
 
     static HYP_SCRIPT_FUNCTION(ArraySize);

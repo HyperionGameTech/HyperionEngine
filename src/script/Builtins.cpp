@@ -18,67 +18,13 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add)
 
     if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
         !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected expects two arguments of type Vector3"));
         return;
     }
 
     if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
         !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
-        return;
-    }
-    
-    vm::Member *left_x = nullptr,
-               *left_y = nullptr,
-               *left_z = nullptr,
-               *right_x = nullptr,
-               *right_y = nullptr,
-               *right_z = nullptr;
-
-    afloat64 left_x_num,
-             left_y_num,
-             left_z_num,
-             right_x_num,
-             right_y_num,
-             right_z_num;
-
-    AssertThrow((left_x = left_object->LookupMemberFromHash(hash_fnv_1("x"))) && left_x->value.GetFloatingPointCoerce(&left_x_num));
-    AssertThrow((left_y = left_object->LookupMemberFromHash(hash_fnv_1("y"))) && left_y->value.GetFloatingPointCoerce(&left_y_num));
-    AssertThrow((left_z = left_object->LookupMemberFromHash(hash_fnv_1("z"))) && left_z->value.GetFloatingPointCoerce(&left_z_num));
-
-    AssertThrow((right_x = right_object->LookupMemberFromHash(hash_fnv_1("x"))) && right_x->value.GetFloatingPointCoerce(&right_x_num));
-    AssertThrow((right_y = right_object->LookupMemberFromHash(hash_fnv_1("y"))) && right_y->value.GetFloatingPointCoerce(&right_y_num));
-    AssertThrow((right_z = right_object->LookupMemberFromHash(hash_fnv_1("z"))) && right_z->value.GetFloatingPointCoerce(&right_z_num));
-
-    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
-    AssertThrow(ptr != nullptr);
-
-    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
-    result_value.LookupMemberFromHash(hash_fnv_1("x"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_x_num + right_x_num)});
-    result_value.LookupMemberFromHash(hash_fnv_1("y"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_y_num + right_y_num)});
-    result_value.LookupMemberFromHash(hash_fnv_1("z"))->value = vm::Value(vm::Value::F32, {.f = static_cast<afloat32>(left_z_num + right_z_num)});
-
-    ptr->Assign(result_value);
-
-    HYP_SCRIPT_RETURN_OBJECT(ptr);
-}
-
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add2)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 2);
-
-    vm::Object *left_object = nullptr,
-               *right_object = nullptr;
-
-    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
-        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
-        return;
-    }
-
-    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
-        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Add() expects two arguments of type Vector3"));
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
         return;
     }
 
@@ -103,6 +49,87 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add2)
     vm::Object result_value(left_object->GetPrototype()); // construct from prototype
     result_value.LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
     ptr->Assign(result_value);
+
+    HYP_SCRIPT_RETURN_OBJECT(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Sub)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Object *left_object = nullptr,
+               *right_object = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
+        return;
+    }
+
+    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
+        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
+        return;
+    }
+
+    vm::Member *left_member = nullptr,
+               *right_member = nullptr;
+    
+    Vector3 *left_vector3 = nullptr,
+            *right_vector3 = nullptr;
+
+    AssertThrow((left_member = left_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && left_member->value.GetPointer(&left_vector3));
+    AssertThrow((right_member = right_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && right_member->value.GetPointer(&right_vector3));
+
+    vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr_result != nullptr);
+
+    ptr_result->Assign(*left_vector3 - *right_vector3);
+    ptr_result->Mark();
+
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
+    result_value.LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
+    ptr->Assign(result_value);
+
+    HYP_SCRIPT_RETURN_OBJECT(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3ToString)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Object *self = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Init() expects one argument of type Vector3"));
+        return;
+    }
+
+    vm::Member *self_member = nullptr;
+    AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+    Vector3 *vector3_value;
+    AssertThrow(self_member->value.GetPointer<Vector3>(&vector3_value));
+    
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    char buffer[32];
+    std::snprintf(
+        buffer, 32,
+        "[%f, %f, %f]",
+        vector3_value->x,
+        vector3_value->y,
+        vector3_value->z
+    );
+
+    ptr->Assign(ImmutableString(buffer));
+    ptr->Mark();
 
     HYP_SCRIPT_RETURN_OBJECT(ptr);
 }
@@ -526,33 +553,32 @@ void ScriptFunctions::Build(APIInstance &api_instance)
         .Class(
             "Vector3",
             {
-                { "x", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
-                { "y", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
-                { "z", BuiltinTypes::FLOAT, vm::Value(vm::Value::F32, {.f = 0.0f}) },
-
+                { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr}) },
                 {
-                    "Add",
+                    "operator+",
                     BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY },
                         { "other", BuiltinTypes::ANY }
                     },
                     Vector3Add
-                }
-            }
-        )
-        .Class(
-            "vec3",
-            {
-                { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr}) },
+                },
                 {
-                    "Add",
+                    "operator-",
                     BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY },
                         { "other", BuiltinTypes::ANY }
                     },
-                    Vector3Add2
+                    Vector3Sub
+                },
+                {
+                    "ToString",
+                    BuiltinTypes::STRING,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    Vector3ToString
                 },
                 {
                     "$construct",
