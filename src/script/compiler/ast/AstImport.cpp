@@ -23,11 +23,11 @@ AstImport::AstImport(const SourceLocation &location)
 void AstImport::CopyModules(
     AstVisitor *visitor,
     Module *mod_to_copy,
-    bool update_tree_link)
+    bool update_tree_link
+)
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod_to_copy != nullptr);
-    
     AssertThrow(visitor->GetCompilationUnit()->GetCurrentModule() != nullptr);
 
     if (visitor->GetCompilationUnit()->GetCurrentModule()->LookupNestedModule(mod_to_copy->GetName()) != nullptr) {
@@ -37,6 +37,8 @@ void AstImport::CopyModules(
             mod_to_copy->GetLocation(),
             mod_to_copy->GetName()
         ));
+
+        return;
     }
 
     // add this module to the compilation unit
@@ -49,7 +51,7 @@ void AstImport::CopyModules(
     }
 
     // function to copy nested modules 
-    std::function<void(TreeNode<Module*>*)> copy_nodes = [visitor, &copy_nodes, &update_tree_link](TreeNode<Module*> *link) {
+    std::function<void(TreeNode<Module *> *)> copy_nodes = [visitor, &copy_nodes, &update_tree_link](TreeNode<Module*> *link) {
         AssertThrow(link != nullptr);
         AssertThrow(link->m_value != nullptr);
 

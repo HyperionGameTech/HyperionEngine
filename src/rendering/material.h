@@ -241,7 +241,7 @@ public:
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
     using TextureSet     = EnumOptions<TextureKey, Ref<Texture>, max_textures>;
 
-    Material(const char *tag = "");
+    Material(const char *name = "");
     Material(const Material &other) = delete;
     Material &operator=(const Material &other) = delete;
     ~Material();
@@ -322,7 +322,7 @@ private:
     void EnqueueDescriptorSetCreate();
     void EnqueueDescriptorSetDestroy();
 
-    char *m_tag;
+    char *m_name;
 
     ParameterTable          m_parameters;
     TextureSet              m_textures;

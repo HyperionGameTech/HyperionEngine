@@ -1155,7 +1155,7 @@ void VM::InvokeNow(
         nargs
     );
 
-    if (value.m_type == Value::FUNCTION) {
+    if (value.m_type == Value::FUNCTION) { // don't do this for native function calls
         uint8_t code;
 
         while (!bs->Eof()) {
@@ -1217,7 +1217,11 @@ void VM::HandleException(InstructionHandler *handler)
 
     std::cout << "stack_trace = \n";
 
-    for (size_t i = 0; i < sizeof(stack_trace.call_addresses) / sizeof(stack_trace.call_addresses[0]); i++) {
+    for (int i = 0; i < sizeof(stack_trace.call_addresses) / sizeof(stack_trace.call_addresses[0]); i++) {
+        if (stack_trace.call_addresses[i] == -1) {
+            break;
+        }
+        
         std::cout << "\t" << std::hex << stack_trace.call_addresses[i] << "\n";
     }
 

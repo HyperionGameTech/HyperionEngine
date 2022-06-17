@@ -19,11 +19,11 @@ using v2::FileSystem;
 AstModuleImportPart::AstModuleImportPart(
     const std::string &left,
     const std::vector<std::shared_ptr<AstModuleImportPart>> &right_parts,
-    const SourceLocation &location)
-    : AstStatement(location),
-      m_left(left),
-      m_right_parts(right_parts),
-      m_pull_in_modules(true)
+    const SourceLocation &location
+) : AstStatement(location),
+    m_left(left),
+    m_right_parts(right_parts),
+    m_pull_in_modules(true)
 {
 }
 

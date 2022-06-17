@@ -81,7 +81,7 @@ Bone *Skeleton::FindBone(const char *name) const
         return nullptr;
     }
 
-    if (!std::strcmp(m_root_bone->GetTag(), name)) {
+    if (!std::strcmp(m_root_bone->GetName(), name)) {
         return m_root_bone.get();
     }
 
@@ -92,7 +92,7 @@ Bone *Skeleton::FindBone(const char *name) const
 
         auto *bone = static_cast<Bone *>(node);  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
 
-        if (!std::strcmp(bone->GetTag(), name)) {
+        if (!std::strcmp(bone->GetName(), name)) {
             return bone;
         }
     }

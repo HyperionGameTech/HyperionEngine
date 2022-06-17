@@ -1,12 +1,17 @@
-#ifndef BUILTINS_HPP
-#define BUILTINS_HPP
+#ifndef SCRIPT_BINDINGS_HPP
+#define SCRIPT_BINDINGS_HPP
 
 #include <script/ScriptApi.hpp>
 
 namespace hyperion {
 
-class ScriptFunctions {
+class ScriptBindings {
 public:
+    static APIInstance::ClassBindings class_bindings;
+
+    static HYP_SCRIPT_FUNCTION(NodeGetName);
+    static HYP_SCRIPT_FUNCTION(NodeGetLocalTranslation);
+
     static HYP_SCRIPT_FUNCTION(Vector3Add);
     static HYP_SCRIPT_FUNCTION(Vector3Sub);
     static HYP_SCRIPT_FUNCTION(Vector3ToString);
@@ -25,6 +30,7 @@ public:
     static HYP_SCRIPT_FUNCTION(Free);
 
     static void Build(APIInstance &api_instance);
+
 };
 
 } // namespace hyperion

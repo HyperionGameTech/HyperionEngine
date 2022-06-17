@@ -12,7 +12,8 @@ public:
     AstModuleImportPart(
       const std::string &left,
       const std::vector<std::shared_ptr<AstModuleImportPart>> &right_parts,
-      const SourceLocation &location);
+      const SourceLocation &location
+    );
     virtual ~AstModuleImportPart() = default;
 
     inline const std::string &GetLeft() const { return m_left; }

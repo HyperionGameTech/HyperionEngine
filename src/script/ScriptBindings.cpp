@@ -1,103 +1,22 @@
-#include <script/Builtins.hpp>
+#include <script/ScriptBindings.hpp>
 #include <script/vm/InstructionHandler.hpp>
 #include <script/vm/MemoryBuffer.hpp>
 
+#include <scene/node.h>
+
 #include <math/math_util.h>
+ 
+#include <core/lib/type_map.h>
 
 namespace hyperion {
 
 using namespace vm;
 using namespace compiler;
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Add)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 2);
+APIInstance::ClassBindings ScriptBindings::class_bindings = {};
+// static APIInstance::ClassBindings class_bindings = {};
 
-    vm::Object *left_object = nullptr,
-               *right_object = nullptr;
-
-    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
-        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected expects two arguments of type Vector3"));
-        return;
-    }
-
-    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
-        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
-        return;
-    }
-
-    vm::Member *left_member = nullptr,
-               *right_member = nullptr;
-    
-    Vector3 *left_vector3 = nullptr,
-            *right_vector3 = nullptr;
-
-    AssertThrow((left_member = left_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && left_member->value.GetPointer(&left_vector3));
-    AssertThrow((right_member = right_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && right_member->value.GetPointer(&right_vector3));
-
-    vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
-    AssertThrow(ptr_result != nullptr);
-
-    ptr_result->Assign(*left_vector3 + *right_vector3);
-    ptr_result->Mark();
-
-    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
-    AssertThrow(ptr != nullptr);
-
-    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
-    result_value.LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
-    ptr->Assign(result_value);
-
-    HYP_SCRIPT_RETURN_OBJECT(ptr);
-}
-
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Sub)
-{
-    HYP_SCRIPT_CHECK_ARGS(==, 2);
-
-    vm::Object *left_object = nullptr,
-               *right_object = nullptr;
-
-    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
-        !(left_object = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
-        return;
-    }
-
-    if (params.args[1]->GetType() != vm::Value::HEAP_POINTER ||
-        !(right_object = params.args[1]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected two arguments of type Vector3"));
-        return;
-    }
-
-    vm::Member *left_member = nullptr,
-               *right_member = nullptr;
-    
-    Vector3 *left_vector3 = nullptr,
-            *right_vector3 = nullptr;
-
-    AssertThrow((left_member = left_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && left_member->value.GetPointer(&left_vector3));
-    AssertThrow((right_member = right_object->LookupMemberFromHash(hash_fnv_1("__intern"))) && right_member->value.GetPointer(&right_vector3));
-
-    vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
-    AssertThrow(ptr_result != nullptr);
-
-    ptr_result->Assign(*left_vector3 - *right_vector3);
-    ptr_result->Mark();
-
-    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
-    AssertThrow(ptr != nullptr);
-
-    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
-    result_value.LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
-    ptr->Assign(result_value);
-
-    HYP_SCRIPT_RETURN_OBJECT(ptr);
-}
-
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3ToString)
+HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetName)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -105,9 +24,253 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3ToString)
 
     if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
         !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Init() expects one argument of type Vector3"));
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Node::GetName() expects one argument of type Node"));
         return;
     }
+
+    vm::Member *self_member = nullptr;
+    AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+    v2::Node *node_ptr;
+    AssertThrow(self_member->value.GetUserData(&node_ptr));
+    
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(ImmutableString(node_ptr->GetName()));
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptBindings::NodeGetLocalTranslation)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Object *self = nullptr;
+
+    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
+        !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Node::GetLocalTranslation() expects one argument of type Node"));
+        return;
+    }
+
+    vm::Member *self_member = nullptr;
+    AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
+
+    v2::Node *node_ptr;
+    AssertThrow(self_member->value.GetUserData(&node_ptr));
+    
+    // create heap value for Vector3
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(node_ptr->GetLocalTranslation());
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
+}
+
+template <class ReturnType, class ThisType, ReturnType(ThisType::*MemFn)() const>
+HYP_SCRIPT_FUNCTION(CxxMemberFn)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+    
+    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_INT(0, arg0);
+
+        HYP_SCRIPT_RETURN_INT32((arg0->*MemFn)());
+    } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_INT(0, arg0);
+
+        HYP_SCRIPT_RETURN_INT64((arg0->*MemFn)());
+    } else if constexpr (std::is_same_v<uint32_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_UINT(0, arg0);
+
+        HYP_SCRIPT_RETURN_UINT32((arg0->*MemFn)());
+    } else if constexpr (std::is_same_v<uint64_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_UINT(0, arg0);
+
+        HYP_SCRIPT_RETURN_UINT64((arg0->*MemFn)());
+    } else if constexpr (std::is_same_v<float, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_FLOAT(0, arg0);
+
+        HYP_SCRIPT_RETURN_FLOAT32((arg0->*MemFn)());
+    } else if constexpr (std::is_same_v<double, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_FLOAT(0, arg0);
+
+        HYP_SCRIPT_RETURN_FLOAT64((arg0->*MemFn)());
+    } else {
+        HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, self_arg);
+
+        HYP_SCRIPT_GET_MEMBER_PTR(self_arg, "__intern", ThisType, arg0);
+
+        HYP_SCRIPT_CREATE_PTR((arg0->*MemFn)(), result);
+
+        const auto class_name_it = ScriptBindings::class_bindings.class_names.Find<ReturnType>();
+        AssertThrowMsg(class_name_it != ScriptBindings::class_bindings.class_names.End(), "Class not registered!");
+
+        const auto prototype_it = ScriptBindings::class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != ScriptBindings::class_bindings.class_prototypes.end(), "Class not registered!");
+
+        vm::Object result_value(prototype_it->second); // construct from prototype
+        HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+        HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+        HYP_SCRIPT_RETURN(ptr);
+    }
+}
+
+// template <class ReturnType, class ThisType, ReturnType(ThisType::*MemFn)()>
+// HYP_SCRIPT_FUNCTION(CxxMemberFn)
+// {
+//     CxxMemberFn<ReturnType, ThisType, std::add_const_t<ReturnType(ThisType::*MemFn)()>>(params);
+// }
+
+template <class ReturnType, class ThisType, class Arg0Type, ReturnType(ThisType::*MemFn)(const Arg0Type &) const>
+HYP_SCRIPT_FUNCTION(CxxMemberFn)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_INT(0, arg0);
+        HYP_SCRIPT_GET_ARG_INT(1, arg1);
+
+        HYP_SCRIPT_RETURN_INT32((arg0->*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_INT(0, arg0);
+        HYP_SCRIPT_GET_ARG_INT(1, arg1);
+
+        HYP_SCRIPT_RETURN_INT64((arg0->*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<uint32_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_UINT(0, arg0);
+        HYP_SCRIPT_GET_ARG_UINT(1, arg1);
+
+        HYP_SCRIPT_RETURN_UINT32((arg0->*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<uint64_t, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_UINT(0, arg0);
+        HYP_SCRIPT_GET_ARG_UINT(1, arg1);
+
+        HYP_SCRIPT_RETURN_UINT64((arg0->*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<float, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_FLOAT(0, arg0);
+        HYP_SCRIPT_GET_ARG_FLOAT(1, arg1);
+
+        HYP_SCRIPT_RETURN_FLOAT32((arg0->*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<double, ReturnType>) {
+        HYP_SCRIPT_GET_ARG_FLOAT(0, arg0);
+        HYP_SCRIPT_GET_ARG_FLOAT(1, arg1);
+
+        HYP_SCRIPT_RETURN_FLOAT64((arg0->*MemFn)(arg1));
+    } else {
+        HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, self_arg);
+        HYP_SCRIPT_GET_ARG_PTR(1, vm::Object, other_arg);
+
+        HYP_SCRIPT_GET_MEMBER_PTR(self_arg, "__intern", ThisType, arg0);
+        HYP_SCRIPT_GET_MEMBER_PTR(other_arg, "__intern", Arg0Type, arg1);
+
+        HYP_SCRIPT_CREATE_PTR((arg0->*MemFn)(*arg1), result);
+
+        const auto class_name_it = ScriptBindings::class_bindings.class_names.Find<ReturnType>();
+        AssertThrowMsg(class_name_it != ScriptBindings::class_bindings.class_names.End(), "Class not registered!");
+
+        const auto prototype_it = ScriptBindings::class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != ScriptBindings::class_bindings.class_prototypes.end(), "Class not registered!");
+
+        vm::Object result_value(prototype_it->second); // construct from prototype
+        HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+        HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+        HYP_SCRIPT_RETURN(ptr);
+    }
+}
+
+// template <class ReturnType, class ThisType, class Arg0Type, ReturnType(ThisType::*MemFn)(const Arg0Type &)>
+// HYP_SCRIPT_FUNCTION(CxxMemberFn)
+// {
+//     CxxMemberFn<ReturnType, ThisType, Arg0Type, std::add_const_t<ReturnType(ThisType::*MemFn)(const Arg0Type &)>>(params);
+// }
+
+template <class ReturnType, ReturnType(*Fn)()>
+HYP_SCRIPT_FUNCTION(CxxFn)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 0);
+
+    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+        HYP_SCRIPT_RETURN_INT32(Fn());
+    } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
+        HYP_SCRIPT_RETURN_INT64(Fn());
+    } else if constexpr (std::is_same_v<uint32_t, ReturnType>) {
+        HYP_SCRIPT_RETURN_UINT32(Fn());
+    } else if constexpr (std::is_same_v<uint64_t, ReturnType>) {
+        HYP_SCRIPT_RETURN_UINT64(Fn());
+    } else if constexpr (std::is_same_v<float, ReturnType>) {
+        HYP_SCRIPT_RETURN_FLOAT32(Fn());
+    } else if constexpr (std::is_same_v<double, ReturnType>) {
+        HYP_SCRIPT_RETURN_FLOAT64(Fn());
+    } else {
+        HYP_SCRIPT_CREATE_PTR(Fn(), result);
+
+        const auto class_name_it = ScriptBindings::class_bindings.class_names.Find<ReturnType>();
+        AssertThrowMsg(class_name_it != ScriptBindings::class_bindings.class_names.End(), "Class not registered!");
+    
+        const auto prototype_it = ScriptBindings::class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != ScriptBindings::class_bindings.class_prototypes.end(), "Class not registered!");
+
+        vm::Object result_value(prototype_it->second); // construct from prototype
+        HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+        HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+        HYP_SCRIPT_RETURN(ptr);
+    }
+}
+
+HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3Add)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+    HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, left_object);
+    HYP_SCRIPT_GET_ARG_PTR(1, vm::Object, right_object);
+
+    HYP_SCRIPT_GET_MEMBER_PTR(left_object, "__intern", Vector3, left_vector3);
+    HYP_SCRIPT_GET_MEMBER_PTR(right_object, "__intern", Vector3, right_vector3);
+
+    HYP_SCRIPT_CREATE_PTR(*left_vector3 + *right_vector3, result);
+
+    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+    HYP_SCRIPT_RETURN(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3Sub)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+    HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, left_object);
+    HYP_SCRIPT_GET_ARG_PTR(1, vm::Object, right_object);
+
+    HYP_SCRIPT_GET_MEMBER_PTR(left_object, "__intern", Vector3, left_vector3);
+    HYP_SCRIPT_GET_MEMBER_PTR(right_object, "__intern", Vector3, right_vector3);
+
+    HYP_SCRIPT_CREATE_PTR(*left_vector3 - *right_vector3, result);
+
+    vm::Object result_value(left_object->GetPrototype()); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+    HYP_SCRIPT_RETURN(ptr);
+}
+
+HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3ToString)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+    HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, self);
 
     vm::Member *self_member = nullptr;
     AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
@@ -131,20 +294,13 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3ToString)
     ptr->Assign(ImmutableString(buffer));
     ptr->Mark();
 
-    HYP_SCRIPT_RETURN_OBJECT(ptr);
+    HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Init)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3Init)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
-
-    vm::Object *self = nullptr;
-
-    if (params.args[0]->GetType() != vm::Value::HEAP_POINTER ||
-        !(self = params.args[0]->GetValue().ptr->GetPointer<vm::Object>())) {
-        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Vector3::Init() expects one argument of type Vector3"));
-        return;
-    }
+    HYP_SCRIPT_GET_ARG_PTR(0, vm::Object, self);
 
     vm::Member *self_member = nullptr;
     AssertThrow(self_member = self->LookupMemberFromHash(hash_fnv_1("__intern")));
@@ -152,15 +308,13 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Vector3Init)
     vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread);
     AssertThrow(ptr_result != nullptr);
     ptr_result->Assign(Vector3());
-
     self->LookupMemberFromHash(hash_fnv_1("__intern"))->value = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result});
-
     ptr_result->Mark();
 
-    HYP_SCRIPT_RETURN_OBJECT(params.args[0]->GetValue().ptr);
+    HYP_SCRIPT_RETURN_PTR(params.args[0]->GetValue().ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::ArraySize)
+HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -214,7 +368,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::ArraySize)
     HYP_SCRIPT_RETURN_INT64(len);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::ArrayPush)
+HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPush)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 2);
 
@@ -244,7 +398,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::ArrayPush)
     HYP_SCRIPT_RETURN(*target_ptr);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::ArrayPop)
+HYP_SCRIPT_FUNCTION(ScriptBindings::ArrayPop)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -287,7 +441,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::ArrayPop)
     HYP_SCRIPT_RETURN(value);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Puts)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Puts)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -310,7 +464,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Puts)
     HYP_SCRIPT_RETURN_INT32(puts_result);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::ToString)
+HYP_SCRIPT_FUNCTION(ScriptBindings::ToString)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -330,7 +484,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::ToString)
     HYP_SCRIPT_RETURN(res);
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Format)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Format)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -417,7 +571,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Format)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Print)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Print)
 {
     HYP_SCRIPT_CHECK_ARGS(>=, 1);
 
@@ -493,7 +647,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Print)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Malloc)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Malloc)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -528,7 +682,7 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Malloc)
     }
 }
 
-HYP_SCRIPT_FUNCTION(ScriptFunctions::Free)
+HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -545,12 +699,15 @@ HYP_SCRIPT_FUNCTION(ScriptFunctions::Free)
     }
 }
 
-void ScriptFunctions::Build(APIInstance &api_instance)
+void ScriptBindings::Build(APIInstance &api_instance)
 {
+    // auto vector3_add = CxxMemberFn<Vector3, Vector3, Vector3, &Vector3::operator+>;
+    // static_assert(std::is_same_v<decltype(vector3_add), NativeFunctionPtr_t>);
+
     api_instance.Module(hyperion::compiler::Config::global_module_name)
         .Variable("SCRIPT_VERSION", 200)
         .Variable("ENGINE_VERSION", 200)
-        .Class(
+        .Class<Vector3>(
             "Vector3",
             {
                 { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr}) },
@@ -561,7 +718,7 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                         { "self", BuiltinTypes::ANY },
                         { "other", BuiltinTypes::ANY }
                     },
-                    Vector3Add
+                    CxxMemberFn< Vector3, Vector3, Vector3, &Vector3::operator+ >
                 },
                 {
                     "operator-",
@@ -570,7 +727,7 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                         { "self", BuiltinTypes::ANY },
                         { "other", BuiltinTypes::ANY }
                     },
-                    Vector3Sub
+                    CxxMemberFn< Vector3, Vector3, Vector3, &Vector3::operator- >
                 },
                 {
                     "ToString",
@@ -586,7 +743,7 @@ void ScriptFunctions::Build(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    Vector3Init
+                    CxxFn<Vector3, &Vector3::Zero>
                 },
                 {
                     "x",
@@ -776,6 +933,8 @@ void ScriptFunctions::Build(APIInstance &api_instance)
             },
             Free
         );
+
+    class_bindings = api_instance.class_bindings;
 }
 
 } // namespace hyperion

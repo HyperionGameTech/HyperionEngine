@@ -31,17 +31,17 @@ public:
     };
 
     /*! \brief Construct the node, optionally taking in a string tag to improve identification.
-     * @param tag A c-string representing the name of the Node. The memory is copied internally so the string can be safely deleted
+     * @param name A c-string representing the name of the Node. The memory is copied internally so the string can be safely deleted
      * after use.
      * @param local_transform An optional parameter representing the local-space transform of this Node.
      */
     Node(
-        const char *tag = "",
+        const char *name = "",
         const Transform &local_transform = Transform()
     );
 
     Node(
-        const char *tag,
+        const char *name,
         Ref<Spatial> &&spatial,
         const Transform &local_transform = Transform()
     );
@@ -51,9 +51,9 @@ public:
     ~Node();
 
     /*! @returns The string tag that was given to the Node on creation. */
-    const char *GetTag() const { return m_tag; }
+    const char *GetName() const { return m_name; }
     /*! \brief Set the string tag of this Node. Used for nested lookups. */
-    void SetTag(const char *tag);
+    void SetName(const char *name);
     /*! @returns The type of the node. By default, it will just be NODE. */
     Type GetType() const { return m_type; }
     /*! @returns A pointer to the parent Node of this Node. May be null. */
@@ -115,10 +115,10 @@ public:
     NodeList::iterator FindChild(Node *node);
 
     /*! \brief Get an iterator for a node by finding it by its string tag
-     * @param tag The string tag to compare with the child Node's string tag
+     * @param name The string tag to compare with the child Node's string tag
      * @returns The resulting iterator
      */
-    NodeList::iterator FindChild(const char *tag);
+    NodeList::iterator FindChild(const char *name);
 
     NodeList &GetChildren()             { return m_child_nodes; }
     const NodeList &GetChildren() const { return m_child_nodes; }
@@ -277,7 +277,7 @@ public:
 protected:
     Node(
         Type type,
-        const char *tag,
+        const char *name,
         Ref<Spatial> &&spatial,
         const Transform &local_transform = Transform()
     );
@@ -290,7 +290,7 @@ protected:
     void OnNestedNodeRemoved(Node *node);
 
     Type m_type = Type::NODE;
-    char *m_tag;
+    char *m_name;
     Node *m_parent_node;
     NodeList m_child_nodes;
     Transform m_local_transform;

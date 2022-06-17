@@ -12,6 +12,7 @@
 
 #include <core/lib/static_map.h>
 #include <util/fs/fs_util.h>
+#include <constants.h>
 
 #include <string>
 #include <unordered_map>
@@ -21,9 +22,6 @@
 namespace hyperion::v2 {
 
 class Engine;
-
-template <class ...T>
-constexpr bool resolution_failure = false;
 
 class QueuedAsset {
 public:

@@ -14,10 +14,13 @@
 
 #include <script/Typedefs.hpp>
 
+#include <core/lib/type_map.h>
+
 #include <util/defines.h>
 
 #include <stdint.h>
 #include <sstream>
+#include <unordered_map>
 
 #ifndef __cplusplus
 #error Script requires a C++ compiler
@@ -61,7 +64,7 @@
         return; \
     } while (false)
 
-#define HYP_SCRIPT_RETURN_OBJECT(value) \
+#define HYP_SCRIPT_RETURN_PTR(value) \
     do { \
         AssertThrow(value != nullptr); \
         value->Mark(); \
@@ -84,6 +87,22 @@
         vm::Value _res; \
         _res.m_type      = vm::Value::I64; \
         _res.m_value.i64 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_UINT32(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::U32; \
+        _res.m_value.u32 = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_UINT64(value) \
+    do { \
+        vm::Value _res; \
+        _res.m_type      = vm::Value::U64; \
+        _res.m_value.u64 = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
@@ -111,13 +130,120 @@
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
+#define HYP_SCRIPT_GET_ARG_INT(index, name) \
+    aint64 name; \
+    do { \
+        Number num; \
+        if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
+            return; \
+        } \
+        name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
+    } while (false)
+
+#define HYP_SCRIPT_GET_ARG_UINT(index, name) \
+    auint64 name; \
+    do { \
+        Number num; \
+        if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
+            return; \
+        } \
+        name = (num.flags & Number::FLAG_SIGNED) ? static_cast<auint64>(num.i) : num.u; \
+    } while (false)
+
+#define HYP_SCRIPT_GET_ARG_FLOAT(index, name) \
+    afloat64 name; \
+    do { \
+        if (!params.args[index]->GetFloatingPointCoerce(&name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type float")); \
+            return; \
+        } \
+    } while (false) 
+
+#define HYP_SCRIPT_GET_ARG_PTR(index, type, name) \
+    type *name; \
+    do { \
+        if (!params.args[index]->GetPointer<type>(&name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type " #type)); \
+            return; \
+        } \
+    } while (false)
+
+#define HYP_SCRIPT_GET_ARG_PTR_RAW(index, type, name) \
+    type *name; \
+    do { \
+        if (!params.args[index]->GetUserData<type>(&name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type " #type)); \
+            return; \
+        } \
+    } while (false)
+
+#define HYP_SCRIPT_GET_MEMBER_INT(object, name, type, decl_name) \
+    type decl_name; \
+    do { \
+        Number num; \
+        vm::Member *_member = nullptr; \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetSignedOrUnsigned(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type int or uint")); \
+            return; \
+        } \
+        decl_name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
+    } while (false)
+
+#define HYP_SCRIPT_GET_MEMBER_FLOAT(object, name, type, decl_name) \
+    type decl_name; \
+    do { \
+        afloat64 num; \
+        vm::Member *_member = nullptr; \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetFloatingPointCoerce(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type float")); \
+            return; \
+        } \
+        decl_name = static_cast<type>(num); \
+    } while (false)
+
+#define HYP_SCRIPT_GET_MEMBER_PTR(object, name, type, decl_name) \
+    type *decl_name; \
+    do { \
+        vm::Member *_member = nullptr; \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetPointer<type>(&decl_name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type " #type)); \
+            return; \
+        } \
+    } while (false)
+
+#define HYP_SCRIPT_GET_MEMBER_PTR_RAW(object, name, type, decl_name) \
+    type *decl_name; \
+    do { \
+        vm::Member *_member = nullptr; \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetUserData<type>(&decl_name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type " #type)); \
+            return; \
+        } \
+    } while (false)
+
+#define HYP_SCRIPT_CREATE_PTR(assignment, out_name) \
+    vm::Value out_name; \
+    do { \
+        vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread); \
+        AssertThrow(ptr_result != nullptr); \
+        \
+        ptr_result->Assign(assignment); \
+        ptr_result->Mark(); \
+        \
+        out_name = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result}); \
+    } while (false)
+
+#define HYP_SCRIPT_SET_MEMBER(object, name, assignment) \
+    do { \
+        object.LookupMemberFromHash(hash_fnv_1("__intern"))->value = assignment; \
+    } while (false)
+
 #pragma endregion
 
 namespace hyperion {
-
 namespace vm {
-
-
 // forward declarations
 class VM;
 struct VMState;
@@ -130,8 +256,9 @@ class ImmutableString;
 
 using namespace compiler;
 
-class API {
+class APIInstance;
 
+class API {
 public:
     struct NativeVariableDefine {
         std::string name;
@@ -295,20 +422,35 @@ public:
 
     struct ModuleDefine {
     public:
+        ModuleDefine(
+            APIInstance &api_instance,
+            const std::string &name
+        ) : m_api_instance(api_instance),
+            m_name(name)
+        {
+        }
+
         std::string m_name;
         std::vector<TypeDefine> m_type_defs;
         std::vector<NativeFunctionDefine> m_function_defs;
         std::vector<NativeVariableDefine> m_variable_defs;
         std::shared_ptr<Module> m_mod;
 
-        ModuleDefine &Class(
-            const std::string &class_name,
-            const std::vector<NativeMemberDefine> &members
-        );
+        // ModuleDefine &Class(
+        //     const std::string &class_name,
+        //     const std::vector<NativeMemberDefine> &members
+        // );
 
+        template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
             const SymbolTypePtr_t &base_class,
+            const std::vector<NativeMemberDefine> &members
+        );
+
+        template <class T>
+        ModuleDefine &Class(
+            const std::string &class_name,
             const std::vector<NativeMemberDefine> &members
         );
 
@@ -363,10 +505,15 @@ public:
             NativeFunctionPtr_t ptr
         );
 
-        void BindAll(vm::VM *vm, CompilationUnit *compilation_unit);
+        void BindAll(
+            APIInstance &api_instance,
+            vm::VM *vm,
+            CompilationUnit *compilation_unit
+        );
 
     private:
         void BindNativeVariable(
+            APIInstance &api_instance,
             NativeVariableDefine &def,
             Module *mod,
             vm::VM *vm,
@@ -374,6 +521,7 @@ public:
         );
 
         void BindNativeFunction(
+            APIInstance &api_instance,
             NativeFunctionDefine &def,
             Module *mod,
             vm::VM *vm,
@@ -381,28 +529,72 @@ public:
         );
 
         void BindType(
+            APIInstance &api_instance,
             TypeDefine def,
             Module *mod,
             vm::VM *vm,
             CompilationUnit *compilation_unit
         );
+
+        APIInstance &m_api_instance;
     };
 };
 
 class APIInstance {
 public:
+    struct ClassBindings {
+        TypeMap<std::string>                             class_names;
+        std::unordered_map<std::string, vm::HeapValue *> class_prototypes;
+    } class_bindings;
+
     APIInstance() {}
     APIInstance(const APIInstance &other) = delete;
     ~APIInstance() {}
 
     API::ModuleDefine &Module(const std::string &name);
 
-    void BindAll(vm::VM *vm, CompilationUnit *compilation_unit);
+    void BindAll(
+        vm::VM *vm,
+        CompilationUnit *compilation_unit
+    );
 
 private:
     std::vector<API::ModuleDefine> m_module_defs;
 };
 
+template <class T>
+API::ModuleDefine &API::ModuleDefine::Class(
+    const std::string &class_name,
+    const SymbolTypePtr_t &base_class,
+    const std::vector<NativeMemberDefine> &members
+)
+{
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
+
+    m_type_defs.push_back(TypeDefine(
+        class_name,
+        base_class,
+        members
+    ));
+
+    return *this;
+}
+
+template <class T>
+API::ModuleDefine &API::ModuleDefine::Class(
+    const std::string &class_name,
+    const std::vector<NativeMemberDefine> &members
+)
+{
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
+
+    m_type_defs.push_back(TypeDefine(
+        class_name,
+        members
+    ));
+
+    return *this;
+}
 }
 
 namespace hyperion {

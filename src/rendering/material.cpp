@@ -14,13 +14,13 @@ using renderer::ImageDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::CommandBuffer;
 
-Material::Material(const char *tag)
+Material::Material(const char *name)
     : EngineComponentBase(),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
-    size_t len = std::strlen(tag);
-    m_tag = new char[len + 1];
-    std::strcpy(m_tag, tag);
+    size_t len = std::strlen(name);
+    m_name = new char[len + 1];
+    std::strcpy(m_name, name);
 
     ResetParameters();
 }
@@ -28,6 +28,8 @@ Material::Material(const char *tag)
 Material::~Material()
 {
     Teardown();
+
+    delete[] m_name;
 }
 
 void Material::Init(Engine *engine)

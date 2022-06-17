@@ -46,7 +46,10 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 
         if (generic_param->GetPrototypeSpecification() == nullptr) {
             generic_param->SetPrototypeSpecification(std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                std::shared_ptr<AstVariable>(new AstVariable("Any", m_location)),
+                std::shared_ptr<AstVariable>(new AstVariable(
+                    BuiltinTypes::ANY->GetName(),
+                    m_location
+                )),
                 m_location
             )));
         }

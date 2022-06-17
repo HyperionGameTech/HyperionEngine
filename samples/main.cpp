@@ -19,6 +19,7 @@
 #include <scene/controllers/audio_controller.h>
 #include <scene/controllers/animation_controller.h>
 #include <scene/controllers/paging/basic_paging_controller.h>
+#include <scene/controllers/scripted_controller.h>
 #include <core/lib/flat_set.h>
 #include <core/lib/flat_map.h>
 #include <game_thread.h>
@@ -44,7 +45,7 @@
 
 #include "rendering/environment.h"
 
-#include <script/Builtins.hpp>
+#include <script/ScriptBindings.hpp>
 
 #include <util/utf8.hpp>
 
@@ -209,36 +210,39 @@ public:
 
     virtual void OnPostInit(Engine *engine) override
     {
-        if (auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript")) {
-            APIInstance api_instance;
-            ScriptFunctions::Build(api_instance);
+        // if (auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript")) {
+        //     APIInstance api_instance;
+        //     ScriptFunctions::Build(api_instance);
 
-            if (my_script->Compile(api_instance)) {
-                my_script->Bake();
+        //     if (my_script->Compile(api_instance)) {
+        //         my_script->Bake();
 
-                my_script->Decompile(&utf::cout);
+        //         my_script->Decompile(&utf::cout);
     
-                my_script->Run();
+        //         my_script->Run();
 
-                for (int i = 0; i < 5; i++) {
-                    vm::Value args[] = { vm::Value(vm::Value::I32, {.i32 = i}) };
+        //         for (int i = 0; i < 5; i++) {
+        //             vm::Value args[] = { vm::Value(vm::Value::I32, {.i32 = i}) };
 
-                    my_script->CallFunction("OnTick", args, 1);
-                }
-            } else {
-                /*DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
+        //             my_script->CallFunction("OnTick", args, 1);
+        //         }
+        //     } else {
+        //         /*DebugLog(LogType::Error, "Script error! %llu errors\n", my_script->GetErrors().Size());
 
-                for (size_t i = 0; i < my_script->GetErrors().Size(); i++) {
-                    DebugLog(LogType::Error, "Error %llu: %s\n", i, my_script->GetErrors()[i].GetText().c_str());
-                }*/
-                my_script->GetErrors().WriteOutput(utf::cout);
+        //         for (size_t i = 0; i < my_script->GetErrors().Size(); i++) {
+        //             DebugLog(LogType::Error, "Error %llu: %s\n", i, my_script->GetErrors()[i].GetText().c_str());
+        //         }*/
+        //         my_script->GetErrors().WriteOutput(utf::cout);
 
-                HYP_BREAKPOINT;
-            }
-        }
+        //         HYP_BREAKPOINT;
+        //     }
+        // }
 
+        auto monkey = engine->assets.Load<Node>("models/monkey/monkey.obj");
 
-        scene->GetRootNode()->AddChild(engine->assets.Load<Node>("models/monkey/monkey.obj"));
+        monkey->AddController<ScriptedController>(engine->assets.Load<Script>("scripts/examples/controller.hypscript"));
+
+        scene->GetRootNode()->AddChild(std::move(monkey));
 
     //     auto outline_pipeline = std::make_unique<GraphicsPipeline>(
     //         engine->shader_manager.GetShader(ShaderKey::STENCIL_OUTLINE).IncRef(),

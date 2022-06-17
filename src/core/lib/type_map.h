@@ -16,7 +16,7 @@ struct TypeId {
 
     Value value;
 
-    TypeId()                : value{} {}
+    TypeId() : value{} {}
     TypeId(const Value &id) : value(id) {}
     TypeId(const TypeId &other) = default;
     TypeId &operator=(const TypeId &other) = default;
@@ -75,8 +75,8 @@ public:
     using ConstIterator = typename Map::ConstIterator;
 
     TypeMap() = default;
-    TypeMap(const TypeMap &other) = delete;
-    TypeMap &operator=(const TypeMap &other) = delete;
+    TypeMap(const TypeMap &other) = default;
+    TypeMap &operator=(const TypeMap &other) = default;
 
     TypeMap(TypeMap &&other) noexcept
         : m_map(std::move(other.m_map))

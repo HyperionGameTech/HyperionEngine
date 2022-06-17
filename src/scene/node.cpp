@@ -9,10 +9,10 @@
 namespace hyperion::v2 {
 
 Node::Node(
-    const char *tag,
+    const char *name,
     const Transform &local_transform
 ) : Node(
-        tag,
+        name,
         nullptr,
         local_transform
     )
@@ -20,12 +20,12 @@ Node::Node(
 }
 
 Node::Node(
-    const char *tag,
+    const char *name,
     Ref<Spatial> &&spatial,
     const Transform &local_transform
 ) : Node(
         Type::NODE,
-        tag,
+        name,
         std::move(spatial),
         local_transform
     )
@@ -34,7 +34,7 @@ Node::Node(
 
 Node::Node(
     Type type,
-    const char *tag,
+    const char *name,
     Ref<Spatial> &&spatial,
     const Transform &local_transform
 ) : m_type(type),
@@ -44,27 +44,27 @@ Node::Node(
 {
     SetSpatial(std::move(spatial));
 
-    const size_t len = std::strlen(tag);
-    m_tag = new char[len + 1];
-    std::strcpy(m_tag, tag);
+    const size_t len = std::strlen(name);
+    m_name = new char[len + 1];
+    std::strcpy(m_name, name);
 }
 
 Node::~Node()
 {
-    delete[] m_tag;
+    delete[] m_name;
 }
 
-void Node::SetTag(const char *tag)
+void Node::SetName(const char *name)
 {
-    if (tag == m_tag || !std::strcmp(tag, m_tag)) {
+    if (name == m_name || !std::strcmp(name, m_name)) {
         return;
     }
 
-    delete[] m_tag;
+    delete[] m_name;
 
-    const size_t len = std::strlen(tag);
-    m_tag = new char[len + 1];
-    std::strcpy(m_tag, tag);
+    const size_t len = std::strlen(name);
+    m_name = new char[len + 1];
+    std::strcpy(m_name, name);
 }
 
 void Node::SetScene(Scene *scene)
@@ -282,13 +282,13 @@ Node::NodeList::iterator Node::FindChild(Node *node)
     );
 }
 
-Node::NodeList::iterator Node::FindChild(const char *tag)
+Node::NodeList::iterator Node::FindChild(const char *name)
 {
     return std::find_if(
         m_child_nodes.begin(),
         m_child_nodes.end(),
-        [tag](const auto &it) {
-            return !std::strcmp(tag, it->GetTag());
+        [name](const auto &it) {
+            return !std::strcmp(name, it->GetName());
         }
     );
 }

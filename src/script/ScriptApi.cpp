@@ -46,34 +46,6 @@ static Identifier *CreateIdentifier(
     return ident;
 }
 
-API::ModuleDefine &API::ModuleDefine::Class(
-    const std::string &class_name,
-    const std::vector<NativeMemberDefine> &members
-)
-{
-    m_type_defs.push_back(TypeDefine(
-        class_name,
-        members
-    ));
-
-    return *this;
-}
-
-API::ModuleDefine &API::ModuleDefine::Class(
-    const std::string &class_name,
-    const SymbolTypePtr_t &base_class,
-    const std::vector<NativeMemberDefine> &members
-)
-{
-    m_type_defs.push_back(TypeDefine(
-        class_name,
-        base_class,
-        members
-    ));
-
-    return *this;
-}
-
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
     const SymbolTypePtr_t &variable_type,
@@ -202,7 +174,11 @@ API::ModuleDefine &API::ModuleDefine::Function(
     return *this;
 }
 
-void API::ModuleDefine::BindAll(VM *vm, CompilationUnit *compilation_unit)
+void API::ModuleDefine::BindAll(
+    APIInstance &api_instance,
+    VM *vm,
+    CompilationUnit *compilation_unit
+)
 {
     // look up if already created
     Module *mod = GetModule(compilation_unit, m_name);
@@ -223,15 +199,33 @@ void API::ModuleDefine::BindAll(VM *vm, CompilationUnit *compilation_unit)
     }
 
     for (auto &def : m_type_defs) {
-        BindType(def, mod, vm, compilation_unit);
+        BindType(
+            api_instance,
+            def,
+            mod,
+            vm,
+            compilation_unit
+        );
     }
 
     for (auto &def : m_variable_defs) {
-        BindNativeVariable(def, mod, vm, compilation_unit);
+        BindNativeVariable(
+            api_instance,
+            def,
+            mod,
+            vm,
+            compilation_unit
+        );
     }
 
     for (auto &def : m_function_defs) {
-        BindNativeFunction(def, mod, vm, compilation_unit);
+        BindNativeFunction(
+            api_instance,
+            def,
+            mod,
+            vm,
+            compilation_unit
+        );
     }
 
     if (close_mod) {
@@ -244,6 +238,7 @@ void API::ModuleDefine::BindAll(VM *vm, CompilationUnit *compilation_unit)
 }
 
 void API::ModuleDefine::BindNativeVariable(
+    APIInstance &api_instance,
     NativeVariableDefine &def,
     Module *mod,
     VM *vm,
@@ -292,6 +287,7 @@ void API::ModuleDefine::BindNativeVariable(
 }
 
 void API::ModuleDefine::BindNativeFunction(
+    APIInstance &api_instance,
     NativeFunctionDefine &def,
     Module *mod,
     VM *vm,
@@ -339,6 +335,7 @@ void API::ModuleDefine::BindNativeFunction(
 }
 
 void API::ModuleDefine::BindType(
+    APIInstance &api_instance,
     TypeDefine def,
     Module *mod,
     VM *vm,
@@ -481,7 +478,13 @@ void API::ModuleDefine::BindType(
             SourceLocation::eof
         ));
 
-        BindNativeVariable(native_variable_define, mod, vm, compilation_unit);
+        BindNativeVariable(
+            api_instance,
+            native_variable_define,
+            mod,
+            vm,
+            compilation_unit
+        );
     }
 
     ExecutionThread *main_thread = vm->GetState().GetMainThread();
@@ -510,6 +513,8 @@ void API::ModuleDefine::BindType(
 
         // create heap value for object
         prototype_ptr = vm->GetState().HeapAlloc(main_thread);
+
+        api_instance.class_bindings.class_prototypes[def.name] = prototype_ptr;
 
         AssertThrow(prototype_ptr != nullptr);
         prototype_ptr->Assign(prototype_object);
@@ -572,8 +577,7 @@ API::ModuleDefine &APIInstance::Module(const std::string &name)
     }
 
     // not found, add module
-    API::ModuleDefine def;
-    def.m_name = name;
+    API::ModuleDefine def(*this, name);
 
     // return the new instance
     m_module_defs.push_back(def);
@@ -583,7 +587,11 @@ API::ModuleDefine &APIInstance::Module(const std::string &name)
 void APIInstance::BindAll(VM *vm, CompilationUnit *compilation_unit)
 {
     for (auto &module_def : m_module_defs) {
-        module_def.BindAll(vm, compilation_unit);
+        module_def.BindAll(
+            *this,
+            vm,
+            compilation_unit
+        );
     }
 }
 

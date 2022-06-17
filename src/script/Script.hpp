@@ -11,11 +11,13 @@
 #include <script/vm/BytecodeStream.hpp>
 #include <script/vm/VM.hpp>
 
+#include <constants.h>
 #include <types.h>
 
 #include <util/utf8.hpp>
 
 #include <memory>
+#include <array>
 
 namespace hyperion {
 
@@ -51,10 +53,70 @@ public:
 
     void Run();
 
+    template <class T>
+    constexpr Value CreateArgument(T &&item)
+    {
+        using ArgType = std::remove_cv_t<std::decay_t<T>>;
+
+        Value first_value;
+
+        if constexpr (std::is_same_v<int32_t, ArgType>) {
+            first_value.m_type = Value::I32;
+            first_value.m_value.i32 = item;
+        } else if constexpr (std::is_same_v<int64_t, ArgType>) {
+            first_value.m_type = Value::I64;
+            first_value.m_value.i64 = item;
+        } else if constexpr (std::is_same_v<uint32_t, ArgType>) {
+            first_value.m_type = Value::U32;
+            first_value.m_value.u32 = item;
+        } else if constexpr (std::is_same_v<uint64_t, ArgType>) {
+            first_value.m_type = Value::U64;
+            first_value.m_value.u64 = item;
+        } else if constexpr (std::is_same_v<float, ArgType>) {
+            first_value.m_type = Value::F32;
+            first_value.m_value.f = item;
+        } else if constexpr (std::is_same_v<double, ArgType>) {
+            first_value.m_type = Value::F64;
+            first_value.m_value.d = item;
+        } else if constexpr (std::is_pointer_v<ArgType>) {
+            // set to userdata
+            first_value.m_type = Value::USER_DATA;
+            first_value.m_value.user_data = static_cast<void *>(item);
+        } else {
+            static_assert(resolution_failure<ArgType>, "Cannot pass value type to script function statically!");
+        }
+
+        return first_value;
+    }
+
+    template <class ...Args>
+    constexpr auto CreateArguments(Args &&... args) -> std::array<Value, sizeof...(Args)>
+    {
+        return std::array<Value, sizeof...(Args)>{
+            CreateArgument(args)...
+        };
+    }
+
     void CallFunction(const char *name);
     void CallFunction(const char *name, Value *args, size_t num_args);
     void CallFunction(HashFnv1 hash);
     void CallFunction(HashFnv1 hash, Value *args, size_t num_args);
+
+    template <class ...Args>
+    void CallFunction(const char *name, Args &&... args)
+    {
+        auto arguments = CreateArguments(std::forward<Args>(args)...);
+
+        CallFunction(name, arguments.data(), arguments.size());
+    }
+
+    template <class ...Args>
+    void CallFunction(HashFnv1 hash, Args &&... args)
+    {
+        auto arguments = CreateArguments(std::forward<Args>(args)...);
+
+        CallFunction(hash, arguments.data(), arguments.size());
+    }
 
 private:
     SourceFile                     m_source_file;

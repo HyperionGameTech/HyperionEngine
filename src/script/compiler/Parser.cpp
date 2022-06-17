@@ -317,10 +317,10 @@ void Parser::Parse(bool expect_module_decl)
         ));
 
         // build up the module declaration with statements
-        while (m_token_stream->HasNext() && !Match(TK_CLOSE_BRACE, false)) {
+        while (m_token_stream->HasNext()) {
             // skip statement terminator tokens
             if (Match(TK_SEMICOLON, true) || Match(TK_NEWLINE, true)) {
-                goto push_module;
+                continue;
             }
 
             // parse at top level, to allow for nested modules
@@ -329,7 +329,6 @@ void Parser::Parse(bool expect_module_decl)
             }
         }
 
-    push_module:
         m_ast_iterator->Push(module_ast);
     } else {
         // build up the module declaration with statements

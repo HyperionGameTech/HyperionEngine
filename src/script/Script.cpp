@@ -81,6 +81,7 @@ bool Script::Compile(APIInstance &api_instance)
         }
 
         if (auto compile_result = compiler.Compile()) {
+            // HYP_BREAKPOINT;
             m_bytecode_chunk->Append(std::move(compile_result));
         } else {
             return false;
@@ -130,8 +131,9 @@ void Script::Run()
 
 void Script::CallFunction(const char *name)
 {
-    CallFunction(name, nullptr, 0);
+    CallFunction(name, (Value *)nullptr, 0);
 }
+
 void Script::CallFunction(const char *name, Value *args, size_t num_args)
 {
     CallFunction(hash_fnv_1(name), args, num_args);    
@@ -139,11 +141,13 @@ void Script::CallFunction(const char *name, Value *args, size_t num_args)
 
 void Script::CallFunction(HashFnv1 hash)
 {
-    CallFunction(hash, nullptr, 0);
+    CallFunction(hash, (Value *)nullptr, 0);
 }
 
 void Script::CallFunction(HashFnv1 hash, Value *args, size_t num_args)
 {
+    AssertThrow(IsCompiled() && IsBaked());
+
     auto *main_thread = m_vm.GetState().GetMainThread();
 
     Value function_value;
