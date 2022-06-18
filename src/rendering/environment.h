@@ -5,7 +5,8 @@
 #include "shadows.h"
 #include "light.h"
 
-#include <core/lib/type_map.h>
+#include <core/lib/component_set.h>
+#include <core/lib/atomic_lock.h>
 #include <types.h>
 
 #include <mutex>
@@ -25,6 +26,8 @@ class Environment : public EngineComponentBase<STUB_CLASS(Environment)> {
     using ShadowRendererPtr = std::unique_ptr<ShadowRenderer>;
 
 public:
+    static constexpr uint max_shadow_maps = 8;
+
     Environment();
     Environment(const Environment &other) = delete;
     Environment &operator=(const Environment &other) = delete;
@@ -36,32 +39,50 @@ public:
     size_t NumLights() const                              { return m_lights.size(); }
     const std::vector<Ref<Light>> &GetLights() const      { return m_lights; }
 
-    size_t NumShadowRenderers() const                     { return m_shadow_renderers.size(); }
-    ShadowRenderer *GetShadowRenderer(size_t index) const { return m_shadow_renderers[index].get(); }
-
-    void AddShadowRenderer(Engine *engine, std::unique_ptr<ShadowRenderer> &&shadow_renderer);
-    void RemoveShadowRenderer(Engine *engine, size_t index);
-
     template <class T>
     void AddRenderComponent(std::unique_ptr<T> &&component)
     {
-        m_render_components.Set<T>(std::move(component));
+        std::lock_guard guard(m_render_component_mutex);
+
+        m_render_components_pending_addition.Set<T>(std::move(component));
+
+        m_has_render_component_updates = true;
     }
 
+    /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    auto &&GetRenderComponent()
+    T *GetRenderComponent()
     {
-        if (!m_render_components.Contains<T>()) {
+        Threads::AssertOnThread(THREAD_RENDER);
+
+        //std::lock_guard guard(m_render_component_mutex);
+
+        if (!m_render_components.Has<T>()) {
             return nullptr;
         }
 
-        return m_render_components.At<T>();
+        return m_render_components.Get<T>();
+    }
+
+    /*! CALL FROM RENDER THREAD ONLY */
+    template <class T>
+    bool HasRenderComponent() const
+    {
+        Threads::AssertOnThread(THREAD_RENDER);
+
+        //std::lock_guard guard(m_render_component_mutex);
+
+        return m_render_components.Has<T>();
     }
 
     template <class T>
     void RemoveRenderComponent()
     {
-        m_render_components.Remove<T>();
+        std::lock_guard guard(m_render_component_mutex);
+
+        m_render_components_pending_removal.Insert(decltype(m_render_components)::GetComponentId<T>());
+
+        m_has_render_component_updates = true;
     }
 
     float GetGlobalTimer() const { return m_global_timer; }
@@ -71,17 +92,20 @@ public:
 
     void RenderComponents(Engine *engine, Frame *frame);
 
-    void RenderShadows(Engine *engine, Frame *frame);
-
 private:
-    RenderComponentSet m_render_components;
+    void AddPlaceholderData();
 
-    void UpdateShadows(Engine *engine, GameCounter::TickUnit delta);
+    ComponentSet<RenderComponentBase>                           m_render_components;
+    ComponentSet<RenderComponentBase>                           m_render_components_pending_addition;
+    FlatSet<ComponentSet<RenderComponentBase>::ComponentId>     m_render_components_pending_removal;
+    std::atomic_bool                                            m_has_render_component_updates{false};
 
     std::vector<Ref<Light>>                      m_lights;
-    std::vector<ShadowRendererPtr>               m_shadow_renderers;
 
     float                                        m_global_timer;
+
+    std::mutex                                   m_render_component_mutex;
+    AtomicLock                                   m_updating_render_components;
 };
 
 } // namespace hyperion::v2

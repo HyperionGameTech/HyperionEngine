@@ -18,12 +18,12 @@ namespace hyperion::v2 {
 
 using renderer::Frame;
 
-class ShadowEffect : public FullScreenPass {
+class ShadowPass : public FullScreenPass {
 public:
-    ShadowEffect();
-    ShadowEffect(const ShadowEffect &other) = delete;
-    ShadowEffect &operator=(const ShadowEffect &other) = delete;
-    ~ShadowEffect();
+    ShadowPass();
+    ShadowPass(const ShadowPass &other) = delete;
+    ShadowPass &operator=(const ShadowPass &other) = delete;
+    ~ShadowPass();
 
     Scene *GetScene() const                 { return m_scene.ptr; }
 
@@ -48,6 +48,7 @@ public:
     }
 
     uint GetShadowMapIndex() const          { return m_shadow_map_index; }
+    void SetShadowMapIndex(uint index)      { m_shadow_map_index = index; }
 
     void CreateShader(Engine *engine);
     void CreateRenderPass(Engine *engine);
@@ -69,7 +70,7 @@ private:
     uint                                                     m_shadow_map_index;
 };
 
-class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>, RenderComponent {
+class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>, public RenderComponent<ShadowRenderer> {
 public:
     ShadowRenderer(Ref<Light> &&light);
     ShadowRenderer(Ref<Light> &&light, const Vector3 &origin, float max_distance);
@@ -77,32 +78,33 @@ public:
     ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
     virtual ~ShadowRenderer();
 
-    ShadowEffect &GetEffect()             { return m_effect; }
-    const ShadowEffect &GetEffect() const { return m_effect; }
+    ShadowPass &GetEffect()             { return m_shadow_pass; }
+    const ShadowPass &GetEffect() const { return m_shadow_pass; }
 
-    Scene *GetScene() const               { return m_effect.GetScene(); }
+    Scene *GetScene() const               { return m_shadow_pass.GetScene(); }
 
-    const Vector3 &GetOrigin() const      { return m_effect.GetOrigin(); }
-    void SetOrigin(const Vector3 &origin) { m_effect.SetOrigin(origin); }
+    const Vector3 &GetOrigin() const      { return m_shadow_pass.GetOrigin(); }
+    void SetOrigin(const Vector3 &origin) { m_shadow_pass.SetOrigin(origin); }
 
     void SetParentScene(const Ref<Scene> &parent_scene)
     {
         if (parent_scene != nullptr) {
-            m_effect.SetParentScene(parent_scene->GetId());
+            m_shadow_pass.SetParentScene(parent_scene->GetId());
         } else {
-            m_effect.SetParentScene(Scene::empty_id);
+            m_shadow_pass.SetParentScene(Scene::empty_id);
         }
     }
 
     void Init(Engine *engine);
-    void Update(Engine *engine, GameCounter::TickUnit delta);
 
-    virtual void Render(Engine *engine, Frame *frame) override;
+    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
+    void OnRender(Engine *engine, Frame *frame);
 
 private:
     void UpdateSceneCamera(Engine *engine);
+    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    ShadowEffect m_effect;
+    ShadowPass m_shadow_pass;
 };
 
 

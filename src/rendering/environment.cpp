@@ -37,17 +37,32 @@ void Environment::Init(Engine *engine)
             }
         }
 
-        for (auto &shadow_renderer : m_shadow_renderers) {
-            AssertThrow(shadow_renderer != nullptr);
+        for (auto &it : m_render_components) {
+            AssertThrow(it.second != nullptr);
 
-            shadow_renderer->Init(engine);
+            it.second->ComponentInit(engine);
         }
+
+        engine->render_scheduler.Enqueue([this](...) {
+            AddPlaceholderData();
+
+            HYPERION_RETURN_OK;
+        });
 
         SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ENVIRONMENTS, [this](Engine *engine) {
             m_lights.clear();
-            m_shadow_renderers.clear();
+            m_render_components.Clear();
+
+            if (m_has_render_component_updates) {
+                std::lock_guard guard(m_render_component_mutex);
+
+                m_render_components_pending_addition.Clear();
+                m_render_components_pending_removal.Clear();
+
+                m_has_render_component_updates = false;
+            }
 
             HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -65,21 +80,28 @@ void Environment::AddLight(Ref<Light> &&light)
     m_lights.push_back(std::move(light));
 }
 
-
-void Environment::AddShadowRenderer(Engine *engine, std::unique_ptr<ShadowRenderer> &&shadow_renderer)
+void Environment::AddPlaceholderData()
 {
-    AssertThrow(shadow_renderer != nullptr);
+    Threads::AssertOnThread(THREAD_RENDER);
 
-    if (IsReady()) {
-        shadow_renderer->Init(engine);
+    const auto *engine = GetEngine();
+
+    // add placeholder shadowmaps
+    for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
+        auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+            .GetDescriptorSet(descriptor_set_index);
+
+        auto *shadow_map_descriptor = descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+        
+        for (uint i = 0; i < max_shadow_maps; i++) {
+            shadow_map_descriptor->AddSubDescriptor({
+                .element_index = i,
+                .image_view    = &engine->GetDummyData().GetImageView2D1x1R8(),
+                .sampler       = &engine->GetDummyData().GetSampler()
+            });
+        }
     }
-
-    m_shadow_renderers.push_back(std::move(shadow_renderer));
-}
-
-void Environment::RemoveShadowRenderer(Engine *engine, size_t index)
-{
-    m_shadow_renderers.erase(m_shadow_renderers.begin() + index);
 }
 
 void Environment::Update(Engine *engine, GameCounter::TickUnit delta)
@@ -90,19 +112,10 @@ void Environment::Update(Engine *engine, GameCounter::TickUnit delta)
 
     m_global_timer += delta;
 
+    HYP_USED AtomicWaiter waiter(m_updating_render_components);
+
     for (const auto &component : m_render_components) {
-        component.second->Update(engine, delta);
-    }
-}
-
-void Environment::UpdateShadows(Engine *engine, GameCounter::TickUnit delta)
-{
-    /* TODO: have observer on octrees, only update shadow renderers
-     * who's lights have had objects move within their octant
-     */
-
-    for (const auto &shadow_renderer : m_shadow_renderers) {
-        shadow_renderer->Update(engine, delta);
+        component.second->ComponentUpdate(engine, delta);
     }
 }
 
@@ -112,23 +125,33 @@ void Environment::RenderComponents(Engine *engine, Frame *frame)
 
     AssertReady();
 
-    for (const auto &component : m_render_components) {
-        component.second->Render(engine, frame);
+    if (m_has_render_component_updates) {
+        AtomicLocker locker(m_updating_render_components);
+
+        std::lock_guard guard(m_render_component_mutex);
+
+        for (auto &it : m_render_components_pending_addition) {
+            AssertThrow(it.second != nullptr);
+
+            it.second->SetComponentIndex(0); // just using zero for now, when multiple of same components are supported, we will extend this
+            it.second->ComponentInit(engine);
+
+            m_render_components.Set(it.first, std::move(it.second));
+        }
+
+        m_render_components_pending_addition.Clear();
+
+        for (auto &it : m_render_components_pending_removal) {
+            m_render_components.Remove(it);
+        }
+
+        m_render_components_pending_removal.Clear();
+
+        m_has_render_component_updates = false;
     }
-}
 
-void Environment::RenderShadows(Engine *engine, Frame *frame)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-
-    /* TODO: have observer on octrees, only render shadow renderers
-     * who's lights have had objects move within their octant
-     */
-
-    for (const auto &shadow_renderer : m_shadow_renderers) {
-        shadow_renderer->Render(engine, frame);
+    for (const auto &component : m_render_components) {
+        component.second->ComponentRender(engine, frame);
     }
 }
 

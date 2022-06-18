@@ -70,12 +70,14 @@
     #define HYP_PACK_BEGIN __attribute__((__packed__))
     #define HYP_PACK_END
     #define HYP_FORCE_INLINE __attribute__((always_inline))
+    #define HYP_USED __attribute__((used))
 #endif
 
 #if defined(HYP_MSVC) && HYP_MSVC
     #define HYP_PACK_BEGIN __pragma(pack(push, 1))
     #define HYP_PACK_END __pragma(pack(pop))
     #define HYP_FORCE_INLINE __forceinline
+    #define HYP_USED volatile
 #endif
 
 #if defined(_WIN32) && _WIN32

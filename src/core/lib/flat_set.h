@@ -55,11 +55,11 @@ public:
     [[nodiscard]] T &Back()                               { return m_vector.back(); }
     [[nodiscard]] const T &Back() const                   { return m_vector.back(); }
 
-    [[nodiscard]] T &At(size_t index)                     { return m_vector.at(index); }
-    [[nodiscard]] const T &At(size_t index) const         { return m_vector.at(index); }
+    [[nodiscard]] T &At(Iterator iter)                    { return m_vector.at(std::distance(m_vector.begin(), iter)); }
+    [[nodiscard]] const T &At(Iterator iter) const        { return m_vector.at(std::distance(m_vector.begin(), iter)); }
 
-    [[nodiscard]] T &operator[](size_t index)             { return m_vector[index]; }
-    [[nodiscard]] const T &operator[](size_t index) const { return m_vector[index]; }
+    //[[nodiscard]] T &operator[](size_t index)             { return m_vector[index]; }
+    //[[nodiscard]] const T &operator[](size_t index) const { return m_vector[index]; }
 
     HYP_DEF_STL_ITERATOR(m_vector)
 

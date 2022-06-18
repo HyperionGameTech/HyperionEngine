@@ -11,7 +11,7 @@ DummyData::DummyData()
           nullptr
       ),
       m_sampler(
-          renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+          renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR,
           renderer::Image::WrapMode::TEXTURE_WRAP_REPEAT
       )
 {

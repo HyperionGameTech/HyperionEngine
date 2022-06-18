@@ -121,9 +121,9 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_ind
 
         return DescriptorSet::Index(frame_base + frame_index);
     }
+    default:
+        return index;
     }
-
-    return index;
 }
 
 DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint instance_index, uint frame_index)
@@ -133,6 +133,33 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint instance_
     }
 
     return GetPerFrameIndex(index, frame_index);
+}
+
+int DescriptorSet::GetFrameIndex(uint real_index)
+{
+    switch (GetBaseIndex(static_cast<uint>(real_index))) {
+    case DESCRIPTOR_SET_INDEX_SCENE:
+        return real_index == DESCRIPTOR_SET_INDEX_SCENE_FRAME_1 ? 1 : 0;
+    case DESCRIPTOR_SET_INDEX_OBJECT:
+        return real_index == DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1 ? 1 : 0;
+    case DESCRIPTOR_SET_INDEX_BINDLESS:
+        return real_index == DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1 ? 1 : 0;
+    case DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES: {
+        if (real_index == DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+            return -1;
+        }
+        
+        const auto index_offset = real_index - (static_cast<uint>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
+
+        if (index_offset % 2 != 0) { // it is for frame 1
+            return 1;
+        }
+
+        return 0;
+    }
+    default:
+        return -1;
+    }
 }
 
 uint DescriptorSet::GetDesiredIndex(Index index)
@@ -598,6 +625,23 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, uint frame_i
         HYPERION_BUBBLE_ERRORS(DestroyDescriptorSet(device, index));
 
         descriptor_set_queue.pop_front();
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+Result DescriptorPool::UpdateDescriptorSets(Device *device, uint frame_index)
+{
+    for (auto &m_descriptor_set : m_descriptor_sets) {
+        if (m_descriptor_set->GetState() == DescriptorSetState::DESCRIPTOR_CLEAN) {
+            continue;
+        }
+
+        const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(m_descriptor_set->GetRealIndex());
+
+        if (descriptor_set_frame_index == static_cast<int>(frame_index) || descriptor_set_frame_index == -1) {
+            m_descriptor_set->ApplyUpdates(device);
+        }
     }
 
     HYPERION_RETURN_OK;

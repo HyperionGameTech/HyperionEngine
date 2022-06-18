@@ -17,15 +17,88 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class RenderComponent : public EngineComponentBase<STUB_CLASS(RenderComponent)> {
+class RenderComponentBase {
 public:
-    RenderComponent() = default;
+    using Index = uint;
+
+    RenderComponentBase()
+        : m_index(~0u)
+    {
+    }
+
+    RenderComponentBase(const RenderComponentBase &other) = delete;
+    RenderComponentBase &operator=(const RenderComponentBase &other) = delete;
+    virtual ~RenderComponentBase() = default;
+
+    bool IsValidComponent() const               { return m_index != ~0u; }
+
+    Index GetComponentIndex() const             { return m_index; }
+    virtual void SetComponentIndex(Index index) { m_index = index; }
+
+    virtual void ComponentInit(Engine *engine) = 0;
+    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) {}
+    virtual void ComponentRender(Engine *engine, Frame *frame) = 0;
+
+protected:
+    Index m_index;
+};
+
+template <class Derived>
+class RenderComponent : public RenderComponentBase {
+public:
+    RenderComponent()
+        : RenderComponentBase(),
+          m_component_is_init(false)
+    {
+    }
+
     RenderComponent(const RenderComponent &other) = delete;
     RenderComponent &operator=(const RenderComponent &other) = delete;
-    virtual ~RenderComponent() = default;
+    virtual ~RenderComponent() override = default;
+
+    virtual void SetComponentIndex(Index index) override final
+    {
+        if (index == m_index) {
+            return;
+        }
+
+        const auto prev_index = m_index;
+
+        RenderComponentBase::SetComponentIndex(index);
+
+        if (m_component_is_init) {
+            OnComponentIndexChanged(index, prev_index);
+        }
+    }
     
-    virtual void Update(Engine *engine, GameCounter::TickUnit delta) {}
-    virtual void Render(Engine *engine, Frame *frame) = 0;
+    virtual void ComponentInit(Engine *engine) override final
+    {
+        //Threads::AssertOnThread(THREAD_RENDER);
+
+        static_cast<Derived *>(this)->Init(engine);
+
+        m_component_is_init = true;
+    }
+
+    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) override final
+    {
+        Threads::AssertOnThread(THREAD_GAME);
+
+        static_cast<Derived *>(this)->OnUpdate(engine, delta);
+    }
+
+    virtual void ComponentRender(Engine *engine, Frame *frame) override final
+    {
+        Threads::AssertOnThread(THREAD_RENDER);
+
+        static_cast<Derived *>(this)->OnRender(engine, frame);
+    }
+
+protected:
+    virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
+
+private:
+    bool m_component_is_init;
 };
 
 } // namespace hyperion::v2

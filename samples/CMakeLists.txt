@@ -6,7 +6,7 @@ set(BUILD_NAME hyperion-sample)
 project(${BUILD_NAME} CXX C)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
     #set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
     #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
 

@@ -92,7 +92,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/living_room/living_room.obj",
+            "models/sponza/sponza.obj", //"living_room/living_room.obj",
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -153,14 +153,14 @@ public:
         scene->GetEnvironment()->AddLight(my_light.IncRef());
         
 
-        scene->GetEnvironment()->AddShadowRenderer(engine, std::make_unique<ShadowRenderer>(
+        scene->GetEnvironment()->AddRenderComponent(std::make_unique<ShadowRenderer>(
             my_light.IncRef(),
             Vector3::Zero(),
             50.0f
         ));
 
         //test_model->Translate({0, 0, 5});
-        test_model->Scale(30.0f);
+        test_model->Scale(0.075f);
         //test_model->Rotate(Quaternion({ 1, 0, 0 }, MathUtil::DegToRad(90.0f)));
         
         tex1 = engine->resources.textures.Add(
@@ -268,7 +268,7 @@ public:
 
     virtual void OnFrameBegin(Engine *engine, Frame *frame) override
     {
-        scene->GetEnvironment()->RenderShadows(engine, frame);
+        scene->GetEnvironment()->RenderComponents(engine, frame);
 
         engine->render_state.BindScene(scene);
     }
@@ -773,7 +773,6 @@ int main()
 #endif
 
         engine->UpdateBuffersAndDescriptors(frame_index);
-
         engine->ResetRenderState();
 
         /* === rendering === */

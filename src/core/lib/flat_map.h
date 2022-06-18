@@ -41,6 +41,11 @@ public:
     InsertResult Insert(const Key &key, Value &&value);
     InsertResult Insert(std::pair<Key, Value> &&pair);
 
+    InsertResult Set(const Key &key, const Value &value);
+    InsertResult Set(const Key &key, Value &&value);
+    InsertResult Set(Iterator iter, const Value &value);
+    InsertResult Set(Iterator iter, Value &&value);
+
     template <class ...Args>
     InsertResult Emplace(const Key &key, Args &&... args)
         { return Insert(key, Value(std::forward<Args>(args)...)); }
@@ -68,9 +73,13 @@ public:
 
     [[nodiscard]] Value &operator[](const Key &key)
     {
-        const auto iter = Insert(key, Value{}).first;
+        const auto it = Find(key);
 
-        return iter->second;
+        if (it != End()) {
+            return it->second;
+        }
+
+        return Insert(key, Value{}).first->second;
     }
 
     HYP_DEF_STL_ITERATOR(m_set)
@@ -216,6 +225,50 @@ auto FlatMap<Key, Value>::Insert(std::pair<Key, Value> &&pair) -> InsertResult
     }
 
     return {lower_bound, false};
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResult
+{
+    const auto lower_bound = LowerBound(key);
+
+    if (lower_bound == End() || !(lower_bound->first == key)) {
+        return m_set.Insert(std::make_pair(key, value));
+    }
+
+    m_set.At(lower_bound).second = value;
+
+    return InsertResult{lower_bound, true};
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
+{
+    const auto lower_bound = LowerBound(key);
+
+    if (lower_bound == End() || !(lower_bound->first == key)) {
+        return m_set.Insert(std::make_pair(key, std::forward<Value>(value)));
+    }
+
+    m_set.At(lower_bound).second = std::forward<Value>(value);
+
+    return InsertResult{lower_bound, true};
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set(Iterator iter, const Value &value) -> InsertResult
+{
+    m_set.At(iter).second = value;
+
+    return InsertResult{iter, true};
+}
+
+template <class Key, class Value>
+auto FlatMap<Key, Value>::Set(Iterator iter, Value &&value) -> InsertResult
+{
+    m_set.At(iter).second = std::forward<Value>(value);
+
+    return InsertResult{iter, true};
 }
 
 template <class Key, class Value>

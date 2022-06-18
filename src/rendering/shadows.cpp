@@ -11,15 +11,16 @@ namespace hyperion::v2 {
 using renderer::DescriptorKey;
 using renderer::ImageSamplerDescriptor;
 
-ShadowEffect::ShadowEffect()
+ShadowPass::ShadowPass()
     : FullScreenPass(),
-      m_shadow_map_index(0)
+      m_max_distance(100.0f),
+      m_shadow_map_index(~0u)
 {
 }
 
-ShadowEffect::~ShadowEffect() = default;
+ShadowPass::~ShadowPass() = default;
 
-void ShadowEffect::CreateShader(Engine *engine)
+void ShadowPass::CreateShader(Engine *engine)
 {
     m_shader = engine->resources.shaders.Add(std::make_unique<Shader>(
         std::vector<SubShader>{
@@ -31,7 +32,7 @@ void ShadowEffect::CreateShader(Engine *engine)
     m_shader.Init();
 }
 
-void ShadowEffect::SetParentScene(Scene::ID id)
+void ShadowPass::SetParentScene(Scene::ID id)
 {
     m_parent_scene_id = id;
 
@@ -40,7 +41,7 @@ void ShadowEffect::SetParentScene(Scene::ID id)
     }
 }
 
-void ShadowEffect::CreateRenderPass(Engine *engine)
+void ShadowPass::CreateRenderPass(Engine *engine)
 {
     /* Add the filters' renderpass */
     auto render_pass = std::make_unique<RenderPass>(
@@ -76,8 +77,10 @@ void ShadowEffect::CreateRenderPass(Engine *engine)
     m_render_pass.Init();
 }
 
-void ShadowEffect::CreateDescriptors(Engine *engine)
+void ShadowPass::CreateDescriptors(Engine *engine)
 {
+    AssertThrow(m_shadow_map_index != ~0u);
+
     /* set descriptor */
     engine->render_scheduler.Enqueue([this, engine, &framebuffer = m_framebuffer->GetFramebuffer()](...) {
         if (!framebuffer.GetAttachmentRefs().empty()) {
@@ -90,11 +93,14 @@ void ShadowEffect::CreateDescriptors(Engine *engine)
                 auto *shadow_map_descriptor = descriptor_set
                     ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
                 
-                for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                    m_shadow_map_index = shadow_map_descriptor->AddSubDescriptor({
-                        .image_view = attachment_ref->GetImageView(),
-                        .sampler    = attachment_ref->GetSampler()
+                for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
+                    const auto sub_descriptor_index = shadow_map_descriptor->AddSubDescriptor({
+                        .element_index = m_shadow_map_index,
+                        .image_view    = attachment_ref->GetImageView(),
+                        .sampler       = attachment_ref->GetSampler()
                     });
+
+                    AssertThrow(sub_descriptor_index == m_shadow_map_index);
                 }
             }
         }
@@ -103,7 +109,7 @@ void ShadowEffect::CreateDescriptors(Engine *engine)
     });
 }
 
-void ShadowEffect::CreatePipeline(Engine *engine)
+void ShadowPass::CreatePipeline(Engine *engine)
 {
     auto pipeline = std::make_unique<GraphicsPipeline>(
         std::move(m_shader),
@@ -157,7 +163,7 @@ void ShadowEffect::CreatePipeline(Engine *engine)
     }
 }
 
-void ShadowEffect::Create(Engine *engine)
+void ShadowPass::Create(Engine *engine)
 {
     CreateShader(engine);
     CreateRenderPass(engine);
@@ -195,7 +201,7 @@ void ShadowEffect::Create(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE(engine);
 }
 
-void ShadowEffect::Destroy(Engine *engine)
+void ShadowPass::Destroy(Engine *engine)
 {
     m_spatial_observers.Clear();
     m_pipeline_observers.clear();
@@ -203,7 +209,7 @@ void ShadowEffect::Destroy(Engine *engine)
     FullScreenPass::Destroy(engine); // flushes render queue
 }
 
-void ShadowEffect::Render(Engine *engine, Frame *frame)
+void ShadowPass::Render(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -224,9 +230,9 @@ ShadowRenderer::ShadowRenderer(Ref<Light> &&light)
 ShadowRenderer::ShadowRenderer(Ref<Light> &&light, const Vector3 &origin, float max_distance)
     : EngineComponentBase()
 {
-    m_effect.SetLight(std::move(light));
-    m_effect.SetOrigin(origin);
-    m_effect.SetMaxDistance(max_distance);
+    m_shadow_pass.SetLight(std::move(light));
+    m_shadow_pass.SetOrigin(origin);
+    m_shadow_pass.SetMaxDistance(max_distance);
 }
 
 ShadowRenderer::~ShadowRenderer()
@@ -242,20 +248,23 @@ void ShadowRenderer::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    AssertThrow(IsValidComponent());
+    m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](Engine *engine) {
-        m_effect.Create(engine);
+        m_shadow_pass.Create(engine);
 
         SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](Engine *engine) {
-            m_effect.Destroy(engine); // flushes render queue
+            m_shadow_pass.Destroy(engine); // flushes render queue
 
             SetReady(false);
         }), engine);
     }));
 }
 
-void ShadowRenderer::Update(Engine *engine, GameCounter::TickUnit delta)
+void ShadowRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -263,39 +272,39 @@ void ShadowRenderer::Update(Engine *engine, GameCounter::TickUnit delta)
     
     UpdateSceneCamera(engine);
 
-    m_effect.GetScene()->Update(engine, delta);
+    m_shadow_pass.GetScene()->Update(engine, delta);
 }
 
-void ShadowRenderer::Render(Engine *engine, Frame *frame)
+void ShadowRenderer::OnRender(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    const auto *camera = m_effect.GetScene()->GetCamera();
+    const auto *camera = m_shadow_pass.GetScene()->GetCamera();
     
     engine->shader_globals->shadow_maps.Set(
-        m_effect.GetShadowMapIndex(),
+        m_shadow_pass.GetShadowMapIndex(),
         {
             .projection  = camera->GetProjectionMatrix(),
             .view        = camera->GetViewMatrix(),
-            .scene_index = m_effect.GetScene()->GetId().value - 1
+            .scene_index = m_shadow_pass.GetScene()->GetId().value - 1
         }
     );
 
-    m_effect.Render(engine, frame);
+    m_shadow_pass.Render(engine, frame);
 }
 
 void ShadowRenderer::UpdateSceneCamera(Engine *engine)
 {
-    const auto aabb = m_effect.GetAabb();
+    const auto aabb   = m_shadow_pass.GetAabb();
     const auto center = aabb.GetCenter();
 
-    const auto light_direction = m_effect.GetLight() != nullptr
-        ? m_effect.GetLight()->GetPosition()
+    const auto light_direction = m_shadow_pass.GetLight() != nullptr
+        ? m_shadow_pass.GetLight()->GetPosition()
         : Vector3::Zero();
 
-    auto *camera = m_effect.GetScene()->GetCamera();
+    auto *camera = m_shadow_pass.GetScene()->GetCamera();
 
     camera->SetTranslation(center + light_direction);
     camera->SetTarget(center);
@@ -317,8 +326,8 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
         static_cast<OrthoCamera *>(camera)->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             mins.x, maxes.x,
             mins.y, maxes.y,
-            -m_effect.GetMaxDistance(),
-            m_effect.GetMaxDistance()
+            -m_shadow_pass.GetMaxDistance(),
+            m_shadow_pass.GetMaxDistance()
         );
 
         break;
@@ -326,6 +335,14 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
     default:
         AssertThrowMsg(false, "Unhandled camera type");
     }
+}
+
+void ShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
+{
+    //m_shadow_pass.SetShadowMapIndex(new_index);
+    AssertThrowMsg(false, "Not implemented");
+
+    // TODO: Remove descriptor, set new descriptor
 }
 
 } // namespace hyperion::v2

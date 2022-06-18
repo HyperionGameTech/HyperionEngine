@@ -137,7 +137,8 @@ struct alignas(256) SceneShaderData {
     Vector4 aabb_max;
     Vector4 aabb_min;
 
-    float global_timer;
+    float    global_timer;
+    uint32_t num_environment_shadow_maps;
 };
 
 static_assert(sizeof(SceneShaderData) == 256);

@@ -35,15 +35,6 @@ void BindlessStorage::Destroy(Engine *engine)
     m_texture_ids.Clear();
 }
 
-void BindlessStorage::ApplyUpdates(Engine *engine, uint frame_index)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    auto *descriptor_set = m_descriptor_sets[frame_index % m_descriptor_sets.size()];
-
-    descriptor_set->ApplyUpdates(engine->GetInstance()->GetDevice());
-}
-
 void BindlessStorage::AddResource(const Texture *texture)
 {
     Threads::AssertOnThread(THREAD_RENDER);

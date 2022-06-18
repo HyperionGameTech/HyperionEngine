@@ -35,11 +35,6 @@ public:
     void Create(Engine *engine);
     void Destroy(Engine *engine);
 
-    /*! \brief Apply changes to the bindless descriptor set corresponding to the given frame index value.
-     * Do not call this with the index of a frame that is still using resources.
-     */
-    void ApplyUpdates(Engine *engine, uint frame_index);
-
     /*! \brief Add a texture to the bindless descriptor set. */
     void AddResource(const Texture *texture);
     /*! \brief Remove the given texture from the bindless descriptor set. */

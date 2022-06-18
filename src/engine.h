@@ -169,7 +169,7 @@ public:
     void Compile();
 
     void ResetRenderState();
-    void UpdateBuffersAndDescriptors(uint32_t frame_index);
+    void UpdateBuffersAndDescriptors(uint frame_index);
     
     void RenderDeferred(Frame *frame);
     void RenderFinalPass(CommandBuffer *command_buffer) const;
@@ -188,7 +188,7 @@ public:
     Scheduler<
         renderer::Result,
         CommandBuffer * /* command_buffer */,
-        uint32_t /* frame_index */
+        uint            /* frame_index */
     > render_scheduler;
 
     GameThread game_thread;

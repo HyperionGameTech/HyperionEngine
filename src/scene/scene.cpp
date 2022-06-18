@@ -106,21 +106,22 @@ void Scene::EnqueueRenderUpdates(Engine *engine)
 
     engine->render_scheduler.EnqueueReplace(m_render_update_id, [this, engine, params](...) {
         SceneShaderData shader_data{
-            .view             = params.view,
-            .projection       = params.projection,
-            .camera_position  = params.translation.ToVector4(),
-            .camera_direction = params.direction.ToVector4(),
-            .light_direction  = params.light_direction.ToVector4(),
-            .resolution_x     = static_cast<uint32_t>(params.width),
-            .resolution_y     = static_cast<uint32_t>(params.height),
-            .aabb_max         = params.aabb.max.ToVector4(),
-            .aabb_min         = params.aabb.min.ToVector4(),
-            .global_timer     = params.global_timer
+            .view                        = params.view,
+            .projection                  = params.projection,
+            .camera_position             = params.translation.ToVector4(),
+            .camera_direction            = params.direction.ToVector4(),
+            .light_direction             = params.light_direction.ToVector4(),
+            .resolution_x                = static_cast<uint32_t>(params.width),
+            .resolution_y                = static_cast<uint32_t>(params.height),
+            .aabb_max                    = params.aabb.max.ToVector4(),
+            .aabb_min                    = params.aabb.min.ToVector4(),
+            .global_timer                = params.global_timer,
+            .num_environment_shadow_maps = static_cast<uint32_t>(m_environment->HasRenderComponent<ShadowRenderer>()) // callable on render thread only
         };
 
         shader_data.environment_texture_usage = 0;
 
-        for (uint32_t i = 0; i < static_cast<uint32_t>(m_environment_textures.size()); i++) {
+        for (uint i = 0; i < static_cast<uint>(m_environment_textures.size()); i++) {
             if (auto &texture = m_environment_textures[i]) {
                 shader_data.environment_texture_index = texture->GetId().value - 1;
                 shader_data.environment_texture_usage |= 1 << i;

@@ -114,10 +114,10 @@ public:
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
     const auto &GetSubDescriptors() const { return m_sub_descriptors; }
 
-    SubDescriptor &GetSubDescriptor(size_t index)
+    SubDescriptor &GetSubDescriptor(uint index)
         { return m_sub_descriptors.At(index); }
 
-    const SubDescriptor &GetSubDescriptor(size_t index) const
+    const SubDescriptor &GetSubDescriptor(uint index) const
         { return m_sub_descriptors.At(index); }
 
     /*! \brief Add a sub-descriptor to this descriptor.
@@ -226,17 +226,19 @@ public:
         DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1
     };
 
-    static constexpr uint max_descriptor_sets = 5000;
-    static constexpr uint max_bindless_resources = 4096;
+    static constexpr uint max_descriptor_sets                  = 5000;
+    static constexpr uint max_bindless_resources               = 4096;
     static constexpr uint max_sub_descriptor_updates_per_frame = 16;
-    static constexpr uint max_bound_descriptor_sets = 4; /* 0 = no cap */
-    static constexpr uint max_material_texture_samplers = 16;
+    static constexpr uint max_bound_descriptor_sets            = 4; /* 0 = no cap */
+    static constexpr uint max_material_texture_samplers        = 16;
 
     static const std::map<Index, std::map<DescriptorKey, uint>> mappings;
     static const std::unordered_map<Index, uint> desired_indices;
     static Index GetBaseIndex(uint index); // map index to the real index used (this is per-frame stuff)
     static Index GetPerFrameIndex(Index index, uint frame_index);
     static Index GetPerFrameIndex(Index index, uint instance_index, uint frame_index);
+    /*! Get the per-frame index of a descriptor set's /real/ index. Returns -1 if applicable to any. */
+    static int GetFrameIndex(uint real_index);
     static uint GetDesiredIndex(Index index);
 
     DescriptorSet(Index index, uint real_index, bool bindless);
@@ -414,6 +416,7 @@ public:
     Result CreateDescriptorSet(Device *device, uint index);
     Result DestroyDescriptorSet(Device *device, uint index);
     Result DestroyPendingDescriptorSets(Device *device, uint frame_index);
+    Result UpdateDescriptorSets(Device *device, uint frame_index);
 
 private:
     void BindDescriptorSets(

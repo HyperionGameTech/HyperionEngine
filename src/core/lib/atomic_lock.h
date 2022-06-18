@@ -3,6 +3,12 @@
 
 #include <atomic>
 
+#include "atomic_semaphore.h"
+
+#include <system/debug.h>
+#include <types.h>
+#include <util/defines.h>
+
 namespace hyperion::v2 {
 
 class AtomicLock {
@@ -14,19 +20,44 @@ public:
     AtomicLock &operator=(AtomicLock &&other) = delete;
     ~AtomicLock() = default;
 
-    void Lock()   { m_locked = true; }
-    void Unlock() { m_locked = false; }
-    void Wait() const
-    {
-        volatile uint32_t x = 0;
+    HYP_FORCE_INLINE bool IsLocked() const { return m_semaphore.Count() != 0; }
 
-        while (m_locked) {
-            ++x;
-        }
+    HYP_FORCE_INLINE void Lock()           { AssertThrow(!IsLocked()); m_semaphore.Inc(); }
+    HYP_FORCE_INLINE void Unlock()         { AssertThrow(IsLocked());  m_semaphore.Dec(); }
+
+    HYP_FORCE_INLINE void Wait() const     { m_semaphore.BlockUntilZero(); }
+
+private:
+    AtomicSemaphore<uint> m_semaphore;
+};
+
+class AtomicLocker {
+public:
+    AtomicLocker(AtomicLock &lock)
+        : m_lock(lock)
+    {
+        m_lock.Lock();
+    }
+
+    ~AtomicLocker()
+    {
+        m_lock.Unlock();
     }
 
 private:
-    std::atomic_bool m_locked{false};
+    AtomicLock &m_lock;
+};
+
+class AtomicWaiter {
+public:
+    AtomicWaiter(AtomicLock &lock)
+        : m_lock(lock)
+    {
+        m_lock.Wait();
+    }
+
+private:
+    AtomicLock &m_lock;
 };
 
 } // namespace hyperion::v2
