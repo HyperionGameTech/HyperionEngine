@@ -90,7 +90,9 @@ void Environment::Update(Engine *engine, GameCounter::TickUnit delta)
 
     m_global_timer += delta;
 
-    UpdateShadows(engine, delta);
+    for (const auto &component : m_render_components) {
+        component.second->Update(engine, delta);
+    }
 }
 
 void Environment::UpdateShadows(Engine *engine, GameCounter::TickUnit delta)
@@ -101,6 +103,17 @@ void Environment::UpdateShadows(Engine *engine, GameCounter::TickUnit delta)
 
     for (const auto &shadow_renderer : m_shadow_renderers) {
         shadow_renderer->Update(engine, delta);
+    }
+}
+
+void Environment::RenderComponents(Engine *engine, Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    AssertReady();
+
+    for (const auto &component : m_render_components) {
+        component.second->Render(engine, frame);
     }
 }
 

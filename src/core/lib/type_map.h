@@ -2,6 +2,7 @@
 #define HYPERION_TYPE_MAP_H
 
 #include "flat_map.h"
+#include "flat_set.h"
 
 #include <types.h>
 #include <hash_code.h>
@@ -58,6 +59,7 @@ struct TypeId {
 
 template <class Value>
 class TypeMap {
+protected:
     using Map = FlatMap<TypeId, Value>;
 
     static inline std::atomic<TypeId::Value> type_id_counter;
@@ -175,9 +177,10 @@ public:
 
     HYP_DEF_STL_BEGIN_END(m_map.Begin(), m_map.End())
 
-private:
+protected:
     Map m_map;
 };
+
 
 } // namespace hyperion
 

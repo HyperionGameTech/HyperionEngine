@@ -5,13 +5,14 @@
 #include "post_fx.h"
 #include "renderer.h"
 #include "light.h"
+#include "render_component.h"
+
+#include <rendering/backend/renderer_frame.h>
 
 #include <math/bounding_box.h>
 #include <scene/scene.h>
 #include <camera/camera.h>
 #include <types.h>
-
-#include <rendering/backend/renderer_frame.h>
 
 namespace hyperion::v2 {
 
@@ -68,13 +69,13 @@ private:
     uint                                                     m_shadow_map_index;
 };
 
-class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)> {
+class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>, RenderComponent {
 public:
     ShadowRenderer(Ref<Light> &&light);
     ShadowRenderer(Ref<Light> &&light, const Vector3 &origin, float max_distance);
     ShadowRenderer(const ShadowRenderer &other) = delete;
     ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
-    ~ShadowRenderer();
+    virtual ~ShadowRenderer();
 
     ShadowEffect &GetEffect()             { return m_effect; }
     const ShadowEffect &GetEffect() const { return m_effect; }
@@ -95,7 +96,8 @@ public:
 
     void Init(Engine *engine);
     void Update(Engine *engine, GameCounter::TickUnit delta);
-    void Render(Engine *engine, Frame *frame);
+
+    virtual void Render(Engine *engine, Frame *frame) override;
 
 private:
     void UpdateSceneCamera(Engine *engine);

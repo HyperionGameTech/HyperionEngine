@@ -784,7 +784,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< float, Vector3, &Vector3::GetX >
+                    CxxMemberFn< Float32, Vector3, &Vector3::GetX >
                 },
                 {
                     "y",
@@ -792,7 +792,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< float, Vector3, &Vector3::GetY >
+                    CxxMemberFn< Float32, Vector3, &Vector3::GetY >
                 },
                 {
                     "z",
@@ -800,7 +800,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< float, Vector3, &Vector3::GetZ >
+                    CxxMemberFn< Float32, Vector3, &Vector3::GetZ >
                 }
             }
         )

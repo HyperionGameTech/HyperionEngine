@@ -5,6 +5,9 @@
 #include "shadows.h"
 #include "light.h"
 
+#include <core/lib/type_map.h>
+#include <types.h>
+
 #include <mutex>
 #include <vector>
 
@@ -39,13 +42,40 @@ public:
     void AddShadowRenderer(Engine *engine, std::unique_ptr<ShadowRenderer> &&shadow_renderer);
     void RemoveShadowRenderer(Engine *engine, size_t index);
 
+    template <class T>
+    void AddRenderComponent(std::unique_ptr<T> &&component)
+    {
+        m_render_components.Set<T>(std::move(component));
+    }
+
+    template <class T>
+    auto &&GetRenderComponent()
+    {
+        if (!m_render_components.Contains<T>()) {
+            return nullptr;
+        }
+
+        return m_render_components.At<T>();
+    }
+
+    template <class T>
+    void RemoveRenderComponent()
+    {
+        m_render_components.Remove<T>();
+    }
+
     float GetGlobalTimer() const { return m_global_timer; }
 
     void Init(Engine *engine);
     void Update(Engine *engine, GameCounter::TickUnit delta);
+
+    void RenderComponents(Engine *engine, Frame *frame);
+
     void RenderShadows(Engine *engine, Frame *frame);
 
 private:
+    RenderComponentSet m_render_components;
+
     void UpdateShadows(Engine *engine, GameCounter::TickUnit delta);
 
     std::vector<Ref<Light>>                      m_lights;

@@ -58,6 +58,9 @@ class ControllerSet {
     }
 
 public:
+    using Iterator      = Map::Iterator;
+    using ConstIterator = Map::ConstIterator;
+
     ControllerSet() = default;
     ControllerSet(const ControllerSet &other) = delete;
     ControllerSet &operator=(const ControllerSet &other) = delete;
@@ -124,10 +127,7 @@ public:
         return true;
     }
 
-    Map::Iterator begin()             { return m_map.begin(); }
-    Map::Iterator end()               { return m_map.end(); }
-    Map::ConstIterator cbegin() const { return m_map.cbegin(); }
-    Map::ConstIterator cend() const   { return m_map.cend(); }
+    HYP_DEF_STL_BEGIN_END(m_map.begin(), m_map.end());
 
 private:
     Map m_map;
