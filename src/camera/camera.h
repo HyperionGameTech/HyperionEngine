@@ -1,16 +1,48 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <game_counter.h>
+
 #include <math/vector3.h>
 #include <math/matrix4.h>
 #include <math/frustum.h>
 
+#include <queue>
+#include <atomic>
+#include <mutex>
+
 namespace hyperion {
+
+using GameCounter = v2::GameCounter;
 
 enum class CameraType {
     PERSPECTIVE,
     ORTHOGRAPHIC,
     OTHER
+};
+
+struct CameraCommand {
+    enum {
+        CAMERA_COMMAND_NONE,
+        CAMERA_COMMAND_MAG,
+        CAMERA_COMMAND_MOVEMENT
+    } command;
+
+    struct MagData {
+        int x = 0, y = 0;
+    } mag_data;
+
+    struct MovementData {
+        enum {
+            CAMERA_MOVEMENT_NONE,
+            CAMERA_MOVEMENT_LEFT,
+            CAMERA_MOVEMENT_RIGHT,
+            CAMERA_MOVEMENT_FORWARD,
+            CAMERA_MOVEMENT_BACKWARD
+        } movement_type = CAMERA_MOVEMENT_NONE;
+
+        float amount = 1.0f;
+    } movement_data;
 };
 
 class Camera {
@@ -57,7 +89,7 @@ public:
     const Matrix4 &GetViewProjectionMatrix() const    { return m_view_proj_mat; }
     void SetViewProjectionMatrix(const Matrix4 &view_mat, const Matrix4 &proj_mat);
 
-    void Update(double dt);
+    void Update(GameCounter::TickUnit dt);
 
     virtual void UpdateLogic(double dt) = 0;
 
@@ -65,7 +97,12 @@ public:
     virtual void UpdateProjectionMatrix() = 0;
     void UpdateMatrices();
 
+    /*! \brief Push a command to the camera in a thread-safe way. */
+    void PushCommand(const CameraCommand &command);
+
 protected:
+    virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {};
+
     void UpdateViewProjectionMatrix();
 
     CameraType m_camera_type;
@@ -79,7 +116,13 @@ protected:
     float m_fov; // only for perspective
 
 private:
+    void UpdateCommandQueue(GameCounter::TickUnit dt);
+
     Matrix4 m_view_proj_mat;
+
+    std::mutex                m_command_queue_mutex;
+    std::atomic_uint32_t      m_command_queue_count;
+    std::queue<CameraCommand> m_command_queue;
 };
 }
 

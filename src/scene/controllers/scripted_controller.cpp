@@ -19,7 +19,6 @@ void ScriptedController::OnAdded()
     }
 
     APIInstance api_instance;
-    ScriptBindings::Build(api_instance);
 
     if (m_script->Compile(api_instance)) {
         m_script->Bake();

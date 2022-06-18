@@ -12,10 +12,7 @@ public:
     static HYP_SCRIPT_FUNCTION(NodeGetName);
     static HYP_SCRIPT_FUNCTION(NodeGetLocalTranslation);
 
-    static HYP_SCRIPT_FUNCTION(Vector3Add);
-    static HYP_SCRIPT_FUNCTION(Vector3Sub);
     static HYP_SCRIPT_FUNCTION(Vector3ToString);
-    static HYP_SCRIPT_FUNCTION(Vector3Init);
 
     static HYP_SCRIPT_FUNCTION(ArraySize);
     static HYP_SCRIPT_FUNCTION(ArrayPush);
@@ -29,7 +26,8 @@ public:
     static HYP_SCRIPT_FUNCTION(Malloc);
     static HYP_SCRIPT_FUNCTION(Free);
 
-    static void Build(APIInstance &api_instance);
+    static void DeclareAll(APIInstance &api_instance);
+    static void RegisterBindings(APIInstance &api_instance);
 
 };
 

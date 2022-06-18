@@ -136,7 +136,7 @@
         Number num; \
         if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
-            return; \
+            return (decltype(name))0; \
         } \
         name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
     } while (false)
@@ -147,7 +147,7 @@
         Number num; \
         if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
-            return; \
+            return (decltype(name))0; \
         } \
         name = (num.flags & Number::FLAG_SIGNED) ? static_cast<auint64>(num.i) : num.u; \
     } while (false)
@@ -157,7 +157,7 @@
     do { \
         if (!params.args[index]->GetFloatingPointCoerce(&name)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type float")); \
-            return; \
+            return (decltype(name))0; \
         } \
     } while (false) 
 
@@ -166,7 +166,6 @@
     do { \
         if (!params.args[index]->GetPointer<type>(&name)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type " #type)); \
-            return; \
         } \
     } while (false)
 
@@ -175,7 +174,7 @@
     do { \
         if (!params.args[index]->GetUserData<type>(&name)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type " #type)); \
-            return; \
+            return (decltype(name))nullptr; \
         } \
     } while (false)
 
@@ -184,8 +183,8 @@
     do { \
         Number num; \
         vm::Member *_member = nullptr; \
-        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetSignedOrUnsigned(&num)) { \
-            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type int or uint")); \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(name))) || !_member->value.GetSignedOrUnsigned(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type int or uint")); \
             return; \
         } \
         decl_name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
@@ -196,8 +195,8 @@
     do { \
         afloat64 num; \
         vm::Member *_member = nullptr; \
-        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetFloatingPointCoerce(&num)) { \
-            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type float")); \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(name))) || !_member->value.GetFloatingPointCoerce(&num)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type float")); \
             return; \
         } \
         decl_name = static_cast<type>(num); \
@@ -207,9 +206,8 @@
     type *decl_name; \
     do { \
         vm::Member *_member = nullptr; \
-        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetPointer<type>(&decl_name)) { \
-            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type " #type)); \
-            return; \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(name))) || !_member->value.GetPointer<type>(&decl_name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type " #type)); \
         } \
     } while (false)
 
@@ -217,8 +215,8 @@
     type *decl_name; \
     do { \
         vm::Member *_member = nullptr; \
-        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(#name))) && _member->value.GetUserData<type>(&decl_name)) { \
-            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " #name " to be of type " #type)); \
+        if (!(_member = object->LookupMemberFromHash(hash_fnv_1(name))) || !_member->value.GetUserData<type>(&decl_name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type " #type)); \
             return; \
         } \
     } while (false)

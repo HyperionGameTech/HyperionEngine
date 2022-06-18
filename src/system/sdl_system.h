@@ -134,7 +134,7 @@ public:
 
     inline uint16_t GetKeyCode()     { return this->GetInternalEvent()->key.keysym.sym; }
     inline uint8_t  GetMouseButton() { return this->GetInternalEvent()->button.button; }
-    inline uint32_t GetWindowId() { return this->GetInternalEvent()->window.windowID; }
+    inline uint32_t GetWindowId()    { return this->GetInternalEvent()->window.windowID; }
 
     inline void GetWindowResizeDimensions(int *_width, int *_height) {
         SDL_Event *ev = this->GetInternalEvent();

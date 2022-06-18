@@ -10,7 +10,8 @@ Camera::Camera(CameraType camera_type, int width, int height, float _near, float
       m_far(_far),
       m_translation(Vector3::Zero()),
       m_direction(Vector3::UnitZ()),
-      m_up(Vector3::UnitY())
+      m_up(Vector3::UnitY()),
+      m_command_queue_count{0}
 {
 }
 
@@ -76,8 +77,9 @@ void Camera::UpdateViewProjectionMatrix()
     m_frustum.SetFromViewProjectionMatrix(m_view_proj_mat);
 }
 
-void Camera::Update(double dt)
+void Camera::Update(GameCounter::TickUnit dt)
 {
+    UpdateCommandQueue(dt);
     UpdateLogic(dt);
     UpdateMatrices();
 }
@@ -87,6 +89,32 @@ void Camera::UpdateMatrices()
     UpdateViewMatrix();
     UpdateProjectionMatrix();
     UpdateViewProjectionMatrix();
+}
+
+void Camera::PushCommand(const CameraCommand &command)
+{
+    std::lock_guard guard(m_command_queue_mutex);
+
+    ++m_command_queue_count;
+
+    m_command_queue.push(command);
+}
+
+void Camera::UpdateCommandQueue(GameCounter::TickUnit dt)
+{
+    if (m_command_queue_count == 0) {
+        return;
+    }
+
+    std::lock_guard guard(m_command_queue_mutex);
+
+    while (!m_command_queue.empty()) {
+        RespondToCommand(m_command_queue.front(), dt);
+
+        m_command_queue.pop();
+    }
+
+    m_command_queue_count = 0;
 }
 
 } // namespace hyperion

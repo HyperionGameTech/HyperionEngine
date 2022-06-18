@@ -81,8 +81,6 @@ public:
 
         scene = engine->resources.scenes.Add(std::make_unique<v2::Scene>(
             std::make_unique<FpsCamera>(
-                input_manager,
-                window,
                 1024, 768,
                 70.0f,
                 0.05f, 550.0f
@@ -656,9 +654,60 @@ int main()
                 case SystemEventType::EVENT_SHUTDOWN:
                     running = false;
                     break;
+                case SystemEventType::EVENT_MOUSEMOTION: {
+                    int mouse_x, mouse_y;
+                    my_game.input_manager->GetMousePosition(&mouse_x, &mouse_y);
+
+                    my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                        .command = CameraCommand::CAMERA_COMMAND_MAG,
+                        .mag_data = {
+                            .x = mouse_x,
+                            .y = mouse_y
+                        }
+                    });
+
+                    break;
+                }
                 default:
                     break;
             }
+        }
+
+        if (my_game.input_manager->IsKeyDown(KEY_W)) {
+            my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                .movement_data = {
+                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_FORWARD,
+                    .amount        = 1.0f
+                }
+            });
+        }
+        if (my_game.input_manager->IsKeyDown(KEY_S)) {
+            my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                .movement_data = {
+                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_BACKWARD,
+                    .amount        = 1.0f
+                }
+            });
+        }
+        if (my_game.input_manager->IsKeyDown(KEY_A)) {
+            my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                .movement_data = {
+                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_LEFT,
+                    .amount        = 1.0f
+                }
+            });
+        }
+        if (my_game.input_manager->IsKeyDown(KEY_D)) {
+            my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                .movement_data = {
+                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_RIGHT,
+                    .amount        = 1.0f
+                }
+            });
         }
 
         HYPERION_ASSERT_RESULT(engine->GetInstance()->GetFrameHandler()->PrepareFrame(

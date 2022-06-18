@@ -14,6 +14,7 @@
 #include <script/compiler/dis/DecompilationUnit.hpp>
 #include <script/compiler/builtins/Builtins.hpp>
 
+#include <script/ScriptBindings.hpp>
 #include <script/ScriptApi.hpp>
 
 #include <script/vm/VM.hpp>
@@ -36,7 +37,9 @@ bool Script::Compile(APIInstance &api_instance)
     }
 
     // bind all set vars if an api instance has been set
+    ScriptBindings::DeclareAll(api_instance);
     api_instance.BindAll(&m_vm, &m_compilation_unit);
+    ScriptBindings::RegisterBindings(api_instance);
 
     SourceStream source_stream(&m_source_file);
 
