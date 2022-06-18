@@ -25,6 +25,7 @@ enum SystemEventType {
     EVENT_MOUSEMOTION   = SDL_MOUSEMOTION,
     EVENT_MOUSEBUTTON_DOWN = SDL_MOUSEBUTTONDOWN,
     EVENT_MOUSEBUTTON_UP = SDL_MOUSEBUTTONUP,
+    EVENT_MOUSESCROLL    = SDL_MOUSEWHEEL
 };
 
 enum SystemWindowEventType {
@@ -132,9 +133,10 @@ public:
         return (SystemWindowEventType)event_type;
     }
 
-    inline uint16_t GetKeyCode()     { return this->GetInternalEvent()->key.keysym.sym; }
-    inline uint8_t  GetMouseButton() { return this->GetInternalEvent()->button.button; }
-    inline uint32_t GetWindowId()    { return this->GetInternalEvent()->window.windowID; }
+    inline uint16_t GetKeyCode()              { return this->GetInternalEvent()->key.keysym.sym; }
+    inline uint8_t  GetMouseButton()          { return this->GetInternalEvent()->button.button; }
+    inline void GetMouseWheel(int *x, int *y) { *x = this->GetInternalEvent()->wheel.x; *y = this->GetInternalEvent()->wheel.y; }
+    inline uint32_t GetWindowId()             { return this->GetInternalEvent()->window.windowID; }
 
     inline void GetWindowResizeDimensions(int *_width, int *_height) {
         SDL_Event *ev = this->GetInternalEvent();

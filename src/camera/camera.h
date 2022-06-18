@@ -25,24 +25,36 @@ struct CameraCommand {
     enum {
         CAMERA_COMMAND_NONE,
         CAMERA_COMMAND_MAG,
+        CAMERA_COMMAND_SCROLL,
         CAMERA_COMMAND_MOVEMENT
     } command;
 
-    struct MagData {
-        int x = 0, y = 0;
-    } mag_data;
+    enum MovementType {
+        CAMERA_MOVEMENT_NONE,
+        CAMERA_MOVEMENT_LEFT,
+        CAMERA_MOVEMENT_RIGHT,
+        CAMERA_MOVEMENT_FORWARD,
+        CAMERA_MOVEMENT_BACKWARD
+    };
 
-    struct MovementData {
-        enum {
-            CAMERA_MOVEMENT_NONE,
-            CAMERA_MOVEMENT_LEFT,
-            CAMERA_MOVEMENT_RIGHT,
-            CAMERA_MOVEMENT_FORWARD,
-            CAMERA_MOVEMENT_BACKWARD
-        } movement_type = CAMERA_MOVEMENT_NONE;
+    union {
+        struct MagData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+            int mouse_x = 0,
+                mouse_y = 0;
+            float mx = 0.0f,
+                  my = 0.0f; // in range -0.5f, 0.5f
+        } mag_data;
 
-        float amount = 1.0f;
-    } movement_data;
+        struct ScrollData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+            int wheel_x = 0,
+                wheel_y = 0;
+        } scroll_data;
+
+        struct MovementData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+            MovementType movement_type = CAMERA_MOVEMENT_NONE;
+            float amount               = 1.0f;
+        } movement_data;
+    };
 };
 
 class Camera {
@@ -101,7 +113,7 @@ public:
     void PushCommand(const CameraCommand &command);
 
 protected:
-    virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {};
+    virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {}
 
     void UpdateViewProjectionMatrix();
 

@@ -31,6 +31,7 @@
 
 #include "input_manager.h"
 #include <camera/fps_camera.h>
+#include <camera/follow_camera.h>
 
 #include "util/profile.h"
 
@@ -80,7 +81,8 @@ public:
         input_manager->SetWindow(window);
 
         scene = engine->resources.scenes.Add(std::make_unique<v2::Scene>(
-            std::make_unique<FpsCamera>(
+            std::make_unique<FollowCamera>(
+                Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
                 1024, 768,
                 70.0f,
                 0.05f, 550.0f
@@ -317,6 +319,8 @@ public:
             //outline_pipeline_ref->AddSpatial(engine->resources.spatials.IncRef(suzanne->GetChild(0)->GetSpatial()));
 
             suzanne->SetLocalTranslation({7, std::sin(timer * 0.35f) * 7.0f + 7.0f, 5});
+
+            scene->GetCamera()->SetTarget(suzanne->GetWorldTranslation());
         }
         
         material_test_obj->SetLocalScale(3.45f);
@@ -654,15 +658,41 @@ int main()
                 case SystemEventType::EVENT_SHUTDOWN:
                     running = false;
                     break;
-                case SystemEventType::EVENT_MOUSEMOTION: {
+                case SystemEventType::EVENT_MOUSESCROLL:
+                {
+                    int wheel_x, wheel_y;
+                    event.GetMouseWheel(&wheel_x, &wheel_y);
+
+                    my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                        .command = CameraCommand::CAMERA_COMMAND_SCROLL,
+                        .scroll_data = {
+                            .wheel_x = wheel_x,
+                            .wheel_y = wheel_y
+                        }
+                    });
+
+                    break;
+                }
+                case SystemEventType::EVENT_MOUSEMOTION:
+                {
                     int mouse_x, mouse_y;
+                    float mx, my;
+
                     my_game.input_manager->GetMousePosition(&mouse_x, &mouse_y);
+
+                    int window_width, window_height;
+                    my_game.input_manager->GetWindow()->GetSize(&window_width, &window_height);
+
+                    mx = (static_cast<float>(mouse_x) - static_cast<float>(window_width) * 0.5f) / (static_cast<float>(window_width));
+                    my = (static_cast<float>(mouse_y) - static_cast<float>(window_height) * 0.5f) / (static_cast<float>(window_height));
 
                     my_game.scene->GetCamera()->PushCommand(CameraCommand {
                         .command = CameraCommand::CAMERA_COMMAND_MAG,
                         .mag_data = {
-                            .x = mouse_x,
-                            .y = mouse_y
+                            .mouse_x = mouse_x,
+                            .mouse_y = mouse_y,
+                            .mx      = mx,
+                            .my      = my
                         }
                     });
 
@@ -677,7 +707,7 @@ int main()
             my_game.scene->GetCamera()->PushCommand(CameraCommand {
                 .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
                 .movement_data = {
-                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_FORWARD,
+                    .movement_type = CameraCommand::CAMERA_MOVEMENT_FORWARD,
                     .amount        = 1.0f
                 }
             });
@@ -686,7 +716,7 @@ int main()
             my_game.scene->GetCamera()->PushCommand(CameraCommand {
                 .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
                 .movement_data = {
-                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_BACKWARD,
+                    .movement_type = CameraCommand::CAMERA_MOVEMENT_BACKWARD,
                     .amount        = 1.0f
                 }
             });
@@ -695,7 +725,7 @@ int main()
             my_game.scene->GetCamera()->PushCommand(CameraCommand {
                 .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
                 .movement_data = {
-                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_LEFT,
+                    .movement_type = CameraCommand::CAMERA_MOVEMENT_LEFT,
                     .amount        = 1.0f
                 }
             });
@@ -704,7 +734,7 @@ int main()
             my_game.scene->GetCamera()->PushCommand(CameraCommand {
                 .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
                 .movement_data = {
-                    .movement_type = CameraCommand::MovementData::CAMERA_MOVEMENT_RIGHT,
+                    .movement_type = CameraCommand::CAMERA_MOVEMENT_RIGHT,
                     .amount        = 1.0f
                 }
             });

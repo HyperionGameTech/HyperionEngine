@@ -41,6 +41,10 @@ public:
     Matrix4 Transposed() const;
     Matrix4 &Invert();
 
+    float GetYaw() const;
+    float GetPitch() const;
+    float GetRoll() const;
+
     Matrix4 &operator=(const Matrix4 &other);
     Matrix4 operator+(const Matrix4 &other) const;
     Matrix4 &operator+=(const Matrix4 &other);

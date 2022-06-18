@@ -41,8 +41,8 @@ void FpsCamera::RespondToCommand(const CameraCommand &command, GameCounter::Tick
     switch (command.command) {
     case CameraCommand::CAMERA_COMMAND_MAG:
     {
-        m_mouse_x = command.mag_data.x;
-        m_mouse_y = command.mag_data.y;
+        m_mouse_x = command.mag_data.mouse_x;
+        m_mouse_y = command.mag_data.mouse_y;
 
         m_mag = {
             static_cast<float>(m_mouse_x) - static_cast<float>(m_prev_mouse_x),
@@ -67,19 +67,19 @@ void FpsCamera::RespondToCommand(const CameraCommand &command, GameCounter::Tick
         const float speed = movement_speed * static_cast<float>(dt);
 
         switch (command.movement_data.movement_type) {
-        case CameraCommand::MovementData::CAMERA_MOVEMENT_FORWARD:
+        case CameraCommand::CAMERA_MOVEMENT_FORWARD:
             m_next_translation += m_direction * speed;
 
             break;
-        case CameraCommand::MovementData::CAMERA_MOVEMENT_BACKWARD:
+        case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
             m_next_translation -= m_direction * speed;
 
             break;
-        case CameraCommand::MovementData::CAMERA_MOVEMENT_LEFT:
+        case CameraCommand::CAMERA_MOVEMENT_LEFT:
             m_next_translation -= m_dir_cross_y * speed;
 
             break;
-        case CameraCommand::MovementData::CAMERA_MOVEMENT_RIGHT:
+        case CameraCommand::CAMERA_MOVEMENT_RIGHT:
             m_next_translation += m_dir_cross_y * speed;
 
             break;

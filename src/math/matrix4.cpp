@@ -286,6 +286,21 @@ Matrix4 &Matrix4::Invert()
     return *this;
 }
 
+float Matrix4::GetYaw() const
+{
+    return Quaternion(*this).Yaw();
+}
+
+float Matrix4::GetPitch() const
+{
+    return Quaternion(*this).Pitch();
+}
+
+float Matrix4::GetRoll() const
+{
+    return Quaternion(*this).Roll();
+}
+
 Matrix4 &Matrix4::operator=(const Matrix4 &other)
 {
     std::memcpy(values, other.values, sizeof(values));
