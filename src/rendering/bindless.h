@@ -24,7 +24,7 @@ using renderer::Swapchain;
 
 class BindlessStorage {
     /* The index of the descriptor we work on, /within/ the "bindless descriptor set" */
-    static constexpr uint32_t bindless_descriptor_index = 0;
+    static constexpr uint bindless_descriptor_index = 0;
 
 public:
     BindlessStorage();
@@ -38,7 +38,7 @@ public:
     /*! \brief Apply changes to the bindless descriptor set corresponding to the given frame index value.
      * Do not call this with the index of a frame that is still using resources.
      */
-    void ApplyUpdates(Engine *engine, uint32_t frame_index);
+    void ApplyUpdates(Engine *engine, uint frame_index);
 
     /*! \brief Add a texture to the bindless descriptor set. */
     void AddResource(const Texture *texture);
@@ -49,12 +49,12 @@ public:
 
     /*! \brief Get the index of the sub-descriptor for the given texture.
      * @returns whether the texture was found or not */
-    bool GetResourceIndex(const Texture *texture, uint32_t *out_index) const;
+    bool GetResourceIndex(const Texture *texture, uint *out_index) const;
 
 private:
     struct TextureResource {
         const Texture *texture;
-        uint32_t       resource_index;
+        uint           resource_index;
     };
 
     FlatSet<IDBase> m_texture_ids;

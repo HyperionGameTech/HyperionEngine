@@ -5,6 +5,9 @@
 
 namespace hyperion {
 
+static_assert(sizeof(float) == 4, "float must be 32 bit");
+static_assert(sizeof(double) == 8, "double must be 64 bit");
+
 using uint     = uint32_t;
 
 using UByte    = uint8_t;
@@ -21,6 +24,9 @@ using Int8     = int8_t;
 using Int16    = int16_t;
 using Int32    = int32_t;
 using Int64    = int64_t;
+
+using Float32  = float;
+using Float64  = double;
 
 } // namespace hyperion
 

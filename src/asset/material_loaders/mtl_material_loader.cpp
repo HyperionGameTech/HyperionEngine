@@ -160,7 +160,7 @@ LoaderResult MtlMaterialLoader::LoadFn(LoaderState *state, Object &object)
             const auto spec = StringUtil::Parse<int>(tokens[1]);
 
             LastMaterial(object).parameters[Material::MATERIAL_KEY_ROUGHNESS] = ParameterDef{
-                .values = {1.0f - MathUtil::Clamp(float(spec) / 100.0f, 0.0f, 1.0f)}
+                .values = {1.0f - MathUtil::Clamp(float(spec) / 250.0f, 0.0f, 1.0f)}
             };
 
             return;

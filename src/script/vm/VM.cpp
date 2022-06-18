@@ -8,7 +8,7 @@
 #include <script/vm/TypeInfo.hpp>
 #include <script/vm/InstructionHandler.hpp>
 
-#include <script/Typedefs.hpp>
+#include <types.h>
 #include <script/Instructions.hpp>
 #include <script/Hasher.hpp>
 #include <system/debug.h>
@@ -870,96 +870,6 @@ void VM::PushNativeFunctionPtr(NativeFunctionPtr_t ptr)
 
     AssertThrow(m_state.GetMainThread() != nullptr);
     m_state.GetMainThread()->m_stack.Push(sv);
-}
-
-void VM::Print(const Value &value)
-{
-    switch (value.m_type) {
-        case Value::I32:
-            utf::printf(UTF8_CSTR("%d"), value.m_value.i32);
-            break;
-
-        case Value::I64:
-            utf::printf(UTF8_CSTR("%" PRId64), value.m_value.i64);
-            break;
-
-        case Value::F32:
-            utf::printf(UTF8_CSTR("%g"), value.m_value.f);
-            break;
-
-        case Value::F64:
-            utf::printf(UTF8_CSTR("%g"), value.m_value.d);
-            break;
-
-        case Value::BOOLEAN:
-            utf::fputs(value.m_value.b ? UTF8_CSTR("true") : UTF8_CSTR("false"), stdout);
-            break;
-
-        case Value::VALUE_REF:
-            if (value.m_value.value_ref == nullptr) {
-                utf::fputs(UTF8_CSTR("null"), stdout);
-            } else {
-                VM::Print(*value.m_value.value_ref);
-            }
-
-            break;
-
-        case Value::HEAP_POINTER: {
-            if (value.m_value.ptr == nullptr) {
-                // special case for null pointers
-                utf::fputs(UTF8_CSTR("null"), stdout);
-            } else if (ImmutableString *str = value.m_value.ptr->GetPointer<ImmutableString>()) {
-                // print string value
-                utf::cout << str->GetData();
-            } else if (Array *array = value.m_value.ptr->GetPointer<Array>()) {
-                // print array list
-                const char sep_str[3] = ", ";
-                const size_t sep_str_len = sizeof(sep_str) - 1;
-
-                int buffer_index = 1;
-                const int buffer_size = 256;
-
-                std::string str;
-                str.reserve(buffer_size);
-
-                str.append("[");
-
-                // convert all array elements to string
-                const size_t size = array->GetSize();
-                for (size_t i = 0; i < size; i++) {
-                    ImmutableString item_str = array->AtIndex(i).ToString();
-
-                    size_t len = item_str.GetLength();
-
-                    const bool last = i != size - 1;
-                    if (last) {
-                        len += sep_str_len;
-                    }
-
-                    if (buffer_index + len < buffer_size - 5) {
-                        buffer_index += len;
-                        str.append(item_str.GetData());
-                        if (last) {
-                            str.append(sep_str);
-                        }
-                    } else {
-                        str.append("... ");
-                        break;
-                    }
-                }
-
-                str.append("]");
-                utf::cout << str;
-            } else {
-                ImmutableString str = value.ToString();
-                utf::cout << str.GetData();
-            }
-
-            break;
-        }
-
-        default: utf::cout << value.GetTypeString(); break;
-    }
 }
 
 void VM::Invoke(

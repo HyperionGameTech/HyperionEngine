@@ -17,7 +17,7 @@
 
 namespace hyperion::compiler {
 
-AstInteger::AstInteger(hyperion::aint32 value, const SourceLocation &location)
+AstInteger::AstInteger(hyperion::Int32 value, const SourceLocation &location)
     : AstConstant(location),
       m_value(value)
 {
@@ -46,19 +46,19 @@ bool AstInteger::IsNumber() const
     return true;
 }
 
-hyperion::aint32 AstInteger::IntValue() const
+hyperion::Int32 AstInteger::IntValue() const
 {
     return m_value;
 }
 
-hyperion::auint32 AstInteger::UnsignedValue() const
+hyperion::UInt32 AstInteger::UnsignedValue() const
 {
-    return (hyperion::auint32)m_value;
+    return (hyperion::UInt32)m_value;
 }
 
-hyperion::afloat32 AstInteger::FloatValue() const
+hyperion::Float32 AstInteger::FloatValue() const
 {
-    return (hyperion::afloat32)m_value;
+    return (hyperion::Float32)m_value;
 }
 
 SymbolTypePtr_t AstInteger::GetExprType() const
@@ -127,7 +127,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
 
             // we have to determine weather or not to promote this to a float
             if (dynamic_cast<const AstFloat*>(right)) {
-                hyperion::afloat32 result;
+                hyperion::Float32 result;
                 auto right_float = right->FloatValue();
                 if (right_float == 0.0) {
                     // division by zero, return Undefined
@@ -163,7 +163,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (dynamic_cast<const AstFloat*>(right)) {
-                hyperion::afloat32 result;
+                hyperion::Float32 result;
                 auto right_float = right->FloatValue();
                 if (right_float == 0.0) {
                     // division by zero, return Undefined

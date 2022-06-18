@@ -86,6 +86,8 @@ DeferredRenderer::~DeferredRenderer() = default;
 
 void DeferredRenderer::Create(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     using renderer::ImageSamplerDescriptor;
 
     m_post_processing.Create(engine);
@@ -147,6 +149,8 @@ void DeferredRenderer::Create(Engine *engine)
 
 void DeferredRenderer::Destroy(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     m_post_processing.Destroy(engine);
     m_pass.Destroy(engine);  // flushes render queue
 }

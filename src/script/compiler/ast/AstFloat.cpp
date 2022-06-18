@@ -14,7 +14,7 @@
 
 namespace hyperion::compiler {
 
-AstFloat::AstFloat(hyperion::afloat32 value, const SourceLocation &location)
+AstFloat::AstFloat(hyperion::Float32 value, const SourceLocation &location)
     : AstConstant(location),
       m_value(value)
 {
@@ -43,17 +43,17 @@ bool AstFloat::IsNumber() const
     return true;
 }
 
-hyperion::aint32 AstFloat::IntValue() const
+hyperion::Int32 AstFloat::IntValue() const
 {
-    return (hyperion::aint32)m_value;
+    return (hyperion::Int32)m_value;
 }
 
-hyperion::auint32 AstFloat::UnsignedValue() const
+hyperion::UInt32 AstFloat::UnsignedValue() const
 {
-    return (hyperion::auint32)m_value;
+    return (hyperion::UInt32)m_value;
 }
 
-hyperion::afloat32 AstFloat::FloatValue() const
+hyperion::Float32 AstFloat::FloatValue() const
 {
     return m_value;
 }

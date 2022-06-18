@@ -12,14 +12,12 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <script/Typedefs.hpp>
+#include <types.h>
 
 #include <core/lib/type_map.h>
 
 #include <util/defines.h>
 
-#include <stdint.h>
-#include <sstream>
 #include <unordered_map>
 
 #ifndef __cplusplus
@@ -131,29 +129,29 @@
     } while (false)
 
 #define HYP_SCRIPT_GET_ARG_INT(index, name) \
-    aint64 name; \
+    Int64 name; \
     do { \
         Number num; \
         if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
             return (decltype(name))0; \
         } \
-        name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
+        name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<Int64>(num.u) : num.i; \
     } while (false)
 
 #define HYP_SCRIPT_GET_ARG_UINT(index, name) \
-    auint64 name; \
+    UInt64 name; \
     do { \
         Number num; \
         if (!params.args[index]->GetSignedOrUnsigned(&num)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type int or uint")); \
             return (decltype(name))0; \
         } \
-        name = (num.flags & Number::FLAG_SIGNED) ? static_cast<auint64>(num.i) : num.u; \
+        name = (num.flags & Number::FLAG_SIGNED) ? static_cast<UInt64>(num.i) : num.u; \
     } while (false)
 
 #define HYP_SCRIPT_GET_ARG_FLOAT(index, name) \
-    afloat64 name; \
+    Float64 name; \
     do { \
         if (!params.args[index]->GetFloatingPointCoerce(&name)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type float")); \
@@ -187,13 +185,13 @@
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type int or uint")); \
             return; \
         } \
-        decl_name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<aint64>(num.u) : num.i; \
+        decl_name = (num.flags & Number::FLAG_UNSIGNED) ? static_cast<Int64>(num.u) : num.i; \
     } while (false)
 
 #define HYP_SCRIPT_GET_MEMBER_FLOAT(object, name, type, decl_name) \
     type decl_name; \
     do { \
-        afloat64 num; \
+        Float64 num; \
         vm::Member *_member = nullptr; \
         if (!(_member = object->LookupMemberFromHash(hash_fnv_1(name))) || !_member->value.GetFloatingPointCoerce(&num)) { \
             params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected member " name " to be of type float")); \
@@ -466,22 +464,22 @@ public:
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            aint32 int_value
+            Int32 int_value
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            aint64 int_value
+            Int64 int_value
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            auint32 int_value
+            UInt32 int_value
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            auint64 int_value
+            UInt64 int_value
         );
 
         // ModuleDefine &Variable(

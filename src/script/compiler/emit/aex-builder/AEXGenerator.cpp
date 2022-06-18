@@ -409,7 +409,10 @@ void AEXGenerator::Visit(SymbolExport *node)
 void AEXGenerator::Visit(RawOperation<> *node)
 {
     m_ibs.Put(node->opcode);
-    m_ibs.Put((byte*)&node->data[0], node->data.size());
+
+    if (!node->data.empty()) {
+        m_ibs.Put((byte*)&node->data[0], node->data.size());
+    }
 }
 
 } // namespace hyperion::compiler

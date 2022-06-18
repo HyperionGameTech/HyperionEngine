@@ -243,7 +243,7 @@ void Material::ResetParameters()
 {
     m_parameters.Set(MATERIAL_KEY_ALBEDO,          Vector4(1.0f));
     m_parameters.Set(MATERIAL_KEY_METALNESS,       0.0f);
-    m_parameters.Set(MATERIAL_KEY_ROUGHNESS,       0.5f);
+    m_parameters.Set(MATERIAL_KEY_ROUGHNESS,       0.65f);
     m_parameters.Set(MATERIAL_KEY_SUBSURFACE,      0.0f);
     m_parameters.Set(MATERIAL_KEY_SPECULAR,        0.0f);
     m_parameters.Set(MATERIAL_KEY_SPECULAR_TINT,   0.0f);

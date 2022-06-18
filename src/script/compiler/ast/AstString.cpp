@@ -45,13 +45,13 @@ bool AstString::IsNumber() const
     return false;
 }
 
-hyperion::aint32 AstString::IntValue() const
+hyperion::Int32 AstString::IntValue() const
 {
     // not valid
     return 0;
 }
 
-hyperion::afloat32 AstString::FloatValue() const
+hyperion::Float32 AstString::FloatValue() const
 {
     // not valid
     return 0.0f;

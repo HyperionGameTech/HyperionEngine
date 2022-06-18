@@ -42,12 +42,12 @@ bool AstNil::IsNumber() const
     return false;
 }
 
-hyperion::aint32 AstNil::IntValue() const
+hyperion::Int32 AstNil::IntValue() const
 {
     return 0;
 }
 
-hyperion::afloat32 AstNil::FloatValue() const
+hyperion::Float32 AstNil::FloatValue() const
 {
     return 0.0f;
 }

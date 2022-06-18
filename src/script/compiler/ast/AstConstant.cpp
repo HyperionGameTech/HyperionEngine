@@ -23,9 +23,9 @@ bool AstConstant::MayHaveSideEffects() const
     return false;
 }
 
-auint32 AstConstant::UnsignedValue() const
+UInt32 AstConstant::UnsignedValue() const
 {
-    return (auint32)IntValue();
+    return (UInt32)IntValue();
 }
 
 } // namespace hyperion::compiler

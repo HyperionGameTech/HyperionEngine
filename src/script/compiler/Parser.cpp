@@ -858,7 +858,7 @@ std::shared_ptr<AstInteger> Parser::ParseIntegerLiteral()
 {
     if (Token token = Expect(TK_INTEGER, true)) {
         std::istringstream ss(token.GetValue());
-        hyperion::aint32 value;
+        hyperion::Int32 value;
         ss >> value;
 
         return std::shared_ptr<AstInteger>(new AstInteger(
@@ -873,7 +873,7 @@ std::shared_ptr<AstInteger> Parser::ParseIntegerLiteral()
 std::shared_ptr<AstFloat> Parser::ParseFloatLiteral()
 {
     if (Token token = Expect(TK_FLOAT, true)) {
-        hyperion::afloat32 value = std::atof(token.GetValue().c_str());
+        hyperion::Float32 value = std::atof(token.GetValue().c_str());
 
         return std::shared_ptr<AstFloat>(new AstFloat(
             value,

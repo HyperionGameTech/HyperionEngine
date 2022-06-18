@@ -25,7 +25,7 @@ Builtins::Builtins()
     ));
 
     m_vars["void"].reset(new AstTypeObject(
-        BuiltinTypes::VOID, nullptr, SourceLocation::eof
+        BuiltinTypes::VOID_TYPE, nullptr, SourceLocation::eof
     ));
 
     m_vars["int"].reset(new AstTypeObject(

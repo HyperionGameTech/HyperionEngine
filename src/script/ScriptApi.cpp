@@ -78,7 +78,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    aint32 int_value
+    Int32 int_value
 )
 {
     vm::Value value;
@@ -94,7 +94,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    aint64 int_value
+    Int64 int_value
 )
 {
     vm::Value value;
@@ -110,7 +110,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    auint32 uint_value
+    UInt32 uint_value
 )
 {
     vm::Value value;
@@ -126,7 +126,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    auint64 uint_value
+    UInt64 uint_value
 )
 {
     vm::Value value;

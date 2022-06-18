@@ -17,7 +17,7 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t ENUM_TYPE;
     static const SymbolTypePtr_t ANY_TYPE; // any base, used for internal detection
     static const SymbolTypePtr_t ANY;
-    static const SymbolTypePtr_t VOID;
+    static const SymbolTypePtr_t VOID_TYPE;
     static const SymbolTypePtr_t INT;
     static const SymbolTypePtr_t UNSIGNED_INT;
     static const SymbolTypePtr_t FLOAT;

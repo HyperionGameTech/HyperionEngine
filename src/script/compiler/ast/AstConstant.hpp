@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Operator.hpp>
 
-#include <script/Typedefs.hpp>
+#include <types.h>
 
 namespace hyperion::compiler {
 
@@ -23,9 +23,9 @@ public:
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override;
     virtual bool IsNumber() const = 0;
-    virtual hyperion::aint32 IntValue() const = 0;
-    virtual hyperion::auint32 UnsignedValue() const;
-    virtual hyperion::afloat32 FloatValue() const = 0;
+    virtual hyperion::Int32 IntValue() const = 0;
+    virtual hyperion::UInt32 UnsignedValue() const;
+    virtual hyperion::Float32 FloatValue() const = 0;
 
     virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
 };

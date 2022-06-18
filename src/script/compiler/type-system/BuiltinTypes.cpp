@@ -46,7 +46,7 @@ const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
     BuiltinTypes::ANY_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::VOID = SymbolType::Primitive(
+const SymbolTypePtr_t BuiltinTypes::VOID_TYPE = SymbolType::Primitive(
     "void",
     sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
     BuiltinTypes::PRIMITIVE_TYPE

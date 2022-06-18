@@ -26,16 +26,6 @@
 namespace hyperion {
 namespace vm {
 
-enum CompareFlags : int {
-    NONE = 0x00,
-    EQUAL = 0x01,
-    GREATER = 0x02,
-    // note that there is no LESS flag.
-    // the compiler must make appropriate changes
-    // to insure that the operands are switched to
-    // use only the GREATER or EQUAL flags.
-};
-
 class VM {
 public:
     VM();
@@ -44,10 +34,9 @@ public:
 
     void PushNativeFunctionPtr(NativeFunctionPtr_t ptr);
 
-    inline VMState &GetState() { return m_state; }
-    inline const VMState &GetState() const { return m_state; }
-
-    static void Print(const Value &value);
+    VMState &GetState()             { return m_state; }
+    const VMState &GetState() const { return m_state; }
+    
     static void Invoke(
         InstructionHandler *handler,
         const Value &value,
@@ -61,47 +50,6 @@ public:
     );
 
     void Execute(BytecodeStream *bs);
-
-    /** Returns -1 on error */
-    static inline int CompareAsPointers(
-        Value *lhs,
-        Value *rhs)
-    {
-        HeapValue *a = lhs->m_value.ptr;
-        HeapValue *b = rhs->m_value.ptr;
-
-        if (a == b) {
-            // pointers equal, drop out early.
-            return EQUAL;
-        } else if (a == nullptr || b == nullptr) {
-            // one of them (not both) is null, not equal
-            return NONE;
-        } else if (a->GetTypeId() == b->GetTypeId()) {
-            // comparable types, perform full comparison.
-            return (a->operator==(*b)) ? EQUAL : NONE;
-        }
-
-        // error
-        return -1;
-    }
-
-    static inline int CompareAsFunctions(
-        Value *lhs,
-        Value *rhs)
-    {
-        return (lhs->m_value.func.m_addr == rhs->m_value.func.m_addr)
-            ? EQUAL
-            : NONE;
-    }
-
-    static inline int CompareAsNativeFunctions(
-        Value *lhs,
-        Value *rhs)
-    {
-        return (lhs->m_value.native_func == rhs->m_value.native_func)
-            ? EQUAL
-            : NONE;
-    }
 
 private:
     void HandleException(InstructionHandler *handler);

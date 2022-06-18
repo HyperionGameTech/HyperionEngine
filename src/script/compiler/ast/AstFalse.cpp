@@ -37,12 +37,12 @@ bool AstFalse::IsNumber() const
     return false;
 }
 
-hyperion::aint32 AstFalse::IntValue() const
+hyperion::Int32 AstFalse::IntValue() const
 {
     return 0;
 }
 
-hyperion::afloat32 AstFalse::FloatValue() const
+hyperion::Float32 AstFalse::FloatValue() const
 {
     return 0.0f;
 }

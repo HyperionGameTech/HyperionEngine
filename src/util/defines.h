@@ -176,7 +176,7 @@
     #endif
 #endif
 
-#define HYP_ENABLE_THREAD_ASSERTION 1 // set to 0 if needing to debug and getting crt errors
+#define HYP_ENABLE_THREAD_ASSERTION 0 // set to 0 if needing to debug and getting crt errors
 
 // conditionals
 
@@ -202,7 +202,7 @@
 
 
 //testing, to remove
-//#define HYP_FEATURES_BINDLESS_TEXTURES 1
-#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1
+//#define HYP_FEATURES_BINDLESS_TEXTURES 0
+//#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1
 
 #endif // !HYPERION_DEFINES_H

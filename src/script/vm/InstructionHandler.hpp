@@ -12,7 +12,7 @@
 #include <script/vm/TypeInfo.hpp>
 
 #include <script/Instructions.hpp>
-#include <script/Typedefs.hpp>
+#include <types.h>
 #include <script/Hasher.hpp>
 
 #include <util/defines.h>
@@ -32,56 +32,56 @@
                 break; \
             case Value::U32: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u32 = static_cast<auint32>(a.i); \
+                    result.m_value.u32 = static_cast<UInt32>(a.i); \
                 } else { \
                     result.m_value.u32 = a.u; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u32 oper##= static_cast<auint32>(b.i); \
+                    result.m_value.u32 oper##= static_cast<UInt32>(b.i); \
                 } else { \
                     result.m_value.u32 oper##= b.u; \
                 } \
                 break; \
             case Value::U64: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u64 = static_cast<auint64>(a.i); \
+                    result.m_value.u64 = static_cast<UInt64>(a.i); \
                 } else { \
                     result.m_value.u64 = a.u; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u64 oper##= static_cast<auint32>(b.i); \
+                    result.m_value.u64 oper##= static_cast<UInt32>(b.i); \
                 } else { \
                     result.m_value.u64 oper##= b.u; \
                 } \
                 break; \
             case Value::F32: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.f = static_cast<afloat32>(a.i); \
+                    result.m_value.f = static_cast<Float32>(a.i); \
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
-                    result.m_value.f = static_cast<afloat32>(a.u); \
+                    result.m_value.f = static_cast<Float32>(a.u); \
                 } else { \
                     result.m_value.f = a.f; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.f oper##= static_cast<afloat32>(b.i); \
+                    result.m_value.f oper##= static_cast<Float32>(b.i); \
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
-                    result.m_value.f oper##= static_cast<afloat32>(b.u); \
+                    result.m_value.f oper##= static_cast<Float32>(b.u); \
                 } else { \
                     result.m_value.f oper##= b.f; \
                 } \
                 break; \
             case Value::F64: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.d = static_cast<afloat64>(a.i); \
+                    result.m_value.d = static_cast<Float64>(a.i); \
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
-                    result.m_value.d = static_cast<afloat64>(a.u); \
+                    result.m_value.d = static_cast<Float64>(a.u); \
                 } else { \
                     result.m_value.d = a.f; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.d oper##= static_cast<afloat64>(b.i); \
+                    result.m_value.d oper##= static_cast<Float64>(b.i); \
                 } else if (a.flags & Number::FLAG_UNSIGNED) { \
-                    result.m_value.d oper##= static_cast<afloat64>(b.u); \
+                    result.m_value.d oper##= static_cast<Float64>(b.u); \
                 } else { \
                     result.m_value.d oper##= b.f; \
                 } \
@@ -100,24 +100,24 @@
                 break; \
             case Value::U32: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u32 = static_cast<auint32>(a.i); \
+                    result.m_value.u32 = static_cast<UInt32>(a.i); \
                 } else { \
                     result.m_value.u32 = a.u; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u32 oper##= static_cast<auint32>(b.i); \
+                    result.m_value.u32 oper##= static_cast<UInt32>(b.i); \
                 } else { \
                     result.m_value.u32 oper##= b.u; \
                 } \
                 break; \
             case Value::U64: \
                 if (a.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u64 = static_cast<auint64>(a.i); \
+                    result.m_value.u64 = static_cast<UInt64>(a.i); \
                 } else { \
                     result.m_value.u64 = a.u; \
                 } \
                 if (b.flags & Number::FLAG_SIGNED) { \
-                    result.m_value.u64 oper##= static_cast<auint32>(b.i); \
+                    result.m_value.u64 oper##= static_cast<UInt32>(b.i); \
                 } else { \
                     result.m_value.u64 oper##= b.u; \
                 } \
@@ -196,7 +196,7 @@ struct InstructionHandler {
         state->m_static_memory.Store(std::move(sv));
     }
 
-    HYP_FORCE_INLINE void LoadI32(bc_reg_t reg, aint32 i32)
+    HYP_FORCE_INLINE void LoadI32(bc_reg_t reg, Int32 i32)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -204,7 +204,7 @@ struct InstructionHandler {
         value.m_value.i32 = i32;
     }
 
-    HYP_FORCE_INLINE void LoadI64(bc_reg_t reg, aint64 i64)
+    HYP_FORCE_INLINE void LoadI64(bc_reg_t reg, Int64 i64)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -212,7 +212,7 @@ struct InstructionHandler {
         value.m_value.i64 = i64;
     }
 
-    HYP_FORCE_INLINE void LoadU32(bc_reg_t reg, auint32 u32)
+    HYP_FORCE_INLINE void LoadU32(bc_reg_t reg, UInt32 u32)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -220,7 +220,7 @@ struct InstructionHandler {
         value.m_value.u32 = u32;
     }
 
-    HYP_FORCE_INLINE void LoadU64(bc_reg_t reg, auint64 u64)
+    HYP_FORCE_INLINE void LoadU64(bc_reg_t reg, UInt64 u64)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -228,7 +228,7 @@ struct InstructionHandler {
         value.m_value.u64 = u64;
     }
 
-    HYP_FORCE_INLINE void LoadF32(bc_reg_t reg, afloat32 f32)
+    HYP_FORCE_INLINE void LoadF32(bc_reg_t reg, Float32 f32)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -236,7 +236,7 @@ struct InstructionHandler {
         value.m_value.f = f32;
     }
 
-    HYP_FORCE_INLINE void LoadF64(bc_reg_t reg, afloat64 f64)
+    HYP_FORCE_INLINE void LoadF64(bc_reg_t reg, Float64 f64)
     {
         // get register value given
         Value &value = thread->m_regs[reg];
@@ -420,7 +420,7 @@ struct InstructionHandler {
         }
 
         union {
-            aint64 index;
+            Int64 index;
             ImmutableString *str;
         } key;
 
@@ -447,7 +447,7 @@ struct InstructionHandler {
 
                 if (key.index < 0) {
                     // wrap around (python style)
-                    key.index = (aint64)(memory_buffer->GetSize() + key.index);
+                    key.index = (Int64)(memory_buffer->GetSize() + key.index);
                     if (key.index < 0 || (size_t)key.index >= memory_buffer->GetSize()) {
                         state->ThrowException(
                             thread,
@@ -459,7 +459,7 @@ struct InstructionHandler {
 
                 Value memory_buffer_data;
                 memory_buffer_data.m_type = Value::I32;
-                memory_buffer_data.m_value.i32 = static_cast<aint32>(reinterpret_cast<char *>(memory_buffer->GetBuffer())[key.index]);
+                memory_buffer_data.m_value.i32 = static_cast<Int32>(reinterpret_cast<char *>(memory_buffer->GetBuffer())[key.index]);
 
                 thread->m_regs[dst_reg] = memory_buffer_data;
 
@@ -484,7 +484,7 @@ struct InstructionHandler {
         
         if (key.index < 0) {
             // wrap around (python style)
-            key.index = (aint64)(array->GetSize() + key.index);
+            key.index = (Int64)(array->GetSize() + key.index);
             if (key.index < 0 || (size_t)key.index >= array->GetSize()) {
                 state->ThrowException(
                     thread,
@@ -667,7 +667,7 @@ struct InstructionHandler {
 
                 if (index < 0) {
                     // wrap around (python style)
-                    index = (aint64)(memory_buffer->GetSize() + index);
+                    index = (Int64)(memory_buffer->GetSize() + index);
                     if (index < 0 || (size_t)index >= memory_buffer->GetSize()) {
                         state->ThrowException(
                             thread,
@@ -689,7 +689,7 @@ struct InstructionHandler {
                 }
 
                 reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index] = dst_data.flags & Number::FLAG_SIGNED
-                    ? static_cast<auint64>(dst_data.i)
+                    ? static_cast<UInt64>(dst_data.i)
                     : dst_data.u;
 
                 return;
@@ -774,7 +774,7 @@ struct InstructionHandler {
                 }
 
                 if (index.flags & Number::FLAG_SIGNED) {
-                    aint64 index_value = index.i;
+                    Int64 index_value = index.i;
 
                     if ((size_t)index_value >= memory_buffer->GetSize()) {
                         state->ThrowException(
@@ -787,7 +787,7 @@ struct InstructionHandler {
 
                     if (index_value < 0) {
                         // wrap around (python style)
-                        index_value = (aint64)(memory_buffer->GetSize() + index_value);
+                        index_value = (Int64)(memory_buffer->GetSize() + index_value);
                         if (index_value < 0 || (size_t)index_value >= memory_buffer->GetSize()) {
                             state->ThrowException(
                                 thread,
@@ -798,10 +798,10 @@ struct InstructionHandler {
                     }
 
                     reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index_value] = dst_data.flags & Number::FLAG_SIGNED
-                        ? static_cast<auint64>(dst_data.i)
+                        ? static_cast<UInt64>(dst_data.i)
                         : dst_data.u;
                 } else { // unsigned
-                    auint64 index_value = index.u;
+                    UInt64 index_value = index.u;
 
                     if ((size_t)index_value >= memory_buffer->GetSize()) {
                         state->ThrowException(
@@ -813,7 +813,7 @@ struct InstructionHandler {
                     }
 
                     reinterpret_cast<unsigned char *>(memory_buffer->GetBuffer())[index_value] = dst_data.flags & Number::FLAG_SIGNED
-                        ? static_cast<auint64>(dst_data.i)
+                        ? static_cast<UInt64>(dst_data.i)
                         : dst_data.u;
                 }
 
@@ -828,7 +828,7 @@ struct InstructionHandler {
         }
 
         if (index.flags & Number::FLAG_SIGNED) {
-            aint64 index_value = index.i;
+            Int64 index_value = index.i;
 
             if ((size_t)index_value >= array->GetSize()) {
                 state->ThrowException(
@@ -841,7 +841,7 @@ struct InstructionHandler {
 
             if (index_value < 0) {
                 // wrap around (python style)
-                index_value = (aint64)(array->GetSize() + index_value);
+                index_value = (Int64)(array->GetSize() + index_value);
                 if (index_value < 0 || (size_t)index_value >= array->GetSize()) {
                     state->ThrowException(
                         thread,
@@ -853,7 +853,7 @@ struct InstructionHandler {
 
             array->AtIndex(index_value) = thread->m_regs[src_reg];
         } else { // unsigned
-            auint64 index_value = index.u;
+            UInt64 index_value = index.u;
 
             if ((size_t)index_value >= array->GetSize()) {
                 state->ThrowException(
@@ -1118,9 +1118,9 @@ struct InstructionHandler {
         Value *rhs = &thread->m_regs[rhs_reg];
 
         union {
-            aint64 i;
-            auint64 u;
-            afloat64 f;
+            Int64 i;
+            UInt64 u;
+            Float64 f;
         } a, b;
 
         if (lhs->GetUnsigned(&a.u) && rhs->GetUnsigned(&b.u)) {
@@ -1140,7 +1140,8 @@ struct InstructionHandler {
                 ? EQUAL : ((lhs->m_value.b > rhs->m_value.b)
                 ? GREATER : NONE);
         } else if (lhs->m_type == Value::HEAP_POINTER && rhs->m_type == Value::HEAP_POINTER) {
-            int res = VM::CompareAsPointers(lhs, rhs);
+            const auto res = Value::CompareAsPointers(lhs, rhs);
+
             if (res != -1) {
                 thread->m_regs.m_flags = res;
             } else {
@@ -1153,9 +1154,9 @@ struct InstructionHandler {
                 );
             }
         } else if (lhs->m_type == Value::FUNCTION && rhs->m_type == Value::FUNCTION) {
-            thread->m_regs.m_flags = VM::CompareAsFunctions(lhs, rhs);
+            thread->m_regs.m_flags = Value::CompareAsFunctions(lhs, rhs);
         } else if (lhs->m_type == Value::NATIVE_FUNCTION && rhs->m_type == Value::NATIVE_FUNCTION) {
-            thread->m_regs.m_flags = VM::CompareAsNativeFunctions(lhs, rhs);
+            thread->m_regs.m_flags = Value::CompareAsNativeFunctions(lhs, rhs);
         } else {
             state->ThrowException(
                 thread,
@@ -1173,8 +1174,8 @@ struct InstructionHandler {
         Value *lhs = &thread->m_regs[reg];
 
         union {
-            aint64 i;
-            afloat64 f;
+            Int64 i;
+            Float64 f;
         };
 
         if (lhs->GetInteger(&i)) {
@@ -1324,7 +1325,7 @@ struct InstructionHandler {
                 break;
             case Value::U32:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.u32 = static_cast<auint32>(a.i);
+                    result.m_value.u32 = static_cast<UInt32>(a.i);
                 } else {
                     result.m_value.u32 = a.u;
                 }
@@ -1333,7 +1334,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.u32 = result.m_value.u32 / static_cast<auint32>(b.i);
+                    result.m_value.u32 = result.m_value.u32 / static_cast<UInt32>(b.i);
                 } else {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1344,7 +1345,7 @@ struct InstructionHandler {
                 break;
             case Value::U64:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.u64 = static_cast<auint64>(a.i);
+                    result.m_value.u64 = static_cast<UInt64>(a.i);
                 } else {
                     result.m_value.u64 = a.u;
                 }
@@ -1353,7 +1354,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.u64 = result.m_value.u64 / static_cast<auint32>(b.i);
+                    result.m_value.u64 = result.m_value.u64 / static_cast<UInt32>(b.i);
                 } else {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1364,14 +1365,14 @@ struct InstructionHandler {
                 break;
             case Value::F32:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.f = static_cast<afloat32>(a.i);
+                    result.m_value.f = static_cast<Float32>(a.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    result.m_value.f = static_cast<afloat32>(a.u);
+                    result.m_value.f = static_cast<Float32>(a.u);
                 } else {
                     result.m_value.f = a.f;
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    result.m_value.f = result.m_value.f / static_cast<afloat32>(b.i);
+                    result.m_value.f = result.m_value.f / static_cast<Float32>(b.i);
                     if (b.i == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
@@ -1381,7 +1382,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.f = result.m_value.f / static_cast<afloat32>(b.u);
+                    result.m_value.f = result.m_value.f / static_cast<Float32>(b.u);
                 } else {
                     if (b.f == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1392,9 +1393,9 @@ struct InstructionHandler {
                 break;
             case Value::F64:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.d = static_cast<afloat64>(a.i);
+                    result.m_value.d = static_cast<Float64>(a.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    result.m_value.d = static_cast<afloat64>(a.u);
+                    result.m_value.d = static_cast<Float64>(a.u);
                 } else {
                     result.m_value.d = a.f;
                 }
@@ -1403,13 +1404,13 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.d = result.m_value.d / static_cast<afloat64>(b.i);
+                    result.m_value.d = result.m_value.d / static_cast<Float64>(b.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.d = result.m_value.d / static_cast<afloat64>(b.u);
+                    result.m_value.d = result.m_value.d / static_cast<Float64>(b.u);
                 } else {
                     if (b.f == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1464,7 +1465,7 @@ struct InstructionHandler {
                 break;
             case Value::U32:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.u32 = static_cast<auint32>(a.i);
+                    result.m_value.u32 = static_cast<UInt32>(a.i);
                 } else {
                     result.m_value.u32 = a.u;
                 }
@@ -1473,7 +1474,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.u32 = result.m_value.u32 % static_cast<auint32>(b.i);
+                    result.m_value.u32 = result.m_value.u32 % static_cast<UInt32>(b.i);
                 } else {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1484,7 +1485,7 @@ struct InstructionHandler {
                 break;
             case Value::U64:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.u64 = static_cast<auint64>(a.i);
+                    result.m_value.u64 = static_cast<UInt64>(a.i);
                 } else {
                     result.m_value.u64 = a.u;
                 }
@@ -1493,7 +1494,7 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.u64 = result.m_value.u64 % static_cast<auint32>(b.i);
+                    result.m_value.u64 = result.m_value.u64 % static_cast<UInt32>(b.i);
                 } else {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1504,9 +1505,9 @@ struct InstructionHandler {
                 break;
             case Value::F32:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.f = static_cast<afloat32>(a.i);
+                    result.m_value.f = static_cast<Float32>(a.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    result.m_value.f = static_cast<afloat32>(a.u);
+                    result.m_value.f = static_cast<Float32>(a.u);
                 } else {
                     result.m_value.f = a.f;
                 }
@@ -1515,13 +1516,13 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<afloat32>(b.i));
+                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<Float32>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<afloat32>(b.u));
+                    result.m_value.f = std::fmodf(result.m_value.f, static_cast<Float32>(b.u));
                 } else {
                     if (b.f == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1532,9 +1533,9 @@ struct InstructionHandler {
                 break;
             case Value::F64:
                 if (a.flags & Number::FLAG_SIGNED) {
-                    result.m_value.d = static_cast<afloat64>(a.i);
+                    result.m_value.d = static_cast<Float64>(a.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    result.m_value.d = static_cast<afloat64>(a.u);
+                    result.m_value.d = static_cast<Float64>(a.u);
                 } else {
                     result.m_value.d = a.f;
                 }
@@ -1543,13 +1544,13 @@ struct InstructionHandler {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.d = std::fmod(result.m_value.d, static_cast<afloat64>(b.i));
+                    result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
                     if (b.u == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
                         break;
                     }
-                    result.m_value.d = std::fmod(result.m_value.d, static_cast<afloat64>(b.u));
+                    result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.u));
                 } else {
                     if (b.f == 0) {
                         state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1736,8 +1737,8 @@ struct InstructionHandler {
         Value *value = &thread->m_regs[reg];
 
         union {
-            aint64 i;
-            auint64 u;
+            Int64 i;
+            UInt64 u;
         };
 
         if (value->GetInteger(&i)) {
@@ -1777,9 +1778,9 @@ struct InstructionHandler {
         Value *value = &thread->m_regs[reg];
 
         union {
-            aint64 i;
-            auint64 u;
-            afloat64 f;
+            Int64 i;
+            UInt64 u;
+            Float64 f;
         };
 
         if (value->GetInteger(&i)) {

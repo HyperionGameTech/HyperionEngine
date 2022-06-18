@@ -48,7 +48,7 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
         if (m_expr != nullptr) {
             top->m_value.AddReturnType(m_expr->GetExprType(), m_location);
         } else {
-            top->m_value.AddReturnType(BuiltinTypes::VOID, m_location);
+            top->m_value.AddReturnType(BuiltinTypes::VOID_TYPE, m_location);
         }
     } else {
         // error; 'return' not allowed outside of a function

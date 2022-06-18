@@ -3,7 +3,7 @@
 
 #include <script/vm/HeapValue.hpp>
 #include <script/vm/ImmutableString.hpp>
-#include <script/Typedefs.hpp>
+#include <types.h>
 
 #include <util/defines.h>
 
@@ -42,9 +42,9 @@ struct Number {
     FlagBits flags;
 
     union {
-        aint64 i;
-        auint64 u;
-        afloat64 f;
+        Int64 i;
+        UInt64 u;
+        Float64 f;
     };
 };
 
@@ -69,6 +69,16 @@ typedef void *UserData_t;
 
 namespace hyperion {
 namespace vm {
+
+enum CompareFlags : int {
+    NONE = 0x00,
+    EQUAL = 0x01,
+    GREATER = 0x02,
+    // note that there is no LESS flag.
+    // the compiler must make appropriate changes
+    // to insure that the operands are switched to
+    // use only the GREATER or EQUAL flags.
+};
     
 struct Value {
     enum ValueType {
@@ -96,12 +106,12 @@ struct Value {
     } m_type;
 
     union ValueData {
-        aint32     i32;
-        aint64     i64;
-        auint32    u32;
-        auint64    u64;
-        afloat32   f;
-        afloat64   d;
+        Int32     i32;
+        Int64     i64;
+        UInt32    u32;
+        UInt64    u64;
+        Float32   f;
+        Float64   d;
 
         bool       b;
 
@@ -170,7 +180,7 @@ struct Value {
         }
     }
 
-    HYP_FORCE_INLINE bool GetFloatingPoint(afloat64 *out) const
+    HYP_FORCE_INLINE bool GetFloatingPoint(Float64 *out) const
     {
         switch (m_type) {
             case F32: *out = m_value.f; return true;
@@ -179,7 +189,7 @@ struct Value {
         }
     }
 
-    HYP_FORCE_INLINE bool GetFloatingPointCoerce(afloat64 *out) const
+    HYP_FORCE_INLINE bool GetFloatingPointCoerce(Float64 *out) const
     {
         Number num;
 
@@ -188,9 +198,9 @@ struct Value {
         }
 
         if (num.flags & Number::FLAG_UNSIGNED) {
-            *out = static_cast<afloat64>(num.u);
+            *out = static_cast<Float64>(num.u);
         } else if (num.flags & Number::FLAG_SIGNED) {
-            *out = static_cast<afloat64>(num.i);
+            *out = static_cast<Float64>(num.i);
         } else {
             *out = num.f;
         }
@@ -225,7 +235,7 @@ struct Value {
     }
 
     template <class T>
-    bool GetPointer(T **out) const
+    HYP_FORCE_INLINE bool GetPointer(T **out) const
     {
         if (m_type != HEAP_POINTER) {
             return false;
@@ -235,7 +245,7 @@ struct Value {
     }
 
     template <class T>
-    bool GetUserData(T **out) const
+    HYP_FORCE_INLINE bool GetUserData(T **out) const
     {
         if (m_type != USER_DATA) {
             return false;
@@ -244,6 +254,49 @@ struct Value {
         *out = reinterpret_cast<T *>(m_value.user_data);
 
         return true;
+    }
+
+    /** Returns -1 on error */
+    HYP_FORCE_INLINE static int CompareAsPointers(
+        Value *lhs,
+        Value *rhs
+    )
+    {
+        HeapValue *a = lhs->m_value.ptr;
+        HeapValue *b = rhs->m_value.ptr;
+
+        if (a == b) {
+            // pointers equal, drop out early.
+            return CompareFlags::EQUAL;
+        } else if (a == nullptr || b == nullptr) {
+            // one of them (not both) is null, not equal
+            return CompareFlags::NONE;
+        } else if (a->GetTypeId() == b->GetTypeId()) {
+            // comparable types, perform full comparison.
+            return (a->operator==(*b)) ? CompareFlags::EQUAL : CompareFlags::NONE;
+        }
+
+        // error
+        return -1;
+    }
+
+    HYP_FORCE_INLINE static int CompareAsFunctions(
+        Value *lhs,
+        Value *rhs
+    )
+    {
+        return (lhs->m_value.func.m_addr == rhs->m_value.func.m_addr)
+            ? CompareFlags::EQUAL
+            : CompareFlags::NONE;
+    }
+
+    HYP_FORCE_INLINE static int CompareAsNativeFunctions(
+        Value *lhs,
+        Value *rhs)
+    {
+        return (lhs->m_value.native_func == rhs->m_value.native_func)
+            ? CompareFlags::EQUAL
+            : CompareFlags::NONE;
     }
 
     void Mark();

@@ -30,7 +30,7 @@ void ScriptedController::OnAdded()
     } else {
         DebugLog(LogType::Error, "Script compilation failed!\n");
 
-        m_script->GetErrors().WriteOutput(utf::cout);
+        m_script->GetErrors().WriteOutput(std::cout);
 
         HYP_BREAKPOINT;
     }

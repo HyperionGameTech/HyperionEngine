@@ -29,12 +29,12 @@ bool AstUndefined::IsNumber() const
     return false;
 }
 
-hyperion::aint32 AstUndefined::IntValue() const
+hyperion::Int32 AstUndefined::IntValue() const
 {
     return 0;
 }
 
-hyperion::afloat32 AstUndefined::FloatValue() const
+hyperion::Float32 AstUndefined::FloatValue() const
 {
     return 0.0f;
 }

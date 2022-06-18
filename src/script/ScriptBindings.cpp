@@ -351,7 +351,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    aint64 len = 0;
+    Int64 len = 0;
 
     Value *target_ptr = params.args[0];
     AssertThrow(target_ptr != nullptr);
@@ -669,7 +669,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Print)
                 result_string.append(str.GetData());
             }
 
-            utf::cout << result_string;
+            std::printf("%s", result_string.c_str());
             
             HYP_SCRIPT_RETURN_INT32(result_string.size());
         } else {
@@ -695,8 +695,8 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Malloc)
         // create heap value for string
         vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
 
-        auint64 malloc_size = num.flags & Number::FLAG_SIGNED
-            ? static_cast<auint64>(MathUtil::Max(0, num.i))
+        UInt64 malloc_size = num.flags & Number::FLAG_SIGNED
+            ? static_cast<UInt64>(MathUtil::Max(0, num.i))
             : num.u;
 
         AssertThrow(ptr != nullptr);
@@ -903,7 +903,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         )
         .Function(
             "Free",
-            BuiltinTypes::VOID,
+            BuiltinTypes::VOID_TYPE,
             {
                 { "ptr", BuiltinTypes::ANY } // TODO: should be unsigned, but having conversion issues
             },

@@ -13,12 +13,16 @@ BindlessStorage::~BindlessStorage() = default;
 
 void BindlessStorage::Create(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     m_descriptor_sets[0] = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS);
     m_descriptor_sets[1] = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
 }
 
 void BindlessStorage::Destroy(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     /* Remove all texture sub-descriptors */
     for (auto *descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
@@ -31,8 +35,10 @@ void BindlessStorage::Destroy(Engine *engine)
     m_texture_ids.Clear();
 }
 
-void BindlessStorage::ApplyUpdates(Engine *engine, uint32_t frame_index)
+void BindlessStorage::ApplyUpdates(Engine *engine, uint frame_index)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     auto *descriptor_set = m_descriptor_sets[frame_index % m_descriptor_sets.size()];
 
     descriptor_set->ApplyUpdates(engine->GetInstance()->GetDevice());
@@ -40,9 +46,11 @@ void BindlessStorage::ApplyUpdates(Engine *engine, uint32_t frame_index)
 
 void BindlessStorage::AddResource(const Texture *texture)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     AssertThrow(texture != nullptr);
     
-    uint32_t indices[2] = {};
+    uint indices[2] = {};
 
     for (size_t i = 0; i < m_descriptor_sets.size(); i++) {
         auto *descriptor_set = m_descriptor_sets[i];
@@ -61,6 +69,8 @@ void BindlessStorage::AddResource(const Texture *texture)
 
 void BindlessStorage::RemoveResource(const Texture *texture)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     if (texture == nullptr) {
         return;
     }
@@ -78,6 +88,8 @@ void BindlessStorage::RemoveResource(const Texture *texture)
 
 void BindlessStorage::MarkResourceChanged(const Texture *texture)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     for (auto *descriptor_set : m_descriptor_sets) {
         descriptor_set->GetDescriptor(bindless_descriptor_index)->MarkDirty(texture->GetId().value - 1);
     }
@@ -85,6 +97,8 @@ void BindlessStorage::MarkResourceChanged(const Texture *texture)
 
 bool BindlessStorage::GetResourceIndex(const Texture *texture, uint32_t *out_index) const
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     if (texture == nullptr) {
         return false;
     }

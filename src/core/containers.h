@@ -171,6 +171,17 @@ public:
             ArgsTuple args;
         } trigger_state = {};
 
+        ~CallbackGroup()
+        {
+            for (auto &once_callback : once_callbacks) {
+                once_callback.Reset();
+            }
+
+            for (auto &on_callback : on_callbacks) {
+                on_callback.Reset();
+            }
+        }
+
         auto Find(typename CallbackInstance::Id id, std::vector<CallbackInstance> &callbacks) -> typename std::vector<CallbackInstance>::iterator
         {
             return std::find_if(
