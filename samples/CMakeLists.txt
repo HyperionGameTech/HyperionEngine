@@ -41,6 +41,7 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/external
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}

@@ -40,14 +40,16 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-file(GLOB_RECURSE HEADERS "src/*.h"   "src/*.hpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c" "external/*.c"  "external/*.cpp")
+file(GLOB_RECURSE HEADERS "src/*.h"   "src/*.hpp"   "external/*.h"  "external/*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/external
+    ${SDL2_INCLUDE_DIRS}
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}

@@ -304,7 +304,7 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
     HYPERION_ASSERT_RESULT(record_result);
 }
 
-void FullScreenPass::Render(Engine * engine, Frame *frame)
+void FullScreenPass::Render(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

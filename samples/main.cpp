@@ -50,6 +50,13 @@
 
 #include <util/utf8.hpp>
 
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_sdl.h>
+#include <imgui/imgui_impl_vulkan.h>
+#include <vma/vk_mem_alloc.h>
+
+static ImGui_ImplVulkanH_Window g_MainWindowData;
+
 using namespace hyperion;
 
 
@@ -372,7 +379,6 @@ int main()
     SystemEvent event;
 
     auto *engine = new v2::Engine(system, "My app");
-
     engine->assets.SetBasePath(v2::FileSystem::Join(HYP_ROOT_DIR, "../res"));
 
     v2::MyGame my_game;
@@ -397,6 +403,9 @@ int main()
 #endif
     
     engine->Initialize();
+
+
+
 
     Device *device = engine->GetInstance()->GetDevice();
 
@@ -629,6 +638,53 @@ int main()
 
     engine->Compile();
 
+
+
+    ImGui_ImplVulkanH_Window* wd = &g_MainWindowData;
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForVulkan(window->GetInternalWindow());
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = engine->GetInstance()->GetInstance();
+    init_info.PhysicalDevice = engine->GetDevice()->GetPhysicalDevice();
+    init_info.Device = engine->GetDevice()->GetDevice();
+    init_info.QueueFamily = engine->GetInstance()->GetGraphicsQueue().family;
+    init_info.Queue = engine->GetInstance()->GetGraphicsQueue().queue;
+    // init_info.PipelineCache = g_PipelineCache;
+    init_info.DescriptorPool = engine->GetInstance()->GetDescriptorPool().GetHandle();
+    init_info.Subpass = 0;
+    init_info.MinImageCount = 2; //engine->GetDevice()->GetFeatures();
+    init_info.ImageCount = engine->GetInstance()->GetSwapchain()->NumImages();//wd->ImageCount;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;//engine->GetInstance()->GetAllocator()->GetAllocationCallbacks();
+    // init_info.CheckVkResultFn = [](VkResult err) {
+    //     HYPERION_VK_CHECK();
+    ImGui_ImplVulkan_Init(&init_info, engine->GetDeferredRenderer().GetUIPass().GetRenderPass()->GetRenderPass().GetHandle());
+
+    // Upload Fonts
+    {
+        auto single_time_commands = engine->GetInstance()->GetSingleTimeCommands();
+
+        single_time_commands.Push([](CommandBuffer *command_buffer) {
+            ImGui_ImplVulkan_CreateFontsTexture(command_buffer->GetCommandBuffer());
+            HYPERION_RETURN_OK;
+        });
+
+        HYPERION_ASSERT_RESULT(single_time_commands.Execute(engine->GetDevice()));
+
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
 #if HYPERION_VK_TEST_RAYTRACING
     HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
 #endif
@@ -655,6 +711,8 @@ int main()
 
     while (running) {
         while (SystemSDL::PollEvent(&event)) {
+            ImGui_ImplSDL2_ProcessEvent(event.GetInternalEvent());
+            
             my_game.input_manager->CheckEvent(&event);
             switch (event.GetType()) {
                 case SystemEventType::EVENT_SHUTDOWN:
@@ -824,6 +882,10 @@ int main()
         /* === rendering === */
         HYPERION_ASSERT_RESULT(frame->BeginCapture(engine->GetInstance()->GetDevice()));
 
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+
         my_game.OnFrameBegin(engine, frame);
 
 #if HYPERION_VK_TEST_RAYTRACING
@@ -877,8 +939,10 @@ int main()
 
         engine->RenderFinalPass(frame->GetCommandBuffer());
 
+        
         HYPERION_ASSERT_RESULT(frame->EndCapture(engine->GetInstance()->GetDevice()));
         HYPERION_ASSERT_RESULT(frame->Submit(&engine->GetInstance()->GetGraphicsQueue()));
+
         
         my_game.OnFrameEnd(engine, frame);
 
