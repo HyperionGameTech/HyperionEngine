@@ -9,6 +9,7 @@
 #include <rendering/backend/renderer_image.h>
 
 #include <math/bounding_box.h>
+#include <types.h>
 
 #include <random>
 
@@ -33,7 +34,7 @@ struct alignas(256) ProbeSystemUniforms {
     Extent2D irradiance_image_dimensions;
     Extent2D depth_image_dimensions;
     float    probe_distance;
-    uint32_t num_rays_per_probe;
+    UInt32   num_rays_per_probe;
 };
 
 struct alignas(16) ProbeRayData {
@@ -46,9 +47,9 @@ struct alignas(16) ProbeRayData {
 static_assert(sizeof(ProbeRayData) == 64);
 
 struct ProbeGridInfo {
-    static constexpr uint32_t num_rays_per_probe         = 128;
-    static constexpr uint32_t irradiance_octahedron_size = 8;
-    static constexpr uint32_t depth_octahedron_size      = 16;
+    static constexpr UInt num_rays_per_probe         = 128;
+    static constexpr UInt irradiance_octahedron_size = 8;
+    static constexpr UInt depth_octahedron_size      = 16;
 
     BoundingBox aabb;
     Extent3D    probe_border   = {2, 0, 2};
@@ -68,7 +69,7 @@ struct ProbeGridInfo {
         };
     }
 
-    uint32_t NumProbes() const
+    UInt NumProbes() const
     {
         const Extent3D per_dimension = NumProbesPerDimension();
 
@@ -144,7 +145,7 @@ private:
     std::unique_ptr<ImageView>          m_depth_image_view;
 
     RotationMatrixGenerator m_random_generator;
-    uint32_t                m_time;
+    UInt32                  m_time;
 };
 
 } // namespace hyperion::v2

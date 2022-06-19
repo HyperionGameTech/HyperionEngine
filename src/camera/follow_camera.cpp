@@ -20,11 +20,10 @@ FollowCamera::FollowCamera(
 
 void FollowCamera::UpdateLogic(double dt)
 {
-    m_real_offset.Lerp(m_offset, MathUtil::Clamp((float)dt * 25.0f, 0.0f, 1.0f));
+    m_real_offset.Lerp(m_offset, MathUtil::Clamp(static_cast<float>(dt) * 25.0f, 0.0f, 1.0f));
 
     const auto origin = GetTarget();
-
-    const Vector3 normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();
+    const auto normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();
 
     SetTranslation(origin + normalized_offset_direction * m_desired_distance);
 }
@@ -42,47 +41,49 @@ void FollowCamera::RespondToCommand(const CameraCommand &command, GameCounter::T
             m_my - m_prev_my
         };
 
-        constexpr float movement = 10.0f;
+        constexpr float mouse_speed = 80.0f;
 
         m_offset = Vector3(
-            std::sin((m_mag.x * movement)),
-            std::sin((m_mag.y * movement)),
-            -std::cos((m_mag.x * movement))
+            -std::sin(m_mag.x * 4.0f) * mouse_speed,
+            -std::sin(m_mag.y * 4.0f) * mouse_speed,
+            std::cos(m_mag.x  * 4.0f) * mouse_speed
         );
     
         break;
     }
     case CameraCommand::CAMERA_COMMAND_SCROLL:
     {
-        constexpr float scroll_speed = 60.0f;
+        constexpr float scroll_speed = 150.0f;
         
-        m_desired_distance += static_cast<float>(command.scroll_data.wheel_y) * scroll_speed * dt;
+        m_desired_distance -= static_cast<float>(command.scroll_data.wheel_y) * scroll_speed * dt;
 
         break;
     }
     case CameraCommand::CAMERA_COMMAND_MOVEMENT:
     {
-        constexpr float movement_speed = 10.0f;
-
+        constexpr float movement_speed = 500.0f;
         const float speed = movement_speed * dt;
-        const Vector3 dir_cross_y = Vector3(m_direction).Cross(m_up);
+
+        const auto dir_cross_y = Vector3(m_direction).Cross(m_up);
 
         switch (command.movement_data.movement_type) {
         case CameraCommand::CAMERA_MOVEMENT_FORWARD:
-            m_offset += m_up * speed;
-
-            break;
-        case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
             m_offset -= m_up * speed;
 
             break;
+        case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
+            m_offset += m_up * speed;
+
+            break;
         case CameraCommand::CAMERA_MOVEMENT_LEFT:
-            m_offset -= dir_cross_y * speed;
+            m_offset += dir_cross_y * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_RIGHT:
-            m_offset += dir_cross_y * speed;
+            m_offset -= dir_cross_y * speed;
 
+            break;
+        default:
             break;
         }
 

@@ -11,7 +11,7 @@
 namespace hyperion::v2 {
 
 struct ThreadId {
-    uint        value;
+    UInt        value;
     FixedString name;
 
     bool operator==(const ThreadId &other) const { return value == other.value; }

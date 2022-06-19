@@ -10,6 +10,8 @@
 #include <math/bounding_box.h>
 #include <math/ray.h>
 
+#include <types.h>
+
 #include <array>
 
 #define HYP_OCTREE_DEBUG 0
@@ -40,7 +42,7 @@ class Octree {
     static constexpr float growth_factor = 1.5f;
     static const BoundingBox default_bounds;
 
-    Octree(Octree *parent, const BoundingBox &aabb, uint8_t index);
+    Octree(Octree *parent, const BoundingBox &aabb, UInt8 index);
 
 public:
     struct Octant {
@@ -118,7 +120,7 @@ private:
     bool Empty() const  { return m_nodes.empty(); }
     
     void SetParent(Octree *parent);
-    bool EmptyDeep(int depth = DEPTH_SEARCH_INF, uint8_t octant_mask = 0xff) const;
+    bool EmptyDeep(int depth = DEPTH_SEARCH_INF, UInt8 octant_mask = 0xff) const;
 
     void InitOctants();
     void Divide(Engine *engine);
@@ -142,7 +144,7 @@ private:
     bool                   m_is_divided;
     Root                  *m_root;
     VisibilityState        m_visibility_state;
-    uint8_t                m_index;
+    UInt8                  m_index;
 };
 
 } // namespace hyperion::v2

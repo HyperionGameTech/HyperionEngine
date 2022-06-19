@@ -9,11 +9,15 @@
 namespace hyperion {
 namespace vm {
 
-Array::Array(size_t size)
+Array::Array(SizeType size)
     : m_size(size),
-      m_capacity(1 << (unsigned int)std::ceil(std::log(size) / std::log(2.0))),
+      m_capacity(1ull << static_cast<SizeType>(std::ceil(std::log(size) / std::log(2.0)))),
       m_buffer(new Value[m_capacity])
 {
+    for (SizeType i = 0; i < m_capacity; i++) {
+        m_buffer[i].m_type = Value::NONE;
+        m_buffer[i].m_value.user_data = nullptr;
+    }
 }
 
 Array::Array(const Array &other)
@@ -22,7 +26,7 @@ Array::Array(const Array &other)
       m_buffer(new Value[other.m_capacity])
 {
     // copy all members
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         m_buffer[i] = other.m_buffer[i];
     }
 }
@@ -34,6 +38,10 @@ Array::~Array()
 
 Array &Array::operator=(const Array &other)
 {
+    if (&other == this) {
+        return *this;
+    }
+
     if (m_buffer) {
         delete[] m_buffer;
     }
@@ -43,22 +51,30 @@ Array &Array::operator=(const Array &other)
     m_buffer = new Value[other.m_capacity];
 
     // copy all objects
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         m_buffer[i] = other.m_buffer[i];
     }
 
     return *this;
 }
 
-void Array::Resize(size_t capacity)
+void Array::Resize(SizeType capacity)
 {
     // delete and copy all over again
     m_capacity = capacity;
-    Value *new_buffer = new Value[m_capacity];
+    auto *new_buffer = new Value[m_capacity];
+
+    AssertThrow(m_size <= m_capacity);
+
     // copy all objects into new buffer
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         new_buffer[i] = m_buffer[i];
     }
+
+    for (SizeType i = m_size; i < m_capacity; i++) {
+        new_buffer[i] = Value(Value::NONE, {.user_data = nullptr});
+    }
+
     // delete old buffer
     if (m_buffer != nullptr) {
         delete[] m_buffer;
@@ -69,24 +85,27 @@ void Array::Resize(size_t capacity)
 
 void Array::Push(const Value &value)
 {
-    size_t index = m_size;
-    if (index >= m_capacity) {
-        Resize((unsigned int)std::ceil(std::log(m_size + 1) / std::log(2.0)));
+    const SizeType index = m_size;
+
+    if (m_size >= m_capacity) {
+        Resize(static_cast<SizeType>(std::ceil(std::log(m_size + 1) / std::log(2.0))));
     }
+
     // set item at index
     m_buffer[index] = value;
     m_size++;
 }
 
-void Array::PushMany(size_t n, Value *values)
+void Array::PushMany(SizeType n, Value *values)
 {
-    size_t index = m_size;
-    if (index + n - 1 >= m_capacity) {
+    const SizeType index = m_size;
+
+    if (m_size + n >= m_capacity) {
         // delete and copy all over again
-        Resize(1 << (unsigned int)std::ceil(std::log(m_size + n) / std::log(2.0)));
+        Resize(1ull << static_cast<SizeType>(std::ceil(std::log(m_size + n) / std::log(2.0))));
     }
 
-    for (size_t i = 0; i < n; i++) {
+    for (SizeType i = 0; i < n; i++) {
         // set item at index
         m_buffer[index + i] = values[i];
     }
@@ -94,15 +113,16 @@ void Array::PushMany(size_t n, Value *values)
     m_size += n;
 }
 
-void Array::PushMany(size_t n, Value **values)
+void Array::PushMany(SizeType n, Value **values)
 {
-    size_t index = m_size;
-    if (index + n - 1 >= m_capacity) {
+    const SizeType index = m_size;
+
+    if (m_size + n >= m_capacity) {
         // delete and copy all over again
-        Resize(1 << (unsigned int)std::ceil(std::log(m_size + n) / std::log(2.0)));
+        Resize(1ull << static_cast<SizeType>(std::ceil(std::log(m_size + n) / std::log(2.0))));
     }
 
-    for (size_t i = 0; i < n; i++) {
+    for (SizeType i = 0; i < n; i++) {
         AssertThrow(values[i] != nullptr);
         // set item at index
         m_buffer[index + i] = *values[i];
@@ -134,7 +154,7 @@ void Array::GetRepresentation(
     ss << '[';
 
     // convert all array elements to string
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         m_buffer[i].ToRepresentation(
             ss,
             add_type_name,

@@ -31,9 +31,9 @@ using renderer::UniformBuffer;
 class Engine;
 
 struct alignas(16) PostProcessingUniforms {
-    uint effect_counts[2]; // pre, post
-    uint last_enabled_indices[2]; // pre, post
-    uint masks[2]; // pre, post
+    UInt effect_counts[2]; // pre, post
+    UInt last_enabled_indices[2]; // pre, post
+    UInt masks[2]; // pre, post
 };
 
 class PostProcessingEffect : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)> {
@@ -43,7 +43,7 @@ public:
         POST_SHADING
     };
 
-    PostProcessingEffect(Stage stage, uint index);
+    PostProcessingEffect(Stage stage, UInt index);
     PostProcessingEffect(const PostProcessingEffect &other) = delete;
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;
     virtual ~PostProcessingEffect();
@@ -55,7 +55,7 @@ public:
     const Ref<Shader> &GetShader() const            { return m_shader; }
 
     Stage GetStage() const                          { return m_stage; }
-    uint GetIndex() const                           { return m_full_screen_pass.GetSubDescriptorIndex(); }
+    UInt GetIndex() const                           { return m_full_screen_pass.GetSubDescriptorIndex(); }
 
     bool IsEnabled() const                          { return m_is_enabled; }
     void SetIsEnabled(bool is_enabled)              { m_is_enabled = is_enabled; }
@@ -75,7 +75,7 @@ private:
 
 class PostProcessing {
 public:
-    static constexpr uint max_effects_per_stage = sizeof(uint) * 8;
+    static constexpr UInt max_effects_per_stage = sizeof(UInt) * 8;
 
     enum DefaultEffectIndices {
         DEFAULT_EFFECT_INDEX_SSAO,

@@ -66,7 +66,7 @@ void Stack::Purge()
 
 void Stack::MarkAll()
 {
-    for (int i = m_sp - 1; i >= 0; i--) {
+    for (Int64 i = static_cast<Int64>(m_sp) - 1; i >= 0; i--) {
         m_data[i].Mark();
     }
 }

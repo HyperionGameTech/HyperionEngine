@@ -1,13 +1,15 @@
 #ifndef HASH_CODE_H
 #define HASH_CODE_H
 
+#include <types.h>
+
 #include <type_traits>
 #include <functional>
 #include <string>
 
 namespace hyperion {
 struct HashCode {
-    using ValueType = uint64_t;
+    using ValueType = UInt64;
 
     HashCode()
         : hash(0)

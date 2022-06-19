@@ -6,7 +6,7 @@
 namespace hyperion {
 namespace renderer {
 
-FrameHandler::FrameHandler(uint32_t num_frames, NextImageFunction next_image)
+FrameHandler::FrameHandler(UInt num_frames, NextImageFunction next_image)
     : m_per_frame_data(MathUtil::Min(num_frames, max_frames_in_flight)),
       m_next_image(next_image),
       m_acquired_image_index(0),
@@ -20,7 +20,7 @@ Result FrameHandler::CreateFrames(Device *device)
 {
     AssertThrow(m_per_frame_data.NumFrames() >= 1);
     
-    for (uint32_t i = 0; i < m_per_frame_data.NumFrames(); i++) {
+    for (UInt i = 0; i < m_per_frame_data.NumFrames(); i++) {
         auto frame = std::make_unique<Frame>(i);
 
         HYPERION_BUBBLE_ERRORS(frame->Create(
@@ -73,7 +73,7 @@ Result FrameHandler::PresentFrame(Queue *queue, Swapchain *swapchain) const
 
     VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 
-    present_info.waitSemaphoreCount = uint32_t(signal_semaphores.size());
+    present_info.waitSemaphoreCount = static_cast<UInt>(signal_semaphores.size());
     present_info.pWaitSemaphores    = signal_semaphores.data();
 
     present_info.swapchainCount = 1;
@@ -91,7 +91,7 @@ Result FrameHandler::CreateCommandBuffers(Device *device, VkCommandPool pool)
 {
     auto result = Result::OK;
 
-    for (uint32_t i = 0; i < m_per_frame_data.NumFrames(); i++) {
+    for (UInt i = 0; i < m_per_frame_data.NumFrames(); i++) {
         auto command_buffer = std::make_unique<CommandBuffer>(
             CommandBuffer::COMMAND_BUFFER_PRIMARY
         );
@@ -110,7 +110,7 @@ Result FrameHandler::Destroy(Device *device, VkCommandPool pool)
 {
     auto result = Result::OK;
 
-    for (uint32_t i = 0; i < m_per_frame_data.NumFrames(); i++) {
+    for (UInt i = 0; i < m_per_frame_data.NumFrames(); i++) {
         HYPERION_PASS_ERRORS(m_per_frame_data[i].Get<CommandBuffer>()->Destroy(device, pool), result);
         HYPERION_PASS_ERRORS(m_per_frame_data[i].Get<Frame>()->Destroy(device), result);
     }

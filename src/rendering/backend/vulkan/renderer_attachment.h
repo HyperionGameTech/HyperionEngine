@@ -103,8 +103,8 @@ public:
     inline LoadOperation GetLoadOperation() const   { return m_load_operation; }
     inline StoreOperation GetStoreOperation() const { return m_store_operation; }
 
-    inline uint GetBinding() const                  { return m_binding.value_or(UINT32_MAX); }
-    inline void SetBinding(uint binding)            { m_binding = binding; }
+    inline UInt GetBinding() const                  { return m_binding.value_or(UINT32_MAX); }
+    inline void SetBinding(UInt binding)            { m_binding = binding; }
     inline bool HasBinding() const                  { return m_binding.has_value(); }
 
     Image::InternalFormat GetFormat() const;
@@ -139,7 +139,7 @@ public:
 
 private:
     struct RefCount {
-        //uint count = 0;
+        //UInt count = 0;
 
         std::unordered_set<AttachmentRefInstance> m_holder_instances;
     };
@@ -155,7 +155,7 @@ private:
     
     LoadOperation m_load_operation;
     StoreOperation m_store_operation;
-    std::optional<uint> m_binding{};
+    std::optional<UInt> m_binding{};
 
     VkImageLayout m_initial_layout, m_final_layout;
 

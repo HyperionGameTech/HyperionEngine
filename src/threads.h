@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-using ThreadMask = uint;
+using ThreadMask = UInt;
 
 enum ThreadName : ThreadMask {
     THREAD_MAIN   = 0x01,

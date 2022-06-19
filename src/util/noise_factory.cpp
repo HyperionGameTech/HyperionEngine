@@ -115,11 +115,11 @@ void NoiseFactory::Release(NoiseGenerator *noise)
 
 void NoiseFactory::Release(NoiseGenerationType type, Seed_t seed)
 {
-    auto it = m_noise_generators.find(std::make_pair(type, seed));
+    const auto it = m_noise_generators.find(std::make_pair(type, seed));
 
     AssertExit(it != m_noise_generators.end());
 
-    if (!(--it->second.uses)) {
+    if (!--it->second.uses) {
         delete it->second.noise;
 
         m_noise_generators.erase(it);

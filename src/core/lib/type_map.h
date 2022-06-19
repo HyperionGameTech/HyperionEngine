@@ -13,7 +13,7 @@
 namespace hyperion {
 
 struct TypeId {
-    using Value = uint;
+    using Value = UInt;
 
     Value value;
 

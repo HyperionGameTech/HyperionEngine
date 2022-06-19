@@ -6,6 +6,8 @@
 #include <core/lib/heap_array.h>
 #include <core/lib/range.h>
 
+#include <types.h>
+
 #include <memory>
 #include <atomic>
 #include <climits>
@@ -50,14 +52,14 @@ struct ShaderDataState {
 
     ShaderDataState &operator|=(State value)
     {
-        state |= uint32_t(value);
+        state |= UInt32(value);
 
         return *this;
     }
 
     ShaderDataState &operator&=(State value)
     {
-        state &= uint32_t(value);
+        state &= UInt32(value);
 
         return *this;
     }
@@ -66,7 +68,7 @@ struct ShaderDataState {
     bool IsDirty() const { return state == DIRTY; }
 
 private:
-    uint32_t state;
+    UInt32 state;
 };
 
 struct alignas(256) SkeletonShaderData {
@@ -77,9 +79,9 @@ struct alignas(256) SkeletonShaderData {
 
 struct alignas(256) ObjectShaderData {
     Matrix4 model_matrix;
-    uint32_t has_skinning;
-    uint32_t material_index;
-    uint32_t _padding[2];
+    UInt32 has_skinning;
+    UInt32 material_index;
+    UInt32 _padding[2];
 
     Vector4 local_aabb_max;
     Vector4 local_aabb_min;
@@ -98,30 +100,30 @@ struct MaterialShaderData {
     // 16
     float metalness;
     float roughness;
-    uint32_t param_0; // vec4 of 0.0..1.0 values stuffed into uint32
-    uint32_t param_1; // vec4 of 0.0..1.0 values stuffed into uint32
+    UInt32 param_0; // vec4 of 0.0..1.0 values stuffed into uint32
+    UInt32 param_1; // vec4 of 0.0..1.0 values stuffed into uint32
 
     // 32
-    uint32_t uv_flip_s;
-    uint32_t uv_flip_t;
+    UInt32 uv_flip_s;
+    UInt32 uv_flip_t;
     float uv_scale;
     float parallax_height;
 
     // 48
-    uint32_t texture_index[16];
+    UInt32 texture_index[16];
 
     // 112
-    uint32_t texture_usage;
-    uint32_t _pad0;
-    uint32_t _pad1;
-    uint32_t _pad2;
+    UInt32 texture_usage;
+    UInt32 _pad0;
+    UInt32 _pad1;
+    UInt32 _pad2;
     // 128
 };
 
 static_assert(sizeof(MaterialShaderData) == 128);
 
 struct alignas(256) SceneShaderData {
-    static constexpr uint32_t max_environment_textures = 1;
+    static constexpr UInt32 max_environment_textures = 1;
 
     Matrix4 view;
     Matrix4 projection;
@@ -129,26 +131,26 @@ struct alignas(256) SceneShaderData {
     Vector4 camera_direction;
     Vector4 light_direction;
 
-    uint32_t environment_texture_index;
-    uint32_t environment_texture_usage;
-    uint32_t resolution_x;
-    uint32_t resolution_y;
+    UInt32 environment_texture_index;
+    UInt32 environment_texture_usage;
+    UInt32 resolution_x;
+    UInt32 resolution_y;
     
     Vector4 aabb_max;
     Vector4 aabb_min;
 
-    float    global_timer;
-    uint32_t num_environment_shadow_maps;
+    float   global_timer;
+    UInt32  num_environment_shadow_maps;
 };
 
 static_assert(sizeof(SceneShaderData) == 256);
 
 struct alignas(16) LightShaderData {
     Vector4  position; //direction for directional lights
-    uint32_t color;
-    uint32_t light_type;
+    UInt32   color;
+    UInt32   light_type;
     float    intensity;
-    uint32_t shadow_map_index; // ~0 == no shadow map
+    UInt32   shadow_map_index; // ~0 == no shadow map
 };
 
 static_assert(sizeof(LightShaderData) == 32);
@@ -156,7 +158,7 @@ static_assert(sizeof(LightShaderData) == 32);
 struct alignas(16) ShadowShaderData {
     Matrix4 projection;
     Matrix4 view;
-    uint scene_index;
+    UInt32  scene_index;
 };
 
 //static_assert(sizeof(ShadowShaderData) == 128);
@@ -226,9 +228,9 @@ public:
     void UpdateBuffer(Device *device, size_t buffer_index)
     {
 #if HYP_BUFFERS_USE_SPINLOCK
-        static constexpr uint32_t max_spins = 2;
+        static constexpr UInt32 max_spins = 2;
 
-        for (uint32_t spin_count = 0; spin_count < max_spins; spin_count++) {
+        for (UInt32 spin_count = 0; spin_count < max_spins; spin_count++) {
             auto &current = m_staging_objects_pool.Current();
 
             if (!current.locked) {
@@ -281,7 +283,7 @@ public:
     
 private:
     struct StagingObjectsPool {
-        static constexpr uint32_t num_staging_buffers = HYP_BUFFERS_USE_SPINLOCK ? 2 : 1;
+        static constexpr UInt32 num_staging_buffers = HYP_BUFFERS_USE_SPINLOCK ? 2 : 1;
 
         StagingObjectsPool() = default;
         StagingObjectsPool(const StagingObjectsPool &other) = delete;
@@ -352,7 +354,7 @@ private:
             AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
 
 #if HYP_BUFFERS_USE_SPINLOCK
-            for (uint32_t i = 0; i < num_staging_buffers; i++) {
+            for (UInt32 i = 0; i < num_staging_buffers; i++) {
                 const auto staging_object_index = (current_index + i) % num_staging_buffers;
                 auto &staging_object = buffers[staging_object_index];
 

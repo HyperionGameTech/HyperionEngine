@@ -14,7 +14,7 @@ class SparseVoxelOctree : public EngineComponentBase<STUB_CLASS(SparseVoxelOctre
     static constexpr size_t min_nodes = 10000;
     static constexpr size_t max_nodes = 10000000;
 
-    using OctreeNode = uint32_t[2];
+    using OctreeNode = UInt32[2];
 
 public:
     SparseVoxelOctree();
@@ -36,16 +36,18 @@ private:
 
     void WriteMipmaps(Engine *engine);
 
-    void BindDescriptorSets(Engine *engine,
+    void BindDescriptorSets(
+        Engine *engine,
         CommandBuffer *command_buffer,
-        ComputePipeline *pipeline) const;
+        ComputePipeline *pipeline
+    ) const;
 
-    std::unique_ptr<Voxelizer> m_voxelizer;
-    std::unique_ptr<AtomicCounter> m_counter;
+    std::unique_ptr<Voxelizer>      m_voxelizer;
+    std::unique_ptr<AtomicCounter>  m_counter;
 
     std::unique_ptr<IndirectBuffer> m_indirect_buffer;
-    std::unique_ptr<StorageBuffer> m_build_info_buffer;
-    std::unique_ptr<StorageBuffer> m_octree_buffer;
+    std::unique_ptr<StorageBuffer>  m_build_info_buffer;
+    std::unique_ptr<StorageBuffer>  m_octree_buffer;
     
     Ref<ComputePipeline> m_init_nodes,
                          m_tag_nodes,

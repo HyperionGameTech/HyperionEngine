@@ -85,7 +85,7 @@ void Material::EnqueueDescriptorSetCreate()
     GetEngine()->GetRenderScheduler().Enqueue([this](...) {
         const auto *engine = GetEngine();
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
             const auto index        = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
 
@@ -93,26 +93,26 @@ void Material::EnqueueDescriptorSetCreate()
 
             auto *descriptor_set = descriptor_pool.AddDescriptorSet(std::make_unique<DescriptorSet>(
                 parent_index,
-                uint(index),
+                static_cast<UInt>(index),
                 false
             ));
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
 
-            sampler_descriptor->AddSubDescriptor({
+            sampler_descriptor->SetSubDescriptor({
                 .sampler = &engine->GetDummyData().GetSampler() // TODO: get proper sampler based on req's of image
             });
             
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
-            for (uint texture_index = 0; texture_index < max_textures_to_set; texture_index++) {
+            for (UInt texture_index = 0; texture_index < max_textures_to_set; texture_index++) {
                 if (auto &texture = m_textures.ValueAt(texture_index)) {
-                    image_descriptor->AddSubDescriptor({
+                    image_descriptor->SetSubDescriptor({
                         .element_index = texture_index,
                         .image_view    = &texture->GetImageView()
                     });
                 } else {
-                    image_descriptor->AddSubDescriptor({
+                    image_descriptor->SetSubDescriptor({
                         .element_index = texture_index,
                         .image_view    = &engine->GetDummyData().GetImageView2D1x1R8()
                     });
@@ -120,7 +120,7 @@ void Material::EnqueueDescriptorSetCreate()
             }
 
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
-                HYPERION_BUBBLE_ERRORS(descriptor_pool.CreateDescriptorSet(engine->GetDevice(), uint(index)));
+                HYPERION_BUBBLE_ERRORS(descriptor_pool.CreateDescriptorSet(engine->GetDevice(), UInt(index)));
             }
 
             m_descriptor_sets[frame_index] = descriptor_set;
@@ -140,7 +140,7 @@ void Material::EnqueueDescriptorSetDestroy()
         const auto *engine = GetEngine();
         auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
 
-        for (uint frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
         }
         
@@ -206,7 +206,7 @@ void Material::EnqueueTextureUpdate(TextureKey key)
     // TODO: (thread safety) - cannot copy `texture` w/ IncRef() because it is not
     // CopyConstructable. So we have to just fetch it from m_textures (in the render thread).
     // we should try to refactor this to not use std::function at all.
-    GetEngine()->GetRenderScheduler().Enqueue([this, key](CommandBuffer *command_buffer, uint frame_index) {
+    GetEngine()->GetRenderScheduler().Enqueue([this, key](CommandBuffer *command_buffer, UInt frame_index) {
         auto &texture            = m_textures.Get(key);
         const auto texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
@@ -220,8 +220,8 @@ void Material::EnqueueTextureUpdate(TextureKey key)
         const auto *descriptor_set  = descriptor_pool.GetDescriptorSet(descriptor_set_index);
         auto       *descriptor      = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
 
-        descriptor->AddSubDescriptor({
-            .element_index = static_cast<uint>(texture_index),
+        descriptor->SetSubDescriptor({
+            .element_index = static_cast<UInt>(texture_index),
             .image_view    = &texture->GetImageView()
         });
 

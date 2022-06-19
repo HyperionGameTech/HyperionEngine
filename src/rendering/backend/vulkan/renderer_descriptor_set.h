@@ -62,12 +62,12 @@ class Descriptor {
 public:
 
     struct SubDescriptor {
-        uint element_index = ~0u; /* ~0 == just use index of item added */
+        UInt element_index = ~0u; /* ~0 == just use index of item added */
 
         union {
             struct /* BufferData */ {
                 const GPUBuffer *buffer;
-                uint range; /* if 0 then it is set to buffer->size */
+                UInt range; /* if 0 then it is set to buffer->size */
 
                 VkDescriptorBufferInfo buffer_info;
             };
@@ -100,13 +100,13 @@ public:
         }
     };
 
-    Descriptor(uint binding, DescriptorType descriptor_type);
+    Descriptor(UInt binding, DescriptorType descriptor_type);
     Descriptor(const Descriptor &other) = delete;
     Descriptor &operator=(const Descriptor &other) = delete;
     ~Descriptor();
 
-    uint GetBinding() const           { return m_binding; }
-    void SetBinding(uint binding)     { m_binding = binding; }
+    UInt GetBinding() const               { return m_binding; }
+    void SetBinding(UInt binding)         { m_binding = binding; }
                                           
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
     auto &GetSubDescriptors()             { return m_sub_descriptors; }
@@ -114,10 +114,10 @@ public:
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
     const auto &GetSubDescriptors() const { return m_sub_descriptors; }
 
-    SubDescriptor &GetSubDescriptor(uint index)
+    SubDescriptor &GetSubDescriptor(UInt index)
         { return m_sub_descriptors.At(index); }
 
-    const SubDescriptor &GetSubDescriptor(uint index) const
+    const SubDescriptor &GetSubDescriptor(UInt index) const
         { return m_sub_descriptors.At(index); }
 
     /*! \brief Add a sub-descriptor to this descriptor.
@@ -126,11 +126,11 @@ public:
      * @param sub_descriptor An object containing buffer or image info about the sub descriptor to be added.
      * @returns index of descriptor
      */
-    uint AddSubDescriptor(SubDescriptor &&sub_descriptor);
+    UInt SetSubDescriptor(SubDescriptor &&sub_descriptor);
     /*! \brief Remove the sub-descriptor at the given index. */
-    void RemoveSubDescriptor(uint index);
+    void RemoveSubDescriptor(UInt index);
     /*! \brief Mark a sub-descriptor as dirty */
-    void MarkDirty(uint sub_descriptor_index);
+    void MarkDirty(UInt sub_descriptor_index);
 
     void Create(
         Device *device,
@@ -148,12 +148,12 @@ protected:
         VkDescriptorImageInfo &out_image,
         VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure) const;
 
-    Range<uint> m_dirty_sub_descriptors;
+    Range<UInt> m_dirty_sub_descriptors;
 
-    FlatMap<uint, SubDescriptor> m_sub_descriptors;
+    FlatMap<UInt, SubDescriptor> m_sub_descriptors;
     std::deque<size_t> m_sub_descriptor_update_indices;
 
-    uint m_binding;
+    UInt m_binding;
     DescriptorType m_descriptor_type;
 
 private:
@@ -226,34 +226,34 @@ public:
         DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1
     };
 
-    static constexpr uint max_descriptor_sets                  = 5000;
-    static constexpr uint max_bindless_resources               = 4096;
-    static constexpr uint max_sub_descriptor_updates_per_frame = 16;
-    static constexpr uint max_bound_descriptor_sets            = 4; /* 0 = no cap */
-    static constexpr uint max_material_texture_samplers        = 16;
+    static constexpr UInt max_descriptor_sets                  = 5000;
+    static constexpr UInt max_bindless_resources               = 4096;
+    static constexpr UInt max_sub_descriptor_updates_per_frame = 16;
+    static constexpr UInt max_bound_descriptor_sets            = 4; /* 0 = no cap */
+    static constexpr UInt max_material_texture_samplers        = 16;
 
-    static const std::map<Index, std::map<DescriptorKey, uint>> mappings;
-    static const std::unordered_map<Index, uint> desired_indices;
-    static Index GetBaseIndex(uint index); // map index to the real index used (this is per-frame stuff)
-    static Index GetPerFrameIndex(Index index, uint frame_index);
-    static Index GetPerFrameIndex(Index index, uint instance_index, uint frame_index);
+    static const std::map<Index, std::map<DescriptorKey, UInt>> mappings;
+    static const std::unordered_map<Index, UInt> desired_indices;
+    static Index GetBaseIndex(UInt index); // map index to the real index used (this is per-frame stuff)
+    static Index GetPerFrameIndex(Index index, UInt frame_index);
+    static Index GetPerFrameIndex(Index index, UInt instance_index, UInt frame_index);
     /*! Get the per-frame index of a descriptor set's /real/ index. Returns -1 if applicable to any. */
-    static int GetFrameIndex(uint real_index);
-    static uint GetDesiredIndex(Index index);
+    static int GetFrameIndex(UInt real_index);
+    static UInt GetDesiredIndex(Index index);
 
-    DescriptorSet(Index index, uint real_index, bool bindless);
+    DescriptorSet(Index index, UInt real_index, bool bindless);
     DescriptorSet(const DescriptorSet &other) = delete;
     DescriptorSet &operator=(const DescriptorSet &other) = delete;
     ~DescriptorSet();
 
     DescriptorSetState GetState() const { return m_state; }
     Index GetIndex() const              { return m_index; }
-    uint GetRealIndex() const           { return m_real_index; }
+    UInt GetRealIndex() const           { return m_real_index; }
     bool IsBindless() const             { return m_bindless; }
-    uint GetDesiredIndex() const        { return GetDesiredIndex(DescriptorSet::Index(GetRealIndex())); }
+    UInt GetDesiredIndex() const        { return GetDesiredIndex(DescriptorSet::Index(GetRealIndex())); }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    bool IsTemplate() const             { return GetRealIndex() == static_cast<uint>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    bool IsTemplate() const             { return GetRealIndex() == static_cast<UInt>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)
@@ -262,7 +262,7 @@ public:
     }
 
     template <class DescriptorType>
-    Descriptor *AddDescriptor(uint binding)
+    Descriptor *AddDescriptor(UInt binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
@@ -274,10 +274,10 @@ public:
 
     bool RemoveDescriptor(Descriptor *descriptor);
     bool RemoveDescriptor(DescriptorKey key);
-    bool RemoveDescriptor(uint binding);
+    bool RemoveDescriptor(UInt binding);
 
     Descriptor *GetDescriptor(DescriptorKey key) const;
-    Descriptor *GetDescriptor(uint binding) const;
+    Descriptor *GetDescriptor(UInt binding) const;
 
     template <class DescriptorType>
     Descriptor *GetOrAddDescriptor(DescriptorKey key)
@@ -286,7 +286,7 @@ public:
     }
 
     template <class DescriptorType>
-    Descriptor *GetOrAddDescriptor(uint binding)
+    Descriptor *GetOrAddDescriptor(UInt binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
@@ -308,7 +308,7 @@ public:
     VkDescriptorSet m_set;
 
 private:
-    uint DescriptorKeyToIndex(DescriptorKey key) const;
+    UInt DescriptorKeyToIndex(DescriptorKey key) const;
 
     DescriptorPool *m_descriptor_pool;
     std::vector<std::unique_ptr<Descriptor>> m_descriptors;
@@ -316,14 +316,14 @@ private:
     std::vector<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
     DescriptorSetState m_state;
     Index m_index;
-    uint m_real_index;
+    UInt m_real_index;
     bool m_bindless;
 };
 
 struct DescriptorSetBinding {
     struct Declaration {
         DescriptorSet::Index set;
-        uint count = 1;
+        UInt count = 1;
     } declaration;
 
     /* where we bind to in the shader program */
@@ -332,7 +332,7 @@ struct DescriptorSetBinding {
     } locations;
 
     struct DynamicOffsets {
-        std::vector<uint> offsets;
+        std::vector<UInt> offsets;
     } offsets;
 
     DescriptorSetBinding()
@@ -377,9 +377,9 @@ class DescriptorPool {
     friend class DescriptorSet;
 
     Result AllocateDescriptorSet(Device *device, VkDescriptorSetLayout *layout, DescriptorSet *out);
-    Result CreateDescriptorSetLayout(Device *device, uint index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
-    Result DestroyDescriptorSetLayout(Device *device, uint index);
-    VkDescriptorSetLayout GetDescriptorSetLayout(uint index);
+    Result CreateDescriptorSetLayout(Device *device, UInt index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out);
+    Result DestroyDescriptorSetLayout(Device *device, UInt index);
+    VkDescriptorSetLayout GetDescriptorSetLayout(UInt index);
 
 public:
     static const std::unordered_map<VkDescriptorType, size_t> items_per_set;
@@ -397,7 +397,7 @@ public:
     auto &GetDescriptorSetLayouts()             { return m_descriptor_set_layouts; }
     const auto &GetDescriptorSetLayouts() const { return m_descriptor_set_layouts; }
 
-    void SetDescriptorSetLayout(uint index, VkDescriptorSetLayout layout);
+    void SetDescriptorSetLayout(UInt index, VkDescriptorSetLayout layout);
 
     // return new descriptor set
     DescriptorSet *AddDescriptorSet(std::unique_ptr<DescriptorSet> &&descriptor_set);
@@ -405,7 +405,7 @@ public:
         { return m_descriptor_sets[index].get(); }
 
     void RemoveDescriptorSet(DescriptorSet *descriptor_set);
-    void RemoveDescriptorSet(uint index);
+    void RemoveDescriptorSet(UInt index);
 
     Result Create(Device *device);
     Result Destroy(Device *device);
@@ -413,10 +413,10 @@ public:
     Result Bind(Device *device, CommandBuffer *cmd, ComputePipeline *pipeline, const DescriptorSetBinding &) const;
     Result Bind(Device *device, CommandBuffer *cmd, RaytracingPipeline *pipeline, const DescriptorSetBinding &) const;
 
-    Result CreateDescriptorSet(Device *device, uint index);
-    Result DestroyDescriptorSet(Device *device, uint index);
-    Result DestroyPendingDescriptorSets(Device *device, uint frame_index);
-    Result UpdateDescriptorSets(Device *device, uint frame_index);
+    Result CreateDescriptorSet(Device *device, UInt index);
+    Result DestroyDescriptorSet(Device *device, UInt index);
+    Result DestroyPendingDescriptorSets(Device *device, UInt frame_index);
+    Result UpdateDescriptorSets(Device *device, UInt frame_index);
 
 private:
     void BindDescriptorSets(
@@ -428,12 +428,12 @@ private:
     ) const;
 
     std::vector<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
-    FlatMap<uint, VkDescriptorSetLayout> m_descriptor_set_layouts;
+    FlatMap<UInt, VkDescriptorSetLayout> m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
     std::vector<VkDescriptorSet> m_descriptor_sets_view;
 
     // 1 for each frame in flight
-    std::array<std::deque<uint>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
+    std::array<std::deque<UInt>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
 
     bool m_is_created;
 };
@@ -444,7 +444,7 @@ private:
     class class_name : public Descriptor { \
     public: \
         class_name( \
-            uint binding \
+            UInt binding \
         ) : Descriptor(binding, descriptor_type) {} \
     }
 

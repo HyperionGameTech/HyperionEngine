@@ -110,7 +110,9 @@ void Spatial::EnqueueRenderUpdates(Engine *engine)
 {
     AssertReady();
 
-    const auto material_index = m_material != nullptr ? m_material->GetId().value - 1 : 0;
+    const UInt32 material_index = m_material != nullptr
+        ? m_material->GetId().value - 1
+        : 0;
 
     engine->render_scheduler.EnqueueReplace(m_render_update_id, [this, engine, transform = m_transform, material_index](...) {
         engine->shader_globals->objects.Set(

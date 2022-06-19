@@ -85,10 +85,10 @@ void Scene::EnqueueRenderUpdates(Engine *engine)
         Matrix4     projection;
         Vector3     translation;
         Vector3     direction;
-        int         width;
-        int         height;
+        Int32       width;
+        Int32       height;
         Vector3     light_direction;
-        float       global_timer;
+        Float32     global_timer;
     } params = {
         .aabb            = m_aabb,
         .light_direction = Vector3(-0.5f, 0.5f, 0.0f).Normalize(),
@@ -111,20 +111,20 @@ void Scene::EnqueueRenderUpdates(Engine *engine)
             .camera_position             = params.translation.ToVector4(),
             .camera_direction            = params.direction.ToVector4(),
             .light_direction             = params.light_direction.ToVector4(),
-            .resolution_x                = static_cast<uint32_t>(params.width),
-            .resolution_y                = static_cast<uint32_t>(params.height),
+            .resolution_x                = static_cast<UInt32>(params.width),
+            .resolution_y                = static_cast<UInt32>(params.height),
             .aabb_max                    = params.aabb.max.ToVector4(),
             .aabb_min                    = params.aabb.min.ToVector4(),
             .global_timer                = params.global_timer,
-            .num_environment_shadow_maps = static_cast<uint32_t>(m_environment->HasRenderComponent<ShadowRenderer>()) // callable on render thread only
+            .num_environment_shadow_maps = static_cast<UInt32>(m_environment->HasRenderComponent<ShadowRenderer>()) // callable on render thread only
         };
 
         shader_data.environment_texture_usage = 0;
 
-        for (uint i = 0; i < static_cast<uint>(m_environment_textures.size()); i++) {
+        for (UInt i = 0; i < static_cast<UInt>(m_environment_textures.size()); i++) {
             if (auto &texture = m_environment_textures[i]) {
                 shader_data.environment_texture_index = texture->GetId().value - 1;
-                shader_data.environment_texture_usage |= 1 << i;
+                shader_data.environment_texture_usage |= 1u << i;
             }
         }
         
@@ -136,7 +136,7 @@ void Scene::EnqueueRenderUpdates(Engine *engine)
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-void Scene::SetEnvironmentTexture(uint32_t index, Ref<Texture> &&texture)
+void Scene::SetEnvironmentTexture(UInt32 index, Ref<Texture> &&texture)
 {
     if (texture && IsReady()) {
         texture.Init();

@@ -283,15 +283,15 @@ void VoxelConeTracing::CreateDescriptors(Engine *engine)
 
     descriptor_set
         ->AddDescriptor<renderer::StorageImageDescriptor>(0)
-        ->AddSubDescriptor({.image_view = &m_voxel_image->GetImageView()});
+        ->SetSubDescriptor({.image_view = &m_voxel_image->GetImageView()});
 
     descriptor_set
         ->AddDescriptor<renderer::UniformBufferDescriptor>(1)
-        ->AddSubDescriptor({.buffer = &m_uniform_buffer});
+        ->SetSubDescriptor({.buffer = &m_uniform_buffer});
     
     auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL);
     descriptor_set_globals->AddDescriptor<renderer::ImageSamplerDescriptor>(25)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = &m_voxel_image->GetImageView(),
             .sampler    = &m_voxel_image->GetSampler()
         });

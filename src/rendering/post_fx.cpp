@@ -14,7 +14,7 @@ using renderer::DescriptorSet;
 using renderer::DescriptorKey;
 using renderer::ImageSamplerDescriptor;
 
-PostProcessingEffect::PostProcessingEffect(Stage stage, uint index)
+PostProcessingEffect::PostProcessingEffect(Stage stage, UInt index)
     : EngineComponentBase(),
       m_full_screen_pass(nullptr, stage == Stage::PRE_SHADING ? DescriptorKey::POST_FX_PRE_STACK : DescriptorKey::POST_FX_POST_STACK, index),
       m_stage(stage),
@@ -96,7 +96,7 @@ void PostProcessing::CreateUniformBuffer(Engine *engine)
         &m_post_effects
     };
 
-    for (uint i = 0; i < static_cast<uint>(std::size(effect_passes)); i++) {
+    for (UInt i = 0; i < static_cast<UInt>(std::size(effect_passes)); i++) {
         auto &effects = effect_passes[i];
 
         post_processing_uniforms.effect_counts[i]        = effects->Size();
@@ -124,7 +124,7 @@ void PostProcessing::CreateUniformBuffer(Engine *engine)
 
     auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL);
     descriptor_set_globals->AddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::POST_FX_UNIFORMS)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .element_index = 0,
             .buffer        = &m_uniform_buffer
         });

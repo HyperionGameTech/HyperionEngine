@@ -16,8 +16,8 @@ namespace hyperion {
 
 namespace vm {
 
-typedef uint32_t bc_address_t;
-typedef uint8_t bc_reg_t;
+typedef uint32_t BCAddress;
+typedef uint8_t BCRegister;
 
 struct Value;
 
@@ -120,7 +120,7 @@ struct Value {
         HeapValue *ptr;
 
         struct {
-            bc_address_t m_addr;
+            BCAddress m_addr;
             uint8_t m_nargs;
             uint8_t m_flags;
         } func;
@@ -129,14 +129,14 @@ struct Value {
         UserData_t          user_data;
         
         struct {
-            bc_address_t    return_address;
+            BCAddress    return_address;
             int32_t         varargs_push;
         } call;
 
-        bc_address_t        addr;
+        BCAddress        addr;
 
         struct {
-            bc_address_t    catch_address;
+            BCAddress    catch_address;
         } try_catch_info;
     } m_value;
 

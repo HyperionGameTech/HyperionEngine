@@ -19,7 +19,7 @@ Octree::Octree(const BoundingBox &aabb)
 {
 }
 
-Octree::Octree(Octree *parent, const BoundingBox &aabb, uint8_t index)
+Octree::Octree(Octree *parent, const BoundingBox &aabb, UInt8 index)
     : m_parent(nullptr),
       m_aabb(aabb),
       m_is_divided(false),
@@ -50,7 +50,7 @@ void Octree::SetParent(Octree *parent)
     }
 }
 
-bool Octree::EmptyDeep(int depth, uint8_t octant_mask) const
+bool Octree::EmptyDeep(int depth, UInt8 octant_mask) const
 {
     if (!Empty()) {
         return false;
@@ -102,7 +102,7 @@ void Octree::Divide(Engine *engine)
 
         AssertThrow(octant.octree == nullptr);
 
-        octant.octree.reset(new Octree(this, octant.aabb, static_cast<uint32_t>(i)));
+        octant.octree.reset(new Octree(this, octant.aabb, static_cast<UInt8>(i)));
 
         if (m_root != nullptr) {
             m_root->events.on_insert_octant(engine, octant.octree.get(), nullptr);
@@ -483,7 +483,7 @@ bool Octree::Move(Engine *engine, Spatial *spatial, const std::vector<Node>::ite
          */
         if (auto *current_octant = spatial->GetOctree()) {
             if (m_root != nullptr) {
-                const uint32_t curr = m_root->visibility_cursor.load();
+                const UInt32 curr = m_root->visibility_cursor.load();
 
                 m_visibility_state.nonces[curr] = engine->GetOctree().GetVisibilityState().nonces[curr].load();
                 //m_visibility_state.bits         |= current_octant->GetVisibilityState().bits.load();

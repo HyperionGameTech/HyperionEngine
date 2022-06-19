@@ -5,6 +5,7 @@
 #include "shader.h"
 #include <math/vector3.h>
 #include <math/vector4.h>
+#include <types.h>
 
 namespace hyperion::v2 {
 

@@ -45,8 +45,8 @@ void FpsCamera::RespondToCommand(const CameraCommand &command, GameCounter::Tick
         m_mouse_y = command.mag_data.mouse_y;
 
         m_mag = {
-            static_cast<float>(m_mouse_x) - static_cast<float>(m_prev_mouse_x),
-            static_cast<float>(m_mouse_y) - static_cast<float>(m_prev_mouse_y)
+            m_mouse_x - m_prev_mouse_x,
+            m_mouse_y - m_prev_mouse_y
         };
 
         m_dir_cross_y = Vector3(m_direction).Cross(m_up);

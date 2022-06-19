@@ -35,15 +35,15 @@ public:
         return false;
     }
 
-    inline size_t GetTypeId() const { return m_holder != nullptr ? m_holder->m_type_id : 0; }
-    inline intptr_t GetId() const { return (intptr_t)m_ptr; }
-    inline bool IsNull() const { return m_holder == nullptr; }
-    inline int &GetFlags() { return m_flags; }
-    inline int GetFlags() const { return m_flags; }
+    inline size_t   GetTypeId() const { return m_holder != nullptr ? m_holder->m_type_id : 0; }
+    inline intptr_t GetId() const     { return reinterpret_cast<intptr_t>(m_ptr); }
+    inline bool     IsNull() const    { return m_holder == nullptr; }
+    inline int &    GetFlags()        { return m_flags; }
+    inline int      GetFlags() const  { return m_flags; }
 
     template <typename T>
     inline bool TypeCompatible() const 
-        { return GetTypeId() == GetTypeId<typename std::decay<T>::type>(); }
+        { return GetTypeId() == GetTypeId<std::decay_t<T>>(); }
 
     inline void AssignCopy(HeapValue &other)
     {
@@ -71,9 +71,23 @@ public:
             m_holder = nullptr;
         }
 
-        auto holder = new DerivedHolder<typename std::decay<T>::type>(value);
+        auto holder = new DerivedHolder<std::decay_t<T>>(value);
 
-        m_ptr = reinterpret_cast<void*>(&holder->m_value);
+        m_ptr = reinterpret_cast<void *>(&holder->m_value);
+        m_holder = holder;
+    }
+
+    template <typename T>
+    inline void Assign(T &&value)
+    {
+        if (m_holder != nullptr) {
+            delete m_holder;
+            m_holder = nullptr;
+        }
+
+        auto holder = new DerivedHolder<std::decay_t<T>>(std::forward<T>(value));
+
+        m_ptr = reinterpret_cast<void *>(&holder->m_value);
         m_holder = holder;
     }
 
@@ -84,7 +98,7 @@ public:
             throw std::bad_cast();
         }
 
-        return *reinterpret_cast<typename std::decay<T>::type*>(m_ptr);
+        return *static_cast<std::decay_t<T>*>(m_ptr);
     }
 
     template <typename T>
@@ -94,15 +108,15 @@ public:
             throw std::bad_cast();
         }
 
-        return *reinterpret_cast<const typename std::decay<T>::type*>(m_ptr);
+        return *static_cast<const std::decay_t<T>*>(m_ptr);
     }
 
     template <typename T>
-    inline auto GetRawPointer() -> typename std::decay<T>::type*
-        { return reinterpret_cast<typename std::decay<T>::type*>(m_ptr); }
+    inline auto GetRawPointer() -> std::decay_t<T>*
+        { return static_cast<std::decay_t<T>*>(m_ptr); }
 
     template <typename T>
-    inline auto GetPointer() -> typename std::decay<T>::type*
+    inline auto GetPointer() -> std::decay_t<T>*
         { return TypeCompatible<T>() ? GetRawPointer<T>() : nullptr; }
 
     void Mark();

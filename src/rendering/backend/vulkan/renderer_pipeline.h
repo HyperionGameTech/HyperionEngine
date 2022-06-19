@@ -4,6 +4,7 @@
 #include "renderer_structs.h"
 
 #include <math/vector4.h>
+#include <types.h>
 
 #include <vulkan/vulkan.h>
 
@@ -22,27 +23,27 @@ public:
     struct alignas(16) PushConstantData {
         union {
             struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-                uint32_t grid_size,
+                UInt32 grid_size,
                          count_mode;
             } voxelizer_data;
 
             struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-                uint32_t num_fragments,
+                UInt32 num_fragments,
                          voxel_grid_size,
                          mipmap_level;
             } octree_data;
 
             struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-                uint32_t x, y;
+                UInt32 x, y;
             } counter;
 
             struct {  // NOLINT(clang-diagnostic-nested-anon-types)
                 float    matrix[16];
-                uint32_t time;
+                UInt32 time;
             } probe_data;
 
             struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-                uint32_t extent[4];
+                UInt32 extent[4];
                 float    aabb_max[4];
                 float    aabb_min[4];
             } vct_data;

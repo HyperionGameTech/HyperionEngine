@@ -79,7 +79,11 @@ public:
 
         input_manager = new InputManager(window);
         input_manager->SetWindow(window);
+        
+        engine->GetDeferredRenderer().GetPostProcessing().AddEffect<SsaoEffect>();
+        engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FxaaEffect>();
 
+        // not sure why this needs to be in render thread atm?
         scene = engine->resources.scenes.Add(std::make_unique<v2::Scene>(
             std::make_unique<FollowCamera>(
                 Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
@@ -89,6 +93,10 @@ public:
             )
         ));
         scene.Init();
+    }
+
+    virtual void OnPostInit(Engine *engine) override
+    {
         base_material = engine->resources.materials.Add(std::make_unique<Material>());
         base_material.Init();
 
@@ -114,9 +122,6 @@ public:
 
 
         material_test_obj->GetChild(0)->GetSpatial()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_PARALLAX_HEIGHT, 0.1f);
-        
-        engine->GetDeferredRenderer().GetPostProcessing().AddEffect<SsaoEffect>();
-        engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FxaaEffect>();
 
         // remove textures so we can manipulate the material and see our changes easier
         //material_test_obj->GetChild(0)->GetSpatial()->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, nullptr);
@@ -155,11 +160,11 @@ public:
         scene->GetEnvironment()->AddLight(my_light.IncRef());
         
 
-        scene->GetEnvironment()->AddRenderComponent(std::make_unique<ShadowRenderer>(
+        scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
             my_light.IncRef(),
             Vector3::Zero(),
-            50.0f
-        ));
+            75.0f
+        );
 
         //test_model->Translate({0, 0, 5});
         test_model->Scale(0.075f);
@@ -206,10 +211,7 @@ public:
         //zombie->GetController<AudioController>()->Play(1.0f, LoopMode::ONCE);
 
         //scene->GetRootNode()->AddController<BasicPagingController>(Extent3D{8, 8, 8}, Vector3::One());
-    }
 
-    virtual void OnPostInit(Engine *engine) override
-    {
         // if (auto my_script = engine->assets.Load<Script>("scripts/examples/example.hypscript")) {
         //     APIInstance api_instance;
         //     ScriptFunctions::Build(api_instance);
@@ -401,7 +403,7 @@ int main()
 #if HYPERION_VK_TEST_IMAGE_STORE
     descriptor_set_globals
         ->AddDescriptor<StorageImageDescriptor>(16)
-        ->AddSubDescriptor({.image_view = &image_storage_view});
+        ->SetSubDescriptor({.image_view = &image_storage_view});
 
     HYPERION_ASSERT_RESULT(image_storage->Create(
         device,
@@ -610,12 +612,12 @@ int main()
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
-        ->AddSubDescriptor({.acceleration_structure = &my_tlas->Get()});
+        ->SetSubDescriptor({.acceleration_structure = &my_tlas->Get()});
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
-        ->AddSubDescriptor({.image_view = &rt_image_storage_view});
+        ->SetSubDescriptor({.image_view = &rt_image_storage_view});
     
     auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(3);
-    rt_storage_buffer->AddSubDescriptor({.buffer = my_tlas->Get().GetMeshDescriptionsBuffer()});
+    rt_storage_buffer->SetSubDescriptor({.buffer = my_tlas->Get().GetMeshDescriptionsBuffer()});
 
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,
@@ -660,16 +662,18 @@ int main()
                     break;
                 case SystemEventType::EVENT_MOUSESCROLL:
                 {
-                    int wheel_x, wheel_y;
-                    event.GetMouseWheel(&wheel_x, &wheel_y);
+                    if (my_game.scene != nullptr) {
+                        int wheel_x, wheel_y;
+                        event.GetMouseWheel(&wheel_x, &wheel_y);
 
-                    my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                        .command = CameraCommand::CAMERA_COMMAND_SCROLL,
-                        .scroll_data = {
-                            .wheel_x = wheel_x,
-                            .wheel_y = wheel_y
-                        }
-                    });
+                        my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                            .command = CameraCommand::CAMERA_COMMAND_SCROLL,
+                            .scroll_data = {
+                                .wheel_x = wheel_x,
+                                .wheel_y = wheel_y
+                            }
+                        });
+                    }
 
                     break;
                 }
@@ -685,16 +689,18 @@ int main()
 
                     mx = (static_cast<float>(mouse_x) - static_cast<float>(window_width) * 0.5f) / (static_cast<float>(window_width));
                     my = (static_cast<float>(mouse_y) - static_cast<float>(window_height) * 0.5f) / (static_cast<float>(window_height));
-
-                    my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                        .command = CameraCommand::CAMERA_COMMAND_MAG,
-                        .mag_data = {
-                            .mouse_x = mouse_x,
-                            .mouse_y = mouse_y,
-                            .mx      = mx,
-                            .my      = my
-                        }
-                    });
+                    
+                    if (my_game.scene != nullptr) {
+                        my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                            .command = CameraCommand::CAMERA_COMMAND_MAG,
+                            .mag_data = {
+                                .mouse_x = mouse_x,
+                                .mouse_y = mouse_y,
+                                .mx      = mx,
+                                .my      = my
+                            }
+                        });
+                    }
 
                     break;
                 }
@@ -704,40 +710,48 @@ int main()
         }
 
         if (my_game.input_manager->IsKeyDown(KEY_W)) {
-            my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                .movement_data = {
-                    .movement_type = CameraCommand::CAMERA_MOVEMENT_FORWARD,
-                    .amount        = 1.0f
-                }
-            });
+            if (my_game.scene != nullptr) {
+                my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                    .movement_data = {
+                        .movement_type = CameraCommand::CAMERA_MOVEMENT_FORWARD,
+                        .amount        = 1.0f
+                    }
+                });
+            }
         }
         if (my_game.input_manager->IsKeyDown(KEY_S)) {
-            my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                .movement_data = {
-                    .movement_type = CameraCommand::CAMERA_MOVEMENT_BACKWARD,
-                    .amount        = 1.0f
-                }
-            });
+            if (my_game.scene != nullptr) {
+                my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                    .movement_data = {
+                        .movement_type = CameraCommand::CAMERA_MOVEMENT_BACKWARD,
+                        .amount        = 1.0f
+                    }
+                });
+            }
         }
         if (my_game.input_manager->IsKeyDown(KEY_A)) {
-            my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                .movement_data = {
-                    .movement_type = CameraCommand::CAMERA_MOVEMENT_LEFT,
-                    .amount        = 1.0f
-                }
-            });
+            if (my_game.scene != nullptr) {
+                my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                    .movement_data = {
+                        .movement_type = CameraCommand::CAMERA_MOVEMENT_LEFT,
+                        .amount        = 1.0f
+                    }
+                });
+            }
         }
         if (my_game.input_manager->IsKeyDown(KEY_D)) {
-            my_game.scene->GetCamera()->PushCommand(CameraCommand {
-                .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                .movement_data = {
-                    .movement_type = CameraCommand::CAMERA_MOVEMENT_RIGHT,
-                    .amount        = 1.0f
-                }
-            });
+            if (my_game.scene != nullptr) {
+                my_game.scene->GetCamera()->PushCommand(CameraCommand {
+                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                    .movement_data = {
+                        .movement_type = CameraCommand::CAMERA_MOVEMENT_RIGHT,
+                        .amount        = 1.0f
+                    }
+                });
+            }
         }
 
         HYPERION_ASSERT_RESULT(engine->GetInstance()->GetFrameHandler()->PrepareFrame(

@@ -28,7 +28,7 @@ void Voxelizer::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](Engine *engine) {
-        const auto voxel_map_size_signed = static_cast<int64_t>(voxel_map_size);
+        const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
         m_scene = engine->resources.scenes.Add(std::make_unique<Scene>(
             std::make_unique<OrthoCamera>(
@@ -170,11 +170,11 @@ void Voxelizer::CreateDescriptors(Engine *engine)
 
     descriptor_set
         ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-        ->AddSubDescriptor({.buffer = m_counter->GetBuffer()});
+        ->SetSubDescriptor({.buffer = m_counter->GetBuffer()});
 
     descriptor_set
         ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
-        ->AddSubDescriptor({.buffer = m_fragment_list_buffer.get()});
+        ->SetSubDescriptor({.buffer = m_fragment_list_buffer.get()});
 }
 
 /* We only reconstruct the buffer if the number of rendered fragments is
@@ -212,7 +212,7 @@ void Voxelizer::ResizeFragmentListBuffer(Engine *engine)
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 
     descriptor_set->GetDescriptor(1)->RemoveSubDescriptor(0);
-    descriptor_set->GetDescriptor(1)->AddSubDescriptor({.buffer = m_fragment_list_buffer.get()});
+    descriptor_set->GetDescriptor(1)->SetSubDescriptor({.buffer = m_fragment_list_buffer.get()});
 
     descriptor_set->ApplyUpdates(engine->GetInstance()->GetDevice());
 }

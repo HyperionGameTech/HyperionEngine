@@ -9,6 +9,7 @@
 #include <core/scheduler.h>
 #include <camera/camera.h>
 #include <game_counter.h>
+#include <types.h>
 
 namespace hyperion::v2 {
 
@@ -16,7 +17,7 @@ class Environment;
 
 class Scene : public EngineComponentBase<STUB_CLASS(Scene)> {
 public:
-    static constexpr uint32_t max_environment_textures = SceneShaderData::max_environment_textures;
+    static constexpr UInt32 max_environment_textures = SceneShaderData::max_environment_textures;
 
     Scene(std::unique_ptr<Camera> &&camera);
     Scene(const Scene &other) = delete;

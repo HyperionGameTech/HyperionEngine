@@ -51,7 +51,7 @@ void DeferredPass::CreateDescriptors(Engine *engine)
             auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::DEFERRED_RESULT);
 
             for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                descriptor->AddSubDescriptor({
+                descriptor->SetSubDescriptor({
                     .element_index = ~0u,
                     .image_view    = attachment_ref->GetImageView(),
                     .sampler       = attachment_ref->GetSampler()
@@ -105,7 +105,7 @@ void DeferredRenderer::Create(Engine *engine)
     /* Albedo texture */
     descriptor_set_pass
         ->AddDescriptor<ImageSamplerDescriptor>(0)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetSampler()
         });
@@ -113,7 +113,7 @@ void DeferredRenderer::Create(Engine *engine)
     /* Normals texture*/
     descriptor_set_pass
         ->GetDescriptor(0)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetSampler()
         });
@@ -121,7 +121,7 @@ void DeferredRenderer::Create(Engine *engine)
     /* Position texture */
     descriptor_set_pass
         ->GetDescriptor(0)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetSampler()
         });
@@ -129,7 +129,7 @@ void DeferredRenderer::Create(Engine *engine)
     /* Material ID */
     descriptor_set_pass
         ->GetDescriptor(0)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetSampler()
         });
@@ -137,7 +137,7 @@ void DeferredRenderer::Create(Engine *engine)
     /* Depth texture */
     descriptor_set_pass
         ->AddDescriptor<ImageSamplerDescriptor>(1)
-        ->AddSubDescriptor({
+        ->SetSubDescriptor({
             .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView(),
             .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetSampler()
         });

@@ -80,7 +80,7 @@ const decltype(DescriptorSet::desired_indices) DescriptorSet::desired_indices = 
 #endif
 };
 
-DescriptorSet::Index DescriptorSet::GetBaseIndex(uint index)
+DescriptorSet::Index DescriptorSet::GetBaseIndex(UInt index)
 {
     if (index >= DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
         return DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES;
@@ -98,9 +98,9 @@ DescriptorSet::Index DescriptorSet::GetBaseIndex(uint index)
     return Index(index);
 }
 
-DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_index)
+DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, UInt frame_index)
 {
-    switch (GetBaseIndex(static_cast<uint>(index))) {
+    switch (GetBaseIndex(static_cast<UInt>(index))) {
     case DESCRIPTOR_SET_INDEX_SCENE:
         return frame_index ? DESCRIPTOR_SET_INDEX_SCENE_FRAME_1 : DESCRIPTOR_SET_INDEX_SCENE;
     case DESCRIPTOR_SET_INDEX_OBJECT:
@@ -112,8 +112,8 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_ind
             return index;
         }
         
-        uint frame_base         = static_cast<uint>(index);
-        const auto index_offset = frame_base - (static_cast<uint>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
+        UInt frame_base         = static_cast<UInt>(index);
+        const auto index_offset = frame_base - (static_cast<UInt>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
 
         if (index_offset % 2 != 0) { // it is for frame 1
             --frame_base;
@@ -126,18 +126,18 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint frame_ind
     }
 }
 
-DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, uint instance_index, uint frame_index)
+DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, UInt instance_index, UInt frame_index)
 {
     if (index == DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
-        return DescriptorSet::Index(static_cast<uint>(index) + 1 + (instance_index * 2) + frame_index);
+        return DescriptorSet::Index(static_cast<UInt>(index) + 1 + (instance_index * 2) + frame_index);
     }
 
     return GetPerFrameIndex(index, frame_index);
 }
 
-int DescriptorSet::GetFrameIndex(uint real_index)
+int DescriptorSet::GetFrameIndex(UInt real_index)
 {
-    switch (GetBaseIndex(static_cast<uint>(real_index))) {
+    switch (GetBaseIndex(real_index)) {
     case DESCRIPTOR_SET_INDEX_SCENE:
         return real_index == DESCRIPTOR_SET_INDEX_SCENE_FRAME_1 ? 1 : 0;
     case DESCRIPTOR_SET_INDEX_OBJECT:
@@ -149,7 +149,7 @@ int DescriptorSet::GetFrameIndex(uint real_index)
             return -1;
         }
         
-        const auto index_offset = real_index - (static_cast<uint>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
+        const auto index_offset = real_index - (static_cast<UInt>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
 
         if (index_offset % 2 != 0) { // it is for frame 1
             return 1;
@@ -162,18 +162,18 @@ int DescriptorSet::GetFrameIndex(uint real_index)
     }
 }
 
-uint DescriptorSet::GetDesiredIndex(Index index)
+UInt DescriptorSet::GetDesiredIndex(Index index)
 {
     const auto it = desired_indices.find(index);
 
     if (it == desired_indices.end()) {
-        return static_cast<uint>(index);
+        return static_cast<UInt>(index);
     }
 
     return it->second;
 }
 
-DescriptorSet::DescriptorSet(Index index, uint real_index, bool bindless)
+DescriptorSet::DescriptorSet(Index index, UInt real_index, bool bindless)
     : m_set(VK_NULL_HANDLE),
       m_descriptor_pool(nullptr),
       m_state(DescriptorSetState::DESCRIPTOR_DIRTY),
@@ -208,7 +208,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     //build layout first
     VkDescriptorSetLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     layout_info.pBindings    = m_descriptor_bindings.data();
-    layout_info.bindingCount = static_cast<uint>(m_descriptor_bindings.size());
+    layout_info.bindingCount = static_cast<UInt>(m_descriptor_bindings.size());
     layout_info.flags        = 0;
 
     constexpr VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
@@ -219,7 +219,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     );
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo extended_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
-    extended_info.bindingCount  = static_cast<uint>(binding_flags.size());
+    extended_info.bindingCount  = static_cast<UInt>(binding_flags.size());
     extended_info.pBindingFlags = binding_flags.data();
     
     layout_info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
@@ -228,7 +228,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
     VkDescriptorSetLayout layout{};
 
     if (m_real_index == m_index) { // otherwise no need to create layout
-        auto layout_result = pool->CreateDescriptorSetLayout(device, static_cast<uint>(m_index), &layout_info, &layout);
+        auto layout_result = pool->CreateDescriptorSetLayout(device, static_cast<UInt>(m_index), &layout_info, &layout);
 
         if (!layout_result) {
             DebugLog(LogType::Error, "Failed to create descriptor set layout! Message was: %s\n", layout_result.message);
@@ -240,15 +240,15 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
         //    HYPERION_RETURN_OK;
         //}
     } else { // reuse from template or base
-        layout = pool->GetDescriptorSetLayout(static_cast<uint>(GetIndex()));
+        layout = pool->GetDescriptorSetLayout(static_cast<UInt>(GetIndex()));
 
         pool->SetDescriptorSetLayout(GetRealIndex(), layout);
 
         DebugLog(
             LogType::Debug,
             "Reuse descriptor set layout for descriptor set with index %u because base differs (%u)\n",
-            static_cast<uint>(GetRealIndex()),
-            static_cast<uint>(GetIndex())
+            static_cast<UInt>(GetRealIndex()),
+            static_cast<UInt>(GetIndex())
         );
     }
 
@@ -263,7 +263,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
         auto allocate_result = pool->AllocateDescriptorSet(device, &layout, this);
 
         if (!allocate_result) {
-            DebugLog(LogType::Error, "Failed to allocate descriptor set %lu! Message was: %s\n", static_cast<uint>(m_index), allocate_result.message);
+            DebugLog(LogType::Error, "Failed to allocate descriptor set %lu! Message was: %s\n", static_cast<UInt>(m_index), allocate_result.message);
 
             return allocate_result;
         }
@@ -274,7 +274,7 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
             write.dstSet = m_set;
         }
 
-        vkUpdateDescriptorSets(device->GetDevice(), static_cast<uint>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device->GetDevice(), static_cast<UInt>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
 
         m_descriptor_writes.clear();
     }
@@ -316,7 +316,7 @@ bool DescriptorSet::RemoveDescriptor(DescriptorKey key)
     return RemoveDescriptor(DescriptorKeyToIndex(key));
 }
 
-bool DescriptorSet::RemoveDescriptor(uint binding)
+bool DescriptorSet::RemoveDescriptor(UInt binding)
 {
     const auto it = std::find_if(
         m_descriptors.begin(),
@@ -340,7 +340,7 @@ Descriptor *DescriptorSet::GetDescriptor(DescriptorKey key) const
     return GetDescriptor(DescriptorKeyToIndex(key));
 }
 
-Descriptor *DescriptorSet::GetDescriptor(uint binding) const
+Descriptor *DescriptorSet::GetDescriptor(UInt binding) const
 {
     const auto it = std::find_if(
         m_descriptors.begin(),
@@ -357,7 +357,7 @@ Descriptor *DescriptorSet::GetDescriptor(uint binding) const
     return it->get();
 }
 
-uint DescriptorSet::DescriptorKeyToIndex(DescriptorKey key) const
+UInt DescriptorSet::DescriptorKeyToIndex(DescriptorKey key) const
 {
     auto index_it = mappings.find(m_index);
     AssertThrowMsg(index_it != mappings.end(), "Cannot add descriptor by key: descriptor set key has no mapping");
@@ -385,7 +385,7 @@ void DescriptorSet::ApplyUpdates(Device *device)
             write.dstSet = m_set;
         }
 
-        vkUpdateDescriptorSets(device->GetDevice(), static_cast<uint>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(device->GetDevice(), static_cast<UInt>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
 
         m_descriptor_writes.clear();
     }
@@ -423,14 +423,14 @@ Result DescriptorPool::Create(Device *device)
     for (auto &it : items_per_set) {
         pool_sizes.push_back({
             it.first,
-            uint(it.second * 1000)
+            static_cast<UInt>(it.second * 1000)
         });
     }
 
     VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     pool_info.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     pool_info.maxSets       = DescriptorSet::max_descriptor_sets;
-    pool_info.poolSizeCount = static_cast<uint>(pool_sizes.size());
+    pool_info.poolSizeCount = static_cast<UInt>(pool_sizes.size());
     pool_info.pPoolSizes    = pool_sizes.data();
 
     HYPERION_VK_CHECK_MSG(
@@ -461,10 +461,10 @@ Result DescriptorPool::Create(Device *device)
 
 #undef HYP_DEBUG_LOG_LIMIT
 
-    std::vector<std::pair<uint, VkDescriptorSet>> descriptor_set_views_indices;
+    std::vector<std::pair<UInt, VkDescriptorSet>> descriptor_set_views_indices;
     descriptor_set_views_indices.reserve(m_descriptor_sets.size());
 
-    uint descriptor_set_index = 0;
+    UInt descriptor_set_index = 0;
 
     for (auto &descriptor_set : m_descriptor_sets) {
         if (descriptor_set == nullptr) {
@@ -570,7 +570,7 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(std::unique_ptr<DescriptorSet> &
 {
     AssertThrow(descriptor_set != nullptr);
 
-    const uint index = descriptor_set->GetRealIndex();
+    const UInt index = descriptor_set->GetRealIndex();
     
     // remove from any 'pending removal' queues so it doesn't get removed directly after adding
     for (auto &pending_removal_queue : m_descriptor_sets_pending_destruction) {
@@ -605,17 +605,17 @@ void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
     RemoveDescriptorSet(descriptor_set->GetRealIndex());
 }
 
-void DescriptorPool::RemoveDescriptorSet(uint index)
+void DescriptorPool::RemoveDescriptorSet(UInt index)
 {
     const auto per_frame_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::Index(index), 0);
 
     // equals means that the descriptor set is for frame 0
-    const uint queue_index     = per_frame_index == DescriptorSet::Index(index) ? 0 : 1;
+    const UInt queue_index     = per_frame_index == DescriptorSet::Index(index) ? 0 : 1;
 
     m_descriptor_sets_pending_destruction[queue_index].push_back(index);
 }
 
-Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, uint frame_index)
+Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_index)
 {
     auto &descriptor_set_queue = m_descriptor_sets_pending_destruction[frame_index];
 
@@ -630,7 +630,7 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, uint frame_i
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::UpdateDescriptorSets(Device *device, uint frame_index)
+Result DescriptorPool::UpdateDescriptorSets(Device *device, UInt frame_index)
 {
     for (auto &m_descriptor_set : m_descriptor_sets) {
         if (m_descriptor_set->GetState() == DescriptorSetState::DESCRIPTOR_CLEAN) {
@@ -647,7 +647,7 @@ Result DescriptorPool::UpdateDescriptorSets(Device *device, uint frame_index)
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::DestroyDescriptorSet(Device *device, uint index)
+Result DescriptorPool::DestroyDescriptorSet(Device *device, UInt index)
 {
     if (index >= m_descriptor_sets.size()) {
         return {Result::RENDERER_ERR, "Out of bounds"};
@@ -671,7 +671,7 @@ Result DescriptorPool::DestroyDescriptorSet(Device *device, uint index)
     m_descriptor_sets_view[desired_index] = VK_NULL_HANDLE;
 
     if (desired_index == m_descriptor_sets_view.size() - 1) {
-        uint iteration_index = desired_index;
+        UInt iteration_index = desired_index;
 
         do {
             m_descriptor_sets_view.pop_back();
@@ -682,7 +682,7 @@ Result DescriptorPool::DestroyDescriptorSet(Device *device, uint index)
     descriptor_set.reset();
 
     if (index == m_descriptor_sets.size() - 1) {
-        uint iteration_index = index;
+        UInt iteration_index = index;
 
         do {
             m_descriptor_sets.pop_back();
@@ -693,7 +693,7 @@ Result DescriptorPool::DestroyDescriptorSet(Device *device, uint index)
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::CreateDescriptorSet(Device *device, uint index)
+Result DescriptorPool::CreateDescriptorSet(Device *device, UInt index)
 {
     AssertThrow(index < m_descriptor_sets.size());
 
@@ -803,7 +803,7 @@ void DescriptorPool::BindDescriptorSets(
     AssertThrowMsg(
         set_index < m_descriptor_sets_view.size(),
         "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
-        static_cast<uint>(binding.declaration.set),
+        static_cast<UInt>(binding.declaration.set),
         set_index,
         m_descriptor_sets_view.size()
     );
@@ -813,7 +813,7 @@ void DescriptorPool::BindDescriptorSets(
     AssertThrowMsg(
         bind_set != nullptr,
         "Attempt to bind invalid descriptor set %u (at index %u) -- set is null\n",
-        static_cast<uint>(binding.declaration.set),
+        static_cast<UInt>(binding.declaration.set),
         set_index
     );
 
@@ -824,12 +824,12 @@ void DescriptorPool::BindDescriptorSets(
         binding_index,
         binding.declaration.count,
         &bind_set,
-        static_cast<uint>(binding.offsets.offsets.size()),
+        static_cast<UInt>(binding.offsets.offsets.size()),
         binding.offsets.offsets.data()
     );
 }
 
-Result DescriptorPool::CreateDescriptorSetLayout(Device *device, uint index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out)
+Result DescriptorPool::CreateDescriptorSetLayout(Device *device, UInt index, VkDescriptorSetLayoutCreateInfo *layout_create_info, VkDescriptorSetLayout *out)
 {
     if (vkCreateDescriptorSetLayout(device->GetDevice(), layout_create_info, nullptr, out) != VK_SUCCESS) {
         return {Result::RENDERER_ERR, "Could not create descriptor set layout"};
@@ -840,7 +840,7 @@ Result DescriptorPool::CreateDescriptorSetLayout(Device *device, uint index, VkD
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::DestroyDescriptorSetLayout(Device *device, uint index)
+Result DescriptorPool::DestroyDescriptorSetLayout(Device *device, UInt index)
 {
     auto it = m_descriptor_set_layouts.Find(index);
 
@@ -855,12 +855,12 @@ Result DescriptorPool::DestroyDescriptorSetLayout(Device *device, uint index)
     HYPERION_RETURN_OK;
 }
 
-VkDescriptorSetLayout DescriptorPool::GetDescriptorSetLayout(uint index)
+VkDescriptorSetLayout DescriptorPool::GetDescriptorSetLayout(UInt index)
 {
     return m_descriptor_set_layouts.At(index);
 }
 
-void DescriptorPool::SetDescriptorSetLayout(uint index, VkDescriptorSetLayout layout)
+void DescriptorPool::SetDescriptorSetLayout(UInt index, VkDescriptorSetLayout layout)
 {
     m_descriptor_set_layouts.Insert(index, layout);
 }
@@ -877,7 +877,7 @@ Result DescriptorPool::AllocateDescriptorSet(
     alloc_info.descriptorSetCount = 1;
 
     // bindless stuff
-    constexpr uint max_bindings = DescriptorSet::max_bindless_resources - 1;
+    constexpr UInt max_bindings = DescriptorSet::max_bindless_resources - 1;
 
     VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO};
     count_info.descriptorSetCount = 1;
@@ -901,7 +901,7 @@ Result DescriptorPool::AllocateDescriptorSet(
     }
 }
 
-Descriptor::Descriptor(uint binding, DescriptorType descriptor_type)
+Descriptor::Descriptor(UInt binding, DescriptorType descriptor_type)
     : m_binding(binding),
       m_descriptor_type(descriptor_type),
       m_descriptor_set(nullptr)
@@ -922,7 +922,7 @@ void Descriptor::Create(
 
     m_sub_descriptor_update_indices = {};
 
-    auto descriptor_count = static_cast<uint>(m_sub_descriptors.Size());
+    auto descriptor_count = static_cast<UInt>(m_sub_descriptors.Size());
 
     if (m_descriptor_set->IsBindless()) {
         descriptor_count = DescriptorSet::max_bindless_resources;
@@ -1094,7 +1094,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
     }
 }
 
-uint Descriptor::AddSubDescriptor(SubDescriptor &&sub_descriptor)
+UInt Descriptor::SetSubDescriptor(SubDescriptor &&sub_descriptor)
 {
     sub_descriptor.valid = true;
 
@@ -1111,7 +1111,7 @@ uint Descriptor::AddSubDescriptor(SubDescriptor &&sub_descriptor)
     return element_index;
 }
 
-void Descriptor::RemoveSubDescriptor(uint index)
+void Descriptor::RemoveSubDescriptor(UInt index)
 {
     const auto it = m_sub_descriptors.Find(index);
     AssertThrow(it != m_sub_descriptors.End());
@@ -1129,7 +1129,7 @@ void Descriptor::RemoveSubDescriptor(uint index)
     }
 }
 
-void Descriptor::MarkDirty(uint sub_descriptor_index)
+void Descriptor::MarkDirty(UInt sub_descriptor_index)
 {
     m_sub_descriptor_update_indices.push_back(sub_descriptor_index);
 

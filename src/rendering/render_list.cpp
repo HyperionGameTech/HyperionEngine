@@ -153,7 +153,7 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
 
         render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
 
-        for (uint i = 1; i < gbuffer_textures.size() - 1 /* because color and depth already accounted for*/; i++) {
+        for (UInt i = 1; i < gbuffer_textures.size() - 1 /* because color and depth already accounted for*/; i++) {
             attachments.push_back(std::make_unique<renderer::Attachment>(
                 std::make_unique<renderer::FramebufferImage2D>(
                     engine->GetInstance()->swapchain->extent,
@@ -223,9 +223,9 @@ void RenderListContainer::RenderListBucket::CreateFramebuffers(Engine *engine)
 {
     AssertThrow(framebuffers.empty());
 
-    const uint num_frames = engine->GetInstance()->GetFrameHandler()->NumFrames();
+    const UInt num_frames = engine->GetInstance()->GetFrameHandler()->NumFrames();
 
-    for (uint i = 0; i < 1/*num_frames*/; i++) {
+    for (UInt i = 0; i < 1/*num_frames*/; i++) {
         auto framebuffer = std::make_unique<Framebuffer>(engine->GetInstance()->swapchain->extent, render_pass.IncRef());
 
         for (auto *attachment_ref : render_pass->GetRenderPass().GetAttachmentRefs()) {

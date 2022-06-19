@@ -43,12 +43,6 @@ void Environment::Init(Engine *engine)
             it.second->ComponentInit(engine);
         }
 
-        engine->render_scheduler.Enqueue([this](...) {
-            AddPlaceholderData();
-
-            HYPERION_RETURN_OK;
-        });
-
         SetReady(true);
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ENVIRONMENTS, [this](Engine *engine) {
@@ -78,30 +72,6 @@ void Environment::AddLight(Ref<Light> &&light)
     }
 
     m_lights.push_back(std::move(light));
-}
-
-void Environment::AddPlaceholderData()
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    const auto *engine = GetEngine();
-
-    // add placeholder shadowmaps
-    for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
-        auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-            .GetDescriptorSet(descriptor_set_index);
-
-        auto *shadow_map_descriptor = descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-        
-        for (uint i = 0; i < max_shadow_maps; i++) {
-            shadow_map_descriptor->AddSubDescriptor({
-                .element_index = i,
-                .image_view    = &engine->GetDummyData().GetImageView2D1x1R8(),
-                .sampler       = &engine->GetDummyData().GetSampler()
-            });
-        }
-    }
 }
 
 void Environment::Update(Engine *engine, GameCounter::TickUnit delta)

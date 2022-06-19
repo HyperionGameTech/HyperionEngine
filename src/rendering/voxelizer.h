@@ -8,6 +8,7 @@
 #include "shader.h"
 #include "graphics.h"
 #include "atomics.h"
+#include <types.h>
 
 #include <rendering/backend/renderer_command_buffer.h>
 #include <rendering/backend/renderer_fence.h>
@@ -19,7 +20,7 @@ class Engine;
 
 class Voxelizer : public EngineComponentBase<STUB_CLASS(Voxelizer)> {
     struct Fragment {
-        uint32_t x, y;
+        UInt32 x, y;
     };
 
 public:
@@ -35,7 +36,7 @@ public:
     Scene *GetScene() const { return m_scene.ptr; }
     GraphicsPipeline *GetGraphicsPipeline() const { return m_pipeline.ptr; }
 
-    uint32_t NumFragments() const { return m_num_fragments; }
+    UInt32 NumFragments() const { return m_num_fragments; }
 
     void Init(Engine *engine);
     void Render(Engine *engine);
@@ -63,7 +64,7 @@ private:
 
     std::vector<std::unique_ptr<renderer::Attachment>> m_attachments;
 
-    uint32_t m_num_fragments;
+    UInt32 m_num_fragments;
 };
 
 } // namespace hyperion::v2

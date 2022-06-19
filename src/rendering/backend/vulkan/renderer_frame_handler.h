@@ -7,14 +7,16 @@
 #include "renderer_structs.h"
 #include "renderer_queue.h"
 
+#include <types.h>
+
 namespace hyperion {
 namespace renderer {
 
 class FrameHandler {
 public:
-    using NextImageFunction = std::add_pointer_t<VkResult(Device *device, Swapchain *swapchain, Frame *frame, uint32_t *image_index)>;
+    using NextImageFunction = std::add_pointer_t<VkResult(Device *device, Swapchain *swapchain, Frame *frame, UInt *image_index)>;
 
-    FrameHandler(uint32_t num_frames, NextImageFunction next_image);
+    FrameHandler(UInt num_frames, NextImageFunction next_image);
     FrameHandler(const FrameHandler &other) = delete;
     FrameHandler &operator=(const FrameHandler &other) = delete;
     ~FrameHandler();
@@ -25,9 +27,9 @@ public:
     inline auto &GetCurrentFrameData() { return m_per_frame_data[m_current_frame_index]; }
     inline const auto &GetCurrentFrameData() const { return m_per_frame_data[m_current_frame_index]; }
 
-    inline uint32_t NumFrames() const { return m_per_frame_data.NumFrames(); }
-    inline uint32_t GetAcquiredImageIndex() const { return m_acquired_image_index; }
-    inline uint32_t GetCurrentFrameIndex() const { return m_current_frame_index; }
+    inline UInt NumFrames() const { return m_per_frame_data.NumFrames(); }
+    inline UInt GetAcquiredImageIndex() const { return m_acquired_image_index; }
+    inline UInt GetCurrentFrameIndex() const { return m_current_frame_index; }
 
     /* Used to acquire a new image from the provided next_image function.
      * Really only useful for our main swapchain surface */
@@ -46,8 +48,8 @@ private:
     PerFrameData<CommandBuffer, Frame> m_per_frame_data;
 
     NextImageFunction m_next_image;
-    uint32_t m_acquired_image_index;
-    uint32_t m_current_frame_index;
+    UInt m_acquired_image_index;
+    UInt m_current_frame_index;
 };
 
 } // namespace renderer

@@ -19,7 +19,7 @@ class Engine;
 
 class RenderComponentBase {
 public:
-    using Index = uint;
+    using Index = UInt;
 
     RenderComponentBase()
         : m_index(~0u)

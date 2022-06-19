@@ -1,5 +1,6 @@
 #include "probe_system.h"
 #include "../engine.h"
+#include <types.h>
 
 #include <rendering/backend/renderer_shader.h>
 
@@ -29,10 +30,10 @@ void ProbeGrid::Init(Engine *engine)
     
     m_probes.resize(m_grid_info.NumProbes());
 
-    for (uint32_t x = 0; x < grid.width; x++) {
-        for (uint32_t y = 0; y < grid.height; y++) {
-            for (uint32_t z = 0; z < grid.depth; z++) {
-                const uint32_t index = x * grid.height * grid.depth
+    for (UInt32 x = 0; x < grid.width; x++) {
+        for (UInt32 y = 0; y < grid.height; y++) {
+            for (UInt32 z = 0; z < grid.depth; z++) {
+                const UInt32 index = x * grid.height * grid.depth
                                      + y * grid.depth
                                      + z;
 
@@ -174,16 +175,16 @@ void ProbeGrid::AddDescriptors(Engine *engine)
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
     auto *probe_uniforms = descriptor_set->AddDescriptor<UniformBufferDescriptor>(9);
-    probe_uniforms->AddSubDescriptor({.buffer = m_uniform_buffer.get()});
+    probe_uniforms->SetSubDescriptor({.buffer = m_uniform_buffer.get()});
 
     auto *probe_ray_data = descriptor_set->AddDescriptor<StorageBufferDescriptor>(10);
-    probe_ray_data->AddSubDescriptor({.buffer = m_radiance_buffer.get()});
+    probe_ray_data->SetSubDescriptor({.buffer = m_radiance_buffer.get()});
 
     auto *irradiance_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(11);
-    irradiance_image_descriptor->AddSubDescriptor({.image_view = m_irradiance_image_view.get()});
+    irradiance_image_descriptor->SetSubDescriptor({.image_view = m_irradiance_image_view.get()});
 
     auto *irradiance_depth_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(12);
-    irradiance_depth_image_descriptor->AddSubDescriptor({.image_view = m_depth_image_view.get()});
+    irradiance_depth_image_descriptor->SetSubDescriptor({.image_view = m_depth_image_view.get()});
 }
 
 void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer)

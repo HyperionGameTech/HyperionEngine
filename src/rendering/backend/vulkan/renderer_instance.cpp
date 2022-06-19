@@ -276,7 +276,7 @@ Result Instance::Initialize(bool load_debug_layers)
 
     /* init descriptor sets */
 
-    for (uint i = DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MAX; i++) {
+    for (UInt i = DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MAX; i++) {
         const auto index = DescriptorSet::Index(i);
         const auto slot  = DescriptorSet::GetBaseIndex(index);
 

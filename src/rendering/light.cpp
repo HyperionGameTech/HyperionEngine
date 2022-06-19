@@ -40,7 +40,7 @@ void Light::Init(Engine *engine)
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_LIGHTS, [this](Engine *engine) {
             SetReady(false);
 
-            /* no-op */
+            HYP_FLUSH_RENDER_QUEUE(engine);
         }), engine);
     }));
 }
@@ -50,7 +50,7 @@ void Light::EnqueueRenderUpdates() const
     LightShaderData shader_data{
         .position         = Vector4(m_position, m_type == LightType::DIRECTIONAL ? 0.0f : 1.0f),
         .color            = ByteUtil::PackColorU32(m_color),
-        .light_type       = static_cast<uint32_t>(m_type),
+        .light_type       = static_cast<UInt32>(m_type),
         .intensity        = m_intensity,
         .shadow_map_index = ~0u
     };

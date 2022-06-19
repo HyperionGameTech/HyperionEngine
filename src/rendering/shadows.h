@@ -47,8 +47,8 @@ public:
         };
     }
 
-    uint GetShadowMapIndex() const          { return m_shadow_map_index; }
-    void SetShadowMapIndex(uint index)      { m_shadow_map_index = index; }
+    UInt GetShadowMapIndex() const          { return m_shadow_map_index; }
+    void SetShadowMapIndex(UInt index)      { m_shadow_map_index = index; }
 
     void CreateShader(Engine *engine);
     void CreateRenderPass(Engine *engine);
@@ -67,7 +67,7 @@ private:
     Scene::ID                                                m_parent_scene_id;
     Vector3                                                  m_origin;
     float                                                    m_max_distance;
-    uint                                                     m_shadow_map_index;
+    UInt                                                     m_shadow_map_index;
 };
 
 class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>, public RenderComponent<ShadowRenderer> {

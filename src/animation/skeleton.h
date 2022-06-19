@@ -48,7 +48,7 @@ public:
     void AddAnimation(std::unique_ptr<Animation> &&animation);
 
     Animation *GetAnimation(size_t index) const               { return m_animations[index].get(); }
-    Animation *FindAnimation(const std::string &name, size_t *out_index) const;
+    Animation *FindAnimation(const std::string &name, UInt *out_index) const;
     
     void Init(Engine *engine);
     void EnqueueRenderUpdates(Engine *engine) const;

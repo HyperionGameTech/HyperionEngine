@@ -32,7 +32,7 @@ public:
     
     FullScreenPass();
     FullScreenPass(Ref<Shader> &&shader);
-    FullScreenPass(Ref<Shader> &&shader, DescriptorKey descriptor_key, uint sub_descriptor_index);
+    FullScreenPass(Ref<Shader> &&shader, DescriptorKey descriptor_key, UInt sub_descriptor_index);
     FullScreenPass(const FullScreenPass &) = delete;
     FullScreenPass &operator=(const FullScreenPass &) = delete;
     ~FullScreenPass();
@@ -49,7 +49,7 @@ public:
 
     GraphicsPipeline *GetGraphicsPipeline() const { return m_pipeline.ptr; }
 
-    uint GetSubDescriptorIndex() const            { return m_sub_descriptor_index; }
+    UInt GetSubDescriptorIndex() const            { return m_sub_descriptor_index; }
 
     void CreateRenderPass(Engine *engine);
     void Create(Engine *engine);
@@ -59,7 +59,7 @@ public:
     void Destroy(Engine *engine);
 
     void Render(Engine *engine, Frame *frame);
-    void Record(Engine *engine, uint32_t frame_index);
+    void Record(Engine *engine, UInt frame_index);
 
 protected:
     void CreatePerFrameData(Engine *engine);
@@ -74,7 +74,7 @@ protected:
 
 private:
     DescriptorKey                                m_descriptor_key;
-    uint                                         m_sub_descriptor_index;
+    UInt                                         m_sub_descriptor_index;
 };
 } // namespace hyperion::v2
 

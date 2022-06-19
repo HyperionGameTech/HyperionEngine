@@ -145,7 +145,7 @@ void Skeleton::AddAnimation(std::unique_ptr<Animation> &&animation)
     m_animations.push_back(std::move(animation));
 }
 
-Animation *Skeleton::FindAnimation(const std::string &name, size_t *out_index) const
+Animation *Skeleton::FindAnimation(const std::string &name, UInt *out_index) const
 {
     const auto it = std::find_if(
         m_animations.begin(),
@@ -160,7 +160,7 @@ Animation *Skeleton::FindAnimation(const std::string &name, size_t *out_index) c
     }
 
     if (out_index != nullptr) {
-        *out_index = std::distance(m_animations.begin(), it);
+        *out_index = static_cast<UInt>(std::distance(m_animations.begin(), it));
     }
 
     return it->get();

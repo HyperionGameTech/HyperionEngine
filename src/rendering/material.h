@@ -309,7 +309,7 @@ public:
     }
 
 private:
-    static constexpr uint max_textures_to_set = MathUtil::Min(
+    static constexpr UInt max_textures_to_set = MathUtil::Min(
         max_textures,
         MaterialShaderData::max_bound_textures,
         HYP_FEATURES_BINDLESS_TEXTURES

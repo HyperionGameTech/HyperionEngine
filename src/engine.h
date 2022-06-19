@@ -169,7 +169,7 @@ public:
     void Compile();
 
     void ResetRenderState();
-    void UpdateBuffersAndDescriptors(uint frame_index);
+    void UpdateBuffersAndDescriptors(UInt frame_index);
     
     void RenderDeferred(Frame *frame);
     void RenderFinalPass(CommandBuffer *command_buffer) const;
@@ -188,13 +188,12 @@ public:
     Scheduler<
         renderer::Result,
         CommandBuffer * /* command_buffer */,
-        uint            /* frame_index */
+        UInt            /* frame_index */
     > render_scheduler;
 
     GameThread game_thread;
 
 private:
-    void CreateDummyData();
     void FindTextureFormatDefaults();
 
     std::unique_ptr<Instance>         m_instance;

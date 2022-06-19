@@ -10,7 +10,7 @@ using renderer::Result;
 using ResourceState = renderer::GPUMemory::ResourceState;
 using Context = renderer::StagingBufferPool::Context;
 
-inline static constexpr uint32_t group_x_64(uint32_t x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }
+inline static constexpr UInt32 group_x_64(UInt32 x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }
 
 SparseVoxelOctree::SparseVoxelOctree()
     : EngineComponentBase()
@@ -121,14 +121,14 @@ void SparseVoxelOctree::CreateBuffers(Engine *engine)
     m_build_info_buffer = std::make_unique<StorageBuffer>();
 
     HYPERION_PASS_ERRORS(
-        m_build_info_buffer->Create(engine->GetInstance()->GetDevice(), 2 * sizeof(uint32_t)),
+        m_build_info_buffer->Create(engine->GetInstance()->GetDevice(), 2 * sizeof(UInt32)),
         result
     );
 
     m_indirect_buffer = std::make_unique<IndirectBuffer>();
 
     HYPERION_PASS_ERRORS(
-        m_indirect_buffer->Create(engine->GetInstance()->GetDevice(), 3 * sizeof(uint32_t)),
+        m_indirect_buffer->Create(engine->GetInstance()->GetDevice(), 3 * sizeof(UInt32)),
         result
     );
 
@@ -189,17 +189,17 @@ void SparseVoxelOctree::CreateDescriptors(Engine *engine)
     /* 4 = indirect       */
     /* 5 = octree atomic counter */
     descriptor_set->AddDescriptor<renderer::StorageBufferDescriptor>(2)
-        ->AddSubDescriptor({.buffer = m_octree_buffer.get()});
+        ->SetSubDescriptor({.buffer = m_octree_buffer.get()});
 
     descriptor_set->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-        ->AddSubDescriptor({.buffer = m_build_info_buffer.get()});
+        ->SetSubDescriptor({.buffer = m_build_info_buffer.get()});
 
     descriptor_set->AddDescriptor<renderer::StorageBufferDescriptor>(4)
-        ->AddSubDescriptor({.buffer = m_indirect_buffer.get()});
+        ->SetSubDescriptor({.buffer = m_indirect_buffer.get()});
 
     descriptor_set
         ->AddDescriptor<renderer::StorageBufferDescriptor>(5)
-        ->AddSubDescriptor({.buffer = m_counter->GetBuffer()});
+        ->SetSubDescriptor({.buffer = m_counter->GetBuffer()});
 }
 
 void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
@@ -252,13 +252,13 @@ void SparseVoxelOctree::Build(Engine *engine)
 
     m_counter->Reset(engine);
 
-    static constexpr uint32_t build_info[] = {0, 8};
-    static constexpr uint32_t indirect_info[] = {1, 1, 1};
+    static constexpr UInt32 build_info[] = {0, 8};
+    static constexpr UInt32 indirect_info[] = {1, 1, 1};
 
     const renderer::ComputePipeline::PushConstantData push_constants{
         .octree_data = {
             .num_fragments   = m_voxelizer->NumFragments(),
-            .voxel_grid_size = static_cast<uint32_t>(m_voxelizer->voxel_map_size)
+            .voxel_grid_size = static_cast<UInt32>(m_voxelizer->voxel_map_size)
         }
     };
 
@@ -282,7 +282,7 @@ void SparseVoxelOctree::Build(Engine *engine)
         HYPERION_ASSERT_RESULT(m_octree_buffer->Create(engine->GetDevice(), num_nodes * sizeof(OctreeNode)));
 
         descriptor_set->GetDescriptor(2)->RemoveSubDescriptor(0);
-        descriptor_set->GetDescriptor(2)->AddSubDescriptor({.buffer = m_octree_buffer.get()});
+        descriptor_set->GetDescriptor(2)->SetSubDescriptor({.buffer = m_octree_buffer.get()});
         descriptor_set->ApplyUpdates(engine->GetInstance()->GetDevice());
     }
     
@@ -292,25 +292,25 @@ void SparseVoxelOctree::Build(Engine *engine)
             auto *device = engine->GetDevice();
 
             StagingBuffer *build_info_staging_buffer = context.Acquire(m_build_info_buffer->size);
-            build_info_staging_buffer->Copy(device, std::size(build_info) * sizeof(uint32_t), build_info);
+            build_info_staging_buffer->Copy(device, std::size(build_info) * sizeof(UInt32), build_info);
 
             StagingBuffer *indirect_staging_buffer = context.Acquire(m_indirect_buffer->size);
-            indirect_staging_buffer->Copy(device, std::size(indirect_info) * sizeof(uint32_t), indirect_info);
+            indirect_staging_buffer->Copy(device, std::size(indirect_info) * sizeof(UInt32), indirect_info);
 
             auto commands = engine->GetInstance()->GetSingleTimeCommands();
 
             /* Copy our data from staging buffers */
             commands.Push([&](CommandBuffer *command_buffer) {
-                m_build_info_buffer->CopyFrom(command_buffer, build_info_staging_buffer, std::size(build_info) * sizeof(uint32_t));
+                m_build_info_buffer->CopyFrom(command_buffer, build_info_staging_buffer, std::size(build_info) * sizeof(UInt32));
                 m_build_info_buffer->InsertBarrier(command_buffer, ResourceState::UNORDERED_ACCESS);
 
-                m_indirect_buffer->CopyFrom(command_buffer, indirect_staging_buffer, std::size(indirect_info) * sizeof(uint32_t));
+                m_indirect_buffer->CopyFrom(command_buffer, indirect_staging_buffer, std::size(indirect_info) * sizeof(UInt32));
                 m_indirect_buffer->InsertBarrier(command_buffer, ResourceState::INDIRECT_ARG);
 
                 HYPERION_RETURN_OK;
             });
 
-	        uint32_t fragment_group_x = group_x_64(m_voxelizer->NumFragments());
+	        UInt32 fragment_group_x = group_x_64(m_voxelizer->NumFragments());
 
             for (size_t i = 1; i <= m_voxelizer->octree_depth; i++) {
                 commands.Push([&, index = i](CommandBuffer *command_buffer) {
@@ -359,16 +359,16 @@ void SparseVoxelOctree::WriteMipmaps(Engine *engine)
     renderer::ComputePipeline::PushConstantData push_constants{
         .octree_data = {
             .num_fragments   = m_voxelizer->NumFragments(),
-            .voxel_grid_size = static_cast<uint32_t>(m_voxelizer->voxel_map_size)
+            .voxel_grid_size = static_cast<UInt32>(m_voxelizer->voxel_map_size)
         }
     };
 
-	const uint32_t fragment_group_x = group_x_64(m_voxelizer->NumFragments());
+	const UInt32 fragment_group_x = group_x_64(m_voxelizer->NumFragments());
 
     auto commands = engine->GetInstance()->GetSingleTimeCommands();
 
     commands.Push([&](CommandBuffer *command_buffer) {
-        for (uint32_t i = 2; i <= m_voxelizer->octree_depth; i++) {
+        for (UInt32 i = 2; i <= m_voxelizer->octree_depth; i++) {
             push_constants.octree_data.mipmap_level = i;
 
             m_write_mipmaps->GetPipeline()->Bind(command_buffer, push_constants);

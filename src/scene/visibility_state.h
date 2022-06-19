@@ -4,6 +4,7 @@
 #include "scene.h"
 
 #include <util.h>
+#include <types.h>
 
 #include <atomic>
 #include <cstdint>
@@ -11,11 +12,11 @@
 namespace hyperion::v2 {
 
 struct VisibilityState {
-    using Bitmask = uint64_t;
-    using Nonce   = uint16_t;
+    using Bitmask = UInt64;
+    using Nonce   = UInt16;
 
-    static constexpr uint32_t max_scenes = sizeof(Bitmask) * CHAR_BIT;
-    static constexpr uint32_t cursor_size = 8;
+    static constexpr UInt32 max_scenes  = sizeof(Bitmask) * CHAR_BIT;
+    static constexpr UInt32 cursor_size = 8;
 
     /* map from scene index (id - 1) -> visibility boolean for each frame in flight.
      * when visiblity is scanned, both values per frame in flight are set accordingly,
@@ -61,7 +62,7 @@ struct VisibilityState {
         }
     }
 
-    HYP_FORCE_INLINE bool ValidToParent(const VisibilityState &parent, uint32_t cursor) const
+    HYP_FORCE_INLINE bool ValidToParent(const VisibilityState &parent, UInt32 cursor) const
         { return nonces[cursor] == parent.nonces[cursor]; }
 };
 

@@ -2,8 +2,8 @@
 #define HYPERION_V2_CORE_CONTAINERS_H
 
 #include <core/lib/flat_map.h>
-
 #include <math/math_util.h>
+#include <types.h>
 
 #include <vector>
 #include <memory>
@@ -22,7 +22,7 @@ class Engine;
 
 template <class Group>
 struct CallbackRef {
-    uint32_t id;
+    UInt id;
     Group *group;
     typename Group::ArgsTuple bound_args;
 
@@ -33,7 +33,7 @@ struct CallbackRef {
     {
     }
 
-    CallbackRef(uint32_t id, Group *group)
+    CallbackRef(UInt id, Group *group)
         : id(id),
           group(group),
           bound_args{}
@@ -136,17 +136,17 @@ class Callbacks {
     struct CallbackInstance {
         using Function = std::function<void(Args...)>;
 
-        using Id = uint32_t;
+        using Id = UInt;
         static constexpr Id empty_id = 0;
 
         Id id{empty_id};
         Function fn;
-        uint32_t num_calls{0};
+        UInt num_calls{0};
 
         bool Valid() const        { return id != empty_id; }
         void Reset()              { id = empty_id; }
 
-        uint32_t NumCalls() const { return num_calls; }
+        UInt NumCalls() const { return num_calls; }
         
         template <class ...OtherArgs>
         void Call(OtherArgs &&... args)
@@ -241,7 +241,7 @@ public:
         }
 
         /*! \brief Trigger a specific callback, removing it if it is a `once` callback. */
-        bool Trigger(uint32_t id, Args &&... args)
+        bool Trigger(UInt id, Args &&... args)
         {
             auto once_it = Find(id, once_callbacks);
 
@@ -362,7 +362,7 @@ public:
 
 
 private:
-    uint32_t m_id_counter{0};
+    UInt m_id_counter{0};
     std::unordered_map<Enum, CallbackGroup> m_holders;
 
     std::recursive_mutex rw_callbacks_mutex; // Not ideal having this as a recursive_mutex but at the moment there is no other option as objects can be
@@ -692,10 +692,10 @@ class RefCounter {
         std::atomic_uint32_t count{0};
     };
 
-    FlatMap<typename T::ID, RefCount *>        m_ref_count_holder;
+    FlatMap<typename T::ID, RefCount *> m_ref_count_holder;
 
-    ObjectVector<T, CallbacksClass>   m_holder;
-    ArgsTuple                         m_init_args{};
+    ObjectVector<T, CallbacksClass>     m_holder;
+    ArgsTuple                           m_init_args{};
 
 public:
     class Ref {
@@ -845,8 +845,6 @@ public:
         {
             AssertState();
 
-            //m_ref_counter->Release(ptr);
-
             AssertThrowMsg(m_ref_count->count != 0, "Cannot decrement refcount when already at zero");
             
             if (!--m_ref_count->count) {
@@ -856,8 +854,6 @@ public:
             ptr         = nullptr;
             m_ref_count = nullptr;
         }
-
-        //RefCounter *m_ref_counter;
 
         RefCount *m_ref_count = nullptr;
     };
@@ -879,21 +875,6 @@ public:
             AssertThrow(it.second != nullptr);
             AssertThrowMsg(it.second->count.load() <= 1, "Ref<%s> with id #%u still in use", typeid(T).name(), it.first.value);
         }
-        // for (auto &it : m_ref_map) {
-        //     auto &rc = it.second;
-
-        //     if (rc.count == 0) { /* not yet initialized */
-        //         DebugLog(
-        //             LogType::Warn,
-        //             "Ref to object of type %s was never initialized\n",
-        //             typeid(T).name()
-        //         );
-        //     } else {
-        //         --rc.count;
-        //     }
-
-        //     AssertThrowMsg(rc.count == 0, "Destructor called while object still in use elsewhere");
-        // }
     }
 
     /*! \brief Sets the args tuple that is passed to Init() for any newly acquired object. */
@@ -911,7 +892,6 @@ public:
         std::lock_guard guard(m_mutex);
 
         T *ptr = m_holder.Add(std::move(object));
-        //m_ref_map[ptr->GetId()].count = 1;
 
         auto it = m_ref_count_holder.Find(ptr->GetId());
         AssertThrowMsg(it == m_ref_count_holder.End(), "ptr with id %u already exists!", ptr->GetId().value);
@@ -949,31 +929,10 @@ public:
 private:
     friend class Ref;
 
-    // [[nodiscard]] Ref IncRef(T *ptr)
-    // {
-    //     AssertThrow(ptr != nullptr);
-
-    //     ++m_ref_map.Get(ptr->GetId()).count;
-        
-    //     return Ref(ptr, this);
-    // }
-
     void Release(const T *ptr)
     {
         AssertThrow(ptr != nullptr);
         const auto id = ptr->GetId();
-
-        //std::lock_guard guard(m_mutex);
-        
-        // AssertThrowMsg(m_ref_map.Has(id), "Refcount not set");
-
-        // auto &counter = m_ref_map.Get(id);
-        // AssertThrowMsg(counter.count != 0, "Cannot decrement refcount when already at zero");
-        
-        // if (!--counter.count) {
-        //     m_ref_map.Remove(id);
-        //     m_holder.Remove(id);
-        // }
 
         m_holder.Remove(id);
 

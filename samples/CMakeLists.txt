@@ -6,7 +6,8 @@ set(BUILD_NAME hyperion-sample)
 project(${BUILD_NAME} CXX C)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
+    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2 /Zi")
+
     #set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
     #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
 
@@ -46,6 +47,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
+set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
 
 
 set(COMMON_LIBRARIES

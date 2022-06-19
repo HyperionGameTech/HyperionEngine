@@ -3,8 +3,8 @@
 namespace hyperion::v2 {
 
 const FlatMap<ThreadName, ThreadId> Threads::thread_ids{
-    std::make_pair(THREAD_MAIN, ThreadId{static_cast<uint>(THREAD_MAIN), "MainThread"}),
-    std::make_pair(THREAD_GAME, ThreadId{static_cast<uint>(THREAD_GAME), "GameThread"})
+    std::make_pair(THREAD_MAIN, ThreadId{static_cast<UInt>(THREAD_MAIN), "MainThread"}),
+    std::make_pair(THREAD_GAME, ThreadId{static_cast<UInt>(THREAD_GAME), "GameThread"})
 };
 
 #if HYP_ENABLE_THREAD_ASSERTION

@@ -37,18 +37,24 @@ void Value::Mark()
     switch (m_type) {
         case Value::VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
+            AssertThrowMsg(false, "Not supported");
             m_value.value_ref->Mark();
             break;
         
         case Value::HEAP_POINTER: {
             HeapValue *ptr = m_value.ptr;
+            
+            if (ptr != nullptr) {
+                AssertThrowMsg(!(ptr->GetFlags() & GC_DESTROYED), "VM heap corruption! Object had flag GC_DESTROYED in Mark()");
 
-            if (ptr != nullptr && !(ptr->GetFlags() & GC_MARKED)) {
-                ptr->Mark();
+                if (!(ptr->GetFlags() & GC_MARKED)) {
+                    ptr->Mark();
+                }
             }
         }
 
-        default: break;
+        default:
+            break;
     }
 }
 
@@ -67,13 +73,13 @@ const char *Value::GetTypeString() const
 
         case HEAP_POINTER: 
             if (m_value.ptr == nullptr) {
-                return "Null";
+                return "null";
             } else if (m_value.ptr->GetPointer<ImmutableString>()) {
                 return "string";
             } else if (m_value.ptr->GetPointer<Array>() || m_value.ptr->GetPointer<Slice>()) {
                 return "array";
             } else if (m_value.ptr->GetPointer<MemoryBuffer>()) {
-                return "void *";
+                return "MemoryBuffer";
             } else if (Object *object = m_value.ptr->GetPointer<Object>()) {
                 return "object"; // TODO prototype name
             }

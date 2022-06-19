@@ -6,13 +6,15 @@
 
 #include <core/lib/flat_map.h>
 
+#include <types.h>
+
 #include <atomic>
 #include <unordered_map>
 #include <type_traits>
 
 namespace hyperion::v2 {
 
-using ControllerId = uint32_t;
+using ControllerId = UInt32;
 
 class Node;
 class Engine;

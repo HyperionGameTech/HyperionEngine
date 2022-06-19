@@ -251,7 +251,7 @@ void GraphicsPipeline::Init(Engine *engine)
 
             auto &per_frame_data = *m_per_frame_data;
 
-            for (uint32_t i = 0; i < per_frame_data.NumFrames(); i++) {
+            for (UInt32 i = 0; i < per_frame_data.NumFrames(); i++) {
                 auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY);
                 HYPERION_BUBBLE_ERRORS(command_buffer->Create(
                     engine->GetInstance()->GetDevice(),
@@ -306,7 +306,7 @@ void GraphicsPipeline::Init(Engine *engine)
                 if (m_per_frame_data != nullptr) {
                     auto &per_frame_data = *m_per_frame_data;
 
-                    for (uint32_t i = 0; i < per_frame_data.NumFrames(); i++) {
+                    for (UInt32 i = 0; i < per_frame_data.NumFrames(); i++) {
                         HYPERION_BUBBLE_ERRORS(per_frame_data[i].Get<CommandBuffer>()->Destroy(
                             engine->GetInstance()->GetDevice(),
                             engine->GetInstance()->GetGraphicsCommandPool()
@@ -372,7 +372,7 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                 {
                     {.set = DescriptorSet::scene_buffer_mapping[frame_index], .count = 1},
                     {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
-                    {.offsets = {uint32_t(scene_index * sizeof(SceneShaderData))}}
+                    {.offsets = {UInt32(scene_index * sizeof(SceneShaderData))}}
                 }
             );
 
@@ -451,9 +451,9 @@ void GraphicsPipeline::Render(Engine *engine, Frame *frame)
                         {.set = DescriptorSet::object_buffer_mapping[frame_index], .count = 1},
                         {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT},
                         {.offsets = {
-                            uint32_t(material_index * sizeof(MaterialShaderData)),
-                            uint32_t(spatial_index  * sizeof(ObjectShaderData)),
-                            uint32_t(skeleton_index * sizeof(SkeletonShaderData))
+                            UInt32(material_index * sizeof(MaterialShaderData)),
+                            UInt32(spatial_index  * sizeof(ObjectShaderData)),
+                            UInt32(skeleton_index * sizeof(SkeletonShaderData))
                         }}
                     }
                 );

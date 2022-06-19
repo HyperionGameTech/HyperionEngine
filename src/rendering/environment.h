@@ -26,7 +26,7 @@ class Environment : public EngineComponentBase<STUB_CLASS(Environment)> {
     using ShadowRendererPtr = std::unique_ptr<ShadowRenderer>;
 
 public:
-    static constexpr uint max_shadow_maps = 8;
+    static constexpr UInt max_shadow_maps = 8;
 
     Environment();
     Environment(const Environment &other) = delete;
@@ -49,13 +49,17 @@ public:
         m_has_render_component_updates = true;
     }
 
+    template <class T, class ...Args>
+    void AddRenderComponent(Args &&... args)
+    {
+        AddRenderComponent(std::make_unique<T>(std::forward<Args>(args)...));
+    }
+
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
     T *GetRenderComponent()
     {
         Threads::AssertOnThread(THREAD_RENDER);
-
-        //std::lock_guard guard(m_render_component_mutex);
 
         if (!m_render_components.Has<T>()) {
             return nullptr;
@@ -69,8 +73,6 @@ public:
     bool HasRenderComponent() const
     {
         Threads::AssertOnThread(THREAD_RENDER);
-
-        //std::lock_guard guard(m_render_component_mutex);
 
         return m_render_components.Has<T>();
     }
@@ -93,19 +95,17 @@ public:
     void RenderComponents(Engine *engine, Frame *frame);
 
 private:
-    void AddPlaceholderData();
-
     ComponentSet<RenderComponentBase>                           m_render_components;
     ComponentSet<RenderComponentBase>                           m_render_components_pending_addition;
     FlatSet<ComponentSet<RenderComponentBase>::ComponentId>     m_render_components_pending_removal;
     std::atomic_bool                                            m_has_render_component_updates{false};
 
-    std::vector<Ref<Light>>                      m_lights;
+    std::vector<Ref<Light>>                                     m_lights;
 
-    float                                        m_global_timer;
+    float                                                       m_global_timer;
 
-    std::mutex                                   m_render_component_mutex;
-    AtomicLock                                   m_updating_render_components;
+    std::mutex                                                  m_render_component_mutex;
+    AtomicLock                                                  m_updating_render_components;
 };
 
 } // namespace hyperion::v2

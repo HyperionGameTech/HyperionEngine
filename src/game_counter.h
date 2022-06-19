@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_GAME_COUNTER_H
 #define HYPERION_V2_GAME_COUNTER_H
 
+#include <types.h>
+
 #include <chrono>
 
 namespace hyperion::v2 {
@@ -8,7 +10,7 @@ namespace hyperion::v2 {
 struct GameCounter {
     using Clock      = std::chrono::high_resolution_clock;
 
-    using TickUnit   = float;
+    using TickUnit   = Float32;
     using TimePoint  = Clock::time_point;
 
     TimePoint last_time_point = Now();

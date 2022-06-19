@@ -56,11 +56,11 @@ protected:
     using PatchNeighbors = std::array<PatchNeighbor, 8>;
     
     struct PatchInfo {
-        Extent3D  extent;
-        Coord     coord{0.0f};
-        Vector3   scale{1.0f};
-        PageState state{PageState::UNLOADED};
-        float     unload_timer{0.0f};
+        Extent3D       extent;
+        Coord          coord{0.0f};
+        Vector3        scale{1.0f};
+        PageState      state{PageState::UNLOADED};
+        float          unload_timer{0.0f};
         PatchNeighbors neighbors{};
     };
 
@@ -112,13 +112,13 @@ protected:
     void PushUpdate(const PatchUpdate &update);
     void InitPatch(Patch *patch);
 
-    PatchList                           m_patches;
-    std::queue<PatchUpdate>             m_queue;
-    FlatSet<Coord>                      m_queued_neighbors; // neighbors queued for addition, so we don't add duplicates
-    Extent3D                            m_patch_size;
-    Vector3                             m_scale;
-    GameCounter::TickUnit               m_update_timer;
-    GameCounter::TickUnit               m_queue_timer;
+    PatchList               m_patches;
+    std::queue<PatchUpdate> m_queue;
+    FlatSet<Coord>          m_queued_neighbors; // neighbors queued for addition, so we don't add duplicates
+    Extent3D                m_patch_size;
+    Vector3                 m_scale;
+    GameCounter::TickUnit   m_update_timer;
+    GameCounter::TickUnit   m_queue_timer;
 };
 
 } // namespace hyperion::v2

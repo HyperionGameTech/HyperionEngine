@@ -22,8 +22,10 @@ Exception::~Exception()
     delete[] m_str;
 }
 
-Exception Exception::InvalidComparisonException(const char *left_type_str,
-    const char *right_type_str)
+Exception Exception::InvalidComparisonException(
+    const char *left_type_str,
+    const char *right_type_str
+)
 {
     char buffer[256];
     std::snprintf(
@@ -36,9 +38,11 @@ Exception Exception::InvalidComparisonException(const char *left_type_str,
     return Exception(buffer);
 }
 
-Exception Exception::InvalidOperationException(const char *op_name,
+Exception Exception::InvalidOperationException(
+    const char *op_name,
     const char *left_type_str,
-    const char *right_type_str)
+    const char *right_type_str
+)
 {
     char buffer[256];
     std::snprintf(

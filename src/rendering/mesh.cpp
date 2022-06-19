@@ -243,7 +243,7 @@ void Mesh::Render(Engine *, CommandBuffer *cmd) const
     m_vbo->Bind(cmd);
     m_ibo->Bind(cmd);
 
-    cmd->DrawIndexed(static_cast<uint32_t>(m_indices.size()));
+    cmd->DrawIndexed(static_cast<UInt32>(m_indices.size()));
 }
 
 std::vector<PackedVertex> Mesh::BuildPackedVertices() const
@@ -348,7 +348,7 @@ void Mesh::CalculateTangents()
         const Vector3 tangent   = (edge1 * edge2uv.y - edge2 * edge1uv.y) * mul;
         const Vector3 bitangent = (edge1 * edge2uv.x - edge2 * edge1uv.x) * mul;
 
-        for (uint32_t j = 0; j < count; j++) {
+        for (UInt32 j = 0; j < count; j++) {
             new_tangents[m_indices[i + j]]   += tangent;
             new_bitangents[m_indices[i + j]] += bitangent;
         }

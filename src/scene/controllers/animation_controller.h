@@ -35,10 +35,9 @@ public:
 private:
     bool FindSkeleton(Node *node);
     
-    uint m_animation_index = ~0u;
+    UInt m_animation_index = ~0u;
 
     Ref<Skeleton> m_skeleton;
-
 };
 
 } // namespace hyperion::v2

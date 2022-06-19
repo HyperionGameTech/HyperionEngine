@@ -7,7 +7,7 @@
 namespace hyperion {
 namespace vm {
 
-Slice::Slice(Array *ary, std::size_t start, std::size_t end)
+Slice::Slice(Array *ary, SizeType start, SizeType end)
     : m_ary(ary),
       m_start(start),
       m_end(end)
@@ -27,12 +27,18 @@ Slice::Slice(const Slice &other)
 
 Slice &Slice::operator=(const Slice &other)
 {
+    if (&other == this) {
+        return *this;
+    }
+
     m_ary = other.m_ary;
     m_start = other.m_start;
     m_end = other.m_end;
 
     AssertThrow(m_ary != nullptr);
     AssertThrow(m_end >= m_start);
+
+    return *this;
 }
 
 void Slice::GetRepresentation(
@@ -55,7 +61,7 @@ void Slice::GetRepresentation(
     ss << '[';
 
     // convert all array elements to string
-    for (size_t i = m_start; i < m_end; i++) {
+    for (SizeType i = m_start; i < m_end; i++) {
         m_ary->AtIndex(i).ToRepresentation(
             ss,
             add_type_name,

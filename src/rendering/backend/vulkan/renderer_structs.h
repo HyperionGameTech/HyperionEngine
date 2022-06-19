@@ -57,7 +57,7 @@ enum class StencilMode {
 };
 
 struct StencilState {
-    uint        id   = 0;
+    UInt        id   = 0;
     StencilMode mode = StencilMode::NONE;
 
     HYP_DEF_STRUCT_COMPARE_EQL(StencilState);
@@ -69,8 +69,8 @@ struct StencilState {
 };
 
 struct MeshBindingDescription {
-    uint32_t binding;
-    uint32_t stride;
+    UInt32            binding;
+    UInt32            stride;
     VkVertexInputRate input_rate;
 
     MeshBindingDescription()
@@ -78,7 +78,7 @@ struct MeshBindingDescription {
     {
     }
 
-    MeshBindingDescription(uint32_t binding, uint32_t stride, VkVertexInputRate input_rate)
+    MeshBindingDescription(UInt32 binding, UInt32 stride, VkVertexInputRate input_rate)
         : binding(binding), stride(stride), input_rate(input_rate)
     {
     }
@@ -108,8 +108,8 @@ struct VertexAttribute {
 
     static const EnumOptions<Type, VertexAttribute, 16> mapping;
 
-    uint32_t    location;
-    uint32_t    binding;
+    UInt32      location;
+    UInt32      binding;
     // total size -- num elements * sizeof(float)
     size_t      size;
 
@@ -148,14 +148,14 @@ struct VertexAttribute {
 };
 
 struct VertexAttributeSet {
-    uint64_t flag_mask;
+    UInt64 flag_mask;
 
     constexpr VertexAttributeSet()
         : flag_mask(0) {}
-    constexpr VertexAttributeSet(uint64_t flag_mask)
+    constexpr VertexAttributeSet(UInt64 flag_mask)
         : flag_mask(flag_mask) {}
     constexpr VertexAttributeSet(VertexAttribute::Type flags)
-        : flag_mask(static_cast<uint64_t>(flags)) {}
+        : flag_mask(static_cast<UInt64>(flags)) {}
     constexpr VertexAttributeSet(const VertexAttributeSet &other)
         : flag_mask(other.flag_mask) {}
 
@@ -176,19 +176,19 @@ struct VertexAttributeSet {
 
     VertexAttributeSet operator&(const VertexAttributeSet &other) const { return {flag_mask & other.flag_mask}; }
     VertexAttributeSet &operator&=(const VertexAttributeSet &other)     { flag_mask &= other.flag_mask; return *this; }
-    VertexAttributeSet operator&(uint64_t flags) const                  { return {flag_mask & flags}; }
-    VertexAttributeSet &operator&=(uint64_t flags)                      { flag_mask &= flags; return *this; }
+    VertexAttributeSet operator&(UInt64 flags) const                  { return {flag_mask & flags}; }
+    VertexAttributeSet &operator&=(UInt64 flags)                      { flag_mask &= flags; return *this; }
     
     VertexAttributeSet operator|(const VertexAttributeSet &other) const { return {flag_mask | other.flag_mask}; }
     VertexAttributeSet &operator|=(const VertexAttributeSet &other)     { flag_mask |= other.flag_mask; return *this; }
-    VertexAttributeSet operator|(uint64_t flags) const                  { return {flag_mask | flags}; }
-    VertexAttributeSet &operator|=(uint64_t flags)                      { flag_mask |= flags; return *this; }
+    VertexAttributeSet operator|(UInt64 flags) const                  { return {flag_mask | flags}; }
+    VertexAttributeSet &operator|=(UInt64 flags)                      { flag_mask |= flags; return *this; }
 
     bool operator<(const VertexAttributeSet &other) const               { return flag_mask < other.flag_mask; }
 
-    bool Has(VertexAttribute::Type type) const { return bool(operator&(uint64_t(type))); }
+    bool Has(VertexAttribute::Type type) const { return bool(operator&(UInt64(type))); }
 
-    void Set(uint64_t flags, bool enable = true)
+    void Set(UInt64 flags, bool enable = true)
     {
         if (enable) {
             flag_mask |= flags;
@@ -199,7 +199,7 @@ struct VertexAttributeSet {
 
     void Set(VertexAttribute::Type type, bool enable = true)
     {
-        Set(uint64_t(type), enable);
+        Set(UInt64(type), enable);
     }
 
     void Merge(const VertexAttributeSet &other)
@@ -213,7 +213,7 @@ struct VertexAttributeSet {
         attributes.reserve(VertexAttribute::mapping.Size());
 
         for (size_t i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const uint64_t iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
 
             if (flag_mask & iter_flag_mask) {
                 attributes.push_back(VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)]);
@@ -228,7 +228,7 @@ struct VertexAttributeSet {
         size_t size = 0;
 
         for (size_t i = 0; i < VertexAttribute::mapping.Size(); i++) {
-            const uint64_t iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
+            const UInt64 iter_flag_mask = VertexAttribute::mapping.OrdinalToEnum(i);  // NOLINT(readability-static-accessed-through-instance)
 
             if (flag_mask & iter_flag_mask) {
                 size += VertexAttribute::mapping[VertexAttribute::Type(iter_flag_mask)].size;
@@ -263,7 +263,7 @@ constexpr VertexAttributeSet skeleton_vertex_attributes(
 
 
 struct QueueFamilyIndices {
-    using Index = uint32_t;
+    using Index = UInt32;
     
     std::optional<Index> graphics_family;
     std::optional<Index> transfer_family;
@@ -288,10 +288,10 @@ struct SwapchainSupportDetails {
 struct alignas(8) Extent2D {
     union {
         struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-            uint32_t width, height;
+            UInt32 width, height;
         };
 
-        uint32_t v[2];
+        UInt32 v[2];
     };
 
     Extent2D()
@@ -300,7 +300,7 @@ struct alignas(8) Extent2D {
     {
     }
 
-    Extent2D(uint32_t width, uint32_t height)
+    Extent2D(UInt32 width, UInt32 height)
         : width(width),
           height(height)
     {
@@ -321,11 +321,11 @@ struct alignas(8) Extent2D {
     bool operator!=(const Extent2D &other) const
         { return !operator==(other); }
     
-    constexpr uint32_t &operator[](uint32_t index)      { return v[index]; }
-    constexpr uint32_t operator[](uint32_t index) const { return v[index]; }
+    constexpr UInt32 &operator[](UInt32 index)      { return v[index]; }
+    constexpr UInt32 operator[](UInt32 index) const { return v[index]; }
 
     Vector2 ToVector2() const { return Vector2(static_cast<float>(width), static_cast<float>(height)); }
-    uint32_t Size() const { return width * height; }
+    UInt32 Size() const { return width * height; }
 };
 
 static_assert(sizeof(Extent2D) == 8);
@@ -333,10 +333,10 @@ static_assert(sizeof(Extent2D) == 8);
 struct alignas(16) Extent3D {
     union {
         struct {  // NOLINT(clang-diagnostic-nested-anon-types)
-            uint32_t width, height, depth;
+            UInt32 width, height, depth;
         };
 
-        uint32_t v[3];
+        UInt32 v[3];
     };
 
     Extent3D()
@@ -346,21 +346,21 @@ struct alignas(16) Extent3D {
     {
     }
 
-    explicit Extent3D(uint32_t extent)
+    explicit Extent3D(UInt32 extent)
         : width(extent),
           height(extent),
           depth(extent)
     {
     }
 
-    Extent3D(uint32_t width, uint32_t height, uint32_t depth)
+    Extent3D(UInt32 width, UInt32 height, UInt32 depth)
         : width(width),
           height(height),
           depth(depth)
     {
     }
 
-    explicit Extent3D(const Extent2D &extent_2d, uint32_t depth = 1)
+    explicit Extent3D(const Extent2D &extent_2d, UInt32 depth = 1)
         : width(extent_2d.width),
           height(extent_2d.height),
           depth(depth)
@@ -403,13 +403,13 @@ struct alignas(16) Extent3D {
         return *this;
     }
     
-    constexpr uint32_t &operator[](uint32_t index)         { return v[index]; }
-    constexpr uint32_t operator[](uint32_t index) const    { return v[index]; }
+    constexpr UInt32 &operator[](UInt32 index)         { return v[index]; }
+    constexpr UInt32 operator[](UInt32 index) const    { return v[index]; }
 
     Extent2D ToExtent2D() const { return Extent2D(width, height); }
     Vector3 ToVector3() const   { return Vector3(static_cast<float>(width), static_cast<float>(height), static_cast<float>(depth)); }
 
-    uint32_t Size() const { return width * height * depth; }
+    UInt32 Size() const { return width * height * depth; }
 };
 
 static_assert(sizeof(Extent3D) == 16);
@@ -428,21 +428,21 @@ struct PackedVertex {
 static_assert(sizeof(PackedVertex) % 16 == 0);
 
 struct MeshDescription {
-    uint64_t vertex_buffer_address;
-    uint64_t index_buffer_address;
+    UInt64 vertex_buffer_address;
+    UInt64 index_buffer_address;
 };
 
 static_assert(sizeof(MeshDescription) % 16 == 0);
 
-using PackedIndex = uint32_t;
+using PackedIndex = UInt32;
 
 /* images */
 struct ImageSubResource {
     VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
-    uint32_t base_array_layer      = 0;
-    uint32_t base_mip_level        = 0;
-    uint32_t num_layers            = 1;
-    uint32_t num_levels            = 1;
+    UInt32 base_array_layer      = 0;
+    UInt32 base_mip_level        = 0;
+    UInt32 num_layers            = 1;
+    UInt32 num_levels            = 1;
 
     bool operator==(const ImageSubResource &other) const
     {
@@ -479,7 +479,7 @@ class PerFrameData {
     };
 
 public:
-    PerFrameData(uint32_t num_frames) : m_num_frames(num_frames)
+    PerFrameData(UInt32 num_frames) : m_num_frames(num_frames)
         { m_data.resize(num_frames); }
 
     PerFrameData(const PerFrameData &other) = delete;
@@ -488,26 +488,26 @@ public:
     PerFrameData &operator=(PerFrameData &&) = default;
     ~PerFrameData() = default;
 
-    inline uint32_t NumFrames() const
+    inline UInt32 NumFrames() const
         { return m_num_frames; }
 
-    inline FrameDataWrapper &operator[](uint32_t index)
+    inline FrameDataWrapper &operator[](UInt32 index)
         { return m_data[index]; }
 
-    inline const FrameDataWrapper &operator[](uint32_t index) const
+    inline const FrameDataWrapper &operator[](UInt32 index) const
         { return m_data[index]; }
 
-    inline FrameDataWrapper &At(uint32_t index)
+    inline FrameDataWrapper &At(UInt32 index)
         { return m_data[index]; }
 
-    inline const FrameDataWrapper &At(uint32_t index) const
+    inline const FrameDataWrapper &At(UInt32 index) const
         { return m_data[index]; }
 
     inline void Reset()
         { m_data = std::vector<FrameDataWrapper>(m_num_frames); }
 
 protected:
-    uint32_t m_num_frames;
+    UInt32 m_num_frames;
     std::vector<FrameDataWrapper> m_data;
 };
 

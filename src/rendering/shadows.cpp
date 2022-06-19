@@ -94,7 +94,7 @@ void ShadowPass::CreateDescriptors(Engine *engine)
                     ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
                 
                 for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                    const auto sub_descriptor_index = shadow_map_descriptor->AddSubDescriptor({
+                    const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
                         .element_index = m_shadow_map_index,
                         .image_view    = attachment_ref->GetImageView(),
                         .sampler       = attachment_ref->GetSampler()

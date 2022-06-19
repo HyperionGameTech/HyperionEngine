@@ -9,10 +9,12 @@
 #include <script/vm/Tracemap.hpp>
 #include <script/vm/ExportedSymbolTable.hpp>
 
+#include <types.h>
+
 #include <util/non_owning_ptr.h>
 
 #define ENABLE_GC 1
-#define GC_THRESHOLD_MIN 20
+#define GC_THRESHOLD_MIN 150
 #define GC_THRESHOLD_MAX 5000
 
 #define VM_MAX_THREADS 1//8
@@ -28,8 +30,8 @@ struct Registers {
     Value m_reg[VM_NUM_REGISTERS];
     int m_flags = 0;
 
-    inline Value &operator[](uint8_t index) { return m_reg[index]; }
-    inline void ResetFlags() { m_flags = 0; }
+    inline Value &operator[](UInt8 index) { return m_reg[index]; }
+    inline void ResetFlags()              { m_flags = 0; }
 };
 
 struct ExceptionState {
@@ -52,7 +54,7 @@ struct ExecutionThread {
     ExceptionState m_exception_state;
     Registers m_regs;
 
-    int m_func_depth = 0;
+    UInt m_func_depth = 0;
 
     inline Stack &GetStack() { return m_stack; }
     inline ExceptionState &GetExceptionState() { return m_exception_state; }

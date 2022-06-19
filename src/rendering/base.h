@@ -5,6 +5,7 @@
 #include <rendering/backend/renderer_instance.h>
 #include <hash_code.h>
 #include <util/defines.h>
+#include <types.h>
 
 #include <memory>
 #include <atomic>
@@ -36,7 +37,7 @@ struct Stub {
 
 // a non-descript ID (no type attached)
 struct IDBase {
-    using ValueType = uint32_t;
+    using ValueType = UInt32;
     
     explicit constexpr operator ValueType() const { return value; }
     constexpr ValueType Value() const             { return value; }

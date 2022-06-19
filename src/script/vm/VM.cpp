@@ -25,13 +25,13 @@ namespace vm {
 HYP_FORCE_INLINE static void HandleInstruction(
     InstructionHandler &handler,
     BytecodeStream *bs,
-    uint8_t code
+    UByte code
 )
 {
     switch (code) {
     case STORE_STATIC_STRING: {
         // get string length
-        uint32_t len; bs->Read(&len);
+        UInt32 len; bs->Read(&len);
 
         // read string based on length
         char *str = new char[len + 1];
@@ -48,7 +48,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case STORE_STATIC_ADDRESS: {
-        bc_address_t addr; bs->Read(&addr);
+        BCAddress addr; bs->Read(&addr);
 
         handler.StoreStaticAddress(
             addr
@@ -57,9 +57,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case STORE_STATIC_FUNCTION: {
-        bc_address_t addr; bs->Read(&addr);
-        uint8_t nargs; bs->Read(&nargs);
-        uint8_t flags; bs->Read(&flags);
+        BCAddress addr; bs->Read(&addr);
+        UInt8 nargs; bs->Read(&nargs);
+        UInt8 flags; bs->Read(&flags);
 
         handler.StoreStaticFunction(
             addr,
@@ -70,20 +70,20 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case STORE_STATIC_TYPE: {
-        uint16_t type_name_len; bs->Read(&type_name_len);
+        UInt16 type_name_len; bs->Read(&type_name_len);
 
         char *type_name = new char[type_name_len + 1];
         type_name[type_name_len] = '\0';
         bs->Read(type_name, type_name_len);
 
-        uint16_t size; bs->Read(&size);
+        UInt16 size; bs->Read(&size);
 
         AssertThrow(size > 0);
 
         char **names = new char*[size];
         // load each name
         for (int i = 0; i < size; i++) {
-            uint16_t length;
+            UInt16 length;
             bs->Read(&length);
 
             names[i] = new char[length + 1];
@@ -109,7 +109,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_I32: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         int32_t i32; bs->Read(&i32);
 
         handler.LoadI32(
@@ -120,7 +120,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_I64: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         int64_t i64; bs->Read(&i64);
 
         handler.LoadI64(
@@ -131,8 +131,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_U32: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint32_t u32; bs->Read(&u32);
+        BCRegister reg; bs->Read(&reg);
+        UInt32 u32; bs->Read(&u32);
 
         handler.LoadU32(
             reg,
@@ -142,7 +142,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_U64: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         uint64_t u64; bs->Read(&u64);
 
         handler.LoadU64(
@@ -153,7 +153,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_F32: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         float f32; bs->Read(&f32);
 
         handler.LoadF32(
@@ -164,7 +164,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_F64: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         double f64; bs->Read(&f64);
 
         handler.LoadF64(
@@ -175,8 +175,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_OFFSET: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint16_t offset; bs->Read(&offset);
+        BCRegister reg; bs->Read(&reg);
+        UInt16 offset; bs->Read(&offset);
 
         handler.LoadOffset(
             reg,
@@ -186,8 +186,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_INDEX: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint16_t index; bs->Read(&index);
+        BCRegister reg; bs->Read(&reg);
+        UInt16 index; bs->Read(&index);
 
         handler.LoadIndex(
             reg,
@@ -197,8 +197,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_STATIC: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint16_t index; bs->Read(&index);
+        BCRegister reg; bs->Read(&reg);
+        UInt16 index; bs->Read(&index);
 
         handler.LoadStatic(
             reg,
@@ -208,9 +208,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_STRING: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
         // get string length
-        uint32_t len; bs->Read(&len);
+        UInt32 len; bs->Read(&len);
 
         // read string based on length
         char *str = new char[len + 1];
@@ -228,8 +228,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_ADDR: {
-        bc_reg_t reg; bs->Read(&reg);
-        bc_address_t addr; bs->Read(&addr);
+        BCRegister reg; bs->Read(&reg);
+        BCAddress addr; bs->Read(&addr);
 
         handler.LoadAddr(
             reg,
@@ -239,10 +239,10 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_FUNC: {
-        bc_reg_t reg; bs->Read(&reg);
-        bc_address_t addr; bs->Read(&addr);
-        uint8_t nargs; bs->Read(&nargs);
-        uint8_t flags; bs->Read(&flags);
+        BCRegister reg; bs->Read(&reg);
+        BCAddress addr; bs->Read(&addr);
+        UInt8 nargs; bs->Read(&nargs);
+        UInt8 flags; bs->Read(&flags);
 
         handler.LoadFunc(
             reg,
@@ -254,22 +254,22 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_TYPE: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint16_t type_name_len; bs->Read(&type_name_len);
+        BCRegister reg; bs->Read(&reg);
+        UInt16 type_name_len; bs->Read(&type_name_len);
 
         char *type_name = new char[type_name_len + 1];
         type_name[type_name_len] = '\0';
         bs->Read(type_name, type_name_len);
 
         // number of members
-        uint16_t size;
+        UInt16 size;
         bs->Read(&size);
 
         char **names = new char*[size];
         
         // load each name
         for (int i = 0; i < size; i++) {
-            uint16_t length;
+            UInt16 length;
             bs->Read(&length);
 
             names[i] = new char[length + 1];
@@ -297,9 +297,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_MEM: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
-        uint8_t index; bs->Read(&index);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+        UInt8 index; bs->Read(&index);
 
         handler.LoadMem(
             dst,
@@ -310,9 +310,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_MEM_HASH: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
-        uint32_t hash; bs->Read(&hash);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+        UInt32 hash; bs->Read(&hash);
 
         handler.LoadMemHash(
             dst,
@@ -323,9 +323,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_ARRAYIDX: {
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
-        bc_reg_t src_reg; bs->Read(&src_reg);
-        bc_reg_t index_reg; bs->Read(&index_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
+        BCRegister src_reg; bs->Read(&src_reg);
+        BCRegister index_reg; bs->Read(&index_reg);
 
         handler.LoadArrayIdx(
             dst_reg,
@@ -336,8 +336,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_REF: {
-        bc_reg_t dst_reg;
-        bc_reg_t src_reg;
+        BCRegister dst_reg;
+        BCRegister src_reg;
 
         bs->Read(&dst_reg);
         bs->Read(&src_reg);
@@ -348,8 +348,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         );
     }
     case LOAD_DEREF: {
-        bc_reg_t dst_reg;
-        bc_reg_t src_reg;
+        BCRegister dst_reg;
+        BCRegister src_reg;
 
         bs->Read(&dst_reg);
         bs->Read(&src_reg);
@@ -360,7 +360,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         );
     }
     case LOAD_NULL: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.LoadNull(
             reg
@@ -369,7 +369,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_TRUE: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.LoadTrue(
             reg
@@ -378,7 +378,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case LOAD_FALSE: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.LoadFalse(
             reg
@@ -387,8 +387,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_OFFSET: {
-        uint16_t offset; bs->Read(&offset);
-        bc_reg_t reg; bs->Read(&reg);
+        UInt16 offset; bs->Read(&offset);
+        BCRegister reg; bs->Read(&reg);
 
         handler.MovOffset(
             offset,
@@ -398,8 +398,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_INDEX: {
-        uint16_t index; bs->Read(&index);
-        bc_reg_t reg; bs->Read(&reg);
+        UInt16 index; bs->Read(&index);
+        BCRegister reg; bs->Read(&reg);
 
         handler.MovIndex(
             index,
@@ -409,9 +409,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_MEM: {
-        bc_reg_t dst; bs->Read(&dst);
-        uint8_t index; bs->Read(&index);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        UInt8 index; bs->Read(&index);
+        BCRegister src; bs->Read(&src);
 
         handler.MovMem(
             dst,
@@ -422,9 +422,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_MEM_HASH: {
-        bc_reg_t dst; bs->Read(&dst);
-        uint32_t hash; bs->Read(&hash);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        UInt32 hash; bs->Read(&hash);
+        BCRegister src; bs->Read(&src);
 
         handler.MovMemHash(
             dst,
@@ -435,9 +435,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_ARRAYIDX: {
-        bc_reg_t dst; bs->Read(&dst);
-        uint32_t index; bs->Read(&index);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        UInt32 index; bs->Read(&index);
+        BCRegister src; bs->Read(&src);
 
         handler.MovArrayIdx(
             dst,
@@ -448,9 +448,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_ARRAYIDX_REG: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t index_reg; bs->Read(&index_reg);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister index_reg; bs->Read(&index_reg);
+        BCRegister src; bs->Read(&src);
 
         handler.MovArrayIdxReg(
             dst,
@@ -461,8 +461,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOV_REG: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
         
         handler.MovReg(
             dst,
@@ -472,9 +472,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case HAS_MEM_HASH: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
-        uint32_t hash; bs->Read(&hash);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
+        UInt32 hash; bs->Read(&hash);
 
         handler.HasMemHash(
             dst,
@@ -485,7 +485,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case PUSH: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.Push(
             reg
@@ -499,7 +499,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case POP_N: {
-        uint8_t n; bs->Read(&n);
+        UInt8 n; bs->Read(&n);
         
         handler.PopN(
             n
@@ -508,8 +508,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case PUSH_ARRAY: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
 
         handler.PushArray(
             dst,
@@ -519,8 +519,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case JMP: {
-        //bc_reg_t reg; bs->Read(&reg);
-        bc_address_t addr;
+        //BCRegister reg; bs->Read(&reg);
+        BCAddress addr;
         bs->Read(&addr);
 
         handler.Jmp(
@@ -530,7 +530,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case JE: {
-        bc_address_t addr;
+        BCAddress addr;
         bs->Read(&addr);
 
         handler.Je(
@@ -540,7 +540,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case JNE: {
-        bc_address_t addr;
+        BCAddress addr;
         bs->Read(&addr);
 
         handler.Jne(
@@ -550,7 +550,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case JG: {
-        bc_address_t addr;
+        BCAddress addr;
         bs->Read(&addr);
 
         handler.Jg(
@@ -560,7 +560,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case JGE: {
-        bc_address_t addr;
+        BCAddress addr;
         bs->Read(&addr);
 
         handler.Jge(
@@ -570,8 +570,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case CALL: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint8_t nargs; bs->Read(&nargs);
+        BCRegister reg; bs->Read(&reg);
+        UInt8 nargs; bs->Read(&nargs);
 
         handler.Call(
             reg,
@@ -586,7 +586,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case BEGIN_TRY: {
-        bc_address_t catch_address;
+        BCAddress catch_address;
         bs->Read(&catch_address);
 
         handler.BeginTry(
@@ -601,8 +601,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case NEW: {
-        bc_reg_t dst; bs->Read(&dst);
-        bc_reg_t src; bs->Read(&src);
+        BCRegister dst; bs->Read(&dst);
+        BCRegister src; bs->Read(&src);
 
         handler.New(
             dst,
@@ -612,8 +612,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case NEW_ARRAY: {
-        bc_reg_t dst; bs->Read(&dst);
-        uint32_t size; bs->Read(&size);
+        BCRegister dst; bs->Read(&dst);
+        UInt32 size; bs->Read(&size);
 
         handler.NewArray(
             dst,
@@ -623,8 +623,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case CMP: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
 
         handler.Cmp(
             lhs_reg,
@@ -634,7 +634,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case CMPZ: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.CmpZ(
             reg
@@ -643,9 +643,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case ADD: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Add(
             lhs_reg,
@@ -656,9 +656,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case SUB: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Sub(
             lhs_reg,
@@ -669,9 +669,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MUL: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Mul(
             lhs_reg,
@@ -682,9 +682,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case DIV: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Div(
             lhs_reg,
@@ -695,9 +695,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case MOD: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Mod(
             lhs_reg,
@@ -708,9 +708,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case AND: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.And(
             lhs_reg,
@@ -721,9 +721,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case OR: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Or(
             lhs_reg,
@@ -734,9 +734,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case XOR: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Xor(
             lhs_reg,
@@ -747,9 +747,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case SHL: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Shl(
             lhs_reg,
@@ -760,9 +760,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case SHR: {
-        bc_reg_t lhs_reg; bs->Read(&lhs_reg);
-        bc_reg_t rhs_reg; bs->Read(&rhs_reg);
-        bc_reg_t dst_reg; bs->Read(&dst_reg);
+        BCRegister lhs_reg; bs->Read(&lhs_reg);
+        BCRegister rhs_reg; bs->Read(&rhs_reg);
+        BCRegister dst_reg; bs->Read(&dst_reg);
 
         handler.Shr(
             lhs_reg,
@@ -773,7 +773,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case NEG: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.Neg(
             reg
@@ -782,7 +782,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case NOT: {
-        bc_reg_t reg; bs->Read(&reg);
+        BCRegister reg; bs->Read(&reg);
 
         handler.Not(
             reg
@@ -791,9 +791,9 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case TRACEMAP: {
-        uint32_t len; bs->Read(&len);
+        UInt32 len; bs->Read(&len);
 
-        uint32_t stringmap_count;
+        UInt32 stringmap_count;
         bs->Read(&stringmap_count);
 
         Tracemap::StringmapEntry *stringmap = nullptr;
@@ -801,13 +801,13 @@ HYP_FORCE_INLINE static void HandleInstruction(
         if (stringmap_count != 0) {
             stringmap = new Tracemap::StringmapEntry[stringmap_count];
 
-            for (uint32_t i = 0; i < stringmap_count; i++) {
+            for (UInt32 i = 0; i < stringmap_count; i++) {
                 bs->Read(&stringmap[i].entry_type);
                 bs->ReadZeroTerminatedString((char*)&stringmap[i].data);
             }
         }
 
-        uint32_t linemap_count;
+        UInt32 linemap_count;
         bs->Read(&linemap_count);
 
         Tracemap::LinemapEntry *linemap = nullptr;
@@ -822,15 +822,15 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     case REM: {
-        uint32_t len; bs->Read(&len);
+        UInt32 len; bs->Read(&len);
         // just skip comment
         bs->Skip(len);
 
         break;
     }
     case EXPORT: {
-        bc_reg_t reg; bs->Read(&reg);
-        uint32_t hash; bs->Read(&hash);
+        BCRegister reg; bs->Read(&reg);
+        UInt32 hash; bs->Read(&hash);
 
         handler.ExportSymbol(
             reg,
@@ -840,7 +840,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     default: {
-        int64_t last_pos = (int64_t)bs->Position() - sizeof(uint8_t);
+        Int64 last_pos = static_cast<Int64>(bs->Position()) - sizeof(UByte);
         utf::printf(UTF8_CSTR("unknown instruction '%d' referenced at location: 0x%" PRIx64 "\n"), code, last_pos);
         // seek to end of bytecode stream
         bs->Seek(bs->Size());
@@ -875,7 +875,7 @@ void VM::PushNativeFunctionPtr(NativeFunctionPtr_t ptr)
 void VM::Invoke(
     InstructionHandler *handler,
     const Value &value,
-    uint8_t nargs
+    UInt8 nargs
 )
 {
     VMState *state = handler->state;
@@ -888,14 +888,14 @@ void VM::Invoke(
 
     if (value.m_type != Value::FUNCTION) {
         if (value.m_type == Value::NATIVE_FUNCTION) {
-            Value **args = new Value*[nargs > 0 ? nargs : 1];
+            auto **args = new Value*[nargs > 0 ? nargs : 1];
 
-            int i = (int)thread->m_stack.GetStackPointer() - 1;
+            Int64 i = static_cast<Int64>(thread->m_stack.GetStackPointer()) - 1;
             for (int j = nargs - 1; j >= 0 && i >= 0; i--, j--) {
                 args[j] = &thread->m_stack[i];
             }
 
-            hyperion::sdk::Params params;
+            sdk::Params params;
             params.handler = handler;
             params.args = args;
             params.nargs = nargs;
@@ -921,8 +921,8 @@ void VM::Invoke(
                 return;
             } else if (Object *object = value.m_value.ptr->GetPointer<Object>()) {
                 if (Member *member = object->LookupMemberFromHash(hash_fnv_1("$invoke"))) {
-                    const int sp = (int)thread->m_stack.GetStackPointer();
-                    const int args_start = sp - nargs;
+                    const Int64 sp         = static_cast<Int64>(thread->m_stack.GetStackPointer());
+                    const Int64 args_start = sp - nargs;
 
                     if (nargs > 0) {
                         // shift over by 1 -- and insert 'self' to start of args
@@ -995,7 +995,7 @@ void VM::Invoke(
         Value previous_addr;
         previous_addr.m_type = Value::FUNCTION_CALL;
         previous_addr.m_value.call.varargs_push = 0;
-        previous_addr.m_value.call.return_address = (uint32_t)bs->Position();
+        previous_addr.m_value.call.return_address = static_cast<BCAddress>(bs->Position());
 
         if (value.m_value.func.m_flags & FunctionFlags::VARIADIC) {
             // for each argument that is over the expected size, we must pop it from
@@ -1047,11 +1047,12 @@ void VM::Invoke(
 void VM::InvokeNow(
     BytecodeStream *bs,
     const Value &value,
-    uint8_t nargs
+    UInt8 nargs
 )
 {
     auto *thread = m_state.MAIN_THREAD;
-    const uint32_t original_function_depth = thread->m_func_depth;
+    const UInt original_function_depth = thread->m_func_depth;
+    const size_t stack_size_before = thread->GetStack().GetStackPointer();
 
     InstructionHandler handler(
         &m_state,
@@ -1066,7 +1067,7 @@ void VM::InvokeNow(
     );
 
     if (value.m_type == Value::FUNCTION) { // don't do this for native function calls
-        uint8_t code;
+        UByte code;
 
         while (!bs->Eof()) {
             bs->Read(&code);
@@ -1078,11 +1079,14 @@ void VM::InvokeNow(
             );
 
             if (handler.thread->GetExceptionState().HasExceptionOccurred()) {
-                HandleException(&handler);
+                if (!HandleException(&handler)) {
+                    thread->GetStack().Pop(thread->GetStack().GetStackPointer() - stack_size_before);
 
-                if (!handler.state->good) {
                     break;
                 }
+
+                //if (!handler.state->good) {
+                //}
             }
 
             if (code == RET) {
@@ -1096,10 +1100,10 @@ void VM::InvokeNow(
 
 void VM::CreateStackTrace(ExecutionThread *thread, StackTrace *out)
 {
-    const size_t max_stack_trace_size = sizeof(out->call_addresses) / sizeof(out->call_addresses[0]);
+    const size_t max_stack_trace_size = std::size(out->call_addresses);
 
-    for (size_t i = 0; i < max_stack_trace_size; i++) {
-        out->call_addresses[i] = -1;
+    for (auto &call_addresse : out->call_addresses) {
+        call_addresse = -1;
     }
 
     size_t num_recorded_call_addresses = 0;
@@ -1112,12 +1116,12 @@ void VM::CreateStackTrace(ExecutionThread *thread, StackTrace *out)
         const Value &top = thread->m_stack[sp - 1];
 
         if (top.m_type == Value::FUNCTION_CALL) {
-            out->call_addresses[num_recorded_call_addresses++] = (int)top.m_value.call.return_address;
+            out->call_addresses[num_recorded_call_addresses++] = static_cast<int>(top.m_value.call.return_address);
         }
     }
 }
 
-void VM::HandleException(InstructionHandler *handler)
+bool VM::HandleException(InstructionHandler *handler)
 {
     ExecutionThread *thread = handler->thread;
     BytecodeStream *bs = handler->bs;
@@ -1127,12 +1131,12 @@ void VM::HandleException(InstructionHandler *handler)
 
     std::cout << "stack_trace = \n";
 
-    for (int i = 0; i < sizeof(stack_trace.call_addresses) / sizeof(stack_trace.call_addresses[0]); i++) {
-        if (stack_trace.call_addresses[i] == -1) {
+    for (auto call_addresse : stack_trace.call_addresses) {
+        if (call_addresse == -1) {
             break;
         }
         
-        std::cout << "\t" << std::hex << stack_trace.call_addresses[i] << "\n";
+        std::cout << "\t" << std::hex << call_addresse << "\n";
     }
 
     std::cout << "=====\n";
@@ -1156,7 +1160,11 @@ void VM::HandleException(InstructionHandler *handler)
 
         // pop exception data from stack
         thread->m_stack.Pop();
+
+        return true;
     }
+
+    return false;
 }
 
 void VM::Execute(BytecodeStream *bs)
@@ -1170,7 +1178,7 @@ void VM::Execute(BytecodeStream *bs)
         bs
     );
 
-    uint8_t code;
+    UByte code;
 
     while (!bs->Eof()) {
         bs->Read(&code);

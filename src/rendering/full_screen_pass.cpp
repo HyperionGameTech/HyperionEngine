@@ -1,5 +1,6 @@
 #include "./full_screen_pass.h"
 #include <engine.h>
+#include <types.h>
 
 #include <asset/byte_reader.h>
 #include <util/fs/fs_util.h>
@@ -22,11 +23,11 @@ FullScreenPass::FullScreenPass()
 }
 
 FullScreenPass::FullScreenPass(Ref<Shader> &&shader)
-    : FullScreenPass(std::move(shader), DescriptorKey::POST_FX_PRE_STACK, ~0)
+    : FullScreenPass(std::move(shader), DescriptorKey::POST_FX_PRE_STACK, ~0u)
 {
 }
 
-FullScreenPass::FullScreenPass(Ref<Shader> &&shader, DescriptorKey descriptor_key, uint sub_descriptor_index)
+FullScreenPass::FullScreenPass(Ref<Shader> &&shader, DescriptorKey descriptor_key, UInt sub_descriptor_index)
     : m_shader(std::move(shader)),
       m_descriptor_key(descriptor_key),
       m_sub_descriptor_index(sub_descriptor_index)
@@ -112,12 +113,12 @@ void FullScreenPass::CreatePerFrameData(Engine *engine)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    const uint32_t num_frames = engine->GetInstance()->GetFrameHandler()->NumFrames();
+    const UInt32 num_frames = engine->GetInstance()->GetFrameHandler()->NumFrames();
 
     m_frame_data = std::make_unique<PerFrameData<CommandBuffer>>(num_frames);
 
     //engine->render_scheduler.Enqueue([this, engine, num_frames](...) {
-        for (uint32_t i = 0; i < num_frames; i++) {
+        for (UInt32 i = 0; i < num_frames; i++) {
             auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
             HYPERION_ASSERT_RESULT(command_buffer->Create(
@@ -146,7 +147,7 @@ void FullScreenPass::CreateDescriptors(Engine *engine)
             AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
 
             for (auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                m_sub_descriptor_index = descriptor->AddSubDescriptor({
+                m_sub_descriptor_index = descriptor->SetSubDescriptor({
                     .element_index = m_sub_descriptor_index,
                     .image_view    = attachment_ref->GetImageView(),
                     .sampler       = attachment_ref->GetSampler()
@@ -205,7 +206,7 @@ void FullScreenPass::Destroy(Engine *engine)
     engine->render_scheduler.Enqueue([this, engine, &frame_data = *m_frame_data](...) {
         auto result = renderer::Result::OK;
 
-        for (uint32_t i = 0; i < frame_data.NumFrames(); i++) {
+        for (UInt32 i = 0; i < frame_data.NumFrames(); i++) {
             HYPERION_PASS_ERRORS(
                 frame_data[i].Get<CommandBuffer>()->Destroy(
                     engine->GetInstance()->GetDevice(),
@@ -229,13 +230,11 @@ void FullScreenPass::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE(engine);
 }
 
-void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
+void FullScreenPass::Record(Engine *engine, UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     using renderer::Result;
-
-    auto result = Result::OK;
 
     auto *command_buffer = m_frame_data->At(frame_index).Get<CommandBuffer>();
 
@@ -262,7 +261,7 @@ void FullScreenPass::Record(Engine *engine, uint32_t frame_index)
                     {
                         {.set = DescriptorSet::scene_buffer_mapping[frame_index], .count = 1},
                         {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
-                        {.offsets = {uint32_t(0 * sizeof(SceneShaderData))}} /* TODO: scene index */
+                        {.offsets = {UInt32(0 * sizeof(SceneShaderData))}} /* TODO: scene index */
                     }
                 ));
                 

@@ -5,7 +5,7 @@
 
 namespace hyperion {
 
-constexpr uint max_frames_in_flight = 2;
+constexpr UInt max_frames_in_flight = 2;
 
 template <class ...T>
 constexpr bool resolution_failure = false;

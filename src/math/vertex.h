@@ -23,7 +23,7 @@ public:
         : num_indices(0),
           num_weights(0)
     {
-        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -34,7 +34,7 @@ public:
           num_indices(0),
           num_weights(0)
     {
-        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -46,7 +46,7 @@ public:
           num_indices(0),
           num_weights(0)
     {
-        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -59,7 +59,7 @@ public:
           num_indices(0),
           num_weights(0)
     {
-        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
             bone_indices[i] = 0;
             bone_weights[i] = 0;
         }
@@ -121,11 +121,11 @@ public:
         hc.Add(num_indices);
         hc.Add(num_weights);
 
-        for (uint i = 0; i < MAX_BONE_INDICES; i++) {
+        for (UInt i = 0; i < MAX_BONE_INDICES; i++) {
             hc.Add(bone_indices[i]);
         }
 
-        for (uint i = 0; i < MAX_BONE_WEIGHTS; i++) {
+        for (UInt i = 0; i < MAX_BONE_WEIGHTS; i++) {
             hc.Add(bone_weights[i]);
         }
 
@@ -143,8 +143,8 @@ private:
     uint8_t num_indices,
             num_weights;
 
-    std::array<float, MAX_BONE_WEIGHTS> bone_weights;
-    std::array<int, MAX_BONE_INDICES>   bone_indices;
+    std::array<Float, MAX_BONE_WEIGHTS> bone_weights;
+    std::array<UInt,  MAX_BONE_INDICES> bone_indices;
 };
 
 } // namespace hyperion

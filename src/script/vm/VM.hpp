@@ -5,6 +5,8 @@
 #include <script/vm/VMState.hpp>
 #include <script/vm/StackTrace.hpp>
 
+#include <types.h>
+
 #include <array>
 #include <limits>
 #include <cstdint>
@@ -40,19 +42,19 @@ public:
     static void Invoke(
         InstructionHandler *handler,
         const Value &value,
-        uint8_t nargs
+        UInt8 nargs
     );
 
     void InvokeNow(
         BytecodeStream *bs,
         const Value &value,
-        uint8_t nargs
+        UInt8 nargs
     );
 
     void Execute(BytecodeStream *bs);
 
 private:
-    void HandleException(InstructionHandler *handler);
+    bool HandleException(InstructionHandler *handler);
     void CreateStackTrace(ExecutionThread *thread, StackTrace *out);
 
     VMState m_state;

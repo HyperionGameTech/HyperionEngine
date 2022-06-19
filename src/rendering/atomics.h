@@ -5,6 +5,8 @@
 #include <rendering/backend/renderer_fence.h>
 #include <rendering/backend/renderer_buffer.h>
 
+#include <types.h>
+
 #include <atomic>
 
 namespace hyperion::v2 {
@@ -19,6 +21,8 @@ class Engine;
 
 class AtomicCounter {
 public:
+    using CountType = UInt32;
+
     AtomicCounter();
     AtomicCounter(const AtomicCounter &other) = delete;
     AtomicCounter &operator=(const AtomicCounter &other) = delete;
@@ -29,8 +33,8 @@ public:
     void Create(Engine *engine);
     void Destroy(Engine *engine);
 
-    void Reset(Engine *engine, uint32_t value = 0);
-    uint32_t Read(Engine *engine) const;
+    void Reset(Engine *engine, CountType value = 0);
+    CountType Read(Engine *engine) const;
 
 private:
     std::unique_ptr<AtomicCounterBuffer> m_buffer;

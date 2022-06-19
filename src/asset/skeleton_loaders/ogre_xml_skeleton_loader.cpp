@@ -69,7 +69,7 @@ public:
     {
         if (name == "bone") {
             std::string bone_name = attributes.at("name");
-            auto id = StringUtil::Parse<uint>(attributes.at("id"));
+            auto id = StringUtil::Parse<UInt>(attributes.at("id"));
 
             m_object.bones.push_back({
                 .name = bone_name,

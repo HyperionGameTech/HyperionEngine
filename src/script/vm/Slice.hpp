@@ -11,14 +11,16 @@ namespace vm {
 
 class Slice {
 public:
-    Slice(Array *ary, std::size_t start, std::size_t end);
+    using SizeType = Array::SizeType;
+
+    Slice(Array *ary, SizeType start, SizeType end);
     Slice(const Slice &other);
 
     Slice &operator=(const Slice &other);
     inline bool operator==(const Slice &other) const { return this == &other; }
 
-    inline std::size_t GetSize() const { return m_end - m_start; }
-    inline Value &AtIndex(int index) { return m_ary->AtIndex(m_start + index); }
+    inline SizeType GetSize() const              { return m_end - m_start; }
+    inline Value &AtIndex(int index)             { return m_ary->AtIndex(m_start + index); }
     inline const Value &AtIndex(int index) const { return m_ary->AtIndex(m_start + index); }
 
     void GetRepresentation(
@@ -29,8 +31,8 @@ public:
 
 private:
     Array *m_ary;
-    std::size_t m_start;
-    std::size_t m_end;
+    SizeType m_start;
+    SizeType m_end;
 };
 
 }

@@ -6,7 +6,7 @@ project(${BUILD_NAME} CXX C)
 
 if(MSVC)
     #set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MDd")
-    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
+    set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2 /D /Zi")
     #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
 
     # set to path of vcpkg

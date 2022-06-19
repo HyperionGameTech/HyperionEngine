@@ -1,5 +1,6 @@
 #include "atomics.h"
 #include "../engine.h"
+#include <types.h>
 
 namespace hyperion::v2 {
 
@@ -17,7 +18,7 @@ void AtomicCounter::Create(Engine *engine)
     AssertThrow(m_buffer == nullptr);
 
     m_buffer = std::make_unique<AtomicCounterBuffer>();
-    HYPERION_ASSERT_RESULT(m_buffer->Create(engine->GetInstance()->GetDevice(), sizeof(uint32_t)));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(engine->GetInstance()->GetDevice(), sizeof(UInt32)));
 }
 
 void AtomicCounter::Destroy(Engine *engine)
@@ -28,7 +29,7 @@ void AtomicCounter::Destroy(Engine *engine)
     m_buffer.reset();
 }
 
-void AtomicCounter::Reset(Engine *engine, uint32_t value)
+void AtomicCounter::Reset(Engine *engine, CountType value)
 {
     HYPERION_ASSERT_RESULT(engine->GetInstance()->GetStagingBufferPool().Use(
         engine->GetInstance()->GetDevice(),
@@ -50,9 +51,9 @@ void AtomicCounter::Reset(Engine *engine, uint32_t value)
     ));
 }
 
-uint32_t AtomicCounter::Read(Engine *engine) const
+auto AtomicCounter::Read(Engine *engine) const -> CountType
 {
-    auto result = MathUtil::MaxSafeValue<uint32_t>();
+    auto result = MathUtil::MaxSafeValue<CountType>();
 
     HYPERION_ASSERT_RESULT(engine->GetInstance()->GetStagingBufferPool().Use(
         engine->GetInstance()->GetDevice(),

@@ -36,8 +36,6 @@ public:
     virtual void OnFrameEnd(Engine *engine, Frame *frame) = 0;
     virtual void Logic(Engine *engine, GameCounter::TickUnit delta) = 0;
 
-protected:
-
 private:
     bool m_is_init;
 };

@@ -30,7 +30,7 @@ using renderer::AccelerationGeometry;
 
 class Mesh : public EngineComponentBase<STUB_CLASS(Mesh)> {
 public:
-    using Index = uint32_t;
+    using Index = UInt32;
 
     enum Flags {
         MESH_FLAGS_NONE = 0,
@@ -62,7 +62,7 @@ public:
     inline const std::vector<Vertex> &GetVertices() const        { return m_vertices; }
     inline const std::vector<Index> &GetIndices() const          { return m_indices; }
 
-    const VertexAttributeSet &GetVertexAttributes() const     { return m_vertex_attributes; }
+    const VertexAttributeSet &GetVertexAttributes() const        { return m_vertex_attributes; }
 
     Flags GetFlags() const                                       { return m_flags; }
     inline void SetFlags(Flags flags)                            { m_flags = flags; }

@@ -28,7 +28,7 @@ public:
     HYP_FORCE_INLINE void Wait() const     { m_semaphore.BlockUntilZero(); }
 
 private:
-    AtomicSemaphore<uint> m_semaphore;
+    AtomicSemaphore<UInt> m_semaphore;
 };
 
 class AtomicLocker {

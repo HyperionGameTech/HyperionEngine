@@ -212,8 +212,8 @@ Node *Node::Select(const char *selector)
     char ch;
 
     char buffer[256];
-    uint32_t buffer_index = 0;
-    uint32_t selector_index = 0;
+    UInt32 buffer_index = 0;
+    UInt32 selector_index = 0;
 
     Node *search_node = this;
 
