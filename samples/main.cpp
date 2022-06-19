@@ -29,7 +29,7 @@
 
 #include <util/fs/fs_util.h>
 
-#include "input_manager.h"
+#include <input/input_manager.h>
 #include <camera/fps_camera.h>
 #include <camera/follow_camera.h>
 
