@@ -38,19 +38,19 @@ struct CameraCommand {
     };
 
     union {
-        struct MagData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+        struct {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
             int mouse_x = 0,
                 mouse_y = 0;
             float mx = 0.0f,
                   my = 0.0f; // in range -0.5f, 0.5f
         } mag_data;
 
-        struct ScrollData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+        struct {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
             int wheel_x = 0,
                 wheel_y = 0;
         } scroll_data;
 
-        struct MovementData {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
+        struct {  // NOLINT(clang-diagnostic-microsoft-anon-tag)
             MovementType movement_type = CAMERA_MOVEMENT_NONE;
             float amount               = 1.0f;
         } movement_data;

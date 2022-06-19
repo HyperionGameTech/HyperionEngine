@@ -26,7 +26,7 @@ class Environment : public EngineComponentBase<STUB_CLASS(Environment)> {
     using ShadowRendererPtr = std::unique_ptr<ShadowRenderer>;
 
 public:
-    static constexpr UInt max_shadow_maps = 8;
+    static constexpr UInt max_shadow_maps = 1; /* tmp */
 
     Environment();
     Environment(const Environment &other) = delete;

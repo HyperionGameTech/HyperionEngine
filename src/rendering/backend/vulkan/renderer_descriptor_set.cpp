@@ -632,15 +632,31 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
 
 Result DescriptorPool::UpdateDescriptorSets(Device *device, UInt frame_index)
 {
-    for (auto &m_descriptor_set : m_descriptor_sets) {
-        if (m_descriptor_set->GetState() == DescriptorSetState::DESCRIPTOR_CLEAN) {
+    for (auto &descriptor_set : m_descriptor_sets) {
+        if (descriptor_set == nullptr) {
             continue;
         }
 
-        const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(m_descriptor_set->GetRealIndex());
+        if (descriptor_set->GetState() == DescriptorSetState::DESCRIPTOR_CLEAN) {
+            continue;
+        }
+
+        const auto slot  = DescriptorSet::GetBaseIndex(descriptor_set->GetIndex());
+
+#if HYP_FEATURES_BINDLESS_TEXTURES
+        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+            continue;
+        }
+#else
+        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS) {
+            continue;
+        }
+#endif
+
+        const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(descriptor_set->GetRealIndex());
 
         if (descriptor_set_frame_index == static_cast<int>(frame_index) || descriptor_set_frame_index == -1) {
-            m_descriptor_set->ApplyUpdates(device);
+            descriptor_set->ApplyUpdates(device);
         }
     }
 

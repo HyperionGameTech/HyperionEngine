@@ -5,6 +5,7 @@
 
 #include <rendering/post_fx.h>
 #include <rendering/compute.h>
+#include <rendering/environment.h>
 
 #include <rendering/backend/renderer_features.h>
 
@@ -393,7 +394,7 @@ void Engine::Initialize()
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
         
-        for (UInt i = 0; i < max_shadow_maps; i++) {
+        for (UInt i = 0; i < Environment::max_shadow_maps; i++) {
             shadow_map_descriptor->SetSubDescriptor({
                 .element_index = i,
                 .image_view    = &GetDummyData().GetImageView2D1x1R8(),

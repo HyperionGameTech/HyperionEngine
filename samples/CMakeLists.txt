@@ -47,7 +47,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
-set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
+
+if(MSVC)
+    set_property(TARGET ${BUILD_NAME} APPEND PROPERTY LINK_FLAGS /DEBUG)
+endif()
 
 
 set(COMMON_LIBRARIES
