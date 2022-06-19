@@ -1,14 +1,17 @@
 #include "input_manager.h"
+
+#include <threads.h>
+
 #include <iostream>
 #include <string.h>
 
 namespace hyperion {
 
+using namespace v2;
+
 InputManager::InputManager(SystemWindow *window)
     : window(window)
 {
-    mouse_x = 0.0;
-    mouse_y = 0.0;
 }
 
 InputManager::~InputManager()
@@ -17,6 +20,8 @@ InputManager::~InputManager()
 
 void InputManager::CheckEvent(SystemEvent *event)
 {
+    Threads::AssertOnThread(THREAD_INPUT);
+
     switch (event->GetType()) {
         case SystemEventType::EVENT_KEYDOWN:
             this->KeyDown(event->GetKeyCode());
@@ -40,12 +45,14 @@ void InputManager::CheckEvent(SystemEvent *event)
 
 void InputManager::UpdateMousePosition()
 {
+    Threads::AssertOnThread(THREAD_INPUT);
+
     int mx, my;
 
-    this->GetMousePosition(&mx, &my);
+    GetWindow()->GetMouseState(&mx, &my);
 
-    mouse_x = static_cast<double>(mx);
-    mouse_y = static_cast<double>(my);
+    m_mouse_position.mx.store(mx);
+    m_mouse_position.my.store(my);
 }
 
 void InputManager::SetKey(int key, bool pressed)

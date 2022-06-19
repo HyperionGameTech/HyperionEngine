@@ -679,10 +679,12 @@ int main()
                 }
                 case SystemEventType::EVENT_MOUSEMOTION:
                 {
-                    int mouse_x, mouse_y;
-                    float mx, my;
+                    const auto &mouse_position = my_game.input_manager->GetMousePosition();
 
-                    my_game.input_manager->GetMousePosition(&mouse_x, &mouse_y);
+                    int mouse_x = mouse_position.mx.load(),
+                        mouse_y = mouse_position.my.load();
+
+                    float mx, my;
 
                     int window_width, window_height;
                     my_game.input_manager->GetWindow()->GetSize(&window_width, &window_height);

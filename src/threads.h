@@ -15,6 +15,7 @@ using ThreadMask = UInt;
 enum ThreadName : ThreadMask {
     THREAD_MAIN   = 0x01,
     THREAD_RENDER = 0x01, // for now
+    THREAD_INPUT  = 0x01, // for now
     THREAD_GAME   = 0x02
 };
 

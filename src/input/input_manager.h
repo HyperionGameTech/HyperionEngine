@@ -14,6 +14,11 @@
 
 namespace hyperion {
 
+struct MousePosition {
+    std::atomic_int mx{0};
+    std::atomic_int my{0};
+};
+
 struct InputState {
     struct KeyState {
         std::atomic_bool is_pressed{false};
@@ -34,29 +39,30 @@ public:
 
     void CheckEvent(SystemEvent *event);
 
-    void GetMousePosition(int *x, int *y)        { GetWindow()->GetMouseState(x, y); }
-    void SetMousePosition(int x,  int y)         { GetWindow()->SetMousePosition(x, y); }
+    MousePosition &GetMousePosition()             { return m_mouse_position; }
+    const MousePosition &GetMousePosition() const { return m_mouse_position; }
 
-    void KeyDown(int key)                        { SetKey(key, true); }
-    void KeyUp(int key)                          { SetKey(key, false); }
+    void SetMousePosition(int x,  int y)          { GetWindow()->SetMousePosition(x, y); }
 
-    void MouseButtonDown(int btn)                { SetMouseButton(btn, true); }
-    void MouseButtonUp(int btn)                  { SetMouseButton(btn, false); }
-    void MouseMove(double x, double y)           { mouse_x = x; mouse_y = y; }
+    void KeyDown(int key)                         { SetKey(key, true); }
+    void KeyUp(int key)                           { SetKey(key, false); }
+
+    void MouseButtonDown(int btn)                 { SetMouseButton(btn, true); }
+    void MouseButtonUp(int btn)                   { SetMouseButton(btn, false); }
 
     void UpdateMousePosition();
 
     bool IsKeyDown(int key) const;
-    bool IsKeyUp(int key) const                  { return !IsKeyDown(key); }
+    bool IsKeyUp(int key) const                   { return !IsKeyDown(key); }
     bool IsButtonDown(int btn) const;  
-    bool IsButtonUp(int btn) const               { return !IsButtonDown(btn); }
+    bool IsButtonUp(int btn) const                { return !IsButtonDown(btn); }
 
-    void SetWindow(SystemWindow *_window)        { this->window = _window; };
-    SystemWindow *GetWindow()                    { return this->window; };
+    void SetWindow(SystemWindow *_window)         { this->window = _window; };
+    SystemWindow *GetWindow()                     { return this->window; };
 
 private:
-    InputState m_input_state;
-    double mouse_x, mouse_y;
+    InputState    m_input_state;
+    MousePosition m_mouse_position;
 
     SystemWindow *window = nullptr;
 
