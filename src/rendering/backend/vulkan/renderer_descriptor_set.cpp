@@ -179,7 +179,7 @@ UInt DescriptorSet::GetDesiredIndex(Index index)
         return static_cast<UInt>(index);
     }
 
-    return *it;
+    return it->second;
 }
 
 DescriptorSet::DescriptorSet(Index index, UInt real_index, bool bindless)

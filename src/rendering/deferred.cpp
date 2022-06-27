@@ -107,40 +107,41 @@ void DeferredRenderer::Create(Engine *engine)
         auto *descriptor_set_pass = engine->GetInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
 
-    /* Albedo texture */
-    descriptor_set_pass
-        ->AddDescriptor<ImageDescriptor>(0)
-        ->SetSubDescriptor({
-            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
-        });
+        /* Albedo texture */
+        descriptor_set_pass
+            ->AddDescriptor<ImageDescriptor>(0)
+            ->SetSubDescriptor({
+                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
+            });
 
-    /* Normals texture*/
-    descriptor_set_pass
-        ->GetDescriptor(0)
-        ->SetSubDescriptor({
-            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetImageView()
-        });
+        /* Normals texture*/
+        descriptor_set_pass
+            ->GetDescriptor(0)
+            ->SetSubDescriptor({
+                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetImageView()
+            });
 
-    /* Position texture */
-    descriptor_set_pass
-        ->GetDescriptor(0)
-        ->SetSubDescriptor({
-            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetImageView()
-        });
+        /* Position texture */
+        descriptor_set_pass
+            ->GetDescriptor(0)
+            ->SetSubDescriptor({
+                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetImageView()
+            });
 
-    /* Material ID */
-    descriptor_set_pass
-        ->GetDescriptor(0)
-        ->SetSubDescriptor({
-            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetImageView()
-        });
+        /* Material ID */
+        descriptor_set_pass
+            ->GetDescriptor(0)
+            ->SetSubDescriptor({
+                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetImageView()
+            });
 
-    /* Depth texture */
-    descriptor_set_pass
-        ->AddDescriptor<ImageDescriptor>(1)
-        ->SetSubDescriptor({
-            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView()
-        });
+        /* Depth texture */
+        descriptor_set_pass
+            ->AddDescriptor<ImageDescriptor>(1)
+            ->SetSubDescriptor({
+                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView()
+            });
+    }
     
     m_pass.CreateDescriptors(engine);
 

@@ -14,8 +14,8 @@ class SparseMap {
     std::vector<std::pair<Key, Value>> m_tmp_vector;
 
 public:
-    using Iterator      = std::vector<Value>::iterator;
-    using ConstIterator = std::vector<Value>::const_iterator;
+    using Iterator      = typename std::vector<Value>::iterator;
+    using ConstIterator = typename std::vector<Value>::const_iterator;
     using InsertResult  = std::pair<Iterator, bool>; // iterator, was inserted
 
     SparseMap();

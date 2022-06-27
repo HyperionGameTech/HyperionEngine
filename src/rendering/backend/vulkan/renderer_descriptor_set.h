@@ -241,7 +241,7 @@ public:
     static constexpr UInt max_material_texture_samplers        = 16;
 
     static const std::map<Index, std::map<DescriptorKey, UInt>> mappings;
-    static const SparseMap<Index, UInt> desired_indices;
+    static const FlatMap<Index, UInt> desired_indices;
     static Index GetBaseIndex(UInt index); // map index to the real index used (this is per-frame stuff)
     static Index GetPerFrameIndex(Index index, UInt frame_index);
     static Index GetPerFrameIndex(Index index, UInt instance_index, UInt frame_index);
