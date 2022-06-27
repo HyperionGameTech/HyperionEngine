@@ -20,6 +20,7 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
         {
             {DescriptorKey::GBUFFER_TEXTURES,   0},
             {DescriptorKey::GBUFFER_DEPTH,      1},
+            {DescriptorKey::GBUFFER_SAMPLER,    3},
             {DescriptorKey::DEFERRED_RESULT,    4},
             {DescriptorKey::POST_FX_PRE_STACK,  8},
             {DescriptorKey::POST_FX_POST_STACK, 9},
@@ -66,8 +67,8 @@ const decltype(DescriptorSet::desired_indices) DescriptorSet::desired_indices = 
     { DESCRIPTOR_SET_INDEX_GLOBAL,            1 },
     { DESCRIPTOR_SET_INDEX_SCENE,             2 },
     { DESCRIPTOR_SET_INDEX_OBJECT,            3 },
-    { DESCRIPTOR_SET_INDEX_SCENE_FRAME_1,     4 },
-    { DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1,    5 },
+    { DESCRIPTOR_SET_INDEX_SCENE_FRAME_1,     6 },
+    { DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1,    7 },
 #if HYP_FEATURES_BINDLESS_TEXTURES
     { DESCRIPTOR_SET_INDEX_BINDLESS,          6 },
     { DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1,  7 }, 
@@ -75,10 +76,10 @@ const decltype(DescriptorSet::desired_indices) DescriptorSet::desired_indices = 
     { DESCRIPTOR_SET_INDEX_RAYTRACING,        9 },
     { DESCRIPTOR_SET_INDEX_GLOBAL_FRAME_1,    10 }
 #else
-    { DESCRIPTOR_SET_INDEX_VOXELIZER,         6 },
-    { DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, 7 },
-    { DESCRIPTOR_SET_INDEX_RAYTRACING,        8 }, // todo: fix this crap up
-    { DESCRIPTOR_SET_INDEX_GLOBAL_FRAME_1,    9 }
+    { DESCRIPTOR_SET_INDEX_VOXELIZER,         4 },
+    { DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, 5 },
+    { DESCRIPTOR_SET_INDEX_GLOBAL_FRAME_1,    8 }
+    //{ DESCRIPTOR_SET_INDEX_RAYTRACING,        8 } // todo: fix this crap up
 #endif
 };
 

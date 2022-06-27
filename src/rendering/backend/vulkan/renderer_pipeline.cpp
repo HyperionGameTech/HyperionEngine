@@ -43,9 +43,6 @@ std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *dev
         pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL),
         pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE),
         pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT),
-        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL_FRAME_1),
-        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1),
-        pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1),
         pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_VOXELIZER),
         pool_layouts.At(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES)
     };

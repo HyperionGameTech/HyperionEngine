@@ -6,6 +6,7 @@
 
 namespace hyperion::v2 {
 
+using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
 
@@ -52,7 +53,7 @@ void DeferredPass::CreateDescriptors(Engine *engine)
                 descriptor->SetSubDescriptor({
                     .element_index = ~0u,
                     .image_view    = attachment_ref->GetImageView(),
-                    .sampler       = attachment_ref->GetSampler()
+                    .sampler       = attachment_ref->GetSampler(),
                 });
             }
         }
@@ -93,8 +94,6 @@ void DeferredRenderer::Create(Engine *engine)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    using renderer::ImageSamplerDescriptor;
-
     m_post_processing.Create(engine);
 
     m_pass.CreateShader(engine);
@@ -108,46 +107,40 @@ void DeferredRenderer::Create(Engine *engine)
         auto *descriptor_set_pass = engine->GetInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
 
-        /* Albedo texture */
-        descriptor_set_pass
-            ->AddDescriptor<ImageSamplerDescriptor>(0)
-            ->SetSubDescriptor({
-                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView(),
-                .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetSampler()
-            });
+    /* Albedo texture */
+    descriptor_set_pass
+        ->AddDescriptor<ImageDescriptor>(0)
+        ->SetSubDescriptor({
+            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
+        });
 
-        /* Normals texture*/
-        descriptor_set_pass
-            ->GetDescriptor(0)
-            ->SetSubDescriptor({
-                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetImageView(),
-                .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetSampler()
-            });
+    /* Normals texture*/
+    descriptor_set_pass
+        ->GetDescriptor(0)
+        ->SetSubDescriptor({
+            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[1]->GetImageView()
+        });
 
-        /* Position texture */
-        descriptor_set_pass
-            ->GetDescriptor(0)
-            ->SetSubDescriptor({
-                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetImageView(),
-                .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetSampler()
-            });
+    /* Position texture */
+    descriptor_set_pass
+        ->GetDescriptor(0)
+        ->SetSubDescriptor({
+            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[2]->GetImageView()
+        });
 
-        /* Material ID */
-        descriptor_set_pass
-            ->GetDescriptor(0)
-            ->SetSubDescriptor({
-                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetImageView(),
-                .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetSampler()
-            });
+    /* Material ID */
+    descriptor_set_pass
+        ->GetDescriptor(0)
+        ->SetSubDescriptor({
+            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[3]->GetImageView()
+        });
 
-        /* Depth texture */
-        descriptor_set_pass
-            ->AddDescriptor<ImageSamplerDescriptor>(1)
-            ->SetSubDescriptor({
-                .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView(),
-                .sampler    = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetSampler()
-            });
-    }
+    /* Depth texture */
+    descriptor_set_pass
+        ->AddDescriptor<ImageDescriptor>(1)
+        ->SetSubDescriptor({
+            .image_view = opaque_fbo->GetFramebuffer().GetAttachmentRefs()[4]->GetImageView()
+        });
     
     m_pass.CreateDescriptors(engine);
 
