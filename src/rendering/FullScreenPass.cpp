@@ -246,6 +246,9 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
             m_pipeline->GetPipeline()->push_constants = m_push_constant_data;
             m_pipeline->GetPipeline()->Bind(cmd);
 
+            const auto scene_binding = engine->render_state.GetScene();
+            const auto scene_index   = scene_binding ? scene_binding.id.value - 1 : 0;
+
             cmd->BindDescriptorSet(
                 engine->GetInstance()->GetDescriptorPool(),
                 m_pipeline->GetPipeline(),
@@ -259,7 +262,7 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
-                    UInt32(sizeof(SceneShaderData) * 0),
+                    UInt32(sizeof(SceneShaderData) * scene_index),
                     UInt32(sizeof(LightShaderData) * 0)
                 }
             );

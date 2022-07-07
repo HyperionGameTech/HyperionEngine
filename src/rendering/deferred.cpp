@@ -143,6 +143,9 @@ void DeferredPass::Record(Engine *engine, UInt frame_index)
             m_pipeline->GetPipeline()->push_constants = m_push_constant_data;
             m_pipeline->GetPipeline()->Bind(cmd);
 
+            const auto scene_binding = engine->render_state.GetScene();
+            const auto scene_index   = scene_binding ? scene_binding.id.value - 1 : 0;
+
             cmd->BindDescriptorSet(
                 engine->GetInstance()->GetDescriptorPool(),
                 m_pipeline->GetPipeline(),
@@ -178,7 +181,7 @@ void DeferredPass::Record(Engine *engine, UInt frame_index)
                     DescriptorSet::scene_buffer_mapping[frame_index],
                     DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                     FixedArray {
-                        UInt32(sizeof(SceneShaderData) * 0),
+                        UInt32(sizeof(SceneShaderData) * scene_index),
                         UInt32(sizeof(LightShaderData) * (light_id.value - 1))
                     }
                 );
@@ -219,9 +222,9 @@ void DeferredRenderer::Create(Engine *engine)
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_mipmapped_results[i] = engine->resources.textures.Add(std::make_unique<Texture2D>(
             Extent2D { 512, 512 },
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
             Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-            Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER,
+            Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         ));
 
@@ -472,11 +475,17 @@ void DeferredRenderer::Render(Engine *engine, Frame *frame)
     // start by putting the UV image in a writeable state
     const Pipeline::PushConstantData ssr_push_constant_data {
         .ssr_data = {
-            .width            = mipmapped_result.GetExtent().width,
-            .height           = mipmapped_result.GetExtent().height,
-            .ray_step         = 0.45f,
-            .num_iterations   = 100.0f,
-            .max_ray_distance = 128.0f
+            .width                  = mipmapped_result.GetExtent().width,
+            .height                 = mipmapped_result.GetExtent().height,
+            .ray_step               = 0.65f,
+            .num_iterations         = 100.0f,
+            .max_ray_distance       = 128.0f,
+            .distance_bias          = 0.001f,
+            .offset                 = 0.01f,
+            .eye_fade_start         = 0.75f,
+            .eye_fade_end           = 0.95f,
+            .screen_edge_fade_start = 0.75f,
+            .screen_edge_fade_end   = 0.9f
         }
     };
 

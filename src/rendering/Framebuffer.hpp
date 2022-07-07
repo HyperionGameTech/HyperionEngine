@@ -4,7 +4,7 @@
 #include "Base.hpp"
 #include "RenderPass.hpp"
 
-#include <rendering/backend/RendererFbo.hpp>
+#include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 namespace hyperion::v2 {

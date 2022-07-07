@@ -1,4 +1,4 @@
-#include "FpsCamera.hpp"
+#include "FirstPersonCamera.hpp"
 
 namespace hyperion {
 FpsCamera::FpsCamera(int width, int height, float fov, float _near, float _far)

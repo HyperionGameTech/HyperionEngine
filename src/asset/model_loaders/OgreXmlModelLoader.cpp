@@ -1,8 +1,8 @@
-#include "OgreXmlModelLoader.hpp"
+#include "OgreXMLModelLoader.hpp"
 #include <scene/controllers/AnimationController.hpp>
 #include <Engine.hpp>
 
-#include <util/xml/SaxParser.hpp>
+#include <util/xml/SAXParser.hpp>
 
 #include <algorithm>
 

@@ -14,7 +14,7 @@
 #include <Constants.hpp>
 #include <Types.hpp>
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <memory>
 #include <array>

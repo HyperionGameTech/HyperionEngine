@@ -1,11 +1,11 @@
-#include "OgreXmlSkeletonLoader.hpp"
+#include "OgreXMLSkeletonLoader.hpp"
 #include <Engine.hpp>
 #include <animation/Skeleton.hpp>
 #include <animation/Bone.hpp>
 
 #include <Types.hpp>
 
-#include <util/xml/SaxParser.hpp>
+#include <util/xml/SAXParser.hpp>
 
 #include <algorithm>
 #include <stack>

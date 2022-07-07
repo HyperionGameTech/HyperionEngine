@@ -1,4 +1,4 @@
-#include "Svo.hpp"
+#include "SparseVoxelOctree.hpp"
 #include <Engine.hpp>
 
 #include <util/fs/FsUtil.hpp>

@@ -1,4 +1,4 @@
-#include "RendererFbo.hpp"
+#include "RendererFramebuffer.hpp"
 #include "RendererRenderPass.hpp"
 
 #include <math/MathUtil.hpp>

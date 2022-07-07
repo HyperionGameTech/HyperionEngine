@@ -2,7 +2,7 @@
 
 #include <script/ScriptBindings.hpp>
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 namespace hyperion::v2 {
 

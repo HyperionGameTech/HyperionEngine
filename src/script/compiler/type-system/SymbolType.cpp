@@ -7,7 +7,7 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
 #include <system/Debug.hpp>
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 namespace hyperion::compiler {
 

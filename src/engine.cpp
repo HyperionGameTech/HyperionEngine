@@ -3,7 +3,7 @@
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
 
-#include <rendering/PostFx.hpp>
+#include <rendering/PostFX.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/Environment.hpp>
 

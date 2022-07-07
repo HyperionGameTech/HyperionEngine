@@ -1,4 +1,4 @@
-#include "Vct.hpp"
+#include "VoxelConeTracing.hpp"
 
 #include <util/fs/FsUtil.hpp>
 

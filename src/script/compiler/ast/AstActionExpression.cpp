@@ -12,7 +12,7 @@
 #include <script/Hasher.hpp>
 #include <script/Instructions.hpp>
 #include <system/Debug.hpp>
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <limits>
 #include <iostream>

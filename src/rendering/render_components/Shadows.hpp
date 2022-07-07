@@ -2,7 +2,7 @@
 #define HYPERION_V2_SHADOWS_H
 
 #include "../Base.hpp"
-#include "../PostFx.hpp"
+#include "../PostFX.hpp"
 #include "../Renderer.hpp"
 #include "../Light.hpp"
 #include "../RenderComponent.hpp"

@@ -14,12 +14,12 @@
 #include <asset/model_loaders/ObjModelLoader.hpp>
 #include <rendering/rt/AccelerationStructureBuilder.hpp>
 #include <rendering/ProbeSystem.hpp>
-#include <rendering/post_fx/Ssao.hpp>
-#include <rendering/post_fx/Fxaa.hpp>
+#include <rendering/post_fx/SSAO.hpp>
+#include <rendering/post_fx/FXAA.hpp>
 #include <rendering/post_fx/Tonemap.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/AnimationController.hpp>
-#include <scene/controllers/AabbDebugController.hpp>
+#include <scene/controllers/AABBDebugController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
@@ -30,12 +30,12 @@
 
 #include <terrain/controllers/TerrainPagingController.hpp>
 
-#include <rendering/vct/Vct.hpp>
+#include <rendering/vct/VoxelConeTracing.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
 #include <input/InputManager.hpp>
-#include <camera/FpsCamera.hpp>
+#include <camera/FirstPersonCamera.hpp>
 #include <camera/FollowCamera.hpp>
 
 #include "util/Profile.hpp"
@@ -54,7 +54,7 @@
 
 #include <script/ScriptBindings.hpp>
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 using namespace hyperion;
 
@@ -94,9 +94,10 @@ public:
         
         engine->GetDeferredRenderer().GetPostProcessing().AddEffect<SSAOEffect>();
         engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
-        //engine->GetDeferredRenderer().GetPostProcessing().AddEffect<TonemapEffect>();
+    }
 
-        // not sure why this needs to be in render thread atm?
+    virtual void OnPostInit(Engine *engine) override
+    {
         scene = engine->resources.scenes.Add(std::make_unique<v2::Scene>(
             std::make_unique<FpsCamera>(//FollowCamera>(
                 //Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
@@ -105,10 +106,6 @@ public:
                 0.15f, 15000.0f
             )
         ));
-    }
-
-    virtual void OnPostInit(Engine *engine) override
-    {
         engine->GetWorld().AddScene(scene.IncRef());
 
         base_material = engine->resources.materials.Add(std::make_unique<Material>());
@@ -116,7 +113,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/living_room/living_room.obj",   //sponza/sponza.obj", //
+            "models/sponza/sponza.obj", //
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -229,7 +226,7 @@ public:
         terrain_material->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, engine->resources.textures.Add(engine->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1-metallic.png")));
         test_model->Rotate(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(90.0f)));*/
 
-        test_model->Scale(20.15f);
+        test_model->Scale(0.15f);
         scene->GetRootNode()->AddChild(std::move(test_model));
         
         scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(

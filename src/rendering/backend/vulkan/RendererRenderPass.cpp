@@ -1,5 +1,5 @@
 #include "RendererRenderPass.hpp"
-#include "RendererFbo.hpp"
+#include "RendererFramebuffer.hpp"
 #include "RendererCommandBuffer.hpp"
 
 namespace hyperion {

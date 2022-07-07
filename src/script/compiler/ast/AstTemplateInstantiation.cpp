@@ -16,7 +16,7 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
 #include <system/Debug.hpp>
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 #include <script/Hasher.hpp>
 
 namespace hyperion::compiler {

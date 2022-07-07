@@ -2,7 +2,7 @@
 #define HYPERION_V2_DEFERRED_H
 
 #include "FullScreenPass.hpp"
-#include "PostFx.hpp"
+#include "PostFX.hpp"
 #include "Renderer.hpp"
 #include "Texture.hpp"
 #include "Compute.hpp"

@@ -3,7 +3,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <rendering/PostFx.hpp>
+#include <rendering/PostFX.hpp>
 #include <rendering/RenderList.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/render_components/Shadows.hpp>

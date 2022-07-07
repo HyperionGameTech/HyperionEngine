@@ -1,12 +1,12 @@
 #ifndef HYPERION_V2_ASSETS_H
 #define HYPERION_V2_ASSETS_H
 
-#include "model_loaders/ObjModelLoader.hpp"
-#include "material_loaders/MtlMaterialLoader.hpp"
-#include "model_loaders/OgreXmlModelLoader.hpp"
-#include "skeleton_loaders/OgreXmlSkeletonLoader.hpp"
+#include "model_loaders/OBJModelLoader.hpp"
+#include "material_loaders/MTLMaterialLoader.hpp"
+#include "model_loaders/OgreXMLModelLoader.hpp"
+#include "skeleton_loaders/OgreXMLSkeletonLoader.hpp"
 #include "texture_loaders/TextureLoader.hpp"
-#include "audio_loaders/WavAudioLoader.hpp"
+#include "audio_loaders/WAVAudioLoader.hpp"
 #include "script_loaders/HypscriptLoader.hpp"
 #include "../scene/Node.hpp"
 

@@ -5,7 +5,7 @@
 #include "RendererGraphicsPipeline.hpp"
 #include "RendererFeatures.hpp"
 #include "RendererRenderPass.hpp"
-#include "RendererFbo.hpp"
+#include "RendererFramebuffer.hpp"
 
 #include <system/Debug.hpp>
 #include <math/MathUtil.hpp>

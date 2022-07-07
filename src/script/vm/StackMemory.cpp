@@ -1,6 +1,6 @@
 #include <script/vm/StackMemory.hpp>
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <iomanip>
 #include <sstream>

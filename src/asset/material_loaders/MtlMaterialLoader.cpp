@@ -1,4 +1,4 @@
-#include "MtlMaterialLoader.hpp"
+#include "MTLMaterialLoader.hpp"
 #include "../../Engine.hpp"
 
 #include <util/fs/FsUtil.hpp>

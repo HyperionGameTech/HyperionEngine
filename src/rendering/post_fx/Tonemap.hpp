@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_TONEMAP_H
 #define HYPERION_V2_TONEMAP_H
 
-#include <rendering/PostFx.hpp>
+#include <rendering/PostFX.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {

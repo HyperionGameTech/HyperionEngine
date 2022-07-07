@@ -64,7 +64,13 @@ public:
                 UInt32 width, height;
                 float ray_step,
                       num_iterations,
-                      max_ray_distance;
+                      max_ray_distance,
+                      distance_bias,
+                      offset,
+                      eye_fade_start,
+                      eye_fade_end,
+                      screen_edge_fade_start,
+                      screen_edge_fade_end;
             } ssr_data;
         };
     } push_constants;

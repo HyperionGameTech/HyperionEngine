@@ -1,4 +1,4 @@
-#include "WavAudioLoader.hpp"
+#include "WAVAudioLoader.hpp"
 #include <Engine.hpp>
 
 namespace hyperion::v2 {

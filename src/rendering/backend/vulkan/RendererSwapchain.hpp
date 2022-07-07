@@ -5,7 +5,7 @@
 #include "RendererDevice.hpp"
 #include "RendererImageView.hpp"
 #include "RendererSemaphore.hpp"
-#include "RendererFbo.hpp"
+#include "RendererFramebuffer.hpp"
 
 #include <vector>
 

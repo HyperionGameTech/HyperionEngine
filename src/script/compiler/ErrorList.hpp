@@ -2,7 +2,7 @@
 #define ERROR_LIST_HPP
 
 #include <script/compiler/CompilerError.hpp>
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <vector>
 #include <algorithm>

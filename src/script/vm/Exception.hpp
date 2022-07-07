@@ -1,7 +1,7 @@
 #ifndef EXCEPTION_HPP
 #define EXCEPTION_HPP
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 namespace hyperion {
 namespace vm {

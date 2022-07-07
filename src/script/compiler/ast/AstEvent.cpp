@@ -9,7 +9,7 @@
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
 #include <system/Debug.hpp>
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <iostream>
 

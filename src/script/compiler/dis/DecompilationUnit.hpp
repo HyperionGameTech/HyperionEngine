@@ -6,7 +6,7 @@
 #include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <util/Utf8.hpp>
+#include <util/UTF8.hpp>
 
 #include <memory>
 

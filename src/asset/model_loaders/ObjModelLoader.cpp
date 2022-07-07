@@ -1,4 +1,4 @@
-#include "ObjModelLoader.hpp"
+#include "OBJModelLoader.hpp"
 #include <Engine.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>

@@ -2,7 +2,7 @@
 #define HYPERION_V2_TLAS_H
 
 #include <rendering/Base.hpp>
-#include "Blas.hpp"
+#include "BLAS.hpp"
 
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 

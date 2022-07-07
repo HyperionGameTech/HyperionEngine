@@ -10,11 +10,11 @@
 #include "Texture.hpp"
 #include "Mesh.hpp"
 #include "Light.hpp"
-#include <ui/UiScene.hpp>
+#include <ui/UIScene.hpp>
 #include "../animation/Skeleton.hpp"
 #include "../scene/Scene.hpp"
-#include <rendering/rt/Blas.hpp>
-#include <rendering/rt/Tlas.hpp>
+#include <rendering/rt/BLAS.hpp>
+#include <rendering/rt/TLAS.hpp>
 
 #include <mutex>
 #include <thread>
