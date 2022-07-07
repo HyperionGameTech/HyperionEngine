@@ -7,16 +7,20 @@ import re
 def find_all_files(in_path):
     # map from original filename -> array of tuple(line num, what to change to)
 
-    include_changes: dict[str, list[tuple[int, str]]] = {}
+    include_changes: dict[str, dict[int, tuple[str, str]]] = {}
     to_rename: dict[str, Path] = {}
     all_not_found: set[str] = set()
 
-    headers = glob.glob('{0}/*.h'.format(in_path))
-    sources = glob.glob('{0}/*.cpp'.format(in_path))
+    headers = Path(in_path).rglob('*.h')
+    headers = Path(in_path).rglob('*.hpp')
+    sources = Path(in_path).rglob('*.cpp')
 
     all_files = headers + sources
 
     for f in all_files:
+        # if not 'descriptor_set' in f:
+        #     continue
+
         base = os.path.basename(f)
         d = os.path.dirname(f)
 
@@ -65,25 +69,21 @@ def find_all_files(in_path):
             
             for try_path in try_paths:
                 print("\t\tTry path {}".format(try_path))
-                if str(try_path) in to_rename:
-                    print("\t\tAlready found path {} in list to rename".format(try_path))
-                    already_exists = True
-
-                    break
 
                 if try_path.exists():
                     found_path = try_path
 
                     break
+                # if str(try_path) in to_rename:
+                #     print("\t\tAlready found path {} in list to rename".format(try_path))
+                #     already_exists = True
 
-            if already_exists:
-                continue
+                #     break
 
             if not found_path:
                 all_not_found.add(include_path)
 
                 continue
-
 
             sub_base = os.path.basename(found_path)
             sub_d = os.path.dirname(found_path)
@@ -99,21 +99,51 @@ def find_all_files(in_path):
 
 
             sub_p = Path(sub_d) / upper_camel_case
-            to_rename[found_path] = sub_p
+
+            # if not already_exists:
+            #     to_rename[str(found_path)] = sub_p
 
             if not f in include_changes:
-                include_changes[f] = []
+                include_changes[f] = {}
 
             
-            replaced_str = re.sub(r'#include [<\"]([\./\\A-Za-z0-9_-]*)[>\"]', str(sub_p.relative_to('src')), line)
+            replaced_str = re.sub(r'(#include [<\"])([\./\\A-Za-z0-9_-]*)([>\"])', '\\1{}\\3'.format(str(sub_p.relative_to('src'))), line)
             print(replaced_str)
             print(sub_p)
 
-            include_changes[f].append((line_num - 1, include_path, replaced_str))
+            include_changes[f][line_num - 1] = (include_path, replaced_str)
 
     return (to_rename, include_changes, all_not_found)
 
-to_rename, include_changes, all_not_found = find_all_files('src/**/*')
+def perform_include_changes(to_rename: 'dict[str, Path]', include_changes: 'dict[str, dict[int, tuple[str, str]]]'):
+    for key in to_rename:
+        f = open(key, 'r')
+
+        out_file = open(to_rename[key], 'w')
+
+        if key in include_changes:
+            # make all include changes
+
+            line_num = 0
+
+            for line in f.readlines():
+                if line_num in include_changes[key]:
+                    out_file.write(include_changes[key][line_num][1])
+                else:
+                    out_file.write(line)
+
+                line_num += 1
+
+        else:
+            for line in f.readlines():
+                out_file.write(line)
+
+        f.close()
+        os.remove(key)
+
+
+
+to_rename, include_changes, all_not_found = find_all_files('src/**/**/*')
 
 
 print("Include changes:\n====================")
@@ -122,7 +152,7 @@ for key in include_changes:
     print("In file: {}:".format(key))
 
     for item in include_changes[key]:
-        print("Line: {}    change:   {}   ->   {}".format(item[0], item[1], item[2]))
+        print("Line: {}    change:   {}   ->   {}".format(item, include_changes[key][item][0], include_changes[key][item][1]))
 
 print("To rename:\n====================")
 
@@ -133,3 +163,6 @@ print("\nNot found:\n====================")
 
 for item in all_not_found:
     print("{}".format(item))
+
+if input("Perform changes? (Y/n)").lower() == 'y':
+    perform_include_changes(to_rename, include_changes)
