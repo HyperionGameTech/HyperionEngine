@@ -57,7 +57,14 @@ void Light::Update(Engine *engine, GameCounter::TickUnit delta)
 
 void Light::EnqueueRenderUpdates() const
 {
-    LightShaderData shader_data {
+    struct {
+	    Vector4  position; //direction for directional lights
+	    UInt32   color;
+	    UInt32   light_type;
+	    float    intensity;
+	    float    radius;
+	    UInt32   shadow_map_index; // ~0 == no shadow map
+	} shader_data = {
         .position         = Vector4(m_position, m_type == LightType::DIRECTIONAL ? 0.0f : 1.0f),
         .color            = ByteUtil::PackColorU32(m_color),
         .light_type       = static_cast<UInt32>(m_type),
@@ -67,7 +74,14 @@ void Light::EnqueueRenderUpdates() const
     };
 
     GetEngine()->GetRenderScheduler().Enqueue([this, shader_data](...) {
-        GetEngine()->shader_globals->lights.Set(GetId().value - 1, shader_data);
+        GetEngine()->shader_globals->lights.Set(GetId().value - 1, LightShaderData {
+            .position         = shader_data.position,
+            .color            = shader_data.color,
+	        .light_type       = shader_data.light_type,
+	        .intensity        = shader_data.intensity,
+	        .radius           = shader_data.radius,
+	        .shadow_map_index = shader_data.shadow_map_index
+	    });
 
         HYPERION_RETURN_OK;
     });
