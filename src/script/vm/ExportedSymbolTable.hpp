@@ -4,8 +4,8 @@
 #include <script/vm/Value.hpp>
 #include <script/Hasher.hpp>
 
-#include <core/lib/flat_map.h>
-#include <system/debug.h>
+#include <core/lib/FlatMap.hpp>
+#include <system/Debug.hpp>
 
 #include <utility>
 

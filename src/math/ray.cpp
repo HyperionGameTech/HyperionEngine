@@ -1,6 +1,6 @@
-#include "ray.h"
-#include "bounding_box.h"
-#include "math_util.h"
+#include "Ray.hpp"
+#include "BoundingBox.hpp"
+#include "MathUtil.hpp"
 
 namespace hyperion {
 

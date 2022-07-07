@@ -2,7 +2,7 @@
 #define STATIC_MEMORY_HPP
 
 #include <script/vm/Value.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <utility>
 

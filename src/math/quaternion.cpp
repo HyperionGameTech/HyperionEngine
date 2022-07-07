@@ -1,4 +1,4 @@
-#include "quaternion.h"
+#include "Quaternion.hpp"
 
 #include <float.h>
 

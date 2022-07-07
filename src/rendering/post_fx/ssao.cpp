@@ -1,7 +1,7 @@
-#include "ssao.h"
-#include <rendering/shader.h>
-#include <rendering/post_fx.h>
-#include <engine.h>
+#include "Ssao.hpp"
+#include <rendering/Shader.hpp>
+#include <rendering/PostFx.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 

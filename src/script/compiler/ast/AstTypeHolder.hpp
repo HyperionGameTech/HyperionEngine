@@ -3,7 +3,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Identifier.hpp>
-#include <script/compiler/enums.hpp>
+#include <script/compiler/Enums.hpp>
 
 #include <string>
 

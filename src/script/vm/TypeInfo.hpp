@@ -1,7 +1,7 @@
 #ifndef TYPE_INFO_HPP
 #define TYPE_INFO_HPP
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion {
 namespace vm {

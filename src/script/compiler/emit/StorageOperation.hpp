@@ -3,7 +3,7 @@
 
 #include <script/compiler/emit/Instruction.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <vector>
 #include <memory>

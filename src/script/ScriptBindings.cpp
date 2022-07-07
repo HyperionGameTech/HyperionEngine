@@ -2,11 +2,11 @@
 #include <script/vm/InstructionHandler.hpp>
 #include <script/vm/MemoryBuffer.hpp>
 
-#include <scene/node.h>
+#include <scene/Node.hpp>
 
-#include <math/math_util.h>
+#include <math/MathUtil.hpp>
  
-#include <core/lib/type_map.h>
+#include <core/lib/TypeMap.hpp>
 
 namespace hyperion {
 

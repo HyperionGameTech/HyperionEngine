@@ -1,7 +1,7 @@
-#include "game.h"
-#include <core/lib/small_vector.h>
+#include "Game.hpp"
+#include <core/lib/SmallVector.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion::v2 {
 

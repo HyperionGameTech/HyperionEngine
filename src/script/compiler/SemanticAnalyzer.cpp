@@ -5,7 +5,7 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <set>
 #include <iostream>

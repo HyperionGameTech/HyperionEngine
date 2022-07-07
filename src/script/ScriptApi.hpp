@@ -12,11 +12,11 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <types.h>
+#include <Types.hpp>
 
-#include <core/lib/type_map.h>
+#include <core/lib/TypeMap.hpp>
 
-#include <util/defines.h>
+#include <util/Defines.hpp>
 
 #include <unordered_map>
 

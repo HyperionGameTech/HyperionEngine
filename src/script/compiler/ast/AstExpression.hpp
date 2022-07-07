@@ -3,7 +3,7 @@
 
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
-#include <script/compiler/enums.hpp>
+#include <script/compiler/Enums.hpp>
 
 #include <script/Tribool.hpp>
 

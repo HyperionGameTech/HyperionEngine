@@ -3,7 +3,7 @@
 
 #include <script/compiler/ast/AstStatement.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <memory>
 #include <vector>

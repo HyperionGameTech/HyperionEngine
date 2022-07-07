@@ -6,8 +6,8 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 
-#include <system/debug.h>
-#include <util/utf8.hpp>
+#include <system/Debug.hpp>
+#include <util/Utf8.hpp>
 
 namespace hyperion::compiler {
 

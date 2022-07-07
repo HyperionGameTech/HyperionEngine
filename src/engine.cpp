@@ -1,15 +1,15 @@
-#include "engine.h"
+#include "Engine.hpp"
 
-#include <asset/byte_reader.h>
-#include <util/fs/fs_util.h>
+#include <asset/ByteReader.hpp>
+#include <util/fs/FsUtil.hpp>
 
-#include <rendering/post_fx.h>
-#include <rendering/compute.h>
-#include <rendering/environment.h>
+#include <rendering/PostFx.hpp>
+#include <rendering/Compute.hpp>
+#include <rendering/Environment.hpp>
 
-#include <rendering/backend/renderer_features.h>
+#include <rendering/backend/RendererFeatures.hpp>
 
-#include <audio/audio_manager.h>
+#include <audio/AudioManager.hpp>
 
 namespace hyperion::v2 {
 

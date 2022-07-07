@@ -2,7 +2,7 @@
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <unordered_set>
 #include <algorithm>

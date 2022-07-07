@@ -3,7 +3,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <iostream>
 

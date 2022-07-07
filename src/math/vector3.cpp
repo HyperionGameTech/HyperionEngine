@@ -1,5 +1,5 @@
-#include "vector3.h"
-#include "quaternion.h"
+#include "Vector3.hpp"
+#include "Quaternion.hpp"
 
 #include <cmath>
 

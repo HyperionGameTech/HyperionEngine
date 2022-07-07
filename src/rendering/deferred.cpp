@@ -1,8 +1,8 @@
-#include "deferred.h"
-#include "../engine.h"
+#include "Deferred.hpp"
+#include "../Engine.hpp"
 
-#include <asset/byte_reader.h>
-#include <util/fs/fs_util.h>
+#include <asset/ByteReader.hpp>
+#include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {
 

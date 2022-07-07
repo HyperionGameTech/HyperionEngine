@@ -1,5 +1,5 @@
-#include "triangle.h"
-#include "math_util.h"
+#include "Triangle.hpp"
+#include "MathUtil.hpp"
 
 namespace hyperion {
 Triangle::Triangle()

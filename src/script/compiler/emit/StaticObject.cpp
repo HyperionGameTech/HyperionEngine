@@ -1,5 +1,5 @@
 #include <script/compiler/emit/StaticObject.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <cstring>
 

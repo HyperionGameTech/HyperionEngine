@@ -1,5 +1,5 @@
-#include "compute.h"
-#include "../engine.h"
+#include "Compute.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 ComputePipeline::ComputePipeline(Ref<Shader> &&shader)

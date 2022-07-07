@@ -11,8 +11,8 @@
 
 #include <script/Hasher.hpp>
 #include <script/Instructions.hpp>
-#include <system/debug.h>
-#include <util/utf8.hpp>
+#include <system/Debug.hpp>
+#include <util/Utf8.hpp>
 
 #include <limits>
 #include <iostream>

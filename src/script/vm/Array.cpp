@@ -1,6 +1,6 @@
 #include <script/vm/Array.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <cmath>
 #include <cstring>

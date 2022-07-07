@@ -4,7 +4,7 @@
 #include <script/compiler/emit/BuildableVisitor.hpp>
 #include <script/compiler/emit/aex-builder/InternalByteStream.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <map>
 #include <sstream>

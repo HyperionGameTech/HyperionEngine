@@ -2,7 +2,7 @@
 // Created by emd22 on 2022-02-14.
 //
 
-#include "debug.h"
+#include "Debug.hpp"
 #include <cstdio>
 #include <cstdarg>
 

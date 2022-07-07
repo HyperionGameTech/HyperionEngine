@@ -6,7 +6,7 @@
 #include <script/vm/VM.hpp>
 #include <script/Hasher.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion {
 

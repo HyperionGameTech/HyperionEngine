@@ -4,7 +4,7 @@
 #include <script/compiler/emit/NamesPair.hpp>
 
 #include <script/Instructions.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <script/compiler/emit/Buildable.hpp>
 

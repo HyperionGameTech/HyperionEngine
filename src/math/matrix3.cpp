@@ -1,4 +1,4 @@
-#include "matrix3.h"
+#include "Matrix3.hpp"
 #include <cassert>
 #include <string.h>
 

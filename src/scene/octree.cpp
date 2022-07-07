@@ -1,7 +1,7 @@
-#include "octree.h"
-#include "spatial.h"
-#include "../engine.h"
-#include <threads.h>
+#include "Octree.hpp"
+#include "Spatial.hpp"
+#include "../Engine.hpp"
+#include <Threads.hpp>
 
 namespace hyperion::v2 {
 

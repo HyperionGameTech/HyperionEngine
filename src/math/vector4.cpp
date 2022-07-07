@@ -1,7 +1,7 @@
-#include "vector4.h"
-#include "math_util.h"
-#include "vector3.h"
-#include "vector2.h"
+#include "Vector4.hpp"
+#include "MathUtil.hpp"
+#include "Vector3.hpp"
+#include "Vector2.hpp"
 
 namespace hyperion {
 

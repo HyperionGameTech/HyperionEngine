@@ -1,9 +1,9 @@
-#include "graphics.h"
-#include <engine.h>
-#include <constants.h>
+#include "Graphics.hpp"
+#include <Engine.hpp>
+#include <Constants.hpp>
 
-#include <rendering/backend/renderer_descriptor_set.h>
-#include <rendering/backend/renderer_graphics_pipeline.h>
+#include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 namespace hyperion::v2 {
 

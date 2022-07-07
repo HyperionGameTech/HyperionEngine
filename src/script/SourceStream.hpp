@@ -2,7 +2,7 @@
 #define SOURCE_STREAM_HPP
 
 #include <script/SourceFile.hpp>
-#include <util/utf8.hpp>
+#include <util/Utf8.hpp>
 
 #include <cstddef>
 

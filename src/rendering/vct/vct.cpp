@@ -1,12 +1,12 @@
-#include "vct.h"
+#include "Vct.hpp"
 
-#include <util/fs/fs_util.h>
+#include <util/fs/FsUtil.hpp>
 
-#include <engine.h>
-#include <camera/ortho_camera.h>
+#include <Engine.hpp>
+#include <camera/OrthoCamera.hpp>
 
-#include <rendering/environment.h>
-#include <rendering/backend/renderer_features.h>
+#include <rendering/Environment.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 
 namespace hyperion::v2 {
 

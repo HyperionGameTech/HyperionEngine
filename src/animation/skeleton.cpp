@@ -1,6 +1,6 @@
-#include "skeleton.h"
-#include "bone.h"
-#include "../engine.h"
+#include "Skeleton.hpp"
+#include "Bone.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

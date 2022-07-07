@@ -1,4 +1,4 @@
-#include "camera.h"
+#include "Camera.hpp"
 
 namespace hyperion {
 

@@ -3,7 +3,7 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/CompilerError.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion::compiler {
 

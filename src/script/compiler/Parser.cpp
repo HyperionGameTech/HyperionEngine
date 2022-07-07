@@ -4,8 +4,8 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <util/utf8.hpp>
-#include <util/string_util.h>
+#include <util/Utf8.hpp>
+#include <util/StringUtil.hpp>
 
 #include <memory>
 #include <cstdlib>

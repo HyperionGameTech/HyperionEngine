@@ -11,27 +11,30 @@ def find_all_files(in_path):
     to_rename: dict[str, Path] = {}
     all_not_found: set[str] = set()
 
-    headers = Path(in_path).rglob('*.h')
-    headers = Path(in_path).rglob('*.hpp')
-    sources = Path(in_path).rglob('*.cpp')
+    headers = list(glob.glob('{}/**/*.h'.format(in_path), recursive=True)) + list(glob.glob('{}/**/*.hpp'.format(in_path), recursive=True))
+    sources = list(glob.glob('{}/**/*.cpp'.format(in_path), recursive=True))
 
     all_files = headers + sources
 
     for f in all_files:
+        print(f)
         # if not 'descriptor_set' in f:
         #     continue
 
         base = os.path.basename(f)
         d = os.path.dirname(f)
 
-        if not base[0].islower():
-            continue
+        # if base[0].islower():
 
+        #just add it anyway, if there are include changes we need this file in the list
         parts = base.split('_')
         upper_camel_case = ''
 
         for part in parts:
             upper_camel_case = upper_camel_case + (part[0].upper() + part[1:])
+
+        if upper_camel_case.endswith('.h'):
+            upper_camel_case = upper_camel_case.replace('.h', '.hpp')
 
         p = Path(d) / upper_camel_case
         # print("{}  ->  {}".format(f, p))
@@ -88,8 +91,8 @@ def find_all_files(in_path):
             sub_base = os.path.basename(found_path)
             sub_d = os.path.dirname(found_path)
 
-            if not sub_base[0].islower():
-                continue
+            # if not sub_base[0].islower():
+            #     continue
 
             parts = sub_base.split('_')
             upper_camel_case = ''
@@ -97,6 +100,8 @@ def find_all_files(in_path):
             for part in parts:
                 upper_camel_case = upper_camel_case + (part[0].upper() + part[1:])
 
+            if upper_camel_case.endswith('.h'):
+                upper_camel_case = upper_camel_case.replace('.h', '.hpp')
 
             sub_p = Path(sub_d) / upper_camel_case
 
@@ -106,8 +111,9 @@ def find_all_files(in_path):
             if not f in include_changes:
                 include_changes[f] = {}
 
-            
-            replaced_str = re.sub(r'(#include [<\"])([\./\\A-Za-z0-9_-]*)([>\"])', '\\1{}\\3'.format(str(sub_p.relative_to('src'))), line)
+            new_path = include_path.replace(sub_base, upper_camel_case)#str(sub_p) #sub_p.relative_to(sub_d))
+
+            replaced_str = re.sub(r'(#include [<\"])([\./\\A-Za-z0-9_-]*)([>\"])', '\\1{}\\3'.format(new_path), line)
             print(replaced_str)
             print(sub_p)
 
@@ -117,9 +123,10 @@ def find_all_files(in_path):
 
 def perform_include_changes(to_rename: 'dict[str, Path]', include_changes: 'dict[str, dict[int, tuple[str, str]]]'):
     for key in to_rename:
+        print("rename {}  -> {}".format(key, to_rename[key]))
         f = open(key, 'r')
 
-        out_file = open(to_rename[key], 'w')
+        out_file = open(str(to_rename[key]) + '.tmp', 'w')
 
         if key in include_changes:
             # make all include changes
@@ -141,9 +148,11 @@ def perform_include_changes(to_rename: 'dict[str, Path]', include_changes: 'dict
         f.close()
         os.remove(key)
 
+        os.rename(str(to_rename[key]) + '.tmp', to_rename[key])
 
 
-to_rename, include_changes, all_not_found = find_all_files('src/**/**/*')
+
+to_rename, include_changes, all_not_found = find_all_files('src')
 
 
 print("Include changes:\n====================")

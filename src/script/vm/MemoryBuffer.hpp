@@ -1,7 +1,7 @@
 #ifndef MEMORY_BUFFER_HPP
 #define  MEMORY_BUFFER_HPP
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <sstream>
 

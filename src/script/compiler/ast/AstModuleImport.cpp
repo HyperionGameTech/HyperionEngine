@@ -5,7 +5,7 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
-#include <util/fs/fs_util.h>
+#include <util/fs/FsUtil.hpp>
 
 #include <fstream>
 #include <iostream>

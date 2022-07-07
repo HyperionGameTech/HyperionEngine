@@ -17,7 +17,7 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 #include <script/Hasher.hpp>
 
 #include <iostream>

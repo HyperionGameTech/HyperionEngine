@@ -1,7 +1,7 @@
-#include "scene.h"
-#include <engine.h>
-#include <rendering/environment.h>
-#include <rendering/render_components/cubemap_renderer.h>
+#include "Scene.hpp"
+#include <Engine.hpp>
+#include <rendering/Environment.hpp>
+#include <rendering/render_components/CubemapRenderer.hpp>
 
 namespace hyperion::v2 {
 

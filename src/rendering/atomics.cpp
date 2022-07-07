@@ -1,6 +1,6 @@
-#include "atomics.h"
-#include "../engine.h"
-#include <types.h>
+#include "Atomics.hpp"
+#include "../Engine.hpp"
+#include <Types.hpp>
 
 namespace hyperion::v2 {
 

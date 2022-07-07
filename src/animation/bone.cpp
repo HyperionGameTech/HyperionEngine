@@ -1,4 +1,4 @@
-#include "bone.h"
+#include "Bone.hpp"
 
 namespace hyperion::v2 {
 

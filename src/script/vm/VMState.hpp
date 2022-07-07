@@ -9,9 +9,9 @@
 #include <script/vm/Tracemap.hpp>
 #include <script/vm/ExportedSymbolTable.hpp>
 
-#include <types.h>
+#include <Types.hpp>
 
-#include <util/non_owning_ptr.h>
+#include <util/NonOwningPtr.hpp>
 
 #define ENABLE_GC 1
 #define GC_THRESHOLD_MIN 150

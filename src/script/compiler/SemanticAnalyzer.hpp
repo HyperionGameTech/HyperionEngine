@@ -3,7 +3,7 @@
 
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Identifier.hpp>
-#include <script/compiler/enums.hpp>
+#include <script/compiler/Enums.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 
 #include <memory>

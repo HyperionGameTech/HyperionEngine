@@ -1,8 +1,8 @@
-#include "node.h"
-#include <system/debug.h>
+#include "Node.hpp"
+#include <system/Debug.hpp>
 
-#include <animation/bone.h>
-#include <engine.h>
+#include <animation/Bone.hpp>
+#include <Engine.hpp>
 
 #include <cstring>
 

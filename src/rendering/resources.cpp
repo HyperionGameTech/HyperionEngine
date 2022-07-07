@@ -1,5 +1,5 @@
-#include "resources.h"
-#include "../engine.h"
+#include "Resources.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

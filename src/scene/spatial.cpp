@@ -1,6 +1,6 @@
-#include "spatial.h"
-#include <rendering/graphics.h>
-#include <engine.h>
+#include "Spatial.hpp"
+#include <rendering/Graphics.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 

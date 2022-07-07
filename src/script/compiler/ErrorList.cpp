@@ -1,6 +1,6 @@
 #include <script/compiler/ErrorList.hpp>
-#include <util/termcolor.hpp>
-#include <util/string_util.h>
+#include <util/Termcolor.hpp>
+#include <util/StringUtil.hpp>
 
 #include <unordered_set>
 #include <map>

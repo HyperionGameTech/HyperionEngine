@@ -3,4 +3,4 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>

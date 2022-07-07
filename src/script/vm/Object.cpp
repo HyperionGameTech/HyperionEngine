@@ -1,7 +1,7 @@
 #include <script/vm/Object.hpp>
 #include <script/vm/HeapValue.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 #include <script/Hasher.hpp>
 
 #include <cstring>

@@ -1,4 +1,4 @@
-#include "thread.h"
+#include "Thread.hpp"
 
 namespace hyperion::v2 {
 

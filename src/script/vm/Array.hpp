@@ -2,9 +2,9 @@
 #define ARRAY_HPP
 
 #include <script/vm/Value.hpp>
-#include <types.h>
+#include <Types.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <sstream>
 

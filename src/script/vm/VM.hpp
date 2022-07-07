@@ -5,7 +5,7 @@
 #include <script/vm/VMState.hpp>
 #include <script/vm/StackTrace.hpp>
 
-#include <types.h>
+#include <Types.hpp>
 
 #include <array>
 #include <limits>

@@ -1,5 +1,5 @@
-#include "shader.h"
-#include "../engine.h"
+#include "Shader.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

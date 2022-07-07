@@ -1,5 +1,5 @@
-#include "assets.h"
-#include <util/fs/fs_util.h>
+#include "Assets.hpp"
+#include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {
 

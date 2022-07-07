@@ -12,7 +12,7 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
 #include <script/Hasher.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion::compiler {
 

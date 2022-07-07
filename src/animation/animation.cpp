@@ -1,6 +1,6 @@
-#include "animation.h"
-#include "bone.h"
-#include <math/math_util.h>
+#include "Animation.hpp"
+#include "Bone.hpp"
+#include <math/MathUtil.hpp>
 
 namespace hyperion::v2 {
 

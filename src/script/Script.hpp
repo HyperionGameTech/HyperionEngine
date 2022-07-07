@@ -11,10 +11,10 @@
 #include <script/vm/BytecodeStream.hpp>
 #include <script/vm/VM.hpp>
 
-#include <constants.h>
-#include <types.h>
+#include <Constants.hpp>
+#include <Types.hpp>
 
-#include <util/utf8.hpp>
+#include <util/Utf8.hpp>
 
 #include <memory>
 #include <array>

@@ -8,10 +8,10 @@
 #include <script/vm/TypeInfo.hpp>
 #include <script/vm/InstructionHandler.hpp>
 
-#include <types.h>
+#include <Types.hpp>
 #include <script/Instructions.hpp>
 #include <script/Hasher.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <algorithm>
 #include <cstdio>

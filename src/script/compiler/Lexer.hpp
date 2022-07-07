@@ -6,7 +6,7 @@
 #include <script/SourceLocation.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
-#include <util/utf8.hpp>
+#include <util/Utf8.hpp>
 
 namespace hyperion::compiler {
 

@@ -1,8 +1,8 @@
-#include "mesh.h"
+#include "Mesh.hpp"
 
-#include "../engine.h"
+#include "../Engine.hpp"
 
-#include <rendering/backend/renderer_command_buffer.h>
+#include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <vector>
 #include <unordered_map>

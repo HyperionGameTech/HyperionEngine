@@ -2,7 +2,7 @@
 #define TOKEN_STREAM_HPP
 
 #include <script/compiler/Token.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <vector>
 

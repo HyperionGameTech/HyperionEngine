@@ -1,6 +1,6 @@
 #include <script/compiler/emit/aex-builder/InternalByteStream.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 #include <iostream>
 
 namespace hyperion::compiler {

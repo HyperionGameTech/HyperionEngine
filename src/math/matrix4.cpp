@@ -1,7 +1,7 @@
-#include "matrix4.h"
-#include "vector3.h"
-#include "quaternion.h"
-#include "rect.h"
+#include "Matrix4.hpp"
+#include "Vector3.hpp"
+#include "Quaternion.hpp"
+#include "Rect.hpp"
 
 #include <string.h>
 

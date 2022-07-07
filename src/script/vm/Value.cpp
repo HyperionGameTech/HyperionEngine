@@ -5,7 +5,7 @@
 #include <script/vm/Slice.hpp>
 #include <script/vm/ImmutableString.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <stdio.h>
 #include <cinttypes>

@@ -1,6 +1,6 @@
-#include "World.h"
-#include <engine.h>
-#include <threads.h>
+#include "World.hpp"
+#include <Engine.hpp>
+#include <Threads.hpp>
 
 namespace hyperion::v2 {
 

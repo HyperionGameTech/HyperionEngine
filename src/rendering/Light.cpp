@@ -1,7 +1,7 @@
-#include "Light.h"
-#include "../engine.h"
+#include "Light.hpp"
+#include "../Engine.hpp"
 
-#include <util/byte_util.h>
+#include <util/ByteUtil.hpp>
 
 namespace hyperion::v2 {
 

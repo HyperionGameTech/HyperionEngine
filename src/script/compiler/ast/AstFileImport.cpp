@@ -5,7 +5,7 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
-#include <util/string_util.h>
+#include <util/StringUtil.hpp>
 
 #include <fstream>
 #include <iostream>

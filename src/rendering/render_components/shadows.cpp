@@ -1,11 +1,11 @@
-#include "shadows.h"
-#include <engine.h>
-#include <rendering/environment.h>
+#include "Shadows.hpp"
+#include <Engine.hpp>
+#include <rendering/Environment.hpp>
 
-#include <camera/ortho_camera.h>
+#include <camera/OrthoCamera.hpp>
 
-#include <asset/byte_reader.h>
-#include <util/fs/fs_util.h>
+#include <asset/ByteReader.hpp>
+#include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {
 

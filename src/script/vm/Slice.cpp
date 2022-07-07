@@ -1,6 +1,6 @@
 #include <script/vm/Slice.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <sstream>
 

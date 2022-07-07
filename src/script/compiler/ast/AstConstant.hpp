@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Operator.hpp>
 
-#include <types.h>
+#include <Types.hpp>
 
 namespace hyperion::compiler {
 

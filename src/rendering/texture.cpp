@@ -1,5 +1,5 @@
-#include "texture.h"
-#include "../engine.h"
+#include "Texture.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

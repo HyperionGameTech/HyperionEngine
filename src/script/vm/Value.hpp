@@ -3,9 +3,9 @@
 
 #include <script/vm/HeapValue.hpp>
 #include <script/vm/ImmutableString.hpp>
-#include <types.h>
+#include <Types.hpp>
 
-#include <util/defines.h>
+#include <util/Defines.hpp>
 
 #include <sstream>
 #include <utility>

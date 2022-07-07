@@ -12,11 +12,11 @@
 #include <script/vm/TypeInfo.hpp>
 
 #include <script/Instructions.hpp>
-#include <types.h>
+#include <Types.hpp>
 #include <script/Hasher.hpp>
 
-#include <util/defines.h>
-#include <system/debug.h>
+#include <util/Defines.hpp>
+#include <system/Debug.hpp>
 
 #include <cmath>
 #include <cstdint>

@@ -1,5 +1,5 @@
-#include "renderer.h"
-#include "../engine.h"
+#include "Renderer.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

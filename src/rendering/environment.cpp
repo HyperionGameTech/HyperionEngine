@@ -1,7 +1,7 @@
-#include "environment.h"
-#include <engine.h>
+#include "Environment.hpp"
+#include <Engine.hpp>
 
-#include <rendering/backend/renderer_frame.h>
+#include <rendering/backend/RendererFrame.hpp>
 
 namespace hyperion::v2 {
 

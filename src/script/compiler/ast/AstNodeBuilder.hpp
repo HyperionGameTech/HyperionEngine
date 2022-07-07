@@ -6,7 +6,7 @@
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
-#include <util/non_owning_ptr.h>
+#include <util/NonOwningPtr.hpp>
 
 #include <string>
 #include <memory>

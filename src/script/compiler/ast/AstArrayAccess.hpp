@@ -2,7 +2,7 @@
 #define AST_ARRAY_ACCESS_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/enums.hpp>
+#include <script/compiler/Enums.hpp>
 
 #include <string>
 #include <vector>

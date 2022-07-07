@@ -1,44 +1,44 @@
 
-#include "system/sdl_system.h"
-#include "system/debug.h"
-#include "rendering/backend/renderer_instance.h"
-#include "rendering/backend/renderer_descriptor_set.h"
-#include "rendering/backend/renderer_image.h"
-#include "rendering/backend/renderer_render_pass.h"
-#include "rendering/backend/rt/renderer_raytracing_pipeline.h"
+#include "system/SdlSystem.hpp"
+#include "system/Debug.hpp"
+#include "rendering/backend/RendererInstance.hpp"
+#include "rendering/backend/RendererDescriptorSet.hpp"
+#include "rendering/backend/RendererImage.hpp"
+#include "rendering/backend/RendererRenderPass.hpp"
+#include "rendering/backend/rt/RendererRaytracingPipeline.hpp"
 
-#include <engine.h>
-#include <scene/node.h>
-#include <rendering/atomics.h>
-#include <animation/bone.h>
-#include <asset/model_loaders/obj_model_loader.h>
-#include <rendering/rt/acceleration_structure_builder.h>
-#include <rendering/probe_system.h>
-#include <rendering/post_fx/ssao.h>
-#include <rendering/post_fx/fxaa.h>
-#include <rendering/post_fx/tonemap.h>
-#include <scene/controllers/audio_controller.h>
-#include <scene/controllers/animation_controller.h>
-#include <scene/controllers/aabb_debug_controller.h>
-#include <scene/controllers/follow_camera_controller.h>
-#include <scene/controllers/paging/basic_paging_controller.h>
-#include <scene/controllers/scripted_controller.h>
-#include <core/lib/flat_set.h>
-#include <core/lib/flat_map.h>
-#include <game_thread.h>
-#include <game.h>
+#include <Engine.hpp>
+#include <scene/Node.hpp>
+#include <rendering/Atomics.hpp>
+#include <animation/Bone.hpp>
+#include <asset/model_loaders/ObjModelLoader.hpp>
+#include <rendering/rt/AccelerationStructureBuilder.hpp>
+#include <rendering/ProbeSystem.hpp>
+#include <rendering/post_fx/Ssao.hpp>
+#include <rendering/post_fx/Fxaa.hpp>
+#include <rendering/post_fx/Tonemap.hpp>
+#include <scene/controllers/AudioController.hpp>
+#include <scene/controllers/AnimationController.hpp>
+#include <scene/controllers/AabbDebugController.hpp>
+#include <scene/controllers/FollowCameraController.hpp>
+#include <scene/controllers/paging/BasicPagingController.hpp>
+#include <scene/controllers/ScriptedController.hpp>
+#include <core/lib/FlatSet.hpp>
+#include <core/lib/FlatMap.hpp>
+#include <GameThread.hpp>
+#include <Game.hpp>
 
-#include <terrain/controllers/terrain_paging_controller.h>
+#include <terrain/controllers/TerrainPagingController.hpp>
 
-#include <rendering/vct/vct.h>
+#include <rendering/vct/Vct.hpp>
 
-#include <util/fs/fs_util.h>
+#include <util/fs/FsUtil.hpp>
 
-#include <input/input_manager.h>
-#include <camera/fps_camera.h>
-#include <camera/follow_camera.h>
+#include <input/InputManager.hpp>
+#include <camera/FpsCamera.hpp>
+#include <camera/FollowCamera.hpp>
 
-#include "util/profile.h"
+#include "util/Profile.hpp"
 
 /* Standard library */
 #include <cstdlib>
@@ -49,12 +49,12 @@
 #include <cmath>
 #include <thread>
 
-#include "rendering/environment.h"
-#include "rendering/render_components/cubemap_renderer.h"
+#include "rendering/Environment.hpp"
+#include "rendering/render_components/CubemapRenderer.hpp"
 
 #include <script/ScriptBindings.hpp>
 
-#include <util/utf8.hpp>
+#include <util/Utf8.hpp>
 
 using namespace hyperion;
 

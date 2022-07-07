@@ -1,6 +1,6 @@
 #include <script/compiler/Module.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion::compiler {
 

@@ -1,10 +1,10 @@
-#include "voxelizer.h"
-#include "../engine.h"
+#include "Voxelizer.hpp"
+#include "../Engine.hpp"
 
-#include <math/math_util.h>
-#include <asset/byte_reader.h>
-#include <camera/ortho_camera.h>
-#include <util/fs/fs_util.h>
+#include <math/MathUtil.hpp>
+#include <asset/ByteReader.hpp>
+#include <camera/OrthoCamera.hpp>
+#include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {
 

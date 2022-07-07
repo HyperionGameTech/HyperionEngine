@@ -1,5 +1,5 @@
-#include "vector2.h"
-#include "math_util.h"
+#include "Vector2.hpp"
+#include "MathUtil.hpp"
 namespace hyperion {
 
 Vector2::Vector2()

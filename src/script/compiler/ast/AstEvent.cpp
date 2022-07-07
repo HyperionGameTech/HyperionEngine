@@ -8,8 +8,8 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <system/debug.h>
-#include <util/utf8.hpp>
+#include <system/Debug.hpp>
+#include <util/Utf8.hpp>
 
 #include <iostream>
 

@@ -2,7 +2,7 @@
 #include <script/compiler/Configuration.hpp>
 
 #include <script/Instructions.hpp>
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <cstring>
 #include <algorithm>

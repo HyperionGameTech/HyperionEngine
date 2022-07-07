@@ -1,6 +1,6 @@
 #include <script/vm/BytecodeStream.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion {
 namespace vm {

@@ -1,5 +1,5 @@
-#include "framebuffer.h"
-#include "../engine.h"
+#include "Framebuffer.hpp"
+#include "../Engine.hpp"
 
 namespace hyperion::v2 {
 

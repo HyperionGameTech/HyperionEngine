@@ -1,6 +1,6 @@
 #include <script/SourceFile.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <stdexcept>
 #include <cstring>

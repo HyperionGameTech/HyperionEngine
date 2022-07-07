@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstConstant.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 namespace hyperion::compiler {
 

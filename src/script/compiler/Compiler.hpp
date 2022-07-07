@@ -6,7 +6,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/emit/BytecodeChunk.hpp>
 
-#include <system/debug.h>
+#include <system/Debug.hpp>
 
 #include <memory>
 

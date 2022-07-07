@@ -1,5 +1,5 @@
-#include "tlas.h"
-#include <engine.h>
+#include "Tlas.hpp"
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 

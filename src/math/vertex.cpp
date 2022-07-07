@@ -1,4 +1,4 @@
-#include "vertex.h"
+#include "Vertex.hpp"
 
 namespace hyperion {
 bool Vertex::operator==(const Vertex &other) const
