@@ -30,6 +30,8 @@
 #include <GameThread.hpp>
 #include <Game.hpp>
 
+#include <script/compiler/JitCompiler.hpp>
+
 #include <terrain/controllers/TerrainPagingController.hpp>
 
 #include <rendering/vct/VoxelConeTracing.hpp>
@@ -542,6 +544,20 @@ struct TestStruct {
 int main()
 {
     using namespace hyperion::renderer;
+
+    JitCompiler compiler;
+    compiler.CreateBuffer();
+    /* mov $0x01, %rax */
+    compiler.Emit({0x48, 0xc7, 0xc0, 0x10, 0x00, 0x00, 0x00});
+    /* ret */
+    compiler.Emit({ 0xc3 });
+    compiler.BufferProtect();
+
+    int val = compiler.Run();
+
+    compiler.BufferFree();
+
+    return val;
 
 #if 0
     Profile control([]() {
