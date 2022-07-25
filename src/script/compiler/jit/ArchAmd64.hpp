@@ -1,11 +1,14 @@
 #ifndef HYPERION_JIT_AMD64_HPP
 #define HYPERION_JIT_AMD64_HPP
 
+#include <vector>
+#include <cstdint>
 
 namespace hyperion::compiler {
 
 enum RegisterN
 {
+    R_NONE,
     /**************************/
     /* 16 bit WORD registers  */
     /**************************/
@@ -13,10 +16,10 @@ enum RegisterN
     R_CX,
     R_DX,
     R_BX,
-    R_SI,
-    R_DI,
     R_SP,
     R_BP,
+    R_SI,
+    R_DI,
     /* Extended */
     R_R8W,
     R_R9W,
@@ -34,10 +37,10 @@ enum RegisterN
     R_ECX,
     R_EDX,
     R_EBX,
-    R_ESI,
-    R_EDI,
     R_ESP,
     R_EBP,
+    R_ESI,
+    R_EDI,
     /* Extended */
     R_R8D,
     R_R9D,
@@ -59,8 +62,6 @@ enum RegisterN
     R_RBP,
     R_RSI,
     R_RDI,
-    R_RSP,
-    R_RBP,
     /* Extended */
     R_R8,
     R_R9,
@@ -73,44 +74,76 @@ enum RegisterN
 };
 
 #define REG_IS_NOT_EXT(R) \
-    (R < R_R8D && (R < R_R8W || R > R_R15W))
+    ((R) < R_R8D && ((R) < R_R8W || (R) > R_R15W))
+
+class InstrBuffer : public std::vector<uint8_t> {
+public:
+    using vector<uint8_t>::vector;
+
+    InstrBuffer(std::initializer_list<InstrBuffer> il) {
+        for (auto &ib : il) {
+            this->insert_back(ib);
+        }
+    }
+
+    InstrBuffer operator += (InstrBuffer const &other)
+    {
+        this->insert_back(other);
+        return *this;
+    }
+    void insert_back(InstrBuffer const &other)
+    {
+        this->insert(this->end(), other.begin(), other.end());
+    }
+};
 
 class CompilerAMD64
 {
-    using InstrBuffer = std::vector<uint8_t>;
+public:
 
-    struct InstrArg
-    {
-        enum class Type
-        {
-            IMMEDIATE,
-            REGISTER,
-        };
-        Type type = Type::IMMEDIATE;
 
-        uint64_t GetArg()
-        {
-            
-        }
-
-        union
-        {
-            uint64_t value;
-            RegisterN reg_n;
-        };
-    };
-
-    bool RegIs64(RegisterN r) { return (r >= R_R15D); }
+    bool RegIs64(RegisterN r) { return (r > R_R15D); }
+    bool RegIs32(RegisterN r) { return (r >= R_EAX) && !(RegIs64(r)); }
+    bool RegIs16(RegisterN r) { return (r < R_EAX); }
 
     bool RegIsExtended(RegisterN r)
     {
-        return (RegIs64(r) || (r <= R_R15D && r >= R_R8D) || (r <= R_R15W && r >= R_R8W));
+        return ((r >= R_R8) || (r <= R_R15D && r >= R_R8D) || (r <= R_R15W && r >= R_R8W));
     }
 
     uint8_t MakeSIB(uint8_t scaled_index, uint8_t mode, RegisterN base_reg)
     {
         return 0;
         //return (mode << 6) | (scaled_index << 3) | 
+    }
+
+    uint8_t GetBaseReg(RegisterN reg)
+    {
+        if (reg >= R_RAX)
+            return reg-R_RAX;
+        if (reg >= R_EAX)
+            return reg-R_RAX;
+        return reg;
+    }
+
+    uint8_t MakeModRM(bool src_is_reg, bool dest_is_reg, uint16_t srcv, uint16_t destv)
+    {
+        /*************************/
+        /* [7 6] [5 4 3] [2 1 0] */
+        /* [mod] [ reg ] [ r\m ] */
+        /*************************/
+        uint8_t mod = 0;
+
+        mod |= (0x01 << 7);
+        mod |= (0x01 << 6);
+
+        if (src_is_reg) {
+            mod |= ((GetBaseReg((RegisterN)srcv) & 0x07) << 3);
+        }
+        if (dest_is_reg) {
+            mod |= (GetBaseReg((RegisterN)destv) & 0x07);
+        }
+        return mod;
     }
 
     uint8_t MakeREX(RegisterN rsrc, RegisterN rdest, bool sib)
@@ -122,13 +155,101 @@ class CompilerAMD64
         rex = (rex & 0x0F) | 0x40; /* Set the high 4 bits to 0x04 */
         return rex;
     }
-    InstrBuffer BuildMovInstr(RegisterN rsrc, RegisterN rdest)
+    InstrBuffer BuildMov64(RegisterN rsrc, RegisterN rdest)
     {
         InstrBuffer instr;
         instr = {
             MakeREX(rsrc, rdest, false),
+            0x89,
+            MakeModRM(true, true, rsrc, rdest),
         };
+        return instr;
     }
+    InstrBuffer BuildMov64(uint32_t imm, RegisterN rdest)
+    {
+        InstrBuffer instr;
+        instr = {
+            MakeREX(R_NONE, rdest, false),
+            0xC7,
+            MakeModRM(false, true, imm, rdest),
+            /* immediate data */
+            (uint8_t)(imm & 0xFF),
+            (uint8_t)((imm >> 8)  & 0xFF),
+            (uint8_t)((imm >> 16) & 0xFF),
+            (uint8_t)((imm >> 24) & 0xFF),
+        };
+        return instr;
+    }
+    InstrBuffer BuildJmp64(uint8_t near_ip)
+    {
+        InstrBuffer instr;
+        instr = {
+            0xEB,
+            near_ip
+        };
+        return instr;
+    }
+    InstrBuffer BuildAdd64(RegisterN reg, int64_t imm)
+    {
+        InstrBuffer instr;
+        instr = {
+            MakeREX(R_NONE, reg, false),
+            0x83,
+            MakeModRM(true, true, imm, reg)
+        };
+        instr.push_back(imm);
+        return instr;
+    }
+
+    InstrBuffer BuildPush64(RegisterN reg)
+    {
+        InstrBuffer instr = { };
+        if (RegIsExtended(reg))
+            instr.push_back(MakeREX(R_NONE, reg, false));
+        instr.push_back(((0x05 << 4) | GetBaseReg(reg)));
+        return instr;
+    }
+
+    InstrBuffer BuildPop64(RegisterN reg)
+    {
+        InstrBuffer instr = { };
+        if (RegIsExtended(reg))
+            instr.push_back(MakeREX(R_NONE, reg, false));
+        instr.push_back(((0x05 << 4) | 0x08 | (GetBaseReg(reg) & 0x07)));
+        return instr;
+    }
+
+    InstrBuffer StartFunction()
+    {
+        InstrBuffer instr = {
+            BuildPush64(R_RBP),
+            BuildMov64(R_RSP, R_RBP)
+        };
+        return instr;
+    }
+
+    InstrBuffer EndFunction()
+    {
+        InstrBuffer instr = {
+            BuildPop64(R_RBP),
+            BuildRet()
+        };
+        return instr;
+    }
+
+    InstrBuffer BuildCall64(uint32_t near_offset) {
+        InstrBuffer instr = {
+            0xE8,
+            /* immediate data */
+            (uint8_t)(near_offset & 0xFF),
+            (uint8_t)((near_offset >> 8)  & 0xFF),
+            (uint8_t)((near_offset >> 16) & 0xFF),
+            (uint8_t)((near_offset >> 24) & 0xFF),
+        };
+        return instr;
+    }
+
+    InstrBuffer BuildRet() { return { 0xC3 }; }
 };
 
 enum class ArchInstr
@@ -151,22 +272,6 @@ enum class ArchInstr
 
     InstrSize,
 };
-
-
-struct Instruction
-{
-    std::array<uint8_t, 4> prefix;
-    std::array<uint8_t, 3> opcode;
-    uint8_t modrm, sib;
-};
-
-
-class CompilerOutput()
-{
-
-
-
-}
 
 
 

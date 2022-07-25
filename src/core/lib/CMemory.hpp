@@ -9,14 +9,14 @@ namespace hyperion
 class Memory
 {
 public:
-	static char *CopyString(register char *dest, register const char *src, size_t length=0)
+	static char *CopyString(char *dest, const char *src, size_t length=0)
 	{
 		if (length)
 			return strncpy(dest, src, length);
 		return std::strcpy(dest, src);
 	}
 
-	static inline void *Set(void *dest, register int ch, size_t length)
+	static inline void *Set(void *dest, int ch, size_t length)
 	{
 		return std::memset(dest, ch, length);
 	}

@@ -527,7 +527,7 @@ JitCompiler::JitCompiler(AstIterator *ast_iterator, CompilationUnit *compilation
 }
 
 JitCompiler::JitCompiler(const JitCompiler &other)
-    : AstVisitor(other.m_ast_iterator, other.m_compilation_unit), m_page(std::move(other->m_page))
+    : AstVisitor(other.m_ast_iterator, other.m_compilation_unit)
 {
 }
 

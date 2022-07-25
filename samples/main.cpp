@@ -11,7 +11,7 @@
 #include <scene/Node.hpp>
 #include <rendering/Atomics.hpp>
 #include <animation/Bone.hpp>
-#include <asset/model_loaders/ObjModelLoader.hpp>
+#include <asset/model_loaders/OBJModelLoader.hpp>
 #include <rendering/rt/AccelerationStructureBuilder.hpp>
 #include <rendering/ProbeSystem.hpp>
 #include <rendering/post_fx/SSAO.hpp>
@@ -19,7 +19,7 @@
 #include <rendering/post_fx/Tonemap.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/AnimationController.hpp>
-#include <scene/controllers/AABBDebugController.hpp>
+#include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
@@ -545,19 +545,27 @@ int main()
 {
     using namespace hyperion::renderer;
 
-    JitCompiler compiler;
-    compiler.CreateBuffer();
-    /* mov $0x01, %rax */
-    compiler.Emit({0x48, 0xc7, 0xc0, 0x10, 0x00, 0x00, 0x00});
-    /* ret */
-    compiler.Emit({ 0xc3 });
-    compiler.BufferProtect();
+    Page page;
+    CompilerAMD64 c64;
 
-    int val = compiler.Run();
+    page.SetData(c64.StartFunction());
+    page.SetData(c64.BuildMov64(5, R_RAX));
+    page.SetData(c64.BuildAdd64(R_RAX, 10));
+    page.SetData(c64.EndFunction());
+    page.Protect();
 
-    compiler.BufferFree();
+    uint8_t *data = page.GetData();
+    for (int i = 0; i < page.m_offset ; i++) {
+        printf("0x%X ", data[i]);
+        if (i && !(i % 10))
+            printf("\n");
+    }
+    printf("\n");
 
-    return val;
+    int (*func)(void) = (int(*)(void))(page.GetData());
+
+    return func();
+    return 0;
 
 #if 0
     Profile control([]() {

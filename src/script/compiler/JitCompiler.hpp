@@ -1,6 +1,8 @@
 #ifndef JIT_COMPILER_HPP
 #define JIT_COMPILER_HPP
 
+#include <script/compiler/jit/ArchAmd64.hpp>
+
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstMember.hpp>
@@ -11,6 +13,14 @@
 
 #include <memory>
 
+#ifdef HYP_WINDOWS
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/mman.h>
+#endif
+
+
 namespace hyperion::compiler {
 
 struct Page
@@ -18,19 +28,33 @@ struct Page
     Page()
         : m_size(GetPageSize()), m_offset(0)
     {
+    #if HYP_WINDOWS
         DWORD type = MEM_RESERVE | MEM_COMMIT;
         m_data = (uint8_t *)VirtualAlloc(NULL, m_size, type, PAGE_READWRITE);
+    #else
+        int prot = PROT_READ | PROT_WRITE;
+        int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+        m_data = (uint8_t *)mmap(NULL, m_size, prot, flags, -1, 0);
+    #endif
     }
 
     void Protect()
     {
+    #if HYP_WINDOWS
         DWORD old;
         VirtualProtect(m_data, sizeof(*m_data), PAGE_EXECUTE_READ, &old);
+    #else
+        mprotect(m_data, sizeof(*m_data), PROT_READ | PROT_EXEC);
+    #endif
     }
 
     ~Page()
     {
+    #if HYP_WINDOWS
         VirtualFree(m_data, 0, MEM_RELEASE);
+    #else
+        munmap(m_data, m_size);
+    #endif
     }
 
     void SetData(const std::vector<uint8_t> &ops)
@@ -43,14 +67,20 @@ struct Page
         m_data[m_offset++] = imm;
     }
 
+    /* Get the size of a memory page */
     uint32_t GetPageSize()
     {
+    #if HYP_WINDOWS
         SYSTEM_INFO info{};
         GetSystemInfo(&info);
         return info.dwPageSize;
+    #else
+        return getpagesize();
+    #endif
     }
 
     uint8_t *GetData() { return m_data; }
+    uint32_t GetPosition() { return m_offset; }
 
     uint32_t m_size;
     uint32_t m_offset;
@@ -150,7 +180,7 @@ public:
     */
     static std::unique_ptr<Buildable> LoadLeftAndStore(AstVisitor *visitor, Module *mod, ExprInfo info);
     /** Build a binary operation such as ADD, SUB, MUL, etc. */
-    static std::unique_ptr<Buildable> BuildBinOp(uint8_t opcode, AstVisitor *visitor, Module *mod, Compiler::ExprInfo info);
+    static std::unique_ptr<Buildable> BuildBinOp(uint8_t opcode, AstVisitor *visitor, Module *mod, JitCompiler::ExprInfo info);
     /** Pops from the stack N times. If N is greater than 1,
         the POP_N instruction is generated. Otherwise, the POP
         instruction is generated.

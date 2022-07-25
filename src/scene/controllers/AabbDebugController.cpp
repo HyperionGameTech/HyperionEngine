@@ -1,4 +1,4 @@
-#include "AABBDebugController.hpp"
+#include "AabbDebugController.hpp"
 #include <Engine.hpp>
 #include <builders/MeshBuilder.hpp>
 
