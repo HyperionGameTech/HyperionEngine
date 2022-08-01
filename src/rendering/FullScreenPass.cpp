@@ -286,6 +286,18 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
             );
+            
+
+#if HYP_FEATURES_ENABLE_RAYTRACING
+          //  if (!engine->GetDevice()->GetFeatures().IsRaytracingDisabled()) {
+                cmd->BindDescriptorSet(
+                    engine->GetInstance()->GetDescriptorPool(),
+                    m_renderer_instance->GetPipeline(),
+                    DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
+                    DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
+                );
+         //   }
+#endif
 
             full_screen_quad->Render(engine, cmd);
 

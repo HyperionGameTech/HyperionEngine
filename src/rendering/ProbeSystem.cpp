@@ -26,6 +26,12 @@ ProbeGrid::~ProbeGrid()
 
 void ProbeGrid::Init(Engine *engine)
 {
+    DebugLog(
+        LogType::Debug,
+        "Creating %u probes\n",
+        m_grid_info.NumProbes()
+    );
+
     const auto grid = m_grid_info.NumProbesPerDimension();
     
     m_probes.resize(m_grid_info.NumProbes());

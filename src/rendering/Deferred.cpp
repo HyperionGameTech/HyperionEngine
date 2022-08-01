@@ -4,6 +4,8 @@
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
 
+#include "backend/vulkan/RendererFeatures.hpp"
+
 namespace hyperion::v2 {
 
 using renderer::ImageDescriptor;
