@@ -2,6 +2,7 @@
 #define HYPERION_V2_LIB_FLAT_SET_H
 
 #include "ContainerBase.hpp"
+#include "DynArray.hpp"
 #include <util/Defines.hpp>
 
 #include <algorithm>
@@ -12,11 +13,11 @@ namespace hyperion {
 
 template <class T>
 class FlatSet : public ContainerBase<FlatSet<T>, T> {
-    std::vector<T> m_vector;
+    DynArray<T> m_vector;
 
 public:
-    using Iterator      = typename std::vector<T>::iterator;
-    using ConstIterator = typename std::vector<T>::const_iterator;
+    using Iterator      = typename decltype(m_vector)::Iterator;
+    using ConstIterator = typename decltype(m_vector)::ConstIterator;
     using InsertResult  = std::pair<Iterator, bool>; // iterator, was inserted
 
     FlatSet();
@@ -44,20 +45,20 @@ public:
     bool Erase(Iterator it);
     bool Erase(const T &value);
 
-    [[nodiscard]] size_t Size() const                     { return m_vector.size(); }
-    [[nodiscard]] T *Data()                               { return m_vector.data(); }
-    [[nodiscard]] T * const Data() const                  { return m_vector.data(); }
-    [[nodiscard]] bool Empty() const                      { return m_vector.empty(); }
+    [[nodiscard]] size_t Size() const                     { return m_vector.Size(); }
+    [[nodiscard]] T *Data()                               { return m_vector.Data(); }
+    [[nodiscard]] T * const Data() const                  { return m_vector.Data(); }
+    [[nodiscard]] bool Empty() const                      { return m_vector.Empty(); }
     [[nodiscard]] bool Contains(const T &value) const     { return Find(value) != End(); }
-    void Clear()                                          { m_vector.clear(); }
+    void Clear()                                          { m_vector.Clear(); }
     
-    [[nodiscard]] T &Front()                              { return m_vector.front(); }
-    [[nodiscard]] const T &Front() const                  { return m_vector.front(); }
-    [[nodiscard]] T &Back()                               { return m_vector.back(); }
-    [[nodiscard]] const T &Back() const                   { return m_vector.back(); }
+    [[nodiscard]] T &Front()                              { return m_vector.Front(); }
+    [[nodiscard]] const T &Front() const                  { return m_vector.Front(); }
+    [[nodiscard]] T &Back()                               { return m_vector.Back(); }
+    [[nodiscard]] const T &Back() const                   { return m_vector.Back(); }
 
-    [[nodiscard]] T &At(Iterator iter)                    { return m_vector.at(std::distance(m_vector.begin(), iter)); }
-    [[nodiscard]] const T &At(Iterator iter) const        { return m_vector.at(std::distance(m_vector.begin(), iter)); }
+    [[nodiscard]] T &At(Iterator iter)                    { return m_vector[std::distance(m_vector.Begin(), iter)]; }
+    [[nodiscard]] const T &At(Iterator iter) const        { return m_vector[std::distance(m_vector.Begin(), iter)]; }
 
     //[[nodiscard]] T &operator[](size_t index)             { return m_vector[index]; }
     //[[nodiscard]] const T &operator[](size_t index) const { return m_vector[index]; }
@@ -148,7 +149,7 @@ auto FlatSet<T>::Insert(const T &value) -> InsertResult
     Iterator it = FlatSet<T>::Base::LowerBound(value);
 
     if (it == End() || !(*it == value)) {
-        it = m_vector.insert(it, value);
+        it = m_vector.Insert(it, value);
 
         return {it, true};
     }
@@ -162,7 +163,7 @@ auto FlatSet<T>::Insert(T &&value) -> InsertResult
     Iterator it = FlatSet<T>::Base::LowerBound(value);
 
     if (it == End() || !(*it == value)) {
-        it = m_vector.insert(it, std::forward<T>(value));
+        it = m_vector.Insert(it, std::forward<T>(value));
 
         return {it, true};
     }
@@ -177,7 +178,7 @@ bool FlatSet<T>::Erase(Iterator it)
         return false;
     }
 
-    m_vector.erase(it);
+    m_vector.Erase(it);
 
     return true;
 }

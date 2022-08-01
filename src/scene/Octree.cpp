@@ -241,7 +241,7 @@ Octree::Result Octree::Insert(Engine *engine, Entity *entity)
 {
     AssertThrow(entity != nullptr);
 
-    const auto &entity_aabb = entity->GetWorldAabb();
+    const auto &entity_aabb = entity->GetWorldAABB();
 
     if (!m_aabb.Contains(entity_aabb)) {
         auto rebuild_result = RebuildExtendInternal(engine, entity_aabb);
@@ -276,7 +276,7 @@ Octree::Result Octree::InsertInternal(Engine *engine, Entity *entity)
 {
     m_nodes.push_back(Node {
         .entity           = entity,
-        .aabb             = entity->GetWorldAabb(),
+        .aabb             = entity->GetWorldAABB(),
         .visibility_state = &m_visibility_state
     });
 
@@ -310,7 +310,7 @@ Octree::Result Octree::Remove(Engine *engine, Entity *entity)
         return {Result::OCTREE_ERR, "Could not be removed from any sub octants"};
     }
 
-    if (!m_aabb.Contains(entity->GetWorldAabb())) {
+    if (!m_aabb.Contains(entity->GetWorldAABB())) {
         return {Result::OCTREE_ERR, "AABB does not contain object aabb"};
     }
 
@@ -375,7 +375,7 @@ Octree::Result Octree::RemoveInternal(Engine *engine, Entity *entity)
 
 Octree::Result Octree::Move(Engine *engine, Entity *entity, const std::vector<Node>::iterator *it)
 {
-    const auto &new_aabb = entity->GetWorldAabb();
+    const auto &new_aabb = entity->GetWorldAABB();
 
     const bool is_root = IsRoot();
     const bool contains = m_aabb.Contains(new_aabb);
@@ -505,7 +505,7 @@ Octree::Result Octree::Move(Engine *engine, Entity *entity, const std::vector<No
 
         m_nodes.push_back(Node {
             .entity          = entity,
-            .aabb             = entity->GetWorldAabb(),
+            .aabb             = entity->GetWorldAABB(),
             .visibility_state = &m_visibility_state
         });
 
@@ -559,15 +559,15 @@ Octree::Result Octree::UpdateInternal(Engine *engine, Entity *entity)
         return {Result::OCTREE_ERR, "Could not update in any sub octants"};
     }
 
-    const auto &new_aabb = entity->GetWorldAabb();
+    const auto &new_aabb = entity->GetWorldAABB();
     const auto &old_aabb = it->aabb;
 
     if (new_aabb == old_aabb) {
-        /* Aabb has not changed - no need to update */
+        /* AABB has not changed - no need to update */
         return {};
     }
 
-    /* Aabb has changed to we remove it from this octree and either:
+    /* AABB has changed to we remove it from this octree and either:
      * If we don't contain it anymore - insert it from the highest level octree that still contains the aabb and then walking down from there
      * If we do still contain it - we will remove it from this octree and re-insert it to find the deepest child octant
      */
@@ -748,7 +748,7 @@ void Octree::CalculateVisibility(Scene *scene)
 
     const auto &frustum = scene->GetCamera()->GetFrustum();
      
-    if (frustum.ContainsAabb(m_aabb)) {
+    if (frustum.ContainsAABB(m_aabb)) {
         // NextVisibilityState();
 
         UpdateVisibilityState(scene);
@@ -772,7 +772,7 @@ void Octree::UpdateVisibilityState(Scene *scene)
     const auto nonce  = m_visibility_state.nonces[cursor].load();
 
     for (auto &octant : m_octants) {
-        if (!frustum.ContainsAabb(octant.aabb)) {
+        if (!frustum.ContainsAABB(octant.aabb)) {
             continue;
         }
 
@@ -796,7 +796,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
 {
     bool has_hit = false;
 
-    if (ray.TestAabb(m_aabb)) {
+    if (ray.TestAABB(m_aabb)) {
         for (auto &node : m_nodes) {
             AssertThrow(node.entity != nullptr);
 
@@ -808,7 +808,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
                 continue;
             }
 
-            if (ray.TestAabb(
+            if (ray.TestAABB(
                 node.aabb,
                 node.entity->GetId().value,
                 static_cast<void *>(node.entity),

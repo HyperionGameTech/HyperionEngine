@@ -52,9 +52,7 @@ void Blas::Init(Engine *engine)
         return;
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this](...) {
-        auto *engine = GetEngine();
-
+    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this, engine](...) {
         if (m_mesh != nullptr) {
             m_mesh.Init();
 

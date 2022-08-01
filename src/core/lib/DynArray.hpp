@@ -754,8 +754,6 @@ auto DynArray<T>::Insert(ConstIterator where, const ValueType &value) -> Iterato
 
     AssertThrow(m_capacity >= m_size + 1);
 
-    const Int64 dist = where - Begin();
-
     Int64 index;
 
     for (index = Size(); index > dist; --index) {

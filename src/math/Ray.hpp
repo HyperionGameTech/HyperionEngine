@@ -26,10 +26,10 @@ struct Ray {
     Vector3 position;
     Vector3 direction;
 
-    bool TestAabb(const BoundingBox &aabb) const;
-    bool TestAabb(const BoundingBox &aabb, RayTestResults &out_results) const;
-    bool TestAabb(const BoundingBox &aabb, RayHitID hit_id, RayTestResults &out_results) const;
-    bool TestAabb(const BoundingBox &aabb, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;
+    bool TestAABB(const BoundingBox &aabb) const;
+    bool TestAABB(const BoundingBox &aabb, RayTestResults &out_results) const;
+    bool TestAABB(const BoundingBox &aabb, RayHitID hit_id, RayTestResults &out_results) const;
+    bool TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;
 
     bool TestTriangle(const Triangle &triangle) const;
     bool TestTriangle(const Triangle &triangle, RayTestResults &out_results) const;
@@ -41,12 +41,14 @@ struct Ray {
         const std::vector<UInt32> &indices,
         const Transform &transform
     ) const;
+
     bool TestTriangleList(
         const std::vector<Vertex> &vertices,
         const std::vector<UInt32> &indices,
         const Transform &transform,
         RayTestResults &out_results
     ) const;
+
     bool TestTriangleList(
         const std::vector<Vertex> &vertices,
         const std::vector<UInt32> &indices,
@@ -54,6 +56,7 @@ struct Ray {
         RayHitID hit_id,
         RayTestResults &out_results
     ) const;
+
     bool TestTriangleList(
         const std::vector<Vertex> &vertices,
         const std::vector<UInt32> &indices,

@@ -113,8 +113,8 @@ public:
     //VisibilityState &GetVisibilityState()             { return m_visibility_state; }
     const VisibilityState &GetVisibilityState() const { return m_visibility_state; }
 
-    BoundingBox &GetAabb()                            { return m_aabb; }
-    const BoundingBox &GetAabb() const                { return m_aabb; }
+    BoundingBox &GetAABB()                            { return m_aabb; }
+    const BoundingBox &GetAABB() const                { return m_aabb; }
 
     void Clear(Engine *engine);
     Result Insert(Engine *engine, Entity *entity);

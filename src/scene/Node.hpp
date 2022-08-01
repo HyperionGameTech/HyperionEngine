@@ -234,12 +234,12 @@ public:
     /*! @returns The local-space (model) of the node's aabb. Only includes
      * the Entity's aabb.
      */
-    const BoundingBox &GetLocalAabb() const { return m_local_aabb; }
+    const BoundingBox &GetLocalAABB() const { return m_local_aabb; }
 
     /*! @returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes.
      */
-    const BoundingBox &GetWorldAabb() const { return m_world_aabb; }
+    const BoundingBox &GetWorldAABB() const { return m_world_aabb; }
 
     void UpdateWorldTransform();
 

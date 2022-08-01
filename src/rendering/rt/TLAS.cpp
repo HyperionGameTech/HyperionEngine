@@ -32,9 +32,7 @@ void Tlas::Init(Engine *engine)
         return;
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this](...) {
-        auto *engine = GetEngine();
-
+    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this, engine](...) {
         std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
 
         for (size_t i = 0; i < m_blas.size(); i++) {

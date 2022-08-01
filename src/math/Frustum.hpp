@@ -19,10 +19,10 @@ public:
     Vector4 &GetPlane(size_t index)             { return m_planes[index]; }
     const Vector4 &GetPlane(size_t index) const { return m_planes[index]; }
 
-    bool ContainsAabb(const BoundingBox &aabb) const;
+    bool ContainsAABB(const BoundingBox &aabb) const;
 
     Frustum &SetFromViewProjectionMatrix(const Matrix4 &view_proj);
-    //Frustum &SetFromAabb(const BoundingBox &aabb);
+    //Frustum &SetFromAABB(const BoundingBox &aabb);
     //Frustum &SetFromCorners(const std::array<Vector3, 8> &corners);
 
     FixedArray<Vector4, 6> m_planes;

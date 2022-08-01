@@ -41,7 +41,7 @@ Entity::Entity(
     m_shader_data_state(ShaderDataState::DIRTY)
 {
     if (m_mesh) {
-        m_local_aabb = m_mesh->CalculateAabb();
+        m_local_aabb = m_mesh->CalculateAABB();
         m_world_aabb = m_local_aabb * m_transform;
     }
 }

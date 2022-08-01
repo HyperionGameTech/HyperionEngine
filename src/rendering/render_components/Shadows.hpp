@@ -48,7 +48,7 @@ public:
     float GetMaxDistance() const            { return m_max_distance; }
     void SetMaxDistance(float max_distance) { m_max_distance = max_distance; }
 
-    BoundingBox GetAabb() const
+    BoundingBox GetAABB() const
     {
         return {
             MathUtil::Round(m_origin - m_max_distance * 0.5f),

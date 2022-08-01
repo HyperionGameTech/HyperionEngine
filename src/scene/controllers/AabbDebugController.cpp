@@ -15,7 +15,7 @@ AABBDebugController::AABBDebugController(Engine *engine)
 void AABBDebugController::OnAdded()
 {
     auto *scene = GetOwner()->GetScene();
-    m_aabb      = GetOwner()->GetWorldAabb();
+    m_aabb      = GetOwner()->GetWorldAABB();
 
     if (scene == nullptr) {
         DebugLog(
@@ -75,7 +75,7 @@ void AABBDebugController::OnRemoved()
 
 void AABBDebugController::OnTransformUpdate(const Transform &transform)
 {
-    m_aabb = GetOwner()->GetWorldAabb();
+    m_aabb = GetOwner()->GetWorldAABB();
 
     if (m_aabb_entity == nullptr) {
         DebugLog(

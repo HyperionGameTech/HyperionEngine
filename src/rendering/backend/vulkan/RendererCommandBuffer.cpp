@@ -1,6 +1,7 @@
 #include "RendererCommandBuffer.hpp"
 #include "RendererComputePipeline.hpp"
 #include "RendererGraphicsPipeline.hpp"
+#include "rt/RendererRaytracingPipeline.hpp"
 #include "RendererStructs.hpp"
 
 #include <Types.hpp>
@@ -194,44 +195,6 @@ void CommandBuffer::DrawIndexedIndirect(
 }
 
 void CommandBuffer::BindDescriptorSet(
-    const DescriptorPool  &pool,
-    const ComputePipeline *pipeline,
-    const DescriptorSet   *descriptor_set,
-    DescriptorSet::Index   binding
-) const
-{
-    BindDescriptorSet(
-        pool,
-        static_cast<const Pipeline *>(pipeline),
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        descriptor_set,
-        binding,
-        nullptr,
-        0
-    );
-}
-
-void CommandBuffer::BindDescriptorSet(
-    const DescriptorPool  &pool,
-    const ComputePipeline *pipeline,
-    const DescriptorSet   *descriptor_set,
-    DescriptorSet::Index   binding,
-    const UInt32          *offsets,
-    size_t                 num_offsets
-) const
-{
-    BindDescriptorSet(
-        pool,
-        static_cast<const Pipeline *>(pipeline),
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        descriptor_set,
-        binding,
-        offsets,
-        num_offsets
-    );
-}
-
-void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     DescriptorSet::Index set
@@ -309,6 +272,44 @@ void CommandBuffer::BindDescriptorSets(
 }
 
 void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool  &pool,
+    const ComputePipeline *pipeline,
+    const DescriptorSet   *descriptor_set,
+    DescriptorSet::Index   binding
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        descriptor_set,
+        binding,
+        nullptr,
+        0
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool  &pool,
+    const ComputePipeline *pipeline,
+    const DescriptorSet   *descriptor_set,
+    DescriptorSet::Index   binding,
+    const UInt32          *offsets,
+    size_t                 num_offsets
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        descriptor_set,
+        binding,
+        offsets,
+        num_offsets
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     DescriptorSet::Index set
@@ -377,6 +378,121 @@ void CommandBuffer::BindDescriptorSets(
         pool,
         static_cast<const Pipeline *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
+        sets,
+        bindings,
+        num_descriptor_sets,
+        offsets,
+        num_offsets
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool     &pool,
+    const RaytracingPipeline *pipeline,
+    const DescriptorSet      *descriptor_set,
+    DescriptorSet::Index      binding
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        descriptor_set,
+        binding,
+        nullptr,
+        0
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool     &pool,
+    const RaytracingPipeline *pipeline,
+    const DescriptorSet      *descriptor_set,
+    DescriptorSet::Index      binding,
+    const UInt32             *offsets,
+    size_t                    num_offsets
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        descriptor_set,
+        binding,
+        offsets,
+        num_offsets
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool     &pool,
+    const RaytracingPipeline *pipeline,
+    DescriptorSet::Index      set
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        set,
+        set,
+        nullptr,
+        0
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool     &pool,
+    const RaytracingPipeline *pipeline,
+    DescriptorSet::Index      set,
+    DescriptorSet::Index      binding
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        set,
+        binding,
+        nullptr,
+        0
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool     &pool,
+    const RaytracingPipeline *pipeline,
+    DescriptorSet::Index      set,
+    DescriptorSet::Index      binding,
+    const UInt32             *offsets,
+    size_t                    num_offsets
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        set,
+        binding,
+        offsets,
+        num_offsets
+    );
+}
+
+void CommandBuffer::BindDescriptorSets(
+    const DescriptorPool       &pool,
+    const RaytracingPipeline   *pipeline,
+    const DescriptorSet::Index *sets,
+    const DescriptorSet::Index *bindings,
+    size_t                      num_descriptor_sets,
+    const UInt32               *offsets,
+    size_t                      num_offsets
+) const
+{
+    BindDescriptorSets(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         sets,
         bindings,
         num_descriptor_sets,

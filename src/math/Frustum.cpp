@@ -16,7 +16,7 @@ Frustum::Frustum(const Matrix4 &view_proj)
     SetFromViewProjectionMatrix(view_proj);
 }
 
-bool Frustum::ContainsAabb(const BoundingBox &aabb) const
+bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 {
     const auto &corners = aabb.GetCorners();
 

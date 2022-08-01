@@ -444,7 +444,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
             instance->GetDescriptorPool().Bind(
                 device,
                 secondary,
-                m_renderer_instance.get(),
+                m_pipeline.get(),
                 {
                     {.set = DescriptorSet::bindless_textures_mapping[frame_index], .count = 1},
                     {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS}
@@ -477,7 +477,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
 #if HYP_FEATURES_BINDLESS_TEXTURES
                 secondary->BindDescriptorSets(
                     instance->GetDescriptorPool(),
-                    m_renderer_instance.get(),
+                    m_pipeline.get(),
                     FixedArray { DescriptorSet::object_buffer_mapping[frame_index] },
                     FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
                     FixedArray {
@@ -578,7 +578,7 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
             instance->GetDescriptorPool().Bind(
                 device,
                 secondary,
-                m_renderer_instance.get(),
+                m_pipeline.get(),
                 {
                     {.set = DescriptorSet::bindless_textures_mapping[frame_index], .count = 1},
                     {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS}
@@ -640,7 +640,7 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
 #if HYP_FEATURES_BINDLESS_TEXTURES
                 secondary->BindDescriptorSets(
                     instance->GetDescriptorPool(),
-                    m_renderer_instance.get(),
+                    m_pipeline.get(),
                     FixedArray { DescriptorSet::object_buffer_mapping[frame_index] },
                     FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
                     FixedArray {

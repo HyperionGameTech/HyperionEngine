@@ -198,6 +198,7 @@
         #endif
     #endif
 #else
+    #define HYP_FEATURES_ENABLE_RAYTRACING 1
     #define HYP_FEATURES_BINDLESS_TEXTURES 1
 
     #if defined(HYP_VULKAN) && HYP_VULKAN
@@ -218,7 +219,7 @@
 
 
 //testing, to remove
-#define HYP_FEATURES_BINDLESS_TEXTURES 0
+#define HYP_FEATURES_BINDLESS_TEXTURES 1
 //#undef HYP_VULKAN_API_VERSION
 //#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1
 

@@ -65,7 +65,7 @@ using namespace hyperion;
 
 
 #define HYPERION_VK_TEST_VCT 1
-#define HYPERION_VK_TEST_RAYTRACING 0
+#define HYPERION_VK_TEST_RAYTRACING 1
 #define HYPERION_RUN_TESTS 1
 
 v2::VoxelConeTracing *vct = nullptr; // Have to do this for now... we need some way of statically generating descriptor sets
@@ -831,7 +831,9 @@ int main()
 
     auto rt = std::make_unique<RaytracingPipeline>(std::move(rt_shader));
 
-    my_game->material_test_obj->GetChild(0)->GetEntity()->SetTransform({{ 0, 7, 0 }});
+    auto material_test_obj = engine->assets.Load<v2::Node>("models/material_sphere/material_sphere.obj");
+    auto cube_obj = engine->assets.Load<v2::Node>("models/cube.obj");
+    material_test_obj->GetChild(0)->GetEntity()->SetTransform(Transform({ 0, 7, 0 }));
 
 
     v2::ProbeGrid probe_system({
@@ -842,13 +844,13 @@ int main()
     auto my_tlas = std::make_unique<v2::Tlas>();
 
     my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
-        engine->resources.meshes.IncRef(my_game->material_test_obj->GetChild(0)->GetEntity()->GetMesh()),
-        my_game->material_test_obj->GetChild(0)->GetEntity()->GetTransform()
+        material_test_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
+        material_test_obj->GetChild(0)->GetEntity()->GetTransform()
     )));
     
     my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
-        engine->resources.meshes.IncRef(my_game->cube_obj->GetChild(0)->GetEntity()->GetMesh()),
-        my_game->cube_obj->GetChild(0)->GetEntity()->GetTransform()
+        cube_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
+        cube_obj->GetChild(0)->GetEntity()->GetTransform()
     )));
 
     my_tlas->Init(engine);
@@ -1035,16 +1037,20 @@ int main()
 
 #if HYPERION_VK_TEST_RAYTRACING
         rt->Bind(frame->GetCommandBuffer());
-        engine->GetInstance()->GetDescriptorPool().Bind(
-            engine->GetDevice(),
-            frame->GetCommandBuffer(),
+    
+        const auto scene_binding = engine->render_state.GetScene().id;
+        const auto scene_index   = scene_binding ? scene_binding.value - 1 : 0u;
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
             rt.get(),
-            {
-                {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE, .count = 1},
-                {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
-                {.offsets = {0, 0}}
+            DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()],
+            DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+            FixedArray {
+                UInt32(sizeof(v2::SceneShaderData) * scene_index),
+                UInt32(sizeof(v2::LightShaderData) * 0)
             }
         );
+
         engine->GetInstance()->GetDescriptorPool().Bind(
             engine->GetDevice(),
             frame->GetCommandBuffer(),
@@ -1061,8 +1067,8 @@ int main()
         );
 
         
-        probe_system.RenderProbes(engine, frame->GetCommandBuffer());
-        probe_system.ComputeIrradiance(engine, frame->GetCommandBuffer());
+        probe_system.RenderProbes(engine, frame);
+        probe_system.ComputeIrradiance(engine, frame);
 #endif
 
 #if HYPERION_VK_TEST_VCT

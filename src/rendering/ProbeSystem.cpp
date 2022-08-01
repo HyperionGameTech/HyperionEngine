@@ -202,30 +202,33 @@ void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffe
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::RenderProbes(Engine *engine, CommandBuffer *command_buffer)
+void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_radiance_buffer->InsertBarrier(command_buffer, GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
 
-    SubmitPushConstants(engine, command_buffer);
+    SubmitPushConstants(engine, frame->GetCommandBuffer());
 
-    m_pipeline->Bind(command_buffer);
+    m_pipeline->Bind(frame->GetCommandBuffer());
     
-    engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(),
-        command_buffer,
+    const auto scene_binding = engine->render_state.GetScene().id;
+    const auto scene_index   = scene_binding ? scene_binding.value - 1 : 0u;
+
+   /* frame->GetCommandBuffer()->BindDescriptorSet(
+        engine->GetInstance()->GetDescriptorPool(),
         m_pipeline.get(),
-        {
-            {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE, .count = 1},
-            {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
-            {.offsets = {0}}
+        DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()],
+        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+        FixedArray {
+            UInt32(sizeof(SceneShaderData) * scene_index),
+            UInt32(sizeof(LightShaderData) * 0)
         }
-    );
+    );*/
 
     engine->GetInstance()->GetDescriptorPool().Bind(
         engine->GetDevice(),
-        command_buffer,
+        frame->GetCommandBuffer(),
         m_pipeline.get(),
         {
             {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
@@ -234,47 +237,47 @@ void ProbeGrid::RenderProbes(Engine *engine, CommandBuffer *command_buffer)
 
     m_pipeline->TraceRays(
         engine->GetDevice(),
-        command_buffer,
+        frame->GetCommandBuffer(),
         Extent3D(m_grid_info.GetImageDimensions())
     );
 
-    m_radiance_buffer->InsertBarrier(command_buffer, GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
 }
 
-void ProbeGrid::ComputeIrradiance(Engine *engine, CommandBuffer *command_buffer)
+void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     const auto probe_counts = m_grid_info.NumProbesPerDimension();
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(
-        command_buffer,
+        frame->GetCommandBuffer(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->GetGPUImage()->InsertBarrier(
-        command_buffer,
+        frame->GetCommandBuffer(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     );
     
-    m_update_irradiance->GetPipeline()->Bind(command_buffer);
+    m_update_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer());
     
     engine->GetInstance()->GetDescriptorPool().Bind(
         engine->GetDevice(),
-        command_buffer,
+        frame->GetCommandBuffer(),
         m_update_irradiance->GetPipeline(),
         {
             {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
         }
     );
 
-    m_update_irradiance->GetPipeline()->Dispatch(command_buffer, Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}});
+    m_update_irradiance->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}});
 
-    m_update_depth->GetPipeline()->Bind(command_buffer);
+    m_update_depth->GetPipeline()->Bind(frame->GetCommandBuffer());
     
     engine->GetInstance()->GetDescriptorPool().Bind(
         engine->GetDevice(),
-        command_buffer,
+        frame->GetCommandBuffer(),
         m_update_depth->GetPipeline(),
         {
             {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
@@ -282,17 +285,17 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, CommandBuffer *command_buffer)
     );
 
     m_update_depth->GetPipeline()->Dispatch(
-        command_buffer,
+        frame->GetCommandBuffer(),
         Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}}
     );
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(
-        command_buffer,
+        frame->GetCommandBuffer(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->GetGPUImage()->InsertBarrier(
-        command_buffer,
+        frame->GetCommandBuffer(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     );
 }

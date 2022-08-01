@@ -640,7 +640,7 @@ void Engine::RenderFinalPass(Frame *frame) const
     /* TMP */
     m_instance->GetDescriptorPool().Bind(
         m_instance->GetDevice(),
-        command_buffer,
+        frame->GetCommandBuffer(),
         pipeline,
         {{
             .set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,

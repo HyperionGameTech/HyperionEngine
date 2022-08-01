@@ -191,7 +191,7 @@ void Material::EnqueueRenderUpdates()
             for (SizeType i = 0; i < ids.Size(); i++) {
                 if (ids[i] != Texture::empty_id) {
 #if HYP_FEATURES_BINDLESS_TEXTURES
-                    shader_data.texture_index[i] = bound_texture_ids[i].value - 1;
+                    shader_data.texture_index[i] = ids[i].value - 1;
 #else
                     shader_data.texture_index[i] = i;
 #endif

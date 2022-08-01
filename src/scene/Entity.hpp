@@ -144,8 +144,8 @@ public:
     const Transform &GetTransform() const        { return m_transform; }
     void SetTransform(const Transform &transform);
 
-    const BoundingBox &GetLocalAabb() const      { return m_local_aabb; }
-    const BoundingBox &GetWorldAabb() const      { return m_world_aabb; }
+    const BoundingBox &GetLocalAABB() const      { return m_local_aabb; }
+    const BoundingBox &GetWorldAABB() const      { return m_world_aabb; }
     
     bool IsReady() const;
 
