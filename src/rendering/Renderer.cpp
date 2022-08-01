@@ -374,9 +374,8 @@ void RendererInstance::CollectDrawCalls(
 
     // check visibility state
     const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.bucket);
-    UInt num_culled_objects = 0;
 
-    m_indirect_renderer.GetDrawState().ResetDrawables();
+    m_indirect_renderer.GetDrawState().ResetDrawProxies();
     //m_indirect_renderer.GetDrawState().Reserve(engine, frame, m_entities.size());
 
     for (auto &&entity : m_entities) {
@@ -388,25 +387,19 @@ void RendererInstance::CollectDrawCalls(
             if (auto *octant = entity->GetOctree()) {
                 const auto &visibility_state = octant->GetVisibilityState();
 
-                if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant)) {
-                    //++num_culled_objects;
+                if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant, engine->render_state.visibility_cursor)) {
                     continue;
-
-                    //draw_proxy.user_data = reinterpret_cast<void *>(UInt64(1));
-
                 }
 
-                //if (!visibility_state.Get(scene_id)) {
-               //     ++num_culled_objects;
-                //    continue;
-               // }
+                if (!visibility_state.Get(scene_id)) {
+                    continue;
+                }
             } else {
-                ++num_culled_objects;
                 continue;
             }
         }
         
-        m_indirect_renderer.GetDrawState().PushDrawable(entity->GetDrawProxy());
+        m_indirect_renderer.GetDrawState().PushDrawProxy(entity->GetDrawProxy());
     }
 
     m_indirect_renderer.ExecuteCullShaderInBatches(
@@ -414,13 +407,6 @@ void RendererInstance::CollectDrawCalls(
         frame,
         cull_data
     );
-
-    // DebugLog(
-    //     LogType::Debug,
-    //     "Render indirect for scene #%u: %u culled objects\n",
-    //     scene_id.value,
-    //     num_culled_objects
-    // );
 }
 
 void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
@@ -616,8 +602,8 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
                 if (perform_culling) {
                     if (auto *octant = entity->GetOctree()) {
                         const auto &visibility_state = octant->GetVisibilityState();
-
-                        if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant)) {
+                        
+                        if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant, engine->render_state.visibility_cursor)) {
                             ++num_culled_objects;
                             continue;
                         }

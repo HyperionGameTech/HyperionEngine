@@ -7,11 +7,26 @@ namespace hyperion::v2 {
 
 const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 
-bool Octree::IsVisible(const Octree *root, const Octree *child)
+bool Octree::IsVisible(
+    const Octree *root,
+    const Octree *child
+)
 {
     return child->m_visibility_state.ValidToParent(
         root->m_visibility_state,
         (root->GetRoot()->visibility_cursor + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size
+    );
+}
+
+bool Octree::IsVisible(
+    const Octree *root,
+    const Octree *child,
+    UInt8 cursor
+)
+{
+    return child->m_visibility_state.ValidToParent(
+        root->m_visibility_state,
+        cursor
     );
 }
 
@@ -693,9 +708,26 @@ bool Octree::GetNearestOctants(const Vector3 &position, std::array<Octree *, 8> 
 
 void Octree::NextVisibilityState()
 {
-    m_root->visibility_cursor = (m_root->visibility_cursor + 1) % VisibilityState::cursor_size;
+    AssertThrow(m_root != nullptr);
 
-    ++m_visibility_state.nonces[m_root->visibility_cursor];
+    UInt8 cursor;
+    m_root->visibility_cursor.store(cursor = (m_root->visibility_cursor.load() + 1) % VisibilityState::cursor_size);
+
+    ++m_visibility_state.nonces[cursor];
+}
+
+UInt8 Octree::LoadVisibilityCursor() const
+{
+    AssertThrow(m_root != nullptr);
+
+    return m_root->visibility_cursor.load();
+}
+
+UInt8 Octree::LoadPreviousVisibilityCursor() const
+{
+    AssertThrow(m_root != nullptr);
+
+    return (m_root->visibility_cursor.load() + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size;
 }
 
 void Octree::CalculateVisibility(Scene *scene)

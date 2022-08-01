@@ -84,10 +84,19 @@ public:
         } events;
 
         std::unordered_map<Entity *, Octree *>  node_to_octree;
-        std::atomic_uint32_t                    visibility_cursor{0};
+        std::atomic_uint8_t                     visibility_cursor{0};
     };
 
-    static bool IsVisible(const Octree *parent, const Octree *child);
+    static bool IsVisible(
+        const Octree *parent,
+        const Octree *child
+    );
+
+    static bool IsVisible(
+        const Octree *parent,
+        const Octree *child,
+        UInt8 cursor
+    );
 
     Octree(const BoundingBox &aabb = default_bounds);
     ~Octree();
@@ -119,6 +128,8 @@ public:
 
     void NextVisibilityState();
     void CalculateVisibility(Scene *scene);
+    UInt8 LoadVisibilityCursor() const;
+    UInt8 LoadPreviousVisibilityCursor() const;
 
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 

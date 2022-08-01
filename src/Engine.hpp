@@ -132,6 +132,7 @@ struct RenderState {
     std::stack<SceneBinding> scene_ids;
     FlatSet<Light::ID>       light_ids;
     IndirectDrawState       *indirect_draw_state = nullptr;
+    UInt8                    visibility_cursor   = 0u;
 
     void BindLight(Light::ID light)
     {

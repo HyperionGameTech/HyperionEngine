@@ -13,8 +13,8 @@ struct VisibilityState {
     using Bitmask = UInt64;
     using Nonce   = UInt16;
 
-    static constexpr UInt32 max_scenes  = sizeof(Bitmask) * CHAR_BIT;
-    static constexpr UInt32 cursor_size = 4;
+    static constexpr UInt max_scenes  = sizeof(Bitmask) * CHAR_BIT;
+    static constexpr UInt cursor_size = 3;
 
     /* map from scene index (id - 1) -> visibility boolean
      */

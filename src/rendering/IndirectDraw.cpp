@@ -129,7 +129,7 @@ static bool ResizeBuffer(
     return false;
 }
 
-void IndirectDrawState::PushDrawable(const EntityDrawProxy &draw_proxy)
+void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
 {
     if (draw_proxy.mesh == nullptr) {
         return;
@@ -234,7 +234,7 @@ bool IndirectDrawState::ResizeIfNeeded(Engine *engine, Frame *frame, SizeType co
     return resize_happened;
 }
 
-void IndirectDrawState::ResetDrawables()
+void IndirectDrawState::ResetDrawProxies()
 {
     // assume render thread
 

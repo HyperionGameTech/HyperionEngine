@@ -56,8 +56,8 @@ public:
     Result Create(Engine *engine);
     Result Destroy(Engine *engine);
 
-    void PushDrawable(const EntityDrawProxy &draw_proxy);
-    void ResetDrawables();
+    void PushDrawProxy(const EntityDrawProxy &draw_proxy);
+    void ResetDrawProxies();
     void Reserve(Engine *engine, Frame *frame, SizeType count);
 
     void UpdateBufferData(Engine *engine, Frame *frame, bool *out_was_resized);

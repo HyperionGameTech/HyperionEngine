@@ -387,6 +387,7 @@ public:
     {
         scene->GetEnvironment()->RenderComponents(engine, frame);
 
+        engine->render_state.visibility_cursor = engine->GetWorld().GetOctree().LoadPreviousVisibilityCursor();
         engine->render_state.BindScene(scene);
     }
 
