@@ -47,6 +47,8 @@ public:
 
     static std::pair<std::vector<Vertex>, std::vector<Index>> CalculateIndices(const std::vector<Vertex> &vertices);
 
+    Mesh();
+
     Mesh(
         const std::vector<Vertex> &vertices,
         const std::vector<Index> &indices,

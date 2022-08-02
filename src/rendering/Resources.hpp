@@ -41,7 +41,7 @@ struct Resources {
     HYP_DEF_REF_COUNTED(Mesh,              meshes);
     HYP_DEF_REF_COUNTED(Skeleton,          skeletons);
     HYP_DEF_REF_COUNTED(Scene,             scenes);
-    HYP_DEF_REF_COUNTED(Blas,              blas);
+    HYP_DEF_REF_COUNTED(BLAS,              blas);
     //HYP_DEF_REF_COUNTED(UIObject,          ui_objects);
 
 #undef HYP_DEF_REF_COUNTED

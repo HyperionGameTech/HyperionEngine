@@ -519,7 +519,7 @@ HYP_DEFINE_DESCRIPTOR(ImageDescriptor,                DescriptorType::IMAGE);
 HYP_DEFINE_DESCRIPTOR(SamplerDescriptor,              DescriptorType::SAMPLER);
 HYP_DEFINE_DESCRIPTOR(ImageSamplerDescriptor,         DescriptorType::IMAGE_SAMPLER);
 HYP_DEFINE_DESCRIPTOR(StorageImageDescriptor,         DescriptorType::IMAGE_STORAGE);
-HYP_DEFINE_DESCRIPTOR(TlasDescriptor,                 DescriptorType::ACCELERATION_STRUCTURE);
+HYP_DEFINE_DESCRIPTOR(TLASDescriptor,                 DescriptorType::ACCELERATION_STRUCTURE);
 
 #undef HYP_DEFINE_DESCRIPTOR
 

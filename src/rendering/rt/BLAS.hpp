@@ -13,12 +13,12 @@ namespace hyperion::v2 {
 using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlags;
 
-class Blas : public EngineComponent<BottomLevelAccelerationStructure> {
+class BLAS : public EngineComponent<BottomLevelAccelerationStructure> {
 public:
-    Blas(Ref<Mesh> &&mesh, const Transform &transform);
-    Blas(const Blas &other) = delete;
-    Blas &operator=(const Blas &other) = delete;
-    ~Blas();
+    BLAS(Ref<Mesh> &&mesh, const Transform &transform);
+    BLAS(const BLAS &other) = delete;
+    BLAS &operator=(const BLAS &other) = delete;
+    ~BLAS();
 
     Mesh *GetMesh() const { return m_mesh.ptr; }
     void SetMesh(Ref<Mesh> &&mesh);

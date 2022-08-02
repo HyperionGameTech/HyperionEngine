@@ -161,7 +161,8 @@ Result AccelerationStructure::CreateAccelerationStructure(
     AccelerationStructureType type,
     std::vector<VkAccelerationStructureGeometryKHR> &&geometries,
     std::vector<uint32_t> &&primitive_counts,
-	bool update)
+	bool update
+)
 {
 	if (update) {
 		AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
@@ -251,9 +252,18 @@ Result AccelerationStructure::CreateAccelerationStructure(
         device->GetDevice(),
         &address_info
     );
+
+	SizeType scratch_buffer_size = is_newly_created
+        ? build_sizes_info.buildScratchSize
+        : build_sizes_info.updateScratchSize;
+
+	scratch_buffer_size = device->GetFeatures().PaddedSize(
+		scratch_buffer_size,
+		device->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment
+	);
 	
 	auto scratch_buffer = std::make_unique<ScratchBuffer>();
-	HYPERION_PASS_ERRORS(scratch_buffer->Create(device, build_sizes_info.buildScratchSize), result);
+	HYPERION_PASS_ERRORS(scratch_buffer->Create(device, scratch_buffer_size), result);
 
 	if (!result) {
         HYPERION_IGNORE_ERRORS(Destroy(device));
@@ -372,20 +382,24 @@ TopLevelAccelerationStructure::~TopLevelAccelerationStructure()
 
 std::vector<VkAccelerationStructureGeometryKHR> TopLevelAccelerationStructure::GetGeometries(Instance *instance) const
 {
+	if (m_instances_buffer == nullptr) {
+	    return {};
+	}
+
     return {
 	    {
-	        .sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-			.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
-			.geometry = {
-				.instances = {
-			        .sType           = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-			        .arrayOfPointers = VK_FALSE,
-			        .data            = {.deviceAddress = m_instances_buffer->GetBufferDeviceAddress(instance->GetDevice())}
-		        }
-			},
-			.flags        = VK_GEOMETRY_OPAQUE_BIT_KHR
-	    }
-	};
+            .sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+            .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+            .geometry = {
+                .instances = {
+                    .sType           = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+                    .arrayOfPointers = VK_FALSE,
+                    .data            = {.deviceAddress = m_instances_buffer->GetBufferDeviceAddress(instance->GetDevice())}
+                }
+            },
+            .flags        = VK_GEOMETRY_OPAQUE_BIT_KHR
+        }
+    };
 }
 
 std::vector<uint32_t> TopLevelAccelerationStructure::GetPrimitiveCounts() const
@@ -464,6 +478,10 @@ Result TopLevelAccelerationStructure::Destroy(Device *device)
 
 Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *instance)
 {
+	if (m_blas.empty()) {
+	    HYPERION_RETURN_OK;
+	}
+
 	Device *device = instance->GetDevice();
 
 	std::vector<VkAccelerationStructureInstanceKHR> instances(m_blas.size());
@@ -473,10 +491,10 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
 
 		const auto instance_index = static_cast<uint32_t>(i); /* Index of mesh in mesh descriptions buffer. */
 
-	    instances[i] = VkAccelerationStructureInstanceKHR{
+	    instances[i] = VkAccelerationStructureInstanceKHR {
 		    .transform                              = ToVkTransform(blas->GetTransform()),
 		    .instanceCustomIndex                    = instance_index,
-		    .mask                                   = 0xff,
+		    .mask                                   = 0xFF,
 		    .instanceShaderBindingTableRecordOffset = 0,
 		    .flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
 		    .accelerationStructureReference         = blas->GetDeviceAddress()
@@ -543,7 +561,7 @@ Result TopLevelAccelerationStructure::CreateMeshDescriptionsBuffer(Instance *ins
 		    index_buffer_address  = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
 		}
 
-		mesh_descriptions[i] = MeshDescription{
+		mesh_descriptions[i] = MeshDescription {
 			.vertex_buffer_address = vertex_buffer_address,
 			.index_buffer_address  = index_buffer_address
 		};

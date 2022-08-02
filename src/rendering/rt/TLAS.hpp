@@ -10,19 +10,24 @@ namespace hyperion::v2 {
 
 using renderer::TopLevelAccelerationStructure;
 
-class Tlas : public EngineComponent<TopLevelAccelerationStructure> {
+class TLAS : public EngineComponent<TopLevelAccelerationStructure> {
 public:
-    Tlas();
-    Tlas(const Tlas &other) = delete;
-    Tlas &operator=(const Tlas &other) = delete;
-    ~Tlas();
+    TLAS();
+    TLAS(const TLAS &other) = delete;
+    TLAS &operator=(const TLAS &other) = delete;
+    ~TLAS();
 
-    void AddBlas(Ref<Blas> &&blas);
+    void AddBottomLevelAccelerationStructure(Ref<BLAS> &&blas);
+    auto &GetBottomLevelAccelerationStructures()             { return m_blas; }
+    const auto &GetBottomLevelAccelerationStructures() const { return m_blas; }
 
     void Init(Engine *engine);
 
+    /*! \brief Perform any pending updates to the structure*/
+    void Update(Engine *engine);
+
 private:
-    std::vector<Ref<Blas>> m_blas;
+    std::vector<Ref<BLAS>> m_blas;
 };
 
 } // namespace hyperion::v2

@@ -3,19 +3,19 @@
 
 namespace hyperion::v2 {
 
-Blas::Blas(Ref<Mesh> &&mesh, const Transform &transform)
+BLAS::BLAS(Ref<Mesh> &&mesh, const Transform &transform)
     : EngineComponent(),
       m_mesh(std::move(mesh)),
       m_transform(transform)
 {
 }
 
-Blas::~Blas()
+BLAS::~BLAS()
 {
     Teardown();
 }
 
-void Blas::SetMesh(Ref<Mesh> &&mesh)
+void BLAS::SetMesh(Ref<Mesh> &&mesh)
 {
     m_mesh = std::move(mesh);
 
@@ -37,7 +37,7 @@ void Blas::SetMesh(Ref<Mesh> &&mesh)
     }
 }
 
-void Blas::SetTransform(const Transform &transform)
+void BLAS::SetTransform(const Transform &transform)
 {
     m_transform = transform;
 
@@ -46,7 +46,7 @@ void Blas::SetTransform(const Transform &transform)
     }
 }
 
-void Blas::Init(Engine *engine)
+void BLAS::Init(Engine *engine)
 {
     if (IsInitCalled()) {
         return;
@@ -76,7 +76,7 @@ void Blas::Init(Engine *engine)
     }));
 }
 
-void Blas::Update(Engine *engine)
+void BLAS::Update(Engine *engine)
 {
     if (!IsInitCalled()) {
         return;

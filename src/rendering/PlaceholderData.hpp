@@ -4,6 +4,8 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/TypeMap.hpp>
 
+#include <rendering/Mesh.hpp>
+
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -56,6 +58,8 @@ public:
     void Create(Engine *engine);
     void Destroy(Engine *engine);
 
+    Ref<Mesh> GetEmptyMesh(Engine *engine);
+
     /*! \brief Get or create a buffer of at least the given size */
     template <class T>
     T *GetOrCreateBuffer(Device *device, SizeType required_size)
@@ -85,6 +89,8 @@ public:
 
 private:
     TypeMap<FlatMap<SizeType, std::unique_ptr<GPUBuffer>>> m_buffers;
+
+    Ref<Mesh> m_empty_mesh;
 };
 
 } // namespace hyperion::v2

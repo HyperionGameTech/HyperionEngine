@@ -180,17 +180,33 @@ void ProbeGrid::AddDescriptors(Engine *engine)
 
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
-    auto *probe_uniforms = descriptor_set->AddDescriptor<UniformBufferDescriptor>(9);
-    probe_uniforms->SetSubDescriptor({.buffer = m_uniform_buffer.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<UniformBufferDescriptor>(9)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .buffer = m_uniform_buffer.get()
+        });
 
-    auto *probe_ray_data = descriptor_set->AddDescriptor<StorageBufferDescriptor>(10);
-    probe_ray_data->SetSubDescriptor({.buffer = m_radiance_buffer.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageBufferDescriptor>(10)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .buffer = m_radiance_buffer.get()
+        });
 
-    auto *irradiance_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(11);
-    irradiance_image_descriptor->SetSubDescriptor({.image_view = m_irradiance_image_view.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageImageDescriptor>(11)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_irradiance_image_view.get()
+        });
 
-    auto *irradiance_depth_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(12);
-    irradiance_depth_image_descriptor->SetSubDescriptor({.image_view = m_depth_image_view.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageImageDescriptor>(12)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_depth_image_view.get()
+        });
 }
 
 void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer)

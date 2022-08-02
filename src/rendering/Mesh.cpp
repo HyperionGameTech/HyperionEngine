@@ -51,6 +51,11 @@ Mesh::CalculateIndices(const std::vector<Vertex> &vertices)
     return std::make_pair(new_vertices, indices);
 }
 
+Mesh::Mesh()
+    : Mesh({}, {}, Topology::TRIANGLES, MESH_FLAGS_NONE)
+{
+}
+
 Mesh::Mesh(
     const std::vector<Vertex> &vertices,
     const std::vector<Index> &indices,

@@ -67,9 +67,14 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
         // properties
 
 #if HYP_FEATURES_ENABLE_RAYTRACING
+        m_acceleration_structure_properties = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR,
+            .pNext = VK_NULL_HANDLE
+        };
+
         m_raytracing_pipeline_properties = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
-            .pNext = VK_NULL_HANDLE
+            .pNext = &m_acceleration_structure_properties
         };
 
         m_sampler_minmax_properties = {

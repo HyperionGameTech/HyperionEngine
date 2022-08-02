@@ -33,6 +33,7 @@
 #include <terrain/controllers/TerrainPagingController.hpp>
 
 #include <rendering/vct/VoxelConeTracing.hpp>
+#include <rendering/ddgi/DDGI.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
@@ -277,6 +278,14 @@ public:
         scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
             VoxelConeTracing::Params {
                 BoundingBox(-128, 128)
+            }
+        );
+#endif
+
+#if HYPERION_VK_TEST_RAYTRACING
+        scene->GetEnvironment()->AddRenderComponent<DDGI>(
+            DDGI::Params {
+                BoundingBox(Vector3(-20, -5, -20), Vector3(20, 5, 20))
             }
         );
 #endif
@@ -833,7 +842,7 @@ int main()
 
     auto material_test_obj = engine->assets.Load<v2::Node>("models/material_sphere/material_sphere.obj");
     auto cube_obj = engine->assets.Load<v2::Node>("models/cube.obj");
-    material_test_obj->GetChild(0)->GetEntity()->SetTransform(Transform({ 0, 7, 0 }));
+    material_test_obj->GetChild(0)->GetEntity()->SetTransform(Transform({ 0, 2, 5 }));
 
 
     v2::ProbeGrid probe_system({
@@ -841,14 +850,14 @@ int main()
     });
     probe_system.Init(engine);
 
-    auto my_tlas = std::make_unique<v2::Tlas>();
+    auto my_tlas = std::make_unique<v2::TLAS>();
 
-    my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
+    my_tlas->AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<v2::BLAS>(
         material_test_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
         material_test_obj->GetChild(0)->GetEntity()->GetTransform()
     )));
     
-    my_tlas->AddBlas(engine->resources.blas.Add(std::make_unique<v2::Blas>(
+    my_tlas->AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<v2::BLAS>(
         cube_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
         cube_obj->GetChild(0)->GetEntity()->GetTransform()
     )));
@@ -865,7 +874,7 @@ int main()
     ImageView rt_image_storage_view;
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
-    rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
+    rt_descriptor_set->AddDescriptor<TLASDescriptor>(0)
         ->SetSubDescriptor({.acceleration_structure = &my_tlas->Get()});
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
         ->SetSubDescriptor({.image_view = &rt_image_storage_view});
@@ -1067,8 +1076,8 @@ int main()
         );
 
         
-        probe_system.RenderProbes(engine, frame);
-        probe_system.ComputeIrradiance(engine, frame);
+        //probe_system.RenderProbes(engine, frame);
+        //probe_system.ComputeIrradiance(engine, frame);
 #endif
 
 #if HYPERION_VK_TEST_VCT

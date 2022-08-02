@@ -83,6 +83,19 @@ void PlaceholderData::Destroy(Engine *engine)
             HYPERION_ASSERT_RESULT(buffer_map_it.second->Destroy(device));
         }
     }
+
+    m_empty_mesh.Reset();
 }
+
+Ref<Mesh> PlaceholderData::GetEmptyMesh(Engine *engine)
+{
+    if (m_empty_mesh == nullptr) {
+        m_empty_mesh = engine->resources.meshes.Add(std::make_unique<Mesh>());
+        m_empty_mesh.Init();
+    }
+
+    return m_empty_mesh.IncRef();
+}
+
 
 } // namespace hyperion::v2

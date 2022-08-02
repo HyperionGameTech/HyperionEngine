@@ -3,17 +3,17 @@
 
 namespace hyperion::v2 {
 
-Tlas::Tlas()
+TLAS::TLAS()
     : EngineComponent()
 {
 }
 
-Tlas::~Tlas()
+TLAS::~TLAS()
 {
     Teardown();
 }
 
-void Tlas::AddBlas(Ref<Blas> &&blas)
+void TLAS::AddBottomLevelAccelerationStructure(Ref<BLAS> &&blas)
 {
     if (blas == nullptr) {
         return;
@@ -26,7 +26,7 @@ void Tlas::AddBlas(Ref<Blas> &&blas)
     m_blas.push_back(std::move(blas));
 }
 
-void Tlas::Init(Engine *engine)
+void TLAS::Init(Engine *engine)
 {
     if (IsInitCalled()) {
         return;
@@ -35,6 +35,7 @@ void Tlas::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this, engine](...) {
         std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
 
+        // extract backend objects
         for (size_t i = 0; i < m_blas.size(); i++) {
             AssertThrow(m_blas[i] != nullptr);
 
@@ -55,5 +56,11 @@ void Tlas::Init(Engine *engine)
         }));
     }));
 }
+
+void TLAS::Update(Engine *engine)
+{
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
+}
+
 
 } // namespace hyperion::v2

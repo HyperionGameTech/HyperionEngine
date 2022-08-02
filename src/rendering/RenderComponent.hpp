@@ -32,7 +32,8 @@ using renderer::Frame;
 enum RenderComponentName : UInt {
     RENDER_COMPONENT_VCT,
     RENDER_COMPONENT_SHADOWS,
-    RENDER_COMPONENT_CUBEMAP
+    RENDER_COMPONENT_CUBEMAP,
+    RENDER_COMPONENT_DDGI
 };
 
 class RenderComponentBase {
