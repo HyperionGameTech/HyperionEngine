@@ -27,7 +27,7 @@ public:
     GameThread();
 
     bool IsRunning() const
-        { return m_is_running.load(); }
+        { return m_is_running.load(std::memory_order_relaxed); }
 
 private:
     virtual void operator()(Engine *engine, Game *game, SystemWindow *window) override;

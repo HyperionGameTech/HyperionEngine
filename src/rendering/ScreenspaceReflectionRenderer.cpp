@@ -146,45 +146,45 @@ void ScreenspaceReflectionRenderer::CreateDescriptors(Engine *engine)
 
 void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
 {
-    m_ssr_write_uvs = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_ssr_write_uvs = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_write_uvs.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_ssr_write_uvs->Init(engine);
+    engine->InitObject(m_ssr_write_uvs);
 
-    m_ssr_sample = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_ssr_sample = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_sample.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_ssr_sample->Init(engine);
+    engine->InitObject(m_ssr_sample);
 
-    m_ssr_blur_hor = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_ssr_blur_hor = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_blur_hor.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_ssr_blur_hor->Init(engine);
+    engine->InitObject(m_ssr_blur_hor);
 
-    m_ssr_blur_vert = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_ssr_blur_vert = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_blur_vert.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_ssr_blur_vert->Init(engine);
+    engine->InitObject(m_ssr_blur_vert);
 }
 
 void ScreenspaceReflectionRenderer::Render(

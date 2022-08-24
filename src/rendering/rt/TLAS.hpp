@@ -10,7 +10,8 @@ namespace hyperion::v2 {
 
 using renderer::TopLevelAccelerationStructure;
 
-class Tlas : public EngineComponentWrapper<TopLevelAccelerationStructure> {
+class Tlas : public EngineComponentWrapper<STUB_CLASS(Tlas), TopLevelAccelerationStructure>
+{
 public:
     Tlas();
     Tlas(const Tlas &other) = delete;

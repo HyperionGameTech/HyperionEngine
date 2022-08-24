@@ -20,15 +20,18 @@ namespace hyperion::v2 {
 class Entity;
 class Camera;
 
-class Octree {
+class Octree
+{
     friend class Entity;
 
-    enum {
+    enum
+    {
         DEPTH_SEARCH_INF       = -1,
         DEPTH_SEARCH_ONLY_THIS = 0
     };
 
-    struct Callback {
+    struct Callback
+    {
         using CallbackFunction = std::function<void(Engine *, Octree *, Entity *)>;
     };
 
@@ -38,8 +41,10 @@ class Octree {
     Octree(Octree *parent, const BoundingBox &aabb, UInt8 index);
 
 public:
-    struct Result {
-        enum {
+    struct Result
+    {
+        enum
+        {
             OCTREE_OK  = 0,
             OCTREE_ERR = 1
         } result;
@@ -59,19 +64,23 @@ public:
         operator bool() const { return result == OCTREE_OK; }
     };
 
-    struct Octant {
+    struct Octant
+    {
         std::unique_ptr<Octree> octree;
         BoundingBox             aabb;
     };
 
-    struct Node {
+    struct Node
+    {
         Entity          *entity;
         BoundingBox      aabb;
         VisibilityState *visibility_state = nullptr;
     };
 
-    struct Root {
-        struct Events : ComponentEvents<Callback> {
+    struct Root
+    {
+        struct Events : ComponentEvents<Callback>
+        {
             CallbackGroup on_insert_octant,
                           on_remove_octant,
                           on_insert_node,

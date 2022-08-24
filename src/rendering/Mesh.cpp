@@ -169,7 +169,7 @@ void Mesh::Init(Engine *engine)
         // m_vertices.clear();
         // m_indices.clear();
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MESHES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             DebugLog(
@@ -194,7 +194,7 @@ void Mesh::Init(Engine *engine)
             HYP_FLUSH_RENDER_QUEUE(engine);
 
             SetReady(false);
-        }));
+        });
     }));
 }
 

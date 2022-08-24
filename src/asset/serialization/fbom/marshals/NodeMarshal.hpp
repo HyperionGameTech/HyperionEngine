@@ -5,6 +5,7 @@
 #include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
 #include <scene/Node.hpp>
 #include <animation/Bone.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -60,7 +61,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, Node *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *engine, const FBOMObject &in, Node *&out_object) const override
     {
         Node::Type node_type = Node::Type::NODE;
 
@@ -136,9 +137,9 @@ public:
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                out_object->AddChild(NodeProxy(node.deserialized.Release<Node>()));
+                out_object->AddChild(NodeProxy(node.deserialized.Cast<Node>()));
             } else if (node.GetType().IsOrExtends("Entity")) {
-                out_object->SetEntity(resources.entities.Add(node.deserialized.Release<Entity>()));
+                out_object->SetEntity(engine->CreateHandle<Entity>(node.deserialized.Cast<Entity>()));
             }
         }
 

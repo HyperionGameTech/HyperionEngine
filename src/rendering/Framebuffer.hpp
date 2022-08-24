@@ -19,18 +19,19 @@ class Framebuffer
       public RenderResource
 {
 public:
-    Framebuffer(Extent2D extent, Ref<RenderPass> &&render_pass);
+    Framebuffer(Extent2D extent, Handle<RenderPass> &&render_pass);
     Framebuffer(const Framebuffer &other) = delete;
     Framebuffer &operator=(const Framebuffer &other) = delete;
     ~Framebuffer();
 
-    void AddAttachmentRef(AttachmentRef *attachment_ref);
+    void AddAttachmentRef(AttachmentRef *attachment);
     void RemoveAttachmentRef(const Attachment *attachment);
 
-    renderer::FramebufferObject &GetFramebuffer()             { return m_framebuffer; }
+    renderer::FramebufferObject &GetFramebuffer() { return m_framebuffer; }
     const renderer::FramebufferObject &GetFramebuffer() const { return m_framebuffer; }
 
-    RenderPass *GetRenderPass() const { return m_render_pass.ptr; }
+    Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
+    const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
 
     void Init(Engine *engine);
 
@@ -39,7 +40,7 @@ public:
 
 private:
     renderer::FramebufferObject m_framebuffer;
-    Ref<RenderPass>             m_render_pass;
+    Handle<RenderPass> m_render_pass;
 };
 
 } // namespace hyperion::v2

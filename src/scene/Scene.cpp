@@ -5,7 +5,7 @@
 
 namespace hyperion::v2 {
 
-Scene::Scene(Ref<Camera> &&camera)
+Scene::Scene(Handle<Camera> &&camera)
     : EngineComponentBase(),
       m_camera(std::move(camera)),
       m_root_node_proxy(new Node("root")),
@@ -30,18 +30,27 @@ void Scene::Init(Engine *engine)
     
     EngineComponentBase::Init(engine);
 
+    engine->InitObject(m_camera);
+
+    for (auto &it : m_entities) {
+        auto &entity = it.second;
+        AssertThrow(entity);
+
+        engine->InitObject(entity);
+    }
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SCENES, [this](...) {
         auto *engine = GetEngine();
 
-        if (m_camera) {
-            m_camera.Init();
-        }
+        // if (m_camera) {
+        //     engine->InitObject(m_camera);
+        // }
 
         m_environment->Init(engine);
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SCENES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             m_camera.Reset();
@@ -61,11 +70,13 @@ void Scene::Init(Engine *engine)
             }
 
             m_entities.Clear();
+            m_entities_pending_addition.Clear();
+            m_entities_pending_removal.Clear();
 
             HYP_FLUSH_RENDER_QUEUE(engine);
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -119,7 +130,7 @@ void Scene::SetWorld(World *world)
     }
 }
 
-bool Scene::AddEntity(Ref<Entity> &&entity)
+bool Scene::AddEntity(Handle<Entity> &&entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -137,8 +148,12 @@ bool Scene::AddEntity(Ref<Entity> &&entity)
         return false;
     }
 
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(entity);
+    }
+
     entity->SetScene(this);
-    entity.Init();
+
     m_environment->OnEntityAdded(entity);
 
     m_entities_pending_addition.Insert(std::move(entity));
@@ -153,7 +168,7 @@ bool Scene::HasEntity(Entity::ID id) const
     return m_entities.Find(id) != m_entities.End();
 }
 
-bool Scene::RemoveEntity(const Ref<Entity> &entity)
+bool Scene::RemoveEntity(const Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -183,7 +198,6 @@ bool Scene::RemoveEntity(const Ref<Entity> &entity)
     }
 
     m_environment->OnEntityRemoved(it->second);
-
     m_entities_pending_removal.Insert(entity->GetId());
 
     return true;
@@ -200,12 +214,12 @@ void Scene::AddPendingEntities()
 
         if (entity->IsRenderable() && !entity->GetPrimaryRendererInstance()) {
             if (auto renderer_instance = GetEngine()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
-                renderer_instance->AddEntity(entity.IncRef());
+                renderer_instance->AddEntity(Handle<Entity>(entity));
                 entity->EnqueueRenderUpdates();
 
                 entity->m_primary_renderer_instance = {
-                    .renderer_instance = renderer_instance.ptr,
-                    .changed  = false
+                    .renderer_instance = renderer_instance.Get(),
+                    .changed = false
                 };
             } else {
                 DebugLog(
@@ -291,11 +305,11 @@ void Scene::Update(
 {
     AssertReady();
 
-    if (!m_entities_pending_addition.Empty()) {
+    if (m_entities_pending_addition.Any()) {
         AddPendingEntities();
     }
 
-    if (!m_entities_pending_removal.Empty()) {
+    if (m_entities_pending_removal.Any()) {
         RemovePendingEntities();
     }
 
@@ -329,7 +343,7 @@ void Scene::Update(
     }
 }
 
-void Scene::RequestRendererInstanceUpdate(Ref<Entity> &entity)
+void Scene::RequestRendererInstanceUpdate(Handle<Entity> &entity)
 {
     AssertThrow(entity != nullptr);
     AssertThrow(entity->GetScene() == this);
@@ -339,11 +353,11 @@ void Scene::RequestRendererInstanceUpdate(Ref<Entity> &entity)
     }
     
     if (auto renderer_instance = GetEngine()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
-        renderer_instance->AddEntity(entity.IncRef());
+        renderer_instance->AddEntity(Handle<Entity>(entity));
 
         entity->m_primary_renderer_instance = {
-            .renderer_instance = renderer_instance.ptr,
-            .changed  = false
+            .renderer_instance = renderer_instance.Get(),
+            .changed = false
         };
     } else {
         DebugLog(
@@ -354,12 +368,12 @@ void Scene::RequestRendererInstanceUpdate(Ref<Entity> &entity)
     }
 }
 
-void Scene::RemoveFromRendererInstance(Ref<Entity> &entity, RendererInstance *renderer_instance)
+void Scene::RemoveFromRendererInstance(Handle<Entity> &entity, RendererInstance *renderer_instance)
 {
-    renderer_instance->RemoveEntity(entity.IncRef());
+    renderer_instance->RemoveEntity(Handle<Entity>(entity));
 }
 
-void Scene::RemoveFromRendererInstances(Ref<Entity> &entity)
+void Scene::RemoveFromRendererInstances(Handle<Entity> &entity)
 {
     auto renderer_instances = entity->m_renderer_instances;
 
@@ -369,7 +383,7 @@ void Scene::RemoveFromRendererInstances(Ref<Entity> &entity)
         }
 
         // have to inc ref so it can hold it in a temporary container
-        renderer_instance->RemoveEntity(entity.IncRef());
+        renderer_instance->RemoveEntity(Handle<Entity>(entity));
     }
 }
 

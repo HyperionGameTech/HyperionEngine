@@ -24,14 +24,14 @@ ShadowPass::~ShadowPass() = default;
 
 void ShadowPass::CreateShader(Engine *engine)
 {
-    m_shader = Handle<Shader>(new Shader(
+    m_shader = engine->CreateHandle<Shader>(
         std::vector<SubShader> {
             SubShader { ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vert.spv")).Read()} },
             SubShader { ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/shadow_frag.spv")).Read()} }
         }
-    ));
+    );
 
-    m_shader->Init(engine);
+    engine->InitObject(m_shader);
 }
 
 void ShadowPass::SetParentScene(Scene::ID id)
@@ -75,8 +75,8 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = engine->resources.render_passes.Add(render_pass.release());
-    m_render_pass.Init();
+    m_render_pass = engine->CreateHandle<RenderPass>(render_pass.release());
+    engine->InitObject(m_render_pass);
 }
 
 void ShadowPass::CreateDescriptors(Engine *engine)
@@ -114,7 +114,7 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -126,11 +126,12 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
         )
     );
 
-    renderer_instance->AddFramebuffer(m_framebuffers[0].IncRef());
-    renderer_instance->AddFramebuffer(m_framebuffers[1].IncRef());
+    for (auto &framebuffer : m_framebuffers) {
+        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+    }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance.Init();
+    engine->InitObject(m_renderer_instance);
 }
 
 void ShadowPass::Create(Engine *engine)
@@ -138,39 +139,43 @@ void ShadowPass::Create(Engine *engine)
     CreateShader(engine);
     CreateRenderPass(engine);
 
-    m_scene = Handle<Scene>(new Scene(
-        engine->resources.cameras.Add(new OrthoCamera(
+    m_scene = engine->CreateHandle<Scene>(
+        engine->CreateHandle<Camera>(new OrthoCamera(
             m_dimensions.width, m_dimensions.height,
             -100.0f, 100.0f,
             -100.0f, 100.0f,
             -100.0f, 100.0f
         ))
-    ));
+    );
 
     m_scene->SetParentId(m_parent_scene_id);
-    m_scene->Init(engine);
+    engine->InitObject(m_scene);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
-            m_dimensions,
-            m_render_pass.IncRef()
-        ));
+        { // init framebuffers
+            m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
+                m_dimensions,
+                Handle<RenderPass>(m_render_pass)
+            );
 
-        /* Add all attachments from the renderpass */
-        for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
-            m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
+            /* Add all attachments from the renderpass */
+            for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
+                m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
+            }
+
+            engine->InitObject(m_framebuffers[i]);
         }
 
-        m_framebuffers[i].Init();
-        
-        auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+        { // init command buffers
+            auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
-        HYPERION_ASSERT_RESULT(command_buffer->Create(
-            engine->GetInstance()->GetDevice(),
-            engine->GetInstance()->GetGraphicsCommandPool()
-        ));
+            HYPERION_ASSERT_RESULT(command_buffer->Create(
+                engine->GetInstance()->GetDevice(),
+                engine->GetInstance()->GetGraphicsCommandPool()
+            ));
 
-        m_command_buffers[i] = std::move(command_buffer);
+            m_command_buffers[i] = std::move(command_buffer);
+        }
     }
 
     CreateRendererInstance(engine);
@@ -240,11 +245,11 @@ void ShadowRenderer::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             m_shadow_pass.Destroy(GetEngine()); // flushes render queue
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -268,12 +273,12 @@ void ShadowRenderer::InitGame(Engine *engine)
             && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
                 & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_shadow_pass.GetRendererInstance()->AddEntity(it.second.IncRef());
+            m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
 
-void ShadowRenderer::OnEntityAdded(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -282,20 +287,20 @@ void ShadowRenderer::OnEntityAdded(Ref<Entity> &entity)
     if (BucketRendersShadows(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
     }
 }
 
-void ShadowRenderer::OnEntityRemoved(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    m_shadow_pass.GetRendererInstance()->RemoveEntity(entity.IncRef());
+    m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
 }
 
-void ShadowRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -304,9 +309,9 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
     if (BucketRendersShadows(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
     } else {
-        m_shadow_pass.GetRendererInstance()->RemoveEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
     }
 }
 
@@ -384,7 +389,7 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
             mins  = MathUtil::Min(mins, corner);
         }
 
-        static_cast<OrthoCamera *>(camera.ptr)->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<OrthoCamera *>(camera.Get())->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             mins.x, maxes.x,
             mins.y, maxes.y,
             -m_shadow_pass.GetMaxDistance(),

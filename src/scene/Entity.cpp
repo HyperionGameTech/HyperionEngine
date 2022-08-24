@@ -72,28 +72,33 @@ void Entity::Init(Engine *engine)
 
     m_draw_proxy.entity_id = m_id;
 
+    engine->InitObject(m_mesh);
+    engine->InitObject(m_shader);
+    engine->InitObject(m_material);
+    engine->InitObject(m_skeleton);
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SPATIALS, [this](...) {
         auto *engine = GetEngine();
 
-        if (m_skeleton) {
-            m_skeleton->Init(engine);
-        }
+        // if (m_skeleton) {
+        //     engine->InitObject(m_skeleton);
+        // }
 
-        if (m_material) {
-            m_material->Init(engine);
-        }
+        // if (m_material) {
+        //     engine->InitObject(m_material);
+        // }
 
-        if (m_mesh) {
-            m_mesh->Init(engine);
-        }
+        // if (m_mesh) {
+        //     engine->InitObject(m_mesh);
+        // }
 
-        if (m_shader) {
-            m_shader->Init(engine);
-        }
+        // if (m_shader) {
+        //     engine->InitObject(m_shader);
+        // }
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SPATIALS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             DebugLog(
@@ -112,7 +117,7 @@ void Entity::Init(Engine *engine)
             engine->SafeReleaseRenderResource<Skeleton>(std::move(m_skeleton));
             engine->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
             engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
-        }));
+        });
     }));
 }
 
@@ -246,15 +251,16 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
         return;
     }
 
-    if (m_mesh != nullptr && IsInitCalled()) {
+
+    if (m_mesh && IsInitCalled()) {
         DebugLog(LogType::Debug, "Mehs changed for %p to %p\n", m_mesh.Get(), mesh.Get());
         GetEngine()->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
     }
 
     m_mesh = std::move(mesh);
 
-    if (m_mesh != nullptr && IsReady()) {
-        m_mesh->Init(GetEngine());
+    if (m_mesh && IsInitCalled()) {
+        GetEngine()->InitObject(m_mesh);
     }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
@@ -273,8 +279,8 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
 
     m_skeleton = std::move(skeleton);
 
-    if (m_skeleton && IsReady()) {
-        m_skeleton->Init(GetEngine());
+    if (m_skeleton && IsInitCalled()) {
+        GetEngine()->InitObject(m_skeleton);
     }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
@@ -293,12 +299,16 @@ void Entity::SetShader(Handle<Shader> &&shader)
 
     m_shader = std::move(shader);
     
-    RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
-    new_renderable_attributes.shader_id = m_shader->GetId();
-    SetRenderableAttributes(new_renderable_attributes);
+    if (m_shader) {
+        if (IsInitCalled()) {
+            GetEngine()->InitObject(m_shader);
+        }
 
-    if (m_shader != nullptr && IsReady()) {
-        m_shader->Init(GetEngine());
+        RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
+        new_renderable_attributes.shader_id = m_shader->GetId();
+        SetRenderableAttributes(new_renderable_attributes);
+    } else {
+        RebuildRenderableAttributes();
     }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
@@ -317,8 +327,8 @@ void Entity::SetMaterial(Handle<Material> &&material)
     if (m_material) {
         new_renderable_attributes.material_attributes = m_material->GetRenderAttributes();
 
-        if (IsReady()) {
-            m_material->Init(GetEngine());
+        if (IsInitCalled()) {
+            GetEngine()->InitObject(m_material);
         }
     } else {
         new_renderable_attributes.material_attributes = { };
@@ -593,28 +603,6 @@ void Entity::RemoveFromOctree(Engine *engine)
 
 bool Entity::IsReady() const
 {
-    /*if (!Base::IsReady()) {
-        return false;
-    }
-    
-    if (m_skeleton != nullptr && !m_skeleton->IsReady()) {
-        return false;
-    }
-    
-    if (m_shader != nullptr && !m_shader->IsReady()) {
-        return false;
-    }
-    
-    if (m_mesh != nullptr && !m_mesh->IsReady()) {
-        return false;
-    }
-
-    if (m_material != nullptr && !m_material->IsReady()) {
-        return false;
-    }
-    
-    return true;*/
-
     return Base::IsReady();
 }
 

@@ -5,7 +5,8 @@
 
 namespace hyperion::v2 {
 
-enum Bucket {
+enum Bucket
+{
     BUCKET_SWAPCHAIN = 0, /* Main swapchain */
     BUCKET_INTERNAL,      /* Pre-pass / buffer items */
     BUCKET_SHADOW,

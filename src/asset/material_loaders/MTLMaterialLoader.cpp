@@ -6,7 +6,7 @@
 namespace hyperion::v2 {
 
 using Tokens = std::vector<std::string>;
-using MtlMaterialLoader = LoaderObject<MaterialGroup, LoaderFormat::MTL_MATERIAL_LIBRARY>::Loader;
+using MTLMaterialLoader = LoaderObject<MaterialGroup, LoaderFormat::MTL_MATERIAL_LIBRARY>::Loader;
 
 enum IlluminationModel {
     ILLUM_COLOR,
@@ -46,7 +46,7 @@ static Vector ReadVector(const Tokens &tokens, size_t offset = 1)
     return result;
 }
 
-static void AddMaterial(MtlMaterialLoader::Object &object, const std::string &tag)
+static void AddMaterial(MTLMaterialLoader::Object &object, const std::string &tag)
 {
     std::string unique_tag(tag);
     int counter = 0;
@@ -64,7 +64,7 @@ static void AddMaterial(MtlMaterialLoader::Object &object, const std::string &ta
     });
 }
 
-static auto &LastMaterial(MtlMaterialLoader::Object &object)
+static auto &LastMaterial(MTLMaterialLoader::Object &object)
 {
     if (object.materials.empty()) {
         AddMaterial(object, "default");
@@ -81,7 +81,7 @@ static bool IsTransparencyModel(IlluminationModel illum_model)
         || illum_model == ILLUM_TRANSPARENT_REFLECTIVE_GLASS;
 }
 
-LoaderResult MtlMaterialLoader::LoadFn(LoaderState *state, Object &object)
+LoaderResult MTLMaterialLoader::LoadFn(LoaderState *state, Object &object)
 {
     object.filepath = state->filepath;
 
@@ -207,7 +207,7 @@ LoaderResult MtlMaterialLoader::LoadFn(LoaderState *state, Object &object)
     return {};
 }
 
-std::unique_ptr<MaterialGroup> MtlMaterialLoader::BuildFn(Engine *engine, const Object &object)
+std::unique_ptr<MaterialGroup> MTLMaterialLoader::BuildFn(Engine *engine, const Object &object)
 {
     auto material_library = std::make_unique<MaterialGroup>();
     
@@ -238,7 +238,7 @@ std::unique_ptr<MaterialGroup> MtlMaterialLoader::BuildFn(Engine *engine, const 
         loaded_textures = engine->assets.Load<Texture>(all_filepaths);
     }
 
-    engine->resources.Lock([&](Resources &resources) {
+    engine->resources->Lock([&](Resources &resources) {
         std::unordered_map<std::string, Handle<Texture>> texture_refs;
 
         for (size_t i = 0; i < loaded_textures.size(); i++) {
@@ -248,7 +248,7 @@ std::unique_ptr<MaterialGroup> MtlMaterialLoader::BuildFn(Engine *engine, const 
                 continue;
             }
 
-            texture_refs[all_filepaths[i]] = Handle<Texture>(loaded_textures[i].release());
+            texture_refs[all_filepaths[i]] = engine->CreateHandle<Texture>(loaded_textures[i].release());
         }
 
         for (auto &item : object.materials) {
@@ -276,7 +276,7 @@ std::unique_ptr<MaterialGroup> MtlMaterialLoader::BuildFn(Engine *engine, const 
                 material->SetTexture(it.mapping.key, Handle<Texture>(texture));
             }
 
-            material_library->Add(item.tag, Handle<Material>(material.release()));
+            material_library->Add(item.tag, engine->CreateHandle<Material>(material.release()));
         }
     });
 

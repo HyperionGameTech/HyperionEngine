@@ -14,7 +14,10 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
+
+#include <ResourceMap.hpp>
 
 #include "GameThread.hpp"
 #include "Threads.hpp"
@@ -35,6 +38,8 @@
 
 #include <util/EnumOptions.hpp>
 #include <builders/shader_compiler/ShaderCompiler.hpp>
+
+#include <Component.hpp>
 
 #include <Types.hpp>
 
@@ -190,8 +195,8 @@ public:
     Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
-    Ref<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
-    Ref<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
+    Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
+    Handle<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
 
     template <class T>
     void SafeReleaseRenderResource(Handle<T> &&resource)
@@ -211,7 +216,7 @@ public:
     ShaderGlobals *shader_globals;
 
     EngineCallbacks callbacks;
-    Resources resources;
+    Resources *resources;
     Assets assets;
     ShaderManager shader_manager;
                              
@@ -222,8 +227,106 @@ public:
     Scheduler<RenderFunctor> render_scheduler;
 
     GameThread game_thread;
-    //TaskThread terrain_thread;
     TaskSystem task_system;
+
+    // template <class T, class First, class ...Rest>
+    // Handle<T> CreateHandle(First &&first, Rest &&... args)
+    // {
+    //     Handle<T> handle(new T(std::forward<First>(first), std::forward<Rest>(args)...));
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    template <class T, class First, class Second, class ...Rest>
+    Handle<T> CreateHandle(First &&first, Second &&second, Rest &&... args)
+    {
+        Handle<T> handle(new T(std::forward<First>(first), std::forward<Second>(second), std::forward<Rest>(args)...));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class First>
+    typename std::enable_if_t<
+        (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
+            && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>,
+        Handle<T>
+    >
+    CreateHandle(First &&first)
+    {
+        Handle<T> handle(new T(std::forward<First>(first)));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class Ptr>
+    typename std::enable_if_t<
+        std::is_pointer_v<std::remove_reference_t<Ptr>> && std::is_convertible_v<std::remove_reference_t<Ptr>, std::add_pointer_t<T>>,
+        Handle<T>
+    >
+    CreateHandle(Ptr &&ptr)
+    {
+        Handle<T> handle(static_cast<T *>(ptr));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class RC>
+    typename std::enable_if_t<
+        std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<RC>>,
+        Handle<T>
+    >
+    CreateHandle(RC &&rc)
+    {
+        Handle<T> handle(rc.template Cast<T>());
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T>
+    Handle<T> CreateHandle()
+    {
+        Handle<T> handle(new T());
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T>
+    bool InitObject(Handle<T> &handle)
+    {
+        if (!handle) {
+            return false;
+        }
+
+        if (!handle->GetId()) {
+            return false;
+        }
+
+        handle->Init(this);
+
+        return true;
+    }
+
+    template <class T>
+    void Attach(Handle<T> &handle, bool init = true)
+    {
+        if (!handle) {
+            return;
+        }
+
+        registry.template Attach<T>(handle);
+
+        if (init) {
+            handle->Init(this);
+        }
+    }
+
+    ComponentSystem registry;
 
 private:
     void FinalizeStop();
@@ -238,9 +341,11 @@ private:
     void PrepareFinalPass();
 
     void FindTextureFormatDefaults();
+
+    void AddRendererInstanceInternal(Handle<RendererInstance> &);
     
     std::unique_ptr<Instance> m_instance;
-    std::unique_ptr<RendererInstance> m_root_pipeline;
+    Handle<RendererInstance> m_root_pipeline;
 
     EnumOptions<TextureFormatDefault, Image::InternalFormat, 16> m_texture_format_defaults;
 
@@ -250,7 +355,8 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, Ref<RendererInstance>> m_renderer_instance_mapping;
+    FlatMap<RenderableAttributeSet, WeakHandle<RendererInstance>> m_renderer_instance_mapping;
+    std::mutex m_renderer_instance_mapping_mutex;
 
     ComponentRegistry<Entity> m_component_registry;
 

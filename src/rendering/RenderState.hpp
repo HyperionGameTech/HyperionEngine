@@ -16,8 +16,10 @@
 
 namespace hyperion::v2 {
 
-struct RenderState {
-    struct SceneBinding {
+struct RenderState
+{
+    struct SceneBinding
+    {
         Scene::ID id;
         Scene::ID parent_id;
 

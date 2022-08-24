@@ -10,7 +10,8 @@
 
 namespace hyperion::v2 {
 
-class AudioController : public PlaybackController {
+class AudioController : public PlaybackController
+{
 public:
     AudioController();
     AudioController(std::unique_ptr<AudioSource> &&source);

@@ -29,12 +29,12 @@ struct LoaderObject<MaterialGroup, LoaderFormat::MTL_MATERIAL_LIBRARY> {
     
     struct TextureMapping {
         Material::TextureKey key;
-        bool                 srgb = false;
+        bool srgb = false;
     };
     
     struct TextureDef {
         TextureMapping mapping;
-        std::string    name;
+        std::string name;
     };
 
     struct ParameterDef {

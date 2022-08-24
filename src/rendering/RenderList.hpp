@@ -4,6 +4,7 @@
 #include <Constants.hpp>
 #include <core/Containers.hpp>
 #include <core/lib/AtomicVar.hpp>
+#include <core/Handle.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/DefaultFormats.hpp>
 #include <scene/Scene.hpp>
@@ -16,17 +17,19 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class RenderListContainer {
+class RenderListContainer
+{
 public:
     static const std::array<TextureFormatDefault, num_gbuffer_textures> gbuffer_textures;
     
-    class RenderListBucket {
+    class RenderListBucket
+    {
         Bucket                                bucket{BUCKET_OPAQUE};
-        Ref<RenderPass>                       render_pass;
-        DynArray<Ref<Framebuffer>>            framebuffers;
+        Handle<RenderPass>                    render_pass;
+        DynArray<Handle<Framebuffer>>         framebuffers;
         DynArray<std::unique_ptr<Attachment>> attachments;
-        DynArray<Ref<RendererInstance>>       renderer_instances;
-        DynArray<Ref<RendererInstance>>       renderer_instances_pending_addition;
+        DynArray<Handle<RendererInstance>>    renderer_instances;
+        DynArray<Handle<RendererInstance>>    renderer_instances_pending_addition;
         AtomicVar<bool>                       renderer_instances_changed;
         std::mutex                            renderer_instances_mutex;
 
@@ -34,17 +37,17 @@ public:
         RenderListBucket();
         ~RenderListBucket();
 
-        Bucket GetBucket() const                                            { return bucket; }
-        void SetBucket(Bucket bucket)                                       { this->bucket = bucket; }
+        Bucket GetBucket() const { return bucket; }
+        void SetBucket(Bucket bucket) { this->bucket = bucket; }
         
-        Ref<RenderPass> &GetRenderPass()                                    { return render_pass; }
-        const Ref<RenderPass> &GetRenderPass() const                        { return render_pass; }
+        Handle<RenderPass> &GetRenderPass() { return render_pass; }
+        const Handle<RenderPass> &GetRenderPass() const { return render_pass; }
         
-        DynArray<Ref<Framebuffer>> &GetFramebuffers()                       { return framebuffers; }
-        const DynArray<Ref<Framebuffer>> &GetFramebuffers() const           { return framebuffers; }
+        DynArray<Handle<Framebuffer>> &GetFramebuffers() { return framebuffers; }
+        const DynArray<Handle<Framebuffer>> &GetFramebuffers() const { return framebuffers; }
 
-        DynArray<Ref<RendererInstance>> &GetRendererInstances()             { return renderer_instances; }
-        const DynArray<Ref<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }
+        DynArray<Handle<RendererInstance>> &GetRendererInstances() { return renderer_instances; }
+        const DynArray<Handle<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }
 
         bool IsRenderableBucket() const
         {
@@ -54,10 +57,10 @@ public:
                 || bucket == Bucket::BUCKET_PARTICLE;
         }
 
-        void AddRendererInstance(Ref<RendererInstance> &&renderer_instance);
+        void AddRendererInstance(Handle<RendererInstance> &&renderer_instance);
         void AddPendingRendererInstances(Engine *engine);
         void AddFramebuffersToPipelines();
-        void AddFramebuffersToPipeline(Ref<RendererInstance> &pipeline);
+        void AddFramebuffersToPipeline(Handle<RendererInstance> &pipeline);
         void CreateRenderPass(Engine *engine);
         void CreateFramebuffers(Engine *engine);
         void Destroy(Engine *engine);

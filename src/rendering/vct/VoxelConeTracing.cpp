@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-const Extent3D VoxelConeTracing::voxel_map_size{256};
+const Extent3D VoxelConeTracing::voxel_map_size { 256 };
 
 VoxelConeTracing::VoxelConeTracing(Params &&params)
     : EngineComponentBase(),
@@ -35,16 +35,16 @@ void VoxelConeTracing::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
         auto *engine = GetEngine();
 
-        m_scene = Handle<Scene>(new Scene(
-            engine->resources.cameras.Add(new OrthoCamera(
+        m_scene = engine->CreateHandle<Scene>(
+            engine->CreateHandle<Camera>(new OrthoCamera(
                 voxel_map_size.width, voxel_map_size.height,
                 -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
                 -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
                 -static_cast<float>(voxel_map_size[2]) * 0.5f, static_cast<float>(voxel_map_size[2]) * 0.5f
             ))
-        ));
+        );
 
-        m_scene->Init(engine);
+        engine->InitObject(m_scene);
 
         CreateImagesAndBuffers(engine);
         CreateShader(engine);
@@ -56,24 +56,58 @@ void VoxelConeTracing::Init(Engine *engine)
         
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
-            m_shader.Reset();
+            engine->GetWorld().RemoveScene(m_scene->GetId());
+            m_scene.Reset();
+
             m_framebuffers = {};
             m_render_pass.Reset();
             m_renderer_instance.Reset();
             m_clear_voxels.Reset();
-            m_voxel_image.Reset();
 
             engine->render_scheduler.Enqueue([this, engine](...) {
+
+                // unset descriptors
+
+                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                    .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
+
+                descriptor_set
+                    ->GetDescriptor(0)
+                    ->SetSubDescriptor({
+                        .element_index = 0u,
+                        .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+                    });
+
+                descriptor_set
+                    ->GetDescriptor(1)
+                    ->SetSubDescriptor({
+                        .element_index = 0u,
+                        .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(VoxelUniforms))
+                    });
+
+                for (UInt i = 0; i < max_frames_in_flight; i++) {
+                    auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+                    descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
+                        ->SetSubDescriptor({
+                            .element_index = 0u,
+                            .image_view    = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
+                            .sampler       = &engine->GetPlaceholderData().GetSamplerLinear()
+                        });
+                }
+
                 return m_uniform_buffer.Destroy(engine->GetDevice());
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+    
+            engine->SafeReleaseRenderResource<Texture>(std::move(m_voxel_image));
+            engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
             
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -98,12 +132,12 @@ void VoxelConeTracing::InitGame(Engine *engine)
             && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
                 & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_renderer_instance->AddEntity(it.second.IncRef());
+            m_renderer_instance->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
 
-void VoxelConeTracing::OnEntityAdded(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -112,20 +146,20 @@ void VoxelConeTracing::OnEntityAdded(Ref<Entity> &entity)
     if (BucketHasGlobalIllumination(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     }
 }
 
-void VoxelConeTracing::OnEntityRemoved(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    m_renderer_instance->RemoveEntity(entity.IncRef());
+    m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
 }
 
-void VoxelConeTracing::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -133,13 +167,12 @@ void VoxelConeTracing::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
 
     const auto &renderable_attributes = entity->GetRenderableAttributes();
 
-    // TODO: better handling
     if (BucketHasGlobalIllumination(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     } else {
-        m_renderer_instance->RemoveEntity(entity.IncRef());
+        m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
     }
 }
 
@@ -159,7 +192,10 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     auto result = renderer::Result::OK;
 
     /* put our voxel map in an optimal state to be written to */
-    m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(
+        command_buffer,
+        renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
 
     /* clear the voxels */
     m_clear_voxels->GetPipeline()->Bind(command_buffer);
@@ -220,7 +256,7 @@ void VoxelConeTracing::OnComponentIndexChanged(RenderComponentBase::Index new_in
 
 void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
 {
-    m_voxel_image = Handle<Texture>(new Texture(
+    m_voxel_image = engine->CreateHandle<Texture>(
         StorageImage(
             voxel_map_size,
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
@@ -229,14 +265,14 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
         ),
         Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
-    ));
+    );
 
-    m_voxel_image->Init(engine);
+    engine->InitObject(m_voxel_image);
 
     engine->render_scheduler.Enqueue([this, engine](...) {
         HYPERION_BUBBLE_ERRORS(m_uniform_buffer.Create(engine->GetDevice(), sizeof(VoxelUniforms)));
 
-        const VoxelUniforms uniforms{
+        const VoxelUniforms uniforms {
             .extent      = voxel_map_size,
             .aabb_max    = m_params.aabb.GetMax().ToVector4(),
             .aabb_min    = m_params.aabb.GetMin().ToVector4(),
@@ -257,7 +293,7 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -271,24 +307,24 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        renderer_instance->AddFramebuffer(framebuffer.IncRef());
+        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance.Init();
+    engine->InitObject(m_renderer_instance);
 }
 
 void VoxelConeTracing::CreateComputePipelines(Engine *engine)
 {
-    m_clear_voxels = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_clear_voxels = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vct/clear_voxels.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_clear_voxels->Init(engine);
+    engine->InitObject(m_clear_voxels);
 }
 
 void VoxelConeTracing::CreateShader(Engine *engine)
@@ -307,29 +343,29 @@ void VoxelConeTracing::CreateShader(Engine *engine)
         );
     }
     
-    m_shader = Handle<Shader>(new Shader(sub_shaders));
-    m_shader->Init(engine);
+    m_shader = engine->CreateHandle<Shader>(sub_shaders);
+    engine->InitObject(m_shader);
 }
 
 void VoxelConeTracing::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->resources.render_passes.Add(new RenderPass(
+    m_render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-    ));
+    );
 
-    m_render_pass.Init();
+    engine->InitObject(m_render_pass);
 }
 
 void VoxelConeTracing::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
             Extent2D(voxel_map_size),
-            m_render_pass.IncRef()
-        ));
+            Handle<RenderPass>(m_render_pass)
+        );
         
-        m_framebuffers[i].Init();
+        engine->InitObject(m_framebuffers[i]);
     }
 }
 

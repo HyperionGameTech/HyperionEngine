@@ -45,42 +45,49 @@ struct ComponentID : IDBase {};
 struct HandleID : IDBase {
     TypeID type_id;
 
-    HandleID() = default;
+    constexpr HandleID() = default;
 
-    HandleID(TypeID type_id, IDBase::ValueType value)
+    constexpr HandleID(TypeID type_id, IDBase::ValueType value)
         : IDBase { value },
           type_id(type_id)
     {
     }
 
-    HandleID(const HandleID &other)
+    constexpr HandleID(const HandleID &other)
         : IDBase(other),
           type_id(other.type_id)
     {
     }
 
-    operator bool() const
+    HYP_FORCE_INLINE operator bool() const
         { return IDBase::operator bool(); }
 
-    bool operator==(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator==(const HandleID &other) const
         { return IDBase::operator==(other) && type_id == other.type_id; }
 
-    bool operator!=(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator!=(const HandleID &other) const
         { return IDBase::operator!=(other) || type_id != other.type_id; }
 
-    bool operator<(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator<(const HandleID &other) const
         { return IDBase::operator<(other) || (!IDBase::operator<(other) && type_id < other.type_id); }
 };
 
 template <class T>
 class Handle;
 
+template <class T>
+class WeakHandle;
+
+class WeakHandleBase;
+
 class HandleBase : AtomicRefCountedPtr<void>
 {
+    friend class hyperion::v2::Engine;
+    friend class WeakHandleBase;
+
 protected:
-
     using Base = AtomicRefCountedPtr<void>;
-
+    using RefCountBase = Base::Base;
     using Base::Get;
 
     template <class T>
@@ -91,12 +98,7 @@ protected:
         return HandleID(TypeID::ForType<T>(), ++id_counter);
     }
 
-public:
-
-    HandleBase()
-        : Base()
-    {
-    }
+    /* Engine class uses these constructors */
 
     template <class T>
     explicit HandleBase(T *ptr)
@@ -111,11 +113,11 @@ public:
             if (ptr->GetId()) {
                 // ptr already has ID set,
                 // we take that ID
-                m_id = HandleID(TypeID::ForType<NormalizedType<T>>(), ptr->GetId().value);
-            } else {
+                m_id = ptr->GetId();//HandleID(TypeID::ForType<NormalizedType<T>>(), ptr->GetId().value);
+            }/* else {// temp
                 m_id = NextID<T>();
-                ptr->SetId(typename T::ID { m_id.value });
-            }
+                ptr->SetId(m_id);
+            }*/
         }
     }
 
@@ -134,13 +136,19 @@ public:
                 if (ptr->GetId()) {
                     // ptr already has ID set,
                     // we take that ID
-                    m_id = HandleID(TypeID::ForType<NormalizedType<T>>(), ptr->GetId().value);
-                } else {
+                    m_id = ptr->GetId();HandleID(TypeID::ForType<NormalizedType<T>>(), ptr->GetId().value);
+                } /*else { // temp
                     m_id = NextID<T>();
-                    ptr->SetId(typename T::ID { m_id.value });
-                }
+                    ptr->SetId(m_id);
+                }*/
             }
         }
+    }
+
+public:
+    HandleBase()
+        : Base()
+    {
     }
 
     HandleBase(const HandleBase &other)
@@ -178,32 +186,33 @@ public:
 
     ~HandleBase() = default;
 
-    void *Get()
+    HYP_FORCE_INLINE void *Get() const
         { return Base::Get(); }
 
-    const void *Get() const
-        { return Base::Get(); }
+    HYP_FORCE_INLINE operator bool() const
+        { return Base::operator bool(); }
 
-    operator bool() const
-        { return Base::operator bool() && m_id; }
+    HYP_FORCE_INLINE bool operator!() const
+        { return Base::operator!(); }
 
-    bool operator!() const
-        { return Base::operator!() || !m_id; }
+    HYP_FORCE_INLINE bool operator==(const HandleBase &other) const
+        { return Base::operator==(other); }
 
-    bool operator==(const HandleBase &other) const
-        { return Base::operator==(other) && m_id == other.m_id; }
-
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
 
-    bool operator!=(const HandleBase &other) const
-        { return Base::operator!=(other) || m_id != other.m_id; }
+    HYP_FORCE_INLINE bool operator!=(const HandleBase &other) const
+        { return Base::operator!=(other); }
 
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
-    const HandleID &GetID() const
+    HYP_FORCE_INLINE const HandleID &GetID() const
         { return m_id; }
+
+    /*! \brief Drops the reference to the currently held value, if any.  */
+    HYP_FORCE_INLINE void Reset()
+        { Base::Reset(); m_id = HandleID();  }
 
     template <class T>
     Handle<T> Cast()
@@ -218,10 +227,6 @@ public:
         return h;
     }
 
-    /*! \brief Drops the reference to the currently held value, if any.  */
-    void Reset()
-        { Base::Reset(); }
-
 protected:
     HandleID m_id;
 };
@@ -229,90 +234,287 @@ protected:
 template <class T>
 class Handle : public HandleBase
 {
+    friend class hyperion::v2::Engine;
     friend class HandleBase;
 
-public:
-    using ID = HandleID;
+    using Base = HandleBase;
 
-    using HandleBase::GetID;
-    using HandleBase::operator bool;
-    using HandleBase::operator!;
-
-    Handle()
-        : HandleBase()
-    {
-    }
+protected:
+    /* Engine class uses these constructors in CreateHandle<T> */
 
     explicit Handle(T *ptr)
-        : HandleBase(ptr)
+        : Base(ptr)
     {
     }
 
     /*! \brief Initialize a Handle from an atomicaly reference counted pointer.
         The resource will be shared, the handle referencing the same resource. */
     explicit Handle(const AtomicRefCountedPtr<T> &ref_counted_ptr)
-        : HandleBase(ref_counted_ptr)
+        : Base(ref_counted_ptr)
+    {
+    }
+
+public:
+    using ID = HandleID;
+
+    using Base::GetID;
+    using Base::operator bool;
+    using Base::operator!;
+
+    static const inline Handle empty = Handle();
+
+    Handle()
+        : Base()
     {
     }
 
     Handle(const Handle &other)
-        : HandleBase(other)
+        : Base(other)
     {
     }
 
     Handle &operator=(const Handle &other)
     {
-        HandleBase::operator=(other);
+        Base::operator=(other);
 
         return *this;
     }
 
     Handle(Handle &&other) noexcept
-        : HandleBase(std::move(other))
+        : Base(std::move(other))
     {
     }
 
     Handle &operator=(Handle &&other) noexcept
     {
-        HandleBase::operator=(std::move(other));
+        Base::operator=(std::move(other));
 
         return *this;
     }
 
     ~Handle() = default;
 
-    bool operator==(const Handle &other) const
-        { return HandleBase::operator==(other); }
+    HYP_FORCE_INLINE bool operator==(const Handle &other) const
+        { return Base::operator==(other); }
 
-    bool operator==(std::nullptr_t) const
-        { return HandleBase::operator==(nullptr); }
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return Base::operator==(nullptr); }
 
-    bool operator!=(const Handle &other) const
-        { return HandleBase::operator!=(other); }
+    HYP_FORCE_INLINE bool operator!=(const Handle &other) const
+        { return Base::operator!=(other); }
 
-    bool operator!=(std::nullptr_t) const
-        { return HandleBase::operator!=(nullptr); }
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return Base::operator!=(nullptr); }
 
-    T *operator->()
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
 
-    const T *operator->() const
-        { return Get(); }
-
-    T &operator*()
+    HYP_FORCE_INLINE T &operator*()
         { return *Get(); }
 
-    const T &operator*() const
+    HYP_FORCE_INLINE const T &operator*() const
         { return *Get(); }
 
-    T *Get()
-        { return static_cast<T *>(HandleBase::Get()); }
+    HYP_FORCE_INLINE T *Get() const
+        { return static_cast<T *>(Base::Get()); }
 
-    const T *Get() const
-        { return const_cast<Handle *>(this)->Get(); }
+    /*! \brief Used by ComponentSystem. */
+    void SetID(const ID &id)
+    {
+        Base::m_id = id;
+        if (auto *ptr = Get()) {
+            ptr->SetId(m_id);
+        }
+    }
+
+private:
+};
+
+class WeakHandleBase : WeakAtomicRefCountedPtr<void>
+{
+    using Base = WeakAtomicRefCountedPtr<void>;
 
 protected:
+    using Base::m_ref;
+
+public:
+    using Base::operator==;
+    using Base::operator!=;
+    using Base::operator!;
+    using Base::operator bool;
+    using Base::Get;
+
+    WeakHandleBase()
+        : Base()
+    {
+    }
+
+    WeakHandleBase(const WeakHandleBase &other)
+        : Base(other),
+          m_id(other.m_id)
+    {
+    }
+
+    WeakHandleBase &operator=(const WeakHandleBase &other)
+    {
+        Base::operator=(other);
+        m_id = other.m_id;
+
+        return *this;
+    }
+
+    WeakHandleBase(const HandleBase &other)
+        : Base(other),
+          m_id(other.m_id)
+    {
+    }
+
+    WeakHandleBase &operator=(const HandleBase &other)
+    {
+        Base::operator=(other);
+        m_id = other.m_id;
+
+        return *this;
+    }
+
+    WeakHandleBase(WeakHandleBase &&other) noexcept
+        : Base(std::move(other)),
+          m_id(std::move(other.m_id))
+    {
+        other.m_id = HandleID();
+    }
+
+    WeakHandleBase &operator=(WeakHandleBase &&other) noexcept
+    {
+        Base::operator=(std::move(other));
+        m_id = std::move(other.m_id);
+        other.m_id = HandleID();
+
+        return *this;
+    }
+
+    ~WeakHandleBase() = default;
+
+    HYP_FORCE_INLINE bool operator==(const HandleBase &other) const
+        { return m_ref == other.m_ref; }
+
+    HYP_FORCE_INLINE bool operator!=(const HandleBase &other) const
+        { return m_ref != other.m_ref; }
+
+    HYP_FORCE_INLINE const HandleID &GetID() const
+        { return m_id; }
+
+    template <class T>
+    HYP_FORCE_INLINE Handle<T> Lock()
+    {
+        return (Base::GetTypeID() == TypeID::ForType<T>())
+            ? LockUnsafe<T>()
+            : Handle<T>();
+    }
+
+protected:
+    template <class T>
+    Handle<T> LockUnsafe()
+    {
+        Handle<T> h;
+        h.m_ref = Base::m_ref;
+        h.m_id = m_id;
+
+        if (Base::m_ref) {
+            ++Base::m_ref->strong_count;
+        }
+
+        return h;
+    }
+
+    HandleID m_id;
 };
+
+template <class T>
+class WeakHandle : public WeakHandleBase
+{
+    using Base = WeakHandleBase;
+
+public:
+    using ID = HandleID;
+
+    using Base::GetID;
+    using Base::operator bool;
+    using Base::operator!;
+
+    WeakHandle()
+        : Base()
+    {
+    }
+
+    WeakHandle(const WeakHandle &other)
+        : Base(other)
+    {
+    }
+
+    WeakHandle &operator=(const WeakHandle &other)
+    {
+        Base::operator=(other);
+
+        return *this;
+    }
+
+    WeakHandle(const Handle<T> &other)
+        : Base(other)
+    {
+    }
+
+    WeakHandle &operator=(const Handle<T> &other)
+    {
+        Base::operator=(other);
+
+        return *this;
+    }
+
+    WeakHandle(WeakHandle &&other) noexcept
+        : Base(std::move(other))
+    {
+    }
+
+    WeakHandle &operator=(WeakHandle &&other) noexcept
+    {
+        Base::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~WeakHandle() = default;
+
+    HYP_FORCE_INLINE bool operator==(const WeakHandle &other) const
+        { return Base::operator==(other); }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return Base::operator==(nullptr); }
+
+    HYP_FORCE_INLINE bool operator!=(const WeakHandle &other) const
+        { return Base::operator!=(other); }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return Base::operator!=(nullptr); }
+
+    HYP_FORCE_INLINE T *operator->() const
+        { return Get(); }
+
+    HYP_FORCE_INLINE T &operator*()
+        { return *Get(); }
+
+    HYP_FORCE_INLINE const T &operator*() const
+        { return *Get(); }
+
+    HYP_FORCE_INLINE T *Get() const
+        { return static_cast<T *>(Base::Get()); }
+
+    HYP_FORCE_INLINE Handle<T> Lock()
+        { return Base::template LockUnsafe<T>(); }
+};
+
+static_assert(sizeof(Handle<int>) == sizeof(HandleBase), "No members may be added to Handle<T>");
+static_assert(sizeof(WeakHandle<int>) == sizeof(WeakHandleBase), "No members may be added to WeakHandle<T>");
 
 } // namespace hyperion
 

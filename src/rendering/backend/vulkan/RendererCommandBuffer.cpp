@@ -395,7 +395,7 @@ void CommandBuffer::BindDescriptorSet(
     size_t num_offsets
 ) const
 {
-    const auto set_index     = static_cast<UInt>(set);
+    const auto set_index = static_cast<UInt>(set);
     const auto binding_index = DescriptorSet::GetDesiredIndex(binding);
 
     const auto &descriptor_sets = pool.GetDescriptorSets();

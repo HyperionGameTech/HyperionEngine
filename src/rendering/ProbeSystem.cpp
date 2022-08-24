@@ -97,25 +97,25 @@ void ProbeGrid::CreatePipeline(Engine *engine)
 
 void ProbeGrid::CreateComputePipelines(Engine *engine)
 {
-    m_update_irradiance = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_update_irradiance = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/probe_update_irradiance.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_update_irradiance->Init(engine);
+    engine->InitObject(m_update_irradiance);
 
-    m_update_depth = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_update_depth = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/probe_update_depth.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_update_depth->Init(engine);
+    engine->InitObject(m_update_depth);
 }
 
 void ProbeGrid::CreateUniformBuffer(Engine *engine)

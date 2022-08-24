@@ -180,6 +180,8 @@ public:
     
     static Stats stats;
 
+    uint32_t index;
+
 protected:
     void Map(Device *device, void **ptr) const;
     void Unmap(Device *device) const;
@@ -187,7 +189,6 @@ protected:
     void Destroy();
 
     uint32_t sharing_mode;
-    uint32_t index;
     mutable void *map;
     mutable ResourceState resource_state;
 };

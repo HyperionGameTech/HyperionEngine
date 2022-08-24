@@ -89,29 +89,29 @@ public:
         Base::template Reset<NormalizedType<T>>(ptr); // take ownership
     }
 
-    /*! \brief Drops ownership of the object from the {Any} held inside.
+    /*! \brief Drops ownership of the object held.
         Be sure to call delete on it when no longer needed!
 
         If no value is currently held, no changes to the underlying object will
         occur. Otherwise, the held value is set to nullptr, and nullptr is returned.
     */
-    template <class T>
-    [[nodiscard]] T *Release()
-    {
-        // AssertThrow(false);
-        return nullptr;
-        // auto *ptr = RefCountedPtr<void>::Get();
+    // template <class T>
+    // [[nodiscard]] T *Release()
+    // {
+    //     // AssertThrow(false);
+    //     return nullptr;
+    //     // auto *ptr = RefCountedPtr<void>::Get();
         
-        // if (!ptr) {
-        //     return nullptr;
-        // }
+    //     // if (!ptr) {
+    //     //     return nullptr;
+    //     // }
 
-        // auto *ptr = any_ptr->Release<NormalizedType<T>>();
+    //     // auto *ptr = any_ptr->Release<NormalizedType<T>>();
 
-        // RefCountedPtr<Any>::Reset();
+    //     // RefCountedPtr<Any>::Reset();
 
-        // return held_ptr;
-    }
+    //     // return held_ptr;
+    // }
 };
 
 } // namespace hyperion::v2::fbom

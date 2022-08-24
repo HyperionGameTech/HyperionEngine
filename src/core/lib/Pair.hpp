@@ -12,12 +12,12 @@ namespace hyperion {
 
 template <class First, class Second>
 struct Pair {
-    First  first;
+    First first;
     Second second;
 
     Pair()
-        : first{},
-          second{}
+        : first { },
+          second { }
     {
     }
 
@@ -112,7 +112,8 @@ struct Pair {
 };
 
 template <class Key, class Value>
-struct KeyValuePair : Pair<Key, Value> {
+struct KeyValuePair : Pair<Key, Value>
+{
     KeyValuePair() : Pair<Key, Value>() {}
     KeyValuePair(const Key &key, const Value &value) : Pair<Key, Value>(key, value) {}
     KeyValuePair(const Key &key, Value &&value) : Pair<Key, Value>(key, std::move(value)) {}

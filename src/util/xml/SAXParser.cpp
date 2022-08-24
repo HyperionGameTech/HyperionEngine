@@ -3,7 +3,7 @@
 namespace hyperion {
 namespace xml {
 
-SAXParser::SAXParser(SaxHandler *handler)
+SAXParser::SAXParser(SAXHandler *handler)
     : handler(handler)
 {
 }

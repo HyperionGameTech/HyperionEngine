@@ -8,11 +8,12 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class BasicCharacterController : public Controller {
+class BasicCharacterController : public Controller
+{
 public:
     BasicCharacterController();
     virtual ~BasicCharacterController() override = default;
-    
+
     virtual void OnAdded() override;
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;

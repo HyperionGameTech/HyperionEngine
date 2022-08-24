@@ -28,13 +28,14 @@ using renderer::GPUBuffer;
 
 class Engine;
 
-class PlaceholderData {
+class PlaceholderData
+{
 public:
     PlaceholderData();
 
 #define HYP_DEF_DUMMY_DATA(type, getter, member) \
     public: \
-        type &Get##getter()             { return member; } \
+        type &Get##getter() { return member; } \
         const type &Get##getter() const { return member; } \
     private: \
         type member

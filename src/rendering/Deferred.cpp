@@ -22,7 +22,7 @@ DeferredPass::~DeferredPass() = default;
 void DeferredPass::CreateShader(Engine *engine)
 {
     if (m_is_indirect_pass) {
-        m_shader = Handle<Shader>(new Shader(
+        m_shader = engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 SubShader{ShaderModule::Type::VERTEX, {
                     FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/deferred.vert.spv")).Read(),
@@ -33,9 +33,9 @@ void DeferredPass::CreateShader(Engine *engine)
                     {.name = "deferred indirect frag"}
                 }}
             }
-        ));
+        );
     } else {
-        m_shader = Handle<Shader>(new Shader(
+        m_shader = engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 SubShader{ShaderModule::Type::VERTEX, {
                     FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/deferred.vert.spv")).Read(),
@@ -46,15 +46,15 @@ void DeferredPass::CreateShader(Engine *engine)
                     {.name = "deferred direct frag"}
                 }}
             }
-        ));
+        );
     }
 
-    m_shader->Init(engine);
+    engine->InitObject(m_shader);
 }
 
 void DeferredPass::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass().IncRef();
+    m_render_pass = Handle<RenderPass>(engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass());
 }
 
 void DeferredPass::CreateDescriptors(Engine *engine)
@@ -93,7 +93,7 @@ void DeferredPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[i].IncRef();
+        m_framebuffers[i] = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[i];
         
         auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
@@ -226,7 +226,7 @@ void DeferredRenderer::Create(Engine *engine)
     m_ssr.Create(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_mipmapped_results[i] = Handle<Texture>(new Texture2D(
+        m_mipmapped_results[i] = engine->CreateHandle<Texture>(new Texture2D(
             Extent2D { 1024, 1024 },
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
             Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
@@ -234,7 +234,7 @@ void DeferredRenderer::Create(Engine *engine)
             nullptr
         ));
 
-        m_mipmapped_results[i]->Init(engine);
+        engine->InitObject(m_mipmapped_results[i]);
     }
     
     m_sampler = std::make_unique<Sampler>(Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);

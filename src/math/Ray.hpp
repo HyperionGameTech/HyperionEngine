@@ -22,7 +22,8 @@ struct RayHit;
 
 using RayHitID = UInt;
 
-struct Ray {
+struct Ray
+{
     Vector3 position;
     Vector3 direction;
 
@@ -74,13 +75,14 @@ struct Ray {
     }
 };
 
-struct RayHit {
+struct RayHit
+{
     static constexpr bool no_hit = false;
     
-    Vector3     hitpoint;
-    Vector3     normal;
-    float       distance  = 0.0f;
-    RayHitID    id        = ~0u;
+    Vector3 hitpoint;
+    Vector3 normal;
+    float distance = 0.0f;
+    RayHitID id = ~0u;
     const void *user_data = nullptr;
 
     bool operator<(const RayHit &other) const

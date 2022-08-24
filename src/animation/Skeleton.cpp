@@ -40,13 +40,13 @@ void Skeleton::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SKELETONS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             HYP_FLUSH_RENDER_QUEUE(engine);
             
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -56,14 +56,14 @@ void Skeleton::EnqueueRenderUpdates() const
         return;
     }
 
-    const size_t num_bones = MathUtil::Min(SkeletonShaderData::max_bones, NumBones());
+    const auto num_bones = MathUtil::Min(SkeletonShaderData::max_bones, NumBones());
 
     if (num_bones != 0) {
         SkeletonShaderData &shader_data = GetEngine()->shader_globals->skeletons.Get(m_id.value - 1); /* TODO: is this fully thread safe? */
 
         shader_data.bones[0] = m_root_bone->GetBoneMatrix();
 
-        for (size_t i = 1; i < num_bones; i++) {
+        for (SizeType i = 1; i < num_bones; i++) {
             if (auto &descendent = m_root_bone->GetDescendents()[i - 1]) {
                 if (!descendent) {
                     continue;
@@ -121,7 +121,7 @@ void Skeleton::SetRootBone(std::unique_ptr<Bone> &&root_bone)
     }
 }
 
-size_t Skeleton::NumBones() const
+SizeType Skeleton::NumBones() const
 {
     if (m_root_bone == nullptr) {
         return 0;

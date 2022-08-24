@@ -32,13 +32,16 @@ using renderer::ShaderVec2;
 
 class Engine;
 
-struct alignas(16) PostProcessingUniforms {
+struct alignas(16) PostProcessingUniforms
+{
     ShaderVec2<UInt32> effect_counts; // pre, post
     ShaderVec2<UInt32> last_enabled_indices; // pre, post
     ShaderVec2<UInt32> masks; // pre, post
 };
 
-class PostProcessingEffect : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)> {
+class PostProcessingEffect
+    : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)>
+{
 public:
     enum class Stage {
         PRE_SHADING,
@@ -79,7 +82,8 @@ private:
     bool m_is_enabled;
 };
 
-class PostProcessing {
+class PostProcessing
+{
 public:
     static constexpr UInt max_effects_per_stage = sizeof(UInt32) * CHAR_BIT;
 

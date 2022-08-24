@@ -34,7 +34,7 @@ void AnimationController::OnUpdate(GameCounter::TickUnit delta)
 
             animation->ApplyBlended(m_state.current_time, 0.5f);
         } else {
-            m_state = {};
+            m_state = { };
         }
     }
 }
@@ -58,7 +58,7 @@ bool AnimationController::FindSkeleton(Node *node)
     }
 
     if (auto &entity = node->GetEntity()) {
-        if (FindSkeletonDirect(entity.ptr)) {
+        if (FindSkeletonDirect(entity.Get())) {
             return true;
         }
     }

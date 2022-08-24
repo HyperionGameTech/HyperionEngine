@@ -31,13 +31,13 @@ void AABBDebugController::OnAdded()
 
     auto mesh = MeshBuilder::Cube();
     auto vertex_attributes = mesh->GetVertexAttributes();
-    auto material = Handle<Material>(new Material("aabb_material"));
+    auto material = GetEngine()->CreateHandle<Material>("aabb_material");
 
     auto shader = m_engine->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
     const auto shader_id = shader != nullptr ? shader->GetId() : Shader::empty_id;
 
-    m_aabb_entity = m_engine->resources.entities.Add(new Entity(
-        Handle<Mesh>(mesh.release()),
+    m_aabb_entity = GetEngine()->CreateHandle<Entity>(
+        GetEngine()->CreateHandle<Mesh>(mesh.release()),
         std::move(shader),
         std::move(material),
         RenderableAttributeSet(
@@ -55,11 +55,9 @@ void AABBDebugController::OnAdded()
         Entity::ComponentInitInfo {
             .flags = 0x0 // no flags
         }
-    ));
+    );
 
-    m_aabb_entity.Init();
-
-    scene->AddEntity(m_aabb_entity.IncRef());
+    scene->AddEntity(Handle<Entity>(m_aabb_entity));
 }
 
 void AABBDebugController::OnRemoved()
@@ -69,7 +67,7 @@ void AABBDebugController::OnRemoved()
             scene->RemoveEntity(m_aabb_entity);
         }
 
-        m_aabb_entity = nullptr;
+        m_aabb_entity.Reset();
     }
 }
 

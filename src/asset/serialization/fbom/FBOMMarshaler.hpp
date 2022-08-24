@@ -5,9 +5,11 @@
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMResult.hpp>
 
-#include <rendering/Resources.hpp>
-
 #include <Constants.hpp>
+
+namespace hyperion::v2 {
+class Engine;
+} // namespace hyperion::v2
 
 namespace hyperion::v2::fbom {
 
@@ -23,7 +25,7 @@ public:
 
 protected:
     virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
 };
 
 template <class T>
@@ -34,7 +36,7 @@ public:
     virtual FBOMType GetObjectType() const override = 0;
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, T *&out_object) const = 0;
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, T *&out_object) const = 0;
 
 private:
     virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const override
@@ -42,11 +44,11 @@ private:
         return Serialize(in.Get<T>(), out);
     }
 
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, FBOMDeserializedObject &out) const override
+    virtual FBOMResult Deserialize(Engine *engine, const FBOMObject &in, FBOMDeserializedObject &out) const override
     {
         T *ptr = nullptr;
 
-        auto result = Deserialize(resources, in, ptr);
+        auto result = Deserialize(engine, in, ptr);
 
         if (result.value != FBOMResult::FBOM_ERR) {
             out.Reset(ptr); // takes ownership of ptr

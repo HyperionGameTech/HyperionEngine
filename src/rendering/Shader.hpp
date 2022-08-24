@@ -29,7 +29,8 @@ using renderer::PerFrameData;
 
 class Engine;
 
-struct SubShader {
+struct SubShader
+{
     ShaderModule::Type type;
     ShaderObject spirv;
 };
@@ -56,7 +57,8 @@ private:
     std::vector<SubShader> m_sub_shaders;
 };
 
-enum class ShaderKey {
+enum class ShaderKey
+{
     BASIC_FORWARD,
     BASIC_VEGETATION,
     BASIC_SKYBOX,
@@ -66,7 +68,8 @@ enum class ShaderKey {
     CUSTOM
 };
 
-struct ShaderMapKey {
+struct ShaderMapKey
+{
     ShaderKey key;
     std::string name;
 

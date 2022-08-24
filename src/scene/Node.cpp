@@ -13,7 +13,7 @@ Node::Node(
     const Transform &local_transform
 ) : Node(
         name,
-        nullptr,
+        Handle<Entity>(),
         local_transform
     )
 {
@@ -21,7 +21,7 @@ Node::Node(
 
 Node::Node(
     const String &name,
-    Ref<Entity> &&entity,
+    Handle<Entity> &&entity,
     const Transform &local_transform
 ) : Node(
         Type::NODE,
@@ -35,7 +35,7 @@ Node::Node(
 Node::Node(
     Type type,
     const String &name,
-    Ref<Entity> &&entity,
+    Handle<Entity> &&entity,
     const Transform &local_transform
 ) : m_type(type),
     m_name(name),
@@ -66,7 +66,7 @@ Node::Node(Node &&other) noexcept
 
     m_entity = std::move(other.m_entity);
     m_entity->SetParent(this);
-    other.m_entity = nullptr;
+    other.m_entity.Reset();
 
     m_child_nodes = std::move(other.m_child_nodes);
     other.m_child_nodes = {};
@@ -85,7 +85,7 @@ Node &Node::operator=(Node &&other) noexcept
 {
     RemoveAllChildren();
 
-    SetEntity(nullptr);
+    SetEntity(Handle<Entity>());
     SetScene(nullptr);
 
     m_type = other.m_type;
@@ -111,7 +111,7 @@ Node &Node::operator=(Node &&other) noexcept
 
     m_entity = std::move(other.m_entity);
     m_entity->SetParent(this);
-    other.m_entity = nullptr;
+    other.m_entity.Reset();
 
     m_name = std::move(other.m_name);
 
@@ -135,7 +135,7 @@ Node::~Node()
     AssertThrow(m_ref_count.count == 0);
 
     RemoveAllChildren();
-    SetEntity(nullptr);
+    SetEntity(Handle<Entity>());
 }
 
 void Node::SetScene(Scene *scene)
@@ -147,7 +147,7 @@ void Node::SetScene(Scene *scene)
     m_scene = scene;
 
     if (m_scene != nullptr && m_entity != nullptr) {
-        m_scene->AddEntity(m_entity.IncRef());
+        m_scene->AddEntity(Handle<Entity>(m_entity));
     }
 
     for (auto &child : m_child_nodes) {
@@ -234,7 +234,7 @@ bool Node::RemoveChild(NodeList::Iterator iter)
     return true;
 }
 
-bool Node::RemoveChild(size_t index)
+bool Node::RemoveChild(SizeType index)
 {
     if (index >= m_child_nodes.Size()) {
         return false;
@@ -275,19 +275,21 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
-NodeProxy Node::GetChild(size_t index) const
+NodeProxy Node::GetChild(SizeType index) const
 {
     if (index >= m_child_nodes.Size()) {
-        return NodeProxy();
+        return NodeProxy::empty;
     }
 
-    return NodeProxy(m_child_nodes[index]);
+    return m_child_nodes[index];
 }
 
-NodeProxy Node::Select(const char *selector)
+NodeProxy Node::Select(const char *selector) const
 {
+    NodeProxy result;
+
     if (selector == nullptr) {
-        return NodeProxy();
+        return result;
     }
 
     char ch;
@@ -296,7 +298,7 @@ NodeProxy Node::Select(const char *selector)
     UInt32 buffer_index = 0;
     UInt32 selector_index = 0;
 
-    Node *search_node = this;
+    const Node *search_node = this;
 
     while ((ch = selector[selector_index]) != '\0') {
         const char prev_selector_char = selector_index == 0
@@ -308,14 +310,15 @@ NodeProxy Node::Select(const char *selector)
         if (ch == '/' && prev_selector_char != '\\') {
             const auto it = search_node->FindChild(buffer);
 
-            if (it == search_node->GetChildren().end()) {
-                return NodeProxy();
+            if (it == search_node->GetChildren().End()) {
+                return NodeProxy::empty;
             }
 
             search_node = it->Get();
+            result = *it;
 
             if (!search_node) {
-                return NodeProxy();
+                return NodeProxy::empty;
             }
 
             buffer_index = 0;
@@ -331,7 +334,7 @@ NodeProxy Node::Select(const char *selector)
                     std::size(buffer)
                 );
 
-                return NodeProxy();
+                return NodeProxy::empty;
             }
         }
 
@@ -342,17 +345,25 @@ NodeProxy Node::Select(const char *selector)
     if (buffer_index != 0) {
         const auto it = search_node->FindChild(buffer);
 
-        if (it == search_node->GetChildren().end()) {
-            return NodeProxy();
+        if (it == search_node->GetChildren().End()) {
+            return NodeProxy::empty;
         }
 
         search_node = it->Get();
+        result = *it;
     }
 
-    return NodeProxy(search_node);
+    return result;
 }
 
-Node::NodeList::Iterator Node::FindChild(Node *node)
+Node::NodeList::Iterator Node::FindChild(const Node *node)
+{
+    return m_child_nodes.FindIf([node](const auto &it) {
+        return it.Get() == node;
+    });
+}
+
+Node::NodeList::ConstIterator Node::FindChild(const Node *node) const
 {
     return m_child_nodes.FindIf([node](const auto &it) {
         return it.Get() == node;
@@ -366,6 +377,13 @@ Node::NodeList::Iterator Node::FindChild(const char *name)
     });
 }
 
+Node::NodeList::ConstIterator Node::FindChild(const char *name) const
+{
+    return m_child_nodes.FindIf([name](const auto &it) {
+        return it.GetName() == name;
+    });
+}
+
 void Node::SetLocalTransform(const Transform &transform)
 {
     m_local_transform = transform;
@@ -373,7 +391,7 @@ void Node::SetLocalTransform(const Transform &transform)
     UpdateWorldTransform();
 }
 
-void Node::SetEntity(Ref<Entity> &&entity)
+void Node::SetEntity(Handle<Entity> &&entity)
 {
     if (m_entity == entity) {
         return;
@@ -391,17 +409,17 @@ void Node::SetEntity(Ref<Entity> &&entity)
         m_entity = std::move(entity);
 
         if (m_scene != nullptr) {
-            m_scene->AddEntity(m_entity.IncRef());
+            m_scene->AddEntity(Handle<Entity>(m_entity));
         }
 
         m_entity->SetParent(this);
-        m_entity.Init();
+        //m_entity.Init();
 
         m_local_aabb = m_entity->GetLocalAABB();
     } else {
         m_local_aabb = BoundingBox::empty;
 
-        m_entity = nullptr;
+        m_entity.Reset();
     }
 
     UpdateWorldTransform();
@@ -448,7 +466,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
             has_entity_hit = ray.TestAABB(
                 m_entity->GetWorldAABB(),
                 m_entity->GetId().value,
-                m_entity.ptr,
+                m_entity.Get(),
                 out_results
             );
         }

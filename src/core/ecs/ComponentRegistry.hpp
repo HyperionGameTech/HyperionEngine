@@ -17,8 +17,8 @@ class ComponentMapBase {
 template <class Entity, class Component>
 class ComponentMap : public ComponentMapBase {
 public:
-    using Map           = FlatMap<typename Entity::ID, Component>;
-    using Iterator      = typename Map::Iterator;
+    using Map = FlatMap<typename Entity::ID, Component>;
+    using Iterator = typename Map::Iterator;
     using ConstIterator = typename Map::ConstIterator;
 
     Component &Get(typename Entity::ID id)              { return m_components.At(id); }

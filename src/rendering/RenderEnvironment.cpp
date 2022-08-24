@@ -69,7 +69,7 @@ void RenderEnvironment::Init(Engine *engine)
                 auto &light = it.second;
 
                 if (light != nullptr) {
-                    light->Init(engine);
+                    GetEngine()->InitObject(light);
                 }
             }
         }
@@ -118,7 +118,7 @@ void RenderEnvironment::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ENVIRONMENTS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             m_lights.Clear();
@@ -143,15 +143,23 @@ void RenderEnvironment::Init(Engine *engine)
                 m_env_probes_update_sp.Signal();
             }
 
-            engine->GetRenderScheduler().Enqueue([this](...) {
-                m_render_components.Clear();
+            // have to store render components into temporary container
+            // from render thread so we don't run into a race condition.
+            // and can't directly Clear() because destructors may enqueue
+            // into render scheduler
+            ComponentSetUnique<RenderComponentBase> tmp_render_components;
+
+            engine->GetRenderScheduler().Enqueue([this, &tmp_render_components](...) {
+                m_current_enabled_render_components_mask = 0u;
+                m_next_enabled_render_components_mask = 0u;
+
+                // m_render_components.Clear();
+                tmp_render_components = std::move(m_render_components);
 
                 HYPERION_RETURN_OK;
             });
 
             if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-                //std::lock_guard guard(m_render_component_mutex);
-
                 m_render_component_sp.Wait();
 
                 m_render_components_pending_addition.Clear();
@@ -166,21 +174,25 @@ void RenderEnvironment::Init(Engine *engine)
 
             HYP_FLUSH_RENDER_QUEUE(engine);
 
+            tmp_render_components.Clear();
+
             SetReady(false);
-        }));
+        });
     }));
 }
 
 void RenderEnvironment::AddLight(Handle<Light> &&light)
 {
-    if (light != nullptr && IsReady()) {
-        light->Init(GetEngine());
+    if (!light) {
+        return;
+    }
+
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(light);
     }
 
     m_light_update_sp.Wait();
-
     m_lights_pending_addition.Push(std::move(light));
-
     m_light_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_LIGHTS;
@@ -188,8 +200,11 @@ void RenderEnvironment::AddLight(Handle<Light> &&light)
 
 void RenderEnvironment::RemoveLight(Handle<Light> &&light)
 {
-    m_light_update_sp.Wait();
+    if (!light) {
+        return;
+    }
 
+    m_light_update_sp.Wait();
     m_lights_pending_removal.Push(std::move(light));
     m_light_update_sp.Signal();
     
@@ -240,35 +255,35 @@ void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
     }
 }
 
-void RenderEnvironment::OnEntityAdded(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entities_pending_addition.Push(entity.IncRef());
+    m_entities_pending_addition.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 }
 
-void RenderEnvironment::OnEntityRemoved(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entities_pending_removal.Push(entity.IncRef());
+    m_entities_pending_removal.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 }
 
 // only called when meaningful attributes have changed
-void RenderEnvironment::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entity_renderable_attribute_updates.Push(entity.IncRef());
+    m_entity_renderable_attribute_updates.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;

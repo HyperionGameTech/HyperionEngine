@@ -3,6 +3,7 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <rendering/Material.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -32,7 +33,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, Material *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, Material *&out_object) const override
     {
         return { FBOMResult::FBOM_OK };
     }

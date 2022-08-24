@@ -8,16 +8,16 @@
 
 namespace hyperion::v2 {
 
-using OgreXmlModelLoader = LoaderObject<Node, LoaderFormat::OGRE_XML_MODEL>::Loader;
+using OgreXMLModelLoader = LoaderObject<Node, LoaderFormat::OGRE_XML_MODEL>::Loader;
 
-class OgreXmlSaxHandler : public xml::SaxHandler {
+class OgreXMLSAXHandler : public xml::SAXHandler {
 public:
-    OgreXmlSaxHandler(LoaderState *state, OgreXmlModelLoader::Object &object)
+    OgreXMLSAXHandler(LoaderState *state, OgreXMLModelLoader::Object &object)
         : m_object(object)
     {
     }
 
-    OgreXmlModelLoader::Object::OgreSubMesh &LastSubMesh()
+    OgreXMLModelLoader::Object::OgreSubMesh &LastSubMesh()
     {
         if (m_object.submeshes.empty()) {
             m_object.submeshes.emplace_back();
@@ -26,7 +26,7 @@ public:
         return m_object.submeshes.back();
     }
 
-    void AddBoneAssignment(size_t vertex_index, OgreXmlModelLoader::Object::BoneAssignment &&bone_assignment)
+    void AddBoneAssignment(size_t vertex_index, OgreXMLModelLoader::Object::BoneAssignment &&bone_assignment)
     {
         m_object.bone_assignments[vertex_index].push_back(std::move(bone_assignment));
     }
@@ -80,10 +80,10 @@ public:
     virtual void Comment(const std::string &comment) override {}
 
 private:
-    OgreXmlModelLoader::Object &m_object;
+    OgreXMLModelLoader::Object &m_object;
 };
 
-void BuildVertices(OgreXmlModelLoader::Object &object)
+void BuildVertices(OgreXMLModelLoader::Object &object)
 {
     const bool has_normals   = !object.normals.empty(),
                has_texcoords = !object.texcoords.empty();
@@ -158,11 +158,11 @@ void BuildVertices(OgreXmlModelLoader::Object &object)
     object.vertices = std::move(vertices);
 }
 
-LoaderResult OgreXmlModelLoader::LoadFn(LoaderState *state, Object &object)
+LoaderResult OgreXMLModelLoader::LoadFn(LoaderState *state, Object &object)
 {
     object.filepath = state->filepath;
 
-    OgreXmlSaxHandler handler(state, object);
+    OgreXMLSAXHandler handler(state, object);
 
     xml::SAXParser parser(&handler);
     auto sax_result = parser.Parse(&state->stream);
@@ -176,7 +176,7 @@ LoaderResult OgreXmlModelLoader::LoadFn(LoaderState *state, Object &object)
     return {};
 }
 
-std::unique_ptr<Node> OgreXmlModelLoader::BuildFn(Engine *engine, const Object &object)
+std::unique_ptr<Node> OgreXMLModelLoader::BuildFn(Engine *engine, const Object &object)
 {
     auto top = std::make_unique<Node>();
 
@@ -192,8 +192,8 @@ std::unique_ptr<Node> OgreXmlModelLoader::BuildFn(Engine *engine, const Object &
         }
     }
 
-    engine->resources.Lock([&](Resources &resources) {
-        Handle<Skeleton> skeleton_ref(skeleton.release());
+    engine->resources->Lock([&](Resources &resources) {
+        auto skeleton_ref = engine->CreateHandle<Skeleton>(skeleton.release());
 
         for (auto &sub_mesh : object.submeshes) {
             if (sub_mesh.indices.empty()) {
@@ -202,13 +202,13 @@ std::unique_ptr<Node> OgreXmlModelLoader::BuildFn(Engine *engine, const Object &
                 continue;
             }
 
-            auto material = Handle<Material>(new Material("ogrexml_material"));
+            auto material = engine->CreateHandle<Material>("ogrexml_material");
 
-            auto mesh = Handle<Mesh>(new Mesh(
+            auto mesh = engine->CreateHandle<Mesh>(
                 object.vertices,
                 sub_mesh.indices,
                 Topology::TRIANGLES
-            ));
+            );
 
             if (object.normals.empty()) {
                 mesh->CalculateNormals();
@@ -221,7 +221,7 @@ std::unique_ptr<Node> OgreXmlModelLoader::BuildFn(Engine *engine, const Object &
             auto shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
             const auto shader_id = shader != nullptr ? shader->GetId() : Shader::empty_id;
 
-            auto entity = resources.entities.Add(new Entity(
+            auto entity = engine->CreateHandle<Entity>(
                 std::move(mesh),
                 std::move(shader),
                 std::move(material),
@@ -233,9 +233,8 @@ std::unique_ptr<Node> OgreXmlModelLoader::BuildFn(Engine *engine, const Object &
                         .bucket = Bucket::BUCKET_OPAQUE
                     },
                     shader_id
-                ),
-                { }
-            ));
+                )
+            );
 
             if (skeleton_ref) {
                 entity->AddController<AnimationController>();

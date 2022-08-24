@@ -45,9 +45,9 @@ public:
     void AddTrack(const AnimationTrack &track) { m_tracks.push_back(track); }
     auto &GetTracks() { return m_tracks; }
     const auto &GetTracks() const { return m_tracks; }
-    AnimationTrack &GetTrack(size_t index) { return m_tracks[index]; }
-    const AnimationTrack &GetTrack(size_t index) const { return m_tracks[index]; }
-    size_t NumTracks() const { return m_tracks.size(); }
+    AnimationTrack &GetTrack(SizeType index) { return m_tracks[index]; }
+    const AnimationTrack &GetTrack(SizeType index) const { return m_tracks[index]; }
+    SizeType NumTracks() const { return m_tracks.size(); }
 
     void Apply(float time);
     void ApplyBlended(float time, float blend);

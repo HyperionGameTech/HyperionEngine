@@ -31,28 +31,26 @@ void EnvProbe::Init(Engine *engine)
     }
 
     EngineComponentBase::Init(engine);
+
+    engine->InitObject(m_texture);
     
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
         auto *engine = GetEngine();
-
-        if (m_texture) {
-            m_texture->Init(engine);
-        }
 
         SetReady(true);
 
         // force update first time to init render data
         Update(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
 
-            m_texture.Reset();
+            engine->SafeReleaseRenderResource<Texture>(std::move(m_texture));
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

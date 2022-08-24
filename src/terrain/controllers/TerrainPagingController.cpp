@@ -33,29 +33,19 @@ void TerrainPagingController::OnAdded()
         .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, base_height * 0.03f, 0.0f, Vector(3.125f, 3.125f, 0.0f, 0.0f) * global_terrain_noise_scale)
         .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, base_height * 0.015f, 0.0f, Vector(1.56f, 1.56f, 0.0f, 0.0f) * global_terrain_noise_scale);
 
-    m_material = Handle<Material>(new Material(
-        "terrain_material"
-    ));
+    m_material = GetEngine()->CreateHandle<Material>("terrain_material");
 
     // m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.2f, 0.99f, 0.5f, 1.0f));
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     // m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 50.0f);
-    // auto albedo_texture = Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/patchy-meadow1-ue/patchy-meadow1_albedo.png").release());
-    auto albedo_texture = Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_albedo.png").release());
+    auto albedo_texture = GetEngine()->CreateHandle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_albedo.png").release());
     albedo_texture->GetImage().SetIsSRGB(true);
     m_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
-    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_Normal-ogl.png").release()));
-    m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_Roughness.png").release()));
-    // m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/patchy-meadow1-ue/patchy-meadow1_normal-dx.png").release()));
+    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, GetEngine()->CreateHandle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_Normal-ogl.png").release()));
+    m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, GetEngine()->CreateHandle<Texture>(GetEngine()->assets.Load<Texture>("textures/snow/snowdrift1_Roughness.png").release()));
 
-
-    // m_material->SetTexture(Material::MATERIAL_TEXTURE_AO_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1-ao.png")));
-    // m_material->SetTexture(Material::MATERIAL_TEXTURE_PARALLAX_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1_Height.png")));
-    // m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1_Roughness.png")));
-    // m_material->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1-metallic.png")));
-
-    m_material->Init(GetEngine());
+    GetEngine()->InitObject(m_material);
 
     PagingController::OnAdded();
 }
@@ -112,7 +102,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     auto &shader = GetEngine()->shader_manager.GetShader(ShaderManager::Key::TERRAIN);
     const auto vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
 
-    patch->entity = GetEngine()->resources.entities.Add(new Entity(
+    patch->entity = GetEngine()->CreateHandle<Entity>(
         Handle<Mesh>(), // mesh added later, after task thread generates it
         Handle<Shader>(shader),
         Handle<Material>(m_material),
@@ -125,7 +115,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
             },
             shader->GetId()
         )
-    ));
+    );
 
     patch->entity->SetTranslation({
         (patch->info.coord.x - 0.5f) * (Vector(patch->info.extent).Max() - 1) * m_scale.x,
@@ -134,7 +124,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     });
 
     if (auto *scene = GetOwner()->GetScene()) {
-        scene->AddEntity(patch->entity.IncRef());
+        scene->AddEntity(Handle<Entity>(patch->entity));
     } else {
         DebugLog(
             LogType::Warn,
@@ -248,7 +238,7 @@ void TerrainPagingController::AddEnqueuedChunks()
             patch_info.coord.y
         );
 
-        auto mesh = Handle<Mesh>(terrain_generation_result.mesh.release());
+        auto mesh = GetEngine()->CreateHandle<Mesh>(terrain_generation_result.mesh.release());
         AssertThrow(mesh != nullptr);
 
         if (auto *patch = GetPatch(patch_info.coord)) {

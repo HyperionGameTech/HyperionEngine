@@ -12,17 +12,17 @@
 
 namespace hyperion::v2 {
 
-using OgreXmlSkeletonLoader = LoaderObject<Skeleton, LoaderFormat::OGRE_XML_SKELETON>::Loader;
+using OgreXMLSkeletonLoader = LoaderObject<Skeleton, LoaderFormat::OGRE_XML_SKELETON>::Loader;
 
-class OgreXmlSkeletonSaxHandler : public xml::SaxHandler {
+class OgreXMLSkeletonSAXHandler : public xml::SAXHandler {
 public:
-    OgreXmlSkeletonSaxHandler(LoaderState *state, OgreXmlSkeletonLoader::Object &object)
+    OgreXMLSkeletonSAXHandler(LoaderState *state, OgreXMLSkeletonLoader::Object &object)
         : m_state(state),
           m_object(object)
     {
     }
 
-    OgreXmlSkeletonLoader::Object::AnimationData &LastAnimation()
+    OgreXMLSkeletonLoader::Object::AnimationData &LastAnimation()
     {
         if (m_object.animations.empty()) {
             m_object.animations.emplace_back();
@@ -31,7 +31,7 @@ public:
         return m_object.animations.back();
     }
 
-    OgreXmlSkeletonLoader::Object::AnimationTrackData &LastAnimationTrack()
+    OgreXMLSkeletonLoader::Object::AnimationTrackData &LastAnimationTrack()
     {
         auto &animation = LastAnimation();
 
@@ -42,7 +42,7 @@ public:
         return animation.tracks.back();
     }
 
-    OgreXmlSkeletonLoader::Object::KeyframeData &LastKeyframe()
+    OgreXMLSkeletonLoader::Object::KeyframeData &LastKeyframe()
     {
         auto &track = LastAnimationTrack();
 
@@ -54,7 +54,7 @@ public:
     }
 
     template <class Lambda>
-    OgreXmlSkeletonLoader::Object::BoneData *GetBone(Lambda lambda)
+    OgreXMLSkeletonLoader::Object::BoneData *GetBone(Lambda lambda)
     {
         auto it = std::find_if(m_object.bones.begin(), m_object.bones.end(), lambda);
 
@@ -170,16 +170,16 @@ public:
 
 private:
     LoaderState *m_state;
-    OgreXmlSkeletonLoader::Object &m_object;
+    OgreXMLSkeletonLoader::Object &m_object;
 
     std::stack<std::string> m_element_tags;
     std::stack<float> m_binding_angles;
     std::stack<float> m_keyframe_angles;
 };
 
-LoaderResult OgreXmlSkeletonLoader::LoadFn(LoaderState *state, Object &object)
+LoaderResult OgreXMLSkeletonLoader::LoadFn(LoaderState *state, Object &object)
 {
-    OgreXmlSkeletonSaxHandler handler(state, object);
+    OgreXMLSkeletonSAXHandler handler(state, object);
 
     xml::SAXParser parser(&handler);
     auto sax_result = parser.Parse(&state->stream);
@@ -191,7 +191,7 @@ LoaderResult OgreXmlSkeletonLoader::LoadFn(LoaderState *state, Object &object)
     return { };
 }
 
-std::unique_ptr<Skeleton> OgreXmlSkeletonLoader::BuildFn(Engine *engine, const Object &object)
+std::unique_ptr<Skeleton> OgreXMLSkeletonLoader::BuildFn(Engine *engine, const Object &object)
 {
     auto skeleton = std::make_unique<Skeleton>();
     

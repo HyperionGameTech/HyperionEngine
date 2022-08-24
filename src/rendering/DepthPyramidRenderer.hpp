@@ -22,7 +22,8 @@ using renderer::DescriptorSet;
 using renderer::AttachmentRef;
 using renderer::Extent3D;
 
-class DepthPyramidRenderer {
+class DepthPyramidRenderer
+{
 public:
     DepthPyramidRenderer();
     ~DepthPyramidRenderer();

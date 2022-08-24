@@ -47,16 +47,14 @@ void PostProcessingEffect::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     m_shader = CreateShader(engine);
-    
-    AssertThrow(m_shader != nullptr);
-    m_shader->Init(engine);
+    engine->InitObject(m_shader);
 
     m_full_screen_pass.SetShader(Handle<Shader>(m_shader));
     m_full_screen_pass.Create(engine);
 
     SetReady(true);
 
-    OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
         SetReady(false);
@@ -65,10 +63,10 @@ void PostProcessingEffect::Init(Engine *engine)
         m_shader.Reset();
 
         HYP_FLUSH_RENDER_QUEUE(engine);
-    }));
+    });
 }
 
-PostProcessing::PostProcessing()  = default;
+PostProcessing::PostProcessing() = default;
 PostProcessing::~PostProcessing() = default;
 
 void PostProcessing::Create(Engine *engine)

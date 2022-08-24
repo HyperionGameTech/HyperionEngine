@@ -36,7 +36,7 @@ void RenderPass::Init(Engine *engine)
             return m_render_pass.Create(engine->GetDevice());
         });
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_RENDER_PASSES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             engine->render_scheduler.Enqueue([this, engine](...) {
@@ -44,7 +44,7 @@ void RenderPass::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

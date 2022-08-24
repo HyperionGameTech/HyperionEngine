@@ -477,7 +477,7 @@ public:
     Result UpdateDescriptorSets(Device *device, UInt frame_index);
 
 private:
-    Result DestroyDescriptorSet(Device *device, UInt index);
+    Result DestroyDescriptorSet(Device *device, std::unique_ptr<DescriptorSet> &descriptor_set);
     
     void BindDescriptorSets(
         Device *device,
@@ -498,8 +498,8 @@ private:
     };
 
     // 1 for each frame in flight
-    std::vector<DescriptorSetPendingEntry>        m_descriptor_sets_pending_addition;
-    FixedArray<Queue<UInt>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
+    std::vector<DescriptorSetPendingEntry> m_descriptor_sets_pending_addition;
+    FixedArray<Queue<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
 
     bool m_is_created;
 };

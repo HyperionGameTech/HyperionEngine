@@ -22,7 +22,8 @@ using renderer::Extent3D;
 
 using PatchCoord = Vector2;
 
-struct PatchNeighbor {
+struct PatchNeighbor
+{
     PatchCoord coord{};
 
     Vector2 GetCenter() const { return coord - 0.5f; }
@@ -30,14 +31,16 @@ struct PatchNeighbor {
 
 using PatchNeighbors = std::array<PatchNeighbor, 8>;
 
-enum class PageState {
+enum class PageState
+{
     UNLOADED,
     UNLOADING,
     WAITING,
     LOADED
 };
 
-struct PatchInfo {
+struct PatchInfo
+{
     Extent3D       extent;
     PatchCoord     coord { 0.0f };
     Vector3        scale { 1.0f };
@@ -46,14 +49,16 @@ struct PatchInfo {
     PatchNeighbors neighbors{};
 };
 
-struct Patch {
+struct Patch
+{
     PatchInfo info;
-    Ref<Entity> entity;
+    Handle<Entity> entity;
 
     Vector2 GetCenter() const { return info.coord - 0.5f; }
 };
 
-class PagingController : public Controller {
+class PagingController : public Controller
+{
     static constexpr GameCounter::TickUnit update_max { 0.0f };
     static constexpr GameCounter::TickUnit queue_max { 0.0f };
     static constexpr GameCounter::TickUnit patch_unload_time { 0.0f };

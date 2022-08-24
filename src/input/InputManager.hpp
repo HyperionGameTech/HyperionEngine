@@ -16,8 +16,8 @@
 namespace hyperion {
 
 struct AtomicScalar2D {
-    std::atomic_int x{0};
-    std::atomic_int y{0};
+    std::atomic_int x { 0 };
+    std::atomic_int y { 0 };
 };
 
 struct InputState {
@@ -29,7 +29,7 @@ struct InputState {
         std::atomic_bool is_pressed{false};
     };
 
-    KeyState         key_states[NUM_KEYBOARD_KEYS];
+    KeyState key_states[NUM_KEYBOARD_KEYS];
     MouseButtonState mouse_button_states[NUM_MOUSE_BUTTONS];
 };
 

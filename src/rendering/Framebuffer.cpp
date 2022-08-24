@@ -3,10 +3,12 @@
 
 namespace hyperion::v2 {
 
-Framebuffer::Framebuffer(Extent2D extent, Ref<RenderPass> &&render_pass)
-    : EngineComponentBase(),
-      m_framebuffer(extent),
-      m_render_pass(std::move(render_pass))
+Framebuffer::Framebuffer(
+    Extent2D extent,
+    Handle<RenderPass> &&render_pass
+) : EngineComponentBase(),
+    m_framebuffer(extent),
+    m_render_pass(std::move(render_pass))
 {
 }
 
@@ -22,12 +24,13 @@ void Framebuffer::Init(Engine *engine)
     }
 
     EngineComponentBase::Init(engine);
+
+    engine->InitObject(m_render_pass);
     
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_FRAMEBUFFERS, [this](...) {
         auto *engine = GetEngine();
 
         AssertThrowMsg(m_render_pass != nullptr, "Render pass must be set on framebuffer.");
-        m_render_pass.Init();
 
         engine->render_scheduler.Enqueue([this, engine](...) {
             return m_framebuffer.Create(engine->GetDevice(), &m_render_pass->GetRenderPass());
@@ -35,17 +38,17 @@ void Framebuffer::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_FRAMEBUFFERS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
 
             engine->render_scheduler.Enqueue([this, engine](...) {
-               return m_framebuffer.Destroy(engine->GetDevice());
+                return m_framebuffer.Destroy(engine->GetDevice());
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

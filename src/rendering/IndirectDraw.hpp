@@ -35,7 +35,8 @@ class Material;
 class Engine;
 class Entity;
 
-class IndirectDrawState {
+class IndirectDrawState
+{
 public:
     static constexpr UInt batch_size = 256u;
     static constexpr UInt initial_count = batch_size;

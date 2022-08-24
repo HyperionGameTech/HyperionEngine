@@ -5,7 +5,8 @@
 
 namespace hyperion::v2 {
 
-class BasicPagingController : public PagingController {
+class BasicPagingController : public PagingController
+{
 public:
     BasicPagingController(
         Extent3D patch_size,

@@ -14,10 +14,10 @@ namespace xml {
 
 using AttributeMap = std::map<std::string, std::string>;
 
-class SaxHandler {
+class SAXHandler {
 public:
-    SaxHandler() {}
-    virtual ~SaxHandler() {}
+    SAXHandler() {}
+    virtual ~SAXHandler() {}
 
     virtual void Begin(const std::string &name, const AttributeMap &attributes) = 0;
     virtual void End(const std::string &name) = 0;
@@ -47,12 +47,12 @@ public:
         operator bool() const { return result == SAX_OK; }
     };
 
-    SAXParser(SaxHandler *handler);
+    SAXParser(SAXHandler *handler);
     Result Parse(const std::string &filepath);
     Result Parse(BufferedReader<2048> *reader);
 
 private:
-    SaxHandler *handler;
+    SAXHandler *handler;
 };
 
 } // namespace xml

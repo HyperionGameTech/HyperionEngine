@@ -31,23 +31,25 @@ void ComputePipeline::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    engine->InitObject(m_shader);
+    AssertThrow(m_shader->IsInitCalled());
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
         AssertThrow(m_shader != nullptr);
-        m_shader->Init(engine);
 
         engine->render_scheduler.Enqueue([this, engine](...) {
-           return m_pipeline->Create(
-               engine->GetDevice(),
-               m_shader->GetShaderProgram(),
-               &engine->GetInstance()->GetDescriptorPool()
-           ); 
+            return m_pipeline->Create(
+                engine->GetDevice(),
+                m_shader->GetShaderProgram(),
+                &engine->GetInstance()->GetDescriptorPool()
+            );
         });
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_COMPUTE_PIPELINES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
@@ -57,7 +59,7 @@ void ComputePipeline::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

@@ -9,7 +9,8 @@
 
 namespace hyperion::v2 {
 
-class AnimationController : public PlaybackController {
+class AnimationController : public PlaybackController
+{
 public:
     AnimationController();
     virtual ~AnimationController() override = default;

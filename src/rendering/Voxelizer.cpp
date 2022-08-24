@@ -32,16 +32,16 @@ void Voxelizer::Init(Engine *engine)
 
         const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
-        m_scene = Handle<Scene>(new Scene(
-            engine->resources.cameras.Add(new OrthoCamera(
+        m_scene = engine->CreateHandle<Scene>(
+            engine->CreateHandle<Camera>(new OrthoCamera(
                 voxel_map_size, voxel_map_size,
                 -voxel_map_size_signed, voxel_map_size_signed,
                 -voxel_map_size_signed, voxel_map_size_signed,
                 -voxel_map_size_signed, voxel_map_size_signed
             ))
-        ));
+        );
 
-        m_scene->Init(engine);
+        engine->InitObject(m_scene);
 
         if (m_counter == nullptr) {
             m_counter = std::make_unique<AtomicCounter>();
@@ -60,7 +60,7 @@ void Voxelizer::Init(Engine *engine)
         CreateDescriptors(engine);
         CreatePipeline(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_VOXELIZER, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             auto result = renderer::Result::OK;
@@ -97,7 +97,7 @@ void Voxelizer::Init(Engine *engine)
             m_num_fragments = 0;
 
             HYPERION_ASSERT_RESULT(result);
-        }));
+        });
     }));
 }
 
@@ -105,7 +105,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -118,52 +118,52 @@ void Voxelizer::CreatePipeline(Engine *engine)
         )
     );
     
-    renderer_instance->AddFramebuffer(m_framebuffer.IncRef());
+    engine->InitObject(m_framebuffer);
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
     
     for (auto &item : engine->GetRenderListContainer().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
         for (auto &entity : item->GetEntities()) {
             if (entity != nullptr) {
-                m_renderer_instance->AddEntity(entity.IncRef());
+                m_renderer_instance->AddEntity(Handle<Entity>(entity));
             }
         }
     }
 
-    m_renderer_instance.Init();
+    engine->InitObject(m_renderer_instance);
 }
 
 void Voxelizer::CreateShader(Engine *engine)
 {
-    m_shader = Handle<Shader>(new Shader(
+    m_shader = engine->CreateHandle<Shader>(
         std::vector<SubShader>{
             {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.vert.spv")).Read()}},
             {ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.geom.spv")).Read()}},
             {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.frag.spv")).Read()}}
         }
-    ));
+    );
 
-    m_shader->Init(engine);
+    engine->InitObject(m_shader);
 }
 
 void Voxelizer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->resources.render_passes.Add(new RenderPass(
+    m_render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-    ));
+    );
 
-    m_render_pass.Init();
+    engine->InitObject(m_render_pass);
 }
 
 void Voxelizer::CreateFramebuffer(Engine *engine)
 {
-    m_framebuffer = engine->resources.framebuffers.Add(new Framebuffer(
-        Extent2D{voxel_map_size, voxel_map_size},
-        m_render_pass.IncRef()
-    ));
+    m_framebuffer = engine->CreateHandle<Framebuffer>(
+        Extent2D { voxel_map_size, voxel_map_size },
+        Handle<RenderPass>(m_render_pass)
+    );
     
-    m_framebuffer.Init();
+    engine->InitObject(m_framebuffer);
 }
 
 void Voxelizer::CreateDescriptors(Engine *engine)

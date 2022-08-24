@@ -20,6 +20,8 @@ protected:
     using Map = FlatMap<TypeID, Value>;
 
 public:
+    using InsertResult = typename Map::InsertResult;
+
     using Iterator = typename Map::Iterator;
     using ConstIterator = typename Map::ConstIterator;
 
@@ -44,19 +46,19 @@ public:
     SizeType Size() const { return m_map.Size(); }
     
     template <class T>
-    void Set(const Value &value)
+    InsertResult Set(const Value &value)
     {
         const auto id = TypeID::ForType<T>();
 
-        m_map[id] = value;
+        return m_map.Set(id, value);
     }
     
     template <class T>
-    void Set(Value &&value)
+    InsertResult Set(Value &&value)
     {
         const auto id = TypeID::ForType<T>();
 
-        m_map[id] = std::move(value);
+        return m_map.Set(id, std::move(value));
     }
 
     template <class T>

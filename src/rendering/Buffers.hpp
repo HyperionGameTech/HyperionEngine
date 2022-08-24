@@ -9,7 +9,9 @@
 #include <core/lib/HeapArray.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/Range.hpp>
+#include <core/lib/FixedArray.hpp>
 
+#include <Constants.hpp>
 #include <Types.hpp>
 
 #include <memory>
@@ -36,8 +38,10 @@ using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
-struct ShaderDataState {
-    enum State {
+struct ShaderDataState
+{
+    enum State
+    {
         CLEAN,
         DIRTY
     };
@@ -230,7 +234,8 @@ constexpr SizeType max_env_probes        = (16ull * 1024ull) / sizeof(EnvProbeSh
 constexpr SizeType max_env_probes_bytes  = max_env_probes * sizeof(EnvProbeShaderData);
 
 template <class Buffer, class StructType, SizeType Size>
-class ShaderData {
+class ShaderData
+{
 public:
     ShaderData(SizeType num_buffers)
     {
@@ -243,7 +248,7 @@ public:
         for (SizeType i = 0; i < m_staging_objects_pool.num_staging_buffers; i++) {
             auto &buffer = m_staging_objects_pool.buffers[i];
 
-            buffer.dirty.resize(num_buffers);
+            AssertThrow(buffer.dirty.Size() == num_buffers);
 
             for (auto &d : buffer.dirty) {
                 d.SetStart(0);
@@ -329,7 +334,8 @@ public:
     }
     
 private:
-    struct StagingObjectsPool {
+    struct StagingObjectsPool
+    {
         static constexpr UInt32 num_staging_buffers = HYP_BUFFERS_USE_SPINLOCK ? 2 : 1;
 
         StagingObjectsPool() = default;
@@ -339,10 +345,13 @@ private:
         StagingObjectsPool &operator=(StagingObjectsPool &&other) = delete;
         ~StagingObjectsPool() = default;
 
-        struct StagingObjects {
-            std::atomic_bool             locked{false};
-            HeapArray<StructType, Size>  objects;
-            std::vector<Range<SizeType>> dirty;
+        struct StagingObjects
+        {
+#if HYP_BUFFERS_USE_SPINLOCK
+            std::atomic_bool locked { false };
+#endif
+            HeapArray<StructType, Size> objects;
+            FixedArray<Range<SizeType>, max_frames_in_flight> dirty;
 
             StagingObjects() = default;
             StagingObjects(const StagingObjects &other) = delete;

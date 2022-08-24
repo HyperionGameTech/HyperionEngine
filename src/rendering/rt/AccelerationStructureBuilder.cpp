@@ -3,7 +3,7 @@
 
 namespace hyperion::v2 {
 
-AccelerationStructureBuilder::AccelerationStructureBuilder(std::vector<Ref<Entity>> &&entities)
+AccelerationStructureBuilder::AccelerationStructureBuilder(std::vector<Handle<Entity>> &&entities)
     : m_entities(std::move(entities))
 {
 }

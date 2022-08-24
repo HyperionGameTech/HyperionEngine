@@ -29,14 +29,16 @@ using DeferredFlagBits = UInt;
 
 class IndirectDrawState;
 
-enum DeferredFlags : DeferredFlagBits {
+enum DeferredFlags : DeferredFlagBits
+{
     DEFERRED_FLAGS_NONE              = 0,
     DEFERRED_FLAGS_SSR_ENABLED       = 1 << 0,
     DEFERRED_FLAGS_VCT_ENABLED       = 1 << 1,
     DEFERRED_FLAGS_ENV_PROBE_ENABLED = 1 << 2
 };
 
-class DeferredPass : public FullScreenPass {
+class DeferredPass : public FullScreenPass
+{
     friend class DeferredRenderer;
 public:
     DeferredPass(bool is_indirect_pass);
@@ -57,7 +59,8 @@ private:
     const bool m_is_indirect_pass;
 };
 
-class DeferredRenderer {
+class DeferredRenderer
+{
     static constexpr bool ssr_enabled = true;
     // perform occlusion culling using indirect draw
     static constexpr bool use_draw_indirect = true;

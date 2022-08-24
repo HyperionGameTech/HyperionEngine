@@ -36,7 +36,8 @@ class Entity;
 class Camera;
 class EnvProbe;
 
-struct alignas(16) ObjectInstance {
+struct alignas(16) ObjectInstance
+{
     UInt32             entity_id;
     UInt32             draw_command_index;
     UInt32             batch_index;
@@ -51,7 +52,8 @@ template <class T>
 struct DrawProxy {};
 
 template <>
-struct DrawProxy<STUB_CLASS(Entity)> {
+struct DrawProxy<STUB_CLASS(Entity)>
+{
     // rendering objects (sent from game thread to
     // rendering thread when updates are enqueued)
     // engine will hold onto RenderResources like Mesh and Material
@@ -77,7 +79,8 @@ struct DrawProxy<STUB_CLASS(Entity)> {
 using EntityDrawProxy = DrawProxy<STUB_CLASS(Entity)>;
 
 template <>
-struct DrawProxy<STUB_CLASS(Camera)> {
+struct DrawProxy<STUB_CLASS(Camera)>
+{
     Matrix4  view;
     Matrix4  projection;
     Vector3  position;
@@ -91,7 +94,8 @@ struct DrawProxy<STUB_CLASS(Camera)> {
 using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
 
 template <>
-struct DrawProxy<STUB_CLASS(EnvProbe)> {
+struct DrawProxy<STUB_CLASS(EnvProbe)>
+{
     IDBase id;
     BoundingBox aabb;
     Vector3 world_position;
@@ -102,7 +106,8 @@ struct DrawProxy<STUB_CLASS(EnvProbe)> {
 using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
 
 template <class T>
-class HasDrawProxy {
+class HasDrawProxy
+{
 public:
     HasDrawProxy()
         : m_draw_proxy{}

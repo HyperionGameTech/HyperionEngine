@@ -5,18 +5,21 @@
 
 namespace hyperion::v2 {
 
-enum class PlaybackState {
+enum class PlaybackState
+{
     STOPPED,
     PAUSED,
     PLAYING
 };
 
-enum class LoopMode {
+enum class LoopMode
+{
     ONCE,
     REPEAT
 };
 
-class PlaybackController : public Controller {
+class PlaybackController : public Controller
+{
 public:
     PlaybackController(const char *name);
     virtual ~PlaybackController() override = default;
@@ -49,7 +52,8 @@ protected:
         }
     }
 
-    struct {
+    struct
+    {
         PlaybackState playback_state = PlaybackState::STOPPED;
         LoopMode loop_mode           = LoopMode::ONCE;
         float  speed                 = 1.0f;

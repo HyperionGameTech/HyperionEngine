@@ -43,6 +43,8 @@ using std::memcpy;
 namespace hyperion {
 
 namespace v2 {
+
+class Engine;
 namespace fbom {
 class FBOMObjectType;
 
@@ -266,7 +268,7 @@ public:
 
 class FBOMLoader {
 public:
-    FBOMLoader(Resources &resources);
+    FBOMLoader(Engine *engine);
     ~FBOMLoader();
 
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
@@ -278,7 +280,7 @@ public:
             return FBOMResult(FBOMResult::FBOM_ERR, "Loader not registered for type");
         }
 
-        return loader->Deserialize(m_resources, in, out_object);
+        return loader->Deserialize(m_engine, in, out_object);
     }
 
     FBOMResult LoadFromFile(const String &path, FBOMObject &out)
@@ -348,7 +350,7 @@ private:
 
     FBOMResult Handle(ByteReader *, FBOMCommand, FBOMObject *parent);
 
-    Resources &m_resources;
+    Engine *m_engine;
 
     std::vector<FBOMType> m_registered_types;
 

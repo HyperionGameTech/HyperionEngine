@@ -23,7 +23,8 @@ class Engine;
 
 using RenderableDeletionMaskBits = UInt;
 
-enum RenderableDeletionMask : RenderableDeletionMaskBits {
+enum RenderableDeletionMask : RenderableDeletionMaskBits
+{
     RENDERABLE_DELETION_NONE      = 0,
     RENDERABLE_DELETION_TEXTURES  = 1 << 0,
     RENDERABLE_DELETION_MATERIALS = 1 << 1,
@@ -32,7 +33,8 @@ enum RenderableDeletionMask : RenderableDeletionMaskBits {
     RENDERABLE_DELETION_SHADERS   = 1 << 4
 };
 
-class SafeDeleter {
+class SafeDeleter
+{
     static constexpr UInt8 initial_cycles_remaining = static_cast<UInt8>(max_frames_in_flight + 1);
 
 public:
@@ -57,7 +59,8 @@ public:
     }
 
     template <class T>
-    struct RenderableDeletionEntry : public KeyValuePair<Handle<T>, UInt8> {
+    struct RenderableDeletionEntry : public KeyValuePair<Handle<T>, UInt8>
+    {
         using Base = KeyValuePair<Handle<T>, UInt8>;
 
         static_assert(std::is_base_of_v<RenderResource, T>, "T must be a derived class of RenderResource");
@@ -119,6 +122,24 @@ public:
 
         return queue.Empty();
     }
+
+    template <class T>
+    bool DeleteAllItemsOfType()
+    {
+        auto &queue = std::get<FlatSet<RenderableDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
+
+        for (auto it = queue.Begin(); it != queue.End();) {
+            RenderableDeletionEntry<T> &front = *it;
+
+            AssertThrow(front.first != nullptr);
+            front.first.Reset();
+            it = queue.Erase(it);
+        }
+
+        return queue.Empty();
+    }
+
+    void ForceReleaseAll();
 
 private:
     template <class T>

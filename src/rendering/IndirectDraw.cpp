@@ -384,16 +384,16 @@ void IndirectRenderer::Create(Engine *engine)
 
     // create compute pipeline for object visibility (for indirect render)
     // TODO: cache pipelines: re-use this
-    m_object_visibility = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_object_visibility = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/cull/object_visibility.comp.spv")).Read()}}
             }
-        )),
+        ),
         DynArray<const DescriptorSet *> { m_descriptor_sets[0].get() }
-    ));
+    );
 
-    m_object_visibility->Init(engine);
+    engine->InitObject(m_object_visibility);
 
 
     // RendererInstance flushes render queue on destroy

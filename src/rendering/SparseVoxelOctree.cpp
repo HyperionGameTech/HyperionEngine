@@ -50,7 +50,7 @@ void SparseVoxelOctree::Init(Engine *engine)
         CreateDescriptors(engine);
         CreateComputePipelines(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_VOXELIZER, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             auto result = Result::OK;
@@ -94,7 +94,7 @@ void SparseVoxelOctree::Init(Engine *engine)
             m_write_mipmaps.Reset();
 
             HYPERION_ASSERT_RESULT(result);
-        }));
+        });
     }));
 }
 
@@ -208,55 +208,55 @@ void SparseVoxelOctree::CreateDescriptors(Engine *engine)
 
 void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
 {
-    m_alloc_nodes = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_alloc_nodes = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/voxel/octree_alloc_nodes.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_alloc_nodes->Init(engine);
+    engine->InitObject(m_alloc_nodes);
 
-    m_init_nodes = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_init_nodes = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/voxel/octree_init_nodes.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_init_nodes->Init(engine);
+    engine->InitObject(m_init_nodes);
 
-    m_tag_nodes = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_tag_nodes = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/voxel/octree_tag_nodes.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_tag_nodes->Init(engine);
+    engine->InitObject(m_tag_nodes);
 
-    m_modify_args = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_modify_args = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/voxel/octree_modify_args.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_modify_args->Init(engine);
+    engine->InitObject(m_modify_args);
 
-    m_write_mipmaps = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_write_mipmaps = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/voxel/octree_write_mipmaps.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    m_write_mipmaps->Init(engine);
+    engine->InitObject(m_write_mipmaps);
 }
 
 void SparseVoxelOctree::Build(Engine *engine)

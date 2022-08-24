@@ -4,6 +4,7 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/SubShaderMarshal.hpp>
 #include <rendering/Shader.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -27,7 +28,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &, const FBOMObject &in, Shader *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, Shader *&out_object) const override
     {
         std::vector<SubShader> sub_shaders;
 

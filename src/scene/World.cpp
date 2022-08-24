@@ -28,7 +28,7 @@ void World::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             for (auto &it : m_scenes) {
@@ -44,7 +44,7 @@ void World::Init(Engine *engine)
             m_scenes.Clear();
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -75,8 +75,8 @@ void World::AddScene(Handle<Scene> &&scene)
         return;
     }
 
-    if (IsReady()) {
-        scene->Init(GetEngine());
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(scene);
     }
 
     scene->SetWorld(this);

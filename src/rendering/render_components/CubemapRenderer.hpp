@@ -82,23 +82,23 @@ private:
     void CreateRenderPass(Engine *engine);
     void CreateFramebuffers(Engine *engine);
 
-    virtual void OnEntityAdded(Ref<Entity> &entity) override;
-    virtual void OnEntityRemoved(Ref<Entity> &entity) override;
-    virtual void OnEntityRenderableAttributesChanged(Ref<Entity> &entity) override;
+    virtual void OnEntityAdded(Handle<Entity> &entity) override;
+    virtual void OnEntityRemoved(Handle<Entity> &entity) override;
+    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override;
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     Extent2D m_cubemap_dimensions;
     BoundingBox m_aabb;
     Image::FilterMode m_filter_mode;
     Handle<Scene> m_scene;
-    FixedArray<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
-    Ref<RendererInstance> m_renderer_instance;
+    Handle<RenderPass> m_render_pass;
+    Handle<RendererInstance> m_renderer_instance;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     FixedArray<Handle<Texture>, max_frames_in_flight> m_cubemaps;
     Ref<EnvProbe> m_env_probe;
-    UniformBuffer m_cubemap_render_uniform_buffer;
+    FixedArray<std::unique_ptr<UniformBuffer>, max_frames_in_flight> m_cubemap_render_uniform_buffers;
 };
 
 

@@ -50,11 +50,11 @@ void Tlas::Init(Engine *engine)
             std::move(blas)
         );
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, [this](...) {
+        OnTeardown([this]() {
             m_blas.clear();
 
             EngineComponentWrapper::Destroy(GetEngine());
-        }));
+        });
     }));
 }
 

@@ -30,7 +30,8 @@ public:
     static constexpr UInt max_parameters = 32u;
     static constexpr UInt max_textures   = 32u;
 
-    enum TextureKey : uint64_t {
+    enum TextureKey : UInt64
+    {
         MATERIAL_TEXTURE_NONE = 0,
 
         MATERIAL_TEXTURE_ALBEDO_MAP    = 1 << 0,
@@ -68,7 +69,8 @@ public:
         MATERIAL_TEXTURE_TERRAIN_LEVEL2_PARALLAX_MAP = 1 << 26
     };
 
-    struct Parameter {
+    struct Parameter
+    {
         union {
             float float_values[4];
             int   int_values[4];
