@@ -8,114 +8,100 @@ SizeType NodeProxyChildren::Size() const
     return node ? node->GetChildren().Size() : 0;
 }
 
+NodeProxyChildren::Iterator NodeProxyChildren::Begin()
+{
+    return Iterator { node, 0 };
+}
+
+NodeProxyChildren::ConstIterator NodeProxyChildren::Begin() const
+{
+    return ConstIterator { node, 0 };
+}
+
 NodeProxyChildren::Iterator NodeProxyChildren::End()
 {
-    return Iterator { node, node->GetChildren().Size() };
+    return Iterator { const_cast<Node *>(node), node->GetChildren().Size() };
+}
+
+NodeProxyChildren::ConstIterator NodeProxyChildren::End() const
+{
+    return ConstIterator { node, node->GetChildren().Size() };
 }
 
 NodeProxy &NodeProxyChildren::Iterator::operator*()
 {
     AssertThrow(node != nullptr && index < node->GetChildren().Size());
 
-    return node->GetChildren()[index];
+    return const_cast<Node *>(node)->GetChildren()[index];
 }
 
-const NodeProxy &NodeProxyChildren::Iterator::operator*() const
+const NodeProxy &NodeProxyChildren::ConstIterator::operator*() const
 {
-    return const_cast<Iterator *>(this)->operator*();
+    AssertThrow(node != nullptr && index < node->GetChildren().Size());
+
+    return node->GetChildren()[index];
 }
 
 NodeProxy *NodeProxyChildren::Iterator::operator->()
 {
+    return &const_cast<Node *>(node)->GetChildren()[index];
+}
+
+const NodeProxy *NodeProxyChildren::ConstIterator::operator->() const
+{
     return &node->GetChildren()[index];
 }
 
-const NodeProxy *NodeProxyChildren::Iterator::operator->() const
-{
-    return const_cast<Iterator *>(this)->operator->();
-}
+const NodeProxy NodeProxy::empty = NodeProxy();
 
 NodeProxy::NodeProxy()
-    : m_node(nullptr)
+    : Base()
 {
 }
 
-NodeProxy::NodeProxy(Node *node)
-    : m_node(node)
+NodeProxy::NodeProxy(Node *ptr)
+    : Base()
 {
-    if (m_node) {
-        m_node->IncRef();
-    }
+    Base::Reset(ptr);
 }
 
 NodeProxy::NodeProxy(const NodeProxy &other)
-    : m_node(other.m_node)
+    : Base(other)
 {
-    if (m_node) {
-        m_node->IncRef();
-    }
 }
 
 NodeProxy &NodeProxy::operator=(const NodeProxy &other)
 {
-    ReleaseNode();
-
-    m_node = other.m_node;
-
-    if (m_node) {
-        m_node->IncRef();
-    }
+    Base::operator=(other);
 
     return *this;
 }
 
 NodeProxy::NodeProxy(NodeProxy &&other) noexcept
-    : m_node(other.m_node)
+    : Base(std::move(other))
 {
-    other.m_node = nullptr;
 }
 
 NodeProxy &NodeProxy::operator=(NodeProxy &&other) noexcept
 {
-    ReleaseNode();
-
-    m_node = other.m_node;
-    other.m_node = nullptr;
+    Base::operator=(std::move(other));
 
     return *this;
 }
 
-NodeProxy::~NodeProxy()
-{
-    ReleaseNode();
-}
+NodeProxy::~NodeProxy() = default;
 
 const String &NodeProxy::GetName() const
 {
-    return m_node
-        ? m_node->GetName()
+    return Get()
+        ? Get()->GetName()
         : String::empty;
-}
-
-void NodeProxy::ReleaseNode()
-{
-    if (m_node == nullptr) {
-        return;
-    }
-
-    m_node->DecRef();
-
-    if (m_node->m_ref_count.count == 0) {
-        delete m_node;
-    }
-
-    m_node = nullptr;
 }
 
 NodeProxy NodeProxy::GetChild(SizeType index)
 {
-    if (m_node && index < m_node->GetChildren().Size()) {
-        return NodeProxy(m_node->GetChild(index));
+    if (Get() && index < Get()->GetChildren().Size()) {
+        return Get()->GetChild(index);
     }
 
     return NodeProxy();
@@ -123,8 +109,8 @@ NodeProxy NodeProxy::GetChild(SizeType index)
 
 NodeProxy NodeProxy::Select(const char *selector) const
 {
-    if (m_node) {
-        return NodeProxy(m_node->Select(selector));
+    if (Get()) {
+        return Get()->Select(selector);
     }
 
     return NodeProxy();
@@ -132,8 +118,8 @@ NodeProxy NodeProxy::Select(const char *selector) const
 
 NodeProxy NodeProxy::AddChild()
 {
-    if (m_node) {
-        return m_node->AddChild();
+    if (Get()) {
+        return Get()->AddChild();
     }
 
     return NodeProxy();
@@ -143,8 +129,8 @@ NodeProxy NodeProxy::AddChild(const NodeProxy &node)
 {
     AssertThrow(node != *this);
 
-    if (m_node) {
-        return m_node->AddChild(node);
+    if (Get()) {
+        return Get()->AddChild(node);
     }
 
     return NodeProxy();
@@ -152,8 +138,8 @@ NodeProxy NodeProxy::AddChild(const NodeProxy &node)
 
 const Transform &NodeProxy::GetLocalTransform() const
 {
-    if (m_node) {
-        return m_node->GetLocalTransform();
+    if (Get()) {
+        return Get()->GetLocalTransform();
     }
 
     return Transform::identity;
@@ -164,8 +150,8 @@ const Vector3 &NodeProxy::GetLocalTranslation() const
 
 void NodeProxy::SetLocalTranslation(const Vector3 &translation)
 {
-    if (m_node) {
-        m_node->SetLocalTranslation(translation);
+    if (Get()) {
+        Get()->SetLocalTranslation(translation);
     }
 }
 
@@ -174,8 +160,8 @@ const Vector3 &NodeProxy::GetLocalScale() const
 
 void NodeProxy::SetLocalScale(const Vector3 &scale)
 {
-    if (m_node) {
-        m_node->SetLocalScale(scale);
+    if (Get()) {
+        Get()->SetLocalScale(scale);
     }
 }
 
@@ -184,15 +170,15 @@ const Quaternion &NodeProxy::GetLocalRotation() const
 
 void NodeProxy::SetLocalRotation(const Quaternion &rotation)
 {
-    if (m_node) {
-        m_node->SetLocalRotation(rotation);
+    if (Get()) {
+        Get()->SetLocalRotation(rotation);
     }
 }
 
 const Transform &NodeProxy::GetWorldTransform() const
 {
-    if (m_node) {
-        return m_node->GetWorldTransform();
+    if (Get()) {
+        return Get()->GetWorldTransform();
     }
 
     return Transform::identity;
@@ -203,8 +189,8 @@ const Vector3 &NodeProxy::GetWorldTranslation() const
 
 void NodeProxy::SetWorldTranslation(const Vector3 &translation)
 {
-    if (m_node) {
-        m_node->SetWorldTranslation(translation);
+    if (Get()) {
+        Get()->SetWorldTranslation(translation);
     }
 }
 
@@ -213,8 +199,8 @@ const Vector3 &NodeProxy::GetWorldScale() const
 
 void NodeProxy::SetWorldScale(const Vector3 &scale)
 {
-    if (m_node) {
-        m_node->SetWorldScale(scale);
+    if (Get()) {
+        Get()->SetWorldScale(scale);
     }
 }
 
@@ -223,15 +209,15 @@ const Quaternion &NodeProxy::GetWorldRotation() const
 
 void NodeProxy::SetWorldRotation(const Quaternion &rotation)
 {
-    if (m_node) {
-        m_node->SetWorldRotation(rotation);
+    if (Get()) {
+        Get()->SetWorldRotation(rotation);
     }
 }
 
 const BoundingBox &NodeProxy::GetLocalAABB() const
 {
-    if (m_node) {
-        return m_node->GetLocalAABB();
+    if (Get()) {
+        return Get()->GetLocalAABB();
     }
 
     return BoundingBox::empty;
@@ -239,8 +225,8 @@ const BoundingBox &NodeProxy::GetLocalAABB() const
 
 const BoundingBox &NodeProxy::GetWorldAABB() const
 {
-    if (m_node) {
-        return m_node->GetWorldAABB();
+    if (Get()) {
+        return Get()->GetWorldAABB();
     }
 
     return BoundingBox::empty;

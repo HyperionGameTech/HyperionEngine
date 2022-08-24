@@ -89,7 +89,7 @@ public:
         Base::template Reset<NormalizedType<T>>(ptr); // take ownership
     }
 
-    /*! \brief Drops ownership of the object from the {Any} held inside.
+    /*! \brief Drops ownership of the object held.
         Be sure to call delete on it when no longer needed!
 
         If no value is currently held, no changes to the underlying object will

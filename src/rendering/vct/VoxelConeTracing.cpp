@@ -59,18 +59,50 @@ void VoxelConeTracing::Init(Engine *engine)
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
             auto *engine = GetEngine();
 
-            m_shader.Reset();
+            //m_scene.Reset();
             m_framebuffers = {};
             m_render_pass.Reset();
             m_renderer_instance.Reset();
             m_clear_voxels.Reset();
-            m_voxel_image.Reset();
 
             engine->render_scheduler.Enqueue([this, engine](...) {
+
+                // unset descriptors
+
+                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                    .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
+
+                descriptor_set
+                    ->GetDescriptor(0)
+                    ->SetSubDescriptor({
+                        .element_index = 0u,
+                        .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+                    });
+
+                descriptor_set
+                    ->GetDescriptor(1)
+                    ->SetSubDescriptor({
+                        .element_index = 0u,
+                        .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(VoxelUniforms))
+                    });
+
+                for (UInt i = 0; i < max_frames_in_flight; i++) {
+                    auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+                    descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
+                        ->SetSubDescriptor({
+                            .element_index = 0u,
+                            .image_view    = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
+                            .sampler       = &engine->GetPlaceholderData().GetSamplerLinear()
+                        });
+                }
+
                 return m_uniform_buffer.Destroy(engine->GetDevice());
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
+    
+            engine->SafeReleaseRenderResource<Texture>(std::move(m_voxel_image));
+            engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
             
             SetReady(false);
         }));
@@ -159,7 +191,10 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     auto result = renderer::Result::OK;
 
     /* put our voxel map in an optimal state to be written to */
-    m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(
+        command_buffer,
+        renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
 
     /* clear the voxels */
     m_clear_voxels->GetPipeline()->Bind(command_buffer);
@@ -236,7 +271,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     engine->render_scheduler.Enqueue([this, engine](...) {
         HYPERION_BUBBLE_ERRORS(m_uniform_buffer.Create(engine->GetDevice(), sizeof(VoxelUniforms)));
 
-        const VoxelUniforms uniforms{
+        const VoxelUniforms uniforms {
             .extent      = voxel_map_size,
             .aabb_max    = m_params.aabb.GetMax().ToVector4(),
             .aabb_min    = m_params.aabb.GetMin().ToVector4(),

@@ -103,7 +103,7 @@ public:
      * @param index The index of the child element to remove
      * @returns Whether then removal was successful
      */
-    bool RemoveChild(size_t index);
+    bool RemoveChild(SizeType index);
 
     /*! \brief Remove this node from the parent Node's list of child Nodes. */
     bool Remove();
@@ -115,7 +115,7 @@ public:
      * @returns The child node at the given index. If the index is out of bounds, nullptr
      * will be returned.
      */
-    NodeProxy GetChild(size_t index) const;
+    NodeProxy GetChild(SizeType index) const;
 
     /*! \brief Search for a (potentially nested) node using the syntax `some/child/node`.
      * Each `/` indicates searching a level deeper, so first a child node with the tag "some"
@@ -126,19 +126,31 @@ public:
      * The string is case-sensitive.
      * The '/' can be escaped by using a '\' char.
      */
-    NodeProxy Select(const char *selector);
+    NodeProxy Select(const char *selector) const;
 
     /*! \brief Get an iterator for the given child Node from this Node's child list
      * @param node The node to find in this Node's child list
      * @returns The resulting iterator
      */
-    NodeList::Iterator FindChild(Node *node);
+    NodeList::Iterator FindChild(const Node *node);
+
+    /*! \brief Get an iterator for the given child Node from this Node's child list
+     * @param node The node to find in this Node's child list
+     * @returns The resulting iterator
+     */
+    NodeList::ConstIterator FindChild(const Node *node) const;
 
     /*! \brief Get an iterator for a node by finding it by its string tag
      * @param name The string tag to compare with the child Node's string tag
      * @returns The resulting iterator
      */
     NodeList::Iterator FindChild(const char *name);
+
+    /*! \brief Get an iterator for a node by finding it by its string tag
+     * @param name The string tag to compare with the child Node's string tag
+     * @returns The resulting iterator
+     */
+    NodeList::ConstIterator FindChild(const char *name) const;
 
     NodeList &GetChildren() { return m_child_nodes; }
     const NodeList &GetChildren() const { return m_child_nodes; }

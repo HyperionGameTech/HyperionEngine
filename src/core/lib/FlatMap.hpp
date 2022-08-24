@@ -219,12 +219,12 @@ auto FlatMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResul
     if (lower_bound == End() || !(lower_bound->first == key)) {
         auto it = m_vector.Insert(lower_bound, KeyValuePair { key, value });
 
-        return {it, true};
+        return { it, true };
     }
 
     lower_bound->second = value;
 
-    return InsertResult{lower_bound, true};
+    return InsertResult{ lower_bound, true };
 }
 
 template <class Key, class Value>

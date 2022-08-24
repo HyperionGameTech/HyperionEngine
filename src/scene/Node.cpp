@@ -234,7 +234,7 @@ bool Node::RemoveChild(NodeList::Iterator iter)
     return true;
 }
 
-bool Node::RemoveChild(size_t index)
+bool Node::RemoveChild(SizeType index)
 {
     if (index >= m_child_nodes.Size()) {
         return false;
@@ -275,19 +275,21 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
-NodeProxy Node::GetChild(size_t index) const
+NodeProxy Node::GetChild(SizeType index) const
 {
     if (index >= m_child_nodes.Size()) {
-        return NodeProxy();
+        return NodeProxy::empty;
     }
 
-    return NodeProxy(m_child_nodes[index]);
+    return m_child_nodes[index];
 }
 
-NodeProxy Node::Select(const char *selector)
+NodeProxy Node::Select(const char *selector) const
 {
+    NodeProxy result;
+
     if (selector == nullptr) {
-        return NodeProxy();
+        return result;
     }
 
     char ch;
@@ -296,7 +298,7 @@ NodeProxy Node::Select(const char *selector)
     UInt32 buffer_index = 0;
     UInt32 selector_index = 0;
 
-    Node *search_node = this;
+    const Node *search_node = this;
 
     while ((ch = selector[selector_index]) != '\0') {
         const char prev_selector_char = selector_index == 0
@@ -308,14 +310,15 @@ NodeProxy Node::Select(const char *selector)
         if (ch == '/' && prev_selector_char != '\\') {
             const auto it = search_node->FindChild(buffer);
 
-            if (it == search_node->GetChildren().end()) {
-                return NodeProxy();
+            if (it == search_node->GetChildren().End()) {
+                return NodeProxy::empty;
             }
 
             search_node = it->Get();
+            result = *it;
 
             if (!search_node) {
-                return NodeProxy();
+                return NodeProxy::empty;
             }
 
             buffer_index = 0;
@@ -331,7 +334,7 @@ NodeProxy Node::Select(const char *selector)
                     std::size(buffer)
                 );
 
-                return NodeProxy();
+                return NodeProxy::empty;
             }
         }
 
@@ -342,17 +345,25 @@ NodeProxy Node::Select(const char *selector)
     if (buffer_index != 0) {
         const auto it = search_node->FindChild(buffer);
 
-        if (it == search_node->GetChildren().end()) {
-            return NodeProxy();
+        if (it == search_node->GetChildren().End()) {
+            return NodeProxy::empty;
         }
 
         search_node = it->Get();
+        result = *it;
     }
 
-    return NodeProxy(search_node);
+    return result;
 }
 
-Node::NodeList::Iterator Node::FindChild(Node *node)
+Node::NodeList::Iterator Node::FindChild(const Node *node)
+{
+    return m_child_nodes.FindIf([node](const auto &it) {
+        return it.Get() == node;
+    });
+}
+
+Node::NodeList::ConstIterator Node::FindChild(const Node *node) const
 {
     return m_child_nodes.FindIf([node](const auto &it) {
         return it.Get() == node;
@@ -360,6 +371,13 @@ Node::NodeList::Iterator Node::FindChild(Node *node)
 }
 
 Node::NodeList::Iterator Node::FindChild(const char *name)
+{
+    return m_child_nodes.FindIf([name](const auto &it) {
+        return it.GetName() == name;
+    });
+}
+
+Node::NodeList::ConstIterator Node::FindChild(const char *name) const
 {
     return m_child_nodes.FindIf([name](const auto &it) {
         return it.GetName() == name;

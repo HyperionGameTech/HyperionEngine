@@ -328,7 +328,7 @@ public:
             );
         }
 
-        std::mutex m_mtx;
+        std::recursive_mutex m_mtx; // eugh
     };
 
     using ArgsTuple = std::tuple<Args...>;
@@ -473,7 +473,8 @@ protected:
         }
 
         if (m_destroy_callback.Valid()) {
-            AssertThrowMsg(m_destroy_callback.TriggerRemove(), "Failed to trigger!");
+            const auto callback_id = m_destroy_callback.id;
+            AssertThrowMsg(m_destroy_callback.TriggerRemove(), "Failed to trigger destroy callback with ID %u!", callback_id);
         }
     }
 

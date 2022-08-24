@@ -222,7 +222,6 @@ public:
     Scheduler<RenderFunctor> render_scheduler;
 
     GameThread game_thread;
-    //TaskThread terrain_thread;
     TaskSystem task_system;
 
 private:

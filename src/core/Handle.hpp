@@ -78,7 +78,6 @@ class Handle;
 class HandleBase : AtomicRefCountedPtr<void>
 {
 protected:
-
     using Base = AtomicRefCountedPtr<void>;
 
     using Base::Get;
@@ -310,9 +309,59 @@ public:
 
     const T *Get() const
         { return const_cast<Handle *>(this)->Get(); }
-
-protected:
 };
+
+#if 0
+class WeakHandleBase : WeakAtomicRefCountedPtr<void>
+{
+protected:
+    using Base = WeakAtomicRefCountedPtr<void>;
+
+public:
+    using Base::operator==;
+    using Base::operator!=;
+    using Base::operator!;
+    using Base::operator bool;
+    using Base::Get;
+
+    WeakHandleBase()
+        : Base()
+    {
+    }
+
+    WeakHandleBase(const WeakHandleBase &other)
+        : Base(other)
+    {
+    }
+
+    WeakHandleBase &operator=(const WeakHandleBase &other)
+    {
+        Base::operator=(other);
+
+        return *this;
+    }
+
+    WeakHandleBase(WeakHandleBase &&other) noexcept
+        : Base(std::move(other))
+    {
+    }
+
+    WeakHandleBase &operator=(WeakHandleBase &&other) noexcept
+    {
+        Base::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~WeakHandleBase() = default;
+};
+
+template <class T>
+class WeakHandle : public WeakHandleBase
+{
+    
+};
+#endif
 
 } // namespace hyperion
 

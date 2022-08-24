@@ -143,15 +143,23 @@ void RenderEnvironment::Init(Engine *engine)
                 m_env_probes_update_sp.Signal();
             }
 
-            engine->GetRenderScheduler().Enqueue([this](...) {
-                m_render_components.Clear();
+            // have to store render components into temporary container
+            // from render thread so we don't run into a race condition.
+            // and can't directly Clear() because destructors may enqueue
+            // into render scheduler
+            ComponentSetUnique<RenderComponentBase> tmp_render_components;
+
+            engine->GetRenderScheduler().Enqueue([this, &tmp_render_components](...) {
+                m_current_enabled_render_components_mask = 0u;
+                m_next_enabled_render_components_mask = 0u;
+
+                // m_render_components.Clear();
+                tmp_render_components = std::move(m_render_components);
 
                 HYPERION_RETURN_OK;
             });
 
             if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-                //std::lock_guard guard(m_render_component_mutex);
-
                 m_render_component_sp.Wait();
 
                 m_render_components_pending_addition.Clear();
@@ -165,6 +173,8 @@ void RenderEnvironment::Init(Engine *engine)
             }
 
             HYP_FLUSH_RENDER_QUEUE(engine);
+
+            tmp_render_components.Clear();
 
             SetReady(false);
         }));

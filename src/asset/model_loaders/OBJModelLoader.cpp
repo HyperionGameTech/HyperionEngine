@@ -16,7 +16,7 @@ constexpr bool mesh_per_material  = true; // set true to create a new mesh on ea
 constexpr bool load_materials     = true;
 
 using Tokens = std::vector<std::string>;
-using ObjModelLoader = LoaderObject<Node, LoaderFormat::OBJ_MODEL>::Loader;
+using OBJModelLoader = LoaderObject<Node, LoaderFormat::OBJ_MODEL>::Loader;
 
 template <class Vector>
 static Vector ReadVector(const Tokens &tokens, size_t offset = 1)
@@ -42,7 +42,7 @@ static Vector ReadVector(const Tokens &tokens, size_t offset = 1)
     return result;
 }
 
-static void AddMesh(ObjModelLoader::Object &object, const std::string &tag, const std::string &material)
+static void AddMesh(OBJModelLoader::Object &object, const std::string &tag, const std::string &material)
 {
     std::string unique_tag(tag);
     int counter = 0;
@@ -61,7 +61,7 @@ static void AddMesh(ObjModelLoader::Object &object, const std::string &tag, cons
     });
 }
 
-static auto &LastMesh(ObjModelLoader::Object &object)
+static auto &LastMesh(OBJModelLoader::Object &object)
 {
     if (object.meshes.empty()) {
         AddMesh(object, "default", "default");
@@ -72,7 +72,7 @@ static auto &LastMesh(ObjModelLoader::Object &object)
 
 static auto ParseObjIndex(const std::string &token)
 {
-    ObjModelLoader::Object::ObjIndex obj_index{0, 0, 0};
+    OBJModelLoader::Object::ObjIndex obj_index{0, 0, 0};
     size_t token_index = 0;
 
     StringUtil::SplitBuffered(token, '/', [&token_index, &obj_index](const std::string &index_str) {
@@ -118,7 +118,7 @@ Vector GetIndexedVertexProperty(int64_t vertex_index, const std::vector<Vector> 
     return vectors[vertex_absolute];
 }
 
-LoaderResult ObjModelLoader::LoadFn(LoaderState *state, Object &object)
+LoaderResult OBJModelLoader::LoadFn(LoaderState *state, Object &object)
 {
     object.filepath = state->filepath;
 
@@ -257,7 +257,7 @@ LoaderResult ObjModelLoader::LoadFn(LoaderState *state, Object &object)
     return {};
 }
 
-std::unique_ptr<Node> ObjModelLoader::BuildFn(Engine *engine, const Object &object)
+std::unique_ptr<Node> OBJModelLoader::BuildFn(Engine *engine, const Object &object)
 {
     auto top = std::make_unique<Node>(object.tag.c_str());
 

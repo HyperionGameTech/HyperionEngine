@@ -22,7 +22,8 @@ namespace hyperion::v2 {
 class RenderEnvironment;
 class World;
 
-class Scene : public EngineComponentBase<STUB_CLASS(Scene)> {
+class Scene : public EngineComponentBase<STUB_CLASS(Scene)>
+{
     friend class Entity;
     friend class World;
 public:

@@ -17,79 +17,114 @@ class Node;
 
 class NodeProxy;
 
-struct NodeProxyChildren {
-    struct Iterator {
-        Node *node;
+struct NodeProxyChildren
+{
+    struct IteratorBase
+    {
+        const Node *node;
         SizeType index;
 
-        NodeProxy &operator*();
-        const NodeProxy &operator*() const;
-
-        NodeProxy *operator->();
-        const NodeProxy *operator->() const;
-
-        // postfix ++ operator
-        Iterator &operator++()
+        IteratorBase &operator++()
         {
             ++index;
 
             return *this;
         }
+    };
+
+    struct Iterator : IteratorBase
+    {
+        using Base = IteratorBase;
 
         bool operator==(const Iterator &other) const
             { return node == other.node && index == other.index; }
 
         bool operator!=(const Iterator &other) const
             { return node != other.node || index != other.index; }
+
+        NodeProxy &operator*();
+        NodeProxy *operator->();
+
+        Iterator &operator++()
+        {
+            Base::operator++();
+
+            return *this;
+        }
     };
 
-    Node *node;
+    struct ConstIterator : IteratorBase
+    {
+        using Base = IteratorBase;
+
+        bool operator==(const ConstIterator &other) const
+            { return node == other.node && index == other.index; }
+
+        bool operator!=(const ConstIterator &other) const
+            { return node != other.node || index != other.index; }
+
+        const NodeProxy &operator*() const;
+        const NodeProxy *operator->() const;
+
+        ConstIterator &operator++()
+        {
+            Base::operator++();
+
+            return *this;
+        }
+    };
+
+    const Node *node;
 
     SizeType Size() const;
 
-    Iterator Begin() { return Iterator { node, 0 }; }
-    const Iterator Begin() const { return const_cast<NodeProxyChildren *>(this)->Begin(); }
+    Iterator Begin();
+    ConstIterator Begin() const;
     Iterator End();
-    const Iterator End() const { return const_cast<NodeProxyChildren *>(this)->End(); }
+    ConstIterator End() const;
 
     Iterator begin() { return Begin(); }
     Iterator end() { return End(); }
-    const Iterator cbegin() { return Begin(); }
-    const Iterator cend() { return End(); }
+    ConstIterator cbegin() const { return Begin(); }
+    ConstIterator cend() const { return End(); }
 };
 
-class NodeProxy {
+class NodeProxy : AtomicRefCountedPtr<Node>
+{
+protected:
+    using Base = AtomicRefCountedPtr<Node>;
+
 public:
+    static const NodeProxy empty;
+
     NodeProxy();
-    NodeProxy(Node *node);
+    /*! \brief Takes ownership of the Node ptr */
+    explicit NodeProxy(Node *ptr);
     NodeProxy(const NodeProxy &other);
     NodeProxy &operator=(const NodeProxy &other);
     NodeProxy(NodeProxy &&other) noexcept;
     NodeProxy &operator=(NodeProxy &&other) noexcept;
     ~NodeProxy();
 
-    Node *Get() { return m_node; }
-    const Node *Get() const { return m_node; }
+    HYP_FORCE_INLINE Node *Get() { return Base::Get(); }
+    HYP_FORCE_INLINE const Node *Get() const { return Base::Get(); }
 
     /*! \brief If the Node exists, returns the String name of the Node.
         Otherwise, returns the empty String. */
     const String &GetName() const;
 
-    bool Any() const { return m_node != nullptr; }
+    bool Any() const { return Get() != nullptr; }
 
     /*! \brief Conversion operator to bool, to use in if-statements */
     explicit operator bool() const { return Any(); }
 
-    bool operator !() const { return !Any(); }
-
-    /*! \brief Conversion operator to Node *. May be nullptr. */
-    // operator Node *() const { return m_node; }
+    bool operator!() const { return !Any(); }
 
     bool operator==(const NodeProxy &other) const
-        { return m_node == other.m_node; }
+        { return Get() == other.Get(); }
 
     bool operator!=(const NodeProxy &other) const
-        { return m_node != other.m_node; }
+        { return Get() != other.Get(); }
 
     /*! \brief If the NodeProxy is not empty, and index is not out of bounds,
         returns a new NodeProxy, holding a pointer to the child of the held Node at the given index.
@@ -97,8 +132,8 @@ public:
         If no Node is held, returns an empty NodeProxy. */
     NodeProxy GetChild(SizeType index);
 
-    NodeProxyChildren GetChildren() { return NodeProxyChildren { m_node }; }
-    const NodeProxyChildren GetChildren() const { return NodeProxyChildren { m_node }; }
+    NodeProxyChildren GetChildren() { return NodeProxyChildren { const_cast<const Node *>(Base::Get()) }; }
+    const NodeProxyChildren GetChildren() const { return NodeProxyChildren { Base::Get() }; }
 
     /*! \brief Search for a (potentially nested) node using the syntax `some/child/node`.
      * Each `/` indicates searching a level deeper, so first a child node with the tag "some"
@@ -192,9 +227,9 @@ public:
     const BoundingBox &GetWorldAABB() const;
 
 private:
-    void ReleaseNode();
+    // void ReleaseNode();
 
-    Node *m_node;
+    // Node *Get();
 };
 
 } // namespace hyperion::v2

@@ -12,7 +12,8 @@ namespace hyperion {
 namespace detail {
 
 template <class CountType = UInt>
-struct RefCountData {
+struct RefCountData
+{
     using Destructor = std::add_pointer_t<void(void *)>;
 
     void *value;
@@ -294,9 +295,7 @@ public:
 
     /*! \brief Drops the reference to the currently held value, if any.  */
     void Reset()
-    {
-        Base::Reset();
-    }
+        { Base::Reset(); }
 };
 
 // void pointer specialization -- just uses base class, but with Set() and Reset()

@@ -41,7 +41,7 @@ void Framebuffer::Init(Engine *engine)
             SetReady(false);
 
             engine->render_scheduler.Enqueue([this, engine](...) {
-               return m_framebuffer.Destroy(engine->GetDevice());
+                return m_framebuffer.Destroy(engine->GetDevice());
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);

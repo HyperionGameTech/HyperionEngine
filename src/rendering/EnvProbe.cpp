@@ -49,7 +49,7 @@ void EnvProbe::Init(Engine *engine)
 
             SetReady(false);
 
-            m_texture.Reset();
+            engine->SafeReleaseRenderResource<Texture>(std::move(m_texture));
             
             HYP_FLUSH_RENDER_QUEUE(engine);
         }));

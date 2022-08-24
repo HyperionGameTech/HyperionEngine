@@ -468,7 +468,10 @@ void Engine::Initialize()
 
     vct_descriptor_set
         ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(0)
-        ->SetSubDescriptor({ .element_index = 0u, .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage() });
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+        });
 
     vct_descriptor_set
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(1)
@@ -588,11 +591,7 @@ void Engine::FinalizeStop()
     AssertThrow(m_is_stopping);
     AssertThrow(!game_thread.IsRunning());
 
-    m_is_render_loop_active = false;
-
-    // while (game_thread.IsRunning()) {
-    //     HYP_FLUSH_RENDER_QUEUE(this);
-    // }
+    // m_is_render_loop_active = false;
 
     game_thread.Join();
 }
@@ -600,16 +599,31 @@ void Engine::FinalizeStop()
 void Engine::RenderNextFrame(Game *game)
 {
     if (!m_running.load()) {
-        if (m_is_stopping) {
-            if (!game_thread.IsRunning()) {
-                FinalizeStop();
+        m_is_stopping = true;
+        m_is_render_loop_active = false;
+        task_system.Stop();
 
-                return;
-            }
-        } else {
-            task_system.Stop();
-            m_is_stopping = true;
+        AssertThrow(GetInstance()->GetDevice()->Wait());
+
+        while (game_thread.IsRunning()) {
+            HYP_FLUSH_RENDER_QUEUE(this);
         }
+        AssertThrow(GetInstance()->GetDevice()->Wait());
+
+        FinalizeStop();
+
+        // if (m_is_stopping) {
+        //     if (!game_thread.IsRunning()) {
+        //         FinalizeStop();
+
+        //         return;
+        //     }
+        // } else {
+        //     task_system.Stop();
+        //     m_is_stopping = true;
+        // }
+
+        return;
     }
 
     HYPERION_ASSERT_RESULT(GetInstance()->GetFrameHandler()->PrepareFrame(
