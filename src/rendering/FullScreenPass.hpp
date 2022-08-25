@@ -31,7 +31,8 @@ using renderer::Pipeline;
 
 class Engine;
 
-class FullScreenPass {
+class FullScreenPass
+{
     using PushConstantData = Pipeline::PushConstantData;
 
 public:
@@ -58,12 +59,14 @@ public:
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
 
-    void SetShader(Handle<Shader> &&shader);             
-                                                      
-    RenderPass *GetRenderPass() const { return m_render_pass.ptr; }
-                                                      
-    RendererInstance *GetRendererInstance() const { return m_renderer_instance.ptr; }
-                                                      
+    void SetShader(Handle<Shader> &&shader);
+
+    Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
+    const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
+
+    Handle<RendererInstance> &GetRendererInstance() { return m_renderer_instance; }
+    const Handle<RendererInstance> &GetRendererInstance() const { return m_renderer_instance; }
+
     UInt GetSubDescriptorIndex() const { return m_sub_descriptor_index; }
 
     PushConstantData &GetPushConstants() { return m_push_constant_data; }
@@ -87,8 +90,8 @@ protected:
     FixedArray<std::unique_ptr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
     FixedArray<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
-    Ref<RendererInstance> m_renderer_instance;
+    Handle<RenderPass> m_render_pass;
+    Handle<RendererInstance> m_renderer_instance;
     Handle<Mesh> m_full_screen_quad;
 
     DynArray<std::unique_ptr<Attachment>> m_attachments;

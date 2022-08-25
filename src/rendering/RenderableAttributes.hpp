@@ -16,7 +16,8 @@ using renderer::FillMode;
 using renderer::StencilState;
 using renderer::VertexAttributeSet;
 
-struct MaterialAttributes {
+struct MaterialAttributes
+{
     using MaterialFlags = UInt;
 
     enum MaterialFlagBits : MaterialFlags {
@@ -49,7 +50,8 @@ struct MaterialAttributes {
     }
 };
 
-struct MeshAttributes {
+struct MeshAttributes
+{
     VertexAttributeSet vertex_attributes { renderer::static_mesh_vertex_attributes };
     Topology topology { Topology::TRIANGLES };
     FillMode fill_mode { FillMode::FILL };
@@ -79,8 +81,8 @@ struct MeshAttributes {
     }
 };
 
-struct RenderableAttributeSet {
-
+struct RenderableAttributeSet
+{
     Shader::ID shader_id { Shader::empty_id };
     MeshAttributes mesh_attributes;
     MaterialAttributes material_attributes;

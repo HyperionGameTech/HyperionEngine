@@ -18,15 +18,17 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class Voxelizer : public EngineComponentBase<STUB_CLASS(Voxelizer)> {
-    struct Fragment {
+class Voxelizer : public EngineComponentBase<STUB_CLASS(Voxelizer)>
+{
+    struct Fragment
+    {
         UInt32 x, y;
     };
 
 public:
-    static constexpr size_t octree_depth = 10;
-    static constexpr size_t voxel_map_size = 1 << octree_depth;
-    static constexpr size_t default_fragment_list_buffer_size = 20000 * sizeof(Fragment);
+    static constexpr UInt octree_depth = 10;
+    static constexpr UInt voxel_map_size = 1 << octree_depth;
+    static constexpr UInt default_fragment_list_buffer_size = 20000 * sizeof(Fragment);
 
     Voxelizer();
     Voxelizer(const Voxelizer &other) = delete;
@@ -35,8 +37,6 @@ public:
 
     Handle<Scene> &GetScene() { return m_scene; }
     const Handle<Scene> &GetScene() const { return m_scene; }
-
-    RendererInstance *GetRendererInstance() const { return m_renderer_instance.ptr; }
 
     UInt32 NumFragments() const { return m_num_fragments; }
 
@@ -61,8 +61,8 @@ private:
 
     Ref<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
-    Ref<RendererInstance> m_renderer_instance;
+    Handle<RenderPass> m_render_pass;
+    Handle<RendererInstance> m_renderer_instance;
 
     std::vector<std::unique_ptr<renderer::Attachment>> m_attachments;
 

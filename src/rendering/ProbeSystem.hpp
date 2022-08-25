@@ -25,16 +25,17 @@ using renderer::Extent2D;
 
 class Engine;
 
-struct alignas(256) ProbeSystemUniforms {
-    Vector4  aabb_max;
-    Vector4  aabb_min;
+struct alignas(256) ProbeSystemUniforms
+{
+    Vector4 aabb_max;
+    Vector4 aabb_min;
     Extent3D probe_border;
     Extent3D probe_counts;
     Extent2D image_dimensions;
     Extent2D irradiance_image_dimensions;
     Extent2D depth_image_dimensions;
-    float    probe_distance;
-    UInt32   num_rays_per_probe;
+    float probe_distance;
+    UInt32 num_rays_per_probe;
 };
 
 struct alignas(16) ProbeRayData {
@@ -52,8 +53,8 @@ struct ProbeGridInfo {
     static constexpr UInt depth_octahedron_size      = 16;
 
     BoundingBox aabb;
-    Extent3D    probe_border   = {2, 0, 2};
-    float       probe_distance = 2.0f;
+    Extent3D probe_border = {2, 0, 2};
+    float probe_distance = 2.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
@@ -82,27 +83,30 @@ struct ProbeGridInfo {
     }
 };
 
-struct RotationMatrixGenerator {
-    Matrix4                               matrix;
-    std::random_device                    random_device;
-    std::mt19937                          mt{random_device()};
-    std::uniform_real_distribution<float> angle{0.0f, 360.0f};
-    std::uniform_real_distribution<float> axis{-1.0f, 1.0f};
+struct RotationMatrixGenerator
+{
+    Matrix4 matrix;
+    std::random_device random_device;
+    std::mt19937 mt { random_device() };
+    std::uniform_real_distribution<float> angle { 0.0f, 360.0f };
+    std::uniform_real_distribution<float> axis { -1.0f, 1.0f };
 
     const Matrix4 &Next()
     {
         return matrix = Matrix4::Rotation({
-            Vector3{axis(mt), axis(mt), axis(mt)}.Normalize(),
+            Vector3 { axis(mt), axis(mt), axis(mt) }.Normalize(),
             MathUtil::DegToRad(angle(mt))
         });
     }
 };
 
-struct Probe {
+struct Probe
+{
     Vector3 position;
 };
 
-class ProbeGrid {
+class ProbeGrid
+{
 public:
     ProbeGrid(ProbeGridInfo &&grid_info);
     ProbeGrid(const ProbeGrid &other) = delete;

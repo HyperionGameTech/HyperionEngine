@@ -973,7 +973,7 @@ Result DescriptorPool::DestroyDescriptorSetLayout(Device *device, UInt index)
     auto it = m_descriptor_set_layouts.Find(index);
 
     if (it == m_descriptor_set_layouts.End()) {
-        return {Result::RENDERER_ERR, "Could not destroy descriptor set layout; not found in list"};
+        return { Result::RENDERER_ERR, "Could not destroy descriptor set layout; not found in list" };
     }
 
     vkDestroyDescriptorSetLayout(device->GetDevice(), it->second, nullptr);

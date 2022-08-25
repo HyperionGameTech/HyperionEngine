@@ -93,7 +93,7 @@ void Entity::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SPATIALS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             DebugLog(
@@ -112,7 +112,7 @@ void Entity::Init(Engine *engine)
             engine->SafeReleaseRenderResource<Skeleton>(std::move(m_skeleton));
             engine->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
             engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
-        }));
+        });
     }));
 }
 

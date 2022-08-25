@@ -52,7 +52,7 @@ public:
     Sampler &GetSampler()                      { return m_sampler; }
     const Sampler &GetSampler() const          { return m_sampler; }
     Image::Type GetType() const                { return m_image.GetType(); }
-    uint32_t NumFaces() const                  { return m_image.NumFaces(); }
+    UInt NumFaces() const                      { return m_image.NumFaces(); }
     bool IsTextureCube() const                 { return m_image.IsTextureCube(); }
     const Extent3D &GetExtent() const          { return m_image.GetExtent(); }
     Image::InternalFormat GetFormat() const    { return m_image.GetTextureFormat(); }
@@ -67,7 +67,8 @@ protected:
     Sampler      m_sampler;
 };
 
-class Texture2D : public Texture {
+class Texture2D : public Texture
+{
 public:
     Texture2D(
         Extent2D extent,
@@ -87,7 +88,8 @@ public:
     }
 };
 
-class Texture3D : public Texture {
+class Texture3D : public Texture
+{
 public:
     Texture3D(
         Extent3D extent,
@@ -107,7 +109,8 @@ public:
     }
 };
 
-class TextureCube : public Texture {
+class TextureCube : public Texture
+{
 public:
     TextureCube(
         Extent2D extent,
@@ -129,17 +132,17 @@ public:
     TextureCube(
         std::array<std::unique_ptr<Texture>, 6> &&texture_faces
     ) : Texture(
-        texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D{},
+        texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D { },
         texture_faces[0] ? texture_faces[0]->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
         Image::Type::TEXTURE_TYPE_CUBEMAP,
         texture_faces[0] ? texture_faces[0]->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        texture_faces[0] ?  texture_faces[0]->GetWrapMode()  : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        texture_faces[0] ?  texture_faces[0]->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         nullptr
     )
     {
         if (m_image.GetBytes() != nullptr) {
-            size_t offset = 0,
-                   face_size = 0;
+            SizeType offset = 0,
+                     face_size = 0;
 
             for (auto &texture : texture_faces) {
                 if (texture != nullptr) {

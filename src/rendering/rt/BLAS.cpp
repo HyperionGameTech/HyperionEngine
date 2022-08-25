@@ -70,11 +70,11 @@ void Blas::Init(Engine *engine)
             engine->GetInstance()
         );
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, [this](...) {
+        OnTeardown([this]() {
             EngineComponentWrapper::Destroy(GetEngine());
 
             m_mesh.Reset();
-        }));
+        });
     }));
 }
 

@@ -29,13 +29,15 @@ class RenderEnvironment;
 
 using renderer::Frame;
 
-enum RenderComponentName : UInt {
+enum RenderComponentName : UInt
+{
     RENDER_COMPONENT_VCT,
     RENDER_COMPONENT_SHADOWS,
     RENDER_COMPONENT_CUBEMAP
 };
 
-class RenderComponentBase {
+class RenderComponentBase
+{
 public:
     using Index = UInt;
 

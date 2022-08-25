@@ -27,48 +27,19 @@ using renderer::FillMode;
 Engine::Engine(SystemSDL &_system, const char *app_name)
     : shader_globals(nullptr),
       m_instance(new Instance(_system, app_name, "HyperionEngine")),
-      resources(this),
+      resources(new Resources(this)),
       assets(this)
 {
 }
 
 Engine::~Engine()
 {
-    callbacks.Trigger(EngineCallback::DESTROY_ANY, this);
-    callbacks.Trigger(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_MESHES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_MATERIALS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_LIGHTS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SKELETONS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SPATIALS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SHADERS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_TEXTURES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_VOXELIZER, this);
-    callbacks.Trigger(EngineCallback::DESTROY_DESCRIPTOR_SETS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_GRAPHICS_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_COMPUTE_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_RAYTRACING_PIPELINES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_SCENES, this);
-    callbacks.Trigger(EngineCallback::DESTROY_ENVIRONMENTS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_FRAMEBUFFERS, this);
-    callbacks.Trigger(EngineCallback::DESTROY_RENDER_PASSES, this);
-
     m_placeholder_data.Destroy(this);
 
     HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
 
     AssertThrow(m_instance != nullptr);
     (void)m_instance->GetDevice()->Wait();
-    
-    m_render_list_container.Destroy(this);
-    
-    m_deferred_renderer.Destroy(this);
-
-    for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
-    }
-    
-    resources.Destroy(this);
 
     if (shader_globals != nullptr) {
         shader_globals->Destroy(this);
@@ -186,7 +157,7 @@ void Engine::PrepareFinalPass()
 
     UInt iteration = 0;
     
-    auto render_pass = resources.render_passes.Add(new RenderPass(
+    auto render_pass = Handle<RenderPass>(new RenderPass(
         renderer::RenderPassStage::PRESENT,
         renderer::RenderPass::Mode::RENDER_PASS_INLINE
     ));
@@ -216,7 +187,7 @@ void Engine::PrepareFinalPass()
     for (VkImage img : m_instance->swapchain->images) {
         auto fbo = std::make_unique<Framebuffer>(
             m_instance->swapchain->extent,
-            render_pass.IncRef()
+            Handle<RenderPass>(render_pass)
         );
 
         renderer::AttachmentRef *color_attachment_ref,
@@ -256,7 +227,7 @@ void Engine::PrepareFinalPass()
 
             m_root_pipeline = std::make_unique<RendererInstance>(
                 std::move(shader),
-                render_pass.IncRef(),
+                Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
                     MeshAttributes {
                         .vertex_attributes = renderer::static_mesh_vertex_attributes,
@@ -269,7 +240,7 @@ void Engine::PrepareFinalPass()
             );
         }
 
-        m_root_pipeline->AddFramebuffer(resources.framebuffers.Add(fbo.release()));
+        m_root_pipeline->AddFramebuffer(resources->framebuffers.Add(fbo.release()));
 
         ++iteration;
     }
@@ -581,7 +552,9 @@ void Engine::Compile()
 
 void Engine::RequestStop()
 {
-    m_running.store(false); 
+    m_running.store(false);
+
+    SafeReleaseRenderResource<Mesh>(std::move(m_full_screen_quad));
 }
 
 void Engine::FinalizeStop()
@@ -608,9 +581,31 @@ void Engine::RenderNextFrame(Game *game)
         while (game_thread.IsRunning()) {
             HYP_FLUSH_RENDER_QUEUE(this);
         }
-        AssertThrow(GetInstance()->GetDevice()->Wait());
 
         FinalizeStop();
+
+        m_render_list_container.Destroy(this);
+        m_deferred_renderer.Destroy(this);
+
+        for (auto &attachment : m_render_pass_attachments) {
+            HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
+        }
+
+        m_safe_deleter.ForceReleaseAll();
+
+        HYP_FLUSH_RENDER_QUEUE(this);
+
+        m_renderer_instance_mapping.Clear();
+
+        resources->Destroy(this);
+        delete resources;
+        resources = nullptr;
+
+        HYP_FLUSH_RENDER_QUEUE(this);
+
+        AssertThrow(GetInstance()->GetDevice()->Wait());
+
+        // HYP_BREAKPOINT;
 
         // if (m_is_stopping) {
         //     if (!game_thread.IsRunning()) {
@@ -654,10 +649,10 @@ void Engine::RenderNextFrame(Game *game)
     GetInstance()->GetFrameHandler()->NextFrame();
 }
 
-Ref<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
+Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
 {
     if (!shader) {
-        return nullptr;
+        return Handle<RendererInstance>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
@@ -666,7 +661,7 @@ Ref<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> 
     const auto it = m_renderer_instance_mapping.Find(new_renderable_attributes);
 
     if (it != m_renderer_instance_mapping.End()) {
-        return it->second.IncRef();
+        return it->second;
     }
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
@@ -674,23 +669,23 @@ Ref<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> 
     // create a pipeline with the given params
     return AddRendererInstance(std::make_unique<RendererInstance>(
         Handle<Shader>(shader),
-        render_list_bucket.GetRenderPass().IncRef(),
+        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     ));
 }
     
-Ref<RendererInstance> Engine::AddRendererInstance(std::unique_ptr<RendererInstance> &&_renderer_instance)
+Handle<RendererInstance> Engine::AddRendererInstance(std::unique_ptr<RendererInstance> &&_renderer_instance)
 {
-    auto renderer_instance = resources.renderer_instances.Add(_renderer_instance.release());
+    auto renderer_instance = Handle<RendererInstance>(_renderer_instance.release());
     
     m_renderer_instance_mapping.Insert(
         renderer_instance->GetRenderableAttributes(),
-        renderer_instance.IncRef()
+        renderer_instance
     );
 
     m_render_list_container
         .Get(renderer_instance->GetRenderableAttributes().material_attributes.bucket)
-        .AddRendererInstance(renderer_instance.IncRef());
+        .AddRendererInstance(Handle<RendererInstance>(renderer_instance));
 
     return renderer_instance;
 }
@@ -743,7 +738,7 @@ void Engine::RenderFinalPass(Frame *frame) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *pipeline                  = m_root_pipeline->GetPipeline();
+    auto *pipeline = m_root_pipeline->GetPipeline();
     const UInt acquired_image_index = m_instance->GetFrameHandler()->GetAcquiredImageIndex();
 
     m_root_pipeline->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer());

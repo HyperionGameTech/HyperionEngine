@@ -34,11 +34,11 @@ void Camera::Init(Engine *engine)
 
     SetReady(true);
 
-    OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+    OnTeardown([this]() {
         SetReady(false);
 
         HYP_FLUSH_RENDER_QUEUE(GetEngine());
-    }));
+    });
 }
 
 void Camera::SetTranslation(const Vector3 &translation)

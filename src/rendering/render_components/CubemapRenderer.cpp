@@ -67,10 +67,10 @@ void CubemapRenderer::Init(Engine *engine)
         CreateImagesAndBuffers(engine);
         CreateRendererInstance(engine);
 
-        m_scene = Handle<Scene>(new Scene(nullptr));
+        m_scene = Handle<Scene>(new Scene(Handle<Camera>()));
         m_scene->Init(engine);
 
-        m_env_probe = engine->resources.env_probes.Add(new EnvProbe(
+        m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
             Handle<Texture>(m_cubemaps[0]), // TODO
             m_aabb
         ));
@@ -79,7 +79,7 @@ void CubemapRenderer::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             // m_framebuffers = {};
@@ -162,7 +162,7 @@ void CubemapRenderer::Init(Engine *engine)
             });
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -380,7 +380,7 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         Handle<Shader>(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -399,7 +399,7 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance.Init();
+    m_renderer_instance->Init(engine);
 }
 
 void CubemapRenderer::CreateShader(Engine *engine)
@@ -415,7 +415,7 @@ void CubemapRenderer::CreateShader(Engine *engine)
 
 void CubemapRenderer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->resources.render_passes.Add(new RenderPass(
+    m_render_pass = Handle<RenderPass>(new RenderPass(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
@@ -463,15 +463,15 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass.Init();
+    m_render_pass->Init(engine);
 }
 
 void CubemapRenderer::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
             m_cubemap_dimensions,
-            m_render_pass.IncRef()
+            Handle<RenderPass>(m_render_pass)
         ));
 
         /* Add all attachments from the renderpass */

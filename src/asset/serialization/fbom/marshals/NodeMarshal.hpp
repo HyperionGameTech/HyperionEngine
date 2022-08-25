@@ -138,7 +138,7 @@ public:
             if (node.GetType().IsOrExtends("Node")) {
                 out_object->AddChild(NodeProxy(node.deserialized.Release<Node>()));
             } else if (node.GetType().IsOrExtends("Entity")) {
-                // out_object->SetEntity(resources.entities.Add(node.deserialized.Release<Entity>()));
+                // out_object->SetEntity(resources->entities.Add(node.deserialized.Release<Entity>()));
             }
         }
 

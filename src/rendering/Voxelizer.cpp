@@ -33,7 +33,7 @@ void Voxelizer::Init(Engine *engine)
         const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
         m_scene = Handle<Scene>(new Scene(
-            engine->resources.cameras.Add(new OrthoCamera(
+            Handle<Camera>(new OrthoCamera(
                 voxel_map_size, voxel_map_size,
                 -voxel_map_size_signed, voxel_map_size_signed,
                 -voxel_map_size_signed, voxel_map_size_signed,
@@ -60,7 +60,7 @@ void Voxelizer::Init(Engine *engine)
         CreateDescriptors(engine);
         CreatePipeline(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_VOXELIZER, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             auto result = renderer::Result::OK;
@@ -97,7 +97,7 @@ void Voxelizer::Init(Engine *engine)
             m_num_fragments = 0;
 
             HYPERION_ASSERT_RESULT(result);
-        }));
+        });
     }));
 }
 
@@ -105,7 +105,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -130,7 +130,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
         }
     }
 
-    m_renderer_instance.Init();
+    m_renderer_instance->Init(engine);
 }
 
 void Voxelizer::CreateShader(Engine *engine)
@@ -148,19 +148,19 @@ void Voxelizer::CreateShader(Engine *engine)
 
 void Voxelizer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->resources.render_passes.Add(new RenderPass(
+    m_render_pass = Handle<RenderPass>(new RenderPass(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     ));
 
-    m_render_pass.Init();
+    m_render_pass->Init(engine);
 }
 
 void Voxelizer::CreateFramebuffer(Engine *engine)
 {
-    m_framebuffer = engine->resources.framebuffers.Add(new Framebuffer(
-        Extent2D{voxel_map_size, voxel_map_size},
-        m_render_pass.IncRef()
+    m_framebuffer = engine->resources->framebuffers.Add(new Framebuffer(
+        Extent2D { voxel_map_size, voxel_map_size },
+        Handle<RenderPass>(m_render_pass)
     ));
     
     m_framebuffer.Init();

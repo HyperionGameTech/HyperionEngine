@@ -44,7 +44,7 @@ void EnvProbe::Init(Engine *engine)
         // force update first time to init render data
         Update(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
@@ -52,7 +52,7 @@ void EnvProbe::Init(Engine *engine)
             engine->SafeReleaseRenderResource<Texture>(std::move(m_texture));
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

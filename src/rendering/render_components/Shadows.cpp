@@ -75,8 +75,8 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = engine->resources.render_passes.Add(render_pass.release());
-    m_render_pass.Init();
+    m_render_pass = Handle<RenderPass>(render_pass.release());
+    m_render_pass->Init(engine);
 }
 
 void ShadowPass::CreateDescriptors(Engine *engine)
@@ -114,7 +114,7 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -130,7 +130,7 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
     renderer_instance->AddFramebuffer(m_framebuffers[1].IncRef());
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance.Init();
+    m_renderer_instance->Init(engine);
 }
 
 void ShadowPass::Create(Engine *engine)
@@ -139,7 +139,7 @@ void ShadowPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     m_scene = Handle<Scene>(new Scene(
-        engine->resources.cameras.Add(new OrthoCamera(
+        Handle<Camera>(new OrthoCamera(
             m_dimensions.width, m_dimensions.height,
             -100.0f, 100.0f,
             -100.0f, 100.0f,
@@ -151,9 +151,9 @@ void ShadowPass::Create(Engine *engine)
     m_scene->Init(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
             m_dimensions,
-            m_render_pass.IncRef()
+            Handle<RenderPass>(m_render_pass)
         ));
 
         /* Add all attachments from the renderpass */
@@ -240,11 +240,11 @@ void ShadowRenderer::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             m_shadow_pass.Destroy(GetEngine()); // flushes render queue
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -384,7 +384,7 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
             mins  = MathUtil::Min(mins, corner);
         }
 
-        static_cast<OrthoCamera *>(camera.ptr)->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<OrthoCamera *>(camera.Get())->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             mins.x, maxes.x,
             mins.y, maxes.y,
             -m_shadow_pass.GetMaxDistance(),

@@ -50,7 +50,7 @@ void Material::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_MATERIALS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             for (SizeType i = 0; i < m_textures.Size(); i++) {
@@ -66,7 +66,7 @@ void Material::Init(Engine *engine)
             HYP_FLUSH_RENDER_QUEUE(engine);
 
             SetReady(false);
-        }));
+        });
     }));
 }
 

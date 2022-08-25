@@ -36,8 +36,10 @@ using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
-struct ShaderDataState {
-    enum State {
+struct ShaderDataState
+{
+    enum State
+    {
         CLEAN,
         DIRTY
     };

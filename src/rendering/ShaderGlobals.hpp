@@ -24,8 +24,9 @@ using renderer::IndirectBuffer;
 
 class Engine;
 
-struct ShaderGlobals {
-    ShaderGlobals(size_t num_buffers)
+struct ShaderGlobals
+{
+    ShaderGlobals(SizeType num_buffers)
         : scenes(num_buffers),
           lights(num_buffers),
           objects(num_buffers),

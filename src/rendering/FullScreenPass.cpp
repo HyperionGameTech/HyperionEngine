@@ -54,9 +54,9 @@ void FullScreenPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
             engine->GetInstance()->swapchain->extent,
-            m_render_pass.IncRef()
+            Handle<RenderPass>(m_render_pass)
         ));
 
         /* Add all attachments from the renderpass */
@@ -137,8 +137,8 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = engine->resources.render_passes.Add(render_pass.release());
-    m_render_pass.Init();
+    m_render_pass = Handle<RenderPass>(render_pass.release());
+    m_render_pass->Init(engine);
 }
 
 void FullScreenPass::CreateDescriptors(Engine *engine)
@@ -182,7 +182,7 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
 {
     auto _renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         renderable_attributes
     );
 
@@ -191,12 +191,12 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(_renderer_instance));
-    m_renderer_instance.Init();
+    m_renderer_instance->Init(engine);
 }
 
 void FullScreenPass::Destroy(Engine *engine)
 {
-    m_full_screen_quad.Reset();
+    engine->SafeReleaseRenderResource<Mesh>(std::move(m_full_screen_quad));
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         if (m_framebuffers[i] != nullptr) {

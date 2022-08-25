@@ -7,7 +7,8 @@
 namespace hyperion::v2 {
 
 
-class ShaderManager {
+class ShaderManager
+{
 public:
     using Key = ShaderKey;
 

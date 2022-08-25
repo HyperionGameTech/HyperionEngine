@@ -56,7 +56,7 @@ void PostProcessingEffect::Init(Engine *engine)
 
     SetReady(true);
 
-    OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
         SetReady(false);
@@ -65,7 +65,7 @@ void PostProcessingEffect::Init(Engine *engine)
         m_shader.Reset();
 
         HYP_FLUSH_RENDER_QUEUE(engine);
-    }));
+    });
 }
 
 PostProcessing::PostProcessing()  = default;

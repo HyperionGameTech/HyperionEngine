@@ -58,11 +58,9 @@ RenderListContainer::RenderListBucket::~RenderListBucket()
 {
 }
 
-void RenderListContainer::RenderListBucket::AddRendererInstance(Ref<RendererInstance> &&renderer_instance)
+void RenderListContainer::RenderListBucket::AddRendererInstance(Handle<RendererInstance> &&renderer_instance)
 {
     AddFramebuffersToPipeline(renderer_instance);
-
-    renderer_instance.Init();
 
     std::lock_guard guard(renderer_instances_mutex);
 
@@ -82,8 +80,15 @@ void RenderListContainer::RenderListBucket::AddPendingRendererInstances(Engine *
 
     std::lock_guard guard(renderer_instances_mutex);
     DebugLog(LogType::Debug, "Adding pending graphics pipelines, locked mutex.\n");
+
+    for (auto it = renderer_instances_pending_addition.Begin(); it != renderer_instances_pending_addition.End(); ++it) {
+        AssertThrow(*it != nullptr);
+
+        (*it)->Init(engine);
+
+        renderer_instances.PushBack(std::move(*it));
+    }
     
-    renderer_instances.Concat(std::move(renderer_instances_pending_addition));
     renderer_instances_pending_addition = {};
     renderer_instances_changed.Set(false);
 }
@@ -95,7 +100,7 @@ void RenderListContainer::RenderListBucket::AddFramebuffersToPipelines()
     }
 }
 
-void RenderListContainer::RenderListBucket::AddFramebuffersToPipeline(Ref<RendererInstance> &pipeline)
+void RenderListContainer::RenderListBucket::AddFramebuffersToPipeline(Handle<RendererInstance> &pipeline)
 {
     for (auto &framebuffer : framebuffers) {
         pipeline->AddFramebuffer(framebuffer.IncRef());
@@ -112,7 +117,7 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
     
-    render_pass = engine->resources.render_passes.Add(new RenderPass(
+    render_pass = Handle<RenderPass>(new RenderPass(
         RenderPassStage::SHADER,
         mode
     ));
@@ -162,7 +167,7 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
             render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
         }
 
-        constexpr size_t depth_texture_index = gbuffer_textures.size() - 1;
+        constexpr SizeType depth_texture_index = gbuffer_textures.size() - 1;
 
         /* Add depth attachment */
         if (bucket == BUCKET_TRANSLUCENT) { // translucent reuses the opaque bucket's depth buffer.
@@ -205,7 +210,7 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
     
-    render_pass.Init();
+    render_pass->Init(engine);
 }
 
 void RenderListContainer::RenderListBucket::CreateFramebuffers(Engine *engine)
@@ -213,13 +218,13 @@ void RenderListContainer::RenderListBucket::CreateFramebuffers(Engine *engine)
     AssertThrow(framebuffers.Empty());
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto *framebuffer = new Framebuffer(engine->GetInstance()->swapchain->extent, render_pass.IncRef());
+        auto *framebuffer = new Framebuffer(engine->GetInstance()->swapchain->extent, Handle<RenderPass>(render_pass));
 
         for (auto *attachment_ref : render_pass->GetRenderPass().GetAttachmentRefs()) {
             framebuffer->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
 
-        framebuffers.PushBack(engine->resources.framebuffers.Add(framebuffer));
+        framebuffers.PushBack(engine->resources->framebuffers.Add(framebuffer));
         framebuffers.Back().Init();
     }
 }

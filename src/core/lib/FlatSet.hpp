@@ -164,7 +164,13 @@ auto FlatSet<T>::Erase(ConstIterator it) -> Iterator
 template <class T>
 auto FlatSet<T>::Erase(const T &value) -> Iterator
 {
-    return Erase(Find(value));
+    const auto it = Find(value);
+
+    if (it == End()) {
+        return End();
+    }
+
+    return DynArray<T>::Erase(it);
 }
 
 } // namespace hyperion

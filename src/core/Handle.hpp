@@ -59,16 +59,16 @@ struct HandleID : IDBase {
     {
     }
 
-    operator bool() const
+    HYP_FORCE_INLINE operator bool() const
         { return IDBase::operator bool(); }
 
-    bool operator==(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator==(const HandleID &other) const
         { return IDBase::operator==(other) && type_id == other.type_id; }
 
-    bool operator!=(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator!=(const HandleID &other) const
         { return IDBase::operator!=(other) || type_id != other.type_id; }
 
-    bool operator<(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator<(const HandleID &other) const
         { return IDBase::operator<(other) || (!IDBase::operator<(other) && type_id < other.type_id); }
 };
 
@@ -79,7 +79,6 @@ class HandleBase : AtomicRefCountedPtr<void>
 {
 protected:
     using Base = AtomicRefCountedPtr<void>;
-
     using Base::Get;
 
     template <class T>
@@ -91,7 +90,6 @@ protected:
     }
 
 public:
-
     HandleBase()
         : Base()
     {
@@ -177,31 +175,31 @@ public:
 
     ~HandleBase() = default;
 
-    void *Get()
+    HYP_FORCE_INLINE void *Get()
         { return Base::Get(); }
 
-    const void *Get() const
+    HYP_FORCE_INLINE const void *Get() const
         { return Base::Get(); }
 
-    operator bool() const
+    HYP_FORCE_INLINE operator bool() const
         { return Base::operator bool() && m_id; }
 
-    bool operator!() const
+    HYP_FORCE_INLINE bool operator!() const
         { return Base::operator!() || !m_id; }
 
-    bool operator==(const HandleBase &other) const
+    HYP_FORCE_INLINE bool operator==(const HandleBase &other) const
         { return Base::operator==(other) && m_id == other.m_id; }
 
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return Base::operator==(nullptr); }
 
-    bool operator!=(const HandleBase &other) const
+    HYP_FORCE_INLINE bool operator!=(const HandleBase &other) const
         { return Base::operator!=(other) || m_id != other.m_id; }
 
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
-    const HandleID &GetID() const
+    HYP_FORCE_INLINE const HandleID &GetID() const
         { return m_id; }
 
     template <class T>
@@ -218,7 +216,7 @@ public:
     }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
         { Base::Reset(); }
 
 protected:
@@ -236,6 +234,8 @@ public:
     using HandleBase::GetID;
     using HandleBase::operator bool;
     using HandleBase::operator!;
+
+    static const inline Handle empty = Handle();
 
     Handle()
         : HandleBase()
@@ -280,34 +280,34 @@ public:
 
     ~Handle() = default;
 
-    bool operator==(const Handle &other) const
+    HYP_FORCE_INLINE bool operator==(const Handle &other) const
         { return HandleBase::operator==(other); }
 
-    bool operator==(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
         { return HandleBase::operator==(nullptr); }
 
-    bool operator!=(const Handle &other) const
+    HYP_FORCE_INLINE bool operator!=(const Handle &other) const
         { return HandleBase::operator!=(other); }
 
-    bool operator!=(std::nullptr_t) const
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return HandleBase::operator!=(nullptr); }
 
-    T *operator->()
+    HYP_FORCE_INLINE T *operator->()
         { return Get(); }
 
-    const T *operator->() const
+    HYP_FORCE_INLINE const T *operator->() const
         { return Get(); }
 
-    T &operator*()
+    HYP_FORCE_INLINE T &operator*()
         { return *Get(); }
 
-    const T &operator*() const
+    HYP_FORCE_INLINE const T &operator*() const
         { return *Get(); }
 
-    T *Get()
+    HYP_FORCE_INLINE T *Get()
         { return static_cast<T *>(HandleBase::Get()); }
 
-    const T *Get() const
+    HYP_FORCE_INLINE const T *Get() const
         { return const_cast<Handle *>(this)->Get(); }
 };
 

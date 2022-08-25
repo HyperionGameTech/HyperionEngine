@@ -5,7 +5,8 @@
 
 namespace hyperion::v2 {
 
-class World : public EngineComponentBase<STUB_CLASS(World)> {
+class World : public EngineComponentBase<STUB_CLASS(World)>
+{
 public:
     World();
     World(const World &other) = delete;

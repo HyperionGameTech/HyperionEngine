@@ -35,7 +35,8 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates {
     RENDER_ENVIRONMENT_UPDATES_ENV_PROBES        = 0x8
 };
 
-class RenderEnvironment : public EngineComponentBase<STUB_CLASS(RenderEnvironment)>
+class RenderEnvironment
+    : public EngineComponentBase<STUB_CLASS(RenderEnvironment)>
 {
 public:
     RenderEnvironment(Scene *scene);

@@ -161,6 +161,9 @@ struct Proc {
 
     ~Proc() = default;
 
+    explicit operator bool() const
+        { return functor.HasValue(); }
+
     detail::ProcFunctorInternal<inline_storage_size_bytes, ReturnType, Args...> functor;
 
     HYP_FORCE_INLINE ReturnType operator()(Args... args)

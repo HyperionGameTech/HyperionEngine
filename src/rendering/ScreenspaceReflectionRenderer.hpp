@@ -27,7 +27,8 @@ using renderer::Extent2D;
 
 class Engine;
 
-class ScreenspaceReflectionRenderer {
+class ScreenspaceReflectionRenderer
+{
 public:
     ScreenspaceReflectionRenderer(const Extent2D &extent);
     ~ScreenspaceReflectionRenderer();
@@ -46,7 +47,8 @@ private:
     void CreateDescriptors(Engine *engine);
     void CreateComputePipelines(Engine *engine);
     
-    struct SSRImageOutput {
+    struct SSRImageOutput
+    {
         std::unique_ptr<Image> image;
         std::unique_ptr<ImageView> image_view;
 

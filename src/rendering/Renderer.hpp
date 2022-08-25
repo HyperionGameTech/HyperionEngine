@@ -42,14 +42,16 @@ using renderer::StorageBuffer;
 
 class Engine;
 
-class RendererInstance : public EngineComponentBase<STUB_CLASS(RendererInstance)> {
+class RendererInstance
+    : public EngineComponentBase<STUB_CLASS(RendererInstance)>
+{
     friend class Engine;
     friend class Entity;
 
 public:
     RendererInstance(
         Handle<Shader> &&shader,
-        Ref<RenderPass> &&render_pass,
+        Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
     );
 
@@ -106,7 +108,7 @@ private:
     std::unique_ptr<renderer::GraphicsPipeline> m_pipeline;
 
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
+    Handle<RenderPass> m_render_pass;
     RenderableAttributeSet m_renderable_attributes;
 
     IndirectRenderer m_indirect_renderer;

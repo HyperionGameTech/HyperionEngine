@@ -18,7 +18,8 @@ enum class LightType {
     SPOT
 };
 
-class Light : public EngineComponentBase<STUB_CLASS(Light)> {
+class Light : public EngineComponentBase<STUB_CLASS(Light)>
+{
 public:
     Light(
         LightType type,

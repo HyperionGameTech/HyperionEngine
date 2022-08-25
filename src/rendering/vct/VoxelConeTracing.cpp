@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-const Extent3D VoxelConeTracing::voxel_map_size{256};
+const Extent3D VoxelConeTracing::voxel_map_size { 256 };
 
 VoxelConeTracing::VoxelConeTracing(Params &&params)
     : EngineComponentBase(),
@@ -36,7 +36,7 @@ void VoxelConeTracing::Init(Engine *engine)
         auto *engine = GetEngine();
 
         m_scene = Handle<Scene>(new Scene(
-            engine->resources.cameras.Add(new OrthoCamera(
+            Handle<Camera>(new OrthoCamera(
                 voxel_map_size.width, voxel_map_size.height,
                 -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
                 -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
@@ -56,10 +56,12 @@ void VoxelConeTracing::Init(Engine *engine)
         
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
-            //m_scene.Reset();
+            engine->GetWorld().RemoveScene(m_scene->GetId());
+            m_scene.Reset();
+
             m_framebuffers = {};
             m_render_pass.Reset();
             m_renderer_instance.Reset();
@@ -105,7 +107,7 @@ void VoxelConeTracing::Init(Engine *engine)
             engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
             
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -292,7 +294,7 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
-        m_render_pass.IncRef(),
+        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
@@ -310,7 +312,7 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
     }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance.Init();
+    m_renderer_instance->Init(engine);
 }
 
 void VoxelConeTracing::CreateComputePipelines(Engine *engine)
@@ -348,20 +350,20 @@ void VoxelConeTracing::CreateShader(Engine *engine)
 
 void VoxelConeTracing::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->resources.render_passes.Add(new RenderPass(
+    m_render_pass = Handle<RenderPass>(new RenderPass(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     ));
 
-    m_render_pass.Init();
+    m_render_pass->Init(engine);
 }
 
 void VoxelConeTracing::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources.framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
             Extent2D(voxel_map_size),
-            m_render_pass.IncRef()
+            Handle<RenderPass>(m_render_pass)
         ));
         
         m_framebuffers[i].Init();

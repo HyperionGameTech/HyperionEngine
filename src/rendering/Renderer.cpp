@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 
 RendererInstance::RendererInstance(
     Handle<Shader> &&shader,
-    Ref<RenderPass> &&render_pass,
+    Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes
 ) : EngineComponentBase(),
     m_pipeline(std::make_unique<renderer::GraphicsPipeline>()),
@@ -259,7 +259,7 @@ void RendererInstance::Init(Engine *engine)
             HYPERION_RETURN_OK;
         });
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_GRAPHICS_PIPELINES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
@@ -314,7 +314,7 @@ void RendererInstance::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

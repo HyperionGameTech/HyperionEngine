@@ -93,8 +93,8 @@ private:
     Handle<Scene> m_scene;
     FixedArray<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
-    Ref<RendererInstance> m_renderer_instance;
+    Handle<RenderPass> m_render_pass;
+    Handle<RendererInstance> m_renderer_instance;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     FixedArray<Handle<Texture>, max_frames_in_flight> m_cubemaps;
     Ref<EnvProbe> m_env_probe;

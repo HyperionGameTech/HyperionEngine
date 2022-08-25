@@ -5,7 +5,7 @@
 
 namespace hyperion::v2 {
 
-Scene::Scene(Ref<Camera> &&camera)
+Scene::Scene(Handle<Camera> &&camera)
     : EngineComponentBase(),
       m_camera(std::move(camera)),
       m_root_node_proxy(new Node("root")),
@@ -34,14 +34,14 @@ void Scene::Init(Engine *engine)
         auto *engine = GetEngine();
 
         if (m_camera) {
-            m_camera.Init();
+            m_camera->Init(engine);
         }
 
         m_environment->Init(engine);
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SCENES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             m_camera.Reset();
@@ -61,11 +61,13 @@ void Scene::Init(Engine *engine)
             }
 
             m_entities.Clear();
+            m_entities_pending_addition.Clear();
+            m_entities_pending_removal.Clear();
 
             HYP_FLUSH_RENDER_QUEUE(engine);
 
             SetReady(false);
-        }));
+        });
     }));
 }
 
@@ -204,8 +206,8 @@ void Scene::AddPendingEntities()
                 entity->EnqueueRenderUpdates();
 
                 entity->m_primary_renderer_instance = {
-                    .renderer_instance = renderer_instance.ptr,
-                    .changed  = false
+                    .renderer_instance = renderer_instance.Get(),
+                    .changed = false
                 };
             } else {
                 DebugLog(
@@ -342,8 +344,8 @@ void Scene::RequestRendererInstanceUpdate(Ref<Entity> &entity)
         renderer_instance->AddEntity(entity.IncRef());
 
         entity->m_primary_renderer_instance = {
-            .renderer_instance = renderer_instance.ptr,
-            .changed  = false
+            .renderer_instance = renderer_instance.Get(),
+            .changed = false
         };
     } else {
         DebugLog(

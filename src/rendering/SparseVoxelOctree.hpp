@@ -10,9 +10,11 @@ namespace hyperion::v2 {
 using renderer::IndirectBuffer;
 using renderer::StorageBuffer;
 
-class SparseVoxelOctree : public EngineComponentBase<STUB_CLASS(SparseVoxelOctree)> {
-    static constexpr size_t min_nodes = 10000;
-    static constexpr size_t max_nodes = 10000000;
+class SparseVoxelOctree
+    : public EngineComponentBase<STUB_CLASS(SparseVoxelOctree)>
+{
+    static constexpr SizeType min_nodes = 10000;
+    static constexpr SizeType max_nodes = 10000000;
 
     using OctreeNode = UInt32[2];
 
@@ -28,8 +30,7 @@ public:
     void Build(Engine *engine);
 
 private:
-
-    size_t CalculateNumNodes() const;
+    SizeType CalculateNumNodes() const;
     void CreateBuffers(Engine *engine);
     void CreateDescriptors(Engine *engine);
     void CreateComputePipelines(Engine *engine);

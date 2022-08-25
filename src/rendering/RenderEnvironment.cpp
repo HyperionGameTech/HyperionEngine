@@ -118,7 +118,7 @@ void RenderEnvironment::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ENVIRONMENTS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             m_lights.Clear();
@@ -177,7 +177,7 @@ void RenderEnvironment::Init(Engine *engine)
             tmp_render_components.Clear();
 
             SetReady(false);
-        }));
+        });
     }));
 }
 

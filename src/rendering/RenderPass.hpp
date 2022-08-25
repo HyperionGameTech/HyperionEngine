@@ -10,7 +10,9 @@ namespace hyperion::v2 {
 
 using renderer::RenderPassStage;
 
-class RenderPass : public EngineComponentBase<STUB_CLASS(RenderPass)> {
+class RenderPass
+    : public EngineComponentBase<STUB_CLASS(RenderPass)>
+{
 public:
     RenderPass(RenderPassStage stage, renderer::RenderPass::Mode mode);
     RenderPass(RenderPassStage stage, renderer::RenderPass::Mode mode, UInt num_multiview_layers);
@@ -18,11 +20,11 @@ public:
     RenderPass &operator=(const RenderPass &other) = delete;
     ~RenderPass();
 
-    renderer::RenderPass &GetRenderPass()             { return m_render_pass; }
+    renderer::RenderPass &GetRenderPass() { return m_render_pass; }
     const renderer::RenderPass &GetRenderPass() const { return m_render_pass; }
 
-    bool IsMultiview() const                          { return m_render_pass.IsMultiview(); }
-    UInt NumMultiviewLayers() const                   { return m_render_pass.NumMultiviewLayers(); }
+    bool IsMultiview() const { return m_render_pass.IsMultiview(); }
+    UInt NumMultiviewLayers() const { return m_render_pass.NumMultiviewLayers(); }
 
     void Init(Engine *engine);
 

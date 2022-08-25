@@ -11,6 +11,7 @@
 #include <core/lib/FixedString.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/Queue.hpp>
+#include <core/lib/Proc.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>
 
@@ -30,7 +31,8 @@ namespace hyperion::v2 {
 class Engine;
 
 template <class Group>
-struct CallbackRef {
+struct CallbackRef
+{
     UInt id;
     Group *group;
     typename Group::ArgsTuple bound_args;
@@ -145,8 +147,10 @@ struct CallbackRef {
 // created only after the descriptor sets are created.
 
 template <class Enum, class ...Args>
-class Callbacks {
-    struct CallbackInstance {
+class Callbacks
+{
+    struct CallbackInstance
+    {
         using Function = std::function<void(Args...)>;
 
         using Id = UInt;
@@ -402,7 +406,7 @@ public:
 
 
 private:
-    UInt m_id_counter{0};
+    UInt m_id_counter { 0 };
     std::unordered_map<Enum, CallbackGroup> m_holders;
 
     std::recursive_mutex rw_callbacks_mutex; // Not ideal having this as a recursive_mutex but at the moment there is no other option as objects can be
@@ -413,14 +417,14 @@ private:
         std::lock_guard guard(rw_callbacks_mutex);
 
         auto &holder = m_holders[key];
-        
+
         auto &once_callbacks = holder.once_callbacks;
         auto &on_callbacks = holder.on_callbacks;
 
         const bool previous_triggered_state = holder.trigger_state.triggered;
 
         holder.trigger_state.triggered = true;
-        holder.trigger_state.args      = std::tie(args...);
+        holder.trigger_state.args = std::tie(args...);
 
         for (CallbackInstance &callback_instance : once_callbacks) {
             if (callback_instance.Valid()) {
@@ -434,7 +438,7 @@ private:
                 callback_instance.Call(std::forward<Args>(args)...);
             }
         }
-        
+
         holder.trigger_state.triggered = previous_triggered_state || persist;
 
         holder.ClearInvalidatedCallbacks();
@@ -442,7 +446,8 @@ private:
 };
 
 template <class CallbacksClass>
-class CallbackTrackable {
+class CallbackTrackable
+{
 public:
     using Callbacks = CallbacksClass;
     using CallbackRef = CallbackRef<typename Callbacks::CallbackGroup>;
@@ -450,10 +455,7 @@ public:
     CallbackTrackable() = default;
     CallbackTrackable(const CallbackTrackable &other) = delete;
     CallbackTrackable &operator=(const CallbackTrackable &other) = delete;
-    ~CallbackTrackable()
-    {
-        AssertThrowMsg(m_destroy_callback.id == 0, "Teardown not called? ID was %u\n", m_destroy_callback.id);
-    }
+    ~CallbackTrackable() = default;
 
 protected:
 
@@ -472,9 +474,8 @@ protected:
             }
         }
 
-        if (m_destroy_callback.Valid()) {
-            const auto callback_id = m_destroy_callback.id;
-            AssertThrowMsg(m_destroy_callback.TriggerRemove(), "Failed to trigger destroy callback with ID %u!", callback_id);
+        if (m_teardown) {
+            m_teardown();
         }
     }
 
@@ -494,24 +495,9 @@ protected:
         m_init_callback = std::move(callback_ref);
     }
 
-    /*! \brief Set the action to be triggered on teardown
-     * @param callback_ref The callback reference, obtained via Once() or On()
-     * @param bind_args Arguments to bind to the call
-     */
-    template <class ...Args>
-    void OnTeardown(CallbackRef &&callback_ref)
+    void OnTeardown(Proc<void> &&teardown)
     {
-        if (m_destroy_callback.Valid()) {
-            DebugLog(LogType::Warn, "OnTeardown callback overwritten! This may be unintentional and ideally should not happen.\n");
-
-#if HYP_DEBUG_MODE
-            HYP_BREAKPOINT;
-#endif
-
-            AssertThrow(m_destroy_callback.Remove());
-        }
-
-        m_destroy_callback = std::move(callback_ref);
+        m_teardown = std::move(teardown);
     }
 
     /*! \brief Add an owned callback to this object. Note, this does not create a callback,
@@ -525,12 +511,13 @@ protected:
     }
 
 private:
-    CallbackRef              m_init_callback;
-    CallbackRef              m_destroy_callback;
+    CallbackRef m_init_callback;
+    Proc<void> m_teardown;
     std::vector<CallbackRef> m_owned_callbacks;
 };
 
-enum class EngineCallback {
+enum class EngineCallback
+{
     NONE,
 
     CREATE_ANY,
@@ -592,8 +579,10 @@ using EngineCallbacks = Callbacks<EngineCallback, Engine *>;
 
 /* v1 callback utility used by octree */
 template <class CallbacksClass>
-struct ComponentEvents {
-    struct CallbackGroup {
+struct ComponentEvents
+{
+    struct CallbackGroup
+    {
         using CallbackFunction = typename CallbacksClass::CallbackFunction;
 
         std::vector<CallbackFunction> callbacks;
@@ -633,7 +622,8 @@ struct ComponentEvents {
  * a teardown method which is defined in CallbackTrackable.
  */
 template <class T>
-class ObjectVector {
+class ObjectVector
+{
     static constexpr bool use_free_slots = true;
 
 public:
@@ -648,7 +638,7 @@ public:
         RemoveAll();
     }
 
-    constexpr size_t Size() const
+    constexpr SizeType Size() const
         { return objects.size(); }
 
     auto &Objects() { return objects; }
@@ -664,7 +654,7 @@ public:
     constexpr const T *Get(typename T::ID id) const
         { return const_cast<ObjectVector<T> *>(this)->Get(id); }
 
-    constexpr T *operator[](typename T::ID id)             { return Get(id); }
+    constexpr T *operator[](typename T::ID id) { return Get(id); }
     constexpr const T *operator[](typename T::ID id) const { return Get(id); }
 
     template <class LambdaFunction>
@@ -740,7 +730,6 @@ public:
         free_slots = {};
     }
 
-private:
 
     void DisposeObjectAtIndex(SizeType index)
     {
@@ -759,21 +748,24 @@ private:
 };
 
 template <class T, class ...Args>
-class RefCounter {
+class RefCounter
+{
     using ArgsTuple = std::tuple<Args...>;
 
-    struct RefCount {
+    struct RefCount
+    {
         RefCounter *ref_manager = nullptr;
-        std::atomic_uint32_t count { 0 };
+        std::atomic<UInt> count { 0 };
     };
 
     FlatMap<typename T::ID, RefCount *> m_ref_count_holder;
 
     ObjectVector<T> m_holder;
-    ArgsTuple m_init_args{};
+    ArgsTuple m_init_args { };
 
 public:
-    class RefWrapper {
+    class RefWrapper
+    {
     protected:
         RefWrapper(T *ptr, RefCount *ref_count)
             : ptr(ptr),
@@ -864,7 +856,8 @@ public:
     };
 
     // A simple ref-counted handle to a resource, deriving EngineComponent
-    class Ref : public RefWrapper {
+    class Ref : public RefWrapper
+    {
     public:
         Ref()
             : Ref(nullptr)
@@ -963,7 +956,8 @@ public:
         }
     };
 
-    class WeakRef : public RefWrapper {
+    class WeakRef : public RefWrapper
+    {
     public:
         WeakRef() : WeakRef(nullptr) {}
         WeakRef(std::nullptr_t) : WeakRef(nullptr, nullptr) {}

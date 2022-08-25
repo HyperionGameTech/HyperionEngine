@@ -238,7 +238,7 @@ std::unique_ptr<MaterialGroup> MTLMaterialLoader::BuildFn(Engine *engine, const 
         loaded_textures = engine->assets.Load<Texture>(all_filepaths);
     }
 
-    engine->resources.Lock([&](Resources &resources) {
+    engine->resources->Lock([&](Resources &resources) {
         std::unordered_map<std::string, Handle<Texture>> texture_refs;
 
         for (size_t i = 0; i < loaded_textures.size(); i++) {

@@ -352,7 +352,7 @@ std::unique_ptr<Node> OBJModelLoader::BuildFn(Engine *engine, const Object &obje
             }
         }
 
-        engine->resources.Lock([&](Resources &resources) {
+        engine->resources->Lock([&](Resources &resources) {
             if (material == nullptr) {
                 material = Handle<Material>(new Material());
             }

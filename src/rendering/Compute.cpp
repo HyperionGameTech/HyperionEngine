@@ -47,7 +47,7 @@ void ComputePipeline::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_COMPUTE_PIPELINES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
@@ -57,7 +57,7 @@ void ComputePipeline::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

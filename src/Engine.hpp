@@ -190,8 +190,8 @@ public:
     Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
-    Ref<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
-    Ref<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
+    Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
+    Handle<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
 
     template <class T>
     void SafeReleaseRenderResource(Handle<T> &&resource)
@@ -211,7 +211,7 @@ public:
     ShaderGlobals *shader_globals;
 
     EngineCallbacks callbacks;
-    Resources resources;
+    Resources *resources;
     Assets assets;
     ShaderManager shader_manager;
                              
@@ -249,7 +249,7 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, Ref<RendererInstance>> m_renderer_instance_mapping;
+    FlatMap<RenderableAttributeSet, /*Weak*/Handle<RendererInstance>> m_renderer_instance_mapping;
 
     ComponentRegistry<Entity> m_component_registry;
 

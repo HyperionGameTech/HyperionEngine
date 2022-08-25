@@ -54,7 +54,7 @@ void DeferredPass::CreateShader(Engine *engine)
 
 void DeferredPass::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass().IncRef();
+    m_render_pass = Handle<RenderPass>(engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass());
 }
 
 void DeferredPass::CreateDescriptors(Engine *engine)

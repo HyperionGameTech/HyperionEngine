@@ -40,13 +40,13 @@ void Skeleton::Init(Engine *engine)
 
         SetReady(true);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_SKELETONS, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             HYP_FLUSH_RENDER_QUEUE(engine);
             
             SetReady(false);
-        }));
+        });
     }));
 }
 

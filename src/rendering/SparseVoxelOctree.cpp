@@ -50,7 +50,7 @@ void SparseVoxelOctree::Init(Engine *engine)
         CreateDescriptors(engine);
         CreateComputePipelines(engine);
 
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_VOXELIZER, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             auto result = Result::OK;
@@ -94,7 +94,7 @@ void SparseVoxelOctree::Init(Engine *engine)
             m_write_mipmaps.Reset();
 
             HYPERION_ASSERT_RESULT(result);
-        }));
+        });
     }));
 }
 

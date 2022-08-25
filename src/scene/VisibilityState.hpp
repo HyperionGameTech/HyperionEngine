@@ -9,9 +9,10 @@
 
 namespace hyperion::v2 {
 
-struct VisibilityState {
+struct VisibilityState
+{
     using Bitmask = UInt64;
-    using Nonce   = UInt16;
+    using Nonce = UInt16;
 
     static constexpr UInt max_scenes  = sizeof(Bitmask) * CHAR_BIT;
     static constexpr UInt cursor_size = 3;

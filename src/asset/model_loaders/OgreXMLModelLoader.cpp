@@ -192,7 +192,7 @@ std::unique_ptr<Node> OgreXMLModelLoader::BuildFn(Engine *engine, const Object &
         }
     }
 
-    engine->resources.Lock([&](Resources &resources) {
+    engine->resources->Lock([&](Resources &resources) {
         Handle<Skeleton> skeleton_ref(skeleton.release());
 
         for (auto &sub_mesh : object.submeshes) {

@@ -98,7 +98,7 @@ public:
     virtual void InitGame(Engine *engine) override
     {
         m_scene = Handle<Scene>(new Scene(
-            engine->resources.cameras.Add(new FirstPersonCamera(//FollowCamera(
+            Handle<Camera>(new FirstPersonCamera(//FollowCamera(
                 //Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
                 2048, 2048,//2048, 1080,
                 75.0f,
@@ -164,11 +164,11 @@ public:
         auto *_node = result.Release<Node>();
         m_scene->GetRoot().AddChild(NodeProxy(_node));
         
-        // auto ent = engine->resources.entities.Add(result.Release<Entity>());
+        // auto ent = engine->resources->entities.Add(result.Release<Entity>());
         // m_scene->GetRoot().AddChild().Get()->SetEntity(std::move(ent));
 #endif
 
-        // auto character_entity = engine->resources.entities.Add(new Spatial());
+        // auto character_entity = engine->resources->entities.Add(new Spatial());
         // character_entity->AddController<BasicCharacterController>();
         // m_scene->AddSpatial(std::move(character_entity));
 
@@ -180,7 +180,7 @@ public:
 
 #if 0
         if (auto terrain_node = m_scene->GetRoot().AddChild()) {
-            terrain_node.Get()->SetEntity(engine->resources.entities.Add(new Entity()));
+            terrain_node.Get()->SetEntity(engine->resources->entities.Add(new Entity()));
             terrain_node.Get()->GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(35.0f, 32.0f, 35.0f), 2.0f);
         }
 #endif
@@ -269,7 +269,7 @@ public:
 
         auto quad = Handle<Mesh>(MeshBuilder::NormalizedCubeSphere(8).release());//MeshBuilder::DividedQuad(8).release());    //MeshBuilder::Quad());
         // quad->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
-        auto quad_spatial = engine->resources.entities.Add(new Entity(
+        auto quad_spatial = engine->resources->entities.Add(new Entity(
             std::move(quad),
             Handle<Shader>(engine->shader_manager.GetShader(ShaderKey::BASIC_FORWARD)),
             Handle<Material>(new Material())
@@ -394,7 +394,7 @@ public:
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
 
-                    if (auto lookup_result = engine->resources.entities.Lookup(Entity::ID{hit.id})) {
+                    if (auto lookup_result = engine->resources->entities.Lookup(Entity::ID{hit.id})) {
                         if (auto &mesh = lookup_result->GetMesh()) {
                             ray.TestTriangleList(
                                 mesh->GetVertices(),
@@ -722,7 +722,7 @@ int main()
     {
         auto translucent_renderer_instance = std::make_unique<RendererInstance>(
             Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)),
-            engine->GetRenderListContainer().Get(BUCKET_TRANSLUCENT).GetRenderPass().IncRef(),
+            Handle<v2::RenderPass>(engine->GetRenderListContainer().Get(BUCKET_TRANSLUCENT).GetRenderPass()),
             RenderableAttributeSet(
                 MeshAttributes {
                     .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
@@ -763,13 +763,13 @@ int main()
 
     auto my_tlas = std::make_unique<Tlas>();
 
-    my_tlas->AddBlas(engine->resources.blas.Add(new Blas(
-        engine->resources.meshes.IncRef(my_game->material_test_obj->GetChild(0).Get()->GetEntity()->GetMesh()),
+    my_tlas->AddBlas(engine->resources->blas.Add(new Blas(
+        engine->resources->meshes.IncRef(my_game->material_test_obj->GetChild(0).Get()->GetEntity()->GetMesh()),
         my_game->material_test_obj->GetChild(0).Get()->GetEntity()->GetTransform()
     )));
     
-    my_tlas->AddBlas(engine->resources.blas.Add(new Blas(
-        engine->resources.meshes.IncRef(my_game->cube_obj->GetChild(0).Get()->GetEntity()->GetMesh()),
+    my_tlas->AddBlas(engine->resources->blas.Add(new Blas(
+        engine->resources->meshes.IncRef(my_game->cube_obj->GetChild(0).Get()->GetEntity()->GetMesh()),
         my_game->cube_obj->GetChild(0).Get()->GetEntity()->GetTransform()
     )));
 

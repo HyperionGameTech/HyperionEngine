@@ -67,7 +67,7 @@ void Texture::Init(Engine *engine)
             HYPERION_RETURN_OK;
         });
         
-        OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_TEXTURES, [this](...) {
+        OnTeardown([this]() {
             auto *engine = GetEngine();
 
             SetReady(false);
@@ -85,7 +85,7 @@ void Texture::Init(Engine *engine)
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-        }));
+        });
     }));
 }
 

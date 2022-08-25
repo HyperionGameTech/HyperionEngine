@@ -81,8 +81,8 @@ private:
     Handle<Scene> m_scene;
     std::array<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
-    Ref<RenderPass> m_render_pass;
-    Ref<RendererInstance> m_renderer_instance;
+    Handle<RenderPass> m_render_pass;
+    Handle<RendererInstance> m_renderer_instance;
     Handle<ComputePipeline> m_clear_voxels;
                                                        
     Handle<Texture> m_voxel_image;
