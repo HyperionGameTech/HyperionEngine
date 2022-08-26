@@ -52,7 +52,7 @@ struct PatchInfo
 struct Patch
 {
     PatchInfo info;
-    Ref<Entity> entity;
+    Handle<Entity> entity;
 
     Vector2 GetCenter() const { return info.coord - 0.5f; }
 };

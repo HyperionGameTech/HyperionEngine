@@ -112,7 +112,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     auto &shader = GetEngine()->shader_manager.GetShader(ShaderManager::Key::TERRAIN);
     const auto vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
 
-    patch->entity = GetEngine()->resources->entities.Add(new Entity(
+    patch->entity = Handle<Entity>(new Entity(
         Handle<Mesh>(), // mesh added later, after task thread generates it
         Handle<Shader>(shader),
         Handle<Material>(m_material),
@@ -134,7 +134,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     });
 
     if (auto *scene = GetOwner()->GetScene()) {
-        scene->AddEntity(patch->entity.IncRef());
+        scene->AddEntity(Handle<Entity>(patch->entity));
     } else {
         DebugLog(
             LogType::Warn,

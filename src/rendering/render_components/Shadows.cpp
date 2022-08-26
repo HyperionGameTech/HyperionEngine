@@ -273,12 +273,12 @@ void ShadowRenderer::InitGame(Engine *engine)
             && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
                 & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_shadow_pass.GetRendererInstance()->AddEntity(it.second.IncRef());
+            m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
 
-void ShadowRenderer::OnEntityAdded(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -287,20 +287,20 @@ void ShadowRenderer::OnEntityAdded(Ref<Entity> &entity)
     if (BucketRendersShadows(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
     }
 }
 
-void ShadowRenderer::OnEntityRemoved(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    m_shadow_pass.GetRendererInstance()->RemoveEntity(entity.IncRef());
+    m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
 }
 
-void ShadowRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -309,9 +309,9 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
     if (BucketRendersShadows(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
     } else {
-        m_shadow_pass.GetRendererInstance()->RemoveEntity(entity.IncRef());
+        m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
     }
 }
 

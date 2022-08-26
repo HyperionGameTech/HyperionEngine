@@ -75,19 +75,19 @@ public:
     virtual void ComponentRemoved() = 0;
 
     /*! \brief Called when an entity is added to the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityAdded(Ref<Entity> &entity) = 0;
+    virtual void OnEntityAdded(Handle<Entity> &entity) = 0;
     /*! \brief Called when an entity is removed from the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityRemoved(Ref<Entity> &entity) = 0;
+    virtual void OnEntityRemoved(Handle<Entity> &entity) = 0;
     /*! \brief Called when an entity has meaningful attributes changed. Runs in RENDER thread. */
-    virtual void OnEntityRenderableAttributesChanged(Ref<Entity> &entity) = 0;
+    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) = 0;
 
 
 protected:
     RenderComponentName m_name;
-    const UInt          m_render_frame_slicing; // amount of frames to wait between render calls
-    UInt                m_render_frame_slicing_counter; // amount of frames to wait between render calls
-    Index               m_index;
-    RenderEnvironment  *m_parent;
+    const UInt m_render_frame_slicing; // amount of frames to wait between render calls
+    UInt m_render_frame_slicing_counter; // amount of frames to wait between render calls
+    Index m_index;
+    RenderEnvironment *m_parent;
 };
 
 template <class Derived>
@@ -158,9 +158,9 @@ public:
         }
     }
 
-    virtual void OnEntityAdded(Ref<Entity> &entity) override {}
-    virtual void OnEntityRemoved(Ref<Entity> &entity) override {}
-    virtual void OnEntityRenderableAttributesChanged(Ref<Entity> &entity) override {}
+    virtual void OnEntityAdded(Handle<Entity> &entity) override {}
+    virtual void OnEntityRemoved(Handle<Entity> &entity) override {}
+    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override {}
 
     virtual void ComponentRemoved() override {}
 
@@ -169,7 +169,7 @@ protected:
 
 private:
     bool m_component_is_render_init,
-         m_component_is_game_init;
+        m_component_is_game_init;
 };
 
 } // namespace hyperion::v2

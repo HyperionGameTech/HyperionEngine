@@ -253,35 +253,35 @@ void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
     }
 }
 
-void RenderEnvironment::OnEntityAdded(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entities_pending_addition.Push(entity.IncRef());
+    m_entities_pending_addition.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 }
 
-void RenderEnvironment::OnEntityRemoved(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entities_pending_removal.Push(entity.IncRef());
+    m_entities_pending_removal.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 }
 
 // only called when meaningful attributes have changed
-void RenderEnvironment::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_entity_update_sp.Wait();
-    m_entity_renderable_attribute_updates.Push(entity.IncRef());
+    m_entity_renderable_attribute_updates.Push(Handle<Entity>(entity));
     m_entity_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;

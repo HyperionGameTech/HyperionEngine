@@ -66,8 +66,8 @@ public:
     
     const RenderableAttributeSet &GetRenderableAttributes() const { return m_renderable_attributes; }
     
-    void AddEntity(Ref<Entity> &&entity);
-    void RemoveEntity(Ref<Entity> &&entity, bool call_on_removed = true);
+    void AddEntity(Handle<Entity> &&entity);
+    void RemoveEntity(Handle<Entity> &&entity, bool call_on_removed = true);
     auto &GetEntities() { return m_entities; }
     const auto &GetEntities() const { return m_entities; }
 
@@ -101,7 +101,7 @@ private:
     void UpdateEnqueuedEntitiesFlag()
     {
         m_enqueued_entities_flag.store(
-           !m_entities_pending_addition.empty() || !m_entities_pending_removal.empty()
+           m_entities_pending_addition.Any() || m_entities_pending_removal.Any()
         );
     }
 
@@ -115,9 +115,9 @@ private:
     
     DynArray<Handle<Framebuffer>> m_fbos;
 
-    std::vector<Ref<Entity>> m_entities; // lives in RENDER thread
-    std::vector<Ref<Entity>> m_entities_pending_addition; // shared
-    std::vector<Ref<Entity>> m_entities_pending_removal; // shared
+    DynArray<Handle<Entity>> m_entities; // lives in RENDER thread
+    DynArray<Handle<Entity>> m_entities_pending_addition; // shared
+    DynArray<Handle<Entity>> m_entities_pending_removal; // shared
 
     PerFrameData<CommandBuffer> *m_per_frame_data;
 

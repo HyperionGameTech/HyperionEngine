@@ -189,7 +189,7 @@ void CubemapRenderer::InitGame(Engine *engine)
         if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
             m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
 
-            m_renderer_instance->AddEntity(it.second.IncRef());
+            m_renderer_instance->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
@@ -204,7 +204,7 @@ void CubemapRenderer::OnRemoved()
     GetParent()->RemoveEnvProbe(m_env_probe.IncRef());
 }
 
-void CubemapRenderer::OnEntityAdded(Ref<Entity> &entity)
+void CubemapRenderer::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -212,20 +212,20 @@ void CubemapRenderer::OnEntityAdded(Ref<Entity> &entity)
 
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
         m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     }
 }
 
-void CubemapRenderer::OnEntityRemoved(Ref<Entity> &entity)
+void CubemapRenderer::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    m_renderer_instance->RemoveEntity(entity.IncRef());
+    m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
 }
 
-void CubemapRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -233,23 +233,15 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
 
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
         m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     } else {
-        m_renderer_instance->RemoveEntity(entity.IncRef());
+        m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
     }
 }
 
 void CubemapRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
 {
     m_env_probe->Update(engine);
-
-    // Threads::AssertOnThread(THREAD_GAME);
-    //AssertReady();
-
-    // Scene is owned by World, don't Update() it.
-    // we need to make Camera be a component so we can use Camera ID
-    // in bit flags for octree visibility.
-    // m_scene->Update(engine, delta);
 }
 
 void CubemapRenderer::OnRender(Engine *engine, Frame *frame)

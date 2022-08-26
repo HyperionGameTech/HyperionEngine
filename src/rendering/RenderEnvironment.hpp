@@ -125,10 +125,10 @@ public:
     // only touch from render thread!
     UInt32 GetEnabledRenderComponentsMask() const { return m_current_enabled_render_components_mask; }
 
-    void OnEntityAdded(Ref<Entity> &entity);
-    void OnEntityRemoved(Ref<Entity> &entity);
+    void OnEntityAdded(Handle<Entity> &entity);
+    void OnEntityRemoved(Handle<Entity> &entity);
     // only called when meaningful attributes have changed
-    void OnEntityRenderableAttributesChanged(Ref<Entity> &entity);
+    void OnEntityRenderableAttributesChanged(Handle<Entity> &entity);
 
     float GetGlobalTimer() const { return m_global_timer; }
 
@@ -144,9 +144,9 @@ private:
 
     std::atomic<RenderEnvironmentUpdates> m_update_marker{RENDER_ENVIRONMENT_UPDATES_NONE};
 
-    Queue<Ref<Entity>> m_entities_pending_addition;
-    Queue<Ref<Entity>> m_entities_pending_removal;
-    Queue<Ref<Entity>> m_entity_renderable_attribute_updates;
+    Queue<Handle<Entity>> m_entities_pending_addition;
+    Queue<Handle<Entity>> m_entities_pending_removal;
+    Queue<Handle<Entity>> m_entity_renderable_attribute_updates;
     BinarySemaphore m_entity_update_sp;
 
     ComponentSetUnique<RenderComponentBase> m_render_components; // only touch from render thread

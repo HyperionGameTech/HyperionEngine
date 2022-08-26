@@ -57,7 +57,7 @@ public:
 
     Node(
         const String &name,
-        Ref<Entity> &&entity,
+        Handle<Entity> &&entity,
         const Transform &local_transform = Transform()
     );
 
@@ -78,9 +78,9 @@ public:
     /*! @returns A pointer to the Scene this Node and its children are attached to. May be null. */
     Scene *GetScene() const { return m_scene; }
 
-    Ref<Entity> &GetEntity() { return m_entity; }
-    const Ref<Entity> &GetEntity() const { return m_entity; }
-    void SetEntity(Ref<Entity> &&entity);
+    Handle<Entity> &GetEntity() { return m_entity; }
+    const Handle<Entity> &GetEntity() const { return m_entity; }
+    void SetEntity(Handle<Entity> &&entity);
 
     /*! \brief Add a new child Node to this object
      * @returns The added Node
@@ -310,7 +310,7 @@ protected:
     Node(
         Type type,
         const String &name,
-        Ref<Entity> &&entity,
+        Handle<Entity> &&entity,
         const Transform &local_transform = Transform()
     );
 
@@ -328,7 +328,7 @@ protected:
     BoundingBox m_local_aabb;
     BoundingBox m_world_aabb;
 
-    Ref<Entity> m_entity;
+    Handle<Entity> m_entity;
 
     DynArray<NodeProxy> m_descendents;
 

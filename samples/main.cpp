@@ -187,19 +187,9 @@ public:
         // m_scene->GetRoot().AddChild().Get()->SetEntity(std::move(ent));
 #endif
 
-        // auto character_entity = engine->resources->entities.Add(new Spatial());
-        // character_entity->AddController<BasicCharacterController>();
-        // m_scene->AddSpatial(std::move(character_entity));
-
-        // auto tmp_terrain = engine->assets.Load<Node>("models/tmp_terrain.obj");
-        // tmp_terrain->Rotate(Quaternion({ 1, 0, 0 }, MathUtil::DegToRad(90.0f)));
-        // tmp_terrain->Scale(500.0f);
-        // m_scene->AddSpatial(tmp_terrain->GetChild(0)->GetEntity().IncRef());
-
-
 #if 0
         if (auto terrain_node = m_scene->GetRoot().AddChild()) {
-            terrain_node.Get()->SetEntity(engine->resources->entities.Add(new Entity()));
+            terrain_node.Get()->SetEntity(Handle<Entity>(new Entity()));
             terrain_node.Get()->GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(35.0f, 32.0f, 35.0f), 2.0f);
         }
 #endif
@@ -289,13 +279,13 @@ public:
 
         auto quad = Handle<Mesh>(MeshBuilder::NormalizedCubeSphere(8).release());//MeshBuilder::DividedQuad(8).release());    //MeshBuilder::Quad());
         // quad->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
-        auto quad_spatial = engine->resources->entities.Add(new Entity(
+        auto quad_spatial = Handle<Entity>(new Entity(
             std::move(quad),
             Handle<Shader>(engine->shader_manager.GetShader(ShaderKey::BASIC_FORWARD)),
             Handle<Material>(new Material())
         ));
     
-        quad_spatial.Init();
+        engine->Attach(quad_spatial);
         quad_spatial->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f));//0.00f, 0.4f, 0.9f, 1.0f));
         quad_spatial->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.2f);
         quad_spatial->SetScale(Vector3(3.0f));
@@ -340,7 +330,7 @@ public:
         //     false
         // );
 
-        m_scene->AddEntity(cube_obj->GetChild(0).Get()->GetEntity().IncRef());
+        m_scene->AddEntity(Handle<Entity>(cube_obj->GetChild(0).Get()->GetEntity()));
 
         auto monkey = engine->assets.Load<Node>("models/monkey/monkey.obj");
 

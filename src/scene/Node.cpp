@@ -13,7 +13,7 @@ Node::Node(
     const Transform &local_transform
 ) : Node(
         name,
-        nullptr,
+        Handle<Entity>(),
         local_transform
     )
 {
@@ -21,7 +21,7 @@ Node::Node(
 
 Node::Node(
     const String &name,
-    Ref<Entity> &&entity,
+    Handle<Entity> &&entity,
     const Transform &local_transform
 ) : Node(
         Type::NODE,
@@ -35,7 +35,7 @@ Node::Node(
 Node::Node(
     Type type,
     const String &name,
-    Ref<Entity> &&entity,
+    Handle<Entity> &&entity,
     const Transform &local_transform
 ) : m_type(type),
     m_name(name),
@@ -66,7 +66,7 @@ Node::Node(Node &&other) noexcept
 
     m_entity = std::move(other.m_entity);
     m_entity->SetParent(this);
-    other.m_entity = nullptr;
+    other.m_entity.Reset();
 
     m_child_nodes = std::move(other.m_child_nodes);
     other.m_child_nodes = {};
@@ -85,7 +85,7 @@ Node &Node::operator=(Node &&other) noexcept
 {
     RemoveAllChildren();
 
-    SetEntity(nullptr);
+    SetEntity(Handle<Entity>());
     SetScene(nullptr);
 
     m_type = other.m_type;
@@ -111,7 +111,7 @@ Node &Node::operator=(Node &&other) noexcept
 
     m_entity = std::move(other.m_entity);
     m_entity->SetParent(this);
-    other.m_entity = nullptr;
+    other.m_entity.Reset();
 
     m_name = std::move(other.m_name);
 
@@ -135,7 +135,7 @@ Node::~Node()
     AssertThrow(m_ref_count.count == 0);
 
     RemoveAllChildren();
-    SetEntity(nullptr);
+    SetEntity(Handle<Entity>());
 }
 
 void Node::SetScene(Scene *scene)
@@ -147,7 +147,7 @@ void Node::SetScene(Scene *scene)
     m_scene = scene;
 
     if (m_scene != nullptr && m_entity != nullptr) {
-        m_scene->AddEntity(m_entity.IncRef());
+        m_scene->AddEntity(Handle<Entity>(m_entity));
     }
 
     for (auto &child : m_child_nodes) {
@@ -391,7 +391,7 @@ void Node::SetLocalTransform(const Transform &transform)
     UpdateWorldTransform();
 }
 
-void Node::SetEntity(Ref<Entity> &&entity)
+void Node::SetEntity(Handle<Entity> &&entity)
 {
     if (m_entity == entity) {
         return;
@@ -409,17 +409,17 @@ void Node::SetEntity(Ref<Entity> &&entity)
         m_entity = std::move(entity);
 
         if (m_scene != nullptr) {
-            m_scene->AddEntity(m_entity.IncRef());
+            m_scene->AddEntity(Handle<Entity>(m_entity));
         }
 
         m_entity->SetParent(this);
-        m_entity.Init();
+        //m_entity.Init();
 
         m_local_aabb = m_entity->GetLocalAABB();
     } else {
         m_local_aabb = BoundingBox::empty;
 
-        m_entity = nullptr;
+        m_entity.Reset();
     }
 
     UpdateWorldTransform();
@@ -466,7 +466,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
             has_entity_hit = ray.TestAABB(
                 m_entity->GetWorldAABB(),
                 m_entity->GetId().value,
-                m_entity.ptr,
+                m_entity.Get(),
                 out_results
             );
         }

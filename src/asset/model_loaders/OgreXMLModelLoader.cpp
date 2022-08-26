@@ -221,7 +221,7 @@ std::unique_ptr<Node> OgreXMLModelLoader::BuildFn(Engine *engine, const Object &
             auto shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
             const auto shader_id = shader != nullptr ? shader->GetId() : Shader::empty_id;
 
-            auto entity = resources.entities.Add(new Entity(
+            auto entity = Handle<Entity>(new Entity(
                 std::move(mesh),
                 std::move(shader),
                 std::move(material),

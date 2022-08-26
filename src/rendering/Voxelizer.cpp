@@ -125,7 +125,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
     for (auto &item : engine->GetRenderListContainer().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
         for (auto &entity : item->GetEntities()) {
             if (entity != nullptr) {
-                m_renderer_instance->AddEntity(entity.IncRef());
+                m_renderer_instance->AddEntity(Handle<Entity>(entity));
             }
         }
     }

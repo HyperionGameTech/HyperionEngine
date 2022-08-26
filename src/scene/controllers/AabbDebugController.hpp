@@ -10,7 +10,8 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class AABBDebugController : public Controller {
+class AABBDebugController : public Controller
+{
 public:
     AABBDebugController(Engine *engine);
     virtual ~AABBDebugController() override = default;
@@ -20,9 +21,9 @@ public:
     virtual void OnTransformUpdate(const Transform &transform) override;
 
 protected:
-    Engine      *m_engine;
-    Ref<Entity> m_aabb_entity;
-    BoundingBox  m_aabb;
+    Engine *m_engine;
+    Handle<Entity> m_aabb_entity;
+    BoundingBox m_aabb;
 };
 
 } // namespace hyperion::v2

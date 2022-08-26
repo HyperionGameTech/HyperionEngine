@@ -38,7 +38,7 @@ void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
     m_fbos.Erase(it);
 }
 
-void RendererInstance::AddEntity(Ref<Entity> &&entity)
+void RendererInstance::AddEntity(Handle<Entity> &&entity)
 {
     AssertThrow(entity != nullptr);
     // AssertThrow(entity->IsReady());
@@ -53,34 +53,27 @@ void RendererInstance::AddEntity(Ref<Entity> &&entity)
         "RendererInstance vertex attributes does not satisfy the required vertex attributes of the entity."
     );
 
-    // if (IsInitCalled()) {
-    //     entity->Init(GetEngine());
-    // }
+    Attach(entity);
 
     entity->OnAddedToPipeline(this);
     
     m_enqueued_entities_sp.Wait();
-    //std::lock_guard guard(m_enqueued_entities_mutex);
 
     // remove from 'pending removal' list
-    auto it = std::find(
-        m_entities_pending_removal.begin(),
-        m_entities_pending_removal.end(),
-        entity
-    );
+    auto it = m_entities_pending_removal.Find(entity);
 
-    if (it != m_entities_pending_removal.end()) {
-        m_entities_pending_removal.erase(it);
+    if (it != m_entities_pending_removal.End()) {
+        m_entities_pending_removal.Erase(it);
     }
     
-    m_entities_pending_addition.push_back(std::move(entity));
+    m_entities_pending_addition.PushBack(std::move(entity));
 
     m_enqueued_entities_sp.Signal();
     
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::RemoveEntity(Ref<Entity> &&entity, bool call_on_removed)
+void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
 {
     // we cannot touch m_entities from any thread other than the render thread
     // we'll have to assume it's here, and check later :/ 
@@ -90,29 +83,21 @@ void RendererInstance::RemoveEntity(Ref<Entity> &&entity, bool call_on_removed)
 
     m_enqueued_entities_sp.Wait();
 
-    const auto pending_removal_it = std::find(
-        m_entities_pending_removal.begin(),
-        m_entities_pending_removal.end(),
-        entity
-    );
+    const auto pending_removal_it = m_entities_pending_removal.Find(entity);
 
-    if (pending_removal_it == m_entities_pending_removal.end()) {
+    if (pending_removal_it == m_entities_pending_removal.End()) {
         if (call_on_removed) {
             entity->OnRemovedFromPipeline(this);
         }
 
-        auto pending_addition_it = std::find(
-            m_entities_pending_addition.begin(),
-            m_entities_pending_addition.end(),
-            entity
-        );
+        auto pending_addition_it = m_entities_pending_addition.Find(entity);
 
-        if (pending_addition_it != m_entities_pending_addition.end()) {
+        if (pending_addition_it != m_entities_pending_addition.End()) {
             
             // directly remove from list of ones pending addition
-            m_entities_pending_addition.erase(pending_addition_it);
+            m_entities_pending_addition.Erase(pending_addition_it);
         } else {
-            m_entities_pending_removal.push_back(std::move(entity));
+            m_entities_pending_removal.PushBack(std::move(entity));
         }
 
         UpdateEnqueuedEntitiesFlag();
@@ -136,38 +121,39 @@ void RendererInstance::PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_i
 
     m_enqueued_entities_sp.Wait();
 
-    if (!m_entities_pending_removal.empty()) {
-        for (auto it = m_entities_pending_removal.begin(); it != m_entities_pending_removal.end();) {
-            const auto entities_it = std::find(m_entities.begin(), m_entities.end(), *it); // oof
+    if (m_entities_pending_removal.Any()) {
+        for (auto it = m_entities_pending_removal.Begin(); it != m_entities_pending_removal.End();) {
+            const auto entities_it = m_entities.Find(*it); // oof
             
-            if (entities_it != m_entities.end()) {
-                m_entities.erase(entities_it);
+            if (entities_it != m_entities.End()) {
+                m_entities.Erase(entities_it);
             }
 
-            it = m_entities_pending_removal.erase(it);
+            it = m_entities_pending_removal.Erase(it);
         }
     }
 
-    if (!m_entities_pending_addition.empty()) {
+    if (m_entities_pending_addition.Any()) {
         // we only add entities that are fully ready,
         // keeping ones that aren't finished initializing in the vector,
         // they should be finished on the next pass
         
-        auto it = m_entities_pending_addition.begin();
+        auto it = m_entities_pending_addition.Begin();
         
-        while (it != m_entities_pending_addition.end()) {
+        while (it != m_entities_pending_addition.End()) {
             AssertThrow(*it != nullptr);
 
             if ((*it)->GetMesh() == nullptr // TODO: I don't believe it's threadsafe to just check if this is null like this
-                || std::find(m_entities.begin(), m_entities.end(), *it) != m_entities.end()) { // :(
-                it = m_entities_pending_addition.erase(it);
+                || m_entities.Find(*it) != m_entities.End()) { // :(
+                it = m_entities_pending_addition.Erase(it);
                 
                 continue;
             }
             
             if ((*it)->IsReady() && (*it)->GetMesh()->IsReady()) {
-                m_entities.push_back(std::move(*it));
-                it = m_entities_pending_addition.erase(it);
+                Attach(*it);
+                m_entities.PushBack(std::move(*it));
+                it = m_entities_pending_addition.Erase(it);
                 
                 continue;
             }
@@ -190,24 +176,23 @@ void RendererInstance::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    AssertThrow(m_fbos.Any());
+
+    for (auto &fbo : m_fbos) {
+        AssertThrow(fbo != nullptr);
+        Attach(fbo);
+    }
+
+    AssertThrow(m_shader != nullptr);
+    Attach(m_shader);
+
+    for (auto &&entity : m_entities) {
+        AssertThrow(entity != nullptr);
+        Attach(entity);
+    }
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         auto *engine = GetEngine();
-
-        AssertThrow(m_fbos.Any());
-
-        for (auto &fbo : m_fbos) {
-            AssertThrow(fbo != nullptr);
-            Attach(fbo);
-        }
-
-        AssertThrow(m_shader != nullptr);
-        Attach(m_shader);
-
-        for (auto &&entity : m_entities) {
-            AssertThrow(entity != nullptr);
-
-            entity->Init(engine);
-        }
 
         m_indirect_renderer.Create(engine);    
 
@@ -270,7 +255,7 @@ void RendererInstance::Init(Engine *engine)
                 entity->OnRemovedFromPipeline(this);
             }
 
-            m_entities.clear();
+            m_entities.Clear();
             
             // std::lock_guard guard(m_enqueued_entities_mutex);
 
@@ -284,8 +269,8 @@ void RendererInstance::Init(Engine *engine)
                 entity->OnRemovedFromPipeline(this);
             }
 
-            m_entities_pending_addition.clear();
-            m_entities_pending_removal.clear();
+            m_entities_pending_addition.Clear();
+            m_entities_pending_removal.Clear();
 
             m_enqueued_entities_sp.Signal();
 

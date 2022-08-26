@@ -58,7 +58,7 @@ bool AnimationController::FindSkeleton(Node *node)
     }
 
     if (auto &entity = node->GetEntity()) {
-        if (FindSkeletonDirect(entity.ptr)) {
+        if (FindSkeletonDirect(entity.Get())) {
             return true;
         }
     }

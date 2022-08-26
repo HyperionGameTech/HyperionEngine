@@ -611,28 +611,6 @@ void Entity::RemoveFromOctree(Engine *engine)
 
 bool Entity::IsReady() const
 {
-    /*if (!Base::IsReady()) {
-        return false;
-    }
-    
-    if (m_skeleton != nullptr && !m_skeleton->IsReady()) {
-        return false;
-    }
-    
-    if (m_shader != nullptr && !m_shader->IsReady()) {
-        return false;
-    }
-    
-    if (m_mesh != nullptr && !m_mesh->IsReady()) {
-        return false;
-    }
-
-    if (m_material != nullptr && !m_material->IsReady()) {
-        return false;
-    }
-    
-    return true;*/
-
     return Base::IsReady();
 }
 

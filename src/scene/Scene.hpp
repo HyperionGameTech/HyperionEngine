@@ -39,10 +39,10 @@ public:
     void SetCamera(Handle<Camera> &&camera) { m_camera = std::move(camera); }
 
     /*! \brief Add an Entity to the queue. On Update(), it will be added to the scene. */
-    bool AddEntity(Ref<Entity> &&entity);
+    bool AddEntity(Handle<Entity> &&entity);
     bool HasEntity(Entity::ID id) const;
     /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
-    bool RemoveEntity(const Ref<Entity> &entity);
+    bool RemoveEntity(const Handle<Entity> &entity);
 
     /* ONLY CALL FROM GAME THREAD!!! */
     auto &GetEntities() { return m_entities; }
@@ -78,9 +78,9 @@ private:
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    void RequestRendererInstanceUpdate(Ref<Entity> &entity);
-    void RemoveFromRendererInstance(Ref<Entity> &entity, RendererInstance *renderer_instance);
-    void RemoveFromRendererInstances(Ref<Entity> &entity);
+    void RequestRendererInstanceUpdate(Handle<Entity> &entity);
+    void RemoveFromRendererInstance(Handle<Entity> &entity, RendererInstance *renderer_instance);
+    void RemoveFromRendererInstances(Handle<Entity> &entity);
 
     Handle<Camera> m_camera;
     NodeProxy m_root_node_proxy;
@@ -88,12 +88,12 @@ private:
     World *m_world;
 
     // entities live in GAME thread
-    FlatMap<IDBase, Ref<Entity>> m_entities;
+    FlatMap<IDBase, Handle<Entity>> m_entities;
 
     // NOTE: not for thread safety, it's to defer updates so we don't
     // remove in the update loop.
     FlatSet<Entity::ID> m_entities_pending_removal;
-    FlatSet<Ref<Entity>> m_entities_pending_addition;
+    FlatSet<Handle<Entity>> m_entities_pending_addition;
 
     Matrix4 m_last_view_projection_matrix;
                                  

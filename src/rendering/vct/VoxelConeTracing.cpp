@@ -132,12 +132,12 @@ void VoxelConeTracing::InitGame(Engine *engine)
             && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
                 & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_renderer_instance->AddEntity(it.second.IncRef());
+            m_renderer_instance->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
 
-void VoxelConeTracing::OnEntityAdded(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityAdded(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -146,20 +146,20 @@ void VoxelConeTracing::OnEntityAdded(Ref<Entity> &entity)
     if (BucketHasGlobalIllumination(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     }
 }
 
-void VoxelConeTracing::OnEntityRemoved(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityRemoved(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
-    m_renderer_instance->RemoveEntity(entity.IncRef());
+    m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
 }
 
-void VoxelConeTracing::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
+void VoxelConeTracing::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -167,13 +167,12 @@ void VoxelConeTracing::OnEntityRenderableAttributesChanged(Ref<Entity> &entity)
 
     const auto &renderable_attributes = entity->GetRenderableAttributes();
 
-    // TODO: better handling
     if (BucketHasGlobalIllumination(entity->GetBucket())
         && (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes
             & m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_renderer_instance->AddEntity(entity.IncRef());
+        m_renderer_instance->AddEntity(Handle<Entity>(entity));
     } else {
-        m_renderer_instance->RemoveEntity(entity.IncRef());
+        m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
     }
 }
 
