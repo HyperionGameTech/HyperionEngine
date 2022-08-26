@@ -16,6 +16,8 @@
 #include <rendering/RenderState.hpp>
 #include <scene/World.hpp>
 
+#include <ResourceMap.hpp>
+
 #include "GameThread.hpp"
 #include "Threads.hpp"
 #include "TaskSystem.hpp"
@@ -35,6 +37,8 @@
 
 #include <util/EnumOptions.hpp>
 #include <builders/shader_compiler/ShaderCompiler.hpp>
+
+#include <Component.hpp>
 
 #include <Types.hpp>
 
@@ -224,6 +228,22 @@ public:
     GameThread game_thread;
     TaskSystem task_system;
 
+    template <class T>
+    void Attach(Handle<T> &handle, bool init = true)
+    {
+        if (!handle) {
+            return;
+        }
+
+        registry.template Attach<T>(handle);
+
+        if (init) {
+            handle->Init(this);
+        }
+    }
+
+    ComponentSystem registry;
+
 private:
     void FinalizeStop();
 
@@ -239,7 +259,7 @@ private:
     void FindTextureFormatDefaults();
     
     std::unique_ptr<Instance> m_instance;
-    std::unique_ptr<RendererInstance> m_root_pipeline;
+    Handle<RendererInstance> m_root_pipeline;
 
     EnumOptions<TextureFormatDefault, Image::InternalFormat, 16> m_texture_format_defaults;
 

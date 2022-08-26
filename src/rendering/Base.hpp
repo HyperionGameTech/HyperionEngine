@@ -26,95 +26,114 @@ class Engine;
 
 Device *GetEngineDevice(Engine *engine);
 
-struct AttachmentSet {
-    using Initializer = std::add_pointer_t<void(void *, Engine *)>;
+template <class Parent>
+struct AttachmentSet
+{
+    using Initializer = std::add_pointer_t<void(WeakHandleBase &, Parent *)>;
 
     Initializer init_fn;
-    FlatMap<HandleID, HandleBase> objects;
+    DynArray<WeakHandleBase> objects;
 };
 
-class AttachmentMap {
+template <class Parent>
+class AttachmentMap
+{
 public:
-    void InitializeAll(Engine *engine)
+    void InitializeAll(Parent *parent)
     {
         for (auto &it : m_attachments) {
             for (auto &object_it : it.second.objects) {
-                void *object_ptr = object_it.second.Get();
+                WeakHandleBase &handle = object_it;
 
-                it.second.init_fn(object_ptr, engine);
+                it.second.init_fn(handle, parent);
             }
         }
     }
 
+    // template <class T>
+    // T *Get(const HandleID &id)
+    // {
+    //     auto it = m_attachments.template Find<T>();
+
+    //     if (it == m_attachments.End()) {
+    //         return nullptr;
+    //     }
+
+    //     const auto objects_it = it->second.objects.Find(id);
+
+    //     if (objects_it == it->second.objects.End()) {
+    //         return nullptr;
+    //     }
+
+    //     return static_cast<T *>(objects_it->second.Get());
+    // }
+
     template <class T>
-    T *Get(const HandleID &id)
+    void Attach(Parent *parent, Handle<T> &handle, bool init_immediately)
     {
-        TypeMap<AttachmentSet>::Iterator it = m_attachments.Find<T>();
+        AssertThrow(parent != nullptr);
 
-        if (it == m_attachments.End()) {
-            return nullptr;
-        }
-
-        const auto objects_it = it->second.objects.Find(id);
-
-        if (objects_it == it->second.objects.End()) {
-            return nullptr;
-        }
-
-        return static_cast<T *>(objects_it->second.Get());
-    }
-
-    template <class T, class ...Args>
-    void Attach(Handle<T> &&handle, bool init_immediately, Args &&... args)
-    {
         if (!handle) {
             return;
         }
 
         if (init_immediately) {
-            handle->Init(std::forward<Args>(args)...);
+            parent->GetEngine()->template Attach<T>(handle, init_immediately);
         }
 
-        auto it = m_attachments.Find<T>();
+        auto it = m_attachments.template Find<NormalizedType<T>>();
 
         if (it == m_attachments.End()) {
-            const auto handle_id = handle.GetID();
+            m_attachments.template Set<NormalizedType<T>>(AttachmentSet<Parent> {
+                .init_fn = [](WeakHandleBase &handle, Parent *parent) {
+                    auto handle_casted = handle.template Lock<T>();
+                    AssertThrow(handle_casted);
 
-            m_attachments.Set<T>(AttachmentSet {
-                .init_fn = [](void *ptr, Engine *engine) {
-                    static_cast<T *>(ptr)->Init(engine);
+                    // handle_casted->Init(parent->GetEngine());
+
+                    parent->GetEngine()->template Attach<T>(handle_casted);
                 },
-                .objects = FlatMap<HandleID, HandleBase> {
-                    { handle_id, std::move(handle) }
+                .objects = DynArray<WeakHandleBase> {
+                    WeakHandleBase(handle)
                 }
             });
 
             return;
         }
 
-        it->second.objects.PushBack(std::move(handle));
+        it->second.objects.PushBack(WeakHandleBase(handle));
     }
 
     template <class T>
-    bool Detach(const typename Handle<T>::ID &id)
+    bool Detach(const Handle<T> &handle)
     {
-        TypeMap<AttachmentSet>::Iterator it = m_attachments.Find<T>();
+        if (!handle) {
+            return false;
+        }
+
+        auto it = m_attachments.template Find<NormalizedType<T>>();
 
         if (it == m_attachments.End()) {
             return false;
         }
 
-        return it->second.objects.Erase(id);
+        auto objects_it = it->second.objects.Find(handle);
+
+        if (objects_it == it->second.objects.End()) {
+            return false;
+        }
+
+        return it->second.objects.Erase(objects_it);
     }
 
 private:
-    TypeMap<AttachmentSet> m_attachments;
+    TypeMap<AttachmentSet<Parent>> m_attachments;
 };
-
-
 
 template <class T, class ClassName>
 struct StubbedClass : public Class<ClassName> {
+    using InnerType = T;
+
     StubbedClass() = default;
     ~StubbedClass() = default;
 
@@ -151,11 +170,13 @@ class EngineComponentBase
     : public EngineComponentBaseBase,
       public CallbackTrackable<EngineCallbacks>
 {
+    using InnerType = typename Type::InnerType;
+
 public:
-    using ID = ComponentID<Type>;
+    using ID = typename Handle<InnerType>::ID;//ComponentID<Type>;
     using ComponentInitInfo = ComponentInitInfo<Type>;
 
-    static constexpr ID empty_id = ID{0};
+    static constexpr ID empty_id = ID { };
 
     EngineComponentBase()
         : EngineComponentBase(ComponentInitInfo {})
@@ -202,28 +223,44 @@ public:
         m_init_called = true;
         m_engine = engine;
 
-        m_attachment_map.InitializeAll(engine);
+        m_attachment_map.InitializeAll(static_cast<InnerType *>(this));
+    }
+
+    HYP_FORCE_INLINE Engine *GetEngine() const
+    {
+        AssertThrowMsg(
+            m_engine != nullptr,
+            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
+        );
+
+        return m_engine;
+    }
+
+protected:
+    void Teardown()
+    {
+        if (IsInitCalled()) {
+            GetEngine()->registry.template Release<InnerType>(GetId());
+        }
+
+        CallbackTrackable::Teardown();
     }
 
     template <class T>
-    void Attach(Handle<T> &&handle)
-        { m_attachment_map.Attach(std::move(handle), m_init_called, m_engine); }
-
-    template <class T>
-    void Attach(const Handle<T> &handle)
-        { m_attachment_map.Attach(handle, m_init_called, m_engine); }
-
-    template <class T>
-    void Detach(const typename Handle<T>::ID &id)
-        { m_attachment_map.Detach(id); }
+    void Attach(Handle<T> &handle)
+        { m_attachment_map.template Attach<T>(static_cast<InnerType *>(this), handle, m_init_called); }
 
     template <class T>
     void Detach(const Handle<T> &handle)
-        { m_attachment_map.Detach(handle); }
+        { m_attachment_map.template Detach<T>(handle); }
 
     template <class T>
-    T *GetAttachment(const HandleID &id)
-        { return m_attachment_map.Get<T>(id); }
+    void Detach(const typename Handle<T>::ID &id)
+        { m_attachment_map.template Detach<T>(id); }
+
+    // template <class T>
+    // T *GetAttachment(const HandleID &id)
+    //     { return m_attachment_map.template Get<T>(id); }
 
 protected:
     using Class = Type;
@@ -235,7 +272,8 @@ protected:
         m_engine = nullptr;
     }
     
-    void SetReady(bool is_ready) { m_is_ready = is_ready; }
+    void SetReady(bool is_ready)
+        { m_is_ready = is_ready; }
 
     HYP_FORCE_INLINE void AssertReady() const
     {
@@ -246,16 +284,6 @@ protected:
             "it is ready to be constructed, and this event has not yet been sent.\n"
         );
     }
-    
-    HYP_FORCE_INLINE Engine *GetEngine() const
-    {
-        AssertThrowMsg(
-            m_engine != nullptr,
-            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
-        );
-
-        return m_engine;
-    }
 
     ID                      m_id;
     std::atomic_bool        m_init_called;
@@ -263,15 +291,16 @@ protected:
     Engine                 *m_engine;
     ComponentInitInfo       m_init_info;
 
-    AttachmentMap m_attachment_map;
+    AttachmentMap<InnerType> m_attachment_map;
 };
 
-template <class WrappedType>
-class EngineComponentWrapper : public EngineComponentBase<WrappedType> {
+template <class Type, class WrappedType>
+class EngineComponentWrapper : public EngineComponentBase<Type>
+{
 public:
     template <class ...Args>
     EngineComponentWrapper(Args &&... args)
-        : EngineComponentBase<WrappedType>(),
+        : EngineComponentBase<Type>(),
           m_wrapped(std::move(args)...),
           m_wrapped_created(false)
     {
@@ -332,7 +361,7 @@ public:
         m_wrapped_destroyed = false;
 #endif
 
-        EngineComponentBase<WrappedType>::Init(engine);
+        EngineComponentBase<Type>::Init(engine);
     }
 
     /* Standard non-specialized destruction function */
@@ -364,7 +393,7 @@ public:
         m_wrapped_destroyed = true;
 #endif
 
-        EngineComponentBase<WrappedType>::Destroy();
+        EngineComponentBase<Type>::Destroy();
     }
 
 protected:

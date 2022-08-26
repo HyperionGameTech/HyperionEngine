@@ -126,7 +126,7 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
         DynArray<const DescriptorSet *> { m_depth_pyramid_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
     ));
 
-    m_generate_depth_pyramid->Init(engine);
+    engine->Attach(m_generate_depth_pyramid);
 }
 
 void DepthPyramidRenderer::Destroy(Engine *engine)

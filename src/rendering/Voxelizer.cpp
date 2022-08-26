@@ -41,7 +41,7 @@ void Voxelizer::Init(Engine *engine)
             ))
         ));
 
-        m_scene->Init(engine);
+        Attach(m_scene);
 
         if (m_counter == nullptr) {
             m_counter = std::make_unique<AtomicCounter>();
@@ -118,7 +118,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
         )
     );
     
-    renderer_instance->AddFramebuffer(m_framebuffer.IncRef());
+    Attach(m_framebuffer);
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
     
@@ -130,7 +130,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
         }
     }
 
-    m_renderer_instance->Init(engine);
+    Attach(m_renderer_instance);
 }
 
 void Voxelizer::CreateShader(Engine *engine)
@@ -143,7 +143,7 @@ void Voxelizer::CreateShader(Engine *engine)
         }
     ));
 
-    m_shader->Init(engine);
+    Attach(m_shader);
 }
 
 void Voxelizer::CreateRenderPass(Engine *engine)
@@ -153,17 +153,17 @@ void Voxelizer::CreateRenderPass(Engine *engine)
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     ));
 
-    m_render_pass->Init(engine);
+    Attach(m_render_pass);
 }
 
 void Voxelizer::CreateFramebuffer(Engine *engine)
 {
-    m_framebuffer = engine->resources->framebuffers.Add(new Framebuffer(
+    m_framebuffer = Handle<Framebuffer>(new Framebuffer(
         Extent2D { voxel_map_size, voxel_map_size },
         Handle<RenderPass>(m_render_pass)
     ));
     
-    m_framebuffer.Init();
+    Attach(m_framebuffer);
 }
 
 void Voxelizer::CreateDescriptors(Engine *engine)

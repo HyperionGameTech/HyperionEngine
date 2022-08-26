@@ -680,7 +680,7 @@ public:
             if (!free_slots.empty()) {
                 auto front = free_slots.front();
 
-                next_id = typename T::ID { typename T::ID::ValueType(front + 1) } ;
+                next_id = typename T::ID(TypeID::ForType<NormalizedType<T>>(), typename T::ID::ValueType(front + 1));
                 object->SetId(next_id);
 
                 objects[front] = object;
@@ -690,7 +690,7 @@ public:
             }
         }
 
-        next_id = typename T::ID { typename T::ID::ValueType(objects.size() + 1) } ;
+        next_id = typename T::ID(TypeID::ForType<NormalizedType<T>>(), typename T::ID::ValueType(objects.size() + 1));
         object->SetId(next_id);
 
         objects.push_back(object);

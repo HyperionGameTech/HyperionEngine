@@ -13,7 +13,8 @@ namespace hyperion::v2 {
 using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlags;
 
-class Blas : public EngineComponentWrapper<BottomLevelAccelerationStructure> {
+class Blas : public EngineComponentWrapper<STUB_CLASS(Blas), BottomLevelAccelerationStructure>
+{
 public:
     Blas(Ref<Mesh> &&mesh, const Transform &transform);
     Blas(const Blas &other) = delete;

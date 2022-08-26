@@ -4,7 +4,8 @@
 namespace hyperion {
 
 template <class Key, class Value, size_t Size>
-struct StaticMap {
+struct StaticMap
+{
     std::array<std::pair<Key, Value>, Size> pairs;
     
     constexpr Value &operator[](const Key &key) const

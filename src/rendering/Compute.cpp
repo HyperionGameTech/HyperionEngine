@@ -31,18 +31,20 @@ void ComputePipeline::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    Attach(m_shader);
+    AssertThrow(m_shader->IsInitCalled());
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
         AssertThrow(m_shader != nullptr);
-        m_shader->Init(engine);
 
         engine->render_scheduler.Enqueue([this, engine](...) {
-           return m_pipeline->Create(
-               engine->GetDevice(),
-               m_shader->GetShaderProgram(),
-               &engine->GetInstance()->GetDescriptorPool()
-           ); 
+            return m_pipeline->Create(
+                engine->GetDevice(),
+                m_shader->GetShaderProgram(),
+                &engine->GetInstance()->GetDescriptorPool()
+            );
         });
 
         SetReady(true);

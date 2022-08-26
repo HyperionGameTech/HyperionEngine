@@ -105,7 +105,7 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_update_irradiance->Init(engine);
+    engine->Attach(m_update_irradiance);
 
     m_update_depth = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -115,7 +115,7 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_update_depth->Init(engine);
+    engine->Attach(m_update_depth);
 }
 
 void ProbeGrid::CreateUniformBuffer(Engine *engine)

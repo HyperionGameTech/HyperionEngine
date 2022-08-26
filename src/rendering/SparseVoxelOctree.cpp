@@ -216,7 +216,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_alloc_nodes->Init(engine);
+    Attach(m_alloc_nodes);
 
     m_init_nodes = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -226,7 +226,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_init_nodes->Init(engine);
+    Attach(m_init_nodes);
 
     m_tag_nodes = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -236,7 +236,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_tag_nodes->Init(engine);
+    Attach(m_tag_nodes);
 
     m_modify_args = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -246,7 +246,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_modify_args->Init(engine);
+    Attach(m_modify_args);
 
     m_write_mipmaps = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -256,7 +256,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_write_mipmaps->Init(engine);
+    Attach(m_write_mipmaps);
 }
 
 void SparseVoxelOctree::Build(Engine *engine)

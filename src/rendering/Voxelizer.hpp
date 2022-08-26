@@ -59,7 +59,7 @@ private:
     std::unique_ptr<AtomicCounter> m_counter;
     std::unique_ptr<StorageBuffer> m_fragment_list_buffer;
 
-    Ref<Framebuffer> m_framebuffer;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
     Handle<RendererInstance> m_renderer_instance;

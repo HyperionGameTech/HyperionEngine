@@ -136,7 +136,7 @@ public:
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                out_object->AddChild(NodeProxy(node.deserialized.Release<Node>()));
+                out_object->AddChild(NodeProxy(node.deserialized.Cast<Node>()));
             } else if (node.GetType().IsOrExtends("Entity")) {
                 // out_object->SetEntity(resources->entities.Add(node.deserialized.Release<Entity>()));
             }

@@ -55,7 +55,7 @@ void TerrainPagingController::OnAdded()
     // m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1_Roughness.png")));
     // m_material->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>(GetEngine()->assets.Load<Texture>("textures/rocky_dirt1-ue/rocky_dirt1-metallic.png")));
 
-    m_material->Init(GetEngine());
+    GetEngine()->Attach(m_material);
 
     PagingController::OnAdded();
 }

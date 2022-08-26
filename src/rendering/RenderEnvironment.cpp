@@ -69,7 +69,7 @@ void RenderEnvironment::Init(Engine *engine)
                 auto &light = it.second;
 
                 if (light != nullptr) {
-                    light->Init(engine);
+                    Attach(light);
                 }
             }
         }
@@ -183,14 +183,14 @@ void RenderEnvironment::Init(Engine *engine)
 
 void RenderEnvironment::AddLight(Handle<Light> &&light)
 {
-    if (light != nullptr && IsReady()) {
-        light->Init(GetEngine());
+    if (!light) {
+        return;
     }
 
+    Attach(light);
+
     m_light_update_sp.Wait();
-
     m_lights_pending_addition.Push(std::move(light));
-
     m_light_update_sp.Signal();
     
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_LIGHTS;
@@ -198,8 +198,11 @@ void RenderEnvironment::AddLight(Handle<Light> &&light)
 
 void RenderEnvironment::RemoveLight(Handle<Light> &&light)
 {
-    m_light_update_sp.Wait();
+    if (!light) {
+        return;
+    }
 
+    m_light_update_sp.Wait();
     m_lights_pending_removal.Push(std::move(light));
     m_light_update_sp.Signal();
     

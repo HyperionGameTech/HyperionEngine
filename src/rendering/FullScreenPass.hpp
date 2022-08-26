@@ -54,7 +54,9 @@ public:
     ~FullScreenPass();
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].get(); }
-    Framebuffer *GetFramebuffer(UInt index) const { return m_framebuffers[index].ptr; }
+
+    Handle<Framebuffer> &GetFramebuffer(UInt index) { return m_framebuffers[index]; }
+    const Handle<Framebuffer> &GetFramebuffer(UInt index) const { return m_framebuffers[index]; }
                                                       
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
@@ -88,7 +90,7 @@ protected:
     void CreateQuad(Engine *engine);
 
     FixedArray<std::unique_ptr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
-    FixedArray<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
     Handle<RendererInstance> m_renderer_instance;

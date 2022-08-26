@@ -68,13 +68,13 @@ public:
     
     void AddEntity(Ref<Entity> &&entity);
     void RemoveEntity(Ref<Entity> &&entity, bool call_on_removed = true);
-    auto &GetEntities()                                     { return m_entities; }
-    const auto &GetEntities() const                         { return m_entities; }
+    auto &GetEntities() { return m_entities; }
+    const auto &GetEntities() const { return m_entities; }
 
-    void AddFramebuffer(Ref<Framebuffer> &&fbo)             { m_fbos.push_back(std::move(fbo)); }
+    void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
     void RemoveFramebuffer(Framebuffer::ID id);
-    auto &GetFramebuffers()                                 { return m_fbos; } 
-    const auto &GetFramebuffers() const                     { return m_fbos; }
+    DynArray<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
+    const DynArray<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
     
     void Init(Engine *engine);
     
@@ -113,7 +113,7 @@ private:
 
     IndirectRenderer m_indirect_renderer;
     
-    std::vector<Ref<Framebuffer>> m_fbos;
+    DynArray<Handle<Framebuffer>> m_fbos;
 
     std::vector<Ref<Entity>> m_entities; // lives in RENDER thread
     std::vector<Ref<Entity>> m_entities_pending_addition; // shared
@@ -124,7 +124,6 @@ private:
     // std::mutex m_enqueued_entities_mutex;
     BinarySemaphore m_enqueued_entities_sp;
     std::atomic_bool m_enqueued_entities_flag { false };
-
 };
 
 } // namespace hyperion::v2

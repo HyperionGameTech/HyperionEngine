@@ -65,6 +65,11 @@ NodeProxy::NodeProxy(Node *ptr)
     Base::Reset(ptr);
 }
 
+NodeProxy::NodeProxy(const Base &other)
+    : Base(other)
+{
+}
+
 NodeProxy::NodeProxy(const NodeProxy &other)
     : Base(other)
 {

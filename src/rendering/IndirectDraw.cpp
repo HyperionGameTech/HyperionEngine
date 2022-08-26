@@ -393,7 +393,7 @@ void IndirectRenderer::Create(Engine *engine)
         DynArray<const DescriptorSet *> { m_descriptor_sets[0].get() }
     ));
 
-    m_object_visibility->Init(engine);
+    engine->Attach(m_object_visibility);
 
 
     // RendererInstance flushes render queue on destroy

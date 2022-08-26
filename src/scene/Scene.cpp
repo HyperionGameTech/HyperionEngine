@@ -30,12 +30,14 @@ void Scene::Init(Engine *engine)
     
     EngineComponentBase::Init(engine);
 
+    Attach(m_camera);
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SCENES, [this](...) {
         auto *engine = GetEngine();
 
-        if (m_camera) {
-            m_camera->Init(engine);
-        }
+        // if (m_camera) {
+        //     m_camera->Init(engine);
+        // }
 
         m_environment->Init(engine);
 

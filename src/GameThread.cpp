@@ -24,11 +24,11 @@ void GameThread::operator()(Engine *engine, Game *game, SystemWindow *window)
     GameCounter counter;
 #endif
 
-    m_is_running.store(true);
+    m_is_running.store(true, std::memory_order_relaxed);
 
     game->InitGame(engine);
 
-    while (engine->m_running.load()) {
+    while (engine->m_running.load(std::memory_order_relaxed)) {
         if (auto num_enqueued = m_scheduler->NumEnqueued()) {
             m_scheduler->Flush([last_delta = counter.delta](auto &fn) {
                 fn(last_delta);
@@ -53,7 +53,7 @@ void GameThread::operator()(Engine *engine, Game *game, SystemWindow *window)
 
     game->Teardown(engine);
 
-    m_is_running.store(false);
+    m_is_running.store(false, std::memory_order_relaxed);
 }
 
 } // namespace hyperion::v2

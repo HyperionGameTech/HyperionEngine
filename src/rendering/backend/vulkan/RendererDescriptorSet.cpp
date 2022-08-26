@@ -662,7 +662,7 @@ void DescriptorPool::RemoveDescriptorSet(UInt index)
     // equals means that the descriptor set is for frame 0
     const UInt queue_index = DescriptorSet::GetFrameIndex(index);
 
-    m_descriptor_sets_pending_destruction[queue_index].Push(index);
+    m_descriptor_sets_pending_destruction[queue_index].Push(std::move(m_descriptor_sets[index]));
 
     // look through the list of items pending addition, remove from there
     for (auto it = m_descriptor_sets_pending_addition.begin(); it != m_descriptor_sets_pending_addition.end();) {
@@ -679,9 +679,9 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
     auto &descriptor_set_queue = m_descriptor_sets_pending_destruction[frame_index];
 
     while (!descriptor_set_queue.Empty()) {
-        const auto index = descriptor_set_queue.Front();
+        auto &front = descriptor_set_queue.Front();
 
-        HYPERION_BUBBLE_ERRORS(DestroyDescriptorSet(device, index));
+        HYPERION_BUBBLE_ERRORS(DestroyDescriptorSet(device, front));
 
         descriptor_set_queue.Pop();
     }
@@ -759,11 +759,11 @@ Result DescriptorPool::UpdateDescriptorSets(Device *device, UInt frame_index)
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::DestroyDescriptorSet(Device *device, UInt index)
+Result DescriptorPool::DestroyDescriptorSet(Device *device, std::unique_ptr<DescriptorSet> &descriptor_set)
 {
-    if (index >= m_descriptor_sets.size()) {
-        return {Result::RENDERER_ERR, "Out of bounds"};
-    }
+    // if (index >= m_descriptor_sets.size()) {
+    //     return { Result::RENDERER_ERR, "Out of bounds" };
+    // }
 
 #ifdef HYP_LOG_DESCRIPTOR_SET_UPDATES
     DebugLog(
@@ -773,24 +773,26 @@ Result DescriptorPool::DestroyDescriptorSet(Device *device, UInt index)
     );
 #endif
 
-    auto &descriptor_set = m_descriptor_sets[index];
+    // auto &descriptor_set = m_descriptor_sets[index];
 
     if (descriptor_set == nullptr) {
-        return {Result::RENDERER_ERR, "Descriptor set is nullptr"};
+        return { Result::RENDERER_ERR, "Descriptor set is nullptr" };
     }
 
     HYPERION_BUBBLE_ERRORS(descriptor_set->Destroy(device));
 
     descriptor_set.reset();
 
-    if (index == m_descriptor_sets.size() - 1) {
-        UInt iteration_index = index;
+    //! TODO!! Add back, when our IDs are no longer having gaps for removed items
 
-        do {
-            m_descriptor_sets.pop_back();
-            --iteration_index;
-        } while (m_descriptor_sets[iteration_index] == nullptr);
-    }
+    // if (index == m_descriptor_sets.size() - 1) {
+    //     UInt iteration_index = index;
+
+    //     do {
+    //         m_descriptor_sets.pop_back();
+    //         --iteration_index;
+    //     } while (m_descriptor_sets[iteration_index] == nullptr);
+    // }
 
     HYPERION_RETURN_OK;
 }

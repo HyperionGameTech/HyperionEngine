@@ -8,29 +8,61 @@
 
 namespace hyperion {
 
-struct TypeID {
+struct TypeID
+{
     using Value = UInt;
 
 private:
-    static inline std::atomic<Value> type_id_counter;
+    struct TypeIDGeneratorBase
+    {
+        static inline std::atomic<Value> counter { 0u };
+    };
+
+    template <class T>
+    struct TypeIDGenerator : TypeIDGeneratorBase
+    {
+        static const TypeID &GetID()
+        {
+            static const TypeID id = TypeID { ++TypeIDGeneratorBase::counter };
+
+            return id;
+        }
+    };
+
+    template <>
+    struct TypeIDGenerator<void> : TypeIDGeneratorBase
+    {
+        static const TypeID &GetID()
+        {
+            static const TypeID id = TypeID { 0u };
+
+            return id;
+        }
+    };
 
 public:
     template <class T>
     static const TypeID &ForType()
     {
-        static const TypeID id = TypeID { ++type_id_counter };
+        // static const TypeID id = TypeID { ++type_id_counter };
 
-        return id;
+        // return id;
+
+        return TypeIDGenerator<T>::GetID();
     }
 
+    /*! \brief The underlying value of the TypeID object.
+        Note, do not rely on using this directly! This could easily
+        change between implementations, or depending on the order of which
+        TypeIDs are instantiated. */
     Value value;
 
-    TypeID() : value { } {}
-    TypeID(const Value &id) : value(id) {}
-    TypeID(const TypeID &other) = default;
+    constexpr TypeID() : value { } { }
+    constexpr TypeID(const Value &id) : value(id) {}
+    constexpr TypeID(const TypeID &other) = default;
     TypeID &operator=(const TypeID &other) = default;
 
-    TypeID(TypeID &&other) noexcept
+    constexpr TypeID(TypeID &&other) noexcept
         : value(other.value)
     {
         other.value = 0;

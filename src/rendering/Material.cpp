@@ -35,14 +35,14 @@ void Material::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    for (SizeType i = 0; i < m_textures.Size(); i++) {
+        if (auto &texture = m_textures.ValueAt(i)) {
+            Attach(texture);
+        }
+    }
+
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_MATERIALS, [this](...) {
         auto *engine = GetEngine();
-
-        for (SizeType i = 0; i < m_textures.Size(); i++) {
-            if (auto &texture = m_textures.ValueAt(i)) {
-                texture->Init(engine);
-            }
-        }
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES
         EnqueueDescriptorSetCreate();
@@ -106,6 +106,7 @@ void Material::EnqueueDescriptorSetCreate()
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
 
             sampler_descriptor->SetSubDescriptor({
+                .element_index = 0u,
                 .sampler = &engine->GetPlaceholderData().GetSamplerLinear() // TODO: get proper sampler based on req's of image
             });
             
@@ -209,23 +210,26 @@ void Material::EnqueueRenderUpdates()
 
 void Material::EnqueueTextureUpdate(TextureKey key)
 {
-    GetEngine()->GetRenderScheduler().Enqueue([this, key, texture = m_textures.Get(key)](CommandBuffer *command_buffer, UInt frame_index) {
+    GetEngine()->GetRenderScheduler().Enqueue([this, key, texture = m_textures.Get(key)](...) {
         const auto texture_index = decltype(m_textures)::EnumToOrdinal(key);
 
         // update descriptor set for the given frame_index
         // these scheduled tasks are executed before descriptors sets are updated,
         // so it won't be updating a descriptor set that is in use
         const auto *engine = GetEngine();
-        const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
 
-        const auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
-        const auto *descriptor_set = descriptor_pool.GetDescriptorSet(descriptor_set_index);
-        auto *descriptor = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, m_id.value - 1, frame_index);
 
-        descriptor->SetSubDescriptor({
-            .element_index = static_cast<UInt>(texture_index),
-            .image_view = &texture->GetImageView()
-        });
+            const auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
+            const auto *descriptor_set = descriptor_pool.GetDescriptorSet(descriptor_set_index);
+            auto *descriptor = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
+
+            descriptor->SetSubDescriptor({
+                .element_index = static_cast<UInt>(texture_index),
+                .image_view = &texture->GetImageView()
+            });
+        }
 
         HYPERION_RETURN_OK;
     });
@@ -269,20 +273,17 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
 
     if (m_textures[key] != nullptr) {
         GetEngine()->SafeReleaseRenderResource<Texture>(std::move(m_textures[key]));
+        Detach(m_textures[key]);
     }
 
-    if (texture && IsReady()) {
-        texture->Init(GetEngine());
-
-        m_textures.Set(key, std::move(texture));
+    Attach(texture);
+    m_textures.Set(key, std::move(texture));
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES
+    if (texture && IsReady()) {
         EnqueueTextureUpdate(key);
-#endif
-    } else {
-        m_textures.Set(key, std::move(texture));
     }
-
+#endif
 
     m_shader_data_state |= ShaderDataState::DIRTY;
 }

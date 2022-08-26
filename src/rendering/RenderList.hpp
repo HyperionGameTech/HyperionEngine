@@ -26,7 +26,7 @@ public:
     {
         Bucket                                bucket{BUCKET_OPAQUE};
         Handle<RenderPass>                    render_pass;
-        DynArray<Ref<Framebuffer>>            framebuffers;
+        DynArray<Handle<Framebuffer>>         framebuffers;
         DynArray<std::unique_ptr<Attachment>> attachments;
         DynArray<Handle<RendererInstance>>    renderer_instances;
         DynArray<Handle<RendererInstance>>    renderer_instances_pending_addition;
@@ -43,8 +43,8 @@ public:
         Handle<RenderPass> &GetRenderPass() { return render_pass; }
         const Handle<RenderPass> &GetRenderPass() const { return render_pass; }
         
-        DynArray<Ref<Framebuffer>> &GetFramebuffers() { return framebuffers; }
-        const DynArray<Ref<Framebuffer>> &GetFramebuffers() const { return framebuffers; }
+        DynArray<Handle<Framebuffer>> &GetFramebuffers() { return framebuffers; }
+        const DynArray<Handle<Framebuffer>> &GetFramebuffers() const { return framebuffers; }
 
         DynArray<Handle<RendererInstance>> &GetRendererInstances() { return renderer_instances; }
         const DynArray<Handle<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }

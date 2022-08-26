@@ -100,6 +100,7 @@ public:
     NodeProxy();
     /*! \brief Takes ownership of the Node ptr */
     explicit NodeProxy(Node *ptr);
+    explicit NodeProxy(const Base &other);
     NodeProxy(const NodeProxy &other);
     NodeProxy &operator=(const NodeProxy &other);
     NodeProxy(NodeProxy &&other) noexcept;

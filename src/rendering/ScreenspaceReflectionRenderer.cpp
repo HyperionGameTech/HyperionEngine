@@ -154,7 +154,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_ssr_write_uvs->Init(engine);
+    engine->Attach(m_ssr_write_uvs);
 
     m_ssr_sample = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -164,7 +164,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_ssr_sample->Init(engine);
+    engine->Attach(m_ssr_sample);
 
     m_ssr_blur_hor = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -174,7 +174,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_ssr_blur_hor->Init(engine);
+    engine->Attach(m_ssr_blur_hor);
 
     m_ssr_blur_vert = Handle<ComputePipeline>(new ComputePipeline(
         Handle<Shader>(new Shader(
@@ -184,7 +184,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_ssr_blur_vert->Init(engine);
+    engine->Attach(m_ssr_blur_vert);
 }
 
 void ScreenspaceReflectionRenderer::Render(

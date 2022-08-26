@@ -18,6 +18,7 @@
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <core/lib/FlatMap.hpp>
+#include <core/lib/FixedArray.hpp>
 
 namespace hyperion::v2 {
 
@@ -79,7 +80,7 @@ private:
     Params m_params;
 
     Handle<Scene> m_scene;
-    std::array<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
     Handle<RendererInstance> m_renderer_instance;

@@ -144,7 +144,7 @@ void Engine::FindTextureFormatDefaults()
 void Engine::PrepareFinalPass()
 {
     m_full_screen_quad = Handle<Mesh>(MeshBuilder::Quad().release());
-    m_full_screen_quad->Init(this);
+    Attach(m_full_screen_quad);
 
     auto shader = Handle<Shader>(new Shader(
         std::vector<SubShader> {
@@ -153,7 +153,7 @@ void Engine::PrepareFinalPass()
         }
     ));
 
-    shader->Init(this);
+    Attach(shader);
 
     UInt iteration = 0;
     
@@ -223,9 +223,9 @@ void Engine::PrepareFinalPass()
             render_pass->GetRenderPass().AddAttachmentRef(color_attachment_ref);
             render_pass->GetRenderPass().AddAttachmentRef(depth_attachment_ref);
 
-            render_pass->Init(this);
+            Attach(render_pass);
 
-            m_root_pipeline = std::make_unique<RendererInstance>(
+            m_root_pipeline = Handle<RendererInstance>(new RendererInstance(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -237,10 +237,10 @@ void Engine::PrepareFinalPass()
                         .bucket = BUCKET_SWAPCHAIN
                     }
                 )
-            );
+            ));
         }
 
-        m_root_pipeline->AddFramebuffer(resources->framebuffers.Add(fbo.release()));
+        m_root_pipeline->AddFramebuffer(Handle<Framebuffer>(fbo.release()));
 
         ++iteration;
     }
@@ -249,7 +249,7 @@ void Engine::PrepareFinalPass()
 
     callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         m_render_list_container.AddFramebuffersToPipelines(this);
-        m_root_pipeline->Init(this);
+        Attach(m_root_pipeline);
     });
 }
 

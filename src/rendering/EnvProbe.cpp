@@ -8,6 +8,7 @@ EnvProbe::EnvProbe(Handle<Texture> &&texture)
       m_texture(std::move(texture)),
       m_needs_update(true)
 {
+    Attach(m_texture);
 }
 
 EnvProbe::EnvProbe(Handle<Texture> &&texture, const BoundingBox &aabb)
@@ -17,6 +18,7 @@ EnvProbe::EnvProbe(Handle<Texture> &&texture, const BoundingBox &aabb)
       m_world_position(aabb.GetCenter()),
       m_needs_update(true)
 {
+    Attach(m_texture);
 }
 
 EnvProbe::~EnvProbe()
@@ -34,10 +36,6 @@ void EnvProbe::Init(Engine *engine)
     
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
         auto *engine = GetEngine();
-
-        if (m_texture) {
-            m_texture->Init(engine);
-        }
 
         SetReady(true);
 

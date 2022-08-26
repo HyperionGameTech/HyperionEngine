@@ -44,7 +44,7 @@ void VoxelConeTracing::Init(Engine *engine)
             ))
         ));
 
-        m_scene->Init(engine);
+        Attach(m_scene);
 
         CreateImagesAndBuffers(engine);
         CreateShader(engine);
@@ -268,7 +268,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
         Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     ));
 
-    m_voxel_image->Init(engine);
+    Attach(m_voxel_image);
 
     engine->render_scheduler.Enqueue([this, engine](...) {
         HYPERION_BUBBLE_ERRORS(m_uniform_buffer.Create(engine->GetDevice(), sizeof(VoxelUniforms)));
@@ -308,11 +308,11 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        renderer_instance->AddFramebuffer(framebuffer.IncRef());
+        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance->Init(engine);
+    Attach(m_renderer_instance);
 }
 
 void VoxelConeTracing::CreateComputePipelines(Engine *engine)
@@ -325,7 +325,7 @@ void VoxelConeTracing::CreateComputePipelines(Engine *engine)
         ))
     ));
 
-    m_clear_voxels->Init(engine);
+    Attach(m_clear_voxels);
 }
 
 void VoxelConeTracing::CreateShader(Engine *engine)
@@ -345,7 +345,7 @@ void VoxelConeTracing::CreateShader(Engine *engine)
     }
     
     m_shader = Handle<Shader>(new Shader(sub_shaders));
-    m_shader->Init(engine);
+    Attach(m_shader);
 }
 
 void VoxelConeTracing::CreateRenderPass(Engine *engine)
@@ -355,18 +355,18 @@ void VoxelConeTracing::CreateRenderPass(Engine *engine)
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     ));
 
-    m_render_pass->Init(engine);
+    Attach(m_render_pass);
 }
 
 void VoxelConeTracing::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
             Extent2D(voxel_map_size),
             Handle<RenderPass>(m_render_pass)
         ));
         
-        m_framebuffers[i].Init();
+        Attach(m_framebuffers[i]);
     }
 }
 

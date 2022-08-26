@@ -27,19 +27,15 @@ RendererInstance::~RendererInstance()
 
 void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
 {
-    const auto it = std::find_if(
-        m_fbos.begin(),
-        m_fbos.end(),
-        [&](const auto &item) {
-            return item->GetId() == id;
-        }
-    );
+    const auto it = m_fbos.FindIf([&](const auto &item) {
+        return item->GetId() == id;
+    });
 
-    if (it == m_fbos.end()) {
+    if (it == m_fbos.End()) {
         return;
     }
     
-    m_fbos.erase(it);
+    m_fbos.Erase(it);
 }
 
 void RendererInstance::AddEntity(Ref<Entity> &&entity)
@@ -197,15 +193,15 @@ void RendererInstance::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
-        AssertThrow(!m_fbos.empty());
+        AssertThrow(m_fbos.Any());
 
         for (auto &fbo : m_fbos) {
             AssertThrow(fbo != nullptr);
-            fbo.Init();
+            Attach(fbo);
         }
 
         AssertThrow(m_shader != nullptr);
-        m_shader->Init(engine);
+        Attach(m_shader);
 
         for (auto &&entity : m_entities) {
             AssertThrow(entity != nullptr);

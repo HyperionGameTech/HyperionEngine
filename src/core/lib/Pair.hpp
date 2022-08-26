@@ -12,12 +12,12 @@ namespace hyperion {
 
 template <class First, class Second>
 struct Pair {
-    First  first;
+    First first;
     Second second;
 
     Pair()
-        : first{},
-          second{}
+        : first { },
+          second { }
     {
     }
 

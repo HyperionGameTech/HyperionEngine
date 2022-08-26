@@ -68,7 +68,7 @@ void CubemapRenderer::Init(Engine *engine)
         CreateRendererInstance(engine);
 
         m_scene = Handle<Scene>(new Scene(Handle<Camera>()));
-        m_scene->Init(engine);
+        Attach(m_scene);
 
         m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
             Handle<Texture>(m_cubemaps[0]), // TODO
@@ -347,7 +347,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
             nullptr
         ));
 
-        m_cubemaps[i]->Init(engine);
+        Attach(m_cubemaps[i]);
     }
 
     // create descriptors
@@ -395,11 +395,11 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
     );
 
     for (auto &framebuffer: m_framebuffers) {
-        renderer_instance->AddFramebuffer(framebuffer.IncRef());
+        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance->Init(engine);
+    Attach(m_renderer_instance);
 }
 
 void CubemapRenderer::CreateShader(Engine *engine)
@@ -410,7 +410,7 @@ void CubemapRenderer::CreateShader(Engine *engine)
     };
 
     m_shader = Handle<Shader>(new Shader(sub_shaders));
-    m_shader->Init(engine);
+    Attach(m_shader);
 }
 
 void CubemapRenderer::CreateRenderPass(Engine *engine)
@@ -463,13 +463,13 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass->Init(engine);
+    Attach(m_render_pass);
 }
 
 void CubemapRenderer::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
             m_cubemap_dimensions,
             Handle<RenderPass>(m_render_pass)
         ));
@@ -479,7 +479,7 @@ void CubemapRenderer::CreateFramebuffers(Engine *engine)
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
 
-        m_framebuffers[i].Init();
+        Attach(m_framebuffers[i]);
     }
 }
 

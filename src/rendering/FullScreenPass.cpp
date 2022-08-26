@@ -54,7 +54,7 @@ void FullScreenPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
+        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
             engine->GetInstance()->swapchain->extent,
             Handle<RenderPass>(m_render_pass)
         ));
@@ -64,7 +64,7 @@ void FullScreenPass::Create(Engine *engine)
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
         
-        m_framebuffers[i].Init();
+        engine->Attach(m_framebuffers[i]);
         
         auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
@@ -76,9 +76,7 @@ void FullScreenPass::Create(Engine *engine)
         m_command_buffers[i] = std::move(command_buffer);
     }
 
-    if (m_shader) {
-        m_shader->Init(engine);
-    }
+    engine->Attach(m_shader);
 
     CreatePipeline(engine);
     CreateDescriptors(engine);
@@ -100,7 +98,7 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
 void FullScreenPass::CreateQuad(Engine *engine)
 {
     m_full_screen_quad = Handle<Mesh>(MeshBuilder::Quad().release());
-    m_full_screen_quad->Init(engine);
+    engine->Attach(m_full_screen_quad);
 }
 
 void FullScreenPass::CreateRenderPass(Engine *engine)
@@ -138,7 +136,7 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     }
 
     m_render_pass = Handle<RenderPass>(render_pass.release());
-    m_render_pass->Init(engine);
+    engine->Attach(m_render_pass);
 }
 
 void FullScreenPass::CreateDescriptors(Engine *engine)
@@ -187,11 +185,11 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        _renderer_instance->AddFramebuffer(framebuffer.IncRef());
+        _renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(_renderer_instance));
-    m_renderer_instance->Init(engine);
+    engine->Attach(m_renderer_instance);
 }
 
 void FullScreenPass::Destroy(Engine *engine)

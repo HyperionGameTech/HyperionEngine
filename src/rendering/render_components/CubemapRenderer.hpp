@@ -91,7 +91,7 @@ private:
     BoundingBox m_aabb;
     Image::FilterMode m_filter_mode;
     Handle<Scene> m_scene;
-    FixedArray<Ref<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
     Handle<RendererInstance> m_renderer_instance;

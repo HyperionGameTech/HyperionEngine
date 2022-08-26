@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_LIB_REF_COUNTED_PTR_HPP
 #define HYPERION_V2_LIB_REF_COUNTED_PTR_HPP
 
+#include <util/Defines.hpp>
 #include <core/lib/TypeID.hpp>
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -53,9 +54,17 @@ struct RefCountData
 template <class T, class CountType>
 class RefCountedPtr;
 
+template <class CountType>
+class WeakRefCountedPtrBase;
+
+template <class T, class CountType>
+class WeakRefCountedPtr;
+
 template <class CountType = UInt>
 class RefCountedPtrBase
 {
+    friend class WeakRefCountedPtrBase<CountType>;
+
 protected:
     using RefCountDataType = RefCountData<CountType>;
 
@@ -107,10 +116,7 @@ public:
         DropRefCount();
     }
 
-    void *Get()
-        { return m_ref ? m_ref->value : nullptr; }
-
-    const void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return m_ref ? m_ref->value : nullptr; }
 
     explicit operator bool() const
@@ -240,22 +246,16 @@ public:
 
     ~RefCountedPtr() = default;
 
-    T *Get()
+    HYP_FORCE_INLINE T *Get() const
         { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
 
-    const T *Get() const
-        { return const_cast<RefCountedPtr *>(this)->Get(); }
-
-    T *operator->()
+    HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
 
-    const T *operator->() const
-        { return Get(); }
-
-    T &operator*()
+    HYP_FORCE_INLINE T &operator*()
         { return *Get(); }
 
-    const T &operator*() const
+    HYP_FORCE_INLINE const T &operator*() const
         { return *Get(); }
 
     void Set(const T &value)
@@ -342,10 +342,7 @@ public:
 
     ~RefCountedPtr() = default;
 
-    void *Get()
-        { return Base::Get(); }
-
-    const void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return Base::Get(); }
 
     template <class T>
@@ -468,10 +465,7 @@ public:
         DropRefCount();
     }
 
-    void *Get()
-        { return m_ref ? m_ref->value : nullptr; }
-
-    const void *Get() const
+    HYP_FORCE_INLINE void *Get() const
         { return m_ref ? m_ref->value : nullptr; }
 
     explicit operator bool() const
@@ -589,11 +583,8 @@ public:
 
     ~WeakRefCountedPtr() = default;
 
-    T *Get()
+    HYP_FORCE_INLINE T *Get() const
         { return Base::m_ref ? static_cast<T *>(Base::m_ref->value) : nullptr; }
-
-    const T *Get() const
-        { return const_cast<WeakRefCountedPtr *>(this)->Get(); }
 
     RefCountedPtr<T, CountType> Lock()
     {

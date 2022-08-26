@@ -31,7 +31,7 @@ void ShadowPass::CreateShader(Engine *engine)
         }
     ));
 
-    m_shader->Init(engine);
+    engine->Attach(m_shader);
 }
 
 void ShadowPass::SetParentScene(Scene::ID id)
@@ -76,7 +76,7 @@ void ShadowPass::CreateRenderPass(Engine *engine)
     }
 
     m_render_pass = Handle<RenderPass>(render_pass.release());
-    m_render_pass->Init(engine);
+    engine->Attach(m_render_pass);
 }
 
 void ShadowPass::CreateDescriptors(Engine *engine)
@@ -126,11 +126,12 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
         )
     );
 
-    renderer_instance->AddFramebuffer(m_framebuffers[0].IncRef());
-    renderer_instance->AddFramebuffer(m_framebuffers[1].IncRef());
+    for (auto &framebuffer : m_framebuffers) {
+        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+    }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    m_renderer_instance->Init(engine);
+    engine->Attach(m_renderer_instance);
 }
 
 void ShadowPass::Create(Engine *engine)
@@ -148,29 +149,33 @@ void ShadowPass::Create(Engine *engine)
     ));
 
     m_scene->SetParentId(m_parent_scene_id);
-    m_scene->Init(engine);
+    engine->Attach(m_scene);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->resources->framebuffers.Add(new Framebuffer(
-            m_dimensions,
-            Handle<RenderPass>(m_render_pass)
-        ));
+        { // init framebuffers
+            m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
+                m_dimensions,
+                Handle<RenderPass>(m_render_pass)
+            ));
 
-        /* Add all attachments from the renderpass */
-        for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
-            m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
+            /* Add all attachments from the renderpass */
+            for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
+                m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
+            }
+
+            engine->Attach(m_framebuffers[i]);
         }
 
-        m_framebuffers[i].Init();
-        
-        auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+        { // init command buffers
+            auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
-        HYPERION_ASSERT_RESULT(command_buffer->Create(
-            engine->GetInstance()->GetDevice(),
-            engine->GetInstance()->GetGraphicsCommandPool()
-        ));
+            HYPERION_ASSERT_RESULT(command_buffer->Create(
+                engine->GetInstance()->GetDevice(),
+                engine->GetInstance()->GetGraphicsCommandPool()
+            ));
 
-        m_command_buffers[i] = std::move(command_buffer);
+            m_command_buffers[i] = std::move(command_buffer);
+        }
     }
 
     CreateRendererInstance(engine);

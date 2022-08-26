@@ -49,7 +49,7 @@ void DeferredPass::CreateShader(Engine *engine)
         ));
     }
 
-    m_shader->Init(engine);
+    engine->Attach(m_shader);
 }
 
 void DeferredPass::CreateRenderPass(Engine *engine)
@@ -93,7 +93,7 @@ void DeferredPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[i].IncRef();
+        m_framebuffers[i] = engine->GetRenderListContainer()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[i];
         
         auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
@@ -234,7 +234,7 @@ void DeferredRenderer::Create(Engine *engine)
             nullptr
         ));
 
-        m_mipmapped_results[i]->Init(engine);
+        engine->Attach(m_mipmapped_results[i]);
     }
     
     m_sampler = std::make_unique<Sampler>(Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);

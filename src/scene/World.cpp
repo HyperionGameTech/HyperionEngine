@@ -75,10 +75,7 @@ void World::AddScene(Handle<Scene> &&scene)
         return;
     }
 
-    if (IsReady()) {
-        scene->Init(GetEngine());
-    }
-
+    Attach(scene);
     scene->SetWorld(this);
 
     const auto scene_id = scene->GetId();

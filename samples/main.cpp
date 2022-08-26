@@ -109,7 +109,26 @@ public:
         engine->GetWorld().AddScene(Handle<Scene>(m_scene));
 
         base_material = Handle<Material>(new Material());
-        base_material->Init(engine);
+        engine->Attach(base_material);
+
+        auto mat2 = Handle<Material>(new Material());
+        engine->Attach(mat2);
+        // mat2.Reset();
+
+        auto mat3 = Handle<Material>(new Material());
+        engine->Attach(mat3);
+
+        auto ent1 = Handle<Entity>(new Entity(Handle<Mesh>(), Handle<Shader>(), std::move(mat3)));
+        engine->Attach(ent1);
+
+        if (auto res = engine->registry.Lookup<Entity>(ent1->GetId())) {
+            auto void_type = TypeID::ForType<void>();
+            auto default_type = TypeID();
+        }
+
+        ent1.Reset();
+
+        // HYP_BREAKPOINT;
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
@@ -215,7 +234,8 @@ public:
             )
         ));
         cubemap->GetImage().SetIsSRGB(true);
-        cubemap->Init(engine);
+        engine->Attach(cubemap);
+        // cubemap->Init(engine);
 
         zombie->GetChild(0).Get()->GetEntity()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
         zombie->Scale(1.25f);
