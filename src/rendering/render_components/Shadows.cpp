@@ -24,14 +24,14 @@ ShadowPass::~ShadowPass() = default;
 
 void ShadowPass::CreateShader(Engine *engine)
 {
-    m_shader = Handle<Shader>(new Shader(
+    m_shader = engine->CreateHandle<Shader>(
         std::vector<SubShader> {
             SubShader { ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vert.spv")).Read()} },
             SubShader { ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/shadow_frag.spv")).Read()} }
         }
-    ));
+    );
 
-    engine->Attach(m_shader);
+    engine->InitObject(m_shader);
 }
 
 void ShadowPass::SetParentScene(Scene::ID id)
@@ -75,8 +75,8 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = Handle<RenderPass>(render_pass.release());
-    engine->Attach(m_render_pass);
+    m_render_pass = engine->CreateHandle<RenderPass>(render_pass.release());
+    engine->InitObject(m_render_pass);
 }
 
 void ShadowPass::CreateDescriptors(Engine *engine)
@@ -131,7 +131,7 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
     }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    engine->Attach(m_renderer_instance);
+    engine->InitObject(m_renderer_instance);
 }
 
 void ShadowPass::Create(Engine *engine)
@@ -139,31 +139,31 @@ void ShadowPass::Create(Engine *engine)
     CreateShader(engine);
     CreateRenderPass(engine);
 
-    m_scene = Handle<Scene>(new Scene(
-        Handle<Camera>(new OrthoCamera(
+    m_scene = engine->CreateHandle<Scene>(
+        engine->CreateHandle<Camera>(new OrthoCamera(
             m_dimensions.width, m_dimensions.height,
             -100.0f, 100.0f,
             -100.0f, 100.0f,
             -100.0f, 100.0f
         ))
-    ));
+    );
 
     m_scene->SetParentId(m_parent_scene_id);
-    engine->Attach(m_scene);
+    engine->InitObject(m_scene);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         { // init framebuffers
-            m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
+            m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
                 m_dimensions,
                 Handle<RenderPass>(m_render_pass)
-            ));
+            );
 
             /* Add all attachments from the renderpass */
             for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
                 m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
             }
 
-            engine->Attach(m_framebuffers[i]);
+            engine->InitObject(m_framebuffers[i]);
         }
 
         { // init command buffers

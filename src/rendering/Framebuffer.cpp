@@ -24,8 +24,8 @@ void Framebuffer::Init(Engine *engine)
     }
 
     EngineComponentBase::Init(engine);
-    
-    Attach(m_render_pass);
+
+    engine->InitObject(m_render_pass);
     
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_FRAMEBUFFERS, [this](...) {
         auto *engine = GetEngine();

@@ -67,8 +67,8 @@ void CubemapRenderer::Init(Engine *engine)
         CreateImagesAndBuffers(engine);
         CreateRendererInstance(engine);
 
-        m_scene = Handle<Scene>(new Scene(Handle<Camera>()));
-        Attach(m_scene);
+        m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
+        engine->InitObject(m_scene);
 
         m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
             Handle<Texture>(m_cubemaps[0]), // TODO
@@ -331,7 +331,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
     // m_env_probe_uniform_buffer.Copy(engine->GetDevice(), sizeof(EnvProbeShaderData), &env_probe);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_cubemaps[i] = Handle<Texture>(new TextureCube(
+        m_cubemaps[i] = engine->CreateHandle<Texture>(new TextureCube(
             m_cubemap_dimensions,
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
             m_filter_mode,
@@ -339,7 +339,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
             nullptr
         ));
 
-        Attach(m_cubemaps[i]);
+        engine->InitObject(m_cubemaps[i]);
     }
 
     // create descriptors
@@ -391,7 +391,7 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    Attach(m_renderer_instance);
+    engine->InitObject(m_renderer_instance);
 }
 
 void CubemapRenderer::CreateShader(Engine *engine)
@@ -401,17 +401,17 @@ void CubemapRenderer::CreateShader(Engine *engine)
         {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/cubemap_renderer.frag.spv")).Read()}}
     };
 
-    m_shader = Handle<Shader>(new Shader(sub_shaders));
-    Attach(m_shader);
+    m_shader = engine->CreateHandle<Shader>(sub_shaders);
+    engine->InitObject(m_shader);
 }
 
 void CubemapRenderer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = Handle<RenderPass>(new RenderPass(
+    m_render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
-    ));
+    );
 
     AttachmentRef *attachment_ref;
 
@@ -455,23 +455,23 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    Attach(m_render_pass);
+    engine->InitObject(m_render_pass);
 }
 
 void CubemapRenderer::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
+        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
             m_cubemap_dimensions,
             Handle<RenderPass>(m_render_pass)
-        ));
+        );
 
         /* Add all attachments from the renderpass */
         for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
 
-        Attach(m_framebuffers[i]);
+        engine->InitObject(m_framebuffers[i]);
     }
 }
 

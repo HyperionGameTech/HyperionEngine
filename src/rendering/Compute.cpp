@@ -31,7 +31,7 @@ void ComputePipeline::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    Attach(m_shader);
+    engine->InitObject(m_shader);
     AssertThrow(m_shader->IsInitCalled());
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {

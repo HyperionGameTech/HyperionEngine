@@ -82,10 +82,12 @@ class WeakHandleBase;
 
 class HandleBase : AtomicRefCountedPtr<void>
 {
+    friend class hyperion::v2::Engine;
     friend class WeakHandleBase;
 
 protected:
     using Base = AtomicRefCountedPtr<void>;
+    using RefCountBase = Base::Base;
     using Base::Get;
 
     template <class T>
@@ -96,11 +98,7 @@ protected:
         return HandleID(TypeID::ForType<T>(), ++id_counter);
     }
 
-public:
-    HandleBase()
-        : Base()
-    {
-    }
+    /* Engine class uses these constructors */
 
     template <class T>
     explicit HandleBase(T *ptr)
@@ -145,6 +143,12 @@ public:
                 }*/
             }
         }
+    }
+
+public:
+    HandleBase()
+        : Base()
+    {
     }
 
     HandleBase(const HandleBase &other)
@@ -230,9 +234,25 @@ protected:
 template <class T>
 class Handle : public HandleBase
 {
+    friend class hyperion::v2::Engine;
     friend class HandleBase;
 
     using Base = HandleBase;
+
+protected:
+    /* Engine class uses these constructors in CreateHandle<T> */
+
+    explicit Handle(T *ptr)
+        : Base(ptr)
+    {
+    }
+
+    /*! \brief Initialize a Handle from an atomicaly reference counted pointer.
+        The resource will be shared, the handle referencing the same resource. */
+    explicit Handle(const AtomicRefCountedPtr<T> &ref_counted_ptr)
+        : Base(ref_counted_ptr)
+    {
+    }
 
 public:
     using ID = HandleID;
@@ -245,18 +265,6 @@ public:
 
     Handle()
         : Base()
-    {
-    }
-
-    explicit Handle(T *ptr)
-        : Base(ptr)
-    {
-    }
-
-    /*! \brief Initialize a Handle from an atomicaly reference counted pointer.
-        The resource will be shared, the handle referencing the same resource. */
-    explicit Handle(const AtomicRefCountedPtr<T> &ref_counted_ptr)
-        : Base(ref_counted_ptr)
     {
     }
 

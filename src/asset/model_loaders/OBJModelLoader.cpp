@@ -354,14 +354,14 @@ std::unique_ptr<Node> OBJModelLoader::BuildFn(Engine *engine, const Object &obje
 
         engine->resources->Lock([&](Resources &resources) {
             if (material == nullptr) {
-                material = Handle<Material>(new Material());
+                material = engine->CreateHandle<Material>();
             }
 
-            auto mesh = Handle<Mesh>(new Mesh(
+            auto mesh = engine->CreateHandle<Mesh>(
                 vertices, 
                 indices,
                 Topology::TRIANGLES
-            ));
+            );
 
             if (!has_normals) {
                 mesh->CalculateNormals();
@@ -373,7 +373,7 @@ std::unique_ptr<Node> OBJModelLoader::BuildFn(Engine *engine, const Object &obje
 
             auto shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
             const auto shader_id = shader != nullptr ? shader->GetId() : Shader::empty_id;
-            auto entity = Handle<Entity>(new Entity(
+            auto entity = engine->CreateHandle<Entity>(
                 std::move(mesh),
                 std::move(shader),
                 std::move(material),
@@ -385,9 +385,8 @@ std::unique_ptr<Node> OBJModelLoader::BuildFn(Engine *engine, const Object &obje
                         .bucket = Bucket::BUCKET_OPAQUE
                     },
                     shader_id
-                ),
-                { }
-            ));
+                )
+            );
             
             auto node = std::make_unique<Node>(obj_mesh.tag.c_str());
             node->SetEntity(std::move(entity));

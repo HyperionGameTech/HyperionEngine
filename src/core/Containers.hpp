@@ -1128,14 +1128,6 @@ WeakRef<T> MakeWeakRef(const Ref<T> &strong_ref)
     return WeakRef<T>(strong_ref);
 }
 
-/*template <class To, class From>
-Ref<To> CastRef(Ref<From> &&ref)
-{
-    static_assert(std::is_convertible_v<From *, To *>, "From* must be convertible to To*");
-
-    return Ref<To>(static_cast<To *>(ref.ptr), static_cast<RefCounter<To, EngineCallbacks> *>(ref.m_ref_count));
-}*/
-
 } // namespace hyperion::v2
 
 #endif

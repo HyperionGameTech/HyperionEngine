@@ -54,17 +54,17 @@ void FullScreenPass::Create(Engine *engine)
     CreateRenderPass(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
+        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
             engine->GetInstance()->swapchain->extent,
             Handle<RenderPass>(m_render_pass)
-        ));
+        );
 
         /* Add all attachments from the renderpass */
         for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
         
-        engine->Attach(m_framebuffers[i]);
+        engine->InitObject(m_framebuffers[i]);
         
         auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
 
@@ -76,7 +76,7 @@ void FullScreenPass::Create(Engine *engine)
         m_command_buffers[i] = std::move(command_buffer);
     }
 
-    engine->Attach(m_shader);
+    engine->InitObject(m_shader);
 
     CreatePipeline(engine);
     CreateDescriptors(engine);
@@ -97,8 +97,8 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
 
 void FullScreenPass::CreateQuad(Engine *engine)
 {
-    m_full_screen_quad = Handle<Mesh>(MeshBuilder::Quad().release());
-    engine->Attach(m_full_screen_quad);
+    m_full_screen_quad = engine->CreateHandle<Mesh>(MeshBuilder::Quad().release());
+    engine->InitObject(m_full_screen_quad);
 }
 
 void FullScreenPass::CreateRenderPass(Engine *engine)
@@ -135,8 +135,8 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = Handle<RenderPass>(render_pass.release());
-    engine->Attach(m_render_pass);
+    m_render_pass = engine->CreateHandle<RenderPass>(render_pass.release());
+    engine->InitObject(m_render_pass);
 }
 
 void FullScreenPass::CreateDescriptors(Engine *engine)
@@ -189,7 +189,7 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
     }
 
     m_renderer_instance = engine->AddRendererInstance(std::move(_renderer_instance));
-    engine->Attach(m_renderer_instance);
+    engine->InitObject(m_renderer_instance);
 }
 
 void FullScreenPass::Destroy(Engine *engine)

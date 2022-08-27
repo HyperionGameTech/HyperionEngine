@@ -35,16 +35,16 @@ void VoxelConeTracing::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
         auto *engine = GetEngine();
 
-        m_scene = Handle<Scene>(new Scene(
-            Handle<Camera>(new OrthoCamera(
+        m_scene = engine->CreateHandle<Scene>(
+            engine->CreateHandle<Camera>(new OrthoCamera(
                 voxel_map_size.width, voxel_map_size.height,
                 -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
                 -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
                 -static_cast<float>(voxel_map_size[2]) * 0.5f, static_cast<float>(voxel_map_size[2]) * 0.5f
             ))
-        ));
+        );
 
-        Attach(m_scene);
+        engine->InitObject(m_scene);
 
         CreateImagesAndBuffers(engine);
         CreateShader(engine);
@@ -256,7 +256,7 @@ void VoxelConeTracing::OnComponentIndexChanged(RenderComponentBase::Index new_in
 
 void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
 {
-    m_voxel_image = Handle<Texture>(new Texture(
+    m_voxel_image = engine->CreateHandle<Texture>(
         StorageImage(
             voxel_map_size,
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
@@ -265,9 +265,9 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
         ),
         Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
-    ));
+    );
 
-    Attach(m_voxel_image);
+    engine->InitObject(m_voxel_image);
 
     engine->render_scheduler.Enqueue([this, engine](...) {
         HYPERION_BUBBLE_ERRORS(m_uniform_buffer.Create(engine->GetDevice(), sizeof(VoxelUniforms)));
@@ -311,20 +311,20 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
     }
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    Attach(m_renderer_instance);
+    engine->InitObject(m_renderer_instance);
 }
 
 void VoxelConeTracing::CreateComputePipelines(Engine *engine)
 {
-    m_clear_voxels = Handle<ComputePipeline>(new ComputePipeline(
-        Handle<Shader>(new Shader(
+    m_clear_voxels = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/vct/clear_voxels.comp.spv")).Read()}}
             }
-        ))
-    ));
+        )
+    );
 
-    Attach(m_clear_voxels);
+    engine->InitObject(m_clear_voxels);
 }
 
 void VoxelConeTracing::CreateShader(Engine *engine)
@@ -343,29 +343,29 @@ void VoxelConeTracing::CreateShader(Engine *engine)
         );
     }
     
-    m_shader = Handle<Shader>(new Shader(sub_shaders));
-    Attach(m_shader);
+    m_shader = engine->CreateHandle<Shader>(sub_shaders);
+    engine->InitObject(m_shader);
 }
 
 void VoxelConeTracing::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = Handle<RenderPass>(new RenderPass(
+    m_render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-    ));
+    );
 
-    Attach(m_render_pass);
+    engine->InitObject(m_render_pass);
 }
 
 void VoxelConeTracing::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Handle<Framebuffer>(new Framebuffer(
+        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
             Extent2D(voxel_map_size),
             Handle<RenderPass>(m_render_pass)
-        ));
+        );
         
-        Attach(m_framebuffers[i]);
+        engine->InitObject(m_framebuffers[i]);
     }
 }
 

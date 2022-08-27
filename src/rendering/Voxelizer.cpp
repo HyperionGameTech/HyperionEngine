@@ -32,16 +32,16 @@ void Voxelizer::Init(Engine *engine)
 
         const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
-        m_scene = Handle<Scene>(new Scene(
-            Handle<Camera>(new OrthoCamera(
+        m_scene = engine->CreateHandle<Scene>(
+            engine->CreateHandle<Camera>(new OrthoCamera(
                 voxel_map_size, voxel_map_size,
                 -voxel_map_size_signed, voxel_map_size_signed,
                 -voxel_map_size_signed, voxel_map_size_signed,
                 -voxel_map_size_signed, voxel_map_size_signed
             ))
-        ));
+        );
 
-        Attach(m_scene);
+        engine->InitObject(m_scene);
 
         if (m_counter == nullptr) {
             m_counter = std::make_unique<AtomicCounter>();
@@ -118,7 +118,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
         )
     );
     
-    Attach(m_framebuffer);
+    engine->InitObject(m_framebuffer);
     
     m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
     
@@ -130,40 +130,40 @@ void Voxelizer::CreatePipeline(Engine *engine)
         }
     }
 
-    Attach(m_renderer_instance);
+    engine->InitObject(m_renderer_instance);
 }
 
 void Voxelizer::CreateShader(Engine *engine)
 {
-    m_shader = Handle<Shader>(new Shader(
+    m_shader = engine->CreateHandle<Shader>(
         std::vector<SubShader>{
             {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.vert.spv")).Read()}},
             {ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.geom.spv")).Read()}},
             {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/voxel/voxelize.frag.spv")).Read()}}
         }
-    ));
+    );
 
-    Attach(m_shader);
+    engine->InitObject(m_shader);
 }
 
 void Voxelizer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = Handle<RenderPass>(new RenderPass(
+    m_render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-    ));
+    );
 
-    Attach(m_render_pass);
+    engine->InitObject(m_render_pass);
 }
 
 void Voxelizer::CreateFramebuffer(Engine *engine)
 {
-    m_framebuffer = Handle<Framebuffer>(new Framebuffer(
+    m_framebuffer = engine->CreateHandle<Framebuffer>(
         Extent2D { voxel_map_size, voxel_map_size },
         Handle<RenderPass>(m_render_pass)
-    ));
+    );
     
-    Attach(m_framebuffer);
+    engine->InitObject(m_framebuffer);
 }
 
 void Voxelizer::CreateDescriptors(Engine *engine)

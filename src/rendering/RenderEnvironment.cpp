@@ -69,7 +69,7 @@ void RenderEnvironment::Init(Engine *engine)
                 auto &light = it.second;
 
                 if (light != nullptr) {
-                    Attach(light);
+                    GetEngine()->InitObject(light);
                 }
             }
         }
@@ -187,7 +187,9 @@ void RenderEnvironment::AddLight(Handle<Light> &&light)
         return;
     }
 
-    Attach(light);
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(light);
+    }
 
     m_light_update_sp.Wait();
     m_lights_pending_addition.Push(std::move(light));

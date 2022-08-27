@@ -53,7 +53,9 @@ void RendererInstance::AddEntity(Handle<Entity> &&entity)
         "RendererInstance vertex attributes does not satisfy the required vertex attributes of the entity."
     );
 
-    Attach(entity);
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(entity);
+    }
 
     entity->OnAddedToPipeline(this);
     
@@ -151,7 +153,7 @@ void RendererInstance::PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_i
             }
             
             if ((*it)->IsReady() && (*it)->GetMesh()->IsReady()) {
-                Attach(*it);
+                engine->InitObject(*it);
                 m_entities.PushBack(std::move(*it));
                 it = m_entities_pending_addition.Erase(it);
                 
@@ -176,25 +178,25 @@ void RendererInstance::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    m_indirect_renderer.Create(engine);
+
     AssertThrow(m_fbos.Any());
 
     for (auto &fbo : m_fbos) {
         AssertThrow(fbo != nullptr);
-        Attach(fbo);
+        engine->InitObject(fbo);
     }
 
     AssertThrow(m_shader != nullptr);
-    Attach(m_shader);
+    engine->InitObject(m_shader);
 
     for (auto &&entity : m_entities) {
         AssertThrow(entity != nullptr);
-        Attach(entity);
+        engine->InitObject(entity);
     }
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         auto *engine = GetEngine();
-
-        m_indirect_renderer.Create(engine);    
 
         engine->render_scheduler.Enqueue([this, engine](...) {
             renderer::GraphicsPipeline::ConstructionInfo construction_info {

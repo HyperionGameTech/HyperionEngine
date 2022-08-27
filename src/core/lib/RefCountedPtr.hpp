@@ -141,16 +141,13 @@ public:
         { return m_ref ? m_ref->type_id : TypeID::ForType<void>(); }
 
     template <class T>
-    RefCountedPtr<T, CountType> Cast()
+    HYP_FORCE_INLINE RefCountedPtr<T, CountType> Cast()
     {
-        RefCountedPtr<T, CountType> rc;
-        rc.m_ref = m_ref;
-
-        if (m_ref) {
-            ++m_ref->strong_count;
+        if (GetTypeID() == TypeID::ForType<T>()) {
+            return CastUnsafe<T>();
         }
 
-        return rc;
+        return RefCountedPtr<T, CountType>();
     }
 
     /*! \brief Drops the reference to the currently held value, if any.  */
@@ -165,6 +162,19 @@ protected:
     explicit RefCountedPtrBase(RefCountDataType *ref)
         : m_ref(ref)
     {
+    }
+
+    template <class T>
+    RefCountedPtr<T, CountType> CastUnsafe()
+    {
+        RefCountedPtr<T, CountType> rc;
+        rc.m_ref = m_ref;
+
+        if (m_ref) {
+            ++m_ref->strong_count;
+        }
+
+        return rc;
     }
 
     void DropRefCount()

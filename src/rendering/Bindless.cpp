@@ -41,7 +41,7 @@ void BindlessStorage::AddResource(const Texture *texture)
 
     AssertThrow(texture != nullptr);
     
-    UInt indices[2] = {};
+    UInt indices[2] = { };
 
     for (size_t i = 0; i < m_descriptor_sets.size(); i++) {
         auto *descriptor_set = m_descriptor_sets[i];

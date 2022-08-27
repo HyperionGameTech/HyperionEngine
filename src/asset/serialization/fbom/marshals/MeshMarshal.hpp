@@ -3,6 +3,7 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <rendering/Mesh.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -51,7 +52,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, Mesh *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, Mesh *&out_object) const override
     {
         Topology topology = Topology::TRIANGLES;
 

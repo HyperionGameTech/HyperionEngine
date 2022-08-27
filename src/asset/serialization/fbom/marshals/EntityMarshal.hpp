@@ -6,6 +6,7 @@
 #include <asset/serialization/fbom/marshals/ShaderMarshal.hpp>
 #include <asset/serialization/fbom/marshals/MaterialMarshal.hpp>
 #include <scene/Entity.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -53,7 +54,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &resources, const FBOMObject &in, Entity *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *engine, const FBOMObject &in, Entity *&out_object) const override
     {
         out_object = new Entity();
 
@@ -107,12 +108,13 @@ public:
         out_object->SetRenderableAttributes(renderable_attributes);
 
         for (auto &node : *in.nodes) {
+            // TODO needs to attach to engine to get ID
             if (node.GetType().IsOrExtends("Mesh")) {
-                out_object->SetMesh(Handle<Mesh>(node.deserialized.Cast<Mesh>()));
+                out_object->SetMesh(engine->CreateHandle<Mesh>(node.deserialized.Cast<Mesh>()));
             } else if (node.GetType().IsOrExtends("Shader")) {
-                out_object->SetShader(Handle<Shader>(node.deserialized.Cast<Shader>()));
+                out_object->SetShader(engine->CreateHandle<Shader>(node.deserialized.Cast<Shader>()));
             } else if (node.GetType().IsOrExtends("Material")) {
-                out_object->SetMaterial(Handle<Material>(node.deserialized.Cast<Material>()));
+                out_object->SetMaterial(engine->CreateHandle<Material>(node.deserialized.Cast<Material>()));
             }
         }
 

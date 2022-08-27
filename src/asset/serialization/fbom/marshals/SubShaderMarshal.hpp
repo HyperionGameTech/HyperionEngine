@@ -3,6 +3,7 @@
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <rendering/Shader.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -44,7 +45,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Resources &, const FBOMObject &in, SubShader *&out_object) const override
+    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, SubShader *&out_object) const override
     {
         out_object = new SubShader();
 

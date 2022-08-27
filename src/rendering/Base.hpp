@@ -258,10 +258,6 @@ protected:
     void Detach(const typename Handle<T>::ID &id)
         { m_attachment_map.template Detach<T>(id); }
 
-    // template <class T>
-    // T *GetAttachment(const HandleID &id)
-    //     { return m_attachment_map.template Get<T>(id); }
-
 protected:
     using Class = Type;
     using Base = EngineComponentBase<Type>;

@@ -31,13 +31,13 @@ void AABBDebugController::OnAdded()
 
     auto mesh = MeshBuilder::Cube();
     auto vertex_attributes = mesh->GetVertexAttributes();
-    auto material = Handle<Material>(new Material("aabb_material"));
+    auto material = GetEngine()->CreateHandle<Material>("aabb_material");
 
     auto shader = m_engine->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
     const auto shader_id = shader != nullptr ? shader->GetId() : Shader::empty_id;
 
-    m_aabb_entity = Handle<Entity>(new Entity(
-        Handle<Mesh>(mesh.release()),
+    m_aabb_entity = GetEngine()->CreateHandle<Entity>(
+        GetEngine()->CreateHandle<Mesh>(mesh.release()),
         std::move(shader),
         std::move(material),
         RenderableAttributeSet(
@@ -55,7 +55,7 @@ void AABBDebugController::OnAdded()
         Entity::ComponentInitInfo {
             .flags = 0x0 // no flags
         }
-    ));
+    );
 
     scene->AddEntity(Handle<Entity>(m_aabb_entity));
 }

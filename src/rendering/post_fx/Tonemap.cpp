@@ -14,7 +14,7 @@ TonemapEffect::~TonemapEffect() = default;
 
 Handle<Shader> TonemapEffect::CreateShader(Engine *engine)
 {
-    return Handle<Shader>(new Shader(
+    return engine->CreateHandle<Shader>(
         std::vector<SubShader> {
             SubShader{ShaderModule::Type::VERTEX, {
                 Reader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/PostEffect.vert.spv")).ReadBytes()
@@ -23,7 +23,7 @@ Handle<Shader> TonemapEffect::CreateShader(Engine *engine)
                 Reader(FileSystem::Join(engine->assets.GetBasePath(), "/vkshaders/tonemap.frag.spv")).ReadBytes()
             }}
         }
-    ));
+    );
 }
 
 } // namespace hyperion::v2

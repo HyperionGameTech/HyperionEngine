@@ -143,24 +143,24 @@ void Engine::FindTextureFormatDefaults()
 
 void Engine::PrepareFinalPass()
 {
-    m_full_screen_quad = Handle<Mesh>(MeshBuilder::Quad().release());
-    Attach(m_full_screen_quad);
+    m_full_screen_quad = CreateHandle<Mesh>(MeshBuilder::Quad().release());
+    InitObject(m_full_screen_quad);
 
-    auto shader = Handle<Shader>(new Shader(
+    auto shader = CreateHandle<Shader>(
         std::vector<SubShader> {
             {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(assets.GetBasePath(), "vkshaders/blit_vert.spv")).Read()}},
             {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(assets.GetBasePath(), "vkshaders/blit_frag.spv")).Read()}}
         }
-    ));
+    );
 
-    Attach(shader);
+    InitObject(shader);
 
     UInt iteration = 0;
     
-    auto render_pass = Handle<RenderPass>(new RenderPass(
+    auto render_pass = CreateHandle<RenderPass>(
         renderer::RenderPassStage::PRESENT,
         renderer::RenderPass::Mode::RENDER_PASS_INLINE
-    ));
+    );
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
         std::make_unique<renderer::FramebufferImage2D>(
@@ -223,9 +223,9 @@ void Engine::PrepareFinalPass()
             render_pass->GetRenderPass().AddAttachmentRef(color_attachment_ref);
             render_pass->GetRenderPass().AddAttachmentRef(depth_attachment_ref);
 
-            Attach(render_pass);
+            InitObject(render_pass);
 
-            m_root_pipeline = Handle<RendererInstance>(new RendererInstance(
+            m_root_pipeline = CreateHandle<RendererInstance>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -237,10 +237,10 @@ void Engine::PrepareFinalPass()
                         .bucket = BUCKET_SWAPCHAIN
                     }
                 )
-            ));
+            );
         }
 
-        m_root_pipeline->AddFramebuffer(Handle<Framebuffer>(fbo.release()));
+        m_root_pipeline->AddFramebuffer(CreateHandle<Framebuffer>(fbo.release()));
 
         ++iteration;
     }
@@ -249,7 +249,7 @@ void Engine::PrepareFinalPass()
 
     callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         m_render_list_container.AddFramebuffersToPipelines(this);
-        Attach(m_root_pipeline);
+        InitObject(m_root_pipeline);
     });
 }
 
@@ -561,62 +561,44 @@ void Engine::FinalizeStop()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    AssertThrow(m_is_stopping);
-    AssertThrow(!game_thread.IsRunning());
+    m_is_stopping = true;
+    m_is_render_loop_active = false;
+    task_system.Stop();
 
-    // m_is_render_loop_active = false;
+    AssertThrow(GetInstance()->GetDevice()->Wait());
+
+    while (game_thread.IsRunning()) {
+        HYP_FLUSH_RENDER_QUEUE(this);
+    }
 
     game_thread.Join();
+
+    m_render_list_container.Destroy(this);
+    m_deferred_renderer.Destroy(this);
+
+    for (auto &attachment : m_render_pass_attachments) {
+        HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
+    }
+
+    m_safe_deleter.ForceReleaseAll();
+
+    HYP_FLUSH_RENDER_QUEUE(this);
+
+    m_renderer_instance_mapping.Clear();
+
+    resources->Destroy(this);
+    delete resources;
+    resources = nullptr;
+
+    HYP_FLUSH_RENDER_QUEUE(this);
+
+    AssertThrow(GetInstance()->GetDevice()->Wait());
 }
 
 void Engine::RenderNextFrame(Game *game)
 {
     if (!m_running.load()) {
-        m_is_stopping = true;
-        m_is_render_loop_active = false;
-        task_system.Stop();
-
-        AssertThrow(GetInstance()->GetDevice()->Wait());
-
-        while (game_thread.IsRunning()) {
-            HYP_FLUSH_RENDER_QUEUE(this);
-        }
-
         FinalizeStop();
-
-        m_render_list_container.Destroy(this);
-        m_deferred_renderer.Destroy(this);
-
-        for (auto &attachment : m_render_pass_attachments) {
-            HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
-        }
-
-        m_safe_deleter.ForceReleaseAll();
-
-        HYP_FLUSH_RENDER_QUEUE(this);
-
-        m_renderer_instance_mapping.Clear();
-
-        resources->Destroy(this);
-        delete resources;
-        resources = nullptr;
-
-        HYP_FLUSH_RENDER_QUEUE(this);
-
-        AssertThrow(GetInstance()->GetDevice()->Wait());
-
-        // HYP_BREAKPOINT;
-
-        // if (m_is_stopping) {
-        //     if (!game_thread.IsRunning()) {
-        //         FinalizeStop();
-
-        //         return;
-        //     }
-        // } else {
-        //     task_system.Stop();
-        //     m_is_stopping = true;
-        // }
 
         return;
     }
@@ -658,26 +640,40 @@ Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shade
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
     new_renderable_attributes.shader_id = shader->GetId();
 
+    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+
     const auto it = m_renderer_instance_mapping.Find(new_renderable_attributes);
 
     if (it != m_renderer_instance_mapping.End()) {
-        return it->second;
+        return it->second.Lock();
     }
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a pipeline with the given params
-    return AddRendererInstance(std::make_unique<RendererInstance>(
+    // create a RendererInstance with the given params
+    auto renderer_instance = CreateHandle<RendererInstance>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
-    ));
+    );
+
+    AddRendererInstanceInternal(renderer_instance);
+
+    return renderer_instance;
 }
     
 Handle<RendererInstance> Engine::AddRendererInstance(std::unique_ptr<RendererInstance> &&_renderer_instance)
 {
-    auto renderer_instance = Handle<RendererInstance>(_renderer_instance.release());
+    auto renderer_instance = CreateHandle<RendererInstance>(_renderer_instance.release());
     
+    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+    AddRendererInstanceInternal(renderer_instance);
+
+    return renderer_instance;
+}
+    
+void Engine::AddRendererInstanceInternal(Handle<RendererInstance> &renderer_instance)
+{
     m_renderer_instance_mapping.Insert(
         renderer_instance->GetRenderableAttributes(),
         renderer_instance
@@ -686,8 +682,6 @@ Handle<RendererInstance> Engine::AddRendererInstance(std::unique_ptr<RendererIns
     m_render_list_container
         .Get(renderer_instance->GetRenderableAttributes().material_attributes.bucket)
         .AddRendererInstance(Handle<RendererInstance>(renderer_instance));
-
-    return renderer_instance;
 }
 
 void Engine::PreFrameUpdate(Frame *frame)

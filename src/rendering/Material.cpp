@@ -37,7 +37,7 @@ void Material::Init(Engine *engine)
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
         if (auto &texture = m_textures.ValueAt(i)) {
-            Attach(texture);
+            engine->InitObject(texture);
         }
     }
 
@@ -273,10 +273,12 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
 
     if (m_textures[key] != nullptr) {
         GetEngine()->SafeReleaseRenderResource<Texture>(std::move(m_textures[key]));
-        Detach(m_textures[key]);
     }
 
-    Attach(texture);
+    if (texture && IsInitCalled()) {
+        GetEngine()->InitObject(texture);
+    }
+
     m_textures.Set(key, std::move(texture));
 
 #if !HYP_FEATURES_BINDLESS_TEXTURES

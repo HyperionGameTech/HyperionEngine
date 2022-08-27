@@ -3,8 +3,8 @@
 
 namespace hyperion::v2::fbom {
 
-FBOMLoader::FBOMLoader(Resources &resources)
-    : m_resources(resources),
+FBOMLoader::FBOMLoader(Engine *engine)
+    : m_engine(engine),
       m_in_static_data(false)
 {
     m_registered_types = {
@@ -274,7 +274,7 @@ FBOMResult FBOMLoader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
 
         const String ref_path(FileSystem::Join(std::string(base_path.Data()), std::string(ref_name.Data())).data());
 
-        if (auto err = FBOMLoader(m_resources).LoadFromFile(ref_path, object)) {
+        if (auto err = FBOMLoader(m_engine).LoadFromFile(ref_path, object)) {
             return err;
         }
 

@@ -72,28 +72,28 @@ void Entity::Init(Engine *engine)
 
     m_draw_proxy.entity_id = m_id;
 
-    Attach(m_mesh);
-    Attach(m_shader);
-    Attach(m_material);
-    Attach(m_skeleton);
+    engine->InitObject(m_mesh);
+    engine->InitObject(m_shader);
+    engine->InitObject(m_material);
+    engine->InitObject(m_skeleton);
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SPATIALS, [this](...) {
         auto *engine = GetEngine();
 
         // if (m_skeleton) {
-        //     m_skeleton->Init(engine);
+        //     engine->InitObject(m_skeleton);
         // }
 
         // if (m_material) {
-        //     m_material->Init(engine);
+        //     engine->InitObject(m_material);
         // }
 
         // if (m_mesh) {
-        //     m_mesh->Init(engine);
+        //     engine->InitObject(m_mesh);
         // }
 
         // if (m_shader) {
-        //     m_shader->Init(engine);
+        //     engine->InitObject(m_shader);
         // }
 
         SetReady(true);
@@ -257,13 +257,11 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
         GetEngine()->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
     }
 
-    Detach(m_mesh);
     m_mesh = std::move(mesh);
-    Attach(m_mesh);
 
-    // if (m_mesh != nullptr && IsReady()) {
-    //     m_mesh->Init(GetEngine());
-    // }
+    if (m_mesh && IsInitCalled()) {
+        GetEngine()->InitObject(m_mesh);
+    }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
     m_primary_renderer_instance.changed = true;
@@ -279,13 +277,11 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
         GetEngine()->SafeReleaseRenderResource<Skeleton>(std::move(m_skeleton));
     }
 
-    Detach(m_skeleton);
     m_skeleton = std::move(skeleton);
-    Attach(m_skeleton);
 
-    // if (m_skeleton && IsReady()) {
-    //     m_skeleton->Init(GetEngine());
-    // }
+    if (m_skeleton && IsInitCalled()) {
+        GetEngine()->InitObject(m_skeleton);
+    }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
     m_primary_renderer_instance.changed = true;
@@ -301,21 +297,19 @@ void Entity::SetShader(Handle<Shader> &&shader)
         GetEngine()->SafeReleaseRenderResource<Shader>(std::move(m_shader));
     }
 
-    Detach(m_shader);
     m_shader = std::move(shader);
-    Attach(m_shader);
     
     if (m_shader) {
+        if (IsInitCalled()) {
+            GetEngine()->InitObject(m_shader);
+        }
+
         RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
         new_renderable_attributes.shader_id = m_shader->GetId();
         SetRenderableAttributes(new_renderable_attributes);
     } else {
         RebuildRenderableAttributes();
     }
-
-    // if (m_shader != nullptr && IsReady()) {
-    //     m_shader->Init(GetEngine());
-    // }
 
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
@@ -326,18 +320,16 @@ void Entity::SetMaterial(Handle<Material> &&material)
         return;
     }
 
-    Detach(m_material);
     m_material = std::move(material);
-    Attach(m_material);
 
     RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
 
     if (m_material) {
         new_renderable_attributes.material_attributes = m_material->GetRenderAttributes();
 
-        // if (IsReady()) {
-        //     m_material->Init(GetEngine());
-        // }
+        if (IsInitCalled()) {
+            GetEngine()->InitObject(m_material);
+        }
     } else {
         new_renderable_attributes.material_attributes = { };
     }

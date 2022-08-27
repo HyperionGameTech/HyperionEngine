@@ -528,26 +528,26 @@ public:
     PerFrameData &operator=(PerFrameData &&) = default;
     ~PerFrameData() = default;
 
-    inline UInt32 NumFrames() const
+    HYP_FORCE_INLINE UInt NumFrames() const
         { return m_num_frames; }
 
-    inline FrameDataWrapper &operator[](UInt32 index)
+    HYP_FORCE_INLINE FrameDataWrapper &operator[](UInt32 index)
         { return m_data[index]; }
 
-    inline const FrameDataWrapper &operator[](UInt32 index) const
+    HYP_FORCE_INLINE const FrameDataWrapper &operator[](UInt32 index) const
         { return m_data[index]; }
 
-    inline FrameDataWrapper &At(UInt32 index)
+    HYP_FORCE_INLINE FrameDataWrapper &At(UInt32 index)
         { return m_data[index]; }
 
-    inline const FrameDataWrapper &At(UInt32 index) const
+    HYP_FORCE_INLINE const FrameDataWrapper &At(UInt32 index) const
         { return m_data[index]; }
 
-    inline void Reset()
+    HYP_FORCE_INLINE void Reset()
         { m_data = std::vector<FrameDataWrapper>(m_num_frames); }
 
 protected:
-    UInt32 m_num_frames;
+    UInt m_num_frames;
     std::vector<FrameDataWrapper> m_data;
 };
 

@@ -31,7 +31,6 @@ PostProcessingEffect::PostProcessingEffect(
     m_stage(stage),
     m_is_enabled(true)
 {
-    Attach(m_shader);
 }
 
 PostProcessingEffect::~PostProcessingEffect()
@@ -48,8 +47,7 @@ void PostProcessingEffect::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     m_shader = CreateShader(engine);
-    
-    AssertThrow(m_shader != nullptr);
+    engine->InitObject(m_shader);
 
     m_full_screen_pass.SetShader(Handle<Shader>(m_shader));
     m_full_screen_pass.Create(engine);

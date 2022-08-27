@@ -228,6 +228,89 @@ public:
     GameThread game_thread;
     TaskSystem task_system;
 
+    // template <class T, class First, class ...Rest>
+    // Handle<T> CreateHandle(First &&first, Rest &&... args)
+    // {
+    //     Handle<T> handle(new T(std::forward<First>(first), std::forward<Rest>(args)...));
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    template <class T, class First, class Second, class ...Rest>
+    Handle<T> CreateHandle(First &&first, Second &&second, Rest &&... args)
+    {
+        Handle<T> handle(new T(std::forward<First>(first), std::forward<Second>(second), std::forward<Rest>(args)...));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class First>
+    typename std::enable_if_t<
+        (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
+            && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>,
+        Handle<T>
+    >
+    CreateHandle(First &&first)
+    {
+        Handle<T> handle(new T(std::forward<First>(first)));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class Ptr>
+    typename std::enable_if_t<
+        std::is_pointer_v<std::remove_reference_t<Ptr>> && std::is_convertible_v<std::remove_reference_t<Ptr>, std::add_pointer_t<T>>,
+        Handle<T>
+    >
+    CreateHandle(Ptr &&ptr)
+    {
+        Handle<T> handle(static_cast<T *>(ptr));
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T, class RC>
+    typename std::enable_if_t<
+        std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<RC>>,
+        Handle<T>
+    >
+    CreateHandle(RC &&rc)
+    {
+        Handle<T> handle(rc.template Cast<T>());
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T>
+    Handle<T> CreateHandle()
+    {
+        Handle<T> handle(new T());
+        registry.template Attach<T>(handle);
+
+        return handle;
+    }
+
+    template <class T>
+    bool InitObject(Handle<T> &handle)
+    {
+        if (!handle) {
+            return false;
+        }
+
+        if (!handle->GetId()) {
+            return false;
+        }
+
+        handle->Init(this);
+
+        return true;
+    }
+
     template <class T>
     void Attach(Handle<T> &handle, bool init = true)
     {
@@ -257,6 +340,8 @@ private:
     void PrepareFinalPass();
 
     void FindTextureFormatDefaults();
+
+    void AddRendererInstanceInternal(Handle<RendererInstance> &);
     
     std::unique_ptr<Instance> m_instance;
     Handle<RendererInstance> m_root_pipeline;
@@ -269,7 +354,8 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, /*Weak*/Handle<RendererInstance>> m_renderer_instance_mapping;
+    FlatMap<RenderableAttributeSet, WeakHandle<RendererInstance>> m_renderer_instance_mapping;
+    std::mutex m_renderer_instance_mapping_mutex;
 
     ComponentRegistry<Entity> m_component_registry;
 

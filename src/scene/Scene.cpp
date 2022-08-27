@@ -30,13 +30,20 @@ void Scene::Init(Engine *engine)
     
     EngineComponentBase::Init(engine);
 
-    Attach(m_camera);
+    engine->InitObject(m_camera);
+
+    for (auto &it : m_entities) {
+        auto &entity = it.second;
+        AssertThrow(entity);
+
+        engine->InitObject(entity);
+    }
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_SCENES, [this](...) {
         auto *engine = GetEngine();
 
         // if (m_camera) {
-        //     m_camera->Init(engine);
+        //     engine->InitObject(m_camera);
         // }
 
         m_environment->Init(engine);
@@ -141,8 +148,11 @@ bool Scene::AddEntity(Handle<Entity> &&entity)
         return false;
     }
 
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(entity);
+    }
+
     entity->SetScene(this);
-    Attach(entity);
 
     m_environment->OnEntityAdded(entity);
 
@@ -186,8 +196,6 @@ bool Scene::RemoveEntity(const Handle<Entity> &entity)
 
         return false;
     }
-
-    Detach(entity);
 
     m_environment->OnEntityRemoved(it->second);
     m_entities_pending_removal.Insert(entity->GetId());

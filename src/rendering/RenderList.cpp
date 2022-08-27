@@ -84,7 +84,7 @@ void RenderListContainer::RenderListBucket::AddPendingRendererInstances(Engine *
     for (auto it = renderer_instances_pending_addition.Begin(); it != renderer_instances_pending_addition.End(); ++it) {
         AssertThrow(*it != nullptr);
 
-        engine->Attach(*it);
+        engine->InitObject(*it);
 
         renderer_instances.PushBack(std::move(*it));
     }
@@ -117,10 +117,10 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
     
-    render_pass = Handle<RenderPass>(new RenderPass(
+    render_pass = engine->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         mode
-    ));
+    );
 
     if (IsRenderableBucket()) { // add gbuffer attachments
         AttachmentRef *attachment_ref;
@@ -210,7 +210,7 @@ void RenderListContainer::RenderListBucket::CreateRenderPass(Engine *engine)
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
     
-    engine->Attach(render_pass);
+    engine->InitObject(render_pass);
 }
 
 void RenderListContainer::RenderListBucket::CreateFramebuffers(Engine *engine)
@@ -218,13 +218,16 @@ void RenderListContainer::RenderListBucket::CreateFramebuffers(Engine *engine)
     AssertThrow(framebuffers.Empty());
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto framebuffer = Handle<Framebuffer>(new Framebuffer(engine->GetInstance()->swapchain->extent, Handle<RenderPass>(render_pass)));
+        auto framebuffer = engine->CreateHandle<Framebuffer>(
+            engine->GetInstance()->swapchain->extent,
+            Handle<RenderPass>(render_pass)
+        );
 
         for (auto *attachment_ref : render_pass->GetRenderPass().GetAttachmentRefs()) {
             framebuffer->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
 
-        engine->Attach(framebuffer);
+        engine->InitObject(framebuffer);
         framebuffers.PushBack(framebuffer);
     }
 }
