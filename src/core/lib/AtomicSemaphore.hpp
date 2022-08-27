@@ -19,15 +19,15 @@ public:
     AtomicSemaphore &operator=(AtomicSemaphore &&other) = delete;
     ~AtomicSemaphore() = default;
 
-    void Inc()      { ++m_count; }
-    void Dec()      { --m_count; }
+    void Inc() { ++m_count; }
+    void Dec() { --m_count; }
     T Count() const { return m_count.load(); }
 
     HYP_FORCE_INLINE void BlockUntil(T value) const { HYP_MEMORY_BARRIER_COUNTER(m_count, value); }
-    HYP_FORCE_INLINE void BlockUntilZero() const    { BlockUntil(0); }
+    HYP_FORCE_INLINE void BlockUntilZero() const { BlockUntil(0); }
 
 private:
-    std::atomic<T> m_count{0};
+    std::atomic<T> m_count { 0 };
 };
 
 // binary semaphore
@@ -42,15 +42,15 @@ public:
 
     void Signal()
     {
-        m_value.fetch_add(1u);
+        m_value.fetch_add(1u, std::memory_order_release);
     }
 
     void Wait()
     {
-        auto value = m_value.load();
+        auto value = m_value.load(std::memory_order_relaxed);
 
         // wait for value be non-zero.
-        while (value == 0u || !m_value.compare_exchange_strong(value, value - 1u)) {
+        while (value == 0u || !m_value.compare_exchange_strong(value, value - 1u, std::memory_order_acquire)) {
             value = m_value.load();
         }
     }

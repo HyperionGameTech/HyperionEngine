@@ -362,7 +362,6 @@ public:
     virtual void Logic(Engine *engine, GameCounter::TickUnit delta) override
     {
         timer += delta;
-        ++counter;
 
         HandleCameraMovement();
 
@@ -478,7 +477,6 @@ public:
     std::unique_ptr<Node> test_model, zombie, cube_obj, material_test_obj;
     GameCounter::TickUnit timer{};
     GameCounter::TickUnit ray_cast_timer{};
-    std::atomic_uint32_t counter{0};
 
 };
 } // namespace hyperion::v2

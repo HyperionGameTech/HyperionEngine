@@ -14,7 +14,7 @@ bool Octree::IsVisible(
 {
     return child->m_visibility_state.ValidToParent(
         root->m_visibility_state,
-        (root->GetRoot()->visibility_cursor + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size
+        (root->GetRoot()->visibility_cursor.load(std::memory_order_relaxed) + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size
     );
 }
 
@@ -504,8 +504,8 @@ Octree::Result Octree::Move(Engine *engine, Entity *entity, const std::vector<No
         CopyVisibilityState(engine->GetWorld().GetOctree().GetVisibilityState());
 
         m_nodes.push_back(Node {
-            .entity          = entity,
-            .aabb             = entity->GetWorldAABB(),
+            .entity = entity,
+            .aabb = entity->GetWorldAABB(),
             .visibility_state = &m_visibility_state
         });
 
@@ -633,10 +633,10 @@ void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
     // tried having it just load from the current and next cursor. doesn't work. not sure why.
     // but it could be a slight performance boost.
     for (UInt i = 0; i < static_cast<UInt>(m_visibility_state.nonces.size()); i++) {
-        m_visibility_state.nonces[i].store(visibility_state.nonces[i].load());
+        m_visibility_state.nonces[i].store(visibility_state.nonces[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
     
-    m_visibility_state.bits |= visibility_state.bits.load();
+    m_visibility_state.bits.fetch_or(visibility_state.bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
 }
 
 void Octree::CollectEntities(std::vector<Entity *> &out) const
@@ -711,23 +711,23 @@ void Octree::NextVisibilityState()
     AssertThrow(m_root != nullptr);
 
     UInt8 cursor;
-    m_root->visibility_cursor.store(cursor = (m_root->visibility_cursor.load() + 1) % VisibilityState::cursor_size);
+    m_root->visibility_cursor.store(cursor = (m_root->visibility_cursor.load(std::memory_order_relaxed) + 1) % VisibilityState::cursor_size, std::memory_order_relaxed);
 
-    ++m_visibility_state.nonces[cursor];
+    m_visibility_state.nonces[cursor].fetch_add(1, std::memory_order_relaxed);
 }
 
 UInt8 Octree::LoadVisibilityCursor() const
 {
     AssertThrow(m_root != nullptr);
 
-    return m_root->visibility_cursor.load();
+    return m_root->visibility_cursor.load(std::memory_order_relaxed);
 }
 
 UInt8 Octree::LoadPreviousVisibilityCursor() const
 {
     AssertThrow(m_root != nullptr);
 
-    return (m_root->visibility_cursor.load() + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size;
+    return (m_root->visibility_cursor.load(std::memory_order_relaxed) + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size;
 }
 
 void Octree::CalculateVisibility(Scene *scene)
@@ -768,15 +768,15 @@ void Octree::UpdateVisibilityState(Scene *scene)
         return;
     }
 
-    const auto cursor = m_root->visibility_cursor.load();
-    const auto nonce  = m_visibility_state.nonces[cursor].load();
+    const auto cursor = m_root->visibility_cursor.load(std::memory_order_relaxed);
+    const auto nonce = m_visibility_state.nonces[cursor].load(std::memory_order_relaxed);
 
     for (auto &octant : m_octants) {
         if (!frustum.ContainsAABB(octant.aabb)) {
             continue;
         }
 
-        octant.octree->m_visibility_state.nonces[cursor] = nonce;
+        octant.octree->m_visibility_state.nonces[cursor].store(nonce, std::memory_order_relaxed);
         octant.octree->UpdateVisibilityState(scene);
     }
 }

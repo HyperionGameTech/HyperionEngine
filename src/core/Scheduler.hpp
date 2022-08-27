@@ -422,7 +422,7 @@ private:
     }
 
     UInt m_id_counter = 0;
-    std::atomic_uint32_t m_num_enqueued{0};
+    std::atomic_uint m_num_enqueued { 0 };
     ScheduledFunctionQueue m_scheduled_functions;
 
 #if HYP_SCHEDULER_USE_ATOMIC_LOCK

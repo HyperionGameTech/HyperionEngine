@@ -71,15 +71,15 @@ public:
 
     CameraType GetCameraType() const { return m_camera_type; }
 
-    int GetWidth() const        { return m_width; }
-    void SetWidth(int width)    { m_width = width; }
-    int GetHeight() const       { return m_height; }
-    void SetHeight(int height)  { m_height = height; }
-    float GetNear() const       { return m_near; }
-    void SetNear(float _near)   { m_near = _near; }
-    float GetFar() const        { return m_far; }
-    void SetFar(float _far)     { m_far = _far; }
-    float GetFov() const        { return m_fov; }
+    int GetWidth() const { return m_width; }
+    void SetWidth(int width) { m_width = width; }
+    int GetHeight() const { return m_height; }
+    void SetHeight(int height) { m_height = height; }
+    float GetNear() const { return m_near; }
+    void SetNear(float _near) { m_near = _near; }
+    float GetFar() const { return m_far; }
+    void SetFar(float _far) { m_far = _far; }
+    float GetFov() const { return m_fov; }
 
     const Vector3 &GetTranslation() const             { return m_translation; }
     virtual void SetTranslation(const Vector3 &translation);
@@ -157,8 +157,8 @@ private:
 
     Matrix4 m_view_proj_mat;
 
-    std::mutex           m_command_queue_mutex;
-    std::atomic_uint32_t m_command_queue_count;
+    std::mutex m_command_queue_mutex;
+    std::atomic_uint m_command_queue_count;
     Queue<CameraCommand> m_command_queue;
 };
 

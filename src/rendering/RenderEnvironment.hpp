@@ -142,7 +142,7 @@ private:
 
     Scene *m_scene;
 
-    std::atomic<RenderEnvironmentUpdates> m_update_marker{RENDER_ENVIRONMENT_UPDATES_NONE};
+    std::atomic<RenderEnvironmentUpdates> m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
     Queue<Handle<Entity>> m_entities_pending_addition;
     Queue<Handle<Entity>> m_entities_pending_removal;

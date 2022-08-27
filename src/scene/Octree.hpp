@@ -87,8 +87,8 @@ public:
                           on_remove_node;
         } events;
 
-        std::unordered_map<Entity *, Octree *>  node_to_octree;
-        std::atomic_uint8_t                     visibility_cursor{0};
+        std::unordered_map<Entity *, Octree *> node_to_octree;
+        std::atomic_uint8_t visibility_cursor { 0 };
     };
 
     static bool IsVisible(

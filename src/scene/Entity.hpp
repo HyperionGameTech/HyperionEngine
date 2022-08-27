@@ -266,8 +266,8 @@ private:
 
     ControllerSet m_controllers;
 
-    std::atomic<Octree *> m_octree{nullptr};
-    bool m_needs_octree_update{false};
+    std::atomic<Octree *> m_octree { nullptr };
+    bool m_needs_octree_update { false };
 
     struct {
         RendererInstance *renderer_instance = nullptr;

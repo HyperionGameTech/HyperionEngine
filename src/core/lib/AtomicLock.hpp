@@ -22,10 +22,10 @@ public:
 
     HYP_FORCE_INLINE bool IsLocked() const { return m_semaphore.Count() != 0; }
 
-    HYP_FORCE_INLINE void Lock()           { AssertThrow(!IsLocked()); m_semaphore.Inc(); }
-    HYP_FORCE_INLINE void Unlock()         { AssertThrow(IsLocked());  m_semaphore.Dec(); }
+    HYP_FORCE_INLINE void Lock() { AssertThrow(!IsLocked()); m_semaphore.Inc(); }
+    HYP_FORCE_INLINE void Unlock() { AssertThrow(IsLocked());  m_semaphore.Dec(); }
 
-    HYP_FORCE_INLINE void Wait() const     { m_semaphore.BlockUntilZero(); }
+    HYP_FORCE_INLINE void Wait() const { m_semaphore.BlockUntilZero(); }
 
 private:
     AtomicSemaphore<UInt> m_semaphore;
