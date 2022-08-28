@@ -614,8 +614,10 @@ void Engine::RenderNextFrame(Game *game)
 
     PreFrameUpdate(frame);
 
-    /* === rendering === */
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetInstance()->GetDevice()));
+
+    // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
+    render_state.visibility_cursor = m_world.GetOctree().LoadPreviousVisibilityCursor();
 
     game->OnFrameBegin(this, frame);
 

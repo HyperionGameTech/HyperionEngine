@@ -82,13 +82,13 @@ public:
         struct Events : ComponentEvents<Callback>
         {
             CallbackGroup on_insert_octant,
-                          on_remove_octant,
-                          on_insert_node,
-                          on_remove_node;
+                on_remove_octant,
+                on_insert_node,
+                on_remove_node;
         } events;
 
         std::unordered_map<Entity *, Octree *> node_to_octree;
-        std::atomic_uint8_t visibility_cursor { 0 };
+        std::atomic_uint8_t visibility_cursor { 0u };
     };
 
     static bool IsVisible(

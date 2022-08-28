@@ -313,8 +313,6 @@ void Scene::Update(
         RemovePendingEntities();
     }
 
-    m_environment->Update(engine, delta);
-
     if (m_camera != nullptr) {
         m_camera->Update(engine, delta);
 
@@ -326,20 +324,21 @@ void Scene::Update(
 
     EnqueueRenderUpdates();
 
+    if (m_world != nullptr && update_octree_visibility) {
+        m_world->GetOctree().CalculateVisibility(this);
+    }
+
+    m_environment->Update(engine, delta);
+
     for (auto &it : m_entities) {
         auto &entity = it.second;
         AssertThrow(entity != nullptr);
 
         entity->Update(engine, delta);
-        AssertThrow(entity != nullptr);
 
         if (entity->m_primary_renderer_instance.changed) {
             RequestRendererInstanceUpdate(entity);
         }
-    }
-
-    if (m_world != nullptr && update_octree_visibility) {
-        m_world->GetOctree().CalculateVisibility(this);
     }
 }
 
@@ -400,22 +399,22 @@ void Scene::EnqueueRenderUpdates()
     GetEngine()->render_scheduler.Enqueue([this, params](...) {
         SceneShaderData shader_data {
             .enabled_render_components_mask = m_environment->GetEnabledRenderComponentsMask(),
-            .aabb_max                       = params.aabb.max.ToVector4(),
-            .aabb_min                       = params.aabb.min.ToVector4(),
-            .global_timer                   = params.global_timer,
-            .num_environment_shadow_maps    = static_cast<UInt32>(m_environment->HasRenderComponent<ShadowRenderer>()), // callable on render thread only
-            .num_lights                     = static_cast<UInt32>(m_environment->NumLights())
+            .aabb_max = params.aabb.max.ToVector4(),
+            .aabb_min = params.aabb.min.ToVector4(),
+            .global_timer = params.global_timer,
+            .num_environment_shadow_maps = static_cast<UInt32>(m_environment->HasRenderComponent<ShadowRenderer>()), // callable on render thread only
+            .num_lights = static_cast<UInt32>(m_environment->NumLights())
         };
 
         if (m_camera != nullptr) {
-            shader_data.view            = m_camera->GetDrawProxy().view;
-            shader_data.projection      = m_camera->GetDrawProxy().projection;
+            shader_data.view = m_camera->GetDrawProxy().view;
+            shader_data.projection = m_camera->GetDrawProxy().projection;
             shader_data.camera_position = m_camera->GetDrawProxy().position.ToVector4();
-            shader_data.camera_near     = m_camera->GetDrawProxy().clip_near;
-            shader_data.camera_fov      = m_camera->GetDrawProxy().fov;
-            shader_data.camera_far      = m_camera->GetDrawProxy().clip_far;
-            shader_data.resolution_x    = m_camera->GetDrawProxy().dimensions.width;
-            shader_data.resolution_y    = m_camera->GetDrawProxy().dimensions.height;
+            shader_data.camera_near = m_camera->GetDrawProxy().clip_near;
+            shader_data.camera_fov = m_camera->GetDrawProxy().fov;
+            shader_data.camera_far = m_camera->GetDrawProxy().clip_far;
+            shader_data.resolution_x = m_camera->GetDrawProxy().dimensions.width;
+            shader_data.resolution_y = m_camera->GetDrawProxy().dimensions.height;
         }
 
         shader_data.environment_texture_usage = 0u;

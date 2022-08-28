@@ -10,15 +10,14 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <animation/Skeleton.hpp>
+#include <scene/VisibilityState.hpp>
+#include <scene/Controller.hpp>
+#include <math/Transform.hpp>
+#include <math/BoundingBox.hpp>
 #include <core/Scheduler.hpp>
 #include <core/lib/FlatSet.hpp>
 
-#include "Controller.hpp"
-
 #include <rendering/backend/RendererStructs.hpp>
-
-#include <math/Transform.hpp>
-#include <math/BoundingBox.hpp>
 
 #include <util/Defines.hpp>
 
@@ -83,6 +82,9 @@ public:
 
     Octree *GetOctree() const
         { return m_octree; }
+
+    const VisibilityState &GetVisibilityState() const
+        { return m_visibility_state; }
 
     ShaderDataState GetShaderDataState() const
         { return m_shader_data_state; }
@@ -266,8 +268,9 @@ private:
 
     ControllerSet m_controllers;
 
-    std::atomic<Octree *> m_octree { nullptr };
+    Octree *m_octree { nullptr };
     bool m_needs_octree_update { false };
+    VisibilityState m_visibility_state;
 
     struct {
         RendererInstance *renderer_instance = nullptr;

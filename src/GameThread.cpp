@@ -43,6 +43,7 @@ void GameThread::operator()(Engine *engine, Game *game, SystemWindow *window)
 
         counter.NextTick();
         
+        engine->GetWorld().Update(engine, counter.delta);
         game->Logic(engine, counter.delta);
     }
 

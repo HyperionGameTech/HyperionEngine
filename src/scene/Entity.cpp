@@ -143,8 +143,20 @@ void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
 
     UpdateControllers(engine, delta);
 
-    if (m_needs_octree_update) {
-        UpdateOctree();
+    if (m_octree) {
+        if (m_needs_octree_update) {
+            UpdateOctree();
+        }
+
+        const auto &octree_visibility_state = m_octree->GetVisibilityState();
+        const auto visibility_cursor = m_octree->LoadVisibilityCursor();
+
+        // m_visibility_state = m_octree->GetVisibilityState();
+
+        m_visibility_state.snapshots[visibility_cursor] = octree_visibility_state.snapshots[visibility_cursor];
+
+        // m_visibility_state.bits.store(octree_visibility_state.bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        // m_visibility_state.nonces[visibility_cursor].store(octree_visibility_state.nonces[visibility_cursor].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
 
     if (m_shader_data_state.IsDirty()) {
@@ -229,7 +241,7 @@ void Entity::UpdateOctree()
 {
     AssertThrow(IsInitCalled());
 
-    if (Octree *octree = m_octree.load()) {
+    if (Octree *octree = m_octree) {
         const auto update_result = octree->Update(GetEngine(), this);
 
         if (!update_result) {
@@ -598,7 +610,7 @@ void Entity::RemoveFromOctree(Engine *engine)
         GetId().value
     );
 
-    m_octree.load()->OnEntityRemoved(engine, this);
+    m_octree->OnEntityRemoved(engine, this);
 }
 
 bool Entity::IsReady() const

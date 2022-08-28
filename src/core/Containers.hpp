@@ -1122,12 +1122,6 @@ using Ref = typename RefCounter<T, Engine *>::Ref;
 template <class T>
 using WeakRef = typename RefCounter<T, Engine *>::WeakRef;
 
-template <class T>
-WeakRef<T> MakeWeakRef(const Ref<T> &strong_ref)
-{
-    return WeakRef<T>(strong_ref);
-}
-
 } // namespace hyperion::v2
 
 #endif

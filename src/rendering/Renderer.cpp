@@ -321,6 +321,8 @@ void RendererInstance::CollectDrawCalls(
 
     // check visibility state
     const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
+    const auto visibility_cursor = engine->render_state.visibility_cursor;
+    const auto &octree_visibility_state_snapshot = engine->GetWorld().GetOctree().GetVisibilityState().snapshots[visibility_cursor];
 
     m_indirect_renderer.GetDrawState().ResetDrawProxies();
     //m_indirect_renderer.GetDrawState().Reserve(engine, frame, m_entities.size());
@@ -331,17 +333,13 @@ void RendererInstance::CollectDrawCalls(
         }
 
         if (perform_culling) {
-            if (auto *octant = entity->GetOctree()) {
-                const auto &visibility_state = octant->GetVisibilityState();
+            const auto &snapshot = entity->GetVisibilityState().snapshots[visibility_cursor];
 
-                if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant, engine->render_state.visibility_cursor)) {
-                    continue;
-                }
+            if (!snapshot.ValidToParent(octree_visibility_state_snapshot)) {
+                continue;
+            }
 
-                if (!visibility_state.Get(scene_id)) {
-                    continue;
-                }
-            } else {
+            if (!snapshot.Get(scene_id)) {
                 continue;
             }
         }
@@ -379,7 +377,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
                 instance->GetDescriptorPool(),
                 m_pipeline.get(),
                 FixedArray { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
-                FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL,        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
+                FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
                 FixedArray {
                     UInt32((scene_id.value - 1) * sizeof(SceneShaderData)),
                     UInt32(0 * sizeof(LightShaderData))
@@ -441,7 +439,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
                     FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT,        DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
                     FixedArray {
                         UInt32(material_index * sizeof(MaterialShaderData)),
-                        UInt32(entity_index   * sizeof(ObjectShaderData)),
+                        UInt32(entity_index * sizeof(ObjectShaderData)),
                         UInt32(skeleton_index * sizeof(SkeletonShaderData))
                     }
                 );
@@ -489,17 +487,17 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
             static_assert(std::size(DescriptorSet::object_buffer_mapping) == max_frames_in_flight);
 
             const auto scene_binding = engine->render_state.GetScene();
-            const auto scene_cull_id = scene_binding.id; //scene_binding.parent_id ? scene_binding.parent_id : scene_binding.id;
-            const auto scene_index   = scene_binding ? scene_binding.id.value - 1 : 0;
+            const auto scene_id = scene_binding.id;
+            const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
 
             secondary->BindDescriptorSets(
                 instance->GetDescriptorPool(),
                 m_pipeline.get(),
                 FixedArray { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
-                FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL,        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
+                FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
                 FixedArray {
                     UInt32(scene_index * sizeof(SceneShaderData)),
-                    UInt32(0           * sizeof(LightShaderData))
+                    UInt32(0 * sizeof(LightShaderData))
                 }
             );
 
@@ -526,30 +524,19 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
             );
 
             // check visibility state
-            const bool perform_culling = scene_cull_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
-            
+            const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
+            const auto visibility_cursor = engine->render_state.visibility_cursor;
+            const auto &octree_visibility_state_snapshot = engine->GetWorld().GetOctree().GetVisibilityState().snapshots[visibility_cursor];
+
             for (auto &&entity : m_entities) {
                 if (perform_culling) {
-                    if (auto *octant = entity->GetOctree()) {
-                        const auto &visibility_state = octant->GetVisibilityState();
-                        
-                        if (!Octree::IsVisible(&engine->GetWorld().GetOctree(), octant)) {
-                            ++num_culled_objects;
-                            continue;
-                        }
+                    const auto &snapshot = entity->GetVisibilityState().snapshots[visibility_cursor];
 
-                        if (!visibility_state.Get(scene_cull_id)) {
-                            ++num_culled_objects;
-                            continue;
-                        }
-                    } else {
-                        DebugLog(
-                            LogType::Warn,
-                            "In pipeline #%u: entity #%u not in octree!\n",
-                            m_id.value,
-                            entity->GetId().value
-                        );
+                    if (!snapshot.ValidToParent(octree_visibility_state_snapshot)) {
+                        continue;
+                    }
 
+                    if (!snapshot.Get(scene_id)) {
                         continue;
                     }
                 }
@@ -575,7 +562,7 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
                     FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
                     FixedArray {
                         UInt32(material_index * sizeof(MaterialShaderData)),
-                        UInt32(entity_index  * sizeof(ObjectShaderData)),
+                        UInt32(entity_index * sizeof(ObjectShaderData)),
                         UInt32(skeleton_index * sizeof(SkeletonShaderData))
                     }
                 );
@@ -584,10 +571,10 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
                     instance->GetDescriptorPool(),
                     m_pipeline.get(),
                     FixedArray { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
-                    FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT,        DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
+                    FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
                     FixedArray {
                         UInt32(material_index * sizeof(MaterialShaderData)),
-                        UInt32(entity_index  * sizeof(ObjectShaderData)),
+                        UInt32(entity_index * sizeof(ObjectShaderData)),
                         UInt32(skeleton_index * sizeof(SkeletonShaderData))
                     }
                 );
@@ -595,13 +582,6 @@ void RendererInstance::Render(Engine *engine, Frame *frame)
 
                 entity->GetMesh()->Render(engine, secondary);
             }
-
-            // DebugLog(
-            //     LogType::Debug,
-            //     "Scene %u: Culled %u objects\n",
-            //     scene_cull_id.value,
-            //     num_culled_objects
-            // );
 
             HYPERION_RETURN_OK;
         });

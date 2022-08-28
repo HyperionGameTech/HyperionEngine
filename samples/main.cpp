@@ -146,7 +146,7 @@ public:
             sphere->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, MathUtil::Clamp(float(i) / 10.0f, 0.05f, 0.95f));
             sphere->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             sphere->GetChild(0).Get()->GetEntity()->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
-            sphere->SetLocalTranslation(Vector3(0 + (i * 6.0f), 7.0f, 0.0f));
+            sphere->SetLocalTranslation(Vector3(2.0f + (i * 6.0f), 7.0f, 0.0f));
             m_scene->GetRoot().AddChild(NodeProxy(sphere.release()));
         }
 
@@ -233,15 +233,15 @@ public:
         auto my_light = engine->CreateHandle<Light>(new DirectionalLight(
             Vector3(-0.5f, 0.5f, 0.0f).Normalize(),
             Vector4::One(),
-            110000.0f
+            150000.0f
         ));
         m_scene->GetEnvironment()->AddLight(Handle<Light>(my_light));
 
         m_point_light = engine->CreateHandle<Light>(new PointLight(
             Vector3(0.0f, 6.0f, 0.0f),
             Vector4(1.0f, 0.3f, 0.1f, 1.0f),
-            500.0f,
-            35.0f
+            1000.0f,
+            4.0f
         ));
 
         m_scene->GetEnvironment()->AddLight(Handle<Light>(m_point_light));
@@ -350,7 +350,6 @@ public:
     {
         m_scene->GetEnvironment()->RenderComponents(engine, frame);
 
-        engine->render_state.visibility_cursor = engine->GetWorld().GetOctree().LoadPreviousVisibilityCursor();
         engine->render_state.BindScene(m_scene.Get());
     }
 
@@ -364,8 +363,6 @@ public:
         timer += delta;
 
         HandleCameraMovement();
-
-        engine->GetWorld().Update(engine, delta);
 
         #if 0 // bad performance on large meshes. need bvh
         //if (input_manager->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
@@ -486,113 +483,63 @@ int main()
     using namespace hyperion::renderer;
 
 #if 0
-    Profile control([]() {
-        std::queue<TestStruct> test_queue;
-        for (int i = 0; i < 1000; i++) {
-            test_queue.push(TestStruct{i});
-        }
 
-        // std::cout << "Size: " << test_queue.size() << "\n";
-
-        while (!test_queue.empty()) {
-            test_queue.pop();
-        }
-    });
     // Profile profile_1([]() {
-    //     std::queue<TestStruct> test_queue;
-    //     for (int i = 0; i < 500; i++) {
-    //         test_queue.push(TestStruct{i});
+    //     std::unordered_map<int, unsigned> items;
+        
+    //     for (int i = 0; i < 100; i++) {
+    //         items[i] = static_cast<unsigned>(i) & static_cast<unsigned>(i * 2);
     //     }
-
-    //     std::queue<TestStruct> test_queue_copy = test_queue;
-
-    //     for (int i = 0; i < 5; i++) {
-    //         while (!test_queue.empty()) {
-    //             std::cout << "Front: " << test_queue.front().id << "\n";
-    //             test_queue.pop();
-    //         }
-    //     }
-    //     std::cout << "Size: " << test_queue_copy.size() << "\n";
-
-    //     while (!test_queue_copy.empty()) {
-    //         test_queue_copy.pop();
+        
+    //     for (auto &it : items) {
+    //         std::cout << it.first << ": " << it.second << "\n";
     //     }
     // });
-
     // Profile profile_2([]() {
-    //     hyperion::Queue<TestStruct> test_queue;
-    //     test_queue.Reserve(1000);
-    //     for (int i = 0; i < 500; i++) {
-    //         test_queue.Push(TestStruct{i});
+    //     FlatMap<int, int> items;
+        
+    //     for (int i = 0; i < 100; i++) {
+    //         items[i] = static_cast<unsigned>(i) & static_cast<unsigned>(i * 2);
     //     }
-
-    //     hyperion::Queue<TestStruct> test_queue_copy = test_queue;
-
-    //     for (int i = 0; i < 5; i++) {
-    //         while (!test_queue.Empty()) {
-    //             std::cout << "Front: " << test_queue.Front().id << "\n";
-    //             test_queue.Pop();
-    //         }
-    //     }
-
-    //     std::cout << "Size: " << test_queue_copy.Size() << "\n";
-
-    //     while (!test_queue_copy.Empty()) {
-    //         test_queue_copy.Pop();
+        
+    //     for (auto &it : items) {
+    //         std::cout << it.first << ": " << it.second << "\n";
     //     }
     // });
 
-
-    
     Profile profile_1([]() {
-        std::vector<TestStruct> test_queue;
-        // test_queue.reserve(1000);
-        for (int i = 0; i < 256; i++) {
-            test_queue.push_back(TestStruct{i});
+        std::queue<Proc<void>> items;
+        for (int i = 0; i < 1024; i++) {
+            EntityDrawProxy ent;
+            ent.entity_id.value = i;
+            items.push([ent]() {
+                std::cout << "I am item number " << ent.entity_id.value << "\n";
+            });
         }
-
-        std::vector<TestStruct> test_queue_copy = test_queue;
-
-        // for (int i = 0; i < 5; i++) {
-            while (!test_queue.empty()) {
-                // std::cout << "Back: " << test_queue.front().id << "\n";
-                test_queue.pop_back();
-            }
-        // }
-        // std::cout << "Size: " << test_queue_copy.size() << "\n";
-
-        while (!test_queue_copy.empty()) {
-            test_queue_copy.pop_back();
+        
+        while (!items.empty()) {
+            items.front()();
+            items.pop();
         }
     });
 
     Profile profile_2([]() {
-        hyperion::DynArray<TestStruct> test_queue;
-        // test_queue.Reserve(1000);
-        for (int i = 0; i < 256; i++) {
-            test_queue.PushBack(TestStruct{i});
+        std::queue<std::function<void()>> items;
+        for (int i = 0; i < 1024; i++) {
+            EntityDrawProxy ent;
+            ent.entity_id.value = i;
+            items.push([ent]() {
+                std::cout << "I am item number " << ent.entity_id.value << "\n";
+            });
         }
-        // std::cout << "Size after pushing: " << test_queue.Size() << "\n";
-
-        hyperion::DynArray<TestStruct> test_queue_copy = test_queue;
-
-        // for (int i = 0; i < 5; i++) {
-            while (!test_queue.Empty()) {
-                // std::cout << "Back: " << test_queue.Front().id << "\n";
-                test_queue.PopBack();
-            }
-        // }
-        // std::cout << "back: " << test_queue_copy.Back().id << "\n";
-
-
-        while (!test_queue_copy.Empty()) {
-            test_queue_copy.PopBack();
+        
+        while (!items.empty()) {
+            items.front()();
+            items.pop();
         }
     });
 
-    // profile_2.Run(10, 10);
-
-    auto results = Profile::RunInterleved({ control, profile_1, profile_2 }, 5, 10, 1000);
+    auto results = Profile::RunInterleved({ profile_1, profile_2, profile_1, profile_2 }, 5, 5, 30);
 
     HYP_BREAKPOINT;
 #endif

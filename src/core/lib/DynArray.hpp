@@ -31,7 +31,7 @@ public:
     using SizeType = UInt64;
     using ValueType = T;
 
-    static constexpr SizeType num_inline_bytes = 256u;
+    static constexpr SizeType num_inline_bytes = 512u;
     static constexpr SizeType num_inline_elements = MathUtil::Max(num_inline_bytes / sizeof(T), 1u);
 
 protected:
@@ -457,7 +457,6 @@ void DynArray<T>::SetCapacity(SizeType capacity, SizeType copy_offset)
         m_buffer = new_buffer;
         m_is_dynamic = true;
         m_start_offset = copy_offset;
-
     } else {
         if (m_is_dynamic) { // switch from dynamic to non-dynamic
             for (SizeType i = copy_offset, j = m_start_offset; j < m_size; ++i, ++j) {

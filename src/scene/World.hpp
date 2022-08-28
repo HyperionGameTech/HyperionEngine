@@ -16,8 +16,8 @@ public:
     Octree &GetOctree() { return m_octree; }
     const Octree &GetOctree() const { return m_octree; }
 
-    auto &GetScenes() { return m_scenes; }
-    const auto &GetScenes() const { return m_scenes; }
+    FlatMap<Scene::ID, Handle<Scene>> &GetScenes() { return m_scenes; }
+    const FlatMap<Scene::ID, Handle<Scene>> &GetScenes() const { return m_scenes; }
 
     void AddScene(Handle<Scene> &&scene);
     void RemoveScene(Scene::ID scene_id);

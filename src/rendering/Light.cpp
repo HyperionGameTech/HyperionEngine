@@ -60,12 +60,12 @@ void Light::Update(Engine *engine, GameCounter::TickUnit delta)
 void Light::EnqueueRenderUpdates() const
 {
     struct {
-	    Vector4  position; //direction for directional lights
-	    UInt32   color;
-	    UInt32   light_type;
-	    float    intensity;
-	    float    radius;
-	    UInt32   shadow_map_index; // ~0 == no shadow map
+	    Vector4 position; //direction for directional lights
+	    UInt32 color;
+	    UInt32 light_type;
+	    float intensity;
+	    float radius;
+	    UInt32 shadow_map_index; // ~0 == no shadow map
 	} shader_data = {
         .position         = Vector4(m_position, m_type == LightType::DIRECTIONAL ? 0.0f : 1.0f),
         .color            = ByteUtil::PackColorU32(m_color),
