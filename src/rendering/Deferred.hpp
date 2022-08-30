@@ -44,12 +44,12 @@ public:
     DeferredPass(bool is_indirect_pass);
     DeferredPass(const DeferredPass &other) = delete;
     DeferredPass &operator=(const DeferredPass &other) = delete;
-    ~DeferredPass();
+    virtual ~DeferredPass();
 
     void CreateShader(Engine *engine);
-    void CreateRenderPass(Engine *engine);
-    void CreateDescriptors(Engine *engine);
-    void Create(Engine *engine);
+    virtual void CreateRenderPass(Engine *engine);
+    virtual void CreateDescriptors(Engine *engine);
+    virtual void Create(Engine *engine);
 
     void Destroy(Engine *engine);
     void Record(Engine *engine, UInt frame_index);

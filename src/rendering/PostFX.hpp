@@ -39,6 +39,30 @@ struct alignas(16) PostProcessingUniforms
     ShaderVec2<UInt32> masks; // pre, post
 };
 
+class PostFXPass
+    : public FullScreenPass
+{
+public:
+    PostFXPass(
+        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+    );
+    PostFXPass(
+        Handle<Shader> &&shader,
+        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+    );
+    PostFXPass(
+        Handle<Shader> &&shader,
+        DescriptorKey descriptor_key,
+        UInt sub_descriptor_index,
+        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+    );
+    PostFXPass(const PostFXPass &) = delete;
+    PostFXPass &operator=(const PostFXPass &) = delete;
+    virtual ~PostFXPass();
+
+    virtual void CreateDescriptors(Engine *engine) override;
+};
+
 class PostProcessingEffect
     : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)>
 {
@@ -57,14 +81,14 @@ public:
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;
     virtual ~PostProcessingEffect();
 
-    FullScreenPass &GetFullScreenPass() { return m_full_screen_pass; }
-    const FullScreenPass &GetFullScreenPass() const { return m_full_screen_pass; }
+    PostFXPass &GetPass() { return m_pass; }
+    const PostFXPass &GetPass() const { return m_pass; }
 
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
 
     Stage GetStage() const { return m_stage; }
-    UInt GetIndex() const { return m_full_screen_pass.GetSubDescriptorIndex(); }
+    UInt GetIndex() const { return m_pass.GetSubDescriptorIndex(); }
 
     bool IsEnabled() const { return m_is_enabled; }
     void SetIsEnabled(bool is_enabled) { m_is_enabled = is_enabled; }
@@ -74,7 +98,7 @@ public:
 protected:
     virtual Handle<Shader> CreateShader(Engine *engine) = 0;
 
-    FullScreenPass m_full_screen_pass;
+    PostFXPass m_pass;
 
 private:
     Handle<Shader> m_shader;

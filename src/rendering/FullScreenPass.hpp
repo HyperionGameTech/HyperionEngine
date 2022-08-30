@@ -51,7 +51,7 @@ public:
     );
     FullScreenPass(const FullScreenPass &) = delete;
     FullScreenPass &operator=(const FullScreenPass &) = delete;
-    ~FullScreenPass();
+    virtual ~FullScreenPass();
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].get(); }
 
@@ -75,16 +75,16 @@ public:
     const PushConstantData &GetPushConstants() const { return m_push_constant_data; }
     void SetPushConstants(const PushConstantData &pc) { m_push_constant_data = pc; }
 
-    void CreateRenderPass(Engine *engine);
-    void Create(Engine *engine);
-    void CreateDescriptors(Engine *engine);
-    void CreatePipeline(Engine *engine, const RenderableAttributeSet &renderable_attributes);
-    void CreatePipeline(Engine *engine);
+    virtual void CreateRenderPass(Engine *engine);
+    virtual void CreatePipeline(Engine *engine, const RenderableAttributeSet &renderable_attributes);
+    virtual void CreatePipeline(Engine *engine);
+    virtual void CreateDescriptors(Engine *engine) = 0;
 
-    void Destroy(Engine *engine);
+    virtual void Create(Engine *engine);
+    virtual void Destroy(Engine *engine);
 
-    void Render(Engine *engine, Frame *frame);
-    void Record(Engine *engine, UInt frame_index);
+    virtual void Render(Engine *engine, Frame *frame);
+    virtual void Record(Engine *engine, UInt frame_index);
 
 protected:
     void CreateQuad(Engine *engine);
@@ -100,7 +100,7 @@ protected:
 
     PushConstantData m_push_constant_data;
 
-private:                         
+    // TODO: move to PostFXPass?                        
     Image::InternalFormat m_image_format;                                    
     DescriptorKey m_descriptor_key;
     UInt m_sub_descriptor_index;

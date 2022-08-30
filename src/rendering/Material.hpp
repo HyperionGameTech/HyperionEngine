@@ -28,7 +28,7 @@ class Material : public EngineComponentBase<STUB_CLASS(Material)>
 {
 public:
     static constexpr UInt max_parameters = 32u;
-    static constexpr UInt max_textures   = 32u;
+    static constexpr UInt max_textures = 32u;
 
     enum TextureKey : UInt64
     {
@@ -73,7 +73,7 @@ public:
     {
         union {
             float float_values[4];
-            int   int_values[4];
+            int int_values[4];
             void *ptr;
         } values;
 
@@ -416,7 +416,8 @@ private:
     FixedArray<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
 };
 
-class MaterialGroup {
+class MaterialGroup
+{
 public:
     MaterialGroup();
     MaterialGroup(const MaterialGroup &other) = delete;

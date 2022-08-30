@@ -83,31 +83,35 @@ void ShadowPass::CreateDescriptors(Engine *engine)
 {
     AssertThrow(m_shadow_map_index != ~0u);
 
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
-    
-        if (!framebuffer.GetAttachmentRefs().empty()) {
-            /* TODO: Removal of these descriptors */
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
+        
+            if (!framebuffer.GetAttachmentRefs().empty()) {
+                /* TODO: Removal of these descriptors */
 
-            //for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
-                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                    .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
+                //for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
+                    auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                        .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
-                auto *shadow_map_descriptor = descriptor_set
-                    ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-                
-                for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                    const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
-                        .element_index = m_shadow_map_index,
-                        .image_view    = attachment_ref->GetImageView(),
-                        .sampler       = attachment_ref->GetSampler()
-                    });
+                    auto *shadow_map_descriptor = descriptor_set
+                        ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+                    
+                    for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
+                        const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
+                            .element_index = m_shadow_map_index,
+                            .image_view = attachment_ref->GetImageView(),
+                            .sampler = attachment_ref->GetSampler()
+                        });
 
-                    AssertThrow(sub_descriptor_index == m_shadow_map_index);
-                }
-            //}
+                        AssertThrow(sub_descriptor_index == m_shadow_map_index);
+                    }
+                //}
+            }
         }
-    }
+
+        HYPERION_RETURN_OK;
+    });
 }
 
 void ShadowPass::CreateRendererInstance(Engine *engine)
@@ -166,20 +170,25 @@ void ShadowPass::Create(Engine *engine)
             engine->InitObject(m_framebuffers[i]);
         }
 
-        { // init command buffers
-            auto command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+        m_command_buffers[i] = std::make_unique<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+    }
+
+    CreateRendererInstance(engine);
+    CreateDescriptors(engine);
+
+    // create command buffers in render thread
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        for (auto &command_buffer : m_command_buffers) {
+            AssertThrow(command_buffer != nullptr);
 
             HYPERION_ASSERT_RESULT(command_buffer->Create(
                 engine->GetInstance()->GetDevice(),
                 engine->GetInstance()->GetGraphicsCommandPool()
             ));
-
-            m_command_buffers[i] = std::move(command_buffer);
         }
-    }
 
-    CreateRendererInstance(engine);
-    CreateDescriptors(engine);
+        HYPERION_RETURN_OK;
+    });
 
     HYP_FLUSH_RENDER_QUEUE(engine); // force init stuff
 }

@@ -15,12 +15,67 @@ using renderer::DescriptorKey;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 
+PostFXPass::PostFXPass(Image::InternalFormat image_format)
+    : FullScreenPass(Handle<Shader>(), image_format)
+{
+}
+
+PostFXPass::PostFXPass(
+    Handle<Shader> &&shader,
+    Image::InternalFormat image_format
+) : FullScreenPass(std::move(shader),
+        DescriptorKey::POST_FX_PRE_STACK,
+        ~0u,
+        image_format
+    )
+{
+}
+
+PostFXPass::PostFXPass(
+    Handle<Shader> &&shader,
+    DescriptorKey descriptor_key,
+    UInt sub_descriptor_index,
+    Image::InternalFormat image_format
+) : FullScreenPass(
+        std::move(shader),
+        descriptor_key,
+        sub_descriptor_index,
+        image_format
+    )
+{
+}
+
+PostFXPass::~PostFXPass() = default;
+
+void PostFXPass::CreateDescriptors(Engine *engine)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
+        auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
+    
+        if (!framebuffer.GetAttachmentRefs().empty()) {
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+            auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(m_descriptor_key);
+
+            AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
+
+            for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
+                m_sub_descriptor_index = descriptor->SetSubDescriptor({
+                    .element_index = m_sub_descriptor_index,
+                    .image_view = attachment_ref->GetImageView()
+                });
+            }
+        }
+    }
+}
+
 PostProcessingEffect::PostProcessingEffect(
     Stage stage,
     UInt index,
     Image::InternalFormat image_format
 ) : EngineComponentBase(),
-    m_full_screen_pass(
+    m_pass(
         Handle<Shader>(),
         stage == Stage::PRE_SHADING
             ? DescriptorKey::POST_FX_PRE_STACK
@@ -49,8 +104,8 @@ void PostProcessingEffect::Init(Engine *engine)
     m_shader = CreateShader(engine);
     engine->InitObject(m_shader);
 
-    m_full_screen_pass.SetShader(Handle<Shader>(m_shader));
-    m_full_screen_pass.Create(engine);
+    m_pass.SetShader(Handle<Shader>(m_shader));
+    m_pass.Create(engine);
 
     SetReady(true);
 
@@ -59,7 +114,7 @@ void PostProcessingEffect::Init(Engine *engine)
 
         SetReady(false);
 
-        m_full_screen_pass.Destroy(engine);
+        m_pass.Destroy(engine);
         m_shader.Reset();
 
         HYP_FLUSH_RENDER_QUEUE(engine);
@@ -182,12 +237,12 @@ void PostProcessing::RenderPre(Engine *engine, Frame *frame) const
     for (auto &it : m_pre_effects) {
         auto &effect = it.second;
 
-        effect->GetFullScreenPass().SetPushConstants({
+        effect->GetPass().SetPushConstants({
             .post_fx_data = { index << 1 }
         });
 
-        effect->GetFullScreenPass().Record(engine, frame->GetFrameIndex());
-        effect->GetFullScreenPass().Render(engine, frame);
+        effect->GetPass().Record(engine, frame->GetFrameIndex());
+        effect->GetPass().Render(engine, frame);
 
         ++index;
     }
@@ -202,12 +257,12 @@ void PostProcessing::RenderPost(Engine *engine, Frame *frame) const
     for (auto &it : m_post_effects) {
         auto &effect = it.second;
         
-        effect->GetFullScreenPass().SetPushConstants({
+        effect->GetPass().SetPushConstants({
             .post_fx_data = { (index << 1) | 1 }
         });
 
-        effect->GetFullScreenPass().Record(engine, frame->GetFrameIndex());
-        effect->GetFullScreenPass().Render(engine, frame);
+        effect->GetPass().Record(engine, frame->GetFrameIndex());
+        effect->GetPass().Render(engine, frame);
 
         ++index;
     }

@@ -139,29 +139,6 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     engine->InitObject(m_render_pass);
 }
 
-void FullScreenPass::CreateDescriptors(Engine *engine)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
-    
-        if (!framebuffer.GetAttachmentRefs().empty()) {
-            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
-            auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(m_descriptor_key);
-
-            AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
-
-            for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                m_sub_descriptor_index = descriptor->SetSubDescriptor({
-                    .element_index = m_sub_descriptor_index,
-                    .image_view    = attachment_ref->GetImageView()
-                });
-            }
-        }
-    }
-}
-
 void FullScreenPass::CreatePipeline(Engine *engine)
 {
     CreatePipeline(engine, RenderableAttributeSet(
@@ -231,7 +208,7 @@ void FullScreenPass::Destroy(Engine *engine)
             );
         }
 
-        m_command_buffers = {};
+        m_command_buffers = { };
 
         for (auto &attachment : m_attachments) {
             HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);

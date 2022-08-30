@@ -55,31 +55,31 @@ public:
     RenderComponentBase &operator=(const RenderComponentBase &other) = delete;
     virtual ~RenderComponentBase() = default;
 
-    RenderComponentName GetName() const         { return m_name; }
+    RenderComponentName GetName() const { return m_name; }
 
-    RenderEnvironment *GetParent() const        { return m_parent; }
-    void SetParent(RenderEnvironment *parent)   { m_parent = parent; }
+    RenderEnvironment *GetParent() const { return m_parent; }
+    void SetParent(RenderEnvironment *parent) { m_parent = parent; }
 
-    bool IsValidComponent() const               { return m_index != ~0u; }
+    bool IsValidComponent() const { return m_index != ~0u; }
 
-    Index GetComponentIndex() const             { return m_index; }
+    Index GetComponentIndex() const { return m_index; }
     virtual void SetComponentIndex(Index index) { m_index = index; }
 
     /*! \brief Init the component. Runs in RENDER/MAIN thread. */
     virtual void ComponentInit(Engine *engine) = 0;
     /*! \brief Update data for the component. Runs on GAME thread. */
-    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) {}
+    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) { }
     /*! \brief Perform rendering. Runs in RENDER thread. */
     virtual void ComponentRender(Engine *engine, Frame *frame) = 0;
     /*! \brief Called when the component is removed. */
     virtual void ComponentRemoved() = 0;
 
     /*! \brief Called when an entity is added to the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityAdded(Handle<Entity> &entity) = 0;
+    virtual void OnEntityAdded(Handle<Entity> &entity) { };
     /*! \brief Called when an entity is removed from the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityRemoved(Handle<Entity> &entity) = 0;
+    virtual void OnEntityRemoved(Handle<Entity> &entity) { };
     /*! \brief Called when an entity has meaningful attributes changed. Runs in RENDER thread. */
-    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) = 0;
+    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) { };
 
 
 protected:
@@ -91,7 +91,8 @@ protected:
 };
 
 template <class Derived>
-class RenderComponent : public RenderComponentBase {
+class RenderComponent : public RenderComponentBase
+{
 public:
     /* Derived class must have static component_name member of type RenderComponentName, to forward to RenderComponentBase. */
     RenderComponent(UInt render_frame_slicing = 0)
@@ -158,11 +159,11 @@ public:
         }
     }
 
-    virtual void OnEntityAdded(Handle<Entity> &entity) override {}
-    virtual void OnEntityRemoved(Handle<Entity> &entity) override {}
-    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override {}
+    virtual void OnEntityAdded(Handle<Entity> &entity) override { }
+    virtual void OnEntityRemoved(Handle<Entity> &entity) override { }
+    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override { }
 
-    virtual void ComponentRemoved() override {}
+    virtual void ComponentRemoved() override { }
 
 protected:
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;

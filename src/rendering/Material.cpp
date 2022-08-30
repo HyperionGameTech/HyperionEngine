@@ -41,16 +41,16 @@ void Material::Init(Engine *engine)
         }
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_MATERIALS, [this](...) {
-        auto *engine = GetEngine();
-
 #if !HYP_FEATURES_BINDLESS_TEXTURES
-        EnqueueDescriptorSetCreate();
+    EnqueueDescriptorSetCreate();
 #endif
 
-        SetReady(true);
+    SetReady(true);
 
+    OnInit(engine->callbacks.Once(EngineCallback::CREATE_MATERIALS, [this](...) {
         OnTeardown([this]() {
+            SetReady(false);
+
             auto *engine = GetEngine();
 
             for (SizeType i = 0; i < m_textures.Size(); i++) {
@@ -64,8 +64,6 @@ void Material::Init(Engine *engine)
 #endif
 
             HYP_FLUSH_RENDER_QUEUE(engine);
-
-            SetReady(false);
         });
     }));
 }
@@ -139,13 +137,15 @@ void Material::EnqueueDescriptorSetCreate()
 
 void Material::EnqueueDescriptorSetDestroy()
 {
-    AssertReady();
-    
     GetEngine()->GetRenderScheduler().Enqueue([this](...) {
         const auto *engine = GetEngine();
         auto &descriptor_pool = engine->GetInstance()->GetDescriptorPool();
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            if (!m_descriptor_sets[frame_index]) {
+                continue;
+            }
+
             DebugLog(LogType::Debug, "Destroy descriptor set   %u   %u\n", m_descriptor_sets[frame_index]->GetRealIndex(), frame_index);
             // HYP_BREAKPOINT;
             descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
@@ -173,10 +173,10 @@ void Material::EnqueueRenderUpdates()
 
     GetEngine()->GetRenderScheduler().Enqueue([this, ids = std::move(bound_texture_ids)](...) mutable {
         MaterialShaderData shader_data {
-            .albedo          = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
-            .metalness       = GetParameter<float>(MATERIAL_KEY_METALNESS),
-            .roughness       = GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
-            .uv_scale        = GetParameter<float>(MATERIAL_KEY_UV_SCALE),
+            .albedo = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
+            .metalness = GetParameter<float>(MATERIAL_KEY_METALNESS),
+            .roughness = GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
+            .uv_scale = GetParameter<float>(MATERIAL_KEY_UV_SCALE),
             .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
         };
 

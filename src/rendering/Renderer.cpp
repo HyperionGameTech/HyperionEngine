@@ -427,7 +427,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
                     FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
                     FixedArray {
                         UInt32(material_index * sizeof(MaterialShaderData)),
-                        UInt32(entity_index   * sizeof(ObjectShaderData)),
+                        UInt32(entity_index * sizeof(ObjectShaderData)),
                         UInt32(skeleton_index * sizeof(SkeletonShaderData))
                     }
                 );
@@ -436,7 +436,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
                     instance->GetDescriptorPool(),
                     m_pipeline.get(),
                     FixedArray { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
-                    FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT,        DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
+                    FixedArray { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
                     FixedArray {
                         UInt32(material_index * sizeof(MaterialShaderData)),
                         UInt32(entity_index * sizeof(ObjectShaderData)),

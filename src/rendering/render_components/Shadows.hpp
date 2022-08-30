@@ -17,13 +17,15 @@
 namespace hyperion::v2 {
 
 using renderer::Frame;
+using renderer::ImageView;
 
-class ShadowPass : public FullScreenPass {
+class ShadowPass : public FullScreenPass
+{
 public:
     ShadowPass();
     ShadowPass(const ShadowPass &other) = delete;
     ShadowPass &operator=(const ShadowPass &other) = delete;
-    ~ShadowPass();
+    virtual ~ShadowPass();
 
     Handle<Scene> &GetScene() { return m_scene; }
     const Handle<Scene> &GetScene() const { return m_scene; }
@@ -56,7 +58,8 @@ public:
         };
     }
 
-    UInt GetShadowMapIndex() const { return m_shadow_map_index; }
+    UInt GetShadowMapIndex() const
+        { return m_shadow_map_index; }
 
     void SetShadowMapIndex(UInt index)
     {
@@ -67,14 +70,27 @@ public:
         }
     }
 
-    void CreateShader(Engine *engine);
-    void CreateRenderPass(Engine *engine);
-    void CreateRendererInstance(Engine *engine);
-    void CreateDescriptors(Engine *engine);
-    void Create(Engine *engine);
+    ImageView *GetShadowMap(UInt frame_index) const
+    {
+        if (auto framebuffer = m_framebuffers[frame_index]) {
+            if (!framebuffer->GetFramebuffer().GetAttachmentRefs().empty()) {
+                if (auto *attachment_ref = framebuffer->GetFramebuffer().GetAttachmentRefs().front()) {
+                    return attachment_ref->GetImageView();
+                }
+            }
+        }
 
-    void Destroy(Engine *engine);
-    void Render(Engine *engine, Frame *frame);
+        return nullptr;
+    }
+
+    void CreateShader(Engine *engine);
+    void CreateRendererInstance(Engine *engine);
+    virtual void CreateRenderPass(Engine *engine) override;
+    virtual void CreateDescriptors(Engine *engine) override;
+
+    virtual void Create(Engine *engine) override;
+    virtual void Destroy(Engine *engine) override;
+    virtual void Render(Engine *engine, Frame *frame) override;
 
 private:
     Handle<Scene> m_scene;
@@ -86,7 +102,10 @@ private:
     Extent2D m_dimensions;
 };
 
-class ShadowRenderer : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>, public RenderComponent<ShadowRenderer> {
+class ShadowRenderer
+    : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>,
+      public RenderComponent<ShadowRenderer>
+{
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
 
@@ -96,10 +115,10 @@ public:
     ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
     virtual ~ShadowRenderer();
 
-    ShadowPass &GetEffect()               { return m_shadow_pass; }
-    const ShadowPass &GetEffect() const   { return m_shadow_pass; }
+    ShadowPass &GetEffect() { return m_shadow_pass; }
+    const ShadowPass &GetEffect() const { return m_shadow_pass; }
 
-    const Vector3 &GetOrigin() const      { return m_shadow_pass.GetOrigin(); }
+    const Vector3 &GetOrigin() const { return m_shadow_pass.GetOrigin(); }
     void SetOrigin(const Vector3 &origin) { m_shadow_pass.SetOrigin(origin); }
 
     void SetParentScene(const Handle<Scene> &parent_scene)
