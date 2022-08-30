@@ -294,7 +294,8 @@ struct SwapchainSupportDetails {
     std::vector<VkPresentModeKHR>        present_modes;
 };
 
-struct alignas(8) Extent2D {
+struct alignas(8) Extent2D
+{
     union {
         struct {  // NOLINT(clang-diagnostic-nested-anon-types)
             UInt32 width, height;
@@ -330,7 +331,7 @@ struct alignas(8) Extent2D {
     bool operator!=(const Extent2D &other) const
         { return !operator==(other); }
     
-    constexpr UInt32 &operator[](UInt32 index)      { return v[index]; }
+    constexpr UInt32 &operator[](UInt32 index) { return v[index]; }
     constexpr UInt32 operator[](UInt32 index) const { return v[index]; }
 
     UInt32 Size() const { return width * height; }
@@ -346,7 +347,8 @@ struct alignas(8) Extent2D {
 
 static_assert(sizeof(Extent2D) == 8);
 
-struct alignas(16) Extent3D {
+struct alignas(16) Extent3D
+{
     union {
         struct {  // NOLINT(clang-diagnostic-nested-anon-types)
             UInt32 width, height, depth;
@@ -419,10 +421,10 @@ struct alignas(16) Extent3D {
         return *this;
     }
     
-    constexpr UInt32 &operator[](UInt32 index)         { return v[index]; }
-    constexpr UInt32 operator[](UInt32 index) const    { return v[index]; }
+    constexpr UInt32 &operator[](UInt32 index) { return v[index]; }
+    constexpr UInt32 operator[](UInt32 index) const { return v[index]; }
 
-    operator Extent2D() const
+    explicit operator Extent2D() const
     {
         return {
             width,

@@ -28,22 +28,29 @@ using renderer::Frame;
 
 class Engine;
 
-struct alignas(16) VoxelUniforms {
+struct alignas(16) VoxelUniforms
+{
     Extent3D extent;
-    Vector4  aabb_max;
-    Vector4  aabb_min;
-    uint32_t num_mipmaps;
+    Vector4 aabb_max;
+    Vector4 aabb_min;
+    UInt32 num_mipmaps;
 };
 
 static_assert(MathUtil::IsPowerOfTwo(sizeof(VoxelUniforms)));
 
-class VoxelConeTracing : public EngineComponentBase<STUB_CLASS(VoxelConeTracing)>, public RenderComponent<VoxelConeTracing> {
+class VoxelConeTracing
+    : public EngineComponentBase<STUB_CLASS(VoxelConeTracing)>,
+      public RenderComponent<VoxelConeTracing>
+{
+    static constexpr bool manual_mipmap_generation = true;
+
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_VCT;
 
     static const Extent3D voxel_map_size;
 
-    struct Params {
+    struct Params
+    {
         BoundingBox aabb;
     };
 
@@ -85,6 +92,9 @@ private:
     Handle<RenderPass> m_render_pass;
     Handle<RendererInstance> m_renderer_instance;
     Handle<ComputePipeline> m_clear_voxels;
+    Handle<ComputePipeline> m_generate_mipmap;
+    FixedArray<DynArray<std::unique_ptr<ImageView>>, max_frames_in_flight> m_mips;
+    FixedArray<DynArray<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_generate_mipmap_descriptor_sets;
                                                        
     Handle<Texture> m_voxel_image;
     UniformBuffer m_uniform_buffer;

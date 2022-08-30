@@ -8,6 +8,11 @@
 namespace hyperion {
 namespace renderer {
 FramebufferObject::FramebufferObject(Extent2D extent)
+    : FramebufferObject(Extent3D(extent))
+{
+}
+
+FramebufferObject::FramebufferObject(Extent3D extent)
     : m_extent(extent),
       m_handle(VK_NULL_HANDLE)
 {
@@ -23,7 +28,7 @@ Result FramebufferObject::Create(Device *device, RenderPass *render_pass)
     std::vector<VkImageView> attachment_image_views;
     attachment_image_views.reserve(m_attachment_refs.size());
 
-    uint32_t num_layers = 1;
+    UInt num_layers = 1;
     
     for (auto *attachment_ref : m_attachment_refs) {
         AssertThrow(attachment_ref != nullptr);
@@ -37,7 +42,7 @@ Result FramebufferObject::Create(Device *device, RenderPass *render_pass)
 
     VkFramebufferCreateInfo framebuffer_create_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
     framebuffer_create_info.renderPass      = render_pass->GetHandle();
-    framebuffer_create_info.attachmentCount = static_cast<uint32_t>(attachment_image_views.size());
+    framebuffer_create_info.attachmentCount = static_cast<UInt32>(attachment_image_views.size());
     framebuffer_create_info.pAttachments    = attachment_image_views.data();
     framebuffer_create_info.width           = m_extent.width;
     framebuffer_create_info.height          = m_extent.height;

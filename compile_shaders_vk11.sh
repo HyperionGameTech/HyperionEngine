@@ -56,5 +56,6 @@ glslc --target-env=$VULKAN_TARGET vct/voxelize.frag -o vct/voxelize.frag.spv
 glslc --target-env=$VULKAN_TARGET vct/voxelize.geom -o vct/voxelize.geom.spv
 glslc --target-env=$VULKAN_TARGET vct/voxelize.vert -o vct/voxelize.vert.spv
 glslc --target-env=$VULKAN_TARGET vct/clear_voxels.comp -o vct/clear_voxels.comp.spv
+glslc --target-env=$VULKAN_TARGET vct/GenerateMipmap.comp -o vct/GenerateMipmap.comp.spv
 
 popd

@@ -934,9 +934,9 @@ void GPUImageMemory::InsertBarrier(
     InsertBarrier(
         command_buffer,
         ImageSubResource {
-            .flags           = flags,
-            .num_layers      = VK_REMAINING_ARRAY_LAYERS,
-            .num_levels      = VK_REMAINING_MIP_LEVELS
+            .flags = flags,
+            .num_layers = VK_REMAINING_ARRAY_LAYERS,
+            .num_levels = VK_REMAINING_MIP_LEVELS
         },
         new_state
     );
@@ -967,20 +967,20 @@ void GPUImageMemory::InsertBarrier(
         | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
         | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
-    VkImageSubresourceRange range{};
-    range.aspectMask     = aspect_flag_bits;
+    VkImageSubresourceRange range { };
+    range.aspectMask = aspect_flag_bits;
     range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount     = sub_resource.num_layers;
-    range.baseMipLevel   = sub_resource.base_mip_level;
-    range.levelCount     = sub_resource.num_levels;
+    range.layerCount = sub_resource.num_layers;
+    range.baseMipLevel = sub_resource.base_mip_level;
+    range.levelCount = sub_resource.num_levels;
 
     VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout           = GetImageLayout(resource_state);
-    barrier.newLayout           = GetImageLayout(new_state);
-    barrier.srcAccessMask       = GetAccessMask(resource_state);
-    barrier.dstAccessMask       = GetAccessMask(new_state);
-    barrier.image               = image;
-    barrier.subresourceRange    = range;
+    barrier.oldLayout = GetImageLayout(resource_state);
+    barrier.newLayout = GetImageLayout(new_state);
+    barrier.srcAccessMask = GetAccessMask(resource_state);
+    barrier.dstAccessMask = GetAccessMask(new_state);
+    barrier.image = image;
+    barrier.subresourceRange = range;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
@@ -1026,21 +1026,21 @@ void GPUImageMemory::InsertSubResourceBarrier(
         | (sub_resource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
 
     VkImageSubresourceRange range{};
-    range.aspectMask     = aspect_flag_bits;
+    range.aspectMask = aspect_flag_bits;
     range.baseArrayLayer = sub_resource.base_array_layer;
-    range.layerCount     = sub_resource.num_layers;
-    range.baseMipLevel   = sub_resource.base_mip_level;
-    range.levelCount     = sub_resource.num_levels;
+    range.layerCount = sub_resource.num_layers;
+    range.baseMipLevel = sub_resource.base_mip_level;
+    range.levelCount = sub_resource.num_levels;
 
     VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.oldLayout           = GetImageLayout(prev_resource_state);
-    barrier.newLayout           = GetImageLayout(new_state);
-    barrier.srcAccessMask       = GetAccessMask(prev_resource_state);
-    barrier.dstAccessMask       = GetAccessMask(new_state);
-    barrier.image               = image;
+    barrier.oldLayout = GetImageLayout(prev_resource_state);
+    barrier.newLayout = GetImageLayout(new_state);
+    barrier.srcAccessMask = GetAccessMask(prev_resource_state);
+    barrier.dstAccessMask = GetAccessMask(new_state);
+    barrier.image = image;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange    = range;
+    barrier.subresourceRange = range;
 
     vkCmdPipelineBarrier(
         command_buffer->GetCommandBuffer(),

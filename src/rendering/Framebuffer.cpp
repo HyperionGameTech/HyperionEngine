@@ -6,6 +6,13 @@ namespace hyperion::v2 {
 Framebuffer::Framebuffer(
     Extent2D extent,
     Handle<RenderPass> &&render_pass
+) : Framebuffer(Extent3D(extent), std::move(render_pass))
+{
+}
+
+Framebuffer::Framebuffer(
+    Extent3D extent,
+    Handle<RenderPass> &&render_pass
 ) : EngineComponentBase(),
     m_framebuffer(extent),
     m_render_pass(std::move(render_pass))

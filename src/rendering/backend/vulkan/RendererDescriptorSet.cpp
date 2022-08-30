@@ -659,7 +659,6 @@ void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
 
 void DescriptorPool::RemoveDescriptorSet(UInt index)
 {
-    // equals means that the descriptor set is for frame 0
     const UInt queue_index = DescriptorSet::GetFrameIndex(index);
 
     m_descriptor_sets_pending_destruction[queue_index].Push(std::move(m_descriptor_sets[index]));

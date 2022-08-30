@@ -151,7 +151,7 @@ void Material::EnqueueDescriptorSetDestroy()
             descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
         }
         
-        m_descriptor_sets = {};
+        m_descriptor_sets = { };
 
         HYPERION_RETURN_OK;
     });

@@ -86,14 +86,14 @@ LoaderResult MTLMaterialLoader::LoadFn(LoaderState *state, Object &object)
     object.filepath = state->filepath;
 
     const std::unordered_map<std::string, TextureMapping> texture_keys{
-        std::make_pair("map_kd",     TextureMapping{.key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true}),
-        std::make_pair("map_bump",   TextureMapping{.key = Material::MATERIAL_TEXTURE_NORMAL_MAP}),
-        std::make_pair("bump",       TextureMapping{.key = Material::MATERIAL_TEXTURE_NORMAL_MAP}),
-        std::make_pair("map_ka",     TextureMapping{.key = Material::MATERIAL_TEXTURE_METALNESS_MAP}),
-        std::make_pair("map_ks",     TextureMapping{.key = Material::MATERIAL_TEXTURE_METALNESS_MAP}),
-        std::make_pair("map_ns",     TextureMapping{.key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP}),
+        std::make_pair("map_kd", TextureMapping{.key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true}),
+        std::make_pair("map_bump", TextureMapping{.key = Material::MATERIAL_TEXTURE_NORMAL_MAP}),
+        std::make_pair("bump", TextureMapping{.key = Material::MATERIAL_TEXTURE_NORMAL_MAP}),
+        std::make_pair("map_ka", TextureMapping{.key = Material::MATERIAL_TEXTURE_METALNESS_MAP}),
+        std::make_pair("map_ks", TextureMapping{.key = Material::MATERIAL_TEXTURE_METALNESS_MAP}),
+        std::make_pair("map_ns", TextureMapping{.key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP}),
         std::make_pair("map_height", TextureMapping{.key = Material::MATERIAL_TEXTURE_PARALLAX_MAP}) /* custom */,
-        std::make_pair("map_ao",     TextureMapping{.key = Material::MATERIAL_TEXTURE_AO_MAP})       /* custom */
+        std::make_pair("map_ao", TextureMapping{.key = Material::MATERIAL_TEXTURE_AO_MAP})       /* custom */
     };
 
     Tokens tokens;

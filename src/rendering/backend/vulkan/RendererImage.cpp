@@ -665,28 +665,28 @@ Result Image::GenerateMipmaps(
         return {Result::RENDERER_ERR, "Cannot generate mipmaps on uninitialized image"};
     }
 
-    const auto num_faces   = NumFaces();
+    const auto num_faces = NumFaces();
     const auto num_mipmaps = NumMipmaps();
 
-    for (uint32_t face = 0; face < num_faces; face++) {
-        for (int32_t i = 1; i < static_cast<int32_t>(num_mipmaps + 1); i++) {
-            const auto mip_width  = static_cast<int32_t>(helpers::MipmapSize(m_extent.width, i)),
-                       mip_height = static_cast<int32_t>(helpers::MipmapSize(m_extent.height, i)),
-                       mip_depth  = static_cast<int32_t>(helpers::MipmapSize(m_extent.depth, i));
+    for (UInt32 face = 0; face < num_faces; face++) {
+        for (Int32 i = 1; i < static_cast<Int32>(num_mipmaps + 1); i++) {
+            const auto mip_width  = static_cast<Int32>(helpers::MipmapSize(m_extent.width, i)),
+                mip_height = static_cast<Int32>(helpers::MipmapSize(m_extent.height, i)),
+                mip_depth  = static_cast<Int32>(helpers::MipmapSize(m_extent.depth, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
 
             const ImageSubResource src {
-                .flags            = IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+                .flags = IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .base_array_layer = face,
-                .base_mip_level   = static_cast<uint32_t>(i - 1)
+                .base_mip_level = static_cast<UInt32>(i - 1)
             };
 
             const ImageSubResource dst {
-                .flags            = src.flags,
+                .flags  = src.flags,
                 .base_array_layer = src.base_array_layer,
-                .base_mip_level   = static_cast<uint32_t>(i)
+                .base_mip_level  = static_cast<UInt32>(i)
             };
             
             m_image->InsertSubResourceBarrier(
@@ -695,7 +695,7 @@ Result Image::GenerateMipmaps(
                 GPUMemory::ResourceState::COPY_SRC
             );
 
-            if (i == static_cast<int32_t>(num_mipmaps)) {
+            if (i == static_cast<Int32>(num_mipmaps)) {
                 if (face == num_faces - 1) {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
@@ -716,24 +716,24 @@ Result Image::GenerateMipmaps(
             /* Blit src -> dst */
             const VkImageBlit blit{
                 .srcSubresource = {
-                    .aspectMask     = aspect_flag_bits,
-                    .mipLevel       = src.base_mip_level,
+                    .aspectMask = aspect_flag_bits,
+                    .mipLevel = src.base_mip_level,
                     .baseArrayLayer = src.base_array_layer,
-                    .layerCount     = src.num_layers
+                    .layerCount = src.num_layers
                 },
                 .srcOffsets     = {
                     {0, 0, 0},
                     {
-                        static_cast<int32_t>(helpers::MipmapSize(m_extent.width, i - 1)),
-                        static_cast<int32_t>(helpers::MipmapSize(m_extent.height, i - 1)),
-                        static_cast<int32_t>(helpers::MipmapSize(m_extent.depth, i - 1))
+                        static_cast<Int32>(helpers::MipmapSize(m_extent.width, i - 1)),
+                        static_cast<Int32>(helpers::MipmapSize(m_extent.height, i - 1)),
+                        static_cast<Int32>(helpers::MipmapSize(m_extent.depth, i - 1))
                     }
                 },
                 .dstSubresource = {
-                    .aspectMask     = aspect_flag_bits,
-                    .mipLevel       = dst.base_mip_level,
+                    .aspectMask  = aspect_flag_bits,
+                    .mipLevel = dst.base_mip_level,
                     .baseArrayLayer = dst.base_array_layer,
-                    .layerCount     = dst.num_layers
+                    .layerCount = dst.num_layers
                 },
                 .dstOffsets     = {
                     {0, 0, 0},
