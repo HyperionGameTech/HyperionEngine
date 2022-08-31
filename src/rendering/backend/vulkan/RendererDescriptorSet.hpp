@@ -138,14 +138,14 @@ public:
     void Create(
         Device *device,
         VkDescriptorSetLayoutBinding &binding,
-        std::vector<VkWriteDescriptorSet> &writes
+        DynArray<VkWriteDescriptorSet> &writes
     );
 
 protected:
 
     static VkDescriptorType ToVkDescriptorType(DescriptorType descriptor_type);
 
-    void BuildUpdates(Device *device, std::vector<VkWriteDescriptorSet> &writes);
+    void BuildUpdates(Device *device, DynArray<VkWriteDescriptorSet> &writes);
     void UpdateSubDescriptorBuffer(const SubDescriptor &sub_descriptor,
         VkDescriptorBufferInfo &out_buffer,
         VkDescriptorImageInfo &out_image,
@@ -154,10 +154,10 @@ protected:
     Range<UInt> m_dirty_sub_descriptors;
 
     FlatMap<UInt, SubDescriptor> m_sub_descriptors;
-    DynArray<UInt>               m_sub_descriptor_update_indices;
+    DynArray<UInt> m_sub_descriptor_update_indices;
 
-    UInt                         m_binding;
-    DescriptorType               m_descriptor_type;
+    UInt m_binding;
+    DescriptorType m_descriptor_type;
 
 private:
     DescriptorSet *m_descriptor_set;
@@ -283,13 +283,13 @@ public:
     ~DescriptorSet();
 
     DescriptorSetState GetState() const { return m_state; }
-    Index GetIndex() const              { return m_index; }
-    UInt GetRealIndex() const           { return m_real_index; }
-    bool IsBindless() const             { return m_bindless; }
-    bool IsCreated() const              { return m_is_created; }
+    Index GetIndex() const { return m_index; }
+    UInt GetRealIndex() const { return m_real_index; }
+    bool IsBindless() const { return m_bindless; }
+    bool IsCreated() const { return m_is_created; }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    bool IsTemplate() const             { return GetRealIndex() == static_cast<UInt>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    bool IsTemplate() const { return GetRealIndex() == static_cast<UInt>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)
@@ -302,20 +302,16 @@ public:
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
-        auto it = std::find_if(
-            m_descriptors.begin(),
-            m_descriptors.end(),
-            [binding](const auto &item) {
-                return item->GetBinding() == binding;
-            }
-        );
+        auto it = m_descriptors.FindIf([binding](const auto &item) {
+            return item->GetBinding() == binding;
+        });
 
-        AssertThrowMsg(it == m_descriptors.end(), "Descriptor with binding %u already exists", binding);
+        AssertThrowMsg(it == m_descriptors.End(), "Descriptor with binding %u already exists", binding);
 
-        m_descriptors.push_back(std::make_unique<DescriptorType>(binding));
-        m_descriptor_bindings.emplace_back();
+        m_descriptors.PushBack(std::make_unique<DescriptorType>(binding));
+        m_descriptor_bindings.PushBack({ });
 
-        return m_descriptors.back().get();
+        return m_descriptors.Back().get();
     }
 
     bool RemoveDescriptor(Descriptor *descriptor);
@@ -343,24 +339,24 @@ public:
         return AddDescriptor<DescriptorType>(binding);
     }
 
-    std::vector<std::unique_ptr<Descriptor>> &GetDescriptors()             { return m_descriptors; }
-    const std::vector<std::unique_ptr<Descriptor>> &GetDescriptors() const { return m_descriptors; }
+    DynArray<std::unique_ptr<Descriptor>> &GetDescriptors() { return m_descriptors; }
+    const DynArray<std::unique_ptr<Descriptor>> &GetDescriptors() const { return m_descriptors; }
 
     Result Create(Device *device, DescriptorPool *pool);
     Result Destroy(Device *device);
 
     void ApplyUpdates(Device *device);
 
-    VkDescriptorSet       m_set;
+    VkDescriptorSet m_set;
     VkDescriptorSetLayout m_layout;
 
 private:
     UInt DescriptorKeyToIndex(DescriptorKey key) const;
 
     DescriptorPool *m_descriptor_pool;
-    std::vector<std::unique_ptr<Descriptor>> m_descriptors;
-    std::vector<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
-    std::vector<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
+    DynArray<std::unique_ptr<Descriptor>> m_descriptors;
+    DynArray<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
+    DynArray<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
     DescriptorSetState m_state;
     Index m_index;
     UInt m_real_index;
@@ -432,22 +428,22 @@ class DescriptorPool {
     VkDescriptorSetLayout GetDescriptorSetLayout(UInt index);
 
 public:
-    static const std::unordered_map<VkDescriptorType, size_t> items_per_set;
+    static const std::unordered_map<VkDescriptorType, UInt> items_per_set;
 
     DescriptorPool();
     DescriptorPool(const DescriptorPool &other) = delete;
     DescriptorPool &operator=(const DescriptorPool &other) = delete;
     ~DescriptorPool();
     
-    VkDescriptorPool GetHandle() const          { return m_descriptor_pool; }
+    VkDescriptorPool GetHandle() const { return m_descriptor_pool; }
 
-    auto &GetDescriptorSets()                   { return m_descriptor_sets; }
-    const auto &GetDescriptorSets() const       { return m_descriptor_sets; }
+    auto &GetDescriptorSets() { return m_descriptor_sets; }
+    const auto &GetDescriptorSets() const { return m_descriptor_sets; }
 
-    size_t NumDescriptorSets() const            { return m_descriptor_sets.size(); }
-    bool IsCreated() const                      { return m_is_created; }
+    SizeType NumDescriptorSets() const { return m_descriptor_sets.Size(); }
+    bool IsCreated() const { return m_is_created; }
 
-    auto &GetDescriptorSetLayouts()             { return m_descriptor_set_layouts; }
+    auto &GetDescriptorSetLayouts() { return m_descriptor_set_layouts; }
     const auto &GetDescriptorSetLayouts() const { return m_descriptor_set_layouts; }
 
     void SetDescriptorSetLayout(UInt index, VkDescriptorSetLayout layout);
@@ -456,7 +452,7 @@ public:
     DescriptorSet *AddDescriptorSet(
         Device *device,
         std::unique_ptr<DescriptorSet> &&descriptor_set,
-        bool should_create = false
+        bool add_immediately = false
     );
     DescriptorSet *GetDescriptorSet(DescriptorSet::Index index) const
         { return m_descriptor_sets[index].get(); }
@@ -470,10 +466,9 @@ public:
     Result Bind(Device *device, CommandBuffer *cmd, ComputePipeline *pipeline, const DescriptorSetBinding &) const;
     Result Bind(Device *device, CommandBuffer *cmd, RaytracingPipeline *pipeline, const DescriptorSetBinding &) const;
 
-    Result CreateDescriptorSet(Device *device, UInt index);
     Result CreateDescriptorSets(Device *device);
     Result DestroyPendingDescriptorSets(Device *device, UInt frame_index);
-    Result AddPendingDescriptorSets(Device *device);
+    Result AddPendingDescriptorSets(Device *device, UInt frame_index);
     Result UpdateDescriptorSets(Device *device, UInt frame_index);
 
 private:
@@ -487,18 +482,11 @@ private:
         const DescriptorSetBinding &binding
     ) const;
 
-    std::vector<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
+    DynArray<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
     FlatMap<UInt, VkDescriptorSetLayout> m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
 
-    struct DescriptorSetPendingEntry {
-        UInt num_cycles_remaining = max_frames_in_flight;
-        UInt index;
-        std::unique_ptr<DescriptorSet> descriptor_set;
-    };
-
-    // 1 for each frame in flight
-    std::vector<DescriptorSetPendingEntry> m_descriptor_sets_pending_addition;
+    FixedArray<Queue<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_addition;
     FixedArray<Queue<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
 
     bool m_is_created;

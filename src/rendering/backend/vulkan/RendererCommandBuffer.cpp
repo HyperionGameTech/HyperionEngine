@@ -401,11 +401,11 @@ void CommandBuffer::BindDescriptorSet(
     const auto &descriptor_sets = pool.GetDescriptorSets();
 
     AssertThrowMsg(
-        set_index < descriptor_sets.size(),
+        set_index < descriptor_sets.Size(),
         "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
         static_cast<UInt>(set),
         set_index,
-        descriptor_sets.size()
+        descriptor_sets.Size()
     );
 
     const auto &bind_set = descriptor_sets[set_index];
@@ -474,7 +474,7 @@ void CommandBuffer::BindDescriptorSets(
     UInt32 binding_index = 0;
 
     for (UInt i = 0; i < num_descriptor_sets; i++) {
-        const auto set_index             = static_cast<UInt>(sets[i]);
+        const auto set_index = static_cast<UInt>(sets[i]);
         const auto current_binding_index = DescriptorSet::GetDesiredIndex(bindings[i]);
 
         if (i == 0) {
@@ -490,11 +490,11 @@ void CommandBuffer::BindDescriptorSets(
         }
 
         AssertThrowMsg(
-            set_index < descriptor_sets.size(),
+            set_index < descriptor_sets.Size(),
             "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
             static_cast<UInt>(sets[i]),
             set_index,
-            descriptor_sets.size()
+            descriptor_sets.Size()
         );
 
         const auto &bind_set = descriptor_sets[set_index];

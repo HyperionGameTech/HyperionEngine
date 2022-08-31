@@ -197,9 +197,9 @@ public:
 
 
         material_test_obj->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_PARALLAX_HEIGHT, 0.1f);
-        material_test_obj->Scale(3.45f);
+        material_test_obj->Scale(6.45f);
         material_test_obj->Translate(Vector3(0, 22, 0));
-        // m_scene->GetRoot().AddChild(NodeProxy(material_test_obj.release()));
+        m_scene->GetRoot().AddChild(NodeProxy(material_test_obj.release()));
 
         // remove textures so we can manipulate the material and see our changes easier
         //material_test_obj->GetChild(0)->GetEntity()->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, nullptr);
@@ -246,7 +246,7 @@ public:
 
         m_scene->GetEnvironment()->AddLight(Handle<Light>(m_point_light));
 
-        test_model->Scale(0.15f);//14.075f);
+        test_model->Scale(0.30f);//14.075f);
 
 
 #if HYPERION_VK_TEST_VCT
@@ -299,7 +299,7 @@ public:
         m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
             Handle<Light>(my_light),
             Vector3::Zero(),
-            140.0f
+            250.0f
         );
 
         m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(

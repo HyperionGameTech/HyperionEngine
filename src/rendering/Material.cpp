@@ -97,8 +97,7 @@ void Material::EnqueueDescriptorSetCreate()
                     parent_index,
                     static_cast<UInt>(index),
                     false
-                ),
-                false // do not create
+                )
             );
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
@@ -125,7 +124,10 @@ void Material::EnqueueDescriptorSetCreate()
             }
 
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
-                HYPERION_BUBBLE_ERRORS(descriptor_pool.CreateDescriptorSet(engine->GetDevice(), UInt(index)));
+                HYPERION_BUBBLE_ERRORS(descriptor_set->Create(
+                    engine->GetDevice(),
+                    &engine->GetInstance()->GetDescriptorPool()
+                ));
             }
 
             m_descriptor_sets[frame_index] = descriptor_set;

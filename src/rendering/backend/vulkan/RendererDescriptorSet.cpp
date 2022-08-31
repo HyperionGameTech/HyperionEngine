@@ -270,14 +270,14 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
 {
     AssertThrow(pool != nullptr);
     AssertThrow(!m_is_created);
-    AssertThrow(m_descriptor_bindings.size() == m_descriptors.size());
+    AssertThrow(m_descriptor_bindings.Size() == m_descriptors.Size());
     
     m_descriptor_pool = pool;
 
-    m_descriptor_writes.clear();
-    m_descriptor_writes.reserve(m_descriptors.size());
+    m_descriptor_writes.Clear();
+    m_descriptor_writes.Reserve(m_descriptors.Size());
 
-    for (size_t i = 0; i < m_descriptors.size(); i++) {
+    for (SizeType i = 0; i < m_descriptors.Size(); i++) {
         auto &descriptor = m_descriptors[i];
         descriptor->m_descriptor_set = this;
 
@@ -286,27 +286,25 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
 
     //build layout first
     VkDescriptorSetLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    layout_info.pBindings    = m_descriptor_bindings.data();
-    layout_info.bindingCount = static_cast<UInt>(m_descriptor_bindings.size());
-    layout_info.flags        = 0;
+    layout_info.pBindings = m_descriptor_bindings.Data();
+    layout_info.bindingCount = static_cast<UInt>(m_descriptor_bindings.Size());
+    layout_info.flags = 0;
 
     constexpr VkDescriptorBindingFlags bindless_flags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
     const std::vector<VkDescriptorBindingFlags> binding_flags(
-        m_descriptor_bindings.size(),
+        m_descriptor_bindings.Size(),
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | (IsBindless() ? bindless_flags : 0)
     );
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo extended_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO};
-    extended_info.bindingCount  = static_cast<UInt>(binding_flags.size());
+    extended_info.bindingCount = static_cast<UInt>(binding_flags.size());
     extended_info.pBindingFlags = binding_flags.data();
     
     layout_info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
     layout_info.pNext = &extended_info;
 
     if (m_is_standalone) {
-        // TODO: create/store descriptor layout based on the hash of the descriptors.
-
         // 'standalone' means we create our own descriptor set layout and manage it.
         if (vkCreateDescriptorSetLayout(device->GetDevice(), &layout_info, nullptr, &m_layout) != VK_SUCCESS) {
             return {Result::RENDERER_ERR, "Could not create descriptor set layout"};
@@ -351,14 +349,20 @@ Result DescriptorSet::Create(Device *device, DescriptorPool *pool)
         }
     }
     
-    if (!m_descriptor_writes.empty()) {
+    if (m_descriptor_writes.Any()) {
         for (auto &write : m_descriptor_writes) {
             write.dstSet = m_set;
         }
 
-        vkUpdateDescriptorSets(device->GetDevice(), static_cast<UInt>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            device->GetDevice(),
+            static_cast<UInt>(m_descriptor_writes.Size()),
+            m_descriptor_writes.Data(),
+            0,
+            nullptr
+        );
 
-        m_descriptor_writes.clear();
+        m_descriptor_writes.Clear();
     }
 
     m_state = DescriptorSetState::DESCRIPTOR_CLEAN;
@@ -421,19 +425,15 @@ bool DescriptorSet::RemoveDescriptor(DescriptorKey key)
 
 bool DescriptorSet::RemoveDescriptor(UInt binding)
 {
-    const auto it = std::find_if(
-        m_descriptors.begin(),
-        m_descriptors.end(),
-        [&](const auto &item) {
-            return item->GetBinding() == binding;
-        }
-    );
+    const auto it = m_descriptors.FindIf([binding](const auto &item) {
+        return item->GetBinding() == binding;
+    });
 
-    if (it == m_descriptors.end()) {
+    if (it == m_descriptors.End()) {
         return false;
     }
 
-    m_descriptors.erase(it);
+    m_descriptors.Erase(it);
 
     return true;
 }
@@ -445,15 +445,11 @@ Descriptor *DescriptorSet::GetDescriptor(DescriptorKey key) const
 
 Descriptor *DescriptorSet::GetDescriptor(UInt binding) const
 {
-    const auto it = std::find_if(
-        m_descriptors.begin(),
-        m_descriptors.end(),
-        [&](const auto &item) {
-            return item->GetBinding() == binding;
-        }
-    );
+    const auto it = m_descriptors.FindIf([binding](const auto &item) {
+        return item->GetBinding() == binding;
+    });
 
-    if (it == m_descriptors.end()) {
+    if (it == m_descriptors.End()) {
         return nullptr;
     }
 
@@ -477,19 +473,17 @@ void DescriptorSet::ApplyUpdates(Device *device)
         return;
     }
 
-    for (size_t i = 0; i < m_descriptors.size(); i++) {
-        auto &descriptor = m_descriptors[i];
-
+    for (auto &descriptor : m_descriptors) {
         if (!descriptor->m_dirty_sub_descriptors) {
            continue;
         }
 
         descriptor->BuildUpdates(device, m_descriptor_writes);
-        descriptor->m_dirty_sub_descriptors = {};
+        descriptor->m_dirty_sub_descriptors = { };
         descriptor->m_sub_descriptor_update_indices.Clear();
     }
 
-    if (!m_descriptor_writes.empty()) {
+    if (m_descriptor_writes.Any()) {
         for (VkWriteDescriptorSet &write : m_descriptor_writes) {
             write.dstSet = m_set;
         }
@@ -498,19 +492,25 @@ void DescriptorSet::ApplyUpdates(Device *device)
         DebugLog(
             LogType::Debug,
             "Update descriptor set: %llu writes\n",
-            m_descriptor_writes.size()
+            m_descriptor_writes.Size()
         );
 #endif
 
-        vkUpdateDescriptorSets(device->GetDevice(), static_cast<UInt>(m_descriptor_writes.size()), m_descriptor_writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            device->GetDevice(),
+            static_cast<UInt>(m_descriptor_writes.Size()),
+            m_descriptor_writes.Data(),
+            0,
+            nullptr
+        );
 
-        m_descriptor_writes.clear();
+        m_descriptor_writes.Clear();
     }
 
     m_state = DescriptorSetState::DESCRIPTOR_CLEAN;
 }
 
-const std::unordered_map<VkDescriptorType, size_t> DescriptorPool::items_per_set{
+const std::unordered_map<VkDescriptorType, UInt> DescriptorPool::items_per_set{
     {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1},
     {VK_DESCRIPTOR_TYPE_SAMPLER,                4096},
     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096},
@@ -530,7 +530,7 @@ DescriptorPool::DescriptorPool()
 
 DescriptorPool::~DescriptorPool()
 {
-    AssertExitMsg(m_descriptor_pool == nullptr, "descriptor pool should have been destroyed!");
+    AssertThrowMsg(m_descriptor_pool == nullptr, "descriptor pool should have been destroyed!");
 }
 
 Result DescriptorPool::Create(Device *device)
@@ -541,15 +541,15 @@ Result DescriptorPool::Create(Device *device)
     for (auto &it : items_per_set) {
         pool_sizes.push_back({
             it.first,
-            static_cast<UInt>(it.second * 1000)
+            it.second * 1000
         });
     }
 
     VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    pool_info.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-    pool_info.maxSets       = DescriptorSet::max_descriptor_sets;
+    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    pool_info.maxSets = DescriptorSet::max_descriptor_sets;
     pool_info.poolSizeCount = static_cast<UInt>(pool_sizes.size());
-    pool_info.pPoolSizes    = pool_sizes.data();
+    pool_info.pPoolSizes = pool_sizes.data();
 
     HYPERION_VK_CHECK_MSG(
         vkCreateDescriptorPool(device->GetDevice(), &pool_info, nullptr, &m_descriptor_pool),
@@ -596,15 +596,13 @@ Result DescriptorPool::Destroy(Device *device)
     m_descriptor_set_layouts.Clear();
 
     /* Destroy sets */
-
     for (auto &set : m_descriptor_sets) {
         if (set != nullptr) {
             HYPERION_PASS_ERRORS(set->Destroy(device), result);
         }
     }
     
-    // set all to nullptr
-    m_descriptor_sets.clear();
+    m_descriptor_sets.Clear();
 
     /* Destroy pool */
     vkDestroyDescriptorPool(device->GetDevice(), m_descriptor_pool, nullptr);
@@ -618,36 +616,36 @@ Result DescriptorPool::Destroy(Device *device)
 DescriptorSet *DescriptorPool::AddDescriptorSet(
     Device *device,
     std::unique_ptr<DescriptorSet> &&descriptor_set,
-    bool should_create
+    bool add_immediately
 )
 {
     AssertThrow(descriptor_set != nullptr);
-
     const UInt index = descriptor_set->GetRealIndex();
-    
-    if (index >= m_descriptor_sets.size()) {
-        if (index == m_descriptor_sets.size()) {
-            m_descriptor_sets.emplace_back();
-        } else {
-            m_descriptor_sets.resize(index + 1);
+
+    if (add_immediately) {
+        if (index >= m_descriptor_sets.Size()) {
+            m_descriptor_sets.Resize(index + 1);
         }
+
+        if (index < m_descriptor_sets.Size()) {
+            AssertThrowMsg(
+                m_descriptor_sets[index] == nullptr,
+                "Descriptor set at index %u not nullptr! This would cause it to be overwritten.",
+                index
+            );
+        }
+
+        m_descriptor_sets[index] = std::move(descriptor_set);
+
+        return m_descriptor_sets[index].get();
     }
 
-    if (index < m_descriptor_sets.size()) {
-        AssertThrowMsg(
-            m_descriptor_sets[index] == nullptr,
-            "Descriptor set at index %u not nullptr! This would cause it to be overwritten.",
-            index
-        );
-    }
+    const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(index);
+    AssertThrow(descriptor_set_frame_index >= 0 && descriptor_set_frame_index < max_frames_in_flight);
 
-    m_descriptor_sets[index] = std::move(descriptor_set);
+    m_descriptor_sets_pending_addition[descriptor_set_frame_index].Push(std::move(descriptor_set));
 
-    if (should_create && IsCreated()) {
-        HYPERION_ASSERT_RESULT(CreateDescriptorSet(device, index));
-    }
-
-    return m_descriptor_sets[index].get();
+    return m_descriptor_sets_pending_addition[descriptor_set_frame_index].Back().get();
 }
 
 void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
@@ -664,23 +662,23 @@ void DescriptorPool::RemoveDescriptorSet(UInt index)
     m_descriptor_sets_pending_destruction[queue_index].Push(std::move(m_descriptor_sets[index]));
 
     // look through the list of items pending addition, remove from there
-    for (auto it = m_descriptor_sets_pending_addition.begin(); it != m_descriptor_sets_pending_addition.end();) {
-        if (it->index == index) {
-            it = m_descriptor_sets_pending_addition.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    // for (auto it = m_descriptor_sets_pending_addition.begin(); it != m_descriptor_sets_pending_addition.end();) {
+    //     if (it->index == index) {
+    //         it = m_descriptor_sets_pending_addition.erase(it);
+    //     } else {
+    //         ++it;
+    //     }
+    // }
 }
 
 Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_index)
 {
     auto &descriptor_set_queue = m_descriptor_sets_pending_destruction[frame_index];
 
-    while (!descriptor_set_queue.Empty()) {
+    while (descriptor_set_queue.Any()) {
         auto &front = descriptor_set_queue.Front();
 
-        HYPERION_BUBBLE_ERRORS(DestroyDescriptorSet(device, front));
+        HYPERION_BUBBLE_ERRORS(front->Destroy(device));
 
         descriptor_set_queue.Pop();
     }
@@ -688,38 +686,27 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::AddPendingDescriptorSets(Device *device)
+Result DescriptorPool::AddPendingDescriptorSets(Device *device, UInt frame_index)
 {
-    for (auto it = m_descriptor_sets_pending_addition.begin(); it != m_descriptor_sets_pending_addition.end();) {
-        auto &front = m_descriptor_sets_pending_addition.front();
+    while (m_descriptor_sets_pending_addition[frame_index].Any()) {
+        auto &descriptor_set = m_descriptor_sets_pending_addition[frame_index].Front();
 
-        if (!--front.num_cycles_remaining) {
-            auto index = front.index;
-
-            if (index > m_descriptor_sets.size()) {
-                m_descriptor_sets.resize(index + 1);
-                m_descriptor_sets[index] = std::move(front.descriptor_set);
-            } else if (index == m_descriptor_sets.size()) {
-                m_descriptor_sets.push_back(std::move(front.descriptor_set));
-            } else {
-                AssertThrowMsg(
-                    m_descriptor_sets[index] == nullptr,
-                    "Descriptor set at index %u not nullptr! This would cause it to be overwritten.",
-                    index
-                );
-
-                m_descriptor_sets[index] = std::move(front.descriptor_set);
-            }
-
-            it = m_descriptor_sets_pending_addition.erase(it);
-
-            if (IsCreated()) {
-                // if already created, create the descriptor set here
-                HYPERION_BUBBLE_ERRORS(CreateDescriptorSet(device, index));
-            }
-        } else {
-            ++it;
+        const UInt index = descriptor_set->GetRealIndex();
+        
+        if (index >= m_descriptor_sets.Size()) {
+            m_descriptor_sets.Resize(index + 1);
         }
+
+        if (index < m_descriptor_sets.Size()) {
+            AssertThrowMsg(
+                m_descriptor_sets[index] == nullptr,
+                "Descriptor set at index %u not nullptr! This would cause it to be overwritten.",
+                index
+            );
+        }
+
+        m_descriptor_sets[index] = std::move(descriptor_set);
+        m_descriptor_sets_pending_addition[frame_index].Pop();
     }
 
     HYPERION_RETURN_OK;
@@ -758,67 +745,16 @@ Result DescriptorPool::UpdateDescriptorSets(Device *device, UInt frame_index)
     HYPERION_RETURN_OK;
 }
 
-Result DescriptorPool::DestroyDescriptorSet(Device *device, std::unique_ptr<DescriptorSet> &descriptor_set)
-{
-    // if (index >= m_descriptor_sets.size()) {
-    //     return { Result::RENDERER_ERR, "Out of bounds" };
-    // }
-
-#ifdef HYP_LOG_DESCRIPTOR_SET_UPDATES
-    DebugLog(
-        LogType::Debug,
-        "Remove descriptor set at index %u\n",
-        index
-    );
-#endif
-
-    // auto &descriptor_set = m_descriptor_sets[index];
-
-    if (descriptor_set == nullptr) {
-        return { Result::RENDERER_ERR, "Descriptor set is nullptr" };
-    }
-
-    HYPERION_BUBBLE_ERRORS(descriptor_set->Destroy(device));
-
-    descriptor_set.reset();
-
-    //! TODO!! Add back, when our IDs are no longer having gaps for removed items
-
-    // if (index == m_descriptor_sets.size() - 1) {
-    //     UInt iteration_index = index;
-
-    //     do {
-    //         m_descriptor_sets.pop_back();
-    //         --iteration_index;
-    //     } while (m_descriptor_sets[iteration_index] == nullptr);
-    // }
-
-    HYPERION_RETURN_OK;
-}
-
-Result DescriptorPool::CreateDescriptorSet(Device *device, UInt index)
-{
-    AssertThrow(index < m_descriptor_sets.size());
-
-    auto *descriptor_set = m_descriptor_sets[index].get();
-    AssertThrow(descriptor_set != nullptr);
-
-#ifdef HYP_LOG_DESCRIPTOR_SET_UPDATES
-    DebugLog(
-        LogType::Debug,
-        "Allocate descriptor set %u\n",
-        index
-    );
-#endif
-
-    return descriptor_set->Create(device, this);
-}
-
 Result DescriptorPool::CreateDescriptorSets(Device *device)
 {
     AssertThrow(m_is_created);
 
     auto result = Result::OK;
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        DestroyPendingDescriptorSets(device, frame_index);
+        AddPendingDescriptorSets(device, frame_index);
+    }
 
     UInt descriptor_set_index = 0;
 
@@ -917,7 +853,7 @@ void DescriptorPool::BindDescriptorSets(
         )
         : device_max_bound_descriptor_sets;
 
-    const auto set_index     = static_cast<UInt>(binding.declaration.set);
+    const auto set_index = static_cast<UInt>(binding.declaration.set);
     const auto binding_index = DescriptorSet::GetDesiredIndex(binding.locations.binding);
 
     AssertThrowMsg(
@@ -928,11 +864,11 @@ void DescriptorPool::BindDescriptorSets(
     );
 
     AssertThrowMsg(
-        set_index < m_descriptor_sets.size(),
+        set_index < m_descriptor_sets.Size(),
         "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
         static_cast<UInt>(binding.declaration.set),
         set_index,
-        m_descriptor_sets.size()
+        m_descriptor_sets.Size()
     );
 
     auto &bind_set = m_descriptor_sets[set_index];
@@ -1042,7 +978,7 @@ Descriptor::~Descriptor() = default;
 void Descriptor::Create(
     Device *device,
     VkDescriptorSetLayoutBinding &binding,
-    std::vector<VkWriteDescriptorSet> &writes
+    DynArray<VkWriteDescriptorSet> &writes
 )
 {
     AssertThrow(m_descriptor_set != nullptr);
@@ -1063,11 +999,11 @@ void Descriptor::Create(
         descriptor_count = DescriptorSet::max_material_texture_samplers;
     }
     
-    binding.descriptorCount    = descriptor_count;
-    binding.descriptorType     = descriptor_type;
+    binding.descriptorCount = descriptor_count;
+    binding.descriptorType = descriptor_type;
     binding.pImmutableSamplers = nullptr;
-    binding.stageFlags         = VK_SHADER_STAGE_ALL;
-    binding.binding            = m_binding;
+    binding.stageFlags = VK_SHADER_STAGE_ALL;
+    binding.binding = m_binding;
 
     if (descriptor_count == 0) {
         DebugLog(
@@ -1088,24 +1024,23 @@ void Descriptor::Create(
             sub_descriptor.acceleration_structure_info
         );
         
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.pNext           = nullptr;
-        write.dstBinding      = m_binding;
+        VkWriteDescriptorSet write { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr };
+        write.dstBinding = m_binding;
         write.dstArrayElement = sub_descriptor.element_index;
         write.descriptorCount = 1;
-        write.descriptorType  = descriptor_type;
-        write.pBufferInfo     = &sub_descriptor.buffer_info;
-        write.pImageInfo      = &sub_descriptor.image_info;
+        write.descriptorType = descriptor_type;
+        write.pBufferInfo = &sub_descriptor.buffer_info;
+        write.pImageInfo = &sub_descriptor.image_info;
         
         if (m_descriptor_type == DescriptorType::ACCELERATION_STRUCTURE) {
             write.pNext = &sub_descriptor.acceleration_structure_info;
         }
 
-        writes.push_back(write);
+        writes.PushBack(write);
     }
 }
 
-void Descriptor::BuildUpdates(Device *, std::vector<VkWriteDescriptorSet> &writes)
+void Descriptor::BuildUpdates(Device *, DynArray<VkWriteDescriptorSet> &writes)
 {
     const auto descriptor_type = ToVkDescriptorType(m_descriptor_type);
 
@@ -1119,20 +1054,19 @@ void Descriptor::BuildUpdates(Device *, std::vector<VkWriteDescriptorSet> &write
             sub_descriptor.acceleration_structure_info
         );
         
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.pNext           = nullptr;
-        write.dstBinding      = m_binding;
+        VkWriteDescriptorSet write { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr };
+        write.dstBinding = m_binding;
         write.dstArrayElement = sub_descriptor.element_index;
         write.descriptorCount = 1;
-        write.descriptorType  = descriptor_type;
-        write.pBufferInfo     = &sub_descriptor.buffer_info;
-        write.pImageInfo      = &sub_descriptor.image_info;
+        write.descriptorType = descriptor_type;
+        write.pBufferInfo = &sub_descriptor.buffer_info;
+        write.pImageInfo = &sub_descriptor.image_info;
         
         if (m_descriptor_type == DescriptorType::ACCELERATION_STRUCTURE) {
             write.pNext = &sub_descriptor.acceleration_structure_info;
         }
 
-        writes.push_back(write);
+        writes.PushBack(write);
     }
 }
 

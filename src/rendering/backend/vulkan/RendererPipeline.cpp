@@ -63,22 +63,6 @@ std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *dev
         };
 #endif
 
-        // if (m_used_descriptor_set_layouts.Any()) {
-        //     const auto &used_descriptor_sets = m_used_descriptor_set_layouts.Get();
-
-        //     // all_layouts.Reserve(all_layouts.Size() + used_descriptor_sets.Size());
-
-        //     for (const auto index : used_descriptor_sets) {
-        //         const auto base_index = DescriptorSet::GetBaseIndex(index);
-
-        //         if (all_layouts.Contains(base_index)) {
-        //             continue;
-        //         }
-
-        //         all_layouts.PushBack(base_index);
-        //     }
-        // }
-
         used_layouts.reserve(all_layouts.Size());
 
         for (auto item : all_layouts) {

@@ -299,7 +299,7 @@ Result Instance::Initialize(bool load_debug_layers)
                 i,
                 slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS
             ),
-            false
+            true // add immediately instead of enqueuing
         );
     }
 
