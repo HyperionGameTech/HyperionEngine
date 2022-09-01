@@ -304,6 +304,38 @@ public:
     }
 };
 
+class StorageImage2D : public StorageImage {
+public:
+    StorageImage2D(
+        Extent2D extent,
+        InternalFormat format,
+        const unsigned char *bytes = nullptr
+    ) : StorageImage(
+        Extent3D(extent),
+        format,
+        Type::TEXTURE_TYPE_2D,
+        bytes
+    )
+    {
+    }
+};
+
+class StorageImage3D : public StorageImage {
+public:
+    StorageImage3D(
+        Extent3D extent,
+        InternalFormat format,
+        const unsigned char *bytes = nullptr
+    ) : StorageImage(
+        extent,
+        format,
+        Type::TEXTURE_TYPE_3D,
+        bytes
+    )
+    {
+    }
+};
+
 class TextureImage : public Image {
 public:
     TextureImage(
@@ -395,13 +427,35 @@ public:
         type,
         FilterMode::TEXTURE_FILTER_NEAREST,
         Image::InternalInfo {
-            .tiling      = VK_IMAGE_TILING_OPTIMAL,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
                 ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
                 | VK_IMAGE_USAGE_SAMPLED_BIT
                 | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
         },
         bytes
+    )
+    {
+    }
+
+    FramebufferImage(
+        Extent3D extent,
+        InternalFormat format,
+        Type type,
+        Image::FilterMode filter_mode
+    ) : Image(
+        extent,
+        format,
+        type,
+        filter_mode,
+        Image::InternalInfo {
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
+                ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                | VK_IMAGE_USAGE_SAMPLED_BIT
+                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
+        },
+        nullptr
     )
     {
     }
@@ -421,6 +475,19 @@ public:
     )
     {
     }
+
+    FramebufferImage2D(
+        Extent2D extent,
+        InternalFormat format,
+        Image::FilterMode filter_mode
+    ) : FramebufferImage(
+        Extent3D(extent),
+        format,
+        Type::TEXTURE_TYPE_2D,
+        filter_mode
+    )
+    {
+    }
 };
 
 class FramebufferImageCube : public FramebufferImage {
@@ -434,6 +501,19 @@ public:
         format,
         Type::TEXTURE_TYPE_CUBEMAP,
         bytes
+    )
+    {
+    }
+
+    FramebufferImageCube(
+        Extent2D extent,
+        InternalFormat format,
+        Image::FilterMode filter_mode
+    ) : FramebufferImage(
+        Extent3D(extent),
+        format,
+        Type::TEXTURE_TYPE_CUBEMAP,
+        filter_mode
     )
     {
     }

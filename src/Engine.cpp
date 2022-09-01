@@ -473,22 +473,8 @@ void Engine::Initialize()
     /* for textures */
     //shader_globals->textures.Create(this);
     
-    callbacks.TriggerPersisted(EngineCallback::CREATE_ANY, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_RENDER_PASSES, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_FRAMEBUFFERS, this);
 
     m_render_list_container.Create(this);
-    
-    callbacks.TriggerPersisted(EngineCallback::CREATE_ENVIRONMENTS, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_SCENES, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_TEXTURES, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_SHADERS, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_SPATIALS, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_MESHES, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_ACCELERATION_STRUCTURES, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_SKELETONS, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_LIGHTS, this);
-    callbacks.TriggerPersisted(EngineCallback::CREATE_MATERIALS, this);
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
@@ -528,7 +514,6 @@ void Engine::Compile()
         shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
-    callbacks.TriggerPersisted(EngineCallback::CREATE_VOXELIZER, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
 
     /* Flush render queue before finalizing descriptors */

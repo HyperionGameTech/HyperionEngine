@@ -35,19 +35,15 @@ void Light::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_LIGHTS, [this](...) {
-        auto *engine = GetEngine();
+    EnqueueRenderUpdates();
 
-        EnqueueRenderUpdates();
+    SetReady(true);
 
-        SetReady(true);
+    OnTeardown([this]() {
+        SetReady(false);
 
-        OnTeardown([this]() {
-            SetReady(false);
-
-            HYP_FLUSH_RENDER_QUEUE(GetEngine());
-        });
-    }));
+        HYP_FLUSH_RENDER_QUEUE(GetEngine());
+    });
 }
 
 void Light::Update(Engine *engine, GameCounter::TickUnit delta)

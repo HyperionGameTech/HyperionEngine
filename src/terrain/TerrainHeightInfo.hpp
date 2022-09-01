@@ -7,7 +7,8 @@
 
 namespace hyperion::v2 {
 
-struct TerrainHeight {
+struct TerrainHeight
+{
     Float height;
     Float erosion;
     Float sediment;
@@ -16,7 +17,8 @@ struct TerrainHeight {
     Float displacement;
 };
 
-struct TerrainHeightData {
+struct TerrainHeightData
+{
     PatchInfo patch_info;
     DynArray<TerrainHeight> heights;
 

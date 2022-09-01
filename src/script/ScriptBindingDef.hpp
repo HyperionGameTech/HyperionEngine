@@ -65,7 +65,9 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
 
     auto &&arg0 = GetArgument<0, ThisType>(params);
     
-    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+    if constexpr (std::is_same_v<void, ReturnType>) {
+        HYP_SCRIPT_RETURN_VOID((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<int32_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT32((arg0.*MemFn)());
     } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT64((arg0.*MemFn)());
@@ -107,9 +109,11 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
     auto &&self_arg = GetArgument<0, ThisType>(params);
-    auto &&arg1     = GetArgument<1, Arg1Type>(params);
-
-    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+    auto &&arg1 = GetArgument<1, Arg1Type>(params);
+    
+    if constexpr (std::is_same_v<void, ReturnType>) {
+        HYP_SCRIPT_RETURN_VOID((self_arg.*MemFn)(arg1));
+    } else if constexpr (std::is_same_v<int32_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT32((self_arg.*MemFn)(arg1));
     } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT64((self_arg.*MemFn)(arg1));
@@ -179,7 +183,9 @@ HYP_SCRIPT_FUNCTION(CxxFn)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 0);
 
-    if constexpr (std::is_same_v<int32_t, ReturnType>) {
+    if constexpr (std::is_same_v<void, ReturnType>) {
+        HYP_SCRIPT_RETURN_VOID(Fn());
+    } else if constexpr (std::is_same_v<int32_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT32(Fn());
     } else if constexpr (std::is_same_v<int64_t, ReturnType>) {
         HYP_SCRIPT_RETURN_INT64(Fn());

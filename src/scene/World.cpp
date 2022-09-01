@@ -23,29 +23,23 @@ void World::Init(Engine *engine)
     
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
-        auto *engine = GetEngine();
+    SetReady(true);
 
-        SetReady(true);
+    OnTeardown([this]() {
+        for (auto &it : m_scenes) {
+            auto &scene = it.second;
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            for (auto &it : m_scenes) {
-                auto &scene = it.second;
-
-                if (scene == nullptr) {
-                    continue;
-                }
-
-                scene->SetWorld(nullptr);
+            if (scene == nullptr) {
+                continue;
             }
-            
-            m_scenes.Clear();
 
-            SetReady(false);
-        });
-    }));
+            scene->SetWorld(nullptr);
+        }
+        
+        m_scenes.Clear();
+
+        SetReady(false);
+    });
 }
 
 void World::Update(

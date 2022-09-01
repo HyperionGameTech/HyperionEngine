@@ -899,29 +899,16 @@ std::shared_ptr<AstString> Parser::ParseStringLiteral()
 std::shared_ptr<AstIdentifier> Parser::ParseIdentifier(bool allow_keyword)
 {
     if (Token token = ExpectIdentifier(allow_keyword, false)) {
-        /*if (MatchAhead(TK_OPEN_PARENTH, 1)) {
-            // function call
-            return ParseFunctionCall(allow_keyword);
+        // read identifier token
+        if (m_token_stream->HasNext()) {
+            m_token_stream->Next();
         }
-        // allow identifiers with identifiers directly after to be used as functions
-        // i.e: select x from y would be parsed as:
-        //      select(x).from(y)
-        else if (MatchAhead(TK_IDENT, 1) || MatchAhead(TK_STRING, 1)) {
-            return ParseFunctionCallNoParams(allow_keyword);
-        }
-        // return a variable
-        else {*/
-            // read identifier token
-            if (m_token_stream->HasNext()) {
-                m_token_stream->Next();
-            }
 
-            // return variable
-            return std::shared_ptr<AstVariable>(new AstVariable(
-                token.GetValue(),
-                token.GetLocation()
-            ));
-        //}
+        // return variable
+        return std::shared_ptr<AstVariable>(new AstVariable(
+            token.GetValue(),
+            token.GetLocation()
+        ));
     }
 
     return nullptr;
@@ -1646,6 +1633,7 @@ std::shared_ptr<AstExpression> Parser::ParseExpression(bool override_commas,
     bool override_angle_brackets)
 {
     if (auto term = ParseTerm(override_commas, override_fat_arrows, override_angle_brackets)) {
+        volatile auto tk = m_token_stream->Peek();
         if (Match(TK_OPERATOR, false)) {
             // drop out of expression, return to parent call
             if (MatchOperator(">", false) && m_template_argument_depth > 0) {

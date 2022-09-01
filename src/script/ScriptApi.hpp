@@ -68,15 +68,23 @@
         AssertThrow(value != nullptr); \
         value->Mark(); \
         vm::Value _res; \
-        _res.m_type      = vm::Value::HEAP_POINTER; \
+        _res.m_type = vm::Value::HEAP_POINTER; \
         _res.m_value.ptr = value; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
+#define HYP_SCRIPT_RETURN_VOID(value) \
+    do { \
+        (void)(value); \
+        vm::Value _res; \
+        _res.m_type = vm::Value::NONE; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
 #define HYP_SCRIPT_RETURN_INT32(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::I32; \
+        _res.m_type = vm::Value::I32; \
         _res.m_value.i32 = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
@@ -84,7 +92,7 @@
 #define HYP_SCRIPT_RETURN_INT64(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::I64; \
+        _res.m_type = vm::Value::I64; \
         _res.m_value.i64 = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
@@ -92,7 +100,7 @@
 #define HYP_SCRIPT_RETURN_UINT32(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::U32; \
+        _res.m_type = vm::Value::U32; \
         _res.m_value.u32 = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
@@ -100,7 +108,7 @@
 #define HYP_SCRIPT_RETURN_UINT64(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::U64; \
+        _res.m_type = vm::Value::U64; \
         _res.m_value.u64 = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
@@ -108,23 +116,23 @@
 #define HYP_SCRIPT_RETURN_FLOAT32(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::F32; \
-        _res.m_value.f   = value; \
+        _res.m_type = vm::Value::F32; \
+        _res.m_value.f = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
 #define HYP_SCRIPT_RETURN_FLOAT64(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::F64; \
-        _res.m_value.d   = value; \
+        _res.m_type = vm::Value::F64; \
+        _res.m_value.d = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
 #define HYP_SCRIPT_RETURN_BOOLEAN(value) \
     do { \
         vm::Value _res; \
-        _res.m_type      = vm::Value::BOOLEAN; \
+        _res.m_type = vm::Value::BOOLEAN; \
         _res.m_value.b = value; \
         HYP_SCRIPT_RETURN(_res); \
     } while (false)

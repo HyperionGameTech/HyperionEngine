@@ -255,7 +255,17 @@ Result Attachment::AddAttachmentRef(
     AttachmentRef **out
 )
 {
-    auto attachment_ref = std::make_unique<AttachmentRef>(this, load_operation, store_operation);
+    auto attachment_ref = std::make_unique<AttachmentRef>(
+        this,
+        std::make_unique<ImageView>(),
+        std::make_unique<Sampler>(
+            m_image != nullptr
+                ? m_image->GetFilterMode()
+                : Image::FilterMode::TEXTURE_FILTER_NEAREST
+        ),
+        load_operation,
+        store_operation
+    );
 
     if (out != nullptr) {
         *out = nullptr;

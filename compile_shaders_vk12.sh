@@ -37,6 +37,7 @@ glslc --target-env=$VULKAN_TARGET skybox.vert -o skybox_vert.spv
 
 glslc --target-env=$VULKAN_TARGET shadow.frag -o shadow_frag.spv
 glslc --target-env=$VULKAN_TARGET shadow.vert -o shadow_vert.spv
+glslc --target-env=$VULKAN_TARGET shadow/BlurShadowMap.comp -o shadow/BlurShadowMap.comp.spv
 
 glslc --target-env=$VULKAN_TARGET outline.frag -o outline.frag.spv
 glslc --target-env=$VULKAN_TARGET outline.vert -o outline.vert.spv

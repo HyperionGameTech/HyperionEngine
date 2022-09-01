@@ -20,7 +20,8 @@ namespace hyperion {
 namespace renderer {
 
 template <class T>
-struct alignas(4) ShaderVec2 {
+struct alignas(4) ShaderVec2
+{
     union {
         struct { T x, y; };
         T values[2];
@@ -50,7 +51,8 @@ static_assert(sizeof(ShaderVec2<Float>) == 8);
 static_assert(sizeof(ShaderVec2<UInt32>) == 8);
 
 template <class T>
-struct alignas(4) ShaderVec3 {
+struct alignas(4) ShaderVec3
+{
     union {
         struct { T x, y, z; };
         T values[3];
@@ -82,7 +84,8 @@ static_assert(sizeof(ShaderVec3<float>)  == 12);
 static_assert(sizeof(ShaderVec3<UInt32>) == 12);
 
 template <class T>
-struct alignas(4) ShaderVec4 {
+struct alignas(4) ShaderVec4
+{
     union {
         struct { T x, y, z, w; };
         T values[4];
@@ -108,7 +111,8 @@ struct alignas(4) ShaderVec4 {
 static_assert(sizeof(ShaderVec4<Float>)  == 16);
 static_assert(sizeof(ShaderVec4<UInt32>) == 16);
 
-struct alignas(4) ShaderMat4 {
+struct alignas(4) ShaderMat4
+{
     union {
         struct {
             Float m00, m01, m02, m03,
@@ -140,7 +144,8 @@ struct alignas(4) ShaderMat4 {
 
 static_assert(sizeof(ShaderMat4) == 64);
 
-struct alignas(8) Rect {
+struct alignas(8) Rect
+{
     uint32_t x0, y0,
              x1, y1;
 };

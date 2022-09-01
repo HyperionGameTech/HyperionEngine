@@ -58,112 +58,108 @@ void CubemapRenderer::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
+    CreateShader(engine);
+    CreateRenderPass(engine);
+    CreateFramebuffers(engine);
+    CreateImagesAndBuffers(engine);
+    CreateRendererInstance(engine);
+
+    m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
+    engine->InitObject(m_scene);
+
+    m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
+        Handle<Texture>(m_cubemaps[0]), // TODO
+        m_aabb
+    ));
+
+    HYP_FLUSH_RENDER_QUEUE(engine);
+
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        CreateShader(engine);
-        CreateRenderPass(engine);
-        CreateFramebuffers(engine);
-        CreateImagesAndBuffers(engine);
-        CreateRendererInstance(engine);
+        // m_framebuffers = {};
+        // m_render_pass.Reset();
+        // m_renderer_instance.Reset();
 
-        m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
-        engine->InitObject(m_scene);
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+            for (UInt i = 0; i < max_frames_in_flight; i++) {
+                if (m_framebuffers[i] != nullptr) {
+                    for (auto &attachment : m_attachments) {
+                        m_framebuffers[i]->RemoveAttachmentRef(attachment.get());
+                    }
 
-        m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
-            Handle<Texture>(m_cubemaps[0]), // TODO
-            m_aabb
-        ));
+                    if (m_renderer_instance != nullptr) {
+                        m_renderer_instance->RemoveFramebuffer(m_framebuffers[i]->GetId());
+                    }
+                }
+            }
+
+            if (m_render_pass != nullptr) {
+                for (auto &attachment : m_attachments) {
+                    m_render_pass->GetRenderPass().RemoveAttachmentRef(attachment.get());
+                }
+            }
+
+            HYPERION_RETURN_OK;
+        });
+
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+            auto result = renderer::Result::OK;
+
+            for (UInt i = 0; i < max_frames_in_flight; i++) {
+                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                    .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+
+                descriptor_set
+                    ->GetDescriptor(DescriptorKey::CUBEMAP_UNIFORMS)
+                    ->SetSubDescriptor({
+                        .element_index = GetComponentIndex(),
+                        .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(CubemapUniforms))
+                    });
+
+                // HYPERION_PASS_ERRORS(
+                //     m_cubemap_render_uniform_buffers[i]->Destroy(engine->GetDevice()),
+                //     result
+                // );
+            }
+
+            for (auto &attachment : m_attachments) {
+                HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
+            }
+
+            m_attachments.clear();
+
+            return result;
+        });
+
+        for (auto &cubemap : m_cubemaps) {
+            engine->SafeReleaseRenderResource<Texture>(std::move(cubemap));
+        }
+
+        engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
+
+        m_env_probe.Reset();
+        m_scene.Reset();
 
         HYP_FLUSH_RENDER_QUEUE(engine);
 
-        SetReady(true);
+        engine->GetRenderScheduler().Enqueue([this, engine, cubemap_render_uniform_buffers = FixedArray { std::move(m_cubemap_render_uniform_buffers[0]), std::move(m_cubemap_render_uniform_buffers[1]) }](...) mutable {
+            auto result = renderer::Result::OK;
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            // m_framebuffers = {};
-            // m_render_pass.Reset();
-            // m_renderer_instance.Reset();
-
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
-                    if (m_framebuffers[i] != nullptr) {
-                        for (auto &attachment : m_attachments) {
-                            m_framebuffers[i]->RemoveAttachmentRef(attachment.get());
-                        }
-
-                        if (m_renderer_instance != nullptr) {
-                            m_renderer_instance->RemoveFramebuffer(m_framebuffers[i]->GetId());
-                        }
-                    }
-                }
-
-                if (m_render_pass != nullptr) {
-                    for (auto &attachment : m_attachments) {
-                        m_render_pass->GetRenderPass().RemoveAttachmentRef(attachment.get());
-                    }
-                }
-
-                HYPERION_RETURN_OK;
-            });
-
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                auto result = renderer::Result::OK;
-
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
-                    auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                        .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
-
-                    descriptor_set
-                        ->GetDescriptor(DescriptorKey::CUBEMAP_UNIFORMS)
-                        ->SetSubDescriptor({
-                            .element_index = GetComponentIndex(),
-                            .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(CubemapUniforms))
-                        });
-
-                    // HYPERION_PASS_ERRORS(
-                    //     m_cubemap_render_uniform_buffers[i]->Destroy(engine->GetDevice()),
-                    //     result
-                    // );
-                }
-
-                for (auto &attachment : m_attachments) {
-                    HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
-                }
-
-                m_attachments.clear();
-
-                return result;
-            });
-
-            for (auto &cubemap : m_cubemaps) {
-                engine->SafeReleaseRenderResource<Texture>(std::move(cubemap));
+            for (UInt i = 0; i < max_frames_in_flight; i++) {
+                HYPERION_PASS_ERRORS(
+                    cubemap_render_uniform_buffers[i]->Destroy(engine->GetDevice()),
+                    result
+                );
             }
 
-            engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
-
-            m_env_probe.Reset();
-            m_scene.Reset();
-
-            HYP_FLUSH_RENDER_QUEUE(engine);
-
-            engine->render_scheduler.Enqueue([this, engine, cubemap_render_uniform_buffers = FixedArray { std::move(m_cubemap_render_uniform_buffers[0]), std::move(m_cubemap_render_uniform_buffers[1]) }](...) mutable {
-                auto result = renderer::Result::OK;
-
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
-                    HYPERION_PASS_ERRORS(
-                        cubemap_render_uniform_buffers[i]->Destroy(engine->GetDevice()),
-                        result
-                    );
-                }
-
-                return result;
-            });
-
-            SetReady(false);
+            return result;
         });
-    }));
+
+        SetReady(false);
+    });
 }
 
 // called from game thread

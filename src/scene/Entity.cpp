@@ -77,48 +77,28 @@ void Entity::Init(Engine *engine)
     engine->InitObject(m_material);
     engine->InitObject(m_skeleton);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_SPATIALS, [this](...) {
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        // if (m_skeleton) {
-        //     engine->InitObject(m_skeleton);
-        // }
+        DebugLog(
+            LogType::Debug,
+            "Destroy entity with id %u, with name %s\n",
+            m_id.value,
+            m_material ? m_material->GetName().Data() : "No material"
+        );
 
-        // if (m_material) {
-        //     engine->InitObject(m_material);
-        // }
+        SetReady(false);
 
-        // if (m_mesh) {
-        //     engine->InitObject(m_mesh);
-        // }
+        m_material.Reset();
 
-        // if (m_shader) {
-        //     engine->InitObject(m_shader);
-        // }
-
-        SetReady(true);
-
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            DebugLog(
-                LogType::Debug,
-                "Destroy entity with id %u, with name %s\n",
-                m_id.value,
-                m_material ? m_material->GetName().Data() : "No material"
-            );
-
-            SetReady(false);
-
-            m_material.Reset();
-
-            HYP_FLUSH_RENDER_QUEUE(engine);
-            
-            engine->SafeReleaseRenderResource<Skeleton>(std::move(m_skeleton));
-            engine->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
-            engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
-        });
-    }));
+        HYP_FLUSH_RENDER_QUEUE(engine);
+        
+        engine->SafeReleaseRenderResource<Skeleton>(std::move(m_skeleton));
+        engine->SafeReleaseRenderResource<Mesh>(std::move(m_mesh));
+        engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
+    });
 }
 
 void Entity::Update(Engine *engine, GameCounter::TickUnit delta)

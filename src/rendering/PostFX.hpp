@@ -154,7 +154,7 @@ public:
 
     /*! \brief Get an effect added to the list of effects to be applied BEFORE deferred rendering happens */
     template <class EffectClass>
-    EffectClass *GetEffect() const
+    EffectClass *GetPass() const
     {
         const PostProcessingEffect::Stage stage = EffectClass::stage;
 

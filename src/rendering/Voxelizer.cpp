@@ -27,78 +27,74 @@ void Voxelizer::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](...) {
+    const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
+
+    m_scene = engine->CreateHandle<Scene>(
+        engine->CreateHandle<Camera>(new OrthoCamera(
+            voxel_map_size, voxel_map_size,
+            -voxel_map_size_signed, voxel_map_size_signed,
+            -voxel_map_size_signed, voxel_map_size_signed,
+            -voxel_map_size_signed, voxel_map_size_signed
+        ))
+    );
+
+    engine->InitObject(m_scene);
+
+    if (m_counter == nullptr) {
+        m_counter = std::make_unique<AtomicCounter>();
+        m_counter->Create(engine);
+    }
+
+    if (m_fragment_list_buffer == nullptr) {
+        m_fragment_list_buffer = std::make_unique<StorageBuffer>();
+
+        HYPERION_ASSERT_RESULT(m_fragment_list_buffer->Create(engine->GetInstance()->GetDevice(), default_fragment_list_buffer_size));
+    }
+    
+    CreateShader(engine);
+    CreateRenderPass(engine);
+    CreateFramebuffer(engine);
+    CreateDescriptors(engine);
+    CreatePipeline(engine);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
+        auto result = renderer::Result::OK;
 
-        m_scene = engine->CreateHandle<Scene>(
-            engine->CreateHandle<Camera>(new OrthoCamera(
-                voxel_map_size, voxel_map_size,
-                -voxel_map_size_signed, voxel_map_size_signed,
-                -voxel_map_size_signed, voxel_map_size_signed,
-                -voxel_map_size_signed, voxel_map_size_signed
-            ))
-        );
-
-        engine->InitObject(m_scene);
-
-        if (m_counter == nullptr) {
-            m_counter = std::make_unique<AtomicCounter>();
-            m_counter->Create(engine);
+        if (m_counter != nullptr) {
+            m_counter->Destroy(engine);
+            m_counter.reset();
         }
 
-        if (m_fragment_list_buffer == nullptr) {
-            m_fragment_list_buffer = std::make_unique<StorageBuffer>();
+        if (m_fragment_list_buffer != nullptr) {
+            HYPERION_PASS_ERRORS(
+                m_fragment_list_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                result
+            );
 
-            HYPERION_ASSERT_RESULT(m_fragment_list_buffer->Create(engine->GetInstance()->GetDevice(), default_fragment_list_buffer_size));
+            m_fragment_list_buffer.reset();
         }
-        
-        CreateShader(engine);
-        CreateRenderPass(engine);
-        CreateFramebuffer(engine);
-        CreateDescriptors(engine);
-        CreatePipeline(engine);
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+        m_shader.Reset();
+        m_framebuffer.Reset();
+        m_render_pass.Reset();
 
-            auto result = renderer::Result::OK;
+        for (auto &attachment : m_attachments) {
+            HYPERION_PASS_ERRORS(
+                attachment->Destroy(engine->GetInstance()->GetDevice()),
+                result
+            );
+        }
 
-            if (m_counter != nullptr) {
-                m_counter->Destroy(engine);
-                m_counter.reset();
-            }
+        m_attachments.clear();
 
-            if (m_fragment_list_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_fragment_list_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
+        m_renderer_instance.Reset();
 
-                m_fragment_list_buffer.reset();
-            }
+        m_num_fragments = 0;
 
-            m_shader.Reset();
-            m_framebuffer.Reset();
-            m_render_pass.Reset();
-
-            for (auto &attachment : m_attachments) {
-                HYPERION_PASS_ERRORS(
-                    attachment->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
-            }
-
-            m_attachments.clear();
-
-            m_renderer_instance.Reset();
-
-            m_num_fragments = 0;
-
-            HYPERION_ASSERT_RESULT(result);
-        });
-    }));
+        HYPERION_ASSERT_RESULT(result);
+    });
 }
 
 void Voxelizer::CreatePipeline(Engine *engine)

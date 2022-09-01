@@ -29,23 +29,19 @@ void RenderPass::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_RENDER_PASSES, [this](...) {
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        return m_render_pass.Create(engine->GetDevice());
+    });
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            return m_render_pass.Create(engine->GetDevice());
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+            return m_render_pass.Destroy(engine->GetDevice());
         });
-
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                return m_render_pass.Destroy(engine->GetDevice());
-            });
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-        });
-    }));
+        
+        HYP_FLUSH_RENDER_QUEUE(engine);
+    });
 }
 
 } // namespace hyperion::v2

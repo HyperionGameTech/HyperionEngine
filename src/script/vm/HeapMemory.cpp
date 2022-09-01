@@ -148,7 +148,12 @@ void Heap::Sweep()
 {
     HeapNode *last = m_head;
     while (last) {
-        if (!(last->value.GetFlags() & GC_MARKED)) {
+        if (last->value.GetFlags() & GC_ALIVE) {
+            // the object is currently marked, so
+            // we unmark it for the next time
+            last->value.GetFlags() &= ~GC_MARKED;
+            last = last->before;
+        } else {
             // unmarked object, so delete it
 
             HeapNode *after = last->after;
@@ -180,11 +185,6 @@ void Heap::Sweep()
             // objects
             m_num_objects--;
 
-        } else {
-            // the object is currently marked, so
-            // we unmark it for the next time
-            last->value.GetFlags() &= ~GC_MARKED;
-            last = last->before;
         }
     }
 }

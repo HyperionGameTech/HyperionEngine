@@ -19,9 +19,12 @@ class Vector2;
 class Matrix3;
 class Matrix4;
 
-class Vector3 {
+class Vector3
+{
     friend std::ostream &operator<<(std::ostream &out, const Vector3 &vec);
 public:
+    static constexpr UInt size = 3;
+
     static const Vector3 zero;
     static const Vector3 one;
 

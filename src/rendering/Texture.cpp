@@ -48,45 +48,41 @@ void Texture::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_TEXTURES, [this](...) {
-        auto *engine = GetEngine();
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        const auto initial_state = renderer::GPUMemory::ResourceState::SHADER_RESOURCE;
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            const auto initial_state = renderer::GPUMemory::ResourceState::SHADER_RESOURCE;
-
-            HYPERION_BUBBLE_ERRORS(m_image.Create(engine->GetDevice(), engine->GetInstance(), initial_state));
-            HYPERION_BUBBLE_ERRORS(m_image_view.Create(engine->GetInstance()->GetDevice(), &m_image));
-            HYPERION_BUBBLE_ERRORS(m_sampler.Create(engine->GetInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(m_image.Create(engine->GetDevice(), engine->GetInstance(), initial_state));
+        HYPERION_BUBBLE_ERRORS(m_image_view.Create(engine->GetInstance()->GetDevice(), &m_image));
+        HYPERION_BUBBLE_ERRORS(m_sampler.Create(engine->GetInstance()->GetDevice()));
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
-            engine->shader_globals->textures.AddResource(this);
+        engine->shader_globals->textures.AddResource(this);
 #endif
-            
-            SetReady(true);
+        
+        SetReady(true);
+
+        HYPERION_RETURN_OK;
+    });
+    
+    OnTeardown([this]() {
+        auto *engine = GetEngine();
+
+        SetReady(false);
+
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+#if HYP_FEATURES_BINDLESS_TEXTURES
+            engine->shader_globals->textures.RemoveResource(m_id);
+#endif
+
+            HYPERION_BUBBLE_ERRORS(m_sampler.Destroy(engine->GetInstance()->GetDevice()));
+            HYPERION_BUBBLE_ERRORS(m_image_view.Destroy(engine->GetInstance()->GetDevice()));
+            HYPERION_BUBBLE_ERRORS(m_image.Destroy(engine->GetInstance()->GetDevice()));
 
             HYPERION_RETURN_OK;
         });
         
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            SetReady(false);
-
-            engine->render_scheduler.Enqueue([this, engine](...) {
-#if HYP_FEATURES_BINDLESS_TEXTURES
-                engine->shader_globals->textures.RemoveResource(m_id);
-#endif
-
-                HYPERION_BUBBLE_ERRORS(m_sampler.Destroy(engine->GetInstance()->GetDevice()));
-                HYPERION_BUBBLE_ERRORS(m_image_view.Destroy(engine->GetInstance()->GetDevice()));
-                HYPERION_BUBBLE_ERRORS(m_image.Destroy(engine->GetInstance()->GetDevice()));
-
-                HYPERION_RETURN_OK;
-            });
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-        });
-    }));
+        HYP_FLUSH_RENDER_QUEUE(engine);
+    });
 }
 
 } // namespace hyperion::v2

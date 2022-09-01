@@ -33,25 +33,21 @@ void EnvProbe::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     engine->InitObject(m_texture);
-    
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
+
+    SetReady(true);
+
+    // force update first time to init render data
+    Update(engine);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        SetReady(true);
+        SetReady(false);
 
-        // force update first time to init render data
-        Update(engine);
-
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            SetReady(false);
-
-            engine->SafeReleaseRenderResource<Texture>(std::move(m_texture));
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-        });
-    }));
+        engine->SafeReleaseRenderResource<Texture>(std::move(m_texture));
+        
+        HYP_FLUSH_RENDER_QUEUE(engine);
+    });
 }
 
 void EnvProbe::Update(Engine *engine)

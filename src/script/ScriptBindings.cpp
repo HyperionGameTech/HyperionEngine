@@ -523,6 +523,33 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     CxxMemberFn< Vector3, Vector3, Vector3, &Vector3::operator- >
                 },
                 {
+                    "operator*",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector3, Vector3, Vector3, &Vector3::operator* >
+                },
+                {
+                    "operator*",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector3, Vector3, Vector3, &Vector3::operator* >
+                },
+                {
+                    "Dot",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Float, Vector3, Vector3, &Vector3::Dot >
+                },
+                {
                     "ToString",
                     BuiltinTypes::STRING,
                     {
@@ -531,7 +558,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     Vector3ToString
                 },
                 {
-                    "x",
+                    "GetX",
                     BuiltinTypes::FLOAT,
                     {
                         { "self", BuiltinTypes::ANY }
@@ -539,7 +566,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     CxxMemberFn< Float32, Vector3, &Vector3::GetX >
                 },
                 {
-                    "y",
+                    "GetY",
                     BuiltinTypes::FLOAT,
                     {
                         { "self", BuiltinTypes::ANY }
@@ -547,13 +574,40 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     CxxMemberFn< Float32, Vector3, &Vector3::GetY >
                 },
                 {
-                    "z",
+                    "GetZ",
                     BuiltinTypes::FLOAT,
                     {
                         { "self", BuiltinTypes::ANY }
                     },
                     CxxMemberFn< Float32, Vector3, &Vector3::GetZ >
                 }
+                // {
+                //     "SetX",
+                //     BuiltinTypes::ANY,
+                //     {
+                //         { "self", BuiltinTypes::ANY },
+                //         { "value", BuiltinTypes::FLOAT }
+                //     },
+                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetX >
+                // },
+                // {
+                //     "SetY",
+                //     BuiltinTypes::ANY,
+                //     {
+                //         { "self", BuiltinTypes::ANY },
+                //         { "value", BuiltinTypes::FLOAT }
+                //     },
+                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetY >
+                // },
+                // {
+                //     "SetZ",
+                //     BuiltinTypes::ANY,
+                //     {
+                //         { "self", BuiltinTypes::ANY },
+                //         { "value", BuiltinTypes::FLOAT }
+                //     },
+                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetZ >
+                // }
             }
         )
         .Function(

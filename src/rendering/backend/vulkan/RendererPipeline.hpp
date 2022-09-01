@@ -55,11 +55,6 @@ public:
                 float aabb_max[4];
                 float aabb_min[4];
             } vct_data;
-
-            struct // NOLINT(clang-diagnostic-nested-anon-types)
-            {
-                float view_proj[16];
-            } shadow_map_data;
             
             struct // NOLINT(clang-diagnostic-nested-anon-types)
             {
@@ -111,6 +106,11 @@ public:
                 ShaderVec4<UInt32> prev_mip_dimensions;
                 UInt32 mip_level;
             } voxel_mip_data;
+
+            struct // NOLINT(clang-diagnostic-nested-anon-types)
+            {
+                ShaderVec2<UInt32> image_dimensions;
+            } blur_shadow_map_data;
         };
     } push_constants;
 

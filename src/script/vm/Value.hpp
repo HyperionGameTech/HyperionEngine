@@ -80,8 +80,10 @@ enum CompareFlags : int {
     // use only the GREATER or EQUAL flags.
 };
     
-struct Value {
-    enum ValueType {
+struct Value
+{
+    enum ValueType
+    {
         NONE,
 
         /* These first types are listed in order of precedence */
@@ -105,38 +107,39 @@ struct Value {
         TRY_CATCH_INFO
     } m_type;
 
-    union ValueData {
-        Int32     i32;
-        Int64     i64;
-        UInt32    u32;
-        UInt64    u64;
-        Float32   f;
-        Float64   d;
+    union ValueData
+    {
+        Int32 i32;
+        Int64 i64;
+        UInt32 u32;
+        UInt64 u64;
+        Float32 f;
+        Float64 d;
 
-        bool       b;
+        bool b;
 
-        Value     *value_ref;
+        Value *value_ref;
 
         HeapValue *ptr;
 
         struct {
             BCAddress m_addr;
-            uint8_t m_nargs;
-            uint8_t m_flags;
+            UInt8 m_nargs;
+            UInt8 m_flags;
         } func;
 
         NativeFunctionPtr_t native_func;
-        UserData_t          user_data;
+        UserData_t user_data;
         
         struct {
-            BCAddress    return_address;
-            int32_t         varargs_push;
+            BCAddress return_address;
+            Int32 varargs_push;
         } call;
 
-        BCAddress        addr;
+        BCAddress addr;
 
         struct {
-            BCAddress    catch_address;
+            BCAddress catch_address;
         } try_catch_info;
     } m_value;
 
@@ -147,8 +150,8 @@ struct Value {
     HYP_DEF_STRUCT_COMPARE_EQL(Value);
     HYP_DEF_STRUCT_COMPARE_LT(Value);
 
-    HYP_FORCE_INLINE Value::ValueType GetType()  const        { return m_type; }
-    HYP_FORCE_INLINE Value::ValueData &GetValue()             { return m_value; }
+    HYP_FORCE_INLINE Value::ValueType GetType()  const { return m_type; }
+    HYP_FORCE_INLINE Value::ValueData &GetValue() { return m_value; }
     HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
 
     HYP_FORCE_INLINE bool GetUnsigned(uint64_t *out) const
@@ -156,7 +159,7 @@ struct Value {
         switch (m_type) {
             case U32: *out = m_value.u32; return true;
             case U64: *out = m_value.u64; return true;
-            default:                      return false;
+            default: return false;
         }
     }
 
@@ -165,18 +168,18 @@ struct Value {
         switch (m_type) {
             case I32: *out = m_value.i32; return true;
             case I64: *out = m_value.i64; return true;
-            default:                      return false;
+            default: return false;
         }
     }
 
     HYP_FORCE_INLINE bool GetSignedOrUnsigned(Number *out) const
     {
         switch (m_type) {
-            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;   return true;
-            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;   return true;
+            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT; return true;
+            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT; return true;
             case U32: out->u = m_value.u32; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT; return true;
             case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT; return true;
-            default:                        return false;
+            default: return false;
         }
     }
 
@@ -185,7 +188,7 @@ struct Value {
         switch (m_type) {
             case F32: *out = m_value.f; return true;
             case F64: *out = m_value.d; return true;
-            default:                    return false;
+            default: return false;
         }
     }
 
@@ -215,22 +218,22 @@ struct Value {
             case I64: *out = m_value.i64; return true;
             case U32: *out = m_value.u32; return true;
             case U64: *out = m_value.u64; return true;
-            case F32: *out = m_value.f;   return true;
-            case F64: *out = m_value.d;   return true;
-            default:                      return false;
+            case F32: *out = m_value.f; return true;
+            case F64: *out = m_value.d; return true;
+            default: return false;
         }
     }
 
     HYP_FORCE_INLINE bool GetNumber(Number *out) const
     {
         switch (m_type) {
-            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;         return true;
-            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;         return true;
-            case U32: out->u = m_value.u32; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;       return true;
-            case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;       return true;
-            case F32: out->f = m_value.f;   out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; return true;
-            case F64: out->f = m_value.d;   out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; return true;
-            default:                      return false;
+            case I32: out->i = m_value.i32; out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT; return true;
+            case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT; return true;
+            case U32: out->u = m_value.u32; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT; return true;
+            case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT; return true;
+            case F32: out->f = m_value.f; out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; return true;
+            case F64: out->f = m_value.d; out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT; return true;
+            default: return false;
         }
     }
 

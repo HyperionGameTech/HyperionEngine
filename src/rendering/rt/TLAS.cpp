@@ -32,30 +32,26 @@ void Tlas::Init(Engine *engine)
         return;
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this](...) {
-        auto *engine = GetEngine();
+    std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
 
-        std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
+    for (size_t i = 0; i < m_blas.size(); i++) {
+        AssertThrow(m_blas[i] != nullptr);
 
-        for (size_t i = 0; i < m_blas.size(); i++) {
-            AssertThrow(m_blas[i] != nullptr);
+        m_blas[i].Init();
+        blas[i] = &m_blas[i]->Get();
+    }
 
-            m_blas[i].Init();
-            blas[i] = &m_blas[i]->Get();
-        }
+    EngineComponentWrapper::Create(
+        engine,
+        engine->GetInstance(),
+        std::move(blas)
+    );
 
-        EngineComponentWrapper::Create(
-            engine,
-            engine->GetInstance(),
-            std::move(blas)
-        );
+    OnTeardown([this]() {
+        m_blas.clear();
 
-        OnTeardown([this]() {
-            m_blas.clear();
-
-            EngineComponentWrapper::Destroy(GetEngine());
-        });
-    }));
+        EngineComponentWrapper::Destroy(GetEngine());
+    });
 }
 
 } // namespace hyperion::v2

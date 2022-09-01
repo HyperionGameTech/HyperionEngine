@@ -52,30 +52,26 @@ void Blas::Init(Engine *engine)
         return;
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this](...) {
-        auto *engine = GetEngine();
+    if (m_mesh != nullptr) {
+        m_mesh.Init();
 
-        if (m_mesh != nullptr) {
-            m_mesh.Init();
+        m_wrapped.SetTransform(m_transform.GetMatrix());
+        m_wrapped.AddGeometry(std::make_unique<AccelerationGeometry>(
+            m_mesh->BuildPackedVertices(),
+            m_mesh->BuildPackedIndices()
+        ));
+    }
 
-            m_wrapped.SetTransform(m_transform.GetMatrix());
-            m_wrapped.AddGeometry(std::make_unique<AccelerationGeometry>(
-                m_mesh->BuildPackedVertices(),
-                m_mesh->BuildPackedIndices()
-            ));
-        }
+    EngineComponentWrapper::Create(
+        engine,
+        engine->GetInstance()
+    );
 
-        EngineComponentWrapper::Create(
-            engine,
-            engine->GetInstance()
-        );
+    OnTeardown([this]() {
+        EngineComponentWrapper::Destroy(GetEngine());
 
-        OnTeardown([this]() {
-            EngineComponentWrapper::Destroy(GetEngine());
-
-            m_mesh.Reset();
-        });
-    }));
+        m_mesh.Reset();
+    });
 }
 
 void Blas::Update(Engine *engine)

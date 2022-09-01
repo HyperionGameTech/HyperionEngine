@@ -30,72 +30,68 @@ void SparseVoxelOctree::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_VOXELIZER, [this](...) {
+    if (m_voxelizer == nullptr) {
+        m_voxelizer = std::make_unique<Voxelizer>();
+        m_voxelizer->Init(engine);
+    }
+
+    if (m_counter == nullptr) {
+        m_counter = std::make_unique<AtomicCounter>();
+        m_counter->Create(engine);
+    }
+
+    /* For now, until revoxelization is implemented */
+    AssertThrow(m_octree_buffer == nullptr);
+
+    CreateBuffers(engine);
+    CreateDescriptors(engine);
+    CreateComputePipelines(engine);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        if (m_voxelizer == nullptr) {
-            m_voxelizer = std::make_unique<Voxelizer>();
-            m_voxelizer->Init(engine);
+        auto result = Result::OK;
+
+        m_voxelizer.reset(nullptr);
+
+        if (m_counter != nullptr) {
+            m_counter->Destroy(engine);
+            m_counter.reset(nullptr);
         }
 
-        if (m_counter == nullptr) {
-            m_counter = std::make_unique<AtomicCounter>();
-            m_counter->Create(engine);
+        if (m_build_info_buffer != nullptr) {
+            HYPERION_PASS_ERRORS(
+                m_build_info_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                result
+            );
         }
 
-        /* For now, until revoxelization is implemented */
-        AssertThrow(m_octree_buffer == nullptr);
+        if (m_indirect_buffer != nullptr) {
+            HYPERION_PASS_ERRORS(
+                m_indirect_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                result
+            );
+        }
 
-        CreateBuffers(engine);
-        CreateDescriptors(engine);
-        CreateComputePipelines(engine);
+        if (m_octree_buffer != nullptr) {
+            HYPERION_PASS_ERRORS(
+                m_octree_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                result
+            );
+        }
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+        m_build_info_buffer.reset(nullptr);
+        m_indirect_buffer.reset(nullptr);
+        m_octree_buffer.reset(nullptr);
+    
+        m_alloc_nodes.Reset();
+        m_init_nodes.Reset();
+        m_tag_nodes.Reset();
+        m_modify_args.Reset();
+        m_write_mipmaps.Reset();
 
-            auto result = Result::OK;
-
-            m_voxelizer.reset(nullptr);
-
-            if (m_counter != nullptr) {
-                m_counter->Destroy(engine);
-                m_counter.reset(nullptr);
-            }
-
-            if (m_build_info_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_build_info_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
-            }
-
-            if (m_indirect_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_indirect_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
-            }
-
-            if (m_octree_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_octree_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
-            }
-
-            m_build_info_buffer.reset(nullptr);
-            m_indirect_buffer.reset(nullptr);
-            m_octree_buffer.reset(nullptr);
-        
-            m_alloc_nodes.Reset();
-            m_init_nodes.Reset();
-            m_tag_nodes.Reset();
-            m_modify_args.Reset();
-            m_write_mipmaps.Reset();
-
-            HYPERION_ASSERT_RESULT(result);
-        });
-    }));
+        HYPERION_ASSERT_RESULT(result);
+    });
 }
 
 size_t SparseVoxelOctree::CalculateNumNodes() const

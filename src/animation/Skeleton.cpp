@@ -33,21 +33,17 @@ void Skeleton::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_SKELETONS, [this](...) {
+    EnqueueRenderUpdates();
+
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        EnqueueRenderUpdates();
-
-        SetReady(true);
-
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            HYP_FLUSH_RENDER_QUEUE(engine);
-            
-            SetReady(false);
-        });
-    }));
+        HYP_FLUSH_RENDER_QUEUE(engine);
+        
+        SetReady(false);
+    });
 }
 
 void Skeleton::EnqueueRenderUpdates() const

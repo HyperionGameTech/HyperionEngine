@@ -14,7 +14,7 @@ class Sampler {
 public:
     Sampler(
         Image::FilterMode filter_mode = Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        Image::WrapMode wrap_mode     = Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
+        Image::WrapMode wrap_mode = Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     );
 
     Sampler(const Sampler &other) = delete;

@@ -16,9 +16,12 @@ namespace hyperion {
 
 class Vector4;
 
-class Vector2 {
+class Vector2
+{
     friend std::ostream &operator<<(std::ostream &out, const Vector2 &vec);
 public:
+    static constexpr UInt size = 2;
+
     union {
         struct { float x, y; };
         float values[2];

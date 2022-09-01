@@ -78,7 +78,8 @@ public:
         MULTIPLICATIVE
     };
 
-    struct NoiseGeneratorInstance {
+    struct NoiseGeneratorInstance
+    {
         Mode mode;
         std::unique_ptr<NoiseGenerator> generator;
         Float multiplier; // amount to multiply a result by
@@ -178,8 +179,6 @@ protected:
 
     Seed m_seed;
     SortedArray<KeyValuePair<Int, NoiseGeneratorInstance>> m_generators;
-
-    
 };
 
 

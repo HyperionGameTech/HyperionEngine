@@ -40,6 +40,7 @@
 #include <rendering/vct/VoxelConeTracing.hpp>
 
 #include <util/fs/FsUtil.hpp>
+#include <util/img/Bitmap.hpp>
 
 #include <scene/NodeProxy.hpp>
 
@@ -198,7 +199,7 @@ public:
 
         material_test_obj->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_PARALLAX_HEIGHT, 0.1f);
         material_test_obj->Scale(6.45f);
-        material_test_obj->Translate(Vector3(0, 22, 0));
+        material_test_obj->Translate(Vector3(0, 9, 0));
         m_scene->GetRoot().AddChild(NodeProxy(material_test_obj.release()));
 
         // remove textures so we can manipulate the material and see our changes easier
@@ -231,7 +232,7 @@ public:
         //zombie->GetChild(0)->GetEntity()->GetSkeleton()->GetRootBone()->UpdateWorldTransform();
 
         auto my_light = engine->CreateHandle<Light>(new DirectionalLight(
-            Vector3(-0.5f, 0.5f, 0.0f).Normalize(),
+            Vector3(0.5f, 1.0f, 0.0f).Normalize(),
             Vector4::One(),
             150000.0f
         ));
@@ -244,15 +245,15 @@ public:
             4.0f
         ));
 
-        m_scene->GetEnvironment()->AddLight(Handle<Light>(m_point_light));
+        // m_scene->GetEnvironment()->AddLight(Handle<Light>(m_point_light));
 
-        test_model->Scale(0.30f);//14.075f);
+        test_model->Scale(0.15f);//14.075f);
 
 
 #if HYPERION_VK_TEST_VCT
         m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
             VoxelConeTracing::Params {
-                test_model->GetWorldAABB()
+                BoundingBox(Vector3(-128), Vector3(128))//test_model->GetWorldAABB()
             }
         );
 #endif
@@ -481,9 +482,16 @@ public:
 };
 } // namespace hyperion::v2
 
+
+template <class T>
+using RC = RefCountedPtr<T>;
+template <class T>
+using Weak = WeakRefCountedPtr<T>;
+
 int main()
 {
     using namespace hyperion::renderer;
+
 
 #if 0
 

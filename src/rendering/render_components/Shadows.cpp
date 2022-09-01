@@ -10,10 +10,15 @@
 namespace hyperion::v2 {
 
 using renderer::DescriptorKey;
+using renderer::StorageImageDescriptor;
+using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
+using renderer::SamplerDescriptor;
+using renderer::StorageImage2D;
 
 ShadowPass::ShadowPass()
     : FullScreenPass(),
+      m_shadow_mode(ShadowMode::VSM),
       m_max_distance(100.0f),
       m_shadow_map_index(~0u),
       m_dimensions { 1024, 1024 }
@@ -53,23 +58,45 @@ void ShadowPass::CreateRenderPass(Engine *engine)
 
     AttachmentRef *attachment_ref;
 
-    m_attachments.PushBack(std::make_unique<Attachment>(
-        std::make_unique<renderer::FramebufferImage2D>(
-            m_dimensions,
-            engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            nullptr
-        ),
-        RenderPassStage::SHADER
-    ));
+    { // depth, depth^2 texture (for variance shadow map)
+        m_attachments.PushBack(std::make_unique<Attachment>(
+            std::make_unique<renderer::FramebufferImage2D>(
+                m_dimensions,
+                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
+                Image::FilterMode::TEXTURE_FILTER_NEAREST
+            ),
+            RenderPassStage::SHADER
+        ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE,
-        &attachment_ref
-    ));
+        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
+            engine->GetInstance()->GetDevice(),
+            renderer::LoadOperation::LOAD,
+            renderer::StoreOperation::STORE,
+            &attachment_ref
+        ));
 
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+        render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    }
+
+    { // standard depth texture
+        m_attachments.PushBack(std::make_unique<Attachment>(
+            std::make_unique<renderer::FramebufferImage2D>(
+                m_dimensions,
+                engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+                nullptr
+            ),
+            RenderPassStage::SHADER
+        ));
+
+        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
+            engine->GetInstance()->GetDevice(),
+            renderer::LoadOperation::CLEAR,
+            renderer::StoreOperation::STORE,
+            &attachment_ref
+        ));
+
+        render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    }
 
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
@@ -85,29 +112,22 @@ void ShadowPass::CreateDescriptors(Engine *engine)
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
+            /* TODO: Removal of these descriptors */
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
+
+            auto *shadow_map_descriptor = descriptor_set
+                ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
         
-            if (!framebuffer.GetAttachmentRefs().empty()) {
-                /* TODO: Removal of these descriptors */
+            AssertThrow(m_shadow_map_image != nullptr);
 
-                //for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
-                    auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                        .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
+            const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
+                .element_index = m_shadow_map_index,
+                .image_view = m_shadow_map_image_view.get(),
+                .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
+            });
 
-                    auto *shadow_map_descriptor = descriptor_set
-                        ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-                    
-                    for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
-                        const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
-                            .element_index = m_shadow_map_index,
-                            .image_view = attachment_ref->GetImageView(),
-                            .sampler = attachment_ref->GetSampler()
-                        });
-
-                        AssertThrow(sub_descriptor_index == m_shadow_map_index);
-                    }
-                //}
-            }
+            AssertThrow(sub_descriptor_index == m_shadow_map_index);
         }
 
         HYPERION_RETURN_OK;
@@ -121,8 +141,8 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
-                .cull_faces = FaceCullMode::FRONT
+                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
+                // .cull_faces = FaceCullMode::FRONT
             },
             MaterialAttributes {
                 .bucket = BUCKET_SHADOW
@@ -138,10 +158,77 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
     engine->InitObject(m_renderer_instance);
 }
 
+void ShadowPass::CreateShadowMap(Engine *engine)
+{
+    m_shadow_map_image = std::make_unique<StorageImage2D>(
+        m_dimensions,
+        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F
+    );
+
+    m_shadow_map_image_view = std::make_unique<ImageView>();
+
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        HYPERION_BUBBLE_ERRORS(m_shadow_map_image->Create(engine->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(m_shadow_map_image_view->Create(engine->GetDevice(), m_shadow_map_image.get()));
+
+        HYPERION_RETURN_OK;
+    });
+}
+
+void ShadowPass::CreateComputePipelines(Engine *engine)
+{
+    // have to create descriptor sets specifically for compute shader,
+    // holding framebuffer attachment image (src), and our final shadowmap image (dst)
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
+        m_blur_descriptor_sets[i].AddDescriptor<ImageDescriptor>(0)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = m_render_pass->GetRenderPass().GetAttachmentRefs().front()->GetImageView()
+            });
+
+        m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .sampler = &engine->GetPlaceholderData().GetSamplerNearest()
+            });
+
+        m_blur_descriptor_sets[i].AddDescriptor<StorageImageDescriptor>(2)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = m_shadow_map_image_view.get()
+            });
+    }
+
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            HYPERION_BUBBLE_ERRORS(m_blur_descriptor_sets[i].Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    });
+
+    m_blur_shadow_map = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
+            std::vector<SubShader>{
+                { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/shadow/BlurShadowMap.comp.spv")).Read()}}
+            }
+        ),
+        DynArray<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
+    );
+
+    engine->InitObject(m_blur_shadow_map);
+}
+
 void ShadowPass::Create(Engine *engine)
 {
+    CreateShadowMap(engine);
     CreateShader(engine);
     CreateRenderPass(engine);
+    CreateDescriptors(engine);
+    CreateComputePipelines(engine);
 
     m_scene = engine->CreateHandle<Scene>(
         engine->CreateHandle<Camera>(new OrthoCamera(
@@ -174,7 +261,6 @@ void ShadowPass::Create(Engine *engine)
     }
 
     CreateRendererInstance(engine);
-    CreateDescriptors(engine);
 
     // create command buffers in render thread
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
@@ -198,6 +284,19 @@ void ShadowPass::Destroy(Engine *engine)
     engine->GetWorld().RemoveScene(m_scene->GetId());
     m_scene.Reset();
 
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        auto result = Result::OK;
+
+        HYPERION_PASS_ERRORS(m_shadow_map_image->Destroy(engine->GetDevice()), result);
+        HYPERION_PASS_ERRORS(m_shadow_map_image_view->Destroy(engine->GetDevice()), result);
+
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            HYPERION_PASS_ERRORS(m_blur_descriptor_sets[i].Destroy(engine->GetDevice()), result);
+        }
+
+        return result;
+    });
+
     FullScreenPass::Destroy(engine); // flushes render queue
 }
 
@@ -205,13 +304,67 @@ void ShadowPass::Render(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
+    auto *framebuffer_image = m_attachments.Front()->GetImage();
+
+    if (framebuffer_image == nullptr) {
+        return;
+    }
+
+    auto *command_buffer = frame->GetCommandBuffer();
+
+    m_framebuffers[frame->GetFrameIndex()]->BeginCapture(command_buffer);
+
     engine->render_state.BindScene(m_scene.Get());
-
-    m_framebuffers[frame->GetFrameIndex()]->BeginCapture(frame->GetCommandBuffer());
     m_renderer_instance->Render(engine, frame);
-    m_framebuffers[frame->GetFrameIndex()]->EndCapture(frame->GetCommandBuffer());
-
     engine->render_state.UnbindScene();
+
+    m_framebuffers[frame->GetFrameIndex()]->EndCapture(command_buffer);
+
+    if (m_shadow_mode == ShadowMode::VSM) {
+        // blur the image using compute shader
+        m_blur_shadow_map->GetPipeline()->Bind(
+            command_buffer,
+            Pipeline::PushConstantData {
+                .blur_shadow_map_data = {
+                    .image_dimensions = ShaderVec2<UInt32>(m_dimensions)
+                }
+            }
+        );
+
+        // bind descriptor set containing info needed to blur
+        command_buffer->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
+            m_blur_shadow_map->GetPipeline(),
+            &m_blur_descriptor_sets[frame->GetFrameIndex()],
+            static_cast<DescriptorSet::Index>(0)
+        );
+
+        // put our shadow map in a state for writing
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+
+        m_blur_shadow_map->GetPipeline()->Dispatch(
+            command_buffer,
+            Extent3D {
+                (m_dimensions.width + 7) / 8,
+                (m_dimensions.height + 7) / 8,
+                1
+            }
+        );
+
+        // put shadow map back into readable state
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+    } else {
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_SRC);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_DST);
+
+        m_shadow_map_image->Blit(
+            command_buffer,
+            framebuffer_image
+        );
+
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+    }
 }
 
 ShadowRenderer::ShadowRenderer(Handle<Light> &&light)
@@ -246,20 +399,15 @@ void ShadowRenderer::Init(Engine *engine)
 
     AssertThrow(IsValidComponent());
     m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
+    m_shadow_pass.Create(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
-        auto *engine = GetEngine();
+    SetReady(true);
 
-        m_shadow_pass.Create(engine);
+    OnTeardown([this]() {
+        m_shadow_pass.Destroy(GetEngine()); // flushes render queue
 
-        SetReady(true);
-
-        OnTeardown([this]() {
-            m_shadow_pass.Destroy(GetEngine()); // flushes render queue
-
-            SetReady(false);
-        });
-    }));
+        SetReady(false);
+    });
 }
 
 // called from game thread
@@ -345,8 +493,8 @@ void ShadowRenderer::OnRender(Engine *engine, Frame *frame)
         engine->shader_globals->shadow_maps.Set(
             m_shadow_pass.GetShadowMapIndex(),
             {
-                .projection  = camera->GetDrawProxy().projection,
-                .view        = camera->GetDrawProxy().view,
+                .projection = camera->GetDrawProxy().projection,
+                .view = camera->GetDrawProxy().view,
                 .scene_index = scene_index
             }
         );
@@ -354,8 +502,8 @@ void ShadowRenderer::OnRender(Engine *engine, Frame *frame)
         engine->shader_globals->shadow_maps.Set(
             m_shadow_pass.GetShadowMapIndex(),
             {
-                .projection  = Matrix4::Identity(),
-                .view        = Matrix4::Identity(),
+                .projection = Matrix4::Identity(),
+                .view = Matrix4::Identity(),
                 .scene_index = scene_index
             }
         );
@@ -395,7 +543,7 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
             corner = camera->GetViewMatrix() * corner;
 
             maxes = MathUtil::Max(maxes, corner);
-            mins  = MathUtil::Min(mins, corner);
+            mins = MathUtil::Min(mins, corner);
         }
 
         static_cast<OrthoCamera *>(camera.Get())->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)

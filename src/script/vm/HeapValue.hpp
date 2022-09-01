@@ -13,7 +13,10 @@ namespace vm {
 
 enum HeapValueFlags {
     GC_MARKED = 0x01,
-    GC_DESTROYED = 0x02 // for debug
+    GC_DESTROYED = 0x02, // for debug
+    GC_ALWAYS_ALIVE = 0x04, // for internal objects -- keep them alive without needing to be marked again
+
+    GC_ALIVE = GC_MARKED | GC_ALWAYS_ALIVE
 };
 
 class HeapValue {

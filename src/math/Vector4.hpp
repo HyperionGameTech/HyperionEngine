@@ -15,9 +15,12 @@ class Vector2;
 class Vector3;
 class Matrix4;
 
-class Vector4 {
+class Vector4
+{
     friend std::ostream &operator<<(std::ostream &out, const Vector4 &vec);
 public:
+    static constexpr UInt size = 4;
+
     union {
         struct alignas(8) { float x, y, z, w; };
         float values[4];

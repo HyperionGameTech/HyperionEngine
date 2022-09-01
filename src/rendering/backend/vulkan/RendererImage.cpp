@@ -649,7 +649,7 @@ Result Image::Blit(
             this->GetGPUImage()->image,
             GPUMemory::GetImageLayout(this->GetGPUImage()->GetResourceState()),
             1, &blit,
-            IsDepthStencil() || src_image->IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
+            ToVkFilter(src_image->GetFilterMode())
         );
     }
 
@@ -662,7 +662,7 @@ Result Image::GenerateMipmaps(
 )
 {
     if (m_image == nullptr) {
-        return {Result::RENDERER_ERR, "Cannot generate mipmaps on uninitialized image"};
+        return { Result::RENDERER_ERR, "Cannot generate mipmaps on uninitialized image" };
     }
 
     const auto num_faces = NumFaces();
@@ -670,7 +670,7 @@ Result Image::GenerateMipmaps(
 
     for (UInt32 face = 0; face < num_faces; face++) {
         for (Int32 i = 1; i < static_cast<Int32>(num_mipmaps + 1); i++) {
-            const auto mip_width  = static_cast<Int32>(helpers::MipmapSize(m_extent.width, i)),
+            const auto mip_width = static_cast<Int32>(helpers::MipmapSize(m_extent.width, i)),
                 mip_height = static_cast<Int32>(helpers::MipmapSize(m_extent.height, i)),
                 mip_depth  = static_cast<Int32>(helpers::MipmapSize(m_extent.depth, i));
 

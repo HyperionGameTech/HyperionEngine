@@ -48,7 +48,6 @@ void ProbeGrid::Init(Engine *engine)
     CreateUniformBuffer(engine);
     AddDescriptors(engine);
 
-    /* TMP */
     engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this](Engine *engine) {
         CreatePipeline(engine);
     });

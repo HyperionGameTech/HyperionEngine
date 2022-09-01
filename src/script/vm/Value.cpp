@@ -47,7 +47,7 @@ void Value::Mark()
             if (ptr != nullptr) {
                 AssertThrowMsg(!(ptr->GetFlags() & GC_DESTROYED), "VM heap corruption! Object had flag GC_DESTROYED in Mark()");
 
-                if (!(ptr->GetFlags() & GC_MARKED)) {
+                if (!(ptr->GetFlags() & GC_ALIVE)) {
                     ptr->Mark();
                 }
             }

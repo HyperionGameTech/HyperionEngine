@@ -520,8 +520,8 @@ void API::ModuleDefine::BindType(
 
         AssertThrow(prototype_ptr != nullptr);
         prototype_ptr->Assign(prototype_object);
-
-        prototype_ptr->Mark();
+        prototype_ptr->GetFlags() |= vm::GC_ALWAYS_ALIVE;
+        // prototype_ptr->Mark();
 
         auto it = std::find_if(
             class_instance_members.begin(),

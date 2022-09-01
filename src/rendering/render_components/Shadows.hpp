@@ -1,11 +1,12 @@
 #ifndef HYPERION_V2_SHADOWS_H
 #define HYPERION_V2_SHADOWS_H
 
-#include "../Base.hpp"
-#include "../PostFX.hpp"
-#include "../Renderer.hpp"
-#include "../Light.hpp"
-#include "../RenderComponent.hpp"
+#include <rendering/Base.hpp>
+#include <rendering/PostFX.hpp>
+#include <rendering/Renderer.hpp>
+#include <rendering/Light.hpp>
+#include <rendering/RenderComponent.hpp>
+#include <rendering/Compute.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
@@ -17,7 +18,17 @@
 namespace hyperion::v2 {
 
 using renderer::Frame;
+using renderer::Image;
 using renderer::ImageView;
+using renderer::DescriptorSet;
+
+enum class ShadowMode
+{
+    STANDARD,
+    PCF,
+    CONTACT_HARDENED,
+    VSM
+};
 
 class ShadowPass : public FullScreenPass
 {
@@ -44,8 +55,11 @@ public:
 
     void SetParentScene(Scene::ID id);
 
+    ShadowMode GetShadowMode() const { return m_shadow_mode; }
+    void SetShadowMode(ShadowMode shadow_mode) { m_shadow_mode = shadow_mode; }
+
     const Vector3 &GetOrigin() const { return m_origin; }
-    void SetOrigin(const Vector3 &origin)   { m_origin = origin; }
+    void SetOrigin(const Vector3 &origin) { m_origin = origin; }
 
     float GetMaxDistance() const { return m_max_distance; }
     void SetMaxDistance(float max_distance) { m_max_distance = max_distance; }
@@ -93,13 +107,22 @@ public:
     virtual void Render(Engine *engine, Frame *frame) override;
 
 private:
+    void CreateShadowMap(Engine *engine);
+    void CreateComputePipelines(Engine *engine);
+
+    ShadowMode m_shadow_mode;
     Handle<Scene> m_scene;
     Handle<Light> m_light;
     Scene::ID m_parent_scene_id;
     Vector3 m_origin;
-    float m_max_distance;
+    Float m_max_distance;
     UInt m_shadow_map_index;
     Extent2D m_dimensions;
+
+    std::unique_ptr<Image> m_shadow_map_image;
+    std::unique_ptr<ImageView> m_shadow_map_image_view;
+    Handle<ComputePipeline> m_blur_shadow_map;
+    FixedArray<DescriptorSet, 2> m_blur_descriptor_sets;
 };
 
 class ShadowRenderer
@@ -115,8 +138,11 @@ public:
     ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
     virtual ~ShadowRenderer();
 
-    ShadowPass &GetEffect() { return m_shadow_pass; }
-    const ShadowPass &GetEffect() const { return m_shadow_pass; }
+    ShadowPass &GetPass() { return m_shadow_pass; }
+    const ShadowPass &GetPass() const { return m_shadow_pass; }
+
+    ShadowMode GetShadowMode() const { return m_shadow_pass.GetShadowMode(); }
+    void SetShadowMode(ShadowMode shadow_mode) { m_shadow_pass.SetShadowMode(shadow_mode); }
 
     const Vector3 &GetOrigin() const { return m_shadow_pass.GetOrigin(); }
     void SetOrigin(const Vector3 &origin) { m_shadow_pass.SetOrigin(origin); }

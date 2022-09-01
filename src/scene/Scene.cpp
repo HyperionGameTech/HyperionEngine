@@ -39,45 +39,37 @@ void Scene::Init(Engine *engine)
         engine->InitObject(entity);
     }
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_SCENES, [this](...) {
+    m_environment->Init(engine);
+
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        // if (m_camera) {
-        //     engine->InitObject(m_camera);
-        // }
+        m_camera.Reset();
 
-        m_environment->Init(engine);
+        m_root_node_proxy.Get()->SetScene(nullptr);
 
-        SetReady(true);
+        for (auto &it : m_entities) {
+            AssertThrow(it.second != nullptr);
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+            it.second->SetScene(nullptr);
 
-            m_camera.Reset();
+            RemoveFromRendererInstances(it.second);
 
-            m_root_node_proxy.Get()->SetScene(nullptr);
-
-            for (auto &it : m_entities) {
-                AssertThrow(it.second != nullptr);
-
-                it.second->SetScene(nullptr);
-
-                RemoveFromRendererInstances(it.second);
-
-                if (it.second->m_octree != nullptr) {
-                    it.second->RemoveFromOctree(GetEngine());
-                }
+            if (it.second->m_octree != nullptr) {
+                it.second->RemoveFromOctree(GetEngine());
             }
+        }
 
-            m_entities.Clear();
-            m_entities_pending_addition.Clear();
-            m_entities_pending_removal.Clear();
+        m_entities.Clear();
+        m_entities_pending_addition.Clear();
+        m_entities_pending_removal.Clear();
 
-            HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE(engine);
 
-            SetReady(false);
-        });
-    }));
+        SetReady(false);
+    });
 }
 
 void Scene::SetWorld(World *world)

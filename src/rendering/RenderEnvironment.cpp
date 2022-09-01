@@ -26,159 +26,155 @@ void RenderEnvironment::Init(Engine *engine)
     }
     
     EngineComponentBase::Init(engine);
+    
+    const auto update_marker_value = m_update_marker.load();
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ENVIRONMENTS, [this](...) {
+    { // lights
+        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_LIGHTS) {
+            m_light_update_sp.Wait();
+
+            while (m_lights_pending_addition.Any()) {
+                auto &front = m_lights_pending_addition.Front();
+
+                if (front != nullptr) {
+                    const auto id = front->GetId();
+
+                    m_lights.Insert(id, std::move(front));
+                }
+
+                m_lights_pending_addition.Pop();
+            }
+
+            while (m_lights_pending_removal.Any()) {
+                auto &front = m_lights_pending_removal.Front();
+
+                if (front != nullptr) {
+                    const auto id = front->GetId();
+
+                    m_lights.Erase(id);
+                }
+
+                m_lights_pending_removal.Pop();
+            }
+
+            m_light_update_sp.Signal();
+
+            m_update_marker &= ~RENDER_ENVIRONMENT_UPDATES_LIGHTS;
+        }
+
+        for (auto &it: m_lights) {
+            auto &light = it.second;
+
+            if (light != nullptr) {
+                GetEngine()->InitObject(light);
+            }
+        }
+    }
+
+    { // env probes
+        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENV_PROBES) {
+            m_env_probes_update_sp.Wait();
+
+            while (m_env_probes_pending_addition.Any()) {
+                auto &front = m_env_probes_pending_addition.Front();
+
+                if (front != nullptr) {
+                    const auto id = front->GetId();
+
+                    m_env_probes.Insert(id, std::move(front));
+                }
+
+                m_env_probes_pending_addition.Pop();
+            }
+
+            while (m_env_probes_pending_removal.Any()) {
+                auto &front = m_env_probes_pending_removal.Front();
+
+                if (front != nullptr) {
+                    const auto id = front->GetId();
+
+                    m_env_probes.Erase(id);
+                }
+
+                m_env_probes_pending_removal.Pop();
+            }
+
+            m_env_probes_update_sp.Signal();
+
+            m_update_marker &= ~RENDER_ENVIRONMENT_UPDATES_ENV_PROBES;
+        }
+
+        for (auto &it: m_env_probes) {
+            auto &env_probe = it.second;
+
+            if (env_probe != nullptr) {
+                env_probe.Init();
+            }
+        }
+    }
+
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
+
+        m_lights.Clear();
 
         const auto update_marker_value = m_update_marker.load();
 
-        { // lights
-            if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_LIGHTS) {
-                m_light_update_sp.Wait();
+        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_LIGHTS) {
+            m_light_update_sp.Wait();
 
-                while (m_lights_pending_addition.Any()) {
-                    auto &front = m_lights_pending_addition.Front();
+            m_lights_pending_addition.Clear();
+            m_lights_pending_removal.Clear();
 
-                    if (front != nullptr) {
-                        const auto id = front->GetId();
-
-                        m_lights.Insert(id, std::move(front));
-                    }
-
-                    m_lights_pending_addition.Pop();
-                }
-
-                while (m_lights_pending_removal.Any()) {
-                    auto &front = m_lights_pending_removal.Front();
-
-                    if (front != nullptr) {
-                        const auto id = front->GetId();
-
-                        m_lights.Erase(id);
-                    }
-
-                    m_lights_pending_removal.Pop();
-                }
-
-                m_light_update_sp.Signal();
-
-                m_update_marker &= ~RENDER_ENVIRONMENT_UPDATES_LIGHTS;
-            }
-
-            for (auto &it: m_lights) {
-                auto &light = it.second;
-
-                if (light != nullptr) {
-                    GetEngine()->InitObject(light);
-                }
-            }
+            m_light_update_sp.Signal();
         }
 
-        { // env probes
-            if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENV_PROBES) {
-                m_env_probes_update_sp.Wait();
+        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENV_PROBES) {
+            m_env_probes_update_sp.Wait();
 
-                while (m_env_probes_pending_addition.Any()) {
-                    auto &front = m_env_probes_pending_addition.Front();
+            m_env_probes_pending_addition.Clear();
+            m_env_probes_pending_removal.Clear();
 
-                    if (front != nullptr) {
-                        const auto id = front->GetId();
-
-                        m_env_probes.Insert(id, std::move(front));
-                    }
-
-                    m_env_probes_pending_addition.Pop();
-                }
-
-                while (m_env_probes_pending_removal.Any()) {
-                    auto &front = m_env_probes_pending_removal.Front();
-
-                    if (front != nullptr) {
-                        const auto id = front->GetId();
-
-                        m_env_probes.Erase(id);
-                    }
-
-                    m_env_probes_pending_removal.Pop();
-                }
-
-                m_env_probes_update_sp.Signal();
-
-                m_update_marker &= ~RENDER_ENVIRONMENT_UPDATES_ENV_PROBES;
-            }
-
-            for (auto &it: m_env_probes) {
-                auto &env_probe = it.second;
-
-                if (env_probe != nullptr) {
-                    env_probe.Init();
-                }
-            }
+            m_env_probes_update_sp.Signal();
         }
 
-        SetReady(true);
+        // have to store render components into temporary container
+        // from render thread so we don't run into a race condition.
+        // and can't directly Clear() because destructors may enqueue
+        // into render scheduler
+        ComponentSetUnique<RenderComponentBase> tmp_render_components;
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+        engine->GetRenderScheduler().Enqueue([this, &tmp_render_components](...) {
+            m_current_enabled_render_components_mask = 0u;
+            m_next_enabled_render_components_mask = 0u;
 
-            m_lights.Clear();
+            // m_render_components.Clear();
+            tmp_render_components = std::move(m_render_components);
 
-            const auto update_marker_value = m_update_marker.load();
-
-            if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_LIGHTS) {
-                m_light_update_sp.Wait();
-
-                m_lights_pending_addition.Clear();
-                m_lights_pending_removal.Clear();
-
-                m_light_update_sp.Signal();
-            }
-
-            if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENV_PROBES) {
-                m_env_probes_update_sp.Wait();
-
-                m_env_probes_pending_addition.Clear();
-                m_env_probes_pending_removal.Clear();
-
-                m_env_probes_update_sp.Signal();
-            }
-
-            // have to store render components into temporary container
-            // from render thread so we don't run into a race condition.
-            // and can't directly Clear() because destructors may enqueue
-            // into render scheduler
-            ComponentSetUnique<RenderComponentBase> tmp_render_components;
-
-            engine->GetRenderScheduler().Enqueue([this, &tmp_render_components](...) {
-                m_current_enabled_render_components_mask = 0u;
-                m_next_enabled_render_components_mask = 0u;
-
-                // m_render_components.Clear();
-                tmp_render_components = std::move(m_render_components);
-
-                HYPERION_RETURN_OK;
-            });
-
-            if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-                m_render_component_sp.Wait();
-
-                m_render_components_pending_addition.Clear();
-                m_render_components_pending_removal.Clear();
-
-                m_render_component_sp.Signal();
-            }
-
-            if (update_marker_value) {
-                m_update_marker.store(RENDER_ENVIRONMENT_UPDATES_NONE);
-            }
-
-            HYP_FLUSH_RENDER_QUEUE(engine);
-
-            tmp_render_components.Clear();
-
-            SetReady(false);
+            HYPERION_RETURN_OK;
         });
-    }));
+
+        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
+            m_render_component_sp.Wait();
+
+            m_render_components_pending_addition.Clear();
+            m_render_components_pending_removal.Clear();
+
+            m_render_component_sp.Signal();
+        }
+
+        if (update_marker_value) {
+            m_update_marker.store(RENDER_ENVIRONMENT_UPDATES_NONE);
+        }
+
+        HYP_FLUSH_RENDER_QUEUE(engine);
+
+        tmp_render_components.Clear();
+
+        SetReady(false);
+    });
 }
 
 void RenderEnvironment::AddLight(Handle<Light> &&light)

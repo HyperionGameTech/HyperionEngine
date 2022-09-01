@@ -98,104 +98,98 @@ void Mesh::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_MESHES, [this](...) {
+    AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
+
+    if (m_vertices.empty() || m_indices.empty()) {
+        DebugLog(
+            LogType::Warn,
+            "Attempt to create Mesh #%u with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
+            m_id.value
+        );
+
+        /* set to 1 vertex / index to prevent explosions */
+        m_vertices = { Vertex() };
+        m_indices = { 0 };
+    }
+
+    engine->GetRenderScheduler().Enqueue([this, packed_buffer = BuildVertexBuffer(), indices = m_indices](...) {
+        using renderer::StagingBuffer;
+
         auto *engine = GetEngine();
 
-        DebugLog(LogType::Info, "Init mesh with %llu vertices and %llu indices\n", m_vertices.size(), m_indices.size());
+        auto *instance = engine->GetInstance();
+        auto *device  = engine->GetDevice();
 
-        AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
+        const size_t packed_buffer_size  = packed_buffer.size() * sizeof(float);
+        const size_t packed_indices_size = indices.size() * sizeof(Index);
 
-        if (m_vertices.empty() || m_indices.empty()) {
-            DebugLog(
-                LogType::Warn,
-                "Attempt to create Mesh #%u with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
-                m_id.value
-            );
+        m_indices_count = indices.size();
 
-            /* set to 1 vertex / index to prevent explosions */
-            m_vertices = { Vertex() };
-            m_indices = { 0 };
-        }
+        HYPERION_BUBBLE_ERRORS(m_vbo->Create(device, packed_buffer_size));
+        HYPERION_BUBBLE_ERRORS(m_ibo->Create(device, packed_indices_size));
 
-        engine->render_scheduler.Enqueue([this, packed_buffer = BuildVertexBuffer(), indices = m_indices](...) {
-            using renderer::StagingBuffer;
+        HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
+            device,
+            [&](renderer::StagingBufferPool::Context &holder) {
+                auto commands = instance->GetSingleTimeCommands();
 
-            auto *engine = GetEngine();
+                auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
+                staging_buffer_vertices->Copy(device, packed_buffer_size, packed_buffer.data());
 
-            auto *instance = engine->GetInstance();
-            auto *device  = engine->GetDevice();
+                auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
+                staging_buffer_indices->Copy(device, packed_indices_size, indices.data());
 
-            const size_t packed_buffer_size  = packed_buffer.size() * sizeof(float);
-            const size_t packed_indices_size = indices.size() * sizeof(Index);
-
-            m_indices_count = indices.size();
-
-            HYPERION_BUBBLE_ERRORS(m_vbo->Create(device, packed_buffer_size));
-            HYPERION_BUBBLE_ERRORS(m_ibo->Create(device, packed_indices_size));
-
-            HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
-                device,
-                [&](renderer::StagingBufferPool::Context &holder) {
-                    auto commands = instance->GetSingleTimeCommands();
-
-                    auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
-                    staging_buffer_vertices->Copy(device, packed_buffer_size, packed_buffer.data());
-
-                    auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
-                    staging_buffer_indices->Copy(device, packed_indices_size, indices.data());
-
-                    commands.Push([&](CommandBuffer *cmd) {
-                        m_vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
-
-                        HYPERION_RETURN_OK;
-                    });
-                
-                    commands.Push([&](CommandBuffer *cmd) {
-                        m_ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
-
-                        HYPERION_RETURN_OK;
-                    });
-                
-                    HYPERION_BUBBLE_ERRORS(commands.Execute(device));
+                commands.Push([&](CommandBuffer *cmd) {
+                    m_vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
 
                     HYPERION_RETURN_OK;
-                }));
+                });
             
-            SetReady(true);
+                commands.Push([&](CommandBuffer *cmd) {
+                    m_ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
+
+                    HYPERION_RETURN_OK;
+                });
+            
+                HYPERION_BUBBLE_ERRORS(commands.Execute(device));
+
+                HYPERION_RETURN_OK;
+            }));
         
-            HYPERION_RETURN_OK;
-        });
+        SetReady(true);
+    
+        HYPERION_RETURN_OK;
+    });
 
-        // m_vertices.clear();
-        // m_indices.clear();
+    // m_vertices.clear();
+    // m_indices.clear();
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+    OnTeardown([this]() {
+        auto *engine = GetEngine();
 
-            DebugLog(
-                LogType::Debug,
-                "Destroy mesh with id %u\n",
-                GetId().value
-            );
+        DebugLog(
+            LogType::Debug,
+            "Destroy mesh with id %u\n",
+            GetId().value
+        );
 
-            m_indices_count = 0;
+        m_indices_count = 0;
+        
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+            auto result = renderer::Result::OK;
+
+            auto *device = engine->GetDevice();
             
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                auto result = renderer::Result::OK;
+            HYPERION_PASS_ERRORS(m_vbo->Destroy(device), result);
+            HYPERION_PASS_ERRORS(m_ibo->Destroy(device), result);
 
-                auto *device = engine->GetDevice();
-                
-                HYPERION_PASS_ERRORS(m_vbo->Destroy(device), result);
-                HYPERION_PASS_ERRORS(m_ibo->Destroy(device), result);
-
-                return result;
-            });
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-
-            SetReady(false);
+            return result;
         });
-    }));
+        
+        HYP_FLUSH_RENDER_QUEUE(engine);
+
+        SetReady(false);
+    });
 }
 
 /* Copy our values into the packed vertex buffer, and increase the index for the next possible

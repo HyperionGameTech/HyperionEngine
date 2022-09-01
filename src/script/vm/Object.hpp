@@ -3,6 +3,7 @@
 
 #include <script/vm/Value.hpp>
 #include <script/vm/TypeInfo.hpp>
+#include <Types.hpp>
 
 #include <sstream>
 #include <cstdint>
@@ -14,15 +15,17 @@
 namespace hyperion {
 namespace vm {
 
-struct Member {
+struct Member
+{
     char name[255];
     uint32_t hash;
     Value value;
 };
 
-class ObjectMap {
+class ObjectMap
+{
 public:
-    ObjectMap(size_t size);
+    ObjectMap(SizeType size);
     ObjectMap(const ObjectMap &other);
     ~ObjectMap();
 
@@ -31,13 +34,14 @@ public:
     void Push(uint32_t hash, Member *member);
     Member *Get(uint32_t hash);
 
-    inline size_t GetSize() const { return m_size; }
+    inline SizeType GetSize() const { return m_size; }
 
 private:
-    struct ObjectBucket {
+    struct ObjectBucket
+    {
         Member **m_data;
-        size_t m_capacity;
-        size_t m_size;
+        SizeType m_capacity;
+        SizeType m_size;
 
         ObjectBucket();
         ObjectBucket(const ObjectBucket &other);
@@ -45,22 +49,23 @@ private:
 
         ObjectBucket &operator=(const ObjectBucket &other);
 
-        void Resize(size_t capacity);
+        void Resize(SizeType capacity);
         void Push(Member *member);
-        bool Lookup(uint32_t hash, Member **out);
+        bool Lookup(UInt32 hash, Member **out);
     };
 
     ObjectBucket *m_buckets;
-    size_t m_size;
+    SizeType m_size;
 };
 
-class Object {
+class Object
+{
 public:
-    static const uint32_t PROTO_MEMBER_HASH;
+    static const UInt32 PROTO_MEMBER_HASH;
 
     // construct from prototype (holds pointer)
     Object(HeapValue *proto);
-    Object(const Member *members, size_t size, HeapValue *proto = nullptr);
+    Object(const Member *members, SizeType size, HeapValue *proto = nullptr);
     Object(const Object &other);
     ~Object();
 
@@ -81,7 +86,7 @@ public:
 
     inline ObjectMap *GetObjectMap() const { return m_object_map; }
 
-    inline size_t GetSize() const { return m_object_map->GetSize(); }
+    inline SizeType GetSize() const { return m_object_map->GetSize(); }
     inline HeapValue *GetPrototype() const { return m_proto; }
     
     void GetRepresentation(

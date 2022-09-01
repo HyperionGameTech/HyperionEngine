@@ -32,98 +32,94 @@ void VoxelConeTracing::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_ANY, [this](...) {
+    m_scene = engine->CreateHandle<Scene>(
+        engine->CreateHandle<Camera>(new OrthoCamera(
+            voxel_map_size.width, voxel_map_size.height,
+            -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
+            -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
+            -static_cast<float>(voxel_map_size[2]) * 0.5f, static_cast<float>(voxel_map_size[2]) * 0.5f
+        ))
+    );
+
+    engine->InitObject(m_scene);
+
+    CreateImagesAndBuffers(engine);
+    CreateShader(engine);
+    CreateRenderPass(engine);
+    CreateFramebuffers(engine);
+    CreateRendererInstance(engine);
+    CreateDescriptors(engine);
+    CreateComputePipelines(engine);
+    
+    SetReady(true);
+
+    OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        m_scene = engine->CreateHandle<Scene>(
-            engine->CreateHandle<Camera>(new OrthoCamera(
-                voxel_map_size.width, voxel_map_size.height,
-                -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
-                -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
-                -static_cast<float>(voxel_map_size[2]) * 0.5f, static_cast<float>(voxel_map_size[2]) * 0.5f
-            ))
-        );
+        engine->GetWorld().RemoveScene(m_scene->GetId());
+        m_scene.Reset();
 
-        engine->InitObject(m_scene);
+        m_framebuffers = {};
+        m_render_pass.Reset();
+        m_renderer_instance.Reset();
+        m_clear_voxels.Reset();
+        m_generate_mipmap.Reset();
 
-        CreateImagesAndBuffers(engine);
-        CreateShader(engine);
-        CreateRenderPass(engine);
-        CreateFramebuffers(engine);
-        CreateRendererInstance(engine);
-        CreateDescriptors(engine);
-        CreateComputePipelines(engine);
-        
-        SetReady(true);
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
 
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
+            // unset descriptors
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 
-            engine->GetWorld().RemoveScene(m_scene->GetId());
-            m_scene.Reset();
+            descriptor_set
+                ->GetDescriptor(0)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+                });
 
-            m_framebuffers = {};
-            m_render_pass.Reset();
-            m_renderer_instance.Reset();
-            m_clear_voxels.Reset();
-            m_generate_mipmap.Reset();
+            descriptor_set
+                ->GetDescriptor(1)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(VoxelUniforms))
+                });
 
-            engine->render_scheduler.Enqueue([this, engine](...) {
-
-                // unset descriptors
-                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                    .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
-
-                descriptor_set
-                    ->GetDescriptor(0)
+            for (UInt i = 0; i < max_frames_in_flight; i++) {
+                auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+                descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
                     ->SetSubDescriptor({
                         .element_index = 0u,
-                        .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage()
+                        .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
+                        .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
                     });
 
-                descriptor_set
-                    ->GetDescriptor(1)
-                    ->SetSubDescriptor({
-                        .element_index = 0u,
-                        .buffer = engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(VoxelUniforms))
-                    });
-
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
-                    auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
-                    descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
-                        ->SetSubDescriptor({
-                            .element_index = 0u,
-                            .image_view = &engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
-                            .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
-                        });
-
-                        // destroy owned descriptor sets, as well as individual mip imageviews
-                        if constexpr (manual_mipmap_generation) {
-                            for (auto &descriptor_set : m_generate_mipmap_descriptor_sets[i]) {
-                                HYPERION_ASSERT_RESULT(descriptor_set->Destroy(engine->GetDevice()));
-                            }
-
-                            m_generate_mipmap_descriptor_sets[i].Clear();
-
-                            for (auto &mip_image_view : m_mips[i]) {
-                                HYPERION_ASSERT_RESULT(mip_image_view->Destroy(engine->GetDevice()));
-                            }
-
-                            m_mips[i].Clear();
+                    // destroy owned descriptor sets, as well as individual mip imageviews
+                    if constexpr (manual_mipmap_generation) {
+                        for (auto &descriptor_set : m_generate_mipmap_descriptor_sets[i]) {
+                            HYPERION_ASSERT_RESULT(descriptor_set->Destroy(engine->GetDevice()));
                         }
-                }
 
-                return m_uniform_buffer.Destroy(engine->GetDevice());
-            });
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-    
-            engine->SafeReleaseRenderResource<Texture>(std::move(m_voxel_image));
-            engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
-            
-            SetReady(false);
+                        m_generate_mipmap_descriptor_sets[i].Clear();
+
+                        for (auto &mip_image_view : m_mips[i]) {
+                            HYPERION_ASSERT_RESULT(mip_image_view->Destroy(engine->GetDevice()));
+                        }
+
+                        m_mips[i].Clear();
+                    }
+            }
+
+            return m_uniform_buffer.Destroy(engine->GetDevice());
         });
-    }));
+        
+        HYP_FLUSH_RENDER_QUEUE(engine);
+
+        engine->SafeReleaseRenderResource<Texture>(std::move(m_voxel_image));
+        engine->SafeReleaseRenderResource<Shader>(std::move(m_shader));
+        
+        SetReady(false);
+    });
 }
 
 // called from game thread

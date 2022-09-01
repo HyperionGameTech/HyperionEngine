@@ -54,43 +54,39 @@ void Shader::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_SHADERS, [this](...) {
-        auto *engine = GetEngine();
+    for (const auto &sub_shader : m_sub_shaders) {
+        AssertThrowMsg(!sub_shader.spirv.bytes.empty(), "Shader data missing");
+    }
 
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
         for (const auto &sub_shader : m_sub_shaders) {
-            AssertThrowMsg(!sub_shader.spirv.bytes.empty(), "Shader data missing");
+            HYPERION_BUBBLE_ERRORS(
+                m_shader_program->AttachShader(
+                    engine->GetInstance()->GetDevice(),
+                    sub_shader.type,
+                    sub_shader.spirv
+                )
+            );
         }
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            for (const auto &sub_shader : m_sub_shaders) {
-                HYPERION_BUBBLE_ERRORS(
-                    m_shader_program->AttachShader(
-                        engine->GetInstance()->GetDevice(),
-                        sub_shader.type,
-                        sub_shader.spirv
-                    )
-                );
-            }
+        HYPERION_BUBBLE_ERRORS(m_shader_program->Create(engine->GetDevice()));
+        
+        SetReady(true);
+        
+        HYPERION_RETURN_OK;
+    });
 
-            HYPERION_BUBBLE_ERRORS(m_shader_program->Create(engine->GetDevice()));
-            
-            SetReady(true);
-            
-            HYPERION_RETURN_OK;
+    OnTeardown([this]() {
+        auto *engine = GetEngine();
+
+        SetReady(false);
+
+        engine->GetRenderScheduler().Enqueue([this, engine](...) {
+            return m_shader_program->Destroy(engine->GetDevice());
         });
-
-        OnTeardown([this]() {
-            auto *engine = GetEngine();
-
-            SetReady(false);
-
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                return m_shader_program->Destroy(engine->GetDevice());
-            });
-            
-            HYP_FLUSH_RENDER_QUEUE(engine);
-        });
-    }));
+        
+        HYP_FLUSH_RENDER_QUEUE(engine);
+    });
 }
 
 } // namespace hyperion

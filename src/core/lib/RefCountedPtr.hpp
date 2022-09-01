@@ -214,6 +214,14 @@ public:
     {
     }
 
+    /*! \brief Takes ownership of ptr. Do not delete the pointer passed to this,
+        as it will be automatically deleted when this object's ref count reaches zero. */
+    explicit RefCountedPtr(T *ptr)
+        : Base()
+    {
+        Reset(ptr);
+    }
+
     explicit RefCountedPtr(const T &value)
         : Base(new typename Base::RefCountDataType)
     {

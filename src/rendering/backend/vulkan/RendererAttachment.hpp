@@ -47,20 +47,23 @@ namespace renderer {
 class Attachment;
 class AttachmentRef;
 
-enum class RenderPassStage {
+enum class RenderPassStage
+{
     NONE,
     PRESENT, /* for presentation on screen */
     SHADER   /* for use as a sampled texture in a shader */
 };
 
-enum class LoadOperation {
+enum class LoadOperation
+{
     UNDEFINED,
     NONE,
     CLEAR,
     LOAD
 };
 
-enum class StoreOperation {
+enum class StoreOperation
+{
     UNDEFINED,
     NONE,
     STORE
@@ -174,7 +177,7 @@ public:
 
     inline Image *GetImage() const { return m_image.get(); }
 
-    inline auto &GetAttachmentRefs()             { return m_attachment_refs; }
+    inline auto &GetAttachmentRefs() { return m_attachment_refs; }
     inline const auto &GetAttachmentRefs() const { return m_attachment_refs; }
 
     inline Image::InternalFormat GetFormat() const
