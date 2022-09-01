@@ -10,6 +10,8 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
+#include <Threads.hpp>
+
 #include <math/MathUtil.hpp>
 
 #include <memory>
@@ -59,12 +61,14 @@ public:
 
     /*! \brief Get or create a buffer of at least the given size */
     template <class T>
-    T *GetOrCreateBuffer(Device *device, SizeType required_size)
+    [[nodiscard]] T *GetOrCreateBuffer(Device *device, SizeType required_size)
     {
         static_assert(std::is_base_of_v<GPUBuffer, T>, "Must be a derived class of GPUBuffer");
 
+        Threads::AssertOnThread(THREAD_RENDER);
+
         if (!m_buffers.Contains<T>()) {
-            m_buffers.Set<T>({});
+            m_buffers.Set<T>({ });
         }
 
         auto it = m_buffers.At<T>().LowerBound(required_size);

@@ -13,15 +13,18 @@ namespace renderer {
 class Instance;
 class Device;
 
-class Image {
+class Image
+{
 public:
-    enum Type {
+    enum Type
+    {
         TEXTURE_TYPE_2D = 0,
         TEXTURE_TYPE_3D = 1,
         TEXTURE_TYPE_CUBEMAP = 2
     };
 
-    enum class BaseFormat {
+    enum class BaseFormat
+    {
         TEXTURE_FORMAT_NONE,
         TEXTURE_FORMAT_R,
         TEXTURE_FORMAT_RG,
@@ -34,7 +37,8 @@ public:
         TEXTURE_FORMAT_DEPTH
     };
 
-    enum class InternalFormat {
+    enum class InternalFormat
+    {
         TEXTURE_INTERNAL_FORMAT_NONE,
 
         TEXTURE_INTERNAL_FORMAT_R8,
@@ -91,7 +95,8 @@ public:
         TEXTURE_INTERNAL_FORMAT_DEPTH_32F
     };
 
-    enum class FilterMode {
+    enum class FilterMode
+    {
         TEXTURE_FILTER_NEAREST,
         TEXTURE_FILTER_LINEAR,
         TEXTURE_FILTER_NEAREST_MIPMAP,
@@ -99,7 +104,8 @@ public:
         TEXTURE_FILTER_MINMAX_MIPMAP
     };
 
-    enum class WrapMode {
+    enum class WrapMode
+    {
         TEXTURE_WRAP_CLAMP_TO_EDGE,
         TEXTURE_WRAP_CLAMP_TO_BORDER,
         TEXTURE_WRAP_REPEAT
@@ -110,9 +116,9 @@ public:
      * e.g calling with RGB16 and num components = 4 --> RGBA16 */
     static InternalFormat FormatChangeNumComponents(InternalFormat, uint8_t new_num_components);
 
-    /* Get number of components (bytes-per-pixel) of a texture format */
+    /* Get number of components of a texture format */
     static size_t NumComponents(InternalFormat format);
-    /* Get number of components (bytes-per-pixel) of a texture format */
+    /* Get number of components of a texture format */
     static size_t NumComponents(BaseFormat format);
 
     static bool IsDepthFormat(InternalFormat fmt);
@@ -125,8 +131,8 @@ public:
     static VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
 
     struct InternalInfo {
-        VkImageTiling        tiling;
-        VkImageUsageFlags    usage_flags;
+        VkImageTiling tiling;
+        VkImageUsageFlags usage_flags;
     };
 
     Image(
@@ -197,7 +203,7 @@ public:
     bool IsSRGB() const;
     void SetIsSRGB(bool srgb);
 
-    bool IsBlended() const             { return m_is_blended; }
+    bool IsBlended() const { return m_is_blended; }
     void SetIsBlended(bool is_blended) { m_is_blended = is_blended; }
 
     bool HasMipmaps() const
@@ -220,17 +226,17 @@ public:
     uint32_t NumFaces() const
         { return IsTextureCube() ? 6 : 1; }
 
-    FilterMode GetFilterMode() const             { return m_filter_mode; }
-    void SetFilterMode(FilterMode filter_mode)   { m_filter_mode = filter_mode; }
+    FilterMode GetFilterMode() const { return m_filter_mode; }
+    void SetFilterMode(FilterMode filter_mode) { m_filter_mode = filter_mode; }
 
-    const Extent3D &GetExtent() const            { return m_extent; }
+    const Extent3D &GetExtent() const { return m_extent; }
 
-    GPUImageMemory *GetGPUImage()                { return m_image; }
-    const GPUImageMemory *GetGPUImage() const    { return m_image; }
+    GPUImageMemory *GetGPUImage() { return m_image; }
+    const GPUImageMemory *GetGPUImage() const { return m_image; }
 
-    InternalFormat GetTextureFormat() const      { return m_format; }
+    InternalFormat GetTextureFormat() const { return m_format; }
     void SetTextureFormat(InternalFormat format) { m_format = format; }
-    Type GetType() const                         { return m_type; }
+    Type GetType() const { return m_type; }
 
     VkFormat GetImageFormat() const;
     VkImageType GetImageType() const;

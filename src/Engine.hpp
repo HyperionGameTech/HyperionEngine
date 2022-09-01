@@ -16,6 +16,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
+#include <util/img/Bitmap.hpp>
 
 #include <ResourceMap.hpp>
 
@@ -62,6 +63,8 @@ using renderer::Semaphore;
 using renderer::SemaphoreChain;
 using renderer::Image;
 using renderer::StorageBuffer;
+using renderer::Extent2D;
+using renderer::Extent3D;
 
 class Engine;
 class Game;
@@ -207,6 +210,8 @@ public:
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
+    Bitmap CaptureScreenshot(const Extent2D &extent);
+
     void Initialize();
     void Compile();
     void RequestStop();
@@ -228,15 +233,6 @@ public:
 
     GameThread game_thread;
     TaskSystem task_system;
-
-    // template <class T, class First, class ...Rest>
-    // Handle<T> CreateHandle(First &&first, Rest &&... args)
-    // {
-    //     Handle<T> handle(new T(std::forward<First>(first), std::forward<Rest>(args)...));
-    //     registry.template Attach<T>(handle);
-
-    //     return handle;
-    // }
 
     template <class T, class First, class Second, class ...Rest>
     Handle<T> CreateHandle(First &&first, Second &&second, Rest &&... args)
@@ -331,7 +327,7 @@ public:
 private:
     void FinalizeStop();
 
-    void PreFrameUpdate(Frame *frame);
+    void PreRenderUpdate(Frame *frame);
     void RenderDeferred(Frame *frame);
     void RenderFinalPass(Frame *frame) const;
 

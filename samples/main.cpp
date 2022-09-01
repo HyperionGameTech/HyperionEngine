@@ -354,6 +354,12 @@ public:
 
         HandleCameraMovement();
 
+        if (m_input_manager->IsKeyDown(KEY_B)) {
+            auto bitmap = engine->CaptureScreenshot({ 300, 300 });
+
+            bitmap.Write("screenshot1.bmp");
+        }
+
         #if 0 // bad performance on large meshes. need bvh
         //if (input_manager->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
         //    ray_cast_timer = 0.0f;

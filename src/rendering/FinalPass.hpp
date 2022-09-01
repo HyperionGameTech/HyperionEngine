@@ -18,7 +18,8 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class FinalPass {
+class FinalPass
+{
 public:
     FinalPass();
     ~FinalPass();

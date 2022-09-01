@@ -18,10 +18,10 @@ namespace renderer {
 namespace helpers {
 
 UInt MipmapSize(UInt src_size, int lod);
-
 VkIndexType ToVkIndexType(DatumType);
 
-class SingleTimeCommands {
+class SingleTimeCommands
+{
 public:
     SingleTimeCommands() : command_buffer{}, pool{}, family_indices{} {}
 

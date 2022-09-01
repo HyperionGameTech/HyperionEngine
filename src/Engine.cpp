@@ -597,9 +597,9 @@ void Engine::RenderNextFrame(Game *game)
     auto *command_buffer = frame->GetCommandBuffer();
     const auto frame_index = GetInstance()->GetFrameHandler()->GetCurrentFrameIndex();
 
-    PreFrameUpdate(frame);
-
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetInstance()->GetDevice()));
+
+    PreRenderUpdate(frame);
 
     // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
     render_state.visibility_cursor = m_world.GetOctree().LoadPreviousVisibilityCursor();
@@ -671,7 +671,7 @@ void Engine::AddRendererInstanceInternal(Handle<RendererInstance> &renderer_inst
         .AddRendererInstance(Handle<RendererInstance>(renderer_instance));
 }
 
-void Engine::PreFrameUpdate(Frame *frame)
+void Engine::PreRenderUpdate(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -755,4 +755,95 @@ void Engine::RenderFinalPass(Frame *frame) const
     
     m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }
+
+Bitmap Engine::CaptureScreenshot(const Extent2D &extent)
+{
+    Bitmap bitmap(extent.width, extent.height);
+    DynArray<UByte> bytes;
+    UInt num_components = 0u;
+
+    render_scheduler.Enqueue([&](...) {
+        auto result = renderer::Result::OK;
+
+        if (auto *attachment_ref = m_deferred_renderer.GetDirectLightingPass().GetAttachmentRef()) {
+            const auto *attachment = attachment_ref->GetAttachment();
+            AssertThrow(attachment != nullptr);
+            AssertThrow(attachment->GetImage() != nullptr);
+
+            const auto previous_resource_state = attachment->GetImage()->GetGPUImage()->GetResourceState();
+
+            // create another image, same size as the bitmap, to blit to
+            TextureImage2D transfer_image(
+                Extent2D { bitmap.GetWidth(), bitmap.GetHeight() },
+                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,//attachment->GetImage()->GetTextureFormat(),
+                Image::FilterMode::TEXTURE_FILTER_NEAREST,
+                nullptr
+            );
+
+            HYPERION_BUBBLE_ERRORS(transfer_image.Create(GetDevice()));
+
+            auto *buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StagingBuffer>(
+                GetDevice(),
+                transfer_image.GetGPUImage()->size
+            );
+
+            auto perform_image_copy = [attachment, &transfer_image, buffer, previous_resource_state](CommandBuffer *command_buffer) {
+                attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_SRC);
+
+                transfer_image.GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_DST);
+
+                HYPERION_BUBBLE_ERRORS(transfer_image.Blit(
+                    command_buffer,
+                    attachment->GetImage()
+                ));
+                
+                transfer_image.GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_SRC);
+                buffer->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_DST);
+
+                transfer_image.CopyToBuffer(
+                    command_buffer,
+                    buffer
+                );
+                attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, previous_resource_state);
+
+                HYPERION_RETURN_OK;
+            };
+
+            auto single_time_commands = GetInstance()->GetSingleTimeCommands();
+            single_time_commands.Push(perform_image_copy);
+            HYPERION_PASS_ERRORS(single_time_commands.Execute(GetDevice()), result);
+
+            HYPERION_PASS_ERRORS(transfer_image.Destroy(GetDevice()), result);
+
+            num_components = Image::NumComponents(transfer_image.GetTextureFormat());
+            bytes.Resize(buffer->size);
+            buffer->Read(GetDevice(), buffer->size, bytes.Data());
+
+            return result;
+        } else {
+            return Result { Result::RENDERER_ERR, "Could not get attachment ref" };
+        }
+    });
+
+    HYP_FLUSH_RENDER_QUEUE(this);
+
+    for (UInt pixel = 0; pixel < bytes.Size() / num_components; pixel++) {
+        UByte components[4];
+        
+        for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
+            components[comp] = bytes[(pixel * num_components) + comp];
+        }
+
+        bitmap.GetPixelAtIndex(pixel) = Vector3(
+            static_cast<Float>(components[0]) / 255.0f,
+            static_cast<Float>(components[1]) / 255.0f,
+            static_cast<Float>(components[2]) / 255.0f
+        );
+    }
+
+    bitmap.FlipVertical();
+
+    return bitmap;
+}
+
 } // namespace hyperion::v2

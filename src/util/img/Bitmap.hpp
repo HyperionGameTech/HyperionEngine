@@ -4,6 +4,7 @@
 #include <asset/ByteWriter.hpp>
 #include <core/Containers.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/CMemory.hpp>
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <util/ByteUtil.hpp>
@@ -29,10 +30,30 @@ struct Pixel
         }
     }
 
-    Pixel(const Pixel &other) = default;
-    Pixel &operator=(const Pixel &other) = default;
-    Pixel(Pixel &&other) noexcept = default;
-    Pixel &operator=(Pixel &&other) noexcept = default;
+    Pixel(const Pixel &other)
+    {
+        Memory::Copy(&bytes[0], &other.bytes[0], sizeof(bytes));
+    }
+
+    Pixel &operator=(const Pixel &other)
+    {
+        Memory::Copy(&bytes[0], &other.bytes[0], sizeof(bytes));
+
+        return *this;
+    }
+
+    Pixel(Pixel &&other) noexcept
+    {
+        Memory::Copy(&bytes[0], &other.bytes[0], sizeof(bytes));
+    }
+
+    Pixel &operator=(Pixel &&other) noexcept
+    {
+        Memory::Copy(&bytes[0], &other.bytes[0], sizeof(bytes));
+
+        return *this;
+    }
+
     ~Pixel() = default;
 
     Vector3 GetRGB() const
@@ -76,6 +97,12 @@ public:
         m_pixels.Resize(width * height);
     }
 
+    UInt GetWidth() const
+        { return m_width; }
+
+    UInt GetHeight() const
+        { return m_height; }
+
     Pixel &GetPixel(UInt x, UInt y)
     {
         const UInt index = ((x + m_width) % m_width)
@@ -86,6 +113,12 @@ public:
 
     const Pixel &GetPixel(UInt x, UInt y) const
         { return const_cast<const Bitmap *>(this)->GetPixel(x, y); }
+
+    Pixel &GetPixelAtIndex(UInt index)
+        { return m_pixels[index]; }
+
+    const Pixel &GetPixelAtIndex(UInt index) const
+        { return m_pixels[index]; }
 
     void Write(const String &filepath)
     {
@@ -99,6 +132,28 @@ public:
         }
 
         WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
+    }
+
+    void FlipVertical()
+    {
+        for (UInt x = 0; x < m_width; x++) {
+            for (UInt y = 0; y < m_height / 2; y++) {
+                auto temp = GetPixel(x, m_height - y - 1u);
+                GetPixel(x, m_height - y - 1u) = GetPixel(x, y);
+                GetPixel(x, y) = temp;
+            }
+        }
+    }
+
+    void FlipHorizontal()
+    {
+        for (UInt x = 0; x < m_width / 2; x++) {
+            for (UInt y = 0; y < m_height; y++) {
+                auto temp = GetPixel(m_width - x - 1u, y);
+                GetPixel(m_width - x - 1u, y) = GetPixel(x, y);
+                GetPixel(x, y) = temp;
+            }
+        }
     }
 
 private:

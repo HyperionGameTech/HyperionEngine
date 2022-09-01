@@ -46,6 +46,21 @@ public:
     DeferredPass &operator=(const DeferredPass &other) = delete;
     virtual ~DeferredPass();
 
+    AttachmentRef *GetAttachmentRef() const
+    {
+        if (!m_render_pass) {
+            return nullptr;
+        }
+
+        const auto &attachment_refs = m_render_pass->GetRenderPass().GetAttachmentRefs();
+        
+        if (attachment_refs.empty()) {
+            return nullptr;
+        }
+        
+        return attachment_refs.front();
+    }
+
     void CreateShader(Engine *engine);
     virtual void CreateRenderPass(Engine *engine);
     virtual void CreateDescriptors(Engine *engine);
@@ -71,7 +86,10 @@ public:
     DeferredRenderer &operator=(const DeferredRenderer &other) = delete;
     ~DeferredRenderer();
 
-    PostProcessing &GetPostProcessing()              { return m_post_processing; }
+    const DeferredPass &GetDirectLightingPass() const { return m_direct_pass; }
+    const DeferredPass &GetIndirectLightingPass() const { return m_indirect_pass; }
+
+    PostProcessing &GetPostProcessing() { return m_post_processing; }
     const PostProcessing &GetPostProcessing() const  { return m_post_processing; }
 
     void Create(Engine *engine);

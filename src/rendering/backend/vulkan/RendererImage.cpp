@@ -396,7 +396,7 @@ Result Image::CreateImage(
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const uint32_t image_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
 
-    VkImageCreateInfo image_info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     image_info.imageType             = image_type;
     image_info.extent.width          = m_extent.width;
     image_info.extent.height         = m_extent.height;
@@ -816,7 +816,7 @@ void Image::CopyToBuffer(
         | (flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
             
     // copy from staging to image
-    const auto num_faces            = NumFaces();
+    const auto num_faces = NumFaces();
     const size_t buffer_offset_step = m_size / num_faces;
 
     for (uint32_t i = 0; i < num_faces; i++) {
