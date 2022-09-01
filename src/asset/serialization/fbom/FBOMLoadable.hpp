@@ -7,7 +7,8 @@
 
 namespace hyperion::v2::fbom {
 
-class FBOMLoadable {
+class FBOMLoadable
+{
 public:
     FBOMLoadable(const FBOMType &loadable_type)
         : m_loadable_type(loadable_type)
@@ -16,7 +17,7 @@ public:
 
     virtual ~FBOMLoadable() = default;
 
-    inline const FBOMType &GetLoadableType() const { return m_loadable_type; }
+    const FBOMType &GetLoadableType() const { return m_loadable_type; }
 
 protected:
     FBOMType m_loadable_type;

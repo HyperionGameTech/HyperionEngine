@@ -495,7 +495,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         .Class<Vector3>(
             "Vector3",
             {
-                { "__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr }) },
+                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                 {
                     "$construct",
                     BuiltinTypes::ANY,

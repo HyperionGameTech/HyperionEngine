@@ -23,18 +23,18 @@ public:
     );
     virtual ~AstVariableDeclaration() = default;
 
-    inline const std::shared_ptr<AstExpression> &GetAssignment() const
+    const std::shared_ptr<AstExpression> &GetAssignment() const
         { return m_assignment; }
-    inline const std::shared_ptr<AstExpression> &GetRealAssignment() const
+    const std::shared_ptr<AstExpression> &GetRealAssignment() const
         { return m_real_assignment; }
 
-    inline const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
+    const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
         { return m_proto; }
-    inline void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &proto)
+    void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &proto)
         { m_proto = proto; }
 
-    inline bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
-    inline bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }
+    bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
+    bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -54,7 +54,7 @@ protected:
 
     SymbolTypeWeakPtr_t m_symbol_type;
 
-    inline Pointer<AstVariableDeclaration> CloneImpl() const
+    Pointer<AstVariableDeclaration> CloneImpl() const
     {
         return Pointer<AstVariableDeclaration>(new AstVariableDeclaration(
             m_name,

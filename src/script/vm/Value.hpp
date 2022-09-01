@@ -271,12 +271,8 @@ struct Value
         if (a == b) {
             // pointers equal, drop out early.
             return CompareFlags::EQUAL;
-        } else if (a == nullptr || b == nullptr) {
-            // one of them (not both) is null, not equal
+        } else {
             return CompareFlags::NONE;
-        } else if (a->GetTypeId() == b->GetTypeId()) {
-            // comparable types, perform full comparison.
-            return (a->operator==(*b)) ? CompareFlags::EQUAL : CompareFlags::NONE;
         }
 
         // error

@@ -98,17 +98,17 @@ public:
     AttachmentRef &operator=(const AttachmentRef &other) = delete;
     ~AttachmentRef();
 
-    inline Attachment *GetAttachment() const        { return m_attachment; }
+    Attachment *GetAttachment() const        { return m_attachment; }
 
-    inline ImageView *GetImageView() const          { return m_image_view.get(); }
-    inline Sampler *GetSampler() const              { return m_sampler.get(); }
+    ImageView *GetImageView() const          { return m_image_view.get(); }
+    Sampler *GetSampler() const              { return m_sampler.get(); }
 
-    inline LoadOperation GetLoadOperation() const   { return m_load_operation; }
-    inline StoreOperation GetStoreOperation() const { return m_store_operation; }
+    LoadOperation GetLoadOperation() const   { return m_load_operation; }
+    StoreOperation GetStoreOperation() const { return m_store_operation; }
 
-    inline UInt GetBinding() const                  { return m_binding.value_or(UINT32_MAX); }
-    inline void SetBinding(UInt binding)            { m_binding = binding; }
-    inline bool HasBinding() const                  { return m_binding.has_value(); }
+    UInt GetBinding() const                  { return m_binding.value_or(UINT32_MAX); }
+    void SetBinding(UInt binding)            { m_binding = binding; }
+    bool HasBinding() const                  { return m_binding.has_value(); }
 
     Image::InternalFormat GetFormat() const;
     bool IsDepthAttachment() const;
@@ -175,15 +175,15 @@ public:
     Attachment &operator=(const Attachment &other) = delete;
     ~Attachment();
 
-    inline Image *GetImage() const { return m_image.get(); }
+    Image *GetImage() const { return m_image.get(); }
 
-    inline auto &GetAttachmentRefs() { return m_attachment_refs; }
-    inline const auto &GetAttachmentRefs() const { return m_attachment_refs; }
+    auto &GetAttachmentRefs() { return m_attachment_refs; }
+    const auto &GetAttachmentRefs() const { return m_attachment_refs; }
 
-    inline Image::InternalFormat GetFormat() const
+    Image::InternalFormat GetFormat() const
         { return m_image ? m_image->GetTextureFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE; }
 
-    inline bool IsDepthAttachment() const
+    bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
 
     Result AddAttachmentRef(
@@ -247,9 +247,9 @@ public:
     AttachmentSet &operator=(const AttachmentSet &other) = delete;
     ~AttachmentSet();
 
-    inline size_t GetWidth() const { return m_width; }
-    inline size_t GetHeight() const { return m_height; }
-    inline RenderPassStage GetStage() const { return m_stage; }
+    size_t GetWidth() const { return m_width; }
+    size_t GetHeight() const { return m_height; }
+    RenderPassStage GetStage() const { return m_stage; }
 
     bool Has(uint32_t binding) const;
 

@@ -42,11 +42,11 @@ public:
     AccelerationGeometry &operator=(const AccelerationGeometry &other) = delete;
     ~AccelerationGeometry();
 
-    inline const std::vector<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
-    inline const std::vector<PackedIndex> &GetPackedIndices() const   { return m_packed_indices; }
+    const std::vector<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
+    const std::vector<PackedIndex> &GetPackedIndices() const   { return m_packed_indices; }
 
-    inline PackedVertexStorageBuffer *GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer.get(); }
-    inline PackedIndexStorageBuffer  *GetPackedIndexStorageBuffer() const  { return m_packed_index_buffer.get(); }
+    PackedVertexStorageBuffer *GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer.get(); }
+    PackedIndexStorageBuffer  *GetPackedIndexStorageBuffer() const  { return m_packed_index_buffer.get(); }
 
     Result Create(Device *device, Instance *instance);
     /* Remove from the parent acceleration structure */
@@ -69,32 +69,32 @@ public:
     AccelerationStructure &operator=(const AccelerationStructure &other) = delete;
     ~AccelerationStructure();
 
-    inline AccelerationStructureBuffer *GetBuffer() const                     { return m_buffer.get(); }
-    inline AccelerationStructureInstancesBuffer *GetInstancesBuffer() const   { return m_instances_buffer.get(); }
+    AccelerationStructureBuffer *GetBuffer() const                     { return m_buffer.get(); }
+    AccelerationStructureInstancesBuffer *GetInstancesBuffer() const   { return m_instances_buffer.get(); }
 
-    inline VkAccelerationStructureKHR &GetAccelerationStructure()             { return m_acceleration_structure; }
-    inline const VkAccelerationStructureKHR &GetAccelerationStructure() const { return m_acceleration_structure; }
+    VkAccelerationStructureKHR &GetAccelerationStructure()             { return m_acceleration_structure; }
+    const VkAccelerationStructureKHR &GetAccelerationStructure() const { return m_acceleration_structure; }
 
-    inline uint64_t GetDeviceAddress() const                                  { return m_device_address; }
+    uint64_t GetDeviceAddress() const                                  { return m_device_address; }
 
-    inline AccelerationStructureFlags GetFlags() const                        { return m_flags; }
-    inline void SetFlag(AccelerationStructureFlags flag)                      { m_flags = AccelerationStructureFlags(m_flags | flag); }
-    inline void ClearFlag(AccelerationStructureFlags flag)                    { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
+    AccelerationStructureFlags GetFlags() const                        { return m_flags; }
+    void SetFlag(AccelerationStructureFlags flag)                      { m_flags = AccelerationStructureFlags(m_flags | flag); }
+    void ClearFlag(AccelerationStructureFlags flag)                    { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
 
-    inline std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries()
+    std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries()
         { return m_geometries; }
 
-    inline const std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries() const
+    const std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries() const
         { return m_geometries; }
 
-    inline void AddGeometry(std::unique_ptr<AccelerationGeometry> &&geometry)
+    void AddGeometry(std::unique_ptr<AccelerationGeometry> &&geometry)
         { m_geometries.push_back(std::move(geometry)); SetNeedsRebuildFlag(); }
 
-    inline void RemoveGeometry(size_t index)
+    void RemoveGeometry(size_t index)
         { m_geometries.erase(m_geometries.begin() + index); }
 
-    inline const Matrix4 &GetTransform() const         { return m_transform; }
-    inline void SetTransform(const Matrix4 &transform) { m_transform = transform; SetNeedsRebuildFlag(); }
+    const Matrix4 &GetTransform() const         { return m_transform; }
+    void SetTransform(const Matrix4 &transform) { m_transform = transform; SetNeedsRebuildFlag(); }
 
     /*! \brief Remove the geometry from the internal list of Nodes and set a flag that the
      * structure needs to be rebuilt. Will not automatically rebuild.
@@ -106,7 +106,7 @@ public:
 protected:
     static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
     
-    inline void SetNeedsRebuildFlag() { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+    void SetNeedsRebuildFlag() { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     Result CreateAccelerationStructure(
         Instance *instance,
@@ -132,7 +132,7 @@ public:
     BottomLevelAccelerationStructure &operator=(const BottomLevelAccelerationStructure &other) = delete;
     ~BottomLevelAccelerationStructure();
 
-    inline AccelerationStructureType GetType() const { return AccelerationStructureType::BOTTOM_LEVEL; }
+    AccelerationStructureType GetType() const { return AccelerationStructureType::BOTTOM_LEVEL; }
     
     Result Create(Device *device, Instance *instance);
 
@@ -150,11 +150,11 @@ public:
     TopLevelAccelerationStructure &operator=(const TopLevelAccelerationStructure &other) = delete;
     ~TopLevelAccelerationStructure();
 
-    inline AccelerationStructureType GetType() const        { return AccelerationStructureType::TOP_LEVEL; }
-    inline StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
+    AccelerationStructureType GetType() const        { return AccelerationStructureType::TOP_LEVEL; }
+    StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
     
-    inline auto &GetBlas()                                  { return m_blas; }
-    inline const auto &GetBlas() const                      { return m_blas; }
+    auto &GetBlas()                                  { return m_blas; }
+    const auto &GetBlas() const                      { return m_blas; }
     
     Result Create(
         Device *device,

@@ -22,16 +22,16 @@ public:
     Range &operator=(Range &&other) = default;
     ~Range() = default;
 
-    inline explicit operator bool() const      { return Distance() > 0; }
+    explicit operator bool() const      { return Distance() > 0; }
 
-    inline const T &GetStart() const           { return m_start; }
-    inline void SetStart(const T &start)       { m_start = start; }
-    inline const T &GetEnd()   const           { return m_end; }
-    inline void SetEnd(const T &end)           { m_end = end; }
+    const T &GetStart() const           { return m_start; }
+    void SetStart(const T &start)       { m_start = start; }
+    const T &GetEnd()   const           { return m_end; }
+    void SetEnd(const T &end)           { m_end = end; }
 
-    inline int64_t Distance() const            { return static_cast<int64_t>(m_end) - static_cast<int64_t>(m_start); }
-    inline int64_t Step() const                { return MathUtil::Sign(Distance()); }
-    inline bool Includes(const T &value) const { return value >= m_start && value < m_end; }
+    int64_t Distance() const            { return static_cast<int64_t>(m_end) - static_cast<int64_t>(m_start); }
+    int64_t Step() const                { return MathUtil::Sign(Distance()); }
+    bool Includes(const T &value) const { return value >= m_start && value < m_end; }
 
     Range operator|(const Range &other) const
     {

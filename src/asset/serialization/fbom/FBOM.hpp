@@ -197,7 +197,7 @@ struct FBOMStaticData {
         return offset < other.offset;
     }
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:
@@ -211,7 +211,7 @@ struct FBOMStaticData {
         }
     }
 
-    inline std::string ToString() const
+    std::string ToString() const
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:

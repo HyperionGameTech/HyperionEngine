@@ -157,10 +157,10 @@ public:
     CompilerError(const CompilerError &other);
     ~CompilerError() {}
 
-    inline ErrorLevel GetLevel() const { return m_level; }
-    inline ErrorMessage GetMessage() const { return m_msg; }
-    inline const SourceLocation &GetLocation() const { return m_location; }
-    inline const std::string &GetText() const { return m_text; }
+    ErrorLevel GetLevel() const { return m_level; }
+    ErrorMessage GetMessage() const { return m_msg; }
+    const SourceLocation &GetLocation() const { return m_location; }
+    const std::string &GetText() const { return m_text; }
 
     bool operator<(const CompilerError &other) const;
 

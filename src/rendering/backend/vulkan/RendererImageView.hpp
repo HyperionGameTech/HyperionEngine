@@ -6,12 +6,16 @@
 
 #include <vulkan/vulkan.h>
 
-#include <optional>
+#include <core/lib/Optional.hpp>
+#include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
+
 class Device;
-class ImageView {
+
+class ImageView
+{
 public:
     ImageView();
     ImageView(VkImage image);
@@ -19,9 +23,8 @@ public:
     ImageView &operator=(const ImageView &other) = delete;
     ~ImageView();
 
-    inline VkImageView &GetImageView()             { return m_image_view; }
-    inline const VkImageView &GetImageView() const { return m_image_view; }
-
+    VkImageView &GetImageView() { return m_image_view; }
+    const VkImageView &GetImageView() const { return m_image_view; }
 
     /* Create imageview independent of an Image */
     Result Create(
@@ -30,22 +33,22 @@ public:
         VkFormat format,
         VkImageAspectFlags aspect_flags,
         VkImageViewType view_type,
-        uint32_t mipmap_layer,
-        uint32_t num_mipmaps,
-        uint32_t face_layer,
-        uint32_t num_faces
+        UInt mipmap_layer,
+        UInt num_mipmaps,
+        UInt face_layer,
+        UInt num_faces
     );
 
-    uint32_t NumFaces() const { return m_num_faces; }
+    UInt NumFaces() const { return m_num_faces; }
 
     /* Create imageview referencing an Image */
     Result Create(
         Device *device,
         const Image *image,
-        uint32_t mipmap_layer,
-        uint32_t num_mipmaps,
-        uint32_t face_layer,
-        uint32_t num_faces
+        UInt mipmap_layer,
+        UInt num_mipmaps,
+        UInt face_layer,
+        UInt num_faces
     );
 
     /* Create imageview referencing an Image */
@@ -60,10 +63,10 @@ private:
     static VkImageAspectFlags ToVkImageAspect(Image::InternalFormat);
     static VkImageViewType ToVkImageViewType(Image::Type);
     
-    VkImageView            m_image_view;
-    std::optional<VkImage> m_image;
+    VkImageView m_image_view;
+    Optional<VkImage> m_image;
 
-    uint32_t m_num_faces;
+    UInt m_num_faces;
 };
 
 } // namespace renderer

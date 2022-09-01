@@ -23,7 +23,7 @@ public:
 private:
     SymbolTypeWeakPtr_t m_symbol_type;
 
-    inline Pointer<AstObject> CloneImpl() const
+    Pointer<AstObject> CloneImpl() const
     {
         return Pointer<AstObject>(new AstObject(
             m_symbol_type,

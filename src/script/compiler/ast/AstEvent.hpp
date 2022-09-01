@@ -13,7 +13,7 @@ public:
       const SourceLocation &location);
     virtual ~AstEvent() = default;
 
-    inline const std::shared_ptr<AstFunctionExpression> &GetTrigger() const
+    const std::shared_ptr<AstFunctionExpression> &GetTrigger() const
       { return m_trigger; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -50,7 +50,7 @@ public:
 private:
     std::shared_ptr<AstConstant> m_key;
 
-    inline Pointer<AstConstantEvent> CloneImpl() const
+    Pointer<AstConstantEvent> CloneImpl() const
     {
         return Pointer<AstConstantEvent>(new AstConstantEvent(
             CloneAstNode(m_key),

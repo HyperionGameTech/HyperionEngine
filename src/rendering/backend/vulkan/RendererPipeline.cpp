@@ -44,22 +44,22 @@ std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *dev
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
         all_layouts = DynArray<DescriptorSet::Index> {
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_VOXELIZER,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING
+            DescriptorSet::DESCRIPTOR_SET_INDEX_UNUSED,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
         };
 #else
         all_layouts = DynArray<DescriptorSet::Index> {
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_GLOBAL,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_SCENE,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_VOXELIZER,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_OBJECT,
-            DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
+            DescriptorSet::DESCRIPTOR_SET_INDEX_UNUSED,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
         };
 #endif
 

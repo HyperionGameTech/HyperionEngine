@@ -27,7 +27,7 @@ public:
 private:
     hyperion::UInt32 m_value;
 
-    inline Pointer<AstUnsignedInteger> CloneImpl() const
+    Pointer<AstUnsignedInteger> CloneImpl() const
     {
         return Pointer<AstUnsignedInteger>(new AstUnsignedInteger(
             m_value,

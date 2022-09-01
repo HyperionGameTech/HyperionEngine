@@ -59,40 +59,40 @@ public:
 
     void SetPhysicalDevice(VkPhysicalDevice);
 
-    inline VkPhysicalDevice GetPhysicalDevice() const
+    VkPhysicalDevice GetPhysicalDevice() const
         { return m_physical_device; }
 
-    inline bool IsDiscreteGpu() const
+    bool IsDiscreteGpu() const
         { return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; }
 
-    inline const char *GetDeviceName() const
+    const char *GetDeviceName() const
         { return m_properties.deviceName; }
 
-    inline const VkPhysicalDeviceProperties &GetPhysicalDeviceProperties() const
+    const VkPhysicalDeviceProperties &GetPhysicalDeviceProperties() const
         { return m_properties; }
 
-    inline const VkPhysicalDeviceFeatures &GetPhysicalDeviceFeatures() const
+    const VkPhysicalDeviceFeatures &GetPhysicalDeviceFeatures() const
         { return m_features; }
 
-    inline const VkPhysicalDeviceFeatures2 &GetPhysicalDeviceFeatures2() const
+    const VkPhysicalDeviceFeatures2 &GetPhysicalDeviceFeatures2() const
         { return m_features2; }
 
-    inline const VkPhysicalDeviceDescriptorIndexingFeatures &GetPhysicalDeviceIndexingFeatures() const
+    const VkPhysicalDeviceDescriptorIndexingFeatures &GetPhysicalDeviceIndexingFeatures() const
         { return m_indexing_features; }
 
-    inline const VkPhysicalDeviceMemoryProperties &GetPhysicalDeviceMemoryProperties() const
+    const VkPhysicalDeviceMemoryProperties &GetPhysicalDeviceMemoryProperties() const
         { return m_memory_properties; }
 
-    inline const VkPhysicalDeviceRayTracingPipelineFeaturesKHR &GetRaytracingPipelineFeatures() const
+    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR &GetRaytracingPipelineFeatures() const
         { return m_raytracing_pipeline_features; }
 
-    inline const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &GetRaytracingPipelineProperties() const
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &GetRaytracingPipelineProperties() const
         { return m_raytracing_pipeline_properties; }
 
-    inline const VkPhysicalDeviceBufferDeviceAddressFeatures &GetBufferDeviceAddressFeatures() const
+    const VkPhysicalDeviceBufferDeviceAddressFeatures &GetBufferDeviceAddressFeatures() const
         { return m_buffer_device_address_features; }
 
-    inline const VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT &GetSamplerMinMaxProperties() const
+    const VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT &GetSamplerMinMaxProperties() const
         { return m_sampler_minmax_properties; }
 
     struct DeviceRequirementsResult {
@@ -107,7 +107,7 @@ public:
             : result(result), message(message) {}
         DeviceRequirementsResult(const DeviceRequirementsResult &other)
             : result(other.result), message(other.message) {}
-        inline operator bool() const { return result == DEVICE_REQUIREMENTS_OK; }
+        operator bool() const { return result == DEVICE_REQUIREMENTS_OK; }
     };
 
 #define REQUIRES_VK_FEATURE_MSG(cond, feature) \
@@ -184,7 +184,7 @@ public:
         return details;
     }
 
-    inline bool IsSupportedFormat(
+    bool IsSupportedFormat(
         VkFormat             format,
         VkImageTiling        tiling,
         VkFormatFeatureFlags features
@@ -234,7 +234,7 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size>
-    inline Image::InternalFormat FindSupportedFormat(const std::array<Image::InternalFormat, Size> &possible_formats, VkImageTiling tiling, VkFormatFeatureFlags features) const
+    Image::InternalFormat FindSupportedFormat(const std::array<Image::InternalFormat, Size> &possible_formats, VkImageTiling tiling, VkFormatFeatureFlags features) const
     {
         static_assert(Size > 0, "Size must be greater than zero!");
 
@@ -262,7 +262,7 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size>
-    inline VkFormat FindSupportedFormat(
+    VkFormat FindSupportedFormat(
         const std::array<VkFormat, Size> &possible_formats,
         VkImageTiling                     tiling,
         VkFormatFeatureFlags              features
@@ -296,7 +296,7 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size, class LambdaFunction>
-    inline Image::InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails &details, const std::array<Image::InternalFormat, Size> &possible_formats, LambdaFunction predicate) const
+    Image::InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails &details, const std::array<Image::InternalFormat, Size> &possible_formats, LambdaFunction predicate) const
     {
         static_assert(Size > 0, "Size must be greater than zero!");
 
@@ -351,7 +351,7 @@ public:
         return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
     }
 
-    inline Result GetImageFormatProperties(
+    Result GetImageFormatProperties(
         VkFormat                format,
         VkImageType             type,
         VkImageTiling           tiling,

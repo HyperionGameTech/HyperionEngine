@@ -21,20 +21,23 @@ class Device;
 class CommandBuffer;
 class StagingBuffer;
 
-class StagingBufferPool {
-    struct StagingBufferRecord {
-        size_t size;
+class StagingBufferPool
+{
+    struct StagingBufferRecord
+    {
+        SizeType size;
         std::unique_ptr<StagingBuffer> buffer;
         std::time_t last_used;
     };
 
 public:
-    class Context {
+    class Context
+    {
         friend class StagingBufferPool;
 
         StagingBufferPool *m_pool;
-        Device            *m_device;
-        std::vector<StagingBufferRecord>    m_staging_buffers;
+        Device *m_device;
+        std::vector<StagingBufferRecord> m_staging_buffers;
         std::unordered_set<StagingBuffer *> m_used;
 
         Context(StagingBufferPool *pool, Device *device)
@@ -43,18 +46,18 @@ public:
         {
         }
 
-        StagingBuffer *CreateStagingBuffer(size_t size);
+        StagingBuffer *CreateStagingBuffer(SizeType size);
 
     public:
         /* \brief Acquire a staging buffer from the pool of at least \ref required_size bytes,
          * creating one if it does not exist yet. */
-        StagingBuffer *Acquire(size_t required_size);
+        StagingBuffer *Acquire(SizeType required_size);
     };
 
     using UseFunction = std::function<Result(Context &context)>;
 
     static constexpr time_t hold_time = 1000;
-    static constexpr uint32_t gc_threshold = 5; /* run every 5 Use() calls */
+    static constexpr UInt gc_threshold = 5; /* run every 5 Use() calls */
 
     /* \brief Use the staging buffer pool. GC will not run until after the given function
      * is called, and the staging buffers created will not be able to be reused.
@@ -69,29 +72,31 @@ public:
     Result Destroy(Device *device);
 
 private:
-    StagingBuffer *FindStagingBuffer(size_t size);
+    StagingBuffer *FindStagingBuffer(SizeType size);
 
     std::vector<StagingBufferRecord> m_staging_buffers;
-    uint32_t                         use_calls = 0;
+    UInt use_calls = 0;
 };
 
-class GPUMemory {
+class GPUMemory
+{
 public:
-    struct Stats {
-        size_t gpu_memory_used = 0;
-        size_t last_gpu_memory_used = 0;
-        int64_t last_diff = 0;
+    struct Stats
+    {
+        SizeType gpu_memory_used = 0;
+        SizeType last_gpu_memory_used = 0;
+        Int64 last_diff = 0;
         std::time_t last_timestamp = 0;
-        const int64_t time_diff = 10000;
+        const Int64 time_diff = 10000;
 
-        HYP_FORCE_INLINE void IncMemoryUsage(size_t amount)
+        HYP_FORCE_INLINE void IncMemoryUsage(SizeType amount)
         {
             gpu_memory_used += amount;
 
             UpdateStats();
         }
 
-        HYP_FORCE_INLINE void DecMemoryUsage(size_t amount)
+        HYP_FORCE_INLINE void DecMemoryUsage(SizeType amount)
         {
             AssertThrow(gpu_memory_used >= amount);
 
@@ -117,7 +122,8 @@ public:
         }
     };
 
-    enum class ResourceState : uint32_t {
+    enum class ResourceState : UInt
+    {
         UNDEFINED,
         PRE_INITIALIZED,
         COMMON,
@@ -139,7 +145,7 @@ public:
         PREDICATION
     };
 
-    static uint32_t FindMemoryType(Device *device, uint32_t vk_type_filter, VkMemoryPropertyFlags properties);
+    static UInt FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties);
     static VkImageLayout GetImageLayout(ResourceState state);
     static VkAccessFlags GetAccessMask(ResourceState state);
     static VkPipelineStageFlags GetShaderStageMask(
@@ -153,13 +159,13 @@ public:
     GPUMemory &operator=(const GPUMemory &other) = delete;
     ~GPUMemory();
 
-    inline ResourceState GetResourceState() const
+    ResourceState GetResourceState() const
         { return resource_state; }
 
-    inline void SetResourceState(ResourceState new_state)
+    void SetResourceState(ResourceState new_state)
         { resource_state = new_state; }
 
-    inline void *GetMapping(Device *device) const
+    void *GetMapping(Device *device) const
     {
         if (!map) {
             Map(device, &map);
@@ -180,7 +186,7 @@ public:
     
     static Stats stats;
 
-    uint32_t index;
+    UInt index;
 
 protected:
     void Map(Device *device, void **ptr) const;
@@ -188,14 +194,15 @@ protected:
     void Create();
     void Destroy();
 
-    uint32_t sharing_mode;
+    UInt sharing_mode;
     mutable void *map;
     mutable ResourceState resource_state;
 };
 
 /* buffers */
 
-class GPUBuffer : public GPUMemory {
+class GPUBuffer : public GPUMemory
+{
 public:
     GPUBuffer(
         VkBufferUsageFlags usage_flags,
@@ -214,13 +221,13 @@ public:
     void CopyFrom(
         CommandBuffer *command_buffer,
         const GPUBuffer *src_buffer,
-        size_t count
+        SizeType count
     );
 
     [[nodiscard]] Result CopyStaged(
         Instance *instance,
         const void *ptr,
-        size_t count
+        SizeType count
     );
 
     [[nodiscard]] Result ReadStaged(
@@ -229,15 +236,15 @@ public:
         void *out_ptr
     ) const;
 
-    Result CheckCanAllocate(Device *device, size_t size) const;
+    Result CheckCanAllocate(Device *device, SizeType size) const;
 
     /* \brief Calls vkGetBufferDeviceAddressKHR. Only use this if the extension is enabled */
     uint64_t GetBufferDeviceAddress(Device *device) const;
 
-    [[nodiscard]] Result Create(Device *device, size_t buffer_size);
+    [[nodiscard]] Result Create(Device *device, SizeType buffer_size);
     [[nodiscard]] Result Destroy(Device *device);
     [[nodiscard]] Result EnsureCapacity(Device *device,
-        size_t minimum_size,
+        SizeType minimum_size,
         bool *out_size_changed = nullptr);
 
 #if HYP_DEBUG_MODE
@@ -270,7 +277,7 @@ private:
         Device *device,
         const VkBufferCreateInfo &buffer_create_info,
         const VmaAllocationCreateInfo &allocation_create_info,
-        size_t size
+        SizeType size
     ) const;
 
     VmaAllocationCreateInfo GetAllocationCreateInfo(Device *device) const;
@@ -325,7 +332,7 @@ class IndirectBuffer : public GPUBuffer {
 public:
     IndirectBuffer();
 
-    void DispatchIndirect(CommandBuffer *command_buffer, size_t offset = 0) const;
+    void DispatchIndirect(CommandBuffer *command_buffer, SizeType offset = 0) const;
 };
 
 class ShaderBindingTableBuffer : public GPUBuffer {
@@ -398,7 +405,7 @@ public:
         ResourceState new_state
     );
 
-    [[nodiscard]] Result Create(Device *device, size_t size, VkImageCreateInfo *image_info);
+    [[nodiscard]] Result Create(Device *device, SizeType size, VkImageCreateInfo *image_info);
     [[nodiscard]] Result Destroy(Device *device);
 
     VkImage image;

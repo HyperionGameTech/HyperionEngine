@@ -18,8 +18,8 @@ public:
         const SourceLocation &location);
     virtual ~AstTemplateExpression() = default;
 
-    inline const std::vector<std::shared_ptr<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
-    inline const std::shared_ptr<AstExpression> &GetInnerExpression() const { return m_expr; }
+    const std::vector<std::shared_ptr<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
+    const std::shared_ptr<AstExpression> &GetInnerExpression() const { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -40,7 +40,7 @@ private:
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
 
-    inline Pointer<AstTemplateExpression> CloneImpl() const
+    Pointer<AstTemplateExpression> CloneImpl() const
     {
         return Pointer<AstTemplateExpression>(new AstTemplateExpression(
             CloneAstNode(m_expr),

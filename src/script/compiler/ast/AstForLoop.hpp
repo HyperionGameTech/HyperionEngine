@@ -39,7 +39,7 @@ private:
 
     std::shared_ptr<AstExpression> m_expr;
 
-    inline Pointer<AstForLoop> CloneImpl() const
+    Pointer<AstForLoop> CloneImpl() const
     {
         return Pointer<AstForLoop>(new AstForLoop(
             CloneAstNode(m_decl_part),

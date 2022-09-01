@@ -16,7 +16,7 @@ public:
         const SourceLocation &location);
     virtual ~AstFunctionDefinition() = default;
 
-    inline const std::shared_ptr<AstFunctionExpression> &GetAssignment() const
+    const std::shared_ptr<AstFunctionExpression> &GetAssignment() const
         { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -28,7 +28,7 @@ public:
 protected:
     std::shared_ptr<AstFunctionExpression> m_expr;
 
-    inline Pointer<AstFunctionDefinition> CloneImpl() const
+    Pointer<AstFunctionDefinition> CloneImpl() const
     {
         return Pointer<AstFunctionDefinition>(new AstFunctionDefinition(
             m_name,

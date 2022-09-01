@@ -27,7 +27,7 @@ private:
     std::shared_ptr<AstBlock> m_block;
     int m_num_locals;
 
-    inline Pointer<AstWhileLoop> CloneImpl() const
+    Pointer<AstWhileLoop> CloneImpl() const
     {
         return Pointer<AstWhileLoop>(new AstWhileLoop(
             CloneAstNode(m_conditional),

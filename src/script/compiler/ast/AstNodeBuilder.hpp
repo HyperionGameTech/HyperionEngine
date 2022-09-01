@@ -39,7 +39,7 @@ public:
         ModuleBuilder *parent
     );
 
-    inline const std::string &GetName() const { return m_name; }
+    const std::string &GetName() const { return m_name; }
 
     ModuleBuilder Module(const std::string &name);
     FunctionBuilder Function(const std::string &name);
@@ -67,7 +67,7 @@ public:
 
     sp<AstExpression> Call(const std::vector<sp<AstArgument>> &args);
 
-    inline const std::string &GetName() const { return m_name; }
+    const std::string &GetName() const { return m_name; }
 
 private:
     std::string m_name;

@@ -28,17 +28,17 @@ struct AstIdentifierProperties {
     SymbolTypePtr_t m_found_type = nullptr;
 
     // getters & setters
-    inline Identifier *GetIdentifier() { return m_identifier; }
-    inline const Identifier *GetIdentifier() const { return m_identifier; }
-    inline void SetIdentifier(Identifier *identifier) { m_identifier = identifier; }
+    Identifier *GetIdentifier() { return m_identifier; }
+    const Identifier *GetIdentifier() const { return m_identifier; }
+    void SetIdentifier(Identifier *identifier) { m_identifier = identifier; }
 
-    inline IdentifierType GetIdentifierType() const { return m_identifier_type; }
-    inline void SetIdentifierType(IdentifierType identifier_type) { m_identifier_type = identifier_type; }
+    IdentifierType GetIdentifierType() const { return m_identifier_type; }
+    void SetIdentifierType(IdentifierType identifier_type) { m_identifier_type = identifier_type; }
 
-    inline bool IsInFunction() const { return m_is_in_function; }
-    inline bool IsInPureFunction() const { return m_is_in_pure_function; }
-    inline int GetDepth() const { return m_depth; }
-    inline Scope *GetFunctionScope() const { return m_function_scope; }
+    bool IsInFunction() const { return m_is_in_function; }
+    bool IsInPureFunction() const { return m_is_in_pure_function; }
+    int GetDepth() const { return m_depth; }
+    Scope *GetFunctionScope() const { return m_function_scope; }
 };
 
 class AstIdentifier : public AstExpression {
@@ -50,8 +50,8 @@ public:
     void PerformLookup(AstVisitor *visitor, Module *mod);
     void CheckInFunction(AstVisitor *visitor, Module *mod);
 
-    inline AstIdentifierProperties &GetProperties() { return m_properties; }
-    inline const AstIdentifierProperties &GetProperties() const { return m_properties; }
+    AstIdentifierProperties &GetProperties() { return m_properties; }
+    const AstIdentifierProperties &GetProperties() const { return m_properties; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;

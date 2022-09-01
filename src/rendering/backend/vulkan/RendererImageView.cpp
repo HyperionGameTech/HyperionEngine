@@ -6,6 +6,7 @@
 
 namespace hyperion {
 namespace renderer {
+
 ImageView::ImageView()
     : m_image_view(nullptr),
       m_num_faces(1)
@@ -29,29 +30,29 @@ Result ImageView::Create(
     VkFormat format,
     VkImageAspectFlags aspect_flags,
     VkImageViewType view_type,
-    uint32_t mipmap_layer,
-    uint32_t num_mipmaps,
-    uint32_t face_layer,
-    uint32_t num_faces
+    UInt mipmap_layer,
+    UInt num_mipmaps,
+    UInt face_layer,
+    UInt num_faces
 )
 {
     m_num_faces = num_faces;
 
-    VkImageViewCreateInfo view_info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    view_info.image    = image;
+    VkImageViewCreateInfo view_info { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+    view_info.image = image;
     view_info.viewType = view_type;
-    view_info.format   = format;
+    view_info.format = format;
 
     view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
     view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
     view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
-    view_info.subresourceRange.aspectMask     = aspect_flags;
-    view_info.subresourceRange.baseMipLevel   = mipmap_layer;
-    view_info.subresourceRange.levelCount     = num_mipmaps;
+    view_info.subresourceRange.aspectMask = aspect_flags;
+    view_info.subresourceRange.baseMipLevel = mipmap_layer;
+    view_info.subresourceRange.levelCount = num_mipmaps;
     view_info.subresourceRange.baseArrayLayer = face_layer;
-    view_info.subresourceRange.layerCount     = m_num_faces;
+    view_info.subresourceRange.layerCount = m_num_faces;
 
     HYPERION_VK_CHECK_MSG(
         vkCreateImageView(device->GetDevice(), &view_info, nullptr, &m_image_view),
@@ -64,10 +65,10 @@ Result ImageView::Create(
 Result ImageView::Create(
     Device *device,
     const Image *image,
-    uint32_t mipmap_layer,
-    uint32_t num_mipmaps,
-    uint32_t face_layer,
-    uint32_t num_faces
+    UInt mipmap_layer,
+    UInt num_mipmaps,
+    UInt face_layer,
+    UInt num_faces
 )
 {
     AssertThrow(image != nullptr);

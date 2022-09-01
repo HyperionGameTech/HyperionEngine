@@ -15,7 +15,7 @@ public:
         const SourceLocation &location);
     virtual ~AstTupleExpression() = default;
 
-    inline const std::vector<std::shared_ptr<AstArgument>> &GetMembers() const
+    const std::vector<std::shared_ptr<AstArgument>> &GetMembers() const
         { return m_members; };
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -34,7 +34,7 @@ protected:
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
 
-    inline std::shared_ptr<AstTupleExpression> CloneImpl() const
+    std::shared_ptr<AstTupleExpression> CloneImpl() const
     {
         return std::shared_ptr<AstTupleExpression>(new AstTupleExpression(
             CloneAllAstNodes(m_members),

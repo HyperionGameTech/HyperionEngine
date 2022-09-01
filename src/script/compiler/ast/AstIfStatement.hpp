@@ -28,7 +28,7 @@ private:
     std::shared_ptr<AstBlock> m_block;
     std::shared_ptr<AstBlock> m_else_block;
 
-    inline Pointer<AstIfStatement> CloneImpl() const
+    Pointer<AstIfStatement> CloneImpl() const
     {
         return Pointer<AstIfStatement>(new AstIfStatement(
             CloneAstNode(m_conditional),

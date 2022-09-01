@@ -59,7 +59,7 @@ class ControllerSet {
     static std::atomic<ControllerID> controller_id_counter;
 
     template <class T>
-    inline static ControllerID GetControllerID()
+    static ControllerID GetControllerID()
     {
         static_assert(std::is_base_of_v<Controller, T>, "Object must be a derived class of Controller");
 

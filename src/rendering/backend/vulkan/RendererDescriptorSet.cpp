@@ -726,11 +726,11 @@ Result DescriptorPool::UpdateDescriptorSets(Device *device, UInt frame_index)
         const auto slot  = DescriptorSet::GetBaseIndex(descriptor_set->GetIndex());
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
-        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+        if (slot == DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
             continue;
         }
 #else
-        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS) {
+        if (slot == DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS) {
             continue;
         }
 #endif
@@ -993,7 +993,7 @@ void Descriptor::Create(
         descriptor_count = DescriptorSet::max_bindless_resources;
     } else if (
         m_descriptor_set->IsTemplate()
-        && m_descriptor_set->GetIndex() == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
+        && m_descriptor_set->GetIndex() == DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
         && m_binding == m_descriptor_set->DescriptorKeyToIndex(DescriptorKey::TEXTURES)
     ) {
         descriptor_count = DescriptorSet::max_material_texture_samplers;

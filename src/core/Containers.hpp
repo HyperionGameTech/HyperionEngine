@@ -568,7 +568,7 @@ struct ComponentEvents
             return *this;
         }
 
-        inline void Clear() { callbacks.clear(); }
+        void Clear() { callbacks.clear(); }
     };
 
     CallbackGroup on_init,

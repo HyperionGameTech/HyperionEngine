@@ -18,8 +18,8 @@ public:
     AEXGenerator(BuildParams &build_params);
     virtual ~AEXGenerator() = default;
 
-    inline InternalByteStream &GetInternalByteStream() { return m_ibs; }
-    inline const InternalByteStream &GetInternalByteStream() const { return m_ibs; }
+    InternalByteStream &GetInternalByteStream() { return m_ibs; }
+    const InternalByteStream &GetInternalByteStream() const { return m_ibs; }
 
     virtual void Visit(BytecodeChunk *);
     virtual void Visit(LabelMarker *);

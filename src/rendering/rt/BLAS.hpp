@@ -31,10 +31,10 @@ public:
     void Update(Engine *engine);
 
 private:
-    inline void SetNeedsUpdate()
+    void SetNeedsUpdate()
         { m_wrapped.SetFlag(AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
-    inline bool NeedsUpdate() const
+    bool NeedsUpdate() const
         { return m_wrapped.GetFlags() & AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING; }
 
     Ref<Mesh> m_mesh;

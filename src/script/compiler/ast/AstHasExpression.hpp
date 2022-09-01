@@ -36,7 +36,7 @@ protected:
     bool m_has_side_effects;
 
 private:
-    inline Pointer<AstHasExpression> CloneImpl() const
+    Pointer<AstHasExpression> CloneImpl() const
     {
         return Pointer<AstHasExpression>(new AstHasExpression(
             CloneAstNode(m_target),

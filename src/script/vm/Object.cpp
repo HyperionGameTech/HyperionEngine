@@ -1,9 +1,8 @@
 #include <script/vm/Object.hpp>
 #include <script/vm/HeapValue.hpp>
-
-#include <system/Debug.hpp>
 #include <script/Hasher.hpp>
-
+#include <system/Debug.hpp>
+#include <math/MathUtil.hpp>
 #include <core/Core.hpp>
 
 #include <cmath>
@@ -11,7 +10,7 @@
 namespace hyperion {
 namespace vm {
 
-const uint32_t Object::PROTO_MEMBER_HASH = hash_fnv_1("$proto");
+const UInt32 Object::PROTO_MEMBER_HASH = hash_fnv_1("$proto");
 
 ObjectMap::ObjectBucket::ObjectBucket()
     : m_data(new Member*[DEFAULT_BUCKET_CAPACITY]),
@@ -50,7 +49,7 @@ ObjectMap::ObjectBucket &ObjectMap::ObjectBucket::operator=(const ObjectBucket &
     Memory::Copy(
         m_data,
         other.m_data,
-        sizeof(Member*) * other.m_size
+        sizeof(Member *) * other.m_size
     );
 
     return *this;
@@ -65,7 +64,7 @@ void ObjectMap::ObjectBucket::Resize(size_t capacity)
         Memory::Copy(
             new_data,
             m_data,
-            sizeof(Member*) * m_size
+            sizeof(Member *) * m_size
         );
         m_capacity = new_capacity;
         delete[] m_data;
@@ -75,25 +74,28 @@ void ObjectMap::ObjectBucket::Resize(size_t capacity)
 
 void ObjectMap::ObjectBucket::Push(Member *member)
 {
-    if (m_size == m_capacity) {
-        Resize(COMPUTE_CAPACITY(m_capacity));
+    if (m_size >= m_capacity) {
+        Resize(COMPUTE_CAPACITY(MathUtil::Max(m_capacity, m_size) + 1));
     }
+
     m_data[m_size++] = member;
 }
 
-bool ObjectMap::ObjectBucket::Lookup(uint32_t hash, Member **out)
+bool ObjectMap::ObjectBucket::Lookup(UInt32 hash, Member **out)
 {
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         if (m_data[i]->hash == hash) {
             *out = m_data[i];
+
             return true;
         }
     }
+
     return false;
 }
 
 
-ObjectMap::ObjectMap(size_t size)
+ObjectMap::ObjectMap(SizeType size)
     : m_size(size)
 {
     
@@ -105,7 +107,7 @@ ObjectMap::ObjectMap(const ObjectMap &other)
 {
     m_buckets = new ObjectMap::ObjectBucket[m_size];
 
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         m_buckets[i] = other.m_buckets[i];
     }
 }
@@ -125,20 +127,20 @@ ObjectMap &ObjectMap::operator=(const ObjectMap &other)
 
     m_size = other.m_size;
 
-    for (size_t i = 0; i < m_size; i++) {
+    for (SizeType i = 0; i < m_size; i++) {
         m_buckets[i] = other.m_buckets[i];
     }
 
     return *this;
 }
 
-void ObjectMap::Push(uint32_t hash, Member *member)
+void ObjectMap::Push(UInt32 hash, Member *member)
 {
     AssertThrow(m_size != 0);
     m_buckets[hash % m_size].Push(member);
 }
 
-Member *ObjectMap::Get(uint32_t hash)
+Member *ObjectMap::Get(UInt32 hash)
 {
     if (m_size == 0) {
         return nullptr;
@@ -158,7 +160,7 @@ Object::Object(HeapValue *proto)
     const Object *proto_obj = proto->GetPointer<Object>();
     AssertThrow(proto_obj != nullptr);
 
-    size_t size = proto_obj->GetSize();
+    SizeType size = proto_obj->GetSize();
 
     // auto **names = m_type_ptr->GetNames();
     // AssertThrow(names != nullptr);
@@ -167,7 +169,7 @@ Object::Object(HeapValue *proto)
     Memory::Copy(m_members, proto_obj->GetMembers(), sizeof(Member) * size);
 
     m_object_map = new ObjectMap(size);
-    for (size_t i = 0; i < size; i++) {
+    for (SizeType i = 0; i < size; i++) {
         m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 
@@ -188,7 +190,7 @@ Object::Object(const Member *members, size_t size, HeapValue *proto)
     Memory::Copy(m_members, members, sizeof(Member) * size);
 
     m_object_map = new ObjectMap(size);
-    for (size_t i = 0; i < size; i++) {
+    for (SizeType i = 0; i < size; i++) {
         m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 }
@@ -196,7 +198,7 @@ Object::Object(const Member *members, size_t size, HeapValue *proto)
 Object::Object(const Object &other)
     : m_proto(other.m_proto)
 {
-    const size_t size = other.GetSize();
+    const SizeType size = other.GetSize();
 
     m_members = new Member[size];
 
@@ -205,7 +207,7 @@ Object::Object(const Object &other)
 
     Memory::Copy(m_members, other.m_members, sizeof(Member) * size);
 
-    for (size_t i = 0; i < size; i++) {
+    for (SizeType i = 0; i < size; i++) {
         m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 }
@@ -233,7 +235,7 @@ void Object::GetRepresentation(
         return;
     }
 
-    const size_t size = GetSize();
+    const SizeType size = GetSize();
 
     ss << "{";
 

@@ -12,7 +12,7 @@ public:
         const SourceLocation &location);
     virtual ~AstReturnStatement() = default;
 
-    inline const std::shared_ptr<AstExpression> &GetExpression() const
+    const std::shared_ptr<AstExpression> &GetExpression() const
         { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -25,7 +25,7 @@ private:
     std::shared_ptr<AstExpression> m_expr;
     int m_num_pops;
 
-    inline Pointer<AstReturnStatement> CloneImpl() const
+    Pointer<AstReturnStatement> CloneImpl() const
     {
         return Pointer<AstReturnStatement>(new AstReturnStatement(
             CloneAstNode(m_expr),

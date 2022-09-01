@@ -26,7 +26,7 @@ private:
     std::shared_ptr<AstBlock> m_try_block;
     std::shared_ptr<AstBlock> m_catch_block;
 
-    inline Pointer<AstTryCatch> CloneImpl() const
+    Pointer<AstTryCatch> CloneImpl() const
     {
         return Pointer<AstTryCatch>(new AstTryCatch(
             CloneAstNode(m_try_block),

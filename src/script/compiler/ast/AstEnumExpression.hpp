@@ -27,9 +27,9 @@ public:
     );
     virtual ~AstEnumExpression() = default;
 
-    inline void SetName(const std::string &name) { m_name = name; }
+    void SetName(const std::string &name) { m_name = name; }
 
-    inline const std::vector<EnumEntry> &GetEntries() const { return m_entries; }
+    const std::vector<EnumEntry> &GetEntries() const { return m_entries; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -52,7 +52,7 @@ protected:
 
     std::shared_ptr<AstTypeExpression>         m_expr;
 
-    inline Pointer<AstEnumExpression> CloneImpl() const
+    Pointer<AstEnumExpression> CloneImpl() const
     {
         return Pointer<AstEnumExpression>(new AstEnumExpression(
             m_name,

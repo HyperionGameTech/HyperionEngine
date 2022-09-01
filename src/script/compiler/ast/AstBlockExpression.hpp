@@ -19,7 +19,7 @@ public:
         const SourceLocation &location);
     virtual ~AstBlockExpression() = default;
 
-    inline const std::shared_ptr<AstBlock> &GetBlock() const
+    const std::shared_ptr<AstBlock> &GetBlock() const
         { return m_block; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -44,7 +44,7 @@ protected:
     //std::shared_ptr<AstCallExpression> m_call_expr;
     std::shared_ptr<AstFunctionExpression> m_result_closure;
 
-    inline Pointer<AstBlockExpression> CloneImpl() const
+    Pointer<AstBlockExpression> CloneImpl() const
     {
         return Pointer<AstBlockExpression>(new AstBlockExpression(
             CloneAstNode(m_block),

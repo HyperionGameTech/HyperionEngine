@@ -366,9 +366,9 @@ public:
     {
     }
 
-    inline bool Empty() const
+    bool Empty() const
         { return !m_data.empty() && !m_data.back().empty(); }
-    inline char GetOpcode() const
+    char GetOpcode() const
         { return m_data.back().back(); }
 
     std::vector<std::vector<char>> m_data;

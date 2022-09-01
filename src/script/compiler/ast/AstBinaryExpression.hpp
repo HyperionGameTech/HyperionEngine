@@ -17,10 +17,10 @@ public:
         const SourceLocation &location
     );
 
-    inline const std::shared_ptr<AstExpression> &GetLeft() const { return m_left; }
-    inline const std::shared_ptr<AstExpression> &GetRight() const { return m_right; }
+    const std::shared_ptr<AstExpression> &GetLeft() const { return m_left; }
+    const std::shared_ptr<AstExpression> &GetRight() const { return m_right; }
 
-    inline bool IsOperatorOverloadingEnabled() const
+    bool IsOperatorOverloadingEnabled() const
         { return m_operator_overloading_enabled; }
     void SetIsOperatorOverloadingEnabled(bool operator_overloading_enabled)
         { m_operator_overloading_enabled = operator_overloading_enabled; }
@@ -49,7 +49,7 @@ private:
     std::shared_ptr<AstVariableDeclaration> CheckLazyDeclaration(AstVisitor *visitor, Module *mod);
 #endif
 
-    inline std::shared_ptr<AstBinaryExpression> CloneImpl() const
+    std::shared_ptr<AstBinaryExpression> CloneImpl() const
     {
         return std::shared_ptr<AstBinaryExpression>(
             new AstBinaryExpression(

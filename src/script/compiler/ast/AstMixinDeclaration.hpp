@@ -20,7 +20,7 @@ public:
         const SourceLocation &location);
     virtual ~AstMixinDeclaration() = default;
 
-    inline void SetPreventShadowing(bool prevent_shadowing)
+    void SetPreventShadowing(bool prevent_shadowing)
         { m_prevent_shadowing = prevent_shadowing; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -37,7 +37,7 @@ protected:
     // created if there is a shadowed object to allow referencing it
     std::shared_ptr<AstVariableDeclaration> m_shadowed_decl;
 
-    inline Pointer<AstMixinDeclaration> CloneImpl() const
+    Pointer<AstMixinDeclaration> CloneImpl() const
     {
         return Pointer<AstMixinDeclaration>(new AstMixinDeclaration(
             m_name,

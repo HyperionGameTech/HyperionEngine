@@ -278,16 +278,16 @@ Result Instance::Initialize(bool load_debug_layers)
 
     /* init descriptor sets */
 
-    for (UInt i = DescriptorSet::Index::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MAX; i++) {
+    for (UInt i = DescriptorSet::DESCRIPTOR_SET_INDEX_UNUSED; i != DescriptorSet::DESCRIPTOR_SET_INDEX_MAX; i++) {
         const auto index = DescriptorSet::Index(i);
         const auto slot  = DescriptorSet::GetBaseIndex(index);
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
-        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
+        if (slot == DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) {
             continue;
         }
 #else
-        if (slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS) {
+        if (slot == DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS) {
             continue;
         }
 #endif
@@ -297,7 +297,7 @@ Result Instance::Initialize(bool load_debug_layers)
             std::make_unique<DescriptorSet>(
                 slot,
                 i,
-                slot == DescriptorSet::Index::DESCRIPTOR_SET_INDEX_BINDLESS
+                slot == DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             ),
             true // add immediately instead of enqueuing
         );

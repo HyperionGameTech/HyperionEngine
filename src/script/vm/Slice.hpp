@@ -17,11 +17,11 @@ public:
     Slice(const Slice &other);
 
     Slice &operator=(const Slice &other);
-    inline bool operator==(const Slice &other) const { return this == &other; }
+    bool operator==(const Slice &other) const { return this == &other; }
 
-    inline SizeType GetSize() const              { return m_end - m_start; }
-    inline Value &AtIndex(int index)             { return m_ary->AtIndex(m_start + index); }
-    inline const Value &AtIndex(int index) const { return m_ary->AtIndex(m_start + index); }
+    SizeType GetSize() const              { return m_end - m_start; }
+    Value &AtIndex(int index)             { return m_ary->AtIndex(m_start + index); }
+    const Value &AtIndex(int index) const { return m_ary->AtIndex(m_start + index); }
 
     void GetRepresentation(
         std::stringstream &ss,

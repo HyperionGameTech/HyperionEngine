@@ -166,13 +166,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
-    DebugLog(
-        LogType::Debug,
-        "Substitute args for type %s   %s\n",
-        unboxed_type->GetName().c_str(),
-        typeid(*m_target).name()
-    );
-
     FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         visitor,
         mod,

@@ -628,10 +628,10 @@ public:
         }
     }
 
-    inline char *GetData() { return m_data; }
-    inline char *GetData() const { return m_data; }
-    inline size_t GetBufferSize() const { return m_size; }
-    inline size_t GetLength() const { return m_length; }
+    char *GetData() { return m_data; }
+    char *GetData() const { return m_data; }
+    size_t GetBufferSize() const { return m_size; }
+    size_t GetLength() const { return m_length; }
 
     Utf8String &operator=(const char *str)
     {
@@ -700,38 +700,38 @@ public:
         return operator=(other.m_data);
     }
 
-    inline bool operator==(const char *str) const
+    bool operator==(const char *str) const
         { return !(strcmp(m_data, str)); }
-    inline bool operator==(const Utf8String &other) const
+    bool operator==(const Utf8String &other) const
         { return !(strcmp(m_data, other.m_data)); }
-    inline bool operator<(const char *str) const
+    bool operator<(const char *str) const
         { return (utf8_strcmp(m_data, str) == -1); }
-    inline bool operator<(const Utf8String &other) const
+    bool operator<(const Utf8String &other) const
         { return (utf8_strcmp(m_data, other.m_data) == -1); }
-    inline bool operator>(const char *str) const
+    bool operator>(const char *str) const
         { return (utf8_strcmp(m_data, str) == 1); }
-    inline bool operator>(const Utf8String &other) const
+    bool operator>(const Utf8String &other) const
         { return (utf8_strcmp(m_data, other.m_data) == 1); }
 
-    inline bool operator<=(const char *str) const
+    bool operator<=(const char *str) const
     {
         int i = utf8_strcmp(m_data, str);
         return i == 0 || i == -1;
     }
 
-    inline bool operator<=(const Utf8String &other) const
+    bool operator<=(const Utf8String &other) const
     {
         int i = utf8_strcmp(m_data, other.m_data);
         return i == 0 || i == -1;
     }
 
-    inline bool operator>=(const char *str) const
+    bool operator>=(const char *str) const
     {
         int i = utf8_strcmp(m_data, str);
         return i == 0 || i == 1;
     }
 
-    inline bool operator>=(const Utf8String &other) const
+    bool operator>=(const Utf8String &other) const
     {
         int i = utf8_strcmp(m_data, other.m_data);
         return i == 0 || i == 1;

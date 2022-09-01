@@ -6,21 +6,11 @@ project(${BUILD_NAME} CXX C)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
-    #set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2 /D /Zi")
-    #set(CMAKE_CXX_FLAGS_DEBUG "/MDd")
-
+    
     # set to path of vcpkg
     set(CMAKE_TOOLCHAIN_FILE, "${VCPKG_INSTALLED_DIR}/../scripts/buildsystems/vcpkg.cmake")
 else()
-    #if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-    #else()
-    #    if(APPLE)
-    #        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMVK_DEBUG=1")
-    #    endif()
-
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    #endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address")
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)

@@ -14,15 +14,15 @@ public:
         const SourceLocation &location);
     AstBlock(const SourceLocation &location);
 
-    inline void AddChild(const std::shared_ptr<AstStatement> &stmt)
+    void AddChild(const std::shared_ptr<AstStatement> &stmt)
         { m_children.push_back(stmt); }
-    inline std::vector<std::shared_ptr<AstStatement>> &GetChildren()
+    std::vector<std::shared_ptr<AstStatement>> &GetChildren()
         { return m_children; }
-    inline const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const
+    const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const
         { return m_children; }
-    inline int NumLocals() const
+    int NumLocals() const
         { return m_num_locals; }
-    inline bool IsLastStatementReturn() const
+    bool IsLastStatementReturn() const
         { return m_last_is_return; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -36,7 +36,7 @@ protected:
     int m_num_locals;
     bool m_last_is_return;
 
-    inline Pointer<AstBlock> CloneImpl() const
+    Pointer<AstBlock> CloneImpl() const
     {
         return std::shared_ptr<AstBlock>(new AstBlock(
             CloneAllAstNodes(m_children),

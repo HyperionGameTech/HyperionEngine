@@ -35,30 +35,30 @@ public:
     Scope(ScopeType scope_type, int scope_flags);
     Scope(const Scope &other);
 
-    inline IdentifierTable &GetIdentifierTable()
+    IdentifierTable &GetIdentifierTable()
         { return m_identifier_table; }
-    inline const IdentifierTable &GetIdentifierTable() const
+    const IdentifierTable &GetIdentifierTable() const
         { return m_identifier_table; }
 
-    inline ScopeType GetScopeType() const
+    ScopeType GetScopeType() const
         { return m_scope_type; }
 
-    inline int GetScopeFlags() const
+    int GetScopeFlags() const
         { return m_scope_flags; }
 
-    inline void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
+    void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
         { m_return_types.push_back({type, location}); }
-    inline const std::vector<ReturnType_t> &GetReturnTypes() const
+    const std::vector<ReturnType_t> &GetReturnTypes() const
         { return m_return_types; }
 
-    inline Identifier *FindClosureCapture(const std::string &name) 
+    Identifier *FindClosureCapture(const std::string &name) 
     {
         auto it = m_closure_captures.find(name);
         return it != m_closure_captures.end() ? it->second : nullptr;
     }
-    inline void AddClosureCapture(const std::string &name, Identifier *ident) 
+    void AddClosureCapture(const std::string &name, Identifier *ident) 
         { m_closure_captures.insert({ name, ident }); }
-    inline const std::map<std::string, Identifier*> &GetClosureCaptures() const
+    const std::map<std::string, Identifier*> &GetClosureCaptures() const
         { return m_closure_captures; }
 
 private:

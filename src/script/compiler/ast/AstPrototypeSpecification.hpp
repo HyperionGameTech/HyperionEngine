@@ -22,10 +22,10 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    inline const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
-    inline const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
-    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_default_value; }//m_symbol_type->GetDefaultValue(); }
-    inline const std::shared_ptr<AstExpression> &GetExpr() const { return m_proto; }
+    const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
+    const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
+    const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_default_value; }//m_symbol_type->GetDefaultValue(); }
+    const std::shared_ptr<AstExpression> &GetExpr() const { return m_proto; }
 
     virtual Pointer<AstStatement> Clone() const override;
 
@@ -47,7 +47,7 @@ protected:
     std::shared_ptr<AstExpression> m_default_value;
 
 private:
-    inline Pointer<AstPrototypeSpecification> CloneImpl() const
+    Pointer<AstPrototypeSpecification> CloneImpl() const
     {
         return Pointer<AstPrototypeSpecification>(new AstPrototypeSpecification(
             CloneAstNode(m_proto),

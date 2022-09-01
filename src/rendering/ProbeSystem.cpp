@@ -171,7 +171,7 @@ void ProbeGrid::AddDescriptors(Engine *engine)
 {
     /* TMP, have to set this up in a way such that it's not relying on something else to populate the other RT stuff */
 
-    auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
+    auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
     auto *probe_uniforms = descriptor_set->AddDescriptor<UniformBufferDescriptor>(9);
     probe_uniforms->SetSubDescriptor({.buffer = m_uniform_buffer.get()});

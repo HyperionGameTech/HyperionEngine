@@ -31,7 +31,7 @@ private:
     // set while compiling
     int m_static_id;
 
-    inline Pointer<AstString> CloneImpl() const
+    Pointer<AstString> CloneImpl() const
     {
         return Pointer<AstString>(new AstString(
             m_value,

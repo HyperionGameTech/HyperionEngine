@@ -43,8 +43,8 @@ public:
     Result DestroyAllocator();
     VmaAllocator GetAllocator() const { return allocator; }
 
-    inline const QueueFamilyIndices &GetQueueFamilyIndices() const { return queue_family_indices; }
-    inline const Features &GetFeatures() const { return *features; }
+    const QueueFamilyIndices &GetQueueFamilyIndices() const { return queue_family_indices; }
+    const Features &GetFeatures() const { return *features; }
 
     VkQueue GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t queue_index = 0);
 

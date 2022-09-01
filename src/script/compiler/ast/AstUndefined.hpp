@@ -22,7 +22,7 @@ public:
     virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const override;
 
 private:
-    inline Pointer<AstUndefined> CloneImpl() const
+    Pointer<AstUndefined> CloneImpl() const
     {
         return Pointer<AstUndefined>(new AstUndefined(
             m_location

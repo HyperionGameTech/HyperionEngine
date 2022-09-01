@@ -13,9 +13,10 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <Types.hpp>
-
+#include <core/lib/Variant.hpp>
 #include <core/lib/TypeMap.hpp>
+
+#include <Types.hpp>
 
 #include <util/Defines.hpp>
 
@@ -312,7 +313,8 @@ public:
         }
     };
 
-    struct NativeFunctionDefine {
+    struct NativeFunctionDefine
+    {
         std::string function_name;
         SymbolTypePtr_t return_type;
         std::vector<GenericInstanceTypeInfo::Arg> param_types;
@@ -341,7 +343,8 @@ public:
         }
     };
 
-    struct NativeMemberDefine {
+    struct NativeMemberDefine
+    {
         std::string name;
         enum { MEMBER_TYPE_VALUE, MEMBER_TYPE_FUNCTION } member_type;
         vm::Value value;
@@ -364,6 +367,7 @@ public:
             const NativeFunctionDefine &fn
         ) : name(name),
             member_type(MEMBER_TYPE_FUNCTION),
+            value(vm::Value::NONE, vm::Value::ValueData { .ptr = nullptr }),
             fn(fn)
         {
         }

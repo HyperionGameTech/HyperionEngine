@@ -14,8 +14,8 @@ public:
         CompilationUnit *compilation_unit);
     virtual ~AstVisitor() = default;
 
-    inline AstIterator *GetAstIterator() const { return m_ast_iterator; }
-    inline CompilationUnit *GetCompilationUnit() const { return m_compilation_unit; }
+    AstIterator *GetAstIterator() const { return m_ast_iterator; }
+    CompilationUnit *GetCompilationUnit() const { return m_compilation_unit; }
 
     /** If expr is false, the given error is added to the error list. */
     bool Assert(bool expr, const CompilerError &error);

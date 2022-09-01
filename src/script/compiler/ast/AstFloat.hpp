@@ -26,7 +26,7 @@ public:
 private:
     hyperion::Float32 m_value;
 
-    inline Pointer<AstFloat> CloneImpl() const
+    Pointer<AstFloat> CloneImpl() const
     {
         return Pointer<AstFloat>(new AstFloat(
             m_value,

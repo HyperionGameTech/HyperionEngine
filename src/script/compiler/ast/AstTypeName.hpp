@@ -25,7 +25,7 @@ public:
 private:
     SymbolTypePtr_t m_symbol_type;
 
-    inline Pointer<AstTypeName> CloneImpl() const
+    Pointer<AstTypeName> CloneImpl() const
     {
         return Pointer<AstTypeName>(new AstTypeName(
             m_name,

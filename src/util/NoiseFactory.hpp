@@ -32,7 +32,7 @@ public:
     NoiseGenerator(NoiseGenerationType type, Seed seed);
     virtual ~NoiseGenerator() = default;
 
-    inline Seed GetSeed() const { return m_seed; }
+    Seed GetSeed() const { return m_seed; }
 
     virtual double GetNoise(double x, double z) const = 0;
     virtual double GetNoise(double x, double y, double z) const { return GetNoise(x, y); }

@@ -18,17 +18,17 @@ public:
         size_t offset;
     };
 
-    inline size_t GetSize() const
+    size_t GetSize() const
     {
         return m_stream.size();
     }
 
-    inline void Put(std::uint8_t byte)
+    void Put(std::uint8_t byte)
     {
         m_stream.push_back(byte);
     }
 
-    inline void Put(const std::uint8_t *bytes, size_t size)
+    void Put(const std::uint8_t *bytes, size_t size)
     {
         for (size_t i = 0; i < size; i++) {
             m_stream.push_back(bytes[i]);

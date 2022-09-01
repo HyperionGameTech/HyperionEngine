@@ -21,11 +21,11 @@ public:
     Sampler &operator=(const Sampler &other) = delete;
     ~Sampler();
 
-    inline VkSampler &GetSampler() { return m_sampler; }
-    inline const VkSampler &GetSampler() const { return m_sampler; }
+    VkSampler &GetSampler() { return m_sampler; }
+    const VkSampler &GetSampler() const { return m_sampler; }
 
-    inline Image::FilterMode GetFilterMode() const { return m_filter_mode; }
-    inline Image::WrapMode GetWrapMode() const { return m_wrap_mode; }
+    Image::FilterMode GetFilterMode() const { return m_filter_mode; }
+    Image::WrapMode GetWrapMode() const { return m_wrap_mode; }
 
     Result Create(Device *device);
     Result Destroy(Device *device);

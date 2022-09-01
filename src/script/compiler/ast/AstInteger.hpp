@@ -27,7 +27,7 @@ public:
 private:
     hyperion::Int32 m_value;
 
-    inline Pointer<AstInteger> CloneImpl() const
+    Pointer<AstInteger> CloneImpl() const
     {
         return Pointer<AstInteger>(new AstInteger(
             m_value,

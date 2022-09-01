@@ -32,7 +32,7 @@ private:
     // set while analyzing
     std::vector<std::shared_ptr<AstStatement>> m_statements;
 
-    inline Pointer<AstMixin> CloneImpl() const
+    Pointer<AstMixin> CloneImpl() const
     {
         return Pointer<AstMixin>(new AstMixin(
             m_name,

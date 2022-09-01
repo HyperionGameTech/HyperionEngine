@@ -91,13 +91,13 @@ public:
         }
     }
 
-    inline std::vector<TreeNode<T>*> &GetNodes() { return m_nodes; }
-    inline const std::vector<TreeNode<T>*> &GetNodes() const { return m_nodes; }
+    std::vector<TreeNode<T>*> &GetNodes() { return m_nodes; }
+    const std::vector<TreeNode<T>*> &GetNodes() const { return m_nodes; }
 
-    inline TreeNode<T> *TopNode() { return m_top; }
-    inline const TreeNode<T> *TopNode() const { return m_top; }
+    TreeNode<T> *TopNode() { return m_top; }
+    const TreeNode<T> *TopNode() const { return m_top; }
 
-    inline T &Top()
+    T &Top()
     {
         if (!m_top) {
             throw std::runtime_error("no top value");
@@ -105,7 +105,7 @@ public:
         return m_top->m_value;
     }
 
-    inline const T &Top() const
+    const T &Top() const
     {
         if (!m_top) {
             throw std::runtime_error("no top value");
@@ -113,7 +113,7 @@ public:
         return m_top->m_value;
     }
 
-    inline T &Root()
+    T &Root()
     {
         if (m_nodes.empty()) {
             throw std::runtime_error("no root value");
@@ -121,7 +121,7 @@ public:
         return m_nodes.front()->m_value;
     }
 
-    inline const T &Root() const
+    const T &Root() const
     {
         if (m_nodes.empty()) {
             throw std::runtime_error("no root value");

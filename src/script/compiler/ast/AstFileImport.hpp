@@ -12,7 +12,7 @@ public:
     AstFileImport(const std::string &path,
         const SourceLocation &location);
 
-    inline const std::string &GetPath() const { return m_path; }
+    const std::string &GetPath() const { return m_path; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     
@@ -21,7 +21,7 @@ public:
 protected:
     std::string m_path;
 
-    inline Pointer<AstFileImport> CloneImpl() const
+    Pointer<AstFileImport> CloneImpl() const
     {
         return Pointer<AstFileImport>(new AstFileImport(
             m_path,

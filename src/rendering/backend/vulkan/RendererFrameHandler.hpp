@@ -21,15 +21,15 @@ public:
     FrameHandler &operator=(const FrameHandler &other) = delete;
     ~FrameHandler();
 
-    inline auto &GetPerFrameData() { return m_per_frame_data; }
-    inline const auto &GetPerFrameData() const { return m_per_frame_data; }
+    auto &GetPerFrameData() { return m_per_frame_data; }
+    const auto &GetPerFrameData() const { return m_per_frame_data; }
 
-    inline auto &GetCurrentFrameData() { return m_per_frame_data[m_current_frame_index]; }
-    inline const auto &GetCurrentFrameData() const { return m_per_frame_data[m_current_frame_index]; }
+    auto &GetCurrentFrameData() { return m_per_frame_data[m_current_frame_index]; }
+    const auto &GetCurrentFrameData() const { return m_per_frame_data[m_current_frame_index]; }
 
-    inline UInt NumFrames() const { return m_per_frame_data.NumFrames(); }
-    inline UInt GetAcquiredImageIndex() const { return m_acquired_image_index; }
-    inline UInt GetCurrentFrameIndex() const { return m_current_frame_index; }
+    UInt NumFrames() const { return m_per_frame_data.NumFrames(); }
+    UInt GetAcquiredImageIndex() const { return m_acquired_image_index; }
+    UInt GetCurrentFrameIndex() const { return m_current_frame_index; }
 
     /* Used to acquire a new image from the provided next_image function.
      * Really only useful for our main swapchain surface */

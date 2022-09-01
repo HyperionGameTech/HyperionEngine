@@ -26,11 +26,10 @@ private:
     // set while analyzing
     // used to get locals from outer function in a closure
     std::shared_ptr<AstMember> m_closure_member_access;
-    // inline value
     std::shared_ptr<AstExpression> m_inline_value;
     bool m_should_inline;
 
-    inline Pointer<AstVariable> CloneImpl() const
+    Pointer<AstVariable> CloneImpl() const
     {
         return Pointer<AstVariable>(new AstVariable(
             m_name,

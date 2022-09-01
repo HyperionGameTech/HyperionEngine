@@ -10,19 +10,11 @@ namespace hyperion {
 namespace vm {
 
 HeapValue::HeapValue()
-    : m_holder(nullptr),
-      m_ptr(nullptr),
-      m_flags(0)
+    : m_flags(0)
 {
 }
 
-HeapValue::~HeapValue()
-{
-    if (m_holder != nullptr) {
-        delete m_holder;
-        m_holder = nullptr;
-    }
-}
+HeapValue::~HeapValue() = default;
 
 void HeapValue::Mark()
 {
@@ -34,9 +26,9 @@ void HeapValue::Mark()
         HeapValue *proto = nullptr;
 
         do {
-            const size_t size = object->GetSize();
+            const auto size = object->GetSize();
 
-            for (size_t i = 0; i < size; i++) {
+            for (SizeType i = 0; i < size; i++) {
                 object->GetMember(i).value.Mark();
             }
 
@@ -55,15 +47,15 @@ void HeapValue::Mark()
             }
         } while (object != nullptr);
     } else if (Array *array = GetPointer<Array>()) {
-        const size_t size = array->GetSize();
+        const auto size = array->GetSize();
 
-        for (int i = 0; i < size; i++) {
+        for (SizeType i = 0; i < size; i++) {
             array->AtIndex(i).Mark();
         }
     } else if (Slice *slice = GetPointer<Slice>()) {
-        const size_t size = slice->GetSize();
+        const auto size = slice->GetSize();
 
-        for (int i = 0; i < size; i++) {
+        for (SizeType i = 0; i < size; i++) {
             slice->AtIndex(i).Mark();
         }
     }

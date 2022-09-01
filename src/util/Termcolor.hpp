@@ -49,11 +49,11 @@ namespace termcolor
     // All comments are below.
     namespace _internal
     {
-        inline FILE* get_standard_stream(const std::ostream& stream);
-        inline bool is_atty(const std::ostream& stream);
+        FILE* get_standard_stream(const std::ostream& stream);
+        bool is_atty(const std::ostream& stream);
 
     #if defined(TERMCOLOR_OS_WINDOWS)
-        inline void win_change_attributes(std::ostream& stream, int foreground, int background=-1);
+        void win_change_attributes(std::ostream& stream, int foreground, int background=-1);
     #endif
     }
 
@@ -464,7 +464,7 @@ namespace termcolor
     #if defined(TERMCOLOR_OS_WINDOWS)
         //! Change Windows Terminal colors attribute. If some
         //! parameter is `-1` then attribute won't changed.
-        inline void win_change_attributes(std::ostream& stream, int foreground, int background)
+        void win_change_attributes(std::ostream& stream, int foreground, int background)
         {
             // yeah, i know.. it's ugly, it's windows.
             static WORD defaultAttributes = 0;

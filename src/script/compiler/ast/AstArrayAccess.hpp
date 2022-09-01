@@ -34,7 +34,7 @@ private:
     std::shared_ptr<AstExpression> m_target;
     std::shared_ptr<AstExpression> m_index;
 
-    inline std::shared_ptr<AstArrayAccess> CloneImpl() const
+    std::shared_ptr<AstArrayAccess> CloneImpl() const
     {
         return std::shared_ptr<AstArrayAccess>(new AstArrayAccess(
             CloneAstNode(m_target),

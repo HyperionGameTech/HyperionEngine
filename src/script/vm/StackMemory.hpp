@@ -25,52 +25,52 @@ public:
     /** Mark all items on the stack to not be garbage collected */
     void MarkAll();
 
-    inline Value *GetData() { return m_data; }
-    inline const Value *GetData() const { return m_data; }
-    inline size_t GetStackPointer() const { return m_sp; }
+    Value *GetData() { return m_data; }
+    const Value *GetData() const { return m_data; }
+    size_t GetStackPointer() const { return m_sp; }
 
-    inline Value &operator[](size_t index)
+    Value &operator[](size_t index)
     {
         AssertThrowMsg(index < STACK_SIZE, "out of bounds");
         return m_data[index];
     }
 
-    inline const Value &operator[](size_t index) const
+    const Value &operator[](size_t index) const
     {
         AssertThrowMsg(index < STACK_SIZE, "out of bounds");
         return m_data[index];
     }
 
     // return the top value from the stack
-    inline Value &Top()
+    Value &Top()
     {
         AssertThrowMsg(m_sp > 0, "stack underflow");
         return m_data[m_sp - 1];
     }
 
     // return the top value from the stack
-    inline const Value &Top() const
+    const Value &Top() const
     {
         AssertThrowMsg(m_sp > 0, "stack underflow");
         return m_data[m_sp - 1];
     }
 
     // push a value to the stack
-    inline void Push(const Value &value)
+    void Push(const Value &value)
     {
         AssertThrowMsg(m_sp < STACK_SIZE, "stack overflow");
         m_data[m_sp++] = value;
     }
 
     // pop top value from the stack
-    inline void Pop()
+    void Pop()
     {
         AssertThrowMsg(m_sp > 0, "stack underflow");
         m_sp--;
     }
 
     // pop top n value(s) from the stack
-    inline void Pop(size_t n)
+    void Pop(size_t n)
     {
         AssertThrowMsg(m_sp >= n, "stack underflow");
         m_sp -= n;

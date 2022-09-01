@@ -23,11 +23,11 @@ public:
     virtual ~AstTypeExpression() = default;
 
     /** enable setting to that variable declarations can change the type name */
-    inline void SetName(const std::string &name) { m_name = name; }
+    void SetName(const std::string &name) { m_name = name; }
 
-    inline const std::vector<std::shared_ptr<AstVariableDeclaration>>
+    const std::vector<std::shared_ptr<AstVariableDeclaration>>
         &GetMembers() const { return m_members; }
-    inline int GetNumMembers() const { return m_num_members; }
+    int GetNumMembers() const { return m_num_members; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -56,7 +56,7 @@ protected:
     std::shared_ptr<AstTypeObject> m_expr;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_outside_members;
 
-    inline Pointer<AstTypeExpression> CloneImpl() const
+    Pointer<AstTypeExpression> CloneImpl() const
     {
         return Pointer<AstTypeExpression>(new AstTypeExpression(
             m_name,

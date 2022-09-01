@@ -15,7 +15,7 @@ public:
         const SourceLocation &location);
     virtual ~AstYieldStatement() = default;
 
-    inline const std::shared_ptr<AstExpression> &GetExpression() const
+    const std::shared_ptr<AstExpression> &GetExpression() const
         { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -30,7 +30,7 @@ private:
 
     std::shared_ptr<AstCallExpression> m_yield_callback_call;
 
-    inline Pointer<AstYieldStatement> CloneImpl() const
+    Pointer<AstYieldStatement> CloneImpl() const
     {
         return Pointer<AstYieldStatement>(new AstYieldStatement(
             CloneAstNode(m_expr),

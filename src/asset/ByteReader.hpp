@@ -26,7 +26,7 @@ public:
         ReadBytes(reinterpret_cast<char*>(ptr), size);
     }
 
-    inline Bytes Read()
+    Bytes Read()
     {
         if (Eof()) {
             return {};

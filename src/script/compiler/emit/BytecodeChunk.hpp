@@ -17,14 +17,14 @@ struct BytecodeChunk final : public Buildable {
     BytecodeChunk(const BytecodeChunk &other) = delete;
     virtual ~BytecodeChunk() = default;
 
-    inline void Append(std::unique_ptr<Buildable> buildable)
+    void Append(std::unique_ptr<Buildable> buildable)
     {
         if (buildable != nullptr) {
             buildables.push_back(std::move(buildable));
         }
     }
 
-    inline LabelId NewLabel()
+    LabelId NewLabel()
     {
         LabelId index = labels.size();
         labels.emplace_back();

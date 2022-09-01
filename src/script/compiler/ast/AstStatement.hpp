@@ -29,8 +29,8 @@ public:
     AstStatement(const SourceLocation &location);
     virtual ~AstStatement() = default;
 
-    inline SourceLocation &GetLocation() { return m_location; }
-    inline const SourceLocation &GetLocation() const { return m_location; }
+    SourceLocation &GetLocation() { return m_location; }
+    const SourceLocation &GetLocation() const { return m_location; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) = 0;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) = 0;

@@ -30,7 +30,7 @@ protected:
     SymbolTypePtr_t m_expr_type;
     std::shared_ptr<AstExpression> m_expr_value;
 
-    inline Pointer<AstModuleProperty> CloneImpl() const
+    Pointer<AstModuleProperty> CloneImpl() const
     {
         return Pointer<AstModuleProperty>(new AstModuleProperty(
             m_field_name,

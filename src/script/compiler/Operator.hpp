@@ -180,17 +180,17 @@ public:
     );
     Operator(const Operator &other);
 
-    inline Operators GetOperatorType() const
+    Operators GetOperatorType() const
         { return m_op_type; }
-    inline int GetType() const
+    int GetType() const
         { return m_type; }
-    inline int GetPrecedence() const
+    int GetPrecedence() const
         { return m_precedence; }
-    inline bool IsUnary() const
+    bool IsUnary() const
         { return m_precedence == 0; }
-    inline bool ModifiesValue() const
+    bool ModifiesValue() const
         { return m_modifies_value; }
-    inline bool SupportsOverloading() const
+    bool SupportsOverloading() const
         { return m_supports_overloading; }
 
     std::string LookupStringValue() const;

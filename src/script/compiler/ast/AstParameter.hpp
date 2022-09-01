@@ -17,9 +17,9 @@ public:
         const SourceLocation &location);
     virtual ~AstParameter() = default;
 
-    inline const std::shared_ptr<AstExpression> &GetDefaultValue() const
+    const std::shared_ptr<AstExpression> &GetDefaultValue() const
         { return m_default_param; }
-    inline void SetDefaultValue(const std::shared_ptr<AstExpression> &default_param)
+    void SetDefaultValue(const std::shared_ptr<AstExpression> &default_param)
         { m_default_param = default_param; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -28,8 +28,8 @@ public:
     
     virtual Pointer<AstStatement> Clone() const override;
 
-    inline bool IsVariadic() const { return m_is_variadic; }
-    inline bool IsConst() const { return m_is_const; }
+    bool IsVariadic() const { return m_is_variadic; }
+    bool IsConst() const { return m_is_const; }
 
     bool IsGenericParam() const                   { return m_is_generic_param; }
     void SetIsGenericParam(bool is_generic_param) { m_is_generic_param = is_generic_param; }
@@ -47,7 +47,7 @@ private:
     bool m_is_const;
     bool m_is_generic_param;
 
-    inline Pointer<AstParameter> CloneImpl() const
+    Pointer<AstParameter> CloneImpl() const
     {
         return Pointer<AstParameter>(new AstParameter(
             m_name,

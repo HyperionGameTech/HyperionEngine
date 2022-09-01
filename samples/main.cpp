@@ -111,24 +111,9 @@ public:
 
         base_material = engine->CreateHandle<Material>();
 
-        auto mat2 = engine->CreateHandle<Material>();
-        mat2.Reset();
-
-        auto mat3 = engine->CreateHandle<Material>();
-
-        auto ent1 = engine->CreateHandle<Entity>(Handle<Mesh>(), Handle<Shader>(), std::move(mat3));
-        // ent1engine->InitObject();
-
-        if (auto res = engine->registry.Lookup<Entity>(ent1->GetId())) {
-            auto void_type = TypeID::ForType<void>();
-            auto default_type = TypeID();
-        }
-
-        ent1.Reset();
-
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/sponza/sponza.obj", //living_room/living_room.obj",//testbed/testbed.obj", ////sibenik/sibenik.obj",//, //, //", //
+            "models/living_room/living_room.obj", //sponza/sponza.obj",
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -247,13 +232,14 @@ public:
 
         // m_scene->GetEnvironment()->AddLight(Handle<Light>(m_point_light));
 
-        test_model->Scale(0.15f);//14.075f);
+        test_model->Scale(25.0f);
+        // test_model->Scale(0.15f);//14.075f);
 
 
 #if HYPERION_VK_TEST_VCT
         m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
             VoxelConeTracing::Params {
-                BoundingBox(Vector3(-128), Vector3(128))//test_model->GetWorldAABB()
+                test_model->GetWorldAABB()
             }
         );
 #endif
@@ -743,7 +729,7 @@ int main()
 
     ImageView rt_image_storage_view;
 
-    auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
+    auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
         ->SetSubDescriptor({.acceleration_structure = &my_tlas->Get()});
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)

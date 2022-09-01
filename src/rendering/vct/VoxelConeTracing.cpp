@@ -211,28 +211,20 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     /* clear the voxels */
     m_clear_voxels->GetPipeline()->Bind(command_buffer);
 
-    HYPERION_PASS_ERRORS(
-        engine->GetInstance()->GetDescriptorPool().Bind(
-            engine->GetDevice(),
-            command_buffer,
-            m_clear_voxels->GetPipeline(),
-            {{.set = DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER, .count = 1}}
-        ),
-        result
+    command_buffer->BindDescriptorSet(
+        engine->GetInstance()->GetDescriptorPool(),
+        m_clear_voxels->GetPipeline(),
+        DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
     );
 
     m_clear_voxels->GetPipeline()->Dispatch(command_buffer, m_voxel_image->GetExtent() / Extent3D { 8, 8, 8 });
 
     engine->render_state.BindScene(m_scene.Get());
 
-    HYPERION_PASS_ERRORS(
-        engine->GetInstance()->GetDescriptorPool().Bind(
-            engine->GetDevice(),
-            command_buffer,
-            m_renderer_instance->GetPipeline(),
-            {{.set = DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER, .count = 1}}
-        ),
-        result
+    command_buffer->BindDescriptorSet(
+        engine->GetInstance()->GetDescriptorPool(),
+        m_renderer_instance->GetPipeline(),
+        DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
     );
 
     m_framebuffers[frame_index]->BeginCapture(command_buffer);

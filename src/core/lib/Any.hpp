@@ -9,7 +9,8 @@
 
 namespace hyperion {
 
-class Any {
+class Any
+{
     using DeleteFunction = std::add_pointer_t<void(void *)>;
 
 public:
@@ -32,17 +33,19 @@ public:
         return std::move(any);
     }
 
-#if 0
     template <class T>
     Any &operator=(const T &value)
     {
         const auto new_type_id = TypeID::ForType<T>();
 
-        if (m_type_id == new_type_id) {
-            // types are same, call copy constructor.
-            *static_cast<T *>(m_ptr) = value;
 
-            return *this;
+        if constexpr (std::is_copy_assignable_v<T>) {
+            if (m_type_id == new_type_id) {
+                // types are same, call copy assignment operator.
+                *static_cast<T *>(m_ptr) = value;
+
+                return *this;
+            }
         }
 
         if (HasValue()) {
@@ -69,11 +72,13 @@ public:
     {
         const auto new_type_id = TypeID::ForType<T>();
 
-        if (m_type_id == new_type_id) {
-            // types are same, call copy constructor.
-            *static_cast<T *>(m_ptr) = std::move(value);
+        if constexpr (std::is_move_assignable_v<T>) {
+            if (m_type_id == new_type_id) {
+                // types are same, call move assignment operator
+                *static_cast<T *>(m_ptr) = std::move(value);
 
-            return *this;
+                return *this;
+            }
         }
 
         if (HasValue()) {
@@ -86,7 +91,6 @@ public:
 
         return *this;
     }
-#endif
 
     Any(const Any &other) = delete;
     Any &operator=(const Any &other) = delete;
@@ -124,6 +128,9 @@ public:
             m_delete_function(m_ptr);
         }
     }
+
+    void *GetPointer() const
+        { return m_ptr; }
 
     bool HasValue() const
         { return m_ptr != nullptr; }

@@ -20,9 +20,9 @@ public:
 
     BytecodeStream &operator=(const BytecodeStream &other);
 
-    inline const char *GetBuffer() const { return m_buffer; }
+    const char *GetBuffer() const { return m_buffer; }
 
-    inline void ReadBytes(char *ptr, size_t num_bytes)
+    void ReadBytes(char *ptr, size_t num_bytes)
     {
         AssertThrowMsg(m_position + num_bytes < m_size + 1, "cannot read past end of buffer");
         for (size_t i = 0; i < num_bytes; i++) {
@@ -31,19 +31,19 @@ public:
     }
 
     template <typename T>
-    inline void Read(T *ptr, size_t num_bytes = sizeof(T))
+    void Read(T *ptr, size_t num_bytes = sizeof(T))
         { ReadBytes(reinterpret_cast<char*>(ptr), num_bytes); }
-    inline size_t Position() const
+    size_t Position() const
         { return m_position; }
-    inline void SetPosition(size_t position)
+    void SetPosition(size_t position)
         { m_position = position; }
-    inline size_t Size() const
+    size_t Size() const
         { return m_size; }
-    inline void Seek(size_t address)
+    void Seek(size_t address)
         { m_position = address; }
-    inline void Skip(size_t amount)
+    void Skip(size_t amount)
         { m_position += amount; }
-    inline bool Eof() const
+    bool Eof() const
         { return m_position >= m_size; }
 
     void ReadZeroTerminatedString(char *ptr);

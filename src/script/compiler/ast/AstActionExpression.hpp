@@ -19,7 +19,7 @@ public:
         const SourceLocation &location);
     virtual ~AstActionExpression() = default;
     
-    inline const SymbolTypePtr_t &GetReturnType() const
+    const SymbolTypePtr_t &GetReturnType() const
         { return m_return_type; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -43,7 +43,7 @@ protected:
     SymbolTypePtr_t m_return_type;
     std::shared_ptr<AstExpression> m_expr;
 
-    inline Pointer<AstActionExpression> CloneImpl() const
+    Pointer<AstActionExpression> CloneImpl() const
     {
         return Pointer<AstActionExpression>(new AstActionExpression(
             CloneAllAstNodes(m_actions),

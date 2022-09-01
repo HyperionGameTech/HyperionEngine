@@ -37,7 +37,7 @@ protected:
     std::vector<std::shared_ptr<AstArgument>> m_substituted_args;
     SymbolTypePtr_t m_return_type;
 
-    inline Pointer<AstMemberCallExpression> CloneImpl() const
+    Pointer<AstMemberCallExpression> CloneImpl() const
     {
         return Pointer<AstMemberCallExpression>(new AstMemberCallExpression(
             m_field_name,

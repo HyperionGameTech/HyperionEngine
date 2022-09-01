@@ -31,7 +31,7 @@ private:
 
     std::shared_ptr<AstBinaryExpression> m_bin_expr; // internally use a binary expr for somethings (like ++ and -- operators)
 
-    inline Pointer<AstUnaryExpression> CloneImpl() const
+    Pointer<AstUnaryExpression> CloneImpl() const
     {
         return Pointer<AstUnaryExpression>(new AstUnaryExpression(
             CloneAstNode(m_target),

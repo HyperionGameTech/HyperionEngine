@@ -38,7 +38,7 @@ private:
     std::shared_ptr<AstString> m_string_result_value;
     std::shared_ptr<AstArrayExpression> m_array_result_value;
 
-    inline Pointer<AstSymbolQuery> CloneImpl() const
+    Pointer<AstSymbolQuery> CloneImpl() const
     {
         return Pointer<AstSymbolQuery>(new AstSymbolQuery(
             m_command_name,

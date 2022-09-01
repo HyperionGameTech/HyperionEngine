@@ -16,11 +16,11 @@ public:
     );
     virtual ~AstModuleImportPart() = default;
 
-    inline const std::string &GetLeft() const { return m_left; }
-    inline const std::vector<std::shared_ptr<AstModuleImportPart>> &GetParts() const
+    const std::string &GetLeft() const { return m_left; }
+    const std::vector<std::shared_ptr<AstModuleImportPart>> &GetParts() const
         { return m_right_parts; }
 
-    inline void SetPullInModules(bool pull_in_modules) { m_pull_in_modules = pull_in_modules; }
+    void SetPullInModules(bool pull_in_modules) { m_pull_in_modules = pull_in_modules; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -34,7 +34,7 @@ private:
 
     bool m_pull_in_modules;
 
-    inline Pointer<AstModuleImportPart> CloneImpl() const
+    Pointer<AstModuleImportPart> CloneImpl() const
     {
         return Pointer<AstModuleImportPart>(new AstModuleImportPart(
             m_left,
@@ -57,7 +57,7 @@ public:
 protected:
     std::vector<std::shared_ptr<AstModuleImportPart>> m_parts;
 
-    inline Pointer<AstModuleImport> CloneImpl() const
+    Pointer<AstModuleImport> CloneImpl() const
     {
         return Pointer<AstModuleImport>(new AstModuleImport(
             CloneAllAstNodes(m_parts),

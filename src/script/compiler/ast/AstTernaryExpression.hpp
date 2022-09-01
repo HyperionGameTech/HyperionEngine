@@ -38,7 +38,7 @@ private:
     std::shared_ptr<AstExpression> m_left;
     std::shared_ptr<AstExpression> m_right;
 
-    inline std::shared_ptr<AstTernaryExpression> CloneImpl() const
+    std::shared_ptr<AstTernaryExpression> CloneImpl() const
     {
         return std::shared_ptr<AstTernaryExpression>(
             new AstTernaryExpression(

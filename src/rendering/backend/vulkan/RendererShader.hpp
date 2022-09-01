@@ -10,15 +10,18 @@
 
 namespace hyperion {
 namespace renderer {
-struct ShaderObject {
+
+struct ShaderObject
+{
     std::vector<UByte> bytes;
 
-    struct Metadata {
+    struct Metadata
+    {
         std::string name;
         std::string path;
     } metadata;
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 
@@ -33,8 +36,10 @@ struct ShaderObject {
     }
 };
 
-struct ShaderModule {
-    enum class Type : UInt {
+struct ShaderModule
+{
+    enum class Type : UInt
+    {
         UNSET = 0,
         VERTEX,
         FRAGMENT,
@@ -59,23 +64,25 @@ struct ShaderModule {
 
     ShaderModule(Type type)
         : type(type),
-          spirv{},
-          shader_module{}
-    {}
+          spirv { },
+          shader_module { }
+    {
+    }
 
     ShaderModule(Type type, const ShaderObject &spirv, VkShaderModule shader_module = nullptr)
         : type(type),
           spirv(spirv),
           shader_module(shader_module)
-    {}
+    {
+    }
 
     ShaderModule(const ShaderModule &other) = default;
     ~ShaderModule() = default;
 
-    inline bool operator<(const ShaderModule &other) const
+    bool operator<(const ShaderModule &other) const
         { return type < other.type; }
 
-    inline bool IsRaytracing() const
+    bool IsRaytracing() const
     {
         return type == Type::RAY_GEN
             || type == Type::RAY_INTERSECT
@@ -85,12 +92,14 @@ struct ShaderModule {
     }
 };
 
-struct ShaderGroup {
+struct ShaderGroup
+{
     ShaderModule::Type type;
     VkRayTracingShaderGroupCreateInfoKHR raytracing_group_create_info;
 };
 
-class ShaderProgram {
+class ShaderProgram
+{
 public:
     static constexpr const char *entry_point = "main";
 
@@ -99,20 +108,20 @@ public:
     ShaderProgram &operator=(const ShaderProgram &other) = delete;
     ~ShaderProgram();
 
-    inline const std::vector<ShaderModule> &GetShaderModules() const
+    const std::vector<ShaderModule> &GetShaderModules() const
         { return m_shader_modules; }
 
-    inline std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages()
+    std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages()
         { return m_shader_stages; }
 
-    inline const std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages() const
+    const std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages() const
         { return m_shader_stages; }
 
     /* For raytracing only */
-    inline const std::vector<ShaderGroup> &GetShaderGroups() const
+    const std::vector<ShaderGroup> &GetShaderGroups() const
         { return m_shader_groups; }
 
-    inline bool IsRaytracing() const
+    bool IsRaytracing() const
     {
         return std::any_of(
             m_shader_modules.begin(),
@@ -128,7 +137,7 @@ public:
     Result Create(Device *device);
     Result Destroy(Device *device);
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

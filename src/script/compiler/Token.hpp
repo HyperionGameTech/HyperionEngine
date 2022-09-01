@@ -49,12 +49,12 @@ public:
         const SourceLocation &location);
     Token(const Token &other);
 
-    inline TokenClass GetTokenClass() const { return m_token_class; }
-    inline const std::string &GetValue() const { return m_value; }
-    inline const SourceLocation &GetLocation() const { return m_location; }
-    inline bool Empty() const { return m_token_class == TK_EMPTY; }
+    TokenClass GetTokenClass() const { return m_token_class; }
+    const std::string &GetValue() const { return m_value; }
+    const SourceLocation &GetLocation() const { return m_location; }
+    bool Empty() const { return m_token_class == TK_EMPTY; }
     
-    inline Token &operator=(const Token &other)
+    Token &operator=(const Token &other)
     {
         m_token_class = other.m_token_class;
         m_value = other.m_value;
@@ -64,7 +64,7 @@ public:
     }
 
     // return true if not empty
-    inline explicit operator bool() const { return m_token_class != TK_EMPTY; }
+    explicit operator bool() const { return m_token_class != TK_EMPTY; }
 
     bool IsContinuationToken() const;
 

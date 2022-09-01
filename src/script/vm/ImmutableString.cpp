@@ -29,9 +29,56 @@ ImmutableString::ImmutableString(const ImmutableString &other)
     m_data[m_length] = '\0';
 }
 
+
+ImmutableString &ImmutableString::operator=(const ImmutableString &other)
+{
+    if (m_data) {
+        delete[] m_data;
+        m_data = nullptr;
+        m_length = 0;
+    }
+
+    if (other.m_data) {
+        m_length = other.m_length;
+        m_data = new char[m_length + 1];
+        std::strcpy(m_data, other.m_data);
+        m_data[m_length] = '\0';
+    }
+
+    return *this;
+}
+
+ImmutableString::ImmutableString(ImmutableString &&other) noexcept
+{
+    m_data = other.m_data;
+    m_length = other.m_length;
+
+    other.m_data = nullptr;
+    other.m_length = 0;
+}
+
+ImmutableString &ImmutableString::operator=(ImmutableString &&other) noexcept
+{
+    if (m_data) {
+        delete[] m_data;
+        m_data = nullptr;
+        m_length = 0;
+    }
+
+    m_data = other.m_data;
+    m_length = other.m_length;
+
+    other.m_data = nullptr;
+    other.m_length = 0;
+
+    return *this;
+}
+
 ImmutableString::~ImmutableString()
 {
-    delete[] m_data;
+    if (m_data) {
+        delete[] m_data;
+    }
 }
 
 ImmutableString ImmutableString::Concat(const ImmutableString &a, const ImmutableString &b)

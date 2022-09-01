@@ -15,21 +15,21 @@ public:
     non_owning_ptr &operator=(std::nullptr_t) { ptr = nullptr; return *this; }
     ~non_owning_ptr() = default;
 
-    inline T &operator*() { return *ptr; }
-    inline const T &operator*() const { return *ptr; }
-    inline T *operator->() { return ptr; }
-    inline const T *operator->() const { return ptr; }
-    inline bool operator==(const non_owning_ptr &other) const { return ptr == other.ptr; }
-    inline bool operator!=(const non_owning_ptr &other) const { return ptr != other.ptr; }
-    inline bool operator==(const T *other) const { return ptr == other; }
-    inline bool operator!=(const T *other) const { return ptr != other; }
-    inline bool operator==(std::nullptr_t) const { return !ptr; }
-    inline bool operator!=(std::nullptr_t) const { return !!ptr; }
-    inline bool operator!() const { return !ptr; }
-    inline operator bool() const { return ptr != nullptr; }
+    T &operator*() { return *ptr; }
+    const T &operator*() const { return *ptr; }
+    T *operator->() { return ptr; }
+    const T *operator->() const { return ptr; }
+    bool operator==(const non_owning_ptr &other) const { return ptr == other.ptr; }
+    bool operator!=(const non_owning_ptr &other) const { return ptr != other.ptr; }
+    bool operator==(const T *other) const { return ptr == other; }
+    bool operator!=(const T *other) const { return ptr != other; }
+    bool operator==(std::nullptr_t) const { return !ptr; }
+    bool operator!=(std::nullptr_t) const { return !!ptr; }
+    bool operator!() const { return !ptr; }
+    operator bool() const { return ptr != nullptr; }
 
-    inline T *get() { return ptr; }
-    inline const T *get() const { return ptr; }
+    T *get() { return ptr; }
+    const T *get() const { return ptr; }
 
 private:
     T *ptr;

@@ -113,9 +113,9 @@ public:
     ProbeGrid &operator=(const ProbeGrid &other) = delete;
     ~ProbeGrid();
 
-    inline StorageBuffer *GetRadianceBuffer() const  { return m_radiance_buffer.get(); }
-    inline StorageImage *GetIrradianceImage() const  { return m_irradiance_image.get(); }
-    inline ImageView *GetIrradianceImageView() const { return m_irradiance_image_view.get(); }
+    StorageBuffer *GetRadianceBuffer() const { return m_radiance_buffer.get(); }
+    StorageImage *GetIrradianceImage() const { return m_irradiance_image.get(); }
+    ImageView *GetIrradianceImageView() const { return m_irradiance_image_view.get(); }
 
     void Init(Engine *engine);
     void Destroy(Engine *engine);

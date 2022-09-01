@@ -25,12 +25,12 @@ public:
         int access_options);
     virtual ~AstExpression() = default;
 
-    inline int GetAccessOptions() const
+    int GetAccessOptions() const
         { return m_access_options; }
 
-    inline AccessMode GetAccessMode() const
+    AccessMode GetAccessMode() const
       { return m_access_mode; }
-    inline void SetAccessMode(AccessMode access_mode)
+    void SetAccessMode(AccessMode access_mode)
       { m_access_mode = access_mode; }
 
     SymbolTypePtr_t GetMemberType(const std::string &name) const;
@@ -53,7 +53,7 @@ public:
         Returns -1 if it cannot be evaluated at compile time.
     */
     virtual Tribool IsTrue() const = 0;
-    inline int IsFalse() const { int t = IsTrue(); return (t == -1) ? t : !t; }
+    int IsFalse() const { int t = IsTrue(); return (t == -1) ? t : !t; }
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;

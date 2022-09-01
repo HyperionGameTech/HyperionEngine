@@ -161,14 +161,14 @@ public:
     void SetMousePosition(int x, int y);
     MouseButtonMask GetMouseState(int *x, int *y);
     void Initialize();
-    inline SDL_Window *GetInternalWindow() {
+    SDL_Window *GetInternalWindow() {
         AssertThrow(this->window != nullptr);
         return this->window;
     }
-    inline void LockMouse(bool lock) {
+    void LockMouse(bool lock) {
         SDL_SetRelativeMouseMode(lock ? SDL_TRUE : SDL_FALSE);
     }
-    inline void GetSize(int *_width, int *_height) {
+    void GetSize(int *_width, int *_height) {
         SDL_GetWindowSize(this->GetInternalWindow(), _width, _height);
     }
     VkSurfaceKHR CreateVulkanSurface(VkInstance instance);

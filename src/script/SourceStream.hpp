@@ -13,9 +13,9 @@ public:
     SourceStream(SourceFile *file);
     SourceStream(const SourceStream &other);
 
-    inline SourceFile *GetFile() const { return m_file; }
-    inline size_t GetPosition() const { return m_position; }
-    inline bool HasNext() const { return m_position < m_file->GetSize(); }
+    SourceFile *GetFile() const { return m_file; }
+    size_t GetPosition() const { return m_position; }
+    bool HasNext() const { return m_position < m_file->GetSize(); }
     utf::u32char Peek() const;
     utf::u32char Next();
     utf::u32char Next(int &pos_change);

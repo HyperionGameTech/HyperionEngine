@@ -20,10 +20,10 @@ public:
     CompilerError &operator[](size_t index)             { return m_errors[index]; }
     const CompilerError &operator[](size_t index) const { return m_errors[index]; }
 
-    inline void AddError(const CompilerError &error)    { m_errors.push_back(error); }
-    inline void ClearErrors()                           { m_errors.clear(); }
-    inline void SortErrors()                            { std::sort(m_errors.begin(), m_errors.end()); }
-    inline void Concatenate(const ErrorList &other)
+    void AddError(const CompilerError &error)    { m_errors.push_back(error); }
+    void ClearErrors()                           { m_errors.clear(); }
+    void SortErrors()                            { std::sort(m_errors.begin(), m_errors.end()); }
+    void Concatenate(const ErrorList &other)
     {
         m_errors.insert(
             m_errors.end(),

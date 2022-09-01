@@ -181,63 +181,63 @@ public:
         
     SymbolType(const SymbolType &other);
 
-    inline const std::string &GetName() const { return m_name; }
-    inline SymbolTypeClass GetTypeClass() const { return m_type_class; }
-    inline SymbolTypePtr_t GetBaseType() const { return m_base.lock(); }
+    const std::string &GetName() const { return m_name; }
+    SymbolTypeClass GetTypeClass() const { return m_type_class; }
+    SymbolTypePtr_t GetBaseType() const { return m_base.lock(); }
 
-    inline const sp<AstExpression> &GetDefaultValue() const
+    const sp<AstExpression> &GetDefaultValue() const
         { return m_default_value; }
-    inline void SetDefaultValue(const sp<AstExpression> &default_value)
+    void SetDefaultValue(const sp<AstExpression> &default_value)
         { m_default_value = default_value; }
     
-    inline vec<SymbolMember_t> &GetMembers()
+    vec<SymbolMember_t> &GetMembers()
         { return m_members; }
-    inline const vec<SymbolMember_t> &GetMembers() const
+    const vec<SymbolMember_t> &GetMembers() const
         { return m_members; }
 
-    inline void AddMember(const SymbolMember_t &member)
+    void AddMember(const SymbolMember_t &member)
         { m_members.push_back(member); }
 
-    inline AliasTypeInfo &GetAliasInfo()
+    AliasTypeInfo &GetAliasInfo()
         { return m_alias_info; }
-    inline const AliasTypeInfo &GetAliasInfo() const
+    const AliasTypeInfo &GetAliasInfo() const
         { return m_alias_info; }
 
-    inline FunctionTypeInfo &GetFunctionInfo()
+    FunctionTypeInfo &GetFunctionInfo()
         { return m_function_info; }
-    inline const FunctionTypeInfo &GetFunctionInfo() const
+    const FunctionTypeInfo &GetFunctionInfo() const
         { return m_function_info; }
 
-    inline GenericTypeInfo &GetGenericInfo()
+    GenericTypeInfo &GetGenericInfo()
         { return m_generic_info; }
-    inline const GenericTypeInfo &GetGenericInfo() const
+    const GenericTypeInfo &GetGenericInfo() const
         { return m_generic_info; }
 
-    inline GenericInstanceTypeInfo &GetGenericInstanceInfo()
+    GenericInstanceTypeInfo &GetGenericInstanceInfo()
         { return m_generic_instance_info; }
-    inline const GenericInstanceTypeInfo &GetGenericInstanceInfo() const
+    const GenericInstanceTypeInfo &GetGenericInstanceInfo() const
         { return m_generic_instance_info; }
 
-    inline GenericParameterTypeInfo &GetGenericParameterInfo()
+    GenericParameterTypeInfo &GetGenericParameterInfo()
         { return m_generic_param_info; }
-    inline const GenericParameterTypeInfo &GetGenericParameterInfo() const
+    const GenericParameterTypeInfo &GetGenericParameterInfo() const
         { return m_generic_param_info; }
 
-    inline int GetId() const { return m_id; }
-    inline void SetId(int id) { m_id = id; }
+    int GetId() const { return m_id; }
+    void SetId(int id) { m_id = id; }
 
-    inline int GetFlags() const { return m_flags; }
-    inline int &GetFlags() { return m_flags; }
+    int GetFlags() const { return m_flags; }
+    int &GetFlags() { return m_flags; }
 
-    inline bool IsAlias() const { return m_type_class == TYPE_ALIAS; }
+    bool IsAlias() const { return m_type_class == TYPE_ALIAS; }
 
     bool TypeEqual(const SymbolType &other) const;
     bool TypeCompatible(const SymbolType &other,
         bool strict_numbers,
         bool strict_const = false) const;
 
-    inline bool operator==(const SymbolType &other) const { return TypeEqual(other); }
-    inline bool operator!=(const SymbolType &other) const { return !operator==(other); }
+    bool operator==(const SymbolType &other) const { return TypeEqual(other); }
+    bool operator!=(const SymbolType &other) const { return !operator==(other); }
     const SymbolTypePtr_t FindMember(const std::string &name) const;
     bool FindMember(const std::string &name, SymbolMember_t &out) const;
     const SymbolTypePtr_t FindPrototypeMember(const std::string &name) const;
@@ -254,7 +254,7 @@ public:
     bool IsArrayType() const;
     bool IsConstType() const;
     bool IsBoxedType() const;
-    inline bool IsAnonymousType() const { return m_flags & FLAG_ANONYMOUS_TYPE; }
+    bool IsAnonymousType() const { return m_flags & FLAG_ANONYMOUS_TYPE; }
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
 

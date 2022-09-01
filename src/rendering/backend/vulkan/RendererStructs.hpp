@@ -118,10 +118,10 @@ struct VertexAttribute {
     // total size -- num elements * sizeof(float)
     size_t      size;
 
-    inline bool operator<(const VertexAttribute &other) const
+    bool operator<(const VertexAttribute &other) const
         { return location < other.location; }
 
-    inline VkFormat GetFormat() const
+    VkFormat GetFormat() const
     {
         switch (this->size) {
         case sizeof(float):     return VK_FORMAT_R32_SFLOAT;
@@ -141,7 +141,7 @@ struct VertexAttribute {
         return attrib;
     }
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(this->location);
@@ -232,7 +232,7 @@ struct VertexAttributeSet {
         return attributes;
     }
 
-    inline size_t CalculateVertexSize() const
+    size_t CalculateVertexSize() const
     {
         size_t size = 0;
 
@@ -247,7 +247,7 @@ struct VertexAttributeSet {
         return size;
     }
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(flag_mask);
@@ -568,7 +568,7 @@ static_assert(sizeof(IndirectDrawCommand) % 4 == 0, "IndirectDrawCommand must ha
 
 template <>
 struct ::std::hash<hyperion::renderer::ImageSubResource> {
-    inline size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
+    size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
     {
         hyperion::HashCode hc;
         hc.Add(sub_resource.flags);

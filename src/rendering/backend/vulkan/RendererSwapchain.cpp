@@ -7,6 +7,7 @@
 
 namespace hyperion {
 namespace renderer {
+
 Swapchain::Swapchain()
     : swapchain(nullptr),
       image_format(Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE)

@@ -16,11 +16,11 @@ public:
         const SourceLocation &location);
     AstModuleDeclaration(const std::string &name, const SourceLocation &location);
 
-    inline void AddChild(const std::shared_ptr<AstStatement> &child) { m_children.push_back(child); }
-    inline std::vector<std::shared_ptr<AstStatement>> &GetChildren() { return m_children; }
-    inline const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const { return m_children; }
+    void AddChild(const std::shared_ptr<AstStatement> &child) { m_children.push_back(child); }
+    std::vector<std::shared_ptr<AstStatement>> &GetChildren() { return m_children; }
+    const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const { return m_children; }
 
-    inline const std::shared_ptr<Module> &GetModule() const { return m_module; }
+    const std::shared_ptr<Module> &GetModule() const { return m_module; }
 
     void PerformLookup(AstVisitor *visitor);
 
@@ -36,7 +36,7 @@ private:
 
     void AddBuiltinHeader();
 
-    inline Pointer<AstModuleDeclaration> CloneImpl() const
+    Pointer<AstModuleDeclaration> CloneImpl() const
     {
         return Pointer<AstModuleDeclaration>(new AstModuleDeclaration(
             m_name, 

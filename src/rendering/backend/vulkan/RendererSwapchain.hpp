@@ -7,13 +7,17 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 
+#include <Types.hpp>
+#include <Constants.hpp>
+
 #include <vector>
 
 #define HYP_ENABLE_VSYNC 0
 
 namespace hyperion {
 namespace renderer {
-class Swapchain {
+class Swapchain
+{
     static constexpr VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     VkSurfaceFormatKHR ChooseSurfaceFormat(Device *device);
@@ -22,25 +26,23 @@ class Swapchain {
     void RetrieveImageHandles(Device *device);
 
 public:
-    static constexpr uint32_t max_frames_in_flight = 2;
-
     Swapchain();
     ~Swapchain() = default;
 
     Result Create(Device *device, const VkSurfaceKHR &surface);
     Result Destroy(Device *device);
 
-    inline size_t NumImages() const { return images.size(); }
+    SizeType NumImages() const { return images.size(); }
 
-    VkSwapchainKHR          swapchain;
-    Extent2D                extent;
-    VkSurfaceFormatKHR      surface_format;
-    Image::InternalFormat   image_format;
-    std::vector<VkImage>    images;
+    VkSwapchainKHR swapchain;
+    Extent2D extent;
+    VkSurfaceFormatKHR surface_format;
+    Image::InternalFormat image_format;
+    std::vector<VkImage> images;
 
 private:
     SwapchainSupportDetails support_details;
-    VkPresentModeKHR        present_mode;
+    VkPresentModeKHR present_mode;
 };
 
 } // namespace renderer

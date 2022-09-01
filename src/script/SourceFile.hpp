@@ -19,10 +19,10 @@ public:
     // input into buffer
     SourceFile &operator>>(const std::string &str);
 
-    inline const std::string &GetFilePath() const { return m_filepath; }
-    inline char *GetBuffer() const { return m_buffer; }
-    inline size_t GetSize() const { return m_size; }
-    inline void SetSize(size_t size) { m_size = size; }
+    const std::string &GetFilePath() const { return m_filepath; }
+    char *GetBuffer() const { return m_buffer; }
+    size_t GetSize() const { return m_size; }
+    void SetSize(size_t size) { m_size = size; }
     
     void ReadIntoBuffer(const char *data, size_t size);
 

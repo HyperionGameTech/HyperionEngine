@@ -45,7 +45,7 @@ private:
     // std::shared_ptr<AstStatement> m_dynamic_check;
     // bool m_is_dynamic_type;
 
-    inline Pointer<AstNewExpression> CloneImpl() const
+    Pointer<AstNewExpression> CloneImpl() const
     {
         return Pointer<AstNewExpression>(new AstNewExpression(
             CloneAstNode(m_proto),

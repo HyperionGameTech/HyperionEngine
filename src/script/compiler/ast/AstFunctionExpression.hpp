@@ -36,8 +36,8 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
     
-    inline const SymbolTypePtr_t &GetReturnType() const { return m_return_type; }
-    inline void SetReturnType(const SymbolTypePtr_t &return_type) { m_return_type = return_type; }
+    const SymbolTypePtr_t &GetReturnType() const { return m_return_type; }
+    void SetReturnType(const SymbolTypePtr_t &return_type) { m_return_type = return_type; }
 
 protected:
     std::vector<std::shared_ptr<AstParameter>> m_parameters;
@@ -64,10 +64,10 @@ protected:
 
     std::unique_ptr<Buildable> BuildFunctionBody(AstVisitor *visitor, Module *mod);
 
-    inline void SetIsGeneratorClosure(bool is_generator_closure)
+    void SetIsGeneratorClosure(bool is_generator_closure)
         { m_is_generator_closure = is_generator_closure; }
 
-    inline Pointer<AstFunctionExpression> CloneImpl() const
+    Pointer<AstFunctionExpression> CloneImpl() const
     {
         return Pointer<AstFunctionExpression>(new AstFunctionExpression(
             CloneAllAstNodes(m_parameters),

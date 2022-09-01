@@ -11,7 +11,7 @@ namespace vm {
 
 Array::Array(SizeType size)
     : m_size(size),
-      m_capacity(1ull << static_cast<SizeType>(std::ceil(std::log(size) / std::log(2.0)))),
+      m_capacity(GetCapacityForSize(size)),
       m_buffer(new Value[m_capacity])
 {
     for (SizeType i = 0; i < m_capacity; i++) {
@@ -88,7 +88,7 @@ void Array::Push(const Value &value)
     const SizeType index = m_size;
 
     if (m_size >= m_capacity) {
-        Resize(static_cast<SizeType>(std::ceil(std::log(m_size + 1) / std::log(2.0))));
+        Resize(GetCapacityForSize(m_size + 1));
     }
 
     // set item at index
@@ -102,7 +102,7 @@ void Array::PushMany(SizeType n, Value *values)
 
     if (m_size + n >= m_capacity) {
         // delete and copy all over again
-        Resize(1ull << static_cast<SizeType>(std::ceil(std::log(m_size + n) / std::log(2.0))));
+        Resize(GetCapacityForSize(m_size + n));
     }
 
     for (SizeType i = 0; i < n; i++) {
@@ -119,7 +119,7 @@ void Array::PushMany(SizeType n, Value **values)
 
     if (m_size + n >= m_capacity) {
         // delete and copy all over again
-        Resize(1ull << static_cast<SizeType>(std::ceil(std::log(m_size + n) / std::log(2.0))));
+        Resize(GetCapacityForSize(m_size + n));
     }
 
     for (SizeType i = 0; i < n; i++) {

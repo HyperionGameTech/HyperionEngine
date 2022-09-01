@@ -35,7 +35,7 @@ private:
 
     std::shared_ptr<AstExpression> m_expr;
 
-    inline Pointer<AstForEachLoop> CloneImpl() const
+    Pointer<AstForEachLoop> CloneImpl() const
     {
         return Pointer<AstForEachLoop>(new AstForEachLoop(
             CloneAllAstNodes(m_params),

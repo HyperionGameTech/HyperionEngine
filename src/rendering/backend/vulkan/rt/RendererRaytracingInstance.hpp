@@ -16,7 +16,7 @@ public:
     RaytracingInstance &operator=(const RaytracingInstance &other) = delete;
     ~RaytracingInstance();
 
-    inline void AddRaytracingPipeline(std::unique_ptr<RaytracingPipeline> &&raytracing_pipeline)
+    void AddRaytracingPipeline(std::unique_ptr<RaytracingPipeline> &&raytracing_pipeline)
         { m_raytracing_pipelines.push_back(std::move(raytracing_pipeline)); }
 
     Result Create(Device *device, DescriptorPool *pool);

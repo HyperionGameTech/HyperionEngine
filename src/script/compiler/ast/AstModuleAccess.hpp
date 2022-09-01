@@ -16,12 +16,12 @@ public:
         const SourceLocation &location);
     virtual ~AstModuleAccess() = default;
 
-    inline Module *GetModule() { return m_mod_access; }
-    inline const Module *GetModule() const { return m_mod_access; }
-    inline const std::string &GetTargetName() const { return m_target; }
-    inline const std::shared_ptr<AstExpression> &GetExpression() const { return m_expr; }
-    inline void SetExpression(const std::shared_ptr<AstExpression> &expr) { m_expr = expr; }
-    inline void SetChained(bool is_chained) { m_is_chained = is_chained; }
+    Module *GetModule() { return m_mod_access; }
+    const Module *GetModule() const { return m_mod_access; }
+    const std::string &GetTargetName() const { return m_target; }
+    const std::shared_ptr<AstExpression> &GetExpression() const { return m_expr; }
+    void SetExpression(const std::shared_ptr<AstExpression> &expr) { m_expr = expr; }
+    void SetChained(bool is_chained) { m_is_chained = is_chained; }
 
     void PerformLookup(AstVisitor *visitor, Module *mod);
 
@@ -46,7 +46,7 @@ private:
     bool m_is_chained;
     bool m_looked_up;
 
-    inline Pointer<AstModuleAccess> CloneImpl() const
+    Pointer<AstModuleAccess> CloneImpl() const
     {
         return Pointer<AstModuleAccess>(new AstModuleAccess(
             m_target,

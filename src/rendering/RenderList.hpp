@@ -71,20 +71,22 @@ public:
     RenderListContainer &operator=(const RenderListContainer &other) = delete;
     ~RenderListContainer() = default;
 
-    inline auto &GetBuckets()
-        { return m_buckets; }
-    inline const auto &GetBuckets() const
+    auto &GetBuckets()
         { return m_buckets; }
 
-    inline RenderListBucket &Get(Bucket bucket)
-        { return m_buckets[int(bucket)]; }
-    inline const RenderListBucket &Get(Bucket bucket) const
+    const auto &GetBuckets() const
+        { return m_buckets; }
+
+    RenderListBucket &Get(Bucket bucket)
         { return m_buckets[int(bucket)]; }
 
-    inline RenderListBucket &operator[](Bucket bucket)
+    const RenderListBucket &Get(Bucket bucket) const
+        { return m_buckets[int(bucket)]; }
+
+    RenderListBucket &operator[](Bucket bucket)
         { return Get(bucket); }
 
-    inline const RenderListBucket &operator[](Bucket bucket) const
+    const RenderListBucket &operator[](Bucket bucket) const
         { return Get(bucket); }
 
     void Create(Engine *engine);

@@ -14,8 +14,8 @@ public:
         const SourceLocation &location);
     virtual ~AstDeclaration() = default;
 
-    inline void SetName(const std::string &name) { m_name = name; }
-    inline Identifier *GetIdentifier() const { return m_identifier; }
+    void SetName(const std::string &name) { m_name = name; }
+    Identifier *GetIdentifier() const { return m_identifier; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;

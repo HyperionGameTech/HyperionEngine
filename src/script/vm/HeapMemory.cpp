@@ -42,7 +42,7 @@ std::ostream &operator<<(std::ostream &os, const Heap &heap)
                 TypeInfo *type_info_ptr;
             } data;
             
-            if (!tmp_head->value.GetId()) {
+            if (!tmp_head->value.HasValue()) {
                 os << "NullType" << "| ";
 
                 os << std::setw(16);
@@ -128,7 +128,7 @@ void Heap::Purge()
 
 HeapValue *Heap::Alloc()
 {
-    HeapNode *node = new HeapNode;
+    auto *node = new HeapNode;
 
     node->after = nullptr;
     
@@ -144,9 +144,12 @@ HeapValue *Heap::Alloc()
     return &m_head->value;
 }
 
-void Heap::Sweep()
+void Heap::Sweep(UInt *out_num_collected)
 {
+    UInt num_collected = 0;
+
     HeapNode *last = m_head;
+
     while (last) {
         if (last->value.GetFlags() & GC_ALIVE) {
             // the object is currently marked, so
@@ -183,9 +186,13 @@ void Heap::Sweep()
 
             // decrement number of currently allocated
             // objects
-            m_num_objects--;
-
+            --m_num_objects;
+            ++num_collected;
         }
+    }
+
+    if (out_num_collected) {
+        *out_num_collected = num_collected;
     }
 }
 

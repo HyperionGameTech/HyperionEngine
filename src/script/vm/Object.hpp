@@ -10,7 +10,7 @@
 #include <cmath>
 
 #define DEFAULT_BUCKET_CAPACITY 4
-#define COMPUTE_CAPACITY(size) 1 << (unsigned)std::ceil(std::log(size) / std::log(2.0))
+#define COMPUTE_CAPACITY(size) 1ull << (unsigned)std::ceil(std::log(size) / std::log(2.0))
 
 namespace hyperion {
 namespace vm {
@@ -18,7 +18,7 @@ namespace vm {
 struct Member
 {
     char name[255];
-    uint32_t hash;
+    UInt32 hash;
     Value value;
 };
 
@@ -31,10 +31,10 @@ public:
 
     ObjectMap &operator=(const ObjectMap &other);
 
-    void Push(uint32_t hash, Member *member);
-    Member *Get(uint32_t hash);
+    void Push(UInt32 hash, Member *member);
+    Member *Get(UInt32 hash);
 
-    inline SizeType GetSize() const { return m_size; }
+    SizeType GetSize() const { return m_size; }
 
 private:
     struct ObjectBucket
@@ -73,21 +73,21 @@ public:
     Object &operator=(Object &&other) noexcept = delete;
 
     // compare by memory address
-    inline bool operator==(const Object &other) const { return this == &other; }
+    bool operator==(const Object &other) const { return this == &other; }
 
-    inline Member *LookupMemberFromHash(uint32_t hash) const
+    Member *LookupMemberFromHash(uint32_t hash) const
         { return m_object_map->Get(hash); }
-    inline Member *GetMembers() const
+    Member *GetMembers() const
         { return m_members; }
-    inline Member &GetMember(int index)
+    Member &GetMember(int index)
         { return m_members[index]; }
-    inline const Member &GetMember(int index) const
+    const Member &GetMember(int index) const
         { return m_members[index]; }
 
-    inline ObjectMap *GetObjectMap() const { return m_object_map; }
+    ObjectMap *GetObjectMap() const { return m_object_map; }
 
-    inline SizeType GetSize() const { return m_object_map->GetSize(); }
-    inline HeapValue *GetPrototype() const { return m_proto; }
+    SizeType GetSize() const { return m_object_map->GetSize(); }
+    HeapValue *GetPrototype() const { return m_proto; }
     
     void GetRepresentation(
         std::stringstream &ss,

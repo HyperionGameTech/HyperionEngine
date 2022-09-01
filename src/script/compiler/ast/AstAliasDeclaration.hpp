@@ -17,7 +17,7 @@ public:
         const SourceLocation &location);
     virtual ~AstAliasDeclaration() = default;
 
-    inline const std::shared_ptr<AstExpression> &GetAliasee() const
+    const std::shared_ptr<AstExpression> &GetAliasee() const
         { return m_aliasee; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -29,7 +29,7 @@ public:
 protected:
     std::shared_ptr<AstExpression> m_aliasee;
 
-    inline Pointer<AstAliasDeclaration> CloneImpl() const
+    Pointer<AstAliasDeclaration> CloneImpl() const
     {
         return Pointer<AstAliasDeclaration>(new AstAliasDeclaration(
             m_name,

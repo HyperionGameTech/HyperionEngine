@@ -67,31 +67,31 @@ public:
 
     ~EnumOptions() = default;
 
-    inline constexpr EnumValuePair_t KeyValueAt(size_t index) const
+    constexpr EnumValuePair_t KeyValueAt(size_t index) const
         { return std::make_pair(EnumOption_t(OrdinalToEnum(index)), m_values[index]); }
 
-    inline constexpr EnumType KeyAt(size_t index) const
+    constexpr EnumType KeyAt(size_t index) const
         { return OrdinalToEnum(index); }
 
-    inline constexpr ValueType &ValueAt(size_t index)
+    constexpr ValueType &ValueAt(size_t index)
         { return m_values[index]; }
 
-    inline constexpr const ValueType &ValueAt(size_t index) const
+    constexpr const ValueType &ValueAt(size_t index) const
         { return m_values[index]; }
 
-    inline constexpr ValueType &Get(EnumOption_t enum_key)
+    constexpr ValueType &Get(EnumOption_t enum_key)
         { return m_values[EnumToOrdinal(enum_key)]; }
 
-    inline constexpr const ValueType &Get(EnumOption_t enum_key) const
+    constexpr const ValueType &Get(EnumOption_t enum_key) const
         { return m_values[EnumToOrdinal(enum_key)]; }
 
-    inline constexpr ValueType &operator[](EnumOption_t enum_key)
+    constexpr ValueType &operator[](EnumOption_t enum_key)
         { return m_values[EnumToOrdinal(enum_key)]; }
 
-    inline constexpr const ValueType &operator[](EnumOption_t enum_key) const
+    constexpr const ValueType &operator[](EnumOption_t enum_key) const
         { return m_values[EnumToOrdinal(enum_key)]; }
 
-    inline EnumOptions &Set(EnumOption_t enum_key, ValueType &&value)
+    EnumOptions &Set(EnumOption_t enum_key, ValueType &&value)
     {
         auto ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < m_values.size());
@@ -101,7 +101,7 @@ public:
         return *this;
     }
 
-    inline EnumOptions &Set(EnumOption_t enum_key, const ValueType &value)
+    EnumOptions &Set(EnumOption_t enum_key, const ValueType &value)
     {
         auto ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < m_values.size());
@@ -111,7 +111,7 @@ public:
         return *this;
     }
 
-    inline EnumOptions &Unset(EnumOption_t enum_key)
+    EnumOptions &Unset(EnumOption_t enum_key)
     {
         auto ord = EnumToOrdinal(enum_key);
         AssertThrow(ord < m_values.size());
@@ -121,9 +121,9 @@ public:
         return *this;
     }
 
-    inline constexpr size_t Size() const { return m_values.size(); }
+    constexpr size_t Size() const { return m_values.size(); }
 
-    inline void Clear()
+    void Clear()
     {
         for (auto &value : m_values) {
             value = ValueType{};
@@ -132,7 +132,7 @@ public:
 
     HYP_DEF_STL_ITERATOR(m_values);
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

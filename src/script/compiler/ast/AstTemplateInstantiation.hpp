@@ -46,7 +46,7 @@ private:
     std::shared_ptr<AstExpression> m_inner_expr;
     std::shared_ptr<AstBlock> m_block;
 
-    inline Pointer<AstTemplateInstantiation> CloneImpl() const
+    Pointer<AstTemplateInstantiation> CloneImpl() const
     {
         return Pointer<AstTemplateInstantiation>(new AstTemplateInstantiation(
             CloneAstNode(m_expr),

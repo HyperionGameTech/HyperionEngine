@@ -16,7 +16,7 @@ public:
     );
     virtual ~AstExportStatement() = default;
 
-    inline const std::shared_ptr<AstStatement> &GetStatement() const
+    const std::shared_ptr<AstStatement> &GetStatement() const
         { return m_stmt; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -31,7 +31,7 @@ private:
     // set while analyzing
     std::string m_exported_symbol_name;
 
-    inline Pointer<AstExportStatement> CloneImpl() const
+    Pointer<AstExportStatement> CloneImpl() const
     {
         return Pointer<AstExportStatement>(new AstExportStatement(
             CloneAstNode(m_stmt),

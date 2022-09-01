@@ -34,11 +34,11 @@ public:
 
     uint32_t GetFrameIndex() const                       { return m_frame_index; }
 
-    inline CommandBuffer *GetCommandBuffer()             { return command_buffer.get(); }
-    inline const CommandBuffer *GetCommandBuffer() const { return command_buffer.get(); }
+    CommandBuffer *GetCommandBuffer()             { return command_buffer.get(); }
+    const CommandBuffer *GetCommandBuffer() const { return command_buffer.get(); }
 
-    inline SemaphoreChain &GetPresentSemaphores()             { return m_present_semaphores; }
-    inline const SemaphoreChain &GetPresentSemaphores() const { return m_present_semaphores; }
+    SemaphoreChain &GetPresentSemaphores()             { return m_present_semaphores; }
+    const SemaphoreChain &GetPresentSemaphores() const { return m_present_semaphores; }
 
     /* Start recording into the command buffer */
     Result BeginCapture(Device *device);

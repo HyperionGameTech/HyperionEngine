@@ -21,20 +21,20 @@ public:
     CompilationUnit(const CompilationUnit &other) = delete;
     ~CompilationUnit();
 
-    inline Module *GetGlobalModule() { return m_global_module.get(); }
-    inline const Module *GetGlobalModule() const { return m_global_module.get(); }
+    Module *GetGlobalModule() { return m_global_module.get(); }
+    const Module *GetGlobalModule() const { return m_global_module.get(); }
 
-    inline Module *GetCurrentModule() { return m_module_tree.Top(); }
-    inline const Module *GetCurrentModule() const { return m_module_tree.Top(); }
+    Module *GetCurrentModule() { return m_module_tree.Top(); }
+    const Module *GetCurrentModule() const { return m_module_tree.Top(); }
 
-    inline ErrorList &GetErrorList() { return m_error_list; }
-    inline const ErrorList &GetErrorList() const { return m_error_list; }
+    ErrorList &GetErrorList() { return m_error_list; }
+    const ErrorList &GetErrorList() const { return m_error_list; }
 
-    inline InstructionStream &GetInstructionStream() { return m_instruction_stream; }
-    inline const InstructionStream &GetInstructionStream() const { return m_instruction_stream; }
+    InstructionStream &GetInstructionStream() { return m_instruction_stream; }
+    const InstructionStream &GetInstructionStream() const { return m_instruction_stream; }
 
-    inline AstNodeBuilder &GetAstNodeBuilder() { return m_ast_node_builder; }
-    inline const AstNodeBuilder &GetAstNodeBuilder() const { return m_ast_node_builder; }
+    AstNodeBuilder &GetAstNodeBuilder() { return m_ast_node_builder; }
+    const AstNodeBuilder &GetAstNodeBuilder() const { return m_ast_node_builder; }
 
     /**
         Allows a non-builtin type to be used

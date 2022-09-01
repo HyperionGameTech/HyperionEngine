@@ -9,7 +9,7 @@ class TypeTrait {
 public:
     TypeTrait(const std::string &name);
 
-    inline const std::string &GetName() const { return m_name; }
+    const std::string &GetName() const { return m_name; }
 
 private:
     std::string m_name;

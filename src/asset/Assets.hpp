@@ -232,7 +232,7 @@ class Assets {
         return paths;
     }
 
-    inline auto GetRebasedFilepath(std::string filepath)
+    auto GetRebasedFilepath(std::string filepath)
     {
         filepath = FileSystem::RelativePath(filepath, FileSystem::CurrentPath());
 

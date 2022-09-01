@@ -16,7 +16,7 @@
 namespace hyperion {
 namespace renderer {
 
-StagingBuffer *StagingBufferPool::Context::Acquire(size_t required_size)
+StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
 {
     if (required_size == 0) {
         DebugLog(LogType::Warn, "Attempt to acquire staging buffer of 0 size\n");
@@ -24,7 +24,7 @@ StagingBuffer *StagingBufferPool::Context::Acquire(size_t required_size)
         return nullptr;
     }
     
-    const size_t new_size = MathUtil::NextPowerOf2(required_size);
+    const SizeType new_size = MathUtil::NextPowerOf2(required_size);
 
     StagingBuffer *staging_buffer = m_pool->FindStagingBuffer(required_size - 1);
 
@@ -55,7 +55,7 @@ StagingBuffer *StagingBufferPool::Context::Acquire(size_t required_size)
     return staging_buffer;
 }
 
-StagingBuffer *StagingBufferPool::Context::CreateStagingBuffer(size_t size)
+StagingBuffer *StagingBufferPool::Context::CreateStagingBuffer(SizeType size)
 {
     const std::time_t current_time = std::time(nullptr);
 
@@ -81,14 +81,14 @@ StagingBuffer *StagingBufferPool::Context::CreateStagingBuffer(size_t size)
     return m_staging_buffers.back().buffer.get();
 }
 
-StagingBuffer *StagingBufferPool::FindStagingBuffer(size_t size)
+StagingBuffer *StagingBufferPool::FindStagingBuffer(SizeType size)
 {
     /* do a binary search to find one with the closest size (never less than required) */
     const auto bound = std::upper_bound(
         m_staging_buffers.begin(),
         m_staging_buffers.end(),
         size,
-        [](const size_t &sz, const auto &it) {
+        [](const SizeType &sz, const auto &it) {
             return sz < it.size;
         }
     );
@@ -182,12 +182,12 @@ Result StagingBufferPool::Destroy(Device *device)
     return result;
 }
 
-uint32_t GPUMemory::FindMemoryType(Device *device, uint32_t vk_type_filter, VkMemoryPropertyFlags properties)
+UInt GPUMemory::FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
     vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
 
-    for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++) {
+    for (UInt i = 0; i < mem_properties.memoryTypeCount; i++) {
         if ((vk_type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
             DebugLog(LogType::Info, "Found Memory type [%d]!\n", i);
             return i;
@@ -341,7 +341,7 @@ GPUMemory::GPUMemory()
       map(nullptr),
       resource_state(ResourceState::UNDEFINED)
 {
-    static uint32_t allocations = 0;
+    static UInt allocations = 0;
 
     index = allocations++;
 }
@@ -428,13 +428,13 @@ GPUBuffer::~GPUBuffer()
 VkBufferCreateInfo GPUBuffer::GetBufferCreateInfo(Device *device) const
 {
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const uint32_t buffer_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
+    const UInt buffer_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
 
-    VkBufferCreateInfo vk_buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-    vk_buffer_info.size                  = size;
-    vk_buffer_info.usage                 = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    vk_buffer_info.pQueueFamilyIndices   = buffer_family_indices;
-    vk_buffer_info.queueFamilyIndexCount = uint32_t(std::size(buffer_family_indices));
+    VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    vk_buffer_info.size = size;
+    vk_buffer_info.usage = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vk_buffer_info.pQueueFamilyIndices = buffer_family_indices;
+    vk_buffer_info.queueFamilyIndexCount = static_cast<UInt>(std::size(buffer_family_indices));
 
     return vk_buffer_info;
 }
@@ -449,7 +449,7 @@ VmaAllocationCreateInfo GPUBuffer::GetAllocationCreateInfo(Device *device) const
     return alloc_info;
 }
 
-Result GPUBuffer::CheckCanAllocate(Device *device, size_t size) const
+Result GPUBuffer::CheckCanAllocate(Device *device, SizeType size) const
 {
     const auto create_info = GetBufferCreateInfo(device);
     const auto alloc_info = GetAllocationCreateInfo(device);
@@ -479,14 +479,14 @@ Result GPUBuffer::CheckCanAllocate(
     Device *device,
     const VkBufferCreateInfo &buffer_create_info,
     const VmaAllocationCreateInfo &allocation_create_info,
-    size_t size
+    SizeType size
 ) const
 {
     const Features &features = device->GetFeatures();
 
     auto result = Result::OK;
 
-    uint32_t memory_type_index = UINT32_MAX;
+    UInt memory_type_index = UINT32_MAX;
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
@@ -550,7 +550,7 @@ void GPUBuffer::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_s
 void GPUBuffer::CopyFrom(
     CommandBuffer *command_buffer,
     const GPUBuffer *src_buffer,
-    size_t count
+    SizeType count
 )
 {
     InsertBarrier(command_buffer, ResourceState::COPY_DST);
@@ -571,7 +571,7 @@ void GPUBuffer::CopyFrom(
 Result GPUBuffer::CopyStaged(
     Instance *instance,
     const void *ptr,
-    size_t count
+    SizeType count
 )
 {
     Device *device = instance->GetDevice();
@@ -629,7 +629,7 @@ Result GPUBuffer::ReadStaged(
     });
 }
 
-Result GPUBuffer::Create(Device *device, size_t size)
+Result GPUBuffer::Create(Device *device, SizeType size)
 {
     if (buffer != nullptr) {
         DebugLog(
@@ -702,7 +702,7 @@ Result GPUBuffer::Destroy(Device *device)
 }
 
 Result GPUBuffer::EnsureCapacity(Device *device,
-    size_t minimum_size,
+    SizeType minimum_size,
     bool *out_size_changed)
 {
     auto result = Result::OK;
@@ -845,7 +845,7 @@ IndirectBuffer::IndirectBuffer()
 {
 }
 
-void IndirectBuffer::DispatchIndirect(CommandBuffer *command_buffer, size_t offset) const
+void IndirectBuffer::DispatchIndirect(CommandBuffer *command_buffer, SizeType offset) const
 {
     vkCmdDispatchIndirect(
         command_buffer->GetCommandBuffer(),
@@ -1071,7 +1071,7 @@ void GPUImageMemory::SetSubResourceState(const ImageSubResource &sub_resource, R
     sub_resources[sub_resource] = new_state;
 }
 
-Result GPUImageMemory::Create(Device *device, size_t size, VkImageCreateInfo *image_info)
+Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *image_info)
 {
     if (image != nullptr) {
         DebugLog(

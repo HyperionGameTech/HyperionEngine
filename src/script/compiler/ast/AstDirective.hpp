@@ -26,7 +26,7 @@ private:
     std::string m_key;
     std::vector<std::string> m_args;
 
-    inline Pointer<AstDirective> CloneImpl() const
+    Pointer<AstDirective> CloneImpl() const
     {
         return Pointer<AstDirective>(new AstDirective(
             m_key,

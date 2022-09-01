@@ -23,13 +23,13 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
-    inline const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
+    const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
 
 private:
     SymbolTypePtr_t m_symbol_type;
     std::shared_ptr<AstVariable> m_proto;
 
-    inline Pointer<AstTypeObject> CloneImpl() const
+    Pointer<AstTypeObject> CloneImpl() const
     {
         return Pointer<AstTypeObject>(new AstTypeObject(
             m_symbol_type,

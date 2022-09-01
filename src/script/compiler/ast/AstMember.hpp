@@ -37,7 +37,7 @@ protected:
     SymbolTypePtr_t m_target_type;
     int m_found_index;
 
-    inline Pointer<AstMember> CloneImpl() const
+    Pointer<AstMember> CloneImpl() const
     {
         return Pointer<AstMember>(new AstMember(
             m_field_name,

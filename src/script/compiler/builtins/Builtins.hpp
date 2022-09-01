@@ -17,7 +17,7 @@ class Builtins {
 public:
     Builtins();
 
-    inline const AstIterator &GetAst() const { return m_ast; }
+    const AstIterator &GetAst() const { return m_ast; }
 
     /** This will analyze the builtins, and add them to the syntax tree.
      */

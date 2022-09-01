@@ -16,10 +16,10 @@ public:
     ~AudioManager();
 
     bool Initialize();
-    inline bool IsInitialized() const { return m_is_initialized; }
+    bool IsInitialized() const { return m_is_initialized; }
     void ListDevices();
-    inline ALCdevice *GetDevice() const { return m_device; }
-    inline ALCcontext *GetContext() const { return m_context; }
+    ALCdevice *GetDevice() const { return m_device; }
+    ALCcontext *GetContext() const { return m_context; }
 
     void SetListenerPosition(const Vector3 &position);
     void SetListenerOrientation(const Vector3 &forward, const Vector3 &up);

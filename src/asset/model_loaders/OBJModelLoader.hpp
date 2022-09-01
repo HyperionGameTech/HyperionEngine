@@ -55,7 +55,7 @@ using ObjIndex = LoaderObject<Node, LoaderFormat::OBJ_MODEL>::ObjIndex;
 namespace std {
 template<>
 struct hash<hyperion::v2::ObjIndex> {
-    inline size_t operator()(const hyperion::v2::ObjIndex &obj) const
+    size_t operator()(const hyperion::v2::ObjIndex &obj) const
     {
         hyperion::HashCode hc;
         hc.Add(obj.vertex);

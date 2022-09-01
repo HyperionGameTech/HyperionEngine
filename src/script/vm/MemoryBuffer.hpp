@@ -15,10 +15,10 @@ public:
     ~MemoryBuffer();
 
     MemoryBuffer &operator=(const MemoryBuffer &other);
-    inline bool operator==(const MemoryBuffer &other) const { return this == &other; }
+    bool operator==(const MemoryBuffer &other) const { return this == &other; }
 
-    inline size_t GetSize() const { return m_size; }
-    inline void *GetBuffer() const { return m_buffer; }
+    size_t GetSize() const { return m_size; }
+    void *GetBuffer() const { return m_buffer; }
 
     void GetRepresentation(
         std::stringstream &ss,

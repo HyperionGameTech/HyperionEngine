@@ -12,7 +12,7 @@ public:
     Exception(const Exception &other);
     ~Exception();
 
-    inline const char *ToString() const { return m_str; }
+    const char *ToString() const { return m_str; }
 
     static Exception InvalidComparisonException(const char *left_type_str, const char *right_type_str);
     static Exception InvalidOperationException(const char *op_name,

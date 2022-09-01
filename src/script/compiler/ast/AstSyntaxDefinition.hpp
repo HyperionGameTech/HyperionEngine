@@ -27,7 +27,7 @@ protected:
     std::shared_ptr<AstString> m_syntax_string;
     std::shared_ptr<AstString> m_transform_string;
 
-    inline Pointer<AstSyntaxDefinition> CloneImpl() const
+    Pointer<AstSyntaxDefinition> CloneImpl() const
     {
         return Pointer<AstSyntaxDefinition>(new AstSyntaxDefinition(
             CloneAstNode(m_syntax_string),

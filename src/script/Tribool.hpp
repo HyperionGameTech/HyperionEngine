@@ -24,27 +24,27 @@ public:
     {
     }
 
-    inline bool operator==(const Tribool &other) const
+    bool operator==(const Tribool &other) const
     {
         return m_value == other.m_value;
     }
 
-    inline operator int() const
+    operator int() const
     {
-        return (int)m_value;
+        return static_cast<int>(m_value);
     }
 
-    static inline Tribool True()
+    static Tribool True()
     {
         return Tribool(TRI_TRUE);
     }
 
-    static inline Tribool False()
+    static Tribool False()
     {
         return Tribool(TRI_FALSE);
     }
 
-    static inline Tribool Indeterminate()
+    static Tribool Indeterminate()
     {
         return Tribool(TRI_INDETERMINATE);
     }

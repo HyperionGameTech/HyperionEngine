@@ -42,12 +42,14 @@ class AccelerationStructure;
 class DescriptorSet;
 class DescriptorPool;
 
-enum class DescriptorSetState {
+enum class DescriptorSetState
+{
     DESCRIPTOR_CLEAN = 0,
     DESCRIPTOR_DIRTY = 1
 };
 
-enum class DescriptorType {
+enum class DescriptorType
+{
     UNSET,
     UNIFORM_BUFFER,
     UNIFORM_BUFFER_DYNAMIC,
@@ -60,11 +62,13 @@ enum class DescriptorType {
     ACCELERATION_STRUCTURE
 };
 
-class Descriptor {
+class Descriptor
+{
     friend class DescriptorSet;
 public:
 
-    struct SubDescriptor {
+    struct SubDescriptor
+    {
         UInt element_index = ~0u; /* ~0 == just use index of item added */
 
         union {
@@ -163,7 +167,8 @@ private:
     DescriptorSet *m_descriptor_set;
 };
 
-enum class DescriptorKey {
+enum class DescriptorKey
+{
     UNUSED = 0,
 
     GBUFFER_TEXTURES,
@@ -208,10 +213,14 @@ enum class DescriptorKey {
 
 };
 
-class DescriptorSet {
+class DescriptorSet
+{
     friend class Descriptor;
 public:
-    enum Index {
+    using Index = UInt;
+
+    enum IndexNames : Index
+    {
         DESCRIPTOR_SET_INDEX_UNUSED,         /* unused at the moment, pending removal */
 
         DESCRIPTOR_SET_INDEX_GLOBAL,         /* global, ideally bound once at beginning of frame */
@@ -289,7 +298,7 @@ public:
     bool IsCreated() const { return m_is_created; }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    bool IsTemplate() const { return GetRealIndex() == static_cast<UInt>(Index::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    bool IsTemplate() const { return GetRealIndex() == static_cast<UInt>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)

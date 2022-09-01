@@ -28,7 +28,7 @@ protected:
     // set while analyzing
     std::shared_ptr<AstFunctionExpression> m_result_closure;
 
-    inline Pointer<AstMetaBlock> CloneImpl() const
+    Pointer<AstMetaBlock> CloneImpl() const
     {
         return Pointer<AstMetaBlock>(new AstMetaBlock(
             CloneAllAstNodes(m_children),

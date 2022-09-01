@@ -14,7 +14,7 @@ public:
         const SourceLocation &location);
     virtual ~AstArrayExpression() = default;
 
-    inline const std::vector<std::shared_ptr<AstExpression>> &GetMembers() const
+    const std::vector<std::shared_ptr<AstExpression>> &GetMembers() const
         { return m_members; };
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -31,7 +31,7 @@ protected:
     std::vector<std::shared_ptr<AstExpression>> m_members;
     SymbolTypePtr_t m_held_type;
 
-    inline std::shared_ptr<AstArrayExpression> CloneImpl() const
+    std::shared_ptr<AstArrayExpression> CloneImpl() const
     {
         return std::shared_ptr<AstArrayExpression>(new AstArrayExpression(
             CloneAllAstNodes(m_members),

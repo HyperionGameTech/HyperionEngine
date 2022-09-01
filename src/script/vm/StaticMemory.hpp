@@ -21,20 +21,20 @@ public:
     /** Delete everything in static memory */
     void Purge();
 
-    inline Value &operator[](size_t index)
+    Value &operator[](size_t index)
     {
         AssertThrowMsg(index < static_size, "out of bounds");
         return m_data[index];
     }
 
-    inline const Value &operator[](size_t index) const
+    const Value &operator[](size_t index) const
     {
         AssertThrowMsg(index < static_size, "out of bounds");
         return m_data[index];
     }
 
     // move a value to static memory
-    inline void Store(Value &&value)
+    void Store(Value &&value)
     {
         AssertThrowMsg(m_sp < static_size, "not enough static memory");
         m_data[m_sp++] = std::move(value);

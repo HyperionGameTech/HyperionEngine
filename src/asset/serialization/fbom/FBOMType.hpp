@@ -10,7 +10,8 @@
 
 namespace hyperion::v2::fbom {
 
-struct FBOMType {
+struct FBOMType
+{
     String name;
     SizeType size;
     FBOMType *extends = nullptr;
@@ -42,7 +43,7 @@ struct FBOMType {
         }
     }
 
-    inline FBOMType &operator=(const FBOMType &other)
+    FBOMType &operator=(const FBOMType &other)
     {
         if (extends != nullptr) {
             delete extends;
@@ -96,7 +97,7 @@ struct FBOMType {
         return Extends(other);
     }
 
-    inline bool Extends(const FBOMType &other) const
+    bool Extends(const FBOMType &other) const
     {
         if (extends == nullptr) {
             return false;
@@ -109,9 +110,9 @@ struct FBOMType {
         return extends->Extends(other);
     }
 
-    inline bool IsUnbouned() const { return size == 0; }
+    bool IsUnbouned() const { return size == 0; }
 
-    inline bool operator==(const FBOMType &other) const
+    bool operator==(const FBOMType &other) const
     {
         return name == other.name
             && size == other.size
@@ -129,7 +130,7 @@ struct FBOMType {
         return str;
     }
 
-    inline HashCode GetHashCode() const
+    HashCode GetHashCode() const
     {
         HashCode hc;
 

@@ -15,10 +15,10 @@ public:
 
     bool operator==(const TypeInfo &other) const;
 
-    inline char *const GetName() const { return m_name; }
-    inline size_t GetSize() const { return m_size; }
-    inline char **const GetNames() const { return m_names; }
-    inline const char *GetMemberName(size_t index) const
+    char *const GetName() const { return m_name; }
+    size_t GetSize() const { return m_size; }
+    char **const GetNames() const { return m_names; }
+    const char *GetMemberName(size_t index) const
         { AssertThrow(index < m_size); return m_names[index]; }
 
 private:

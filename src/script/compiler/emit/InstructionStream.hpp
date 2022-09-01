@@ -19,23 +19,23 @@ public:
 
     /*inline void ClearInstructions() { m_position = 0; m_data.clear(); }
 
-    inline size_t GetPosition() const { return m_position; }
-    inline size_t &GetPosition() { return m_position; }
+    size_t GetPosition() const { return m_position; }
+    size_t &GetPosition() { return m_position; }
 
-    inline const std::vector<Instruction<>> &GetData() const { return m_data; }*/
+    const std::vector<Instruction<>> &GetData() const { return m_data; }*/
 
-    inline uint8_t GetCurrentRegister() const { return m_register_counter; }
-    inline uint8_t IncRegisterUsage() { return ++m_register_counter; }
-    inline uint8_t DecRegisterUsage() { return --m_register_counter; }
+    uint8_t GetCurrentRegister() const { return m_register_counter; }
+    uint8_t IncRegisterUsage() { return ++m_register_counter; }
+    uint8_t DecRegisterUsage() { return --m_register_counter; }
 
-    inline int GetStackSize() const { return m_stack_size; }
-    inline void SetStackSize(int stack_size) { m_stack_size = stack_size; }
-    inline int IncStackSize() { return ++m_stack_size; }
-    inline int DecStackSize() { return --m_stack_size; }
+    int GetStackSize() const { return m_stack_size; }
+    void SetStackSize(int stack_size) { m_stack_size = stack_size; }
+    int IncStackSize() { return ++m_stack_size; }
+    int DecStackSize() { return --m_stack_size; }
 
-    inline int NewStaticId() { return m_static_id++; }
+    int NewStaticId() { return m_static_id++; }
 
-    inline void AddStaticObject(const StaticObject &static_object)
+    void AddStaticObject(const StaticObject &static_object)
         { m_static_objects.push_back(static_object); }
 
     int FindStaticObject(const StaticObject &static_object) const;

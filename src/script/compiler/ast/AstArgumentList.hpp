@@ -15,7 +15,7 @@ public:
       const SourceLocation &location);
     virtual ~AstArgumentList() = default;
 
-    inline const std::vector<std::shared_ptr<AstArgument>> &GetArguments() const
+    const std::vector<std::shared_ptr<AstArgument>> &GetArguments() const
       { return m_args; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -31,7 +31,7 @@ public:
 private:
     std::vector<std::shared_ptr<AstArgument>> m_args;
 
-    inline Pointer<AstArgumentList> CloneImpl() const
+    Pointer<AstArgumentList> CloneImpl() const
     {
         return Pointer<AstArgumentList>(new AstArgumentList(
             CloneAllAstNodes(m_args),

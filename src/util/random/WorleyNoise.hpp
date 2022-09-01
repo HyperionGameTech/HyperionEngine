@@ -32,12 +32,12 @@ private:
 
     void Insert(std::vector<double> &data, double value);
 
-    inline size_t LCGRandom(size_t last) const
+    size_t LCGRandom(size_t last) const
     {
         return (1103515245ULL * last + 12345ULL) % 0x100000000ULL;
     }
 
-    inline size_t WorleyHash(size_t i, size_t j, size_t k) const
+    size_t WorleyHash(size_t i, size_t j, size_t k) const
     {
         return ((((((OFFSET_BASIS ^ i) * FNV_PRIME) ^ j) * FNV_PRIME) ^ k) * FNV_PRIME);
     }

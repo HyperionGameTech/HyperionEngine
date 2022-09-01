@@ -5,8 +5,10 @@
 
 namespace hyperion::v2::fbom {
 
-struct FBOMResult {
-    enum {
+struct FBOMResult
+{
+    enum
+    {
         FBOM_OK = 0,
         FBOM_ERR = 1
     } value;
@@ -25,7 +27,7 @@ struct FBOMResult {
     {
     }
 
-    inline operator int() const { return int(value); }
+    operator int() const { return int(value); }
 };
 
 } // namespace hyperion::v2::fbom

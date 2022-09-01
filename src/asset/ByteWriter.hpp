@@ -76,7 +76,7 @@ public:
     {
     }
 
-    inline const std::vector<char> &GetData() const { return m_data; }
+    const std::vector<char> &GetData() const { return m_data; }
 
 private:
     std::vector<char> m_data;

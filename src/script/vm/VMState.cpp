@@ -85,7 +85,7 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 {
     AssertThrow(thread != nullptr);
 
-    const size_t heap_size = m_heap.Size();
+    const auto heap_size = m_heap.Size();
         
     if (heap_size >= m_max_heap_objects) {
         if (heap_size >= GC_THRESHOLD_MAX) {
@@ -124,20 +124,33 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 
 void VMState::GC()
 {
+    DebugLog(
+        LogType::Debug,
+        "Begin gc\n"
+    );
+
     m_exported_symbols.MarkAll();
 
     // mark stack objects on each thread
-    for (int i = 0; i < VM_MAX_THREADS; i++) {
+    for (UInt i = 0; i < VM_MAX_THREADS; i++) {
         if (m_threads[i] != nullptr) {
             m_threads[i]->m_stack.MarkAll();
 
-            for (int j = 0; j < VM_NUM_REGISTERS; j++) {
+            for (UInt j = 0; j < VM_NUM_REGISTERS; j++) {
                 m_threads[i]->GetRegisters()[j].Mark();
             }
         }
     }
 
-    m_heap.Sweep();
+    UInt num_collected;
+
+    m_heap.Sweep(&num_collected);
+
+    DebugLog(
+        LogType::Debug,
+        "%u objects garbage collected\n",
+        num_collected
+    );
 }
 
 ExecutionThread *VMState::CreateThread()

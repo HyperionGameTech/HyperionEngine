@@ -28,7 +28,7 @@ private:
     std::string m_name;
     std::shared_ptr<AstPrototypeSpecification> m_aliasee;
 
-    inline Pointer<AstTypeAlias> CloneImpl() const
+    Pointer<AstTypeAlias> CloneImpl() const
     {
         return Pointer<AstTypeAlias>(new AstTypeAlias(
             m_name,
