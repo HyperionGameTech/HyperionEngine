@@ -2,7 +2,7 @@
 // Created by ethan on 2/5/22.
 //
 
-#include "SdlSystem.hpp"
+#include "SDLSystem.hpp"
 #include "Debug.hpp"
 
 #include <SDL2/SDL.h>

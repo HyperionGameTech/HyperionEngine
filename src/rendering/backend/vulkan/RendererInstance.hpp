@@ -8,7 +8,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <system/SdlSystem.hpp>
+#include <system/SDLSystem.hpp>
 #include <system/vma/VmaUsage.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>

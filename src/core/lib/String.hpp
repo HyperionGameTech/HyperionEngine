@@ -94,12 +94,101 @@ public:
     void Append(DynString &&other);
     void Append(T &&value);
     void Append(const T &value);
-    typename Base::ValueType &&PopBack();
-    typename Base::ValueType &&PopFront();
+    typename Base::ValueType PopBack();
+    typename Base::ValueType PopFront();
     void Clear();
 
     bool StartsWith(const DynString &other) const;
     bool EndsWith(const DynString &other) const;
+
+    static DynString Base64Encode(const DynArray<UByte> &bytes)
+    {
+        static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        
+        DynString out;
+
+        UInt i = 0;
+        Int j = -6;
+
+        for (auto &&c : bytes) {
+            i = (i << 8) + static_cast<ValueType>(c);
+            j += 8;
+        
+            while (j >= 0) {
+                out.Append(alphabet[(i >> j) & 0x3F]);
+                j -= 6;
+            }
+        }
+
+        if (j > -6) {
+            out.Append(alphabet[((i << 8) >> (j + 8)) & 0x3F]);
+        }
+
+        while (out.Size() % 4 != 0) {
+            out.Append('=');
+        }
+
+        return out;
+    }
+
+    static DynArray<UByte> Base64Decode(const DynString &in)
+    {
+        static const int lookup_table[] = {
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, 62, -1, -1, -1, 63,
+            52, 53, 54, 55, 56, 57, 58, 59,
+            60, 61, -1, -1, -1, -1, -1, -1,
+            -1, 0, 1, 2, 3, 4, 5, 6,
+            7, 8, 9, 10, 11, 12, 13, 14,
+            15, 16, 17, 18, 19, 20, 21, 22,
+            23, 24, 25, -1, -1, -1, -1, -1,
+            -1, 26, 27, 28, 29, 30, 31, 32,
+            33, 34, 35, 36, 37, 38, 39, 40,
+            41, 42, 43, 44, 45, 46, 47, 48,
+            49, 50, 51, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1
+        };
+
+        DynArray<UByte> out;
+
+        UInt i = 0;
+        Int j = -8;
+
+        for (auto &&c : in) {
+            if (lookup_table[c] == -1) {
+                break;
+            }
+
+            i = (i << 6) + lookup_table[c];
+            j += 6;
+        
+            if (j >= 0) {
+                out.PushBack(static_cast<UByte>((i >> j) & 0xFF));
+                j -= 8;
+            }
+        }
+
+        return out;
+    }
 
     template <class Integral>
     static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, DynString>
@@ -167,7 +256,7 @@ DynString<T, IsUtf8>::DynString()
       m_length(0)
 {
     // null-terminated char
-    Base::PushBack(T{0});
+    Base::PushBack(T { 0 });
 }
 
 template <class T, bool IsUtf8>
@@ -438,19 +527,24 @@ void DynString<T, IsUtf8>::Append(T &&value)
 }
 
 template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::PopFront() -> typename Base::ValueType&&
+auto DynString<T, IsUtf8>::PopFront() -> typename Base::ValueType
 {
     --m_length;
+
     return Base::PopFront();
 }
 
 template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::PopBack() -> typename Base::ValueType&&
+auto DynString<T, IsUtf8>::PopBack() -> typename Base::ValueType
 {
     --m_length;
+
     Base::PopBack(); // pop NT-char
-    auto &&res = Base::PopBack();
-    Base::PushBack(T{0}); // add NT-char
+
+    auto res = Base::PopBack();
+
+    Base::PushBack(T { 0 }); // add back NT-char
+
     return res;
 }
 
@@ -458,7 +552,7 @@ template <class T, bool IsUtf8>
 void DynString<T, IsUtf8>::Clear()
 {
     Base::Clear();
-    Base::PushBack(T{0}); // NT char
+    Base::PushBack(T { 0 }); // NT char
     m_length = 0;
 }
 

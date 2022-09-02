@@ -1,6 +1,6 @@
 #include "GameCounter.hpp"
 
-#include <system/SdlSystem.hpp>
+#include <system/SDLSystem.hpp>
 
 namespace hyperion::v2 {
 

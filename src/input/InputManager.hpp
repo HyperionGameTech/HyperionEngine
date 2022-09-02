@@ -6,7 +6,7 @@
 
 #include <core/lib/FlatMap.hpp>
 
-#include "system/SdlSystem.hpp"
+#include "system/SDLSystem.hpp"
 
 #include <functional>
 #include <mutex>

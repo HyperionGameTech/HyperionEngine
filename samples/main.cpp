@@ -1,5 +1,5 @@
 ﻿
-#include <src/HyperionEngine.hpp>
+#include <HyperionEngine.hpp>
 
 /* Standard library */
 #include <cstdlib>
