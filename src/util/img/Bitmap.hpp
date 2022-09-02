@@ -5,6 +5,7 @@
 #include <core/Containers.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/CMemory.hpp>
+#include <core/system/SharedMemory.hpp>
 #include <math/Vector3.hpp>
 #include <math/Vector4.hpp>
 #include <util/ByteUtil.hpp>
@@ -26,7 +27,7 @@ struct Pixel
     Pixel(const Vector &color)
     {
         for (UInt i = 0; i < MathUtil::Min(byte_size, Vector::size); i++) {
-            bytes[byte_size - i - 1] = static_cast<UByte>(color[i] * 255.0f);
+            bytes[i] = static_cast<UByte>(color[i] * 255.0f);
         }
     }
 
@@ -122,16 +123,16 @@ public:
 
     void Write(const String &filepath)
     {
-        DynArray<UByte> unpacked_bytes;
-        unpacked_bytes.Resize(m_pixels.Size() * Pixel::byte_size);
-
-        for (SizeType i = 0, j = 0; i < unpacked_bytes.Size(); i += Pixel::byte_size, j++) {
-            for (UInt k = 0; k < Pixel::byte_size; k++) {
-                unpacked_bytes[i + k] = m_pixels[j].bytes[k];
-            }
-        }
+        auto unpacked_bytes = UnpackBytes();
 
         WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
+    }
+
+    void Write(SharedMemory &shared_memory)
+    {
+        auto unpacked_bytes = UnpackBytes();
+
+        shared_memory.Write(&unpacked_bytes[0], unpacked_bytes.Size());
     }
 
     void FlipVertical()
@@ -154,6 +155,20 @@ public:
                 GetPixel(x, y) = temp;
             }
         }
+    }
+
+    [[nodiscard]] DynArray<UByte> UnpackBytes() const
+    {
+        DynArray<UByte> unpacked_bytes;
+        unpacked_bytes.Resize(m_pixels.Size() * Pixel::byte_size);
+
+        for (SizeType i = 0, j = 0; i < unpacked_bytes.Size(); i += Pixel::byte_size, j++) {
+            for (UInt k = 0; k < Pixel::byte_size; k++) {
+                unpacked_bytes[i + k] = m_pixels[j].bytes[k];
+            }
+        }
+
+        return unpacked_bytes;
     }
 
 private:

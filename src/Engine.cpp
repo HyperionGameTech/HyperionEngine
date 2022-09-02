@@ -775,7 +775,7 @@ Bitmap Engine::CaptureScreenshot(const Extent2D &extent)
             // create another image, same size as the bitmap, to blit to
             TextureImage2D transfer_image(
                 Extent2D { bitmap.GetWidth(), bitmap.GetHeight() },
-                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,//attachment->GetImage()->GetTextureFormat(),
+                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
                 Image::FilterMode::TEXTURE_FILTER_NEAREST,
                 nullptr
             );

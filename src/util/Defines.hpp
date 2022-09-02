@@ -94,28 +94,36 @@
     #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
+#if defined(unix) || defined(__unix) || defined(__unix__)
+    #define HYP_UNIX 1
+#endif
+
+#if defined(__linux__) || defined(linux) || defined(__linux)
+    #define HYP_LINUX 1
+#endif
+
 #ifdef __arm__
     #define HYP_ARM 1
 #endif
 
 #ifdef __APPLE__
+    #define HYP_UNIX 1
+    #define HYP_APPLE 1
 
-#define HYP_APPLE 1
+    #include <TargetConditionals.h>
 
-#include <TargetConditionals.h>
-
-#ifndef HYP_ARM
-    // for m1
-    #if TARGET_CPU_ARM64
-        #define HYP_ARM 1
+    #ifndef HYP_ARM
+        // for m1
+        #if TARGET_CPU_ARM64
+            #define HYP_ARM 1
+        #endif
     #endif
-#endif
 
-#if (TARGET_IPHONE_SIMULATOR == 1) || (TARGET_OS_IPHONE == 1)
-    #define HYP_IOS 1
-#elif (TARGET_OS_OSX == 1)
-    #define HYP_MACOS 1
-#endif
+    #if (TARGET_IPHONE_SIMULATOR == 1) || (TARGET_OS_IPHONE == 1)
+        #define HYP_IOS 1
+    #elif (TARGET_OS_OSX == 1)
+        #define HYP_MACOS 1
+    #endif
 #endif
 
 #define HYP_USE_EXCEPTIONS 0

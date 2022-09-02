@@ -1,55 +1,5 @@
 ﻿
-#include "system/SdlSystem.hpp"
-#include "system/Debug.hpp"
-#include "rendering/backend/RendererInstance.hpp"
-#include "rendering/backend/RendererDescriptorSet.hpp"
-#include "rendering/backend/RendererImage.hpp"
-#include "rendering/backend/RendererRenderPass.hpp"
-#include "rendering/backend/rt/RendererRaytracingPipeline.hpp"
-
-#include <core/lib/Proc.hpp>
-
-#include <Engine.hpp>
-#include <scene/Node.hpp>
-#include <rendering/Atomics.hpp>
-#include <animation/Bone.hpp>
-#include <asset/model_loaders/OBJModelLoader.hpp>
-#include <rendering/rt/AccelerationStructureBuilder.hpp>
-#include <rendering/ProbeSystem.hpp>
-#include <rendering/post_fx/SSAO.hpp>
-#include <rendering/post_fx/FXAA.hpp>
-#include <rendering/post_fx/Tonemap.hpp>
-#include <scene/controllers/AudioController.hpp>
-#include <scene/controllers/AnimationController.hpp>
-#include <scene/controllers/AABBDebugController.hpp>
-#include <scene/controllers/FollowCameraController.hpp>
-#include <scene/controllers/paging/BasicPagingController.hpp>
-#include <scene/controllers/ScriptedController.hpp>
-#include <core/lib/FlatSet.hpp>
-#include <core/lib/FlatMap.hpp>
-#include <core/lib/Pair.hpp>
-#include <core/lib/DynArray.hpp>
-#include <GameThread.hpp>
-#include <Game.hpp>
-
-#include <asset/serialization/fbom/FBOM.hpp>
-#include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
-
-#include <terrain/controllers/TerrainPagingController.hpp>
-
-#include <rendering/vct/VoxelConeTracing.hpp>
-
-#include <util/fs/FsUtil.hpp>
-#include <util/img/Bitmap.hpp>
-
-#include <scene/NodeProxy.hpp>
-
-#include <camera/FirstPersonCamera.hpp>
-#include <camera/FollowCamera.hpp>
-
-#include <builders/MeshBuilder.hpp>
-
-#include "util/Profile.hpp"
+#include <src/HyperionEngine.hpp>
 
 /* Standard library */
 #include <cstdlib>
@@ -61,13 +11,6 @@
 #include <thread>
 #include <list>
 
-#include "rendering/RenderEnvironment.hpp"
-#include "rendering/render_components/CubemapRenderer.hpp"
-
-#include <script/ScriptBindings.hpp>
-
-#include <util/UTF8.hpp>
-
 using namespace hyperion;
 using namespace hyperion::v2;
 
@@ -77,6 +20,8 @@ using namespace hyperion::v2;
 #define HYPERION_RUN_TESTS 1
 
 namespace hyperion::v2 {
+
+SharedMemory *shared_memory = nullptr;
     
 class MyGame : public Game {
 
@@ -354,11 +299,10 @@ public:
 
         HandleCameraMovement();
 
-        if (m_input_manager->IsKeyDown(KEY_B)) {
-            auto bitmap = engine->CaptureScreenshot({ 300, 300 });
+        // if (m_input_manager->IsKeyDown(KEY_B)) {
 
-            bitmap.Write("screenshot1.bmp");
-        }
+            // bitmap.Write("screenshot1.bmp");
+        // }
 
         #if 0 // bad performance on large meshes. need bvh
         //if (input_manager->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
@@ -480,10 +424,41 @@ using RC = RefCountedPtr<T>;
 template <class T>
 using Weak = WeakRefCountedPtr<T>;
 
-int main()
+int main(int argc, char *argv[])
 {
     using namespace hyperion::renderer;
 
+
+    for (int i = 0; i < argc; i++) {
+        DebugLog(
+            LogType::Debug,
+            "argv[%d] = %s\n",
+            i, argv[i]
+        );
+    }
+
+    if (argc > 1) {
+        shared_memory = new SharedMemory(argv[1], 1024 * 1024 * 4, SharedMemory::Mode::READ_WRITE);
+        AssertThrow(shared_memory->Open());
+
+        // char test_data[] = "hello world";
+        // memory.Write(&test_data[0], std::size(test_data));
+
+
+        // void *buf = nullptr;
+    
+        // int mem = shm_open(argv[1], O_RDWR, 0666);
+        // AssertThrowMsg(mem >= 0, "shm_open returned %d\n", mem);
+
+        // void *mapped_memory = mmap(buf, 1024 * 1024 * 4, PROT_READ | PROT_WRITE, MAP_SHARED, mem, 0);
+        // AssertThrow(mapped_memory != nullptr);
+
+        // std::memcpy(mapped_memory, &test_data[0], std::size(test_data));
+
+        // munmap(mapped_memory, 1024 * 1024 * 4);
+    }
+
+    // return 0;
 
 #if 0
 
@@ -766,6 +741,16 @@ int main()
     float delta_time_accum = 0.0f;
     GameCounter counter;
 
+    TextureImage2D screenshot(
+        Extent2D { 300, 300 },
+        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+        Image::FilterMode::TEXTURE_FILTER_NEAREST,
+        nullptr
+    );
+
+    HYPERION_ASSERT_RESULT(screenshot.Create(engine->GetDevice()));
+
+
     while (engine->IsRenderLoopActive()) {
 
         // input manager stuff
@@ -787,6 +772,7 @@ int main()
             delta_time_accum = 0.0f;
             num_frames = 0;
         }
+
 
 #if HYPERION_VK_TEST_RAYTRACING // for testing RT stuff.
         HYPERION_ASSERT_RESULT(engine->GetInstance()->GetFrameHandler()->PrepareFrame(
@@ -853,6 +839,11 @@ int main()
         // simpler loop. this is what it will look like for RT too, soon enough
         engine->RenderNextFrame(my_game);
 #endif
+
+        if (shared_memory != nullptr) {
+            auto bitmap = engine->CaptureScreenshot({ 300, 300 });
+            bitmap.Write(*shared_memory);
+        }
     }
 
     AssertThrow(engine->GetInstance()->GetDevice()->Wait());

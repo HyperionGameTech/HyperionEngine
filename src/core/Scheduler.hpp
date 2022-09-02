@@ -27,8 +27,9 @@
 
 namespace hyperion::v2 {
 
-struct ScheduledFunctionID {
-    UInt value{0};
+struct ScheduledFunctionID
+{
+    UInt value { 0 };
     
     ScheduledFunctionID &operator=(UInt id)
     {
@@ -49,7 +50,8 @@ struct ScheduledFunctionID {
 };
 
 template <class ReturnType, class ...Args>
-struct ScheduledFunction {
+struct ScheduledFunction
+{
     using Function = Proc<ReturnType, Args...>;//std::function<ReturnType(Args...)>;
 
     ScheduledFunctionID id;

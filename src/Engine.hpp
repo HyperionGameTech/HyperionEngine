@@ -210,6 +210,7 @@ public:
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
+    /*! \brief Captures a screenshot synchronously. */
     Bitmap CaptureScreenshot(const Extent2D &extent);
 
     void Initialize();
