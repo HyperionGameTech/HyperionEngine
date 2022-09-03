@@ -223,12 +223,14 @@ public:
         );
 
         auto result = m_wrapped.Create(GetEngineDevice(engine), std::forward<Args>(args)...);
+        
         AssertThrowMsg(
             result,
-            "Creation of object of type %s failed.\n\tError Code: %d\n\tMessage: %s",
+            "Creation of object of type %s failed.\n\tError Code: %d\n\tMessage: %s\t(Original: %s)",
             wrapped_type_name,
             result.error_code,
-            result.message
+            result.message,
+            result.original_message
         );
 
         m_wrapped_created = true;

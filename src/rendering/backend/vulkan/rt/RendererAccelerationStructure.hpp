@@ -21,7 +21,9 @@ enum class AccelerationStructureType {
     TOP_LEVEL
 };
 
-enum AccelerationStructureFlags {
+using AccelerationStructureFlags = UInt32;
+
+enum AccelerationStructureFlagBits : AccelerationStructureFlags {
     ACCELERATION_STRUCTURE_FLAGS_NONE = 0,
     ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING = 1,
     ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE = 2
@@ -78,8 +80,8 @@ public:
     inline uint64_t GetDeviceAddress() const                                  { return m_device_address; }
 
     inline AccelerationStructureFlags GetFlags() const                        { return m_flags; }
-    inline void SetFlag(AccelerationStructureFlags flag)                      { m_flags = AccelerationStructureFlags(m_flags | flag); }
-    inline void ClearFlag(AccelerationStructureFlags flag)                    { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
+    inline void SetFlag(AccelerationStructureFlags flag)                      { m_flags |= flag; }
+    inline void ClearFlag(AccelerationStructureFlags flag)                    { m_flags &= ~flag; }
 
     inline std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries()
         { return m_geometries; }
@@ -94,7 +96,7 @@ public:
         { m_geometries.erase(m_geometries.begin() + index); }
 
     inline const Matrix4 &GetTransform() const         { return m_transform; }
-    inline void SetTransform(const Matrix4 &transform) { m_transform = transform; SetNeedsRebuildFlag(); }
+    inline void SetTransform(const Matrix4 &transform) { m_transform = transform; SetNeedsRebuildFlag(); /* TODO: Just use transform flag */ }
 
     /*! \brief Remove the geometry from the internal list of Nodes and set a flag that the
      * structure needs to be rebuilt. Will not automatically rebuild.
@@ -150,11 +152,10 @@ public:
     TopLevelAccelerationStructure &operator=(const TopLevelAccelerationStructure &other) = delete;
     ~TopLevelAccelerationStructure();
 
-    inline AccelerationStructureType GetType() const        { return AccelerationStructureType::TOP_LEVEL; }
-    inline StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
-    
-    inline auto &GetBlas()                                  { return m_blas; }
-    inline const auto &GetBlas() const                      { return m_blas; }
+    AccelerationStructureType GetType() const        { return AccelerationStructureType::TOP_LEVEL; }
+    StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
+
+    void AddBottomLevelAccelerationStructure(BottomLevelAccelerationStructure *blas);
     
     Result Create(
         Device *device,

@@ -55,29 +55,45 @@ void BLAS::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this, engine](...) {
         if (m_mesh != nullptr) {
             m_mesh.Init();
+        }
 
+        engine->render_scheduler.Enqueue([this, engine](...) {
             m_wrapped.SetTransform(m_transform.GetMatrix());
             m_wrapped.AddGeometry(std::make_unique<AccelerationGeometry>(
                 m_mesh->BuildPackedVertices(),
                 m_mesh->BuildPackedIndices()
             ));
-        }
 
-        EngineComponent::Create(
-            engine,
-            engine->GetInstance()
-        );
+            EngineComponent::Create(
+                engine,
+                engine->GetInstance()
+            );
+
+            SetReady(true);
+
+            HYPERION_RETURN_OK;
+        });
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, [this](...) {
-            EngineComponent::Destroy(GetEngine());
+            SetReady(false);
+
+            GetEngine()->render_scheduler.Enqueue([this](...) {
+                EngineComponent::Destroy(GetEngine());
+
+                HYPERION_RETURN_OK;
+            });
 
             m_mesh.Reset();
+
+            HYP_FLUSH_RENDER_QUEUE(GetEngine());
         }));
     }));
 }
 
 void BLAS::Update(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     if (!IsInitCalled()) {
         return;
     }

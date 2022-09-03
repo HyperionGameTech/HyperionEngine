@@ -17,6 +17,8 @@ namespace hyperion::v2 {
 
 using renderer::RaytracingPipeline;
 using renderer::StorageImage;
+using renderer::StorageImageDescriptor;
+using renderer::ImageDescriptor;
 using renderer::ImageView;
 using renderer::UniformBuffer;
 using renderer::CommandBuffer;
@@ -54,7 +56,7 @@ struct ProbeGridInfo {
 
     BoundingBox aabb;
     Extent3D    probe_border   = {2, 0, 2};
-    float       probe_distance = 2.0f;
+    float       probe_distance = 7.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }

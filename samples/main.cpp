@@ -115,7 +115,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/sponza/sponza.obj", //testbed/testbed.obj", //sponza/sponza.obj",//sibenik/sibenik.obj",//, //, //", //
+            "models/testbed/testbed.obj", //sponza/sponza.obj",//sibenik/sibenik.obj",//, //, //", //
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -216,8 +216,8 @@ public:
 
         scene->GetEnvironment()->AddLight(m_point_light.IncRef());
 
-        //test_model->Scale(10.0f);
-        test_model->Scale(0.15f);//14.075f);
+        test_model->Scale(10.0f);
+        //test_model->Scale(0.15f);//14.075f);
 
         /*auto &terrain_material = test_model->GetChild(0)->GetEntity()->GetMaterial();
         terrain_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 50.0f);
@@ -863,6 +863,7 @@ int main()
     )));
 
     my_tlas->Init(engine);
+    HYP_FLUSH_RENDER_QUEUE(engine); // TEMP, flushing render queue to immediately add TLAS descriptor
     
     Image *rt_image_storage = new StorageImage(
         Extent3D{1024, 1024, 1},

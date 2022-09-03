@@ -207,6 +207,20 @@ void ProbeGrid::AddDescriptors(Engine *engine)
             .element_index = 0u,
             .image_view = m_depth_image_view.get()
         });
+
+    descriptor_set
+        ->GetOrAddDescriptor<ImageDescriptor>(13)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_irradiance_image_view.get()
+        });
+
+    descriptor_set
+        ->GetOrAddDescriptor<ImageDescriptor>(14)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_depth_image_view.get()
+        });
 }
 
 void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer)

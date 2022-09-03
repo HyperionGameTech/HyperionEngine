@@ -3,13 +3,12 @@
 namespace hyperion {
 namespace renderer {
 
-Features::DynamicFunctions Features::dyn_functions = {};
-
 Features::Features()
     : m_physical_device(nullptr),
       m_properties({}),
       m_features({})
 {
+    Memory::Set(static_cast<void *>(&dyn_functions), 0, sizeof(dyn_functions));
 }
 
 Features::Features(VkPhysicalDevice physical_device)

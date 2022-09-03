@@ -45,9 +45,9 @@ bool Threads::IsOnThread(ThreadMask mask)
     return false;
 }
 
-ThreadId Threads::GetThreadId(ThreadName thread_name)
+ThreadId Threads::GetCurrentThreadID()
 {
-    return thread_ids.At(thread_name);
+    return current_thread_id;
 }
 
 } // namespace hyperion::v2

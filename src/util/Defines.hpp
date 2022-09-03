@@ -2,6 +2,7 @@
 #define HYPERION_DEFINES_H
 
 #define HYP_VULKAN 1
+#define HYP_LOG_MEMORY_OPERATIONS 1
 
 // stl helpers and such
 
@@ -181,7 +182,7 @@
     #endif
 #endif
 
-#define HYP_ENABLE_THREAD_ASSERTION 0 // set to 0 if needing to debug and getting crt errors
+#define HYP_ENABLE_THREAD_ASSERTION 1 // set to 0 if needing to debug and getting crt errors
 
 // conditionals
 

@@ -7,6 +7,8 @@
 #include "RendererStructs.hpp"
 #include "RendererCommandBuffer.hpp"
 
+#include <Threads.hpp>
+
 #include <vulkan/vulkan.h>
 
 #include <vector>
@@ -59,6 +61,8 @@ private:
 
     inline Result Begin(Device *device)
     {
+        v2::Threads::AssertOnThread(v2::THREAD_RENDER);
+
         command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_PRIMARY);
         m_fence = std::make_unique<Fence>();
 
@@ -69,6 +73,8 @@ private:
 
     inline Result End(Device *device)
     {
+        v2::Threads::AssertOnThread(v2::THREAD_RENDER);
+
         auto result = Result::OK;
 
         HYPERION_PASS_ERRORS(command_buffer->End(device), result);

@@ -8,6 +8,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <builders/MeshBuilder.hpp>
+
 namespace hyperion::v2 {
 
 DDGI::DDGI(Params &&params)
@@ -35,30 +37,37 @@ void DDGI::Init(Engine *engine)
         auto *engine = GetEngine();
 
         m_scene = engine->resources.scenes.Add(std::make_unique<Scene>(nullptr));
-        
-        CreateDescriptors(engine);
 
-        // add an empty mesh if no bottom level acceleration structures are present
-        if (m_tlas.GetBottomLevelAccelerationStructures().empty()) {
-            m_tlas.AddBottomLevelAccelerationStructure(GetEngine()->resources.blas.Add(std::make_unique<BLAS>(
-                engine->GetPlaceholderData().GetEmptyMesh(engine),
-                Transform()
-            )));
-        }
+        //engine->render_scheduler.Enqueue([this, engine](...) {
+            CreateDescriptors(engine);
 
-        m_tlas.Init(engine);
-        m_probe_grid.Init(engine);
-        
-        SetReady(true);
+            // add an empty mesh if no bottom level acceleration structures are present
+            //if (m_tlas.GetBottomLevelAccelerationStructures().empty()) {
+                auto test_mesh = GetEngine()->resources.meshes.Add(MeshBuilder::Cube());
+                test_mesh.Init();
+
+                m_tlas.AddBottomLevelAccelerationStructure(GetEngine()->resources.blas.Add(std::make_unique<BLAS>(
+                    test_mesh.IncRef(),
+                    Transform()
+                )));
+            //}
+
+            m_tlas.Init(engine);
+            m_probe_grid.Init(engine);
+            
+            SetReady(true);
+
+        //    HYPERION_RETURN_OK;
+        //});
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ANY, [this](...) {
             auto *engine = GetEngine();
             
+            SetReady(false);
+            
             m_renderer_instance.Reset();
             
             HYP_FLUSH_RENDER_QUEUE(engine);
-            
-            SetReady(false);
         }));
     }));
 }
@@ -80,12 +89,13 @@ void DDGI::InitGame(Engine *engine)
             continue;
         }
 
-        if (entity->GetBucket() != BUCKET_TRANSLUCENT) {
-            continue;
-        }
+        //if (entity->GetBucket() != BUCKET_TRANSLUCENT) {
+        //    continue;
+       // }
 
         if (BucketHasGlobalIllumination(entity->GetBucket())) {
             if (entity->GetMesh() != nullptr) {
+                // TODO: use thread-safe pattern
                 m_tlas.AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<BLAS>(
                     entity->GetMesh().IncRef(),
                     entity->GetTransform()
@@ -101,9 +111,9 @@ void DDGI::OnEntityAdded(Ref<Entity> &entity)
 
     AssertReady();
 
-    if (entity->GetBucket() != BUCKET_TRANSLUCENT) {
-        return;
-    }
+    //if (entity->GetBucket() != BUCKET_TRANSLUCENT) {
+    //    return;
+    //}
 
     if (BucketHasGlobalIllumination(entity->GetBucket())) {
         if (entity->GetMesh() != nullptr) {
@@ -173,13 +183,12 @@ void DDGI::CreateDescriptors(Engine *engine)
     DebugLog(LogType::Debug, "Add DDGI descriptors\n");
 
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::Index::DESCRIPTOR_SET_INDEX_RAYTRACING);
-
-    /*descriptor_set
+    descriptor_set
         ->GetOrAddDescriptor<renderer::TLASDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
             .acceleration_structure = &m_tlas.Get()
-        });*/
+        });
 }
 
 } // namespace hyperion::v2

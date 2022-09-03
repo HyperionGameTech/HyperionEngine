@@ -71,6 +71,7 @@ void World::Update(
 
 void World::AddScene(Ref<Scene> &&scene)
 {
+    // TODO: Make addScene() deferred!
     Threads::AssertOnThread(THREAD_GAME);
 
     if (scene == nullptr) {

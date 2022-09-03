@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-#define DEFAULT_FENCE_TIMEOUT 100000000000
+#define DEFAULT_FENCE_TIMEOUT 10000000
 
 namespace hyperion {
 namespace renderer {

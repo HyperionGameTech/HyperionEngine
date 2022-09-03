@@ -688,7 +688,7 @@ void CommandBuffer::BindDescriptorSets(
 
 void CommandBuffer::DebugMarkerBegin(const char *marker_name) const
 {
-    if (Features::dyn_functions.vkCmdDebugMarkerBeginEXT) {
+    /*if (Features::dyn_functions.vkCmdDebugMarkerBeginEXT) {
         const VkDebugMarkerMarkerInfoEXT marker {
             .sType       = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT,
             .pNext       = nullptr,
@@ -696,14 +696,14 @@ void CommandBuffer::DebugMarkerBegin(const char *marker_name) const
         };
 
         Features::dyn_functions.vkCmdDebugMarkerBeginEXT(m_command_buffer, &marker);
-    }
+    }*/
 }
 
 void CommandBuffer::DebugMarkerEnd() const
 {
-    if (Features::dyn_functions.vkCmdDebugMarkerEndEXT) {
+    /*if (Features::dyn_functions.vkCmdDebugMarkerEndEXT) {
         Features::dyn_functions.vkCmdDebugMarkerEndEXT(m_command_buffer);
-    }
+    }*/
 }
 
 } // namespace renderer

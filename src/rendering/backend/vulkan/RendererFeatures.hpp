@@ -48,7 +48,7 @@ public:
 #undef HYP_DECL_FN
     };
 
-    static DynamicFunctions dyn_functions;
+    DynamicFunctions dyn_functions;
 
     Features();
     Features(VkPhysicalDevice);

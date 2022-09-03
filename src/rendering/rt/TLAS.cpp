@@ -23,7 +23,11 @@ void TLAS::AddBottomLevelAccelerationStructure(Ref<BLAS> &&blas)
         blas.Init();
     }
 
-    m_blas.push_back(std::move(blas));
+    std::lock_guard guard(m_update_blas_mutex);
+
+    m_blas_pending_addition.PushBack(std::move(blas));
+
+    m_has_blas_updates.store(true);
 }
 
 void TLAS::Init(Engine *engine)
@@ -33,32 +37,87 @@ void TLAS::Init(Engine *engine)
     }
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_ACCELERATION_STRUCTURES, [this, engine](...) {
-        std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
+        if (m_has_blas_updates.load()) {
+            m_blas.Concat(std::move(m_blas_pending_addition));
+            m_blas_pending_addition = {};
 
-        // extract backend objects
-        for (size_t i = 0; i < m_blas.size(); i++) {
-            AssertThrow(m_blas[i] != nullptr);
-
-            m_blas[i].Init();
-            blas[i] = &m_blas[i]->Get();
+            m_has_blas_updates.store(false);
         }
 
-        EngineComponent::Create(
-            engine,
-            engine->GetInstance(),
-            std::move(blas)
-        );
+        for (auto &blas : m_blas) {
+            AssertThrow(blas != nullptr);
+            blas.Init();
+        }
+
+        engine->render_scheduler.Enqueue([this, engine](...) {
+            std::vector<BottomLevelAccelerationStructure *> blas(m_blas.Size());
+
+            // extract backend objects
+            for (size_t i = 0; i < m_blas.Size(); i++) {
+                AssertThrow(m_blas[i] != nullptr);
+
+                m_blas[i].Init();
+                blas[i] = &m_blas[i]->Get();
+            }
+
+            EngineComponent::Create(
+                engine,
+                engine->GetInstance(),
+                std::move(blas)
+            );
+
+            SetReady(true);
+
+            HYPERION_RETURN_OK;
+        });
 
         OnTeardown(engine->callbacks.Once(EngineCallback::DESTROY_ACCELERATION_STRUCTURES, [this](...) {
-            m_blas.clear();
+            SetReady(false);
 
-            EngineComponent::Destroy(GetEngine());
+            if (m_has_blas_updates.load()) {
+                std::lock_guard guard(m_update_blas_mutex);
+
+                m_blas_pending_addition.Clear();
+
+                m_has_blas_updates.store(false);
+            }
+
+            GetEngine()->render_scheduler.Enqueue([this](...) {
+                m_blas.Clear();
+
+                EngineComponent::Destroy(GetEngine());
+
+                HYPERION_RETURN_OK;
+            });
+
+            HYP_FLUSH_RENDER_QUEUE(GetEngine());
         }));
     }));
 }
 
 void TLAS::Update(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    if (m_has_blas_updates.load()) {
+        std::lock_guard guard(m_update_blas_mutex);
+
+        for (auto it = m_blas_pending_addition.Begin(); it != m_blas_pending_addition.End();) {
+            if ((*it)->IsReady()) {
+                m_wrapped.AddBottomLevelAccelerationStructure(&(*it)->Get());
+                m_blas.PushBack(std::move(*it));
+
+                it = m_blas_pending_addition.Erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        m_has_blas_updates.store(!m_blas_pending_addition.Empty());
+    }
+
+    //DebugLog(LogType::Debug, "v2:: Update TLAS %llu    Pending: %llu\n", m_blas.Size(), m_blas_pending_addition.Size());
+
     HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
 }
 

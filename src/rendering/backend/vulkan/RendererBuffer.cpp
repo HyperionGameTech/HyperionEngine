@@ -135,7 +135,9 @@ Result StagingBufferPool::GC(Device *device)
 {
     const auto current_time = std::time(nullptr);
 
+#ifdef HYP_LOG_MEMORY_OPERATIONS
     DebugLog(LogType::Debug, "Clean up staging buffers from pool\n");
+#endif
 
     std::queue<std::vector<StagingBufferRecord>::iterator> to_remove;
 
@@ -144,7 +146,8 @@ Result StagingBufferPool::GC(Device *device)
             to_remove.push(it);
         }
     }
-
+    
+#ifdef HYP_LOG_MEMORY_OPERATIONS
     if (to_remove.empty()) {
         DebugLog(
             LogType::Debug,
@@ -153,6 +156,7 @@ Result StagingBufferPool::GC(Device *device)
     }
 
     DebugLog(LogType::Debug, "Removing %llu staging buffers from pool\n", to_remove.size());
+#endif
 
     auto result = Result::OK;
 
@@ -335,8 +339,7 @@ VkPipelineStageFlags GPUMemory::GetShaderStageMask(ResourceState state, bool src
 GPUMemory::Stats GPUMemory::stats{};
 
 GPUMemory::GPUMemory()
-    : sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
-      size(0),
+    : size(0),
       index(0),
       map(nullptr),
       resource_state(ResourceState::UNDEFINED)
@@ -553,6 +556,9 @@ void GPUBuffer::CopyFrom(
     size_t count
 )
 {
+    AssertThrow(count <= this->size);
+    AssertThrow(count <= src_buffer->size);
+
     InsertBarrier(command_buffer, ResourceState::COPY_DST);
     src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
 
@@ -575,6 +581,10 @@ Result GPUBuffer::CopyStaged(
 )
 {
     Device *device = instance->GetDevice();
+
+    if (this->size < count) {
+        return { Result::RENDERER_ERR, "Not enough space in buffer to copy from staging buffer" };
+    }
 
     return instance->GetStagingBufferPool().Use(device, [&](StagingBufferPool::Context &holder) {
         auto commands = instance->GetSingleTimeCommands();
@@ -811,12 +821,16 @@ void IndexBuffer::Bind(CommandBuffer *cmd)
 }
 
 UniformBuffer::UniformBuffer()
-    : GPUBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+    : GPUBuffer(
+          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+      )
 {
 }
 
 StorageBuffer::StorageBuffer()
-    : GPUBuffer(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+    : GPUBuffer(
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+      )
 {
 }
 
@@ -904,7 +918,9 @@ PackedIndexStorageBuffer::PackedIndexStorageBuffer()
 
 ScratchBuffer::ScratchBuffer()
     : GPUBuffer(
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+          VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
       )
 {
 }

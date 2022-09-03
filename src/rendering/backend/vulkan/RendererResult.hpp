@@ -16,12 +16,18 @@ struct Result {
     } result;
 
     const char *message;
+    const char *original_message = "";
     int error_code = 0;
     
     Result(decltype(result) result, const char *message = "", int error_code = 0)
         : result(result), message(message), error_code(error_code) {}
     Result(const Result &other)
-        : result(other.result), message(other.message), error_code(other.error_code) {}
+        : result(other.result),
+          message(other.message),
+          error_code(other.error_code),
+          original_message(other.original_message)
+    {
+    }
 
     HYP_FORCE_INLINE
     operator bool() const { return result == RENDERER_OK; }
@@ -32,10 +38,26 @@ struct Result {
         return ::hyperion::renderer::Result::OK; \
     } while (0)
 
+#define HYPERION_PASS_ERRORS_WITH_MSG(result, msg, out_result) \
+    do { \
+        ::hyperion::renderer::Result _result = (result); \
+        _result.original_message = _result.message; \
+        _result.message = (msg); \
+        if ((out_result) && !_result) (out_result) = _result; \
+    } while (0)
+
 #define HYPERION_PASS_ERRORS(result, out_result) \
     do { \
         ::hyperion::renderer::Result _result = (result); \
         if ((out_result) && !_result) (out_result) = _result; \
+    } while (0)
+
+#define HYPERION_BUBBLE_ERRORS_WITH_MSG(result, msg) \
+    do { \
+        ::hyperion::renderer::Result _result = (result); \
+        _result.original_message = _result.message; \
+        _result.message = (msg); \
+        if (!_result) return _result; \
     } while (0)
 
 #define HYPERION_BUBBLE_ERRORS(result) \

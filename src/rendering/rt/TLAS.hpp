@@ -6,6 +6,11 @@
 
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
+#include <core/lib/DynArray.hpp>
+
+#include <mutex>
+#include <atomic>
+
 namespace hyperion::v2 {
 
 using renderer::TopLevelAccelerationStructure;
@@ -17,9 +22,10 @@ public:
     TLAS &operator=(const TLAS &other) = delete;
     ~TLAS();
 
+    /*! \brief Add/enqueue add a BLAS to the structure. This method is thread-safe, so may be called not just from the
+     * render thread but from any thread.
+     */
     void AddBottomLevelAccelerationStructure(Ref<BLAS> &&blas);
-    auto &GetBottomLevelAccelerationStructures()             { return m_blas; }
-    const auto &GetBottomLevelAccelerationStructures() const { return m_blas; }
 
     void Init(Engine *engine);
 
@@ -27,7 +33,11 @@ public:
     void Update(Engine *engine);
 
 private:
-    std::vector<Ref<BLAS>> m_blas;
+    DynArray<Ref<BLAS>> m_blas;
+
+    DynArray<Ref<BLAS>> m_blas_pending_addition;
+    std::mutex          m_update_blas_mutex;
+    std::atomic_bool    m_has_blas_updates{false};
 };
 
 } // namespace hyperion::v2

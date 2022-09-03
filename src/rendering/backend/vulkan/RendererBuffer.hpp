@@ -185,8 +185,7 @@ protected:
     void Unmap(Device *device) const;
     void Create();
     void Destroy();
-
-    uint32_t sharing_mode;
+    
     uint32_t index;
     mutable void *map;
     mutable ResourceState resource_state;

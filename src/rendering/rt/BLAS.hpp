@@ -11,7 +11,7 @@
 namespace hyperion::v2 {
 
 using renderer::BottomLevelAccelerationStructure;
-using renderer::AccelerationStructureFlags;
+using renderer::AccelerationStructureFlagBits;
 
 class BLAS : public EngineComponent<BottomLevelAccelerationStructure> {
 public:
@@ -31,10 +31,10 @@ public:
 
 private:
     inline void SetNeedsUpdate()
-        { m_wrapped.SetFlag(AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+        { m_wrapped.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     inline bool NeedsUpdate() const
-        { return m_wrapped.GetFlags() & AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING; }
+        { return m_wrapped.GetFlags() & AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING; }
 
     Ref<Mesh> m_mesh;
     Transform m_transform;
