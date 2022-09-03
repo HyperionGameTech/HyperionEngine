@@ -60,6 +60,9 @@ public:
     
     [[nodiscard]] const T operator[](SizeType index) const;
 
+    // get raw char (no utf-8 conversion) at an index
+    [[nodiscard]] T GetRawChar(SizeType index) const;
+
     /*! \brief Return the data size in characters. Note, utf-8 strings can have a shorter length than size. */
     [[nodiscard]] typename Base::SizeType Size() const                 { return Base::Size() - 1; /* for NT char */ }
     /*! \brief Return the length of the string in characters. Note, utf-8 strings can have a shorter length than size. */
@@ -437,6 +440,12 @@ auto DynString<T, IsUtf8>::operator[](SizeType index) const -> const T
     } else {
         return Base::operator[](index);
     }
+}
+
+template <class T, bool IsUtf8>
+auto DynString<T, IsUtf8>::GetRawChar(SizeType index) const -> T
+{
+    return Base::operator[](index);
 }
 
 template <class T, bool IsUtf8>

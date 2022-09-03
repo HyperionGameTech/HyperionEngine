@@ -184,11 +184,19 @@
     #if HYP_DEBUG_MODE
         #define HYP_THROW(msg) \
             do { \
+                fflush(stdout); \
+                fflush(stderr); \
                 HYP_BREAKPOINT; \
                 std::terminate(); \
             } while (0)
     #else
-        #define HYP_THROW(msg) std::terminate()
+        #define HYP_THROW(msg) \
+            do { \
+                fflush(stdout); \
+                fflush(stderr); \
+                std::terminate(); \
+            } while (0)
+
     #endif
 #endif
 

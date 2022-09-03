@@ -1,5 +1,9 @@
 ﻿
 #include <HyperionEngine.hpp>
+#include <system/CommandQueue.hpp>
+#include <sys/semaphore.h>
+#include <sys/fcntl.h>
+#include <unistd.h>
 
 /* Standard library */
 #include <cstdlib>
@@ -21,7 +25,8 @@ using namespace hyperion::v2;
 
 namespace hyperion::v2 {
 
-SharedMemory *shared_memory = nullptr;
+SharedMemory *framebuffer_shared = nullptr;
+SharedMemory *command_queue_shared = nullptr;
     
 class MyGame : public Game {
 
@@ -428,6 +433,7 @@ int main(int argc, char *argv[])
 {
     using namespace hyperion::renderer;
 
+    sem_t *semaphore = nullptr;
 
     for (int i = 0; i < argc; i++) {
         DebugLog(
@@ -438,24 +444,20 @@ int main(int argc, char *argv[])
     }
 
     if (argc > 1) {
-        shared_memory = new SharedMemory(argv[1], 1024 * 1024 * 4, SharedMemory::Mode::READ_WRITE);
-        AssertThrow(shared_memory->Open());
+        framebuffer_shared = new SharedMemory(argv[1], 1024 * 1024 * 4, SharedMemory::Mode::READ_WRITE);
+        AssertThrow(framebuffer_shared->Open());
 
-        // char test_data[] = "hello world";
-        // memory.Write(&test_data[0], std::size(test_data));
+        if (argc > 2) {
+            command_queue_shared = new SharedMemory(argv[2], 1024 * 1024, SharedMemory::Mode::READ_WRITE);
+            AssertThrow(command_queue_shared->Open());
+        }
 
-
-        // void *buf = nullptr;
-    
-        // int mem = shm_open(argv[1], O_RDWR, 0666);
-        // AssertThrowMsg(mem >= 0, "shm_open returned %d\n", mem);
-
-        // void *mapped_memory = mmap(buf, 1024 * 1024 * 4, PROT_READ | PROT_WRITE, MAP_SHARED, mem, 0);
-        // AssertThrow(mapped_memory != nullptr);
-
-        // std::memcpy(mapped_memory, &test_data[0], std::size(test_data));
-
-        // munmap(mapped_memory, 1024 * 1024 * 4);
+        if (argc > 3) {
+            semaphore = sem_open(argv[3], O_RDWR);
+            AssertThrowMsg(semaphore != SEM_FAILED, "Failed to open semaphore with key %s!", argv[3]);
+            DebugLog(LogType::Debug, "Opened server side semaphore\n");
+            fflush(stdout);
+        }
     }
 
     // return 0;
@@ -741,16 +743,6 @@ int main(int argc, char *argv[])
     float delta_time_accum = 0.0f;
     GameCounter counter;
 
-    TextureImage2D screenshot(
-        Extent2D { 300, 300 },
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-        Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        nullptr
-    );
-
-    HYPERION_ASSERT_RESULT(screenshot.Create(engine->GetDevice()));
-
-
     while (engine->IsRenderLoopActive()) {
 
         // input manager stuff
@@ -840,9 +832,63 @@ int main(int argc, char *argv[])
         engine->RenderNextFrame(my_game);
 #endif
 
-        if (shared_memory != nullptr) {
-            auto bitmap = engine->CaptureScreenshot({ 300, 300 });
-            bitmap.Write(*shared_memory);
+        if (framebuffer_shared != nullptr) {
+            auto bitmap = engine->CaptureScreenshot({ 512, 512 });
+            bitmap.Write(*framebuffer_shared);
+        }
+
+        if (command_queue_shared != nullptr) {
+            DebugLog(LogType::Debug, "[server] wait\n");
+            fflush(stdout);
+            sem_wait(semaphore);
+            // read command queue shared mem
+            DebugLog(LogType::Debug, "IN BLOCK   %u %u\n", static_cast<UInt16 *>(command_queue_shared->GetAddress())[0], reinterpret_cast<UInt32 *>(static_cast<UInt8 *>(command_queue_shared->GetAddress()) + 2)[0]);
+            fflush(stdout);
+            #if 1
+            CommandQueue command_queue;
+            if (CommandQueue::ReadCommandQueue(
+                static_cast<UByte *>(command_queue_shared->GetAddress()),
+                command_queue_shared->GetSize(),
+                command_queue
+            )) {
+                // respond to commands, write each as read
+                DebugLog(LogType::Debug, "%u\n", command_queue.GetEntries().Size());
+                #if 0
+                for (auto &entry : command_queue.GetEntries()) {
+                    DebugLog(LogType::Debug, "Foo %u\n", static_cast<UInt>(command_queue.GetEntries().Size()));
+                    #if 1
+                    // DebugLog(
+                    //     LogType::Debug,
+                    //     "(%u) Read command %u\n",
+                    //     123,
+                    //     456
+                    //     // command_queue.GetEntries().Size(),
+                    //     // static_cast<UInt>(entry.command_name)
+                    // );
+                    #endif
+
+                    #if 0
+                    for (auto &arg : entry.args) {
+                        DebugLog(
+                            LogType::Debug,
+                            "\tArgument: %s\n",
+                            arg.Data()
+                        );
+                    }
+                    #endif
+
+                    // entry.flags |= 0x1; // read bit
+                }
+                #endif
+            }
+            
+            // command_queue.Write(*command_queue_shared);
+
+            #endif
+
+            DebugLog(LogType::Debug, "[server] post\n");
+            fflush(stdout);
+            sem_post(semaphore);
         }
     }
 
