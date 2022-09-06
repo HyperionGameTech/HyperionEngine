@@ -465,6 +465,21 @@ void Engine::Initialize()
             .element_index = 0u,
             .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage()
         });
+    // voxel image (texture3D)
+    vct_descriptor_set
+        ->GetOrAddDescriptor<renderer::ImageDescriptor>(3)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8()
+        });
+    // voxel sampler
+    vct_descriptor_set
+        ->GetOrAddDescriptor<renderer::SamplerDescriptor>(4)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .sampler = &GetPlaceholderData().GetSamplerLinear()
+        });
+    
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         auto *descriptor_set_globals = GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
@@ -472,8 +487,8 @@ void Engine::Initialize()
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view    = &GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
-                .sampler       = &GetPlaceholderData().GetSamplerLinear()
+                .image_view = &GetPlaceholderData().GetImageView3D1x1x1R8Storage(),
+                .sampler = &GetPlaceholderData().GetSamplerLinear()
             });
 
         // add placeholder SSR image
@@ -481,7 +496,7 @@ void Engine::Initialize()
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_FINAL_TEXTURE)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view    = &GetPlaceholderData().GetImageView2D1x1R8()
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
             });
     }
 

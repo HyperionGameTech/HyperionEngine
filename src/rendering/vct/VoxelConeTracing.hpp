@@ -47,7 +47,8 @@ class VoxelConeTracing
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_VCT;
 
-    static const Extent3D voxel_map_size;
+    static const Extent3D voxel_map_extent;
+    static const Extent3D temporal_image_extent;
 
     struct Params
     {

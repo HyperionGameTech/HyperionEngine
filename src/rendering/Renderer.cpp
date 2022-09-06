@@ -424,16 +424,19 @@ RenderAll(
     auto *device = instance->GetDevice();
 
     const auto frame_index = frame->GetFrameIndex();
+
+    UInt num_recorded_command_buffers = 0;
     
     auto divided_draw_proxies = GetDividedDrawCalls(draw_proxies);
-    
-    UInt num_recorded_command_buffers = 0;
     
     // always run renderer items as HIGH priority,
     // so we do not lock up because we're waiting for a large process to
     // complete in the same thread
     engine->task_system.ParallelForEach(
         TaskPriority::HIGH,
+        RendererInstance::parallel_rendering
+            ? static_cast<UInt>(engine->task_system.GetPool(TaskPriority::HIGH).threads.Size())
+            : 1u,
         divided_draw_proxies,
         [engine, pipeline, indirect_renderer, &num_recorded_command_buffers, &command_buffers, frame_index, scene_id](const DynArray<EntityDrawProxy> &draw_proxies, const SizeType container_index) {
             if (draw_proxies.Empty()) {

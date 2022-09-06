@@ -10,11 +10,12 @@
 
 namespace hyperion::v2 {
 
-const Extent3D VoxelConeTracing::voxel_map_size { 256 };
+const Extent3D VoxelConeTracing::voxel_map_extent { 256 };
+const Extent3D VoxelConeTracing::temporal_image_extent { 32 };
 
 VoxelConeTracing::VoxelConeTracing(Params &&params)
     : EngineComponentBase(),
-      RenderComponent(25), // render every 25 frames
+      RenderComponent(5), // render every X frames
       m_params(std::move(params))
 {
 }
@@ -34,10 +35,10 @@ void VoxelConeTracing::Init(Engine *engine)
 
     m_scene = engine->CreateHandle<Scene>(
         engine->CreateHandle<Camera>(new OrthoCamera(
-            voxel_map_size.width, voxel_map_size.height,
-            -static_cast<float>(voxel_map_size[0]) * 0.5f, static_cast<float>(voxel_map_size[0]) * 0.5f,
-            -static_cast<float>(voxel_map_size[1]) * 0.5f, static_cast<float>(voxel_map_size[1]) * 0.5f,
-            -static_cast<float>(voxel_map_size[2]) * 0.5f, static_cast<float>(voxel_map_size[2]) * 0.5f
+            voxel_map_extent.width, voxel_map_extent.height,
+            -static_cast<float>(voxel_map_extent[0]) * 0.5f, static_cast<float>(voxel_map_extent[0]) * 0.5f,
+            -static_cast<float>(voxel_map_extent[1]) * 0.5f, static_cast<float>(voxel_map_extent[1]) * 0.5f,
+            -static_cast<float>(voxel_map_extent[2]) * 0.5f, static_cast<float>(voxel_map_extent[2]) * 0.5f
         ))
     );
 
@@ -255,9 +256,9 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     m_perform_temporal_blending->GetPipeline()->Dispatch(
         command_buffer,
         Extent3D {
-            (64 + 7) / 8,
-            (64 + 7) / 8,
-            (64 + 7) / 8
+            (temporal_image_extent.width + 7) / 8,
+            (temporal_image_extent.height + 7) / 8,
+            (temporal_image_extent.depth + 7) / 8
         }
     );
     
@@ -367,7 +368,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
 {
     m_voxel_image = engine->CreateHandle<Texture>(
         StorageImage(
-            voxel_map_size,
+            voxel_map_extent,
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
             Image::Type::TEXTURE_TYPE_3D,
             Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
@@ -380,12 +381,12 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
 
     m_temporal_blending_image = engine->CreateHandle<Texture>(
         StorageImage(
-            Extent3D { 64, 64, 64 },
+            temporal_image_extent,
             Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8, // alpha channel is used as temporal blending amount.
             Image::Type::TEXTURE_TYPE_3D,
-            Image::FilterMode::TEXTURE_FILTER_NEAREST
+            Image::FilterMode::TEXTURE_FILTER_LINEAR
         ),
-        Image::FilterMode::TEXTURE_FILTER_NEAREST,
+        Image::FilterMode::TEXTURE_FILTER_LINEAR,
         Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     );
 
@@ -409,7 +410,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
 
         const VoxelUniforms uniforms
         {
-            .extent = voxel_map_size,
+            .extent = voxel_map_extent,
             .aabb_max = m_params.aabb.GetMax().ToVector4(),
             .aabb_min = m_params.aabb.GetMin().ToVector4(),
             .num_mipmaps = m_voxel_image->GetImage().NumMipmaps()
@@ -536,7 +537,7 @@ void VoxelConeTracing::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
-            Extent2D(voxel_map_size),
+            Extent2D(voxel_map_extent),
             Handle<RenderPass>(m_render_pass)
         );
         
@@ -613,6 +614,13 @@ void VoxelConeTracing::CreateDescriptors(Engine *engine)
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(2)
             ->SetSubDescriptor({ .element_index = 0u, .image_view = &m_temporal_blending_image->GetImageView() });
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(3)
+            ->SetSubDescriptor({ .element_index = 0u, .image_view = &m_voxel_image->GetImageView() });
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::SamplerDescriptor>(4)
+            ->SetSubDescriptor({ .element_index = 0u, .sampler = &m_voxel_image->GetSampler() });
         
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);

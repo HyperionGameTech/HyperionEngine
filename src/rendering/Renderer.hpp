@@ -14,6 +14,7 @@
 #include "Compute.hpp"
 #include <Constants.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
+#include <util/Defines.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -49,6 +50,8 @@ class RendererInstance
     friend class Entity;
 
 public:
+    static constexpr bool parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
+
     RendererInstance(
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,

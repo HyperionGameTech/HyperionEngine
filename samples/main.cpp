@@ -275,7 +275,7 @@ public:
         m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
             Handle<Light>(my_light),
             Vector3(0, 0, 0),
-            150.0f
+            250.0f
         );
 
         m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(

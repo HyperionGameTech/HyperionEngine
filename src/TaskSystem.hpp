@@ -220,13 +220,12 @@ public:
         batch.priority = priority;
 
         const auto num_items = items.Size();
-        const auto items_per_thread = num_items / num_groups;
-        const auto num_items_divided = (num_items + items_per_thread - 1) / items_per_thread;
+        const auto items_per_group = num_items / num_groups;
         
         for (SizeType group_index = 0; group_index < num_groups; group_index++) {
-            batch.AddTask([&items, group_index, num_items_divided, num_items, lambda](...) {
-                const SizeType offset_index = group_index * num_items_divided;
-                const SizeType max_iter = MathUtil::Min(offset_index + num_items_divided, num_items);
+            batch.AddTask([&items, group_index, items_per_group, num_items, lambda](...) {
+                const SizeType offset_index = group_index * items_per_group;
+                const SizeType max_iter = MathUtil::Min(offset_index + items_per_group, num_items);
 
                 for (SizeType i = offset_index; i < max_iter; ++i) {
                     lambda(items[i], i);
