@@ -70,7 +70,7 @@ class Assets {
     template <class T>
     struct ConstructedAsset {
         std::unique_ptr<T> object;
-        LoaderResult       result;
+        LoaderResult result;
     };
 
     struct HandleAssetFunctorBase {
@@ -438,7 +438,7 @@ public:
      * @param base_path A string equal to the base path
      */
     void SetBasePath(const std::string &base_path) { m_base_path = base_path; }
-    const std::string &GetBasePath() const         { return m_base_path; }
+    const std::string &GetBasePath() const { return m_base_path; }
 
     /*! \brief Load a single asset from the given path. If no asset could be loaded, nullptr is returned.
      * @param filepath The path of the asset

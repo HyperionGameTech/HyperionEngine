@@ -62,7 +62,7 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         m_attachments.PushBack(std::make_unique<Attachment>(
             std::make_unique<renderer::FramebufferImage2D>(
                 m_dimensions,
-                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
+                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F,
                 Image::FilterMode::TEXTURE_FILTER_NEAREST
             ),
             RenderPassStage::SHADER
@@ -141,8 +141,8 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
-                // .cull_faces = FaceCullMode::FRONT
+                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes,
+                .cull_faces = FaceCullMode::BACK
             },
             MaterialAttributes {
                 .bucket = BUCKET_SHADOW
@@ -162,7 +162,7 @@ void ShadowPass::CreateShadowMap(Engine *engine)
 {
     m_shadow_map_image = std::make_unique<StorageImage2D>(
         m_dimensions,
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F
+        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F
     );
 
     m_shadow_map_image_view = std::make_unique<ImageView>();
