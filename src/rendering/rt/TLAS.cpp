@@ -47,11 +47,41 @@ void Tlas::Init(Engine *engine)
         std::move(blas)
     );
 
+    SetReady(true);
+
     OnTeardown([this]() {
+        SetReady(false);
+
         m_blas.clear();
 
         EngineComponentWrapper::Destroy(GetEngine());
     });
+}
+
+void Tlas::Update(Engine *engine)
+{
+    //Threads::AssertOnThread(THREAD_GAME);
+    AssertReady();
+
+    for (auto &blas : m_blas) {
+        AssertThrow(blas != nullptr);
+
+        blas->Update(engine);
+    }
+}
+
+void Tlas::UpdateRender(Engine *engine, Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+    
+    for (auto &blas : m_blas) {
+        AssertThrow(blas != nullptr);
+
+        blas->UpdateRender(engine, frame);
+    }
+
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
 }
 
 } // namespace hyperion::v2

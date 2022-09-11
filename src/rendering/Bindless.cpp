@@ -43,7 +43,7 @@ void BindlessStorage::AddResource(const Texture *texture)
     
     UInt indices[] = { 0, 0 };
 
-    for (size_t i = 0; i < m_descriptor_sets.Size(); i++) {
+    for (SizeType i = 0; i < m_descriptor_sets.Size(); i++) {
         auto *descriptor_set = m_descriptor_sets[i];
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
         

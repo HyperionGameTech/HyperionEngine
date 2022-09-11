@@ -12,10 +12,10 @@ namespace hyperion {
 namespace renderer {
 
 static constexpr VkShaderStageFlags push_constant_stage_flags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-                                                              | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-                                                              | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
-                                                              | VK_SHADER_STAGE_MISS_BIT_KHR
-                                                              | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+    | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+    | VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+    | VK_SHADER_STAGE_MISS_BIT_KHR
+    | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 
 RaytracingPipeline::RaytracingPipeline(std::unique_ptr<ShaderProgram> &&shader_program)
     : Pipeline(),
@@ -65,19 +65,19 @@ Result RaytracingPipeline::Create(
     }
 
     layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
-    layout_info.pSetLayouts    = used_layouts.data();
+    layout_info.pSetLayouts = used_layouts.data();
     
     /* Push constants */
     const VkPushConstantRange push_constant_ranges[] = {
         {
             .stageFlags = push_constant_stage_flags,
-            .offset     = 0,
-            .size       = uint32_t(device->GetFeatures().PaddedSize<PushConstantData>())
+            .offset = 0,
+            .size = static_cast<UInt32>(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
-    layout_info.pushConstantRangeCount = uint32_t(std::size(push_constant_ranges));
-    layout_info.pPushConstantRanges    = push_constant_ranges;
+    layout_info.pushConstantRangeCount = static_cast<UInt32>(std::size(push_constant_ranges));
+    layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_PASS_ERRORS(
         vkCreatePipelineLayout(device->GetDevice(), &layout_info, VK_NULL_HANDLE, &layout),
@@ -92,13 +92,13 @@ Result RaytracingPipeline::Create(
 
     VkRayTracingPipelineCreateInfoKHR pipeline_info{VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR};
 
-    const auto &stages        = m_shader_program->GetShaderStages();
+    const auto &stages = m_shader_program->GetShaderStages();
     const auto &shader_groups = m_shader_program->GetShaderGroups();
 
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
     shader_group_create_infos.resize(shader_groups.size());
 
-    for (size_t i = 0; i < shader_groups.size(); i++) {
+    for (SizeType i = 0; i < shader_groups.size(); i++) {
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 

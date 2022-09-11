@@ -25,9 +25,11 @@ public:
 
     void Bind(CommandBuffer *command_buffer);
     void SubmitPushConstants(CommandBuffer *cmd) const;
-    void TraceRays(Device *device,
+    void TraceRays(
+        Device *device,
         CommandBuffer *command_buffer,
-        Extent3D extent) const;
+        Extent3D extent
+    ) const;
 
 private:
     struct ShaderBindingTableEntry {

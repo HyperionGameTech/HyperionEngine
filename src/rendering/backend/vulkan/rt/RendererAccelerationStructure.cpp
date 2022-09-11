@@ -570,8 +570,30 @@ Result TopLevelAccelerationStructure::RebuildMeshDescriptionsBuffer(Instance *in
 
 Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 {
+	Range<UInt> dirty_mesh_descriptions { };
+
+	for (UInt i = 0; i < static_cast<UInt>(m_blas.size()); i++) {
+		auto &blas = m_blas[i];
+		AssertThrow(blas != nullptr);
+
+		if (blas->GetFlags() & AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE) {
+			dirty_mesh_descriptions |= Range { i, i + 1 };
+		}
+
+		HYPERION_BUBBLE_ERRORS(blas->UpdateStructure(instance));
+
+		blas->ClearFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+	}
+
 	if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
 	    return Rebuild(instance);
+	} else if (dirty_mesh_descriptions) {
+		// copy mesh descriptions
+		return UpdateMeshDescriptionsBuffer(
+			instance,
+			dirty_mesh_descriptions.GetStart(),
+			dirty_mesh_descriptions.GetEnd()
+		);
 	}
 
 	HYPERION_RETURN_OK;

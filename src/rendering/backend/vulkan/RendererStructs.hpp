@@ -564,9 +564,10 @@ struct alignas(16) Extent3D
 
 static_assert(sizeof(Extent3D) == 16);
 
-struct PackedVertex
+
+struct alignas(16) PackedVertex
 {
-    float position_x,
+    Float32 position_x,
         position_y,
         position_z,
         normal_x,
@@ -576,15 +577,12 @@ struct PackedVertex
         texcoord0_y;
 };
 
-static_assert(sizeof(PackedVertex) % 16 == 0);
-
-struct MeshDescription
+struct alignas(16) MeshDescription
 {
     UInt64 vertex_buffer_address;
     UInt64 index_buffer_address;
+    UInt32 material_index;
 };
-
-static_assert(sizeof(MeshDescription) % 16 == 0);
 
 using PackedIndex = UInt32;
 
@@ -689,7 +687,8 @@ static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shade
 } // namespace hyperion
 
 template <>
-struct ::std::hash<hyperion::renderer::ImageSubResource> {
+struct ::std::hash<hyperion::renderer::ImageSubResource>
+{
     size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
     {
         hyperion::HashCode hc;

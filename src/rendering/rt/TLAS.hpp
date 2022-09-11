@@ -21,6 +21,8 @@ public:
     void AddBlas(Handle<Blas> &&blas);
 
     void Init(Engine *engine);
+    void Update(Engine *engine);
+    void UpdateRender(Engine *engine, Frame *frame);
 
 private:
     std::vector<Handle<Blas>> m_blas;
