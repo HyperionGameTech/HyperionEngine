@@ -447,25 +447,24 @@ struct alignas(16) Extent3D
 static_assert(sizeof(Extent3D) == 16);
 
 
-struct PackedVertex {
-    float position_x,
-          position_y,
-          position_z,
-          normal_x,
-          normal_y,
-          normal_z,
-          texcoord0_x,
-          texcoord0_y;
+struct alignas(16) PackedVertex
+{
+    Float32 position_x,
+        position_y,
+        position_z,
+        normal_x,
+        normal_y,
+        normal_z,
+        texcoord0_x,
+        texcoord0_y;
 };
 
-static_assert(sizeof(PackedVertex) % 16 == 0);
-
-struct MeshDescription {
+struct alignas(16) MeshDescription
+{
     UInt64 vertex_buffer_address;
     UInt64 index_buffer_address;
+    UInt32 material_index;
 };
-
-static_assert(sizeof(MeshDescription) % 16 == 0);
 
 using PackedIndex = UInt32;
 
@@ -479,12 +478,13 @@ enum ImageSubResourceFlags : ImageSubResourceFlagBits {
 };
 
 /* images */
-struct ImageSubResource {
+struct ImageSubResource
+{
     ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_COLOR;
-    UInt32 base_array_layer        = 0;
-    UInt32 base_mip_level          = 0;
-    UInt32 num_layers              = 1;
-    UInt32 num_levels              = 1;
+    UInt32 base_array_layer = 0;
+    UInt32 base_mip_level = 0;
+    UInt32 num_layers = 1;
+    UInt32 num_levels = 1;
 
     bool operator==(const ImageSubResource &other) const
     {
@@ -497,7 +497,8 @@ struct ImageSubResource {
 };
 
 template<class ...Args>
-class PerFrameData {
+class PerFrameData
+{
     struct FrameDataWrapper {
         std::tuple<std::unique_ptr<Args>...> tup;
 
@@ -567,7 +568,8 @@ static_assert(sizeof(IndirectDrawCommand) % 4 == 0, "IndirectDrawCommand must ha
 } // namespace hyperion
 
 template <>
-struct ::std::hash<hyperion::renderer::ImageSubResource> {
+struct ::std::hash<hyperion::renderer::ImageSubResource>
+{
     size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
     {
         hyperion::HashCode hc;

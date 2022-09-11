@@ -72,8 +72,8 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 
-#define HYPERION_VK_TEST_VCT 1
-#define HYPERION_VK_TEST_RAYTRACING 0
+#define HYPERION_VK_TEST_VCT 0
+#define HYPERION_VK_TEST_RAYTRACING 1
 #define HYPERION_RUN_TESTS 1
 
 namespace hyperion::v2 {
@@ -537,6 +537,9 @@ int main()
 
     auto *engine = new Engine(system, "My app");
 
+    
+
+
     engine->assets.SetBasePath(FileSystem::Join(HYP_ROOT_DIR, "..", "res"));
 
     auto *my_game = new MyGame;
@@ -668,9 +671,9 @@ int main()
         
         engine->AddRendererInstance(std::move(translucent_renderer_instance));
     }
-    
 
     my_game->Init(engine, window);
+
 
 #if HYPERION_VK_TEST_RAYTRACING
     auto rt_shader = std::make_unique<ShaderProgram>();
@@ -686,8 +689,18 @@ int main()
 
     auto rt = std::make_unique<RaytracingPipeline>(std::move(rt_shader));
 
+    auto tmp_asset = engine->assets.Load<Node>("models/ogrexml/dragger_Body.mesh.xml");
 
-    auto cube_obj = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
+    auto cube_obj = std::move(tmp_asset->GetChild(0).Get()->GetEntity()->GetMesh());//MeshBuilder::NormalizedCubeSphere(16).release());
+    auto cube_obj2 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
+    auto cube_obj3 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
+    auto cube_obj4 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
+
+    auto my_material = engine->CreateHandle<Material>();
+    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
+    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->CreateHandle<Texture>(engine->assets.Load<Texture>("textures/grass.jpg").release()));
+    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.4f, 0.7f, 1.0f));
+    engine->InitObject(my_material);
 
     ProbeGrid probe_system({
         .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
@@ -699,11 +712,41 @@ int main()
     
     my_tlas->AddBlas(engine->CreateHandle<Blas>(
         std::move(cube_obj),
+        Handle<Material>(my_material),
         Transform { Vector3 { 0, 7, 0 } }
     ));
 
+    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+        std::move(cube_obj2),
+        engine->CreateHandle<Material>(),
+        Transform { Vector3 { 0, 7, 4 } }
+    ));
+
+    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+        std::move(cube_obj3),
+        engine->CreateHandle<Material>(),
+        Transform { Vector3 { 4, 7, 0 } }
+    ));
+
+    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+        std::move(cube_obj4),
+        engine->CreateHandle<Material>(),
+        Transform { Vector3 { 4, 7, 4 } }
+    ));
+
+
     engine->InitObject(my_tlas);
-    
+
+    engine->InitObject(my_material);
+
+    engine->game_thread.ScheduleTask([engine, &my_tlas](...) {
+        my_tlas->Update(engine);
+    });
+
+
+    //my_tlas->Get().GetBlas()[0]->GetGeometries()[0]->SetMaterialIndex(1);
+    //my_tlas->Get().GetBlas()[0]->SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+
     Image *rt_image_storage = new StorageImage(
         Extent3D{1024, 1024, 1},
         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
@@ -719,8 +762,15 @@ int main()
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
         ->SetSubDescriptor({.image_view = &rt_image_storage_view});
     
+    // mesh descriptions
     auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(3);
-    rt_storage_buffer->SetSubDescriptor({.buffer = my_tlas->Get().GetMeshDescriptionsBuffer()});
+    rt_storage_buffer->SetSubDescriptor({ .buffer = my_tlas->Get().GetMeshDescriptionsBuffer() });
+
+    // materials
+    auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
+    rt_material_buffer->SetSubDescriptor({
+        .buffer = engine->shader_globals->materials.GetBuffers()[0].get()
+    });
 
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,
@@ -783,10 +833,14 @@ int main()
 
         my_game->OnFrameBegin(engine, frame);
 
+        // perform any updates to the tlas
+        my_tlas->UpdateRender(engine, frame);
+
         rt->Bind(frame->GetCommandBuffer());
     
         const auto scene_binding = engine->render_state.GetScene().id;
-        const auto scene_index   = scene_binding ? scene_binding.value - 1 : 0u;
+        const auto scene_index = scene_binding ? scene_binding.value - 1 : 0u;
+
         frame->GetCommandBuffer()->BindDescriptorSet(
             engine->GetInstance()->GetDescriptorPool(),
             rt.get(),
@@ -798,22 +852,26 @@ int main()
             }
         );
 
-        engine->GetInstance()->GetDescriptorPool().Bind(
-            engine->GetDevice(),
-            frame->GetCommandBuffer(),
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
             rt.get(),
-            {{
-                .set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
-                .count = 1
-            }}
+            DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS, frame->GetFrameIndex()),
+            DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
         );
+
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
+            rt.get(),
+            DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
+            DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
+        );
+
         rt->TraceRays(engine->GetDevice(), frame->GetCommandBuffer(), rt_image_storage->GetExtent());
         rt_image_storage->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
             GPUMemory::ResourceState::UNORDERED_ACCESS
         );
 
-        
         probe_system.RenderProbes(engine, frame);
         probe_system.ComputeIrradiance(engine, frame);
 

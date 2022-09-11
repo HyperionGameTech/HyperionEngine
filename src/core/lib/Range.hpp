@@ -13,24 +13,24 @@ class Range {
 public:
     using iterator = T;
 
-    Range()                             : m_start{}, m_end{} {}
+    Range() : m_start{}, m_end{} {}
     Range(const T &start, const T &end) : m_start(start), m_end(end) {}
-    Range(T &&start, T &&end)           : m_start(std::move(start)), m_end(std::move(end)) {}
+    Range(T &&start, T &&end) : m_start(std::move(start)), m_end(std::move(end)) {}
     Range(const Range &other) = default;
     Range &operator=(const Range &other) = default;
     Range(Range &&other) = default;
     Range &operator=(Range &&other) = default;
     ~Range() = default;
 
-    explicit operator bool() const      { return Distance() > 0; }
+    explicit operator bool() const { return Distance() > 0; }
 
-    const T &GetStart() const           { return m_start; }
-    void SetStart(const T &start)       { m_start = start; }
-    const T &GetEnd()   const           { return m_end; }
-    void SetEnd(const T &end)           { m_end = end; }
+    const T &GetStart() const { return m_start; }
+    void SetStart(const T &start) { m_start = start; }
+    const T &GetEnd() const { return m_end; }
+    void SetEnd(const T &end) { m_end = end; }
 
-    int64_t Distance() const            { return static_cast<int64_t>(m_end) - static_cast<int64_t>(m_start); }
-    int64_t Step() const                { return MathUtil::Sign(Distance()); }
+    int64_t Distance() const { return static_cast<int64_t>(m_end) - static_cast<int64_t>(m_start); }
+    int64_t Step() const { return MathUtil::Sign(Distance()); }
     bool Includes(const T &value) const { return value >= m_start && value < m_end; }
 
     Range operator|(const Range &other) const
@@ -60,7 +60,7 @@ public:
     Range &operator&=(const Range &other)
     {
         m_start = MathUtil::Max(m_start, other.m_start);
-        m_end   = MathUtil::Min(m_end, other.m_end);
+        m_end = MathUtil::Min(m_end, other.m_end);
 
         return *this;
     }
@@ -98,7 +98,7 @@ public:
     void Reset()
     {
         m_start = MathUtil::MaxSafeValue<T>();
-        m_end   = MathUtil::MinSafeValue<T>();
+        m_end  = MathUtil::MinSafeValue<T>();
     }
     
     iterator begin() const { return m_start; }

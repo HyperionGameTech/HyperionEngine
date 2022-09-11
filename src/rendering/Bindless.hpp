@@ -48,7 +48,8 @@ public:
     bool GetResourceIndex(const Texture *texture, UInt *out_index) const;
 
 private:
-    struct TextureResource {
+    struct TextureResource
+    {
         const Texture *texture;
         UInt resource_index;
     };

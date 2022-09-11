@@ -3,20 +3,27 @@
 
 #include <rendering/Base.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/Material.hpp>
 
 #include <math/Transform.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
 namespace hyperion::v2 {
 
 using renderer::BottomLevelAccelerationStructure;
-using renderer::AccelerationStructureFlags;
+using renderer::AccelerationStructureFlagBits;
+using renderer::Frame;
 
 class Blas : public EngineComponentWrapper<STUB_CLASS(Blas), BottomLevelAccelerationStructure>
 {
 public:
-    Blas(Handle<Mesh> &&mesh, const Transform &transform);
+    Blas(
+        Handle<Mesh> &&mesh,
+        Handle<Material> &&material,
+        const Transform &transform
+    );
     Blas(const Blas &other) = delete;
     Blas &operator=(const Blas &other) = delete;
     ~Blas();
@@ -25,20 +32,25 @@ public:
     const Handle<Mesh> &GetMesh() const { return m_mesh; }
     void SetMesh(Handle<Mesh> &&mesh);
 
-    const Transform &GetTransform() const         { return m_transform; }
+    Handle<Material> &GetMaterial() { return m_material; }
+    const Handle<Material> &GetMaterial() const { return m_material; }
+
+    const Transform &GetTransform() const { return m_transform; }
     void SetTransform(const Transform &transform);
 
     void Init(Engine *engine);
     void Update(Engine *engine);
+    void UpdateRender(Engine *engine, Frame *frame);
 
 private:
     void SetNeedsUpdate()
-        { m_wrapped.SetFlag(AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+        { m_wrapped.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     bool NeedsUpdate() const
-        { return m_wrapped.GetFlags() & AccelerationStructureFlags::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING; }
+        { return bool(m_wrapped.GetFlags()); }
 
     Handle<Mesh> m_mesh;
+    Handle<Material> m_material;
     Transform m_transform;
 };
 

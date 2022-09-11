@@ -11,7 +11,7 @@ AccelerationStructureBuilder::AccelerationStructureBuilder(std::vector<Handle<En
 std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> AccelerationStructureBuilder::Build(Engine *engine)
 {
     if (m_entities.empty()) {
-        return {};
+        return { };
     }
 
     std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> acceleration_structures(m_entities.size());
@@ -22,7 +22,8 @@ std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> AccelerationStruc
         if (auto &mesh = entity->GetMesh()) {
             geometry = std::make_unique<AccelerationGeometry>(
                 mesh->BuildPackedVertices(),
-                mesh->BuildPackedIndices()
+                mesh->BuildPackedIndices(),
+                0u // TODO
             );
         }
 

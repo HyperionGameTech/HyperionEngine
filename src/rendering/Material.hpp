@@ -71,7 +71,8 @@ public:
 
     struct Parameter
     {
-        union {
+        union
+        {
             float float_values[4];
             int int_values[4];
             void *ptr;

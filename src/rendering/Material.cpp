@@ -47,6 +47,8 @@ void Material::Init(Engine *engine)
 
     SetReady(true);
 
+    EnqueueRenderUpdates();
+
     OnTeardown([this]() {
         SetReady(false);
 
