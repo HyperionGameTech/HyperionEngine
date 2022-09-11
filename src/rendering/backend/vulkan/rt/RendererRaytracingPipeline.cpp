@@ -102,13 +102,13 @@ Result RaytracingPipeline::Create(
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 
-    pipeline_info.stageCount          = uint32_t(stages.size());
-    pipeline_info.pStages             = stages.data();
-    pipeline_info.groupCount          = uint32_t(shader_group_create_infos.size());
-    pipeline_info.pGroups             = shader_group_create_infos.data();
-    pipeline_info.layout              = layout;
+    pipeline_info.stageCount = static_cast<UInt32>(stages.size());
+    pipeline_info.pStages = stages.data();
+    pipeline_info.groupCount = static_cast<UInt32>(shader_group_create_infos.size());
+    pipeline_info.pGroups = shader_group_create_infos.data();
+    pipeline_info.layout = layout;
     pipeline_info.basePipelineHandle  = VK_NULL_HANDLE;
-    pipeline_info.basePipelineIndex   = -1;
+    pipeline_info.basePipelineIndex = -1;
     
     HYPERION_VK_PASS_ERRORS(
         device->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(
@@ -187,9 +187,11 @@ void RaytracingPipeline::SubmitPushConstants(CommandBuffer *cmd) const
     );
 }
 
-void RaytracingPipeline::TraceRays(Device *device,
+void RaytracingPipeline::TraceRays(
+    Device *device,
     CommandBuffer *command_buffer,
-    Extent3D extent) const
+    Extent3D extent
+) const
 {
     device->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
         command_buffer->GetCommandBuffer(),
@@ -208,25 +210,25 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device)
     const auto &features = device->GetFeatures();
     const auto &properties = features.GetRaytracingPipelineProperties();
 
-    const size_t handle_size = properties.shaderGroupHandleSize;
-    const size_t handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
-    const size_t table_size = shader_groups.size() * handle_size_aligned;
+    const UInt32 handle_size = properties.shaderGroupHandleSize;
+    const UInt32 handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
+    const UInt32 table_size = static_cast<UInt32>(shader_groups.size()) * handle_size_aligned;
 
-    std::vector<uint8_t> shader_handle_storage;
+    std::vector<UInt8> shader_handle_storage;
     shader_handle_storage.resize(table_size);
 
     HYPERION_VK_CHECK(features.dyn_functions.vkGetRayTracingShaderGroupHandlesKHR(
         device->GetDevice(),
         pipeline,
         0,
-        static_cast<uint32_t>(shader_groups.size()),
-        static_cast<uint32_t>(shader_handle_storage.size()),
+        static_cast<UInt32>(shader_groups.size()),
+        static_cast<UInt32>(shader_handle_storage.size()),
         shader_handle_storage.data()
     ));
 
     auto result = Result::OK;
 
-    size_t offset = 0;
+    UInt32 offset = 0;
 
     ShaderBindingTableMap buffers;
 
@@ -237,7 +239,7 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device)
 
 #define SHADER_PRESENT_IN_GROUP(type) (create_info.type != VK_SHADER_UNUSED_KHR ? 1 : 0)
 
-        const uint32_t shader_count = SHADER_PRESENT_IN_GROUP(generalShader)
+        const UInt32 shader_count = SHADER_PRESENT_IN_GROUP(generalShader)
             + SHADER_PRESENT_IN_GROUP(closestHitShader)
             + SHADER_PRESENT_IN_GROUP(anyHitShader)
             + SHADER_PRESENT_IN_GROUP(intersectionShader);
@@ -319,12 +321,12 @@ Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
 
     if (result) {
         /* Get strided device address region */
-        const uint32_t handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+        const UInt32 handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
         out.strided_device_address_region = VkStridedDeviceAddressRegionKHR{
             .deviceAddress = out.buffer->GetBufferDeviceAddress(device),
-            .stride        = handle_size,
-            .size          = num_shaders * handle_size
+            .stride = handle_size,
+            .size = num_shaders * handle_size
         };
     } else {
         out.buffer.reset();

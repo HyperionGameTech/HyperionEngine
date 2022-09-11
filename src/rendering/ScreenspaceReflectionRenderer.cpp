@@ -1,5 +1,6 @@
 #include "ScreenspaceReflectionRenderer.hpp"
-#include "../Engine.hpp"
+#include <Engine.hpp>
+#include <Threads.hpp>
 
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -23,11 +24,13 @@ ScreenspaceReflectionRenderer::~ScreenspaceReflectionRenderer()
 
 void ScreenspaceReflectionRenderer::Create(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     CreateComputePipelines(engine);
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        for (auto &image_output : m_ssr_image_outputs[i]) {
-            image_output = SSRImageOutput {
+        for (auto &image_output : m_image_outputs[i]) {
+            image_output = ImageOutput {
                 .image = std::make_unique<StorageImage>(
                     Extent3D(m_extent),
                     Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
@@ -40,7 +43,7 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
             image_output.Create(engine->GetDevice());
         }
 
-        m_ssr_radius_output[i] = SSRImageOutput {
+        m_radius_output[i] = ImageOutput {
             .image = std::make_unique<StorageImage>(
                 Extent3D(m_extent),
                 Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
@@ -50,7 +53,7 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
             .image_view = std::make_unique<ImageView>()
         };
 
-        m_ssr_radius_output[i].Create(engine->GetDevice());
+        m_radius_output[i].Create(engine->GetDevice());
     }
 
     CreateDescriptors(engine);
@@ -58,19 +61,21 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
 
 void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     m_is_rendered = false;
 
-    m_ssr_write_uvs.Reset();
-    m_ssr_sample.Reset();
-    m_ssr_blur_hor.Reset();
-    m_ssr_blur_vert.Reset();
+    m_write_uvs.Reset();
+    m_sample.Reset();
+    m_blur_hor.Reset();
+    m_blur_vert.Reset();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        for (UInt j = 0; j < static_cast<UInt>(m_ssr_image_outputs[i].size()); j++) {
-            m_ssr_image_outputs[i][j].Destroy(engine->GetDevice());
+        for (UInt j = 0; j < static_cast<UInt>(m_image_outputs[i].Size()); j++) {
+            m_image_outputs[i][j].Destroy(engine->GetDevice());
         }
 
-        m_ssr_radius_output[i].Destroy(engine->GetDevice());
+        m_radius_output[i].Destroy(engine->GetDevice());
     }
 }
 
@@ -84,69 +89,69 @@ void ScreenspaceReflectionRenderer::CreateDescriptors(Engine *engine)
         descriptor_set_pass // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_UV_IMAGE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][0].image_view.get()
+                .image_view = m_image_outputs[i][0].image_view.get()
             });
 
         descriptor_set_pass // 2nd stage -- sample
             ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_SAMPLE_IMAGE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][1].image_view.get()
+                .image_view = m_image_outputs[i][1].image_view.get()
             });
 
         descriptor_set_pass // 2nd stage -- write radii
             ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_RADIUS_IMAGE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_radius_output[i].image_view.get()
+                .image_view = m_radius_output[i].image_view.get()
             });
 
         descriptor_set_pass // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_IMAGE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][2].image_view.get()
+                .image_view = m_image_outputs[i][2].image_view.get()
             });
 
         descriptor_set_pass // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_IMAGE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][3].image_view.get()
+                .image_view = m_image_outputs[i][3].image_view.get()
             });
 
         /* SSR Data */
         descriptor_set_pass // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_UV_TEXTURE)
             ->SetSubDescriptor({
-               .image_view = m_ssr_image_outputs[i][0].image_view.get()
+               .image_view = m_image_outputs[i][0].image_view.get()
            });
 
         descriptor_set_pass // 2nd stage -- sample
             ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_SAMPLE_TEXTURE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][1].image_view.get()
+                .image_view = m_image_outputs[i][1].image_view.get()
            });
 
         descriptor_set_pass // 2nd stage -- write radii
             ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RADIUS_TEXTURE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_radius_output[i].image_view.get()
+                .image_view = m_radius_output[i].image_view.get()
            });
 
         descriptor_set_pass // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_TEXTURE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][2].image_view.get()
+                .image_view = m_image_outputs[i][2].image_view.get()
             });
 
         descriptor_set_pass // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_TEXTURE)
             ->SetSubDescriptor({
-                .image_view = m_ssr_image_outputs[i][3].image_view.get()
+                .image_view = m_image_outputs[i][3].image_view.get()
             });
     }
 }
 
 void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
 {
-    m_ssr_write_uvs = engine->CreateHandle<ComputePipeline>(
+    m_write_uvs = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_write_uvs.comp.spv")).Read()}}
@@ -154,9 +159,9 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         )
     );
 
-    engine->InitObject(m_ssr_write_uvs);
+    engine->InitObject(m_write_uvs);
 
-    m_ssr_sample = engine->CreateHandle<ComputePipeline>(
+    m_sample = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_sample.comp.spv")).Read()}}
@@ -164,9 +169,9 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         )
     );
 
-    engine->InitObject(m_ssr_sample);
+    engine->InitObject(m_sample);
 
-    m_ssr_blur_hor = engine->CreateHandle<ComputePipeline>(
+    m_blur_hor = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_blur_hor.comp.spv")).Read()}}
@@ -174,9 +179,9 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         )
     );
 
-    engine->InitObject(m_ssr_blur_hor);
+    engine->InitObject(m_blur_hor);
 
-    m_ssr_blur_vert = engine->CreateHandle<ComputePipeline>(
+    m_blur_vert = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/ssr/ssr_blur_vert.comp.spv")).Read()}}
@@ -184,7 +189,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
         )
     );
 
-    engine->InitObject(m_ssr_blur_vert);
+    engine->InitObject(m_blur_vert);
 }
 
 void ScreenspaceReflectionRenderer::Render(
@@ -220,14 +225,14 @@ void ScreenspaceReflectionRenderer::Render(
         }
     };
 
-    m_ssr_image_outputs[frame_index][0].image->GetGPUImage()
+    m_image_outputs[frame_index][0].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
 
-    m_ssr_write_uvs->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
+    m_write_uvs->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
     // bind `global` descriptor set
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_write_uvs->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_write_uvs->GetPipeline(),
         {
             {.set = DescriptorSet::global_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL}
@@ -235,7 +240,7 @@ void ScreenspaceReflectionRenderer::Render(
     );
 
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_write_uvs->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_write_uvs->GetPipeline(),
         {
             {.set = DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
@@ -248,26 +253,26 @@ void ScreenspaceReflectionRenderer::Render(
         }
     );
 
-    m_ssr_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
 
     // transition the UV image back into read state
-    m_ssr_image_outputs[frame_index][0].image->GetGPUImage()
+    m_image_outputs[frame_index][0].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
-    m_ssr_image_outputs[frame_index][1].image->GetGPUImage()
+    m_image_outputs[frame_index][1].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
     // put radius image in writeable state
-    m_ssr_radius_output[frame_index].image->GetGPUImage()
+    m_radius_output[frame_index].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
 
-    m_ssr_sample->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
+    m_sample->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
     // bind `global` descriptor set
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_sample->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_sample->GetPipeline(),
         {
             {.set = DescriptorSet::global_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL}
@@ -275,7 +280,7 @@ void ScreenspaceReflectionRenderer::Render(
     );
 
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_sample->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_sample->GetPipeline(),
         {
             {.set = DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
@@ -288,26 +293,26 @@ void ScreenspaceReflectionRenderer::Render(
         }
     );
 
-    m_ssr_sample->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
 
     // transition sample image back into read state
-    m_ssr_image_outputs[frame_index][1].image->GetGPUImage()
+    m_image_outputs[frame_index][1].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
     // transition radius image back into read state
-    m_ssr_radius_output[frame_index].image->GetGPUImage()
+    m_radius_output[frame_index].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
 
     // PASS 3 - blur image using radii in output from previous stage
 
     //put blur image in writeable state
-    m_ssr_image_outputs[frame_index][2].image->GetGPUImage()
+    m_image_outputs[frame_index][2].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
 
-    m_ssr_blur_hor->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
+    m_blur_hor->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
     // bind `global` descriptor set
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_blur_hor->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_blur_hor->GetPipeline(),
         {
             {.set = DescriptorSet::global_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL}
@@ -315,7 +320,7 @@ void ScreenspaceReflectionRenderer::Render(
     );
 
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_blur_hor->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_blur_hor->GetPipeline(),
         {
             {.set = DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
@@ -328,24 +333,24 @@ void ScreenspaceReflectionRenderer::Render(
         }
     );
 
-    m_ssr_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
 
     // transition blur image back into read state
-    m_ssr_image_outputs[frame_index][2].image->GetGPUImage()
+    m_image_outputs[frame_index][2].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
 
 
     // PASS 4 - blur image vertically
 
     //put blur image in writeable state
-    m_ssr_image_outputs[frame_index][3].image->GetGPUImage()
+    m_image_outputs[frame_index][3].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
 
-    m_ssr_blur_vert->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
+    m_blur_vert->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
     // bind `global` descriptor set
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_blur_vert->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_blur_vert->GetPipeline(),
         {
             {.set = DescriptorSet::global_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL}
@@ -353,7 +358,7 @@ void ScreenspaceReflectionRenderer::Render(
     );
 
     engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(), command_buffer, m_ssr_blur_vert->GetPipeline(),
+        engine->GetDevice(), command_buffer, m_blur_vert->GetPipeline(),
         {
             {.set = DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()], .count = 1},
             {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE},
@@ -366,10 +371,10 @@ void ScreenspaceReflectionRenderer::Render(
         }
     );
 
-    m_ssr_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
+    m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
 
     // transition blur image back into read state
-    m_ssr_image_outputs[frame_index][3].image->GetGPUImage()
+    m_image_outputs[frame_index][3].image->GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
 
 

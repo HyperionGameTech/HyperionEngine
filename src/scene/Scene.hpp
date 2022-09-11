@@ -55,9 +55,6 @@ public:
 
     World *GetWorld() const { return m_world; }
     void SetWorld(World *world);
-
-    Scene::ID GetParentId() const { return m_parent_id; }
-    void SetParentId(Scene::ID id) { m_parent_id = id; }
     
     void Init(Engine *engine);
 

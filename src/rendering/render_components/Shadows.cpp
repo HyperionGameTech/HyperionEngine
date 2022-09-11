@@ -39,15 +39,6 @@ void ShadowPass::CreateShader(Engine *engine)
     engine->InitObject(m_shader);
 }
 
-void ShadowPass::SetParentScene(Scene::ID id)
-{
-    m_parent_scene_id = id;
-
-    if (m_scene != nullptr) {
-        m_scene->SetParentId(m_parent_scene_id);
-    }
-}
-
 void ShadowPass::CreateRenderPass(Engine *engine)
 {
     /* Add the filters' renderpass */
@@ -238,8 +229,7 @@ void ShadowPass::Create(Engine *engine)
             -100.0f, 100.0f
         ))
     );
-
-    m_scene->SetParentId(m_parent_scene_id);
+    
     engine->InitObject(m_scene);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {

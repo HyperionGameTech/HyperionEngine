@@ -1,10 +1,11 @@
-#ifndef HYPERION_V2_SCREENSPACE_REFLECTION_RENDERER_H
-#define HYPERION_V2_SCREENSPACE_REFLECTION_RENDERER_H
+#ifndef HYPERION_V2_RT_BLUR_RADIANCE_HPP
+#define HYPERION_V2_RT_BLUR_RADIANCE_HPP
 
-#include "Compute.hpp"
 #include <Constants.hpp>
 
 #include <core/Containers.hpp>
+
+#include <rendering/Compute.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -27,13 +28,16 @@ using renderer::Extent2D;
 
 class Engine;
 
-class ScreenspaceReflectionRenderer
+class BlurRadiance
 {
 public:
-    ScreenspaceReflectionRenderer(const Extent2D &extent);
-    ~ScreenspaceReflectionRenderer();
-
-    bool IsRendered() const { return m_is_rendered; }
+    BlurRadiance(
+        const Extent2D &extent,
+        ImageView *radiance_image_view,
+        ImageView *data_image_view,
+        ImageView *depth_image_view
+    );
+    ~BlurRadiance();
 
     void Create(Engine *engine);
     void Destroy(Engine *engine);
@@ -49,8 +53,8 @@ private:
     
     struct ImageOutput
     {
-        std::unique_ptr<Image> image;
-        std::unique_ptr<ImageView> image_view;
+        UniquePtr<Image> image;
+        UniquePtr<ImageView> image_view;
 
         void Create(Device *device)
         {
@@ -58,7 +62,7 @@ private:
             AssertThrow(image_view != nullptr);
 
             HYPERION_ASSERT_RESULT(image->Create(device));
-            HYPERION_ASSERT_RESULT(image_view->Create(device, image.get()));
+            HYPERION_ASSERT_RESULT(image_view->Create(device, image.Get()));
         }
 
         void Destroy(Device *device)
@@ -72,16 +76,17 @@ private:
     };
 
     Extent2D m_extent;
+    ImageView *m_radiance_image_view;
+    ImageView *m_data_image_view;
+    ImageView *m_depth_image_view;
 
-    FixedArray<FixedArray<ImageOutput, 4>, max_frames_in_flight> m_image_outputs;
-    FixedArray<ImageOutput, max_frames_in_flight> m_radius_output;
-    
+    FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<FixedArray<ImageOutput, 2>, max_frames_in_flight> m_image_outputs;
+
     Handle<ComputePipeline> m_write_uvs;
     Handle<ComputePipeline> m_sample;
     Handle<ComputePipeline> m_blur_hor;
     Handle<ComputePipeline> m_blur_vert;
-
-    bool m_is_rendered;
 };
 
 } // namespace hyperion::v2

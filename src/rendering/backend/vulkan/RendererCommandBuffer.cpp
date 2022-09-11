@@ -182,7 +182,7 @@ void CommandBuffer::DrawIndexed(
 
 void CommandBuffer::DrawIndexedIndirect(
     const GPUBuffer *buffer,
-    UInt buffer_offset
+    UInt32 buffer_offset
 ) const
 {
     vkCmdDrawIndexedIndirect(
@@ -235,7 +235,7 @@ void CommandBuffer::BindDescriptorSet(
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
-    size_t num_offsets
+    SizeType num_offsets
 ) const
 {
     BindDescriptorSet(
@@ -254,9 +254,9 @@ void CommandBuffer::BindDescriptorSets(
     const GraphicsPipeline *pipeline,
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
-    size_t num_descriptor_sets,
+    SizeType num_descriptor_sets,
     const UInt32 *offsets,
-    size_t num_offsets
+    SizeType num_offsets
 ) const
 {
     BindDescriptorSets(

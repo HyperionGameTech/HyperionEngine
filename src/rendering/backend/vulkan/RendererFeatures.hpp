@@ -384,18 +384,18 @@ public:
     }
 
     template <class StructType>
-    constexpr size_t PaddedSize() const
+    constexpr UInt32 PaddedSize() const
     {
         return PaddedSize<StructType>(m_properties.limits.minUniformBufferOffsetAlignment);
     }
 
     template <class StructType>
-    constexpr size_t PaddedSize(size_t alignment) const
+    constexpr UInt32 PaddedSize(UInt32 alignment) const
     {
         return PaddedSize(sizeof(StructType), alignment);
     }
     
-    constexpr size_t PaddedSize(size_t size, size_t alignment) const
+    constexpr UInt32 PaddedSize(UInt32 size, UInt32 alignment) const
     {
         return alignment
             ? (size + alignment - 1) & ~(alignment - 1)

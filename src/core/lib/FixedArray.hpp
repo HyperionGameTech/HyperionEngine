@@ -12,7 +12,8 @@
 namespace hyperion {
 
 template <class T, SizeType Sz>
-class FixedArray : public ContainerBase<FixedArray<T, Sz>, UInt> {
+class FixedArray : public ContainerBase<FixedArray<T, Sz>, UInt>
+{
     T m_data[MathUtil::Max(Sz, 1)];
 
 public:
@@ -75,6 +76,22 @@ public:
     [[nodiscard]] HYP_FORCE_INLINE
     const T *Data() const
         { return static_cast<const T *>(m_data); }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    T &Front()
+        { return m_data[0]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    const T &Front() const
+        { return m_data[0]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    T &Back()
+        { return m_data[Sz - 1]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    const T &Back() const
+        { return m_data[Sz - 1]; }
 
     HYP_DEF_STL_BEGIN_END(&m_data[0], &m_data[Sz])
 };

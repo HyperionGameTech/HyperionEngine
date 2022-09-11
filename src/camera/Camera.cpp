@@ -123,7 +123,7 @@ Vector4 Camera::TransformNDCToWorld(const Vector3 &ndc) const
     Vector4 clip(ndc.x, ndc.y, -1.0f, 1.0f);
 
     Vector4 eye = m_proj_mat.Inverted() * clip;
-    eye         = Vector4(eye.x, eye.y, -1.0f, 0.0f);
+    eye = Vector4(eye.x, eye.y, -1.0f, 0.0f);
 
     return m_view_mat.Inverted() * eye;
 }

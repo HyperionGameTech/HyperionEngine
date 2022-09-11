@@ -21,7 +21,6 @@ struct RenderState
     struct SceneBinding
     {
         Scene::ID id;
-        Scene::ID parent_id;
 
         explicit operator bool() const { return bool(id); }
     };
@@ -51,7 +50,7 @@ struct RenderState
         scene_ids.push(
             scene == nullptr
                 ? SceneBinding { }
-                : SceneBinding { scene->GetID(), scene->GetParentId() }
+                : SceneBinding { scene->GetID() }
         );
     }
 

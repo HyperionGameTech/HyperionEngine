@@ -262,7 +262,7 @@ void Engine::Initialize()
     //SetThreadAffinityMask(GetCurrentThread(), (1 << 8));
 #endif
 
-    HYPERION_ASSERT_RESULT(m_instance->Initialize(true));
+    HYPERION_ASSERT_RESULT(m_instance->Initialize());
 
     FindTextureFormatDefaults();
 
@@ -418,6 +418,14 @@ void Engine::Initialize()
             ->SetSubDescriptor({
                 .element_index = 0,
                 .buffer = shader_globals->shadow_maps.GetBuffers()[frame_index].get()
+            });
+
+        // placeholder rt radiance image        
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+            ->SetSubDescriptor({
+                .element_index = 0,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
             });
     }
 
