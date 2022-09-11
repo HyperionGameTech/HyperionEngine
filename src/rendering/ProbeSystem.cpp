@@ -40,11 +40,12 @@ void ProbeGrid::Init(Engine *engine)
         for (UInt32 y = 0; y < grid.height; y++) {
             for (UInt32 z = 0; z < grid.depth; z++) {
                 const UInt32 index = x * grid.height * grid.depth
-                                     + y * grid.depth
-                                     + z;
+                    + y * grid.depth
+                    + z;
 
                 m_probes[index] = Probe{
-                    .position = (Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)) - (Vector(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
+                    .position = (Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z))
+                        - (Vector(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
                 };
             }
         }

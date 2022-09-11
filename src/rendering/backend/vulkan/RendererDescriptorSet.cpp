@@ -54,6 +54,9 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
 
             // sparse voxel octree buffer
             {DescriptorKey::SVO_BUFFER,            40}
+
+            // result from rt radiance image
+            {DescriptorKey::RT_RADIANCE_RESULT,    45}
         }
     },
     {

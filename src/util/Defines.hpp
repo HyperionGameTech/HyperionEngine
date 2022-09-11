@@ -195,6 +195,12 @@
 
 // conditionals
 
+#if HYP_DEBUG_MODE
+    #ifdef HYP_VULKAN
+        //#define HYP_VULKAN_DEBUG
+    #endif
+#endif
+
 #if defined(HYP_APPLE) && HYP_APPLE
     #define HYP_FEATURES_BINDLESS_TEXTURES 0
     #define HYP_FEATURES_ENABLE_RAYTRACING 0

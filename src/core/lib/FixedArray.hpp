@@ -94,6 +94,22 @@ public:
     const T *Data() const
         { return static_cast<const T *>(m_values); }
 
+    [[nodiscard]] HYP_FORCE_INLINE
+    T &Front()
+        { return m_values[0]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    const T &Front() const
+        { return m_values[0]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    T &Back()
+        { return m_values[Sz - 1]; }
+
+    [[nodiscard]] HYP_FORCE_INLINE
+    const T &Back() const
+        { return m_values[Sz - 1]; }
+
     HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[Sz])
 };
 

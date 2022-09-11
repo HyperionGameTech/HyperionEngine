@@ -54,8 +54,6 @@ public:
         }
     }
 
-    void SetParentScene(Scene::ID id);
-
     ShadowMode GetShadowMode() const { return m_shadow_mode; }
     void SetShadowMode(ShadowMode shadow_mode) { m_shadow_mode = shadow_mode; }
 
@@ -87,9 +85,9 @@ public:
 
     ImageView *GetShadowMap(UInt frame_index) const
     {
-        if (auto framebuffer = m_framebuffers[frame_index]) {
+        if (const auto &framebuffer = m_framebuffers[frame_index]) {
             if (!framebuffer->GetFramebuffer().GetAttachmentRefs().empty()) {
-                if (auto *attachment_ref = framebuffer->GetFramebuffer().GetAttachmentRefs().front()) {
+                if (const auto *attachment_ref = framebuffer->GetFramebuffer().GetAttachmentRefs().front()) {
                     return attachment_ref->GetImageView();
                 }
             }
@@ -114,7 +112,6 @@ private:
     ShadowMode m_shadow_mode;
     Handle<Scene> m_scene;
     Handle<Light> m_light;
-    Scene::ID m_parent_scene_id;
     Vector3 m_origin;
     Float m_max_distance;
     UInt m_shadow_map_index;
@@ -148,15 +145,6 @@ public:
 
     const Vector3 &GetOrigin() const { return m_shadow_pass.GetOrigin(); }
     void SetOrigin(const Vector3 &origin) { m_shadow_pass.SetOrigin(origin); }
-
-    void SetParentScene(const Handle<Scene> &parent_scene)
-    {
-        if (parent_scene != nullptr) {
-            m_shadow_pass.SetParentScene(parent_scene->GetID());
-        } else {
-            m_shadow_pass.SetParentScene(Scene::empty_id);
-        }
-    }
 
     void Init(Engine *engine);     // init on render thread
     void InitGame(Engine *engine); // init on game thread

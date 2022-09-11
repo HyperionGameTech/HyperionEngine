@@ -844,11 +844,6 @@ int main()
 
     auto cube_obj = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
 
-    auto my_material = engine->CreateHandle<Material>();
-    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
-    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->CreateHandle<Texture>(engine->assets.Load<Texture>("textures/grass.jpg").release()));
-    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.4f, 0.7f, 1.0f));
-    engine->InitObject(my_material);
 
     ProbeGrid probe_system({
         .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
@@ -856,6 +851,17 @@ int main()
     probe_system.Init(engine);
 
     auto my_tlas = engine->CreateHandle<Tlas>();//std::make_unique<Tlas>();
+    
+    auto my_material = engine->CreateHandle<Material>();
+    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
+    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->CreateHandle<Texture>(engine->assets.Load<Texture>("textures/grass.jpg").release()));
+    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    engine->InitObject(my_material);
+
+    auto my_material2 = engine->CreateHandle<Material>();
+    my_material2->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.1f);
+    my_material2->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 1.0f, 0.0f, 1.0f));
+    engine->InitObject(my_material2);
     
     
     my_tlas->AddBlas(engine->CreateHandle<Blas>(
@@ -866,7 +872,7 @@ int main()
 
     my_tlas->AddBlas(engine->CreateHandle<Blas>(
         std::move(cube_obj2),
-        engine->CreateHandle<Material>(),
+        std::move(my_material2),
         Transform { Vector3 { 0, 7, 4 } }
     ));
 
@@ -904,18 +910,41 @@ int main()
 
     ImageView rt_image_storage_view;
 
+    
+    Image *rt_normals_roughness_weight = new StorageImage(
+        Extent3D{1024, 1024, 1},
+        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+        Image::Type::TEXTURE_TYPE_2D,
+        nullptr
+    );
+    ImageView rt_normals_roughness_weight_view;
+
+    
+    Image *rt_depth_image = new StorageImage(
+        Extent3D{1024, 1024, 1},
+        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
+        Image::Type::TEXTURE_TYPE_2D,
+        nullptr
+    );
+
+    ImageView rt_depth_image_view;
+
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
-        ->SetSubDescriptor({.acceleration_structure = &my_tlas->Get()});
+        ->SetSubDescriptor({ .acceleration_structure = &my_tlas->Get() });
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
-        ->SetSubDescriptor({.image_view = &rt_image_storage_view});
+        ->SetSubDescriptor({ .image_view = &rt_image_storage_view });
+    rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(2)
+        ->SetSubDescriptor({ .image_view = &rt_normals_roughness_weight_view });
+    rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(3)
+        ->SetSubDescriptor({ .image_view = &rt_depth_image_view });
     
     // mesh descriptions
-    auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(3);
+    auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
     rt_storage_buffer->SetSubDescriptor({ .buffer = my_tlas->Get().GetMeshDescriptionsBuffer() });
 
     // materials
-    auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
+    auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(5);
     rt_material_buffer->SetSubDescriptor({
         .buffer = engine->shader_globals->materials.GetBuffers()[0].get()
     });
@@ -926,6 +955,23 @@ int main()
         GPUMemory::ResourceState::UNORDERED_ACCESS
     ));
     HYPERION_ASSERT_RESULT(rt_image_storage_view.Create(engine->GetDevice(), rt_image_storage));
+
+    HYPERION_ASSERT_RESULT(rt_normals_roughness_weight->Create(
+        device,
+        engine->GetInstance(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    ));
+    HYPERION_ASSERT_RESULT(rt_normals_roughness_weight_view.Create(engine->GetDevice(), rt_normals_roughness_weight));
+
+    HYPERION_ASSERT_RESULT(rt_depth_image->Create(
+        device,
+        engine->GetInstance(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    ));
+    HYPERION_ASSERT_RESULT(rt_depth_image_view.Create(engine->GetDevice(), rt_depth_image));
+
+
+
 #endif
 
     engine->Compile();
@@ -933,6 +979,11 @@ int main()
 #ifdef HYP_TEST_RT
     HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
 #endif
+
+    
+    BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
+    blur_radiance.Create(engine);
+
 
     engine->game_thread.Start(engine, my_game, window);
 
@@ -979,6 +1030,9 @@ int main()
         /* === rendering === */
         HYPERION_ASSERT_RESULT(frame->BeginCapture(engine->GetInstance()->GetDevice()));
 
+        // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
+        engine->render_state.visibility_cursor = engine->GetWorld().GetOctree().LoadPreviousVisibilityCursor();
+
         my_game->OnFrameBegin(engine, frame);
 
         if (auto *environment = engine->GetRenderState().GetScene().render_environment) {
@@ -1019,12 +1073,34 @@ int main()
             DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
             DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
         );
-
+        
+        rt_image_storage->GetGPUImage()->InsertBarrier(
+            frame->GetCommandBuffer(),
+            GPUMemory::ResourceState::UNORDERED_ACCESS
+        );
+        rt_normals_roughness_weight->GetGPUImage()->InsertBarrier(
+            frame->GetCommandBuffer(),
+            GPUMemory::ResourceState::UNORDERED_ACCESS
+        );
+        rt_depth_image->GetGPUImage()->InsertBarrier(
+            frame->GetCommandBuffer(),
+            GPUMemory::ResourceState::UNORDERED_ACCESS
+        );
         rt->TraceRays(engine->GetDevice(), frame->GetCommandBuffer(), rt_image_storage->GetExtent());
         rt_image_storage->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
             GPUMemory::ResourceState::UNORDERED_ACCESS
         );
+        rt_normals_roughness_weight->GetGPUImage()->InsertBarrier(
+            frame->GetCommandBuffer(),
+            GPUMemory::ResourceState::UNORDERED_ACCESS
+        );
+        rt_depth_image->GetGPUImage()->InsertBarrier(
+            frame->GetCommandBuffer(),
+            GPUMemory::ResourceState::UNORDERED_ACCESS
+        );
+
+        blur_radiance.Render(engine, frame);
 
         probe_system.RenderProbes(engine, frame);
         probe_system.ComputeIrradiance(engine, frame);
