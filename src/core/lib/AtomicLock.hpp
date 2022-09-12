@@ -20,15 +20,11 @@ public:
     AtomicLock &operator=(AtomicLock &&other) = delete;
     ~AtomicLock() = default;
 
-    HYP_FORCE_INLINE bool IsLocked() const { return m_semaphore.Count() != 0; }
-
-    HYP_FORCE_INLINE void Lock() { AssertThrow(!IsLocked()); m_semaphore.Inc(); }
-    HYP_FORCE_INLINE void Unlock() { AssertThrow(IsLocked());  m_semaphore.Dec(); }
-
-    HYP_FORCE_INLINE void Wait() const { m_semaphore.BlockUntilZero(); }
+    HYP_FORCE_INLINE void Lock() { m_semaphore.Wait(); }
+    HYP_FORCE_INLINE void Unlock() { m_semaphore.Signal(); }
 
 private:
-    AtomicSemaphore<UInt> m_semaphore;
+    BinarySemaphore m_semaphore;
 };
 
 class AtomicLocker {
@@ -42,18 +38,6 @@ public:
     ~AtomicLocker()
     {
         m_lock.Unlock();
-    }
-
-private:
-    AtomicLock &m_lock;
-};
-
-class AtomicWaiter {
-public:
-    AtomicWaiter(AtomicLock &lock)
-        : m_lock(lock)
-    {
-        m_lock.Wait();
     }
 
 private:

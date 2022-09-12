@@ -10,6 +10,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <animation/Skeleton.hpp>
+#include <rendering/rt/BLAS.hpp>
 #include <scene/VisibilityState.hpp>
 #include <scene/Controller.hpp>
 #include <math/Transform.hpp>
@@ -123,6 +124,18 @@ public:
         { return m_material; }
 
     void SetMaterial(Handle<Material> &&material);
+
+    Handle<BLAS> &GetBLAS()
+        { return m_blas; }
+
+    const Handle<BLAS> &GetBLAS() const
+        { return m_blas; }
+    
+    /*! \brief Creates a bottom level acceleration structure for this Entity. If one already exists on this Entity,
+     *  no action is performed and true is returned. If the BLAS could not be created, false is returned.
+     *  The Entity must be in a READY state to call this.
+     */
+    bool CreateBLAS();
 
     Node *GetParent() const
         { return m_node; }
@@ -270,6 +283,7 @@ private:
     BoundingBox m_world_aabb;
     Handle<Material> m_material;
     Handle<Skeleton> m_skeleton;
+    Handle<BLAS> m_blas;
     Node *m_node;
     Scene *m_scene;
 

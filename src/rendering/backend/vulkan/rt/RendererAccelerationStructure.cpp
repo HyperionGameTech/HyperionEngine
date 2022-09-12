@@ -570,6 +570,10 @@ Result TopLevelAccelerationStructure::RebuildMeshDescriptionsBuffer(Instance *in
 
 Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 {
+	if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
+	    return Rebuild(instance);
+	}
+
 	Range<UInt> dirty_mesh_descriptions { };
 
 	for (UInt i = 0; i < static_cast<UInt>(m_blas.size()); i++) {
@@ -585,9 +589,7 @@ Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 		blas->ClearFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
 	}
 
-	if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
-	    return Rebuild(instance);
-	} else if (dirty_mesh_descriptions) {
+    if (dirty_mesh_descriptions) {
 		// copy mesh descriptions
 		return UpdateMeshDescriptionsBuffer(
 			instance,

@@ -32,6 +32,12 @@ class Game
 public:
     Game();
     virtual ~Game();
+    
+    Handle<Scene> &GetScene()
+        { return m_scene; }
+
+    const Handle<Scene> &GetScene() const
+        { return m_scene; }
 
     virtual void Init(Engine *engine, SystemWindow *window) final;
     virtual void Update(Engine *engine, GameCounter::TickUnit delta) final;

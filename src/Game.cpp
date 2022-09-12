@@ -60,6 +60,9 @@ void Game::InitGame(Engine *engine)
 
 void Game::Teardown(Engine *engine)
 {
+    engine->GetWorld().RemoveScene(m_scene);
+    m_scene.Reset();
+
     m_is_init = false;
 }
 

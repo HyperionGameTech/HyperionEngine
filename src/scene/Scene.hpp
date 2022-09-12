@@ -6,6 +6,7 @@
 #include "Entity.hpp"
 #include "Octree.hpp"
 #include <core/Base.hpp>
+#include <rendering/rt/TLAS.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Light.hpp>
@@ -59,6 +60,20 @@ public:
     bool AddEnvProbe(Handle<EnvProbe> &&env_probe);
     bool AddEnvProbe(const Handle<EnvProbe> &env_probe);
     bool RemoveEnvProbe(EnvProbe::ID id);
+
+    /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
+    Handle<TLAS> &GetTLAS()
+        { return m_tlas; }
+    
+    /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
+    const Handle<TLAS> &GetTLAS() const
+        { return m_tlas; }
+
+    /*! \brief Creates a top level acceleration structure for this Scene. If one already exists on this Scene,
+     *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
+     *  The Scene must be in a READY state to call this.
+     */
+    bool CreateTLAS();
 
     /* ONLY CALL FROM GAME THREAD!!! */
     auto &GetEntities() { return m_entities; }
@@ -131,9 +146,10 @@ private:
     FlatSet<Entity::ID> m_entities_pending_removal;
     FlatSet<Handle<Entity>> m_entities_pending_addition;
 
+    // TODO: Move to RenderEnvironment
+    Handle<TLAS> m_tlas;
+
     Matrix4 m_last_view_projection_matrix;
-                                 
-    Scene::ID m_parent_id;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

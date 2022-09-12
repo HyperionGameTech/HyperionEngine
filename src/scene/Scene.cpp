@@ -3,6 +3,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/CubemapRenderer.hpp>
 
+#include "rendering/backend/vulkan/RendererFeatures.hpp"
+
 namespace hyperion::v2 {
 
 Scene::Scene(Handle<Camera> &&camera)
@@ -31,6 +33,7 @@ void Scene::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     engine->InitObject(m_camera);
+    engine->InitObject(m_tlas);
 
     for (auto &it : m_entities) {
         auto &entity = it.second;
@@ -105,6 +108,7 @@ void Scene::Init(Engine *engine)
         auto *engine = GetEngine();
 
         m_camera.Reset();
+        m_tlas.Reset();
 
         m_root_node_proxy.Get()->SetScene(nullptr);
 
@@ -360,6 +364,12 @@ void Scene::AddPendingEntities()
             }
         }
 
+        if (m_tlas) {
+            if (const auto &blas = entity->GetBLAS()) {
+                m_tlas->AddBLAS(Handle<BLAS>(blas));       
+            }
+        }
+
         m_environment->OnEntityAdded(entity);
         m_entities.Insert(static_cast<IDBase>(id), std::move(entity));
     }
@@ -400,6 +410,12 @@ void Scene::RemovePendingEntities()
                 : " no material ",
             m_id.value
         );
+
+        if (m_tlas) {
+            if (const auto &blas = found_entity->GetBLAS()) {
+                //m_tlas->RemoveBLAS(blas);
+            }
+        }
 
         m_environment->OnEntityRemoved(it->second);
         m_entities.Erase(it);
@@ -540,6 +556,8 @@ bool Scene::RemoveEnvProbe(EnvProbe::ID id)
 
 void Scene::ForceUpdate()
 {
+    AssertReady();
+
     Update(GetEngine(), 0.01f);
 }
 
@@ -559,7 +577,7 @@ void Scene::Update(
         AddPendingEntities();
     }
 
-    if (m_camera != nullptr) {
+    if (m_camera) {
         m_camera->Update(engine, delta);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
@@ -672,7 +690,7 @@ void Scene::EnqueueRenderUpdates()
             .num_lights = params.num_lights
         };
 
-        if (m_camera != nullptr) {
+        if (m_camera) {
             shader_data.view = m_camera->GetDrawProxy().view;
             shader_data.projection = m_camera->GetDrawProxy().projection;
             shader_data.camera_position = m_camera->GetDrawProxy().position.ToVector4();
@@ -709,5 +727,33 @@ void Scene::EnqueueRenderUpdates()
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }
+
+bool Scene::CreateTLAS()
+{
+    AssertReady();
+
+    if (m_tlas) {
+        // TLAS already exists
+        return true;
+    }
+    
+    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+        // cannot create TLAS is RT is not enabled or supported.
+        return false;
+    }
+
+    m_tlas = GetEngine()->CreateHandle<TLAS>();
+
+    /*if (GetEngine()->InitObject(m_tlas)) {
+        return true;
+    }
+
+    m_tlas.Reset();
+
+    return false;*/
+
+    return true;
+}
+
 
 } // namespace hyperion::v2

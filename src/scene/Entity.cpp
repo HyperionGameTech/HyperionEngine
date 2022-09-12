@@ -4,6 +4,8 @@
 #include <scene/Scene.hpp>
 #include <Engine.hpp>
 
+#include <rendering/backend/RendererFeatures.hpp>
+
 #include <script/ScriptApi.hpp>
 #include <script/ScriptBindingDef.hpp>
 
@@ -83,6 +85,7 @@ void Entity::Init(Engine *engine)
     engine->InitObject(m_shader);
     engine->InitObject(m_material);
     engine->InitObject(m_skeleton);
+    engine->InitObject(m_blas);
 
     // set our aabb to be the mesh aabb now that it is init
     if (engine->InitObject(m_mesh)) {
@@ -135,6 +138,7 @@ void Entity::Init(Engine *engine)
         m_controllers.Clear();
 
         m_material.Reset();
+        m_blas.Reset();
 
         WaitForRenderUpdatesToComplete();
         
@@ -395,6 +399,10 @@ void Entity::SetMaterial(Handle<Material> &&material)
         new_renderable_attributes.material_attributes = { };
     }
 
+    if (m_blas) {
+        m_blas->SetMaterial(Handle<Material>(m_material));
+    }
+
     SetRenderableAttributes(new_renderable_attributes);
 }
 
@@ -420,6 +428,10 @@ void Entity::SetParent(Node *node)
 void Entity::SetScene(Scene *scene)
 {
     if (m_scene != nullptr) {
+        if (m_blas) {
+            //m_scene->GetTLAS()->RemoveBLAS(m_blas);
+        }
+
         for (auto &controller : m_controllers) {
             AssertThrow(controller.second != nullptr);
 
@@ -430,6 +442,12 @@ void Entity::SetScene(Scene *scene)
     m_scene = scene;
 
     if (m_scene != nullptr) {
+        auto &tlas = m_scene->GetTLAS();
+
+        if (m_blas && tlas) {
+            tlas->AddBLAS(Handle<BLAS>(m_blas));
+        }
+
         for (auto &controller : m_controllers) {
             controller.second->OnAttachedToScene(m_scene);
         }
@@ -537,6 +555,10 @@ void Entity::SetTransform(const Transform &transform)
 
     if (IsInitCalled()) {
         UpdateOctree();
+
+        if (m_blas) {
+            m_blas->SetTransform(m_transform);
+        }
     } else {
         m_needs_octree_update = true;
     }
@@ -635,15 +657,46 @@ bool Entity::IsReady() const
     return Base::IsReady();
 }
 
-// static const ClassInitializer<STUB_CLASS(Entity)> entity_initializer([]() -> ClassFields {
-//     return ClassFields {
-//         {
-//             "$construct",
-//             BuiltinTypes::ANY,
-//             { { "self", BuiltinTypes::ANY } },
-//             CxxCtor< Ref<Entity> > 
-//         }
-//     };
-// });
+bool Entity::CreateBLAS()
+{
+    if (m_blas) {
+        return true;
+    }
+
+    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+        // cannot create BLAS is RT is not enabled or supported.
+        return false;
+    }
+
+    if (!IsRenderable()) {
+        // needs mesh, material, etc.
+        return false;
+    }
+
+    m_blas = GetEngine()->CreateHandle<BLAS>(
+        Handle<Mesh>(m_mesh),
+        Handle<Material>(m_material),
+        m_transform
+    );
+
+    if (IsInitCalled()) {
+        if (GetEngine()->InitObject(m_blas)) {
+            // add it to the scene if it exists
+            // otherwise, have to add to scene when the Entity is added to a scene
+
+            if (m_scene && m_scene->GetTLAS()) {
+                m_scene->GetTLAS()->AddBLAS(Handle<BLAS>(m_blas));
+            }
+
+            return true;
+        }
+
+        m_blas.Reset();
+
+        return false;
+    } else {
+        return true;
+    }
+}
 
 } // namespace hyperion::v2

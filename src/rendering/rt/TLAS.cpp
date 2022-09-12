@@ -3,38 +3,53 @@
 
 namespace hyperion::v2 {
 
-Tlas::Tlas()
+TLAS::TLAS()
     : EngineComponentWrapper()
 {
 }
 
-Tlas::~Tlas()
+TLAS::~TLAS()
 {
     Teardown();
 }
 
-void Tlas::AddBlas(Handle<Blas> &&blas)
+void TLAS::AddBLAS(Handle<BLAS> &&blas)
 {
-    if (blas == nullptr) {
+    if (!blas) {
         return;
     }
 
     if (IsInitCalled()) {
-        GetEngine()->InitObject(blas);
+        if (!GetEngine()->InitObject(blas)) {
+            // the blas could not be initialzied. not valid?
+            return;
+        }
     }
 
-    m_blas.push_back(std::move(blas));
+    std::lock_guard guard(m_blas_updates_mutex);
+
+    m_blas_pending_addition.PushBack(std::move(blas));
+    m_has_blas_updates.store(true);
 }
 
-void Tlas::Init(Engine *engine)
+void TLAS::Init(Engine *engine)
 {
     if (IsInitCalled()) {
         return;
     }
+    
+    // add all pending to be added to the list
+    if (m_has_blas_updates.load()) {
+        std::lock_guard guard(m_blas_updates_mutex);
 
-    std::vector<BottomLevelAccelerationStructure *> blas(m_blas.size());
+        m_blas.Concat(std::move(m_blas_pending_addition));
 
-    for (size_t i = 0; i < m_blas.size(); i++) {
+        m_has_blas_updates.store(false);
+    }
+
+    std::vector<BottomLevelAccelerationStructure *> blas(m_blas.Size());
+
+    for (SizeType i = 0; i < m_blas.Size(); i++) {
         AssertThrow(m_blas[i] != nullptr);
 
         engine->InitObject(m_blas[i]);
@@ -52,28 +67,45 @@ void Tlas::Init(Engine *engine)
     OnTeardown([this]() {
         SetReady(false);
 
-        m_blas.clear();
+        m_blas.Clear();
+
+        if (m_has_blas_updates.load()) {
+            m_blas_updates_mutex.lock();
+            m_blas_pending_addition.Clear();
+            m_blas_updates_mutex.unlock();
+            m_has_blas_updates.store(false);
+        }
 
         EngineComponentWrapper::Destroy(GetEngine());
     });
 }
 
-void Tlas::Update(Engine *engine)
+void TLAS::PerformBLASUpdates()
 {
-    //Threads::AssertOnThread(THREAD_GAME);
-    AssertReady();
+    std::lock_guard guard(m_blas_updates_mutex);
 
-    for (auto &blas : m_blas) {
-        AssertThrow(blas != nullptr);
+    while (m_blas_pending_addition.Any()) {
+        auto blas = m_blas_pending_addition.PopFront();
+        AssertThrow(blas);
 
-        blas->Update(engine);
+        m_wrapped.AddBLAS(&blas->Get());
+
+        m_blas.PushBack(std::move(blas));
     }
+
+    m_has_blas_updates.store(false);
 }
 
-void Tlas::UpdateRender(Engine *engine, Frame *frame)
+void TLAS::UpdateRender(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
+
+    return;
+
+    if (m_has_blas_updates.load()) {
+        PerformBLASUpdates();
+    }
     
     for (auto &blas : m_blas) {
         AssertThrow(blas != nullptr);

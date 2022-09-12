@@ -83,7 +83,6 @@ public:
     /*! \brief Called when an entity has meaningful attributes changed. Runs in RENDER thread. */
     virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) { };
 
-
 protected:
     RenderComponentName m_name;
     const UInt m_render_frame_slicing; // amount of frames to wait between render calls
