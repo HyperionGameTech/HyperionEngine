@@ -97,16 +97,12 @@ public:
 
     virtual void InitGame(Engine *engine) override
     {
-        m_scene = engine->CreateHandle<Scene>(
-            engine->CreateHandle<Camera>(new FirstPersonCamera(//FollowCamera(
-                //Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
-                2048, 2048,//2048, 1080,
-                75.0f,
-                0.5f, 30000.0f
-            ))
-        );
-
-        engine->GetWorld().AddScene(Handle<Scene>(m_scene));
+        m_scene->SetCamera(engine->CreateHandle<Camera>(new FirstPersonCamera(//FollowCamera(
+            //Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
+            2048, 2048,//2048, 1080,
+            75.0f,
+            0.5f, 30000.0f
+        )));
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
@@ -182,7 +178,9 @@ public:
         material_test_obj->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_PARALLAX_HEIGHT, 0.1f);
         material_test_obj->Scale(6.45f);
         material_test_obj->Translate(Vector3(0, 9, 0));
-        //m_scene->GetRoot().AddChild(NodeProxy(material_test_obj.release()));
+        engine->InitObject(material_test_obj->GetChild(0).Get()->GetEntity());
+        material_test_obj->GetChild(0).Get()->GetEntity()->CreateBLAS();
+        m_scene->GetRoot().AddChild(NodeProxy(material_test_obj.release()));
 
         // remove textures so we can manipulate the material and see our changes easier
         //material_test_obj->GetChild(0)->GetEntity()->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, nullptr);
@@ -320,9 +318,6 @@ public:
 
     virtual void Teardown(Engine *engine) override
     {
-        engine->GetWorld().RemoveScene(m_scene->GetID());
-        m_scene.Reset();
-
         Game::Teardown(engine);
     }
 
@@ -675,8 +670,9 @@ int main()
 
     my_game->Init(engine, window);
 
-
 #if HYPERION_VK_TEST_RAYTRACING
+    AssertThrow(my_game->GetScene()->CreateTLAS());
+
     auto rt_shader = std::make_unique<ShaderProgram>();
     rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_GEN, {
         FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/test.rgen.spv")).Read()
@@ -702,8 +698,6 @@ int main()
         .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
     });
     probe_system.Init(engine);
-
-    auto my_tlas = engine->CreateHandle<Tlas>();//std::make_unique<Tlas>();
     
     auto my_material = engine->CreateHandle<Material>();
     my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
@@ -717,38 +711,33 @@ int main()
     engine->InitObject(my_material2);
     
     
-    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
         std::move(cube_obj),
         Handle<Material>(my_material),
         Transform { Vector3 { 0, 7, 0 } }
     ));
 
-    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
         std::move(cube_obj2),
         std::move(my_material2),
         Transform { Vector3 { 0, 7, 4 } }
     ));
 
-    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
         std::move(cube_obj3),
         engine->CreateHandle<Material>(),
         Transform { Vector3 { 4, 7, 0 } }
     ));
 
-    my_tlas->AddBlas(engine->CreateHandle<Blas>(
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
         std::move(cube_obj4),
         engine->CreateHandle<Material>(),
         Transform { Vector3 { 4, 7, 4 } }
     ));
 
-
-    engine->InitObject(my_tlas);
-
     engine->InitObject(my_material);
 
-    engine->game_thread.ScheduleTask([engine, &my_tlas](...) {
-        my_tlas->Update(engine);
-    });
+    engine->InitObject(my_game->GetScene()->GetTLAS());
 
 
     //my_tlas->Get().GetBlas()[0]->GetGeometries()[0]->SetMaterialIndex(1);
@@ -784,7 +773,7 @@ int main()
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
-        ->SetSubDescriptor({ .acceleration_structure = &my_tlas->Get() });
+        ->SetSubDescriptor({ .acceleration_structure = &my_game->GetScene()->GetTLAS()->Get() });
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
         ->SetSubDescriptor({ .image_view = &rt_image_storage_view });
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(2)
@@ -794,7 +783,7 @@ int main()
     
     // mesh descriptions
     auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
-    rt_storage_buffer->SetSubDescriptor({ .buffer = my_tlas->Get().GetMeshDescriptionsBuffer() });
+    rt_storage_buffer->SetSubDescriptor({ .buffer = my_game->GetScene()->GetTLAS()->Get().GetMeshDescriptionsBuffer() });
 
     // materials
     auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(5);
@@ -884,12 +873,9 @@ int main()
         HYPERION_ASSERT_RESULT(frame->BeginCapture(engine->GetInstance()->GetDevice()));
 
         // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
-        engine->render_state.visibility_cursor = engine->GetWorld().GetOctree().LoadPreviousVisibilityCursor();
+        engine->GetWorld().Render(engine, frame);
 
         my_game->OnFrameBegin(engine, frame);
-
-        // perform any updates to the tlas
-        my_tlas->UpdateRender(engine, frame);
 
         rt->Bind(frame->GetCommandBuffer());
     

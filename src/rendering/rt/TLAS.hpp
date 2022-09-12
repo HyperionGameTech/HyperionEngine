@@ -2,30 +2,44 @@
 #define HYPERION_V2_TLAS_H
 
 #include <rendering/Base.hpp>
+#include <core/Containers.hpp>
+#include <core/lib/AtomicSemaphore.hpp>
 #include "BLAS.hpp"
 
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
+
+#include <mutex>
+#include <atomic>
 
 namespace hyperion::v2 {
 
 using renderer::TopLevelAccelerationStructure;
 
-class Tlas : public EngineComponentWrapper<STUB_CLASS(Tlas), TopLevelAccelerationStructure>
+class TLAS : public EngineComponentWrapper<STUB_CLASS(TLAS), TopLevelAccelerationStructure>
 {
 public:
-    Tlas();
-    Tlas(const Tlas &other) = delete;
-    Tlas &operator=(const Tlas &other) = delete;
-    ~Tlas();
+    TLAS();
+    TLAS(const TLAS &other) = delete;
+    TLAS &operator=(const TLAS &other) = delete;
+    ~TLAS();
 
-    void AddBlas(Handle<Blas> &&blas);
+    void AddBLAS(Handle<BLAS> &&blas);
 
     void Init(Engine *engine);
-    void Update(Engine *engine);
+
+    /*! \brief Update the TLAS on the RENDER thread, performing any
+     * updates to the structure. This is also called for each BLAS underneath this.
+     */
     void UpdateRender(Engine *engine, Frame *frame);
 
 private:
-    std::vector<Handle<Blas>> m_blas;
+    void PerformBLASUpdates();
+
+    DynArray<Handle<BLAS>> m_blas;
+    DynArray<Handle<BLAS>> m_blas_pending_addition;
+
+    std::atomic_bool m_has_blas_updates { false };
+    std::mutex m_blas_updates_mutex;
 };
 
 } // namespace hyperion::v2

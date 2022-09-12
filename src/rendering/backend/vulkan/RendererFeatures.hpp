@@ -407,6 +407,8 @@ public:
     bool IsRaytracingDisabled() const { return !SupportsRaytracing() || m_is_raytracing_disabled; }
     void SetIsRaytracingDisabled(bool is_raytracing_disabled) { m_is_raytracing_disabled = is_raytracing_disabled; }
 
+    bool IsRaytracingEnabled() const { return SupportsRaytracing() && !m_is_raytracing_disabled; }
+
     bool SupportsRaytracing() const
     {
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING

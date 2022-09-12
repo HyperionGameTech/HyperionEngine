@@ -33,8 +33,8 @@ public:
     void SetRenderSurface(const VkSurfaceKHR &surface);
     void SetRequiredExtensions(const ExtensionMap &extensions);
 
-    VkDevice         GetDevice();
-    VkSurfaceKHR     GetRenderSurface();
+    VkDevice GetDevice();
+    VkSurfaceKHR GetRenderSurface();
     VkPhysicalDevice GetPhysicalDevice();
 
     void DebugLogAllocatorStats() const;

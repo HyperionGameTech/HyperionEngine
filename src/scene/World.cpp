@@ -20,16 +20,22 @@ void World::Init(Engine *engine)
     if (IsInitCalled()) {
         return;
     }
+
+    if (m_has_scene_updates.load()) {
+        PerformSceneUpdates();
+    }
+
+    for (auto &scene : m_scenes) {
+        engine->InitObject(scene);
+    }
     
     EngineComponentBase::Init(engine);
 
     SetReady(true);
 
     OnTeardown([this]() {
-        for (auto &it : m_scenes) {
-            auto &scene = it.second;
-
-            if (scene == nullptr) {
+        for (auto &scene : m_scenes) {
+            if (!scene) {
                 continue;
             }
 
@@ -40,6 +46,35 @@ void World::Init(Engine *engine)
 
         SetReady(false);
     });
+}
+
+void World::PerformSceneUpdates()
+{
+    std::lock_guard guard(m_scene_update_mutex);
+
+    for (auto &scene : m_scenes_pending_removal) {
+        if (scene) {
+            scene->SetWorld(nullptr);
+        }
+
+        m_scenes.Erase(scene);
+    }
+
+    m_scenes_pending_removal.Clear();
+
+    for (auto &scene : m_scenes_pending_addition) {
+        if (!scene) {
+            continue;
+        }
+
+        scene->SetWorld(this);
+
+        m_scenes.Insert(std::move(scene));
+    }
+
+    m_scenes_pending_addition.Clear();
+
+    m_has_scene_updates.store(false);
 }
 
 void World::Update(
@@ -53,19 +88,39 @@ void World::Update(
 
     m_octree.NextVisibilityState();
 
-    for (auto &it : m_scenes) {
-        auto &scene = it.second;
-        AssertThrow(scene != nullptr);
+    if (m_has_scene_updates.load()) {
+        PerformSceneUpdates();
+    }
+
+    for (auto &scene : m_scenes) {
 
         scene->Update(engine, delta);
     }
 }
 
+void World::Render(
+    Engine *engine,
+    Frame *frame
+)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    AssertReady();
+
+    // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
+    engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
+
+    // for each Scene, update the TLAS
+    for (auto &scene : m_scenes) {
+        if (const auto &tlas = scene->GetTLAS()) {
+            tlas->UpdateRender(engine, frame);
+        }
+    }
+}
+
 void World::AddScene(Handle<Scene> &&scene)
 {
-    Threads::AssertOnThread(THREAD_GAME);
-
-    if (scene == nullptr) {
+    if (!scene) {
         return;
     }
 
@@ -73,29 +128,24 @@ void World::AddScene(Handle<Scene> &&scene)
         GetEngine()->InitObject(scene);
     }
 
-    scene->SetWorld(this);
+    std::lock_guard guard(m_scene_update_mutex);
 
-    const auto scene_id = scene->GetID();
-    m_scenes.Insert(scene_id, std::move(scene));
+    m_scenes_pending_addition.Insert(std::move(scene));
+
+    m_has_scene_updates.store(true);
 }
 
-void World::RemoveScene(Scene::ID scene_id)
+void World::RemoveScene(const Handle<Scene> &scene)
 {
-    Threads::AssertOnThread(THREAD_GAME);
-
-    auto it = m_scenes.Find(scene_id);
-
-    if (it == m_scenes.End()) {
+    if (!scene) {
         return;
     }
 
-    auto &scene = it->second;
+    std::lock_guard guard(m_scene_update_mutex);
 
-    if (scene != nullptr) {
-        scene->SetWorld(nullptr);
-    }
+    m_scenes_pending_removal.Insert(scene);
 
-    m_scenes.Erase(it);
+    m_has_scene_updates.store(true);
 }
 
 } // namespace hyperion::v2

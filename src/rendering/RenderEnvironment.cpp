@@ -244,11 +244,13 @@ void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
         it.second->Update(engine, delta);
     }
 
-    HYP_USED AtomicWaiter waiter(m_updating_render_components);
+    m_render_component_sp.Wait();
 
     for (const auto &component : m_render_components) {
         component.second->ComponentUpdate(engine, delta);
     }
+
+    m_render_component_sp.Signal();
 }
 
 void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)
@@ -410,8 +412,6 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
     // initialization tasks before we call ComponentRender() on the newly added RenderComponents
 
     if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-        AtomicLocker locker(m_updating_render_components);
-
         m_render_component_sp.Wait();
 
         for (auto &it : m_render_components_pending_addition) {

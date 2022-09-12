@@ -174,9 +174,9 @@ public:
 
     AccelerationStructureType GetType() const { return AccelerationStructureType::TOP_LEVEL; }
     StorageBuffer *GetMeshDescriptionsBuffer() const { return m_mesh_descriptions_buffer.get(); }
-    
-    auto &GetBlas()  { return m_blas; }
-    const auto &GetBlas() const  { return m_blas; }
+
+    void AddBLAS(BottomLevelAccelerationStructure *blas);
+    void RemoveBLAS(BottomLevelAccelerationStructure *blas);
     
     Result Create(
         Device *device,

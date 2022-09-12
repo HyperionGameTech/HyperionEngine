@@ -28,6 +28,11 @@ void Game::Init(Engine *engine, SystemWindow *window)
 
     m_input_manager = new InputManager(window);
 
+    m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
+    AssertThrow(engine->InitObject(m_scene));
+
+    engine->GetWorld().AddScene(Handle<Scene>(m_scene));
+
     m_is_init = true;
 }
 
@@ -43,6 +48,9 @@ void Game::InitGame(Engine *engine)
 
 void Game::Teardown(Engine *engine)
 {
+    engine->GetWorld().RemoveScene(m_scene);
+    m_scene.Reset();
+
     m_is_init = false;
 }
 

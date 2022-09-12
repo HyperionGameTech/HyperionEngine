@@ -30,6 +30,12 @@ class Game {
 public:
     Game();
     virtual ~Game();
+    
+    Handle<Scene> &GetScene()
+        { return m_scene; }
+
+    const Handle<Scene> &GetScene() const
+        { return m_scene; }
 
     virtual void Init(Engine *engine, SystemWindow *window) final;
     virtual void Teardown(Engine *engine);
@@ -45,12 +51,6 @@ public:
     virtual void OnInputEvent(Engine *engine, const SystemEvent &event);
 
 protected:
-    Handle<Scene> &GetScene()
-        { return m_scene; }
-
-    const Handle<Scene> &GetScene() const
-        { return m_scene; }
-
     InputManager *GetInputManager() const
         { return m_input_manager; }
 

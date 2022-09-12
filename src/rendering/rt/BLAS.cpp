@@ -3,7 +3,7 @@
 
 namespace hyperion::v2 {
 
-Blas::Blas(
+BLAS::BLAS(
     Handle<Mesh> &&mesh,
     Handle<Material> &&material,
     const Transform &transform
@@ -14,13 +14,15 @@ Blas::Blas(
 {
 }
 
-Blas::~Blas()
+BLAS::~BLAS()
 {
     Teardown();
 }
 
-void Blas::SetMesh(Handle<Mesh> &&mesh)
+void BLAS::SetMesh(Handle<Mesh> &&mesh)
 {
+    // TODO: thread safety
+
     m_mesh = std::move(mesh);
 
     if (!m_wrapped.GetGeometries().empty()) {
@@ -48,8 +50,39 @@ void Blas::SetMesh(Handle<Mesh> &&mesh)
     }
 }
 
-void Blas::SetTransform(const Transform &transform)
+void BLAS::SetMaterial(Handle<Material> &&material)
 {
+    // TODO: thread safety
+
+    m_material = std::move(material);
+
+    if (IsInitCalled()) {
+        auto material_id = m_material
+            ? m_material->GetID()
+            : Material::empty_id;
+        
+        const auto material_index = material_id
+            ? material_id.value - 1
+            : 0u;
+
+        if (!m_wrapped.GetGeometries().empty()) {
+            for (auto &geometry : m_wrapped.GetGeometries()) {
+                if (!geometry) {
+                    continue;
+                }
+
+                geometry->SetMaterialIndex(material_index);
+            }
+
+            m_wrapped.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+        }
+    }
+}
+
+void BLAS::SetTransform(const Transform &transform)
+{
+    // TODO: thread safety
+
     m_transform = transform;
 
     if (IsInitCalled()) {
@@ -57,7 +90,7 @@ void Blas::SetTransform(const Transform &transform)
     }
 }
 
-void Blas::Init(Engine *engine)
+void BLAS::Init(Engine *engine)
 {
     if (IsInitCalled()) {
         return;
@@ -102,19 +135,12 @@ void Blas::Init(Engine *engine)
     });
 }
 
-void Blas::Update(Engine *engine)
+void BLAS::Update(Engine *engine)
 {
-    Threads::AssertOnThread(THREAD_GAME);
-    AssertReady();
-
-    // TODO: Should these be removed?
-    // Entity will already Update Mesh and Material, as well as BLAS.
-    if (m_material) {
-        m_material->Update(engine);
-    }
+    // no-op
 }
 
-void Blas::UpdateRender(Engine *engine, Frame *frame)
+void BLAS::UpdateRender(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();

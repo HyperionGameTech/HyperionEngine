@@ -393,7 +393,7 @@ std::vector<VkAccelerationStructureGeometryKHR> TopLevelAccelerationStructure::G
 	};
 }
 
-std::vector<uint32_t> TopLevelAccelerationStructure::GetPrimitiveCounts() const
+std::vector<UInt32> TopLevelAccelerationStructure::GetPrimitiveCounts() const
 {
     return { static_cast<UInt32>(m_blas.size()) };
 }
@@ -407,9 +407,14 @@ Result TopLevelAccelerationStructure::Create(
 	AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
 	AssertThrow(m_instances_buffer == nullptr);
 
+    auto result = Result::OK;
+
 	m_blas = std::move(blas);
 
-    auto result = Result::OK;
+	if (m_blas.empty()) {
+	    // no BLASes in here to create any buffers for
+		AssertThrowMsg(false, "Cannot create TLAS without any BLASes. This will be fixed, for now it is not valid");
+	}
 
 	HYPERION_BUBBLE_ERRORS(CreateOrRebuildInstancesBuffer(instance));
 
@@ -465,6 +470,24 @@ Result TopLevelAccelerationStructure::Destroy(Device *device)
 	);
 
 	return result;
+}
+
+void TopLevelAccelerationStructure::AddBLAS(BottomLevelAccelerationStructure *blas)
+{
+	m_blas.push_back(blas);
+
+    SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+}
+
+void TopLevelAccelerationStructure::RemoveBLAS(BottomLevelAccelerationStructure *blas)
+{
+    auto it = std::find(m_blas.begin(), m_blas.end(), blas);
+
+	if (it != m_blas.end()) {
+	    m_blas.erase(it);
+
+		SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+	}
 }
 
 Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *instance)
@@ -596,6 +619,10 @@ Result TopLevelAccelerationStructure::RebuildMeshDescriptionsBuffer(Instance *in
 
 Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 {
+	if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
+	    return Rebuild(instance);
+	}
+
 	Range<UInt> dirty_mesh_descriptions { };
 
 	for (UInt i = 0; i < static_cast<UInt>(m_blas.size()); i++) {
@@ -611,9 +638,7 @@ Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 		blas->ClearFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
 	}
 
-	if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
-	    return Rebuild(instance);
-	} else if (dirty_mesh_descriptions) {
+    if (dirty_mesh_descriptions) {
 		// copy mesh descriptions
 		return UpdateMeshDescriptionsBuffer(
 			instance,

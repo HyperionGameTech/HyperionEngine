@@ -16,17 +16,17 @@ using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlagBits;
 using renderer::Frame;
 
-class Blas : public EngineComponentWrapper<STUB_CLASS(Blas), BottomLevelAccelerationStructure>
+class BLAS : public EngineComponentWrapper<STUB_CLASS(BLAS), BottomLevelAccelerationStructure>
 {
 public:
-    Blas(
+    BLAS(
         Handle<Mesh> &&mesh,
         Handle<Material> &&material,
         const Transform &transform
     );
-    Blas(const Blas &other) = delete;
-    Blas &operator=(const Blas &other) = delete;
-    ~Blas();
+    BLAS(const BLAS &other) = delete;
+    BLAS &operator=(const BLAS &other) = delete;
+    ~BLAS();
     
     Handle<Mesh> &GetMesh() { return m_mesh; }
     const Handle<Mesh> &GetMesh() const { return m_mesh; }
@@ -34,6 +34,7 @@ public:
 
     Handle<Material> &GetMaterial() { return m_material; }
     const Handle<Material> &GetMaterial() const { return m_material; }
+    void SetMaterial(Handle<Material> &&material);
 
     const Transform &GetTransform() const { return m_transform; }
     void SetTransform(const Transform &transform);

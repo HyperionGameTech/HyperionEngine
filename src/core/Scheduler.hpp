@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_CORE_SCHEDULER_H
 #define HYPERION_V2_CORE_SCHEDULER_H
 
-#define HYP_SCHEDULER_USE_ATOMIC_LOCK 0
+#define HYP_SCHEDULER_USE_ATOMIC_LOCK 1
 
 #include "lib/AtomicSemaphore.hpp"
 #include "lib/DynArray.hpp"

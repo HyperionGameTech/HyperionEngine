@@ -28,13 +28,8 @@ class Engine;
 struct Resources {
 #define HYP_DEF_REF_COUNTED(class_name, member_name) \
     RefCounter<class_name, Engine *> member_name
-
-    HYP_DEF_REF_COUNTED(Framebuffer,       framebuffers);
-    HYP_DEF_REF_COUNTED(RenderPass,        render_passes);
-    HYP_DEF_REF_COUNTED(Entity,            entities);
-    HYP_DEF_REF_COUNTED(Blas,              blas);
+    
     HYP_DEF_REF_COUNTED(EnvProbe,          env_probes);
-    //HYP_DEF_REF_COUNTED(UIObject,          ui_objects);
 
 #undef HYP_DEF_REF_COUNTED
 
