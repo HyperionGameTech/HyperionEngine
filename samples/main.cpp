@@ -30,8 +30,6 @@
 #include <GameThread.hpp>
 #include <Game.hpp>
 
-#include <script/compiler/JitCompiler.hpp>
-
 #include <terrain/controllers/TerrainPagingController.hpp>
 
 #include <rendering/vct/VoxelConeTracing.hpp>
@@ -545,27 +543,8 @@ int main()
 {
     using namespace hyperion::renderer;
 
-    Page page;
-    CompilerAMD64 c64;
 
-    page.SetData(c64.StartFunction());
-    page.SetData(c64.BuildMov64(5, R_RAX));
-    page.SetData(c64.BuildAdd64(R_RAX, 10));
-    page.SetData(c64.EndFunction());
-    page.Protect();
 
-    uint8_t *data = page.GetData();
-    for (int i = 0; i < page.m_offset ; i++) {
-        printf("0x%X ", data[i]);
-        if (i && !(i % 10))
-            printf("\n");
-    }
-    printf("\n");
-
-    int (*func)(void) = (int(*)(void))(page.GetData());
-
-    return func();
-    return 0;
 
 #if 0
     Profile control([]() {

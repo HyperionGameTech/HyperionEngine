@@ -6,6 +6,7 @@
 #include <script/compiler/Tree.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
+#include <script/compiler/jit/JitGenerator.hpp>
 
 #include <vector>
 #include <string>
@@ -75,6 +76,7 @@ public:
 private:
     std::string m_name;
     SourceLocation m_location;
+    jit::MemoryPage m_jitpage;
 
     // module scan paths
     std::unordered_set<std::string> m_scan_paths;

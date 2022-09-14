@@ -88,12 +88,15 @@
     #define HYP_FILESYSTEM_SEPARATOR "/"
 #endif
 
+#if defined(__linux__) || defined(__unix__) || defined(linux)
+#define HYP_UNIX 1
+#endif
+
 #ifdef __arm__
     #define HYP_ARM 1
 #endif
 
 #ifdef __APPLE__
-
 #define HYP_APPLE 1
 
 #include <TargetConditionals.h>
