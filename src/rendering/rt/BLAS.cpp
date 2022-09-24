@@ -149,7 +149,7 @@ void BLAS::UpdateRender(Engine *engine, Frame *frame)
         return;
     }
 
-    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
+    //HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
 }
 
 } // namespace hyperion::v2

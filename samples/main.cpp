@@ -860,7 +860,7 @@ int main()
     
     
     my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj),
+        std::move(running_guy),
         Handle<Material>(my_material),
         Transform { Vector3 { 0, 7, 0 } }
     ));

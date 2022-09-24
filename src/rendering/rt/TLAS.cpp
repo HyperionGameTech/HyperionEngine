@@ -51,8 +51,8 @@ void TLAS::Init(Engine *engine)
 
     for (SizeType i = 0; i < m_blas.Size(); i++) {
         AssertThrow(m_blas[i] != nullptr);
+        AssertThrow(engine->InitObject(m_blas[i]));
 
-        engine->InitObject(m_blas[i]);
         blas[i] = &m_blas[i]->Get();
     }
 
@@ -100,8 +100,6 @@ void TLAS::UpdateRender(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
-
-    return;
 
     if (m_has_blas_updates.load()) {
         PerformBLASUpdates();
