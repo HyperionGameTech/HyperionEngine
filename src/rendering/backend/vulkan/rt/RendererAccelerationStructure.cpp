@@ -626,7 +626,7 @@ Result TopLevelAccelerationStructure::UpdateStructure(Instance *instance)
 	Range<UInt> dirty_mesh_descriptions { };
 
 	for (UInt i = 0; i < static_cast<UInt>(m_blas.size()); i++) {
-		auto &blas = m_blas[i];
+		auto *blas = m_blas[i];
 		AssertThrow(blas != nullptr);
 
 		if (blas->GetFlags() & AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE) {

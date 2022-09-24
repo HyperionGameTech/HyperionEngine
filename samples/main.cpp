@@ -688,7 +688,7 @@ int main()
 
     auto tmp_asset = engine->assets.Load<Node>("models/ogrexml/dragger_Body.mesh.xml");
 
-    auto cube_obj = std::move(tmp_asset->GetChild(0).Get()->GetEntity()->GetMesh());//MeshBuilder::NormalizedCubeSphere(16).release());
+    auto running_guy = std::move(tmp_asset->GetChild(0).Get()->GetEntity()->GetMesh());//MeshBuilder::NormalizedCubeSphere(16).release());
     auto cube_obj2 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
     auto cube_obj3 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
     auto cube_obj4 = engine->CreateHandle<Mesh>(MeshBuilder::Cube().release());
@@ -712,7 +712,7 @@ int main()
     
     
     my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj),
+        std::move(running_guy),
         Handle<Material>(my_material),
         Transform { Vector3 { 0, 7, 0 } }
     ));
