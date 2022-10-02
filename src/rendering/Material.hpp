@@ -253,7 +253,11 @@ public:
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
     using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
 
-    Material(const String &name = String::empty);
+    Material();
+    Material(
+        const String &name,
+        Bucket bucket = Bucket::BUCKET_OPAQUE
+    );
     Material(const Material &other) = delete;
     Material &operator=(const Material &other) = delete;
     ~Material();

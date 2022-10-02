@@ -810,7 +810,7 @@ void Engine::RenderDeferred(Frame *frame)
     m_deferred_renderer.Render(this, frame, render_state.GetScene().render_environment);
 }
 
-void Engine::RenderFinalPass(Frame *frame) const
+void Engine::RenderFinalPass(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -845,7 +845,7 @@ void Engine::RenderFinalPass(Frame *frame) const
 #endif
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(const_cast<Engine *>(this), frame->GetCommandBuffer());
+    m_full_screen_quad->Render(this, frame->GetCommandBuffer());
     
     m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }

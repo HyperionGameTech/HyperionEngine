@@ -32,7 +32,7 @@ public:
         any.m_ptr = new T(std::forward<Args>(args)...);
         any.m_delete_function = [](void *ptr) { delete static_cast<T *>(ptr); };
 
-        return std::move(any);
+        return any;
     }
 
     template <class T>

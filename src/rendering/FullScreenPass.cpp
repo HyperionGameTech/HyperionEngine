@@ -69,8 +69,6 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
     }
 
     m_shader = std::move(shader);
-
-    // m_shader.Init();
 }
 
 void FullScreenPass::CreateQuad(Engine *engine)

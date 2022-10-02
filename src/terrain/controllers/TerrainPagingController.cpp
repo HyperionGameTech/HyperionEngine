@@ -119,7 +119,9 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
         )
     );
 
-    patch->entity->SetName(String("terrain_chunk_") + String::ToString(static_cast<Int>(patch->info.coord.x)) + "_" + String::ToString(static_cast<Int>(patch->info.coord.y)));
+    patch->entity->SetName(String("terrain_chunk_")
+        + String::ToString(static_cast<Int>(patch->info.coord.x))
+        + "_" + String::ToString(static_cast<Int>(patch->info.coord.y)));
 
     patch->entity->SetTranslation({
         (patch->info.coord.x - 0.5f) * (Vector(patch->info.extent).Max() - 1) * m_scale.x,

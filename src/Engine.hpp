@@ -203,7 +203,7 @@ public:
     void RenderDeferred(Frame *frame);
     // temporarily public: RT stuff is not yet in it's own unit,
     // needs to use this method
-    void RenderFinalPass(Frame *frame) const;
+    void RenderFinalPass(Frame *frame);
 
     void RenderNextFrame(Game *game);
 

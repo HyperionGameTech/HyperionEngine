@@ -1,8 +1,57 @@
 #include <ui/UIScene.hpp>
+#include <builders/MeshBuilder.hpp>
 #include <camera/OrthoCamera.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
+
+UIObject::UIObject()
+    : EngineComponentBase()
+{
+}
+
+UIObject::~UIObject()
+{
+    Teardown();
+}
+
+void UIObject::Init(Engine *engine)
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    EngineComponentBase::Init(engine);
+
+    m_entity = engine->CreateHandle<Entity>(
+        engine->CreateHandle<Mesh>(MeshBuilder::Quad()),
+        Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)),
+        engine->CreateHandle<Material>("ui_material", Bucket::BUCKET_UI)
+    );
+
+    engine->InitObject(m_entity);
+
+    m_entity->SetTransform(m_transform);
+    m_entity->RebuildRenderableAttributes();
+
+    SetReady(true);
+
+    OnTeardown([this](...) {
+        SetReady(false);
+
+        m_entity.Reset();
+    });
+}
+
+void UIObject::SetTransform(const Transform &transform)
+{
+    m_transform = transform;
+
+    if (IsInitCalled()) {
+        GetEntity()->SetTransform(transform);
+    }
+}
+
 
 UIScene::UIScene()
     : EngineComponentBase()
@@ -33,11 +82,18 @@ void UIScene::Init(Engine *engine)
 
     engine->InitObject(m_scene);
 
+    for (auto &object : m_ui_objects) {
+        AssertThrow(engine->InitObject(object));
+
+        m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
+    }
+
     SetReady(true);
 
     OnTeardown([this](...) {
         SetReady(false);
 
+        m_ui_objects.Clear();
         m_scene.Reset();
     });
 
@@ -49,6 +105,21 @@ void UIScene::Init(Engine *engine)
 void UIScene::Update(Engine *engine, GameCounter::TickUnit delta)
 {
     m_scene->Update(engine, delta, false);
+}
+
+void UIScene::Add(Handle<UIObject> &&object)
+{
+    if (!object) {
+        return;
+    }
+
+    if (IsInitCalled()) {
+        GetEngine()->InitObject(object);
+
+        m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
+    }
+
+    m_ui_objects.PushBack(std::move(object));
 }
 
 #if 0

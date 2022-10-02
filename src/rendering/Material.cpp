@@ -15,8 +15,16 @@ using renderer::ImageDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::CommandBuffer;
 
-Material::Material(const String &name)
+Material::Material()
+    : EngineComponentBase(),
+      m_render_attributes { .bucket = Bucket::BUCKET_OPAQUE },
+      m_shader_data_state(ShaderDataState::DIRTY)
+{
+}
+
+Material::Material(const String &name, Bucket bucket)
     : EngineComponentBase(name),
+      m_render_attributes { .bucket = bucket },
       m_shader_data_state(ShaderDataState::DIRTY)
 {
     ResetParameters();

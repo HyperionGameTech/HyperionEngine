@@ -35,7 +35,7 @@ Vulkan Renderer:
 
 ![screenshot](/screenshots/sponza-vk.png)
 PBR and image-based lighting
-![screenshot](/screenshots/pbr1.jpg)
+![screenshot](/screenshots/pbr4.jpg)
 Screen space reflection:
 ![screenshot](/screenshots/pbr2.jpg)
 

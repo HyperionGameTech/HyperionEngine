@@ -43,6 +43,7 @@ enum DeferredFlags : DeferredFlagBits
 class DeferredPass : public FullScreenPass
 {
     friend class DeferredRenderer;
+
 public:
     DeferredPass(bool is_indirect_pass);
     DeferredPass(const DeferredPass &other) = delete;
@@ -50,13 +51,12 @@ public:
     virtual ~DeferredPass();
 
     void CreateShader(Engine *engine);
-    virtual void CreateRenderPass(Engine *engine);
-    virtual void CreateDescriptors(Engine *engine);
-    virtual void Create(Engine *engine);
-
-    void Destroy(Engine *engine);
-    void Record(Engine *engine, UInt frame_index);
-    void Render(Engine *engine, Frame *frame);
+    virtual void CreateRenderPass(Engine *engine) override;
+    virtual void CreateDescriptors(Engine *engine) override;
+    virtual void Create(Engine *engine) override;
+    virtual void Destroy(Engine *engine) override;
+    virtual void Record(Engine *engine, UInt frame_index) override;
+    virtual void Render(Engine *engine, Frame *frame) override;
 
 private:
     const bool m_is_indirect_pass;
@@ -86,6 +86,8 @@ public:
         RenderEnvironment *environment
     );
 
+    void RenderUI(Engine *engine, Frame *frame);
+
 private:
     void CreateComputePipelines(Engine *engine);
     void CreateDescriptorSets(Engine *engine);
@@ -93,7 +95,6 @@ private:
     void CollectDrawCalls(Engine *engine, Frame *frame);
     void RenderOpaqueObjects(Engine *engine, Frame *frame);
     void RenderTranslucentObjects(Engine *engine, Frame *frame);
-    void RenderUI(Engine *engine, Frame *frame);
 
     void GenerateMipChain(Engine *engine, Frame *frame, Image *image);
 

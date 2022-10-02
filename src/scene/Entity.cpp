@@ -30,7 +30,6 @@ Entity::Entity(
         {}
     )
 {
-    RebuildRenderableAttributes();
 }
 
 Entity::Entity(
@@ -49,7 +48,7 @@ Entity::Entity(
     m_renderable_attributes(renderable_attributes),
     m_octree(nullptr),
     m_needs_octree_update(false),
-    m_shader_data_state(ShaderDataState::DIRTY)
+    m_shader_data_state(ShaderDataState::CLEAN)
 {
     if (m_mesh) {
         m_local_aabb = m_mesh->CalculateAABB();
@@ -75,6 +74,10 @@ void Entity::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    if (!m_shader) {
+        m_shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
+    }
+
     m_draw_proxy.entity_id = m_id;
 
     engine->InitObject(m_shader);
@@ -93,6 +96,8 @@ void Entity::Init(Engine *engine)
 
         m_needs_octree_update = true;
     }
+
+    RebuildRenderableAttributes();
 
     SetReady(true);
 
@@ -283,8 +288,8 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
 
     m_mesh = std::move(mesh);
 
-    if (m_mesh) {
-        if (IsInitCalled()) {
+    if (IsInitCalled()) {
+        if (m_mesh) {
             GetEngine()->InitObject(m_mesh);
 
             m_local_aabb = m_mesh->CalculateAABB();
@@ -299,8 +304,7 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
         }
     }
 
-    m_shader_data_state |= ShaderDataState::DIRTY;
-    m_primary_renderer_instance.changed = true;
+    RebuildRenderableAttributes();
 }
 
 void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
@@ -319,8 +323,7 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
         GetEngine()->InitObject(m_skeleton);
     }
 
-    m_shader_data_state |= ShaderDataState::DIRTY;
-    m_primary_renderer_instance.changed = true;
+    RebuildRenderableAttributes();
 }
 
 void Entity::SetShader(Handle<Shader> &&shader)
@@ -329,7 +332,7 @@ void Entity::SetShader(Handle<Shader> &&shader)
         return;
     }
 
-    if (m_shader != nullptr && IsInitCalled()) {
+    if (m_shader && IsInitCalled()) {
         GetEngine()->SafeReleaseHandle<Shader>(std::move(m_shader));
     }
 
@@ -346,8 +349,6 @@ void Entity::SetShader(Handle<Shader> &&shader)
     } else {
         RebuildRenderableAttributes();
     }
-
-    m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Entity::SetMaterial(Handle<Material> &&material)
@@ -371,8 +372,6 @@ void Entity::SetMaterial(Handle<Material> &&material)
     }
 
     SetRenderableAttributes(new_renderable_attributes);
-
-    m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Entity::SetParent(Node *node)
@@ -423,6 +422,8 @@ void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_at
 
     m_renderable_attributes = renderable_attributes;
     m_primary_renderer_instance.changed = true;
+    
+    m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Entity::RebuildRenderableAttributes()
@@ -554,8 +555,6 @@ void Entity::OnAddedToOctree(Octree *octree)
     } else {
         m_needs_octree_update = true;
     }
-
-    // m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Entity::OnRemovedFromOctree(Octree *octree)
@@ -567,7 +566,6 @@ void Entity::OnRemovedFromOctree(Octree *octree)
 #endif
 
     m_octree = nullptr;
-    // m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 void Entity::OnMovedToOctant(Octree *octree)
@@ -585,8 +583,6 @@ void Entity::OnMovedToOctant(Octree *octree)
     } else {
         m_needs_octree_update = true;
     }
-
-    // m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
 

@@ -202,9 +202,6 @@ bool Scene::AddEntity(Handle<Entity> &&entity)
         new Node(entity->GetName(), entity->GetTransform())
     ));
 
-    // node will now be in charge of the transform
-    entity->SetTransform(Transform::identity);
-
     node.SetEntity(std::move(entity));
 
     return true;

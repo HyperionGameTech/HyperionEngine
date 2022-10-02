@@ -107,7 +107,7 @@ Result RenderPass::Create(Device *device)
 
             m_clear_values.push_back(VkClearValue {
                 .color = {
-                    .float32 = { 0.0f, 0.0f, 0.0f, 1.0f }
+                    .float32 = { 0.0f, 0.0f, 0.0f, 0.0f }
                 }
             });
         }

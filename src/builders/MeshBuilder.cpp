@@ -103,7 +103,7 @@ UniquePtr<Mesh> MeshBuilder::Quad(Topology topology)
 
     mesh->CalculateTangents();
 
-    return std::move(mesh);
+    return mesh;
 }
 
 UniquePtr<Mesh> MeshBuilder::Cube()
@@ -123,7 +123,7 @@ UniquePtr<Mesh> MeshBuilder::Cube()
 
     mesh->CalculateTangents();
 
-    return std::move(mesh);
+    return mesh;
 }
 
 UniquePtr<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)

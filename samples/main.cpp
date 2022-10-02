@@ -138,14 +138,13 @@ public:
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
 
+        test_model.Scale(0.25f);
+
         // {
-        //     if (auto grass = obj_models["grass"].Get<Node>()) {
-        //         grass[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_UI);
-        //         grass[0].GetEntity()->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
-        //         grass.Scale(1.0f);
-        //         grass.Translate({0, 0, 0});
-        //         GetUI().GetScene()->GetRoot().AddChild(grass);
-        //     }
+        //     auto btn = engine->CreateHandle<UIObject>();
+        //     btn->SetTransform(Transform(Vector3(0.4f, 3.7f, 0.0f)));
+
+        //     GetUI().Add(std::move(btn));
         // }
 
         // add sponza model
@@ -172,7 +171,7 @@ public:
             zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
             zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
             zombie[0].GetEntity()->RebuildRenderableAttributes();
-            m_scene->GetRoot().AddChild(zombie);
+            // m_scene->GetRoot().AddChild(zombie);
         }
         
         { // adding lights to scene
@@ -183,12 +182,12 @@ public:
             ));
             m_scene->AddLight(m_sun);
 
-            m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
-                Vector3(0.0f, 12.0f, 4.0f),
-                Color(0.0f, 0.5f, 1.0f),
-                10000.0f,
-                60.0f
-            )));
+            // m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
+            //     Vector3(0.0f, 4.0f, 0.0f),
+            //     Color(1.0f, 0.0f, 0.0f),
+            //     100000.0f,
+            //     30.0f
+            // )));
         }
 
         auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
@@ -252,11 +251,15 @@ public:
             monkey[0].GetEntity()->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.25f);
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
-            monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
+            // monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            // monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
             monkey[0].GetEntity()->RebuildRenderableAttributes();
             monkey.Translate(Vector3(0, 250.5f, 0));
             monkey.Scale(6.0f);
@@ -271,6 +274,7 @@ public:
         // add a plane physics shape
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
+        plane->SetTranslation(Vector3(0, 3, 0));
         GetScene()->AddEntity(Handle<Entity>(plane));
         plane->AddController<RigidBodyController>(
             UniquePtr<physics::PlanePhysicsShape>::Construct(Vector4(0, 1, 0, 1)),

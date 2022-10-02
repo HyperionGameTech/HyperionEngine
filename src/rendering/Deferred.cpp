@@ -160,7 +160,7 @@ void DeferredPass::Record(Engine *engine, UInt frame_index)
             m_renderer_instance->GetPipeline()->Bind(cmd);
 
             const auto &scene_binding = engine->render_state.GetScene();
-            const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
+            const auto scene_index = scene_binding.id.ToIndex();
 
             cmd->BindDescriptorSet(
                 engine->GetInstance()->GetDescriptorPool(),
@@ -527,9 +527,7 @@ void DeferredRenderer::Render(
     const auto frame_index = frame->GetFrameIndex();
 
     const auto &scene_binding = engine->render_state.GetScene();
-    const auto scene_index = scene_binding
-        ? scene_binding.id.value - 1
-        : 0u;
+    const auto scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
     
