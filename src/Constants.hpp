@@ -35,6 +35,19 @@ std::false_type implementation_exists_impl(...);
 template <class T>
 constexpr bool implementation_exists = decltype(implementation_exists_impl(std::declval<T*>()))::value;
 
+constexpr SizeType AlignedSize(SizeType size, SizeType alignment)
+{
+    return alignment
+        ? (size + alignment - 1) & ~(alignment - 1)
+        : size;
+}
+
+template <class StructType>
+constexpr SizeType AlignedSize(SizeType alignment)
+{
+    return AlignedSize(sizeof(StructType), alignment);
+}
+
 } // namespace hyperion
 
 #endif

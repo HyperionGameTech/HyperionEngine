@@ -119,17 +119,18 @@ struct DrawProxy<STUB_CLASS(EnvProbe)>
 using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
 
 template <>
-struct alignas(64) DrawProxy<STUB_CLASS(Light)>
+struct DrawProxy<STUB_CLASS(Light)>
 {
-    alignas(4) IDBase id;
-    alignas(4) LightType type;
-    alignas(16) Vector4 position;
-    alignas(4) Color color;
-    alignas(4) Float32 intensity;
-    alignas(4) Float32 radius;
-    alignas(4) UInt32 shadow_map_index;
-};
+    IDBase id;
+    LightType type;
+    Color color;
+    Float32 radius;
 
+    Vector4 position_intensity;
+    UInt32 shadow_map_index;
+
+    UInt32 _pad[7];
+};
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;
 
 template <class T>

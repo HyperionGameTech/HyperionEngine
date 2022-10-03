@@ -152,6 +152,10 @@ struct Proc : detail::ProcBase
         functor.delete_fn = &Memory::Destruct<Functor>;
         
         // move-construct the functor object into inline storage
+    
+        static_assert(alignof(std::add_pointer_t<Functor>) == alignof(decltype(functor.memory.GetPointer())),
+            "Alignment must match alignment of proc memory");
+
         Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
     }
 

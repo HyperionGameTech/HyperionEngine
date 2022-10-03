@@ -6,6 +6,7 @@
 #include <rendering/backend/RendererStructs.hpp>
 
 #include <util/Defines.hpp>
+#include <Constants.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -386,20 +387,7 @@ public:
     template <class StructType>
     constexpr size_t PaddedSize() const
     {
-        return PaddedSize<StructType>(m_properties.limits.minUniformBufferOffsetAlignment);
-    }
-
-    template <class StructType>
-    constexpr size_t PaddedSize(size_t alignment) const
-    {
-        return PaddedSize(sizeof(StructType), alignment);
-    }
-    
-    constexpr size_t PaddedSize(size_t size, size_t alignment) const
-    {
-        return alignment
-            ? (size + alignment - 1) & ~(alignment - 1)
-            : size;
+        return AlignedSize<StructType>(m_properties.limits.minUniformBufferOffsetAlignment);
     }
 
     bool SupportsGeometryShaders() const { return m_features.geometryShader; }

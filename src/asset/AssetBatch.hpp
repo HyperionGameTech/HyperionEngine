@@ -60,11 +60,13 @@ private:
             const String &key
         )
         {
+            std::cout << "Begin load " << key.Data() << std::endl;
             auto &asset = batch.enqueued_assets[key];
 
             asset.value.Set(static_cast<typename AssetLoaderWrapper<T>::ResultType>(
                 asset_manager.template Load<T>(asset.path)
             ));
+            std::cout << "End load " << key.Data() << std::endl;
         }
     };
 

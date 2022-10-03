@@ -83,10 +83,9 @@ void Light::EnqueueRenderUpdates()
     LightDrawProxy draw_proxy {
         .id = m_id,
         .type = m_type,
-        .position = Vector4(m_position, m_type == LightType::DIRECTIONAL ? 0.0f : 1.0f),
         .color = m_color,
-        .intensity = m_intensity,
         .radius = m_radius,
+        .position_intensity = Vector4(m_position, m_intensity),
         .shadow_map_index = m_shadow_map_index
     };
 

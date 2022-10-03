@@ -16,7 +16,8 @@ namespace hyperion {
 class Vector3;
 class Quaternion;
 
-class Matrix4 {
+class Matrix4
+{
     friend std::ostream &operator<<(std::ostream &os, const Matrix4 &mat);
 public:
     static Matrix4 Translation(const Vector3 &translation);

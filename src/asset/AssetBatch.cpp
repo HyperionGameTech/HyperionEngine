@@ -17,8 +17,12 @@ void AssetBatch::LoadAsync(UInt num_batches)
 
     const UInt num_items = static_cast<UInt>(procs.Size());
 
-    num_batches = MathUtil::Max(num_batches, 1u);
+    if (num_items == 0) {
+        return;
+    }
+
     num_batches = MathUtil::Min(num_batches, num_items);
+    num_batches = MathUtil::Max(num_batches, 1u);
 
     const UInt items_per_batch = num_items / num_batches;
 

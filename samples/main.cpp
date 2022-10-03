@@ -140,12 +140,12 @@ public:
 
         test_model.Scale(0.25f);
 
-        // {
-        //     auto btn = engine->CreateHandle<UIObject>();
-        //     btn->SetTransform(Transform(Vector3(0.4f, 3.7f, 0.0f)));
+        {
+            auto btn = engine->CreateHandle<UIObject>();
+            btn->SetTransform(Transform(Vector3(0.4f, 3.7f, 0.0f)));
 
-        //     GetUI().Add(std::move(btn));
-        // }
+            GetUI().Add(std::move(btn));
+        }
 
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
@@ -182,12 +182,15 @@ public:
             ));
             m_scene->AddLight(m_sun);
 
-            // m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
-            //     Vector3(0.0f, 4.0f, 0.0f),
-            //     Color(1.0f, 0.0f, 0.0f),
-            //     100000.0f,
-            //     30.0f
-            // )));
+            for (Float x = 0.0f; x < 6.0f; x += 1.0f) {
+                m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
+                    Vector3(0.0f, 4.0f, x * 4.0),
+                    Color(MathUtil::RandRange(0.0f, 1.0f), MathUtil::RandRange(0.0f, 1.0f), MathUtil::RandRange(0.0f, 1.0f)),
+                    1000.0f,
+                    30.0f
+                )));
+            }
+
         }
 
         auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
@@ -251,24 +254,28 @@ public:
             monkey[0].GetEntity()->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
-            // monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            // monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
-            monkey[0].GetEntity()->RebuildRenderableAttributes();
-            monkey.Translate(Vector3(0, 250.5f, 0));
-            monkey.Scale(6.0f);
+
+            for (auto &child : monkey.GetChildren()) {
+                // child.GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
+                // child.GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+                // child.GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+                // child.GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+                // child.GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                // child.GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
+                // child.GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.0f, 1.0f, 1.0f));
+                // child.GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+                // child.GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
+                child.GetEntity()->RebuildRenderableAttributes();
+            }
+
+            monkey.Translate(Vector3(0, 0.0f, 0));
+            monkey.Scale(3.0f);
             m_scene->GetRoot().AddChild(monkey);
 
-            monkey[0].GetEntity()->AddController<RigidBodyController>(
-                UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
-                physics::PhysicsMaterial { .mass = 1.0f }
-            );
+            // monkey[0].GetEntity()->AddController<RigidBodyController>(
+            //     UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
+            //     physics::PhysicsMaterial { .mass = 1.0f }
+            // );
         }
 
         // add a plane physics shape

@@ -6,6 +6,8 @@
 #include <math/MathUtil.hpp>
 #include <math/Transform.hpp>
 
+#include <Constants.hpp>
+
 #include <cstring>
 
 namespace hyperion {
@@ -210,7 +212,7 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device)
     const auto &properties = features.GetRaytracingPipelineProperties();
 
     const size_t handle_size = properties.shaderGroupHandleSize;
-    const size_t handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
+    const size_t handle_size_aligned = AlignedSize(handle_size, properties.shaderGroupHandleAlignment);
     const size_t table_size = shader_groups.size() * handle_size_aligned;
 
     std::vector<uint8_t> shader_handle_storage;
@@ -320,12 +322,12 @@ Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
 
     if (result) {
         /* Get strided device address region */
-        const uint32_t handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+        const UInt32 handle_size = static_cast<UInt32>(AlignedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment));
 
-        out.strided_device_address_region = VkStridedDeviceAddressRegionKHR{
+        out.strided_device_address_region = VkStridedDeviceAddressRegionKHR {
             .deviceAddress = out.buffer->GetBufferDeviceAddress(device),
-            .stride        = handle_size,
-            .size          = num_shaders * handle_size
+            .stride = handle_size,
+            .size = num_shaders * handle_size
         };
     } else {
         out.buffer.reset();

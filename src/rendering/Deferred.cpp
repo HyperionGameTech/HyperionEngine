@@ -589,10 +589,6 @@ void DeferredRenderer::Render(
 
         m_indirect_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
-        if (engine->render_state.light_bindings.Any()) {
-            m_direct_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
-        }
-
         deferred_pass_framebuffer->EndCapture(primary);
     }
 
