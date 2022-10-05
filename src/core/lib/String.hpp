@@ -122,7 +122,7 @@ public:
             char *data = new char[result_size];
             utf::utf_to_str(value, result_size, data);
 
-            for (SizeType i = 0; i < result_size; i++) {
+            for (SizeType i = 0; i < result_size - 1; i++) {
                 result.Append(static_cast<T>(data[i]));
             }
 

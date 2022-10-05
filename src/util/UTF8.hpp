@@ -508,7 +508,7 @@ inline void utf_to_str(T value, SizeType &buffer_length, char *result)
 
     if (result == nullptr) {
         // first call
-        buffer_length = 0;
+        buffer_length = 1;
 
         while (value / divisor >= 10) {
             divisor *= 10;
@@ -529,15 +529,18 @@ inline void utf_to_str(T value, SizeType &buffer_length, char *result)
     AssertThrow(buffer_length != 0);
 
     // don't modify passed in value any more
-    SizeType buffer_length_remaining = buffer_length;
+    SizeType buffer_length_remaining = buffer_length - 1;
+
+    if (is_negative) {
+        AssertThrow(buffer_length != 1);
+        result[buffer_index++] = '-';
+        value *= -1;
+
+        --buffer_length_remaining;
+    }
 
     while (value / divisor >= 10) {
         divisor *= 10;
-    }
-
-    if (is_negative) {
-        result[buffer_index++] = '-';
-        value *= -1;
     }
     
     while (buffer_length_remaining) {

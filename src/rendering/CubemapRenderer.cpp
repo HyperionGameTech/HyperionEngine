@@ -65,10 +65,25 @@ void CubemapRenderer::Init(Engine *engine)
     CreateRendererInstance(engine);
 
     m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
-    engine->InitObject(m_scene);
+    engine->InitObject(m_scene);// testing global skybox
+
+    auto tex = engine->CreateHandle<Texture>(new TextureCube(
+            engine->assets.Load<Texture>(
+               "textures/chapel/posx.jpg",
+               "textures/chapel/negx.jpg",
+               "textures/chapel/posy.jpg",
+               "textures/chapel/negy.jpg",
+               "textures/chapel/posz.jpg",
+               "textures/chapel/negz.jpg"
+            )
+        ));
+        tex->GetImage().SetIsSRGB(true);
 
     m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
-        Handle<Texture>(m_cubemaps[0]), // TODO
+        // TEMP
+        std::move(tex),
+
+        //Handle<Texture>(m_cubemaps[0]), // TODO
         m_aabb
     ));
 

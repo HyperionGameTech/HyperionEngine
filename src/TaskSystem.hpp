@@ -222,8 +222,12 @@ public:
     {
         const auto num_items = static_cast<UInt>(items.Size());
 
-        num_batches = MathUtil::Max(num_batches, 1u);
         num_batches = MathUtil::Min(num_batches, num_items);
+        num_batches = MathUtil::Max(num_batches, 1u);
+
+        if (num_items == 0) {
+            return;
+        }
 
         TaskBatch batch;
         batch.priority = priority;
