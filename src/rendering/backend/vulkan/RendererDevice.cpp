@@ -374,6 +374,19 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
         }
     );
 
+
+    
+    // Set up device creation info for Aftermath feature flag configuration.
+    VkDeviceDiagnosticsConfigFlagsNV aftermathFlags =
+        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |      // Enable tracking of resources.
+        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV |  // Capture call stacks for all draw calls, compute dispatches, and resource copies.
+        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV;       // Generate debug information for shaders.
+    VkDeviceDiagnosticsConfigCreateInfoNV aftermathInfo = {};
+    aftermathInfo.sType = VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV;
+    aftermathInfo.flags = aftermathFlags;
+    aftermathInfo.pNext = &features->GetPhysicalDeviceFeatures2();
+
+
     VkDeviceCreateInfo create_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
     create_info.pQueueCreateInfos       = queue_create_info_vec.data();
     create_info.queueCreateInfoCount    = uint32_t(queue_create_info_vec.size());
@@ -382,7 +395,7 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     create_info.ppEnabledExtensionNames = required_extensions_linear.data();
     // Setup Device Features
     create_info.pEnabledFeatures        = &features->GetPhysicalDeviceFeatures();
-    create_info.pNext                   = &features->GetPhysicalDeviceFeatures2();
+    create_info.pNext                   = &aftermathInfo;
 
     HYPERION_VK_CHECK_MSG(
         vkCreateDevice(this->physical, &create_info, nullptr, &this->device),

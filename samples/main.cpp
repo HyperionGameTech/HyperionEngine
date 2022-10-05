@@ -32,6 +32,11 @@
 #include <GameThread.hpp>
 #include <Game.hpp>
 
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
+#include <Aftermath/GFSDK_Aftermath.h>
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
+#include <Aftermath/GFSDK_Aftermath_Defines.h>
+
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
 
@@ -74,10 +79,8 @@
 using namespace hyperion;
 using namespace hyperion::v2;
 
-
-#define HYPERION_VK_TEST_VCT 1
+#define HYPERION_VK_TEST_VCT 0
 #define HYPERION_VK_TEST_RAYTRACING 0
-#define HYPERION_RUN_TESTS 1
 
 namespace hyperion::v2 {
     
@@ -113,7 +116,7 @@ public:
 
         auto loaded_assets = engine->assets.Load<Node>(
             "models/ogrexml/dragger_Body.mesh.xml",
-            "models/sponza/sponza.obj", //testbed/testbed.obj", //"San_Miguel/san-miguel-low-poly.obj", //"sibenik/sibenik.obj", //"
+            "models/sponza/sponza.obj",//testbed/testbed.obj", //"San_Miguel/san-miguel-low-poly.obj", //"sibenik/sibenik.obj", //"
             "models/cube.obj",
             "models/material_sphere/material_sphere.obj",
             "models/grass/grass.obj"
@@ -189,16 +192,17 @@ public:
 #endif
         
         { // custom vegetation shader
-            if (auto grass = m_scene->GetRoot().AddChild(NodeProxy(loaded_assets[4].release()))) {
+            /*if (auto grass = m_scene->GetRoot().AddChild(NodeProxy(loaded_assets[4].release()))) {
                 grass.GetChild(0).Get()->GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
                 grass.GetChild(0).Get()->GetEntity()->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION)));
                 grass.Scale(1.0f);
                 grass.Translate({0, 1, 0});
-            }
+            }*/
         }
 
         auto cubemap = engine->CreateHandle<Texture>(new TextureCube(
-           engine->assets.Load<Texture>(
+            engine->assets.Load<Texture>(
+                // "textures/hdr_cubemaps/alps_field_4k.hdr"
                "textures/chapel/posx.jpg",
                "textures/chapel/negx.jpg",
                "textures/chapel/posy.jpg",
@@ -216,10 +220,9 @@ public:
             zombie->GetChild(0).Get()->GetEntity()->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
             zombie->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f));
             zombie->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
-            zombie->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
-            zombie->GetChild(0).Get()->GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
+            zombie->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
             zombie->GetChild(0).Get()->GetEntity()->RebuildRenderableAttributes();
-            m_scene->GetRoot().AddChild(NodeProxy(zombie.release()));
+            //m_scene->GetRoot().AddChild(NodeProxy(zombie.release()));
         }
         
         { // adding lights to scene
@@ -241,19 +244,17 @@ public:
         test_model->Scale(0.15f);
 
         { // particles test
-            auto particle_system = UniquePtr<ParticleSystem>::Construct();
-
             auto particle_spawner = engine->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = engine->CreateHandle<Texture>(
                     engine->assets.Load<Texture>("textures/smoke.png").release()
                 ),
                 .max_particles = 1024u,
-                .origin = Vector3(0.0f, 7.0f, -4.0f),
+                .origin = Vector3(0.0f, 8.0f, -17.0f),
                 .lifespan = 8.0f
             });
             engine->InitObject(particle_spawner);
 
-            m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
+            //m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
 
 #if HYPERION_VK_TEST_VCT
@@ -265,9 +266,6 @@ public:
             );
         }
 #endif
-
-        if (auto test = m_scene->GetRoot().AddChild(NodeProxy(test_model.release()))) {
-        }
         
         { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
@@ -279,37 +277,40 @@ public:
 
         { // adding cubemap rendering with a bounding box
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
-                renderer::Extent2D {128, 128},
-                BoundingBox { Vector(-128, -10, -128), Vector(128, 100, 128) },
+                Extent2D { 512, 512 },
+                BoundingBox(-128, 128),
                 renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             );
         }
 
+        // add test model
+        if (auto test = m_scene->GetRoot().AddChild(NodeProxy(test_model.release()))) {
+        }
+
         cube_obj->Scale(50.0f);
 
+        AssertThrow(cubemap);
         auto skybox_material = engine->CreateHandle<Material>();
         skybox_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Material::Parameter(Vector4{ 1.0f, 1.0f, 1.0f, 1.0f }));
         skybox_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(cubemap));
         skybox_material->SetBucket(BUCKET_SKYBOX);
+        //skybox_material->SetIsDepthWriteEnabled(false);
+        //skybox_material->SetIsDepthTestEnabled(false);
+        //skybox_material->SetFaceCullMode(FaceCullMode::FRONT);
 
-        auto &skybox_spatial = cube_obj->GetChild(0).Get()->GetEntity();
+        auto skybox_spatial = cube_obj->GetChild(0).Get()->GetEntity();
         skybox_spatial->SetMaterial(std::move(skybox_material));
         skybox_spatial->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_SKYBOX)));
-        // skybox_spatial->SetMeshAttributes(
-        //     FaceCullMode::FRONT,
-        //     false,
-        //     false
-        // );
+        skybox_spatial->RebuildRenderableAttributes();
 
-        m_scene->AddEntity(Handle<Entity>(cube_obj->GetChild(0).Get()->GetEntity()));
+        m_scene->AddEntity(std::move(skybox_spatial));
 
         auto monkey = engine->assets.Load<Node>("models/monkey/monkey.obj");
-
         monkey->GetChild(0).Get()->GetEntity()->AddController<ScriptedController>(engine->assets.Load<Script>("scripts/examples/controller.hypscript"));
         monkey->GetChild(0).Get()->GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.175f);
         monkey->Translate(Vector3(0, 22.5f, 0));
         monkey->Scale(4.0f);
-        m_scene->GetRoot().AddChild(NodeProxy(monkey.release()));
+        //m_scene->GetRoot().AddChild(NodeProxy(monkey.release()));
 
         for (auto &x : m_scene->GetRoot().GetChildren()) {
             DebugLog(LogType::Debug, "%s\n", x.GetName().Data());
@@ -542,6 +543,143 @@ int main()
     engine->assets.SetBasePath(FileSystem::Join(HYP_ROOT_DIR, "..", "res"));
 
     auto *my_game = new MyGame;
+
+    auto res = GFSDK_Aftermath_EnableGpuCrashDumps(
+        GFSDK_Aftermath_Version_API,
+        GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
+        GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks,
+        [](const void* pGpuCrashDump, const uint32_t gpuCrashDumpSize, void* pUserData) {
+            GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
+            AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
+
+            auto tStart = std::chrono::steady_clock::now();
+            auto tElapsed = std::chrono::milliseconds::zero();
+
+            // Loop while Aftermath crash dump data collection has not finished or
+            // the application is still processing the crash dump data.
+            while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed &&
+                   status != GFSDK_Aftermath_CrashDump_Status_Finished &&
+                   tElapsed.count() < 1000)
+            {
+                // Sleep a couple of milliseconds and poll the status again.
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
+
+                tElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - tStart);
+            }
+
+
+            GFSDK_Aftermath_GpuCrashDump_Decoder decoder = {};
+            AssertThrow(GFSDK_Aftermath_GpuCrashDump_CreateDecoder(
+                GFSDK_Aftermath_Version_API,
+                pGpuCrashDump,
+                gpuCrashDumpSize,
+                &decoder) == GFSDK_Aftermath_Result_Success);
+
+            // Query GPU page fault information.
+            GFSDK_Aftermath_GpuCrashDump_PageFaultInfo pageFaultInfo = {};
+            GFSDK_Aftermath_Result result = GFSDK_Aftermath_GpuCrashDump_GetPageFaultInfo(decoder, &pageFaultInfo);
+
+            if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
+            {
+                // Print information about the GPU page fault.
+                DebugLog(LogType::Error, "GPU page fault at 0x%016llx", pageFaultInfo.faultingGpuVA);
+                DebugLog(LogType::Error, "Fault Type: %u", pageFaultInfo.faultType);
+                DebugLog(LogType::Error, "Access Type: %u", pageFaultInfo.accessType);
+                DebugLog(LogType::Error, "Engine: %u", pageFaultInfo.engine);
+                DebugLog(LogType::Error, "Client: %u", pageFaultInfo.client);
+                if (pageFaultInfo.bHasResourceInfo)
+                {
+                    DebugLog(LogType::Error, "Fault in resource starting at 0x%016llx", pageFaultInfo.resourceInfo.gpuVa);
+                    DebugLog(LogType::Error, "Size of resource: (w x h x d x ml) = {%u, %u, %u, %u} = %llu bytes",
+                        pageFaultInfo.resourceInfo.width,
+                        pageFaultInfo.resourceInfo.height,
+                        pageFaultInfo.resourceInfo.depth,
+                        pageFaultInfo.resourceInfo.mipLevels,
+                        pageFaultInfo.resourceInfo.size);
+                    DebugLog(LogType::Error, "Format of resource: %u", pageFaultInfo.resourceInfo.format);
+                    DebugLog(LogType::Error, "Resource was destroyed: %d", pageFaultInfo.resourceInfo.bWasDestroyed);
+                }
+            }
+
+            {
+                // First query gpuInfoCount count.
+                uint32_t gpuInfoCount = 0;
+                GFSDK_Aftermath_Result result = GFSDK_Aftermath_GpuCrashDump_GetGpuInfoCount(decoder, &gpuInfoCount);
+
+                if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
+                {
+                    // Allocate buffer for results.
+                    std::vector<GFSDK_Aftermath_GpuCrashDump_GpuInfo> gpuInfos(gpuInfoCount);
+
+                    // Query active shaders information.
+                    result = GFSDK_Aftermath_GpuCrashDump_GetGpuInfo(decoder, gpuInfoCount, gpuInfos.data());
+
+                    if (GFSDK_Aftermath_SUCCEED(result))
+                    {
+                        // Print information for each active shader
+                        for (const GFSDK_Aftermath_GpuCrashDump_GpuInfo& gpuInfo : gpuInfos)
+                        {
+                            HYP_BREAKPOINT;
+                        }
+                    }
+                }
+            }
+
+            {
+                // First query active shaders count.
+                uint32_t shaderCount = 0;
+                GFSDK_Aftermath_Result result = GFSDK_Aftermath_GpuCrashDump_GetActiveShadersInfoCount(decoder, &shaderCount);
+
+                if (GFSDK_Aftermath_SUCCEED(result) && result != GFSDK_Aftermath_Result_NotAvailable)
+                {
+                    // Allocate buffer for results.
+                    std::vector<GFSDK_Aftermath_GpuCrashDump_ShaderInfo> shaderInfos(shaderCount);
+
+                    // Query active shaders information.
+                    result = GFSDK_Aftermath_GpuCrashDump_GetActiveShadersInfo(decoder, shaderCount, shaderInfos.data());
+
+                    if (GFSDK_Aftermath_SUCCEED(result))
+                    {
+                        // Print information for each active shader
+                        for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo& shaderInfo : shaderInfos)
+                        {
+                            DebugLog(LogType::Error, "Active shader: ShaderHash = 0x%016llx ShaderInstance = 0x%016llx Shadertype = %u",
+                                shaderInfo.shaderHash,
+                                shaderInfo.shaderInstance,
+                                shaderInfo.shaderType);
+                        }
+                    }
+                }
+            }
+
+            std::vector<char> bytes;
+            bytes.resize(gpuCrashDumpSize);
+
+            Memory::Copy(bytes.data(), pGpuCrashDump, gpuCrashDumpSize);
+
+            FileByteWriter writer("./dump.nv-gpudmp");
+            writer.Write(bytes.data(), bytes.size());
+            writer.Close();
+
+            HYP_BREAKPOINT;
+        },
+        [](const void* pShaderDebugInfo, const uint32_t shaderDebugInfoSize, void* pUserData) {
+            GFSDK_Aftermath_ShaderDebugInfoIdentifier identifier = {};
+            AssertThrow(GFSDK_Aftermath_GetShaderDebugInfoIdentifier(GFSDK_Aftermath_Version_API, pShaderDebugInfo, shaderDebugInfoSize, &identifier) == GFSDK_Aftermath_Result_Success);
+
+
+            HYP_BREAKPOINT;
+        },
+        [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription addValue, void* pUserData) {
+            HYP_BREAKPOINT;
+        },
+        [](const void* pMarker, void* pUserData, void** resolvedMarkerData, uint32_t* markerSize) {
+            HYP_BREAKPOINT;
+        },
+        NULL
+    );
+    AssertThrow(res == GFSDK_Aftermath_Result_Success);
 ;
     engine->Initialize();
 
@@ -716,6 +854,7 @@ int main()
 #endif
 
     engine->Compile();
+
 
 #if HYPERION_VK_TEST_RAYTRACING
     HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));

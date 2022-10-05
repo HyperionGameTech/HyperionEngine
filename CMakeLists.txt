@@ -16,7 +16,7 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib ${VCPKG_INSTALLED_DIR}/)
+link_directories(${CMAKE_ROOT}/lib /usr/local/lib ${VCPKG_INSTALLED_DIR}/)
 
 find_package(Threads REQUIRED)
 find_package(OpenAL REQUIRED)
@@ -42,6 +42,7 @@ include_directories(
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
+    ${CMAKE_ROOT}/include
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -54,6 +55,8 @@ set(COMMON_LIBRARIES
     ${BULLET_LIBRARIES}
     glfw
     ${SDL2_LIBRARIES}
+
+    windows/64/GFSDK_Aftermath_Lib.x64
 )
 
 target_link_libraries(${BUILD_NAME} ${COMMON_LIBRARIES})

@@ -11,8 +11,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include <unordered_map>
-
 namespace hyperion {
 namespace renderer {
 
@@ -199,7 +197,7 @@ Image::Image(
     Image::Type type,
     Image::FilterMode filter_mode,
     const InternalInfo &internal_info,
-    const unsigned char *bytes)
+    const UByte *bytes)
     : m_extent(extent),
       m_format(format),
       m_type(type),
@@ -212,7 +210,7 @@ Image::Image(
     m_size = m_extent.width * m_extent.height * m_extent.depth * m_bpp * NumFaces();
 
     if (bytes != nullptr) {
-        m_bytes = new unsigned char[m_size];
+        m_bytes = new UByte[m_size];
         Memory::Copy(m_bytes, bytes, m_size);
     } else {
         m_bytes = nullptr;
@@ -267,18 +265,18 @@ void Image::SetIsSRGB(bool srgb)
     const auto internal_format = m_format;
 
     if (is_srgb) {
-        m_format = InternalFormat(int(internal_format) - int(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB));
+        m_format = InternalFormat(static_cast<Int>(internal_format) - static_cast<Int>(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB));
 
         return;
     }
 
-    const auto to_srgb_format = InternalFormat(int(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB) + int(internal_format));
+    const auto to_srgb_format = InternalFormat(static_cast<Int>(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB) + static_cast<Int>(internal_format));
 
     if (!IsSRGBFormat(to_srgb_format)) {
         DebugLog(
             LogType::Warn,
             "No SRGB counterpart for image type (%d)\n",
-            int(internal_format)
+            static_cast<Int>(internal_format)
         );
     }
 
@@ -850,13 +848,34 @@ void Image::CopyToBuffer(
     }
 }
 
+void Image::EnsureCapacity(SizeType size)
+{
+    if (HasAssignedImageData()) {
+        if (GetByteSize() >= size) {
+            return; // already has enough space
+        }
+
+        // resize
+        auto *new_bytes = new UByte[size];
+        // copy from existing
+        Memory::Copy(new_bytes, m_bytes, GetByteSize());
+        Memory::Set(new_bytes + GetByteSize(), 0, size - GetByteSize());
+
+        delete[] m_bytes;
+        m_bytes = new_bytes;
+    } else {
+        m_bytes = new UByte[size];
+        Memory::Set(m_bytes, 0, size);
+    }
+}
 
 Result Image::ConvertTo32BPP(
     Device *device,
     VkImageType image_type,
     VkImageCreateFlags image_create_flags,
     VkImageFormatProperties *out_image_format_properties,
-    VkFormat *out_format)
+    VkFormat *out_format
+)
 {
     constexpr UInt8 new_bpp = 4;
 
@@ -867,7 +886,7 @@ Result Image::ConvertTo32BPP(
     const UInt new_face_offset_step = new_size / num_faces;
     
     if (m_bytes != nullptr) {
-        auto *new_bytes = new unsigned char[new_size];
+        auto *new_bytes = new UByte[new_size];
 
         for (UInt i = 0; i < num_faces; i++) {
             ImageUtil::ConvertBPP(

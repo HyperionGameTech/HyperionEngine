@@ -67,33 +67,32 @@ void CubemapRenderer::Init(Engine *engine)
     m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
     engine->InitObject(m_scene);// testing global skybox
 
-    auto tex = engine->CreateHandle<Texture>(new TextureCube(
-            engine->assets.Load<Texture>(
+    /*engine->assets.Load<Texture>(
                "textures/chapel/posx.jpg",
                "textures/chapel/negx.jpg",
                "textures/chapel/posy.jpg",
                "textures/chapel/negy.jpg",
                "textures/chapel/posz.jpg",
                "textures/chapel/negz.jpg"
-            )
-        ));
-        tex->GetImage().SetIsSRGB(true);
+            );*/
+
+    Sleep(100);
 
     m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
         // TEMP
-        std::move(tex),
+        //std::move(tex),
 
-        //Handle<Texture>(m_cubemaps[0]), // TODO
+        Handle<Texture>(m_cubemaps[0]), // TODO
         m_aabb
     ));
-
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    
+    //HYP_FLUSH_RENDER_QUEUE(engine);
 
     SetReady(true);
 
     OnTeardown([this]() {
         auto *engine = GetEngine();
-
+#if 0
         // m_framebuffers = {};
         // m_render_pass.Reset();
         // m_renderer_instance.Reset();
@@ -172,6 +171,7 @@ void CubemapRenderer::Init(Engine *engine)
 
             return result;
         });
+#endif
 
         SetReady(false);
     });
@@ -183,7 +183,8 @@ void CubemapRenderer::InitGame(Engine *engine)
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertReady();
-
+    
+#if 0
     // add all entities from environment scene
     AssertThrow(GetParent()->GetScene() != nullptr);
     AssertThrow(m_env_probe != nullptr);
@@ -203,6 +204,7 @@ void CubemapRenderer::InitGame(Engine *engine)
             m_renderer_instance->AddEntity(Handle<Entity>(it.second));
         }
     }
+#endif
 }
 
 void CubemapRenderer::OnRemoved()
@@ -212,19 +214,21 @@ void CubemapRenderer::OnRemoved()
     AssertThrow(GetParent()->GetScene() != nullptr);
     AssertThrow(m_env_probe != nullptr);
 
-    GetParent()->RemoveEnvProbe(m_env_probe.IncRef());
+    //GetParent()->RemoveEnvProbe(m_env_probe.IncRef());
 }
 
 void CubemapRenderer::OnEntityAdded(Handle<Entity> &entity)
 {
+#if 0
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
 
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
         m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
-        m_renderer_instance->AddEntity(Handle<Entity>(entity));
+        //m_renderer_instance->AddEntity(Handle<Entity>(entity));
     }
+#endif
 }
 
 void CubemapRenderer::OnEntityRemoved(Handle<Entity> &entity)
@@ -233,7 +237,7 @@ void CubemapRenderer::OnEntityRemoved(Handle<Entity> &entity)
 
     AssertReady();
 
-    m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
+    //m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
 }
 
 void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
@@ -242,21 +246,24 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
 
     AssertReady();
 
+#if 0
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
         m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
         m_renderer_instance->AddEntity(Handle<Entity>(entity));
     } else {
         m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
     }
+#endif
 }
 
 void CubemapRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
 {
-    m_env_probe->Update(engine);
+    //m_env_probe->Update(engine);
 }
 
 void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
 {
+    return;
     // Threads::AssertOnThread(THREAD_RENDER);
 
     auto *command_buffer = frame->GetCommandBuffer();

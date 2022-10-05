@@ -9,6 +9,8 @@
 #include <rendering/vct/VoxelConeTracing.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
+
 #include <Game.hpp>
 
 #include <builders/MeshBuilder.hpp>
@@ -642,10 +644,33 @@ void Engine::RenderNextFrame(Game *game)
         return;
     }
 
-    HYPERION_ASSERT_RESULT(GetInstance()->GetFrameHandler()->PrepareFrame(
+    auto frame_result = GetInstance()->GetFrameHandler()->PrepareFrame(
         GetInstance()->GetDevice(),
         GetInstance()->GetSwapchain()
-    ));
+    );
+
+    if (!frame_result) {
+        GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
+        AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
+
+        auto tStart = std::chrono::steady_clock::now();
+        auto tElapsed = std::chrono::milliseconds::zero();
+
+        // Loop while Aftermath crash dump data collection has not finished or
+        // the application is still processing the crash dump data.
+        while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed &&
+               status != GFSDK_Aftermath_CrashDump_Status_Finished &&
+               tElapsed.count() < 1000000)
+        {
+            // Sleep a couple of milliseconds and poll the status again.
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
+
+            tElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - tStart);
+        }
+
+        HYP_BREAKPOINT;
+    }
 
     auto *frame = GetInstance()->GetFrameHandler()->GetCurrentFrameData().Get<renderer::Frame>();
     auto *command_buffer = frame->GetCommandBuffer();

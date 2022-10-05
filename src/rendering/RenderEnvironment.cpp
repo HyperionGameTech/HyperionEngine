@@ -248,11 +248,13 @@ void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
         it.second->Update(engine, delta);
     }
 
-    HYP_USED AtomicWaiter waiter(m_updating_render_components);
+    m_render_component_sp.Wait();
 
     for (const auto &component : m_render_components) {
         component.second->ComponentUpdate(engine, delta);
     }
+
+    m_render_component_sp.Signal();
 }
 
 void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)

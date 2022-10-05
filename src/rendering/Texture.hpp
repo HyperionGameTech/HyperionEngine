@@ -59,6 +59,7 @@ public:
     UInt NumFaces() const { return m_image.NumFaces(); }
 
     bool IsTextureCube() const { return m_image.IsTextureCube(); }
+    bool IsPanorama() const { return m_image.IsPanorama(); }
 
     const Extent3D &GetExtent() const { return m_image.GetExtent(); }
 
@@ -126,39 +127,118 @@ public:
         Image::WrapMode wrap_mode,
         const unsigned char *bytes
     ) : Texture(
-        Extent3D(extent),
-        format,
-        Image::Type::TEXTURE_TYPE_CUBEMAP,
-        filter_mode,
-        wrap_mode,
-        bytes
-    )
+            Extent3D(extent),
+            format,
+            Image::Type::TEXTURE_TYPE_CUBEMAP,
+            filter_mode,
+            wrap_mode,
+            bytes
+        )
     {
+    }
+
+    TextureCube(std::unique_ptr<Texture> &&other) noexcept
+        : Texture(
+              other
+                ? (other->IsTextureCube()
+                    ? other->GetImage().GetExtent()
+                    : (other->IsPanorama()
+                        ? Extent3D(other->GetImage().GetExtent().width / 4, other->GetImage().GetExtent().height / 3, 1)
+                        : (other->GetImage().GetExtent() / Extent3D(6, 6, 1))))
+                : Extent3D { 1, 1, 1 },
+              other ? other->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              Image::Type::TEXTURE_TYPE_CUBEMAP,
+              other ? other->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
+              other ? other->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+              nullptr
+          )
+    {
+        if (other && other->GetImage().HasAssignedImageData()) {
+            m_image.EnsureCapacity(m_image.GetByteSize());
+
+            if (other->IsPanorama()) {
+                // create a cubemap from a panorama image
+                //         [top]
+                // [right][back][left][front]
+                //       [bottom]
+
+#if 0 // todo
+
+                const auto width_per_face = other->GetImage().GetExtent().width / 4;
+                const auto height_per_face = width_per_face;
+
+                const auto face_size = width_per_face * height_per_face * Image::NumComponents(other->GetFormat());
+
+                AssertThrow(face_size * 6 < other->GetImage().GetByteSize());
+
+                // TODO: Project spherical onto sphere
+
+                for (UInt x = 0; x < width_per_face * Image::NumComponents(other->GetFormat(); x++) {
+                    for (UInt y = 0; y < height_per_face * Image::NumComponents(other->GetFormat(); y++) {
+                        
+                    }
+                }
+                SizeType src_offset = 0,
+                    dst_offset = 0;
+
+                // skip firstt in row
+                src_offset += face_size;
+
+                // copy top image
+                m_image.CopyImageData(other->GetImage().GetBytes() + src_offset, face_size, dst_offset);
+                dst_offset += face_size;
+                src_offset += face_size;
+
+                // skip next, move to row
+                src_offset += face_size;
+                src_offset += face_size;
+
+                for (UInt i = 0; i < 4; i++) {
+                    // copy 4 faces in row
+                    m_image.CopyImageData(other->GetImage().GetBytes() + src_offset, face_size, dst_offset);
+                    dst_offset += face_size;
+                    src_offset += face_size;
+                }
+
+                // skip first in row
+                src_offset += face_size;
+
+                m_image.CopyImageData(other->GetImage().GetBytes() + src_offset, face_size, dst_offset);
+#endif
+            } else {
+                m_image.CopyImageData(other->GetImage().GetBytes(), other->GetImage().GetByteSize(), 0);
+            }
+        }
+
+        other.reset();
     }
 
     TextureCube(
         std::array<std::unique_ptr<Texture>, 6> &&texture_faces
     ) : Texture(
-        texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D { },
-        texture_faces[0] ? texture_faces[0]->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-        Image::Type::TEXTURE_TYPE_CUBEMAP,
-        texture_faces[0] ? texture_faces[0]->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        texture_faces[0] ?  texture_faces[0]->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
-    )
+            texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D { },
+            texture_faces[0] ? texture_faces[0]->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            Image::Type::TEXTURE_TYPE_CUBEMAP,
+            texture_faces[0] ? texture_faces[0]->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
+            texture_faces[0] ?  texture_faces[0]->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        )
     {
-        if (m_image.GetBytes() != nullptr) {
-            SizeType offset = 0, face_size = 0;
+        m_image.EnsureCapacity(m_image.GetByteSize());
 
-            for (auto &texture : texture_faces) {
-                if (texture != nullptr) {
-                    face_size = texture->GetExtent().Size() * Image::NumComponents(texture->GetFormat());
+        SizeType offset = 0,
+            face_size = 0;
 
-                    m_image.CopyImageData(texture->GetImage().GetBytes(), face_size, offset);
-                }
+        for (auto &texture : texture_faces) {
+            if (texture != nullptr) {
+                face_size = texture->GetExtent().Size() * Image::NumComponents(texture->GetFormat());
 
-                offset += face_size;
+                m_image.CopyImageData(texture->GetImage().GetBytes(), face_size, offset);
             }
+
+            texture.reset();
+
+            offset += face_size;
         }
     }
 };

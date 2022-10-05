@@ -41,6 +41,20 @@ void Scene::Init(Engine *engine)
 
     m_environment->Init(engine);
 
+    if (m_entities_pending_removal.Any()) {
+        RemovePendingEntities();
+    }
+
+    if (m_entities_pending_addition.Any()) {
+        for (auto &entity : m_entities_pending_addition) {
+            AssertThrow(entity);
+            
+            engine->InitObject(entity);
+        }
+
+        AddPendingEntities();
+    }
+
     SetReady(true);
 
     OnTeardown([this]() {
@@ -299,12 +313,12 @@ void Scene::Update(
 {
     AssertReady();
 
-    if (m_entities_pending_addition.Any()) {
-        AddPendingEntities();
-    }
-
     if (m_entities_pending_removal.Any()) {
         RemovePendingEntities();
+    }
+
+    if (m_entities_pending_addition.Any()) {
+        AddPendingEntities();
     }
 
     if (m_camera != nullptr) {

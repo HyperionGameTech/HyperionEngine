@@ -7,6 +7,8 @@
 
 #include <math/MathUtil.hpp>
 
+#include <Types.hpp>
+
 namespace hyperion {
 namespace renderer {
 
@@ -141,7 +143,7 @@ public:
         Type type,
         FilterMode filter_mode,
         const InternalInfo &internal_info,
-        const unsigned char *bytes
+        const UByte *bytes
     );
 
     Image(const Image &other) = delete;
@@ -186,21 +188,23 @@ public:
         CommandBuffer *command_buffer,
         GPUBuffer *dst_buffer
     ) const;
+
+    /*! \brief Resize the CPU-side byte array to be at least the given capacity. To be used before uploading.
+        If no bytes are currently allocated, at least the given capacity will be allocated. */
+    void EnsureCapacity(SizeType size);
     
-    const unsigned char *GetBytes() const
+    const UByte *GetBytes() const
         { return m_bytes; }
 
     bool HasAssignedImageData() const
         { return m_bytes != nullptr; }
 
-    void CopyImageData(const unsigned char *data, size_t count, size_t offset = 0)
+    void CopyImageData(const UByte *data, SizeType count, SizeType offset = 0)
     {
         AssertThrow(m_bytes != nullptr);
         AssertThrow(offset + count <= m_size);
 
         Memory::Copy(&m_bytes[offset], data, count);
-
-        m_assigned_image_data = true;
     }
 
     bool IsDepthStencil() const;
@@ -227,8 +231,21 @@ public:
             : 1;
     }
 
+    /*! \brief Returns the byte-size of the image. Note, it's possible no CPU-side memory exists
+        for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
+        use HasAssignedImageData(). */
+    SizeType GetByteSize() const
+        { return static_cast<SizeType>(m_extent.Size())
+            * static_cast<SizeType>(NumComponents(m_format))
+            * static_cast<SizeType>(NumFaces()); }
+
     bool IsTextureCube() const
         { return m_type == TEXTURE_TYPE_CUBEMAP; }
+
+    bool IsPanorama() const
+        { return m_type == TEXTURE_TYPE_2D
+            && m_extent.width == m_extent.height * 2
+            && m_extent.depth == 1; }
 
     UInt NumFaces() const
         { return IsTextureCube() ? 6 : 1; }
@@ -277,8 +294,7 @@ private:
     InternalFormat m_format;
     Type m_type;
     FilterMode m_filter_mode;
-    unsigned char *m_bytes;
-    bool m_assigned_image_data;
+    UByte *m_bytes;
 
     bool m_is_blended;
 
@@ -296,7 +312,7 @@ public:
         Extent3D extent,
         InternalFormat format,
         Type type,
-        const unsigned char *bytes = nullptr
+        const UByte *bytes = nullptr
     ) : StorageImage(
             extent,
             format,
@@ -312,7 +328,7 @@ public:
         InternalFormat format,
         Type type,
         FilterMode filter_mode,
-        const unsigned char *bytes = nullptr
+        const UByte *bytes = nullptr
     ) : Image(
         extent,
         format,
@@ -321,8 +337,8 @@ public:
         Image::InternalInfo {
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /*i guess?*/
-                         | VK_IMAGE_USAGE_STORAGE_BIT
-                         | VK_IMAGE_USAGE_SAMPLED_BIT
+                | VK_IMAGE_USAGE_STORAGE_BIT
+                | VK_IMAGE_USAGE_SAMPLED_BIT
         },
         bytes
     )
@@ -336,7 +352,7 @@ public:
     StorageImage2D(
         Extent2D extent,
         InternalFormat format,
-        const unsigned char *bytes = nullptr
+        const UByte *bytes = nullptr
     ) : StorageImage(
         Extent3D(extent),
         format,
@@ -353,7 +369,7 @@ public:
     StorageImage3D(
         Extent3D extent,
         InternalFormat format,
-        const unsigned char *bytes = nullptr
+        const UByte *bytes = nullptr
     ) : StorageImage(
         extent,
         format,
@@ -372,7 +388,7 @@ public:
         InternalFormat format,
         Type type,
         FilterMode filter_mode,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : Image(
         extent,
         format,
@@ -396,7 +412,7 @@ public:
         Extent2D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : TextureImage(
         Extent3D(extent),
         format,
@@ -415,7 +431,7 @@ public:
         Extent3D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : TextureImage(
         extent,
         format,
@@ -434,7 +450,7 @@ public:
         Extent2D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : TextureImage(
         Extent3D(extent),
         format,
@@ -453,7 +469,7 @@ public:
         Extent3D extent,
         InternalFormat format,
         Type type,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : Image(
         extent,
         format,
@@ -500,7 +516,7 @@ public:
     FramebufferImage2D(
         Extent2D extent,
         InternalFormat format,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : FramebufferImage(
         Extent3D(extent),
         format,
@@ -530,7 +546,7 @@ public:
     FramebufferImageCube(
         Extent2D extent,
         InternalFormat format,
-        const unsigned char *bytes
+        const UByte *bytes
     ) : FramebufferImage(
         Extent3D(extent),
         format,
