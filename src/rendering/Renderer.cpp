@@ -504,16 +504,20 @@ RenderAll(
 #endif
 
                         if constexpr (IsIndirect) {
+#if 0
 #if HYP_DEBUG_MODE
                             AssertThrow(draw_proxy.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
 #endif
 
-                            draw_proxy.mesh->RenderIndirect(
-                                engine,
-                                secondary,
-                                indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
-                                draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
-                            );
+#endif
+                            if (draw_proxy.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size) {
+                                draw_proxy.mesh->RenderIndirect(
+                                    engine,
+                                    secondary,
+                                    indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
+                                    draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
+                                );
+                            }
                         } else {
                             draw_proxy.mesh->Render(engine, secondary);
                         }

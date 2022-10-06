@@ -71,6 +71,9 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     va_start(args, fmt);
     vfprintf(debug_output_stream, fmt, args);
     va_end(args);
+
+
+    std::cout << std::endl;
 }
 
 #endif

@@ -24,7 +24,7 @@ class DeviceQueue;
 using ::hyperion::non_owning_ptr;
 class Frame {
 public:
-    static Frame TemporaryFrame(CommandBuffer *command_buffer);
+    static Frame TemporaryFrame(CommandBuffer *command_buffer, UInt frame_index = 0);
 
     explicit Frame();
     Frame(UInt frame_index);

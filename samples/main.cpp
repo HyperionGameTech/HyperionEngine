@@ -620,7 +620,7 @@ int main()
                         // Print information for each active shader
                         for (const GFSDK_Aftermath_GpuCrashDump_GpuInfo& gpuInfo : gpuInfos)
                         {
-                            HYP_BREAKPOINT;
+                            //HYP_BREAKPOINT;
                         }
                     }
                 }
@@ -668,14 +668,32 @@ int main()
             GFSDK_Aftermath_ShaderDebugInfoIdentifier identifier = {};
             AssertThrow(GFSDK_Aftermath_GetShaderDebugInfoIdentifier(GFSDK_Aftermath_Version_API, pShaderDebugInfo, shaderDebugInfoSize, &identifier) == GFSDK_Aftermath_Result_Success);
 
+            std::stringstream ss;
+            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(UInt64)) << identifier.id[0];
+            ss << "-";
+            ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(UInt64)) << identifier.id[1];
+            std::string str = ss.str();
+
+            std::transform(str.begin(), str.end(), str.begin(), [](char ch) {
+                return std::toupper(ch);
+            });
+
+            std::vector<char> bytes;
+            bytes.resize(shaderDebugInfoSize);
+
+            Memory::Copy(bytes.data(), pShaderDebugInfo, shaderDebugInfoSize);
+
+            FileByteWriter writer("shader-" + str + ".nvdbg");
+            writer.Write(bytes.data(), bytes.size());
+            writer.Close();
 
             HYP_BREAKPOINT;
         },
         [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription addValue, void* pUserData) {
-            HYP_BREAKPOINT;
+           // HYP_BREAKPOINT;
         },
         [](const void* pMarker, void* pUserData, void** resolvedMarkerData, uint32_t* markerSize) {
-            HYP_BREAKPOINT;
+           // HYP_BREAKPOINT;
         },
         NULL
     );

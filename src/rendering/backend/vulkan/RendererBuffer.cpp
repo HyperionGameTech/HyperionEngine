@@ -516,6 +516,8 @@ Result GPUBuffer::CheckCanAllocate(
 
 void GPUBuffer::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_state) const
 {
+    AssertThrow(command_buffer != nullptr);
+
     if (buffer == nullptr) {
         DebugLog(
             LogType::Warn,
@@ -1001,6 +1003,8 @@ void GPUImageMemory::InsertSubResourceBarrier(
     ResourceState new_state
 )
 {
+    AssertThrow(command_buffer != nullptr);
+
     if (image == nullptr) {
         DebugLog(
             LogType::Warn,

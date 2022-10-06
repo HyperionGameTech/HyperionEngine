@@ -188,7 +188,7 @@ struct alignas(256) SceneShaderData
 
 static_assert(sizeof(SceneShaderData) == 256);
 
-struct alignas(256) LightShaderData
+struct alignas(16) LightShaderData
 {
     Vector4 position; //direction for directional lights
     UInt32 color;
@@ -198,7 +198,7 @@ struct alignas(256) LightShaderData
     UInt32 shadow_map_index; // ~0 == no shadow map
 };
 
-static_assert(sizeof(LightShaderData) == 256);
+static_assert(sizeof(LightShaderData) == 48);
 
 struct alignas(16) ShadowShaderData
 {
@@ -224,7 +224,7 @@ struct alignas(16) EnvProbeShaderData
     UInt32 flags;
 };
 
-struct alignas(16) ObjectInstance
+struct ObjectInstance
 {
     UInt32 entity_id;
     UInt32 draw_command_index;
@@ -233,7 +233,12 @@ struct alignas(16) ObjectInstance
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     UInt32 packed_data;
+
+    HYP_PAD_STRUCT_HERE(UByte, 204);
 };
+
+static_assert(sizeof(ObjectInstance) == 256);
+static_assert(alignof(ObjectInstance) == alignof(ShaderVec4<Float>));
 
 /* max number of skeletons, based on size in mb */
 constexpr SizeType max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);

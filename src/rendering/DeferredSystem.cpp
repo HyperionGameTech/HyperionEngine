@@ -57,9 +57,9 @@ DeferredSystem::RendererInstanceHolder::~RendererInstanceHolder()
 
 void DeferredSystem::RendererInstanceHolder::AddRendererInstance(Handle<RendererInstance> &renderer_instance)
 {
-    AddFramebuffersToPipeline(renderer_instance);
-
     std::lock_guard guard(renderer_instances_mutex);
+
+    AddFramebuffersToPipeline(renderer_instance);
 
     renderer_instances_pending_addition.PushBack(renderer_instance);
     renderer_instances_changed.Set(true);
@@ -99,6 +99,8 @@ void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances(Engine 
 
 void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipelines()
 {
+    std::lock_guard guard(renderer_instances_mutex);
+
     for (auto &pipeline : renderer_instances) {
         AddFramebuffersToPipeline(pipeline);
     }
@@ -232,6 +234,8 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
 void DeferredSystem::RendererInstanceHolder::CreateFramebuffers(Engine *engine)
 {
     AssertThrow(framebuffers.Empty());
+    
+    std::lock_guard guard(renderer_instances_mutex);
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         auto framebuffer = engine->CreateHandle<Framebuffer>(

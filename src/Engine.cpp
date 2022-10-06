@@ -670,6 +670,8 @@ void Engine::RenderNextFrame(Game *game)
         }
 
         HYP_BREAKPOINT;
+
+        exit(1);
     }
 
     auto *frame = GetInstance()->GetFrameHandler()->GetCurrentFrameData().Get<renderer::Frame>();

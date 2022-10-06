@@ -7,10 +7,11 @@
 namespace hyperion {
 namespace renderer {
 
-Frame Frame::TemporaryFrame(CommandBuffer *command_buffer)
+Frame Frame::TemporaryFrame(CommandBuffer *command_buffer, UInt frame_index)
 {
     Frame frame;
     frame.command_buffer = non_owning_ptr(command_buffer);
+    frame.m_frame_index = frame_index;
     return frame;
 }
 

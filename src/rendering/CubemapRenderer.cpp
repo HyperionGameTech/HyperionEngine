@@ -76,7 +76,7 @@ void CubemapRenderer::Init(Engine *engine)
                "textures/chapel/negz.jpg"
             );*/
 
-    Sleep(100);
+    Sleep(50);
 
     m_env_probe = engine->resources->env_probes.Add(new EnvProbe(
         // TEMP
@@ -86,7 +86,7 @@ void CubemapRenderer::Init(Engine *engine)
         m_aabb
     ));
     
-    //HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE(engine);
 
     SetReady(true);
 

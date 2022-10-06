@@ -10,6 +10,7 @@ using renderer::ShaderVec2;
 
 IndirectDrawState::IndirectDrawState()
 {
+#if 0
     for (auto &buffer : m_indirect_buffers) {
         buffer.Reset(new IndirectBuffer());
     }
@@ -17,6 +18,7 @@ IndirectDrawState::IndirectDrawState()
     for (auto &buffer : m_instance_buffers) {
         buffer.Reset(new StorageBuffer());
     }
+#endif
 }
 
 IndirectDrawState::~IndirectDrawState()
@@ -25,23 +27,44 @@ IndirectDrawState::~IndirectDrawState()
 
 Result IndirectDrawState::Create(Engine *engine)
 {
-    auto result = renderer::Result::OK;
-    
-    for (auto &buffer : m_indirect_buffers) {
-        HYPERION_PASS_ERRORS(
-            buffer->Create(engine->GetDevice(), initial_count * sizeof(IndirectDrawCommand)),
-            result
-        );
-    }
-    
-    for (auto &buffer : m_instance_buffers) {
-        HYPERION_PASS_ERRORS(
-            buffer->Create(engine->GetDevice(), initial_count * sizeof(ObjectInstance)),
-            result
-        );
+    auto single_time_commands = engine->GetInstance()->GetSingleTimeCommands();
+
+    single_time_commands.Push([this, engine](CommandBuffer *command_buffer) -> Result {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto frame = Frame::TemporaryFrame(command_buffer, frame_index);
+
+            if (!ResizeIndirectDrawCommandsBuffer(engine, &frame, initial_count)) {
+                return { Result::RENDERER_ERR, "Failed to create indirect draw buffer" };
+            }
+
+            if (!ResizeInstancesBuffer(engine, &frame, initial_count)) {
+                return { Result::RENDERER_ERR, "Failed to create instances buffer" };
+            }
+        }
+
+        HYPERION_RETURN_OK;
+    });
+
+    return single_time_commands.Execute(engine->GetDevice());
+
+#if 0
+    auto result = Result::OK;
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto frame = Frame::TemporaryFrame(nullptr, frame_index);
+        engine->GetDevice()->GetOn
+
+        if (!ResizeIndirectDrawCommandsBuffer(engine, &frame, initial_count)) {
+            HYPERION_PASS_ERRORS(Result(Result::RENDERER_ERR, "Failed to create indirect draw buffer"), result);
+        }
+
+        if (!ResizeInstancesBuffer(engine, &frame, initial_count)) {
+            HYPERION_PASS_ERRORS(Result(Result::RENDERER_ERR, "Failed to create instances buffer"), result);
+        }
     }
 
     return result;
+#endif
 }
 
 Result IndirectDrawState::Destroy(Engine *engine)
