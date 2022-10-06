@@ -235,10 +235,9 @@ struct ObjectInstance
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     UInt32 packed_data;
-    HYP_PAD_STRUCT_HERE(UInt32, 51);
 };
 
-static_assert(sizeof(ObjectInstance) == 256);
+static_assert(sizeof(ObjectInstance) == 64);
 static_assert(alignof(ObjectInstance) == alignof(ShaderVec4<Float>));
 
 /* max number of skeletons, based on size in mb */
