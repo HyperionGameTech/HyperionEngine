@@ -196,9 +196,11 @@ struct alignas(16) LightShaderData
     float intensity;
     float radius;
     UInt32 shadow_map_index; // ~0 == no shadow map
+
+    HYP_PAD_STRUCT_HERE(UInt32, 7);
 };
 
-static_assert(sizeof(LightShaderData) == 48);
+static_assert(sizeof(LightShaderData) == 64);
 
 struct alignas(16) ShadowShaderData
 {
@@ -233,8 +235,7 @@ struct ObjectInstance
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     UInt32 packed_data;
-
-    HYP_PAD_STRUCT_HERE(UByte, 204);
+    HYP_PAD_STRUCT_HERE(UInt32, 51);
 };
 
 static_assert(sizeof(ObjectInstance) == 256);

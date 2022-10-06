@@ -578,12 +578,12 @@ struct IndirectDrawCommand
 {
     // native vk object
     VkDrawIndexedIndirectCommand command;
-
-    HYP_PAD_STRUCT_HERE(UByte, 256 - sizeof(VkDrawIndexedIndirectCommand));
+    
+    //HYP_PAD_STRUCT_HERE(UByte, 256 - sizeof(VkDrawIndexedIndirectCommand));
 };
 
 static_assert(std::is_standard_layout_v<IndirectDrawCommand>, "IndirectDrawCommand must be POD");
-static_assert(sizeof(IndirectDrawCommand) == 256, "IndirectDrawCommand must have a sizeof multiple of 4");
+//static_assert(sizeof(IndirectDrawCommand) == 256, "IndirectDrawCommand must have a sizeof multiple of 4");
 
 } // namespace renderer
 } // namespace hyperion
