@@ -197,6 +197,7 @@ enum class DescriptorKey
     VOXEL_IMAGE,
     DEPTH_PYRAMID_RESULT,
     SVO_BUFFER,
+    UI_TEXTURE,
 
     SCENE_BUFFER,
     LIGHTS_BUFFER,

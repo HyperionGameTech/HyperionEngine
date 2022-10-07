@@ -608,9 +608,6 @@ void DeferredRenderer::Render(
             RenderParticles(engine, frame, environment);
         }
 
-        // temporary.. this should be moved to its own framebuffer after everything.
-        RenderUI(engine, frame);
-
         m_translucent_fbos[frame_index]->EndCapture(primary);
     }
 

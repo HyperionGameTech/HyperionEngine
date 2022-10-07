@@ -529,7 +529,7 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
     const auto center = aabb.GetCenter();
 
     const auto light_direction = m_shadow_pass.GetLight()
-        ? m_shadow_pass.GetLight()->GetPosition()
+        ? m_shadow_pass.GetLight()->GetPosition() * -1.0f
         : Vector3::Zero();
 
     auto &camera = m_shadow_pass.GetScene()->GetCamera();

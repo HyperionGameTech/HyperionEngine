@@ -62,11 +62,11 @@ public:
         component->SetParent(this);
         component->SetComponentIndex(0);
 
-        std::lock_guard guard(m_render_component_mutex);
-
         if (IsInitCalled()) {
             component->ComponentInit(GetEngine());
         }
+
+        std::lock_guard guard(m_render_component_mutex);
 
         m_render_components_pending_addition.Set<T>(std::move(component));
         

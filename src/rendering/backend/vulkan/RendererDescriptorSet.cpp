@@ -53,7 +53,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::DEPTH_PYRAMID_RESULT,  36},
 
             // sparse voxel octree buffer
-            {DescriptorKey::SVO_BUFFER,            40}
+            {DescriptorKey::SVO_BUFFER,            40},
+
+            // final UI image
+            {DescriptorKey::UI_TEXTURE,            45}
         }
     },
     {

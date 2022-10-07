@@ -548,6 +548,14 @@ void Engine::Initialize()
                 .element_index = 0u,
                 .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetDevice(), sizeof(ShaderVec2<UInt32>))
             });
+
+        // ui texture
+        descriptor_set_globals
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
     }
 
     /* for textures */
