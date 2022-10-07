@@ -116,7 +116,8 @@ static bool ResizeBuffer(
 
         DebugLog(
             LogType::Debug,
-            "Resize indirect draw commands at frame index %u from %llu -> %llu\n",
+            "Resize indirect buffer (%p) at frame index %u from %llu -> %llu\n",
+            buffers[frame_index].Get(),
             frame_index,
             current_buffer_size,
             new_buffer_size

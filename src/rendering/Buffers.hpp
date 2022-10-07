@@ -175,6 +175,8 @@ struct ObjectInstance
     ShaderVec4<UInt32> packed_data;
 };
 
+static_assert(sizeof(ObjectInstance) == 64);
+
 /* max number of skeletons, based on size in mb */
 static const SizeType max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);
 static const SizeType max_skeletons_bytes = max_skeletons * sizeof(SkeletonShaderData);

@@ -79,22 +79,18 @@ private:
     {
         TypeID type_id;
         std::atomic<UInt> id_counter { 0u };
-        std::atomic_bool has_free_id { false };
         std::mutex free_id_mutex;
         Queue<HandleID> free_ids;
 
         HandleID NextID()
         {
-            if (!has_free_id.load()) {
+            std::lock_guard guard(free_id_mutex);
+
+            if (free_ids.Empty()) {
                 return HandleID(type_id, ++id_counter);
             }
 
-            std::lock_guard guard(free_id_mutex);
-
-            auto id = free_ids.Pop();
-            has_free_id.store(free_ids.Any());
-
-            return id;
+            return free_ids.Pop();
         }
 
         void FreeID(const HandleID &id)
@@ -102,7 +98,6 @@ private:
             std::lock_guard guard(free_id_mutex);
 
             free_ids.Push(id);
-            has_free_id.store(true);
         }
     };
 

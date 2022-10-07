@@ -66,7 +66,7 @@ class DeferredRenderer
 {
     static constexpr bool ssr_enabled = true;
     // perform occlusion culling using indirect draw
-    static constexpr bool use_draw_indirect = true;
+    static constexpr bool use_draw_indirect = false;
     static const Extent2D mipmap_chain_extent;
 
 public:

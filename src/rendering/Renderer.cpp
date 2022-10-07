@@ -177,6 +177,8 @@ void RendererInstance::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
+    // create our indirect renderer
+    // will be created with some initial size.
     m_indirect_renderer.Create(engine);
 
     AssertThrow(m_fbos.Any());
@@ -507,6 +509,8 @@ RenderAll(
 #if HYP_DEBUG_MODE
                             AssertThrow(draw_proxy.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
 #endif
+
+                            DebugLog(LogType::Debug, "Render into buffer %p\n", indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index));
 
                             draw_proxy.mesh->RenderIndirect(
                                 engine,
