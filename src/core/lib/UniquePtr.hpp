@@ -83,7 +83,7 @@ struct UniquePtrHolder
         using Normalized = NormalizedType<Derived>;
 
         value = Memory::AllocateAndConstruct<Normalized>(std::forward<Args>(args)...);
-        dtor = &Memory::DestructAndFree<Normalized>;
+        dtor = &Memory::DestructAndFree<Derived>;
         type_id = TypeID::ForType<Normalized>();
         base_type_id = TypeID::ForType<NormalizedType<Base>>();
     }
@@ -94,7 +94,7 @@ struct UniquePtrHolder
         using Normalized = NormalizedType<Derived>;
 
         value = ptr;
-        dtor = &Memory::DestructAndFree<Normalized>;
+        dtor = &Memory::DestructAndFree<Derived>;
         type_id = TypeID::ForType<Normalized>();
         base_type_id = TypeID::ForType<NormalizedType<Base>>();
     }

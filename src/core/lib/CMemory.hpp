@@ -1,10 +1,13 @@
 #ifndef HYPERION_V2_LIB_C_MEMORY_HPP
 #define HYPERION_V2_LIB_C_MEMORY_HPP
 
+#include <util/Defines.hpp>
 #include <Types.hpp>
 
 #include <type_traits>
 #include <cstring>
+#include <cstdlib>
+#include <malloc.h>
 
 namespace hyperion
 {
@@ -20,7 +23,7 @@ public:
     static char *CopyString(char *dest, const char *src, SizeType length = 0)
     {
         if (length)
-            return strncpy(dest, src, length);
+            return std::strncpy(dest, src, length);
         return std::strcpy(dest, src);
     }
 
@@ -57,7 +60,7 @@ public:
     template <class T, class ...Args>
     [[nodiscard]] static void *AllocateAndConstruct(Args &&... args)
     {
-        void *ptr = std::malloc(sizeof(T));
+        void *ptr = HYP_ALLOC_ALIGNED(alignof(T), sizeof(T));
         new (ptr) T(std::forward<Args>(args)...);
         return ptr;
     }

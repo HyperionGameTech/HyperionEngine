@@ -98,7 +98,7 @@ public:
     Any &operator=(const Any &other) = delete;
 
     Any(Any &&other) noexcept
-        : m_type_id(other.m_type_id),
+        : m_type_id(std::move(other.m_type_id)),
           m_ptr(other.m_ptr),
           m_delete_function(other.m_delete_function)
     {

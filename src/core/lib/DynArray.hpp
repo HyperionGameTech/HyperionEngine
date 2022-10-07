@@ -54,7 +54,7 @@ public:
     {
         Reserve(Sz);
 
-        for (SizeType i = 0; i < Sz; i++) {
+        for (SizeType i = 0; i < Sz; ++i) {
             PushBack(items[i]);
         }
     }
@@ -75,7 +75,7 @@ public:
     {
         Resize(Sz);
 
-        for (SizeType i = 0; i < Sz; i++) {
+        for (SizeType i = 0; i < Sz; ++i) {
             Base::Set(static_cast<KeyType>(i), items[i]);
         }
     }
@@ -86,7 +86,7 @@ public:
     {
         Resize(Sz);
 
-        for (SizeType i = 0; i < Sz; i++) {
+        for (SizeType i = 0; i < Sz; ++i) {
             Base::Set(static_cast<KeyType>(i), std::move(items[i]));
         }
     }
@@ -280,9 +280,11 @@ protected:
     }
 
 private:
-    // dynamic memory
-    Storage *m_buffer;
-    Storage m_inline_buffer[num_inline_elements];
+    union {
+        // dynamic memory
+        Storage *m_buffer;
+        Storage m_inline_buffer[num_inline_elements];
+    };
 
 protected:
     bool m_is_dynamic;
@@ -318,7 +320,7 @@ DynArray<T, NumInlineBytes>::DynArray(const DynArray &other)
     auto *buffer = GetStorage();
 
     // copy all members
-    for (SizeType i = m_start_offset; i < m_size; i++) {
+    for (SizeType i = m_start_offset; i < m_size; ++i) {
         Memory::Construct<T>(&buffer[i].data_buffer, other.GetStorage()[i].Get());
     }
 }
@@ -337,7 +339,7 @@ DynArray<T, NumInlineBytes>::DynArray(DynArray &&other) noexcept
         auto *buffer = GetStorage();
 
         // move all members
-        for (SizeType i = m_start_offset; i < m_size; i++) {
+        for (SizeType i = m_start_offset; i < m_size; ++i) {
             Memory::Construct<T>(&buffer[i].data_buffer, std::move(other.GetStorage()[i].Get()));
         }
     }
@@ -444,6 +446,7 @@ auto DynArray<T, NumInlineBytes>::operator=(DynArray &&other) noexcept -> DynArr
 
         if (m_is_dynamic) {
             std::free(buffer);
+            m_buffer = nullptr;
         }
     }
 
@@ -455,12 +458,11 @@ auto DynArray<T, NumInlineBytes>::operator=(DynArray &&other) noexcept -> DynArr
         m_start_offset = other.m_start_offset;
         m_is_dynamic = true;
     } else {
-        m_buffer = nullptr;
         m_capacity = num_inline_elements;
         m_is_dynamic = false;
 
         // move items individually
-        for (SizeType i = 0; i < other.Size(); i++) {
+        for (SizeType i = 0; i < other.Size(); ++i) {
             Memory::Construct<T>(&m_inline_buffer[i].data_buffer, std::move(other.m_inline_buffer[other.m_start_offset + i].Get()));
         }
 
@@ -547,18 +549,17 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
     } else {
         if (m_is_dynamic) { // switch from dynamic to non-dynamic
             for (SizeType i = copy_offset, j = m_start_offset; j < m_size; ++i, ++j) {
-                m_inline_buffer[i].Get() = std::move(m_buffer[j].Get());
+                m_inline_buffer[i].Get() = std::move(old_buffer[j].Get());
             }
 
             // call destructors on old buffer
             for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-                Memory::Destruct(m_buffer[i].Get());
+                Memory::Destruct(old_buffer[i].Get());
             }
 
-            std::free(m_buffer);
+            std::free(old_buffer);
 
             m_is_dynamic = false;
-            m_buffer = nullptr;
             m_capacity = num_inline_elements;
         } else if (m_start_offset != copy_offset) {
             if (m_start_offset > copy_offset) {
@@ -775,7 +776,7 @@ void DynArray<T, NumInlineBytes>::Concat(const DynArray &other)
 
     auto *buffer = GetStorage();
 
-    for (SizeType i = 0; i < other.Size(); i++) {
+    for (SizeType i = 0; i < other.Size(); ++i) {
         // set item at index
         Memory::Construct<T>(&buffer[m_size++].data_buffer, other[i]);
     }
@@ -794,7 +795,7 @@ void DynArray<T, NumInlineBytes>::Concat(DynArray &&other)
 
     auto *buffer = GetStorage();
 
-    for (SizeType i = 0; i < other.Size(); i++) {
+    for (SizeType i = 0; i < other.Size(); ++i) {
         // set item at index
         Memory::Construct<T>(&buffer[m_size++].data_buffer, std::move(other[i]));
     }
@@ -809,7 +810,7 @@ void DynArray<T, NumInlineBytes>::Shift(SizeType count)
 
     auto *buffer = GetStorage();
 
-    for (SizeType index = m_start_offset; index < m_size; index++, new_size++) {
+    for (SizeType index = m_start_offset; index < m_size; ++index, ++new_size) {
         if (index + count >= m_size) {
             break;
         }

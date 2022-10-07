@@ -232,6 +232,16 @@
     type HYP_UNIQUE_NAME(_padding)[count]
 
 
+#include <malloc.h>
+
+#ifdef HYP_WINDOWS
+#define HYP_ALLOC_ALIGNED(alignment, size) _aligned_malloc(size, alignment)
+#define HYP_FREE_ALIGNED(block) _aligned_free(block)
+#else
+#define HYP_ALLOC_ALIGNED(alignment, size) aligned_alloc(alignment, size)
+#define HYP_FREE_ALIGNED(block) free(block)
+#endif
+
 //testing, to remove
 #define HYP_FEATURES_BINDLESS_TEXTURES 0
 #undef HYP_FEATURES_ENABLE_RAYTRACING

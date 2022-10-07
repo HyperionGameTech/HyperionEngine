@@ -68,10 +68,10 @@ ExtensionMap Instance::GetExtensionMap()
         {VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false},
         {VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, false},
 #endif
-        {VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, true},
-        {VK_KHR_SPIRV_1_4_EXTENSION_NAME, false},
-        {VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME, false},
-        {VK_KHR_SWAPCHAIN_EXTENSION_NAME, true}
+        { VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, true },
+        { VK_KHR_SPIRV_1_4_EXTENSION_NAME, false },
+        { VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME, false },
+        { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true }
     };
 }
 
@@ -305,7 +305,10 @@ Result Instance::Initialize(bool load_debug_layers)
 
     //AssertThrow(descriptor_pool.NumDescriptorSets() <= DescriptorSet::max_descriptor_sets);
 
-    SetupDebugMessenger();
+    if (load_debug_layers) {
+        SetupDebugMessenger();
+    }
+
     this->device->SetupAllocator(this);
 
     HYPERION_RETURN_OK;

@@ -136,6 +136,8 @@ using RenderFunctor = Task<Result, CommandBuffer * /* command_buffer */, UInt /*
  */
 class Engine
 {
+    static constexpr bool use_debug_layers = false;
+
 public:
     Engine(SystemSDL &, const char *app_name);
     ~Engine();
