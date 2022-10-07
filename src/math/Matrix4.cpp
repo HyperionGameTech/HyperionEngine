@@ -113,7 +113,7 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
     Matrix4 mat = Zeros();
 
     float ar = (float)w / (float)h;
-    float tan_half_fov = tan(MathUtil::DegToRad(fov / 2.0f));
+    float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
     float range = n - f;
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
@@ -134,18 +134,16 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     Matrix4 mat;
     
     float x_orth = 2.0f / (r - l);
-    float y_orth = 2.0f / (t - b);
-    float z_orth = 1.0f / (f - n);
-    float tx = ((r + l) / (l - r));
+    float y_orth = 2.0f / (b - t);
+    float z_orth = 1.0f / (n - f);
+    float tx = ((r + l) / (r - l));
     float ty = ((b + t) / (b - t));
-    float tz = ((-n) / (f - n));
+    float tz = ((n) / (n - f));
     
-    mat[0] = { x_orth, 0, 0, 0 };
-    mat[1] = { 0, y_orth, 0, 0 };
-    mat[2] = { 0, 0, z_orth, 0 };
-    mat[3] = { tx, ty, tz, 1 };
-    
-    mat.Transpose();
+    mat[0] = { x_orth, 0.0f, 0.0f, tx };
+    mat[1] = { 0.0f, y_orth, 0.0f, ty };
+    mat[2] = { 0.0f, 0.0f, z_orth, tz };
+    mat[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     return mat;
 }
@@ -161,14 +159,6 @@ Matrix4 Matrix4::LookAt(const Vector3 &direction, const Vector3 &up)
     mat[0] = Vector4(x, 0.0f);
     mat[1] = Vector4(y, 0.0f);
     mat[2] = Vector4(z, 0.0f);
-
-    // const Vector3 z = direction.Normalized();
-    // const Vector3 x = up.Cross(direction).Normalized();
-    // const Vector3 y = direction.Cross(x).Normalized();
-
-    // mat[0] = Vector4(x, 0.0f);
-    // mat[1] = Vector4(y, 0.0f);
-    // mat[2] = Vector4(z, 0.0f);
 
     return mat;
 }

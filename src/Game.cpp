@@ -93,6 +93,12 @@ void Game::OnInputEvent(Engine *engine, const SystemEvent &event)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
+    // forward to UI
+    if (m_ui.OnInputEvent(m_input_manager, event)) {
+        // ui handled the event
+        return;
+    }
+
     switch (event.GetType()) {
         case SystemEventType::EVENT_MOUSESCROLL:
         {

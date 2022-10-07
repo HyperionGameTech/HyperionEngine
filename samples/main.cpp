@@ -66,6 +66,7 @@
 
 #include "rendering/RenderEnvironment.hpp"
 #include "rendering/CubemapRenderer.hpp"
+#include "rendering/UIRenderer.hpp"
 
 #include <rendering/ParticleSystem.hpp>
 
@@ -142,8 +143,8 @@ public:
 
         {
             auto btn = engine->CreateHandle<UIObject>();
-            btn->SetTransform(Transform(Vector3(0.4f, 3.7f, 0.0f)));
-
+            btn->SetTransform(Transform(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.2f)));
+            // btn->SetTransform(Transform(Vector3(0.0, 0.2f), Vector3(1.0f / 1024.0f * 50.0f, 10.0f / 1024.0f * 1.0f, 8.0f)));
             GetUI().Add(std::move(btn));
         }
 
@@ -208,6 +209,10 @@ public:
                 test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
                 renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             );
+        }
+
+        { // allow ui rendering
+            m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(Handle<Scene>(GetUI().GetScene()));
         }
 
         cube_obj.Scale(50.0f);

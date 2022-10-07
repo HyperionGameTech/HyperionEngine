@@ -34,7 +34,6 @@ void AABBDebugController::OnAdded()
     auto material = GetEngine()->CreateHandle<Material>("aabb_material");
 
     auto shader = m_engine->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
-    const auto shader_id = shader != nullptr ? shader->GetID() : Shader::empty_id;
 
     m_aabb_entity = GetEngine()->CreateHandle<Entity>(
         GetEngine()->CreateHandle<Mesh>(std::move(mesh)),
@@ -49,8 +48,7 @@ void AABBDebugController::OnAdded()
                 .fill_mode = FillMode::LINE,
                 .cull_faces = FaceCullMode::NONE,
                 .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
-            },
-            shader_id
+            }
         ),
         Entity::ComponentInitInfo {
             .flags = 0x0 // no flags
