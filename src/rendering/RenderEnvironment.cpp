@@ -98,8 +98,6 @@ void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
     for (const auto &component : m_render_components) {
         component.second->ComponentUpdate(engine, delta);
     }
-
-    m_render_component_sp.Signal();
 }
 
 void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)

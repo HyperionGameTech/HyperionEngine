@@ -178,7 +178,7 @@ void BlurRadiance::CreateComputePipelines(Engine *engine)
     m_blur_hor = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
-                { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/blur/BlurRadianceHor.comp.spv")).Read()}}
+                { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/blur/BlurRadianceHor.comp.spv")).Read()}}
             }
         ),
         DynArray<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
@@ -189,7 +189,7 @@ void BlurRadiance::CreateComputePipelines(Engine *engine)
     m_blur_vert = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(
             std::vector<SubShader>{
-                { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/blur/BlurRadianceVert.comp.spv")).Read()}}
+                { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/blur/BlurRadianceVert.comp.spv")).Read()}}
             }
         ),
         DynArray<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }

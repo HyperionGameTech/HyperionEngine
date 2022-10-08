@@ -968,13 +968,11 @@ int main()
 
 #ifdef HYP_TEST_RT
     HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
-#endif
-
     
     BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
     blur_radiance.Create(engine);
-
-
+#endif
+    
     engine->game_thread.Start(engine, my_game, window);
 
     float tmp_render_timer = 0.0f;

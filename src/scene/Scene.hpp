@@ -150,6 +150,7 @@ private:
     Handle<TLAS> m_tlas;
 
     Matrix4 m_last_view_projection_matrix;
+    Scene::ID m_parent_id;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

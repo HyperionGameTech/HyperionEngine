@@ -212,7 +212,7 @@ Result Instance::SetupDebugMessenger()
     HYPERION_RETURN_OK;
 }
 
-Result Instance::Initialize()
+Result Instance::Initialize(bool load_debug_layers)
 {
     // Application names/versions
     SetCurrentWindow(this->system.GetCurrentWindow());

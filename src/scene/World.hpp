@@ -51,6 +51,7 @@ private:
     void PerformSceneUpdates();
 
     Octree m_octree;
+    PhysicsWorld m_physics_world;
     // TODO: Thread safe container to not need 2 sets of scenes, one for update/render
     FlatSet<Handle<Scene>> m_scenes;
     FlatSet<Handle<Scene>> m_scenes_pending_addition;

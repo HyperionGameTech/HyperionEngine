@@ -55,12 +55,6 @@ public:
 protected:
     virtual void Logic(Engine *engine, GameCounter::TickUnit delta) = 0;
 
-    Handle<Scene> &GetScene()
-        { return m_scene; }
-
-    const Handle<Scene> &GetScene() const
-        { return m_scene; }
-
     UIScene &GetUI()
         { return m_ui; }
 
