@@ -4,6 +4,8 @@
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
 
+#include <scene/Node.hpp>
+
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/FullScreenPass.hpp>
 
@@ -29,29 +31,14 @@ namespace hyperion::v2 {
 
 using renderer::Extent2D;
 
-class UIObject : public EngineComponentBase<STUB_CLASS(UIObject)>
-{
-public:
-    UIObject();
-    ~UIObject();
+// class UIObject : public EngineComponentBase<STUB_CLASS(UIObject)>
+// {
+// public:
+//     UIObject();
+//     virtual ~UIObject();
 
-    Handle<Entity> &GetEntity()
-        { return m_entity; }
-
-    const Handle<Entity> &GetEntity() const
-        { return m_entity; }
-
-    const Transform &GetTransform() const
-        { return m_transform; }
-
-    void SetTransform(const Transform &transform);
-
-    void Init(Engine *engine);
-
-protected:
-    Handle<Entity> m_entity;
-    Transform m_transform;
-};
+//     virtual void Init(Engine *engine);
+// };
 
 class UIScene : public EngineComponentBase<STUB_CLASS(UIScene)>
 {
@@ -67,7 +54,7 @@ public:
     const Handle<Scene> &GetScene() const
         { return m_scene; }
 
-    void Add(Handle<UIObject> &&object);
+    // void Add(Handle<UIObject> &&object);
 
     bool OnInputEvent(
         InputManager *input_manager,
@@ -81,7 +68,7 @@ public:
     void Update(Engine *engine, GameCounter::TickUnit delta);
 
 private:
-    DynArray<Handle<UIObject>> m_ui_objects;
+    // DynArray<Handle<UIObject>> m_ui_objects;
     Handle<Scene> m_scene;
 };
 

@@ -664,12 +664,12 @@ void Scene::EnqueueRenderUpdates()
 
     GetEngine()->render_scheduler.Enqueue([this, params](...) {
         SceneShaderData shader_data {
-            .enabled_render_components_mask = m_environment->GetEnabledRenderComponentsMask(),
             .aabb_max = params.aabb.max.ToVector4(),
             .aabb_min = params.aabb.min.ToVector4(),
             .global_timer = params.global_timer,
             .num_environment_shadow_maps = static_cast<UInt32>(m_environment->HasRenderComponent<ShadowRenderer>()), // callable on render thread only
-            .num_lights = params.num_lights
+            .num_lights = params.num_lights,
+            .enabled_render_components_mask = m_environment->GetEnabledRenderComponentsMask()
         };
 
         if (m_camera != nullptr) {

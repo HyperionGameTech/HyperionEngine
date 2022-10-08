@@ -156,6 +156,11 @@ void Material::EnqueueDescriptorSetDestroy()
 
             DebugLog(LogType::Debug, "Destroy descriptor set   %u   %u\n", m_descriptor_sets[frame_index]->GetRealIndex(), frame_index);
             // HYP_BREAKPOINT;
+
+            if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
+                HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Destroy(engine->GetDevice()));
+            }
+
             descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
         }
         

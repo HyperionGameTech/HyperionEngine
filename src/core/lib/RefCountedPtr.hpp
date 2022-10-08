@@ -23,6 +23,17 @@ struct RefCountData
     CountType weak_count;
     void (*dtor)(void *);
 
+#if HYP_DEBUG_MODE
+    ~RefCountData()
+    {
+        AssertThrow(dtor == nullptr);
+        AssertThrow(value == nullptr);
+        AssertThrow(strong_count == 0);
+        AssertThrow(weak_count == 0);
+        AssertThrow(type_id == TypeID::ForType<void>());
+    }
+#endif
+
     template <class T, class ...Args>
     void Construct(Args &&... args)
     {
@@ -45,7 +56,11 @@ struct RefCountData
 
     void Destruct()
     {
+#if HYP_DEBUG_MODE
         AssertThrow(value != nullptr);
+        AssertThrow(strong_count == 0);
+#endif
+
         dtor(value);
         type_id = TypeID::ForType<void>();
         value = nullptr;

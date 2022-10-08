@@ -143,7 +143,7 @@ void RendererInstance::PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_i
         
         while (it != m_entities_pending_addition.End()) {
             AssertThrow(*it != nullptr);
-
+            // TODO: Swap with drawproxy Mesh?
             if ((*it)->GetMesh() == nullptr // TODO: I don't believe it's threadsafe to just check if this is null like this
                 || m_entities.Find(*it) != m_entities.End()) { // :(
                 it = m_entities_pending_addition.Erase(it);

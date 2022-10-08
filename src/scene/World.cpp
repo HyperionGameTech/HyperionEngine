@@ -55,8 +55,6 @@ void World::Update(
 
     AssertReady();
 
-    m_octree.NextVisibilityState();
-
     for (auto &it : m_scenes) {
         auto &scene = it.second;
 

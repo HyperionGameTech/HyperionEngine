@@ -801,8 +801,8 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
-    m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
+    m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().UpdateDescriptorSets(m_instance->GetDevice(), frame_index);
 }
 

@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_BONE_H
 #define HYPERION_V2_BONE_H
 
-#include "../scene/Node.hpp"
+#include <scene/Node.hpp>
 #include <core/lib/String.hpp>
 #include "Keyframe.hpp"
 

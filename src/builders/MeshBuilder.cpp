@@ -270,12 +270,14 @@ UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform
         index_offset = 0;
 
     for (SizeType mesh_index = 0; mesh_index < 2; mesh_index++) {
+        const SizeType vertex_offset_before = vertex_offset;
+        
         for (SizeType i = 0; i < transformed_meshes[mesh_index]->GetVertices().size(); i++) {
             all_vertices[vertex_offset++] = transformed_meshes[mesh_index]->GetVertices()[i];
         }
 
         for (SizeType i = 0; i < transformed_meshes[mesh_index]->GetIndices().size(); i++) {
-            all_indices[index_offset++] = transformed_meshes[mesh_index]->GetIndices()[i];
+            all_indices[index_offset++] = transformed_meshes[mesh_index]->GetIndices()[i] + vertex_offset_before;
         }
     }
 
@@ -291,6 +293,98 @@ UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform
 UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
 {
     return Merge(a, b, Transform(), Transform());
+}
+
+MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
+{
+    BoundingBox total_aabb = mesh->CalculateAABB();
+    Vector3 total_aabb_dimensions = total_aabb.GetExtent();
+
+    UInt num_voxels_x = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.x / voxel_size);
+    UInt num_voxels_y = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.y / voxel_size);
+    UInt num_voxels_z = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.z / voxel_size);
+
+    // building out grid
+    VoxelGrid grid;
+    grid.voxel_size = voxel_size;
+    grid.size_x = num_voxels_x;
+    grid.size_y = num_voxels_y;
+    grid.size_z = num_voxels_z;
+
+    if (!num_voxels_x || !num_voxels_y || !num_voxels_z) {
+        return grid;
+    }
+
+    grid.voxels.Resize(num_voxels_x * num_voxels_y * num_voxels_z);
+
+    for (UInt x = 0; x < num_voxels_x; x++) {
+        for (UInt y = 0; y < num_voxels_y; y++) {
+            for (UInt z = 0; z < num_voxels_z; z++) {
+                UInt voxel_index = (z * num_voxels_x * num_voxels_y) + (y * num_voxels_y) + x;
+                grid.voxels[voxel_index] = Voxel(
+                    BoundingBox(
+                        Vector3(x, y, z) * voxel_size,
+                        Vector3(x + 1, y + 1, z + 1) * voxel_size
+                    ),
+                    false
+                );
+            }
+        }
+    }
+
+    UInt num_filled_voxels = 0;
+
+    // filling in data
+    for (const auto &vertex : mesh->GetVertices()) {
+        Vector3 vertex_over_dimensions = (vertex.GetPosition() - total_aabb.GetMin()) / Vector3::Max(total_aabb.GetExtent(), 0.0001f);
+
+        UInt x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.x * (static_cast<Float>(num_voxels_x) - 1.0f), 0.0f, static_cast<Float>(num_voxels_x) - 1.0f));
+        UInt y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.y * (static_cast<Float>(num_voxels_y) - 1.0f), 0.0f, static_cast<Float>(num_voxels_y) - 1.0f));
+        UInt z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.z * (static_cast<Float>(num_voxels_z) - 1.0f), 0.0f, static_cast<Float>(num_voxels_z) - 1.0f));
+
+        UInt voxel_index = (z * num_voxels_x * num_voxels_y) + (y * num_voxels_y) + x;
+
+        grid.voxels[voxel_index].filled = true;
+        ++num_filled_voxels;
+    }
+
+    return grid;
+}
+
+UniquePtr<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
+{
+    UniquePtr<Mesh> mesh;
+
+    for (UInt x = 0; x < voxel_grid.size_x; x++) {
+        for (UInt y = 0; y < voxel_grid.size_y; y++) {
+            for (UInt z = 0; z < voxel_grid.size_z; z++) {
+                UInt index = (z * voxel_grid.size_x * voxel_grid.size_y) + (y * voxel_grid.size_y) + x;
+
+                if (!voxel_grid.voxels[index].filled) {
+                    continue;
+                }
+
+                auto cube = Cube();
+
+                if (!mesh) {
+                    // std::cout << "new voxel " << "\n";
+                    mesh = ApplyTransform(
+                        cube.Get(),
+                        Transform(Vector3(x, y, z) * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity())
+                    );
+                } else {
+                    mesh = Merge(
+                        mesh.Get(),
+                        cube.Get(),
+                        Transform(),
+                        Transform(Vector3(x, y, z) * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity())
+                    );
+                }
+            }
+        }
+    }
+
+    return mesh;
 }
 
 } // namespace hyperion::v2

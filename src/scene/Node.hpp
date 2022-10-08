@@ -30,12 +30,15 @@ class Node
 public:
     using NodeList = DynArray<NodeProxy>;
 
-    enum class Type : UInt {
+    enum class Type : UInt
+    {
         NODE,
-        BONE
+        BONE,
+        UI_NODE
     };
 
-    enum Flags {
+    enum Flags
+    {
         NODE_FLAGS_NONE = 0
     };
 

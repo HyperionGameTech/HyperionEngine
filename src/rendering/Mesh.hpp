@@ -71,6 +71,9 @@ public:
     IndexBuffer *GetIndexBuffer() const { return m_ibo.get(); }
                                                                    
     const std::vector<Vertex> &GetVertices() const { return m_vertices; }
+    void SetVertices(const std::vector<Vertex> &vertices, const std::vector<Index> &indices)
+        { m_vertices = vertices; m_indices = indices; }
+
     const std::vector<Index> &GetIndices() const { return m_indices; }
 
     SizeType NumIndices() const { return m_indices_count; }

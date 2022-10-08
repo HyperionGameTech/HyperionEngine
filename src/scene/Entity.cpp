@@ -313,9 +313,7 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
     m_mesh = std::move(mesh);
 
     if (IsInitCalled()) {
-        if (m_mesh) {
-            GetEngine()->InitObject(m_mesh);
-
+        if (GetEngine()->InitObject(m_mesh)) {
             m_local_aabb = m_mesh->CalculateAABB();
 
             if (!m_local_aabb.Empty()) {

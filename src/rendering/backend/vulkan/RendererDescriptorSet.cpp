@@ -551,7 +551,7 @@ Result DescriptorPool::Create(Device *device)
         });
     }
 
-    VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    VkDescriptorPoolCreateInfo pool_info { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     pool_info.maxSets = DescriptorSet::max_descriptor_sets;
     pool_info.poolSizeCount = static_cast<UInt>(pool_sizes.size());
@@ -649,7 +649,7 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(
     const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(index);
     AssertThrow(descriptor_set_frame_index >= 0 && descriptor_set_frame_index < max_frames_in_flight);
 
-    m_descriptor_sets_pending_addition[descriptor_set_frame_index].Push(std::move(descriptor_set));
+    m_descriptor_sets_pending_addition[descriptor_set_frame_index].PushBack(std::move(descriptor_set));
 
     return m_descriptor_sets_pending_addition[descriptor_set_frame_index].Back().get();
 }
@@ -663,14 +663,49 @@ void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
 
 void DescriptorPool::RemoveDescriptorSet(UInt index)
 {
+    const UInt queue_index = DescriptorSet::GetFrameIndex(index);
+
+    // look through the list of items pending addition, remove from there
+    for (auto it = m_descriptor_sets_pending_addition[queue_index].Begin(); it != m_descriptor_sets_pending_addition[queue_index].End();) {
+        auto &descriptor_set = (*it);
+        AssertThrow(descriptor_set != nullptr);
+        
+        if (descriptor_set->GetRealIndex() == index) {
+            if (m_descriptor_sets_pending_destruction[queue_index].Contains(descriptor_set->GetRealIndex())) {
+                DebugLog(
+                    LogType::Warn,
+                    "Descriptor set at index %u is already queued for removal",
+                    index
+                );
+
+                return;
+            }
+
+            // if (descriptor_set->IsCreated()) {
+            //     HYPERION_ASSERT_RESULT(descriptor_set->Destroy(device));
+            // }
+
+            it = m_descriptor_sets_pending_addition[queue_index].Erase(it);
+
+            // if (IsCreated()) { // creating at runtime, after descriptor sets all created
+            //     HYPERION_BUBBLE_ERRORS((*it)->Create(
+            //         engine->GetDevice(),
+            //         &engine->GetInstance()->GetDescriptorPool()
+            //     ));
+            // }
+
+            return; // found
+        } else {
+            ++it;
+        }
+    }
+
     AssertThrowMsg(
         index < m_descriptor_sets.Size(),
         "Attempt to remove descriptor set at index %u but it is out of bounds (%llu)",
         index,
         m_descriptor_sets.Size()
     );
-
-    const UInt queue_index = DescriptorSet::GetFrameIndex(index);
 
     auto &descriptor_set = m_descriptor_sets[index];
     AssertThrowMsg(
@@ -690,15 +725,6 @@ void DescriptorPool::RemoveDescriptorSet(UInt index)
     }
 
     m_descriptor_sets_pending_destruction[queue_index].Push(descriptor_set->GetRealIndex());
-
-    // look through the list of items pending addition, remove from there
-    // for (auto it = m_descriptor_sets_pending_addition.begin(); it != m_descriptor_sets_pending_addition.end();) {
-    //     if (it->index == index) {
-    //         it = m_descriptor_sets_pending_addition.erase(it);
-    //     } else {
-    //         ++it;
-    //     }
-    // }
 }
 
 Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_index)
@@ -712,7 +738,10 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
         auto &item = m_descriptor_sets[index];
         AssertThrow(item != nullptr);
     
-        HYPERION_BUBBLE_ERRORS(item->Destroy(device));
+        if (item->IsCreated()) {
+            HYPERION_BUBBLE_ERRORS(item->Destroy(device));
+        }
+
         m_descriptor_sets[index].reset();
 
         descriptor_set_queue.Pop();
@@ -724,7 +753,7 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
 Result DescriptorPool::AddPendingDescriptorSets(Device *device, UInt frame_index)
 {
     while (m_descriptor_sets_pending_addition[frame_index].Any()) {
-        auto &descriptor_set = m_descriptor_sets_pending_addition[frame_index].Front();
+        auto descriptor_set = m_descriptor_sets_pending_addition[frame_index].PopFront();
 
         const UInt index = descriptor_set->GetRealIndex();
         
@@ -741,7 +770,6 @@ Result DescriptorPool::AddPendingDescriptorSets(Device *device, UInt frame_index
         }
 
         m_descriptor_sets[index] = std::move(descriptor_set);
-        m_descriptor_sets_pending_addition[frame_index].Pop();
     }
 
     HYPERION_RETURN_OK;

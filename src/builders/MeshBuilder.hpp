@@ -4,6 +4,7 @@
 #include <rendering/Mesh.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <math/BoundingBox.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
@@ -26,6 +27,26 @@ class MeshBuilder
     static const std::vector<Vertex> cube_vertices;
 
 public:
+    struct Voxel
+    {
+        BoundingBox aabb;
+        bool filled;
+
+        Voxel()
+            : aabb(BoundingBox()), filled(false) {}
+        Voxel(const BoundingBox &aabb, bool filled = false)
+            : aabb(aabb), filled(filled) {}
+        Voxel(const Voxel &other)
+            : aabb(other.aabb), filled(other.filled) {}
+    };
+
+    struct VoxelGrid
+    {
+        DynArray<Voxel> voxels;
+        UInt size_x, size_y, size_z;
+        Float voxel_size;
+    };
+
     static UniquePtr<Mesh> Quad(Topology topology = Topology::TRIANGLES);
     static UniquePtr<Mesh> Cube();
     static UniquePtr<Mesh> NormalizedCubeSphere(UInt num_divisions);
@@ -33,6 +54,9 @@ public:
     static UniquePtr<Mesh> ApplyTransform(const Mesh *mesh, const Transform &transform);
     static UniquePtr<Mesh> Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform);
     static UniquePtr<Mesh> Merge(const Mesh *a, const Mesh *b);
+
+    static VoxelGrid Voxelize(const Mesh *mesh, float voxel_size);
+    static UniquePtr<Mesh> BuildVoxelMesh(VoxelGrid &&voxel_grid);
 };
 
 } // namespace hyperion::v2

@@ -9,54 +9,54 @@
 
 namespace hyperion::v2 {
 
-UIObject::UIObject()
-    : EngineComponentBase()
-{
-}
+// UIObject::UIObject()
+//     : EngineComponentBase()
+// {
+// }
 
-UIObject::~UIObject()
-{
-    Teardown();
-}
+// UIObject::~UIObject()
+// {
+//     Teardown();
+// }
 
-void UIObject::Init(Engine *engine)
-{
-    if (IsInitCalled()) {
-        return;
-    }
+// void UIObject::Init(Engine *engine)
+// {
+//     if (IsInitCalled()) {
+//         return;
+//     }
 
-    EngineComponentBase::Init(engine);
+//     EngineComponentBase::Init(engine);
 
-    m_entity = engine->CreateHandle<Entity>(
-        engine->CreateHandle<Mesh>(MeshBuilder::Quad()),
-        Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)),
-        engine->CreateHandle<Material>("ui_material", Bucket::BUCKET_UI)
-    );
+//     m_entity = engine->CreateHandle<Entity>(
+//         engine->CreateHandle<Mesh>(MeshBuilder::Quad()),
+//         Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)),
+//         engine->CreateHandle<Material>("ui_material", Bucket::BUCKET_UI)
+//     );
 
-    engine->InitObject(m_entity);
+//     engine->InitObject(m_entity);
 
-    m_entity->SetTransform(m_transform);
-    m_entity->GetMaterial()->SetFaceCullMode(renderer::FaceCullMode::NONE);
-    m_entity->GetMaterial()->SetIsAlphaBlended(true);
-    m_entity->RebuildRenderableAttributes();
+//     m_entity->SetTransform(m_transform);
+//     m_entity->GetMaterial()->SetFaceCullMode(renderer::FaceCullMode::NONE);
+//     m_entity->GetMaterial()->SetIsAlphaBlended(true);
+//     m_entity->RebuildRenderableAttributes();
 
-    SetReady(true);
+//     SetReady(true);
 
-    OnTeardown([this](...) {
-        SetReady(false);
+//     OnTeardown([this](...) {
+//         SetReady(false);
 
-        m_entity.Reset();
-    });
-}
+//         m_entity.Reset();
+//     });
+// }
 
-void UIObject::SetTransform(const Transform &transform)
-{
-    m_transform = transform;
+// void UIObject::SetTransform(const Transform &transform)
+// {
+//     m_transform = transform;
 
-    if (IsInitCalled()) {
-        GetEntity()->SetTransform(transform);
-    }
-}
+//     if (IsInitCalled()) {
+//         GetEntity()->SetTransform(transform);
+//     }
+// }
 
 
 UIScene::UIScene()
@@ -78,13 +78,6 @@ void UIScene::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     m_scene = engine->CreateHandle<Scene>(
-
-        // engine->CreateHandle<Camera>(new PerspectiveCamera(
-        //     70.0f,
-        //     1024, 1024,
-        //     0.001f,
-        //     100.0f
-        // ))
         engine->CreateHandle<Camera>(new OrthoCamera(
             2048, 2048,
             -1, 1,
@@ -97,24 +90,20 @@ void UIScene::Init(Engine *engine)
 
     m_scene->GetCamera()->SetDirection(Vector3(0.0f, 0.0f, -1.0f));
 
-    for (auto &object : m_ui_objects) {
-        AssertThrow(engine->InitObject(object));
+    // for (auto &object : m_ui_objects) {
+    //     AssertThrow(engine->InitObject(object));
 
-        m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
-    }
+    //     m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
+    // }
 
     SetReady(true);
 
     OnTeardown([this](...) {
         SetReady(false);
 
-        m_ui_objects.Clear();
+        // m_ui_objects.Clear();
         m_scene.Reset();
     });
-
-    // for (auto &ui_object : m_ui_objects) {
-    //     engine->InitObject(ui_object);
-    // }
 }
 
 void UIScene::Update(Engine *engine, GameCounter::TickUnit delta)
@@ -140,9 +129,9 @@ bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)
     }
 
     if (results.Any()) {
-        std::cout << "hit : " << results.Front().hitpoint << "\n";
-        std::cout << "bb : " << m_ui_objects[0]->GetEntity()->GetWorldAABB() << "\n";
+        // std::cout << "bb : " << m_ui_objects[0]->GetEntity()->GetWorldAABB() << "\n";
         out_first_hit = results.Front();
+        std::cout << "hit : " << results.Front().hitpoint << "\n";
 
         return true;
     }
@@ -156,22 +145,22 @@ bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)
     return false;
 }
 
-void UIScene::Add(Handle<UIObject> &&object)
-{
-    Threads::AssertOnThread(THREAD_GAME);
+// void UIScene::Add(Handle<UIObject> &&object)
+// {
+//     Threads::AssertOnThread(THREAD_GAME);
 
-    if (!object) {
-        return;
-    }
+//     if (!object) {
+//         return;
+//     }
 
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(object);
+//     if (IsInitCalled()) {
+//         GetEngine()->InitObject(object);
 
-        m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
-    }
+//         m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
+//     }
 
-    m_ui_objects.PushBack(std::move(object));
-}
+//     m_ui_objects.PushBack(std::move(object));
+// }
 
 bool UIScene::OnInputEvent(
     InputManager *input_manager,
@@ -201,7 +190,7 @@ bool UIScene::OnInputEvent(
                 hit.id
             );
 
-            std::cout << ((m_ui_objects[0]->GetEntity()->GetWorldAABB().GetExtent()) * Vector3(input_manager->GetWindow()->width, input_manager->GetWindow()->height, 1.0)) << "\n";
+            // std::cout << ((m_ui_objects[0]->GetEntity()->GetWorldAABB().GetExtent()) * Vector3(input_manager->GetWindow()->width, input_manager->GetWindow()->height, 1.0)) << "\n";
 
             // std::cout << "hp : " << hit.hitpoint << "\n";
             // std::cout << "dist : " << hit.distance << "\n";

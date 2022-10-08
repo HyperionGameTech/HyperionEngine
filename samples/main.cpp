@@ -26,12 +26,15 @@
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
+#include <ui/controllers/UIButtonController.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
 #include <GameThread.hpp>
 #include <Game.hpp>
+
+#include <ui/UIText.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
@@ -142,10 +145,26 @@ public:
         test_model.Scale(0.25f);
 
         {
-            auto btn = engine->CreateHandle<UIObject>();
-            btn->SetTransform(Transform(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.2f)));
-            // btn->SetTransform(Transform(Vector3(0.0, 0.2f), Vector3(1.0f / 1024.0f * 50.0f, 10.0f / 1024.0f * 1.0f, 8.0f)));
-            GetUI().Add(std::move(btn));
+            auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
+            btn_node.SetEntity(engine->CreateHandle<Entity>());
+            btn_node.GetEntity()->AddController<UIButtonController>();
+            btn_node.Scale(0.01f);
+
+            // btn_node.SetTransform(Transform(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.2f)));
+            // btn_node.SetTransform(Transform(Vector3(0.0, 0.2f), Vector3(1.0f / 1024.0f * 50.0f, 10.0f / 1024.0f * 1.0f, 8.0f)));
+            // auto font_texture = engine->GetAssetManager().Load<Texture>("textures/fontmap.png");
+            // // font_texture->GetImage().SetFilterMode(Image::FilterMode::TEXTURE_FILTER_NEAREST);
+
+            // FontMap font_map(
+            //     font_texture,
+            //     Extent2D { 32, 32 }
+            // );
+
+            // auto text = engine->CreateHandle<UIText>(font_map, "Hello world");
+            // Transform t = text->GetTransform();
+            // t.SetScale(0.024f);
+            // text->SetTransform(t);
+            // GetUI().Add(text.Cast<UIObject>());
         }
 
         auto cubemap = engine->CreateHandle<Texture>(new TextureCube(
@@ -162,6 +181,9 @@ public:
         engine->InitObject(cubemap);
 
         { // hardware skinning
+
+
+
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
             zombie[0].GetEntity()->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
@@ -169,7 +191,7 @@ public:
             zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
             zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
             zombie[0].GetEntity()->RebuildRenderableAttributes();
-            // m_scene->GetRoot().AddChild(zombie);
+            m_scene->GetRoot().AddChild(zombie);
         }
         
         { // adding lights to scene
@@ -181,7 +203,7 @@ public:
             m_scene->AddLight(m_sun);
 
             // m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
-            //     Vector3(0.0f, 4.0f, 0.0f),
+            //     Vector3(0.0f, 20.0f, 0.0f),
             //     Color(1.0f, 0.0f, 0.0f),
             //     100000.0f,
             //     30.0f
@@ -252,20 +274,23 @@ public:
 
         if (auto monkey = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
             monkey.SetName("monkey");
+
             monkey[0].GetEntity()->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
             monkey[0].GetEntity()->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.3f);
             monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
             // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
             // monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             // monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
             monkey[0].GetEntity()->RebuildRenderableAttributes();
+
+            
             monkey.Translate(Vector3(0, 250.5f, 0));
             monkey.Scale(6.0f);
             m_scene->GetRoot().AddChild(monkey);
@@ -300,6 +325,7 @@ public:
 
     virtual void OnFrameBegin(Engine *engine, Frame *frame) override
     {
+        engine->GetWorld().GetOctree().NextVisibilityState();
         engine->render_state.BindScene(m_scene.Get());
     }
 

@@ -3,6 +3,9 @@
 #include "MathUtil.hpp"
 namespace hyperion {
 
+const Vector2 Vector2::zero = Vector2(0.0f);
+const Vector2 Vector2::one = Vector2(1.0f);
+
 Vector2::Vector2()
     : x(0.0f), 
       y(0.0f)

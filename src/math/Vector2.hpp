@@ -22,6 +22,9 @@ class Vector2
 public:
     static constexpr UInt size = 2;
 
+    static const Vector2 zero;
+    static const Vector2 one;
+
     union {
         struct { float x, y; };
         float values[2];
@@ -32,10 +35,10 @@ public:
     Vector2(float xy);
     Vector2(const Vector2 &other);
 
-    //! \brief Consturct a Vector2 from a Vector3, discarding y.
+    //! \brief Consturct a Vector2 from a Vector3, discarding z.
     Vector2(const Vector3 &other);
 
-    //! \brief Consturct a Vector2 from a Vector4, discarding y and w.
+    //! \brief Consturct a Vector2 from a Vector4, discarding z and w.
     Vector2(const Vector4 &other);
 
     float GetX() const     { return x; }
