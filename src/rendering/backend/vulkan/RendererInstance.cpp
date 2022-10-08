@@ -71,7 +71,8 @@ ExtensionMap Instance::GetExtensionMap()
         { VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, true },
         { VK_KHR_SPIRV_1_4_EXTENSION_NAME, false },
         { VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME, false },
-        { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true }
+        { VK_KHR_SWAPCHAIN_EXTENSION_NAME, true },
+        { VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME, true }
     };
 }
 
@@ -80,7 +81,7 @@ void Instance::SetValidationLayers(std::vector<const char *> _layers)
     this->validation_layers = _layers;
 }
 
-#ifdef HYP_VULKAN_DEBUG
+#ifndef HYPERION_BUILD_RELEASE
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -133,7 +134,6 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 
 Result Instance::SetupDebug()
 {
-#ifdef HYP_VULKAN_DEBUG
     static const std::vector<const char *> layers {
         "VK_LAYER_KHRONOS_validation"
 #if !defined(HYP_APPLE) || !HYP_APPLE
@@ -144,7 +144,6 @@ Result Instance::SetupDebug()
     HYPERION_BUBBLE_ERRORS(CheckValidationLayerSupport(layers));
 
     SetValidationLayers(layers);
-#endif
 
     HYPERION_RETURN_OK;
 }
@@ -188,7 +187,7 @@ Result Instance::CreateCommandPool(DeviceQueue &queue, UInt index)
 
 Result Instance::SetupDebugMessenger()
 {
-#ifdef HYP_VULKAN_DEBUG
+#ifndef HYPERION_BUILD_RELEASE
     VkDebugUtilsMessengerCreateInfoEXT messenger_info{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
     messenger_info.messageSeverity = (
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT    |
@@ -208,7 +207,6 @@ Result Instance::SetupDebugMessenger()
 
     DebugLog(LogType::Info, "Using Vulkan Debug Messenger\n");
 #endif
-
     HYPERION_RETURN_OK;
 }
 
@@ -218,23 +216,23 @@ Result Instance::Initialize(bool load_debug_layers)
     SetCurrentWindow(this->system.GetCurrentWindow());
 
     /* Set up our debug and validation layers */
-#ifdef HYP_VULKAN_DEBUG
-    HYPERION_BUBBLE_ERRORS(SetupDebug());
-#endif
+    if (load_debug_layers) {
+        HYPERION_BUBBLE_ERRORS(SetupDebug());
+    }
 
     VkApplicationInfo app_info{VK_STRUCTURE_TYPE_APPLICATION_INFO};
-    app_info.pApplicationName = app_name;
+    app_info.pApplicationName   = app_name;
     app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
-    app_info.pEngineName = engine_name;
-    app_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+    app_info.pEngineName        = engine_name;
+    app_info.engineVersion      = VK_MAKE_VERSION(0, 1, 0);
     // Set target api version
-    app_info.apiVersion = HYP_VULKAN_API_VERSION;
+    app_info.apiVersion         = HYP_VULKAN_API_VERSION;
 
     VkInstanceCreateInfo create_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     create_info.pApplicationInfo = &app_info;
 
     // Setup validation layers
-    create_info.enabledLayerCount = uint32_t(this->validation_layers.size());
+    create_info.enabledLayerCount   = uint32_t(this->validation_layers.size());
     create_info.ppEnabledLayerNames = this->validation_layers.data();
 
     // Setup Vulkan extensions
@@ -308,10 +306,7 @@ Result Instance::Initialize(bool load_debug_layers)
 
     //AssertThrow(descriptor_pool.NumDescriptorSets() <= DescriptorSet::max_descriptor_sets);
 
-    if (load_debug_layers) {
-        SetupDebugMessenger();
-    }
-
+    SetupDebugMessenger();
     this->device->SetupAllocator(this);
 
     HYPERION_RETURN_OK;
