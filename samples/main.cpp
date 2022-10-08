@@ -178,14 +178,14 @@ public:
                 Color(1.0f, 1.0f, 1.0f),
                 110000.0f
             ));
-            m_scene->AddLight(m_sun);
+            // m_scene->AddLight(m_sun);
 
-            // m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
-            //     Vector3(0.0f, 4.0f, 0.0f),
-            //     Color(1.0f, 0.0f, 0.0f),
-            //     100000.0f,
-            //     30.0f
-            // )));
+            m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
+                Vector3(0.0f, 20.0f, 0.0f),
+                Color(1.0f, 0.0f, 0.0f),
+                100000.0f,
+                30.0f
+            )));
         }
 
         auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
@@ -256,13 +256,13 @@ public:
             monkey[0].GetEntity()->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
             monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
             monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
             // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
+            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
             // monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             // monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
             monkey[0].GetEntity()->RebuildRenderableAttributes();

@@ -116,7 +116,8 @@ public:
     auto Load(const String &first_path, Paths &&... paths) -> FixedArray<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType, sizeof...(paths) + 1>
     {
         FixedArray<typename AssetLoaderWrapper<NormalizedType<T>>::CastedType, sizeof...(paths) + 1> results_array;
-        FixedArray<String, sizeof...(paths) + 1> paths_array { first_path, paths... };
+        std::vector<String> paths_array { first_path, paths... };
+        AssertThrow(results_array.Size() == paths_array.size());
         AssetBatch batch = CreateBatch();
 
         UInt path_index = 0;
@@ -132,6 +133,7 @@ public:
         AssertThrow(results.Size() == results_array.Size());
 
         SizeType index = 0u;
+        AssertThrow(results.Size() == results_array.Size());
 
         for (auto &it : results) {
             results_array[index++] = it.second.Get<T>();

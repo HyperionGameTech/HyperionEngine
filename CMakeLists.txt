@@ -10,8 +10,8 @@ if(MSVC)
     # set to path of vcpkg
     set(CMAKE_TOOLCHAIN_FILE, "${VCPKG_INSTALLED_DIR}/../scripts/buildsystems/vcpkg.cmake")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address,undefined")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address,undefined")
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
