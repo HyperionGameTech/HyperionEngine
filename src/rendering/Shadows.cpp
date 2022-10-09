@@ -70,7 +70,7 @@ void ShadowPass::CreateRenderPass(Engine *engine)
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
             engine->GetInstance()->GetDevice(),
-            renderer::LoadOperation::LOAD,
+            renderer::LoadOperation::UNDEFINED,
             renderer::StoreOperation::STORE,
             &attachment_ref
         ));
