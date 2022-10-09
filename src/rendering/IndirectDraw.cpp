@@ -7,6 +7,8 @@
 namespace hyperion::v2 {
 
 using renderer::ShaderVec2;
+using renderer::ShaderVec3;
+using renderer::ShaderVec4;
 
 IndirectDrawState::IndirectDrawState()
 {
@@ -139,6 +141,7 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
     const auto draw_command_index = draw_proxy.entity_id.ToIndex();
     
     UInt32 packed_data;
+
     // first byte = bucket. we currently use only 7, with
     // some having the potential to be combined, so it shouldn't be
     // an issue.

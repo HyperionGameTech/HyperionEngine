@@ -169,10 +169,13 @@ struct alignas(16) ObjectInstance
     UInt32 draw_command_index;
     UInt32 batch_index;
     UInt32 num_indices;
+
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     UInt32 packed_data;
+    //ShaderVec4<UInt32> packed_data;
 };
+//static_assert(sizeof(ObjectInstance) == 256);
 
 /* max number of skeletons, based on size in mb */
 static const SizeType max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);

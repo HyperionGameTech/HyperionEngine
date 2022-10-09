@@ -676,11 +676,10 @@ protected:
     std::vector<FrameDataWrapper> m_data;
 };
 
-struct alignas(4) IndirectDrawCommand
+struct IndirectDrawCommand
 {
     // native vk object
     VkDrawIndexedIndirectCommand command;
-
     HYP_PAD_STRUCT_HERE(Float32, 7);
 };
 
