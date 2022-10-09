@@ -250,7 +250,7 @@ public:
                 }
 
                 if (cnt > 9) {
-                    break;
+                //    break;
                 }
                 cnt++;
             }
@@ -887,7 +887,7 @@ int main()
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
     rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
-        ->SetSubDescriptor({ .acceleration_structure = &my_game->GetScene()->GetTLAS()->Get() });
+        ->SetSubDescriptor({ .acceleration_structure = &my_game->GetScene()->GetTLAS()->GetInternalTLAS() });
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
         ->SetSubDescriptor({ .image_view = &rt_image_storage_view });
     rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(2)
@@ -897,7 +897,7 @@ int main()
     
     // mesh descriptions
     auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
-    rt_storage_buffer->SetSubDescriptor({ .buffer = my_game->GetScene()->GetTLAS()->Get().GetMeshDescriptionsBuffer() });
+    rt_storage_buffer->SetSubDescriptor({ .buffer = my_game->GetScene()->GetTLAS()->GetInternalTLAS().GetMeshDescriptionsBuffer() });
 
     // materials
     auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(5);
@@ -1034,13 +1034,13 @@ int main()
                 if (as_update_state_flags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
                     // update acceleration structure in descriptor set
                     rt_descriptor_set->GetDescriptor(0)
-                        ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &my_game->GetScene()->GetTLAS()->Get() });
+                        ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &my_game->GetScene()->GetTLAS()->GetInternalTLAS() });
                 }
 
                 if (as_update_state_flags & RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
                     // update mesh descriptions buffer in descriptor set
                     rt_descriptor_set->GetDescriptor(4)
-                        ->SetSubDescriptor({ .element_index = 0u, .buffer = my_game->GetScene()->GetTLAS()->Get().GetMeshDescriptionsBuffer() });
+                        ->SetSubDescriptor({ .element_index = 0u, .buffer = my_game->GetScene()->GetTLAS()->GetInternalTLAS().GetMeshDescriptionsBuffer() });
                 }
 
                 rt_descriptor_set->ApplyUpdates(engine->GetDevice());

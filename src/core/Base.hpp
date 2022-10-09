@@ -346,7 +346,7 @@ public:
     template <class ...Args>
     void Create(Engine *engine, Args &&... args)
     {
-        const char *wrapped_type_name = typeid(WrappedType).name();
+        const char *wrapped_type_name = EngineComponentBase<Type>::GetClass().GetName();
 
         AssertThrowMsg(
             !m_wrapped_created,

@@ -320,7 +320,7 @@ std::vector<PackedVertex> Mesh::BuildPackedVertices() const
     std::vector<PackedVertex> packed_vertices;
     packed_vertices.resize(m_vertices.size());
 
-    for (size_t i = 0; i < m_vertices.size(); i++) {
+    for (SizeType i = 0; i < m_vertices.size(); i++) {
         const auto &vertex = m_vertices[i];
 
         packed_vertices[i] = PackedVertex {

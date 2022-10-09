@@ -7,7 +7,7 @@ BLAS::BLAS(
     Handle<Mesh> &&mesh,
     Handle<Material> &&material,
     const Transform &transform
-) : EngineComponentWrapper(),
+) : EngineComponentBase(),
     m_mesh(std::move(mesh)),
     m_material(std::move(material)),
     m_transform(transform)
@@ -25,11 +25,11 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
 
     m_mesh = std::move(mesh);
 
-    if (!m_wrapped.GetGeometries().empty()) {
-        auto size = static_cast<UInt>(m_wrapped.GetGeometries().size());
+    if (!m_blas.GetGeometries().empty()) {
+        auto size = static_cast<UInt>(m_blas.GetGeometries().size());
 
         while (size) {
-            m_wrapped.RemoveGeometry(--size);
+            m_blas.RemoveGeometry(--size);
         }
     }
 
@@ -40,7 +40,7 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
             ? m_material->GetID()
             : Material::empty_id;
         
-        m_wrapped.AddGeometry(std::make_unique<AccelerationGeometry>(
+        m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
             m_mesh->BuildPackedVertices(),
             m_mesh->BuildPackedIndices(),
             material_id
@@ -65,8 +65,8 @@ void BLAS::SetMaterial(Handle<Material> &&material)
             ? material_id.value - 1
             : 0u;
 
-        if (!m_wrapped.GetGeometries().empty()) {
-            for (auto &geometry : m_wrapped.GetGeometries()) {
+        if (!m_blas.GetGeometries().empty()) {
+            for (auto &geometry : m_blas.GetGeometries()) {
                 if (!geometry) {
                     continue;
                 }
@@ -74,7 +74,7 @@ void BLAS::SetMaterial(Handle<Material> &&material)
                 geometry->SetMaterialIndex(material_index);
             }
 
-            m_wrapped.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+            m_blas.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
         }
     }
 }
@@ -86,7 +86,7 @@ void BLAS::SetTransform(const Transform &transform)
     m_transform = transform;
 
     if (IsInitCalled()) {
-        m_wrapped.SetTransform(m_transform.GetMatrix());
+        m_blas.SetTransform(m_transform.GetMatrix());
     }
 }
 
@@ -96,13 +96,7 @@ void BLAS::Init(Engine *engine)
         return;
     }
 
-    /*if (engine->InitObject(m_material)) {
-        for (auto &geometry : m_wrapped.GetGeometries()) {
-            AssertThrow(geometry != nullptr);
-
-            geometry->SetMaterialIndex(m_material->GetID().value - 1);
-        }
-    }*/
+    EngineComponentBase::Init(engine);
 
     UInt material_index = 0u;
 
@@ -111,27 +105,32 @@ void BLAS::Init(Engine *engine)
     }
 
     if (engine->InitObject(m_mesh)) {
-        m_wrapped.SetTransform(m_transform.GetMatrix());
-        m_wrapped.AddGeometry(std::make_unique<AccelerationGeometry>(
+        m_blas.SetTransform(m_transform.GetMatrix());
+        m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
             m_mesh->BuildPackedVertices(),
             m_mesh->BuildPackedIndices(),
             material_index
         ));
     }
 
-    EngineComponentWrapper::Create(
-        engine,
-        engine->GetInstance()
-    );
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        return m_blas.Create(engine->GetDevice(), engine->GetInstance());
+    });
+
+    HYP_FLUSH_RENDER_QUEUE(engine);
 
     SetReady(true);
 
     OnTeardown([this]() {
         SetReady(false);
-
-        EngineComponentWrapper::Destroy(GetEngine());
+        
+        GetEngine()->GetRenderScheduler().Enqueue([this](...) {
+            return m_blas.Destroy(GetEngine()->GetDevice());
+        });
 
         m_mesh.Reset();
+
+        HYP_FLUSH_RENDER_QUEUE(GetEngine());
     });
 }
 

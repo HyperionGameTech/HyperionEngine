@@ -4,7 +4,7 @@
 namespace hyperion::v2 {
 
 TLAS::TLAS()
-    : EngineComponentWrapper()
+    : EngineComponentBase()
 {
 }
 
@@ -37,6 +37,8 @@ void TLAS::Init(Engine *engine)
     if (IsInitCalled()) {
         return;
     }
+
+    EngineComponentBase::Init(engine);
     
     // add all pending to be added to the list
     if (m_has_blas_updates.load()) {
@@ -47,20 +49,22 @@ void TLAS::Init(Engine *engine)
         m_has_blas_updates.store(false);
     }
 
-    std::vector<BottomLevelAccelerationStructure *> blas(m_blas.Size());
-
     for (SizeType i = 0; i < m_blas.Size(); i++) {
         AssertThrow(m_blas[i] != nullptr);
         AssertThrow(engine->InitObject(m_blas[i]));
-
-        blas[i] = &m_blas[i]->Get();
     }
 
-    EngineComponentWrapper::Create(
-        engine,
-        engine->GetInstance(),
-        std::move(blas)
-    );
+    engine->GetRenderScheduler().Enqueue([this, engine](...) {
+        std::vector<BottomLevelAccelerationStructure *> internal_blases(m_blas.Size());
+        
+        for (SizeType i = 0; i < m_blas.Size(); i++) {
+            internal_blases[i] = &m_blas[i]->GetInternalBLAS();
+        }
+
+        return m_tlas.Create(engine->GetDevice(), engine->GetInstance(), std::move(internal_blases));
+    });
+
+    HYP_FLUSH_RENDER_QUEUE(engine);
 
     SetReady(true);
 
@@ -75,8 +79,12 @@ void TLAS::Init(Engine *engine)
             m_blas_updates_mutex.unlock();
             m_has_blas_updates.store(false);
         }
+        
+        GetEngine()->GetRenderScheduler().Enqueue([this](...) {
+           return m_tlas.Destroy(GetEngine()->GetDevice());
+        });
 
-        EngineComponentWrapper::Destroy(GetEngine());
+        HYP_FLUSH_RENDER_QUEUE(GetEngine());
     });
 }
 
@@ -88,7 +96,7 @@ void TLAS::PerformBLASUpdates()
         auto blas = m_blas_pending_addition.PopFront();
         AssertThrow(blas);
 
-        m_wrapped.AddBLAS(&blas->Get());
+        m_tlas.AddBLAS(&blas->GetInternalBLAS());
 
         m_blas.PushBack(std::move(blas));
     }
@@ -116,7 +124,7 @@ void TLAS::UpdateRender(
         //blas->UpdateRender(engine, frame, was_blas_rebuilt);
     }
 
-    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance(), out_update_state_flags));
+    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(engine->GetInstance(), out_update_state_flags));
 }
 
 } // namespace hyperion::v2

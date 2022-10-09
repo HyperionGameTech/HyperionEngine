@@ -14,13 +14,16 @@ namespace hyperion::v2 {
 using renderer::TopLevelAccelerationStructure;
 using renderer::RTUpdateStateFlags;
 
-class TLAS : public EngineComponentWrapper<STUB_CLASS(TLAS), TopLevelAccelerationStructure>
+class TLAS : public EngineComponentBase<STUB_CLASS(TLAS)>
 {
 public:
     TLAS();
     TLAS(const TLAS &other) = delete;
     TLAS &operator=(const TLAS &other) = delete;
     ~TLAS();
+
+    TopLevelAccelerationStructure &GetInternalTLAS() { return m_tlas; }
+    const TopLevelAccelerationStructure &GetInternalTLAS() const { return m_tlas; }
 
     void AddBLAS(Handle<BLAS> &&blas);
 
@@ -37,6 +40,8 @@ public:
 
 private:
     void PerformBLASUpdates();
+
+    TopLevelAccelerationStructure m_tlas;
 
     DynArray<Handle<BLAS>> m_blas;
     DynArray<Handle<BLAS>> m_blas_pending_addition;

@@ -457,7 +457,7 @@ Result GPUBuffer::CheckCanAllocate(Device *device, SizeType size) const
     return CheckCanAllocate(device, create_info, alloc_info, this->size);
 }
 
-uint64_t GPUBuffer::GetBufferDeviceAddress(Device *device) const
+UInt64 GPUBuffer::GetBufferDeviceAddress(Device *device) const
 {
     AssertThrowMsg(
         device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
@@ -466,8 +466,8 @@ uint64_t GPUBuffer::GetBufferDeviceAddress(Device *device) const
 
     AssertThrow(buffer != VK_NULL_HANDLE);
 
-	VkBufferDeviceAddressInfoKHR info{VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
-	info.buffer = buffer;
+    VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+    info.buffer = buffer;
 
 	return device->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
         device->GetDevice(),

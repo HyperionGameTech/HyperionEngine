@@ -16,7 +16,7 @@ using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlagBits;
 using renderer::Frame;
 
-class BLAS : public EngineComponentWrapper<STUB_CLASS(BLAS), BottomLevelAccelerationStructure>
+class BLAS : public EngineComponentBase<STUB_CLASS(BLAS)>
 {
 public:
     BLAS(
@@ -27,6 +27,9 @@ public:
     BLAS(const BLAS &other) = delete;
     BLAS &operator=(const BLAS &other) = delete;
     ~BLAS();
+
+    BottomLevelAccelerationStructure &GetInternalBLAS() { return m_blas; }
+    const BottomLevelAccelerationStructure &GetInternalBLAS() const { return m_blas; }
     
     Handle<Mesh> &GetMesh() { return m_mesh; }
     const Handle<Mesh> &GetMesh() const { return m_mesh; }
@@ -49,14 +52,15 @@ public:
 
 private:
     void SetNeedsUpdate()
-        { m_wrapped.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+        { m_blas.SetFlag(AccelerationStructureFlagBits::ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     bool NeedsUpdate() const
-        { return bool(m_wrapped.GetFlags()); }
+        { return bool(m_blas.GetFlags()); }
 
     Handle<Mesh> m_mesh;
     Handle<Material> m_material;
     Transform m_transform;
+    BottomLevelAccelerationStructure m_blas;
 };
 
 } // namespace hyperion::v2

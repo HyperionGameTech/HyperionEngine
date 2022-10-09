@@ -77,7 +77,27 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 		return result;
 	}
 
-	HYPERION_PASS_ERRORS(
+	StagingBuffer vertices_staging_buffer;
+	HYPERION_BUBBLE_ERRORS(vertices_staging_buffer.Create(device, m_packed_vertices.size() * sizeof(PackedVertex)));
+	vertices_staging_buffer.Copy(device, m_packed_vertices.size() * sizeof(PackedVertex), m_packed_vertices.data());
+	
+	StagingBuffer indices_staging_buffer;
+	HYPERION_BUBBLE_ERRORS(indices_staging_buffer.Create(device, m_packed_indices.size() * sizeof(PackedIndex)));
+	indices_staging_buffer.Copy(device, m_packed_indices.size() * sizeof(PackedIndex), m_packed_indices.data());
+
+	auto commands = instance->GetSingleTimeCommands();
+    commands.Push([&](CommandBuffer *cmd) {
+        m_packed_vertex_buffer->CopyFrom(cmd, &vertices_staging_buffer, m_packed_vertices.size() * sizeof(PackedVertex));
+        m_packed_index_buffer->CopyFrom(cmd, &indices_staging_buffer, m_packed_indices.size() * sizeof(PackedIndex));
+
+        HYPERION_RETURN_OK;
+    });
+
+    HYPERION_BUBBLE_ERRORS(commands.Execute(device));
+
+	vertices_staging_buffer.Destroy(device);
+	indices_staging_buffer.Destroy(device);
+	/*HYPERION_PASS_ERRORS(
 		m_packed_vertex_buffer->CopyStaged(
 		    instance,
 		    m_packed_vertices.data(),
@@ -93,7 +113,7 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 		    m_packed_indices.size() * sizeof(PackedIndex)
 	    ),
 		result
-	);
+	);*/
 
 	if (!result) {
 	    HYPERION_IGNORE_ERRORS(Destroy(device));
@@ -109,21 +129,21 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
         .deviceAddress = m_packed_index_buffer->GetBufferDeviceAddress(device)
 	};
 
-	m_geometry = VkAccelerationStructureGeometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
-	m_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-	m_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    m_geometry = VkAccelerationStructureGeometryKHR { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
+    m_geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    m_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 	m_geometry.geometry = {
-		.triangles = VkAccelerationStructureGeometryTrianglesDataKHR{
-			.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-			.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
-			.vertexData = vertices_address,
-			.vertexStride = sizeof(PackedVertex),
-			.maxVertex = static_cast<UInt32>(m_packed_vertices.size()),
-			.indexType = VK_INDEX_TYPE_UINT32,
-			.indexData = indices_address,
-			.transformData = { { } }
-		}
-	};
+        .triangles = VkAccelerationStructureGeometryTrianglesDataKHR {
+            .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
+            .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
+            .vertexData = vertices_address,
+            .vertexStride = sizeof(PackedVertex),
+            .maxVertex = static_cast<UInt32>(m_packed_vertices.size()),
+            .indexType = VK_INDEX_TYPE_UINT32,
+            .indexData = indices_address,
+            .transformData = { { } }
+        }
+    };
 
     HYPERION_RETURN_OK;
 }
@@ -199,6 +219,8 @@ Result AccelerationStructure::CreateAccelerationStructure(
 
 	VkAccelerationStructureBuildSizesInfoKHR build_sizes_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
 
+	AssertThrow(primitive_counts.size() == geometries.size());
+
 	device->GetFeatures().dyn_functions.vkGetAccelerationStructureBuildSizesKHR(
 	    device->GetDevice(),
 		VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
@@ -211,11 +233,17 @@ Result AccelerationStructure::CreateAccelerationStructure(
         m_buffer = std::make_unique<AccelerationStructureBuffer>();
 	}
 
+	const SizeType scratch_buffer_alignment = device->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
+
+	const SizeType acceleration_structure_size = MathUtil::NextMultiple(build_sizes_info.accelerationStructureSize, 256ull);
+	const SizeType build_scratch_size = MathUtil::NextMultiple(build_sizes_info.buildScratchSize, scratch_buffer_alignment);
+	const SizeType update_scratch_size = MathUtil::NextMultiple(build_sizes_info.updateScratchSize, scratch_buffer_alignment);
+
 	bool was_rebuilt = false;
 
     HYPERION_BUBBLE_ERRORS(m_buffer->EnsureCapacity(
 		device,
-		build_sizes_info.accelerationStructureSize,
+		acceleration_structure_size,
 		&was_rebuilt
 	));
 
@@ -223,7 +251,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
 	    out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
 
 		// to be sure it's zeroed out
-		m_buffer->Memset(device, build_sizes_info.accelerationStructureSize, 0);
+		m_buffer->Memset(device, acceleration_structure_size, 0);
 
 		if (update) {
 		    /* update was true but we need to rebuild from scratch, have to unset the UPDATE flag. */
@@ -240,7 +268,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
 
         VkAccelerationStructureCreateInfoKHR create_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
         create_info.buffer = m_buffer->buffer;
-        create_info.size = build_sizes_info.accelerationStructureSize;
+        create_info.size = acceleration_structure_size;
         create_info.type = ToVkAccelerationStructureType(type);
 
         HYPERION_VK_PASS_ERRORS(
@@ -268,11 +296,9 @@ Result AccelerationStructure::CreateAccelerationStructure(
         &address_info
     );
 
-	const SizeType scratch_buffer_alignment = device->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
-
 	auto scratch_buffer = std::make_unique<ScratchBuffer>();
 	HYPERION_PASS_ERRORS(
-		scratch_buffer->Create(device, build_sizes_info.buildScratchSize, scratch_buffer_alignment),
+		scratch_buffer->Create(device, build_scratch_size, scratch_buffer_alignment),
 		result
 	);
 
@@ -283,7 +309,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
 	}
 
 	// zero out scratch buffer
-	scratch_buffer->Memset(device, build_sizes_info.buildScratchSize, 0);
+	scratch_buffer->Memset(device, build_scratch_size, 0);
 
     geometry_info.dstAccelerationStructure = m_acceleration_structure;
 	geometry_info.srcAccelerationStructure = was_rebuilt ? VK_NULL_HANDLE : m_acceleration_structure;
@@ -294,7 +320,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
 
     for (SizeType i = 0; i < geometries.size(); i++) {
         range_infos[i] = new VkAccelerationStructureBuildRangeInfoKHR {
-            .primitiveCount  = primitive_counts[i],
+            .primitiveCount = primitive_counts[i],
             .primitiveOffset = 0,
             .firstVertex = 0,
             .transformOffset = 0
@@ -808,6 +834,8 @@ Result BottomLevelAccelerationStructure::Rebuild(Instance *instance, RTUpdateSta
 
 	for (SizeType i = 0; i < m_geometries.size(); i++) {
 	    const auto &geometry = m_geometries[i];
+
+		AssertThrow(geometry->GetPackedIndices().size() / 3 == 0);
 
 		HYPERION_PASS_ERRORS(geometry->Create(device, instance), result);
 
