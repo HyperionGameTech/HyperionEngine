@@ -12,6 +12,7 @@
 namespace hyperion::v2 {
 
 using renderer::TopLevelAccelerationStructure;
+using renderer::RTUpdateStateFlags;
 
 class TLAS : public EngineComponentWrapper<STUB_CLASS(TLAS), TopLevelAccelerationStructure>
 {
@@ -28,7 +29,11 @@ public:
     /*! \brief Update the TLAS on the RENDER thread, performing any
      * updates to the structure. This is also called for each BLAS underneath this.
      */
-    void UpdateRender(Engine *engine, Frame *frame);
+    void UpdateRender(
+        Engine *engine,
+        Frame *frame,
+        RTUpdateStateFlags &out_update_state_flags
+    );
 
 private:
     void PerformBLASUpdates();

@@ -24,6 +24,15 @@ enum class AccelerationStructureType
     TOP_LEVEL
 };
 
+using RTUpdateStateFlags = UInt;
+
+enum RTUpdateStateFlagBits : RTUpdateStateFlags
+{
+    RT_UPDATE_STATE_FLAGS_NONE = 0x0,
+    RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE = 0x1,
+    RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS = 0x2
+};
+
 using AccelerationStructureFlags = UInt;
 
 enum AccelerationStructureFlagBits : AccelerationStructureFlags
@@ -133,7 +142,8 @@ protected:
         AccelerationStructureType type,
         std::vector<VkAccelerationStructureGeometryKHR> &&geometries,
         std::vector<UInt32> &&primitive_counts,
-        bool update = false
+        bool update,
+        RTUpdateStateFlags &out_update_state_flags
     );
     
     std::unique_ptr<AccelerationStructureBuffer> m_buffer;
@@ -158,10 +168,10 @@ public:
     Result Create(Device *device, Instance *instance);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance *instance);
+    Result UpdateStructure(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    Result Rebuild(Instance *instance);
+    Result Rebuild(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
 };
 
 class TopLevelAccelerationStructure : public AccelerationStructure
@@ -187,10 +197,10 @@ public:
     Result Destroy(Device *device);
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    Result UpdateStructure(Instance *instance);
+    Result UpdateStructure(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
 
 private:
-    Result Rebuild(Instance *instance);
+    Result Rebuild(Instance *instance, RTUpdateStateFlags &out_update_state_flags);
 
     std::vector<VkAccelerationStructureGeometryKHR> GetGeometries(Instance *instance) const;
     std::vector<UInt32> GetPrimitiveCounts() const;

@@ -629,7 +629,7 @@ Result GPUBuffer::ReadStaged(
     });
 }
 
-Result GPUBuffer::Create(Device *device, SizeType size)
+Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
 {
     if (buffer != nullptr) {
         DebugLog(
@@ -655,7 +655,7 @@ Result GPUBuffer::Create(Device *device, SizeType size)
 #if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif
-        return {Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n"};
+        return { Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n" };
     }
 
     DebugLog(
@@ -671,17 +671,33 @@ Result GPUBuffer::Create(Device *device, SizeType size)
 
     HYPERION_BUBBLE_ERRORS(CheckCanAllocate(device, create_info, alloc_info, this->size));
 
-    HYPERION_VK_CHECK_MSG(
-        vmaCreateBuffer(
-            device->GetAllocator(),
-            &create_info,
-            &alloc_info,
-            &buffer,
-            &allocation,
-            nullptr
-        ),
-        "Failed to create gpu buffer!"
-    );
+    if (alignment != 0) {
+        HYPERION_VK_CHECK_MSG(
+            vmaCreateBufferWithAlignment(
+                device->GetAllocator(),
+                &create_info,
+                &alloc_info,
+                alignment,
+                &buffer,
+                &allocation,
+                nullptr
+            ),
+            "Failed to create gpu buffer with alignment %llu!",
+            alignment
+        );
+    } else {
+        HYPERION_VK_CHECK_MSG(
+            vmaCreateBuffer(
+                device->GetAllocator(),
+                &create_info,
+                &alloc_info,
+                &buffer,
+                &allocation,
+                nullptr
+            ),
+            "Failed to create gpu buffer!"
+        );
+    }
 
     HYPERION_RETURN_OK;
 }
@@ -900,7 +916,9 @@ PackedIndexStorageBuffer::PackedIndexStorageBuffer()
 
 ScratchBuffer::ScratchBuffer()
     : GPUBuffer(
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+          VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
       )
 {
 }

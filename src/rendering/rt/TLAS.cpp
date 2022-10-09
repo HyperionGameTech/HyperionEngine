@@ -96,7 +96,11 @@ void TLAS::PerformBLASUpdates()
     m_has_blas_updates.store(false);
 }
 
-void TLAS::UpdateRender(Engine *engine, Frame *frame)
+void TLAS::UpdateRender(
+    Engine *engine,
+    Frame *frame,
+    RTUpdateStateFlags &out_update_state_flags
+)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -108,10 +112,11 @@ void TLAS::UpdateRender(Engine *engine, Frame *frame)
     for (auto &blas : m_blas) {
         AssertThrow(blas != nullptr);
 
-        blas->UpdateRender(engine, frame);
+        //bool was_blas_rebuilt = false;
+        //blas->UpdateRender(engine, frame, was_blas_rebuilt);
     }
 
-    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance(), out_update_state_flags));
 }
 
 } // namespace hyperion::v2

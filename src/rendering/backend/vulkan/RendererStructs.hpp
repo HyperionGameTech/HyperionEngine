@@ -582,6 +582,8 @@ struct alignas(16) MeshDescription
     UInt64 vertex_buffer_address;
     UInt64 index_buffer_address;
     UInt32 material_index;
+    
+    UInt32 _pad0, _pad1, _pad2;
 };
 
 using PackedIndex = UInt32;

@@ -138,7 +138,9 @@ void BlurRadiance::CreateDescriptors(Engine *engine)
             descriptor_set
                 ->AddDescriptor<renderer::ImageDescriptor>(3)
                 ->SetSubDescriptor({
-                    .image_view = i == 0 ? m_radiance_image_view : m_image_outputs[frame_index][i - 1].image_view.Get()
+                    .image_view = i == 0
+                        ? m_radiance_image_view
+                        : m_image_outputs[frame_index][i - 1].image_view.Get()
                 });
 
             // sampler to use

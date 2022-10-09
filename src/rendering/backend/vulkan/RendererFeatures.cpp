@@ -72,9 +72,14 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
             .pNext = VK_NULL_HANDLE
         };
 
+        m_acceleration_structure_properties = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR,
+            .pNext = &m_raytracing_pipeline_properties
+        };
+
         m_sampler_minmax_properties = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT,
-            .pNext = &m_raytracing_pipeline_properties
+            .pNext = &m_acceleration_structure_properties
         };
 #else
         m_sampler_minmax_properties = {

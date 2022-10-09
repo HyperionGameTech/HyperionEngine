@@ -100,16 +100,36 @@ void Mesh::Init(Engine *engine)
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    if (m_vertices.empty() || m_indices.empty()) {
+    if (m_indices.size() < 3) {
         DebugLog(
             LogType::Warn,
             "Attempt to create Mesh #%u with empty vertices or indices list; setting vertices to be 1 empty vertex\n",
             m_id.value
         );
 
-        /* set to 1 vertex / index to prevent explosions */
-        m_vertices = { Vertex() };
-        m_indices = { 0 };
+        if (m_vertices.empty()) {
+            /* set to 1 vertex / index to prevent explosions */
+            m_vertices = { Vertex() };
+        }
+
+        m_indices = { 0, 0, 0 };
+    } else if (m_indices.size() % 3 != 0) {
+        DebugLog(
+            LogType::Warn,
+            "Index count not a multiple of 3! Padding with extra indices...",
+            m_id.value
+        );
+
+        if (m_vertices.empty()) {
+            /* set to 1 vertex / index to prevent explosions */
+            m_vertices = { Vertex() };
+        }
+
+        const SizeType remainder = m_indices.size() % 3;
+
+        for (SizeType i = 0; i < remainder; i++) {
+            m_indices.push_back(0);
+        }
     }
 
     engine->GetRenderScheduler().Enqueue([this, packed_buffer = BuildVertexBuffer(), indices = m_indices](...) {

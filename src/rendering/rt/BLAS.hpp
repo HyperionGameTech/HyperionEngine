@@ -41,7 +41,11 @@ public:
 
     void Init(Engine *engine);
     void Update(Engine *engine);
-    void UpdateRender(Engine *engine, Frame *frame);
+    void UpdateRender(
+        Engine *engine,
+        Frame *frame,
+        bool &out_was_rebuilt
+    );
 
 private:
     void SetNeedsUpdate()

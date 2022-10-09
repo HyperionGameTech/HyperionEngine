@@ -97,6 +97,12 @@ public:
     const VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT &GetSamplerMinMaxProperties() const
         { return m_sampler_minmax_properties; }
 
+    const VkPhysicalDeviceAccelerationStructureFeaturesKHR &GetAccelerationStructureFeatures() const
+        { return m_acceleration_structure_features; }
+
+    const VkPhysicalDeviceAccelerationStructurePropertiesKHR &GetAccelerationStructureProperties() const
+        { return m_acceleration_structure_properties; }
+
     struct DeviceRequirementsResult
     {
         enum
@@ -425,16 +431,17 @@ private:
     VkPhysicalDeviceProperties m_properties;
     VkPhysicalDeviceFeatures m_features;
 
-    VkPhysicalDeviceBufferDeviceAddressFeatures      m_buffer_device_address_features;
-    VkPhysicalDeviceRayTracingPipelineFeaturesKHR    m_raytracing_pipeline_features;
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR  m_raytracing_pipeline_properties;
+    VkPhysicalDeviceBufferDeviceAddressFeatures m_buffer_device_address_features;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_raytracing_pipeline_features;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_raytracing_pipeline_properties;
     VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT m_sampler_minmax_properties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_acceleration_structure_features;
-    VkPhysicalDeviceDescriptorIndexingFeatures       m_indexing_features;
-    VkPhysicalDeviceDescriptorIndexingProperties     m_indexing_properties;
-    VkPhysicalDeviceMultiviewFeatures                m_multiview_features;
-    VkPhysicalDeviceFeatures2                        m_features2;
-    VkPhysicalDeviceProperties2                      m_properties2;
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR m_acceleration_structure_properties;;
+    VkPhysicalDeviceDescriptorIndexingFeatures m_indexing_features;
+    VkPhysicalDeviceDescriptorIndexingProperties m_indexing_properties;
+    VkPhysicalDeviceMultiviewFeatures m_multiview_features;
+    VkPhysicalDeviceFeatures2 m_features2;
+    VkPhysicalDeviceProperties2 m_properties2;
 
     VkPhysicalDeviceMemoryProperties m_memory_properties;
 

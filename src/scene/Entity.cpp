@@ -104,6 +104,12 @@ void Entity::Init(Engine *engine)
 
     SetReady(true);
 
+#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
+    //if (engine->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+    //    CreateBLAS();
+    //}
+#endif
+
     OnTeardown([this]() {
         auto *engine = GetEngine();
 
@@ -428,8 +434,10 @@ void Entity::SetParent(Node *node)
 void Entity::SetScene(Scene *scene)
 {
     if (m_scene != nullptr) {
-        if (m_blas) {
-            //m_scene->GetTLAS()->RemoveBLAS(m_blas);
+        if (auto &scene_tlas = m_scene->GetTLAS()) {
+            if (m_blas) {
+                //scene_tlas->RemoveBLAS(m_blas);
+            }
         }
 
         for (auto &controller : m_controllers) {
@@ -442,10 +450,10 @@ void Entity::SetScene(Scene *scene)
     m_scene = scene;
 
     if (m_scene != nullptr) {
-        auto &tlas = m_scene->GetTLAS();
-
-        if (m_blas && tlas) {
-            tlas->AddBLAS(Handle<BLAS>(m_blas));
+        if (auto &scene_tlas = m_scene->GetTLAS()) {
+            if (m_blas) {
+                scene_tlas->AddBLAS(Handle<BLAS>(m_blas));
+            }
         }
 
         for (auto &controller : m_controllers) {
@@ -659,14 +667,19 @@ bool Entity::IsReady() const
 
 bool Entity::CreateBLAS()
 {
+    AssertReady();
+
     if (m_blas) {
         return true;
     }
 
+#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
     if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
-        // cannot create BLAS is RT is not enabled or supported.
         return false;
     }
+#else
+    return false;
+#endif
 
     if (!IsRenderable()) {
         // needs mesh, material, etc.

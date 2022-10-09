@@ -241,7 +241,11 @@ public:
     /* \brief Calls vkGetBufferDeviceAddressKHR. Only use this if the extension is enabled */
     uint64_t GetBufferDeviceAddress(Device *device) const;
 
-    [[nodiscard]] Result Create(Device *device, SizeType buffer_size);
+    [[nodiscard]] Result Create(
+        Device *device,
+        SizeType buffer_size,
+        SizeType buffer_alignment = 0
+    );
     [[nodiscard]] Result Destroy(Device *device);
     [[nodiscard]] Result EnsureCapacity(Device *device,
         SizeType minimum_size,
@@ -271,7 +275,7 @@ public:
 #endif
 
     VkBuffer buffer;
-
+    
 private:
     Result CheckCanAllocate(
         Device *device,

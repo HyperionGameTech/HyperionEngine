@@ -184,22 +184,22 @@ void Material::EnqueueRenderUpdates()
     GetEngine()->GetRenderScheduler().Enqueue([this, ids = std::move(bound_texture_ids)](...) mutable {
         MaterialShaderData shader_data {
             .albedo = GetParameter<Vector4>(MATERIAL_KEY_ALBEDO),
-            .metalness = GetParameter<float>(MATERIAL_KEY_METALNESS),
-            .roughness = GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
-            .packed_params = ShaderVec2<UInt32>(
+            .packed_params = ShaderVec4<UInt32>(
                 ByteUtil::PackColorU32(Vector4(
+                    GetParameter<float>(MATERIAL_KEY_ROUGHNESS),
+                    GetParameter<float>(MATERIAL_KEY_METALNESS),
                     GetParameter<float>(MATERIAL_KEY_TRANSMISSION),
-                    0.0f,
-                    0.0f,
                     0.0f
                 )),
-                0
+                0, 0, 0
             ),
             .uv_scale = GetParameter<float>(MATERIAL_KEY_UV_SCALE),
             .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
         };
 
         shader_data.texture_usage = 0;
+
+        Memory::Set(shader_data.texture_index, 0, sizeof(shader_data.texture_index));
 
         if (num_bound_textures != 0) {
             for (SizeType i = 0; i < ids.Size(); i++) {

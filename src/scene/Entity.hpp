@@ -149,7 +149,7 @@ public:
     void SetScene(Scene *scene);
 
     bool IsRenderable() const
-        { return m_mesh != nullptr && m_shader != nullptr && m_material != nullptr; }
+        { return m_mesh && m_shader && m_material; }
 
     const RenderableAttributeSet &GetRenderableAttributes() const { return m_renderable_attributes; }
     void SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes);

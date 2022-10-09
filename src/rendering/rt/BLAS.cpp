@@ -140,16 +140,22 @@ void BLAS::Update(Engine *engine)
     // no-op
 }
 
-void BLAS::UpdateRender(Engine *engine, Frame *frame)
+void BLAS::UpdateRender(
+    Engine *engine,
+    Frame *frame,
+    bool &out_was_rebuilt
+)
 {
+#if 0 // TopLevelAccelerationStructure does this work here.
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
     if (!NeedsUpdate()) {
         return;
     }
-
-    //HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance()));
+    
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance(), out_was_rebuilt));
+#endif
 }
 
 } // namespace hyperion::v2

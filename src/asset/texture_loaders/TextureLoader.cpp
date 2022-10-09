@@ -1,5 +1,6 @@
 #include "TextureLoader.hpp"
 #include <Engine.hpp>
+#include <util/StringUtil.hpp>
 #include <util/img/stb_image.h>
 
 namespace hyperion::v2 {
@@ -79,6 +80,8 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         Image::WrapMode::TEXTURE_WRAP_REPEAT,
         &data.data[0]
     ));
+
+    texture->SetName(String(StringUtil::Basename(state.filepath).c_str()));
 
     return { { LoaderResult::Status::OK }, texture.Cast<void>() };
 }

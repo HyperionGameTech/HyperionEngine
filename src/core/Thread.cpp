@@ -1,12 +1,12 @@
 #include "Thread.hpp"
+#include <Threads.hpp>
 
 namespace hyperion::v2 {
 
-void SetThreadID(const ThreadID &id)
+
+void SetCurrentThreadID(const ThreadID &thread_id)
 {
-#ifdef HYP_ENABLE_THREAD_ID
-    current_thread_id = id;
-#endif
+    Threads::SetThreadID(thread_id);
 }
 
 } // namespace hyperion::v2

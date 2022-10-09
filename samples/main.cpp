@@ -33,6 +33,7 @@
 #include <GameThread.hpp>
 #include <Game.hpp>
 
+#include <rendering/rt/BlurRadiance.hpp>
 
 #include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
 #include <Aftermath/GFSDK_Aftermath.h>
@@ -84,7 +85,7 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 // #define HYP_TEST_VCT
-// #define HYP_TEST_RT
+#define HYP_TEST_RT
 // #define HYP_TEST_TERRAIN
 
 namespace hyperion::v2 {
@@ -110,10 +111,9 @@ public:
     {
         Game::InitGame(engine);
 
-        m_scene = engine->CreateHandle<Scene>(
-            engine->CreateHandle<Camera>(new FirstPersonCamera(//FollowCamera(
-                //Vector3(0, 0, 0), Vector3(0, 0.5f, -2),
-                2048, 2048,//2048, 1080,
+        m_scene->SetCamera(
+            engine->CreateHandle<Camera>(new FirstPersonCamera(
+                2048, 2048,
                 75.0f,
                 0.5f, 30000.0f
             ))
@@ -133,6 +133,7 @@ public:
 
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+        batch.Add<Node>("house", "models/house.obj");
         batch.Add<Node>("test_model", "models/sponza/sponza.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
@@ -144,6 +145,10 @@ public:
         auto test_model = obj_models["test_model"].Get<Node>();//engine->GetAssetManager().Load<Node>("../data/dump2/sponza.fbom");
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
+
+        if (auto house = GetScene()->GetRoot().AddChild(obj_models["house"].Get<Node>())) {
+            house.Scale(10.0f);
+        }
 
         test_model.Scale(0.25f);
 
@@ -170,11 +175,14 @@ public:
         { // hardware skinning
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
-            zombie[0].GetEntity()->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f));
-            zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
-            zombie[0].GetEntity()->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-            zombie[0].GetEntity()->RebuildRenderableAttributes();
+            auto zombie_entity = zombie[0].GetEntity();
+            zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+            zombie_entity->RebuildRenderableAttributes();
+            engine->InitObject(zombie_entity);
+            zombie_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(zombie);
         }
         
@@ -232,6 +240,21 @@ public:
         skybox_spatial->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_SKYBOX)));
         skybox_spatial->RebuildRenderableAttributes();
         m_scene->AddEntity(std::move(skybox_spatial));
+        
+        int cnt = 0;
+        for (auto &child : test_model.GetChildren()) {
+            if (auto &entity = child.GetEntity()) {
+                auto ent = Handle(entity);
+                if (engine->InitObject(ent)) {
+                    entity->CreateBLAS();
+                }
+
+                if (cnt > 9) {
+                    break;
+                }
+                cnt++;
+            }
+        }
 
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
@@ -769,30 +792,6 @@ int main()
             }
         )
     );
-
-    struct Foo {
-        int x;
-        volatile bool b;
-    };
-
-    struct Fart {
-        Fart()
-        {
-            foo.Reset(new Foo());
-        }
-        ~Fart()
-        {
-            
-        }
-
-        UniquePtr<Foo> foo;
-    };
-
-    {
-        UniquePtr<Fart> f;
-        f.Reset(new Fart());
-        std::cout << "F = " << f->foo->x << std::endl;
-    }
     
 
     // TODO: move elsewhere once RT stuff is established.
@@ -824,6 +823,7 @@ int main()
     my_game->Init(engine, window);
 
 #ifdef HYP_TEST_RT
+    AssertThrow(my_game->GetScene()->CreateTLAS());
     auto rt_shader = std::make_unique<ShaderProgram>();
     rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_GEN, {
         FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/test.rgen.spv")).Read()
@@ -837,55 +837,21 @@ int main()
 
     auto rt = std::make_unique<RaytracingPipeline>(std::move(rt_shader));
 
-    auto tmp_asset = engine->assets.Load<Node>("models/ogrexml/dragger_Body.mesh.xml");
-
     auto cube_obj = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
-
-
-    ProbeGrid probe_system({
-        .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
-    });
-    probe_system.Init(engine);
-    
-    auto my_material = engine->CreateHandle<Material>();
-    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
-    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->CreateHandle<Texture>(engine->assets.Load<Texture>("textures/grass.jpg").release()));
-    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-    engine->InitObject(my_material);
-
-    auto my_material2 = engine->CreateHandle<Material>();
-    my_material2->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.1f);
-    my_material2->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 1.0f, 0.0f, 1.0f));
-    engine->InitObject(my_material2);
-    
     
     my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(running_guy),
-        Handle<Material>(my_material),
-        Transform { Vector3 { 0, 7, 0 } }
-    ));
-
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj2),
-        std::move(my_material2),
-        Transform { Vector3 { 0, 7, 4 } }
-    ));
-
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj3),
-        engine->CreateHandle<Material>(),
-        Transform { Vector3 { 4, 7, 0 } }
-    ));
-
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj4),
+        std::move(cube_obj),
         engine->CreateHandle<Material>(),
         Transform { Vector3 { 4, 7, 4 } }
     ));
 
-    engine->InitObject(my_material);
-
     engine->InitObject(my_game->GetScene()->GetTLAS());
+
+
+    //ProbeGrid probe_system({
+    //    .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
+    //});
+    //probe_system.Init(engine);
 
 
     //my_tlas->Get().GetBlas()[0]->GetGeometries()[0]->SetMaterialIndex(1);
@@ -971,6 +937,45 @@ int main()
     
     BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
     blur_radiance.Create(engine);
+
+#if 0
+    
+    auto my_material = engine->CreateHandle<Material>();
+    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
+    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->GetAssetManager().Load<Texture>("textures/grass.jpg"));
+    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+    engine->InitObject(my_material);
+
+    auto my_material2 = engine->CreateHandle<Material>();
+    my_material2->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
+    my_material2->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 0.0f, 1.0f));
+    engine->InitObject(my_material2);
+
+    auto tmp_asset = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj");
+    auto running_guy_mesh = Handle(tmp_asset.GetChild(0).GetEntity()->GetMesh());//MeshBuilder::NormalizedCubeSphere(16).release());
+    auto cube_obj2 = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
+    auto cube_obj3 = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
+    tmp_asset.GetChild(0).GetEntity()->CreateBLAS();
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
+        std::move(running_guy_mesh),
+        Handle<Material>(my_material),
+        Transform { Vector3 { 0, 7, 0 } }
+    ));
+
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
+        std::move(cube_obj2),
+        std::move(my_material2),
+        Transform { Vector3 { 0, 7, 4 } }
+    ));
+
+    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
+        std::move(cube_obj3),
+        engine->CreateHandle<Material>(),
+        Transform { Vector3 { 4, 7, 0 } }
+    ));
+
+    engine->InitObject(my_material);
+#endif
 #endif
     
     engine->game_thread.Start(engine, my_game, window);
@@ -1021,6 +1026,27 @@ int main()
         // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
         engine->GetWorld().Render(engine, frame);
 
+        {
+            renderer::RTUpdateStateFlags as_update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
+            my_game->GetScene()->GetTLAS()->UpdateRender(engine, frame, as_update_state_flags);
+            
+            if (as_update_state_flags) {
+                if (as_update_state_flags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
+                    // update acceleration structure in descriptor set
+                    rt_descriptor_set->GetDescriptor(0)
+                        ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &my_game->GetScene()->GetTLAS()->Get() });
+                }
+
+                if (as_update_state_flags & RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
+                    // update mesh descriptions buffer in descriptor set
+                    rt_descriptor_set->GetDescriptor(4)
+                        ->SetSubDescriptor({ .element_index = 0u, .buffer = my_game->GetScene()->GetTLAS()->Get().GetMeshDescriptionsBuffer() });
+                }
+
+                rt_descriptor_set->ApplyUpdates(engine->GetDevice());
+            }
+        }
+
         my_game->OnFrameBegin(engine, frame);
 
         if (auto *environment = engine->GetRenderState().GetScene().render_environment) {
@@ -1030,7 +1056,7 @@ int main()
         }
 
         // perform any updates to the tlas
-        my_tlas->UpdateRender(engine, frame);
+        //my_tlas->UpdateRender(engine, frame);
 
         rt->Bind(frame->GetCommandBuffer());
     
@@ -1090,8 +1116,8 @@ int main()
 
         blur_radiance.Render(engine, frame);
 
-        probe_system.RenderProbes(engine, frame);
-        probe_system.ComputeIrradiance(engine, frame);
+        //probe_system.RenderProbes(engine, frame);
+        //probe_system.ComputeIrradiance(engine, frame);
 
         engine->RenderDeferred(frame);
         engine->RenderFinalPass(frame);

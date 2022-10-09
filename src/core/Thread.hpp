@@ -6,6 +6,7 @@
 #include <Types.hpp>
 
 #include <thread>
+#include <type_traits>
 #include <tuple>
 
 namespace hyperion::v2 {
@@ -13,18 +14,17 @@ namespace hyperion::v2 {
 struct ThreadID
 {
     UInt value;
-    FixedString name;
+    StringView name;
 
     HYP_FORCE_INLINE bool operator==(const ThreadID &other) const { return value == other.value; }
     HYP_FORCE_INLINE bool operator!=(const ThreadID &other) const { return value != other.value; }
     HYP_FORCE_INLINE bool operator<(const ThreadID &other) const { return std::tie(value, name) < std::tie(other.value, other.name); }
 };
 
-#ifdef HYP_ENABLE_THREAD_ID
-extern thread_local ThreadID current_thread_id;
-#endif
+static_assert(std::is_trivially_destructible_v<ThreadID>,
+    "ThreadID must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
 
-void SetThreadID(const ThreadID &id);
+void SetCurrentThreadID(const ThreadID &thread_id);
 
 template <class SchedulerType, class ...Args>
 class Thread
@@ -122,7 +122,7 @@ bool Thread<SchedulerType, Args...>::Start(Args ...args)
     std::tuple<Args...> tuple_args(std::forward<Args>(args)...);
 
     m_thread = new std::thread([&self = *this, tuple_args] {
-        SetThreadID(self.GetID());
+        SetCurrentThreadID(self.GetID());
         self.m_scheduler.SetOwnerThread(self.GetID());
 
         self(std::get<Args>(tuple_args)...);
