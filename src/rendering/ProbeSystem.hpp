@@ -56,7 +56,7 @@ struct ProbeGridInfo {
 
     BoundingBox aabb;
     Extent3D    probe_border   = {2, 0, 2};
-    float       probe_distance = 7.0f;
+    float       probe_distance = 3.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
