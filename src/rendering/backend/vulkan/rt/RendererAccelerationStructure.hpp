@@ -127,15 +127,19 @@ public:
      */
     void RemoveGeometry(AccelerationGeometry *geometry);
 
-    const Matrix4 &GetTransform() const { return m_transform; }
-    void SetTransform(const Matrix4 &transform) { m_transform = transform; SetNeedsRebuildFlag(); }
+    const Matrix4 &GetTransform() const
+        { return m_transform; }
+
+    void SetTransform(const Matrix4 &transform)
+        { m_transform = transform; SetNeedsRebuildFlag(); }
 
     Result Destroy(Device *device);
 
 protected:
     static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType);
     
-    void SetNeedsRebuildFlag() { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
+    void SetNeedsRebuildFlag()
+        { SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING); }
 
     Result CreateAccelerationStructure(
         Instance *instance,
@@ -148,6 +152,7 @@ protected:
     
     std::unique_ptr<AccelerationStructureBuffer> m_buffer;
     std::unique_ptr<AccelerationStructureInstancesBuffer> m_instances_buffer;
+    std::unique_ptr<ScratchBuffer> m_scratch_buffer;
     std::vector<std::unique_ptr<AccelerationGeometry>> m_geometries;
     Matrix4 m_transform;
     VkAccelerationStructureKHR m_acceleration_structure;
@@ -206,6 +211,7 @@ private:
     std::vector<UInt32> GetPrimitiveCounts() const;
 
     Result CreateOrRebuildInstancesBuffer(Instance *instance);
+    Result UpdateInstancesBuffer(Instance *instance);
     
     Result CreateMeshDescriptionsBuffer(Instance *instance);
     Result UpdateMeshDescriptionsBuffer(Instance *instance);

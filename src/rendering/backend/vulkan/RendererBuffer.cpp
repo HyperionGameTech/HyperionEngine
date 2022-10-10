@@ -556,7 +556,7 @@ void GPUBuffer::CopyFrom(
     InsertBarrier(command_buffer, ResourceState::COPY_DST);
     src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
 
-    VkBufferCopy region{};
+    VkBufferCopy region { };
     region.size = count;
 
     vkCmdCopyBuffer(
@@ -717,9 +717,21 @@ Result GPUBuffer::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result GPUBuffer::EnsureCapacity(Device *device,
+Result GPUBuffer::EnsureCapacity(
+    Device *device,
     SizeType minimum_size,
-    bool *out_size_changed)
+    bool *out_size_changed
+)
+{
+    return EnsureCapacity(device, minimum_size, 0, out_size_changed);
+}
+
+Result GPUBuffer::EnsureCapacity(
+    Device *device,
+    SizeType minimum_size,
+    SizeType alignment,
+    bool *out_size_changed
+)
 {
     auto result = Result::OK;
 
@@ -743,7 +755,7 @@ Result GPUBuffer::EnsureCapacity(Device *device,
         }
     }
 
-    HYPERION_PASS_ERRORS(Create(device, minimum_size), result);
+    HYPERION_PASS_ERRORS(Create(device, minimum_size, alignment), result);
 
     if (out_size_changed != nullptr) {
         *out_size_changed = bool(result);

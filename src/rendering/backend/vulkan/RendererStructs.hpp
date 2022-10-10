@@ -565,7 +565,7 @@ struct alignas(16) Extent3D
 static_assert(sizeof(Extent3D) == 16);
 
 
-struct alignas(16) PackedVertex
+struct PackedVertex
 {
     Float32 position_x,
         position_y,
@@ -577,13 +577,17 @@ struct alignas(16) PackedVertex
         texcoord0_y;
 };
 
+static_assert(sizeof(PackedVertex) == sizeof(Float32) * 8);
+
 struct alignas(16) MeshDescription
 {
     UInt64 vertex_buffer_address;
     UInt64 index_buffer_address;
+
     UInt32 material_index;
-    
-    UInt32 _pad0, _pad1, _pad2;
+    UInt32 num_indices;
+    UInt32 num_vertices;
+    UInt32 _pad;
 };
 
 using PackedIndex = UInt32;

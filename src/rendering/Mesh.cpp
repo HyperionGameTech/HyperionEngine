@@ -340,6 +340,7 @@ std::vector<PackedVertex> Mesh::BuildPackedVertices() const
 
 std::vector<PackedIndex> Mesh::BuildPackedIndices() const
 {
+    AssertThrow(m_indices.size() % 3 == 0);
     return std::vector<PackedIndex>(m_indices.begin(), m_indices.end());
 }
 

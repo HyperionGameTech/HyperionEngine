@@ -30,9 +30,12 @@ class Engine;
 
 class BlurRadiance
 {
+    static constexpr bool generate_mipmap = false;
+
 public:
     BlurRadiance(
         const Extent2D &extent,
+        Image *radiance_image,
         ImageView *radiance_image_view,
         ImageView *data_image_view,
         ImageView *depth_image_view
@@ -76,12 +79,13 @@ private:
     };
 
     Extent2D m_extent;
+    Image *m_radiance_image;
     ImageView *m_radiance_image_view;
     ImageView *m_data_image_view;
     ImageView *m_depth_image_view;
 
     FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> m_descriptor_sets;
-    FixedArray<FixedArray<ImageOutput, 2>, max_frames_in_flight> m_image_outputs;
+    FixedArray<FixedArray<ImageOutput, generate_mipmap ? 1 : 2>, max_frames_in_flight> m_image_outputs;
 
     Handle<ComputePipeline> m_write_uvs;
     Handle<ComputePipeline> m_sample;

@@ -247,9 +247,17 @@ public:
         SizeType buffer_alignment = 0
     );
     [[nodiscard]] Result Destroy(Device *device);
-    [[nodiscard]] Result EnsureCapacity(Device *device,
+    [[nodiscard]] Result EnsureCapacity(
+        Device *device,
         SizeType minimum_size,
-        bool *out_size_changed = nullptr);
+        bool *out_size_changed = nullptr
+    );
+    [[nodiscard]] Result EnsureCapacity(
+        Device *device,
+        SizeType minimum_size,
+        SizeType alignment,
+        bool *out_size_changed = nullptr
+    );
 
 #if HYP_DEBUG_MODE
     void DebugLogBuffer(Instance *instance) const;

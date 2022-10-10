@@ -134,7 +134,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");
+        batch.Add<Node>("test_model", "models/testbed/testbed.obj");//"sponza/sponza.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -148,9 +148,29 @@ public:
 
         if (auto house = GetScene()->GetRoot().AddChild(obj_models["house"].Get<Node>())) {
             house.Scale(10.0f);
+            house.SetName("house");
+
+            int i = 0;
+
+            for (auto &child : house.GetChildren()) {
+                if (!child) {
+                    continue;
+                }
+
+                if (auto ent = child.GetEntity()) {
+                    //if (i > 6) {
+                    //    std::cout << "entity name = " << ent->GetName() << std::endl;
+                    //    break;
+                   // }
+                    engine->InitObject(ent);
+                    ent->CreateBLAS();
+
+                    i++;
+                }
+            }
         }
 
-        test_model.Scale(0.25f);
+        test_model.Scale(20.25f);
 
         {
             auto btn = engine->CreateHandle<UIObject>();
@@ -202,10 +222,10 @@ public:
             // )));
         }
 
-        auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
-        AssertThrow(tex);
+        //auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
+        //AssertThrow(tex);
 
-        { // particles test
+        if (false) { // particles test
             auto particle_spawner = engine->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = engine->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -275,24 +295,27 @@ public:
             );
         }
 
-        if (auto monkey = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
+        if (auto monkey = engine->GetAssetManager().Load<Node>("models/material_sphere/material_sphere.obj")) {//monkey/monkey.obj")) {
             monkey.SetName("monkey");
-            monkey[0].GetEntity()->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
-            monkey[0].GetEntity()->AddController<ScriptedController>(
+            auto monkey_entity = monkey[0].GetEntity();
+            monkey_entity->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
+            monkey_entity->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-            monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            monkey[0].GetEntity()->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // monkey[0].GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
-            // monkey[0].GetEntity()->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            // monkey[0].GetEntity()->GetMaterial()->SetIsAlphaBlended(true);
-            monkey[0].GetEntity()->RebuildRenderableAttributes();
-            monkey.Translate(Vector3(0, 250.5f, 0));
+            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
+            // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            // monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
+            monkey_entity->RebuildRenderableAttributes();
+            monkey.Translate(Vector3(40, 250.5f, 0));
             monkey.Scale(6.0f);
+            engine->InitObject(monkey_entity);
+            monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);
 
             monkey[0].GetEntity()->AddController<RigidBodyController>(
@@ -304,7 +327,7 @@ public:
         // add a plane physics shape
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
-        plane->SetTranslation(Vector3(0, 3, 0));
+        plane->SetTranslation(Vector3(0, 15, 0));
         GetScene()->AddEntity(Handle<Entity>(plane));
         plane->AddController<RigidBodyController>(
             UniquePtr<physics::PlanePhysicsShape>::Construct(Vector4(0, 1, 0, 1)),
@@ -337,6 +360,10 @@ public:
         m_ui.Update(engine, delta);
 
         HandleCameraMovement();
+
+        if (auto house = GetScene()->GetRoot().Select("house")) {
+            //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
+        }
 
         #if 0 // bad performance on large meshes. need bvh
         //if (input_manager->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
@@ -905,6 +932,9 @@ int main()
         .buffer = engine->shader_globals->materials.GetBuffers()[0].get()
     });
 
+    // create a noise map for rt radiance
+    Bitmap<1> m_noise_map;
+
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,
         engine->GetInstance(),
@@ -935,7 +965,7 @@ int main()
 #ifdef HYP_TEST_RT
     HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
     
-    BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
+    BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, rt_image_storage, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
     blur_radiance.Create(engine);
 
 #if 0

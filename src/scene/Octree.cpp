@@ -716,8 +716,8 @@ void Octree::NextVisibilityState()
 {
     AssertThrow(m_root != nullptr);
 
-    UInt8 cursor;
-    m_root->visibility_cursor.store(cursor = (m_root->visibility_cursor.load(std::memory_order_relaxed) + 1) % VisibilityState::cursor_size, std::memory_order_relaxed);
+    UInt8 cursor = m_root->visibility_cursor.fetch_add(1u, std::memory_order_relaxed);
+    cursor = (cursor + 1) % VisibilityState::cursor_size;
 
     // m_visibility_state.snapshots[cursor].bits.store(0u, std::memory_order_relaxed);
     m_visibility_state.snapshots[cursor].nonce.fetch_add(1u, std::memory_order_relaxed);
@@ -727,7 +727,7 @@ UInt8 Octree::LoadVisibilityCursor() const
 {
     AssertThrow(m_root != nullptr);
 
-    return m_root->visibility_cursor.load(std::memory_order_relaxed);
+    return m_root->visibility_cursor.load(std::memory_order_relaxed) % VisibilityState::cursor_size;
 }
 
 UInt8 Octree::LoadPreviousVisibilityCursor() const
@@ -758,7 +758,7 @@ void Octree::CalculateVisibility(Scene *scene)
     const auto &frustum = scene->GetCamera()->GetFrustum();
 
     if (frustum.ContainsAABB(m_aabb)) {
-        const auto cursor = m_root->visibility_cursor.load(std::memory_order_relaxed);
+        const auto cursor = LoadVisibilityCursor();
 
         UpdateVisibilityState(scene, cursor);
     }

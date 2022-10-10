@@ -9,7 +9,7 @@
 
 namespace hyperion::v2 {
 
-static constexpr float game_thread_target_ticks_per_second = 120.0f;
+static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
 GameThread::GameThread()
     : Thread(Threads::thread_ids.At(THREAD_GAME)),

@@ -104,14 +104,14 @@ void BLAS::Init(Engine *engine)
         material_index = m_material->GetID().value - 1;
     }
 
-    if (engine->InitObject(m_mesh)) {
-        m_blas.SetTransform(m_transform.GetMatrix());
-        m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
-            m_mesh->BuildPackedVertices(),
-            m_mesh->BuildPackedIndices(),
-            material_index
-        ));
-    }
+    AssertThrow(engine->InitObject(m_mesh));
+    
+    m_blas.SetTransform(m_transform.GetMatrix());
+    m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
+        m_mesh->BuildPackedVertices(),
+        m_mesh->BuildPackedIndices(),
+        material_index
+    ));
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         return m_blas.Create(engine->GetDevice(), engine->GetInstance());

@@ -119,6 +119,10 @@ void TLAS::UpdateRender(
     
     for (auto &blas : m_blas) {
         AssertThrow(blas != nullptr);
+        
+        AssertThrow(!blas->GetInternalBLAS().GetGeometries().empty());
+        AssertThrow(blas->GetInternalBLAS().GetGeometries()[0]->GetPackedIndexStorageBuffer() != nullptr);
+        AssertThrow(blas->GetInternalBLAS().GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
 
         //bool was_blas_rebuilt = false;
         //blas->UpdateRender(engine, frame, was_blas_rebuilt);
