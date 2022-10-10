@@ -687,6 +687,7 @@ bool Entity::CreateBLAS()
     }
 
     m_blas = GetEngine()->CreateHandle<BLAS>(
+        m_id,
         Handle<Mesh>(m_mesh),
         Handle<Material>(m_material),
         m_transform

@@ -20,6 +20,7 @@ class BLAS : public EngineComponentBase<STUB_CLASS(BLAS)>
 {
 public:
     BLAS(
+        IDBase entity_id,
         Handle<Mesh> &&mesh,
         Handle<Material> &&material,
         const Transform &transform
@@ -57,6 +58,7 @@ private:
     bool NeedsUpdate() const
         { return bool(m_blas.GetFlags()); }
 
+    IDBase m_entity_id;
     Handle<Mesh> m_mesh;
     Handle<Material> m_material;
     Transform m_transform;

@@ -4,10 +4,12 @@
 namespace hyperion::v2 {
 
 BLAS::BLAS(
+    IDBase entity_id,
     Handle<Mesh> &&mesh,
     Handle<Material> &&material,
     const Transform &transform
 ) : EngineComponentBase(),
+    m_entity_id(entity_id),
     m_mesh(std::move(mesh)),
     m_material(std::move(material)),
     m_transform(transform)
@@ -43,9 +45,8 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
         m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
             m_mesh->BuildPackedVertices(),
             m_mesh->BuildPackedIndices(),
-            material_id
-                ? material_id.value - 1
-                : 0u
+            m_entity_id.ToIndex(),
+            material_id.ToIndex()
         ));
     }
 }
@@ -110,6 +111,7 @@ void BLAS::Init(Engine *engine)
     m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
         m_mesh->BuildPackedVertices(),
         m_mesh->BuildPackedIndices(),
+        m_entity_id.ToIndex(),
         material_index
     ));
 

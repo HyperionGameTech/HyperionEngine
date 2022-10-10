@@ -583,11 +583,11 @@ struct alignas(16) MeshDescription
 {
     UInt64 vertex_buffer_address;
     UInt64 index_buffer_address;
-
+    
+    UInt32 entity_index;
     UInt32 material_index;
     UInt32 num_indices;
     UInt32 num_vertices;
-    UInt32 _pad;
 };
 
 using PackedIndex = UInt32;

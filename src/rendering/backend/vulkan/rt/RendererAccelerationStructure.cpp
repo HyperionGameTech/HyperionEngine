@@ -11,7 +11,7 @@ namespace renderer {
 static VkTransformMatrixKHR ToVkTransform(const Matrix4 &matrix)
 {
     VkTransformMatrixKHR transform;
-	std::memcpy(&transform, &matrix, sizeof(VkTransformMatrixKHR));
+	std::memcpy(&transform, matrix.values, sizeof(VkTransformMatrixKHR));
 
 	return transform;
 }
@@ -31,9 +31,11 @@ VkAccelerationStructureTypeKHR AccelerationStructure::ToVkAccelerationStructureT
 AccelerationGeometry::AccelerationGeometry(
     std::vector<PackedVertex> &&packed_vertices,
     std::vector<PackedIndex> &&packed_indices,
+    UInt entity_index,
     UInt material_index
 ) : m_packed_vertices(std::move(packed_vertices)),
     m_packed_indices(std::move(packed_indices)),
+	m_entity_index(entity_index),
 	m_material_index(material_index),
     m_geometry { }
 {
@@ -750,6 +752,7 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
 		} else {
 		    mesh_description.vertex_buffer_address = blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
 		    mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
+			mesh_description.entity_index = blas->GetGeometries()[0]->GetEntityIndex();
 			mesh_description.material_index = blas->GetGeometries()[0]->GetMaterialIndex();
 			mesh_description.num_indices = static_cast<UInt32>(blas->GetGeometries()[0]->GetPackedIndices().size());
 			mesh_description.num_vertices = static_cast<UInt32>(blas->GetGeometries()[0]->GetPackedVertices().size());

@@ -23,6 +23,7 @@ std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> AccelerationStruc
             geometry = std::make_unique<AccelerationGeometry>(
                 mesh->BuildPackedVertices(),
                 mesh->BuildPackedIndices(),
+                0u, // TODO
                 0u // TODO
             );
         }

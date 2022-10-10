@@ -261,18 +261,12 @@ public:
         skybox_spatial->RebuildRenderableAttributes();
         m_scene->AddEntity(std::move(skybox_spatial));
         
-        int cnt = 0;
         for (auto &child : test_model.GetChildren()) {
             if (auto &entity = child.GetEntity()) {
                 auto ent = Handle(entity);
                 if (engine->InitObject(ent)) {
                     entity->CreateBLAS();
                 }
-
-                if (cnt > 9) {
-                //    break;
-                }
-                cnt++;
             }
         }
 
@@ -362,7 +356,7 @@ public:
         HandleCameraMovement();
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
-            //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
+            house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
         }
 
         #if 0 // bad performance on large meshes. need bvh
@@ -867,6 +861,7 @@ int main()
     auto cube_obj = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
     
     my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
+        IDBase(),
         std::move(cube_obj),
         engine->CreateHandle<Material>(),
         Transform { Vector3 { 4, 7, 4 } }
@@ -932,8 +927,18 @@ int main()
         .buffer = engine->shader_globals->materials.GetBuffers()[0].get()
     });
 
+    // entities
+    auto rt_entity_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(6);
+    rt_entity_buffer->SetSubDescriptor({
+        .buffer = engine->shader_globals->objects.GetBuffers()[0].get()
+    });
+
     // create a noise map for rt radiance
-    Bitmap<1> m_noise_map;
+    static constexpr UInt seed = 0xff;
+    SimplexNoiseGenerator noise_generator(seed);
+    auto rt_noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
+
+
 
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,

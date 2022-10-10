@@ -53,6 +53,7 @@ public:
     AccelerationGeometry(
         std::vector<PackedVertex> &&packed_vertices,
         std::vector<PackedIndex> &&packed_indices,
+        UInt entity_index,
         UInt material_index
     );
 
@@ -65,6 +66,14 @@ public:
 
     PackedVertexStorageBuffer *GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer.get(); }
     PackedIndexStorageBuffer *GetPackedIndexStorageBuffer() const { return m_packed_index_buffer.get(); }
+
+    UInt GetEntityIndex() const
+        { return m_entity_index; }
+
+    // must set proper flag on the parent BLAS
+    // for it to take effect
+    void SetEntityIndex(UInt entity_index)
+        { m_entity_index = entity_index; }
 
     UInt GetMaterialIndex() const
         { return m_material_index; }
@@ -86,7 +95,8 @@ private:
     std::unique_ptr<PackedIndexStorageBuffer> m_packed_index_buffer;
 
     VkAccelerationStructureGeometryKHR m_geometry;
-
+    
+    UInt m_entity_index;
     UInt m_material_index;
 };
 
