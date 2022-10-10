@@ -296,13 +296,14 @@ public:
             monkey_entity->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
             monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
             //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
             // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
+            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
             // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             // monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
             monkey_entity->RebuildRenderableAttributes();
@@ -870,10 +871,10 @@ int main()
     engine->InitObject(my_game->GetScene()->GetTLAS());
 
 
-    //ProbeGrid probe_system({
-    //    .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
-    //});
-    //probe_system.Init(engine);
+    ProbeGrid probe_system({
+        .aabb = {{-300.0f, -50.0f, -300.0f}, {300.0f, 300.0f, 300.0f}}
+    });
+    probe_system.Init(engine);
 
 
     //my_tlas->Get().GetBlas()[0]->GetGeometries()[0]->SetMaterialIndex(1);
@@ -1151,8 +1152,8 @@ int main()
 
         blur_radiance.Render(engine, frame);
 
-        //probe_system.RenderProbes(engine, frame);
-        //probe_system.ComputeIrradiance(engine, frame);
+        probe_system.RenderProbes(engine, frame);
+        probe_system.ComputeIrradiance(engine, frame);
 
         engine->RenderDeferred(frame);
         engine->RenderFinalPass(frame);

@@ -20,6 +20,7 @@ using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::UniformBuffer;
 using renderer::CommandBuffer;
+using renderer::ImageDescriptor;
 using renderer::Extent3D;
 using renderer::Extent2D;
 using renderer::Frame;
@@ -51,13 +52,13 @@ static_assert(sizeof(ProbeRayData) == 64);
 
 struct ProbeGridInfo
 {
-    static constexpr UInt num_rays_per_probe         = 128;
+    static constexpr UInt num_rays_per_probe = 128;
     static constexpr UInt irradiance_octahedron_size = 8;
-    static constexpr UInt depth_octahedron_size      = 16;
+    static constexpr UInt depth_octahedron_size = 16;
 
     BoundingBox aabb;
-    Extent3D probe_border = {2, 0, 2};
-    float probe_distance = 2.0f;
+    Extent3D probe_border = { 2, 0, 2 };
+    float probe_distance = 40.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
@@ -66,11 +67,7 @@ struct ProbeGridInfo
     {
         const auto probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vector(probe_border));
 
-        return {
-            static_cast<decltype(Extent3D::width)>(probes_per_dimension.x),
-            static_cast<decltype(Extent3D::height)>(probes_per_dimension.y),
-            static_cast<decltype(Extent3D::depth)>(probes_per_dimension.z)
-        };
+        return Extent3D(probes_per_dimension);
     }
 
     UInt NumProbes() const
@@ -137,7 +134,10 @@ private:
     ProbeGridInfo m_grid_info;
     std::vector<Probe> m_probes;
 
-    Handle<ComputePipeline> m_update_irradiance, m_update_depth;
+    Handle<ComputePipeline> m_update_irradiance,
+        m_update_depth,
+        m_copy_border_texels_irradiance,
+        m_copy_border_texels_depth;
 
     std::unique_ptr<RaytracingPipeline> m_pipeline;
     std::unique_ptr<UniformBuffer> m_uniform_buffer;

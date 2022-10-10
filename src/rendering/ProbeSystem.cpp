@@ -40,12 +40,11 @@ void ProbeGrid::Init(Engine *engine)
         for (UInt32 y = 0; y < grid.height; y++) {
             for (UInt32 z = 0; z < grid.depth; z++) {
                 const UInt32 index = x * grid.height * grid.depth
-                    + y * grid.depth
-                    + z;
+                                     + y * grid.depth
+                                     + z;
 
                 m_probes[index] = Probe{
-                    .position = (Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z))
-                        - (Vector(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
+                    .position = (Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)) - (Vector(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
                 };
             }
         }
@@ -55,6 +54,7 @@ void ProbeGrid::Init(Engine *engine)
     CreateUniformBuffer(engine);
     AddDescriptors(engine);
 
+    /* TMP */
     engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this](Engine *engine) {
         CreatePipeline(engine);
     });
@@ -88,13 +88,13 @@ void ProbeGrid::CreatePipeline(Engine *engine)
     auto rt_shader = std::make_unique<ShaderProgram>();
 
     rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_GEN, {
-        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/probe.rgen.spv")).Read()
+        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/gi/gi.rgen.spv")).Read()
     });
     rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_MISS, {
-        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/probe.rmiss.spv")).Read()
+        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/gi/gi.rmiss.spv")).Read()
     });
     rt_shader->AttachShader(engine->GetDevice(), ShaderModule::Type::RAY_CLOSEST_HIT, {
-        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/probe.rchit.spv")).Read()
+        FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "/vkshaders/rt/gi/gi.rchit.spv")).Read()
     });
 
     m_pipeline = std::make_unique<RaytracingPipeline>(std::move(rt_shader));
@@ -122,13 +122,34 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
     );
 
     engine->InitObject(m_update_depth);
+
+    m_copy_border_texels_irradiance = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
+            std::vector<SubShader>{
+                {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/copy_border_texels_irradiance.comp.spv")).Read()}}
+            }
+        )
+    );
+
+    engine->InitObject(m_copy_border_texels_irradiance);
+
+    m_copy_border_texels_depth = engine->CreateHandle<ComputePipeline>(
+        engine->CreateHandle<Shader>(
+            std::vector<SubShader>{
+                {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/copy_border_texels_depth.comp.spv")).Read()}}
+            }
+        )
+    );
+
+    engine->InitObject(m_copy_border_texels_depth);
 }
 
 void ProbeGrid::CreateUniformBuffer(Engine *engine)
 {
-    ProbeSystemUniforms uniforms{
-        .aabb_max                     = m_grid_info.aabb.max.ToVector4(),
-        .aabb_min                     = m_grid_info.aabb.min.ToVector4(),
+    ProbeSystemUniforms uniforms
+    {
+        .aabb_max = m_grid_info.aabb.max.ToVector4(),
+        .aabb_min = m_grid_info.aabb.min.ToVector4(),
         .probe_border                 = m_grid_info.probe_border,
         .probe_counts                 = m_grid_info.NumProbesPerDimension(),
         .image_dimensions             = m_grid_info.GetImageDimensions(),
@@ -152,7 +173,11 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
     HYPERION_ASSERT_RESULT(m_radiance_buffer->Create(engine->GetDevice(), m_grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData)));
 
     m_irradiance_image = std::make_unique<StorageImage>(
-        Extent3D{{(m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2, (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2}},
+        Extent3D {
+            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,
+            (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2,
+            1
+        },
         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
         Image::Type::TEXTURE_TYPE_2D,
         nullptr
@@ -163,7 +188,11 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
     HYPERION_ASSERT_RESULT(m_irradiance_image_view->Create(engine->GetDevice(), m_irradiance_image.get()));
 
     m_depth_image = std::make_unique<StorageImage>(
-        Extent3D{{(m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2, (m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2}},
+        Extent3D {
+            (m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,
+            (m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2,
+            1
+        },
         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
         Image::Type::TEXTURE_TYPE_2D,
         nullptr
@@ -180,17 +209,47 @@ void ProbeGrid::AddDescriptors(Engine *engine)
 
     auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
-    auto *probe_uniforms = descriptor_set->AddDescriptor<UniformBufferDescriptor>(9);
-    probe_uniforms->SetSubDescriptor({.buffer = m_uniform_buffer.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<UniformBufferDescriptor>(9)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .buffer = m_uniform_buffer.get()
+        });
 
-    auto *probe_ray_data = descriptor_set->AddDescriptor<StorageBufferDescriptor>(10);
-    probe_ray_data->SetSubDescriptor({.buffer = m_radiance_buffer.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageBufferDescriptor>(10)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .buffer = m_radiance_buffer.get()
+        });
 
-    auto *irradiance_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(11);
-    irradiance_image_descriptor->SetSubDescriptor({.image_view = m_irradiance_image_view.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageImageDescriptor>(11)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_irradiance_image_view.get()
+        });
 
-    auto *irradiance_depth_image_descriptor = descriptor_set->AddDescriptor<StorageImageDescriptor>(12);
-    irradiance_depth_image_descriptor->SetSubDescriptor({.image_view = m_depth_image_view.get()});
+    descriptor_set
+        ->GetOrAddDescriptor<StorageImageDescriptor>(12)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_depth_image_view.get()
+        });
+
+    descriptor_set
+        ->GetOrAddDescriptor<ImageDescriptor>(13)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_irradiance_image_view.get()
+        });
+
+    descriptor_set
+        ->GetOrAddDescriptor<ImageDescriptor>(14)
+        ->SetSubDescriptor({
+            .element_index = 0u,
+            .image_view = m_depth_image_view.get()
+        });
 }
 
 void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer)
@@ -213,24 +272,10 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
-
+    
     SubmitPushConstants(engine, frame->GetCommandBuffer());
 
     m_pipeline->Bind(frame->GetCommandBuffer());
-    
-    const auto scene_binding = engine->render_state.GetScene().id;
-    const auto scene_index = scene_binding ? scene_binding.value - 1 : 0u;
-
-   /* frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
-        m_pipeline.get(),
-        DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()],
-        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
-        FixedArray {
-            UInt32(sizeof(SceneShaderData) * scene_index),
-            HYP_RENDER_OBJECT_OFFSET(Light, 0)
-        }
-    );*/
 
     engine->GetInstance()->GetDescriptorPool().Bind(
         engine->GetDevice(),
@@ -244,7 +289,11 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
     m_pipeline->TraceRays(
         engine->GetDevice(),
         frame->GetCommandBuffer(),
-        Extent3D(m_grid_info.GetImageDimensions())
+        Extent3D {
+            m_grid_info.NumProbes(),
+            m_grid_info.num_rays_per_probe,
+            1u
+        }
     );
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
@@ -277,7 +326,14 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
         }
     );
 
-    m_update_irradiance->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}});
+    m_update_irradiance->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            probe_counts.width * probe_counts.height,
+            probe_counts.depth,
+            1u
+        }
+    );
 
     m_update_depth->GetPipeline()->Bind(frame->GetCommandBuffer());
     
@@ -292,7 +348,67 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
 
     m_update_depth->GetPipeline()->Dispatch(
         frame->GetCommandBuffer(),
-        Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}}
+        Extent3D {
+            probe_counts.width * probe_counts.height,
+            probe_counts.depth,
+            1u
+        }
+    );
+
+    m_irradiance_image->GetGPUImage()->InsertBarrier(
+        frame->GetCommandBuffer(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
+
+    m_depth_image->GetGPUImage()->InsertBarrier(
+        frame->GetCommandBuffer(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
+
+    // now copy border texels
+    m_copy_border_texels_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer());
+    
+    engine->GetInstance()->GetDescriptorPool().Bind(
+        engine->GetDevice(),
+        frame->GetCommandBuffer(),
+        m_copy_border_texels_irradiance->GetPipeline(),
+        {
+            {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
+        }
+    );
+
+    m_copy_border_texels_irradiance->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            probe_counts.width * probe_counts.height,
+            probe_counts.depth,
+            1u
+        }
+    );
+    
+    m_copy_border_texels_depth->GetPipeline()->Bind(frame->GetCommandBuffer());
+    
+    engine->GetInstance()->GetDescriptorPool().Bind(
+        engine->GetDevice(),
+        frame->GetCommandBuffer(),
+        m_copy_border_texels_depth->GetPipeline(),
+        {
+            {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
+        }
+    );
+    
+    m_copy_border_texels_depth->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+       /* Extent3D(
+            (m_depth_image->GetExtent().width + 15) / 16,
+            (m_depth_image->GetExtent().height + 15) / 16,
+            (m_depth_image->GetExtent().depth + 15) / 16
+        )*/
+        Extent3D {
+            probe_counts.width * probe_counts.height,
+            probe_counts.depth,
+            1u
+        }
     );
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(

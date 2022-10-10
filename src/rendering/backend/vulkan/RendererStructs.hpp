@@ -432,28 +432,35 @@ struct alignas(16) Extent3D
         UInt32 v[3];
     };
 
-    Extent3D()
+    Extent3D() // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(0),
           height(0),
           depth(0)
     {
     }
 
-    explicit Extent3D(UInt32 extent)
+    explicit Extent3D(UInt32 extent)  // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent),
           height(extent),
           depth(extent)
     {
     }
 
-    Extent3D(UInt32 width, UInt32 height, UInt32 depth)
+    Extent3D(UInt32 width, UInt32 height, UInt32 depth) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(width),
           height(height),
           depth(depth)
     {
     }
 
-    explicit Extent3D(const Extent2D &extent_2d, UInt32 depth = 1)
+    explicit Extent3D(const Vector3 &extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
+        : width(static_cast<UInt32>(extent.x)),
+          height(static_cast<UInt32>(extent.y)),
+          depth(static_cast<UInt32>(extent.z))
+    {
+    }
+
+    explicit Extent3D(const Extent2D &extent_2d, UInt32 depth = 1) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent_2d.width),
           height(extent_2d.height),
           depth(depth)
@@ -478,7 +485,11 @@ struct alignas(16) Extent3D
     
     Extent3D operator*(const Extent3D &other) const
     {
-        return Extent3D(width * other.width, height * other.height, depth * other.depth);
+        return {
+            width * other.width,
+            height * other.height,
+            depth * other.depth
+        };
     }
 
     Extent3D &operator*=(const Extent3D &other)
@@ -492,7 +503,11 @@ struct alignas(16) Extent3D
     
     Extent3D operator*(UInt32 scalar) const
     {
-        return Extent3D(width * scalar, height * scalar, depth * scalar);
+        return {
+            width * scalar,
+            height * scalar,
+            depth * scalar
+        };
     }
 
     Extent3D &operator*=(UInt32 scalar)
@@ -507,7 +522,11 @@ struct alignas(16) Extent3D
     Extent3D operator/(const Extent3D &other) const
     {
         AssertThrow(other.width != 0 && other.height != 0 && other.depth != 0);
-        return Extent3D(width / other.width, height / other.height, depth / other.depth);
+        return {
+            width / other.width,
+            height / other.height,
+            depth / other.depth
+        };
     }
 
     Extent3D &operator/=(const Extent3D &other)
@@ -525,7 +544,11 @@ struct alignas(16) Extent3D
     {
         AssertThrow(scalar != 0);
 
-        return Extent3D(width / scalar, height / scalar, depth / scalar);
+        return {
+            width / scalar,
+            height / scalar,
+            depth / scalar
+        };
     }
 
     Extent3D &operator/=(UInt32 scalar)
