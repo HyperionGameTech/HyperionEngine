@@ -134,7 +134,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/testbed/testbed.obj");//"sponza/sponza.obj");
+        batch.Add<Node>("test_model", "models/sponza/sponza.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -170,9 +170,9 @@ public:
             }
         }
 
-        test_model.Scale(20.25f);
+        test_model.Scale(0.25f);
 
-        {
+        if (false) {
             auto btn = engine->CreateHandle<UIObject>();
             btn->SetTransform(Transform(Vector3(0.4f, 3.7f, 0.0f)));
 
@@ -210,16 +210,16 @@ public:
             m_sun = engine->CreateHandle<Light>(new DirectionalLight(
                 Vector3(-0.1f, 1.0f, 0.0f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                110000.0f
+                150000.0f
             ));
             m_scene->AddLight(m_sun);
 
-            // m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
-            //     Vector3(0.0f, 4.0f, 0.0f),
-            //     Color(1.0f, 0.0f, 0.0f),
-            //     100000.0f,
-            //     30.0f
-            // )));
+            /*m_scene->AddLight(engine->CreateHandle<Light>(new PointLight(
+                 Vector3(0.0f, 4.0f, 0.0f),
+                 Color(1.0f, 0.0f, 0.0f),
+                 100000.0f,
+                 30.0f
+            )));*/
         }
 
         //auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
@@ -289,7 +289,7 @@ public:
             );
         }
 
-        if (auto monkey = engine->GetAssetManager().Load<Node>("models/material_sphere/material_sphere.obj")) {//monkey/monkey.obj")) {
+        if (auto monkey = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
             monkey.SetName("monkey");
             auto monkey_entity = monkey[0].GetEntity();
             monkey_entity->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
@@ -297,10 +297,10 @@ public:
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
             monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+            //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
             // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
             // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.3f));
             // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
@@ -356,7 +356,7 @@ public:
         HandleCameraMovement();
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
-            house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
+            //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
         }
 
         #if 0 // bad performance on large meshes. need bvh

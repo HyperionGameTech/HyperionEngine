@@ -673,10 +673,12 @@ void Scene::EnqueueRenderUpdates()
     struct {
         BoundingBox aabb;
         Float global_timer;
+        UInt32 frame_counter;
         UInt32 num_lights;
     } params = {
         .aabb = m_root_node_proxy.GetWorldAABB(),
         .global_timer = m_environment->GetGlobalTimer(),
+        .frame_counter = m_environment->GetFrameCounter(),
         .num_lights = static_cast<UInt32>(m_lights.Size())
     };
 
@@ -686,6 +688,7 @@ void Scene::EnqueueRenderUpdates()
             .aabb_max = params.aabb.max.ToVector4(),
             .aabb_min = params.aabb.min.ToVector4(),
             .global_timer = params.global_timer,
+            .frame_counter = params.frame_counter,
             .num_environment_shadow_maps = static_cast<UInt32>(m_environment->HasRenderComponent<ShadowRenderer>()), // callable on render thread only
             .num_lights = params.num_lights
         };

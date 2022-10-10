@@ -641,7 +641,7 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
     } else if (m_instances_buffer->size != instances_buffer_size) {
         DebugLog(
             LogType::Debug,
-            "Resizing instances buffer from %llu to %llu\n",
+            "Resizing TLAS instances buffer from %llu to %llu\n",
             m_instances_buffer->size,
             instances_buffer_size
         );
@@ -899,36 +899,31 @@ BottomLevelAccelerationStructure::~BottomLevelAccelerationStructure() = default;
 
 Result BottomLevelAccelerationStructure::Create(Device *device, Instance *instance)
 {
-	auto result = Result::OK;
+    auto result = Result::OK;
 
-	std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.size());
-	std::vector<UInt32> primitive_counts(m_geometries.size());
+    std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.size());
+    std::vector<UInt32> primitive_counts(m_geometries.size());
 
-	if (m_geometries.empty()) {
-	    return { Result::RENDERER_ERR, "Cannot create BLAS with zero geometries" };
-	}
+    if (m_geometries.empty()) {
+        return { Result::RENDERER_ERR, "Cannot create BLAS with zero geometries" };
+    }
 
-	for (SizeType i = 0; i < m_geometries.size(); i++) {
-	    const auto &geometry = m_geometries[i];
+    for (SizeType i = 0; i < m_geometries.size(); i++) {
+        const auto &geometry = m_geometries[i];
 
-		if (geometry->GetPackedIndices().size() % 3 != 0) {
-		    return { Result::RENDERER_ERR, "Invalid triangle mesh!" };
-		}
+        if (geometry->GetPackedIndices().size() % 3 != 0) {
+            return { Result::RENDERER_ERR, "Invalid triangle mesh!" };
+        }
 
-		HYPERION_PASS_ERRORS(geometry->Create(device, instance), result);
+        HYPERION_BUBBLE_ERRORS(geometry->Create(device, instance), result);
 
-		if (!result) {
-			HYPERION_IGNORE_ERRORS(Destroy(device));
-		    return result;
-		}
+        geometries[i] = geometry->m_geometry;
+        primitive_counts[i] = static_cast<UInt32>(geometry->GetPackedIndices().size() / 3);
 
-		geometries[i] = geometry->m_geometry;
-		primitive_counts[i] = static_cast<UInt32>(geometry->GetPackedIndices().size() / 3);
-
-	    if (primitive_counts[i] == 0) {
-	        return { Result::RENDERER_ERR, "Cannot create BLAS -- geometry has zero indices" };
-	    }
-	}
+        if (primitive_counts[i] == 0) {
+            return { Result::RENDERER_ERR, "Cannot create BLAS -- geometry has zero indices" };
+        }
+    }
 
 	RTUpdateStateFlags update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
 

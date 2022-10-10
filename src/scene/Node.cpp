@@ -434,10 +434,16 @@ void Node::UpdateWorldTransform()
         static_cast<Bone *>(this)->UpdateBoneTransform();  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 
+    const Transform transform_before = m_world_transform;
+
     if (m_parent_node != nullptr) {
         m_world_transform = m_parent_node->GetWorldTransform() * m_local_transform;
     } else {
         m_world_transform = m_local_transform;
+    }
+
+    if (m_world_transform == transform_before) {
+        return;
     }
 
     m_world_aabb = m_local_aabb * m_world_transform;

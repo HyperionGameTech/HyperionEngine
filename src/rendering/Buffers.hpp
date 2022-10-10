@@ -116,9 +116,9 @@ struct alignas(256) SceneShaderData
     ShaderVec4<Float32> camera_direction;
     ShaderVec4<Float32> camera_up;
 
-    float camera_near;
-    float camera_far;
-    float camera_fov;
+    Float32 camera_near;
+    Float32 camera_far;
+    Float32 camera_fov;
 
     UInt32 enabled_render_components_mask;
 
@@ -130,7 +130,8 @@ struct alignas(256) SceneShaderData
     ShaderVec4<Float32> aabb_max;
     ShaderVec4<Float32> aabb_min;
 
-    float global_timer;
+    Float32 global_timer;
+    UInt32 frame_counter;
     UInt32 num_environment_shadow_maps;
     UInt32 num_lights;
 };
@@ -141,7 +142,7 @@ struct alignas(16) ShadowShaderData
 {
     Matrix4 projection;
     Matrix4 view;
-    UInt32  scene_index;
+    UInt32 scene_index;
 };
 
 //static_assert(sizeof(ShadowShaderData) == 128);

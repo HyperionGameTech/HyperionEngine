@@ -128,7 +128,8 @@ public:
     // only called when meaningful attributes have changed
     void OnEntityRenderableAttributesChanged(Handle<Entity> &entity);
 
-    float GetGlobalTimer() const { return m_global_timer; }
+    Float GetGlobalTimer() const { return m_global_timer; }
+    UInt32 GetFrameCounter() const { return m_frame_counter; }
 
     void Init(Engine *engine);
     void Update(Engine *engine, GameCounter::TickUnit delta);
@@ -157,7 +158,8 @@ private:
 
     Handle<ParticleSystem> m_particle_system;
 
-    float m_global_timer;
+    Float m_global_timer;
+    UInt32 m_frame_counter;
 };
 
 } // namespace hyperion::v2

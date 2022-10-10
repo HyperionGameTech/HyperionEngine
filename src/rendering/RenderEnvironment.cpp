@@ -9,6 +9,7 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
     : EngineComponentBase(),
       m_scene(scene),
       m_global_timer(0.0f),
+      m_frame_counter(0),
       m_current_enabled_render_components_mask(0),
       m_next_enabled_render_components_mask(0)
 {
@@ -202,6 +203,8 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
     if (update_marker_value != RENDER_ENVIRONMENT_UPDATES_NONE) {
         m_update_marker.store(RENDER_ENVIRONMENT_UPDATES_NONE);
     }
+
+    ++m_frame_counter;
 }
 
 } // namespace hyperion::v2
