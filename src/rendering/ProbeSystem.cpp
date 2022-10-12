@@ -122,6 +122,26 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
     ));
 
     m_update_depth.Init();
+
+    m_copy_border_texels_irradiance = engine->resources.compute_pipelines.Add(std::make_unique<ComputePipeline>(
+        engine->resources.shaders.Add(std::make_unique<Shader>(
+            std::vector<SubShader>{
+                {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/copy_border_texels_irradiance.comp.spv")).Read()}}
+            }
+        ))
+    ));
+
+    m_copy_border_texels_irradiance.Init();
+
+    m_copy_border_texels_depth = engine->resources.compute_pipelines.Add(std::make_unique<ComputePipeline>(
+        engine->resources.shaders.Add(std::make_unique<Shader>(
+            std::vector<SubShader>{
+                {ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(engine->assets.GetBasePath(), "vkshaders/rt/copy_border_texels_depth.comp.spv")).Read()}}
+            }
+        ))
+    ));
+
+    m_copy_border_texels_depth.Init();
 }
 
 void ProbeGrid::CreateUniformBuffer(Engine *engine)
@@ -274,7 +294,9 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
     m_pipeline->TraceRays(
         engine->GetDevice(),
         frame->GetCommandBuffer(),
-        Extent3D(m_grid_info.GetImageDimensions())
+        Extent3D(m_grid_info.NumProbes(), m_grid_info.num_rays_per_probe, 1)
+
+       // Extent3D(m_grid_info.GetImageDimensions())
     );
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
@@ -334,6 +356,62 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
         frame->GetCommandBuffer(),
         GPUMemory::ResourceState::UNORDERED_ACCESS
     );
+
+#if 0
+
+    // now copy border texels
+    m_copy_border_texels_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer());
+    
+    engine->GetInstance()->GetDescriptorPool().Bind(
+        engine->GetDevice(),
+        frame->GetCommandBuffer(),
+        m_copy_border_texels_irradiance->GetPipeline(),
+        {
+            {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
+        }
+    );
+
+    m_copy_border_texels_irradiance->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}}
+        /*Extent3D(
+            (m_irradiance_image->GetExtent().width + 7) / 8,
+            (m_irradiance_image->GetExtent().height + 7) / 8,
+            (m_irradiance_image->GetExtent().depth + 7) / 8
+        )*/
+    );
+    
+    m_copy_border_texels_depth->GetPipeline()->Bind(frame->GetCommandBuffer());
+    
+    engine->GetInstance()->GetDescriptorPool().Bind(
+        engine->GetDevice(),
+        frame->GetCommandBuffer(),
+        m_copy_border_texels_depth->GetPipeline(),
+        {
+            {.set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING, .count = 1}
+        }
+    );
+    
+    m_copy_border_texels_depth->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+       /* Extent3D(
+            (m_depth_image->GetExtent().width + 15) / 16,
+            (m_depth_image->GetExtent().height + 15) / 16,
+            (m_depth_image->GetExtent().depth + 15) / 16
+        )*/
+        Extent3D{{probe_counts.width * probe_counts.height, probe_counts.depth}}
+    );
+
+    m_irradiance_image->GetGPUImage()->InsertBarrier(
+        frame->GetCommandBuffer(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
+
+    m_depth_image->GetGPUImage()->InsertBarrier(
+        frame->GetCommandBuffer(),
+        GPUMemory::ResourceState::UNORDERED_ACCESS
+    );
+#endif
 }
 
 } // namespace hyperion::v2

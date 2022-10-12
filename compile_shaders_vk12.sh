@@ -65,5 +65,7 @@ glslc --target-env=$VULKAN_TARGET rt/probe.rmiss -o rt/probe.rmiss.spv
 glslc --target-env=$VULKAN_TARGET rt/probe.rchit -o rt/probe.rchit.spv
 glslc --target-env=$VULKAN_TARGET rt/probe_update_irradiance.comp -o rt/probe_update_irradiance.comp.spv
 glslc --target-env=$VULKAN_TARGET rt/probe_update_depth.comp -o rt/probe_update_depth.comp.spv
+glslc --target-env=$VULKAN_TARGET rt/copy_border_texels_irradiance.comp -o rt/copy_border_texels_irradiance.comp.spv
+glslc --target-env=$VULKAN_TARGET rt/copy_border_texels_depth.comp -o rt/copy_border_texels_depth.comp.spv
 
 popd

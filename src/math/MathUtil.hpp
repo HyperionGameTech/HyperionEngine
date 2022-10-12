@@ -8,6 +8,7 @@
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
+#include <math.h>
 #include <cstdlib>
 #include <cstddef>
 #include <cmath>
@@ -138,37 +139,37 @@ public:
         { return Abs(a - b) <= eps; }
 
     template <class T>
-    static HYP_ENABLE_IF(is_math_vector_v<T>, T) Random(const T &a, const T &b)
+    static HYP_ENABLE_IF(is_math_vector_v<T>, T) RandRange(const T &a, const T &b)
     {
         T result;
 
-        for (int i = 0; i < std::size(result.values); i++) {
-            result.values[i] = Random(a.values[i], b.values[i]);
+        for (UInt i = 0; i < static_cast<UInt>(std::size(result.values)); i++) {
+            result.values[i] = RandRange(a.values[i], b.values[i]);
         }
 
         return result;
     }
 
     template <class T>
-    static HYP_ENABLE_IF(!is_math_vector_v<T>, T) Random(const T &a, const T &b)
+    static HYP_ENABLE_IF(!is_math_vector_v<T>, T) RandRange(const T &a, const T &b)
     {
-        T random = T(rand()) / T(RAND_MAX);
-        T diff = b - a;
-        T r = random * diff;
+        const auto random = T(rand()) / T(RAND_MAX);
+        const auto diff = b - a;
+        const auto r = random * diff;
 
         return a + r;
     }
 
     template <class T>
-    static constexpr T RadToDeg(const T &rad)
+    static constexpr T RadToDeg(T rad)
         { return rad * T(180) / pi<T>; }
 
     template <class T>
-    static constexpr T DegToRad(const T &deg)
+    static constexpr T DegToRad(T deg)
         { return deg * pi<T> / T(180); }
 
     template <class T>
-    static constexpr T Clamp(const T &val, const T &min, const T &max)
+    static constexpr T Clamp(T val, T min, T max)
     {
         if (val > max) {
             return max;
@@ -261,6 +262,21 @@ public:
     template <class T>
     static HYP_ENABLE_IF(is_math_vector_v<T>, T) Round(const T &a) { return T::Round(a); }
 
+    static Float Sin(Float x) { return sinf(x); }
+    static Double Sin(Double x) { return sin(x); }
+    static Float Arcsin(Float x) { return asinf(x); }
+    static Double Arcsin(Double x) { return asin(x); }
+
+    static Float Cos(Float x) { return cosf(x); }
+    static Double Cos(Double x) { return cos(x); }
+    static Float Arccos(Float x) { return acosf(x); }
+    static Double Arccos(Double x) { return acos(x); }
+
+    static Float Tan(Float x) { return tanf(x); }
+    static Double Tan(Double x) { return tan(x); }
+    static Float Arctan(Float x) { return atanf(x); }
+    static Double Arctan(Double x) { return atan(x); }
+
     template <class T, class U = T, class V = U>
     static constexpr bool InRange(T value, const std::pair<U, V> &range)
         { return value >= range.first && value < range.second; }
@@ -269,11 +285,11 @@ public:
     static constexpr U Sqrt(T value)
     {
         if constexpr (std::is_same_v<U, double>) {
-            return std::sqrt(static_cast<double>(value));
+            return sqrt(static_cast<double>(value));
         } else if constexpr (std::is_same_v<U, float>) {
-            return std::sqrtf(static_cast<float>(value));
+            return sqrtf(static_cast<float>(value));
         } else {
-            return static_cast<U>(std::sqrtf(static_cast<float>(value)));
+            return static_cast<U>(sqrtf(static_cast<float>(value)));
         }
     }
 

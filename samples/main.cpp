@@ -842,11 +842,11 @@ int main()
 
     auto material_test_obj = engine->assets.Load<v2::Node>("models/material_sphere/material_sphere.obj");
     auto cube_obj = engine->assets.Load<v2::Node>("models/cube.obj");
-    material_test_obj->GetChild(0)->GetEntity()->SetTransform(Transform({ 0, 2, 5 }));
+    material_test_obj->GetChild(0)->GetEntity()->SetTransform(Transform({ -13, 7, 0 }, { 1, 1, 1}, { 0, 0, 0, 1 }));
 
 
     v2::ProbeGrid probe_system({
-        .aabb = {{-20.0f, -5.0f, -20.0f}, {20.0f, 5.0f, 20.0f}}
+        .aabb = {{-20.0f, -20.0f, -20.0f}, {20.0f, 20.0f, 20.0f}}
     });
     probe_system.Init(engine);
 
@@ -854,13 +854,18 @@ int main()
 
     my_tlas->AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<v2::BLAS>(
         material_test_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
-        material_test_obj->GetChild(0)->GetEntity()->GetTransform()
+        Transform({ -13, 7, 25 }, { 1, 1, 1}, { 0, 0, 0, 1 })
+    )));
+
+    /*my_tlas->AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<v2::BLAS>(
+        material_test_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
+        Transform({ 0, 0, 4 }, { 1, 1, 1}, { 0, 0, 0, 1 })
     )));
     
     my_tlas->AddBottomLevelAccelerationStructure(engine->resources.blas.Add(std::make_unique<v2::BLAS>(
         cube_obj->GetChild(0)->GetEntity()->GetMesh().IncRef(),
         cube_obj->GetChild(0)->GetEntity()->GetTransform()
-    )));
+    )));*/
 
     my_tlas->Init(engine);
     HYP_FLUSH_RENDER_QUEUE(engine); // TEMP, flushing render queue to immediately add TLAS descriptor

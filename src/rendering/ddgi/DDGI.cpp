@@ -168,6 +168,8 @@ void DDGI::OnRender(Engine *engine, Frame *frame)
     
     m_probe_grid.RenderProbes(engine, frame);
     m_probe_grid.ComputeIrradiance(engine, frame);
+
+    // Copy probe borders
 }
 
 void DDGI::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)

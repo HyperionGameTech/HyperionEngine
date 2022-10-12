@@ -56,7 +56,7 @@ struct ProbeGridInfo {
 
     BoundingBox aabb;
     Extent3D    probe_border   = {2, 0, 2};
-    float       probe_distance = 3.0f;
+    float       probe_distance = 2.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
@@ -130,11 +130,13 @@ private:
     void AddDescriptors(Engine *engine);
     void SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer);
 
-    ProbeGridInfo      m_grid_info;
+    ProbeGridInfo m_grid_info;
     std::vector<Probe> m_probes;
 
     Ref<ComputePipeline> m_update_irradiance,
-                         m_update_depth;
+        m_update_depth,
+        m_copy_border_texels_irradiance,
+        m_copy_border_texels_depth;
 
     std::unique_ptr<RaytracingPipeline> m_pipeline;
     std::unique_ptr<UniformBuffer>      m_uniform_buffer;
