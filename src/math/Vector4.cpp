@@ -6,6 +6,9 @@
 
 namespace hyperion {
 
+const Vector4 Vector4::zero = Vector4(0.0f);
+const Vector4 Vector4::one = Vector4(1.0f);
+
 Vector4::Vector4()
     : x(0.0f), 
       y(0.0f), 

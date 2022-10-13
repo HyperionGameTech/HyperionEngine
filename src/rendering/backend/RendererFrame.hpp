@@ -22,7 +22,8 @@ class Fence;
 class DeviceQueue;
 
 using ::hyperion::non_owning_ptr;
-class Frame {
+class Frame
+{
 public:
     static Frame TemporaryFrame(CommandBuffer *command_buffer, UInt frame_index = 0);
 

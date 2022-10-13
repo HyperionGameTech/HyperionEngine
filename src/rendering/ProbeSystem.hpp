@@ -36,14 +36,14 @@ struct alignas(256) ProbeSystemUniforms
     Extent2D image_dimensions;
     Extent2D irradiance_image_dimensions;
     Extent2D depth_image_dimensions;
-    float probe_distance;
+    Float probe_distance;
     UInt32 num_rays_per_probe;
 };
 
 struct alignas(16) ProbeRayData
 {
     Vector4 direction_depth;
-    Vector4 rigin;
+    Vector4 origin;
     Vector4 normal;
     Vector4 color;
 };
@@ -58,7 +58,7 @@ struct ProbeGridInfo
 
     BoundingBox aabb;
     Extent3D probe_border = { 2, 0, 2 };
-    float probe_distance = 40.0f;
+    float probe_distance = 60.0f;
 
     const Vector3 &GetOrigin() const
         { return aabb.min; }
@@ -88,7 +88,7 @@ struct RotationMatrixGenerator
     Matrix4 matrix;
     std::random_device random_device;
     std::mt19937 mt { random_device() };
-    std::uniform_real_distribution<float> angle { 0.0f, 360.0f };
+    std::uniform_real_distribution<float> angle { 0.0f, 359.0f };
     std::uniform_real_distribution<float> axis { -1.0f, 1.0f };
 
     const Matrix4 &Next()

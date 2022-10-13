@@ -185,10 +185,6 @@ void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
         const auto visibility_cursor = m_octree->LoadVisibilityCursor();
 
         m_visibility_state.snapshots[visibility_cursor] = octree_visibility_state.snapshots[visibility_cursor];
-
-        // for (UInt i = 0; i < static_cast<UInt>(m_visibility_state.snapshots.Size()); i++) {
-        //     m_visibility_state.snapshots[i] = octree_visibility_state.snapshots[i];
-        // }
     }
 
     if (m_shader_data_state.IsDirty()) {
@@ -292,7 +288,7 @@ void Entity::EnqueueRenderUpdates()
 
 void Entity::UpdateOctree()
 {
-    AssertThrow(IsInitCalled());
+    AssertReady();
 
     if (Octree *octree = m_octree) {
         const auto update_result = octree->Update(GetEngine(), this);

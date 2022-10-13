@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_ENGINE_H
 #define HYPERION_V2_ENGINE_H
 
+#include <Config.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <rendering/PostFX.hpp>
@@ -170,6 +172,9 @@ public:
 
     World &GetWorld() { return m_world; }
     const World &GetWorld() const { return m_world; }
+
+    Configuration &GetConfig() { return m_configuration; }
+    const Configuration &GetConfig() const { return m_configuration; }
 
     Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
@@ -365,6 +370,7 @@ private:
     Handle<Mesh> m_full_screen_quad;
 
     AssetManager m_asset_manager;
+    Configuration m_configuration;
 
     bool m_is_stopping { false };
     bool m_is_render_loop_active { false };

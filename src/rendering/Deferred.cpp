@@ -530,6 +530,8 @@ void DeferredRenderer::Render(
     const auto scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
+
+    const bool use_ssr = ssr_enabled && engine->GetConfig().Get(CONFIG_SSR);
     
     CollectDrawCalls(engine, frame);
 
@@ -542,7 +544,7 @@ void DeferredRenderer::Render(
 
         auto &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
 
-        if (ssr_enabled && mipmapped_result.GetGPUImage()->GetResourceState() != renderer::GPUMemory::ResourceState::UNDEFINED) {
+        if (use_ssr && mipmapped_result.GetGPUImage()->GetResourceState() != renderer::GPUMemory::ResourceState::UNDEFINED) {
             m_ssr.Render(engine, frame);
         }
     }
@@ -551,7 +553,7 @@ void DeferredRenderer::Render(
         DebugMarker marker(primary, "Record deferred indirect lighting pass");
 
         m_indirect_pass.m_push_constant_data.deferred_data = {
-            .flags = (DeferredRenderer::ssr_enabled && m_ssr.IsRendered())
+            .flags = (use_ssr && m_ssr.IsRendered())
                 ? DEFERRED_FLAGS_SSR_ENABLED
                 : 0
         };

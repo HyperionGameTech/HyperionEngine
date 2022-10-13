@@ -20,6 +20,7 @@ Material::Material()
       m_render_attributes { .bucket = Bucket::BUCKET_OPAQUE },
       m_shader_data_state(ShaderDataState::DIRTY)
 {
+    ResetParameters();
 }
 
 Material::Material(const String &name, Bucket bucket)
@@ -155,8 +156,7 @@ void Material::EnqueueDescriptorSetDestroy()
             if (!m_descriptor_sets[frame_index]) {
                 continue;
             }
-
-            DebugLog(LogType::Debug, "Destroy descriptor set   %u   %u\n", m_descriptor_sets[frame_index]->GetRealIndex(), frame_index);
+            
             // HYP_BREAKPOINT;
             descriptor_pool.RemoveDescriptorSet(m_descriptor_sets[frame_index]);
         }

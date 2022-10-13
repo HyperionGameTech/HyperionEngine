@@ -21,8 +21,11 @@ class Vector4
 public:
     static constexpr UInt size = 4;
 
+    static const Vector4 zero;
+    static const Vector4 one;
+
     union {
-        struct alignas(8) { float x, y, z, w; };
+        struct { float x, y, z, w; };
         float values[4];
     };
 

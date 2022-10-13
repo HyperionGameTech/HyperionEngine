@@ -80,10 +80,10 @@ struct VariantHelper<T, Ts...>
         }
     }
 
-    static inline bool Compare(TypeID type_id, void *data, const void *other_data)
+    static inline bool Compare(TypeID type_id, const void *data, const void *other_data)
     {
         if (type_id == TypeID::ForType<NormalizedType<T>>()) {
-            return *static_cast<NormalizedType<T> *>(data) == *static_cast<const NormalizedType<T> *>(other_data);
+            return *static_cast<const NormalizedType<T> *>(data) == *static_cast<const NormalizedType<T> *>(other_data);
         } else {
             return VariantHelper<Ts...>::Compare(type_id, data, other_data);
         }
@@ -108,8 +108,9 @@ struct VariantHelper<>
     static inline bool MoveConstruct(TypeID type_id, void *dst, void *src) { return false; }
 
     static inline void Destruct(TypeID type_id, void *data) {}
-
     static inline bool Destruct(TypeID type_id, void *data, const void *other_data) { return false; }
+
+    static inline bool Compare(TypeID type_id, const void *data, const void *other_data) { return false; }
 
     static inline HashCode GetHashCode(TypeID type_id, const void *data) { return {}; }
 };
@@ -262,13 +263,23 @@ public:
     }
 
     template <class T>
-    T *TryGet() const
+    T *TryGet()
     {
         if (!Is<T>()) {
             return nullptr;
         }
 
         return static_cast<T *>(m_storage.GetPointer());
+    }
+
+    template <class T>
+    const T *TryGet() const
+    {
+        if (!Is<T>()) {
+            return nullptr;
+        }
+
+        return static_cast<const T *>(m_storage.GetPointer());
     }
 
     template <class T>
@@ -492,6 +503,9 @@ struct Variant
     bool operator==(const Variant &other) const
         { return m_holder == other.m_holder; }
 
+    bool operator!=(const Variant &other) const
+        { return !(m_holder == other.m_holder); }
+
     template <class T>
     HYP_FORCE_INLINE bool Is() const
         { return m_holder.template Is<T>(); }
@@ -512,7 +526,11 @@ struct Variant
         { return m_holder.template Get<T>(); }
 
     template <class T>
-    T *TryGet() const
+    T *TryGet()
+        { return m_holder.template TryGet<T>(); }
+
+    template <class T>
+    const T *TryGet() const
         { return m_holder.template TryGet<T>(); }
 
     template <class T>

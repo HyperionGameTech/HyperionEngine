@@ -168,9 +168,18 @@ void ProbeGrid::CreateUniformBuffer(Engine *engine)
 void ProbeGrid::CreateStorageBuffers(Engine *engine)
 {
     const auto probe_counts = m_grid_info.NumProbesPerDimension();
+    
+    UByte *zeroes = new UByte[m_grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData)];
+    std::memset(zeroes, 0, m_grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData));
 
     m_radiance_buffer = std::make_unique<StorageBuffer>();
     HYPERION_ASSERT_RESULT(m_radiance_buffer->Create(engine->GetDevice(), m_grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData)));
+    m_radiance_buffer->Copy(engine->GetDevice(), m_grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData), zeroes);
+
+    delete[] zeroes;
+
+    zeroes = new UByte[4 * ((m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2) * ((m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2)];
+    std::memset(zeroes, 0, 4 * ((m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2) * ((m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2));
 
     m_irradiance_image = std::make_unique<StorageImage>(
         Extent3D {
@@ -180,12 +189,17 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
         },
         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
         Image::Type::TEXTURE_TYPE_2D,
-        nullptr
+        zeroes
     );
     HYPERION_ASSERT_RESULT(m_irradiance_image->Create(engine->GetDevice()));
 
+    delete[] zeroes;
+
     m_irradiance_image_view = std::make_unique<ImageView>();
     HYPERION_ASSERT_RESULT(m_irradiance_image_view->Create(engine->GetDevice(), m_irradiance_image.get()));
+
+    zeroes = new UByte[2 * ((m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2) * ((m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2)];
+    std::memset(zeroes, 0, 2 * ((m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2) * ((m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2));
 
     m_depth_image = std::make_unique<StorageImage>(
         Extent3D {
@@ -195,9 +209,11 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
         },
         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
         Image::Type::TEXTURE_TYPE_2D,
-        nullptr
+        zeroes
     );
     HYPERION_ASSERT_RESULT(m_depth_image->Create(engine->GetDevice()));
+
+    delete[] zeroes;
 
     m_depth_image_view = std::make_unique<ImageView>();
     HYPERION_ASSERT_RESULT(m_depth_image_view->Create(engine->GetDevice(), m_depth_image.get()));
@@ -259,7 +275,7 @@ void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffe
     std::memcpy(
         m_pipeline->push_constants.probe_data.matrix,
         m_random_generator.matrix.values,
-        std::size(m_pipeline->push_constants.probe_data.matrix) * sizeof(m_pipeline->push_constants.probe_data.matrix[0])
+        sizeof(m_pipeline->push_constants.probe_data.matrix)
     );
 
     m_pipeline->push_constants.probe_data.time = m_time++;
@@ -399,11 +415,6 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
     
     m_copy_border_texels_depth->GetPipeline()->Dispatch(
         frame->GetCommandBuffer(),
-       /* Extent3D(
-            (m_depth_image->GetExtent().width + 15) / 16,
-            (m_depth_image->GetExtent().height + 15) / 16,
-            (m_depth_image->GetExtent().depth + 15) / 16
-        )*/
         Extent3D {
             probe_counts.width * probe_counts.height,
             probe_counts.depth,

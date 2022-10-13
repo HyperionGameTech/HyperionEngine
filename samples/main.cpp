@@ -134,7 +134,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");
+        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -170,7 +170,7 @@ public:
             }
         }
 
-        test_model.Scale(0.25f);
+        test_model.Scale(0.35f);
 
         if (false) {
             auto btn = engine->CreateHandle<UIObject>();
@@ -872,7 +872,7 @@ int main()
 
 
     ProbeGrid probe_system({
-        .aabb = {{-300.0f, -50.0f, -300.0f}, {300.0f, 300.0f, 300.0f}}
+        .aabb = {{-300.0f, -10.0f, -300.0f}, {300.0f, 300.0f, 300.0f}}
     });
     probe_system.Init(engine);
 

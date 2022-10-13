@@ -22,8 +22,10 @@ public:
 
     static char *CopyString(char *dest, const char *src, SizeType length = 0)
     {
-        if (length)
+        if (length) {
             return std::strncpy(dest, src, length);
+        }
+
         return std::strcpy(dest, src);
     }
 
