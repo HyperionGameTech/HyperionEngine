@@ -160,7 +160,7 @@ public:
     /* Create the image and transfer the provided texture data into it if given.
      * The image is transitioned into the given state.
      */
-    Result Create(Device *device, Instance *instance, GPUMemory::ResourceState state);
+    Result Create(Device *device, Instance *instance, ResourceState state);
     Result Destroy(Device *device);
 
     Result Blit(

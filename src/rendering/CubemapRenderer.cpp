@@ -283,8 +283,8 @@ void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
 
     auto *framebuffer_image = m_framebuffers[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetAttachment()->GetImage();
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_SRC);
-    m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_DST);
+    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+    m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
     m_cubemaps[frame_index]->GetImage().Blit(command_buffer, framebuffer_image);
 
     if (m_filter_mode == Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP) {
@@ -294,8 +294,8 @@ void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
         );
     }
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
-    m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+    m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     HYPERION_ASSERT_RESULT(result);
 }

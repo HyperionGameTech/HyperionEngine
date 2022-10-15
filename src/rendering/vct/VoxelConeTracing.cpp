@@ -211,7 +211,7 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     /* put our voxel map in an optimal state to be written to */
     m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(
         command_buffer,
-        renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+        renderer::ResourceState::UNORDERED_ACCESS
     );
 
     /* clear the voxels */
@@ -245,7 +245,7 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     // write to the temporal image the values that have been stored into the voxel image
     m_temporal_blending_image->GetImage().GetGPUImage()->InsertBarrier(
         command_buffer,
-        renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+        renderer::ResourceState::UNORDERED_ACCESS
     );
 
     m_perform_temporal_blending->GetPipeline()->Bind(command_buffer);
@@ -270,7 +270,7 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
     // so mipmap generation shader can read this
     m_temporal_blending_image->GetImage().GetGPUImage()->InsertBarrier(
         command_buffer,
-        renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+        renderer::ResourceState::SHADER_RESOURCE
     );
 
 
@@ -291,7 +291,7 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
                 m_voxel_image->GetImage().GetGPUImage()->InsertSubResourceBarrier(
                     command_buffer,
                     renderer::ImageSubResource { .base_mip_level = mip_level },
-                    renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+                    renderer::ResourceState::UNORDERED_ACCESS
                 );
             }
 
@@ -327,20 +327,20 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
             m_voxel_image->GetImage().GetGPUImage()->InsertSubResourceBarrier(
                 command_buffer,
                 renderer::ImageSubResource { .base_mip_level = mip_level },
-                renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+                renderer::ResourceState::SHADER_RESOURCE
             );
         }
 
         // all mip levels have been transitioned into this state
         m_voxel_image->GetImage().GetGPUImage()->SetResourceState(
-            renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+            renderer::ResourceState::SHADER_RESOURCE
         );
     } else {
 
         /* unset our state */
         m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(
             command_buffer,
-            renderer::GPUMemory::ResourceState::COPY_DST
+            renderer::ResourceState::COPY_DST
         );
 
         /* finally, generate mipmaps. we go through GetImage() because we want to
@@ -353,7 +353,7 @@ void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
 
         m_voxel_image->GetImage().GetGPUImage()->InsertBarrier(
             command_buffer,
-            renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+            renderer::ResourceState::SHADER_RESOURCE
         );
     }
 

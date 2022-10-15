@@ -226,7 +226,7 @@ void ScreenspaceReflectionRenderer::Render(
     };
 
     m_image_outputs[frame_index][0].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_write_uvs->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
@@ -257,16 +257,16 @@ void ScreenspaceReflectionRenderer::Render(
 
     // transition the UV image back into read state
     m_image_outputs[frame_index][0].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 2 - sample textures
 
     // put sample image in writeable state
     m_image_outputs[frame_index][1].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
     // put radius image in writeable state
     m_radius_output[frame_index].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_sample->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
@@ -297,16 +297,16 @@ void ScreenspaceReflectionRenderer::Render(
 
     // transition sample image back into read state
     m_image_outputs[frame_index][1].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     // transition radius image back into read state
     m_radius_output[frame_index].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     // PASS 3 - blur image using radii in output from previous stage
 
     //put blur image in writeable state
     m_image_outputs[frame_index][2].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_blur_hor->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
@@ -337,14 +337,14 @@ void ScreenspaceReflectionRenderer::Render(
 
     // transition blur image back into read state
     m_image_outputs[frame_index][2].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
 
     // PASS 4 - blur image vertically
 
     //put blur image in writeable state
     m_image_outputs[frame_index][3].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
     m_blur_vert->GetPipeline()->Bind(command_buffer, ssr_push_constant_data);
 
@@ -375,7 +375,7 @@ void ScreenspaceReflectionRenderer::Render(
 
     // transition blur image back into read state
     m_image_outputs[frame_index][3].image->GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
 
     m_is_rendered = true;

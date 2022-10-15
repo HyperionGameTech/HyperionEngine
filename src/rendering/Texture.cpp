@@ -49,7 +49,7 @@ void Texture::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        const auto initial_state = renderer::GPUMemory::ResourceState::SHADER_RESOURCE;
+        const auto initial_state = renderer::ResourceState::SHADER_RESOURCE;
 
         HYPERION_BUBBLE_ERRORS(m_image.Create(engine->GetDevice(), engine->GetInstance(), initial_state));
         HYPERION_BUBBLE_ERRORS(m_image_view.Create(engine->GetInstance()->GetDevice(), &m_image));

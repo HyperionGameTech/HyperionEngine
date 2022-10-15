@@ -21,6 +21,8 @@ public:
     ImageView(VkImage image);
     ImageView(const ImageView &other) = delete;
     ImageView &operator=(const ImageView &other) = delete;
+    ImageView(ImageView &&other) noexcept;
+    ImageView &operator=(ImageView &&other) noexcept;
     ~ImageView();
 
     VkImageView &GetImageView() { return m_image_view; }

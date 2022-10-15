@@ -16,6 +16,35 @@
 namespace hyperion {
 namespace renderer {
 
+enum class ResourceState : UInt
+{
+    UNDEFINED,
+    PRE_INITIALIZED,
+    COMMON,
+    VERTEX_BUFFER,
+    CONSTANT_BUFFER,
+    INDEX_BUFFER,
+    RENDER_TARGET,
+    UNORDERED_ACCESS,
+    DEPTH_STENCIL,
+    SHADER_RESOURCE,
+    STREAM_OUT,
+    INDIRECT_ARG,
+    COPY_DST,
+    COPY_SRC,
+    RESOLVE_DST,
+    RESOLVE_SRC,
+    PRESENT,
+    READ_GENERIC,
+    PREDICATION
+};
+
+} // namespace renderer
+} // namespace hyperion
+
+namespace hyperion {
+namespace renderer {
+
 class Instance;
 class Device;
 class CommandBuffer;
@@ -120,29 +149,6 @@ public:
                 last_gpu_memory_used = gpu_memory_used;
             }
         }
-    };
-
-    enum class ResourceState : UInt
-    {
-        UNDEFINED,
-        PRE_INITIALIZED,
-        COMMON,
-        VERTEX_BUFFER,
-        CONSTANT_BUFFER,
-        INDEX_BUFFER,
-        RENDER_TARGET,
-        UNORDERED_ACCESS,
-        DEPTH_STENCIL,
-        SHADER_RESOURCE,
-        STREAM_OUT,
-        INDIRECT_ARG,
-        COPY_DST,
-        COPY_SRC,
-        RESOLVE_DST,
-        RESOLVE_SRC,
-        PRESENT,
-        READ_GENERIC,
-        PREDICATION
     };
 
     static UInt FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties);
@@ -308,7 +314,8 @@ public:
     void Bind(CommandBuffer *command_buffer);
 };
 
-class IndexBuffer : public GPUBuffer {
+class IndexBuffer : public GPUBuffer
+{
 public:
     IndexBuffer();
 
@@ -396,7 +403,8 @@ public:
 class GPUImageMemory : public GPUMemory
 {
 public:
-    enum class Aspect {
+    enum class Aspect
+    {
         COLOR,
         DEPTH
     };

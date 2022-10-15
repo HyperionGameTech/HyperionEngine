@@ -106,8 +106,7 @@ void TLAS::PerformBLASUpdates()
 
 void TLAS::UpdateRender(
     Engine *engine,
-    Frame *frame,
-    RTUpdateStateFlags &out_update_state_flags
+    Frame *frame
 )
 {
     Threads::AssertOnThread(THREAD_RENDER);
@@ -127,8 +126,26 @@ void TLAS::UpdateRender(
         //bool was_blas_rebuilt = false;
         //blas->UpdateRender(engine, frame, was_blas_rebuilt);
     }
+    
+    auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
+    RTUpdateStateFlags as_update_state_flags = renderer::RT_UPDATE_STATE_FLAGS_NONE;
+    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(engine->GetInstance(), as_update_state_flags));
 
-    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(engine->GetInstance(), out_update_state_flags));
+    if (as_update_state_flags) {
+        if (as_update_state_flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
+            // update acceleration structure in descriptor set
+            rt_descriptor_set->GetDescriptor(0)
+                ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &GetInternalTLAS() });
+        }
+
+        if (as_update_state_flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
+            // update mesh descriptions buffer in descriptor set
+            rt_descriptor_set->GetDescriptor(4)
+                ->SetSubDescriptor({ .element_index = 0u, .buffer = GetInternalTLAS().GetMeshDescriptionsBuffer() });
+        }
+
+        rt_descriptor_set->ApplyUpdates(engine->GetDevice());
+    }
 }
 
 } // namespace hyperion::v2

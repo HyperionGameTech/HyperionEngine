@@ -46,7 +46,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS} "src/rendering/rt/RTRadianceRenderer.cpp" "src/rendering/rt/RTRadianceRenderer.hpp")
 
 set(COMMON_LIBRARIES
     ${CMAKE_THREADS_LIBS_INIT}

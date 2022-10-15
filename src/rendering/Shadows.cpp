@@ -340,7 +340,7 @@ void ShadowPass::Render(Engine *engine, Frame *frame)
         );
 
         // put our shadow map in a state for writing
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::UNORDERED_ACCESS);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_shadow_map->GetPipeline()->Dispatch(
             command_buffer,
@@ -352,18 +352,18 @@ void ShadowPass::Render(Engine *engine, Frame *frame)
         );
 
         // put shadow map back into readable state
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     } else {
-        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_SRC);
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::COPY_DST);
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
         m_shadow_map_image->Blit(
             command_buffer,
             framebuffer_image
         );
 
-        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 

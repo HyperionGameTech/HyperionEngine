@@ -34,6 +34,7 @@
 #include <Game.hpp>
 
 #include <rendering/rt/BlurRadiance.hpp>
+#include <rendering/rt/RTRadianceRenderer.hpp>
 
 #include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
 #include <Aftermath/GFSDK_Aftermath.h>
@@ -944,21 +945,21 @@ int main()
     HYPERION_ASSERT_RESULT(rt_image_storage->Create(
         device,
         engine->GetInstance(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     ));
     HYPERION_ASSERT_RESULT(rt_image_storage_view.Create(engine->GetDevice(), rt_image_storage));
 
     HYPERION_ASSERT_RESULT(rt_normals_roughness_weight->Create(
         device,
         engine->GetInstance(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     ));
     HYPERION_ASSERT_RESULT(rt_normals_roughness_weight_view.Create(engine->GetDevice(), rt_normals_roughness_weight));
 
     HYPERION_ASSERT_RESULT(rt_depth_image->Create(
         device,
         engine->GetInstance(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     ));
     HYPERION_ASSERT_RESULT(rt_depth_image_view.Create(engine->GetDevice(), rt_depth_image));
 
@@ -973,6 +974,9 @@ int main()
     
     BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, rt_image_storage, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
     blur_radiance.Create(engine);
+
+    //RTRadianceRenderer rt_radiance(Extent2D { 1024, 1024 });
+    //rt_radiance.Create(engine);
 
 #if 0
     
@@ -1061,7 +1065,7 @@ int main()
 
         // set visibility cursor to previous octree visibility cursor (atomic, relaxed)
         engine->GetWorld().Render(engine, frame);
-
+#if 0
         {
             renderer::RTUpdateStateFlags as_update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
             my_game->GetScene()->GetTLAS()->UpdateRender(engine, frame, as_update_state_flags);
@@ -1082,6 +1086,7 @@ int main()
                 rt_descriptor_set->ApplyUpdates(engine->GetDevice());
             }
         }
+#endif
 
         my_game->OnFrameBegin(engine, frame);
 
@@ -1094,6 +1099,7 @@ int main()
         // perform any updates to the tlas
         //my_tlas->UpdateRender(engine, frame);
 
+#if 1
         rt->Bind(frame->GetCommandBuffer());
     
         const auto scene_binding = engine->render_state.GetScene().id;
@@ -1126,31 +1132,34 @@ int main()
         
         rt_image_storage->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
         rt_normals_roughness_weight->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
         rt_depth_image->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
         rt->TraceRays(engine->GetDevice(), frame->GetCommandBuffer(), rt_image_storage->GetExtent());
         rt_image_storage->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
         rt_normals_roughness_weight->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
         rt_depth_image->GetGPUImage()->InsertBarrier(
             frame->GetCommandBuffer(),
-            GPUMemory::ResourceState::UNORDERED_ACCESS
+            ResourceState::UNORDERED_ACCESS
         );
 
         blur_radiance.Render(engine, frame);
+#endif
+
+        //rt_radiance.Render(engine, frame);
 
         probe_system.RenderProbes(engine, frame);
         probe_system.ComputeIrradiance(engine, frame);

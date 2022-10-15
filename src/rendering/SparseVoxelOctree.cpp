@@ -8,7 +8,7 @@ namespace hyperion::v2 {
 
 using renderer::StagingBuffer;
 using renderer::Result;
-using ResourceState = renderer::GPUMemory::ResourceState;
+using ResourceState = renderer::ResourceState;
 using Context = renderer::StagingBufferPool::Context;
 
 inline static constexpr UInt32 group_x_64(UInt32 x) { return (x >> 6u) + ((x & 0x3fu) ? 1u : 0u); }

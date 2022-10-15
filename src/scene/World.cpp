@@ -121,11 +121,11 @@ void World::Render(
     engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
 
     // for each Scene, update the TLAS
-    /*for (auto &scene : m_scenes) {
+    for (auto &scene : m_scenes) {
         if (const auto &tlas = scene->GetTLAS()) {
             tlas->UpdateRender(engine, frame);
         }
-    }*/
+    }
 }
 
 void World::AddScene(Handle<Scene> &&scene)

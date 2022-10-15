@@ -8,7 +8,7 @@ namespace hyperion {
 namespace renderer {
 
 ImageView::ImageView()
-    : m_image_view(nullptr),
+    : m_image_view(VK_NULL_HANDLE),
       m_num_faces(1)
 {
 }
@@ -17,6 +17,27 @@ ImageView::ImageView(VkImage image)
     : m_image(image),
       m_num_faces(1)
 {
+}
+
+ImageView::ImageView(ImageView &&other) noexcept
+    : m_image_view(other.m_image_view),
+      m_image(std::move(other.m_image)),
+      m_num_faces(other.m_num_faces)
+{
+    other.m_image_view = VK_NULL_HANDLE;
+    other.m_num_faces = 1;
+}
+
+ImageView &ImageView::operator=(ImageView &&other) noexcept
+{
+    m_image_view = other.m_image_view;
+    m_image = std::move(other.m_image);
+    m_num_faces = other.m_num_faces;
+
+    other.m_image_view = VK_NULL_HANDLE;
+    other.m_num_faces = 1;
+
+    return *this;
 }
 
 ImageView::~ImageView()

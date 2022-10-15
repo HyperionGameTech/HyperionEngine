@@ -51,6 +51,7 @@ public:
     );
 
 private:
+    void CreateImageOutputs(Engine *engine);
     void CreateDescriptors(Engine *engine);
     void CreateComputePipelines(Engine *engine);
     

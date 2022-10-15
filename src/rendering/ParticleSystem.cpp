@@ -403,7 +403,7 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
 
     m_staging_buffer.InsertBarrier(
         frame->GetCommandBuffer(),
-        renderer::GPUMemory::ResourceState::COPY_SRC
+        renderer::ResourceState::COPY_SRC
     );
 
     for (auto &spawner : m_particle_spawners) {
@@ -415,7 +415,7 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
 
         spawner->GetIndirectBuffer()->InsertBarrier(
             frame->GetCommandBuffer(),
-            renderer::GPUMemory::ResourceState::COPY_DST
+            renderer::ResourceState::COPY_DST
         );
 
         // copy zeros to buffer
@@ -427,7 +427,7 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
 
         spawner->GetIndirectBuffer()->InsertBarrier(
             frame->GetCommandBuffer(),
-            renderer::GPUMemory::ResourceState::INDIRECT_ARG
+            renderer::ResourceState::INDIRECT_ARG
         );
 
         if (!engine->render_state.GetScene().camera.frustum.ContainsAABB(aabb)) {
@@ -468,7 +468,7 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
 
         spawner->GetIndirectBuffer()->InsertBarrier(
             frame->GetCommandBuffer(),
-            renderer::GPUMemory::ResourceState::INDIRECT_ARG
+            renderer::ResourceState::INDIRECT_ARG
         );
     }
 

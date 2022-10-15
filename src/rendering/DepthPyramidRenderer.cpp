@@ -179,7 +179,7 @@ void DepthPyramidRenderer::Render(Engine *engine, Frame *frame)
         m_depth_pyramid[frame_index]->GetGPUImage()->InsertSubResourceBarrier(
             primary,
             renderer::ImageSubResource { .base_mip_level = mip_level },
-            renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+            renderer::ResourceState::UNORDERED_ACCESS
         );
         
         const auto prev_mip_width = mip_width,
@@ -222,13 +222,13 @@ void DepthPyramidRenderer::Render(Engine *engine, Frame *frame)
         m_depth_pyramid[frame_index]->GetGPUImage()->InsertSubResourceBarrier(
             primary,
             renderer::ImageSubResource { .base_mip_level = mip_level },
-            renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+            renderer::ResourceState::SHADER_RESOURCE
         );
     }
 
     // all mip levels have been transitioned into this state
     m_depth_pyramid[frame_index]->GetGPUImage()->SetResourceState(
-        renderer::GPUMemory::ResourceState::SHADER_RESOURCE
+        renderer::ResourceState::SHADER_RESOURCE
     );
 
     m_is_rendered = true;

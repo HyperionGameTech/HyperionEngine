@@ -12,7 +12,7 @@ using renderer::ShaderProgram;
 using renderer::StorageImageDescriptor;
 using renderer::StorageBufferDescriptor;
 using renderer::UniformBufferDescriptor;
-using renderer::GPUMemory;
+using renderer::ResourceState;
 
 ProbeGrid::ProbeGrid(ProbeGridInfo &&grid_info)
     : m_grid_info(std::move(grid_info)),
@@ -287,7 +287,7 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
     
     SubmitPushConstants(engine, frame->GetCommandBuffer());
 
@@ -312,7 +312,7 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
         }
     );
 
-    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), GPUMemory::ResourceState::UNORDERED_ACCESS);
+    m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
 }
 
 void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
@@ -323,12 +323,12 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
     
     m_update_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer());
@@ -373,12 +373,12 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
 
     // now copy border texels
@@ -424,12 +424,12 @@ void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
 
     m_irradiance_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
 
     m_depth_image->GetGPUImage()->InsertBarrier(
         frame->GetCommandBuffer(),
-        GPUMemory::ResourceState::UNORDERED_ACCESS
+        ResourceState::UNORDERED_ACCESS
     );
 }
 

@@ -432,7 +432,7 @@ Result Image::Create(Device *device)
     return CreateImage(device, VK_IMAGE_LAYOUT_UNDEFINED, &image_info);
 }
 
-Result Image::Create(Device *device, Instance *instance, GPUMemory::ResourceState state)
+Result Image::Create(Device *device, Instance *instance, ResourceState state)
 {
     auto result = Result::OK;
 
@@ -472,7 +472,7 @@ Result Image::Create(Device *device, Instance *instance, GPUMemory::ResourceStat
             m_image->InsertBarrier(
                 command_buffer,
                 sub_resource,
-                GPUMemory::ResourceState::COPY_DST
+                ResourceState::COPY_DST
             );
 
             HYPERION_RETURN_OK;
@@ -703,14 +703,14 @@ Result Image::GenerateMipmaps(
             m_image->InsertSubResourceBarrier(
                 command_buffer,
                 src,
-                GPUMemory::ResourceState::COPY_SRC
+                ResourceState::COPY_SRC
             );
 
             if (i == static_cast<Int32>(num_mipmaps)) {
                 if (face == num_faces - 1) {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
-                    m_image->SetResourceState(GPUMemory::ResourceState::COPY_SRC);
+                    m_image->SetResourceState(ResourceState::COPY_SRC);
                 }
 
                 break;
@@ -759,9 +759,9 @@ Result Image::GenerateMipmaps(
             vkCmdBlitImage(
                 command_buffer->GetCommandBuffer(),
                 m_image->image,
-                GPUMemory::GetImageLayout(GPUMemory::ResourceState::COPY_SRC),//m_image->GetSubResourceState(src)),
+                GPUMemory::GetImageLayout(ResourceState::COPY_SRC),//m_image->GetSubResourceState(src)),
                 m_image->image,
-                GPUMemory::GetImageLayout(GPUMemory::ResourceState::COPY_DST),//m_image->GetSubResourceState(dst)),
+                GPUMemory::GetImageLayout(ResourceState::COPY_DST),//m_image->GetSubResourceState(dst)),
                 1, &blit,
                 IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
             );

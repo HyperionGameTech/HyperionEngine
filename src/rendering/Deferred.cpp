@@ -544,7 +544,7 @@ void DeferredRenderer::Render(
 
         auto &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
 
-        if (use_ssr && mipmapped_result.GetGPUImage()->GetResourceState() != renderer::GPUMemory::ResourceState::UNDEFINED) {
+        if (use_ssr && mipmapped_result.GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
             m_ssr.Render(engine, frame);
         }
     }
@@ -619,7 +619,7 @@ void DeferredRenderer::Render(
     // combine opaque with translucent
     m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(
         primary,
-        renderer::GPUMemory::ResourceState::UNORDERED_ACCESS
+        renderer::ResourceState::UNORDERED_ACCESS
     );
 
     m_combine->GetPipeline()->Bind(
@@ -666,8 +666,8 @@ void DeferredRenderer::Render(
     GenerateMipChain(engine, frame, src_image);
 
     // put src image in state for reading
-    src_image->GetGPUImage()->InsertBarrier(primary, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
-    m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(primary, renderer::GPUMemory::ResourceState::SHADER_RESOURCE);
+    src_image->GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
+    m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
 
     m_post_processing.RenderPost(engine, frame);
 }
@@ -682,9 +682,9 @@ void DeferredRenderer::GenerateMipChain(Engine *engine, Frame *frame, Image *src
     DebugMarker marker(primary, "Mip chain generation");
     
     // put src image in state for copying from
-    src_image->GetGPUImage()->InsertBarrier(primary, renderer::GPUMemory::ResourceState::COPY_SRC);
+    src_image->GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::COPY_SRC);
     // put dst image in state for copying to
-    mipmapped_result.GetGPUImage()->InsertBarrier(primary, renderer::GPUMemory::ResourceState::COPY_DST);
+    mipmapped_result.GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::COPY_DST);
 
     // Blit into the mipmap chain img
     mipmapped_result.Blit(
