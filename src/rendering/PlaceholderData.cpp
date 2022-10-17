@@ -6,39 +6,39 @@ namespace hyperion::v2 {
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(
           renderer::Extent2D(1, 1),
-          renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-          renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
       ),
       m_image_3d_1x1x1_r8(
           renderer::Extent3D(1, 1, 1),
-          renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-          renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
       ),
       m_image_3d_1x1x1_r8_storage(
           renderer::Extent3D(1, 1, 1),
-          Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-          Image::Type::TEXTURE_TYPE_3D,
-          Image::FilterMode::TEXTURE_FILTER_NEAREST
+          InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+          ImageType::TEXTURE_TYPE_3D,
+          FilterMode::TEXTURE_FILTER_NEAREST
       ),
       m_image_cube_1x1_r8(
           renderer::Extent2D(1, 1),
-          renderer::Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-          renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
       ),
       m_sampler_linear(
-          renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::Image::WrapMode::TEXTURE_WRAP_REPEAT
+          renderer::FilterMode::TEXTURE_FILTER_LINEAR,
+          renderer::WrapMode::TEXTURE_WRAP_REPEAT
       ),
       m_sampler_linear_mipmap(
-          renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-          renderer::Image::WrapMode::TEXTURE_WRAP_REPEAT
+          renderer::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+          renderer::WrapMode::TEXTURE_WRAP_REPEAT
       ),
       m_sampler_nearest(
-          renderer::Image::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
+          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
       )
 {
 }

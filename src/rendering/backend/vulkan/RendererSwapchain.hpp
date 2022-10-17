@@ -37,7 +37,7 @@ public:
     VkSwapchainKHR swapchain;
     Extent2D extent;
     VkSurfaceFormatKHR surface_format;
-    Image::InternalFormat image_format;
+    InternalFormat image_format;
     std::vector<VkImage> images;
 
 private:

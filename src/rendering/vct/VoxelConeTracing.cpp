@@ -373,12 +373,12 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     m_voxel_image = engine->CreateHandle<Texture>(
         StorageImage(
             voxel_map_extent,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-            Image::Type::TEXTURE_TYPE_3D,
-            Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            ImageType::TEXTURE_TYPE_3D,
+            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
         ),
-        Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     );
 
     engine->InitObject(m_voxel_image);
@@ -386,12 +386,12 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     m_temporal_blending_image = engine->CreateHandle<Texture>(
         StorageImage(
             temporal_image_extent,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8, // alpha channel is used as temporal blending amount.
-            Image::Type::TEXTURE_TYPE_3D,
-            Image::FilterMode::TEXTURE_FILTER_LINEAR
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8, // alpha channel is used as temporal blending amount.
+            ImageType::TEXTURE_TYPE_3D,
+            FilterMode::TEXTURE_FILTER_LINEAR
         ),
-        Image::FilterMode::TEXTURE_FILTER_LINEAR,
-        Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
+        FilterMode::TEXTURE_FILTER_LINEAR,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     );
 
     engine->InitObject(m_temporal_blending_image);

@@ -25,6 +25,101 @@ VkIndexType ToVkIndexType(DatumType datum_type)
     }
 }
 
+VkFormat ToVkFormat(InternalFormat fmt)
+{
+    switch (fmt) {
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8:          return VK_FORMAT_R8_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8:         return VK_FORMAT_R8G8_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8:        return VK_FORMAT_R8G8B8_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8:       return VK_FORMAT_R8G8B8A8_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8_SRGB:     return VK_FORMAT_R8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8_SRGB:    return VK_FORMAT_R8G8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB:   return VK_FORMAT_R8G8B8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB:  return VK_FORMAT_R8G8B8A8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32_:        return VK_FORMAT_R32_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16_:       return VK_FORMAT_R16G16_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F:  return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R10G10B10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16:         return VK_FORMAT_R16_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16:        return VK_FORMAT_R16G16_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16:       return VK_FORMAT_R16G16B16_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16:      return VK_FORMAT_R16G16B16A16_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32:         return VK_FORMAT_R32_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32:        return VK_FORMAT_R32G32_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32:       return VK_FORMAT_R32G32B32_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32:      return VK_FORMAT_R32G32B32A32_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16F:        return VK_FORMAT_R16_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F:       return VK_FORMAT_R16G16_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16F:      return VK_FORMAT_R16G16B16_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F:     return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F:        return VK_FORMAT_R32_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F:       return VK_FORMAT_R32G32_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32F:      return VK_FORMAT_R32G32B32_SFLOAT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F:     return VK_FORMAT_R32G32B32A32_SFLOAT;
+        
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8:       return VK_FORMAT_B8G8R8A8_UNORM;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGR8_SRGB:   return VK_FORMAT_B8G8R8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB:  return VK_FORMAT_B8G8R8A8_SRGB;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16:    return VK_FORMAT_D16_UNORM_S8_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24:    return VK_FORMAT_D24_UNORM_S8_UINT;
+    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F:   return VK_FORMAT_D32_SFLOAT_S8_UINT;
+    }
+
+    AssertThrowMsg(false, "Unhandled texture format case %d", int(fmt));
+}
+
+VkImageType ToVkType(ImageType type)
+{
+    switch (type) {
+    case ImageType::TEXTURE_TYPE_2D: return VK_IMAGE_TYPE_2D;
+    case ImageType::TEXTURE_TYPE_3D: return VK_IMAGE_TYPE_3D;
+    case ImageType::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_TYPE_2D;
+    }
+
+    AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
+}
+
+VkFilter ToVkFilter(FilterMode filter_mode)
+{
+    switch (filter_mode) {
+    case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
+    case FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP: return VK_FILTER_NEAREST;
+    case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP: // fallthrough
+    case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP: // fallthrough
+    case FilterMode::TEXTURE_FILTER_LINEAR: return VK_FILTER_LINEAR;
+    }
+
+    AssertThrowMsg(false, "Unhandled texture filter mode case %d", int(filter_mode));
+}
+
+VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode texture_wrap_mode)
+{
+    switch (texture_wrap_mode) {
+    case WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    case WrapMode::TEXTURE_WRAP_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    }
+
+    AssertThrowMsg(false, "Unhandled texture wrap mode case %d", int(texture_wrap_mode));
+}
+
+VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format)
+{
+    return IsDepthFormat(internal_format)
+        ? VK_IMAGE_ASPECT_DEPTH_BIT
+        : VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
+VkImageViewType ToVkImageViewType(ImageType type)
+{
+    switch (type) {
+    case ImageType::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D;
+    case ImageType::TEXTURE_TYPE_3D:      return VK_IMAGE_VIEW_TYPE_3D;
+    case ImageType::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_VIEW_TYPE_CUBE;
+    }
+
+    AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
+}
 
 } // namespace renderer
 } // namespace helpers

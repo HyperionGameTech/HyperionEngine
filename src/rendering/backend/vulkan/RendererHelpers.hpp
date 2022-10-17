@@ -7,6 +7,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 #include <vulkan/vulkan.h>
@@ -22,6 +23,12 @@ namespace helpers {
 UInt MipmapSize(UInt src_size, int lod);
 
 VkIndexType ToVkIndexType(DatumType);
+VkFormat ToVkFormat(InternalFormat);
+VkImageType ToVkType(ImageType);
+VkFilter ToVkFilter(FilterMode);
+VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
+VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
+VkImageViewType ToVkImageViewType(ImageType type);
 
 class SingleTimeCommands
 {

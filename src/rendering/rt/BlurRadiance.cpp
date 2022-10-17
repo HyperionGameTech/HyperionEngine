@@ -36,10 +36,7 @@ BlurRadiance::~BlurRadiance()
 void BlurRadiance::Create(Engine *engine)
 {
     CreateImageOutputs(engine);
-    CreateDescriptors(engine);
-
-    HYP_FLUSH_RENDER_QUEUE(engine);
-
+    CreateDescriptorSets(engine);
     CreateComputePipelines(engine);
 }
 
@@ -52,17 +49,6 @@ void BlurRadiance::Destroy(Engine *engine)
         auto result = Result::OK;
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // remove radiance image descriptor
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetDescriptor(DescriptorKey::RT_RADIANCE_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
             for (auto &image_output : m_image_outputs[frame_index]) {
                 image_output.Destroy(engine->GetDevice());
             }
@@ -84,28 +70,29 @@ void BlurRadiance::Destroy(Engine *engine)
 
 void BlurRadiance::CreateImageOutputs(Engine *engine)
 {
+    static const FixedArray image_formats {
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8
+    };
+    
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (UInt i = 0; i < m_image_outputs[frame_index].Size(); i++) {
+            auto &image_output = m_image_outputs[frame_index][i];
+
+            image_output.image = StorageImage(
+                Extent3D(m_extent),
+                image_formats[i],
+                ImageType::TEXTURE_TYPE_2D,
+                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+                nullptr
+            );
+        }
+    }
+
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        static const FixedArray image_formats {
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8
-        };
-        
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < m_image_outputs[frame_index].Size(); i++) {
-                auto &image_output = m_image_outputs[frame_index][i];
-
-                image_output = ImageOutput {
-                    .image = UniquePtr<StorageImage>::Construct(
-                        Extent3D(m_extent),
-                        image_formats[i],
-                        Image::Type::TEXTURE_TYPE_2D,
-                        Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-                        nullptr
-                    ),
-                    .image_view = UniquePtr<ImageView>::Construct()
-                };
-
-                image_output.Create(engine->GetDevice());
+                m_image_outputs[frame_index][i].Create(engine->GetDevice());
             }
         }
 
@@ -113,84 +100,81 @@ void BlurRadiance::CreateImageOutputs(Engine *engine)
     });
 }
 
-void BlurRadiance::CreateDescriptors(Engine *engine)
+void BlurRadiance::CreateDescriptorSets(Engine *engine)
 {
+    if constexpr (generate_mipmap) {
+        return;
+    }
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
+            auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
+
+            // radiance image
+            descriptor_set
+                ->AddDescriptor<StorageImageDescriptor>(0)
+                ->SetSubDescriptor({
+                    .image_view = m_radiance_image_view
+                });
+
+            // data image
+            descriptor_set
+                ->AddDescriptor<StorageImageDescriptor>(1)
+                ->SetSubDescriptor({
+                    .image_view = m_data_image_view
+                });
+
+            // depth image
+            descriptor_set
+                ->AddDescriptor<StorageImageDescriptor>(2)
+                ->SetSubDescriptor({
+                    .image_view = m_depth_image_view
+                });
+
+            // input image (first pass just radiance image, second pass is prev image)
+            descriptor_set
+                ->AddDescriptor<ImageDescriptor>(3)
+                ->SetSubDescriptor({
+                    .image_view = i == 0
+                        ? m_radiance_image_view
+                        : &m_image_outputs[frame_index][i - 1].image_view
+                });
+
+            // sampler to use
+            descriptor_set
+                ->AddDescriptor<SamplerDescriptor>(4)
+                ->SetSubDescriptor({
+                    .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
+                });
+
+            // blurred output
+            descriptor_set
+                ->AddDescriptor<StorageImageDescriptor>(5)
+                ->SetSubDescriptor({
+                    .image_view = &m_image_outputs[frame_index][i].image_view
+                });
+
+            // scene buffer - so we can reconstruct world positions
+            descriptor_set
+                ->AddDescriptor<DynamicStorageBufferDescriptor>(10)
+                ->SetSubDescriptor({
+                    .buffer = engine->shader_globals->scenes.GetBuffers()[frame_index].get(),
+                    .range = static_cast<UInt>(sizeof(SceneShaderData))
+                });
+
+            m_descriptor_sets[frame_index][i] = std::move(descriptor_set);
+        }
+    }
+
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // set final image in each global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = m_image_outputs[frame_index].Back().image_view.Get()
-                });
-            
-            if constexpr (!generate_mipmap) {
-                for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
-                    auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
-
-                    // radiance image
-                    descriptor_set
-                        ->AddDescriptor<StorageImageDescriptor>(0)
-                        ->SetSubDescriptor({
-                            .image_view = m_radiance_image_view
-                        });
-
-                    // data image
-                    descriptor_set
-                        ->AddDescriptor<StorageImageDescriptor>(1)
-                        ->SetSubDescriptor({
-                            .image_view = m_data_image_view
-                        });
-
-                    // depth image
-                    descriptor_set
-                        ->AddDescriptor<StorageImageDescriptor>(2)
-                        ->SetSubDescriptor({
-                            .image_view = m_depth_image_view
-                        });
-
-                    // input image (first pass just radiance image, second pass is prev image)
-                    descriptor_set
-                        ->AddDescriptor<ImageDescriptor>(3)
-                        ->SetSubDescriptor({
-                            .image_view = i == 0
-                                ? m_radiance_image_view
-                                : m_image_outputs[frame_index][i - 1].image_view.Get()
-                        });
-
-                    // sampler to use
-                    descriptor_set
-                        ->AddDescriptor<SamplerDescriptor>(4)
-                        ->SetSubDescriptor({
-                            .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
-                        });
-
-                    // blurred output
-                    descriptor_set
-                        ->AddDescriptor<StorageImageDescriptor>(5)
-                        ->SetSubDescriptor({
-                            .image_view = m_image_outputs[frame_index][i].image_view.Get()
-                        });
-
-                    // scene buffer - so we can reconstruct world positions
-                    descriptor_set
-                        ->AddDescriptor<DynamicStorageBufferDescriptor>(10)
-                        ->SetSubDescriptor({
-                            .buffer = engine->shader_globals->scenes.GetBuffers()[frame_index].get(),
-                            .range = static_cast<UInt>(sizeof(SceneShaderData))
-                        });
-
-                    HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                        engine->GetDevice(),
-                        &engine->GetInstance()->GetDescriptorPool()
-                    ));
-
-                    m_descriptor_sets[frame_index][i] = std::move(descriptor_set);
-                }
+            for (auto &descriptor_set : m_descriptor_sets[frame_index]) {
+                AssertThrow(descriptor_set != nullptr);
+                
+                HYPERION_ASSERT_RESULT(descriptor_set->Create(
+                    engine->GetDevice(),
+                    &engine->GetInstance()->GetDescriptorPool()
+                ));
             }
         }
 
@@ -235,23 +219,23 @@ void BlurRadiance::Render(
     if constexpr (generate_mipmap) {
         // assume render thread
         auto *src_image = m_radiance_image;
-        auto *dst_image = m_image_outputs[frame->GetFrameIndex()][0].image.Get();
+        auto &dst_image = m_image_outputs[frame->GetFrameIndex()][0].image;
 
         // generate mips
         // put src image in state for copying from
         src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
         // put dst image in state for copying to
-        dst_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+        dst_image.GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 
         // Blit into the mipmap chain img
-        dst_image->Blit(
+        dst_image.Blit(
             frame->GetCommandBuffer(),
             src_image,
             Rect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-            Rect { 0, 0, dst_image->GetExtent().width, dst_image->GetExtent().height }
+            Rect { 0, 0, dst_image.GetExtent().width, dst_image.GetExtent().height }
         );
 
-        HYPERION_ASSERT_RESULT(dst_image->GenerateMipmaps(
+        HYPERION_ASSERT_RESULT(dst_image.GenerateMipmaps(
             engine->GetDevice(),
             frame->GetCommandBuffer()
         ));
@@ -278,7 +262,7 @@ void BlurRadiance::Render(
                 FixedArray { static_cast<UInt32>(scene_index * sizeof(SceneShaderData)) }
             );
 
-            const auto &extent = m_image_outputs[frame->GetFrameIndex()][i].image->GetExtent();
+            const auto &extent = m_image_outputs[frame->GetFrameIndex()][i].image.GetExtent();
 
             pass->GetPipeline()->Dispatch(
                 frame->GetCommandBuffer(),
@@ -290,7 +274,7 @@ void BlurRadiance::Render(
             );
 
             // set it to be able to be used as texture2D for next pass, or outside of this
-            m_image_outputs[frame->GetFrameIndex()][i].image->GetGPUImage()
+            m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
                 ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
         }
     }

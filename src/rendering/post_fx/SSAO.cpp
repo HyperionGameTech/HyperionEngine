@@ -9,7 +9,7 @@ SSAOEffect::SSAOEffect()
     : PostProcessingEffect(
           stage,
           index,
-          Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8
+          InternalFormat::TEXTURE_INTERNAL_FORMAT_R8
       )
 {
 }

@@ -23,7 +23,7 @@ const FixedArray<std::pair<Vector3, Vector3>, 6> CubemapRenderer::cubemap_direct
 CubemapRenderer::CubemapRenderer(
     const Extent2D &cubemap_dimensions,
     const Vector3 &origin,
-    Image::FilterMode filter_mode
+    FilterMode filter_mode
 ) : EngineComponentBase(),
     RenderComponent(5),
     m_cubemap_dimensions(cubemap_dimensions),
@@ -35,7 +35,7 @@ CubemapRenderer::CubemapRenderer(
 CubemapRenderer::CubemapRenderer(
     const Extent2D &cubemap_dimensions,
     const BoundingBox &aabb,
-    Image::FilterMode filter_mode
+    FilterMode filter_mode
 ) : EngineComponentBase(),
     RenderComponent(5),
     m_cubemap_dimensions(cubemap_dimensions),
@@ -287,7 +287,7 @@ void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
     m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
     m_cubemaps[frame_index]->GetImage().Blit(command_buffer, framebuffer_image);
 
-    if (m_filter_mode == Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP) {
+    if (m_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP) {
         HYPERION_PASS_ERRORS(
             m_cubemaps[frame_index]->GetImage().GenerateMipmaps(engine->GetDevice(), command_buffer),
             result
@@ -347,9 +347,9 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_cubemaps[i] = engine->CreateHandle<Texture>(new TextureCube(
             m_cubemap_dimensions,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
             m_filter_mode,
-            Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         ));
 
@@ -431,7 +431,7 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
             m_cubemap_dimensions,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
             nullptr
         ),
         RenderPassStage::SHADER

@@ -113,7 +113,7 @@ public:
     void SetBinding(UInt binding) { m_binding = binding; }
     bool HasBinding() const { return m_binding != UINT_MAX; }
 
-    Image::InternalFormat GetFormat() const;
+    InternalFormat GetFormat() const;
     bool IsDepthAttachment() const;
 
     VkAttachmentDescription GetAttachmentDescription() const;
@@ -183,8 +183,8 @@ public:
     auto &GetAttachmentRefs() { return m_attachment_refs; }
     const auto &GetAttachmentRefs() const { return m_attachment_refs; }
 
-    Image::InternalFormat GetFormat() const
-        { return m_image ? m_image->GetTextureFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE; }
+    InternalFormat GetFormat() const
+        { return m_image ? m_image->GetTextureFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE; }
 
     bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
@@ -264,7 +264,7 @@ public:
      * @param binding The input attachment binding the attachment will take on
      * @param format The image format of the newly constructed Image
      */
-    Result Add(Device *device, uint32_t binding, Image::InternalFormat format);
+    Result Add(Device *device, uint32_t binding, InternalFormat format);
     /*! \brief Add a new owned attachment using the given image argument.
      * @param binding The input attachment binding the attachment will take on
      * @param image The unique pointer to a non-initialized (but constructed)

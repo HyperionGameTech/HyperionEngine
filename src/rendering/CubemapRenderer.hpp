@@ -37,13 +37,13 @@ public:
     CubemapRenderer(
         const Extent2D &cubemap_dimensions = Extent2D { 512, 512 },
         const Vector3 &origin = Vector3::zero,
-        Image::FilterMode filter_mode = Image::FilterMode::TEXTURE_FILTER_LINEAR
+        FilterMode filter_mode = FilterMode::TEXTURE_FILTER_LINEAR
     );
 
     CubemapRenderer(
         const Extent2D &cubemap_dimensions = Extent2D { 512, 512 },
         const BoundingBox &aabb = BoundingBox(-100.0f, 100.0f),
-        Image::FilterMode filter_mode = Image::FilterMode::TEXTURE_FILTER_LINEAR
+        FilterMode filter_mode = FilterMode::TEXTURE_FILTER_LINEAR
     );
 
     CubemapRenderer(const CubemapRenderer &other) = delete;
@@ -89,7 +89,7 @@ private:
 
     Extent2D m_cubemap_dimensions;
     BoundingBox m_aabb;
-    Image::FilterMode m_filter_mode;
+    FilterMode m_filter_mode;
     Handle<Scene> m_scene;
     FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;

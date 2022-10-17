@@ -113,7 +113,7 @@ void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipeline(Handle<Re
 
 static void AddOwnedAttachment(
     Engine *engine,
-    Image::InternalFormat format,
+    InternalFormat format,
     Handle<RenderPass> &render_pass,
     DynArray<std::unique_ptr<Attachment>> &attachments
 )
@@ -181,8 +181,8 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
         mode
     );
 
-    const auto color_format = gbuffer_texture_formats[0].Is<Image::InternalFormat>()
-        ? gbuffer_texture_formats[0].Get<Image::InternalFormat>()
+    const auto color_format = gbuffer_texture_formats[0].Is<InternalFormat>()
+        ? gbuffer_texture_formats[0].Get<InternalFormat>()
         : engine->GetDefaultFormat(gbuffer_texture_formats[0].Get<TextureFormatDefault>());
 
     // if (bucket == BUCKET_UI) {
@@ -209,8 +209,8 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
         // which will be shared with other renderable buckets
         if (bucket == BUCKET_OPAQUE) {
             for (UInt i = 1; i < static_cast<UInt>(gbuffer_texture_formats.Size()); i++) {
-                const auto format = gbuffer_texture_formats[i].Is<Image::InternalFormat>()
-                    ? gbuffer_texture_formats[i].Get<Image::InternalFormat>()
+                const auto format = gbuffer_texture_formats[i].Is<InternalFormat>()
+                    ? gbuffer_texture_formats[i].Get<InternalFormat>()
                     : engine->GetDefaultFormat(gbuffer_texture_formats[i].Get<TextureFormatDefault>());
 
                 AddOwnedAttachment(

@@ -24,7 +24,7 @@ using renderer::Image;
 class DeferredSystem
 {
 public:
-    using GBufferFormat = Variant<TextureFormatDefault, Image::InternalFormat>;
+    using GBufferFormat = Variant<TextureFormatDefault, InternalFormat>;
 
     static const FixedArray<GBufferFormat, num_gbuffer_textures> gbuffer_texture_formats;
     

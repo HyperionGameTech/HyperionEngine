@@ -62,8 +62,8 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         m_attachments.PushBack(std::make_unique<Attachment>(
             std::make_unique<renderer::FramebufferImage2D>(
                 m_dimensions,
-                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F,
-                Image::FilterMode::TEXTURE_FILTER_NEAREST
+                InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F,
+                FilterMode::TEXTURE_FILTER_NEAREST
             ),
             RenderPassStage::SHADER
         ));
@@ -162,7 +162,7 @@ void ShadowPass::CreateShadowMap(Engine *engine)
 {
     m_shadow_map_image = std::make_unique<StorageImage2D>(
         m_dimensions,
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F
     );
 
     m_shadow_map_image_view = std::make_unique<ImageView>();

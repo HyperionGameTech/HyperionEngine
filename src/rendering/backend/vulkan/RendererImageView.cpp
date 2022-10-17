@@ -1,6 +1,7 @@
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <system/Debug.hpp>
 
@@ -42,7 +43,7 @@ ImageView &ImageView::operator=(ImageView &&other) noexcept
 
 ImageView::~ImageView()
 {
-    AssertThrowMsg(m_image_view == nullptr, "image view should have been destroyed");
+    AssertThrowMsg(m_image_view == VK_NULL_HANDLE, "image view should have been destroyed");
 }
 
 Result ImageView::Create(
@@ -98,9 +99,9 @@ Result ImageView::Create(
     return Create(
         device,
         image->GetGPUImage()->image,
-        image->GetImageFormat(),
-        ToVkImageAspect(image->GetTextureFormat()),
-        ToVkImageViewType(image->GetType()),
+        helpers::ToVkFormat(image->GetTextureFormat()),
+        helpers::ToVkImageAspect(image->GetTextureFormat()),
+        helpers::ToVkImageViewType(image->GetType()),
         mipmap_layer,
         num_mipmaps,
         face_layer,
@@ -116,9 +117,9 @@ Result ImageView::Create(Device *device, const Image *image)
     return Create(
         device,
         image->GetGPUImage()->image,
-        image->GetImageFormat(),
-        ToVkImageAspect(image->GetTextureFormat()),
-        ToVkImageViewType(image->GetType()),
+        helpers::ToVkFormat(image->GetTextureFormat()),
+        helpers::ToVkImageAspect(image->GetTextureFormat()),
+        helpers::ToVkImageViewType(image->GetType()),
         0,
         image->NumMipmaps(),
         0,
@@ -132,24 +133,6 @@ Result ImageView::Destroy(Device *device)
     m_image_view = nullptr;
 
     HYPERION_RETURN_OK;
-}
-
-VkImageAspectFlags ImageView::ToVkImageAspect(Image::InternalFormat internal_format)
-{
-    return Image::IsDepthFormat(internal_format)
-        ? VK_IMAGE_ASPECT_DEPTH_BIT
-        : VK_IMAGE_ASPECT_COLOR_BIT;
-}
-
-VkImageViewType ImageView::ToVkImageViewType(Image::Type type)
-{
-    switch (type) {
-    case Image::Type::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D;
-    case Image::Type::TEXTURE_TYPE_3D:      return VK_IMAGE_VIEW_TYPE_3D;
-    case Image::Type::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_VIEW_TYPE_CUBE;
-    }
-
-    AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
 }
 
 } // namespace renderer

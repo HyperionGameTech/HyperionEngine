@@ -242,7 +242,7 @@ public:
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
                 Extent2D { 512, 512 },
                 test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
-                renderer::Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
+                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             );
         }
 
@@ -883,8 +883,8 @@ int main()
 
     Image *rt_image_storage = new StorageImage(
         Extent3D{1024, 1024, 1},
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-        Image::Type::TEXTURE_TYPE_2D,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+        ImageType::TEXTURE_TYPE_2D,
         nullptr
     );
 
@@ -893,8 +893,8 @@ int main()
     
     Image *rt_normals_roughness_weight = new StorageImage(
         Extent3D{1024, 1024, 1},
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-        Image::Type::TEXTURE_TYPE_2D,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+        ImageType::TEXTURE_TYPE_2D,
         nullptr
     );
     ImageView rt_normals_roughness_weight_view;
@@ -902,8 +902,8 @@ int main()
     
     Image *rt_depth_image = new StorageImage(
         Extent3D{1024, 1024, 1},
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
-        Image::Type::TEXTURE_TYPE_2D,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
+        ImageType::TEXTURE_TYPE_2D,
         nullptr
     );
 

@@ -60,16 +60,16 @@ public:
             }
         }
 
-        Image::InternalFormat format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8;
+        InternalFormat format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8;
         in.GetProperty("format").ReadUnsignedInt(&format);
 
-        Image::Type type = Image::Type::TEXTURE_TYPE_2D;
+        ImageType type = ImageType::TEXTURE_TYPE_2D;
         in.GetProperty("type").ReadUnsignedInt(&type);
 
-        Image::FilterMode filter_mode = Image::FilterMode::TEXTURE_FILTER_NEAREST;
+        FilterMode filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
         in.GetProperty("filter_mode").ReadUnsignedInt(&filter_mode);
 
-        Image::WrapMode wrap_mode = Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
         in.GetProperty("wrap_mode").ReadUnsignedInt(&wrap_mode);
 
         UInt64 num_bytes = 0;

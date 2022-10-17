@@ -5,10 +5,10 @@ namespace hyperion::v2 {
 
 Texture::Texture(
     Extent3D extent,
-    Image::InternalFormat format,
-    Image::Type type,
-    Image::FilterMode filter_mode,
-    Image::WrapMode wrap_mode,
+    InternalFormat format,
+    ImageType type,
+    FilterMode filter_mode,
+    WrapMode wrap_mode,
     const UByte *bytes
 ) : Texture(
         TextureImage(
@@ -26,8 +26,8 @@ Texture::Texture(
 
 Texture::Texture(
     Image &&image,
-    Image::FilterMode filter_mode,
-    Image::WrapMode wrap_mode
+    FilterMode filter_mode,
+    WrapMode wrap_mode
 ) : EngineComponentBase(),
     m_image(std::move(image)),
     m_image_view(),

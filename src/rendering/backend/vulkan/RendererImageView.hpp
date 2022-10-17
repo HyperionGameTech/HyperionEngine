@@ -62,9 +62,6 @@ public:
     Result Destroy(Device *device);
 
 private:
-    static VkImageAspectFlags ToVkImageAspect(Image::InternalFormat);
-    static VkImageViewType ToVkImageViewType(Image::Type);
-    
     VkImageView m_image_view;
     Optional<VkImage> m_image;
 

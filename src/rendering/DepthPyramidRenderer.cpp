@@ -26,8 +26,8 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
     m_depth_attachment_ref = depth_attachment_ref->IncRef(HYP_ATTACHMENT_REF_INSTANCE);
 
     m_depth_pyramid_sampler = std::make_unique<Sampler>(
-        Image::FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
-        Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     );
 
     HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(engine->GetDevice()));
@@ -46,9 +46,9 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
                 static_cast<UInt>(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
                 1
             },
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
-            Image::Type::TEXTURE_TYPE_2D,
-            Image::FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
+            ImageType::TEXTURE_TYPE_2D,
+            FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
             nullptr
         );
 

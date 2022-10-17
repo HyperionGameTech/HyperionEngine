@@ -18,7 +18,7 @@ using renderer::Result;
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
-    : FullScreenPass(Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F),
+    : FullScreenPass(InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F),
       m_is_indirect_pass(is_indirect_pass)
 {
 }
@@ -231,31 +231,31 @@ void DeferredRenderer::Create(Engine *engine)
         m_results[i] = engine->CreateHandle<Texture>(
             StorageImage(
                 Extent3D(engine->GetInstance()->GetSwapchain()->extent),
-                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
-                Image::Type::TEXTURE_TYPE_2D,
-                Image::FilterMode::TEXTURE_FILTER_NEAREST
+                InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+                ImageType::TEXTURE_TYPE_2D,
+                FilterMode::TEXTURE_FILTER_NEAREST
             ),
-            Image::FilterMode::TEXTURE_FILTER_NEAREST,
-            Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
         );
 
         engine->InitObject(m_results[i]);
 
         m_mipmapped_results[i] = engine->CreateHandle<Texture>(new Texture2D(
             mipmap_chain_extent,
-            Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
-            Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-            Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         ));
 
         engine->InitObject(m_mipmapped_results[i]);
     }
     
-    m_sampler = UniquePtr<Sampler>::Construct(Image::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);
+    m_sampler = UniquePtr<Sampler>::Construct(FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);
     HYPERION_ASSERT_RESULT(m_sampler->Create(engine->GetDevice()));
 
-    m_depth_sampler = UniquePtr<Sampler>::Construct(Image::FilterMode::TEXTURE_FILTER_NEAREST);
+    m_depth_sampler = UniquePtr<Sampler>::Construct(FilterMode::TEXTURE_FILTER_NEAREST);
     HYPERION_ASSERT_RESULT(m_depth_sampler->Create(engine->GetDevice()));
     
     m_indirect_pass.CreateDescriptors(engine); // no-op

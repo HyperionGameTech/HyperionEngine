@@ -37,17 +37,17 @@ class FullScreenPass
 
 public:
     FullScreenPass(
-        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
     );
     FullScreenPass(
         Handle<Shader> &&shader,
-        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
     );
     FullScreenPass(
         Handle<Shader> &&shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
-        Image::InternalFormat image_format = Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
     );
     FullScreenPass(const FullScreenPass &) = delete;
     FullScreenPass &operator=(const FullScreenPass &) = delete;
@@ -103,7 +103,7 @@ protected:
     PushConstantData m_push_constant_data;
 
     // TODO: move to PostFXPass?                        
-    Image::InternalFormat m_image_format;                                    
+    InternalFormat m_image_format;                                    
     DescriptorKey m_descriptor_key;
     UInt m_sub_descriptor_index;
 };

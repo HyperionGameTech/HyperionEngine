@@ -18,120 +18,6 @@ class Device;
 class Image
 {
 public:
-    enum Type
-    {
-        TEXTURE_TYPE_2D = 0,
-        TEXTURE_TYPE_3D = 1,
-        TEXTURE_TYPE_CUBEMAP = 2
-    };
-
-    enum class BaseFormat
-    {
-        TEXTURE_FORMAT_NONE,
-        TEXTURE_FORMAT_R,
-        TEXTURE_FORMAT_RG,
-        TEXTURE_FORMAT_RGB,
-        TEXTURE_FORMAT_RGBA,
-        
-        TEXTURE_FORMAT_BGR,
-        TEXTURE_FORMAT_BGRA,
-
-        TEXTURE_FORMAT_DEPTH
-    };
-
-    enum class InternalFormat
-    {
-        TEXTURE_INTERNAL_FORMAT_NONE,
-
-        TEXTURE_INTERNAL_FORMAT_R8,
-        TEXTURE_INTERNAL_FORMAT_RG8,
-        TEXTURE_INTERNAL_FORMAT_RGB8,
-        TEXTURE_INTERNAL_FORMAT_RGBA8,
-        
-        TEXTURE_INTERNAL_FORMAT_B8,
-        TEXTURE_INTERNAL_FORMAT_BG8,
-        TEXTURE_INTERNAL_FORMAT_BGR8,
-        TEXTURE_INTERNAL_FORMAT_BGRA8,
-
-        TEXTURE_INTERNAL_FORMAT_R16,
-        TEXTURE_INTERNAL_FORMAT_RG16,
-        TEXTURE_INTERNAL_FORMAT_RGB16,
-        TEXTURE_INTERNAL_FORMAT_RGBA16,
-
-        TEXTURE_INTERNAL_FORMAT_R32,
-        TEXTURE_INTERNAL_FORMAT_RG32,
-        TEXTURE_INTERNAL_FORMAT_RGB32,
-        TEXTURE_INTERNAL_FORMAT_RGBA32,
-
-        TEXTURE_INTERNAL_FORMAT_R32_,
-        TEXTURE_INTERNAL_FORMAT_RG16_,
-        TEXTURE_INTERNAL_FORMAT_R11G11B10F,
-        TEXTURE_INTERNAL_FORMAT_R10G10B10A2,
-
-        TEXTURE_INTERNAL_FORMAT_R16F,
-        TEXTURE_INTERNAL_FORMAT_RG16F,
-        TEXTURE_INTERNAL_FORMAT_RGB16F,
-        TEXTURE_INTERNAL_FORMAT_RGBA16F,
-
-        TEXTURE_INTERNAL_FORMAT_R32F,
-        TEXTURE_INTERNAL_FORMAT_RG32F,
-        TEXTURE_INTERNAL_FORMAT_RGB32F,
-        TEXTURE_INTERNAL_FORMAT_RGBA32F,
-
-        TEXTURE_INTERNAL_FORMAT_SRGB, /* begin srgb */
-
-        TEXTURE_INTERNAL_FORMAT_R8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_RG8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_RGB8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
-        
-        TEXTURE_INTERNAL_FORMAT_B8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_BG8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_BGR8_SRGB,
-        TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB,
-        
-        TEXTURE_INTERNAL_FORMAT_DEPTH, /* begin depth */
-
-        TEXTURE_INTERNAL_FORMAT_DEPTH_16,
-        TEXTURE_INTERNAL_FORMAT_DEPTH_24,
-        TEXTURE_INTERNAL_FORMAT_DEPTH_32F
-    };
-
-    enum class FilterMode
-    {
-        TEXTURE_FILTER_NEAREST,
-        TEXTURE_FILTER_LINEAR,
-        TEXTURE_FILTER_NEAREST_MIPMAP,
-        TEXTURE_FILTER_LINEAR_MIPMAP,
-        TEXTURE_FILTER_MINMAX_MIPMAP
-    };
-
-    enum class WrapMode
-    {
-        TEXTURE_WRAP_CLAMP_TO_EDGE,
-        TEXTURE_WRAP_CLAMP_TO_BORDER,
-        TEXTURE_WRAP_REPEAT
-    };
-    
-    static BaseFormat GetBaseFormat(InternalFormat);
-    /* returns a texture format that has a shifted bytes-per-pixel count
-     * e.g calling with RGB16 and num components = 4 --> RGBA16 */
-    static InternalFormat FormatChangeNumComponents(InternalFormat, UInt8 new_num_components);
-
-    /* Get number of components (bytes-per-pixel) of a texture format */
-    static UInt NumComponents(InternalFormat format);
-    /* Get number of components (bytes-per-pixel) of a texture format */
-    static UInt NumComponents(BaseFormat format);
-
-    static bool IsDepthFormat(InternalFormat fmt);
-    static bool IsDepthFormat(BaseFormat fmt);
-    static bool IsSRGBFormat(InternalFormat fmt);
-
-    static VkFormat ToVkFormat(InternalFormat fmt);
-    static VkImageType ToVkType(Type type);
-    static VkFilter ToVkFilter(FilterMode);
-    static VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
-
     struct InternalInfo
     {
         VkImageTiling tiling;
@@ -141,7 +27,7 @@ public:
     Image(
         Extent3D extent,
         InternalFormat format,
-        Type type,
+        ImageType type,
         FilterMode filter_mode,
         const InternalInfo &internal_info,
         const UByte *bytes
@@ -150,6 +36,7 @@ public:
     Image(const Image &other) = delete;
     Image &operator=(const Image &other) = delete;
     Image(Image &&other) noexcept;
+    Image &operator=(Image &&other) noexcept;
     ~Image();
 
     /*
@@ -241,10 +128,10 @@ public:
             * static_cast<SizeType>(NumFaces()); }
 
     bool IsTextureCube() const
-        { return m_type == TEXTURE_TYPE_CUBEMAP; }
+        { return m_type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
     bool IsPanorama() const
-        { return m_type == TEXTURE_TYPE_2D
+        { return m_type == ImageType::TEXTURE_TYPE_2D
             && m_extent.width == m_extent.height * 2
             && m_extent.depth == 1; }
 
@@ -272,28 +159,27 @@ public:
     void SetTextureFormat(InternalFormat format)
         { m_format = format; }
 
-    Type GetType() const
+    ImageType GetType() const
         { return m_type; }
-
-    VkFormat GetImageFormat() const;
-    VkImageType GetImageType() const;
-    VkImageUsageFlags GetImageUsageFlags() const
-        { return m_internal_info.usage_flags; }
     
 private:
-    Result CreateImage(Device *device,
+    Result CreateImage(
+        Device *device,
         VkImageLayout initial_layout,
-        VkImageCreateInfo *out_image_info);
+        VkImageCreateInfo *out_image_info
+    );
 
-    Result ConvertTo32BPP(Device *device,
+    Result ConvertTo32BPP(
+        Device *device,
         VkImageType image_type,
         VkImageCreateFlags image_create_flags,
         VkImageFormatProperties *out_image_format_properties,
-        VkFormat *out_format);
+        VkFormat *out_format
+    );
 
     Extent3D m_extent;
     InternalFormat m_format;
-    Type m_type;
+    ImageType m_type;
     FilterMode m_filter_mode;
     UByte *m_bytes;
 
@@ -309,10 +195,21 @@ private:
 class StorageImage : public Image
 {
 public:
+    StorageImage()
+        : StorageImage(
+            Extent3D { 1, 1, 1 },
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+            ImageType::TEXTURE_TYPE_2D,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            nullptr
+        )
+    {
+    }
+
     StorageImage(
         Extent3D extent,
         InternalFormat format,
-        Type type,
+        ImageType type,
         const UByte *bytes = nullptr
     ) : StorageImage(
             extent,
@@ -327,7 +224,7 @@ public:
     StorageImage(
         Extent3D extent,
         InternalFormat format,
-        Type type,
+        ImageType type,
         FilterMode filter_mode,
         const UByte *bytes = nullptr
     ) : Image(
@@ -345,6 +242,23 @@ public:
     )
     {
     }
+
+    StorageImage(const StorageImage &other) = delete;
+    StorageImage &operator=(const StorageImage &other) = delete;
+
+    StorageImage(StorageImage &&other) noexcept
+        : Image(std::move(other))
+    {
+    }
+
+    StorageImage &operator=(StorageImage &&other) noexcept
+    {
+        Image::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~StorageImage() = default;
 };
 
 class StorageImage2D : public StorageImage
@@ -357,11 +271,28 @@ public:
     ) : StorageImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_2D,
+        ImageType::TEXTURE_TYPE_2D,
         bytes
     )
     {
     }
+    
+    StorageImage2D(const StorageImage2D &other) = delete;
+    StorageImage2D &operator=(const StorageImage2D &other) = delete;
+
+    StorageImage2D(StorageImage2D &&other) noexcept
+        : StorageImage(std::move(other))
+    {
+    }
+
+    StorageImage2D &operator=(StorageImage2D &&other) noexcept
+    {
+        StorageImage::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~StorageImage2D() = default;
 };
 
 class StorageImage3D : public StorageImage
@@ -374,11 +305,28 @@ public:
     ) : StorageImage(
         extent,
         format,
-        Type::TEXTURE_TYPE_3D,
+        ImageType::TEXTURE_TYPE_3D,
         bytes
     )
     {
     }
+
+    StorageImage3D(const StorageImage3D &other) = delete;
+    StorageImage3D &operator=(const StorageImage3D &other) = delete;
+
+    StorageImage3D(StorageImage3D &&other) noexcept
+        : StorageImage(std::move(other))
+    {
+    }
+
+    StorageImage3D &operator=(StorageImage3D &&other) noexcept
+    {
+        StorageImage::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~StorageImage3D() = default;
 };
 
 class TextureImage : public Image
@@ -387,7 +335,7 @@ public:
     TextureImage(
         Extent3D extent,
         InternalFormat format,
-        Type type,
+        ImageType type,
         FilterMode filter_mode,
         const UByte *bytes
     ) : Image(
@@ -404,6 +352,23 @@ public:
     )
     {
     }
+
+    TextureImage(const TextureImage &other) = delete;
+    TextureImage &operator=(const TextureImage &other) = delete;
+
+    TextureImage(TextureImage &&other) noexcept
+        : Image(std::move(other))
+    {
+    }
+
+    TextureImage &operator=(TextureImage &&other) noexcept
+    {
+        Image::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~TextureImage() = default;
 };
 
 class TextureImage2D : public TextureImage
@@ -417,12 +382,29 @@ public:
     ) : TextureImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_2D,
+        ImageType::TEXTURE_TYPE_2D,
         filter_mode,
         bytes
     )
     {
     }
+
+    TextureImage2D(const TextureImage2D &other) = delete;
+    TextureImage2D &operator=(const TextureImage2D &other) = delete;
+
+    TextureImage2D(TextureImage2D &&other) noexcept
+        : TextureImage(std::move(other))
+    {
+    }
+
+    TextureImage2D &operator=(TextureImage2D &&other) noexcept
+    {
+        TextureImage::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~TextureImage2D() = default;
 };
 
 class TextureImage3D : public TextureImage
@@ -436,12 +418,29 @@ public:
     ) : TextureImage(
         extent,
         format,
-        Type::TEXTURE_TYPE_3D,
+        ImageType::TEXTURE_TYPE_3D,
         filter_mode,
         bytes
     )
     {
     }
+
+    TextureImage3D(const TextureImage3D &other) = delete;
+    TextureImage3D &operator=(const TextureImage3D &other) = delete;
+
+    TextureImage3D(TextureImage3D &&other) noexcept
+        : TextureImage(std::move(other))
+    {
+    }
+
+    TextureImage3D &operator=(TextureImage3D &&other) noexcept
+    {
+        TextureImage::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~TextureImage3D() = default;
 };
 
 class TextureImageCube : public TextureImage
@@ -455,12 +454,29 @@ public:
     ) : TextureImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_CUBEMAP,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
         filter_mode,
         bytes
     )
     {
     }
+
+    TextureImageCube(const TextureImageCube &other) = delete;
+    TextureImageCube &operator=(const TextureImageCube &other) = delete;
+
+    TextureImageCube(TextureImageCube &&other) noexcept
+        : TextureImage(std::move(other))
+    {
+    }
+
+    TextureImageCube &operator=(TextureImageCube &&other) noexcept
+    {
+        TextureImage::operator=(std::move(other));
+
+        return *this;
+    }
+
+    ~TextureImageCube() = default;
 };
 
 class FramebufferImage : public Image
@@ -469,7 +485,7 @@ public:
     FramebufferImage(
         Extent3D extent,
         InternalFormat format,
-        Type type,
+        ImageType type,
         const UByte *bytes
     ) : Image(
         extent,
@@ -491,8 +507,8 @@ public:
     FramebufferImage(
         Extent3D extent,
         InternalFormat format,
-        Type type,
-        Image::FilterMode filter_mode
+        ImageType type,
+        FilterMode filter_mode
     ) : Image(
         extent,
         format,
@@ -521,7 +537,7 @@ public:
     ) : FramebufferImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_2D,
+        ImageType::TEXTURE_TYPE_2D,
         bytes
     )
     {
@@ -530,11 +546,11 @@ public:
     FramebufferImage2D(
         Extent2D extent,
         InternalFormat format,
-        Image::FilterMode filter_mode
+        FilterMode filter_mode
     ) : FramebufferImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_2D,
+        ImageType::TEXTURE_TYPE_2D,
         filter_mode
     )
     {
@@ -551,7 +567,7 @@ public:
     ) : FramebufferImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_CUBEMAP,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
         bytes
     )
     {
@@ -560,11 +576,11 @@ public:
     FramebufferImageCube(
         Extent2D extent,
         InternalFormat format,
-        Image::FilterMode filter_mode
+        FilterMode filter_mode
     ) : FramebufferImage(
         Extent3D(extent),
         format,
-        Type::TEXTURE_TYPE_CUBEMAP,
+        ImageType::TEXTURE_TYPE_CUBEMAP,
         filter_mode
     )
     {

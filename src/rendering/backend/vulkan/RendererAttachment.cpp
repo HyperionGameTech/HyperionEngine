@@ -1,4 +1,5 @@
 #include <rendering/backend/RendererAttachment.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -41,6 +42,8 @@ AttachmentRef::~AttachmentRef()
     );
 }
 
+// TODO: move to heleprs
+
 VkAttachmentLoadOp AttachmentRef::ToVkLoadOp(LoadOperation load_operation)
 {
     switch (load_operation) {
@@ -78,12 +81,12 @@ VkImageLayout AttachmentRef::GetIntermediateLayout() const
         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-Image::InternalFormat AttachmentRef::GetFormat() const
+InternalFormat AttachmentRef::GetFormat() const
 {
     if (m_attachment == nullptr) {
         DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
 
-        return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
     }
 
     return m_attachment->GetFormat();
@@ -103,7 +106,7 @@ bool AttachmentRef::IsDepthAttachment() const
 VkAttachmentDescription AttachmentRef::GetAttachmentDescription() const
 {
     return VkAttachmentDescription {
-        .format = Image::ToVkFormat(m_attachment->GetFormat()),
+        .format = helpers::ToVkFormat(m_attachment->GetFormat()),
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = ToVkLoadOp(m_load_operation),
         .storeOp = ToVkStoreOp(m_store_operation),
@@ -122,7 +125,7 @@ VkAttachmentReference AttachmentRef::GetHandle() const
 
     return VkAttachmentReference{
         .attachment = GetBinding(),
-        .layout     = GetIntermediateLayout()
+        .layout = GetIntermediateLayout()
     };
 }
 
@@ -251,7 +254,7 @@ Result Attachment::AddAttachmentRef(
         std::make_unique<Sampler>(
             m_image != nullptr
                 ? m_image->GetFilterMode()
-                : Image::FilterMode::TEXTURE_FILTER_NEAREST
+                : FilterMode::TEXTURE_FILTER_NEAREST
         ),
         load_operation,
         store_operation
@@ -417,7 +420,7 @@ AttachmentRef *AttachmentSet::Get(UInt binding) const
     return it->second;
 }
 
-Result AttachmentSet::Add(Device *device, UInt binding, Image::InternalFormat format)
+Result AttachmentSet::Add(Device *device, UInt binding, InternalFormat format)
 {
     return Add(device, binding, std::make_unique<FramebufferImage2D>(Extent2D { m_width, m_height }, format, nullptr));
 }

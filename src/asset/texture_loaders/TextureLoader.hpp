@@ -23,7 +23,7 @@ public:
         int width;
         int height;
         int num_components;
-        Image::InternalFormat format;
+        InternalFormat format;
     };
 };
 

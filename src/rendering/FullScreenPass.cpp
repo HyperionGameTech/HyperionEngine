@@ -16,14 +16,14 @@ using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::FillMode;
 
-FullScreenPass::FullScreenPass(Image::InternalFormat image_format)
+FullScreenPass::FullScreenPass(InternalFormat image_format)
     : FullScreenPass(Handle<Shader>(), image_format)
 {
 }
 
 FullScreenPass::FullScreenPass(
     Handle<Shader> &&shader,
-    Image::InternalFormat image_format
+    InternalFormat image_format
 ) : FullScreenPass(std::move(shader),
         DescriptorKey::POST_FX_PRE_STACK,
         ~0u,
@@ -36,7 +36,7 @@ FullScreenPass::FullScreenPass(
     Handle<Shader> &&shader,
     DescriptorKey descriptor_key,
     UInt sub_descriptor_index,
-    Image::InternalFormat image_format
+    InternalFormat image_format
 ) : m_shader(std::move(shader)),
     m_descriptor_key(descriptor_key),
     m_sub_descriptor_index(sub_descriptor_index),

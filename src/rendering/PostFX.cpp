@@ -15,14 +15,14 @@ using renderer::DescriptorKey;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 
-PostFXPass::PostFXPass(Image::InternalFormat image_format)
+PostFXPass::PostFXPass(InternalFormat image_format)
     : FullScreenPass(Handle<Shader>(), image_format)
 {
 }
 
 PostFXPass::PostFXPass(
     Handle<Shader> &&shader,
-    Image::InternalFormat image_format
+    InternalFormat image_format
 ) : FullScreenPass(std::move(shader),
         DescriptorKey::POST_FX_PRE_STACK,
         ~0u,
@@ -35,7 +35,7 @@ PostFXPass::PostFXPass(
     Handle<Shader> &&shader,
     DescriptorKey descriptor_key,
     UInt sub_descriptor_index,
-    Image::InternalFormat image_format
+    InternalFormat image_format
 ) : FullScreenPass(
         std::move(shader),
         descriptor_key,
@@ -73,7 +73,7 @@ void PostFXPass::CreateDescriptors(Engine *engine)
 PostProcessingEffect::PostProcessingEffect(
     Stage stage,
     UInt index,
-    Image::InternalFormat image_format
+    InternalFormat image_format
 ) : EngineComponentBase(),
     m_pass(
         Handle<Shader>(),

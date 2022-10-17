@@ -8,13 +8,16 @@
 
 namespace hyperion {
 namespace renderer {
+
 class ImageView;
 class Device;
-class Sampler {
+
+class Sampler
+{
 public:
     Sampler(
-        Image::FilterMode filter_mode = Image::FilterMode::TEXTURE_FILTER_NEAREST,
-        Image::WrapMode wrap_mode = Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
+        FilterMode filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER
     );
 
     Sampler(const Sampler &other) = delete;
@@ -24,16 +27,16 @@ public:
     VkSampler &GetSampler() { return m_sampler; }
     const VkSampler &GetSampler() const { return m_sampler; }
 
-    Image::FilterMode GetFilterMode() const { return m_filter_mode; }
-    Image::WrapMode GetWrapMode() const { return m_wrap_mode; }
+    FilterMode GetFilterMode() const { return m_filter_mode; }
+    WrapMode GetWrapMode() const { return m_wrap_mode; }
 
     Result Create(Device *device);
     Result Destroy(Device *device);
 
 private:
     VkSampler m_sampler;
-    Image::FilterMode m_filter_mode;
-    Image::WrapMode m_wrap_mode;
+    FilterMode m_filter_mode;
+    WrapMode m_wrap_mode;
 };
 
 } // namespace renderer

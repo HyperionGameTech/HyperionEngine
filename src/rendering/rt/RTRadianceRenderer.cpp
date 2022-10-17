@@ -4,6 +4,7 @@
 namespace hyperion::v2 {
 
 using renderer::Extent3D;
+using renderer::ImageDescriptor;
 using renderer::StorageImageDescriptor;
 using renderer::ResourceState;
 
@@ -37,18 +38,18 @@ RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent)
       m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent),
-              Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-              Image::Type::TEXTURE_TYPE_2D
+              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent),
-              Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-              Image::Type::TEXTURE_TYPE_2D
+              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent),
-              Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
-              Image::Type::TEXTURE_TYPE_2D
+              InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
+              ImageType::TEXTURE_TYPE_2D
           ))
       },
       m_blur_radiance(
@@ -89,6 +90,20 @@ void RTRadianceRenderer::Destroy(Engine *engine)
                 image_output.Destroy(engine->GetDevice()),
                 result
             );
+        }
+
+        // remove result image from global descriptor set
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            // set to placeholder image
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
+                });
         }
 
         return result;
@@ -185,6 +200,19 @@ void RTRadianceRenderer::CreateDescriptors(Engine *engine)
                 .element_index = 0u,
                 .image_view = &m_image_outputs[2].image_view
             });
+
+        // Add the final result to the global descriptor set
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &m_blur_radiance.GetImageOutput(frame_index).image_view
+                });
+        }
 
         HYPERION_RETURN_OK;
     });

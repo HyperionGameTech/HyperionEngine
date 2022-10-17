@@ -30,17 +30,17 @@ class Texture
 public:
     Texture(
         Extent3D extent,
-        Image::InternalFormat format,
-        Image::Type type,
-        Image::FilterMode filter_mode,
-        Image::WrapMode wrap_mode,
+        InternalFormat format,
+        ImageType type,
+        FilterMode filter_mode,
+        WrapMode wrap_mode,
         const UByte *bytes
     );
 
     Texture(
         Image &&image,
-        Image::FilterMode filter_mode,
-        Image::WrapMode wrap_mode
+        FilterMode filter_mode,
+        WrapMode wrap_mode
     );
 
     Texture(const Texture &other) = delete;
@@ -56,7 +56,7 @@ public:
     Sampler &GetSampler() { return m_sampler; }
     const Sampler &GetSampler() const { return m_sampler; }
 
-    Image::Type GetType() const { return m_image.GetType(); }
+    ImageType GetType() const { return m_image.GetType(); }
 
     UInt NumFaces() const { return m_image.NumFaces(); }
 
@@ -65,9 +65,9 @@ public:
 
     const Extent3D &GetExtent() const { return m_image.GetExtent(); }
 
-    Image::InternalFormat GetFormat() const { return m_image.GetTextureFormat(); }
-    Image::FilterMode GetFilterMode() const { return m_sampler.GetFilterMode(); }
-    Image::WrapMode GetWrapMode() const { return m_sampler.GetWrapMode(); }
+    InternalFormat GetFormat() const { return m_image.GetTextureFormat(); }
+    FilterMode GetFilterMode() const { return m_sampler.GetFilterMode(); }
+    WrapMode GetWrapMode() const { return m_sampler.GetWrapMode(); }
     
     void Init(Engine *engine);
 
@@ -82,14 +82,14 @@ class Texture2D : public Texture
 public:
     Texture2D(
         Extent2D extent,
-        Image::InternalFormat format,
-        Image::FilterMode filter_mode,
-        Image::WrapMode wrap_mode,
+        InternalFormat format,
+        FilterMode filter_mode,
+        WrapMode wrap_mode,
         const UByte *bytes
     ) : Texture(
         Extent3D(extent),
         format,
-        Image::Type::TEXTURE_TYPE_2D,
+        ImageType::TEXTURE_TYPE_2D,
         filter_mode,
         wrap_mode,
         bytes
@@ -103,14 +103,14 @@ class Texture3D : public Texture
 public:
     Texture3D(
         Extent3D extent,
-        Image::InternalFormat format,
-        Image::FilterMode filter_mode,
-        Image::WrapMode wrap_mode,
+        InternalFormat format,
+        FilterMode filter_mode,
+        WrapMode wrap_mode,
         const UByte *bytes
     ) : Texture(
         extent,
         format,
-        Image::Type::TEXTURE_TYPE_3D,
+        ImageType::TEXTURE_TYPE_3D,
         filter_mode,
         wrap_mode,
         bytes
@@ -124,14 +124,14 @@ class TextureCube : public Texture
 public:
     TextureCube(
         Extent2D extent,
-        Image::InternalFormat format,
-        Image::FilterMode filter_mode,
-        Image::WrapMode wrap_mode,
+        InternalFormat format,
+        FilterMode filter_mode,
+        WrapMode wrap_mode,
         const UByte *bytes
     ) : Texture(
             Extent3D(extent),
             format,
-            Image::Type::TEXTURE_TYPE_CUBEMAP,
+            ImageType::TEXTURE_TYPE_CUBEMAP,
             filter_mode,
             wrap_mode,
             bytes
@@ -148,25 +148,16 @@ public:
                         ? Extent3D(other->GetImage().GetExtent().width / 4, other->GetImage().GetExtent().height / 3, 1)
                         : (other->GetImage().GetExtent() / Extent3D(6, 6, 1))))
                 : Extent3D { 1, 1, 1 },
-              other ? other->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-              Image::Type::TEXTURE_TYPE_CUBEMAP,
-              other ? other->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
-              other ? other->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+              other ? other->GetFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              ImageType::TEXTURE_TYPE_CUBEMAP,
+              other ? other->GetFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST,
+              other ? other->GetWrapMode() : WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
               nullptr
           )
     {
         if (other && other->GetImage().HasAssignedImageData()) {
             m_image.EnsureCapacity(m_image.GetByteSize());
-
-            if (other->IsPanorama()) {
-                // create a cubemap from a panorama image
-                //         [top]
-                // [right][back][left][front]
-                //       [bottom]
-                // TODO
-            } else {
-                m_image.CopyImageData(other->GetImage().GetBytes(), other->GetImage().GetByteSize(), 0);
-            }
+            m_image.CopyImageData(other->GetImage().GetBytes(), other->GetImage().GetByteSize(), 0);
         }
 
         other.reset();
@@ -176,10 +167,10 @@ public:
         FixedArray<Handle<Texture>, 6> &&texture_faces
     ) : Texture(
             texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D { },
-            texture_faces[0] ? texture_faces[0]->GetFormat() : Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-            Image::Type::TEXTURE_TYPE_CUBEMAP,
-            texture_faces[0] ? texture_faces[0]->GetFilterMode() : Image::FilterMode::TEXTURE_FILTER_NEAREST,
-            texture_faces[0] ?  texture_faces[0]->GetWrapMode() : Image::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            texture_faces[0] ? texture_faces[0]->GetFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            ImageType::TEXTURE_TYPE_CUBEMAP,
+            texture_faces[0] ? texture_faces[0]->GetFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST,
+            texture_faces[0] ? texture_faces[0]->GetWrapMode() : WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         )
     {
@@ -190,7 +181,7 @@ public:
 
         for (auto &texture : texture_faces) {
             if (texture) {
-                face_size = texture->GetExtent().Size() * Image::NumComponents(texture->GetFormat());
+                face_size = texture->GetExtent().Size() * NumComponents(texture->GetFormat());
 
                 m_image.CopyImageData(texture->GetImage().GetBytes(), face_size, offset);
             }

@@ -176,7 +176,7 @@ public:
     Configuration &GetConfig() { return m_configuration; }
     const Configuration &GetConfig() const { return m_configuration; }
 
-    Image::InternalFormat GetDefaultFormat(TextureFormatDefault type) const
+    InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
     Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
@@ -348,7 +348,7 @@ private:
     std::unique_ptr<Instance> m_instance;
     Handle<RendererInstance> m_root_pipeline;
 
-    EnumOptions<TextureFormatDefault, Image::InternalFormat, 16> m_texture_format_defaults;
+    EnumOptions<TextureFormatDefault, InternalFormat, 16> m_texture_format_defaults;
 
     DeferredRenderer m_deferred_renderer;
     DeferredSystem m_render_list_container;

@@ -4,6 +4,7 @@
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererHelpers.hpp>
 
 #include <util/Defines.hpp>
 
@@ -244,8 +245,8 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size>
-    Image::InternalFormat FindSupportedFormat(
-        const std::array<Image::InternalFormat, Size> &possible_formats,
+    InternalFormat FindSupportedFormat(
+        const std::array<InternalFormat, Size> &possible_formats,
         VkImageTiling tiling,
         VkFormatFeatureFlags features
     ) const
@@ -257,21 +258,21 @@ public:
             "Looking for format to use with tiling option %d and format features %d. First choice: %d\n",
             tiling,
             features,
-            Image::ToVkFormat(possible_formats[0])
+            helpers::ToVkFormat(possible_formats[0])
         );
 
         if (m_physical_device == nullptr) {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-            return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+            return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
         }
 
         for (size_t i = 0; i < Size; i++) {
-            if (IsSupportedFormat(Image::ToVkFormat(possible_formats[i]), tiling, features) != VK_FORMAT_UNDEFINED) {
+            if (IsSupportedFormat(helpers::ToVkFormat(possible_formats[i]), tiling, features) != VK_FORMAT_UNDEFINED) {
                 return possible_formats[i];
             }
         }
 
-        return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
     }
 
     /* get the first supported format out of the provided list of format choices. */
@@ -310,9 +311,9 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <size_t Size, class LambdaFunction>
-    Image::InternalFormat FindSupportedSurfaceFormat(
+    InternalFormat FindSupportedSurfaceFormat(
         const SwapchainSupportDetails &details,
-        const std::array<Image::InternalFormat, Size> &possible_formats,
+        const std::array<InternalFormat, Size> &possible_formats,
         LambdaFunction predicate
     ) const
     {
@@ -342,7 +343,7 @@ public:
                 wanted_format
             );
 
-            const VkFormat wanted_vk_format = Image::ToVkFormat(wanted_format);
+            const VkFormat wanted_vk_format = helpers::ToVkFormat(wanted_format);
 
             if (std::any_of(
                 details.formats.begin(),
@@ -366,7 +367,7 @@ public:
             "No surface format found out of the selected options!\n"
         );
 
-        return Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
     }
 
     Result GetImageFormatProperties(

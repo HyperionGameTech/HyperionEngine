@@ -19,6 +19,7 @@ namespace hyperion::v2 {
 
 using renderer::Frame;
 using renderer::Image;
+using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
@@ -33,6 +34,24 @@ class BlurRadiance
     static constexpr bool generate_mipmap = false;
 
 public:
+    struct ImageOutput
+    {
+        StorageImage image;
+        ImageView image_view;
+
+        void Create(Device *device)
+        {
+            HYPERION_ASSERT_RESULT(image.Create(device));
+            HYPERION_ASSERT_RESULT(image_view.Create(device, &image));
+        }
+
+        void Destroy(Device *device)
+        {
+            HYPERION_ASSERT_RESULT(image.Destroy(device));
+            HYPERION_ASSERT_RESULT(image_view.Destroy(device));
+        }
+    };
+
     BlurRadiance(
         const Extent2D &extent,
         Image *radiance_image,
@@ -41,6 +60,12 @@ public:
         ImageView *depth_image_view
     );
     ~BlurRadiance();
+
+    ImageOutput &GetImageOutput(UInt frame_index)
+        { return m_image_outputs[frame_index].Back(); }
+
+    const ImageOutput &GetImageOutput(UInt frame_index) const
+        { return m_image_outputs[frame_index].Back(); }
 
     void Create(Engine *engine);
     void Destroy(Engine *engine);
@@ -52,32 +77,8 @@ public:
 
 private:
     void CreateImageOutputs(Engine *engine);
-    void CreateDescriptors(Engine *engine);
+    void CreateDescriptorSets(Engine *engine);
     void CreateComputePipelines(Engine *engine);
-    
-    struct ImageOutput
-    {
-        UniquePtr<Image> image;
-        UniquePtr<ImageView> image_view;
-
-        void Create(Device *device)
-        {
-            AssertThrow(image != nullptr);
-            AssertThrow(image_view != nullptr);
-
-            HYPERION_ASSERT_RESULT(image->Create(device));
-            HYPERION_ASSERT_RESULT(image_view->Create(device, image.Get()));
-        }
-
-        void Destroy(Device *device)
-        {
-            AssertThrow(image != nullptr);
-            AssertThrow(image_view != nullptr);
-
-            HYPERION_ASSERT_RESULT(image->Destroy(device));
-            HYPERION_ASSERT_RESULT(image_view->Destroy(device));
-        }
-    };
 
     Extent2D m_extent;
     Image *m_radiance_image;

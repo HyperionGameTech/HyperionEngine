@@ -187,8 +187,8 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
             (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.depth + 2,
             1
         },
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
-        Image::Type::TEXTURE_TYPE_2D,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+        ImageType::TEXTURE_TYPE_2D,
         zeroes
     );
     HYPERION_ASSERT_RESULT(m_irradiance_image->Create(engine->GetDevice()));
@@ -207,8 +207,8 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
             (m_grid_info.depth_octahedron_size + 2) * probe_counts.depth + 2,
             1
         },
-        Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
-        Image::Type::TEXTURE_TYPE_2D,
+        InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
+        ImageType::TEXTURE_TYPE_2D,
         zeroes
     );
     HYPERION_ASSERT_RESULT(m_depth_image->Create(engine->GetDevice()));

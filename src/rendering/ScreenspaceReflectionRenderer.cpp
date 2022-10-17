@@ -33,8 +33,8 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
             image_output = ImageOutput {
                 .image = std::make_unique<StorageImage>(
                     Extent3D(m_extent),
-                    Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-                    Image::Type::TEXTURE_TYPE_2D,
+                    InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+                    ImageType::TEXTURE_TYPE_2D,
                     nullptr
                 ),
                 .image_view = std::make_unique<ImageView>()
@@ -46,8 +46,8 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
         m_radius_output[i] = ImageOutput {
             .image = std::make_unique<StorageImage>(
                 Extent3D(m_extent),
-                Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
-                Image::Type::TEXTURE_TYPE_2D,
+                InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+                ImageType::TEXTURE_TYPE_2D,
                 nullptr
             ),
             .image_view = std::make_unique<ImageView>()

@@ -14,188 +14,11 @@
 namespace hyperion {
 namespace renderer {
 
-Image::BaseFormat Image::GetBaseFormat(InternalFormat fmt)
-{
-    switch (fmt) {
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32_:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F:
-        return BaseFormat::TEXTURE_FORMAT_R;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16_:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F:
-        return BaseFormat::TEXTURE_FORMAT_RG;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32F:
-        return BaseFormat::TEXTURE_FORMAT_RGB;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R10G10B10A2:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F:
-        return BaseFormat::TEXTURE_FORMAT_RGBA;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGR8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGR;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGRA;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F:
-        return BaseFormat::TEXTURE_FORMAT_DEPTH;
-    }
-
-    AssertThrowMsg(false, "Unhandled image format case %d", int(fmt));
-}
-
-Image::InternalFormat Image::FormatChangeNumComponents(InternalFormat fmt, UInt8 new_num_components)
-{
-    if (new_num_components == 0) {
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
-    }
-
-    new_num_components = MathUtil::Clamp(new_num_components, static_cast<UInt8>(1), static_cast<UInt8>(4));
-
-    int current_num_components = int(NumComponents(fmt));
-
-    return InternalFormat(int(fmt) + int(new_num_components) - current_num_components);
-}
-
-UInt Image::NumComponents(InternalFormat format)
-{
-    return NumComponents(GetBaseFormat(format));
-}
-
-UInt Image::NumComponents(BaseFormat format)
-{
-    switch (format) {
-    case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
-    case BaseFormat::TEXTURE_FORMAT_R: return 1;
-    case BaseFormat::TEXTURE_FORMAT_RG: return 2;
-    case BaseFormat::TEXTURE_FORMAT_RGB: return 3;
-    case BaseFormat::TEXTURE_FORMAT_BGR: return 3;
-    case BaseFormat::TEXTURE_FORMAT_RGBA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_BGRA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_DEPTH: return 1;
-    }
-
-    AssertThrowMsg(false, "Unhandled base image type %d", static_cast<Int>(format));
-}
-
-bool Image::IsDepthFormat(InternalFormat fmt)
-{
-    return IsDepthFormat(GetBaseFormat(fmt));
-}
-
-bool Image::IsDepthFormat(BaseFormat fmt)
-{
-    return fmt == BaseFormat::TEXTURE_FORMAT_DEPTH;
-}
-
-bool Image::IsSRGBFormat(InternalFormat fmt)
-{
-    return fmt >= InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB
-        && fmt < InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH;
-}
-
-VkFormat Image::ToVkFormat(InternalFormat fmt)
-{
-    switch (fmt) {
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8:          return VK_FORMAT_R8_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8:         return VK_FORMAT_R8G8_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8:        return VK_FORMAT_R8G8B8_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8:       return VK_FORMAT_R8G8B8A8_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R8_SRGB:     return VK_FORMAT_R8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8_SRGB:    return VK_FORMAT_R8G8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB:   return VK_FORMAT_R8G8B8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB:  return VK_FORMAT_R8G8B8A8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32_:        return VK_FORMAT_R32_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16_:       return VK_FORMAT_R16G16_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F:  return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R10G10B10A2: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R16:         return VK_FORMAT_R16_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16:        return VK_FORMAT_R16G16_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16:       return VK_FORMAT_R16G16B16_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16:      return VK_FORMAT_R16G16B16A16_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32:         return VK_FORMAT_R32_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32:        return VK_FORMAT_R32G32_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32:       return VK_FORMAT_R32G32B32_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32:      return VK_FORMAT_R32G32B32A32_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R16F:        return VK_FORMAT_R16_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F:       return VK_FORMAT_R16G16_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16F:      return VK_FORMAT_R16G16B16_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F:     return VK_FORMAT_R16G16B16A16_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F:        return VK_FORMAT_R32_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F:       return VK_FORMAT_R32G32_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32F:      return VK_FORMAT_R32G32B32_SFLOAT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F:     return VK_FORMAT_R32G32B32A32_SFLOAT;
-        
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8:       return VK_FORMAT_B8G8R8A8_UNORM;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_BGR8_SRGB:   return VK_FORMAT_B8G8R8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB:  return VK_FORMAT_B8G8R8A8_SRGB;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16:    return VK_FORMAT_D16_UNORM_S8_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24:    return VK_FORMAT_D24_UNORM_S8_UINT;
-    case Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F:   return VK_FORMAT_D32_SFLOAT_S8_UINT;
-    }
-
-    AssertThrowMsg(false, "Unhandled texture format case %d", int(fmt));
-}
-
-VkImageType Image::ToVkType(Type type)
-{
-    switch (type) {
-    case Image::Type::TEXTURE_TYPE_2D: return VK_IMAGE_TYPE_2D;
-    case Image::Type::TEXTURE_TYPE_3D: return VK_IMAGE_TYPE_3D;
-    case Image::Type::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_TYPE_2D;
-    }
-
-    AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
-}
-
-VkFilter Image::ToVkFilter(FilterMode filter_mode)
-{
-    switch (filter_mode) {
-    case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
-    case FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP: return VK_FILTER_NEAREST;
-    case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP: // fallthrough
-    case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP: // fallthrough
-    case FilterMode::TEXTURE_FILTER_LINEAR: return VK_FILTER_LINEAR;
-    }
-
-    AssertThrowMsg(false, "Unhandled texture filter mode case %d", int(filter_mode));
-}
-
-VkSamplerAddressMode Image::ToVkSamplerAddressMode(WrapMode texture_wrap_mode)
-{
-    switch (texture_wrap_mode) {
-    case WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    case WrapMode::TEXTURE_WRAP_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    case WrapMode::TEXTURE_WRAP_REPEAT: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    }
-
-    AssertThrowMsg(false, "Unhandled texture wrap mode case %d", int(texture_wrap_mode));
-}
-
 Image::Image(
     Extent3D extent,
-    Image::InternalFormat format,
-    Image::Type type,
-    Image::FilterMode filter_mode,
+    InternalFormat format,
+    ImageType type,
+    FilterMode filter_mode,
     const InternalInfo &internal_info,
     const UByte *bytes)
     : m_extent(extent),
@@ -232,7 +55,32 @@ Image::Image(Image &&other) noexcept
     other.m_image = nullptr;
     other.m_bytes = nullptr;
     other.m_is_blended = false;
+    other.m_size = 0;
+    other.m_bpp = 0;
     other.m_extent = Extent3D { };
+}
+
+Image &Image::operator=(Image &&other) noexcept
+{
+    m_extent = other.m_extent;
+    m_format = other.m_format;
+    m_type = other.m_type;
+    m_filter_mode = other.m_filter_mode;
+    m_internal_info = other.m_internal_info;
+    m_is_blended = other.m_is_blended;
+    m_image = other.m_image;
+    m_size = other.m_size;
+    m_bpp = other.m_bpp;
+    m_bytes = other.m_bytes;
+
+    other.m_image = nullptr;
+    other.m_bytes = nullptr;
+    other.m_is_blended = false;
+    other.m_size = 0;
+    other.m_bpp = 0;
+    other.m_extent = Extent3D { };
+
+    return *this;
 }
 
 Image::~Image()
@@ -283,17 +131,14 @@ void Image::SetIsSRGB(bool srgb)
     m_format = to_srgb_format;
 }
 
-VkFormat Image::GetImageFormat() const  { return ToVkFormat(m_format); }
-VkImageType Image::GetImageType() const { return ToVkType(m_type); }
-
 Result Image::CreateImage(
     Device *device,
     VkImageLayout initial_layout,
     VkImageCreateInfo *out_image_info
 )
 {
-    VkFormat format = GetImageFormat();
-    VkImageType image_type = GetImageType();
+    VkFormat format = helpers::ToVkFormat(m_format);
+    VkImageType image_type = helpers::ToVkType(m_type);
     VkImageCreateFlags image_create_flags = 0;
     VkFormatFeatureFlags format_features = 0;
     VkImageFormatProperties image_format_properties{};
@@ -658,7 +503,7 @@ Result Image::Blit(
             this->GetGPUImage()->image,
             GPUMemory::GetImageLayout(this->GetGPUImage()->GetResourceState()),
             1, &blit,
-            ToVkFilter(src_image->GetFilterMode())
+            helpers::ToVkFilter(src_image->GetFilterMode())
         );
     }
 
@@ -910,7 +755,7 @@ Result Image::ConvertTo32BPP(
     m_bpp = new_bpp;
     m_size = new_size;
 
-    *out_format = GetImageFormat();
+    *out_format = helpers::ToVkFormat(m_format);
 
     HYPERION_RETURN_OK;
 }
