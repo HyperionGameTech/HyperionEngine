@@ -102,15 +102,15 @@ bool AttachmentRef::IsDepthAttachment() const
 
 VkAttachmentDescription AttachmentRef::GetAttachmentDescription() const
 {
-    return VkAttachmentDescription{
-        .format         = Image::ToVkFormat(m_attachment->GetFormat()),
-        .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = ToVkLoadOp(m_load_operation),
-        .storeOp        = ToVkStoreOp(m_store_operation),
-        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+    return VkAttachmentDescription {
+        .format = Image::ToVkFormat(m_attachment->GetFormat()),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = ToVkLoadOp(m_load_operation),
+        .storeOp = ToVkStoreOp(m_store_operation),
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = m_initial_layout,
-        .finalLayout    = m_final_layout
+        .initialLayout = m_initial_layout,
+        .finalLayout = m_final_layout
     };
 }
 

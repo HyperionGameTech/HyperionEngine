@@ -1,15 +1,16 @@
 #ifndef HYPERION_V2_DEFERRED_HPP
 #define HYPERION_V2_DEFERRED_HPP
 
-#include "FullScreenPass.hpp"
-#include "PostFX.hpp"
-#include "ParticleSystem.hpp"
-#include "Texture.hpp"
-#include "Compute.hpp"
-#include "IndirectDraw.hpp"
-#include "CullData.hpp"
-#include "DepthPyramidRenderer.hpp"
-#include "ScreenspaceReflectionRenderer.hpp"
+#include <rendering/FullScreenPass.hpp>
+#include <rendering/PostFX.hpp>
+#include <rendering/ParticleSystem.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/Compute.hpp>
+#include <rendering/IndirectDraw.hpp>
+#include <rendering/CullData.hpp>
+#include <rendering/DepthPyramidRenderer.hpp>
+#include <rendering/ScreenspaceReflectionRenderer.hpp>
+#include <rendering/rt/RTRadianceRenderer.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -48,7 +49,7 @@ public:
     DeferredPass(bool is_indirect_pass);
     DeferredPass(const DeferredPass &other) = delete;
     DeferredPass &operator=(const DeferredPass &other) = delete;
-    virtual ~DeferredPass();
+    virtual ~DeferredPass() override;
 
     void CreateShader(Engine *engine);
     virtual void CreateRenderPass(Engine *engine) override;
@@ -113,6 +114,7 @@ private:
 
     ScreenspaceReflectionRenderer m_ssr;
     DepthPyramidRenderer m_dpr;
+    RTRadianceRenderer m_rt_radiance;
 
     FixedArray<Handle<Texture>, max_frames_in_flight> m_results;
     FixedArray<Handle<Texture>, max_frames_in_flight> m_mipmapped_results;

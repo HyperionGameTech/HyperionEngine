@@ -10,7 +10,8 @@ Configuration::Configuration() = default;
 void Configuration::SetToDefaultConfiguration(Engine *engine)
 {
     m_variables = { };
-
+    
+    m_variables[CONFIG_RT_SUPPORTED] = engine->GetDevice()->GetFeatures().IsRaytracingSupported();
     m_variables[CONFIG_RT_ENABLED] = engine->GetDevice()->GetFeatures().IsRaytracingEnabled();
     m_variables[CONFIG_RT_REFLECTIONS] = engine->GetDevice()->GetFeatures().IsRaytracingEnabled();
     m_variables[CONFIG_RT_GI] = engine->GetDevice()->GetFeatures().IsRaytracingEnabled();

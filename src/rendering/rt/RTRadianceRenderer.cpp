@@ -69,15 +69,17 @@ void RTRadianceRenderer::Create(Engine *engine)
 {
     CreateImages(engine);
     CreateDescriptors(engine);
-    CreateRaytracingPipeline(engine);
     CreateBlurRadiance(engine);
+    CreateRaytracingPipeline(engine);
 
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    //HYP_FLUSH_RENDER_QUEUE(engine);
 }
 
 void RTRadianceRenderer::Destroy(Engine *engine)
 {
     m_blur_radiance.Destroy(engine);
+
+    engine->SafeRelease(std::move(m_raytracing_pipeline));
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         auto result = Result::OK;
@@ -88,11 +90,6 @@ void RTRadianceRenderer::Destroy(Engine *engine)
                 result
             );
         }
-
-        HYPERION_PASS_ERRORS(
-            m_raytracing_pipeline->Destroy(engine->GetDevice()),
-            result
-        );
 
         return result;
     });
@@ -106,9 +103,6 @@ void RTRadianceRenderer::Render(
 )
 {
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
-    
-    const auto scene_binding = engine->render_state.GetScene().id;
-    const auto scene_index = scene_binding ? scene_binding.value - 1 : 0u;
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         engine->GetInstance()->GetDescriptorPool(),
@@ -116,8 +110,8 @@ void RTRadianceRenderer::Render(
         DescriptorSet::scene_buffer_mapping[frame->GetFrameIndex()],
         DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
         FixedArray {
-            UInt32(sizeof(v2::SceneShaderData) * scene_index),
-            UInt32(sizeof(v2::LightDrawProxy) * 0)
+            UInt32(sizeof(SceneShaderData) * engine->render_state.GetScene().id.ToIndex()),
+            UInt32(sizeof(LightDrawProxy) * 0)
         }
     );
 

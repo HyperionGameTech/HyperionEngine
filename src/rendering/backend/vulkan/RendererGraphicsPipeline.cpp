@@ -53,19 +53,27 @@ void GraphicsPipeline::UpdateDynamicStates(VkCommandBuffer cmd)
 
 std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
 {
-    std::unordered_map<uint32_t, uint32_t> binding_sizes{};
+    std::unordered_map<uint32_t, uint32_t> binding_sizes { };
 
     const auto attributes = attribute_set.BuildAttributes();
     this->vertex_attributes = std::vector<VkVertexInputAttributeDescription>(attributes.size());
 
+    static constexpr VkFormat size_to_format[] = {
+        VK_FORMAT_UNDEFINED,
+        VK_FORMAT_R32_SFLOAT,
+        VK_FORMAT_R32G32_SFLOAT,
+        VK_FORMAT_R32G32B32_SFLOAT,
+        VK_FORMAT_R32G32B32A32_SFLOAT
+    };
+
     for (size_t i = 0; i < attributes.size(); i++) {
         const auto &attribute = attributes[i];
 
-        this->vertex_attributes[i] = VkVertexInputAttributeDescription{
+        this->vertex_attributes[i] = VkVertexInputAttributeDescription {
             .location = attribute.location,
-            .binding  = attribute.binding,
-            .format   = attribute.GetFormat(),
-            .offset   = binding_sizes[attribute.binding]
+            .binding = attribute.binding,
+            .format = size_to_format[attribute.size / sizeof(float)],
+            .offset = binding_sizes[attribute.binding]
         };
 
         binding_sizes[attribute.binding] += attribute.size;
@@ -75,9 +83,9 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
     this->vertex_binding_descriptions.reserve(binding_sizes.size());
 
     for (const auto &it : binding_sizes) {
-        this->vertex_binding_descriptions.push_back(VkVertexInputBindingDescription{
-            .binding   = it.first,
-            .stride    = it.second,
+        this->vertex_binding_descriptions.push_back(VkVertexInputBindingDescription {
+            .binding = it.first,
+            .stride = it.second,
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
         });
     }

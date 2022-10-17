@@ -13,6 +13,7 @@ using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
 using renderer::Rect;
+using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 
@@ -99,21 +100,6 @@ void DeferredPass::Create(Engine *engine)
     FullScreenPass::CreateCommandBuffers(engine);
     FullScreenPass::CreateFramebuffers(engine);
 
-#if 0
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[i];
-        
-        auto command_buffer = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
-
-        HYPERION_ASSERT_RESULT(command_buffer->Create(
-            engine->GetInstance()->GetDevice(),
-            engine->GetInstance()->GetGraphicsCommandPool()
-        ));
-
-        m_command_buffers[i] = std::move(command_buffer);
-    }
-#endif
-
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
             .vertex_attributes = renderer::static_mesh_vertex_attributes
@@ -147,8 +133,6 @@ void DeferredPass::Record(Engine *engine, UInt frame_index)
     if (engine->render_state.light_bindings.Empty()) {
         return;
     }
-
-    using renderer::Result;
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
@@ -212,6 +196,7 @@ void DeferredPass::Render(Engine *engine, Frame *frame)
 
 DeferredRenderer::DeferredRenderer()
     : m_ssr(Extent2D { 512, 512 }),
+      m_rt_radiance(Extent2D { 1024, 1024 }),
       m_indirect_pass(true),
       m_direct_pass(false)
 {
@@ -236,7 +221,7 @@ void DeferredRenderer::Create(Engine *engine)
         AssertThrow(m_translucent_fbos[frame_index]);
     }
     
-    const auto *depth_attachment_ref = engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()->GetRenderPass().GetAttachmentRefs().back(); //m_indirect_pass.GetRenderPass()->GetRenderPass().GetAttachmentRefs().back();//opaque_render_pass->GetRenderPass().GetAttachmentRefs().back();//.back();
+    const auto *depth_attachment_ref = engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()->GetRenderPass().GetAttachmentRefs().back();
     AssertThrow(depth_attachment_ref != nullptr);
 
     m_dpr.Create(engine, depth_attachment_ref);
@@ -272,7 +257,23 @@ void DeferredRenderer::Create(Engine *engine)
 
     m_depth_sampler = UniquePtr<Sampler>::Construct(Image::FilterMode::TEXTURE_FILTER_NEAREST);
     HYPERION_ASSERT_RESULT(m_depth_sampler->Create(engine->GetDevice()));
+    
+    m_indirect_pass.CreateDescriptors(engine); // no-op
+    m_direct_pass.CreateDescriptors(engine);
 
+    HYP_FLUSH_RENDER_QUEUE(engine);
+
+    CreateDescriptorSets(engine);
+    CreateComputePipelines(engine);
+
+    if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+        m_rt_radiance.Create(engine);
+    }
+}
+
+void DeferredRenderer::CreateDescriptorSets(Engine *engine)
+{
+    // set global gbuffer data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
@@ -351,21 +352,8 @@ void DeferredRenderer::Create(Engine *engine)
             });
     }
     
-    m_indirect_pass.CreateDescriptors(engine); // no-op
-    m_direct_pass.CreateDescriptors(engine);
-
-    HYP_FLUSH_RENDER_QUEUE(engine);
-
-    CreateDescriptorSets(engine);
-    CreateComputePipelines(engine);
-}
-
-void DeferredRenderer::CreateDescriptorSets(Engine *engine)
-{
-    constexpr UInt attachment_index = 0u;
-
+    // create descriptor sets for combine pass (compute shader)
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        // create descriptor sets for combine pass (compute shader)
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
 
         // indirect lighting
@@ -456,7 +444,7 @@ void DeferredRenderer::CreateDescriptorSets(Engine *engine)
 
         /* Depth texture */
         descriptor_set
-            ->GetOrAddDescriptor<ImageDescriptor>(8)
+            ->AddDescriptor<ImageDescriptor>(8)
             ->SetSubDescriptor({
                 .element_index = 0u,
                 .image_view = depth_attachment_ref->GetImageView()
@@ -493,6 +481,10 @@ void DeferredRenderer::Destroy(Engine *engine)
 
     m_ssr.Destroy(engine);
     m_dpr.Destroy(engine);
+
+    if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+        m_rt_radiance.Destroy(engine);
+    }
 
     m_post_processing.Destroy(engine);
 
@@ -532,6 +524,7 @@ void DeferredRenderer::Render(
     const bool do_particles = environment && environment->IsReady();
 
     const bool use_ssr = ssr_enabled && engine->GetConfig().Get(CONFIG_SSR);
+    const bool use_rt_radiance = engine->GetConfig().Get(CONFIG_RT_REFLECTIONS);
     
     CollectDrawCalls(engine, frame);
 
@@ -539,14 +532,18 @@ void DeferredRenderer::Render(
         UpdateParticles(engine, frame, environment);
     }
 
-    { // screen space reflection
+    if (use_ssr) { // screen space reflection
         DebugMarker marker(primary, "Screen space reflection");
 
         auto &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
 
-        if (use_ssr && mipmapped_result.GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
+        if (mipmapped_result.GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
             m_ssr.Render(engine, frame);
         }
+    } else if (use_rt_radiance) { // rt radiance
+        DebugMarker marker(primary, "RT Radiance");
+
+        m_rt_radiance.Render(engine, frame);
     }
 
     { // indirect lighting

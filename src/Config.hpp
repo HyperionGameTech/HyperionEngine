@@ -13,6 +13,7 @@ enum OptionName
 {
     CONFIG_NONE = 0,
 
+    CONFIG_RT_SUPPORTED,
     CONFIG_RT_ENABLED,
     CONFIG_RT_REFLECTIONS,
     CONFIG_RT_GI,
@@ -96,14 +97,14 @@ public:
         Option operator~() const
         {
             if (auto *ptr = TryGet<Int>()) {
-                Option(~*ptr);
+                return Option(~*ptr);
             } else if (auto *ptr = TryGet<Float>()) {
-                Option(~static_cast<Int>(*ptr));
+                return Option(~static_cast<Int>(*ptr));
             } else if (auto *ptr = TryGet<bool>()) {
-                Option(~*ptr);
+                return Option(~*ptr);
+            } else {
+                return Option(1);
             }
-
-            return *this;
         }
 
         ~Option() = default;

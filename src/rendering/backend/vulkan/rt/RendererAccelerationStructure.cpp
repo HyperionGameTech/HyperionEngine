@@ -50,7 +50,7 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 	AssertThrow(m_packed_vertex_buffer == nullptr);
 	AssertThrow(m_packed_index_buffer == nullptr);
 
-	if (!device->GetFeatures().SupportsRaytracing()) {
+	if (!device->GetFeatures().IsRaytracingSupported()) {
 	    return { Result::RENDERER_ERR, "Device does not support raytracing" };
 	}
 
@@ -223,7 +223,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
         AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
     }
 
-	if (!instance->GetDevice()->GetFeatures().SupportsRaytracing()) {
+	if (!instance->GetDevice()->GetFeatures().IsRaytracingSupported()) {
 	    return { Result::RENDERER_ERR, "Device does not support raytracing" };
 	}
 

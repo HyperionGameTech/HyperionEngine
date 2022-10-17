@@ -82,68 +82,78 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
 void ScreenspaceReflectionRenderer::CreateDescriptors(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto *descriptor_set_pass = engine->GetInstance()->GetDescriptorPool()
+        auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
 
         /* SSR Data */
-        descriptor_set_pass // 1st stage -- trace, write UVs
-            ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_UV_IMAGE)
+        descriptor_set_globals // 1st stage -- trace, write UVs
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_UV_IMAGE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][0].image_view.get()
             });
 
-        descriptor_set_pass // 2nd stage -- sample
-            ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_SAMPLE_IMAGE)
+        descriptor_set_globals // 2nd stage -- sample
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_SAMPLE_IMAGE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][1].image_view.get()
             });
 
-        descriptor_set_pass // 2nd stage -- write radii
-            ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_RADIUS_IMAGE)
+        descriptor_set_globals // 2nd stage -- write radii
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_RADIUS_IMAGE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_radius_output[i].image_view.get()
             });
 
-        descriptor_set_pass // 3rd stage -- blur horizontal
-            ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_IMAGE)
+        descriptor_set_globals // 3rd stage -- blur horizontal
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_IMAGE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][2].image_view.get()
             });
 
-        descriptor_set_pass // 3rd stage -- blur vertical
-            ->AddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_IMAGE)
+        descriptor_set_globals // 3rd stage -- blur vertical
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_IMAGE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][3].image_view.get()
             });
 
         /* SSR Data */
-        descriptor_set_pass // 1st stage -- trace, write UVs
-            ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_UV_TEXTURE)
+        descriptor_set_globals // 1st stage -- trace, write UVs
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_UV_TEXTURE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                .image_view = m_image_outputs[i][0].image_view.get()
            });
 
-        descriptor_set_pass // 2nd stage -- sample
-            ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_SAMPLE_TEXTURE)
+        descriptor_set_globals // 2nd stage -- sample
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_SAMPLE_TEXTURE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][1].image_view.get()
            });
 
-        descriptor_set_pass // 2nd stage -- write radii
-            ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RADIUS_TEXTURE)
+        descriptor_set_globals // 2nd stage -- write radii
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RADIUS_TEXTURE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_radius_output[i].image_view.get()
            });
 
-        descriptor_set_pass // 3rd stage -- blur horizontal
-            ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_TEXTURE)
+        descriptor_set_globals // 3rd stage -- blur horizontal
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_TEXTURE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][2].image_view.get()
             });
 
-        descriptor_set_pass // 3rd stage -- blur vertical
-            ->AddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_TEXTURE)
+        descriptor_set_globals // 3rd stage -- blur vertical
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_TEXTURE)
             ->SetSubDescriptor({
+                .element_index = 0u,
                 .image_view = m_image_outputs[i][3].image_view.get()
             });
     }

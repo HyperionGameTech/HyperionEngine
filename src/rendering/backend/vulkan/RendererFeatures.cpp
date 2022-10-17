@@ -113,7 +113,7 @@ void Features::LoadDynamicFunctions(Device *device)
 #if HYP_FEATURES_ENABLE_RAYTRACING
     HYP_LOAD_FN(vkGetBufferDeviceAddressKHR); // currently only used for RT
 
-    if (SupportsRaytracing() && !IsRaytracingDisabled()) {
+    if (IsRaytracingSupported() && !IsRaytracingDisabled()) {
         DebugLog(LogType::Debug, "Raytracing supported, loading raytracing-specific dynamic functions.\n");
 
         HYP_LOAD_FN(vkCmdBuildAccelerationStructuresKHR);

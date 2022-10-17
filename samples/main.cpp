@@ -910,28 +910,30 @@ int main()
     ImageView rt_depth_image_view;
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
-    rt_descriptor_set->AddDescriptor<TlasDescriptor>(0)
-        ->SetSubDescriptor({ .acceleration_structure = &my_game->GetScene()->GetTLAS()->GetInternalTLAS() });
-    rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(1)
-        ->SetSubDescriptor({ .image_view = &rt_image_storage_view });
-    rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(2)
-        ->SetSubDescriptor({ .image_view = &rt_normals_roughness_weight_view });
-    rt_descriptor_set->AddDescriptor<StorageImageDescriptor>(3)
-        ->SetSubDescriptor({ .image_view = &rt_depth_image_view });
+    rt_descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
+        ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &my_game->GetScene()->GetTLAS()->GetInternalTLAS() });
+    rt_descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(1)
+        ->SetSubDescriptor({ .element_index = 0u, .image_view = &rt_image_storage_view });
+    rt_descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(2)
+        ->SetSubDescriptor({ .element_index = 0u, .image_view = &rt_normals_roughness_weight_view });
+    rt_descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(3)
+        ->SetSubDescriptor({ .element_index = 0u, .image_view = &rt_depth_image_view });
     
     // mesh descriptions
-    auto rt_storage_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(4);
-    rt_storage_buffer->SetSubDescriptor({ .buffer = my_game->GetScene()->GetTLAS()->GetInternalTLAS().GetMeshDescriptionsBuffer() });
+    auto rt_storage_buffer = rt_descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(4);
+    rt_storage_buffer->SetSubDescriptor({ .element_index = 0u, .buffer = my_game->GetScene()->GetTLAS()->GetInternalTLAS().GetMeshDescriptionsBuffer() });
 
     // materials
-    auto rt_material_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(5);
+    auto rt_material_buffer = rt_descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5);
     rt_material_buffer->SetSubDescriptor({
+        .element_index = 0u,
         .buffer = engine->shader_globals->materials.GetBuffers()[0].get()
     });
 
     // entities
-    auto rt_entity_buffer = rt_descriptor_set->AddDescriptor<StorageBufferDescriptor>(6);
+    auto rt_entity_buffer = rt_descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(6);
     rt_entity_buffer->SetSubDescriptor({
+        .element_index = 0u,
         .buffer = engine->shader_globals->objects.GetBuffers()[0].get()
     });
 
@@ -969,53 +971,9 @@ int main()
 
     engine->Compile();
 
-#ifdef HYP_TEST_RT
-    HYPERION_ASSERT_RESULT(rt->Create(engine->GetDevice(), &engine->GetInstance()->GetDescriptorPool()));
-    
-    BlurRadiance blur_radiance(Extent2D { 1024, 1024 }, rt_image_storage, &rt_image_storage_view, &rt_normals_roughness_weight_view, &rt_depth_image_view);
-    blur_radiance.Create(engine);
-
-    //RTRadianceRenderer rt_radiance(Extent2D { 1024, 1024 });
-    //rt_radiance.Create(engine);
-
-#if 0
-    
-    auto my_material = engine->CreateHandle<Material>();
-    my_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 1.0f);
-    my_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, engine->GetAssetManager().Load<Texture>("textures/grass.jpg"));
-    my_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-    engine->InitObject(my_material);
-
-    auto my_material2 = engine->CreateHandle<Material>();
-    my_material2->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
-    my_material2->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 0.0f, 1.0f));
-    engine->InitObject(my_material2);
-
-    auto tmp_asset = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj");
-    auto running_guy_mesh = Handle(tmp_asset.GetChild(0).GetEntity()->GetMesh());//MeshBuilder::NormalizedCubeSphere(16).release());
-    auto cube_obj2 = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
-    auto cube_obj3 = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
-    tmp_asset.GetChild(0).GetEntity()->CreateBLAS();
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(running_guy_mesh),
-        Handle<Material>(my_material),
-        Transform { Vector3 { 0, 7, 0 } }
-    ));
-
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj2),
-        std::move(my_material2),
-        Transform { Vector3 { 0, 7, 4 } }
-    ));
-
-    my_game->GetScene()->GetTLAS()->AddBLAS(engine->CreateHandle<BLAS>(
-        std::move(cube_obj3),
-        engine->CreateHandle<Material>(),
-        Transform { Vector3 { 4, 7, 0 } }
-    ));
-
-    engine->InitObject(my_material);
-#endif
+#if 0//def HYP_TEST_RT
+    RTRadianceRenderer rt_radiance(Extent2D { 1024, 1024 });
+    rt_radiance.Create(engine);
 #endif
     
     engine->game_thread.Start(engine, my_game, window);
@@ -1048,7 +1006,7 @@ int main()
             num_frames = 0;
         }
 
-#ifdef HYP_TEST_RT
+#if 0 //def HYP_TEST_RT
         HYPERION_ASSERT_RESULT(engine->GetInstance()->GetFrameHandler()->PrepareFrame(
             engine->GetInstance()->GetDevice(),
             engine->GetInstance()->GetSwapchain()
@@ -1099,7 +1057,7 @@ int main()
         // perform any updates to the tlas
         //my_tlas->UpdateRender(engine, frame);
 
-#if 1
+#if 0
         rt->Bind(frame->GetCommandBuffer());
     
         const auto scene_binding = engine->render_state.GetScene().id;
@@ -1159,7 +1117,7 @@ int main()
         blur_radiance.Render(engine, frame);
 #endif
 
-        //rt_radiance.Render(engine, frame);
+        rt_radiance.Render(engine, frame);
 
         probe_system.RenderProbes(engine, frame);
         probe_system.ComputeIrradiance(engine, frame);
@@ -1184,7 +1142,7 @@ int main()
 
     AssertThrow(engine->GetInstance()->GetDevice()->Wait());
     
-#ifdef HYP_TEST_RT
+#if 0//def HYP_TEST_RT
 
     rt_image_storage->Destroy(engine->GetDevice());
     rt_image_storage_view.Destroy(engine->GetDevice());

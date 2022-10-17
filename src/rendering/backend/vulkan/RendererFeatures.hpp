@@ -410,12 +410,12 @@ public:
 
     bool SupportsGeometryShaders() const { return m_features.geometryShader; }
 
-    bool IsRaytracingDisabled() const { return !SupportsRaytracing() || m_is_raytracing_disabled; }
+    bool IsRaytracingDisabled() const { return !IsRaytracingSupported() || m_is_raytracing_disabled; }
     void SetIsRaytracingDisabled(bool is_raytracing_disabled) { m_is_raytracing_disabled = is_raytracing_disabled; }
 
-    bool IsRaytracingEnabled() const { return SupportsRaytracing() && !m_is_raytracing_disabled; }
+    bool IsRaytracingEnabled() const { return IsRaytracingSupported() && !m_is_raytracing_disabled; }
 
-    bool SupportsRaytracing() const
+    bool IsRaytracingSupported() const
     {
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
         return m_raytracing_pipeline_features.rayTracingPipeline

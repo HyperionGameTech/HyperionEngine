@@ -32,7 +32,7 @@ Result RaytracingPipeline::Create(
     DescriptorPool *descriptor_pool
 )
 {
-    if (!device->GetFeatures().SupportsRaytracing()) {
+    if (!device->GetFeatures().IsRaytracingSupported()) {
         return {Result::RENDERER_ERR, "Raytracing is not supported on this device"};
     }
 

@@ -292,6 +292,8 @@ void Engine::Initialize()
 
     FindTextureFormatDefaults();
 
+    m_configuration.SetToDefaultConfiguration(this);
+
     shader_globals = new ShaderGlobals(m_instance->GetFrameHandler()->NumFrames());
     shader_globals->Create(this);
 
@@ -558,7 +560,193 @@ void Engine::Initialize()
                 .element_index = 0u,
                 .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetDevice(), sizeof(ShaderVec2<UInt32>))
             });
+
+        { // add placeholder gbuffer textures
+            auto *gbuffer_textures = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_TEXTURES);
+
+            UInt element_index = 0u;
+
+            // not including depth texture here
+            for (UInt attachment_index = 0; attachment_index < DeferredSystem::gbuffer_texture_formats.Size() - 1; attachment_index++) {
+                gbuffer_textures->SetSubDescriptor({
+                    .element_index = element_index,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+                ++element_index;
+            }
+
+            // add translucent bucket's albedo
+            gbuffer_textures->SetSubDescriptor({
+                .element_index = element_index,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
+            ++element_index;
+        }
+
+        { // more placeholder gbuffer stuff, different slots
+            // depth attachment goes into separate slot
+            /* Depth texture */
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_DEPTH)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            /* Mip chain */
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_MIP_CHAIN)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            /* Gbuffer depth sampler */
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_DEPTH_SAMPLER)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .sampler = &GetPlaceholderData().GetSamplerNearest()
+                });
+
+            /* Gbuffer sampler */
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_SAMPLER)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .sampler = &GetPlaceholderData().GetSamplerLinear()
+                });
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEPTH_PYRAMID_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+                
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+        }
+
+        { // SSR placeholders
+            /* SSR Data */
+            descriptor_set_globals // 1st stage -- trace, write UVs
+                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_UV_IMAGE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            descriptor_set_globals // 2nd stage -- sample
+                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_SAMPLE_IMAGE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            descriptor_set_globals // 2nd stage -- write radii
+                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_RADIUS_IMAGE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            descriptor_set_globals // 3rd stage -- blur horizontal
+                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_IMAGE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            descriptor_set_globals // 3rd stage -- blur vertical
+                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_IMAGE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            /* SSR Data */
+            descriptor_set_globals // 1st stage -- trace, write UVs
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_UV_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+               });
+
+            descriptor_set_globals // 2nd stage -- sample
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_SAMPLE_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+               });
+
+            descriptor_set_globals // 2nd stage -- write radii
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RADIUS_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+               });
+
+            descriptor_set_globals // 3rd stage -- blur horizontal
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            descriptor_set_globals // 3rd stage -- blur vertical
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                });
+        }
+
+        { // POST FX processing placeholders
+            
+            for (const auto descriptor_key : { DescriptorKey::POST_FX_PRE_STACK, DescriptorKey::POST_FX_POST_STACK }) {
+                auto *descriptor = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
+
+                for (UInt effect_index = 0; effect_index < 8; effect_index++) {
+                    descriptor->SetSubDescriptor({
+                        .element_index = effect_index,
+                        .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+                    });
+                }
+            }
+        }
     }
+
+
+#if HYP_FEATURES_ENABLE_RAYTRACING
+    { // add RT placeholders
+        auto *rt_descriptor_set = GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
+
+        rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(1)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
+        rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(2)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
+        rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(3)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+    }
+#endif
 
     /* for textures */
     //shader_globals->textures.Create(this);
@@ -578,8 +766,6 @@ void Engine::Compile()
     Threads::AssertOnThread(THREAD_MAIN);
 
     HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().Create(m_instance->GetDevice()));
-    
-    m_deferred_renderer.Create(this);
 
     for (UInt i = 0; i < m_instance->GetFrameHandler()->NumFrames(); i++) {
         /* Finalize env probes */
@@ -605,17 +791,18 @@ void Engine::Compile()
     }
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
-
-    /* Flush render queue before finalizing descriptors */
-    HYP_FLUSH_RENDER_QUEUE(this);
-
+    
+    m_deferred_renderer.Create(this);
+    
     /* Finalize descriptor pool */
     HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().CreateDescriptorSets(m_instance->GetDevice()));
     DebugLog(
         LogType::Debug,
         "Finalized descriptor pool\n"
     );
-    
+
+    HYP_FLUSH_RENDER_QUEUE(this);
+
     callbacks.TriggerPersisted(EngineCallback::CREATE_GRAPHICS_PIPELINES, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_COMPUTE_PIPELINES, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_RAYTRACING_PIPELINES, this);

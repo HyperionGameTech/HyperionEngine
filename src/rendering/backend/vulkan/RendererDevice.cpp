@@ -283,7 +283,7 @@ Result Device::SetupAllocator(Instance *instance)
     create_info.device           = this->GetDevice();
     create_info.instance         = instance->GetInstance();
     create_info.pVulkanFunctions = &vkfuncs;
-    create_info.flags            = 0 | (features->SupportsRaytracing() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    create_info.flags            = 0 | (features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
     vmaCreateAllocator(&create_info, &allocator);
 
@@ -393,7 +393,7 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     features->LoadDynamicFunctions(this);
     features->SetDeviceFeatures(this);
 
-    DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->SupportsRaytracing());
+    DebugLog(LogType::Info, "Raytracing supported? : %d\n", features->IsRaytracingSupported());
 
     HYPERION_RETURN_OK;
 }
