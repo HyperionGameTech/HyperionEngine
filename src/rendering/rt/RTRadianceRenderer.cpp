@@ -90,7 +90,7 @@ void RTRadianceRenderer::Destroy(Engine *engine)
 
     // release our owned descriptor sets
     for (auto &descriptor_set : m_descriptor_sets) {
-        //engine->SafeRelease(std::move(descriptor_set));
+        engine->SafeRelease(std::move(descriptor_set));
     }
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
@@ -130,6 +130,8 @@ void RTRadianceRenderer::Render(
 {
     if (m_has_tlas_updates[frame->GetFrameIndex()]) {
         m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(engine->GetDevice());
+
+        m_has_tlas_updates[frame->GetFrameIndex()] = false;
     }
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
@@ -137,8 +139,15 @@ void RTRadianceRenderer::Render(
     frame->GetCommandBuffer()->BindDescriptorSet(
         engine->GetInstance()->GetDescriptorPool(),
         m_raytracing_pipeline.Get(),
+        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        0
+    );
+
+    frame->GetCommandBuffer()->BindDescriptorSet(
+        engine->GetInstance()->GetDescriptorPool(),
+        m_raytracing_pipeline.Get(),
         DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE, frame->GetFrameIndex()),
-        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+        1,
         FixedArray {
             UInt32(sizeof(SceneShaderData) * engine->render_state.GetScene().id.ToIndex()),
             UInt32(sizeof(LightDrawProxy) * 0)
@@ -149,15 +158,7 @@ void RTRadianceRenderer::Render(
         engine->GetInstance()->GetDescriptorPool(),
         m_raytracing_pipeline.Get(),
         DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS, frame->GetFrameIndex()),
-        DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
-    );
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
-        m_raytracing_pipeline.Get(),
-        DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
-            //m_descriptor_sets[frame->GetFrameIndex()],//.Get(),
-        DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
+        2
     );
 
     for (auto &image_output : m_image_outputs) {
@@ -199,8 +200,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags fla
     if (!flags) {
         return;
     }
-
-#if 0
+    
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
             // update acceleration structure in descriptor set
@@ -222,14 +222,13 @@ void RTRadianceRenderer::ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags fla
 
         m_has_tlas_updates[frame_index] = true;
     }
-#endif
 }
 
 void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);//UniquePtr<DescriptorSet>::Construct();
-#if 0
+        auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
+
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
             ->SetSubDescriptor({
                 .element_index = 0u,
@@ -274,7 +273,7 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
                 .element_index = 0u,
                 .buffer = engine->shader_globals->objects.GetBuffers()[frame_index].get()
             });
-#endif
+
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
@@ -285,6 +284,7 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
             // create our own descriptor sets
             AssertThrow(m_descriptor_sets[frame_index] != nullptr);
 
+#if 0
             m_descriptor_sets[frame_index]->GetOrAddDescriptor<TlasDescriptor>(0)
                 ->SetSubDescriptor({
                     .element_index = 0u,
@@ -329,11 +329,11 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
                     .element_index = 0u,
                     .buffer = engine->shader_globals->objects.GetBuffers()[frame_index].get()
                 });
-
-            //HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-            //    engine->GetDevice(),
-            //    &engine->GetInstance()->GetDescriptorPool()
-            //));
+#endif
+            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
 
             // Add the final result to the global descriptor set
             auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
@@ -368,7 +368,14 @@ void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
         FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/rt/test.rchit.spv")).Read()
     });
 
-    m_raytracing_pipeline.Reset(new RaytracingPipeline(std::move(shader)));//, DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }));
+    m_raytracing_pipeline.Reset(new RaytracingPipeline(
+        std::move(shader),
+        DynArray<const DescriptorSet *> {
+            m_descriptor_sets[0].Get(),
+            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
+            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
+        }
+    ));
 
     engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this, engine](...) {
         engine->GetRenderScheduler().Enqueue([this, engine](...) {

@@ -24,6 +24,18 @@ namespace hyperion::v2 {
 class RenderEnvironment;
 class World;
 
+template<>
+struct ComponentInitInfo<STUB_CLASS(Scene)>
+{
+    enum Flags : ComponentFlagBits
+    {
+        SCENE_FLAGS_NONE = 0x0,
+        SCENE_FLAGS_HAS_TLAS = 0x1
+    };
+
+    ComponentFlagBits flags = SCENE_FLAGS_NONE;
+};
+
 class Scene : public EngineComponentBase<STUB_CLASS(Scene)>
 {
     friend class Entity;
@@ -34,6 +46,12 @@ public:
     static constexpr UInt32 max_environment_textures = SceneShaderData::max_environment_textures;
 
     Scene(Handle<Camera> &&camera);
+
+    Scene(
+        Handle<Camera> &&camera,
+        const InitInfo &info
+    );
+
     Scene(const Scene &other) = delete;
     Scene &operator=(const Scene &other) = delete;
     ~Scene();
@@ -71,7 +89,7 @@ public:
 
     /*! \brief Creates a top level acceleration structure for this Scene. If one already exists on this Scene,
      *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
-     *  The Scene must be in a READY state to call this.
+     *  The Scene must have had Init() called on it before calling this.
      */
     bool CreateTLAS();
 

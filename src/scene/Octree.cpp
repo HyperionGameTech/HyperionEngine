@@ -809,7 +809,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
         for (auto &node : m_nodes) {
             AssertThrow(node.entity != nullptr);
 
-            if (!(node.entity->GetInitInfo().flags & Entity::ComponentInitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED)) {
+            if (!node.entity->HasFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED)) {
                 continue;
             }
 

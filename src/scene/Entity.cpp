@@ -39,7 +39,7 @@ Entity::Entity(
     Handle<Shader> &&shader,
     Handle<Material> &&material,
     const RenderableAttributeSet &renderable_attributes,
-    const ComponentInitInfo &init_info
+    const InitInfo &init_info
 ) : EngineComponentBase(init_info),
     HasDrawProxy(),
     m_mesh(std::move(mesh)),

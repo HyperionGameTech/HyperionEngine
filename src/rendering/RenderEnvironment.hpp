@@ -33,17 +33,26 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 {
     RENDER_ENVIRONMENT_UPDATES_NONE = 0x0,
     RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS = 0x1,
-    RENDER_ENVIRONMENT_UPDATES_ENTITIES = 0x2
+    RENDER_ENVIRONMENT_UPDATES_ENTITIES = 0x2,
+
+    RENDER_ENVIRONMENT_UPDATES_CONTAINERS = RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS | RENDER_ENVIRONMENT_UPDATES_ENTITIES,
+
+    RENDER_ENVIRONMENT_UPDATES_TLAS = 0x4
 };
 
 class RenderEnvironment
     : public EngineComponentBase<STUB_CLASS(RenderEnvironment)>
 {
+    using RenderComponentPendingRemovalEntry = Pair<TypeID, RenderComponentName>;
+
 public:
     RenderEnvironment(Scene *scene);
     RenderEnvironment(const RenderEnvironment &other) = delete;
     RenderEnvironment &operator=(const RenderEnvironment &other) = delete;
     ~RenderEnvironment();
+
+    void SetTLAS(Handle<TLAS> &&tlas);
+    void SetTLAS(const Handle<TLAS> &tlas);
 
     Scene *GetScene() const
         { return m_scene; }
@@ -73,7 +82,7 @@ public:
 
         m_render_components_pending_addition.Set<T>(std::move(component));
         
-        m_update_marker |= RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS;
+        m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS);
     }
 
     template <class T, class ...Args>
@@ -120,7 +129,7 @@ public:
             T::ComponentName
         });
 
-        m_update_marker |= RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS;
+        m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS);
     }
 
     // only touch from render thread!
@@ -137,13 +146,12 @@ public:
     void Init(Engine *engine);
     void Update(Engine *engine, GameCounter::TickUnit delta);
 
-    void ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags);
     void RenderRTRadiance(Engine *engine, Frame *frame);
 
     void RenderComponents(Engine *engine, Frame *frame);
 
 private:
-    using RenderComponentPendingRemovalEntry = Pair<TypeID, RenderComponentName>;
+    void ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags);
 
     Scene *m_scene;
 
@@ -165,6 +173,8 @@ private:
     Handle<ParticleSystem> m_particle_system;
 
     RTRadianceRenderer m_rt_radiance;
+    bool m_has_rt_radiance;
+    WeakHandle<TLAS> m_tlas;
 
     Float m_global_timer;
     UInt32 m_frame_counter;

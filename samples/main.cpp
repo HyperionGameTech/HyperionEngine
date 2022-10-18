@@ -111,7 +111,7 @@ public:
     virtual void InitGame(Engine *engine) override
     {
         Game::InitGame(engine);
-
+        
         m_scene->SetCamera(
             engine->CreateHandle<Camera>(new FirstPersonCamera(
                 2048, 2048,
@@ -293,7 +293,7 @@ public:
         if (auto monkey = engine->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
             monkey.SetName("monkey");
             auto monkey_entity = monkey[0].GetEntity();
-            monkey_entity->GetInitInfo().flags &= ~Entity::ComponentInitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED;
+            monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
             monkey_entity->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );

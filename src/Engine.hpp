@@ -316,6 +316,14 @@ public:
     }
 
     template <class T>
+    bool InitObject(WeakHandle<T> &handle)
+    {
+        auto locked = handle.Lock();
+
+        return InitObject(locked);
+    }
+
+    template <class T>
     void Attach(Handle<T> &handle, bool init = true)
     {
         if (!handle) {

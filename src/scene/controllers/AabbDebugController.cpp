@@ -52,7 +52,7 @@ void AABBDebugController::OnAdded()
             },
             shader_id
         ),
-        Entity::ComponentInitInfo {
+        Entity::InitInfo {
             .flags = 0x0 // no flags
         }
     );

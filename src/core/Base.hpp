@@ -155,26 +155,26 @@ class EngineComponentBase
 
 public:
     using ID = typename Handle<InnerType>::ID;
-    using ComponentInitInfo = ComponentInitInfo<Type>;
+    using InitInfo = ComponentInitInfo<Type>;
 
     static constexpr ID empty_id = ID { };
 
     EngineComponentBase()
-        : EngineComponentBase(ComponentInitInfo { })
+        : EngineComponentBase(InitInfo { })
     {
     }
 
     EngineComponentBase(const String &name)
-        : EngineComponentBase(name, ComponentInitInfo { })
+        : EngineComponentBase(name, InitInfo { })
     {
     }
 
-    EngineComponentBase(const ComponentInitInfo &init_info)
+    EngineComponentBase(const InitInfo &init_info)
         : EngineComponentBase(String::empty, init_info)
     {
     }
 
-    EngineComponentBase(const String &name, const ComponentInitInfo &init_info)
+    EngineComponentBase(const String &name, const InitInfo &init_info)
         : CallbackTrackable(),
           m_name(name),
           m_init_info(init_info),
@@ -189,8 +189,17 @@ public:
     EngineComponentBase &operator=(const EngineComponentBase &other) = delete;
     ~EngineComponentBase() {}
 
-    HYP_FORCE_INLINE ComponentInitInfo &GetInitInfo() { return m_init_info; }
-    HYP_FORCE_INLINE const ComponentInitInfo &GetInitInfo() const { return m_init_info; }
+    HYP_FORCE_INLINE InitInfo &GetInitInfo()
+        { return m_init_info; }
+
+    HYP_FORCE_INLINE const InitInfo &GetInitInfo() const
+        { return m_init_info; }
+
+    HYP_FORCE_INLINE bool HasFlags(ComponentFlagBits flags) const
+        { return bool(m_init_info.flags & flags); }
+
+    HYP_FORCE_INLINE void SetFlags(ComponentFlagBits flags, bool enable)
+        { m_init_info.flags = enable ? (m_init_info.flags | flags) : (m_init_info.flags & ~flags); }
 
     HYP_FORCE_INLINE ID GetID() const
         { return m_id; }
@@ -305,7 +314,7 @@ protected:
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
     Engine *m_engine;
-    ComponentInitInfo m_init_info;
+    InitInfo m_init_info;
 
     AttachmentMap<InnerType> m_attachment_map;
 };

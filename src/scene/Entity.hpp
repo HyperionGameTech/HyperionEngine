@@ -74,7 +74,7 @@ public:
         Handle<Shader> &&shader,
         Handle<Material> &&material,
         const RenderableAttributeSet &renderable_attributes,
-        const ComponentInitInfo &init_info = {}
+        const InitInfo &init_info = { }
     );
 
     Entity(const Entity &other) = delete;

@@ -93,7 +93,7 @@ private:
     BlurRadiance m_blur_radiance;
 
     UniquePtr<RaytracingPipeline> m_raytracing_pipeline;
-    FixedArray</*UniquePtr<DescriptorSet>*/ DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
     FixedArray<bool, max_frames_in_flight> m_has_tlas_updates;
 };
 

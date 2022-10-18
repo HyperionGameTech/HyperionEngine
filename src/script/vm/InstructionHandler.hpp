@@ -1751,13 +1751,13 @@ public:
 
         if (value->GetInteger(&i)) {
             if (value->m_type == Value::I32) {
-                value->m_value.i32 = ~i;
+                value->m_value.i32 = static_cast<Int32>(~i);
             } else {
                 value->m_value.i64 = ~i;
             }
         } else if (value->GetUnsigned(&u)) {
             if (value->m_type == Value::U32) {
-                value->m_value.u32 = ~u;
+                value->m_value.u32 = static_cast<UInt32>(~u);
             } else {
                 value->m_value.u64 = ~u;
             }
@@ -1793,19 +1793,19 @@ public:
 
         if (value->GetInteger(&i)) {
             if (value->m_type == Value::I32) {
-                value->m_value.i32 = -i;
+                value->m_value.i32 = static_cast<Int32>(-i);
             } else {
                 value->m_value.i64 = -i;
             }
         } else if (value->GetUnsigned(&u)) {
             if (value->m_type == Value::U32) {
-                value->m_value.u32 = -u;
+                value->m_value.u32 = static_cast<UInt32>(-u);
             } else {
                 value->m_value.u64 = -u;
             }
         } else if (value->GetFloatingPoint(&f)) {
             if (value->m_type == Value::F32) {
-                value->m_value.f = -f;
+                value->m_value.f = static_cast<Float32>(-f);
             } else {
                 value->m_value.d = -f;
             }

@@ -8,12 +8,19 @@
 namespace hyperion::v2 {
 
 Scene::Scene(Handle<Camera> &&camera)
-    : EngineComponentBase(),
-      m_camera(std::move(camera)),
-      m_root_node_proxy(new Node("root")),
-      m_environment(new RenderEnvironment(this)),
-      m_world(nullptr),
-      m_shader_data_state(ShaderDataState::DIRTY)
+    : Scene(std::move(camera), { })
+{
+}
+
+Scene::Scene(
+    Handle<Camera> &&camera,
+    const InitInfo &info
+) : EngineComponentBase(info),
+    m_camera(std::move(camera)),
+    m_root_node_proxy(new Node("root")),
+    m_environment(new RenderEnvironment(this)),
+    m_world(nullptr),
+    m_shader_data_state(ShaderDataState::DIRTY)
 {
     m_root_node_proxy.Get()->SetScene(this);
 }
@@ -33,14 +40,29 @@ void Scene::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     engine->InitObject(m_camera);
+
+    if (!m_tlas) {
+        if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED) && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
+            CreateTLAS();
+        } else {
+            SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
+        }
+    }
+
     engine->InitObject(m_tlas);
+
+    {
+        m_environment->Init(engine);
+
+        if (m_tlas) {
+            m_environment->SetTLAS(m_tlas);
+        }
+    }
 
     for (auto &it : m_entities) {
         auto &entity = it.second;
         AssertThrow(engine->InitObject(entity));
     }
-
-    m_environment->Init(engine);
 
     if (m_entities_pending_removal.Any()) {
         RemovePendingEntities();
@@ -741,27 +763,21 @@ bool Scene::CreateTLAS()
     }
     
     if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
-        // cannot create TLAS is RT is not supported.
+        // cannot create TLAS if RT is not supported.
+        SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
+
         return false;
     }
 
     m_tlas = GetEngine()->CreateHandle<TLAS>();
 
-#if 0
-    // temp, just a hacky test
-    auto cube = GetEngine()->CreateHandle<Mesh>(MeshBuilder::Cube());
-    GetEngine()->InitObject(cube);
-    auto ent = GetEngine()->CreateHandle<Entity>(
-        std::move(cube),
-        Handle<Shader>(GetEngine()->shader_manager.GetShader(ShaderKey::BASIC_FORWARD)),
-        GetEngine()->CreateHandle<Material>()
-    );
-    GetEngine()->InitObject(ent);
-    ent->CreateBLAS();
-    m_tlas->AddBLAS(Handle<BLAS>(ent->GetBLAS()));
-#endif
+    if (IsReady()) {
+        GetEngine()->InitObject(m_tlas);
 
-    //GetEngine()->InitObject(m_tlas);
+        m_environment->SetTLAS(m_tlas);
+    }
+
+    SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, true);
 
     return true;
 }

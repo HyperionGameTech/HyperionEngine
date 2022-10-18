@@ -132,7 +132,7 @@ void TLAS::UpdateRender(
     
     HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(engine->GetInstance(), out_update_state_flags));
     
-
+#if 0
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
     if (out_update_state_flags) {
@@ -150,6 +150,7 @@ void TLAS::UpdateRender(
 
         rt_descriptor_set->ApplyUpdates(engine->GetDevice());
     }
+#endif
 
 }
 

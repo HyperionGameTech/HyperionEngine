@@ -28,7 +28,11 @@ void Game::Init(Engine *engine, SystemWindow *window)
 
     m_input_manager = new InputManager(window);
 
-    m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
+    m_scene = engine->CreateHandle<Scene>(
+        Handle<Camera>(),
+        Scene::InitInfo { Scene::InitInfo::SCENE_FLAGS_HAS_TLAS }
+    );
+
     engine->InitObject(m_scene);
 
     m_is_init = true;
