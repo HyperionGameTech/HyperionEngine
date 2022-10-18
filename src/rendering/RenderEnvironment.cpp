@@ -11,7 +11,8 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_global_timer(0.0f),
       m_frame_counter(0),
       m_current_enabled_render_components_mask(0),
-      m_next_enabled_render_components_mask(0)
+      m_next_enabled_render_components_mask(0),
+      m_rt_radiance(Extent2D { 1024, 1024 })
 {
 }
 
@@ -30,12 +31,22 @@ void RenderEnvironment::Init(Engine *engine)
 
     m_particle_system = engine->CreateHandle<ParticleSystem>();
     engine->InitObject(m_particle_system);
-    
-    const auto update_marker_value = m_update_marker.load();
 
-    if (m_render_components_pending_addition.Any()) {
+    if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+        if (m_scene->GetID().value == 1) {
+            AssertThrowMsg(
+                m_scene->CreateTLAS(),
+                "Failed to create a top level acceleration structure for the scene."
+            );
+
+            m_rt_radiance.SetTLAS(m_scene->GetTLAS());
+            m_rt_radiance.Create(engine);
+        }
+    }
+
+    {
         std::lock_guard guard(m_render_component_mutex);
-
+        
         for (auto &it : m_render_components_pending_addition) {
             AssertThrow(it.second != nullptr);
             it.second->ComponentInit(engine);
@@ -50,6 +61,12 @@ void RenderEnvironment::Init(Engine *engine)
         auto *engine = GetEngine();
 
         m_particle_system.Reset();
+            
+        if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+            if (m_scene->GetID().value == 1) {
+                m_rt_radiance.Destroy(engine);
+            }
+        }
 
         const auto update_marker_value = m_update_marker.load();
 
@@ -59,7 +76,7 @@ void RenderEnvironment::Init(Engine *engine)
         // into render scheduler
         TypeMap<UniquePtr<RenderComponentBase>> tmp_render_components;
 
-        engine->GetRenderScheduler().Enqueue([this, &tmp_render_components](...) {
+        engine->GetRenderScheduler().Enqueue([this, engine, &tmp_render_components](...) {
             m_current_enabled_render_components_mask = 0u;
             m_next_enabled_render_components_mask = 0u;
 
@@ -135,10 +152,34 @@ void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
     m_update_marker |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 }
 
+void RenderEnvironment::ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+
+    AssertThrow(engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
+    
+            
+    if (m_scene->GetID().value == 1) {
+        m_rt_radiance.ApplyTLASUpdates(engine, flags);
+    }
+}
+
+void RenderEnvironment::RenderRTRadiance(Engine *engine, Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+
+    AssertThrow(engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
+    
+    if (m_scene->GetID().value == 1) {
+        m_rt_radiance.Render(engine, frame);
+    }
+}
+
 void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
-
     AssertReady();
 
     m_current_enabled_render_components_mask = m_next_enabled_render_components_mask;
@@ -202,6 +243,23 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
 
     if (update_marker_value != RENDER_ENVIRONMENT_UPDATES_NONE) {
         m_update_marker.store(RENDER_ENVIRONMENT_UPDATES_NONE);
+    }
+    
+    if (engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
+        // for RT, we may need to perform resizing of buffers, and thus modification of descriptor sets
+        if (const auto &tlas = m_scene->GetTLAS()) {
+            RTUpdateStateFlags update_state_flags = renderer::RT_UPDATE_STATE_FLAGS_NONE;
+
+            tlas->UpdateRender(
+                engine,
+                frame,
+                update_state_flags
+            );
+
+            if (update_state_flags) {
+                ApplyTLASUpdates(engine, frame, update_state_flags);
+            }
+        }
     }
 
     ++m_frame_counter;

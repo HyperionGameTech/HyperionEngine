@@ -14,15 +14,11 @@ namespace renderer {
 ComputePipeline::ComputePipeline()
     : Pipeline()
 {
-    static int x = 0;
-    DebugLog(LogType::Debug, "Create Compute Pipeline [%d]\n", x++);
 }
 
 ComputePipeline::ComputePipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets)
     : Pipeline(used_descriptor_sets)
 {
-    static int x = 0;
-    DebugLog(LogType::Debug, "Create Compute Pipeline [%d]\n", x++);
 }
 
 ComputePipeline::~ComputePipeline() = default;
@@ -124,7 +120,7 @@ Result ComputePipeline::Create(
             max_set_layouts
         );
 
-        return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
+        return { Result::RENDERER_ERR, "Device max bound descriptor sets exceeded" };
     }
 
     layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());

@@ -34,7 +34,8 @@ public:
      */
     void UpdateRender(
         Engine *engine,
-        Frame *frame
+        Frame *frame,
+        RTUpdateStateFlags &out_flags
     );
 
 private:

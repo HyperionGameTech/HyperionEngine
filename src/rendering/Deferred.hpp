@@ -114,7 +114,6 @@ private:
 
     ScreenspaceReflectionRenderer m_ssr;
     DepthPyramidRenderer m_dpr;
-    RTRadianceRenderer m_rt_radiance;
 
     FixedArray<Handle<Texture>, max_frames_in_flight> m_results;
     FixedArray<Handle<Texture>, max_frames_in_flight> m_mipmapped_results;

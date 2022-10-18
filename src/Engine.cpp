@@ -724,7 +724,7 @@ void Engine::Initialize()
     }
 
 
-#if HYP_FEATURES_ENABLE_RAYTRACING
+#if 0//HYP_FEATURES_ENABLE_RAYTRACING
     { // add RT placeholders
         auto *rt_descriptor_set = GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
@@ -751,6 +751,7 @@ void Engine::Initialize()
     /* for textures */
     //shader_globals->textures.Create(this);
     
+    HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().Create(m_instance->GetDevice()));
 
     m_render_list_container.Create(this);
 
@@ -764,8 +765,6 @@ void Engine::Initialize()
 void Engine::Compile()
 {
     Threads::AssertOnThread(THREAD_MAIN);
-
-    HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().Create(m_instance->GetDevice()));
 
     for (UInt i = 0; i < m_instance->GetFrameHandler()->NumFrames(); i++) {
         /* Finalize env probes */

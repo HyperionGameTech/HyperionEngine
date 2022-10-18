@@ -910,7 +910,7 @@ int main()
     ImageView rt_depth_image_view;
 
     auto *rt_descriptor_set = engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
-    rt_descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
+    /*rt_descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
         ->SetSubDescriptor({ .element_index = 0u, .acceleration_structure = &my_game->GetScene()->GetTLAS()->GetInternalTLAS() });
     rt_descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(1)
         ->SetSubDescriptor({ .element_index = 0u, .image_view = &rt_image_storage_view });
@@ -935,7 +935,7 @@ int main()
     rt_entity_buffer->SetSubDescriptor({
         .element_index = 0u,
         .buffer = engine->shader_globals->objects.GetBuffers()[0].get()
-    });
+    });*/
 
     // create a noise map for rt radiance
     static constexpr UInt seed = 0xff;
@@ -964,9 +964,9 @@ int main()
         ResourceState::UNORDERED_ACCESS
     ));
     HYPERION_ASSERT_RESULT(rt_depth_image_view.Create(engine->GetDevice(), rt_depth_image));
+#if 0
 
-
-
+#endif
 #endif
 
     engine->Compile();

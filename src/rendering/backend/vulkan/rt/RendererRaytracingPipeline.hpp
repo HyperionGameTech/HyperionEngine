@@ -1,6 +1,8 @@
 #ifndef HYPERION_RENDERER_RAYTRACING_PIPELINE_H
 #define HYPERION_RENDERER_RAYTRACING_PIPELINE_H
 
+#include <core/lib/DynArray.hpp>
+
 #include "../RendererPipeline.hpp"
 #include "../RendererDevice.hpp"
 #include "../RendererBuffer.hpp"
@@ -16,6 +18,10 @@ class RaytracingPipeline : public Pipeline
 {
 public:
     RaytracingPipeline(std::unique_ptr<ShaderProgram> &&shader_program);
+    RaytracingPipeline(
+        std::unique_ptr<ShaderProgram> &&shader_program,
+        const DynArray<const DescriptorSet *> &used_descriptor_sets
+    );
     RaytracingPipeline(const RaytracingPipeline &other) = delete;
     RaytracingPipeline &operator=(const RaytracingPipeline &other) = delete;
     ~RaytracingPipeline();

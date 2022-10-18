@@ -292,6 +292,14 @@ protected:
         );
     }
 
+    HYP_FORCE_INLINE void AssertIsInitCalled() const
+    {
+        AssertThrowMsg(
+            IsInitCalled(),
+            "Component has not had Init() called on it!\n"
+        );
+    }
+    
     ID m_id;
     String m_name;
     std::atomic_bool m_init_called;

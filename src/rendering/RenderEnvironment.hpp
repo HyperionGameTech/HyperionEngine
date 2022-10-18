@@ -6,6 +6,7 @@
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
+#include <rendering/rt/RTRadianceRenderer.hpp>
 
 #include <core/Containers.hpp>
 #include <core/lib/AtomicLock.hpp>
@@ -23,6 +24,8 @@ namespace hyperion::v2 {
 
 class Engine;
 class Scene;
+
+using renderer::RTUpdateStateFlags;
 
 using RenderEnvironmentUpdates = UInt8;
 
@@ -134,6 +137,9 @@ public:
     void Init(Engine *engine);
     void Update(Engine *engine, GameCounter::TickUnit delta);
 
+    void ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags);
+    void RenderRTRadiance(Engine *engine, Frame *frame);
+
     void RenderComponents(Engine *engine, Frame *frame);
 
 private:
@@ -157,6 +163,8 @@ private:
     UInt32 m_next_enabled_render_components_mask;
 
     Handle<ParticleSystem> m_particle_system;
+
+    RTRadianceRenderer m_rt_radiance;
 
     Float m_global_timer;
     UInt32 m_frame_counter;

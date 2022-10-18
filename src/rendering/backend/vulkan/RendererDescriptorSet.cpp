@@ -971,18 +971,23 @@ Result DescriptorPool::AllocateDescriptorSet(
     DescriptorSet *out
 )
 {
-    VkDescriptorSetAllocateInfo alloc_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    alloc_info.pSetLayouts        = layout;
-    alloc_info.descriptorPool     = m_descriptor_pool;
+    AssertThrowMsg(
+        m_descriptor_pool != VK_NULL_HANDLE,
+        "The descriptor pool is not yet created."
+    );
+
+    VkDescriptorSetAllocateInfo alloc_info { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    alloc_info.pSetLayouts = layout;
+    alloc_info.descriptorPool = m_descriptor_pool;
     alloc_info.descriptorSetCount = 1;
 
     // bindless stuff
     constexpr UInt max_bindings = DescriptorSet::max_bindless_resources - 1;
 
-    VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO};
+    VkDescriptorSetVariableDescriptorCountAllocateInfoEXT count_info { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
     count_info.descriptorSetCount = 1;
     // This number is the max allocatable count
-    count_info.pDescriptorCounts  = &max_bindings;
+    count_info.pDescriptorCounts = &max_bindings;
 
     if (out->IsBindless()) {
         alloc_info.pNext = &count_info;
@@ -993,11 +998,11 @@ Result DescriptorPool::AllocateDescriptorSet(
     switch (alloc_result) {
     case VK_SUCCESS: return Result::OK;
     case VK_ERROR_FRAGMENTED_POOL:
-        return {Result::RENDERER_ERR_NEEDS_REALLOCATION, "Fragmented pool", alloc_result};
+        return { Result::RENDERER_ERR_NEEDS_REALLOCATION, "Fragmented pool", alloc_result };
     case VK_ERROR_OUT_OF_POOL_MEMORY:
-        return {Result::RENDERER_ERR_NEEDS_REALLOCATION, "Out of pool memory", alloc_result};
+        return { Result::RENDERER_ERR_NEEDS_REALLOCATION, "Out of pool memory", alloc_result };
     default:
-        return {Result::RENDERER_ERR, "Unknown error (check error code)", alloc_result};
+        return { Result::RENDERER_ERR, "Unknown error (check error code)", alloc_result };
     }
 }
 

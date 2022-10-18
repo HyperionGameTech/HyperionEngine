@@ -2,7 +2,7 @@
 #define HYPERION_V2_CONFIG_HPP
 
 #include <core/Containers.hpp>
-
+#include <util/Defines.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {
@@ -176,10 +176,10 @@ public:
     Configuration();
     ~Configuration() = default;
 
-    Option &Get(OptionName name)
+    HYP_FORCE_INLINE Option &Get(OptionName name)
         { return m_variables[static_cast<UInt>(name)]; }
 
-    const Option &Get(OptionName name) const
+    HYP_FORCE_INLINE const Option &Get(OptionName name) const
         { return m_variables[static_cast<UInt>(name)]; }
 
     void SetToDefaultConfiguration(Engine *engine);

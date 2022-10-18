@@ -301,7 +301,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
+    const auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
     const auto max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     DebugLog(

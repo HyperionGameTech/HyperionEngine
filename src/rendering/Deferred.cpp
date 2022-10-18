@@ -196,7 +196,6 @@ void DeferredPass::Render(Engine *engine, Frame *frame)
 
 DeferredRenderer::DeferredRenderer()
     : m_ssr(Extent2D { 512, 512 }),
-      m_rt_radiance(Extent2D { 1024, 1024 }),
       m_indirect_pass(true),
       m_direct_pass(false)
 {
@@ -266,9 +265,9 @@ void DeferredRenderer::Create(Engine *engine)
     CreateDescriptorSets(engine);
     CreateComputePipelines(engine);
 
-    if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
-        m_rt_radiance.Create(engine);
-    }
+    //if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+    //    m_rt_radiance.Create(engine);
+    //}
 }
 
 void DeferredRenderer::CreateDescriptorSets(Engine *engine)
@@ -482,9 +481,9 @@ void DeferredRenderer::Destroy(Engine *engine)
     m_ssr.Destroy(engine);
     m_dpr.Destroy(engine);
 
-    if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
-        m_rt_radiance.Destroy(engine);
-    }
+    //if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
+    //    m_rt_radiance.Destroy(engine);
+    //}
 
     m_post_processing.Destroy(engine);
 
@@ -543,7 +542,9 @@ void DeferredRenderer::Render(
     } else if (use_rt_radiance) { // rt radiance
         DebugMarker marker(primary, "RT Radiance");
 
-        m_rt_radiance.Render(engine, frame);
+        environment->RenderRTRadiance(engine, frame);
+
+        //m_rt_radiance.Render(engine, frame);
     }
 
     { // indirect lighting

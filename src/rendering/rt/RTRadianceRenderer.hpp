@@ -7,6 +7,7 @@
 
 #include <rendering/Compute.hpp>
 #include <rendering/rt/BlurRadiance.hpp>
+#include <rendering/rt/TLAS.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -30,6 +31,7 @@ using renderer::AttachmentRef;
 using renderer::Extent2D;
 using renderer::Result;
 using renderer::RaytracingPipeline;
+using renderer::RTUpdateStateFlags;
 
 class Engine;
 
@@ -38,6 +40,14 @@ class RTRadianceRenderer
 public:
     RTRadianceRenderer(const Extent2D &extent);
     ~RTRadianceRenderer();
+
+    void SetTLAS(const Handle<TLAS> &tlas)
+        { m_tlas = tlas; }
+
+    void SetTLAS(Handle<TLAS> &&tlas)
+        { m_tlas = std::move(tlas); }
+
+    void ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags flags);
 
     void Create(Engine *engine);
     void Destroy(Engine *engine);
@@ -49,7 +59,7 @@ public:
 
 private:
     void CreateImages(Engine *engine);
-    void CreateDescriptors(Engine *engine);
+    void CreateDescriptorSets(Engine *engine);
     void CreateRaytracingPipeline(Engine *engine);
     void CreateBlurRadiance(Engine *engine);
     
@@ -77,12 +87,14 @@ private:
     };
 
     Extent2D m_extent;
+    Handle<TLAS> m_tlas;
 
     FixedArray<ImageOutput, 3> m_image_outputs;
     BlurRadiance m_blur_radiance;
 
     UniquePtr<RaytracingPipeline> m_raytracing_pipeline;
-    //FixedArray<FixedArray<DescriptorSet *, 2>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray</*UniquePtr<DescriptorSet>*/ DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<bool, max_frames_in_flight> m_has_tlas_updates;
 };
 
 } // namespace hyperion::v2

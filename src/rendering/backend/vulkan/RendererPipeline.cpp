@@ -21,7 +21,6 @@ Pipeline::Pipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets)
       layout(VK_NULL_HANDLE),
       push_constants { }
 {
-
 }
 
 Pipeline::~Pipeline()

@@ -723,7 +723,7 @@ void Scene::EnqueueRenderUpdates()
 
         // DebugLog(LogType::Debug, "set %u lights\n", shader_data.num_lights);
         
-        GetEngine()->GetRenderData()->scenes.Set(m_id.value - 1, shader_data);
+        GetEngine()->GetRenderData()->scenes.Set(m_id.ToIndex(), shader_data);
 
         HYPERION_RETURN_OK;
     });
@@ -733,27 +733,35 @@ void Scene::EnqueueRenderUpdates()
 
 bool Scene::CreateTLAS()
 {
-    AssertReady();
+    AssertIsInitCalled();
 
     if (m_tlas) {
         // TLAS already exists
         return true;
     }
     
-    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
-        // cannot create TLAS is RT is not enabled or supported.
+    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+        // cannot create TLAS is RT is not supported.
         return false;
     }
 
     m_tlas = GetEngine()->CreateHandle<TLAS>();
 
-    /*if (GetEngine()->InitObject(m_tlas)) {
-        return true;
-    }
+#if 0
+    // temp, just a hacky test
+    auto cube = GetEngine()->CreateHandle<Mesh>(MeshBuilder::Cube());
+    GetEngine()->InitObject(cube);
+    auto ent = GetEngine()->CreateHandle<Entity>(
+        std::move(cube),
+        Handle<Shader>(GetEngine()->shader_manager.GetShader(ShaderKey::BASIC_FORWARD)),
+        GetEngine()->CreateHandle<Material>()
+    );
+    GetEngine()->InitObject(ent);
+    ent->CreateBLAS();
+    m_tlas->AddBLAS(Handle<BLAS>(ent->GetBLAS()));
+#endif
 
-    m_tlas.Reset();
-
-    return false;*/
+    //GetEngine()->InitObject(m_tlas);
 
     return true;
 }

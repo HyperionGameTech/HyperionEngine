@@ -2,7 +2,11 @@
 #include <Engine.hpp>
 #include <Threads.hpp>
 
+#include "rendering/RenderEnvironment.hpp"
+
 namespace hyperion::v2 {
+
+using renderer::RTUpdateStateFlags;
 
 World::World()
     : EngineComponentBase(),
@@ -119,13 +123,6 @@ void World::Render(
 
     // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
     engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
-
-    // for each Scene, update the TLAS
-    for (auto &scene : m_scenes) {
-        if (const auto &tlas = scene->GetTLAS()) {
-            tlas->UpdateRender(engine, frame);
-        }
-    }
 }
 
 void World::AddScene(Handle<Scene> &&scene)

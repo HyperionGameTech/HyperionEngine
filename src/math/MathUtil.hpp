@@ -70,8 +70,8 @@ static inline Vector4 Vector(const Vector3 &xyz, float w)
 
 template <class T>
 constexpr bool is_math_vector_v = std::is_base_of_v<T, Vector2>
-                               || std::is_base_of_v<T, Vector3>
-                               || std::is_base_of_v<T, Vector4>;
+   || std::is_base_of_v<T, Vector3>
+   || std::is_base_of_v<T, Vector4>;
 
 class MathUtil {
     static UInt64 g_seed;

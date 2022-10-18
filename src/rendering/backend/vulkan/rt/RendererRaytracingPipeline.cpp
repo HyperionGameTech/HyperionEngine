@@ -21,8 +21,14 @@ RaytracingPipeline::RaytracingPipeline(std::unique_ptr<ShaderProgram> &&shader_p
     : Pipeline(),
       m_shader_program(std::move(shader_program))
 {
-    static int x = 0;
-    DebugLog(LogType::Debug, "Create Raytracing Pipeline [%d]\n", x++);
+}
+
+RaytracingPipeline::RaytracingPipeline(
+    std::unique_ptr<ShaderProgram> &&shader_program,
+    const DynArray<const DescriptorSet *> &used_descriptor_sets
+) : Pipeline(used_descriptor_sets),
+    m_shader_program(std::move(shader_program))
+{
 }
 
 RaytracingPipeline::~RaytracingPipeline() = default;
@@ -44,7 +50,7 @@ Result RaytracingPipeline::Create(
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 
-    auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
+    const auto used_layouts = GetDescriptorSetLayouts(device, descriptor_pool);
     const auto max_set_layouts = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     DebugLog(

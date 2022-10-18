@@ -4,6 +4,7 @@
 #include "../RendererFeatures.hpp"
 
 #include <core/lib/Range.hpp>
+#include <math/MathUtil.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -497,11 +498,9 @@ Result TopLevelAccelerationStructure::Create(
     auto result = Result::OK;
 
     m_blas = std::move(blas);
-
-    if (m_blas.empty()) {
-        // no BLASes in here to create any buffers for
-        AssertThrowMsg(false, "Cannot create TLAS without any BLASes. This will be fixed, for now it is not valid");
-    }
+	
+    // no BLASes in here to create any buffers for
+    //AssertThrowMsg(!m_blas.empty(), "Cannot create TLAS without any BLASes.");
 
 	// check each BLAS, assert that it is valid.
 	for (const auto &blas : m_blas) {
@@ -632,7 +631,12 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
         };
     }
 
-	const SizeType instances_buffer_size = instances.size() * sizeof(VkAccelerationStructureInstanceKHR);
+	constexpr SizeType min_instances_buffer_size = sizeof(VkAccelerationStructureInstanceKHR);
+
+	const SizeType instances_buffer_size = MathUtil::Max(
+		min_instances_buffer_size,
+		instances.size() * sizeof(VkAccelerationStructureInstanceKHR)
+	);
 
     if (m_instances_buffer == nullptr) {
         m_instances_buffer = std::make_unique<AccelerationStructureInstancesBuffer>();
@@ -650,11 +654,12 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
         HYPERION_BUBBLE_ERRORS(m_instances_buffer->Create(device, instances_buffer_size));
     }
 
-    m_instances_buffer->Copy(
-        device,
-        instances_buffer_size,
-        instances.data()
-    );
+	if (instances.empty()) {
+		// zero out the buffer
+		m_instances_buffer->Memset(device, instances_buffer_size, 0x00);
+	} else {
+        m_instances_buffer->Copy(device, instances_buffer_size, instances.data());
+	}
 
     HYPERION_RETURN_OK;
 }
@@ -703,13 +708,25 @@ Result TopLevelAccelerationStructure::CreateMeshDescriptionsBuffer(Instance *ins
 
 	m_mesh_descriptions_buffer = std::make_unique<StorageBuffer>();
 
+	constexpr SizeType min_mesh_descriptions_buffer_size = sizeof(MeshDescription);
+
+	const SizeType mesh_descriptions_buffer_size = MathUtil::Max(
+		min_mesh_descriptions_buffer_size,
+		sizeof(MeshDescription) * m_blas.size()
+	);
+
 	HYPERION_BUBBLE_ERRORS(m_mesh_descriptions_buffer->Create(
 		device,
-		sizeof(MeshDescription) * m_blas.size()
+		mesh_descriptions_buffer_size
 	));
 
 	// zero out buffer
-	m_mesh_descriptions_buffer->Memset(device, m_mesh_descriptions_buffer->size, 0);
+	m_mesh_descriptions_buffer->Memset(device, m_mesh_descriptions_buffer->size, 0x00);
+
+	if (m_blas.empty()) {
+		// no need to update the data inside
+	    HYPERION_RETURN_OK;
+	}
 
     return UpdateMeshDescriptionsBuffer(instance);
 }
