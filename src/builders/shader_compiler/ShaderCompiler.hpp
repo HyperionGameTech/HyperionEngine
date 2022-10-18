@@ -1,7 +1,9 @@
 #ifndef HYPERION_V2_SHADER_COMPILER_H
 #define HYPERION_V2_SHADER_COMPILER_H
 
+#include <core/Containers.hpp>
 #include <HashCode.hpp>
+#include <util/Defines.hpp>
 
 #include <set>
 #include <string>
@@ -9,29 +11,36 @@
 
 namespace hyperion::v2 {
 
-class ShaderProps {
+class ShaderProps
+{
 public:
-    bool Get(const std::string &key) const
-    {
-        const auto it = m_props.find(key);
+    using Iterator = FlatSet<String>::Iterator;
+    using ConstIterator = FlatSet<String>::ConstIterator;
 
-        if (it == m_props.end()) {
+    bool Get(const String &key) const
+    {
+        const auto it = m_props.Find(key);
+
+        if (it == m_props.End()) {
             return false;
         }
 
         return true;
     }
 
-    ShaderProps &Set(const std::string &key, bool value)
+    ShaderProps &Set(const String &key, bool value)
     {
         if (!value) {
-            m_props.erase(key);
+            m_props.Erase(key);
         } else {
-            m_props.insert(key);
+            m_props.Insert(key);
         }
 
         return *this;
     }
+
+    SizeType Size() const
+        { return m_props.Size(); }
 
     HashCode GetHashCode() const
     {
@@ -44,28 +53,49 @@ public:
         return hc;
     }
 
+    HYP_DEF_STL_BEGIN_END(
+        m_props.Begin(),
+        m_props.End()
+    )
+
 private:
-    std::set<std::string> m_props;
+    FlatSet<String> m_props;
 };
 
-class ShaderCompiler {
+class ShaderCompiler
+{
 public:
-    struct File {
-        std::string path;
+    struct SourceFile
+    {
+        String path;
+
+        HashCode GetHashCode() const
+        {
+            // TODO: should it include timestamp of last modified?
+            HashCode hc;
+            hc.Add(path);
+
+            return hc;
+        }
     };
 
-    struct Bundle {
-        std::vector<File> files;
-        ShaderProps       props;
+    struct Bundle // combination of shader files, .frag, .vert etc.
+    {
+        DynArray<SourceFile> files;
+        ShaderProps props; // permutations
     };
 
     void AddBundle(Bundle &&bundle)
     {
-        m_bundles.push_back(std::move(bundle));
+        m_bundles.PushBack(std::move(bundle));
     }
 
+    void CompileBundles();
+
 private:
-    std::vector<Bundle> m_bundles;
+    bool CompileBundle(Bundle &bundle);
+
+    DynArray<Bundle> m_bundles;
 };
 
 } // namespace hyperion::v2

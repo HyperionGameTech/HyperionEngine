@@ -209,7 +209,7 @@ void ScreenspaceReflectionRenderer::Render(
             .width                  = m_extent.width,
             .height                 = m_extent.height,
             .ray_step               = 1.8f,
-            .num_iterations         = 64.0f,
+            .num_iterations         = 128.0f,
             .max_ray_distance       = 256.0f,
             .distance_bias          = 0.15f,
             .offset                 = 0.01f,

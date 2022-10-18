@@ -77,6 +77,8 @@
 
 #include <util/UTF8.hpp>
 
+#include <builders/shader_compiler/ShaderCompiler.hpp>
+
 using namespace hyperion;
 using namespace hyperion::v2;
 
@@ -460,6 +462,12 @@ public:
 int main()
 {
     using namespace hyperion::renderer;
+
+    ShaderCompiler sc;
+    sc.AddBundle({ .files = { ShaderCompiler::SourceFile { String("foo.frag") }, ShaderCompiler::SourceFile { String("vert.frag") } } });
+    // sc.CompileBundles();
+
+    // HYP_BREAKPOINT;
 
     // Variant<UniquePtr<void>, int> x(UniquePtr<int>(new int(4)).Cast<void>());
     // auto x_val = x.Get<UniquePtr<void>>().Cast<int>();
