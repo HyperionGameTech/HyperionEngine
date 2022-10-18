@@ -3,10 +3,12 @@
 
 #define HYP_VULKAN 1
 
-#define HYP_BULLET_PHYSICS 1
-
 //#define HYP_LOG_MEMORY_OPERATIONS
 //#define HYP_LOG_DESCRIPTOR_SET_UPDATES
+
+#if defined(HYP_BULLET) && HYP_BULLET
+#define HYP_BULLET_PHYSICS 1
+#endif
 
 // stl helpers and such
 

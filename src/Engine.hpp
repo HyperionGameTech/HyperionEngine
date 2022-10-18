@@ -35,6 +35,8 @@
 
 #include <TaskSystem.hpp>
 
+#include <system/CrashHandler.hpp>
+
 #include <util/EnumOptions.hpp>
 #include <builders/shader_compiler/ShaderCompiler.hpp>
 
@@ -379,6 +381,8 @@ private:
 
     AssetManager m_asset_manager;
     Configuration m_configuration;
+
+    CrashHandler m_crash_handler;
 
     bool m_is_stopping { false };
     bool m_is_render_loop_active { false };
