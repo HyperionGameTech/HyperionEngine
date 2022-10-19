@@ -76,7 +76,7 @@ struct SwapchainSupportDetails
     std::vector<VkPresentModeKHR> present_modes;
 };
 
-struct alignas(8) Extent2D
+struct Extent2D
 {
     union
     {
@@ -177,7 +177,9 @@ struct alignas(8) Extent2D
     constexpr UInt32 &operator[](UInt32 index) { return v[index]; }
     constexpr UInt32 operator[](UInt32 index) const { return v[index]; }
 
-    UInt32 Size() const { return width * height; }
+    SizeType Size() const
+        { return static_cast<SizeType>(width)
+            * static_cast<SizeType>(height); }
 
     operator Vector2() const
     {
@@ -190,16 +192,16 @@ struct alignas(8) Extent2D
 
 static_assert(sizeof(Extent2D) == 8);
 
-struct alignas(16) Extent3D
+struct Extent3D
 {
     union
     {
         struct // NOLINT(clang-diagnostic-nested-anon-types)
         {
-            UInt32 width, height, depth;
+            UInt32 width, height, depth, _pad;
         };
 
-        UInt32 v[3];
+        UInt32 v[4];
     };
 
     Extent3D() // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -303,9 +305,9 @@ struct alignas(16) Extent3D
     {
         AssertThrow(other.width != 0 && other.height != 0 && other.depth != 0);
 
-        width  /= other.width;
+        width /= other.width;
         height /= other.height;
-        depth  /= other.depth;
+        depth /= other.depth;
 
         return *this;
     }
@@ -352,7 +354,10 @@ struct alignas(16) Extent3D
         };
     }
 
-    UInt32 Size() const { return width * height * depth; }
+    SizeType Size() const
+        { return static_cast<SizeType>(width)
+            * static_cast<SizeType>(height)
+            * static_cast<SizeType>(depth); }
 };
 
 static_assert(sizeof(Extent3D) == 16);

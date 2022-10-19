@@ -300,8 +300,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
     auto commands = instance->GetSingleTimeCommands();
     StagingBuffer staging_buffer;
 
-    if (HasAssignedImageData())  {
-        /* transition from 'undefined' layout state into one optimal for transfer */
+    if (HasAssignedImageData()) {
         HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
 
         if (!result) {

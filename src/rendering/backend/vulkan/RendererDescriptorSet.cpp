@@ -56,7 +56,13 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::SVO_BUFFER,            40},
 
             // result from rt radiance image
-            {DescriptorKey::RT_RADIANCE_RESULT,    45}
+            {DescriptorKey::RT_RADIANCE_RESULT,    45},
+            // uniforms for RT probes
+            {DescriptorKey::RT_PROBE_UNIFORMS,     46},
+            // result from rt probes - irradiance
+            {DescriptorKey::RT_IRRADIANCE_GRID,    47},
+            // result from rt probes - depth
+            {DescriptorKey::RT_DEPTH_GRID,         48}
         }
     },
     {

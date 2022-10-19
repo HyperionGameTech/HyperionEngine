@@ -12,6 +12,8 @@
 
 #include <math/MathUtil.hpp>
 
+#include <Threads.hpp>
+
 #include <memory>
 
 namespace hyperion::v2 {
@@ -64,8 +66,10 @@ public:
     {
         static_assert(std::is_base_of_v<GPUBuffer, T>, "Must be a derived class of GPUBuffer");
 
+        Threads::AssertOnThread(THREAD_RENDER);
+
         if (!m_buffers.Contains<T>()) {
-            m_buffers.Set<T>({});
+            m_buffers.Set<T>({ });
         }
 
         auto &buffer_container = m_buffers.At<T>();
@@ -80,9 +84,12 @@ public:
 
         auto buffer = std::make_unique<T>();
         HYPERION_ASSERT_RESULT(buffer->Create(device, required_size_pow2));
+        buffer->Memset(device, required_size_pow2, 0x00); // fill with zeros
 
         const auto insert_result = buffer_container.Insert(required_size_pow2, std::move(buffer));
         AssertThrow(insert_result.second); // was inserted
+
+        // TODO: GC of these buffers. they'll have to be reference counted?
 
         return static_cast<T *>(insert_result.first->second.get());
     }

@@ -106,6 +106,11 @@ public:
     {
         std::free(ptr);
     }
+
+    static void *AllocateZeros(SizeType count)
+    {
+        return std::calloc(count, 1);
+    }
 };
 
 }

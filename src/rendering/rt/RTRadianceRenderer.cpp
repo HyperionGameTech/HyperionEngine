@@ -276,60 +276,12 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
-
     
-    //engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this, engine](...) {
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
             AssertThrow(m_descriptor_sets[frame_index] != nullptr);
-
-#if 0
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<TlasDescriptor>(0)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .acceleration_structure = &m_tlas->GetInternalTLAS()
-                });
-
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageImageDescriptor>(1)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &m_image_outputs[0].image_view
-                });
-
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageImageDescriptor>(2)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &m_image_outputs[1].image_view
-                });
-
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageImageDescriptor>(3)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &m_image_outputs[2].image_view
-                });
             
-            // mesh descriptions
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageBufferDescriptor>(4)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer()
-                });
-            
-            // materials
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageBufferDescriptor>(5)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = engine->shader_globals->materials.GetBuffers()[frame_index].get()
-                });
-            
-            // entities
-            m_descriptor_sets[frame_index]->GetOrAddDescriptor<StorageBufferDescriptor>(6)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = engine->shader_globals->objects.GetBuffers()[frame_index].get()
-                });
-#endif
             HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
                 engine->GetDevice(),
                 &engine->GetInstance()->GetDescriptorPool()
@@ -349,7 +301,6 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
 
         HYPERION_RETURN_OK;
     });
-    //});
 }
 
 void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)

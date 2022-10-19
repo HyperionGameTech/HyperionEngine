@@ -41,6 +41,14 @@ Vector4::Vector4(const Vector2 &xy, float z, float w)
 {
 }
 
+Vector4::Vector4(const Vector2 &xy, const Vector2 &zw)
+    : x(xy.x),
+      y(xy.y),
+      z(zw.x),
+      w(zw.y)
+{
+}
+
 Vector4::Vector4(const Vector3 &xyz, float w)
     : x(xyz.x),
       y(xyz.y),

@@ -13,6 +13,9 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_current_enabled_render_components_mask(0),
       m_next_enabled_render_components_mask(0),
       m_rt_radiance(Extent2D { 1024, 1024 }),
+      m_probe_system({
+          .aabb = {{-300.0f, -10.0f, -300.0f}, {300.0f, 300.0f, 300.0f}}
+      }),
       m_has_rt_radiance(false)
 {
 }
@@ -60,8 +63,12 @@ void RenderEnvironment::Init(Engine *engine)
     engine->InitObject(m_particle_system);
     
     if (auto tlas = m_tlas.Lock()) {
-        m_rt_radiance.SetTLAS(std::move(tlas));
+        m_rt_radiance.SetTLAS(tlas);
         m_rt_radiance.Create(engine);
+
+        m_probe_system.SetTLAS(tlas);
+        m_probe_system.Init(engine);
+
         m_has_rt_radiance = true;
     }
 
@@ -85,6 +92,9 @@ void RenderEnvironment::Init(Engine *engine)
             
         if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED) && m_has_rt_radiance) {
             m_rt_radiance.Destroy(engine);
+
+            m_probe_system.Destroy(engine);
+
             m_has_rt_radiance = false;
         }
 
@@ -179,6 +189,7 @@ void RenderEnvironment::ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateS
     
     if (m_has_rt_radiance) {
         m_rt_radiance.ApplyTLASUpdates(engine, flags);
+        m_probe_system.ApplyTLASUpdates(engine, flags);
     }
 }
 
@@ -191,6 +202,9 @@ void RenderEnvironment::RenderRTRadiance(Engine *engine, Frame *frame)
     
     if (m_has_rt_radiance) {
         m_rt_radiance.Render(engine, frame);
+
+        m_probe_system.RenderProbes(engine, frame);
+        m_probe_system.ComputeIrradiance(engine, frame);
     }
 }
 
@@ -204,93 +218,94 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
     const auto update_marker_value = m_update_marker.load();
     UInt8 inverse_mask = 0;
     
-    if (update_marker_value) {
-        inverse_mask |= RENDER_ENVIRONMENT_UPDATES_CONTAINERS;
 
-        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENTITIES) {
-            m_entity_update_sp.Wait();
+    if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENTITIES) {
+        inverse_mask |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
 
-            while (m_entities_pending_addition.Any()) {
-                for (auto &it : m_render_components) {
-                    it.second->OnEntityAdded(m_entities_pending_addition.Front());
-                }
+        m_entity_update_sp.Wait();
 
-                m_entities_pending_addition.Pop();
+        while (m_entities_pending_addition.Any()) {
+            for (auto &it : m_render_components) {
+                it.second->OnEntityAdded(m_entities_pending_addition.Front());
             }
 
-            while (m_entity_renderable_attribute_updates.Any()) {
-                for (auto &it : m_render_components) {
-                    it.second->OnEntityRenderableAttributesChanged(m_entity_renderable_attribute_updates.Front());
-                }
-
-                m_entity_renderable_attribute_updates.Pop();
-            }
-
-            while (m_entities_pending_removal.Any()) {
-                for (auto &it : m_render_components) {
-                    it.second->OnEntityRemoved(m_entities_pending_removal.Front());
-                }
-
-                m_entities_pending_removal.Pop();
-            }
-
-            m_entity_update_sp.Signal();
+            m_entities_pending_addition.Pop();
         }
 
-        for (const auto &component : m_render_components) {
-            m_next_enabled_render_components_mask |= 1u << static_cast<UInt32>(component.second->GetName());
-            component.second->ComponentRender(engine, frame);
-        }
-
-        // add RenderComponents deferred so that the render scheduler can complete
-        // initialization tasks before we call ComponentRender() on the newly added RenderComponents
-
-        if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
-            std::lock_guard guard(m_render_component_mutex);
-
-            for (auto &it : m_render_components_pending_addition) {
-                m_render_components.Set(it.first, std::move(it.second));
+        while (m_entity_renderable_attribute_updates.Any()) {
+            for (auto &it : m_render_components) {
+                it.second->OnEntityRenderableAttributesChanged(m_entity_renderable_attribute_updates.Front());
             }
 
-            m_render_components_pending_addition.Clear();
+            m_entity_renderable_attribute_updates.Pop();
+        }
 
-            for (const auto &it : m_render_components_pending_removal) {
-                m_next_enabled_render_components_mask &= ~(1u << static_cast<UInt32>(it.second));
-                m_render_components.Remove(it.first);
+        while (m_entities_pending_removal.Any()) {
+            for (auto &it : m_render_components) {
+                it.second->OnEntityRemoved(m_entities_pending_removal.Front());
             }
 
-            m_render_components_pending_removal.Clear();
+            m_entities_pending_removal.Pop();
         }
+
+        m_entity_update_sp.Signal();
+    }
+
+    for (const auto &component : m_render_components) {
+        m_next_enabled_render_components_mask |= 1u << static_cast<UInt32>(component.second->GetName());
+        component.second->ComponentRender(engine, frame);
+    }
+
+    // add RenderComponents AFTER rendering, so that the render scheduler can complete
+    // initialization tasks before we call ComponentRender() on the newly added RenderComponents
+
+    if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
+        inverse_mask |= RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS;
+
+        std::lock_guard guard(m_render_component_mutex);
+
+        for (auto &it : m_render_components_pending_addition) {
+            m_render_components.Set(it.first, std::move(it.second));
+        }
+
+        m_render_components_pending_addition.Clear();
+
+        for (const auto &it : m_render_components_pending_removal) {
+            m_next_enabled_render_components_mask &= ~(1u << static_cast<UInt32>(it.second));
+            m_render_components.Remove(it.first);
+        }
+
+        m_render_components_pending_removal.Clear();
     }
 
     if (engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
-            if (auto tlas = m_tlas.Lock()) {
-                m_rt_radiance.SetTLAS(std::move(tlas));
+            inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
 
+            if (auto tlas = m_tlas.Lock()) {
                 if (m_has_rt_radiance) {
                     m_rt_radiance.Destroy(engine);
+                    m_probe_system.Destroy(engine);
                 }
+                
+                m_probe_system.SetTLAS(tlas);
+                m_rt_radiance.SetTLAS(tlas);
 
                 m_rt_radiance.Create(engine);
+                m_probe_system.Init(engine);
                 m_has_rt_radiance = true;
 
                 HYP_FLUSH_RENDER_QUEUE(engine);
             } else {
                 if (m_has_rt_radiance) {
                     m_rt_radiance.Destroy(engine);
+                    m_probe_system.Destroy(engine);
 
                     HYP_FLUSH_RENDER_QUEUE(engine);
                 }
 
                 m_has_rt_radiance = false;
             }
-
-            inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
-        }
-
-        if (update_marker_value) {
-            m_update_marker.fetch_and(~inverse_mask);
         }
 
         // for RT, we may need to perform resizing of buffers, and thus modification of descriptor sets
@@ -307,6 +322,10 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
                 ApplyTLASUpdates(engine, frame, update_state_flags);
             }
         }
+    }
+
+    if (update_marker_value) {
+        m_update_marker.fetch_and(~inverse_mask);
     }
 
     ++m_frame_counter;

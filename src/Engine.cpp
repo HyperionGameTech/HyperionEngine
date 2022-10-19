@@ -445,12 +445,36 @@ void Engine::Initialize()
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::ENV_PROBES)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .buffer = shader_globals->shadow_maps.GetBuffers()[frame_index].get()
+                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(EnvProbeShaderData))
             });
 
-        // placeholder rt radiance image        
+        // placeholder rt radiance image
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+            ->SetSubDescriptor({
+                .element_index = 0,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
+        // placeholder rt probe system uniforms
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::RT_PROBE_UNIFORMS)
+            ->SetSubDescriptor({
+                .element_index = 0,
+                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(ProbeSystemUniforms))
+            });
+
+        // placeholder rt probes irradiance image
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_IRRADIANCE_GRID)
+            ->SetSubDescriptor({
+                .element_index = 0,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
+        // placeholder rt probes irradiance image
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::RT_DEPTH_GRID)
             ->SetSubDescriptor({
                 .element_index = 0,
                 .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
@@ -860,7 +884,7 @@ void Engine::RenderNextFrame(Game *game)
         return;
     }
 
-    const auto frame_result = GetInstance()->GetFrameHandler()->PrepareFrame(
+    auto frame_result = GetInstance()->GetFrameHandler()->PrepareFrame(
         GetInstance()->GetDevice(),
         GetInstance()->GetSwapchain()
     );
@@ -891,7 +915,12 @@ void Engine::RenderNextFrame(Game *game)
     RenderFinalPass(frame);
 
     HYPERION_ASSERT_RESULT(frame->EndCapture(GetInstance()->GetDevice()));
-    HYPERION_ASSERT_RESULT(frame->Submit(&GetInstance()->GetGraphicsQueue()));
+
+    frame_result = frame->Submit(&GetInstance()->GetGraphicsQueue());
+
+    if (!frame_result) {
+        m_crash_handler.HandleGPUCrash(frame_result);
+    }
 
     game->OnFrameEnd(this, frame);
 

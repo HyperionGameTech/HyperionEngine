@@ -30,7 +30,9 @@ void Game::Init(Engine *engine, SystemWindow *window)
 
     m_scene = engine->CreateHandle<Scene>(
         Handle<Camera>(),
-        Scene::InitInfo { Scene::InitInfo::SCENE_FLAGS_HAS_TLAS }
+        Scene::InitInfo {
+            .flags = Scene::InitInfo::SCENE_FLAGS_HAS_TLAS // default it to having a top level acceleration structure for RT
+        }
     );
 
     engine->InitObject(m_scene);

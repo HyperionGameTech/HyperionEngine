@@ -33,6 +33,7 @@ public:
     Vector4(float x, float y, float z, float w);
     Vector4(float xyzw);
     explicit Vector4(const Vector2 &xy, float z, float w);
+    explicit Vector4(const Vector2 &xy, const Vector2 &zw);
     explicit Vector4(const Vector3 &xyz, float w);
     Vector4(const Vector4 &other);
 

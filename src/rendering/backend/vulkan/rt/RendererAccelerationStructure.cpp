@@ -219,7 +219,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
         AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
 
         // TEMP: we should have two TLASes and two RT descriptor sets I suppose...
-        HYPERION_BUBBLE_ERRORS(instance->GetDevice()->Wait());
+        //HYPERION_BUBBLE_ERRORS(instance->GetDevice()->Wait());
     } else {
         AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
     }

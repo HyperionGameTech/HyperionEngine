@@ -6,7 +6,9 @@
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
+
 #include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/ProbeSystem.hpp>
 
 #include <core/Containers.hpp>
 #include <core/lib/AtomicLock.hpp>
@@ -173,6 +175,7 @@ private:
     Handle<ParticleSystem> m_particle_system;
 
     RTRadianceRenderer m_rt_radiance;
+    ProbeGrid m_probe_system;
     bool m_has_rt_radiance;
     WeakHandle<TLAS> m_tlas;
 

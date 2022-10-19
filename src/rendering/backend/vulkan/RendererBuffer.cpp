@@ -525,12 +525,12 @@ void GPUBuffer::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_s
         return;
     }
 
-    VkBufferMemoryBarrier barrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
-    barrier.srcAccessMask       = GetAccessMask(resource_state);
-    barrier.dstAccessMask       = GetAccessMask(new_state);
-    barrier.buffer              = buffer;
-    barrier.offset              = 0;
-    barrier.size                = size;
+    VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+    barrier.srcAccessMask = GetAccessMask(resource_state);
+    barrier.dstAccessMask = GetAccessMask(new_state);
+    barrier.buffer = buffer;
+    barrier.offset = 0;
+    barrier.size = size;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
