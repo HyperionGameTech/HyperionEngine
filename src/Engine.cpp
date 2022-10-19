@@ -130,7 +130,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_NORMALS,
         device->GetFeatures().FindSupportedFormat(
-            std::array{// Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F,
+            std::array{ Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F,
                         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
                         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F,
                         Image::InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8 },
