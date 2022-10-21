@@ -50,12 +50,6 @@
 			{
 				"command" : 3,
 				"file" : 1,
-				"line" : 29,
-				"parent" : 2
-			},
-			{
-				"command" : 3,
-				"file" : 1,
 				"line" : 28,
 				"parent" : 2
 			},
@@ -101,41 +95,37 @@
 			[
 				{
 					"backtrace" : 5,
-					"define" : "HYP_FEATURES_INTRISICS=1"
-				},
-				{
-					"backtrace" : 6,
 					"define" : "HYP_ROOT_DIR=\"/home/emd22/CLionProjects/hyperion-engine\""
 				},
 				{
-					"backtrace" : 7,
+					"backtrace" : 6,
 					"define" : "HYP_ROOT_DIR=\"/home/emd22/CLionProjects/hyperion-engine/samples\""
 				},
 				{
-					"backtrace" : 8,
+					"backtrace" : 7,
 					"define" : "SDL_MAIN_HANDLED=1"
 				},
 				{
-					"backtrace" : 9,
+					"backtrace" : 8,
 					"define" : "VMA_DYNAMIC_VULKAN_FUNCTIONS=1"
 				}
 			],
 			"includes" : 
 			[
 				{
-					"backtrace" : 10,
+					"backtrace" : 9,
 					"path" : "/home/emd22/CLionProjects/hyperion-engine/include"
 				},
 				{
-					"backtrace" : 10,
+					"backtrace" : 9,
 					"path" : "/usr/include/AL"
 				},
 				{
-					"backtrace" : 10,
+					"backtrace" : 9,
 					"path" : "/usr/include/bullet"
 				},
 				{
-					"backtrace" : 10,
+					"backtrace" : 9,
 					"path" : "/home/emd22/CLionProjects/hyperion-engine/src"
 				},
 				{

@@ -3,21 +3,18 @@
 #include "../HashCode.hpp"
 #include "../Util.hpp"
 
+#include <math/intrinsics/Intrinsics.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
 #include <cmath>
 #include <iostream>
 
-#include <immintrin.h>
-
 namespace hyperion {
 
 class Vector2;
 class Vector3;
 class Matrix4;
-
-using Float128 = __m128;
 
 class Vector4
 {
@@ -29,21 +26,18 @@ public:
     static const Vector4 one;
 
     union {
-        struct { float x, y, z, w; };
+        struct alignas(8) { float x, y, z, w; };
         float values[4];
     };
 
     Vector4();
     Vector4(float x, float y, float z, float w);
     Vector4(float xyzw);
-    explicit Vector4(__m128 vec);
+    explicit Vector4(intrinsics::Float128 vec);
     explicit Vector4(const Vector2 &xy, float z, float w);
     explicit Vector4(const Vector2 &xy, const Vector2 &zw);
     explicit Vector4(const Vector3 &xyz, float w);
     Vector4(const Vector4 &other);
-
-    __m128 loadfsp() const;
-    void storefsp(__m128 a) const;
 
     float GetX() const { return x; }
     float &GetX() { return x; }
@@ -57,12 +51,12 @@ public:
     float GetW() const { return w; }
     float &GetW() { return w; }
     Vector4 &SetW(float w) { this->w = w; return *this; }
-    
+
     constexpr float operator[](UInt index) const
-        { return values[index]; }
+    { return values[index]; }
 
     constexpr float &operator[](UInt index)
-        { return values[index]; }
+    { return values[index]; }
 
     Vector4 &operator=(const Vector4 &other);
     Vector4 operator+(const Vector4 &other) const;
@@ -72,15 +66,16 @@ public:
     Vector4 operator*(const Vector4 &other) const;
     Vector4 &operator*=(const Vector4 &other);
     Vector4 operator*(const Matrix4 &mat) const;
+    Vector4 operator*(const float &other) const;
     Vector4 &operator*=(const Matrix4 &mat);
     Vector4 operator/(const Vector4 &other) const;
     Vector4 &operator/=(const Vector4 &other);
     bool operator==(const Vector4 &other) const;
     bool operator!=(const Vector4 &other) const;
-    Vector4 operator-() const { return operator*({-1.0f, -1.0f, -1.0f, -1.0f}); }
+    Vector4 operator-() const { return operator*(-1.0f); }
 
     bool operator<(const Vector4 &other) const
-        { return std::tie(x, y, z, w) < std::tie(other.x, other.y, other.z, other.w); }
+    { return std::tie(x, y, z, w) < std::tie(other.x, other.y, other.z, other.w); }
 
     constexpr float LengthSquared() const { return x * x + y * y + z * z + w * w; }
     float Length() const { return std::sqrt(LengthSquared()); }
@@ -92,7 +87,7 @@ public:
 
     float DistanceSquared(const Vector4 &other) const;
     float Distance(const Vector4 &other) const;
-    
+
     Vector4 Normalized() const;
     Vector4 &Normalize();
     Vector4 &Rotate(const Vector3 &axis, float radians);
@@ -111,8 +106,6 @@ public:
     static Vector4 UnitY();
     static Vector4 UnitZ();
     static Vector4 UnitW();
-
-
 
     HashCode GetHashCode() const
     {

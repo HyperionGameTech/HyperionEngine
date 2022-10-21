@@ -1,37 +1,38 @@
-#include "Vector4.hpp"
-#include "MathUtil.hpp"
-#include "Vector3.hpp"
-#include "Vector2.hpp"
-#include "Matrix4.hpp"
+#include "../Vector4.hpp"
+#include "../MathUtil.hpp"
+#include "../Vector3.hpp"
+#include "../Vector2.hpp"
+#include "../Matrix4.hpp"
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#include "Intrinsics.hpp"
+
+#if defined(HYP_FEATURES_INTRINSICS)
+
 
 namespace hyperion {
 
-const Vector4 Vector4::zero = Vector4(0.0f);
-const Vector4 Vector4::one = Vector4(1.0f);
 using namespace intrinsics;
 
 Vector4::Vector4()
-    : x(0.0f), 
-      y(0.0f), 
-      z(0.0f), 
+    : x(0.0f),
+      y(0.0f),
+      z(0.0f),
       w(0.0f)
 {
 }
 
 Vector4::Vector4(float x, float y, float z, float w)
-    : x(x), 
+    : x(x),
       y(y),
-      z(z), 
+      z(z),
       w(w)
 {
 }
 
 Vector4::Vector4(float xyzw)
-    : x(xyzw), 
-      y(xyzw), 
-      z(xyzw), 
+    : x(xyzw),
+      y(xyzw),
+      z(xyzw),
       w(xyzw)
 {
 }
@@ -44,14 +45,6 @@ Vector4::Vector4(const Vector2 &xy, float z, float w)
 {
 }
 
-Vector4::Vector4(const Vector2 &xy, const Vector2 &zw)
-    : x(xy.x),
-      y(xy.y),
-      z(zw.x),
-      w(zw.y)
-{
-}
-
 Vector4::Vector4(const Vector3 &xyz, float w)
     : x(xyz.x),
       y(xyz.y),
@@ -61,19 +54,17 @@ Vector4::Vector4(const Vector3 &xyz, float w)
 }
 
 Vector4::Vector4(const Vector4 &other)
-    : x(other.x), 
-      y(other.y), 
-      z(other.z), 
+    : x(other.x),
+      y(other.y),
+      z(other.z),
       w(other.w)
 {
 }
 
-Vector4::Vector4(Float128 vec)
-    : x(vec[0]),
-      y(vec[1]),
-      z(vec[2]),
-      w(vec[3])
-{
+
+Vector4::Vector4(Float128 vec) {
+    // Move our SSE vector to our internal values
+    Float128Store(values, vec);
 }
 
 Vector4 &Vector4::operator=(const Vector4 &other)
@@ -84,7 +75,6 @@ Vector4 &Vector4::operator=(const Vector4 &other)
     w = other.w;
     return *this;
 }
-
 Vector4 Vector4::operator+(const Vector4 &other) const
 {
     return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
@@ -155,7 +145,6 @@ Vector4 &Vector4::operator/=(const Vector4 &other)
     w /= other.w;
     return *this;
 }
-
 bool Vector4::operator==(const Vector4 &other) const
 {
     return MathUtil::ApproxEqual(x, other.x)
@@ -302,4 +291,5 @@ std::ostream &operator<<(std::ostream &out, const Vector4 &vec) // output
 }
 
 } // namespace hyperion
+
 #endif
