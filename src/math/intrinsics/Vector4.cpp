@@ -1,10 +1,13 @@
-#include "Vector4.hpp"
-#include "MathUtil.hpp"
-#include "Vector3.hpp"
-#include "Vector2.hpp"
-#include "Matrix4.hpp"
+#include "../Vector4.hpp"
+#include "../MathUtil.hpp"
+#include "../Vector3.hpp"
+#include "../Vector2.hpp"
+#include "../Matrix4.hpp"
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#include "Intrinsics.hpp"
+
+#if defined(HYP_FEATURES_INTRINSICS)
+
 
 namespace hyperion {
 
@@ -58,12 +61,10 @@ Vector4::Vector4(const Vector4 &other)
 {
 }
 
-Vector4::Vector4(Float128 vec)
-    : x(vec[0]),
-      y(vec[1]),
-      z(vec[2]),
-      w(vec[3])
-{
+
+Vector4::Vector4(Float128 vec) {
+    // Move our SSE vector to our internal values
+    Float128Store(values, vec);
 }
 
 Vector4 &Vector4::operator=(const Vector4 &other)
@@ -74,7 +75,6 @@ Vector4 &Vector4::operator=(const Vector4 &other)
     w = other.w;
     return *this;
 }
-
 Vector4 Vector4::operator+(const Vector4 &other) const
 {
     return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
@@ -145,7 +145,6 @@ Vector4 &Vector4::operator/=(const Vector4 &other)
     w /= other.w;
     return *this;
 }
-
 bool Vector4::operator==(const Vector4 &other) const
 {
     return MathUtil::ApproxEqual(x, other.x)
@@ -292,4 +291,5 @@ std::ostream &operator<<(std::ostream &out, const Vector4 &vec) // output
 }
 
 } // namespace hyperion
+
 #endif
