@@ -430,11 +430,6 @@ int main()
 {
     using namespace hyperion::renderer;
 
-    // Variant<UniquePtr<void>, int> x(UniquePtr<int>(new int(4)).Cast<void>());
-    // auto x_val = x.Get<UniquePtr<void>>().Cast<int>();
-    // std::cout << *x_val << std::endl;
-    // HYP_BREAKPOINT;
-
 #if 0
 
     // Profile profile_1([]() {

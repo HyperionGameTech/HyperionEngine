@@ -145,7 +145,7 @@ struct alignas(256) SceneShaderData
 
 static_assert(sizeof(SceneShaderData) == 256);
 
-struct alignas(16) ShadowShaderData
+struct alignas(64) ShadowShaderData
 {
     Matrix4 projection;
     Matrix4 view;

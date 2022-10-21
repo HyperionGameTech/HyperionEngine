@@ -10,6 +10,8 @@
 #include <iostream>
 #include <array>
 #include <cstring>
+#include <immintrin.h>
+
 
 namespace hyperion {
 

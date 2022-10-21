@@ -6,26 +6,36 @@
 
 namespace hyperion {
 
+
+inline __m128 Vector4::loadfsp() const {
+    const __m128 tmp = _mm_loadu_ps(values);
+    return tmp;
+}
+
+inline void Vector4::storefsp(__m128 vec) const {
+    _mm_storeu_ps((float *)values, vec);
+}
+
 Vector4::Vector4()
-    : x(0.0f), 
-      y(0.0f), 
-      z(0.0f), 
+    : x(0.0f),
+      y(0.0f),
+      z(0.0f),
       w(0.0f)
 {
 }
 
 Vector4::Vector4(float x, float y, float z, float w)
-    : x(x), 
+    : x(x),
       y(y),
-      z(z), 
+      z(z),
       w(w)
 {
 }
 
 Vector4::Vector4(float xyzw)
-    : x(xyzw), 
-      y(xyzw), 
-      z(xyzw), 
+    : x(xyzw),
+      y(xyzw),
+      z(xyzw),
       w(xyzw)
 {
 }
@@ -38,6 +48,11 @@ Vector4::Vector4(const Vector2 &xy, float z, float w)
 {
 }
 
+Vector4::Vector4(__m128 v)
+{
+    storefsp(v);
+}
+
 Vector4::Vector4(const Vector3 &xyz, float w)
     : x(xyz.x),
       y(xyz.y),
@@ -47,9 +62,9 @@ Vector4::Vector4(const Vector3 &xyz, float w)
 }
 
 Vector4::Vector4(const Vector4 &other)
-    : x(other.x), 
-      y(other.y), 
-      z(other.z), 
+    : x(other.x),
+      y(other.y),
+      z(other.z),
       w(other.w)
 {
 }
@@ -65,43 +80,58 @@ Vector4 &Vector4::operator=(const Vector4 &other)
 
 Vector4 Vector4::operator+(const Vector4 &other) const
 {
-    return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_add_ps(a, b);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator+=(const Vector4 &other)
 {
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    w += other.w;
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_add_ps(a, b);
+    storefsp(a);
+
     return *this;
 }
 
 Vector4 Vector4::operator-(const Vector4 &other) const
 {
-    return Vector4(x - other.x, y - other.y, z - other.z, w - other.w);
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_sub_ps(a, b);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator-=(const Vector4 &other)
 {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    w -= other.w;
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_sub_ps(a, b);
+    storefsp(a);
+
     return *this;
 }
 
 Vector4 Vector4::operator*(const Vector4 &other) const
 {
-    return Vector4(x * other.x, y * other.y, z * other.z, w * other.w);
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_mul_ps(a, b);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator*=(const Vector4 &other)
 {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    w *= other.w;
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_mul_ps(a, b);
+    storefsp(a);
+
     return *this;
 }
 
@@ -122,15 +152,20 @@ Vector4 &Vector4::operator*=(const Matrix4 &mat)
 
 Vector4 Vector4::operator/(const Vector4 &other) const
 {
-    return Vector4(x / other.x, y / other.y, z / other.z, w / other.w);
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    a = _mm_div_ps(a, b);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator/=(const Vector4 &other)
 {
-    x /= other.x;
-    y /= other.y;
-    z /= other.z;
-    w /= other.w;
+    __m128 a = loadfsp();
+    const __m128 b = other.loadfsp();
+    __m128 c = _mm_div_ps(a, b);
+    storefsp(c);
+
     return *this;
 }
 
@@ -161,11 +196,21 @@ float Vector4::Min() const
 
 float Vector4::DistanceSquared(const Vector4 &other) const
 {
-    float dx = x - other.x;
+    __m128 delta;
+    __m128 a = loadfsp();
+    __m128 b = other.loadfsp();
+
+
+    delta = _mm_sub_ps(a, b);
+    delta = _mm_mul_ps(delta, delta);
+
+    return delta[0] + delta[1] + delta[2] + delta[3];
+
+    /*float dx = x - other.x;
     float dy = y - other.y;
     float dz = z - other.z;
     float dw = w - other.w;
-    return dx * dx + dy * dy + dz * dz + dw * dw;
+    return dx * dx + dy * dy + dz * dz + dw * dw;*/
 }
 
 float Vector4::Distance(const Vector4 &other) const

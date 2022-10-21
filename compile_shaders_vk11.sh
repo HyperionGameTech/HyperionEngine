@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pushd res/vkshaders
+pushd res/vkshaders || exit
 
 VULKAN_TARGET="vulkan1.1"
 glslc --target-env=$VULKAN_TARGET deferred_direct.frag -o deferred_direct.frag.spv

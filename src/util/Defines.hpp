@@ -231,10 +231,21 @@
 #define HYP_PAD_STRUCT_HERE(type, count) \
     type HYP_UNIQUE_NAME(_padding)[count]
 
+#ifdef HYP_WINDOWS
+#include <malloc.h>
+    #define HYP_ALLOC_ALIGNED(alignment, size) _aligned_malloc(size, alignment)
+    #define HYP_FREE_ALIGNED(block) _aligned_free(block)
+#else
+#include <stdlib.h>
+#define HYP_ALLOC_ALIGNED(alignment, size) aligned_alloc(alignment, size)
+#define HYP_FREE_ALIGNED(block) free(block)
+#endif
 
 //testing, to remove
 #define HYP_FEATURES_BINDLESS_TEXTURES 0
 #undef HYP_FEATURES_ENABLE_RAYTRACING
+
+#define HYP_FEATURES_INTRINSICS 1
 //#undef HYP_VULKAN_API_VERSION
 //#define HYP_VULKAN_API_VERSION VK_API_VERSION_1_1
 
