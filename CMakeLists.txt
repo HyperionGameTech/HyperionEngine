@@ -27,6 +27,7 @@ find_package(glfw3 REQUIRED)
 find_package(SDL2 REQUIRED)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
+#add_definitions(-DHYP_FEATURES_INTRISICS=1)
 add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 

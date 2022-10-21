@@ -1,17 +1,17 @@
-#include "Matrix4.hpp"
-#include "Vector3.hpp"
-#include "Quaternion.hpp"
-#include "Rect.hpp"
+#include "../Matrix4.hpp"
+#include "../Vector3.hpp"
+#include "../Quaternion.hpp"
+#include "../Rect.hpp"
 
 #include <core/Core.hpp>
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#include "Intrinsics.hpp"
+
+#if defined(HYP_FEATURES_INTRINSICS) && HYP_FEATURES_INTRINSICS
 
 namespace hyperion {
 
-const Matrix4 Matrix4::identity = Matrix4::Identity();
-const Matrix4 Matrix4::zeros = Matrix4::Zeros();
-const Matrix4 Matrix4::ones = Matrix4::Ones();
+using namespace intrinsics;
 
 Matrix4 Matrix4::Translation(const Vector3 &translation)
 {
@@ -63,6 +63,8 @@ Matrix4 Matrix4::Rotation(const Matrix4 &t)
 Matrix4 Matrix4::Rotation(const Quaternion &rotation)
 {
     Matrix4 mat;
+
+    Float128 result = Float128Zero();
 
     const float xx = rotation.x * rotation.x,
         xy = rotation.x * rotation.y,
@@ -116,10 +118,10 @@ Matrix4 Matrix4::Scaling(const Vector3 &scale)
 
 Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
 {
-    Matrix4 mat = zeros;
+    Matrix4 mat = Zeros();
 
     float ar = (float)w / (float)h;
-    float tan_half_fov = MathUtil::Tan(MathUtil::DegToRad(fov / 2.0f));
+    float tan_half_fov = tan(MathUtil::DegToRad(fov / 2.0f));
     float range = n - f;
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
@@ -137,31 +139,21 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
 
 Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float f)
 {
-    Matrix4 mat = zeros;
-    
+    Matrix4 mat;
+
     float x_orth = 2.0f / (r - l);
-    float y_orth = 2.0f / (b - t);
-    float z_orth = 1.0f / (n - f);
-    float tx = ((r + l) / (r - l));
+    float y_orth = 2.0f / (t - b);
+    float z_orth = 1.0f / (f - n);
+    float tx = ((r + l) / (l - r));
     float ty = ((b + t) / (b - t));
-    float tz = ((n) / (n - f));
-    
-    mat[0] = { x_orth, 0.0f, 0.0f, tx };
-    mat[1] = { 0.0f, y_orth, 0.0f, ty };
-    mat[2] = { 0.0f, 0.0f, z_orth, tz };
-    mat[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    float tz = ((-n) / (f - n));
 
-    return mat;
-}
+    mat[0] = { x_orth, 0, 0, 0 };
+    mat[1] = { 0, y_orth, 0, 0 };
+    mat[2] = { 0, 0, z_orth, 0 };
+    mat[3] = { tx, ty, tz, 1 };
 
-Matrix4 Matrix4::Jitter(UInt width, UInt height, const Vector2 &jitter)
-{
-    const Vector2 pixel_size = Vector2::one / Vector2(width, height);
-
-    Matrix4 mat = identity;
-
-    mat[0][3] += (jitter.x * 2.0f - 1.0f) * pixel_size.x * 0.5f;
-    mat[1][3] += (jitter.y * 2.0f - 1.0f) * pixel_size.y * 0.5f;
+    mat.Transpose();
 
     return mat;
 }
@@ -177,6 +169,14 @@ Matrix4 Matrix4::LookAt(const Vector3 &direction, const Vector3 &up)
     mat[0] = Vector4(x, 0.0f);
     mat[1] = Vector4(y, 0.0f);
     mat[2] = Vector4(z, 0.0f);
+
+    // const Vector3 z = direction.Normalized();
+    // const Vector3 x = up.Cross(direction).Normalized();
+    // const Vector3 y = direction.Cross(x).Normalized();
+
+    // mat[0] = Vector4(x, 0.0f);
+    // mat[1] = Vector4(y, 0.0f);
+    // mat[2] = Vector4(z, 0.0f);
 
     return mat;
 }
@@ -216,7 +216,11 @@ Matrix4::Matrix4(const float *v)
 
 Matrix4::Matrix4(const Matrix4 &other)
 {
-    hyperion::Memory::Copy(values, other.values, sizeof(values));
+    rows[0] = other.rows[0];
+    rows[1] = other.rows[1];
+    rows[2] = other.rows[2];
+    rows[3] = other.rows[3];
+    //hyperion::Memory::Copy(values, other.values, sizeof(values));
 }
 
 float Matrix4::Determinant() const
@@ -256,10 +260,10 @@ Matrix4 &Matrix4::Invert()
 
 Matrix4 Matrix4::Inverted() const
 {
-    float det = Determinant();
-    float inv_det = 1.0f / det;
+    Float det = Determinant();
+    Float inv_det = 1.0f / det;
 
-    float tmp[4][4];
+    Float tmp[4][4];
 
     tmp[0][0] = (rows[1][2] * rows[2][3] * rows[3][1] - rows[1][3] * rows[2][2] * rows[3][1] + rows[1][3] * rows[2][1] * rows[3][2] - rows[1][1]
                                                                                                                                       * rows[2][3] * rows[3][2] - rows[1][2] * rows[2][1] * rows[3][3] + rows[1][1] * rows[2][2] * rows[3][3])
@@ -360,38 +364,54 @@ Matrix4 Matrix4::operator+(const Matrix4 &other) const
 
 Matrix4 &Matrix4::operator+=(const Matrix4 &other)
 {
-    for (int i = 0; i < std::size(values); i++) {
+    for (Int i = 0; i < std::size(values); i++) {
         values[i] += other.values[i];
     }
 
     return *this;
 }
 
+/* This code is based off of source found in DirectXMathOptimizations.
+ * License: MIT
+ * Link: https://github.com/nfrechette/DirectXMathOptimizations/blob/master/Inc/MatrixMultiply/MatrixMultiply_V2.h */
+
 Matrix4 Matrix4::operator*(const Matrix4 &other) const
 {
-    const float fv[] = {
-        values[0] * other.values[0] + values[1] * other.values[4] + values[2] * other.values[8] + values[3] * other.values[12],
-        values[0] * other.values[1] + values[1] * other.values[5] + values[2] * other.values[9] + values[3] * other.values[13],
-        values[0] * other.values[2] + values[1] * other.values[6] + values[2] * other.values[10] + values[3] * other.values[14],
-        values[0] * other.values[3] + values[1] * other.values[7] + values[2] * other.values[11] + values[3] * other.values[15],
+    Float128 vx, vy, vz, vw;
+    // Load all 4 rows of our "other" matrix into registers
+    const Float128 m2r0 = Float128Load(&other.values[0]);
+    const Float128 m2r1 = Float128Load(&other.values[4]);
+    const Float128 m2r2 = Float128Load(&other.values[8]);
+    const Float128 m2r3 = Float128Load(&other.values[12]);
 
-        values[4] * other.values[0] + values[5] * other.values[4] + values[6] * other.values[8] + values[7] * other.values[12],
-        values[4] * other.values[1] + values[5] * other.values[5] + values[6] * other.values[9] + values[7] * other.values[13],
-        values[4] * other.values[2] + values[5] * other.values[6] + values[6] * other.values[10] + values[7] * other.values[14],
-        values[4] * other.values[3] + values[5] * other.values[7] + values[6] * other.values[11] + values[7] * other.values[15],
+    Matrix4 result;
 
-        values[8] * other.values[0] + values[9] * other.values[4] + values[10] * other.values[8] + values[11] * other.values[12],
-        values[8] * other.values[1] + values[9] * other.values[5] + values[10] * other.values[9] + values[11] * other.values[13],
-        values[8] * other.values[2] + values[9] * other.values[6] + values[10] * other.values[10] + values[11] * other.values[14],
-        values[8] * other.values[3] + values[9] * other.values[7] + values[10] * other.values[11] + values[11] * other.values[15],
+    for (Int i = 0; i < 4; i++) {
+        // Load our first row
+        vw = Float128Load(&values[i * 4]);
+        // Splat each component
+        vx = Float128Permute(vw, Float128ShuffleMask(0, 0, 0, 0));
+        vy = Float128Permute(vw, Float128ShuffleMask(1, 1, 1, 1));
+        vz = Float128Permute(vw, Float128ShuffleMask(2, 2, 2, 2));
+        // Finally, isolate our W back
+        vw = Float128Permute(vw, Float128ShuffleMask(3, 3, 3, 3));
 
-        values[12] * other.values[0] + values[13] * other.values[4] + values[14] * other.values[8] + values[15] * other.values[12],
-        values[12] * other.values[1] + values[13] * other.values[5] + values[14] * other.values[9] + values[15] * other.values[13],
-        values[12] * other.values[2] + values[13] * other.values[6] + values[14] * other.values[10] + values[15] * other.values[14],
-        values[12] * other.values[3] + values[13] * other.values[7] + values[14] * other.values[11] + values[15] * other.values[15]
-    };
+        // Multiply components by rows
+        vx = Float128Mul(vx, m2r0);
+        vy = Float128Mul(vy, m2r1);
+        vz = Float128Mul(vz, m2r2);
+        vw = Float128Mul(vw, m2r3);
 
-    return Matrix4(fv);
+        // Add back to X
+        vx = Float128Add(vx, vz);
+        vy = Float128Add(vy, vw);
+        vx = Float128Add(vx, vy);
+
+        // Store X vector
+        Float128Store(&(result.values[i * 4]), vx);
+    }
+
+    return result;
 }
 
 Matrix4 &Matrix4::operator*=(const Matrix4 &other)
@@ -399,7 +419,7 @@ Matrix4 &Matrix4::operator*=(const Matrix4 &other)
     return (*this) = operator*(other);
 }
 
-Matrix4 Matrix4::operator*(float scalar) const
+Matrix4 Matrix4::operator*(Float scalar) const
 {
     Matrix4 result(*this);
     result *= scalar;
@@ -407,10 +427,19 @@ Matrix4 Matrix4::operator*(float scalar) const
     return result;
 }
 
-Matrix4 &Matrix4::operator*=(float scalar)
+Matrix4 &Matrix4::operator*=(Float scalar)
 {
-    for (float &value : values) {
-        value *= scalar;
+    // Broadcast our scalar value to all components of a vector
+    Float128 scalarv = Float128Set(scalar);
+    Float128 original = Float128Zero();
+
+    for (Int i = 0; i < 4; i++) {
+        // Load a vec4 from our matrix
+        original = Float128Load(&values[i * 4]);
+        // Multiply by scalar value
+        original = Float128Mul(original, scalarv);
+        // Store back into memory
+        Float128Store(&values[i * 4], original);
     }
 
     return *this;
@@ -418,24 +447,46 @@ Matrix4 &Matrix4::operator*=(float scalar)
 
 Vector3 Matrix4::operator*(const Vector3 &vec) const
 {
-    const Vector4 product {
-        vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + values[3],
-        vec.x * values[4]  + vec.y * values[5]  + vec.z * values[6]  + values[7],
-        vec.x * values[8]  + vec.y * values[9]  + vec.z * values[10] + values[11],
-        vec.x * values[12] + vec.y * values[13] + vec.z * values[14] + values[15]
-    };
+    Float vec_values[] = { vec.x, vec.y, vec.z, 1.0f };
+    Float rvals[4];
+    // Zero our SSE registers
+    Float128 original_vec = Float128Zero();
+    // Load a vec4 into our registers
+    Float128 vec_sc = Float128Load(vec_values);
+
+    for (Int i = 0; i < 4; i++) {
+        // Load our matrix values into an SSE vec4
+        original_vec = Float128Load(&values[i * 4]);
+        // Multiply by constant vector
+        original_vec = Float128Mul(vec_sc, original_vec);
+        // Output the sum of all components as a value of our result
+        rvals[i] = Float128Sum(original_vec);
+    }
+
+    Vector4 product(rvals[0], rvals[1], rvals[2], rvals[3]);
 
     return Vector3(product / product.w);
 }
 
 Vector4 Matrix4::operator*(const Vector4 &vec) const
 {
-    return {
-        vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + vec.w * values[3],
-        vec.x * values[4]  + vec.y * values[5]  + vec.z * values[6]  + vec.w * values[7],
-        vec.x * values[8]  + vec.y * values[9]  + vec.z * values[10] + vec.w * values[11],
-        vec.x * values[12] + vec.y * values[13] + vec.z * values[14] + vec.w * values[15]
-    };
+    Float rvals[4];
+    // Zero our SSE registers
+    Float128 original_vec = Float128Zero();
+    // Load a vec4 into our registers
+    Float128 vec_sc = Float128Load(vec.values);
+
+    for (int i = 0; i < 4; i++) {
+        // Load our matrix values into an SSE vec4
+        original_vec = Float128Load(&values[i * 4]);
+        // Multiply by constant vector
+        original_vec = Float128Mul(vec_sc, original_vec);
+        // Output the sum of all components as a value of our result
+        rvals[i] = Float128Sum(original_vec);
+    }
+
+    Vector4 product(rvals[0], rvals[1], rvals[2], rvals[3]);
+    return product;
 }
 
 Vector4 Matrix4::GetColumn(UInt index) const
@@ -450,14 +501,14 @@ Vector4 Matrix4::GetColumn(UInt index) const
 
 Matrix4 Matrix4::Zeros()
 {
-    float zero_array[sizeof(values) / sizeof(values[0])] = {0.0f};
+    Float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
     return Matrix4(zero_array);
 }
 
 Matrix4 Matrix4::Ones()
 {
-    float ones_array[sizeof(values) / sizeof(values[0])] = {1.0f};
+    Float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
     return Matrix4(ones_array);
 }
@@ -485,4 +536,5 @@ std::ostream &operator<<(std::ostream &os, const Matrix4 &mat)
     return os;
 }
 } // namespace hyperion
+
 #endif

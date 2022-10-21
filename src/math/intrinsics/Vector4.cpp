@@ -1,76 +1,51 @@
-#include "Vector4.hpp"
-#include "MathUtil.hpp"
-#include "Vector3.hpp"
-#include "Vector2.hpp"
-#include "Matrix4.hpp"
+#include "../Vector4.hpp"
+#include "../MathUtil.hpp"
+#include "../Vector3.hpp"
+#include "../Vector2.hpp"
+#include "../Matrix4.hpp"
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#include "Intrinsics.hpp"
+
+#if defined(HYP_FEATURES_INTRINSICS) && HYP_FEATURES_INTRINSICS
 
 namespace hyperion {
-
-const Vector4 Vector4::zero = Vector4(0.0f);
-const Vector4 Vector4::one = Vector4(1.0f);
 
 using namespace intrinsics;
 
 Vector4::Vector4()
-    : x(0.0f),
-      y(0.0f),
-      z(0.0f),
-      w(0.0f)
 {
+    vector = Float128Zero();
 }
 
 Vector4::Vector4(float x, float y, float z, float w)
-    : x(x),
-      y(y),
-      z(z),
-      w(w)
 {
+    vector = Float128Set(x, y, z, w);
 }
 
 Vector4::Vector4(float xyzw)
-    : x(xyzw),
-      y(xyzw),
-      z(xyzw),
-      w(xyzw)
 {
+    vector = Float128Set(xyzw);
 }
 
 Vector4::Vector4(const Vector2 &xy, float z, float w)
-    : x(xy.x),
-      y(xy.y),
-      z(z),
-      w(w)
 {
-}
-
-Vector4::Vector4(const Vector2 &xy, const Vector2 &zw)
-    : x(xy.x),
-      y(xy.y),
-      z(zw.x),
-      w(zw.y)
-{
+    vector = Float128Set(xy.x, xy.y, z, w);
 }
 
 Vector4::Vector4(const Vector3 &xyz, float w)
-    : x(xyz.x),
-      y(xyz.y),
-      z(xyz.z),
-      w(w)
 {
+    vector = Float128Set(xyz.x, xyz.y, xyz.z, w);
 }
 
 Vector4::Vector4(const Vector4 &other)
-    : x(other.x),
-      y(other.y),
-      z(other.z),
-      w(other.w)
 {
+    //vector = Float128Load(other.values);
+    //vector = Float128Set(other.x, other.y, other.z, other.w);
+    vector = other.vector;
 }
 
-Vector4::Vector4(Float128 vec)
-{
+Vector4::Vector4(Float128 vec) {
+    Float128Store(values, vec);
 }
 
 Vector4 &Vector4::operator=(const Vector4 &other)
@@ -81,78 +56,101 @@ Vector4 &Vector4::operator=(const Vector4 &other)
     w = other.w;
     return *this;
 }
-
 Vector4 Vector4::operator+(const Vector4 &other) const
 {
-    return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    Float128 a = Float128Zero();
+    a = Float128Add(vector, other.vector);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator+=(const Vector4 &other)
 {
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    w += other.w;
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    Float128 a = Float128Zero();
+    vector = Float128Add(vector, other.vector);
+    //Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator-(const Vector4 &other) const
 {
-    return Vector4(x - other.x, y - other.y, z - other.z, w - other.w);
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    Float128 a = Float128Zero();
+    a = Float128Sub(vector, other.vector);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator-=(const Vector4 &other)
 {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    w -= other.w;
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    vector = Float128Sub(vector, other.vector);
+    //Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator*(const Vector4 &other) const
 {
-    return Vector4(x * other.x, y * other.y, z * other.z, w * other.w);
+    Float128 a = Float128Zero();
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Mul(vector, other.vector);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator*=(const Vector4 &other)
 {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    w *= other.w;
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Mul(a, b);
+    Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator*(const Matrix4 &mat) const
 {
-    return {
-        x * mat.values[0] + y * mat.values[4] + z * mat.values[8]  + w * mat.values[12],
-        x * mat.values[1] + y * mat.values[5] + z * mat.values[9]  + w * mat.values[13],
-        x * mat.values[2] + y * mat.values[6] + z * mat.values[10] + w * mat.values[14],
-        x * mat.values[3] + y * mat.values[7] + z * mat.values[11] + w * mat.values[15]
-    };
+    Vector4 ret;
+    for (int i = 0; i < 4; i++) {
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 4], mat.values[i + 8], mat.values[i + 12]);
+        const Float128 row = Float128Mul(vector, b);
+        ret.values[i] = Float128Sum(row);
+    }
+    return ret;
 }
 
 Vector4 &Vector4::operator*=(const Matrix4 &mat)
 {
-    return operator=(operator*(mat));
+    //const Float128 a = Float128Set(x, y, z, w);
+    for (int i = 0; i < 4; i++) {
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 4], mat.values[i + 8], mat.values[i + 12]);;
+        const Float128 row = Float128Mul(vector, b);
+        values[i] = Float128Sum(row);
+    }
+    return *this;
 }
 
 Vector4 Vector4::operator/(const Vector4 &other) const
 {
-    return Vector4(x / other.x, y / other.y, z / other.z, w / other.w);
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    Float128 a = Float128Zero();
+    a = Float128Div(vector, other.vector);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator/=(const Vector4 &other)
 {
-    x /= other.x;
-    y /= other.y;
-    z /= other.z;
-    w /= other.w;
+    //Float128 a = Float128Set(x, y, z, w);
+    //const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    vector = Float128Div(vector, other.vector);
+    //Float128Store(values, a);
     return *this;
 }
-
 bool Vector4::operator==(const Vector4 &other) const
 {
     return MathUtil::ApproxEqual(x, other.x)
@@ -299,4 +297,5 @@ std::ostream &operator<<(std::ostream &out, const Vector4 &vec) // output
 }
 
 } // namespace hyperion
+
 #endif
