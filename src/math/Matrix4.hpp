@@ -9,6 +9,8 @@
 
 #include <iostream>
 #include <cstring>
+#include <immintrin.h>
+
 
 namespace hyperion {
 

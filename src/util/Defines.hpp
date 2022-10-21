@@ -266,6 +266,8 @@
     #define HYP_FREE_ALIGNED(block) free(block)
 #endif
 
+#define HYP_INTRINSICS 1
+
 //testing, to remove
 //#define HYP_FEATURES_BINDLESS_TEXTURES 0
 //#undef HYP_FEATURES_ENABLE_RAYTRACING

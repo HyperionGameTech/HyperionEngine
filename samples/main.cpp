@@ -108,7 +108,7 @@ public:
     virtual void InitGame(Engine *engine) override
     {
         Game::InitGame(engine);
-        
+
         m_scene->SetCamera(
             engine->CreateHandle<Camera>(new FirstPersonCamera(
                 1920, 1080,
@@ -280,7 +280,7 @@ public:
         skybox_spatial->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_SKYBOX)));
         skybox_spatial->RebuildRenderableAttributes();
         m_scene->AddEntity(std::move(skybox_spatial));
-        
+
         for (auto &child : test_model.GetChildren()) {
             if (auto &entity = child.GetEntity()) {
                 auto ent = Handle(entity);
@@ -536,13 +536,15 @@ int main()
 
     RefCountedPtr<Application> application(new SDLApplication);
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
-    
+
     SystemEvent event;
 
     auto *engine = new Engine(application, "My app");
     auto *my_game = new MyGame(application);
-
+;
     engine->Initialize();
+
+    Device *device = engine->GetInstance()->GetDevice();
 
     engine->shader_manager.SetShader(
         ShaderKey::BASIC_VEGETATION,
@@ -577,7 +579,7 @@ int main()
     my_game->Init(engine);
 
     engine->Compile();
-    
+
     engine->game_thread.Start(engine, my_game);
 
     UInt num_frames = 0;
@@ -604,7 +606,7 @@ int main()
             delta_time_accum = 0.0f;
             num_frames = 0;
         }
-        
+
         engine->RenderNextFrame(my_game);
     }
 
