@@ -29,7 +29,7 @@ HYP_FORCE_INLINE
 static bool BucketRendersShadows(Bucket bucket)
 {
     return bucket == BUCKET_OPAQUE
-        /*|| bucket == BUCKET_TRANSLUCENT*/;
+        || bucket == BUCKET_TRANSLUCENT;
 }
 
 HYP_FORCE_INLINE

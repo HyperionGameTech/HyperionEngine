@@ -182,10 +182,10 @@ public:
     ~Configuration() = default;
 
     HYP_FORCE_INLINE Option &Get(OptionName option)
-        { return m_variables[static_cast<UInt>(option)]; }
+        { return m_variables[UInt(option)]; }
 
     HYP_FORCE_INLINE const Option &Get(OptionName option) const
-        { return m_variables[static_cast<UInt>(option)]; }
+        { return m_variables[UInt(option)]; }
 
     bool LoadFromDefinitionsFile(Engine *engine);
     bool SaveToDefinitionsFile(Engine *engine);
