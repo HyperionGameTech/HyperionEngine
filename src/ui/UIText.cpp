@@ -40,9 +40,9 @@ void UIText::Init(Engine *engine)
     // UIObject::GetEntity()->RebuildRenderableAttributes();
 }
 
-DynArray<UIText::UICharMesh> UIText::BuildCharMeshes(const FontMap &font_map, const String &text)
+Array<UIText::UICharMesh> UIText::BuildCharMeshes(const FontMap &font_map, const String &text)
 {
-    DynArray<UIText::UICharMesh> char_meshes;
+    Array<UIText::UICharMesh> char_meshes;
     Vector3 placement;
 
     const SizeType length = text.Length();
@@ -81,7 +81,7 @@ DynArray<UIText::UICharMesh> UIText::BuildCharMeshes(const FontMap &font_map, co
     return char_meshes;
 }
 
-UniquePtr<Mesh> UIText::OptimizeCharMeshes(DynArray<UICharMesh> &&char_meshes)
+UniquePtr<Mesh> UIText::OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 {
     if (char_meshes.Empty()) {
         return { };

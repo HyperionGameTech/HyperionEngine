@@ -27,16 +27,16 @@ public:
     void SetGravity(const Vector3 &gravity)
         { m_gravity = gravity; }
 
-    DynArray<Handle<RigidBody>> &GetRigidBodies()
+    Array<Handle<RigidBody>> &GetRigidBodies()
         { return m_rigid_bodies; }
     
-    const DynArray<Handle<RigidBody>> &GetRigidBodies() const
+    const Array<Handle<RigidBody>> &GetRigidBodies() const
         { return m_rigid_bodies; }
 
 protected:
     Vector3 m_gravity = earth_gravity;
 
-    DynArray<Handle<RigidBody>> m_rigid_bodies;
+    Array<Handle<RigidBody>> m_rigid_bodies;
 };
 
 template <class Adapter>

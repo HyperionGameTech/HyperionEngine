@@ -68,7 +68,7 @@ public:
     void Update(Engine *engine, GameCounter::TickUnit delta);
 
 private:
-    // DynArray<Handle<UIObject>> m_ui_objects;
+    // Array<Handle<UIObject>> m_ui_objects;
     Handle<Scene> m_scene;
 };
 

@@ -53,9 +53,9 @@ public:
         Bucket bucket { BUCKET_OPAQUE };
         Handle<RenderPass> render_pass;
         FixedArray<Handle<Framebuffer>, max_frames_in_flight> framebuffers;
-        DynArray<std::unique_ptr<Attachment>> attachments;
-        DynArray<Handle<RendererInstance>> renderer_instances;
-        DynArray<Handle<RendererInstance>> renderer_instances_pending_addition;
+        Array<std::unique_ptr<Attachment>> attachments;
+        Array<Handle<RendererInstance>> renderer_instances;
+        Array<Handle<RendererInstance>> renderer_instances_pending_addition;
         AtomicVar<bool> renderer_instances_changed;
         std::mutex renderer_instances_mutex;
 
@@ -72,8 +72,8 @@ public:
         FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() { return framebuffers; }
         const FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() const { return framebuffers; }
 
-        DynArray<Handle<RendererInstance>> &GetRendererInstances() { return renderer_instances; }
-        const DynArray<Handle<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }
+        Array<Handle<RendererInstance>> &GetRendererInstances() { return renderer_instances; }
+        const Array<Handle<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }
 
         AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
         {

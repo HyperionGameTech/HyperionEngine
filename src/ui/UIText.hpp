@@ -161,8 +161,8 @@ private:
 //     virtual void Init(Engine *engine) override;
 
 // protected:
-//     static DynArray<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text);
-//     static UniquePtr<Mesh> OptimizeCharMeshes(DynArray<UICharMesh> &&char_meshes);
+//     static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text);
+//     static UniquePtr<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes);
 
 //     FontMap m_font_map;
 //     String m_text;

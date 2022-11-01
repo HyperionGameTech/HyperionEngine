@@ -134,7 +134,7 @@ void ParticleSpawner::CreateBuffers()
         );
 
         // copy bytes into noise buffer
-        DynArray<Float> unpacked_floats;
+        Array<Float> unpacked_floats;
         m_noise_map.GetUnpackedFloats(unpacked_floats);
 
         AssertThrow(m_noise_map.GetByteSize() == unpacked_floats.Size());
@@ -250,7 +250,7 @@ void ParticleSpawner::CreateRendererInstance()
     }
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
-    m_renderer_instance->GetPipeline()->SetUsedDescriptorSets(DynArray<const DescriptorSet *> {
+    m_renderer_instance->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
         &m_descriptor_sets[0]
     });
 
@@ -261,7 +261,7 @@ void ParticleSpawner::CreateComputePipelines()
 {
     m_update_particles = GetEngine()->CreateHandle<ComputePipeline>(
         GetEngine()->CreateHandle<Shader>(GetEngine()->GetShaderCompiler().GetCompiledShader("UpdateParticles")),
-        DynArray<const DescriptorSet *> { &m_descriptor_sets[0] }
+        Array<const DescriptorSet *> { &m_descriptor_sets[0] }
     );
 
     GetEngine()->InitObject(m_update_particles);

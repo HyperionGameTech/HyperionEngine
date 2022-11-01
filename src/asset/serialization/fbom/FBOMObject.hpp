@@ -154,65 +154,65 @@ private:
 // class FBOMNodeHolder {
 // public:
 //     FBOMNodeHolder
-//         : DynArray<FBOMObject>()
+//         : Array<FBOMObject>()
 //     {
 //     }
 
-//     FBOMNodeHolder(const DynArray<FBOMObject> &other)
-//         : DynArray<FBOMObject>(other)
+//     FBOMNodeHolder(const Array<FBOMObject> &other)
+//         : Array<FBOMObject>(other)
 //     {
 //     }
 
-//     FBOMNodeHolder &FBOMNodeHolder::operator=(const DynArray<FBOMObject> &other)
+//     FBOMNodeHolder &FBOMNodeHolder::operator=(const Array<FBOMObject> &other)
 //     {
-//         DynArray<FBOMObject>::operator=(other);
+//         Array<FBOMObject>::operator=(other);
 
 //         return *this;
 //     }
 
-//     FBOMNodeHolder(DynArray<FBOMObject> &&other) noexcept
-//         : DynArray<FBOMObject>(std::move(other))
+//     FBOMNodeHolder(Array<FBOMObject> &&other) noexcept
+//         : Array<FBOMObject>(std::move(other))
 //     {
 //     }
 
-//     FBOMNodeHolder &FBOMNodeHolder::operator=(DynArray<FBOMObject> &&other) noexcept
+//     FBOMNodeHolder &FBOMNodeHolder::operator=(Array<FBOMObject> &&other) noexcept
 //     {
-//         DynArray<FBOMObject>::operator=(std::move(other));
+//         Array<FBOMObject>::operator=(std::move(other));
 
 //         return *this;
 //     }
 
 // private:
-//     DynArray<FBOMObject> objects;
+//     Array<FBOMObject> objects;
 // };
 
-class FBOMNodeHolder : public DynArray<FBOMObject> {
+class FBOMNodeHolder : public Array<FBOMObject> {
 public:
     FBOMNodeHolder()
-        : DynArray<FBOMObject>()
+        : Array<FBOMObject>()
     {
     }
 
-    FBOMNodeHolder(const DynArray<FBOMObject> &other)
-        : DynArray<FBOMObject>(other)
+    FBOMNodeHolder(const Array<FBOMObject> &other)
+        : Array<FBOMObject>(other)
     {
     }
 
-    FBOMNodeHolder &operator=(const DynArray<FBOMObject> &other)
+    FBOMNodeHolder &operator=(const Array<FBOMObject> &other)
     {
-        DynArray<FBOMObject>::operator=(other);
+        Array<FBOMObject>::operator=(other);
 
         return *this;
     }
 
-    FBOMNodeHolder(DynArray<FBOMObject> &&other) noexcept
-        : DynArray<FBOMObject>(std::move(other))
+    FBOMNodeHolder(Array<FBOMObject> &&other) noexcept
+        : Array<FBOMObject>(std::move(other))
     {
     }
 
-    FBOMNodeHolder &operator=(DynArray<FBOMObject> &&other) noexcept
+    FBOMNodeHolder &operator=(Array<FBOMObject> &&other) noexcept
     {
-        DynArray<FBOMObject>::operator=(std::move(other));
+        Array<FBOMObject>::operator=(std::move(other));
 
         return *this;
     }
@@ -220,8 +220,8 @@ public:
     ~FBOMNodeHolder() = default;
 
     // HYP_DEF_STL_BEGIN_END(
-    //     reinterpret_cast<typename DynArray<FBOMObject>::ValueType *>(&DynArray<FBOMObject>::m_buffer[DynArray<FBOMObject>::m_start_offset]),
-    //     reinterpret_cast<typename DynArray<FBOMObject>::ValueType *>(&DynArray<FBOMObject>::m_buffer[DynArray<FBOMObject>::m_size])
+    //     reinterpret_cast<typename Array<FBOMObject>::ValueType *>(&Array<FBOMObject>::m_buffer[Array<FBOMObject>::m_start_offset]),
+    //     reinterpret_cast<typename Array<FBOMObject>::ValueType *>(&Array<FBOMObject>::m_buffer[Array<FBOMObject>::m_size])
     // )
 };
 

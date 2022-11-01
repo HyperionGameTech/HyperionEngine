@@ -155,7 +155,7 @@ void TemporalBlending::CreateComputePipelines(Engine *engine)
 {
     m_perform_blending = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("TemporalBlending")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_perform_blending);

@@ -23,10 +23,10 @@ namespace detail {
 using namespace ::utf;
 
 template <class T>
-using CharArray = DynArray<T, 64u>;
+using CharArray = Array<T, 64u>;
 
 template <class T, bool IsUtf8>
-class DynString : DynArray<T, 64u>
+class DynString : Array<T, 64u>
 {
 #if 0
 public:
@@ -34,7 +34,7 @@ public:
 #endif
 
 protected:
-    using Base = DynArray<T, 64u>;
+    using Base = Array<T, 64u>;
 
 public:
     using ValueType = typename Base::ValueType;
@@ -115,7 +115,7 @@ public:
     bool StartsWith(const DynString &other) const;
     bool EndsWith(const DynString &other) const;
 
-    DynArray<DynString> Split(T separator) const;
+    Array<DynString> Split(T separator) const;
     
     DynString Trimmed() const;
     DynString TrimmedLeft() const;
@@ -528,12 +528,12 @@ bool DynString<T, IsUtf8>::EndsWith(const DynString &other) const
 }
 
 template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::Split(T separator) const -> DynArray<DynString>
+auto DynString<T, IsUtf8>::Split(T separator) const -> Array<DynString>
 {
     const auto *data = Base::Data();
     const auto size = Size();
 
-    DynArray<DynString> tokens;
+    Array<DynString> tokens;
 
     DynString working_string;
     working_string.Reserve(size);

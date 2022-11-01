@@ -18,7 +18,7 @@ class FilePath;
 class FileSystem
 {
     static std::mutex mtx;
-    static DynArray<FilePath> filepaths;
+    static Array<FilePath> filepaths;
 
 public:
     static void PushDirectory(const FilePath &path);

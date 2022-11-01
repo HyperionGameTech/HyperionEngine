@@ -202,13 +202,13 @@ public:
     /*! \brief Reads the entirety of the remaining bytes in file PER LINE and returns a vector of
      * string. Note that using this method to read the whole file in one call bypasses
      * the intention of having a buffered reader. */
-    DynArray<String> ReadAllLines()
+    Array<String> ReadAllLines()
     {
         if (Eof()) {
             return { };
         }
         
-        DynArray<String> lines;
+        Array<String> lines;
 
         ReadLines([&lines](const String &line) {
             lines.PushBack(line);

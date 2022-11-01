@@ -114,7 +114,7 @@ protected:
     Handle<RendererInstance> m_renderer_instance;
     Handle<Mesh> m_full_screen_quad;
 
-    DynArray<std::unique_ptr<Attachment>> m_attachments;
+    Array<std::unique_ptr<Attachment>> m_attachments;
 
     PushConstantData m_push_constant_data;
 

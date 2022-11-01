@@ -152,7 +152,7 @@ private:
     void SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer);
 
     ProbeGridInfo m_grid_info;
-    DynArray<Probe> m_probes;
+    Array<Probe> m_probes;
 
     Handle<ComputePipeline> m_update_irradiance,
         m_update_depth,

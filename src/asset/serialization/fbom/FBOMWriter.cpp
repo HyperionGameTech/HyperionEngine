@@ -117,7 +117,7 @@ void FBOMWriter::Prune(FBOMObject &object)
 
 FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
 {
-    DynArray<FBOMStaticData> static_data_ordered;
+    Array<FBOMStaticData> static_data_ordered;
     static_data_ordered.Reserve(m_write_stream.m_static_data.size());
     // static_data_ordered.Reserve(m_write_stream.m_static_data.size());
 

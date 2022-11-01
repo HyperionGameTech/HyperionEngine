@@ -33,6 +33,7 @@ void Threads::SetThreadID(const ThreadID &id)
 
 void Threads::AssertOnThread(ThreadMask mask)
 {
+#ifdef HYP_ENABLE_THREAD_ASSERTION
 #ifdef HYP_ENABLE_THREAD_ID
     const auto &current = current_thread_id;
 
@@ -50,10 +51,12 @@ void Threads::AssertOnThread(ThreadMask mask)
         "AssertOnThread() called but thread IDs are currently disabled!\n"
     );
 #endif
+#endif
 }
 
 void Threads::AssertOnThread(const ThreadID &thread_id)
 {
+#ifdef HYP_ENABLE_THREAD_ASSERTION
 #ifdef HYP_ENABLE_THREAD_ID
     const auto &current = current_thread_id;
 
@@ -70,6 +73,7 @@ void Threads::AssertOnThread(const ThreadID &thread_id)
         LogType::Error,
         "AssertOnThread() called but thread IDs are currently disabled!\n"
     );
+#endif
 #endif
 }
 

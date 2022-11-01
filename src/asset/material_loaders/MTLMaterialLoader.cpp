@@ -245,7 +245,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
     {
         std::vector<std::string> all_filepaths;
-        // DynArray<Handle<Texture>> loaded_textures;
+        // Array<Handle<Texture>> loaded_textures;
 
         if (!texture_names_to_path.empty()) {
             auto textures_batch = state.asset_manager->CreateBatch();

@@ -43,8 +43,8 @@ private:
 
     TopLevelAccelerationStructure m_tlas;
 
-    DynArray<Handle<BLAS>> m_blas;
-    DynArray<Handle<BLAS>> m_blas_pending_addition;
+    Array<Handle<BLAS>> m_blas;
+    Array<Handle<BLAS>> m_blas_pending_addition;
 
     std::atomic_bool m_has_blas_updates { false };
     std::mutex m_blas_updates_mutex;

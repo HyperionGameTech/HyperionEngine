@@ -116,7 +116,7 @@ static void AddOwnedAttachment(
     Engine *engine,
     InternalFormat format,
     Handle<RenderPass> &render_pass,
-    DynArray<std::unique_ptr<Attachment>> &attachments
+    Array<std::unique_ptr<Attachment>> &attachments
 )
 {
     AttachmentRef *attachment_ref;
@@ -146,7 +146,7 @@ static void AddSharedAttachment(
     Engine *engine,
     UInt attachment_index,
     Handle<RenderPass> &render_pass,
-    DynArray<std::unique_ptr<Attachment>> &attachments
+    Array<std::unique_ptr<Attachment>> &attachments
 )
 {
     auto &opaque_fbo = engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffers()[0];

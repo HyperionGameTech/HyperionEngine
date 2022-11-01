@@ -358,9 +358,9 @@ void RendererInstance::CollectDrawCalls(
 }
 
 static void GetDividedDrawCalls(
-    const DynArray<EntityDrawProxy> &draw_proxies,
+    const Array<EntityDrawProxy> &draw_proxies,
     UInt num_batches,
-    DynArray<DynArray<EntityDrawProxy>> &out_divided_draw_proxies
+    Array<Array<EntityDrawProxy>> &out_divided_draw_proxies
 )
 {
     out_divided_draw_proxies.Resize(num_batches);
@@ -389,8 +389,8 @@ RenderAll(
     UInt &command_buffer_index,
     renderer::GraphicsPipeline *pipeline,
     IndirectRenderer *indirect_renderer,
-    const DynArray<EntityDrawProxy> &draw_proxies,
-    DynArray<DynArray<EntityDrawProxy>> &divided_draw_proxies
+    const Array<EntityDrawProxy> &draw_proxies,
+    Array<Array<EntityDrawProxy>> &divided_draw_proxies
 )
 {
     const auto &scene_binding = engine->render_state.GetScene();
@@ -422,7 +422,7 @@ RenderAll(
         TaskPriority::HIGH,
         num_batches,
         divided_draw_proxies,
-        [engine, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id](const DynArray<EntityDrawProxy> &draw_proxies, UInt index, UInt) {
+        [engine, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id](const Array<EntityDrawProxy> &draw_proxies, UInt index, UInt) {
             if (draw_proxies.Empty()) {
                 return;
             }
@@ -506,7 +506,7 @@ RenderAll(
 #endif
 
                         if constexpr (IsIndirect) {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
                             AssertThrow(draw_proxy.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
 #endif
                             

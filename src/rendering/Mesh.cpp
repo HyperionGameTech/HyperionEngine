@@ -352,7 +352,7 @@ void Mesh::CalculateNormals(bool weighted)
         return;
     }
 
-    std::unordered_map<Index, DynArray<Vector3>> normals;
+    std::unordered_map<Index, Array<Vector3>> normals;
 
     // compute per-face normals (facet normals)
     for (size_t i = 0; i < m_indices.size(); i += 3) {

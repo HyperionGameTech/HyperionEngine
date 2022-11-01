@@ -42,7 +42,7 @@ public:
 
     struct VoxelGrid
     {
-        DynArray<Voxel> voxels;
+        Array<Voxel> voxels;
         UInt size_x, size_y, size_z;
         Float voxel_size;
     };

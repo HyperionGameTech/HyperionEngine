@@ -251,7 +251,7 @@ void MotionVectors::CreateComputePipelines(Engine *engine)
 {
     m_calculate_motion_vectors = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("CalculateMotionVectors")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_calculate_motion_vectors);

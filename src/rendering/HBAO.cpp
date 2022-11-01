@@ -214,7 +214,7 @@ void HBAO::CreateComputePipelines(Engine *engine)
 {
     m_compute_hbao = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("HBAO")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_compute_hbao);

@@ -386,7 +386,7 @@ void IndirectRenderer::Create(Engine *engine)
     // TODO: cache pipelines: re-use this
     m_object_visibility = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("ObjectVisibility")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_object_visibility);

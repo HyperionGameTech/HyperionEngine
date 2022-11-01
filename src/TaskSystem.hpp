@@ -37,11 +37,11 @@ struct TaskBatch
 
     /* Number of tasks must remain constant from creation of the TaskBatch,
      * to completion. */
-    DynArray<TaskThread::Scheduler::Task> tasks;
+    Array<TaskThread::Scheduler::Task> tasks;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
      * each task has been scheduled to. */
-    DynArray<TaskRef> task_refs;
+    Array<TaskRef> task_refs;
     
     /*! \brief Add a task to be ran with this batch. Note: adding a task while the batch is already running
      * does not mean the newly added task will be ran! You'll need to re-enqueue the batch after the previous one has been completed.
@@ -245,14 +245,14 @@ public:
     /*! \brief Dequeue each task in a TaskBatch. A potentially expensive operation,
      * as each task will have to individually be dequeued, performing a lock operation.
      * @param batch Pointer to the TaskBatch to dequeue
-     * @returns A DynArray<bool> containing for each Task that has been enqueued, whether or not
+     * @returns A Array<bool> containing for each Task that has been enqueued, whether or not
      * it was successfully dequeued.
      */
-    DynArray<bool> DequeueBatch(TaskBatch *batch)
+    Array<bool> DequeueBatch(TaskBatch *batch)
     {
         AssertThrow(batch != nullptr);
 
-        DynArray<bool> results;
+        Array<bool> results;
         results.Resize(batch->task_refs.Size());
 
         for (SizeType i = 0; i < batch->task_refs.Size(); i++) {
@@ -348,7 +348,7 @@ private:
 
     FixedArray<TaskThreadPool, 2> m_pools;
 
-    DynArray<TaskBatch *> m_running_batches;
+    Array<TaskBatch *> m_running_batches;
 };
 
 } // namespace hyperion::v2

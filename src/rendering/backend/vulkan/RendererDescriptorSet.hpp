@@ -142,14 +142,14 @@ public:
     void Create(
         Device *device,
         VkDescriptorSetLayoutBinding &binding,
-        DynArray<VkWriteDescriptorSet> &writes
+        Array<VkWriteDescriptorSet> &writes
     );
 
 protected:
 
     static VkDescriptorType ToVkDescriptorType(DescriptorType descriptor_type);
 
-    void BuildUpdates(Device *device, DynArray<VkWriteDescriptorSet> &writes);
+    void BuildUpdates(Device *device, Array<VkWriteDescriptorSet> &writes);
     void UpdateSubDescriptorBuffer(const SubDescriptor &sub_descriptor,
         VkDescriptorBufferInfo &out_buffer,
         VkDescriptorImageInfo &out_image,
@@ -158,7 +158,7 @@ protected:
     Range<UInt> m_dirty_sub_descriptors;
 
     FlatMap<UInt, SubDescriptor> m_sub_descriptors;
-    DynArray<UInt> m_sub_descriptor_update_indices;
+    Array<UInt> m_sub_descriptor_update_indices;
 
     UInt m_binding;
     DescriptorType m_descriptor_type;
@@ -357,8 +357,8 @@ public:
         return AddDescriptor<DescriptorType>(binding);
     }
 
-    DynArray<std::unique_ptr<Descriptor>> &GetDescriptors() { return m_descriptors; }
-    const DynArray<std::unique_ptr<Descriptor>> &GetDescriptors() const { return m_descriptors; }
+    Array<std::unique_ptr<Descriptor>> &GetDescriptors() { return m_descriptors; }
+    const Array<std::unique_ptr<Descriptor>> &GetDescriptors() const { return m_descriptors; }
 
     Result Create(Device *device, DescriptorPool *pool);
     Result Destroy(Device *device);
@@ -372,9 +372,9 @@ private:
     UInt DescriptorKeyToIndex(DescriptorKey key) const;
 
     DescriptorPool *m_descriptor_pool;
-    DynArray<std::unique_ptr<Descriptor>> m_descriptors;
-    DynArray<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
-    DynArray<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
+    Array<std::unique_ptr<Descriptor>> m_descriptors;
+    Array<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
+    Array<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
     DescriptorSetState m_state;
     Index m_index;
     UInt m_real_index;
@@ -500,11 +500,11 @@ private:
         const DescriptorSetBinding &binding
     ) const;
 
-    DynArray<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
+    Array<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
     FlatMap<UInt, VkDescriptorSetLayout> m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
 
-    FixedArray<DynArray<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_addition;
+    FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_addition;
     FixedArray<Queue<DescriptorSet::Index>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
 
     bool m_is_created;

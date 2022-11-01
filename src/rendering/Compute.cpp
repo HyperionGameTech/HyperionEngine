@@ -11,7 +11,7 @@ ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
 
 ComputePipeline::ComputePipeline(
     Handle<Shader> &&shader,
-    const DynArray<const DescriptorSet *> &used_descriptor_sets
+    const Array<const DescriptorSet *> &used_descriptor_sets
 ) : EngineComponentBase(),
     m_pipeline(std::make_unique<renderer::ComputePipeline>(used_descriptor_sets)),
     m_shader(std::move(shader))

@@ -13,10 +13,10 @@
 namespace hyperion {
 
 template <class T>
-class SortedArray : public DynArray<T>
+class SortedArray : public Array<T>
 {
 protected:
-    using Base = DynArray<T>;
+    using Base = Array<T>;
     using ValueType = typename Base::ValueType;
 
 public:

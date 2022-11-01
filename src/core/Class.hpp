@@ -12,7 +12,7 @@
 namespace hyperion::v2 {
 
 using ClassField = API::NativeMemberDefine;
-using ClassFields = DynArray<ClassField>; //FlatMap<ANSIString, FieldInfo>;
+using ClassFields = Array<ClassField>; //FlatMap<ANSIString, FieldInfo>;
 // global variable of all class fields
 // this must strictly be used on one thread
 

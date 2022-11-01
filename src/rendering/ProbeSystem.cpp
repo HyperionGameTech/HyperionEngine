@@ -122,7 +122,7 @@ void ProbeGrid::CreatePipeline(Engine *engine)
     engine->InitObject(m_shader);
 
     m_pipeline.Reset(new RaytracingPipeline(
-        DynArray<const DescriptorSet *> {
+        Array<const DescriptorSet *> {
             m_descriptor_sets[0].Get(),
             engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
             engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
@@ -142,28 +142,28 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
 {
     m_update_irradiance = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("RTProbeUpdateIrradiance")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_update_irradiance);
 
     m_update_depth = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("RTProbeUpdateDepth")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_update_depth);
 
     m_copy_border_texels_irradiance = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsIrradiance")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_copy_border_texels_irradiance);
 
     m_copy_border_texels_depth = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsDepth")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_copy_border_texels_depth);

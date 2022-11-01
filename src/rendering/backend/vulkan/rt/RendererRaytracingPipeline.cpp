@@ -23,7 +23,7 @@ RaytracingPipeline::RaytracingPipeline()
 }
 
 RaytracingPipeline::RaytracingPipeline(
-    const DynArray<const DescriptorSet *> &used_descriptor_sets
+    const Array<const DescriptorSet *> &used_descriptor_sets
 ) : Pipeline(used_descriptor_sets)
 {
 }

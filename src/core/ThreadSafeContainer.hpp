@@ -20,8 +20,8 @@ template <class T>
 class ThreadSafeContainer
 {
 public:
-    using Iterator = typename DynArray<Handle<T>>::Iterator;
-    using ConstIterator = typename DynArray<Handle<T>>::ConstIterator;
+    using Iterator = typename Array<Handle<T>>::Iterator;
+    using ConstIterator = typename Array<Handle<T>>::ConstIterator;
 
     ThreadSafeContainer(ThreadName owner_thread)
         : m_owner_thread(owner_thread)
@@ -155,11 +155,11 @@ public:
     }
 
     /*! Only use from the owner thread! */
-    DynArray<Handle<T>> &GetItems()
+    Array<Handle<T>> &GetItems()
         { return m_owned_items; }
     
     /*! Only use from the owner thread! */
-    const DynArray<Handle<T>> &GetItems() const
+    const Array<Handle<T>> &GetItems() const
         { return m_owned_items; }
 
     /*! Only iterate it on the owner thread! */
@@ -167,9 +167,9 @@ public:
 
 private:
     ThreadName m_owner_thread;
-    DynArray<Handle<T>> m_owned_items;
-    DynArray<Handle<T>> m_items_pending_addition;
-    DynArray<typename Handle<T>::ID> m_items_pending_removal;
+    Array<Handle<T>> m_owned_items;
+    Array<Handle<T>> m_items_pending_addition;
+    Array<typename Handle<T>::ID> m_items_pending_removal;
     std::atomic_bool m_updates_pending;
     std::mutex m_update_mutex;
 };

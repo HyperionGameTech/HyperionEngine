@@ -76,8 +76,8 @@ public:
 
     void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
     void RemoveFramebuffer(Framebuffer::ID id);
-    DynArray<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
-    const DynArray<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
+    Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
+    const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
     
     void Init(Engine *engine);
 
@@ -134,11 +134,11 @@ private:
 
     IndirectRenderer m_indirect_renderer;
     
-    DynArray<Handle<Framebuffer>> m_fbos;
+    Array<Handle<Framebuffer>> m_fbos;
 
-    DynArray<Handle<Entity>> m_entities; // lives in RENDER thread
-    DynArray<Handle<Entity>> m_entities_pending_addition; // shared
-    DynArray<Handle<Entity>> m_entities_pending_removal; // shared
+    Array<Handle<Entity>> m_entities; // lives in RENDER thread
+    Array<Handle<Entity>> m_entities_pending_addition; // shared
+    Array<Handle<Entity>> m_entities_pending_removal; // shared
 
     // for each frame in flight - have an array of command buffers to use
     // for async command buffer recording.
@@ -149,7 +149,7 @@ private:
     std::atomic_bool m_enqueued_entities_flag { false };
 
     // cache so we don't allocate every frame
-    DynArray<DynArray<EntityDrawProxy>> m_divided_draw_proxies;
+    Array<Array<EntityDrawProxy>> m_divided_draw_proxies;
 
     // cycle through command buffers, so you can call Render()
     // multiple times in a single pass, only running into issues if you

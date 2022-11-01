@@ -16,7 +16,7 @@ public:
     ComputePipeline();
     /*! \brief Construct a pipeline using the given \ref used_descriptor_set as the descriptor sets to be
         used with this pipeline.  */
-    ComputePipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets);
+    ComputePipeline(const Array<const DescriptorSet *> &used_descriptor_sets);
     ComputePipeline(const ComputePipeline &other) = delete;
     ComputePipeline &operator=(const ComputePipeline &other) = delete;
     ~ComputePipeline();

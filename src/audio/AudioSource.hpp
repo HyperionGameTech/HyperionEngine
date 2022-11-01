@@ -54,7 +54,7 @@ private:
     void FindSampleLength();
 
     Format m_format;
-    DynArray<UByte> m_data;
+    Array<UByte> m_data;
     SizeType m_freq;
     unsigned int m_buffer_id;
     unsigned int m_source_id;

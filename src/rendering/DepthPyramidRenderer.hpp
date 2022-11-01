@@ -51,8 +51,8 @@ private:
 
     FixedArray<std::unique_ptr<Image>, max_frames_in_flight> m_depth_pyramid;
     FixedArray<std::unique_ptr<ImageView>, max_frames_in_flight> m_depth_pyramid_results;
-    FixedArray<DynArray<std::unique_ptr<ImageView>>, max_frames_in_flight> m_depth_pyramid_mips;
-    FixedArray<DynArray<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_depth_pyramid_descriptor_sets;
+    FixedArray<Array<std::unique_ptr<ImageView>>, max_frames_in_flight> m_depth_pyramid_mips;
+    FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_depth_pyramid_descriptor_sets;
     std::unique_ptr<Sampler> m_depth_pyramid_sampler;
 
     Handle<ComputePipeline> m_generate_depth_pyramid;

@@ -15,7 +15,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets)
+Pipeline::Pipeline(const Array<const DescriptorSet *> &used_descriptor_sets)
     : m_used_descriptor_sets(used_descriptor_sets),
       m_has_custom_descriptor_sets(true),
       pipeline(VK_NULL_HANDLE),

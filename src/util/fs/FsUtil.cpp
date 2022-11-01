@@ -21,7 +21,7 @@
 namespace hyperion::v2 {
 
 std::mutex FileSystem::mtx = std::mutex();
-DynArray<FilePath> FileSystem::filepaths = { };
+Array<FilePath> FileSystem::filepaths = { };
 
 
 void FileSystem::PushDirectory(const FilePath &path)

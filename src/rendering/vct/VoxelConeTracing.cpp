@@ -484,7 +484,7 @@ void VoxelConeTracing::CreateComputePipelines(Engine *engine)
     if constexpr (manual_mipmap_generation) {
         m_generate_mipmap = engine->CreateHandle<ComputePipeline>(
             engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("VCTGenerateMipmap")),
-            DynArray<const DescriptorSet *> { m_generate_mipmap_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
+            Array<const DescriptorSet *> { m_generate_mipmap_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
         );
 
         engine->InitObject(m_generate_mipmap);

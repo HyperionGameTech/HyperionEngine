@@ -141,8 +141,8 @@ static TBuiltInResource DefaultResources()
 static ByteBuffer CompileToSPIRV(
     ShaderModule::Type type,
     const char *source, const char *filename,
-    const DynArray<String> &version_strings,
-    DynArray<String> &error_messages
+    const Array<String> &version_strings,
+    Array<String> &error_messages
 )
 {
 #define GLSL_ERROR(log_type, error_message, ...) \
@@ -306,8 +306,8 @@ static ByteBuffer CompileToSPIRV(
 static ByteBuffer CompileToSPIRV(
     ShaderModule::Type type,
     const char *source, const char *filename, 
-    const DynArray<String> &version_strings,
-    DynArray<String> &error_messages
+    const Array<String> &version_strings,
+    Array<String> &error_messages
 )
 {
     return ByteBuffer();
@@ -331,14 +331,14 @@ static const FlatMap<String, ShaderModule::Type> shader_type_names = {
 };
 
 static void ForEachPermutation(
-    const DynArray<String> &versions,
-    Proc<void, const DynArray<String> &> callback
+    const Array<String> &versions,
+    Proc<void, const Array<String> &> callback
 )
 {
     SizeType num_permutations = 1ull << versions.Size();
 
     for (SizeType i = 0; i < num_permutations; i++) {
-        DynArray<String> tmp_versions;
+        Array<String> tmp_versions;
         tmp_versions.Reserve(MathUtil::BitCount(i));
 
         for (SizeType j = 0; j < versions.Size(); j++) {
@@ -463,7 +463,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
 
     ParseDefinitionSection(section, bundle);
 
-    DynArray<String> added_versions;
+    Array<String> added_versions;
 
     for (const auto &item : additional_versions) {
         if (!bundle.versions.Get(item)) {
@@ -543,17 +543,17 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         }
 
         // compile each..
-        DynArray<String> versions;
+        Array<String> versions;
         versions.Reserve(bundle.versions.Size());
 
         for (auto &item : bundle.versions) {
             versions.PushBack(item);
         }
 
-        DynArray<String> missing_versions;
+        Array<String> missing_versions;
 
         // now check that each combination is already in the bundle
-        ForEachPermutation(versions, [&](const DynArray<String> &items) {
+        ForEachPermutation(versions, [&](const Array<String> &items) {
             // get hashcode of this set of properties
             UInt64 version_hash = items.GetHashCode().Value();
 
@@ -647,7 +647,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
         return false;
     }
 
-    DynArray<Bundle> bundles;
+    Array<Bundle> bundles;
 
     // create a bundle for each section.
     for (const auto &it : m_definitions->GetSections()) {
@@ -753,7 +753,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
     // run with spirv-cross
     FileSystem::Mkdir((m_engine->GetAssetManager().GetBasePath() / "data/compiled_shaders/tmp").Data());
 
-    DynArray<LoadedSourceFile> loaded_source_files;
+    Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Reserve(bundle.sources.Size());
 
     for (auto &it : bundle.sources) {
@@ -796,7 +796,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
     }
 
     // compile each..
-    DynArray<String> versions;
+    Array<String> versions;
     versions.Reserve(bundle.versions.Size());
 
     for (auto &item : bundle.versions) {
@@ -811,7 +811,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
     );
 
     // compile shader with each permutation of properties
-    ForEachPermutation(versions, [&](const DynArray<String> &version_strings) {
+    ForEachPermutation(versions, [&](const Array<String> &version_strings) {
         // get hashcode of this set of properties
         HashCode version_hash = version_strings.GetHashCode();
 
@@ -871,7 +871,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
 
             ByteBuffer byte_buffer;
 
-            DynArray<String> error_messages;
+            Array<String> error_messages;
 
             // set directory to the directory of the shader
             const auto dir = m_engine->GetAssetManager().GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), m_engine->GetAssetManager().GetBasePath());

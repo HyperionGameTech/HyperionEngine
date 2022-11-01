@@ -20,7 +20,7 @@ public:
     using KeyValuePair = KeyValuePair<Key, Value>;
 
 private:
-    DynArray<KeyValuePair> m_vector;
+    Array<KeyValuePair> m_vector;
 
 public:
     using Base = ContainerBase<FlatMap<Key, Value>, Key>;

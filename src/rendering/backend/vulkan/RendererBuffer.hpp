@@ -265,7 +265,7 @@ public:
         bool *out_size_changed = nullptr
     );
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     void DebugLogBuffer(Instance *instance) const;
 
     template <class T = UByte>

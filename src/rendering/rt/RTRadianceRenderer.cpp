@@ -288,7 +288,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
     engine->InitObject(m_shader);
 
     m_raytracing_pipeline.Reset(new RaytracingPipeline(
-        DynArray<const DescriptorSet *> {
+        Array<const DescriptorSet *> {
             m_descriptor_sets[0].Get(),
             engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
             engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)

@@ -43,8 +43,8 @@ struct CompiledShader
 
 struct CompiledShaderBatch
 {
-    DynArray<CompiledShader> compiled_shaders;
-    DynArray<String> error_messages;
+    Array<CompiledShader> compiled_shaders;
+    Array<String> error_messages;
 
     bool HasErrors() const
         { return error_messages.Any(); }
@@ -58,8 +58,8 @@ struct CompiledShaderBatch
 class ShaderProps
 {
 public:
-    using Iterator = DynArray<String>::Iterator;
-    using ConstIterator = DynArray<String>::ConstIterator;
+    using Iterator = Array<String>::Iterator;
+    using ConstIterator = Array<String>::ConstIterator;
 
     ShaderProps() = default;
     ShaderProps(const FlatSet<String> &props)
@@ -279,7 +279,7 @@ private:
     Engine *m_engine;
     DefinitionsFile *m_definitions;
     ShaderCache m_cache;
-    DynArray<Bundle> m_bundles;
+    Array<Bundle> m_bundles;
 };
 
 } // namespace hyperion::v2

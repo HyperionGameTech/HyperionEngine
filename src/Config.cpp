@@ -143,7 +143,7 @@ void Configuration::SetToDefaultConfiguration(Engine *engine)
 {
     m_variables = { };
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     m_variables[CONFIG_DEBUG_MODE] = true;
     m_variables[CONFIG_SHADER_COMPILATION] = true;
 #endif

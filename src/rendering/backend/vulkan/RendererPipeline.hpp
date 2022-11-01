@@ -139,7 +139,7 @@ public:
     Pipeline();
     /*! \brief Construct a pipeline using the given \ref used_descriptor_set as the descriptor sets to be
         used with this pipeline.  */
-    Pipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets);
+    Pipeline(const Array<const DescriptorSet *> &used_descriptor_sets);
     Pipeline(const Pipeline &other) = delete;
     Pipeline &operator=(const Pipeline &other) = delete;
     ~Pipeline();
@@ -147,10 +147,10 @@ public:
     bool HasCustomDescriptorSets() const
         { return m_has_custom_descriptor_sets; }
 
-    const Optional<DynArray<const DescriptorSet *>> &GetUsedDescriptorSets() const
+    const Optional<Array<const DescriptorSet *>> &GetUsedDescriptorSets() const
         { return m_used_descriptor_sets; }
 
-    void SetUsedDescriptorSets(const DynArray<const DescriptorSet *> &used_descriptor_sets)
+    void SetUsedDescriptorSets(const Array<const DescriptorSet *> &used_descriptor_sets)
     {
         if (used_descriptor_sets.Any()) {
             m_used_descriptor_sets = used_descriptor_sets;
@@ -174,7 +174,7 @@ protected:
 
     VkPipeline pipeline;
     bool m_has_custom_descriptor_sets;
-    Optional<DynArray<const DescriptorSet *>> m_used_descriptor_sets;
+    Optional<Array<const DescriptorSet *>> m_used_descriptor_sets;
 };
 
 } // namespace renderer

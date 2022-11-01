@@ -71,7 +71,7 @@ public:
     {
         object.~T();
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(&object, sizeof(T));
 #endif
     }
@@ -81,7 +81,7 @@ public:
     {
         static_cast<T *>(ptr)->~T();
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));
 #endif
     }
@@ -92,7 +92,7 @@ public:
     {
         static_cast<T *>(ptr)->~T();
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));
 #endif
 

@@ -20,7 +20,7 @@ struct TerrainHeight
 struct TerrainHeightData
 {
     PatchInfo patch_info;
-    DynArray<TerrainHeight> heights;
+    Array<TerrainHeight> heights;
 
     TerrainHeightData(const PatchInfo &patch_info)
         : patch_info(patch_info)

@@ -185,14 +185,14 @@ void BlurRadiance::CreateComputePipelines(Engine *engine)
 
     m_blur_hor = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurRadianceHor")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
     );
 
     engine->InitObject(m_blur_hor);
 
     m_blur_vert = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurRadianceVert")),
-        DynArray<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
     );
 
     engine->InitObject(m_blur_vert);

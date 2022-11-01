@@ -17,6 +17,9 @@
 
 namespace hyperion {
 
+namespace containers {
+namespace detail {
+
 /*! Vector class with smart front removal and inline storage so small lists
     do not require any heap allocation (and are faster than using a st::vector).
     Otherwise, average speed is about the same as std::vector in most cases.
@@ -300,7 +303,7 @@ DynArray<T, NumInlineBytes>::DynArray()
       m_is_dynamic(false),
       m_start_offset(0)
 {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     Memory::Garble(&m_inline_buffer[0], num_inline_elements * sizeof(Storage));
 #endif
 }
@@ -350,7 +353,7 @@ DynArray<T, NumInlineBytes>::DynArray(DynArray &&other) noexcept
     other.m_is_dynamic = false;
     other.m_start_offset = 0;
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     Memory::Garble(&other.m_inline_buffer[0], num_inline_elements * sizeof(Storage));
 #endif
 }
@@ -1014,6 +1017,11 @@ void DynArray<T, NumInlineBytes>::Clear()
 // deduction guide
 // template <typename Tp, typename ...Args>
 // DynArray(Tp, Args...) -> DynArray<std::enable_if_t<(std::is_same_v<Tp, Args> && ...), Tp>, 1 + sizeof...(Args)>;
+} // namespace detail
+} // namespace containers
+
+template <class T, SizeType NumInlineBytes = 256u>
+using Array = containers::detail::DynArray<T, NumInlineBytes>;
 
 } // namespace hyperion
 

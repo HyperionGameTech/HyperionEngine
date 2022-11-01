@@ -63,7 +63,7 @@ private:
     SizeType NumBones() const;
     
     std::unique_ptr<Bone> m_root_bone;
-    DynArray<std::unique_ptr<Animation>> m_animations;
+    Array<std::unique_ptr<Animation>> m_animations;
 
     mutable ShaderDataState m_shader_data_state;
 };

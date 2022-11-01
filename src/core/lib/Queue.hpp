@@ -13,10 +13,10 @@ namespace hyperion {
 /*! Queue based on Base. About 30% faster than std::queue in my tests. */
 
 template <class T>
-class Queue : DynArray<T>
+class Queue : Array<T>
 {
 public:
-    using Base = DynArray<T>;
+    using Base = Array<T>;
 
     using Iterator = typename Base::Iterator;
     using ConstIterator = typename Base::ConstIterator;

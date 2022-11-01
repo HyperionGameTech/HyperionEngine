@@ -206,7 +206,7 @@ void ShadowPass::CreateComputePipelines(Engine *engine)
 
     m_blur_shadow_map = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurShadowMap")),
-        DynArray<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
+        Array<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
     );
 
     engine->InitObject(m_blur_shadow_map);

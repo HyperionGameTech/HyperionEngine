@@ -1062,7 +1062,7 @@ Descriptor::~Descriptor() = default;
 void Descriptor::Create(
     Device *device,
     VkDescriptorSetLayoutBinding &binding,
-    DynArray<VkWriteDescriptorSet> &writes
+    Array<VkWriteDescriptorSet> &writes
 )
 {
     AssertThrow(m_descriptor_set != nullptr);
@@ -1124,7 +1124,7 @@ void Descriptor::Create(
     }
 }
 
-void Descriptor::BuildUpdates(Device *, DynArray<VkWriteDescriptorSet> &writes)
+void Descriptor::BuildUpdates(Device *, Array<VkWriteDescriptorSet> &writes)
 {
     const auto descriptor_type = ToVkDescriptorType(m_descriptor_type);
 

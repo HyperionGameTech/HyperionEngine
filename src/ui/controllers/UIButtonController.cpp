@@ -13,9 +13,9 @@ struct UICharMesh
     Transform transform;
 };
 
-static DynArray<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text)
+static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text)
 {
-    DynArray<UICharMesh> char_meshes;
+    Array<UICharMesh> char_meshes;
     Vector3 placement;
 
     const SizeType length = text.Length();
@@ -54,7 +54,7 @@ static DynArray<UICharMesh> BuildCharMeshes(const FontMap &font_map, const Strin
     return char_meshes;
 }
 
-static UniquePtr<Mesh> OptimizeCharMeshes(DynArray<UICharMesh> &&char_meshes)
+static UniquePtr<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 {
     if (char_meshes.Empty()) {
         return { };

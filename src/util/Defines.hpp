@@ -133,10 +133,10 @@
     #endif
 #endif
 
-#define HYP_USE_EXCEPTIONS 0
+// #define HYP_USE_EXCEPTIONS
 
 #if !defined(HYPERION_BUILD_RELEASE) || !HYPERION_BUILD_RELEASE
-    #define HYP_DEBUG_MODE 1
+    #define HYP_DEBUG_MODE
 #endif
 
 #if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
@@ -175,20 +175,20 @@
     #endif
 #endif
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     #define HYP_BREAKPOINT_DEBUG_MODE HYP_BREAKPOINT
 #else
     #define HYP_BREAK_IF_DEBUG_MODE  (void(0))
 #endif
 
-#if !HYP_ENABLE_BREAKPOINTS
+#if !defined(HYP_ENABLE_BREAKPOINTS) || !HYP_ENABLE_BREAKPOINTS
     #define HYP_BREAKPOINT           (void(0))
 #endif
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
     #define HYP_THROW(msg) throw ::std::runtime_error(msg)
 #else
-    #if HYP_DEBUG_MODE
+    #ifdef HYP_DEBUG_MODE
         #define HYP_THROW(msg) \
             do { \
                 HYP_BREAKPOINT; \
@@ -199,16 +199,20 @@
     #endif
 #endif
 
-#define HYP_ENABLE_THREAD_ID // undef if needing to debug and getting crt errors
-
 #define HYP_WAIT_IDLE() \
     do { \
-        /* do nothing */ \
+        /* do nothing :) */ \
     } while (0) \
 
 // conditionals
 
-#if HYP_DEBUG_MODE
+#define HYP_ENABLE_THREAD_ID // undef if needing to debug with RenderDoc and getting crt errors
+
+#if defined(HYP_ENABLE_THREAD_ID) && defined(HYP_DEBUG_MODE)
+    #define HYP_ENABLE_THREAD_ASSERTIONS
+#endif
+
+#ifdef HYP_DEBUG_MODE
     #ifdef HYP_VULKAN
         //#define HYP_VULKAN_DEBUG
     #endif

@@ -122,7 +122,7 @@ public:
     AssetManager &asset_manager;
 
 private:
-    DynArray<Proc<void>> procs;
+    Array<Proc<void>> procs;
 };
 
 } // namespace hyperion::V2

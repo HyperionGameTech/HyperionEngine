@@ -35,7 +35,7 @@ struct ProcFunctorInternal
         : invoke_fn(nullptr),
           delete_fn(nullptr)
     {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(memory.GetPointer(), sizeof(memory.bytes));
 #endif
     }
@@ -47,7 +47,7 @@ struct ProcFunctorInternal
     {
         Memory::Copy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(other.memory.GetPointer(), sizeof(other.memory.bytes));
 #endif
 
@@ -70,7 +70,7 @@ struct ProcFunctorInternal
 
         Memory::Copy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(other.memory.GetPointer(), sizeof(other.memory.bytes));
 #endif
 

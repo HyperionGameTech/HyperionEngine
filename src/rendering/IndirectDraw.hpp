@@ -54,10 +54,10 @@ public:
     IndirectBuffer *GetIndirectBuffer(UInt frame_index) const
         { return m_indirect_buffers[frame_index].Get(); }
 
-    DynArray<EntityDrawProxy> &GetDrawProxies()
+    Array<EntityDrawProxy> &GetDrawProxies()
         { return m_draw_proxies; }
 
-    const DynArray<EntityDrawProxy> &GetDrawProxies() const
+    const Array<EntityDrawProxy> &GetDrawProxies() const
         { return m_draw_proxies; }
 
     Result Create(Engine *engine);
@@ -76,8 +76,8 @@ private:
     // returns true if resize happened.
     bool ResizeIfNeeded(Engine *engine, Frame *frame, SizeType count);
 
-    DynArray<ObjectInstance> m_object_instances;
-    DynArray<EntityDrawProxy> m_draw_proxies;
+    Array<ObjectInstance> m_object_instances;
+    Array<EntityDrawProxy> m_draw_proxies;
 
     FixedArray<UniquePtr<IndirectBuffer>, max_frames_in_flight> m_indirect_buffers;
     FixedArray<UniquePtr<StorageBuffer>, max_frames_in_flight> m_instance_buffers;

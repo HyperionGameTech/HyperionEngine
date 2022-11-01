@@ -23,7 +23,7 @@ struct RefCountData
     CountType weak_count;
     void (*dtor)(void *);
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
     ~RefCountData()
     {
         AssertThrow(dtor == nullptr);
@@ -56,7 +56,7 @@ struct RefCountData
 
     void Destruct()
     {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         AssertThrow(value != nullptr);
         AssertThrow(strong_count == 0);
 #endif

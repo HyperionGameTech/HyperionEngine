@@ -16,7 +16,7 @@ ComputePipeline::ComputePipeline()
 {
 }
 
-ComputePipeline::ComputePipeline(const DynArray<const DescriptorSet *> &used_descriptor_sets)
+ComputePipeline::ComputePipeline(const Array<const DescriptorSet *> &used_descriptor_sets)
     : Pipeline(used_descriptor_sets)
 {
 }

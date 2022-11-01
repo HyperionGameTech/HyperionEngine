@@ -458,7 +458,7 @@ void DeferredRenderer::CreateComputePipelines(Engine *engine)
 {
     m_combine = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("DeferredCombine")),
-        DynArray<const DescriptorSet *> { m_combine_descriptor_sets[0].Get() }
+        Array<const DescriptorSet *> { m_combine_descriptor_sets[0].Get() }
     );
 
     engine->InitObject(m_combine);
@@ -512,12 +512,12 @@ void DeferredRenderer::Render(
 
     const bool do_particles = environment && environment->IsReady();
 
-    const bool use_ssr = ssr_enabled && engine->GetConfig().Get(CONFIG_SSR);
+    const bool use_ssr = engine->GetConfig().Get(CONFIG_SSR);
     const bool use_rt_radiance = engine->GetConfig().Get(CONFIG_RT_REFLECTIONS);
     const bool use_hbao = engine->GetConfig().Get(CONFIG_HBAO);
     const bool use_hbil = engine->GetConfig().Get(CONFIG_HBIL);
 
-    struct alignas(128) DeferredData { UInt32 flags; } deferred_data;
+    struct alignas(128) { UInt32 flags; } deferred_data;
     deferred_data.flags = 0;
     deferred_data.flags |= use_ssr && m_ssr.IsRendered() ? DEFERRED_FLAGS_SSR_ENABLED : 0;
     deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;

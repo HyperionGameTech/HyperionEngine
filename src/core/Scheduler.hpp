@@ -175,7 +175,7 @@ public:
         }
     };
 
-    using ScheduledFunctionQueue = DynArray<ScheduledTask>;
+    using ScheduledFunctionQueue = Array<ScheduledTask>;
     using Iterator = typename ScheduledFunctionQueue::Iterator;
     
     Scheduler()

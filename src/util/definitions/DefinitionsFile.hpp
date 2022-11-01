@@ -16,7 +16,7 @@ class DefinitionsFile
 public:
     struct Value
     {
-        DynArray<String> elements;
+        Array<String> elements;
 
         const String &GetValue() const
         {

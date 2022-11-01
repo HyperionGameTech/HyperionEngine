@@ -10,12 +10,12 @@
 
 namespace hyperion {
 
-using ByteArray = DynArray<UByte>;
+using ByteArray = Array<UByte>;
 
 /*! \brief An immutable array of bytes, which for large buffers, shares the memory with any copied objects */
 class ByteBuffer
 {
-    using InternalArray = DynArray<UByte, 1024u>;
+    using InternalArray = Array<UByte, 1024u>;
 
 public:
     ByteBuffer()

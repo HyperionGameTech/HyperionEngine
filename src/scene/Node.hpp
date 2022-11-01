@@ -28,7 +28,7 @@ class Node
     friend class NodeProxy;
 
 public:
-    using NodeList = DynArray<NodeProxy>;
+    using NodeList = Array<NodeProxy>;
 
     enum class Type : UInt
     {
@@ -155,13 +155,13 @@ public:
      * so no calculation happens when calling this method.
      * @returns A vector of raw pointers to descendent Nodes
      */
-    DynArray<NodeProxy> &GetDescendents() { return m_descendents; }
+    Array<NodeProxy> &GetDescendents() { return m_descendents; }
 
     /*! \brief Get all descendent child Nodes from this Node. This vector is pre-calculated,
      * so no calculation happens when calling this method.
      * @returns A vector of raw pointers to descendent Nodes
      */
-    const DynArray<NodeProxy> &GetDescendents() const { return m_descendents; }
+    const Array<NodeProxy> &GetDescendents() const { return m_descendents; }
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
     void SetLocalTransform(const Transform &);
@@ -348,7 +348,7 @@ protected:
 
     Handle<Entity> m_entity;
 
-    DynArray<NodeProxy> m_descendents;
+    Array<NodeProxy> m_descendents;
 
     Scene *m_scene;
 };

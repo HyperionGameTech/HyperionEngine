@@ -640,7 +640,7 @@ Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
             index
         );
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif
 
@@ -652,7 +652,7 @@ Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
     GPUMemory::Create();
     
     if (size == 0) {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif
         return { Result::RENDERER_ERR, "Creating empty gpu buffer will result in errors! \n" };
@@ -763,7 +763,7 @@ Result GPUBuffer::EnsureCapacity(
     return result;
 }
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
 
 void GPUBuffer::DebugLogBuffer(Instance *instance) const
 {
@@ -1109,7 +1109,7 @@ Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *
             index
         );
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif
 

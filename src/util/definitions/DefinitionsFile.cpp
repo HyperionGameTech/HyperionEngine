@@ -17,7 +17,7 @@ void DefinitionsFile::Parse()
     if (auto reader = m_path.Open()) {
         m_is_valid = true;
 
-        DynArray<Pair<String, Section>> sections;
+        Array<Pair<String, Section>> sections;
 
         auto lines = reader.ReadAllLines();
 

@@ -32,7 +32,7 @@ struct AttachmentSet
     using Initializer = std::add_pointer_t<void(WeakHandleBase &, Parent *)>;
 
     Initializer init_fn;
-    DynArray<WeakHandleBase> objects;
+    Array<WeakHandleBase> objects;
 };
 
 template <class Parent>
@@ -73,7 +73,7 @@ public:
 
                     parent->GetEngine()->template Attach<T>(handle_casted);
                 },
-                .objects = DynArray<WeakHandleBase> {
+                .objects = Array<WeakHandleBase> {
                     WeakHandleBase(handle)
                 }
             });
@@ -329,7 +329,7 @@ public:
           m_wrapped(std::move(args)...),
           m_wrapped_created(false)
     {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         m_wrapped_destroyed = false;
 #endif
     }
@@ -341,7 +341,7 @@ public:
     {
         const char *type_name = typeid(WrappedType).name();
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             m_wrapped_destroyed,
             "Expected wrapped object of type %s to have been destroyed before destructor",
@@ -382,7 +382,7 @@ public:
 
         m_wrapped_created = true;
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         m_wrapped_destroyed = false;
 #endif
 
@@ -395,7 +395,7 @@ public:
     {
         const char *wrapped_type_name = typeid(WrappedType).name();
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             !m_wrapped_destroyed,
             "Wrapped object of type %s was already destroyed",
@@ -414,7 +414,7 @@ public:
 
         m_wrapped_created = false;
         
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         m_wrapped_destroyed = true;
 #endif
 

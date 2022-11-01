@@ -153,7 +153,7 @@ public:
     const Pixel &GetPixel(UInt x, UInt y) const
         { return const_cast<const Bitmap *>(this)->GetPixel(x, y); }
 
-    void GetUnpackedBytes(DynArray<UByte> &out)
+    void GetUnpackedBytes(Array<UByte> &out)
     {
         out.Resize(m_pixels.Size() * Pixel::byte_size);
 
@@ -164,7 +164,7 @@ public:
         }
     }
 
-    void GetUnpackedFloats(DynArray<Float> &out)
+    void GetUnpackedFloats(Array<Float> &out)
     {
         out.Resize(m_pixels.Size() * Pixel::byte_size);
 
@@ -177,7 +177,7 @@ public:
 
     void Write(const String &filepath)
     {
-        DynArray<UByte> unpacked_bytes;
+        Array<UByte> unpacked_bytes;
         GetUnpackedBytes(unpacked_bytes);
 
         WriteBitmap::Write(filepath.Data(), m_width, m_height, unpacked_bytes.Data());
@@ -186,7 +186,7 @@ public:
 private:
     UInt m_width;
     UInt m_height;
-    DynArray<Pixel> m_pixels;
+    Array<Pixel> m_pixels;
 
 };
 

@@ -127,7 +127,7 @@ public:
     VariantBase()
         : m_current_type_id(invalid_type_id)
     {
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(m_storage.GetPointer(), sizeof(m_storage));
 #endif
     }
@@ -175,7 +175,7 @@ public:
 
         other.m_current_type_id = invalid_type_id;
 
-#if HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         Memory::Garble(other.m_storage.GetPointer(), sizeof(other.m_storage));
 #endif
 
