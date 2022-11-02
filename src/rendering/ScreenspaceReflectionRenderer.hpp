@@ -9,6 +9,7 @@
 #include <rendering/TemporalBlending.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -26,6 +27,7 @@ using renderer::Device;
 using renderer::DescriptorSet;
 using renderer::AttachmentRef;
 using renderer::Extent2D;
+using renderer::UniformBuffer;
 
 class Engine;
 
@@ -46,30 +48,25 @@ public:
     );
 
 private:
-    void CreateDescriptors(Engine *engine);
+    void CreateUniformBuffers(Engine *engine);
+    void CreateDescriptorSets(Engine *engine);
     void CreateComputePipelines(Engine *engine);
     
     struct ImageOutput
     {
-        std::unique_ptr<Image> image;
-        std::unique_ptr<ImageView> image_view;
+        StorageImage image;
+        ImageView image_view;
 
         void Create(Device *device)
         {
-            AssertThrow(image != nullptr);
-            AssertThrow(image_view != nullptr);
-
-            HYPERION_ASSERT_RESULT(image->Create(device));
-            HYPERION_ASSERT_RESULT(image_view->Create(device, image.get()));
+            HYPERION_ASSERT_RESULT(image.Create(device));
+            HYPERION_ASSERT_RESULT(image_view.Create(device, &image));
         }
 
         void Destroy(Device *device)
         {
-            AssertThrow(image != nullptr);
-            AssertThrow(image_view != nullptr);
-
-            HYPERION_ASSERT_RESULT(image->Destroy(device));
-            HYPERION_ASSERT_RESULT(image_view->Destroy(device));
+            HYPERION_ASSERT_RESULT(image.Destroy(device));
+            HYPERION_ASSERT_RESULT(image_view.Destroy(device));
         }
     };
 
@@ -77,6 +74,8 @@ private:
 
     FixedArray<FixedArray<ImageOutput, 4>, max_frames_in_flight> m_image_outputs;
     FixedArray<ImageOutput, max_frames_in_flight> m_radius_output;
+    FixedArray<UniquePtr<UniformBuffer>, max_frames_in_flight> m_uniform_buffers;
+    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
     
     Handle<ComputePipeline> m_write_uvs;
     Handle<ComputePipeline> m_sample;

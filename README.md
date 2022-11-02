@@ -47,15 +47,10 @@ Feel free to contribute anything - We'd love to have some more eyes on this proj
 In the works
 
 ## Screenshots
+![screenshot](/screenshots/hbao-ssr-ssgi-3.jpg)\
+![screenshot](/screenshots/living-room-ssgi-2.jpg)\
+*HBAO (horizon-based ambient occlusion), SSR (screen-space reflections), SSGI (screen-space global illumination), and TAA (temporal anti-aliasing). No hardware raytracing used in these images (although it is supported) *
 
-![screenshot](/screenshots/rt-ddgi-taa.png)\
-*Ray-tracing reflections, DDGI (dynamic diffuse global illumination), HBAO (horizon-based ambient occlusion), and TAA (temporal anti-aliasing)*
-
-![screenshot](/screenshots/hbil-taa.png)\
-*Horizon-based indirect lighting (HBIL), HBAO (horizon-based ambient occlusion), and TAA (temporal anti-aliasing)*
-
-![screenshot](/screenshots/pbr4.png)\
-*PBR*
 
 ## Building
 

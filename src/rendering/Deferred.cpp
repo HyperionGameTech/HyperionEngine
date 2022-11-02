@@ -215,7 +215,6 @@ void DeferredRenderer::Create(Engine *engine)
     AssertThrow(depth_attachment_ref != nullptr);
 
     m_dpr.Create(engine, depth_attachment_ref);
-    m_ssr.Create(engine);
 
     m_hbao.Reset(new HBAO(engine->GetInstance()->GetSwapchain()->extent));
     m_hbao->Create(engine);
@@ -244,6 +243,8 @@ void DeferredRenderer::Create(Engine *engine)
 
         engine->InitObject(m_mipmapped_results[i]);
     }
+
+    m_ssr.Create(engine);
     
     m_sampler = UniquePtr<Sampler>::Construct(FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);
     HYPERION_ASSERT_RESULT(m_sampler->Create(engine->GetDevice()));

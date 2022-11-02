@@ -186,7 +186,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/living_room/living_room.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -224,7 +224,7 @@ public:
         }
 #endif
 
-        test_model.Scale(0.35f);
+        test_model.Scale(20.35f);
 
         if (false) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
@@ -246,7 +246,7 @@ public:
         cubemap->GetImage().SetIsSRGB(true);
         engine->InitObject(cubemap);
 
-        { // hardware skinning
+        if (false) { // hardware skinning
 
 
 
@@ -289,7 +289,7 @@ public:
         //auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
         //AssertThrow(tex);
 
-        if (true) { // particles test
+        if (false) { // particles test
             auto particle_spawner = engine->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = engine->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -366,19 +366,19 @@ public:
             monkey_entity->AddController<ScriptedController>(
                 engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
             );
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.05f);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.05f);
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
             //monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
-            monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
             monkey_entity->RebuildRenderableAttributes();
             monkey.Translate(Vector3(40, 250.5f, 0));
-            monkey.Scale(8.0f);
+            monkey.Scale(12.0f);
             engine->InitObject(monkey_entity);
             monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);

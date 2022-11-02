@@ -55,6 +55,7 @@ public:
         const FixedArray<Image *, max_frames_in_flight> &input_images,
         const FixedArray<ImageView *, max_frames_in_flight> &input_image_views
     );
+
     TemporalBlending(const TemporalBlending &other) = delete;
     TemporalBlending &operator=(const TemporalBlending &other) = delete;
     ~TemporalBlending();

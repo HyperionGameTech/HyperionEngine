@@ -460,6 +460,14 @@ void Engine::Initialize()
                 .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(EnvProbeShaderData))
             });
 
+        // ssr result image
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RESULT)
+            ->SetSubDescriptor({
+                .element_index = 0,
+                .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
+            });
+
         // ssao/gi combined result image
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSAO_GI_RESULT)

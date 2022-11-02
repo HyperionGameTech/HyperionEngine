@@ -98,6 +98,12 @@ public:
     const Handle<Texture> &GetCombinedResult(UInt frame_index) const
         { return m_results[frame_index]; }
 
+    Handle<Texture> &GetMipChain(UInt frame_index)
+        { return m_mipmapped_results[frame_index]; }
+
+    const Handle<Texture> &GetMipChain(UInt frame_index) const
+        { return m_mipmapped_results[frame_index]; }
+
     void Create(Engine *engine);
     void Destroy(Engine *engine);
     void Render(
