@@ -1,7 +1,7 @@
 #include "Node.hpp"
 #include <system/Debug.hpp>
 
-#include <animation/Bone.hpp>
+#include <scene/animation/Bone.hpp>
 #include <Engine.hpp>
 
 #include <cstring>

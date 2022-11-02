@@ -24,6 +24,7 @@ private:
 
 public:
     Color();
+    Color(UInt32 hex);
     Color(Float r, Float g, Float b, Float a = 1.0f);
     explicit Color(Float rgba);
     Color(const Color &other);
@@ -55,6 +56,12 @@ public:
 
     bool operator<(const Color &other) const
         { return value < other.value; }
+
+    explicit operator UInt32() const
+        { return value; }
+
+    explicit operator Vector4() const
+        { return Vector4(GetRed(), GetGreen(), GetBlue(), GetAlpha()); }
 
     Color &Lerp(const Color &to, Float amt);
 

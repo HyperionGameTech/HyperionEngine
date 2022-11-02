@@ -14,6 +14,7 @@ using renderer::Rect;
 
 ScreenspaceReflectionRenderer::ScreenspaceReflectionRenderer(const Extent2D &extent)
     : m_extent(extent),
+      m_temporal_blending(extent),
       m_is_rendered(false)
 {
 }

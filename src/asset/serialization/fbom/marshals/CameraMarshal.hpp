@@ -4,9 +4,9 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
 #include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
-#include <camera/Camera.hpp>
-#include <camera/PerspectiveCamera.hpp>
-#include <camera/OrthoCamera.hpp>
+#include <scene/camera/Camera.hpp>
+#include <scene/camera/PerspectiveCamera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2::fbom {

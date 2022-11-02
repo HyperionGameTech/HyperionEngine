@@ -1,12 +1,16 @@
 #ifndef HYPERION_RENDERER_COMPUTE_PIPELINE_H
 #define HYPERION_RENDERER_COMPUTE_PIPELINE_H
 
+#include <core/Containers.hpp>
+
 #include <rendering/backend/RendererPipeline.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
+
+#include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -33,7 +37,7 @@ public:
     void DispatchIndirect(
         CommandBuffer *command_buffer,
         const IndirectBuffer *indirect,
-        size_t offset = 0
+        SizeType offset = 0
     ) const;
 };
 

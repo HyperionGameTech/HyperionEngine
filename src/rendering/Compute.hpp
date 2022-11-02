@@ -23,12 +23,13 @@ public:
     ComputePipeline &operator=(const ComputePipeline &) = delete;
     ~ComputePipeline();
 
-    renderer::ComputePipeline *GetPipeline() const { return m_pipeline.get(); }
+    renderer::ComputePipeline *GetPipeline() { return &m_pipeline; }
+    const renderer::ComputePipeline *GetPipeline() const { return &m_pipeline; }
 
     void Init(Engine *engine);
 
 private:
-    std::unique_ptr<renderer::ComputePipeline> m_pipeline;
+    renderer::ComputePipeline m_pipeline;
     Handle<Shader> m_shader;
 };
 

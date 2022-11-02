@@ -21,7 +21,7 @@
 
 #include <Game.hpp>
 
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 #include <audio/AudioManager.hpp>
 

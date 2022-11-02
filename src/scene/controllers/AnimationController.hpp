@@ -2,8 +2,8 @@
 #define HYPERION_V2_ANIMATION_CONTROLLER_H
 
 #include "PlaybackController.hpp"
-#include "../../animation/Bone.hpp"
-#include "../../animation/Animation.hpp"
+#include <scene/animation/Bone.hpp>
+#include <scene/animation/Animation.hpp>
 
 #include <Types.hpp>
 

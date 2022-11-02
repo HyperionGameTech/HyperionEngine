@@ -1,4 +1,4 @@
-#include <builders/shader_compiler/ShaderCompiler.hpp>
+#include <util/shader_compiler/ShaderCompiler.hpp>
 #include <asset/ByteWriter.hpp>
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/ShaderBundleMarshal.hpp>

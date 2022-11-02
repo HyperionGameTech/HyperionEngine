@@ -9,6 +9,11 @@ Color::Color()
 {
 }
 
+Color::Color(UInt32 hex)
+    : value(hex)
+{
+}
+
 Color::Color(Float r, Float g, Float b, Float a)
     : value(ByteUtil::PackColorU32(Vector4(r, g, b, a)))
 {

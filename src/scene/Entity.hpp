@@ -9,8 +9,8 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <animation/Skeleton.hpp>
 #include <rendering/rt/BLAS.hpp>
+#include <scene/animation/Skeleton.hpp>
 #include <scene/VisibilityState.hpp>
 #include <scene/Controller.hpp>
 #include <math/Transform.hpp>
@@ -250,13 +250,18 @@ public:
     }
 
     template <class ControllerType>
-    ControllerType *GetController() { return m_controllers.Get<ControllerType>(); }
+    ControllerType *GetController()
+        { return m_controllers.Get<ControllerType>(); }
 
     template <class ControllerType>
-    bool HasController() const { return m_controllers.Has<ControllerType>(); }
+    bool HasController() const
+        { return m_controllers.Has<ControllerType>(); }
     
-    ControllerSet &GetControllers() { return m_controllers; }
-    const ControllerSet &GetControllers() const { return m_controllers; }
+    ControllerSet &GetControllers()
+        { return m_controllers; }
+
+    const ControllerSet &GetControllers() const
+        { return m_controllers; }
 
 public:
     void AddToOctree(Engine *engine, Octree &octree);

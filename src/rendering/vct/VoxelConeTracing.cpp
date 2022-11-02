@@ -3,7 +3,7 @@
 #include <util/fs/FsUtil.hpp>
 
 #include <Engine.hpp>
-#include <camera/OrthoCamera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>

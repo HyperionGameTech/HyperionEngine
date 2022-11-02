@@ -3,7 +3,7 @@
 
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion::v2 {
 

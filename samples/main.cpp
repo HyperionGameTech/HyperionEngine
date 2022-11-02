@@ -13,7 +13,7 @@
 #include <Engine.hpp>
 #include <scene/Node.hpp>
 #include <rendering/Atomics.hpp>
-#include <animation/Bone.hpp>
+#include <scene/animation/Bone.hpp>
 #include <rendering/rt/AccelerationStructureBuilder.hpp>
 #include <rendering/ProbeSystem.hpp>
 #include <rendering/post_fx/FXAA.hpp>
@@ -52,10 +52,10 @@
 
 #include <scene/NodeProxy.hpp>
 
-#include <camera/FirstPersonCamera.hpp>
-#include <camera/FollowCamera.hpp>
+#include <scene/camera/FirstPersonCamera.hpp>
+#include <scene/camera/FollowCamera.hpp>
 
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 #include "util/Profile.hpp"
 
@@ -79,7 +79,7 @@
 
 #include <util/UTF8.hpp>
 
-#include <builders/shader_compiler/ShaderCompiler.hpp>
+#include <util/shader_compiler/ShaderCompiler.hpp>
 
 using namespace hyperion;
 using namespace hyperion::v2;
@@ -265,9 +265,9 @@ public:
         
         { // adding lights to scene
             m_sun = engine->CreateHandle<Light>(new DirectionalLight(
-                Vector3(-0.1f, 1.0f, 0.0f).Normalize(),
+                Vector3(-0.5f, 0.75f, 0.0f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                150000.0f
+                500000.0f
             ));
             m_scene->AddLight(m_sun);
 
@@ -289,7 +289,7 @@ public:
         //auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
         //AssertThrow(tex);
 
-        if (false) { // particles test
+        if (true) { // particles test
             auto particle_spawner = engine->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = engine->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -298,7 +298,7 @@ public:
             });
             engine->InitObject(particle_spawner);
 
-            //m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
+            m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
 
         { // adding cubemap rendering with a bounding box
@@ -341,11 +341,13 @@ public:
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
 
+        m_scene->GetFogParams().end_distance = 30000.0f;
+
 #ifdef HYP_TEST_TERRAIN
         { // paged procedural terrain
             if (auto terrain_node = m_scene->GetRoot().AddChild()) {
                 terrain_node.SetEntity(engine->CreateHandle<Entity>());
-                terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(35.0f, 32.0f, 35.0f), 2.0f);
+                terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(16.0f, 16.0f, 16.0f), 2.0f);
             }
         }
 #endif
@@ -353,7 +355,7 @@ public:
         { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
                 Handle<Light>(m_sun),
-                test_model.GetWorldAABB()
+                BoundingBox(Vector3(-500, -10, -500), Vector3(500, 300, 500))//test_model.GetWorldAABB()
             );
         }
 

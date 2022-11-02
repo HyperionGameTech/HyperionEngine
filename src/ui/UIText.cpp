@@ -1,5 +1,5 @@
 #include <ui/UIText.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 #include <math/Vector3.hpp>
 #include <math/Quaternion.hpp>
 #include <Engine.hpp>

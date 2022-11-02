@@ -9,7 +9,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Shader.hpp>
-#include <animation/Skeleton.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererBuffer.hpp>

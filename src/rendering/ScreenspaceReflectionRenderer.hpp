@@ -6,6 +6,8 @@
 
 #include <core/Containers.hpp>
 
+#include <rendering/TemporalBlending.hpp>
+
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
@@ -80,6 +82,8 @@ private:
     Handle<ComputePipeline> m_sample;
     Handle<ComputePipeline> m_blur_hor;
     Handle<ComputePipeline> m_blur_vert;
+
+    TemporalBlending m_temporal_blending;
 
     bool m_is_rendered;
 };

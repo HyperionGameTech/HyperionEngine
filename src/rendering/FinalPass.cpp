@@ -2,7 +2,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderPass.hpp>
 #include <Engine.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 #if 0
 namespace hyperion::v2 {

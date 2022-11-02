@@ -700,11 +700,13 @@ void Scene::EnqueueRenderUpdates()
         Float global_timer;
         UInt32 frame_counter;
         UInt32 num_lights;
+        FogParams fog_params;
     } params = {
         .aabb = m_root_node_proxy.GetWorldAABB(),
         .global_timer = m_environment->GetGlobalTimer(),
         .frame_counter = m_environment->GetFrameCounter(),
-        .num_lights = static_cast<UInt32>(m_lights.Size())
+        .num_lights = static_cast<UInt32>(m_lights.Size()),
+        .fog_params = m_fog_params
     };
 
     GetEngine()->render_scheduler.Enqueue([this, params](...) {
@@ -760,6 +762,7 @@ void Scene::EnqueueRenderUpdates()
         shader_data.num_lights = params.num_lights;
         shader_data.enabled_render_components_mask = m_environment->GetEnabledRenderComponentsMask();
         shader_data.taa_params = Vector4(jitter, previous_jitter);
+        shader_data.fog_params = Vector4(UInt32(params.fog_params.color), params.fog_params.start_distance, params.fog_params.end_distance, 0.0f);
 
         if (GetEngine()->render_state.env_probes.Any()) {
             // TODO: Make to be packed uvec2 containing indices (each are 1 byte)

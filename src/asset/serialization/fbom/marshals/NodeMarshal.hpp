@@ -4,7 +4,7 @@
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/EntityMarshal.hpp>
 #include <scene/Node.hpp>
-#include <animation/Bone.hpp>
+#include <scene/animation/Bone.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2::fbom {

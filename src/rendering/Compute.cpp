@@ -4,7 +4,6 @@
 namespace hyperion::v2 {
 ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
     : EngineComponentBase(),
-      m_pipeline(std::make_unique<renderer::ComputePipeline>()),
       m_shader(std::move(shader))
 {
 }
@@ -13,7 +12,7 @@ ComputePipeline::ComputePipeline(
     Handle<Shader> &&shader,
     const Array<const DescriptorSet *> &used_descriptor_sets
 ) : EngineComponentBase(),
-    m_pipeline(std::make_unique<renderer::ComputePipeline>(used_descriptor_sets)),
+    m_pipeline(used_descriptor_sets),
     m_shader(std::move(shader))
 {
 }
@@ -31,16 +30,13 @@ void ComputePipeline::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    engine->InitObject(m_shader);
-    AssertThrow(m_shader->IsInitCalled());
+    AssertThrow(engine->InitObject(m_shader));
 
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
-        AssertThrow(m_shader != nullptr);
-
         engine->render_scheduler.Enqueue([this, engine](...) {
-            return m_pipeline->Create(
+            return m_pipeline.Create(
                 engine->GetDevice(),
                 m_shader->GetShaderProgram(),
                 &engine->GetInstance()->GetDescriptorPool()
@@ -55,7 +51,7 @@ void ComputePipeline::Init(Engine *engine)
             SetReady(false);
 
             engine->render_scheduler.Enqueue([this, engine](...) {
-               return m_pipeline->Destroy(engine->GetDevice()); 
+               return m_pipeline.Destroy(engine->GetDevice()); 
             });
             
             HYP_FLUSH_RENDER_QUEUE(engine);

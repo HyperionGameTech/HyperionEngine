@@ -13,7 +13,7 @@
 
 #include <math/BoundingBox.hpp>
 #include <scene/Scene.hpp>
-#include <camera/Camera.hpp>
+#include <scene/camera/Camera.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {

@@ -33,7 +33,7 @@ void Threads::SetThreadID(const ThreadID &id)
 
 void Threads::AssertOnThread(ThreadMask mask)
 {
-#ifdef HYP_ENABLE_THREAD_ASSERTION
+#ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
     const auto &current = current_thread_id;
 
@@ -56,7 +56,7 @@ void Threads::AssertOnThread(ThreadMask mask)
 
 void Threads::AssertOnThread(const ThreadID &thread_id)
 {
-#ifdef HYP_ENABLE_THREAD_ASSERTION
+#ifdef HYP_ENABLE_THREAD_ASSERTIONS
 #ifdef HYP_ENABLE_THREAD_ID
     const auto &current = current_thread_id;
 

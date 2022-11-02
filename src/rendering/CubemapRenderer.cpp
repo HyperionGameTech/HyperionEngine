@@ -3,7 +3,7 @@
 #include <util/fs/FsUtil.hpp>
 
 #include <Engine.hpp>
-#include <camera/PerspectiveCamera.hpp>
+#include <scene/camera/PerspectiveCamera.hpp>
 
 
 #include <rendering/RenderEnvironment.hpp>

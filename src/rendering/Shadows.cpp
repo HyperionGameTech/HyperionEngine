@@ -2,7 +2,7 @@
 #include <Engine.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
-#include <camera/OrthoCamera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
@@ -326,7 +326,7 @@ void ShadowPass::Render(Engine *engine, Frame *frame)
             engine->GetInstance()->GetDescriptorPool(),
             m_blur_shadow_map->GetPipeline(),
             &m_blur_descriptor_sets[frame->GetFrameIndex()],
-            static_cast<DescriptorSet::Index>(0)
+            DescriptorSet::Index(0)
         );
 
         // put our shadow map in a state for writing

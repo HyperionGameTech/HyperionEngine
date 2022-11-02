@@ -2,7 +2,6 @@
 #define HYPERION_V2_RENDERER_H
 
 #include <core/Containers.hpp>
-#include <animation/Skeleton.hpp>
 #include <scene/Entity.hpp>
 #include "Shader.hpp"
 #include "Framebuffer.hpp"

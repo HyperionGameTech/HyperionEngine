@@ -2,7 +2,7 @@
 #define HYPERION_V2_FBOM_MARSHALS_SHADER_BUNDLE_MARSHAL_HPP
 
 #include <asset/serialization/fbom/FBOM.hpp>
-#include <builders/shader_compiler/ShaderCompiler.hpp>
+#include <util/shader_compiler/ShaderCompiler.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2::fbom {

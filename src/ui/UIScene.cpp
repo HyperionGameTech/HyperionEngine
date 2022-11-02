@@ -1,7 +1,7 @@
 #include <ui/UIScene.hpp>
-#include <builders/MeshBuilder.hpp>
-#include <camera/OrthoCamera.hpp>
-#include <camera/PerspectiveCamera.hpp>
+#include <util/MeshBuilder.hpp>
+#include <scene/camera/OrthoCamera.hpp>
+#include <scene/camera/PerspectiveCamera.hpp>
 #include <system/SdlSystem.hpp>
 #include <input/InputManager.hpp>
 #include <Engine.hpp>

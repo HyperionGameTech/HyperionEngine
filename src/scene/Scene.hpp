@@ -6,16 +6,17 @@
 #include "Entity.hpp"
 #include "Octree.hpp"
 #include <core/Base.hpp>
+#include <core/Scheduler.hpp>
+#include <core/lib/FlatSet.hpp>
+#include <core/lib/FlatMap.hpp>
 #include <rendering/rt/TLAS.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/DrawProxy.hpp>
-#include <core/Scheduler.hpp>
-#include <core/lib/FlatSet.hpp>
-#include <core/lib/FlatMap.hpp>
-#include <camera/Camera.hpp>
+#include <scene/camera/Camera.hpp>
+#include <math/Color.hpp>
 #include <GameCounter.hpp>
 #include <Types.hpp>
 #include <unordered_map>
@@ -24,6 +25,13 @@ namespace hyperion::v2 {
 
 class RenderEnvironment;
 class World;
+
+struct FogParams
+{
+    Color color = Color(0xF2F8F7FF);
+    Float start_distance = 250.0f;
+    Float end_distance = 1000.0f;
+};
 
 template<>
 struct ComponentInitInfo<STUB_CLASS(Scene)>
@@ -83,6 +91,15 @@ public:
     bool AddEnvProbe(Handle<EnvProbe> &&env_probe);
     bool AddEnvProbe(const Handle<EnvProbe> &env_probe);
     bool RemoveEnvProbe(EnvProbe::ID id);
+
+    FogParams &GetFogParams()
+        { return m_fog_params; }
+
+    const FogParams &GetFogParams() const
+        { return m_fog_params; }
+
+    void SetFogParams(const FogParams &fog_params)
+        { m_fog_params = fog_params; }
 
     /*! \brief Get the top level acceleration structure for this Scene, if it exists. */
     Handle<TLAS> &GetTLAS()
@@ -171,6 +188,8 @@ private:
     NodeProxy m_root_node_proxy;
     RenderEnvironment *m_environment;
     World *m_world;
+
+    FogParams m_fog_params;
 
     // entities, lights etc. live in GAME thread
     FlatMap<IDBase, Handle<Entity>> m_entities;

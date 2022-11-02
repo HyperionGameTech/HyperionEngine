@@ -1,7 +1,7 @@
 #include "OgreXMLSkeletonLoader.hpp"
 #include <Engine.hpp>
-#include <animation/Skeleton.hpp>
-#include <animation/Bone.hpp>
+#include <scene/animation/Skeleton.hpp>
+#include <scene/animation/Bone.hpp>
 
 #include <Types.hpp>
 

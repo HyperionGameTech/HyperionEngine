@@ -1,6 +1,6 @@
 #include "AabbDebugController.hpp"
 #include <Engine.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 #include <util/UTF8.hpp>
 

@@ -7,7 +7,7 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
-#include <builders/shader_compiler/ShaderCompiler.hpp>
+#include <util/shader_compiler/ShaderCompiler.hpp>
 
 #include <math/Transform.hpp>
 

@@ -38,7 +38,7 @@
 #include <system/CrashHandler.hpp>
 
 #include <util/EnumOptions.hpp>
-#include <builders/shader_compiler/ShaderCompiler.hpp>
+#include <util/shader_compiler/ShaderCompiler.hpp>
 
 #include <Component.hpp>
 

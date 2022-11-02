@@ -151,7 +151,7 @@ void Features::SetDeviceFeatures(Device *device)
     mvk_config = new MVKConfiguration[sz];
 
     for (size_t i = 0; i < sz; i++) {
-#if defined(HYP_DEBUG_MODE) && HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         mvk_config[i].debugMode = true;
 #endif
     }

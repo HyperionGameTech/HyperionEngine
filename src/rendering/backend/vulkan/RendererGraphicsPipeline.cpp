@@ -246,8 +246,8 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
             .srcColorBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_SRC_ALPHA : VK_BLEND_FACTOR_ONE,
             .dstColorBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA : VK_BLEND_FACTOR_ZERO,
             .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE, 
-            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+            .srcAlphaBlendFactor =  m_construction_info.blend_enabled ? VK_BLEND_FACTOR_SRC_ALPHA : VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA : VK_BLEND_FACTOR_ZERO,
             .alphaBlendOp = VK_BLEND_OP_ADD,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
                 | VK_COLOR_COMPONENT_G_BIT

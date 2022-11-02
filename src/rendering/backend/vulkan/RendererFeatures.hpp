@@ -160,7 +160,7 @@ public:
 
     SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR _surface) const
     {
-        SwapchainSupportDetails details{};
+        SwapchainSupportDetails details { };
 
         if (m_physical_device == nullptr) {
             DebugLog(LogType::Debug, "No physical device set -- cannot query swapchain support!\n");
@@ -446,7 +446,7 @@ private:
 
     VkPhysicalDeviceMemoryProperties m_memory_properties;
 
-    bool m_is_raytracing_disabled{false};
+    bool m_is_raytracing_disabled { false };
 };
 
 } // namespace renderer

@@ -4,7 +4,7 @@
 #include <core/Base.hpp>
 #include <rendering/ShaderDataState.hpp>
 #include <core/lib/DynArray.hpp>
-#include <animation/Animation.hpp>
+#include <scene/animation/Animation.hpp>
 
 #include <Types.hpp>
 

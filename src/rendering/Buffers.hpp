@@ -133,6 +133,7 @@ struct alignas(256) SceneShaderData
     UInt32 enabled_render_components_mask;
 
     ShaderVec4<Float32> taa_params;
+    ShaderVec4<Float32> fog_params;
 };
 
 static_assert(sizeof(SceneShaderData) == 512);

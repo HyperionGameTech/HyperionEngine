@@ -5,7 +5,7 @@
 
 #include <math/MathUtil.hpp>
 #include <asset/ByteReader.hpp>
-#include <camera/OrthoCamera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 #include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {

@@ -3,7 +3,7 @@
 #include <Engine.hpp>
 #include <core/Containers.hpp>
 #include <math/Transform.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion::v2 {
 

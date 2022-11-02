@@ -1,6 +1,6 @@
 #include "TerrainPagingController.hpp"
 #include <rendering/Texture.hpp>
-#include <builders/MeshBuilder.hpp>
+#include <util/MeshBuilder.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
