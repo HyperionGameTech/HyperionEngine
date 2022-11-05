@@ -61,9 +61,7 @@ Vector4::Vector4(const Vector4 &other)
 {
 }
 
-
 Vector4::Vector4(Float128 vec) {
-    // Move our SSE vector to our internal values
     Float128Store(values, vec);
 }
 
@@ -77,72 +75,93 @@ Vector4 &Vector4::operator=(const Vector4 &other)
 }
 Vector4 Vector4::operator+(const Vector4 &other) const
 {
-    return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Add(a, b);
+
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator+=(const Vector4 &other)
 {
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    w += other.w;
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Add(a, b);
+    Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator-(const Vector4 &other) const
 {
-    return Vector4(x - other.x, y - other.y, z - other.z, w - other.w);
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Sub(a, b);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator-=(const Vector4 &other)
 {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    w -= other.w;
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Sub(a, b);
+    Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator*(const Vector4 &other) const
 {
-    return Vector4(x * other.x, y * other.y, z * other.z, w * other.w);
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Mul(a, b);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator*=(const Vector4 &other)
 {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    w *= other.w;
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Mul(a, b);
+    Float128Store(values, a);
     return *this;
 }
 
 Vector4 Vector4::operator*(const Matrix4 &mat) const
 {
-    return {
-        x * mat.values[0] + y * mat.values[4] + z * mat.values[8]  + w * mat.values[12],
-        x * mat.values[1] + y * mat.values[5] + z * mat.values[9]  + w * mat.values[13],
-        x * mat.values[2] + y * mat.values[6] + z * mat.values[10] + w * mat.values[14],
-        x * mat.values[3] + y * mat.values[7] + z * mat.values[11] + w * mat.values[15]
-    };
+    Vector4 ret;
+    const Float128 a = Float128Set(x, y, z, w);
+    for (int i = 0; i < 4; i++) {
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 4], mat.values[i + 8], mat.values[i + 12]);
+        const Float128 row = Float128Mul(a, b);
+        ret.values[i] = Float128Sum(row);
+    }
+    return ret;
 }
 
 Vector4 &Vector4::operator*=(const Matrix4 &mat)
 {
-    return operator=(operator*(mat));
+    const Float128 a = Float128Set(x, y, z, w);
+    for (int i = 0; i < 4; i++) {
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 4], mat.values[i + 8], mat.values[i + 12]);;
+        const Float128 row = Float128Mul(a, b);
+        values[i] = Float128Sum(row);
+    }
+    return *this;
 }
 
 Vector4 Vector4::operator/(const Vector4 &other) const
 {
-    return Vector4(x / other.x, y / other.y, z / other.z, w / other.w);
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Div(a, b);
+    return Vector4(a);
 }
 
 Vector4 &Vector4::operator/=(const Vector4 &other)
 {
-    x /= other.x;
-    y /= other.y;
-    z /= other.z;
-    w /= other.w;
+    Float128 a = Float128Set(x, y, z, w);
+    const Float128 b = Float128Set(other.x, other.y, other.z, other.w);
+    a = Float128Div(a, b);
+    Float128Store(values, a);
     return *this;
 }
 bool Vector4::operator==(const Vector4 &other) const

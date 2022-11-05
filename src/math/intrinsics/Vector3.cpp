@@ -1,13 +1,16 @@
-#include "Vector3.hpp"
-#include "Quaternion.hpp"
-#include "Matrix3.hpp"
-#include "Matrix4.hpp"
+#include "Intrinsics.hpp"
+#include "../Vector3.hpp"
+#include "../Quaternion.hpp"
+#include "../Matrix3.hpp"
+#include "../Matrix4.hpp"
 
 #include <cmath>
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#if defined(HYP_FEATURES_INTRINSICS)
 
 namespace hyperion {
+
+using namespace intrinsics;
 
 const Vector3 Vector3::zero = Vector3(0.0f);
 const Vector3 Vector3::one = Vector3(1.0f);
@@ -54,6 +57,10 @@ Vector3::Vector3(const Vector3 &other)
 {
 }
 
+Vector3::Vector3(Float128 vec) {
+    Float128StoreVector3(values, vec);
+}
+
 Vector3 &Vector3::operator=(const Vector3 &other)
 {
     x = other.x;
@@ -64,50 +71,70 @@ Vector3 &Vector3::operator=(const Vector3 &other)
 
 Vector3 Vector3::operator+(const Vector3 &other) const
 {
-    return Vector3(x + other.x, y + other.y, z + other.z);
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Add(a, b);
+    return Vector3(a);
 }
 
 Vector3 &Vector3::operator+=(const Vector3 &other)
 {
-    x += other.x;
-    y += other.y;
-    z += other.z;
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Add(a, b);
+    Float128StoreVector3(values, a);
     return *this;
 }
 
 Vector3 Vector3::operator-(const Vector3 &other) const
 {
-    return Vector3(x - other.x, y - other.y, z - other.z);
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Sub(a, b);
+    return Vector3(a);
 }
 
 Vector3 &Vector3::operator-=(const Vector3 &other)
 {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Sub(a, b);
+    Float128StoreVector3(values, a);
     return *this;
 }
 
 Vector3 Vector3::operator*(const Vector3 &other) const
 {
-    return Vector3(x * other.x, y * other.y, z * other.z);
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Mul(a, b);
+    return Vector3(a);
 }
 
 Vector3 &Vector3::operator*=(const Vector3 &other)
 {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
+    Float128 a = Float128Set(x, y, z, 0.0f);
+    const Float128 b = Float128Set(other.x, other.y, other.z, 0.0f);
+    a = Float128Mul(a, b);
+    Float128StoreVector3(values, a);
     return *this;
 }
 
 Vector3 Vector3::operator*(const Matrix3 &mat) const
 {
-    return {
-        x * mat.values[0] + y * mat.values[3] + z * mat.values[6],
-        x * mat.values[1] + y * mat.values[4] + z * mat.values[7],
-        x * mat.values[2] + y * mat.values[5] + z * mat.values[8]
-    };
+    Float vec[] = { 0.0f, 0.0f, 0.0f };
+    const Float128 a = Float128Set(x, y, z, 0.0f);
+
+    for (int i = 0; i < 3; i++) {
+        // Load each line of the matrix
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 3], mat.values[i + 6], 0.0f);
+        // Multiply our vector by matrix row
+        const Float128 v = Float128Mul(a, b);
+        // Set our result component to the sum of the multiplication
+        vec[i] = Float128Sum(v);
+    }
+
+    return { vec[0], vec[1], vec[2] };
 }
 
 Vector3 &Vector3::operator*=(const Matrix3 &mat)
@@ -117,12 +144,13 @@ Vector3 &Vector3::operator*=(const Matrix3 &mat)
 
 Vector3 Vector3::operator*(const Matrix4 &mat) const
 {
-    Vector4 product {
-        x * mat.values[0] + y * mat.values[4] + z * mat.values[8]  + mat.values[12],
-        x * mat.values[1] + y * mat.values[5] + z * mat.values[9]  + mat.values[13],
-        x * mat.values[2] + y * mat.values[6] + z * mat.values[10] + mat.values[14],
-        x * mat.values[3] + y * mat.values[7] + z * mat.values[11] + mat.values[15]
-    };
+    Vector4 product;
+    const Float128 a = Float128Set(x, y, z, 1.0f);
+    for (int i = 0; i < 4; i++) {
+        const Float128 b = Float128Set(mat.values[i], mat.values[i + 4], mat.values[i + 8], mat.values[i + 12]);
+        const Float128 row = Float128Mul(a, b);
+        product.values[i] = Float128Sum(row);
+    }
 
     return Vector3(product / product.w);
 }
@@ -136,21 +164,21 @@ Vector3 Vector3::operator*(const Quaternion &quat) const
 {
     Vector3 result;
     result.x = quat.w * quat.w * x + 2 * 
-        quat.y * quat.w * z - 2 * 
-        quat.z * quat.w * y + 
-        quat.x * quat.x * x + 2 * 
-        quat.y * quat.x * y + 2 * 
-        quat.z * quat.x * z - 
-        quat.z * quat.z * x - quat.y * quat.y * x;
+            quat.y * quat.w * z - 2 *
+            quat.z * quat.w * y +
+            quat.x * quat.x * x + 2 *
+            quat.y * quat.x * y + 2 *
+            quat.z * quat.x * z -
+            quat.z * quat.z * x - quat.y * quat.y * x;
 
     result.y = 2 * quat.x * quat.y * x + 
-        quat.y * quat.y * y + 2 * 
-        quat.z * quat.y * z + 2 * 
-        quat.w * quat.z * x - 
-        quat.z * quat.z * y + 
-        quat.w * quat.w * y - 2 * 
-        quat.x * quat.w * z - 
-        quat.x * quat.x * y;
+            quat.y * quat.y * y + 2 *
+            quat.z * quat.y * z + 2 *
+            quat.w * quat.z * x -
+            quat.z * quat.z * y +
+            quat.w * quat.w * y - 2 *
+            quat.x * quat.w * z -
+            quat.x * quat.x * y;
 
     result.z = 2 * quat.x * quat.z * x + 2 * 
         quat.y * quat.z * y + 

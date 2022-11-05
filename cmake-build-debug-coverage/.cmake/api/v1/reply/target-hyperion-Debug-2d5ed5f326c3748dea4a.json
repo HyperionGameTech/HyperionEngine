@@ -401,10 +401,13 @@
 				273,
 				274,
 				275,
+				276,
 				277,
 				278,
-				279,
-				280
+				280,
+				281,
+				282,
+				283
 			]
 		},
 		{
@@ -456,7 +459,7 @@
 			"language" : "C",
 			"sourceIndexes" : 
 			[
-				276
+				279
 			]
 		}
 	],
@@ -754,16 +757,16 @@
 				277,
 				278,
 				279,
-				280
+				280,
+				281,
+				282,
+				283
 			]
 		},
 		{
 			"name" : "Header Files",
 			"sourceIndexes" : 
 			[
-				281,
-				282,
-				283,
 				284,
 				285,
 				286,
@@ -1176,7 +1179,10 @@
 				693,
 				694,
 				695,
-				696
+				696,
+				697,
+				698,
+				699
 			]
 		}
 	],
@@ -1498,6 +1504,24 @@
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
 			"path" : "src/math/Vertex.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/math/intrinsics/Matrix4.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/math/intrinsics/Quaternion.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/math/intrinsics/Vector3.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{

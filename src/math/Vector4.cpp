@@ -59,10 +59,6 @@ Vector4::Vector4(const Vector4 &other)
 }
 
 Vector4::Vector4(Float128 vec)
-    : x(vec[0]),
-      y(vec[1]),
-      z(vec[2]),
-      w(vec[3])
 {
 }
 

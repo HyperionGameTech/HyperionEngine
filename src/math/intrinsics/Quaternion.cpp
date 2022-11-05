@@ -1,8 +1,7 @@
-#include "Quaternion.hpp"
+#include "../Quaternion.hpp"
+#include "Intrinsics.hpp"
 
 #include <float.h>
-
-#if !defined(HYP_FEATURES_INTRINSICS)
 
 namespace hyperion {
 
@@ -337,5 +336,3 @@ std::ostream &operator<<(std::ostream &out, const Quaternion &rot) // output
     return out;
 }
 } // namespace hyperion
-
-#endif

@@ -364,6 +364,29 @@ public:
         #endif
     }
 
+    void MathTest(const long iterations) {
+        Vector4 vec1 = { 0.0f, 0.0f, 0.0f, 0.0f };
+        Vector4 vec2 = { 1.0f, 2.0f, 3.0f, 4.0f };
+        auto start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < iterations; i++) {
+            vec1 += (vec2 * Vector4(0.03f)) / Vector4(1.1f);
+        }
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Time for Vector4 Test: " << duration.count() << "\n";
+
+        Matrix4 mat1;
+        Matrix4 mat2 = mat1;
+        start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < iterations; i++) {
+            mat1 *= mat2;
+        }
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Time for Matrix4 Test: " << duration.count() << "\n";
+
+    }
+
     // virtual void OnInputEvent(Engine *engine, const SystemEvent &event) override;
 
     // not overloading; just creating a method to handle camera movement
@@ -501,7 +524,10 @@ int main()
     auto *engine = new Engine(system, "My app");
 
     auto *my_game = new MyGame;
-;
+
+    //my_game->MathTest(5000000);
+    //return 0;
+
     engine->Initialize();
 
     Device *device = engine->GetInstance()->GetDevice();

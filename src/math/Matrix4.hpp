@@ -6,12 +6,11 @@
 #include "../HashCode.hpp"
 #include "../Util.hpp"
 #include <Types.hpp>
+#include <math/intrinsics/Intrinsics.hpp>
 
 #include <iostream>
 #include <array>
 #include <cstring>
-#include <immintrin.h>
-
 
 namespace hyperion {
 
@@ -26,40 +25,40 @@ public:
     static Matrix4 Rotation(const Matrix4 &transform);
 #endif
     static Matrix4 Rotation(const Quaternion &rotation);
-    static Matrix4 Rotation(const Vector3 &axis, float radians);
+    static Matrix4 Rotation(const Vector3 &axis, Float radians);
     static Matrix4 Scaling(const Vector3 &scaling);
-    static Matrix4 Perspective(float fov, int w, int h, float n, float f);
-    static Matrix4 Orthographic(float l, float r, float b, float t, float n, float f);
+    static Matrix4 Perspective(Float fov, Int w, Int h, Float n, Float f);
+    static Matrix4 Orthographic(Float l, Float r, Float b, Float t, Float n, Float f);
     static Matrix4 LookAt(const Vector3 &dir, const Vector3 &up);
     static Matrix4 LookAt(const Vector3 &pos, const Vector3 &target, const Vector3 &up);
 
     union {
         Vector4 rows[4];
-        float values[16];
+        Float values[16];
     };
 
     Matrix4();
     explicit Matrix4(const Vector4 *rows);
-    explicit Matrix4(const float *v);
+    explicit Matrix4(const Float *v);
     Matrix4(const Matrix4 &other);
 
-    float Determinant() const;
+    Float Determinant() const;
     Matrix4 &Transpose();
     Matrix4 Transposed() const;
     Matrix4 &Invert();
     Matrix4 Inverted() const;
 
-    float GetYaw() const;
-    float GetPitch() const;
-    float GetRoll() const;
+    Float GetYaw() const;
+    Float GetPitch() const;
+    Float GetRoll() const;
 
     Matrix4 &operator=(const Matrix4 &other);
     Matrix4 operator+(const Matrix4 &other) const;
     Matrix4 &operator+=(const Matrix4 &other);
     Matrix4 operator*(const Matrix4 &other) const;
     Matrix4 &operator*=(const Matrix4 &other);
-    Matrix4 operator*(float scalar) const;
-    Matrix4 &operator*=(float scalar);
+    Matrix4 operator*(Float scalar) const;
+    Matrix4 &operator*=(Float scalar);
     Vector3 operator*(const Vector3 &vec) const;
     Vector4 operator*(const Vector4 &vec) const;
 
@@ -89,7 +88,7 @@ public:
     {
         HashCode hc;
 
-        for (float value : values) {
+        for (Float value : values) {
             hc.Add(value);
         }
 

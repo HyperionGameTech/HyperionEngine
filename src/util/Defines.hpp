@@ -162,6 +162,13 @@
     #endif
 #endif
 
+#ifdef __AVX__
+#ifdef __AVX2__
+#define HYP_AVX2_SUPPORTED 1
+#endif
+#define HYP_AVX_SUPPORTED 1
+#endif
+
 #if HYP_DEBUG_MODE
     #define HYP_BREAKPOINT_DEBUG_MODE HYP_BREAKPOINT
 #else
