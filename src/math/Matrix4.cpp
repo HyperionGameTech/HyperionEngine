@@ -5,6 +5,8 @@
 
 #include <core/Core.hpp>
 
+#if !defined(HYP_FEATURES_INTRINSICS)
+
 namespace hyperion {
 
 const Matrix4 Matrix4::identity = Matrix4::Identity();
@@ -491,3 +493,4 @@ std::ostream &operator<<(std::ostream &os, const Matrix4 &mat)
     return os;
 }
 } // namespace hyperion
+#endif

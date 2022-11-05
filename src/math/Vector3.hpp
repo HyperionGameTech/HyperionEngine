@@ -8,6 +8,7 @@
 #include "Vector4.hpp"
 #include "../HashCode.hpp"
 #include "../Util.hpp"
+#include "intrinsics/Intrinsics.hpp"
 
 #include <util/Defines.hpp>
 #include <Types.hpp>
@@ -36,6 +37,7 @@ public:
     Vector3();
     Vector3(float x, float y, float z);
     Vector3(float xyz);
+    explicit Vector3(intrinsics::Float128 vec);
     explicit Vector3(const Vector2 &xy, float z);
     /*! \brief Convert a Vector4 to Vector3, discarding w component. */
     explicit Vector3(const Vector4 &vec);
