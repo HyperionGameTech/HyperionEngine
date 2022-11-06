@@ -344,10 +344,6 @@ GPUMemory::GPUMemory()
     static UInt allocations = 0;
 
     m_id = allocations++;
-
-    //if (m_id == 0x5A) {
-    //    HYP_BREAKPOINT;
-    //}
 }
 
 GPUMemory::~GPUMemory()

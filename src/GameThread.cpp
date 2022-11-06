@@ -32,12 +32,16 @@ void GameThread::operator()(Engine *engine, Game *game)
     m_is_running.store(true, std::memory_order_relaxed);
 
     game->InitGame(engine);
+    
+    Queue<Scheduler::ScheduledTask> tasks;
 
     while (engine->m_running.load(std::memory_order_relaxed)) {
         if (auto num_enqueued = m_scheduler.NumEnqueued()) {
-            m_scheduler.Flush([last_delta = counter.delta](auto &fn) {
-                fn(last_delta);
-            });
+            m_scheduler.AcceptAll(tasks);
+
+            while (tasks.Any()) {
+                tasks.Pop().Execute(counter.delta);
+            }
         }
 
 #if HYP_GAME_THREAD_LOCKED
