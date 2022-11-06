@@ -111,7 +111,6 @@ class HandleBase : AtomicRefCountedPtr<void>
 
 protected:
     using Base = AtomicRefCountedPtr<void>;
-    using RefCountBase = Base::Base;
     using Base::Get;
 
     template <class T>
@@ -133,12 +132,6 @@ protected:
             Base::m_ref->template TakeOwnership<T>(ptr);
             Base::m_ref->strong_count = 1u;
             Base::m_ref->weak_count = 0u;
-
-            if (ptr->GetID()) {
-                // ptr already has ID set,
-                // we take that ID
-                m_id = ptr->GetID();
-            }
         }
     }
 
@@ -152,14 +145,6 @@ protected:
 
         if (Base::m_ref) {
             ++Base::m_ref->strong_count;
-
-            if (auto *ptr = static_cast<T *>(Base::m_ref->value)) {
-                if (ptr->GetID()) {
-                    // ptr already has ID set,
-                    // we take that ID
-                    m_id = ptr->GetID();HandleID(TypeID::ForType<NormalizedType<T>>(), ptr->GetID().value);
-                }
-            }
         }
     }
 
@@ -170,34 +155,33 @@ public:
     }
 
     HandleBase(const HandleBase &other)
-        : Base(other),
-          m_id(other.m_id)
+        : Base(static_cast<const Base &>(other))
     {
     }
 
     HandleBase &operator=(const HandleBase &other)
     {
-        Base::operator=(other);
+        if (std::addressof(other) == this) {
+            return *this;
+        }
 
-        m_id = other.m_id;
+        Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
 
     HandleBase(HandleBase &&other) noexcept
-        : Base(std::move(other)),
-          m_id(other.m_id)
+        : Base(static_cast<Base &&>(std::move(other)))
     {
-        other.m_id = HandleID { };
     }
 
     HandleBase &operator=(HandleBase &&other) noexcept
     {
-        Base::operator=(std::move(other));
+        if (std::addressof(other) == this) {
+            return *this;
+        }
 
-        m_id = other.m_id;
-
-        other.m_id = HandleID { };
+        Base::operator=(static_cast<Base &&>(std::move(other)));
 
         return *this;
     }
@@ -228,12 +212,9 @@ public:
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
         { return Base::operator!=(nullptr); }
 
-    HYP_FORCE_INLINE const HandleID &GetID() const
-        { return m_id; }
-
     /*! \brief Drops the reference to the currently held value, if any.  */
     HYP_FORCE_INLINE void Reset()
-        { Base::Reset(); m_id = HandleID();  }
+        { Base::Reset(); }
 
     template <class T>
     Handle<T> Cast()
@@ -247,9 +228,6 @@ public:
 
         return h;
     }
-
-protected:
-    HandleID m_id;
 };
 
 template <class T>
@@ -278,7 +256,6 @@ protected:
 public:
     using ID = HandleID;
 
-    using Base::GetID;
     using Base::operator bool;
     using Base::operator!;
 
@@ -290,25 +267,26 @@ public:
     }
 
     Handle(const Handle &other)
-        : Base(other)
+        : Base(static_cast<const Base &>(other))
     {
     }
 
     Handle &operator=(const Handle &other)
     {
-        Base::operator=(other);
+        Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
 
     Handle(Handle &&other) noexcept
-        : Base(std::move(other))
+        : Base(static_cast<Base &&>(std::move(other)))
     {
+        AssertThrow(other.Get() == nullptr);
     }
 
     Handle &operator=(Handle &&other) noexcept
     {
-        Base::operator=(std::move(other));
+        Base::operator=(static_cast<Base &&>(std::move(other)));
 
         return *this;
     }
@@ -338,17 +316,6 @@ public:
 
     HYP_FORCE_INLINE T *Get() const
         { return static_cast<T *>(Base::Get()); }
-
-    /*! \brief Used by ComponentSystem. */
-    void SetID(const ID &id)
-    {
-        Base::m_id = id;
-        if (auto *ptr = Get()) {
-            ptr->SetID(m_id);
-        }
-    }
-
-private:
 };
 
 template <class T>
@@ -374,45 +341,37 @@ public:
     }
 
     WeakHandleBase(const WeakHandleBase &other)
-        : Base(other),
-          m_id(other.m_id)
+        : Base(other)
     {
     }
 
     WeakHandleBase &operator=(const WeakHandleBase &other)
     {
         Base::operator=(other);
-        m_id = other.m_id;
 
         return *this;
     }
 
     WeakHandleBase(const HandleBase &other)
-        : Base(other),
-          m_id(other.m_id)
+        : Base(other)
     {
     }
 
     WeakHandleBase &operator=(const HandleBase &other)
     {
         Base::operator=(other);
-        m_id = other.m_id;
 
         return *this;
     }
 
     WeakHandleBase(WeakHandleBase &&other) noexcept
-        : Base(std::move(other)),
-          m_id(std::move(other.m_id))
+        : Base(std::move(other))
     {
-        other.m_id = HandleID();
     }
 
     WeakHandleBase &operator=(WeakHandleBase &&other) noexcept
     {
         Base::operator=(std::move(other));
-        m_id = std::move(other.m_id);
-        other.m_id = HandleID();
 
         return *this;
     }
@@ -420,13 +379,10 @@ public:
     ~WeakHandleBase() = default;
 
     HYP_FORCE_INLINE bool operator==(const HandleBase &other) const
-        { return m_ref == other.m_ref; }
+        { return Base::Get() == other.Get(); }
 
     HYP_FORCE_INLINE bool operator!=(const HandleBase &other) const
-        { return m_ref != other.m_ref; }
-
-    HYP_FORCE_INLINE const HandleID &GetID() const
-        { return m_id; }
+        { return Base::Get() != other.Get(); }
 
     template <class T>
     HYP_FORCE_INLINE Handle<T> Lock()
@@ -442,7 +398,6 @@ protected:
     {
         Handle<T> h;
         h.m_ref = Base::m_ref;
-        h.m_id = m_id;
 
         if (Base::m_ref) {
             ++Base::m_ref->strong_count;
@@ -450,8 +405,6 @@ protected:
 
         return h;
     }
-
-    HandleID m_id;
 };
 
 template <class T>
@@ -460,9 +413,6 @@ class WeakHandle : public WeakHandleBase
     using Base = WeakHandleBase;
 
 public:
-    using ID = HandleID;
-
-    using Base::GetID;
     using Base::operator bool;
     using Base::operator!;
 

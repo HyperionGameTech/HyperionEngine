@@ -29,8 +29,8 @@ void World::Init(Engine *engine)
         PerformSceneUpdates();
     }
 
-    for (auto &scene : m_scenes) {
-        engine->InitObject(scene);
+    for (auto &it : m_scenes) {
+        engine->InitObject(it.second);
     }
     
     EngineComponentBase::Init(engine);
@@ -40,18 +40,23 @@ void World::Init(Engine *engine)
     SetReady(true);
 
     OnTeardown([this]() {
-        m_physics_world.Teardown();
-
-        for (auto &scene : m_scenes) {
-            if (!scene) {
+        for (auto &it : m_scenes) {
+            if (!it.second) {
                 continue;
             }
 
-            scene->SetWorld(nullptr);
+            it.second->SetWorld(nullptr);
         }
         
         m_scenes.Clear();
+        
+        m_scene_update_mutex.lock();
+        m_scenes_pending_addition.Clear();
+        m_scenes_pending_removal.Clear();
+        m_scene_update_mutex.unlock();
 
+        m_physics_world.Teardown();
+        
         SetReady(false);
     });
 }
@@ -60,12 +65,20 @@ void World::PerformSceneUpdates()
 {
     std::lock_guard guard(m_scene_update_mutex);
 
-    for (auto &scene : m_scenes_pending_removal) {
-        if (scene) {
-            scene->SetWorld(nullptr);
+    for (const Scene::ID &scene_id : m_scenes_pending_removal) {
+        if (!scene_id) {
+            continue;
         }
 
-        m_scenes.Erase(scene);
+        const auto it = m_scenes.Find(scene_id);
+
+        if (it == m_scenes.End()) {
+            continue;
+        }
+
+        it->second->SetWorld(nullptr);
+
+        m_scenes.Erase(it);
     }
 
     m_scenes_pending_removal.Clear();
@@ -77,7 +90,7 @@ void World::PerformSceneUpdates()
 
         scene->SetWorld(this);
 
-        m_scenes.Insert(std::move(scene));
+        m_scenes.Insert(scene->GetID(), std::move(scene));
     }
 
     m_scenes_pending_addition.Clear();
@@ -96,8 +109,8 @@ void World::Update(
 
     m_octree.NextVisibilityState();
 
-    for (auto &scene : m_scenes) {
-        m_octree.CalculateVisibility(scene.Get());
+    for (auto &it : m_scenes) {
+        m_octree.CalculateVisibility(it.second.Get());
     }
 
     m_physics_world.Tick(static_cast<GameCounter::TickUnitHighPrec>(delta));
@@ -106,9 +119,8 @@ void World::Update(
         PerformSceneUpdates();
     }
 
-    for (auto &scene : m_scenes) {
-
-        scene->Update(engine, delta);
+    for (auto &it : m_scenes) {
+        it.second->Update(engine, delta);
     }
 }
 
@@ -142,15 +154,15 @@ void World::AddScene(Handle<Scene> &&scene)
     m_has_scene_updates.store(true);
 }
 
-void World::RemoveScene(const Handle<Scene> &scene)
+void World::RemoveScene(Scene::ID id)
 {
-    if (!scene) {
+    if (!id) {
         return;
     }
 
     std::lock_guard guard(m_scene_update_mutex);
 
-    m_scenes_pending_removal.Insert(scene);
+    m_scenes_pending_removal.Insert(id);
 
     m_has_scene_updates.store(true);
 }

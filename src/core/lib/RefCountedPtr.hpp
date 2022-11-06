@@ -98,6 +98,10 @@ protected:
 
     RefCountedPtrBase &operator=(const RefCountedPtrBase &other)
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         DropRefCount();
 
         m_ref = other.m_ref;
@@ -117,6 +121,10 @@ protected:
 
     RefCountedPtrBase &operator=(RefCountedPtrBase &&other) noexcept
     {
+        if (std::addressof(other) == this) {
+            return *this;
+        }
+
         DropRefCount();
 
         m_ref = other.m_ref;
@@ -142,13 +150,13 @@ public:
         { return Get() == nullptr; }
 
     bool operator==(const RefCountedPtrBase &other) const
-        { return m_ref == other.m_ref; }
+        { return Get() == other.Get(); }
 
     bool operator==(std::nullptr_t) const
         { return Get() == nullptr; }
 
     bool operator!=(const RefCountedPtrBase &other) const
-        { return m_ref != other.m_ref; }
+        { return Get() != other.Get(); }
 
     bool operator!=(std::nullptr_t) const
         { return Get() != nullptr; }
@@ -236,11 +244,6 @@ protected:
     using Base = RefCountedPtrBase<CountType>;
 
 public:
-    using Base::operator==;
-    using Base::operator!=;
-    using Base::operator!;
-    using Base::operator bool;
-
     RefCountedPtr()
         : Base()
     {
@@ -254,7 +257,7 @@ public:
         Reset(ptr);
     }
 
-    explicit RefCountedPtr(const T &value)
+    /*explicit RefCountedPtr(const T &value)
         : Base(new typename Base::RefCountDataType)
     {
         Base::m_ref->template Construct<T>(value);
@@ -268,56 +271,62 @@ public:
         Base::m_ref->template Construct<T>(std::move(value));
         Base::m_ref->strong_count = 1u;
         Base::m_ref->weak_count = 0u;
-    }
+    }*/
+
+    // delete parent constructors
+    RefCountedPtr(const Base &) = delete;
+    RefCountedPtr &operator=(const Base &) = delete;
+    RefCountedPtr(Base &&) noexcept = delete;
+    RefCountedPtr &operator=(Base &&) noexcept = delete;
 
     RefCountedPtr(const RefCountedPtr &other)
-        : Base(other)
+        : Base(static_cast<const Base &>(other))
     {
     }
 
     RefCountedPtr &operator=(const RefCountedPtr &other)
     {
-        Base::operator=(other);
+        Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
 
     RefCountedPtr(RefCountedPtr &&other) noexcept
-        : Base(std::move(other))
+        : Base(static_cast<Base &&>(std::move(other)))
     {
     }
 
     RefCountedPtr &operator=(RefCountedPtr &&other) noexcept
     {
-        Base::operator=(std::move(other));
+        Base::operator=(static_cast<Base &&>(std::move(other)));
 
         return *this;
     }
 
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr(const RefCountedPtr<Ty> &other) noexcept
-        : Base(other)
+        : Base(static_cast<const Base &>(other))
     {
     }
     
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr &operator=(const RefCountedPtr<Ty> &other) noexcept
     {
-        Base::operator=(other);
+        Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
 
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr(RefCountedPtr<Ty> &&other) noexcept
-        : Base(std::move(other))
+        : Base(static_cast<Base &&>(std::move(other)))
     {
     }
     
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
     RefCountedPtr &operator=(RefCountedPtr<Ty> &&other) noexcept
     {
-        Base::operator=(std::move(other));
+        Base::operator=(static_cast<Base &&>(std::move(other)));
 
         return *this;
     }
@@ -335,6 +344,24 @@ public:
 
     HYP_FORCE_INLINE const T &operator*() const
         { return *Get(); }
+
+    HYP_FORCE_INLINE operator bool() const
+        { return Base::operator bool(); }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return Base::operator!(); }
+
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtr &other) const
+        { return Base::operator==(other); }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return Base::operator==(nullptr); }
+
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtr &other) const
+        { return Base::operator!=(other); }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return Base::operator!=(nullptr); }
 
     void Set(const T &value)
     {
@@ -384,34 +411,39 @@ protected:
     using Base = RefCountedPtrBase<CountType>;
 
 public:
-    using Base::operator==;
-    using Base::operator!=;
-    using Base::operator!;
-    using Base::operator bool;
-
     RefCountedPtr()
         : Base()
     {
     }
+    
+    // delete parent constructors
+    RefCountedPtr(const Base &) = delete;
+    RefCountedPtr &operator=(const Base &) = delete;
+    RefCountedPtr(Base &&) noexcept = delete;
+    RefCountedPtr &operator=(Base &&) noexcept = delete;
 
-    RefCountedPtr(const Base &other)
-        : Base(other)
+    template <class Ty>
+    RefCountedPtr(const RefCountedPtr<Ty, CountType> &other)
+        : Base(static_cast<const Base &>(other))
     {
     }
 
-    RefCountedPtr &operator=(const Base &other)
+    template <class Ty>
+    RefCountedPtr &operator=(const RefCountedPtr<Ty, CountType> &other)
     {
-        Base::operator=(other);
+        Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
-
-    RefCountedPtr(Base &&other) noexcept
+    
+    template <class Ty>
+    RefCountedPtr(RefCountedPtr<Ty, CountType> &&other) noexcept
         : Base(std::move(other))
     {
     }
-
-    RefCountedPtr &operator=(Base &&other) noexcept
+    
+    template <class Ty>
+    RefCountedPtr &operator=(RefCountedPtr<Ty, CountType> &&other) noexcept
     {
         Base::operator=(std::move(other));
 
@@ -422,6 +454,24 @@ public:
 
     HYP_FORCE_INLINE void *Get() const
         { return Base::Get(); }
+    
+    HYP_FORCE_INLINE operator bool() const
+        { return Base::operator bool(); }
+
+    HYP_FORCE_INLINE bool operator!() const
+        { return Base::operator!(); }
+
+    HYP_FORCE_INLINE bool operator==(const RefCountedPtr &other) const
+        { return Base::operator==(other); }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+        { return Base::operator==(nullptr); }
+
+    HYP_FORCE_INLINE bool operator!=(const RefCountedPtr &other) const
+        { return Base::operator!=(other); }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+        { return Base::operator!=(nullptr); }
 
     template <class T>
     void Set(const T &value)

@@ -271,8 +271,10 @@ void ShadowPass::Create(Engine *engine)
 
 void ShadowPass::Destroy(Engine *engine)
 {
-    engine->GetWorld()->RemoveScene(m_scene);
-    m_scene.Reset();
+    if (m_scene) {
+        engine->GetWorld()->RemoveScene(m_scene->GetID());
+        m_scene.Reset();
+    }
 
     engine->GetRenderScheduler().Enqueue([this, engine](...) {
         auto result = Result::OK;

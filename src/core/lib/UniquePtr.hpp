@@ -80,23 +80,19 @@ struct UniquePtrHolder
     template <class Base, class Derived, class ...Args>
     void Construct(Args &&... args)
     {
-        using Normalized = NormalizedType<Derived>;
-
-        value = Memory::AllocateAndConstruct<Normalized>(std::forward<Args>(args)...);
-        dtor = &Memory::DestructAndFree<Derived>;
-        type_id = TypeID::ForType<Normalized>();
-        base_type_id = TypeID::ForType<NormalizedType<Base>>();
+        value = Memory::New<Derived>(std::forward<Args>(args)...);
+        dtor = &Memory::Delete<Derived>;
+        type_id = TypeID::ForType<Derived>();
+        base_type_id = TypeID::ForType<Base>();
     }
 
     template <class Base, class Derived>
     void TakeOwnership(Derived *ptr)
     {
-        using Normalized = NormalizedType<Derived>;
-
         value = ptr;
-        dtor = &Memory::DestructAndFree<Derived>;
-        type_id = TypeID::ForType<Normalized>();
-        base_type_id = TypeID::ForType<NormalizedType<Base>>();
+        dtor = &Memory::Delete<Derived>;
+        type_id = TypeID::ForType<Derived>();
+        base_type_id = TypeID::ForType<Base>();
     }
 
     void Destruct()

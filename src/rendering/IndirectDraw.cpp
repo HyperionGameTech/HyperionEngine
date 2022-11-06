@@ -43,7 +43,7 @@ Result IndirectDrawState::Create(Engine *engine)
 
 Result IndirectDrawState::Destroy(Engine *engine)
 {
-    auto result = renderer::Result::OK;
+    auto result = Result::OK;
     
     for (auto &buffer : m_indirect_buffers) {
         if (buffer == nullptr) {
@@ -54,6 +54,8 @@ Result IndirectDrawState::Destroy(Engine *engine)
             buffer->Destroy(engine->GetDevice()),
             result
         );
+
+        buffer.Reset();
     }
     
     for (auto &buffer : m_instance_buffers) {
@@ -65,6 +67,8 @@ Result IndirectDrawState::Destroy(Engine *engine)
             buffer->Destroy(engine->GetDevice()),
             result
         );
+
+        buffer.Reset();
     }
 
     for (auto &buffer : m_staging_buffers) {
@@ -76,6 +80,8 @@ Result IndirectDrawState::Destroy(Engine *engine)
             buffer->Destroy(engine->GetDevice()),
             result
         );
+
+        buffer.Reset();
     }
 
     return result;
@@ -421,7 +427,7 @@ void IndirectRenderer::Destroy(Engine *engine)
         return result;
     });
 
-    // RendererInstance flushes render queue on destroy
+    HYP_FLUSH_RENDER_QUEUE(engine);
 }
 
 void IndirectRenderer::ExecuteCullShaderInBatches(

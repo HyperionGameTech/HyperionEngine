@@ -57,8 +57,10 @@ void VoxelConeTracing::Init(Engine *engine)
     OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        engine->GetWorld()->RemoveScene(m_scene);
-        m_scene.Reset();
+        if (m_scene) {
+            engine->GetWorld()->RemoveScene(m_scene->GetID());
+            m_scene.Reset();
+        }
 
         m_framebuffers = {};
         m_render_pass.Reset();

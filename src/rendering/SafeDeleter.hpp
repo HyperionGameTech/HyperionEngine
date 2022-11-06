@@ -85,9 +85,12 @@ public:
     }
     
     template <class T>
-    struct HandleDeletionEntry : public KeyValuePair<Handle<T>, UInt8>
+    struct HandleDeletionEntry : private KeyValuePair<Handle<T>, UInt8>
     {
         using Base = KeyValuePair<Handle<T>, UInt8>;
+
+        using Base::first;
+        using Base::second;
 
         static_assert(std::is_base_of_v<RenderResource, T>, "T must be a derived class of RenderResource");
 
@@ -95,6 +98,8 @@ public:
             : Base(std::move(renderable), initial_cycles_remaining)
         {
         }
+
+        HandleDeletionEntry(const Handle<T> &renderable) = delete;
 
         HandleDeletionEntry(const HandleDeletionEntry &other) = delete;
         HandleDeletionEntry &operator=(const HandleDeletionEntry &other) = delete;
@@ -113,6 +118,12 @@ public:
 
         ~HandleDeletionEntry() = default;
 
+        bool operator==(const HandleDeletionEntry &other) const
+            { return Base::operator==(other); }
+
+        bool operator<(const HandleDeletionEntry &other) const
+            { return Base::operator<(other); }
+    
         void PerformDeletion(Engine *engine, bool force = false)
         {
             // cycle should be at zero
@@ -267,8 +278,10 @@ private:
             std::lock_guard guard(m_render_resource_deletion_mutex);
             
             auto &deletion_queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
-    
-            deletion_queue.Insert(HandleDeletionEntry<T>(std::move(resource)));
+
+            Handle<T> tmp(std::move(resource));
+            deletion_queue.Insert(HandleDeletionEntry<T>(std::move(tmp)));
+            AssertThrow(resource.Get() == nullptr);
 
             m_render_resource_deletion_flag |= mask;
         }

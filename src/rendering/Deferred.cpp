@@ -487,6 +487,8 @@ void DeferredRenderer::Destroy(Engine *engine)
         engine->SafeReleaseHandle<Texture>(std::move(m_results[frame_index]));
         engine->SafeReleaseHandle<Texture>(std::move(m_mipmapped_results[frame_index]));
 
+        AssertThrow(m_results[frame_index] == nullptr);
+
         m_opaque_fbos[frame_index].Reset();
         m_translucent_fbos[frame_index].Reset();
     }

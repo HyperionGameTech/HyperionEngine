@@ -29,14 +29,14 @@ struct Pair
     }
 
     Pair(First &&first, const Second &second)
-        : first(std::move(first)),
+        : first(std::forward<First>(first)),
           second(second)
     {
     }
 
     Pair(const First &first, Second &&second)
         : first(first),
-          second(std::move(second))
+          second(std::forward<Second>(second))
     {
     }
 
@@ -117,9 +117,10 @@ struct KeyValuePair : Pair<Key, Value>
 {
     KeyValuePair() : Pair<Key, Value>() {}
     KeyValuePair(const Key &key, const Value &value) : Pair<Key, Value>(key, value) {}
-    KeyValuePair(const Key &key, Value &&value) : Pair<Key, Value>(key, std::move(value)) {}
-    KeyValuePair(Key &&key, const Value &value) : Pair<Key, Value>(std::move(key), value) {}
-    KeyValuePair(Key &&key, Value &&value) : Pair<Key, Value>(std::move(key), std::move(value)) {}
+    KeyValuePair(const Key &key, Value &&value) : Pair<Key, Value>(key, std::forward<Value>(value)) {}
+    KeyValuePair(Key &&key, const Value &value) : Pair<Key, Value>(std::forward<Key>(key), value) {}
+    KeyValuePair(Key &&key, Value &&value) : Pair<Key, Value>(std::forward<Key>(key), std::forward<Value>(value)) {}
+
     KeyValuePair(const KeyValuePair &other) : Pair<Key, Value>(other) {}
     KeyValuePair(KeyValuePair &&other) noexcept : Pair<Key, Value>(std::move(other)) {}
 

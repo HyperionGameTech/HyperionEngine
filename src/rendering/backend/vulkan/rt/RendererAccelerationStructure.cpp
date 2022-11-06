@@ -204,6 +204,28 @@ AccelerationStructure::~AccelerationStructure()
 		m_acceleration_structure == VK_NULL_HANDLE,
 		"Expected acceleration structure to have been destroyed before destructor call"
 	);
+
+	AssertThrowMsg(
+		m_buffer == nullptr,
+		"Acceleration structure buffer should have been destroyed before destructor call"
+	);
+
+	AssertThrowMsg(
+		m_instances_buffer == nullptr,
+		"Instances buffer should have been destroyed before destructor call"
+	);
+
+	AssertThrowMsg(
+		m_scratch_buffer == nullptr,
+		"Scratch buffer should have been destroyed before destructor call"
+	);
+
+	for (auto &geometry : m_geometries) {
+	    AssertThrowMsg(
+			geometry == nullptr,
+			"Each geometry should have been destroyed before destructor call"
+		);
+	}
 }
 
 Result AccelerationStructure::CreateAccelerationStructure(
@@ -402,28 +424,41 @@ Result AccelerationStructure::CreateAccelerationStructure(
 
 Result AccelerationStructure::Destroy(Device *device)
 {
-	AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
-
 	auto result = Result::OK;
 
 	for (auto &geometry : m_geometries) {
-	    HYPERION_PASS_ERRORS(geometry->Destroy(device), result);
-	}
+		if (geometry == nullptr) {
+		    continue;
+		}
 
-	HYPERION_PASS_ERRORS(m_buffer->Destroy(device), result);
+	    HYPERION_PASS_ERRORS(geometry->Destroy(device), result);
+		geometry.reset();
+	}
+	
+	if (m_buffer != nullptr) {
+	    HYPERION_PASS_ERRORS(m_buffer->Destroy(device), result);
+	    m_buffer.reset();
+	}
 
 	if (m_instances_buffer != nullptr) {
 	    HYPERION_PASS_ERRORS(m_instances_buffer->Destroy(device), result);
 		m_instances_buffer.reset();
 	}
 
-	device->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
-		device->GetDevice(),
-		m_acceleration_structure,
-		VK_NULL_HANDLE
-	);
+	if (m_scratch_buffer != nullptr) {
+	    HYPERION_PASS_ERRORS(m_scratch_buffer->Destroy(device), result);
+		m_scratch_buffer.reset();
+	}
 
-	m_acceleration_structure = VK_NULL_HANDLE;
+	if (m_acceleration_structure != VK_NULL_HANDLE) {
+	    device->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
+		    device->GetDevice(),
+		    m_acceleration_structure,
+		    VK_NULL_HANDLE
+	    );
+
+	    m_acceleration_structure = VK_NULL_HANDLE;
+	}
 
 	return result;
 }
