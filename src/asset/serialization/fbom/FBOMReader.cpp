@@ -6,7 +6,8 @@ namespace hyperion::v2::fbom {
 FBOMReader::FBOMReader(Engine *engine, const FBOMConfig &config)
     : m_engine(engine),
       m_config(config),
-      m_in_static_data(false)
+      m_in_static_data(false),
+      m_swap_endianness(false)
 {
     m_registered_types = {
         FBOMUnsignedInt(),
@@ -30,6 +31,7 @@ FBOMCommand FBOMReader::NextCommand(ByteReader *reader)
 
     UInt8 ins = 0;
     reader->Read(&ins);
+    CheckEndianness(ins);
 
     return FBOMCommand(ins);
 }
@@ -40,6 +42,7 @@ FBOMCommand FBOMReader::PeekCommand(ByteReader *reader)
 
     UInt8 ins = 0;
     reader->Peek(&ins);
+    CheckEndianness(ins);
 
     return FBOMCommand(ins);
 }
@@ -66,6 +69,7 @@ String FBOMReader::ReadString(ByteReader *reader)
     // read 4 bytes of string length
     UInt32 len;
     reader->Read(&len);
+    CheckEndianness(len);
 
     char *bytes = new char[len + 1];
     memset(bytes, 0, len + 1);
@@ -85,12 +89,14 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
 
     UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
+    CheckEndianness(object_type_location);
 
     switch (object_type_location) {
     case FBOM_DATA_LOCATION_INPLACE:
     {
         UInt8 extend_level;
         reader->Read(&extend_level);
+        CheckEndianness(extend_level);
 
         for (int i = 0; i < extend_level; i++) {
             result.name = ReadString(reader);
@@ -98,6 +104,8 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
             // read size of object
             UInt64 type_size;
             reader->Read(&type_size);
+            CheckEndianness(type_size);
+
             result.size = type_size;
 
             if (i == extend_level - 1) {
@@ -114,6 +122,7 @@ FBOMType FBOMReader::ReadObjectType(ByteReader *reader)
         // read offset as u32
         UInt32 offset;
         reader->Read(&offset);
+        CheckEndianness(offset);
 
         // grab from static data pool
         AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_TYPE);
@@ -134,12 +143,14 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
     // read data location
     UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
     reader->Read(&object_type_location);
+    CheckEndianness(object_type_location);
 
     if (object_type_location == FBOM_DATA_LOCATION_INPLACE) {
         FBOMType object_type = ReadObjectType(reader);
 
         UInt32 sz;
         reader->Read(&sz);
+        CheckEndianness(sz);
 
         ByteBuffer byte_buffer;
         AssertThrow(reader->Read(sz, byte_buffer) == sz);
@@ -149,6 +160,7 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
         // read offset as u32
         UInt32 offset;
         reader->Read(&offset);
+        CheckEndianness(offset);
 
         // grab from static data pool
         AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_DATA);
@@ -157,7 +169,6 @@ FBOMResult FBOMReader::ReadData(ByteReader *reader, FBOMData &data)
 
     return FBOMResult::FBOM_OK;
 }
-
 
 FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMObject *root)
 {
@@ -170,6 +181,7 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
     // read unique ID
     UInt64 unique_id;
     reader->Read(&unique_id);
+    CheckEndianness(unique_id);
 
     // read data location
     UInt8 object_type_location = FBOM_DATA_LOCATION_NONE;
@@ -181,6 +193,7 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
         // read offset as u32
         UInt32 offset;
         reader->Read(&offset);
+        CheckEndianness(offset);
 
         // grab from static data pool
         AssertThrow(m_static_data_pool.at(offset).type == FBOMStaticData::FBOM_STATIC_DATA_OBJECT);
@@ -259,10 +272,12 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
         // "library" file, and page chunks in and out of memory
         UInt32 object_index;
         reader->Read(&object_index);
+        CheckEndianness(object_index);
 
         // read flags
         UInt32 flags;
         reader->Read(&flags);
+        CheckEndianness(flags);
 
         // load the file {ref_name}.chunk relative to current file
         // this could also be stored in a map
@@ -345,11 +360,14 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
         // read u32 describing size of static data pool
         UInt32 static_data_size;
         reader->Read(&static_data_size);
+        CheckEndianness(static_data_size);
+
         const auto initial_static_data_size = static_data_size;
 
         // skip 8 bytes of padding
         UInt64 tmp;
         reader->Read(&tmp);
+        CheckEndianness(tmp);
 
         m_static_data_pool.resize(static_data_size);
 
@@ -360,6 +378,7 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
         for (UInt i = 0; i < static_data_size; i++) {
             UInt32 offset;
             reader->Read(&offset);
+            CheckEndianness(offset);
 
             if (offset >= initial_static_data_size) {
                 return FBOMResult(FBOMResult::FBOM_ERR, "Offset out of bounds of static data pool");
@@ -367,6 +386,7 @@ FBOMResult FBOMReader::Handle(ByteReader *reader, FBOMCommand command, FBOMObjec
 
             UInt8 type;
             reader->Read(&type);
+            CheckEndianness(type);
 
             switch (type)
             {

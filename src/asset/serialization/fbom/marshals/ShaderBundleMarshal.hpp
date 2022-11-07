@@ -75,15 +75,6 @@ public:
             out.AddChild(compiled_shader);
         }
 
-        for (auto &compiled_shader : in_object.compiled_shaders) {
-            std::cout << "compiled_shader : " << compiled_shader.version_hash << "\n";
-            std::cout << "compiled_shader : " << compiled_shader.modules.Size() << "\n";
-            for (auto &mod : compiled_shader.modules) {
-                std::cout << "size : " << mod.Size() << "\n";
-            }
-            std::cout << "\n";
-        }
-
         return { FBOMResult::FBOM_OK };
     }
 
@@ -98,15 +89,6 @@ public:
 
                 out_object->compiled_shaders.PushBack(*compiled_shader);
             }
-        }
-
-        for (auto &compiled_shader : out_object->compiled_shaders) {
-            std::cout << "compiled_shader : " << compiled_shader.version_hash << "\n";
-            std::cout << "compiled_shader : " << compiled_shader.modules.Size() << "\n";
-            for (auto &mod : compiled_shader.modules) {
-                std::cout << "size : " << mod.Size() << "\n";
-            }
-            std::cout << "\n";
         }
 
         return { FBOMResult::FBOM_OK };

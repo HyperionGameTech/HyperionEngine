@@ -31,6 +31,7 @@ public:
 
     /*! \brief Reads from the current position, to current position + \ref{size}.
         If that position is greater than the maximum position, the number of bytes is truncated.
+        Endianness is not taken into account
         @returns The number of bytes read */
     SizeType Read(SizeType size, ByteBuffer &out_byte_buffer)
     {
@@ -79,9 +80,7 @@ public:
     virtual void Seek(unsigned long where_to) = 0;
 
     bool Eof() const
-    {
-        return Position() >= Max();
-    }
+        { return Position() >= Max(); }
 
 protected:
     virtual void ReadBytes(void *ptr, SizeType size) = 0;
@@ -98,9 +97,7 @@ public:
     {
     }
 
-    virtual ~MemoryByteReader()
-    {
-    }
+    virtual ~MemoryByteReader() override = default;
 
     virtual std::streampos Position() const override
     {

@@ -3,6 +3,8 @@
 #include <core/lib/Path.hpp>
 #include <core/lib/SortedArray.hpp>
 
+#include <Constants.hpp>
+
 #include <stack>
 #include <algorithm>
 
@@ -30,6 +32,8 @@ FBOMResult FBOMWriter::Emit(ByteWriter *out)
     }
 
     BuildStaticData();
+
+    WriteHeader(out);
     WriteStaticDataToByteStream(out);
 
     for (const auto &it : m_write_stream.m_object_data) {
@@ -172,6 +176,33 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
 
     out->Write<UInt8>(FBOM_STATIC_DATA_END);
 
+    return FBOMResult::FBOM_OK;
+}
+
+FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
+{
+    const SizeType position_before = out->Position();
+
+    // hyp identifier string
+    out->Write(FBOM::header_identifier, sizeof(FBOM::header_identifier));
+
+    // endianness
+    out->Write<UInt8>(IsBigEndian());
+
+    // binary version
+    out->Write<UInt32>(FBOM::version);
+
+    const SizeType position_change = SizeType(out->Position()) - position_before;
+    AssertThrow(position_change <= FBOM::header_size);
+
+    const SizeType remaining_bytes = FBOM::header_size - position_change;
+    AssertThrow(remaining_bytes < 64);
+
+    void *zeros = alloca(remaining_bytes);
+    Memory::Set(zeros, 0x00, remaining_bytes);
+
+    out->Write(zeros, remaining_bytes);
+    
     return FBOMResult::FBOM_OK;
 }
 

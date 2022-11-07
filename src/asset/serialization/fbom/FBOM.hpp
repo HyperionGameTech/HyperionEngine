@@ -49,6 +49,7 @@ namespace v2 {
 
 class Engine;
 namespace fbom {
+
 class FBOMObjectType;
 
 class FBOMObject;
@@ -244,6 +245,10 @@ class FBOM {
     FlatMap<String, std::unique_ptr<FBOMMarshalerBase>> marshalers;
 
 public:
+    static constexpr SizeType header_size = 32;
+    static constexpr char header_identifier[] = { 'H', 'Y', 'P', '\0' };
+    static constexpr UInt32 version = 0x1;
+
     FBOM();
     FBOM(const FBOM &other) = delete;
     FBOM &operator=(const FBOM &other) = delete;
@@ -312,9 +317,7 @@ public:
     {
         FBOMObject root(FBOMObjectType("ROOT"));
 
-        // if (m_config.base_path.Empty()) {
-
-            // Include our root dir as part of the path
+        // Include our root dir as part of the path
         const auto current_dir = FileSystem::CurrentPath();
         const auto base_path = StringUtil::BasePath(path.Data());
         root.SetProperty("base_path", FBOMString(), base_path.size(), base_path.data());
@@ -323,6 +326,34 @@ public:
 
         if (reader.Eof()) {
             return { FBOMResult::FBOM_ERR, "File not open" };
+        }
+
+        { // read header
+            UByte header_bytes[FBOM::header_size];
+
+            if (reader.Max() < FBOM::header_size) {
+                return { FBOMResult::FBOM_ERR, "Invalid header" };
+            }
+
+            reader.Read(header_bytes, FBOM::header_size);
+
+            if (std::strncmp(reinterpret_cast<const char *>(header_bytes), FBOM::header_identifier, sizeof(FBOM::header_identifier) - 1) != 0) {
+                return { FBOMResult::FBOM_ERR, "Invalid header identifier" };
+            }
+
+            // read endianness
+            const UByte endianness = header_bytes[sizeof(FBOM::header_identifier)];
+            
+            // set if it needs to swap endianness.
+            m_swap_endianness = endianness != IsBigEndian();
+
+            // get version info
+            UInt32 binary_version;
+            Memory::Copy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(UInt8), sizeof(UInt32));
+
+            if (binary_version > FBOM::version || binary_version < 0x1) {
+                return { FBOMResult::FBOM_ERR, "Invalid binary version specified in header" };
+            }
         }
 
         m_static_data_pool.clear();
@@ -366,6 +397,16 @@ public:
     }
 
 private:
+    template <class T>
+    void CheckEndianness(T &value)
+    {
+        if constexpr (sizeof(T) == 1) {
+            return;
+        } else if (m_swap_endianness) {
+            SwapEndianness(value);
+        }
+    }
+
     FBOMCommand NextCommand(ByteReader *);
     FBOMCommand PeekCommand(ByteReader *);
     FBOMResult Eat(ByteReader *, FBOMCommand, bool read = true);
@@ -384,6 +425,8 @@ private:
 
     bool m_in_static_data;
     std::vector<FBOMStaticData> m_static_data_pool;
+
+    bool m_swap_endianness;
 };
 
 struct FBOMExternalData
@@ -433,6 +476,8 @@ private:
     FBOMResult WriteExternalObjects();
     void BuildStaticData();
     void Prune(FBOMObject &);
+
+    FBOMResult WriteHeader(ByteWriter *out);
     FBOMResult WriteStaticDataToByteStream(ByteWriter *out);
 
     FBOMResult WriteObject(ByteWriter *out, const FBOMObject &);
