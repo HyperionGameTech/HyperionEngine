@@ -56,22 +56,10 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
     SymbolTypePtr_t symbol_type;
 
-    // set when this is a generic expression.
-    // if not null when the identifier is stored, it is set to this.
-    std::shared_ptr<AstTemplateExpression> template_expr;
-
     const bool has_user_assigned = m_assignment != nullptr;
     const bool has_user_specified_type = m_proto != nullptr;
 
-    if (IsConst()) {
-        if (!has_user_assigned) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_const_missing_assignment,
-                m_location
-            ));
-        }
-    }
+    bool is_default_assigned = false;
 
     if (has_user_assigned) {
         m_real_assignment = m_assignment;
@@ -90,13 +78,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             m_name
         ));
     } else {
-        // the is_default_assigned flag means that errors will /not/ be shown if
-        // the assignment type and the user-supplied type differ.
-        // it is to be enabled for built-in (default) values:
-        // for example, the default type of Array is Any.
-        // this flag will allow an Array(Float) to be constructed 
-        // with an empty array of type Array(Any)
-        bool is_default_assigned = false;
 
         // flag that is turned on when there is no default type or assignment (an error)
         bool no_default_assignment = false;
@@ -217,6 +198,16 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     if (IsGeneric()) {
         // close template param scope
         mod->m_scopes.Close();
+    }
+
+    if (IsConst()) {
+        if (!has_user_assigned && !is_default_assigned) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_const_missing_assignment,
+                m_location
+            ));
+        }
     }
 
     if (symbol_type == nullptr) {

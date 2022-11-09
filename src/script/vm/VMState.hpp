@@ -38,14 +38,13 @@ struct ExceptionState
 {
     // incremented each time BEGIN_TRY is encountered,
     // decremented each time END_TRY is encountered
-    int m_try_counter = 0;
+    UInt m_try_counter = 0;
 
     // set to true when an exception occurs,
     // set to false when handled in BEGIN_TRY
-    bool m_exception_occured = false;
+    UInt m_exception_depth = 0;
 
-    bool HasExceptionOccurred() const { return m_exception_occured; }
-    void Reset() { m_try_counter = 0; m_exception_occured = false; }
+    bool HasExceptionOccurred() const { return m_exception_depth != 0; }
 };
 
 struct ExecutionThread

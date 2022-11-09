@@ -1239,6 +1239,21 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
+    case THROW:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        if (os != nullptr) {
+            (*os)
+                << "throw ["
+                    << "% " << (int)reg
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
     case TRACEMAP:
     {
         uint32_t len;

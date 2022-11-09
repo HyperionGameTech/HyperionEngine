@@ -258,15 +258,24 @@ SymbolTypePtr_t AstCallExpression::GetExprType() const
 
 AstExpression *AstCallExpression::GetTarget() const
 {
-    if (m_target != nullptr) {
-        if (auto *nested_target = m_target->GetTarget()) {
-            return nested_target;
-        }
+    // if (m_target != nullptr) {
+    //     if (auto *nested_target = m_target->GetTarget()) {
+    //         return nested_target;
+    //     }
 
-        return m_target.get();
-    }
+    //     return m_target.get();
+    // }
 
     return AstExpression::GetTarget();
+}
+
+AstExpression *AstCallExpression::GetHeldGenericExpr() const
+{
+    // if (m_target != nullptr) {
+    //     return m_target->GetHeldGenericExpr();
+    // }
+
+    return AstExpression::GetHeldGenericExpr();
 }
 
 } // namespace hyperion::compiler

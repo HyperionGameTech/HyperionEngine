@@ -46,11 +46,21 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_alias = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ALIAS;
             const bool is_mixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
             const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
+            const bool is_argument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
+            const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
 
-            const SymbolTypePtr_t ident_type = m_properties.GetIdentifier()->GetSymbolType();
-            AssertThrow(ident_type != nullptr);
+            if (is_generic) {
+                if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)) {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_generic_expression_no_arguments_provided,
+                        m_location,
+                        m_name
+                    ));
 
-            const bool is_const = ident_type->IsConstType() || (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST);
+                    return;
+                }
+            }
 
 #if ACE_ENABLE_VARIABLE_INLINING
             const bool force_inline = is_alias || is_mixin;
@@ -61,7 +71,10 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(m_inline_value != nullptr);
             }
 
-            m_should_inline = force_inline || (!is_generic && is_const);
+            // don't inline arguments.
+            // can run into an issue with a param is const with default assignment,
+            // where it would inline the default assignment instead of the passed in value
+            m_should_inline = force_inline || (!is_generic && is_const && !is_argument);
 
             if (m_inline_value == nullptr) {
                 m_should_inline = false;
@@ -285,7 +298,7 @@ bool AstVariable::IsLiteral() const
     const SymbolTypePtr_t ident_type = ident_unaliased->GetSymbolType();
     AssertThrow(ident_type != nullptr);
 
-    const bool is_const = ident_type->IsConstType();
+    const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
     const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
 
     return is_const || is_generic;
@@ -305,6 +318,11 @@ SymbolTypePtr_t AstVariable::GetExprType() const
     }
 
     return BuiltinTypes::UNDEFINED;
+}
+
+bool AstVariable::IsMutable() const
+{
+    return !IsLiteral();
 }
 
 } // namespace hyperion::compiler

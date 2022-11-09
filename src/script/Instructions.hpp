@@ -34,7 +34,7 @@ enum FunctionFlags : hyperion::UInt8
 // NOTE: instructions that load data from stack index load from the main/global thread.
 // instructions that load from stack offset load from their own thread.
 
-enum Instructions : char
+enum Instructions : hyperion::UInt8
 {
     /* No operation */
     NOP = 0x00, // nop
@@ -135,6 +135,8 @@ enum Instructions : char
     NEG, // neg [% src] - mathematical negation
     NOT, // not [% src] - bitwise complement
 
+    THROW, // throw [% src] - throw an exception object stored in a register
+
     /* Binary to source trace map functionality */
     TRACEMAP, // tracemap [u32 length]
 
@@ -144,7 +146,7 @@ enum Instructions : char
     EXPORT, // export [% src, u32 len, byte[len] str]
 
     /* Signifies the end of the stream */
-    EXIT,
+    EXIT = 0xFF
 };
 
 #endif

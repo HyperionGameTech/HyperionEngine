@@ -21,8 +21,10 @@ enum ExprAccess : ExprAccessBits {
 
 class AstExpression : public AstStatement {
 public:
-    AstExpression(const SourceLocation &location,
-        int access_options);
+    AstExpression(
+        const SourceLocation &location,
+        int access_options
+    );
     virtual ~AstExpression() = default;
 
     int GetAccessOptions() const
@@ -48,6 +50,7 @@ public:
     virtual const AstExpression *GetValueOf() const { return this; }
     virtual const AstExpression *GetDeepValueOf() const { return GetValueOf(); }
     virtual AstExpression *GetTarget() const { return nullptr; }
+    virtual AstExpression *GetHeldGenericExpr() const { return nullptr; }
 
     /** Determine whether the expression would evaluate to true.
         Returns -1 if it cannot be evaluated at compile time.
@@ -58,6 +61,7 @@ public:
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
     virtual ExprAccessBits GetExprAccess() const { return ExprAccess::EXPR_ACCESS_PUBLIC; }
+    virtual bool IsMutable() const { return false; }
 
     bool m_is_standalone;
 

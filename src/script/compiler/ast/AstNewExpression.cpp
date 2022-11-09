@@ -88,6 +88,8 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
             ));
 
             m_constructor_call->Visit(visitor, mod);
+
+            return;
         }
     }
 
@@ -234,23 +236,24 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
     // does not currently work in templates
     // e.g `new X` where `X` is `String` as a template argument, attempts to
     // construct the object rather than baking in
-    if (m_object_value != nullptr && m_prototype_type->GetTypeClass() == TYPE_BUILTIN) {
+    if (m_object_value != nullptr && m_prototype_type->GetTypeClass() == TYPE_BUILTIN)
+    {
         chunk->Append(m_object_value->Build(visitor, mod));
-    } else {
+    }
+    else
 #endif
+    {
         AssertThrow(m_proto != nullptr);
         chunk->Append(m_proto->Build(visitor, mod));
 
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         auto instr_new = BytecodeUtil::Make<RawOperation<>>();
         instr_new->opcode = NEW;
-        instr_new->Accept<uint8_t>(rp); // dst (overwrite proto)
-        instr_new->Accept<uint8_t>(rp); // src (holds proto)
+        instr_new->Accept<UInt8>(rp); // dst (overwrite proto)
+        instr_new->Accept<UInt8>(rp); // src (holds proto)
         chunk->Append(std::move(instr_new));
-#if ACE_ENABLE_BUILTIN_CONSTRUCTOR_OVERRIDE
     }
-#endif
 
     // if (m_constructor_call != nullptr) {
     //     chunk->Append(m_constructor_call->Build(visitor, mod));

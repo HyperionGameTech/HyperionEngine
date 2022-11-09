@@ -55,21 +55,25 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         // allow boxing/unboxing
         if (m_target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
             if (m_target_type->IsBoxedType()) {
+                AssertThrow(!m_target_type->GetGenericInstanceInfo().m_generic_args.empty());
+
                 m_target_type = m_target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-                AssertThrow(m_target_type != nullptr);
             }
         }
 
+        AssertThrow(m_target_type != nullptr);
+        m_target_type = m_target_type->GetUnaliased();
+
         if (m_target_type == BuiltinTypes::ANY) {
             field_type = BuiltinTypes::ANY;
+
             break;
         }
 
         if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
             // get member index from name
-            for (size_t i = 0; i < proto_type->GetMembers().size(); i++) {
+            for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
-
 
                 if (std::get<0>(mem) == m_field_name) {
                     m_found_index = i;
@@ -89,10 +93,10 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
         if (const AstTypeObject *as_type_object = dynamic_cast<const AstTypeObject *>(value_of)) {
             AssertThrow(as_type_object->GetHeldType() != nullptr);
-            auto instance_type = as_type_object->GetHeldType();
+            SymbolTypePtr_t instance_type = as_type_object->GetHeldType()->GetUnaliased();
 
             // get member index from name
-            for (size_t i = 0; i < instance_type->GetMembers().size(); i++) {
+            for (SizeType i = 0; i < instance_type->GetMembers().size(); i++) {
                 const SymbolMember_t &mem = instance_type->GetMembers()[i];
 
                 if (std::get<0>(mem) == m_field_name) {
@@ -109,7 +113,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (auto base = m_target_type->GetBaseType()) {
-            m_target_type = base;
+            m_target_type = base->GetUnaliased();
         } else {
             break;
         }
@@ -125,7 +129,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_target_type != nullptr);
 
     if (field_type != nullptr) {
-        m_symbol_type = field_type;
+        m_symbol_type = field_type->GetUnaliased();
     } else {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -225,6 +229,7 @@ bool AstMember::MayHaveSideEffects() const
 SymbolTypePtr_t AstMember::GetExprType() const
 {
     AssertThrow(m_symbol_type != nullptr);
+
     return m_symbol_type;
 }
 
@@ -249,14 +254,22 @@ const AstExpression *AstMember::GetDeepValueOf() const
 AstExpression *AstMember::GetTarget() const
 {
     if (m_target != nullptr) {
-        // if (auto *nested_target = m_target->GetTarget()) {
-        //     return nested_target;
-        // }
-
         return m_target.get();
     }
 
     return AstExpression::GetTarget();
+}
+
+bool AstMember::IsMutable() const
+{
+    AssertThrow(m_target != nullptr);
+    AssertThrow(m_symbol_type != nullptr);
+
+    if (!m_target->IsMutable()) {
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace hyperion::compiler

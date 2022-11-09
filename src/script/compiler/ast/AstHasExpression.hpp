@@ -7,11 +7,14 @@
 
 namespace hyperion::compiler {
 
-class AstHasExpression : public AstExpression {
+class AstHasExpression : public AstExpression
+{
 public:
-    AstHasExpression(const std::shared_ptr<AstStatement> &target,
-      const std::string &field_name,
-      const SourceLocation &location);
+    AstHasExpression(
+        const std::shared_ptr<AstStatement> &target,
+        const std::string &field_name,
+        const SourceLocation &location
+    );
     virtual ~AstHasExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;

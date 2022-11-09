@@ -523,7 +523,6 @@ void Entity::SetTransform(const Transform &transform)
     if (m_transform == transform) {
         return;
     }
-    
 
     m_previous_transform_matrix = m_transform.GetMatrix();
     m_transform = transform;

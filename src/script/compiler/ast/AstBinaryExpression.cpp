@@ -164,22 +164,12 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         );
         
         // make sure we are not modifying a constant
-        if (left_type->IsConstType()) {
+        if (!m_left->IsMutable()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_const_modified,
                 m_location
             ));
-        } else if (AstIdentifier *left_ident = dynamic_cast<AstIdentifier*>(m_left.get())) {
-            if (left_ident->GetProperties().GetIdentifier() != nullptr) {
-                if (left_ident->GetProperties().GetIdentifier()->GetFlags() & FLAG_CONST) {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_const_modified,
-                        m_location
-                    ));
-                }
-            }
         }
         
         // make sure left hand side is suitable for assignment

@@ -31,6 +31,7 @@ void AstArrayAccess::Visit(AstVisitor *visitor, Module *mod)
     m_index->Visit(visitor, mod);
 
     SymbolTypePtr_t target_type = m_target->GetExprType();
+    AssertThrow(target_type != nullptr);
 
     // check if target is an array
     if (target_type != BuiltinTypes::ANY) {
@@ -169,6 +170,26 @@ AstExpression *AstArrayAccess::GetTarget() const
     }
 
     return AstExpression::GetTarget();
+}
+
+AstExpression *AstArrayAccess::GetHeldGenericExpr() const
+{
+    if (m_target != nullptr) {
+        return m_target->GetHeldGenericExpr();
+    }
+
+    return AstExpression::GetTarget();
+}
+
+bool AstArrayAccess::IsMutable() const
+{
+    AssertThrow(m_target != nullptr);
+
+    if (!m_target->IsMutable()) {
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace hyperion::compiler

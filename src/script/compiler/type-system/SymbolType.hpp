@@ -16,6 +16,7 @@ template <typename T> using vec = std::vector<T>;
 // forward declaration
 class SymbolType;
 class AstExpression;
+class AstTypeObject;
 class AstArgument;
 
 using SymbolTypePtr_t = sp<SymbolType>;
@@ -244,6 +245,12 @@ public:
     bool FindPrototypeMember(const std::string &name, SymbolMember_t &out) const;
     const sp<AstExpression> GetPrototypeValue() const;
 
+    const sp<AstTypeObject> &GetTypeObject() const
+        { return m_type_object; }
+
+    void SetTypeObject(const sp<AstTypeObject> &type_object)
+        { m_type_object = type_object; }
+
     bool IsOrHasBase(const SymbolType &base_type) const;
     /** Search the inheritance chain to see if the given type
         is a base of this type. */
@@ -252,11 +259,10 @@ public:
     SymbolTypePtr_t GetUnaliased();
     
     bool IsArrayType() const;
-    bool IsConstType() const;
     bool IsBoxedType() const;
-    bool IsAnonymousType() const { return m_flags & FLAG_ANONYMOUS_TYPE; }
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
+    bool IsGeneric() const;
 
 private:
     std::string m_name;
@@ -266,6 +272,8 @@ private:
 
     // type that this type is based off of
     SymbolTypeWeakPtr_t m_base;
+
+    sp<AstTypeObject> m_type_object;
 
     // if this is an alias of another type
     AliasTypeInfo m_alias_info;

@@ -19,11 +19,11 @@ const std::map<std::string, Operator> Operator::binary_operators = {
     { ">>", Operator(OP_bitshift_right, 12, BITWISE, false, true) },
 
     // Logical operators
-    { "&&", Operator(OP_logical_and, 6, LOGICAL) },
-    { "||", Operator(OP_logical_or, 5, LOGICAL) },
+    { "&&", Operator(OP_logical_and, 6, LOGICAL, false, true) },
+    { "||", Operator(OP_logical_or, 5, LOGICAL, false, true) },
 
     // Comparison operators
-    { "==", Operator(OP_equals, 10, COMPARISON) },
+    { "==", Operator(OP_equals, 10, COMPARISON, false, true) },
     { "!=", Operator(OP_not_eql, 10, COMPARISON, false, true) },
     { "<", Operator(OP_less, 11, COMPARISON, false, true) },
     { ">", Operator(OP_greater, 11, COMPARISON, false, true) },
@@ -31,7 +31,7 @@ const std::map<std::string, Operator> Operator::binary_operators = {
     { ">=", Operator(OP_greater_eql, 11, COMPARISON, false, true) },
 
     // Assignment operators
-    { "=", Operator(OP_assign, 3, ASSIGNMENT, true) },
+    { "=", Operator(OP_assign, 3, ASSIGNMENT, true, false) },
     { "+=", Operator(OP_add_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
     { "-=", Operator(OP_subtract_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },
     { "*=", Operator(OP_multiply_assign, 3, ASSIGNMENT | ARITHMETIC, true, true) },

@@ -1,7 +1,9 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -40,6 +42,7 @@ AstFunctionExpression::AstFunctionExpression(
       m_is_generator(is_generator),
       m_is_closure(false),
       m_is_generator_closure(false),
+      m_is_constructor_definition(false),
       m_return_type(BuiltinTypes::ANY),
       m_static_id(0)
 {
@@ -100,6 +103,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     // set m_is_closure to be true if we are already
     // located within a function
     m_is_closure = true;//mod->IsInFunction();
+
+    m_is_constructor_definition = mod->IsInScopeOfType(SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
 
     int scope_flags = 0;
     
@@ -174,6 +179,13 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
+    if (m_is_constructor_definition) {
+        m_return_type = mod->LookupSymbolType("Self");
+        AssertThrowMsg(m_return_type != nullptr, "Self type alias not found in constructor definition");
+
+        m_return_type = m_return_type->GetUnaliased();
+    }
+
     if (m_is_generator) {
         AssertThrow(m_generator_closure != nullptr);
         m_generator_closure->Visit(visitor, mod);
@@ -183,15 +195,34 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     } else {
         // function body
         if (m_block != nullptr) {
+            if (m_is_constructor_definition) {
+                // add implicit 'return self' at the end
+                m_block->AddChild(std::shared_ptr<AstReturnStatement>(new AstReturnStatement(
+                    std::shared_ptr<AstVariable>(new AstVariable(
+                        "self",
+                        m_block->GetLocation()
+                    )),
+                    m_block->GetLocation()
+                )));
+            }
+
             // visit the function body
             m_block->Visit(visitor, mod);
         }
 
         if (m_return_type_specification != nullptr) {
-            m_return_type_specification->Visit(visitor, mod);
+            if (m_is_constructor_definition) {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_return_type_specification_invalid_on_constructor,
+                    m_return_type_specification->GetLocation()
+                ));
+            } else {
+                m_return_type_specification->Visit(visitor, mod);
 
-            AssertThrow(m_return_type_specification->GetHeldType() != nullptr);
-            m_return_type = m_return_type_specification->GetHeldType();
+                AssertThrow(m_return_type_specification->GetHeldType() != nullptr);
+                m_return_type = m_return_type_specification->GetHeldType();
+            }
         }
 
         const Scope &function_scope = mod->m_scopes.Top();
@@ -241,8 +272,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 }
             }
         } else {
-            // return null
-            m_return_type = BuiltinTypes::ANY;
+            m_return_type = BuiltinTypes::VOID_TYPE;
         }
     }
     
@@ -315,7 +345,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         closure_obj_members.push_back(SymbolMember_t {
             "$invoke",
             m_symbol_type,
-            nullptr
+            std::shared_ptr<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
         });
 
         // visit each member

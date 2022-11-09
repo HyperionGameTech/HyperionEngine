@@ -108,7 +108,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         generic_param_types.push_back(GenericInstanceTypeInfo::Arg {
             param->GetName(),
             param->GetIdentifier()->GetSymbolType(),
-            nullptr
+            param->GetDefaultValue()
         });
     }
 
@@ -167,6 +167,15 @@ SymbolTypePtr_t AstTemplateExpression::GetExprType() const
     return m_symbol_type;
 }
 
+const AstExpression *AstTemplateExpression::GetValueOf() const
+{
+    // if (m_expr != nullptr) {
+    //     return m_expr.get();
+    // }
+
+    return AstExpression::GetValueOf();
+}
+
 const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 {
     if (m_expr != nullptr) {
@@ -176,6 +185,11 @@ const AstExpression *AstTemplateExpression::GetDeepValueOf() const
     }
 
     return AstExpression::GetDeepValueOf();
+}
+
+AstExpression *AstTemplateExpression::GetHeldGenericExpr() const
+{
+    return m_expr.get();
 }
 
 } // namespace hyperion::compiler

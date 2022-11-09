@@ -44,9 +44,9 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName()));
 
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     // store object's register location
-    const uint8_t obj_reg = rp;
+    const UInt8 obj_reg = rp;
 
     { // load the type into register obj_reg
         auto instr_type = BytecodeUtil::Make<BuildableType>();
@@ -83,8 +83,6 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
             const SymbolTypePtr_t &mem_type = std::get<1>(mem);
             AssertThrow(mem_type != nullptr);
 
-            // if there has not been an assignment provided,
-            // use the default value of the members's type.
             if (std::get<2>(mem) != nullptr) {
                 chunk->Append(std::get<2>(mem)->Build(visitor, mod));
             } else {

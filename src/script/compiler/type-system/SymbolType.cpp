@@ -160,8 +160,11 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     return true;
 }
 
-bool SymbolType::TypeCompatible(const SymbolType &right,
-    bool strict_numbers, bool strict_const) const
+bool SymbolType::TypeCompatible(
+    const SymbolType &right,
+    bool strict_numbers,
+    bool strict_const
+) const
 {
     if (TypeEqual(*BuiltinTypes::UNDEFINED) || right.TypeEqual(*BuiltinTypes::UNDEFINED)) {
         return false;
@@ -239,16 +242,6 @@ bool SymbolType::TypeCompatible(const SymbolType &right,
 
                 return true;
             } else {
-                /*if (IsBoxedType()) {
-                    const SymbolTypePtr_t &held_type = m_generic_instance_info.m_generic_args[0].m_type;
-                    AssertThrow(held_type != nullptr);
-
-                    return held_type->TypeCompatible(
-                        right,
-                        strict_numbers
-                    );
-                }*/
-
                 // allow boxing/unboxing for 'Maybe(T)' type
                 if (base->TypeEqual(*BuiltinTypes::MAYBE)) {
                     if (right.TypeEqual(*BuiltinTypes::NULL_TYPE)) {
@@ -427,19 +420,6 @@ bool SymbolType::IsArrayType() const
     return false;
 }
 
-bool SymbolType::IsConstType() const
-{
-    if (this == BuiltinTypes::CONST_TYPE.get()) {
-        return true;
-    } else if (m_type_class == TYPE_GENERIC_INSTANCE) {
-        if (const SymbolTypePtr_t base = m_base.lock()) {
-            return base == BuiltinTypes::CONST_TYPE;
-        }
-    }
-
-    return false;
-}
-
 bool SymbolType::IsBoxedType() const
 {
     if (SymbolTypePtr_t base_type = GetBaseType()) {
@@ -459,6 +439,25 @@ bool SymbolType::IsGenericParameter() const
         // right is a generic paramter that has not yet been substituted
         return true;
     }
+
+    return false;
+}
+
+bool SymbolType::IsGeneric() const
+{
+    if (IsOrHasBase(*BuiltinTypes::GENERIC_VARIABLE_TYPE)) {
+        return true;
+    }
+
+    const SymbolType *top = this;
+
+    do {
+        if (top->GetTypeClass() == TYPE_GENERIC) {
+            return true;
+        }
+
+        top = top->GetBaseType().get();
+    } while (top != nullptr);
 
     return false;
 }
@@ -624,7 +623,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
     const GenericInstanceTypeInfo &info)
 {
     AssertThrow(base != nullptr);
-    AssertThrow(base->GetTypeClass() == TYPE_GENERIC);
+    AssertThrow(base->IsGeneric());
 
     std::string name;
     std::string return_type_name;
@@ -853,14 +852,11 @@ SymbolTypePtr_t SymbolType::TypePromotion(
     if (lptr->TypeEqual(*BuiltinTypes::UNDEFINED) ||
         rptr->TypeEqual(*BuiltinTypes::UNDEFINED))
     {
-        // (Undefined | Any) + (Undefined | Any) = Undefined
         return BuiltinTypes::UNDEFINED;
-    } else if (lptr->TypeEqual(*BuiltinTypes::ANY)) {
+    } else if (lptr->TypeEqual(*BuiltinTypes::ANY) || rptr->TypeEqual(*BuiltinTypes::ANY)) {
         // Any + T = Any
-        return BuiltinTypes::ANY;
-    } else if (rptr->TypeEqual(*BuiltinTypes::ANY)) {
         // T + Any = Any
-        return BuiltinTypes::ANY;//lptr;
+        return BuiltinTypes::ANY;
     } else if (lptr->TypeEqual(*BuiltinTypes::NUMBER)) {
         return rptr->TypeEqual(*BuiltinTypes::INT) ||
                rptr->TypeEqual(*BuiltinTypes::FLOAT) ||
@@ -872,8 +868,7 @@ SymbolTypePtr_t SymbolType::TypePromotion(
             return BuiltinTypes::UNSIGNED_INT;
         }
 
-        return rptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               rptr->TypeEqual(*BuiltinTypes::FLOAT)
+        return rptr->TypeEqual(*BuiltinTypes::NUMBER) || rptr->TypeEqual(*BuiltinTypes::FLOAT)
                ? (use_number ? BuiltinTypes::NUMBER : rptr)
                : BuiltinTypes::UNDEFINED;
     } else if (lptr->TypeEqual(*BuiltinTypes::FLOAT)) {

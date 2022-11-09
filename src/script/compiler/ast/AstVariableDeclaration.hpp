@@ -30,6 +30,7 @@ public:
 
     const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
         { return m_proto; }
+
     void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &proto)
         { m_proto = proto; }
 

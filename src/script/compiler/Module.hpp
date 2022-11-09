@@ -7,6 +7,8 @@
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
+#include <Types.hpp>
+
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -14,7 +16,8 @@
 
 namespace hyperion::compiler {
 
-class Module {
+class Module
+{
 public:
     Module(const std::string &name,
         const SourceLocation &location);
@@ -47,6 +50,11 @@ public:
     /** Reverse iterate the scopes starting from the currently opened scope,
         checking if the scope is nested within a scope of the given type. */
     bool IsInScopeOfType(ScopeType scope_type) const;
+
+    /** Reverse iterate the scopes starting from the currently opened scope,
+        checking if the scope is nested within a scope of the given type.
+        Returns true only if the scope_type matches and the scope_flags match.*/
+    bool IsInScopeOfType(ScopeType scope_type, UInt scope_flags) const;
 
     /** Look up a child module of this module */
     Module *LookupNestedModule(const std::string &name);
@@ -85,6 +93,36 @@ private:
     SymbolTypePtr_t PerformLookup(
         std::function<SymbolTypePtr_t(TreeNode<Scope>*)>,
         std::function<SymbolTypePtr_t(Module *mod)>);
+};
+
+struct ScopeGuard
+{
+    Module *m_module;
+    TreeNode<Scope> *m_scope;
+
+    ScopeGuard(Module *mod, ScopeType scope_type, int scope_flags)
+        : m_module(mod),
+          m_scope(nullptr)
+    {
+        m_module->m_scopes.Open(Scope(scope_type, scope_flags));
+        m_scope = m_module->m_scopes.TopNode();
+    }
+
+    ScopeGuard(const ScopeGuard &other) = delete;
+    ScopeGuard &operator=(const ScopeGuard &other) = delete;
+    ScopeGuard(ScopeGuard &&other) noexcept = delete;
+    ScopeGuard &operator=(ScopeGuard &&other) noexcept = delete;
+
+    ~ScopeGuard()
+    {
+        m_module->m_scopes.Close();
+    }
+
+    Scope *operator->()
+        { return &m_scope->m_value; }
+
+    const Scope *operator->() const
+        { return &m_scope->m_value; }
 };
 
 } // namespace hyperion::compiler

@@ -5,7 +5,8 @@
 #include <map>
 
 namespace hyperion::compiler {
-enum Keywords {
+enum Keywords
+{
     Keyword_module,
     Keyword_import,
     Keyword_export,
@@ -31,6 +32,7 @@ enum Keywords {
     Keyword_else,
     Keyword_for,
     Keyword_in,
+    Keyword_is,
     Keyword_while,
     Keyword_do,
     Keyword_on,

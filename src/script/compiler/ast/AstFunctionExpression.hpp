@@ -53,6 +53,7 @@ protected:
 
     std::shared_ptr<AstFunctionExpression> m_generator_closure;
     bool m_is_generator_closure;
+    bool m_is_constructor_definition;
 
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_return_type;

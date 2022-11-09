@@ -48,6 +48,8 @@ AstUnaryExpression::AstUnaryExpression(
 
 void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+    // TODO: Overloading to match binop
+
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue()) {
         std::shared_ptr<AstExpression> expr;
@@ -132,7 +134,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (m_op->ModifiesValue()) {
-        if (type->IsConstType()) {
+        if (!m_target->IsMutable()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_const_modified,
@@ -140,19 +142,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
             ));
         }
 
-        /*if (AstVariable *target_as_var = dynamic_cast<AstVariable*>(m_target.get())) {
-            if (target_as_var->GetProperties().GetIdentifier() != nullptr) {
-                // make sure we are not modifying a const
-                if (target_as_var->GetProperties().GetIdentifier()->GetFlags() & FLAG_CONST) {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_const_modified,
-                        m_target->GetLocation(),
-                        target_as_var->GetName()
-                    ));
-                }
-            }
-        } else*/ if (!(m_target->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)) {
+        if (!(m_target->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE)) {
             // cannot modify an rvalue
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
@@ -172,14 +162,13 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     AssertThrow(m_target != nullptr);
-
     chunk->Append(m_target->Build(visitor, mod));
 
     if (!m_folded) {
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_op->GetType() == ARITHMETIC) {
-            uint8_t opcode = 0;
+        if (m_op->GetType() & ARITHMETIC) {
+            UInt8 opcode = 0;
 
             if (m_op->GetOperatorType() == Operators::OP_negative) {
                 opcode = NEG;
@@ -187,13 +176,13 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
 
             auto oper = BytecodeUtil::Make<RawOperation<>>();
             oper->opcode = opcode;
-            oper->Accept<uint8_t>(rp);
+            oper->Accept<UInt8>(rp);
             chunk->Append(std::move(oper));
-        } else if (m_op->GetType() == LOGICAL) {
+        } else if (m_op->GetType() & LOGICAL) {
             if (m_op->GetOperatorType() == Operators::OP_logical_not) {
                 // the label to jump to the very end, and set the result to false
                 LabelId false_label = chunk->NewLabel();
-                LabelId true_label = chunk->NewLabel();;
+                LabelId true_label = chunk->NewLabel();
 
                 // compare lhs to 0 (false)
                 chunk->Append(BytecodeUtil::Make<Comparison>(Comparison::CMPZ, rp));
@@ -218,7 +207,11 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
 
                 // skip to here to avoid loading 'true' into the register
                 chunk->Append(BytecodeUtil::Make<LabelMarker>(false_label));
+            } else {
+                AssertThrowMsg(false, "Operator not implemented: %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().c_str());
             }
+        } else {
+            AssertThrowMsg(false, "Operator not implemented %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().c_str());
         }
     }
 
