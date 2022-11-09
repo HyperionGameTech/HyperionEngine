@@ -17,12 +17,12 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
+#include <scene/System.hpp>
 
 #include "GameThread.hpp"
 #include "Threads.hpp"
 #include "TaskSystem.hpp"
 
-#include <core/ecs/ComponentRegistry.hpp>
 #include <core/Scheduler.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/TypeMap.hpp>
@@ -66,29 +66,6 @@ using renderer::StorageBuffer;
 
 class Engine;
 class Game;
-
-/* Current descriptor / attachment layout */
-
-/*
- * | ====== Set 0 ====== | ====== Set 1 ====== | ====== Set 2 ====== | ====== Set 3 ====== | ====== Set 4 ====== |
- * | (UNUSED)            | GBuffer: textures[] | Scene data SSBO     | Material data SSBO  | Bindless textures   |
- * |                     | Gbuffer: depth      | empty               | Object data SSBO    | empty               |
- * |                     |                     | empty               | Skeleton data SSBO  | empty               |
- * |                     |                     | empty               | empty               | empty               |
- * |                     | Deferred result     | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | Post effect 0       | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | Shadow map          | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | empty               | empty               | empty               | empty               |
- * |                     | Image storage test  | empty               | empty               | empty               |
- */
 
 struct DebugMarker
 {
@@ -180,6 +157,9 @@ public:
 
     ShaderCompiler &GetShaderCompiler() { return m_shader_compiler; }
     const ShaderCompiler &GetShaderCompiler() const { return m_shader_compiler; }
+
+    ComponentRegistry &GetComponents() { return m_components; }
+    const ComponentRegistry &GetComponents() const { return m_components; }
 
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
@@ -374,7 +354,7 @@ private:
     FlatMap<RenderableAttributeSet, WeakHandle<RendererInstance>> m_renderer_instance_mapping;
     std::mutex m_renderer_instance_mapping_mutex;
 
-    ComponentRegistry<Entity> m_component_registry;
+    ComponentRegistry m_components;
 
     PlaceholderData m_placeholder_data;
 

@@ -107,7 +107,6 @@ void World::Update(
     }
 
     for (auto &scene : m_scenes) {
-
         scene->Update(engine, delta);
     }
 }

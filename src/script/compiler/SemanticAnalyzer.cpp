@@ -133,11 +133,9 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
     AstVisitor *visitor, Module *mod,
     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
     const std::vector<std::shared_ptr<AstArgument>> &args,
-    const SourceLocation &location)
+    const SourceLocation &location
+)
 {
-    std::vector<std::shared_ptr<AstArgument>> res_args;
-    res_args.resize(args.size());
-
     // check for varargs (at end)
     bool is_varargs = false;
     SymbolTypePtr_t vararg_type;
@@ -162,7 +160,22 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
 
     std::set<int> used_indices;
 
-    if (generic_args.size() <= args.size() || (is_varargs && generic_args.size() - 1 <= args.size())) {
+    const SizeType num_generic_args = is_varargs
+        ? generic_args.size() - 1
+        : generic_args.size();
+
+    SizeType num_generic_args_without_default_assigned = num_generic_args;
+
+    for (SizeType index = 0; index < num_generic_args; ++index) {
+        if (generic_args[index].m_default_value != nullptr) {
+            --num_generic_args_without_default_assigned;
+        }
+    }
+
+    std::vector<std::shared_ptr<AstArgument>> res_args;
+    res_args.resize(num_generic_args);
+
+    if (num_generic_args_without_default_assigned <= args.size()) {
         using ArgDataPair = std::pair<ArgInfo, std::shared_ptr<AstArgument>>;
 
         std::vector<ArgDataPair> named_args;
@@ -213,6 +226,8 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
                     std::get<0>(arg).type,
                     param_type
                 );
+
+                AssertThrow(found_index < res_args.size());
 
                 res_args[found_index] = std::get<1>(arg);
             } else {
@@ -271,49 +286,112 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
 
                 if (found_index == -1 || found_index >= res_args.size()) {
                     used_indices.insert(res_args.size());
+
                     // at end, push
                     res_args.push_back(std::get<1>(arg));
                 } else {
-                    res_args[found_index] = std::get<1>(arg);
                     used_indices.insert(found_index);
+
+                    res_args[found_index] = std::get<1>(arg);
+                }
+            } else if (found_index != -1) {
+                // store used index
+                used_indices.insert(found_index);
+
+                // choose whether to get next param, or last (in the case of varargs)
+                struct {
+                    std::string name;
+                    SymbolTypePtr_t type;    
+                } param_info;
+
+                const GenericInstanceTypeInfo::Arg &param = (found_index < generic_args.size())
+                    ? generic_args[found_index]
+                    : generic_args.back();
+                
+                param_info.name = param.m_name;
+                param_info.type = param.m_type;
+
+                CheckArgTypeCompatible(
+                    visitor,
+                    std::get<1>(arg)->GetLocation(),
+                    std::get<0>(arg).type,
+                    param_info.type
+                );
+
+                AssertThrow(found_index < res_args.size());
+                res_args[found_index] = std::get<1>(arg);
+            } else {
+                // too many args supplied
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_incorrect_number_of_arguments,
+                    location,
+                    generic_args.size(),
+                    args.size()
+                ));
+            }
+        }
+    
+        // handle arguments that weren't passed in, but have default assignments.
+        std::set<SizeType> unused_indices;
+
+        for (SizeType index = 0; index < num_generic_args; ++index) {
+            const auto it = used_indices.find(int(index));
+
+            if (it == used_indices.end()) {
+                unused_indices.insert(index);
+            }
+        }
+
+        Int unused_index_counter = 0;
+
+        for (SizeType unused_index : unused_indices) {
+            AssertThrow(unused_index < generic_args.size());
+            
+            if (generic_args[unused_index].m_default_value != nullptr) {
+                // push the default value as argument
+                // use named argument, same name as in definition
+
+                std::shared_ptr<AstArgument> substituted_arg(new AstArgument(
+                    CloneAstNode(generic_args[unused_index].m_default_value),
+                    false,
+                    true,
+                    generic_args[unused_index].m_name,
+                    location
+                ));
+
+                substituted_arg->Visit(visitor, mod);
+
+                ArgInfo arg_info;
+                arg_info.is_named = substituted_arg->IsNamed();
+                arg_info.name = substituted_arg->GetName();
+                arg_info.type = substituted_arg->GetExprType();
+
+                const int found_index = ArgIndex(
+                    unused_index_counter,
+                    arg_info,
+                    used_indices,
+                    generic_args
+                );
+
+                if (found_index == -1) {
+                    res_args.push_back(std::move(substituted_arg));
+                } else {
+                    AssertThrow(found_index < res_args.size());
+
+                    res_args[found_index] = std::move(substituted_arg);
                 }
             } else {
-                if (found_index == -1) {
-                    // too many args supplied
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_incorrect_number_of_arguments,
-                        location,
-                        generic_args.size(),
-                        args.size()
-                    ));
-                } else {
-                    // store used index
-                    used_indices.insert(found_index);
-
-                    // choose whether to get next param, or last (in the case of varargs)
-                    struct {
-                        std::string name;
-                        SymbolTypePtr_t type;    
-                    } param_info;
-
-                    const GenericInstanceTypeInfo::Arg &param = (found_index < generic_args.size())
-                        ? generic_args[found_index]
-                        : generic_args.back();
-                    
-                    param_info.name = param.m_name;
-                    param_info.type = param.m_type;
-
-                    CheckArgTypeCompatible(
-                        visitor,
-                        std::get<1>(arg)->GetLocation(),
-                        std::get<0>(arg).type,
-                        param_info.type
-                    );
-
-                    res_args[found_index] = std::get<1>(arg);
-                }
+                // not provided and no default value
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_generic_expression_invalid_arguments,
+                    location,
+                    generic_args[unused_index].m_name
+                ));
             }
+
+            ++unused_index_counter;
         }
     } else {
         // wrong number of args given
@@ -321,7 +399,7 @@ std::vector<std::shared_ptr<AstArgument>> SemanticAnalyzer::Helpers::SubstituteG
             LEVEL_ERROR,
             Msg_incorrect_number_of_arguments,
             location,
-            is_varargs ? generic_args.size() - 1 : generic_args.size(),
+            num_generic_args_without_default_assigned,
             args.size()
         ));
     }

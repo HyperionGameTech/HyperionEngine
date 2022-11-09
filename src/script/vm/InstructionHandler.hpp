@@ -1031,6 +1031,8 @@ public:
         Value &proto_sv = thread->m_regs[src];
         AssertThrowMsg(proto_sv.m_type == Value::HEAP_POINTER, "NEW operand must be a pointer type (%d), got %d", Value::HEAP_POINTER, proto_sv.m_type);
 
+        AssertThrow(proto_sv.m_value.ptr != nullptr);
+
         // the NEW instruction makes a copy of the $proto data member
         // of the prototype object.
         VMObject *proto_obj = proto_sv.m_value.ptr->GetPointer<VMObject>();
@@ -1768,6 +1770,17 @@ public:
             );
             return;
         }
+    }
+
+    HYP_FORCE_INLINE void Throw(BCRegister reg)
+    {
+        // load value from register
+        Value *value = &thread->m_regs[reg];
+
+        state->ThrowException(
+            thread,
+            Exception("User exception")
+        );
     }
 
     HYP_FORCE_INLINE void ExportSymbol(BCRegister reg, uint32_t hash)

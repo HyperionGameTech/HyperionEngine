@@ -108,7 +108,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         generic_param_types.push_back(GenericInstanceTypeInfo::Arg {
             param->GetName(),
             param->GetIdentifier()->GetSymbolType(),
-            nullptr
+            param->GetDefaultValue()
         });
     }
 

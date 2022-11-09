@@ -56,10 +56,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
     SymbolTypePtr_t symbol_type;
 
-    // set when this is a generic expression.
-    // if not null when the identifier is stored, it is set to this.
-    std::shared_ptr<AstTemplateExpression> template_expr;
-
     const bool has_user_assigned = m_assignment != nullptr;
     const bool has_user_specified_type = m_proto != nullptr;
 

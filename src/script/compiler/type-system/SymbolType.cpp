@@ -160,8 +160,11 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
     return true;
 }
 
-bool SymbolType::TypeCompatible(const SymbolType &right,
-    bool strict_numbers, bool strict_const) const
+bool SymbolType::TypeCompatible(
+    const SymbolType &right,
+    bool strict_numbers,
+    bool strict_const
+) const
 {
     if (TypeEqual(*BuiltinTypes::UNDEFINED) || right.TypeEqual(*BuiltinTypes::UNDEFINED)) {
         return false;

@@ -181,7 +181,8 @@ VMString Value::ToString() const
             break;
         }
 
-        default: return VMString(GetTypeString());
+        default:
+            return VMString(GetTypeString());
     }
 }
 

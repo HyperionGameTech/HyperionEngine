@@ -55,6 +55,10 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
+    if (!type_obj) {
+        type_obj = unaliased->GetTypeObject().get();
+    }
+
     m_symbol_type = BuiltinTypes::UNDEFINED;
     m_prototype_type = BuiltinTypes::UNDEFINED;
 
@@ -70,8 +74,11 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t found_symbol_type;
 
     if (type_obj != nullptr) {
-        AssertThrow(type_obj->GetHeldType() != nullptr);
-        found_symbol_type = type_obj->GetHeldType();
+        m_type_object = CloneAstNode(type_obj);
+        m_type_object->Visit(visitor, mod);
+
+        AssertThrow(m_type_object->GetHeldType() != nullptr);
+        found_symbol_type = m_type_object->GetHeldType();
     } else if (identifier != nullptr) {
         if ((found_symbol_type = mod->LookupSymbolType(identifier->GetName()))) {
             found_symbol_type = found_symbol_type->GetUnaliased();

@@ -289,8 +289,12 @@ private:
     Handle<Material> m_material;
     Handle<Skeleton> m_skeleton;
     Handle<BLAS> m_blas;
+
+public: // temp
     Node *m_node;
     Scene *m_scene;
+
+private:
 
     RenderableAttributeSet m_renderable_attributes;
 

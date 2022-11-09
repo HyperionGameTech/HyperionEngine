@@ -31,6 +31,7 @@ enum Keywords {
     Keyword_else,
     Keyword_for,
     Keyword_in,
+    Keyword_is,
     Keyword_while,
     Keyword_do,
     Keyword_on,

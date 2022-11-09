@@ -83,7 +83,7 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
         m_identifier->SetSymbolType(symbol_type);
 
         if (m_is_const) {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
+            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ARGUMENT);
         }
 
         if (m_default_param != nullptr) {

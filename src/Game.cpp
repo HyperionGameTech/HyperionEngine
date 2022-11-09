@@ -47,6 +47,7 @@ void Game::Init(Engine *engine, SystemWindow *window)
 
 void Game::Update(Engine *engine, GameCounter::TickUnit delta)
 {
+    engine->GetComponents().Update(engine, delta);
     engine->GetWorld().Update(engine, delta);
 
     Logic(engine, delta);

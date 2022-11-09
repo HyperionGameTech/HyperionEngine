@@ -384,9 +384,15 @@ template <class T, bool IsUtf8>
 auto DynString<T, IsUtf8>::operator[](SizeType index) const -> const T
 {
     if constexpr (is_utf8) {
-        char ch;
-        utf::utf8_charat(Data(), &ch, index);
-        return static_cast<T>(ch);
+        union {
+            u32char u32;
+            char u8;
+        };
+        
+        u32 = utf::utf8_charat(Data(), index);
+        
+        // tmp: replace with other changes
+        return static_cast<T>(u32);
     } else {
         return Base::operator[](index);
     }

@@ -790,6 +790,15 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
+    case THROW: {
+        BCRegister reg; bs->Read(&reg);
+
+        handler.Throw(
+            reg
+        );
+
+        break;
+    }
     case TRACEMAP: {
         UInt32 len; bs->Read(&len);
 
