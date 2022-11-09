@@ -6,6 +6,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstString.hpp>
+#include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #define HYP_SCRIPT_TYPEOF_RETURN_OBJECT 0

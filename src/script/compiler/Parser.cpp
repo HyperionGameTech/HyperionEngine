@@ -613,6 +613,8 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         expr = ParseTypeExpression();
     } else if (MatchKeyword(Keyword_enum)) {
         expr = ParseEnumExpression();
+    } else if (MatchKeyword(Keyword_throw)) {
+        expr = ParseThrowExpression();
     } else if (Match(TK_OPERATOR)) {
         expr = ParseUnaryExpressionPrefix();
     } else {
@@ -648,14 +650,15 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
         (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
         //(!override_angle_brackets && MatchOperator("<")) ||
-        MatchKeyword(Keyword_has) //||
-        //((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
+        MatchKeyword(Keyword_has) ||
+        MatchKeyword(Keyword_is) ||
+        ((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
     ))
     {
-        // if (operator_token) {
-        //     expr = ParseUnaryExpressionPostfix(expr);
-        //     operator_token = Token::EMPTY;
-        // }
+        if (operator_token) {
+            expr = ParseUnaryExpressionPostfix(expr);
+            operator_token = Token::EMPTY;
+        }
 
         if (Match(TK_DOT)) {
             expr = ParseMemberExpression(expr);
@@ -687,6 +690,10 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
 
         if (MatchKeyword(Keyword_has)) {
             expr = ParseHasExpression(expr);
+        }
+
+        if (MatchKeyword(Keyword_is)) {
+            expr = ParseIsExpression(expr);
         }
     }
 
@@ -798,6 +805,8 @@ std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstExp
             ));
         }
 
+        ++m_template_argument_depth;
+
         do {
             const SourceLocation arg_location = CurrentLocation();
             bool is_splat_arg = false;
@@ -821,7 +830,7 @@ std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstExp
                 }
             }
 
-            if (auto term = ParseTerm(true)) { // override commas
+            if (auto term = ParseExpression(true, false, false)) { // override commas
                 args.push_back(std::shared_ptr<AstArgument>(new AstArgument(
                     term,
                     is_splat_arg,
@@ -830,12 +839,17 @@ std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstExp
                     arg_location
                 )));
             } else {
+                --m_template_argument_depth;
+
                 // not an argument, revert to start.
                 m_token_stream->SetPosition(before_pos);
+
                 // return as comparison expression
                 return ParseBinaryExpression(0, target);
             }
         } while (Match(TK_COMMA, true));
+
+        --m_template_argument_depth;
 
         if (MatchOperator(">", true)) {
             return std::shared_ptr<AstTemplateInstantiation>(new AstTemplateInstantiation(
@@ -1144,6 +1158,21 @@ std::shared_ptr<AstHasExpression> Parser::ParseHasExpression(std::shared_ptr<Ast
     return nullptr;
 }
 
+std::shared_ptr<AstIsExpression> Parser::ParseIsExpression(std::shared_ptr<AstExpression> target)
+{
+    if (Token token = ExpectKeyword(Keyword_is, true)) {
+        if (auto type_expression = ParsePrototypeSpecification()) {
+            return std::shared_ptr<AstIsExpression>(new AstIsExpression(
+                target,
+                type_expression,
+                target->GetLocation()
+            ));
+        }
+    }
+
+    return nullptr;
+}
+
 std::shared_ptr<AstActionExpression> Parser::ParseActionExpression(std::shared_ptr<AstExpression> expr)
 {
     std::vector<std::shared_ptr<AstArgument>> actions;
@@ -1169,32 +1198,6 @@ std::shared_ptr<AstActionExpression> Parser::ParseActionExpression(std::shared_p
                 ));
             }
         }
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(std::shared_ptr<AstIdentifier> expr)
-{
-    if (Token token = ExpectOperator("!", true)) {
-        std::shared_ptr<AstArgumentList> arg_list;
-
-        if (Match(TK_OPEN_PARENTH, false)) {
-            // parse args
-            arg_list = ParseArguments();
-        }
-
-        std::vector<std::shared_ptr<AstArgument>> args;
-
-        if (arg_list != nullptr) {
-            args = arg_list->GetArguments();
-        }
-
-        return std::shared_ptr<AstTemplateInstantiation>(new AstTemplateInstantiation(
-            expr,
-            args,
-            token.GetLocation()
-        ));
     }
 
     return nullptr;
@@ -1504,6 +1507,20 @@ std::shared_ptr<AstTryCatch> Parser::ParseTryCatchStatement()
     return nullptr;
 }
 
+std::shared_ptr<AstThrowExpression> Parser::ParseThrowExpression()
+{
+    if (Token token = ExpectKeyword(Keyword_throw, true)) {
+        if (auto expr = ParseExpression()) {
+            return std::shared_ptr<AstThrowExpression>(new AstThrowExpression(
+                expr,
+                token.GetLocation()
+            ));
+        }
+    }
+
+    return nullptr;
+}
+
 std::shared_ptr<AstExpression> Parser::ParseBinaryExpression(int expr_prec,
     std::shared_ptr<AstExpression> left)
 {
@@ -1628,12 +1645,13 @@ std::shared_ptr<AstExpression> Parser::ParseTernaryExpression(const std::shared_
     return nullptr;
 }
 
-std::shared_ptr<AstExpression> Parser::ParseExpression(bool override_commas,
+std::shared_ptr<AstExpression> Parser::ParseExpression(
+    bool override_commas,
     bool override_fat_arrows,
-    bool override_angle_brackets)
+    bool override_angle_brackets
+)
 {
     if (auto term = ParseTerm(override_commas, override_fat_arrows, override_angle_brackets)) {
-        volatile auto tk = m_token_stream->Peek();
         if (Match(TK_OPERATOR, false)) {
             // drop out of expression, return to parent call
             if (MatchOperator(">", false) && m_template_argument_depth > 0) {
@@ -1646,6 +1664,7 @@ std::shared_ptr<AstExpression> Parser::ParseExpression(bool override_commas,
                 return nullptr;
             }
         }
+
         return term;
     }
 
@@ -2384,13 +2403,6 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 
             return std::shared_ptr<AstVariableDeclaration>(new AstVariableDeclaration(
                 identifier.GetValue(),
-                /*std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                    std::shared_ptr<AstVariable>(new AstVariable(
-                        BuiltinTypes::CLASS_TYPE->GetName(),
-                        token.GetLocation()
-                    )),
-                    token.GetLocation()
-                )),*/
                 nullptr,
                 assignment,
                 {}, //template_expr_params,
@@ -2448,8 +2460,8 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
 
             // read ident
             bool is_static = false,
-                 is_function = false,
-                 is_variable = false;
+                is_function = false,
+                is_variable = false;
 
             if (MatchKeyword(Keyword_static, true)) {
                 is_static = true;
@@ -2500,7 +2512,6 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
             // read generic params after identifier
 
             std::shared_ptr<AstExpression> assignment;
-
             std::vector<std::shared_ptr<AstParameter>> generic_parameters;
 
             // check for generic

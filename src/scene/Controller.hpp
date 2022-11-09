@@ -30,13 +30,16 @@ public:
     Controller(const String &name, bool receives_update = true);
     Controller(const Controller &other) = delete;
     Controller &operator=(const Controller &other) = delete;
+
+    // Controller(Controller &&other) noexcept;
+    // Controller &operator=(Controller &&other) noexcept;
+
     virtual ~Controller();
 
     const String &GetName() const { return m_name; }
     Entity *GetOwner() const { return m_owner; }
     bool ReceivesUpdate() const { return m_receives_update; }
 
-protected:
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;
     virtual void OnUpdate(GameCounter::TickUnit delta) {};
@@ -48,6 +51,7 @@ protected:
     virtual void OnDetachedFromScene(Scene *scene) {}
     virtual void OnAttachedToScene(Scene *scene) {}
 
+protected:
     Engine *GetEngine() const;
 
 private:

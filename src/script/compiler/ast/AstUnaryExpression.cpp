@@ -172,14 +172,13 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     AssertThrow(m_target != nullptr);
-
     chunk->Append(m_target->Build(visitor, mod));
 
     if (!m_folded) {
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_op->GetType() == ARITHMETIC) {
-            uint8_t opcode = 0;
+        if (m_op->GetType() & ARITHMETIC) {
+            UInt8 opcode = 0;
 
             if (m_op->GetOperatorType() == Operators::OP_negative) {
                 opcode = NEG;
@@ -187,13 +186,13 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
 
             auto oper = BytecodeUtil::Make<RawOperation<>>();
             oper->opcode = opcode;
-            oper->Accept<uint8_t>(rp);
+            oper->Accept<UInt8>(rp);
             chunk->Append(std::move(oper));
-        } else if (m_op->GetType() == LOGICAL) {
+        } else if (m_op->GetType() & LOGICAL) {
             if (m_op->GetOperatorType() == Operators::OP_logical_not) {
                 // the label to jump to the very end, and set the result to false
                 LabelId false_label = chunk->NewLabel();
-                LabelId true_label = chunk->NewLabel();;
+                LabelId true_label = chunk->NewLabel();
 
                 // compare lhs to 0 (false)
                 chunk->Append(BytecodeUtil::Make<Comparison>(Comparison::CMPZ, rp));
@@ -218,7 +217,11 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
 
                 // skip to here to avoid loading 'true' into the register
                 chunk->Append(BytecodeUtil::Make<LabelMarker>(false_label));
+            } else {
+                AssertThrowMsg(false, "Operator not implemented: %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().c_str());
             }
+        } else {
+            AssertThrowMsg(false, "Operator not implemented %s", Operator::FindUnaryOperator(m_op->GetOperatorType())->LookupStringValue().c_str());
         }
     }
 

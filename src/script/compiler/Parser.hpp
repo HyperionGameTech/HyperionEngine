@@ -42,6 +42,7 @@
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/ast/AstArrayAccess.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
+#include <script/compiler/ast/AstIsExpression.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
@@ -53,6 +54,7 @@
 #include <script/compiler/ast/AstForLoop.hpp>
 #include <script/compiler/ast/AstForEachLoop.hpp>
 #include <script/compiler/ast/AstTryCatch.hpp>
+#include <script/compiler/ast/AstThrowExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstEvent.hpp>
@@ -129,8 +131,8 @@ private:
     std::shared_ptr<AstMember> ParseMemberExpression(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstArrayAccess> ParseArrayAccess(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstHasExpression> ParseHasExpression(std::shared_ptr<AstExpression> target);
+    std::shared_ptr<AstIsExpression> ParseIsExpression(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstActionExpression> ParseActionExpression(std::shared_ptr<AstExpression> expr);
-    std::shared_ptr<AstTemplateInstantiation> ParseTemplateInstantiation(std::shared_ptr<AstIdentifier> expr);
     std::shared_ptr<AstNewExpression> ParseNewExpression();
     std::shared_ptr<AstTrue> ParseTrue();
     std::shared_ptr<AstFalse> ParseFalse();
@@ -142,6 +144,7 @@ private:
     std::shared_ptr<AstStatement> ParseForLoop();
     std::shared_ptr<AstForEachLoop> ParseForEachLoop();
     std::shared_ptr<AstTryCatch> ParseTryCatchStatement();
+    std::shared_ptr<AstThrowExpression> ParseThrowExpression();
     std::shared_ptr<AstExpression> ParseBinaryExpression(
         int expr_prec,
         std::shared_ptr<AstExpression> left

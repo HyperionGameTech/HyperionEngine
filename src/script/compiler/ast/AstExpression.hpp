@@ -21,8 +21,10 @@ enum ExprAccess : ExprAccessBits {
 
 class AstExpression : public AstStatement {
 public:
-    AstExpression(const SourceLocation &location,
-        int access_options);
+    AstExpression(
+        const SourceLocation &location,
+        int access_options
+    );
     virtual ~AstExpression() = default;
 
     int GetAccessOptions() const

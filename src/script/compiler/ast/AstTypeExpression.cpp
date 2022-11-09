@@ -104,6 +104,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         });
     }
 
+    m_symbol_type->SetTypeObject(CloneAstNode(m_expr));
+
     // ===== STATIC DATA MEMBERS ======
 
     // open the scope for static data members

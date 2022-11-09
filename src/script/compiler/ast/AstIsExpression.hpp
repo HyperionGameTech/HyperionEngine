@@ -1,21 +1,23 @@
-#ifndef AST_HAS_EXPRESSION_HPP
-#define AST_HAS_EXPRESSION_HPP
+#ifndef AST_IS_EXPRESSION_HPP
+#define AST_IS_EXPRESSION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
+#include <script/compiler/ast/AstPrototypeSpecification.hpp>
 
 #include <string>
 
 namespace hyperion::compiler {
 
-class AstHasExpression : public AstExpression
+class AstIsExpression : public AstExpression
 {
 public:
-    AstHasExpression(
-        const std::shared_ptr<AstStatement> &target,
-        const std::string &field_name,
+    AstIsExpression(
+        const std::shared_ptr<AstExpression> &target,
+        const std::shared_ptr<AstPrototypeSpecification> &type_specification,
         const SourceLocation &location
     );
-    virtual ~AstHasExpression() = default;
+
+    virtual ~AstIsExpression() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -28,22 +30,17 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
-    std::shared_ptr<AstStatement> m_target;
-    std::string m_field_name;
+    std::shared_ptr<AstExpression> m_target;
+    std::shared_ptr<AstPrototypeSpecification> m_type_specification;
 
-    // set while analyzing
-    int m_has_member;
-    // is it a check if an expression has the member,
-    // or is it a check if a type has a member?
-    bool m_is_expr;
-    bool m_has_side_effects;
+    int m_is_type;
 
 private:
-    Pointer<AstHasExpression> CloneImpl() const
+    Pointer<AstIsExpression> CloneImpl() const
     {
-        return Pointer<AstHasExpression>(new AstHasExpression(
+        return Pointer<AstIsExpression>(new AstIsExpression(
             CloneAstNode(m_target),
-            m_field_name,
+            CloneAstNode(m_type_specification),
             m_location
         ));
     }

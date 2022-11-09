@@ -14,15 +14,16 @@ using IdentifierFlagBits = UInt;
 
 enum IdentifierFlags : IdentifierFlagBits
 {
-   FLAG_CONST                = 0b000000001,
-   FLAG_ALIAS                = 0b000000010,
-   FLAG_MIXIN                = 0b000000100,
-   FLAG_GENERIC              = 0b000001000,
-   FLAG_DECLARED_IN_FUNCTION = 0b000010000,
-   FLAG_PLACEHOLDER          = 0b000100000,
-   FLAG_ACCESS_PRIVATE       = 0b001000000,
-   FLAG_ACCESS_PUBLIC        = 0b010000000,
-   FLAG_ACCESS_PROTECTED     = 0b100000000
+   FLAG_CONST                = 0b0000000001,
+   FLAG_ALIAS                = 0b0000000010,
+   FLAG_MIXIN                = 0b0000000100,
+   FLAG_GENERIC              = 0b0000001000,
+   FLAG_DECLARED_IN_FUNCTION = 0b0000010000,
+   FLAG_PLACEHOLDER          = 0b0000100000,
+   FLAG_ACCESS_PRIVATE       = 0b0001000000,
+   FLAG_ACCESS_PUBLIC        = 0b0010000000,
+   FLAG_ACCESS_PROTECTED     = 0b0100000000,
+   FLAG_ARGUMENT             = 0b1000000000,
 };
 
 class Identifier
