@@ -26,14 +26,10 @@ CompilationUnit::CompilationUnit()
 
     top.GetIdentifierTable().BindTypeToIdentifier("Object", BuiltinTypes::OBJECT);
     top.GetIdentifierTable().BindTypeToIdentifier("any", BuiltinTypes::ANY);
-    top.GetIdentifierTable().BindTypeToIdentifier("Tuple", BuiltinTypes::TUPLE);
     top.GetIdentifierTable().BindTypeToIdentifier("Maybe", BuiltinTypes::MAYBE);
     top.GetIdentifierTable().BindTypeToIdentifier("Const", BuiltinTypes::CONST_TYPE);
-    //top.GetIdentifierTable().BindTypeToIdentifier("Null", BuiltinTypes::NULL_TYPE);
-    top.GetIdentifierTable().BindTypeToIdentifier("$Event", BuiltinTypes::EVENT);
     top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
     top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
-    //top.GetIdentifierTable().BindTypeToIdentifier("Type", BuiltinTypes::CLASS_TYPE);
 
     m_module_tree.TopNode()->m_value = m_global_module.get();
 }

@@ -18,7 +18,8 @@ SemanticAnalyzer::Helpers::IdentifierLookupResult
 SemanticAnalyzer::Helpers::LookupIdentifier(
     AstVisitor *visitor,
     Module *mod,
-    const std::string &name)
+    const std::string &name
+)
 {
     IdentifierLookupResult res;
     res.type = IDENTIFIER_TYPE_UNKNOWN;
