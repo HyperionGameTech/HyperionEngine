@@ -16,7 +16,8 @@ public:
         const std::shared_ptr<AstExpression> &target,
         const std::vector<std::shared_ptr<AstArgument>> &args,
         bool insert_self,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstCallExpression() = default;
 
     void AddArgumentToFront(const std::shared_ptr<AstArgument> &arg)
@@ -42,6 +43,7 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual AstExpression *GetTarget() const override;
+    virtual AstExpression *GetHeldGenericExpr() const override;
 
 protected:
     std::shared_ptr<AstExpression> m_target;

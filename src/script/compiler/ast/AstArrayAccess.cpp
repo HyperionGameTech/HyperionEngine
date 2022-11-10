@@ -171,4 +171,13 @@ AstExpression *AstArrayAccess::GetTarget() const
     return AstExpression::GetTarget();
 }
 
+AstExpression *AstArrayAccess::GetHeldGenericExpr() const
+{
+    if (m_target != nullptr) {
+        return m_target->GetHeldGenericExpr();
+    }
+
+    return AstExpression::GetTarget();
+}
+
 } // namespace hyperion::compiler
