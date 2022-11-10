@@ -64,36 +64,40 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     } else {
         // temporarily define all generic parameters.
         const AstExpression *value_of = m_expr->GetValueOf();
+        const SymbolTypePtr_t symbol_type = value_of != nullptr ? value_of->GetExprType() : nullptr;
 
-        if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
+        if (value_of && symbol_type != nullptr && symbol_type->IsGeneric()) {
+
+
+        // if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
             FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-                visitor, mod, template_expr->GetExprType(), m_generic_args, m_location
+                visitor, mod, /*template_expr->GetExprType()*/ symbol_type, m_generic_args, m_location
             );
 
             const auto args_substituted = substituted.second;
 
             // there can be more because of varargs
-            if (args_substituted.size() >= template_expr->GetGenericParameters().size()) {
-                for (size_t i = 0; i <  template_expr->GetGenericParameters().size(); i++) {
-                    AssertThrow(args_substituted[i]->GetExpr() != nullptr);
+            if (args_substituted.size() + 1 >= symbol_type->GetGenericInstanceInfo().m_generic_args.size()) {//template_expr->GetGenericParameters().size()) {
+                for (size_t i = 1; i <  symbol_type->GetGenericInstanceInfo().m_generic_args.size(); i++) {
+                    AssertThrow(args_substituted[i - 1]->GetExpr() != nullptr);
 
-                    if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
+                    if (args_substituted[i - 1]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
                         std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-                            template_expr->GetGenericParameters()[i]->GetName(),
+                            symbol_type->GetGenericInstanceInfo().m_generic_args[i].m_name,//template_expr->GetGenericParameters()[i]->GetName(),
                             nullptr,
-                            CloneAstNode(args_substituted[i]->GetExpr()),
+                            CloneAstNode(args_substituted[i - 1]->GetExpr()),
                             {},
                             IdentifierFlags::FLAG_CONST,
-                            args_substituted[i]->GetLocation()
+                            args_substituted[i - 1]->GetLocation()
                         ));
 
                         m_block->AddChild(param_override);
                     }
                 }
 
-                AssertThrow(template_expr->GetInnerExpression() != nullptr);
+                // AssertThrow(template_expr->GetInnerExpression() != nullptr);
 
-                m_inner_expr = CloneAstNode(template_expr->GetInnerExpression());
+                m_inner_expr = CloneAstNode(value_of);//template_expr->GetInnerExpression());
 
                 m_block->AddChild(m_inner_expr);
                 m_block->Visit(visitor, mod);
