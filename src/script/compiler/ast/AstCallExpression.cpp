@@ -269,4 +269,13 @@ AstExpression *AstCallExpression::GetTarget() const
     return AstExpression::GetTarget();
 }
 
+AstExpression *AstCallExpression::GetHeldGenericExpr() const
+{
+    if (m_target != nullptr) {
+        return m_target->GetHeldGenericExpr();
+    }
+
+    return AstExpression::GetHeldGenericExpr();
+}
+
 } // namespace hyperion::compiler

@@ -27,6 +27,7 @@ public:
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
     virtual AstExpression *GetTarget() const override;
+    virtual AstExpression *GetHeldGenericExpr() const override;
 
 protected:
     std::string m_field_name;
