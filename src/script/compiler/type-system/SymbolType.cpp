@@ -466,6 +466,25 @@ bool SymbolType::IsGenericParameter() const
     return false;
 }
 
+bool SymbolType::IsGeneric() const
+{
+    if (IsOrHasBase(*BuiltinTypes::GENERIC_VARIABLE_TYPE)) {
+        return true;
+    }
+
+    const SymbolType *top = this;
+
+    do {
+        if (top->GetTypeClass() == TYPE_GENERIC) {
+            return true;
+        }
+
+        top = top->GetBaseType().get();
+    } while (top != nullptr);
+
+    return false;
+}
+
 SymbolTypePtr_t SymbolType::Alias(
     const std::string &name,
     const AliasTypeInfo &info
@@ -627,7 +646,7 @@ SymbolTypePtr_t SymbolType::GenericInstance(
     const GenericInstanceTypeInfo &info)
 {
     AssertThrow(base != nullptr);
-    AssertThrow(base->GetTypeClass() == TYPE_GENERIC);
+    AssertThrow(base->IsGeneric());
 
     std::string name;
     std::string return_type_name;

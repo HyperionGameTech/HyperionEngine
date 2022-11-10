@@ -929,7 +929,7 @@ void VM::Invoke(
                 return;
             } else if (VMObject *object = value.m_value.ptr->GetPointer<VMObject>()) {
                 if (Member *member = object->LookupMemberFromHash(hash_fnv_1("$invoke"))) {
-                    const Int64 sp         = static_cast<Int64>(thread->m_stack.GetStackPointer());
+                    const Int64 sp = static_cast<Int64>(thread->m_stack.GetStackPointer());
                     const Int64 args_start = sp - nargs;
 
                     if (nargs > 0) {
@@ -1059,8 +1059,11 @@ void VM::InvokeNow(
 )
 {
     auto *thread = m_state.MAIN_THREAD;
+
+    const SizeType position_before = bs->Position();
+
     const UInt original_function_depth = thread->m_func_depth;
-    const size_t stack_size_before = thread->GetStack().GetStackPointer();
+    const SizeType stack_size_before = thread->GetStack().GetStackPointer();
 
     InstructionHandler handler(
         &m_state,
@@ -1088,35 +1091,37 @@ void VM::InvokeNow(
 
             if (handler.thread->GetExceptionState().HasExceptionOccurred()) {
                 if (!HandleException(&handler)) {
+                    thread->m_exception_state.m_exception_depth = 0;
+
+                    AssertThrow(thread->GetStack().GetStackPointer() >= stack_size_before);
                     thread->GetStack().Pop(thread->GetStack().GetStackPointer() - stack_size_before);
 
                     break;
                 }
-
-                //if (!handler.state->good) {
-                //}
             }
 
             if (code == RET) {
                 if (thread->m_func_depth == original_function_depth) {
-                    return;
+                    break;
                 }
             }
         }
     }
+    
+    bs->SetPosition(position_before);
 }
 
 void VM::CreateStackTrace(ExecutionThread *thread, StackTrace *out)
 {
-    const size_t max_stack_trace_size = std::size(out->call_addresses);
+    const SizeType max_stack_trace_size = std::size(out->call_addresses);
 
     for (auto &call_addresse : out->call_addresses) {
         call_addresse = -1;
     }
 
-    size_t num_recorded_call_addresses = 0;
+    SizeType num_recorded_call_addresses = 0;
 
-    for (size_t sp = thread->m_stack.GetStackPointer(); sp != 0; sp--) {
+    for (SizeType sp = thread->m_stack.GetStackPointer(); sp != 0; sp--) {
         if (num_recorded_call_addresses >= max_stack_trace_size) {
             break;
         }
@@ -1134,27 +1139,15 @@ bool VM::HandleException(InstructionHandler *handler)
     ExecutionThread *thread = handler->thread;
     BytecodeStream *bs = handler->bs;
 
-    StackTrace stack_trace;
-    CreateStackTrace(thread, &stack_trace);
-
-    std::cout << "stack_trace = \n";
-
-    for (auto call_addresse : stack_trace.call_addresses) {
-        if (call_addresse == -1) {
-            break;
-        }
-        
-        std::cout << "\t" << std::hex << call_addresse << "\n";
-    }
-
-    std::cout << "=====\n";
-
-    if (thread->m_exception_state.m_try_counter > 0) {
+    if (thread->m_exception_state.m_try_counter != 0) {
         // handle exception
-        thread->m_exception_state.m_try_counter--;
+        --thread->m_exception_state.m_try_counter;
+
+        AssertThrow(thread->m_exception_state.m_exception_depth != 0);
+        --thread->m_exception_state.m_exception_depth;
 
         Value *top = nullptr;
-        while ((top = &thread->m_stack.Top())->m_type != Value::TRY_CATCH_INFO) {
+        while ((top = &thread->m_stack.Top()) && top->m_type != Value::TRY_CATCH_INFO) {
             thread->m_stack.Pop();
         }
 
@@ -1163,13 +1156,29 @@ bool VM::HandleException(InstructionHandler *handler)
 
         // jump to the catch block
         bs->Seek(top->m_value.try_catch_info.catch_address);
-        // reset the exception flag
-        thread->m_exception_state.m_exception_occured = false;
 
         // pop exception data from stack
         thread->m_stack.Pop();
 
         return true;
+    } else {
+        StackTrace stack_trace;
+        CreateStackTrace(thread, &stack_trace);
+
+        std::cout << "stack_trace = \n";
+
+        for (auto call_addresse : stack_trace.call_addresses) {
+            if (call_addresse == -1) {
+                break;
+            }
+            
+            std::cout << "\t" << std::hex << call_addresse << "\n";
+        }
+
+        std::cout << "=====\n";
+
+        // TODO: Seek outside function, if calling from outside?
+        // so we can keep calling
     }
 
     return false;

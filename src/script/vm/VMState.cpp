@@ -42,9 +42,9 @@ void VMState::Reset()
 
 void VMState::ThrowException(ExecutionThread *thread, const Exception &exception)
 {
-    thread->m_exception_state.m_exception_occured = true;
+    ++thread->m_exception_state.m_exception_depth;
 
-    if (thread->m_exception_state.m_try_counter <= 0) {
+    if (thread->m_exception_state.m_try_counter == 0) {
         // exception cannot be handled, no try block found
         if (thread->m_id == 0) {
             utf::printf(HYP_UTF8_CSTR("unhandled exception in main thread: %" PRIutf8s "\n"),
@@ -58,29 +58,6 @@ void VMState::ThrowException(ExecutionThread *thread, const Exception &exception
     }
 }
 
-// void VMState::CloneValue(const Value &other, ExecutionThread *thread, Value &out)
-// {
-//     switch (other.m_type) {
-//         case Value::HEAP_POINTER:
-//             if (other.m_value.ptr != nullptr) {
-//                 HeapValue *hv = HeapAlloc(thread);
-//                 AssertThrow(hv != nullptr);
-
-//                 hv->AssignCopy(*other.m_value.ptr);
-
-//                 out.m_type = Value::HEAP_POINTER;
-//                 out.m_value.ptr = hv;
-
-//                 hv->Mark();
-
-//                 break;
-//             }
-//             // fallthrough
-//         default:
-//             out = Value(other);
-//     }
-// }
-
 HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
 {
     AssertThrow(thread != nullptr);
@@ -93,11 +70,13 @@ HeapValue *VMState::HeapAlloc(ExecutionThread *thread)
             char buffer[256];
             std::sprintf(
                 buffer,
-                "heap overflow, heap size is %zu, max is %d",
+                "out of budgeted heap memory : size is %zu, max is %d",
                 heap_size,
                 GC_THRESHOLD_MAX
             );
+
             ThrowException(thread, Exception(buffer));
+
             return nullptr;
         }
 
@@ -143,7 +122,6 @@ void VMState::GC()
     }
 
     UInt num_collected;
-
     m_heap.Sweep(&num_collected);
 
     DebugLog(
@@ -183,7 +161,7 @@ void VMState::DestroyThread(int id)
         // purge the stack
         thread->m_stack.Purge();
         // reset exception state
-        thread->m_exception_state.Reset();
+        thread->m_exception_state = { };
         // reset register flags
         thread->m_regs.ResetFlags();
 

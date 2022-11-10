@@ -74,18 +74,17 @@ typedef void *UserData_t;
 namespace hyperion {
 namespace vm {
 
-enum CompareFlags : int {
+enum CompareFlags : int
+{
     NONE = 0x00,
     EQUAL = 0x01,
-    GREATER = 0x02,
-    // note that there is no LESS flag.
-    // the compiler must make appropriate changes
-    // to insure that the operands are switched to
-    // use only the GREATER or EQUAL flags.
+    GREATER = 0x02
 };
     
 struct Value
 {
+    static constexpr SizeType inline_storage_size = 64;
+
     enum ValueType
     {
         NONE,
@@ -136,16 +135,20 @@ struct Value
         NativeFunctionPtr_t native_func;
         UserData_t user_data;
         
-        struct {
+        struct
+        {
             BCAddress return_address;
             Int32 varargs_push;
         } call;
 
         BCAddress addr;
 
-        struct {
+        struct
+        {
             BCAddress catch_address;
         } try_catch_info;
+
+        UInt8 inline_storage[inline_storage_size];
     } m_value;
 
     Value() = default;
@@ -155,7 +158,7 @@ struct Value
     HYP_DEF_STRUCT_COMPARE_EQL(Value);
     HYP_DEF_STRUCT_COMPARE_LT(Value);
 
-    HYP_FORCE_INLINE Value::ValueType GetType()  const { return m_type; }
+    HYP_FORCE_INLINE Value::ValueType GetType() const { return m_type; }
     HYP_FORCE_INLINE Value::ValueData &GetValue() { return m_value; }
     HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
 

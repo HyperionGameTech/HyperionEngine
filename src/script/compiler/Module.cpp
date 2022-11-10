@@ -90,6 +90,21 @@ bool Module::IsInScopeOfType(ScopeType scope_type) const
     return false;
 }
 
+bool Module::IsInScopeOfType(ScopeType scope_type, UInt scope_flags) const
+{
+    const TreeNode<Scope> *top = m_scopes.TopNode();
+
+    while (top != nullptr) {
+        if (top->m_value.GetScopeType() == scope_type && bool(UInt(top->m_value.GetScopeFlags()) & scope_flags)) {
+            return true;
+        }
+        
+        top = top->m_parent;
+    }
+
+    return false;
+}
+
 Module *Module::LookupNestedModule(const std::string &name)
 {
     AssertThrow(m_tree_link != nullptr);

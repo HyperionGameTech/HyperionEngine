@@ -440,6 +440,8 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
         }
     } else if (Match(TK_OPEN_BRACE, false)) {
         res = ParseBlock();
+    } else if (Match(TK_IDENT, false) && MatchAhead(TK_COLON, 1)) {
+        res = ParseVariableDeclaration();
     } else {
         std::shared_ptr<AstExpression> expr = ParseExpression(false);
         
@@ -649,7 +651,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         Match(TK_QUESTION_MARK) ||
         (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
         (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
-        //(!override_angle_brackets && MatchOperator("<")) ||
+        (!override_angle_brackets && MatchOperator("<")) ||
         MatchKeyword(Keyword_has) ||
         MatchKeyword(Keyword_is) ||
         ((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
@@ -668,6 +670,10 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
             expr = ParseArrayAccess(expr);
         }
 
+        if (!override_angle_brackets && MatchOperator("<")) {
+            expr = ParseAngleBrackets(expr);
+        }
+
         if (!override_parentheses && Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
         }
@@ -683,10 +689,6 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         // if (!override_commas && Match(TK_COMMA)) {
         //     expr = ParseTupleExpression(expr);
         // }
-
-        if (!override_angle_brackets && MatchOperator("<")) {
-            expr = ParseAngleBrackets(expr);
-        }
 
         if (MatchKeyword(Keyword_has)) {
             expr = ParseHasExpression(expr);
@@ -1092,24 +1094,24 @@ std::shared_ptr<AstMember> Parser::ParseMemberExpression(std::shared_ptr<AstExpr
         : ExpectIdentifier(true, true);
 
     if (ident) {
-        if (Match(TK_OPEN_PARENTH)) {
-            if (auto argument_list = ParseArguments()) {
-                return std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
-                    ident.GetValue(),
-                    target,
-                    argument_list,
-                    ident.GetLocation()
-                ));
-            } else {
-                return nullptr;
-            }
-        } else {
+        // if (Match(TK_OPEN_PARENTH)) {
+        //     if (auto argument_list = ParseArguments()) {
+        //         return std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+        //             ident.GetValue(),
+        //             target,
+        //             argument_list,
+        //             ident.GetLocation()
+        //         ));
+        //     } else {
+        //         return nullptr;
+        //     }
+        // } else {
             return std::shared_ptr<AstMember>(new AstMember(
                 ident.GetValue(),
                 target,
                 ident.GetLocation()
             ));
-        }
+        // }
     }
 
     return nullptr;
@@ -1487,8 +1489,8 @@ std::shared_ptr<AstForEachLoop> Parser::ParseForEachLoop()
 std::shared_ptr<AstTryCatch> Parser::ParseTryCatchStatement()
 {
     if (Token token = ExpectKeyword(Keyword_try, true)) {
-        std::shared_ptr<AstBlock> try_block(ParseBlock());
-        std::shared_ptr<AstBlock> catch_block(nullptr);
+        std::shared_ptr<AstBlock> try_block = ParseBlock();
+        std::shared_ptr<AstBlock> catch_block;
 
         if (ExpectKeyword(Keyword_catch, true)) {
             // TODO: Add exception argument
@@ -1863,12 +1865,9 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 {
     const SourceLocation location = CurrentLocation();
 
-    std::set<Keywords> used_specifiers;
+    static const Keywords prefix_keywords[] = {  Keyword_let, Keyword_const };
 
-    const Keywords prefix_keywords[] = {
-        Keyword_let,
-        Keyword_const
-    };
+    std::set<Keywords> used_specifiers;
 
     while (Match(TK_KEYWORD, false)) {
         bool found_keyword = false;
@@ -2433,6 +2432,12 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
         }
     }
 
+    std::shared_ptr<AstPrototypeSpecification> base_specification;
+
+    if (Match(TK_COLON, true)) {
+        base_specification = ParsePrototypeSpecification();
+    }
+
     // for hoisting, so functions can use later declared members
     std::vector<std::shared_ptr<AstVariableDeclaration>> member_functions;
     std::vector<std::shared_ptr<AstVariableDeclaration>> member_variables;
@@ -2631,7 +2636,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
 
         return std::shared_ptr<AstTypeExpression>(new AstTypeExpression(
             type_name,
-            nullptr, // TODO extend class
+            base_specification,
             all_members,
             all_statics,
             location

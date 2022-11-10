@@ -13,7 +13,8 @@ namespace hyperion::compiler {
 
 typedef std::pair<SymbolTypePtr_t, SourceLocation> ReturnType_t;
 
-enum ScopeType {
+enum ScopeType
+{
     SCOPE_TYPE_NORMAL,
     SCOPE_TYPE_FUNCTION,
     SCOPE_TYPE_TYPE_DEFINITION,
@@ -21,14 +22,17 @@ enum ScopeType {
     SCOPE_TYPE_GENERIC_INSTANTIATION
 };
 
-enum ScopeFunctionFlags : int {
+enum ScopeFunctionFlags : int
+{
     PURE_FUNCTION_FLAG          = 0b00000001,
     CLOSURE_FUNCTION_FLAG       = 0b00000010,
     GENERATOR_FUNCTION_FLAG     = 0b00000100,
-    UNINSTANTIATED_GENERIC_FLAG = 0b00001000
+    UNINSTANTIATED_GENERIC_FLAG = 0b00001000,
+    CONSTRUCTOR_DEFINITION_FLAG = 0b00010000
 };
 
-class Scope {
+class Scope
+{
     friend class Module;
 public:
     Scope();

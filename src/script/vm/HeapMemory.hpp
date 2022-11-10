@@ -24,7 +24,8 @@ public:
     Heap(const Heap &other) = delete;
     ~Heap();
 
-    SizeType Size() const { return m_num_objects; }
+    SizeType Size() const
+        { return m_num_objects; }
 
     /** Destroy everything on the heap */
     void Purge();

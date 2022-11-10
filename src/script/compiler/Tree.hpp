@@ -1,6 +1,8 @@
 #ifndef TREE_HPP
 #define TREE_HPP
 
+#include <system/Debug.hpp>
+
 #include <vector>
 #include <ostream>
 #include <sstream>
@@ -99,33 +101,29 @@ public:
 
     T &Top()
     {
-        if (!m_top) {
-            throw std::runtime_error("no top value");
-        }
+        AssertThrow(m_top != nullptr);
+
         return m_top->m_value;
     }
 
     const T &Top() const
     {
-        if (!m_top) {
-            throw std::runtime_error("no top value");
-        }
+        AssertThrow(m_top != nullptr);
+
         return m_top->m_value;
     }
 
     T &Root()
     {
-        if (m_nodes.empty()) {
-            throw std::runtime_error("no root value");
-        }
+        AssertThrow(!m_nodes.empty());
+
         return m_nodes.front()->m_value;
     }
 
     const T &Root() const
     {
-        if (m_nodes.empty()) {
-            throw std::runtime_error("no root value");
-        }
+        AssertThrow(!m_nodes.empty());
+
         return m_nodes.front()->m_value;
     }
 
@@ -145,9 +143,7 @@ public:
 
     void Close()
     {
-        if (!m_top) {
-            throw std::runtime_error("already closed!");
-        }
+        AssertThrowMsg(m_top != nullptr, "Scope already closed");
 
         m_top = m_top->m_parent;
     }

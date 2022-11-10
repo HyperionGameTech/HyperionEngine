@@ -31,7 +31,7 @@ public:
     bool IsVariadic() const { return m_is_variadic; }
     bool IsConst() const { return m_is_const; }
 
-    bool IsGenericParam() const                   { return m_is_generic_param; }
+    bool IsGenericParam() const { return m_is_generic_param; }
     void SetIsGenericParam(bool is_generic_param) { m_is_generic_param = is_generic_param; }
 
     // used by AstTemplateExpression

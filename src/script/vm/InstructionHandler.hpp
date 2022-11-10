@@ -1003,7 +1003,7 @@ public:
 
     HYP_FORCE_INLINE void BeginTry(BCAddress addr)
     {
-        thread->m_exception_state.m_try_counter++;
+        ++thread->m_exception_state.m_try_counter;
 
         // increase stack size to store data about this try block
         Value info;
@@ -1018,11 +1018,11 @@ public:
     {
         // pop the try catch info from the stack
         AssertThrow(thread->m_stack.Top().m_type == Value::TRY_CATCH_INFO);
-        AssertThrow(thread->m_exception_state.m_try_counter > 0);
+        AssertThrow(thread->m_exception_state.m_try_counter != 0);
 
         // pop try catch info
         thread->m_stack.Pop();
-        thread->m_exception_state.m_try_counter--;
+        --thread->m_exception_state.m_try_counter;
     }
 
     HYP_FORCE_INLINE void New(BCRegister dst, BCRegister src)
