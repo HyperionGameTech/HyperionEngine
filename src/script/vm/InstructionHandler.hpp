@@ -417,6 +417,7 @@ public:
         }
 
         HeapValue *ptr = sv.m_value.ptr;
+
         if (ptr == nullptr) {
             state->ThrowException(
                 thread,
@@ -425,16 +426,14 @@ public:
             return;
         }
 
-        union
-        {
-            Int64 index;
-            VMString *str;
+        struct {
+            Number index;
         } key;
 
-        if (!thread->m_regs[index_reg].GetInteger(&key.index)) {
+        if (!thread->m_regs[index_reg].GetSignedOrUnsigned(&key.index)) {
             state->ThrowException(
                 thread,
-                Exception("Array index must be of type Int or String")
+                Exception("Array index must be of type Int or UInt")
             );
             return;
         }
@@ -443,31 +442,46 @@ public:
 
         if (array == nullptr) {
             if (auto *memory_buffer = ptr->GetPointer<VMMemoryBuffer>()) {
-                if (static_cast<SizeType>(key.index) >= memory_buffer->GetSize()) {
-                    state->ThrowException(
-                        thread,
-                        Exception::OutOfBoundsException()
-                    );
+                // load the uint8 in the memory buffer, store it as int32
+                Value memory_buffer_data;
+                memory_buffer_data.m_type = Value::I32;
 
-                    return;
-                }
-
-                if (key.index < 0) {
-                    // wrap around (python style)
-                    key.index = static_cast<Int64>(memory_buffer->GetSize() + key.index);
-                    if (key.index < 0 || static_cast<SizeType>(key.index) >= memory_buffer->GetSize()) {
+                if (key.index.flags & Number::FLAG_SIGNED) {
+                    if (static_cast<SizeType>(key.index.i) >= memory_buffer->GetSize()) {
                         state->ThrowException(
                             thread,
                             Exception::OutOfBoundsException()
                         );
+
                         return;
                     }
-                }
 
-                // load the uint8 in the memory buffer, store it as int32
-                Value memory_buffer_data;
-                memory_buffer_data.m_type = Value::I32;
-                memory_buffer_data.m_value.i32 = static_cast<Int32>(static_cast<UInt8 *>(memory_buffer->GetBuffer())[key.index]);
+                    if (key.index.i < 0) {
+                        // wrap around (python style)
+                        key.index.i = static_cast<Int64>(memory_buffer->GetSize() + key.index.i);
+                        if (key.index.i < 0 || static_cast<SizeType>(key.index.i) >= memory_buffer->GetSize()) {
+                            state->ThrowException(
+                                thread,
+                                Exception::OutOfBoundsException()
+                            );
+
+                            return;
+                        }
+                    }
+
+                    memory_buffer_data.m_value.i32 = static_cast<Int32>(static_cast<UInt8 *>(memory_buffer->GetBuffer())[key.index.i]);
+                } else if (key.index.flags & Number::FLAG_UNSIGNED) {
+                    if (static_cast<SizeType>(key.index.u) >= memory_buffer->GetSize()) {
+                        state->ThrowException(
+                            thread,
+                            Exception::OutOfBoundsException()
+                        );
+
+                        return;
+                    }
+
+                    memory_buffer_data.m_value.i32 = static_cast<Int32>(static_cast<UInt8 *>(memory_buffer->GetBuffer())[key.index.u]);
+                }
 
                 thread->m_regs[dst_reg] = memory_buffer_data;
 
@@ -481,28 +495,40 @@ public:
 
             return;
         }
-        
-        if (static_cast<SizeType>(key.index) >= array->GetSize()) {
-            state->ThrowException(
-                thread,
-                Exception::OutOfBoundsException()
-            );
-            return;
-        }
-        
-        if (key.index < 0) {
-            // wrap around (python style)
-            key.index = (Int64)(array->GetSize() + key.index);
-            if (key.index < 0 || (size_t)key.index >= array->GetSize()) {
+
+        if (key.index.flags & Number::FLAG_SIGNED) {
+            if (static_cast<SizeType>(key.index.i) >= array->GetSize()) {
                 state->ThrowException(
                     thread,
                     Exception::OutOfBoundsException()
                 );
                 return;
             }
-        }
+            
+            if (key.index.i < 0) {
+                // wrap around (python style)
+                key.index.i = (Int64)(array->GetSize() + key.index.i);
+                if (key.index.i < 0 || (size_t)key.index.i >= array->GetSize()) {
+                    state->ThrowException(
+                        thread,
+                        Exception::OutOfBoundsException()
+                    );
+                    return;
+                }
+            }
 
-        thread->m_regs[dst_reg] = array->AtIndex(key.index);
+            thread->m_regs[dst_reg] = array->AtIndex(key.index.i);
+        } else if (key.index.flags & Number::FLAG_UNSIGNED) {
+            if (static_cast<SizeType>(key.index.u) >= array->GetSize()) {
+                state->ThrowException(
+                    thread,
+                    Exception::OutOfBoundsException()
+                );
+                return;
+            }
+            
+            thread->m_regs[dst_reg] = array->AtIndex(key.index.u);
+        }
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dst_reg, BCRegister src_reg)

@@ -443,13 +443,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
     } else if (Match(TK_IDENT, false) && MatchAhead(TK_COLON, 1)) {
         res = ParseVariableDeclaration();
     } else {
-        std::shared_ptr<AstExpression> expr = ParseExpression(false);
-        
-        /*if (Match(TK_FAT_ARROW)) {
-            expr = ParseActionExpression(expr);
-        }*/
-
-        res = expr;
+        res = ParseExpression(false);
     }
 
     if (read_terminators && res != nullptr && m_token_stream->HasNext()) {
@@ -1175,36 +1169,6 @@ std::shared_ptr<AstIsExpression> Parser::ParseIsExpression(std::shared_ptr<AstEx
     return nullptr;
 }
 
-std::shared_ptr<AstActionExpression> Parser::ParseActionExpression(std::shared_ptr<AstExpression> expr)
-{
-    std::vector<std::shared_ptr<AstArgument>> actions;
-
-    if (auto action = ParseArgument(expr)) {
-        actions.push_back(action);
-
-        // parse more actions
-        while (Match(TK_COMMA, true)) {
-            if (auto action = ParseArgument(nullptr)) {
-                actions.push_back(action);
-            } else {
-                break;
-            }
-        }
-
-        if (Expect(TK_FAT_ARROW, true)) {
-            if (auto target = ParseExpression(true, true)) {
-                return std::shared_ptr<AstActionExpression>(new AstActionExpression(
-                    actions,
-                    target,
-                    target->GetLocation()
-                ));
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 std::shared_ptr<AstNewExpression> Parser::ParseNewExpression()
 {
     if (Token token = ExpectKeyword(Keyword_new, true)) {
@@ -1737,106 +1701,6 @@ std::shared_ptr<AstPrototypeSpecification> Parser::ParsePrototypeSpecification()
     return nullptr;
 }
 
-#if 0
-std::shared_ptr<AstTypeContractExpression> Parser::ParseTypeContract()
-{
-    std::shared_ptr<AstTypeContractExpression> expr;
-
-    // we have to use ExpectOperator for angle brackets
-    if (Token token = ExpectOperator(&Operator::operator_less, true)) {
-        expr = ParseTypeContractExpression();
-    }
-
-    ExpectOperator(&Operator::operator_greater, true);
-
-    return expr;
-}
-
-std::shared_ptr<AstTypeContractExpression> Parser::ParseTypeContractExpression()
-{
-    if (auto term = ParseTypeContractTerm()) {
-        if (Match(TK_OPERATOR, false)) {
-            if (auto expr = ParseTypeContractBinaryExpression(0, term)) {
-                term = expr;
-            } else {
-                return nullptr;
-            }
-        }
-
-        return term;
-    }
-
-    return nullptr;
-}
-
-
-std::shared_ptr<AstTypeContractExpression> Parser::ParseTypeContractTerm()
-{
-    if (Token contract_prop = Expect(TK_IDENT, true)) {
-        // read the contract parameter here
-        return std::shared_ptr<AstTypeContractTerm>(new AstTypeContractTerm(
-            contract_prop.GetValue(), ParseTypeSpecification(), contract_prop.GetLocation()));
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<AstTypeContractExpression> Parser::ParseTypeContractBinaryExpression(int expr_prec,
-    std::shared_ptr<AstTypeContractExpression> left)
-{
-    while (true) {
-        // check for end of contract
-        if (MatchOperator(&Operator::operator_greater, false)) {
-            return left;
-        }
-
-        // get precedence
-        const Operator *op = nullptr;
-        int precedence = OperatorPrecedence(op);
-        if (precedence < expr_prec) {
-            return left;
-        }
-
-        // read the operator token
-        Token token = Expect(TK_OPERATOR, false);
-        Token token_op = MatchOperator(&Operator::operator_bitwise_or, true);
-        if (!token) {
-            return nullptr;
-        }
-        if (!token_op) {
-            // try and operator
-            token_op = MatchOperator(&Operator::operator_bitwise_and, true);
-        }
-        if (!token_op) {
-            CompilerError error(LEVEL_ERROR, Msg_invalid_type_contract_operator, token.GetLocation(), token.GetValue());
-            m_compilation_unit->GetErrorList().AddError(error);
-            return nullptr;
-        }
-
-        auto right = ParseTypeContractTerm();
-        if (!right) {
-            return nullptr;
-        }
-
-        // next part of expression's precedence
-        const Operator *next_op = nullptr;
-        int next_prec = OperatorPrecedence(next_op);
-        if (precedence < next_prec) {
-            right = ParseTypeContractBinaryExpression(precedence + 1, right);
-            if (!right) {
-                return nullptr;
-            }
-        }
-
-        left = std::shared_ptr<AstTypeContractBinaryExpression>(
-            new AstTypeContractBinaryExpression(left, right, op, token.GetLocation()));
-    }
-
-    return nullptr;
-}
-
-#endif
-
 std::shared_ptr<AstExpression> Parser::ParseAssignment()
 {
     if (MatchOperator("=", true)) {
@@ -1930,7 +1794,6 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
         if (Match(TK_COLON, true)) {
             // read object type
-            //type_spec = ParseTypeSpecification();
             proto = ParsePrototypeSpecification();
         }
 

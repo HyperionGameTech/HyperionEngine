@@ -58,7 +58,6 @@
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstEvent.hpp>
-#include <script/compiler/ast/AstActionExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstYieldStatement.hpp>
 #include <script/compiler/ast/AstMetaBlock.hpp>
@@ -132,7 +131,6 @@ private:
     std::shared_ptr<AstArrayAccess> ParseArrayAccess(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstHasExpression> ParseHasExpression(std::shared_ptr<AstExpression> target);
     std::shared_ptr<AstIsExpression> ParseIsExpression(std::shared_ptr<AstExpression> target);
-    std::shared_ptr<AstActionExpression> ParseActionExpression(std::shared_ptr<AstExpression> expr);
     std::shared_ptr<AstNewExpression> ParseNewExpression();
     std::shared_ptr<AstTrue> ParseTrue();
     std::shared_ptr<AstFalse> ParseFalse();

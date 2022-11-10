@@ -24,6 +24,7 @@ enum ErrorMessage {
     Msg_illegal_expression,
     Msg_illegal_operator,
     Msg_invalid_operator_for_type,
+    Msg_cannot_overload_operator,
     Msg_invalid_symbol_query,
     Msg_const_modified,
     Msg_const_missing_assignment,

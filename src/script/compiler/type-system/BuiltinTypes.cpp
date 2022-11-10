@@ -422,14 +422,6 @@ const SymbolTypePtr_t BuiltinTypes::CLOSURE_TYPE = SymbolType::Generic(
     BuiltinTypes::FUNCTION
 );
 
-const SymbolTypePtr_t BuiltinTypes::META_CLOSURE_TYPE = SymbolType::Generic(
-    "MetaClosure",
-    nullptr,
-    {},
-    GenericTypeInfo { -1 },
-    BuiltinTypes::FUNCTION
-);
-
 const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     "Generic",
     std::vector<SymbolMember_t> {
@@ -453,12 +445,5 @@ const SymbolTypePtr_t BuiltinTypes::GENERIC_VARIABLE_TYPE = SymbolType::Generic(
     GenericTypeInfo { -1 },
     BuiltinTypes::CLASS_TYPE
 );
-
-const SymbolTypePtr_t BuiltinTypes::SELF_TYPE = SymbolType::Primitive(
-    "Self",
-    sp<AstUndefined>(new AstUndefined(SourceLocation::eof)),
-    BuiltinTypes::PRIMITIVE_TYPE
-);
-
 
 } // namespace hyperion::compiler

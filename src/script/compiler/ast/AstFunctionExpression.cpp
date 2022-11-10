@@ -3,6 +3,7 @@
 #include <script/compiler/ast/AstReturnStatement.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
+#include <script/compiler/ast/AstUndefined.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/Keywords.hpp>
@@ -344,7 +345,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         closure_obj_members.push_back(SymbolMember_t {
             "$invoke",
             m_symbol_type,
-            nullptr
+            std::shared_ptr<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
         });
 
         // visit each member

@@ -242,16 +242,6 @@ bool SymbolType::TypeCompatible(
 
                 return true;
             } else {
-                /*if (IsBoxedType()) {
-                    const SymbolTypePtr_t &held_type = m_generic_instance_info.m_generic_args[0].m_type;
-                    AssertThrow(held_type != nullptr);
-
-                    return held_type->TypeCompatible(
-                        right,
-                        strict_numbers
-                    );
-                }*/
-
                 // allow boxing/unboxing for 'Maybe(T)' type
                 if (base->TypeEqual(*BuiltinTypes::MAYBE)) {
                     if (right.TypeEqual(*BuiltinTypes::NULL_TYPE)) {
@@ -424,19 +414,6 @@ bool SymbolType::IsArrayType() const
                 base == BuiltinTypes::VAR_ARGS) {
                 return true;
             }
-        }
-    }
-
-    return false;
-}
-
-bool SymbolType::IsConstType() const
-{
-    if (this == BuiltinTypes::CONST_TYPE.get()) {
-        return true;
-    } else if (m_type_class == TYPE_GENERIC_INSTANCE) {
-        if (const SymbolTypePtr_t base = m_base.lock()) {
-            return base == BuiltinTypes::CONST_TYPE;
         }
     }
 
@@ -875,14 +852,11 @@ SymbolTypePtr_t SymbolType::TypePromotion(
     if (lptr->TypeEqual(*BuiltinTypes::UNDEFINED) ||
         rptr->TypeEqual(*BuiltinTypes::UNDEFINED))
     {
-        // (Undefined | Any) + (Undefined | Any) = Undefined
         return BuiltinTypes::UNDEFINED;
-    } else if (lptr->TypeEqual(*BuiltinTypes::ANY)) {
+    } else if (lptr->TypeEqual(*BuiltinTypes::ANY) || rptr->TypeEqual(*BuiltinTypes::ANY)) {
         // Any + T = Any
-        return BuiltinTypes::ANY;
-    } else if (rptr->TypeEqual(*BuiltinTypes::ANY)) {
         // T + Any = Any
-        return BuiltinTypes::ANY;//lptr;
+        return BuiltinTypes::ANY;
     } else if (lptr->TypeEqual(*BuiltinTypes::NUMBER)) {
         return rptr->TypeEqual(*BuiltinTypes::INT) ||
                rptr->TypeEqual(*BuiltinTypes::FLOAT) ||
@@ -894,8 +868,7 @@ SymbolTypePtr_t SymbolType::TypePromotion(
             return BuiltinTypes::UNSIGNED_INT;
         }
 
-        return rptr->TypeEqual(*BuiltinTypes::NUMBER) ||
-               rptr->TypeEqual(*BuiltinTypes::FLOAT)
+        return rptr->TypeEqual(*BuiltinTypes::NUMBER) || rptr->TypeEqual(*BuiltinTypes::FLOAT)
                ? (use_number ? BuiltinTypes::NUMBER : rptr)
                : BuiltinTypes::UNDEFINED;
     } else if (lptr->TypeEqual(*BuiltinTypes::FLOAT)) {

@@ -589,6 +589,23 @@ Token Lexer::ReadIdentifier()
     if (value == "operator") {
         if (Token operator_token = ReadOperator()) {
             value += operator_token.GetValue();
+
+            const Operator *op = nullptr;
+
+            if (!Operator::IsBinaryOperator(operator_token.GetValue(), op)) {
+                AssertThrow(Operator::IsUnaryOperator(operator_token.GetValue(), op));
+            }
+
+            AssertThrow(op != nullptr);
+
+            if (!op->SupportsOverloading()) {
+                m_compilation_unit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_cannot_overload_operator,
+                    m_source_location,
+                    operator_token.GetValue()
+                ));
+            }
         }
     }
 
