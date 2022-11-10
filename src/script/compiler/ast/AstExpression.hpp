@@ -61,6 +61,7 @@ public:
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
     virtual ExprAccessBits GetExprAccess() const { return ExprAccess::EXPR_ACCESS_PUBLIC; }
+    virtual bool IsMutable() const { return false; }
 
     bool m_is_standalone;
 

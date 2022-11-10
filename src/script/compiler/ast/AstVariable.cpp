@@ -47,11 +47,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_mixin = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MIXIN;
             const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
             const bool is_argument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
-
-            const SymbolTypePtr_t ident_type = m_properties.GetIdentifier()->GetSymbolType();
-            AssertThrow(ident_type != nullptr);
-
-            const bool is_const = ident_type->IsConstType() || (m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST);
+            const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
 
             if (is_generic) {
                 if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)) {
@@ -302,7 +298,7 @@ bool AstVariable::IsLiteral() const
     const SymbolTypePtr_t ident_type = ident_unaliased->GetSymbolType();
     AssertThrow(ident_type != nullptr);
 
-    const bool is_const = ident_type->IsConstType();
+    const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
     const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
 
     return is_const || is_generic;
@@ -322,6 +318,11 @@ SymbolTypePtr_t AstVariable::GetExprType() const
     }
 
     return BuiltinTypes::UNDEFINED;
+}
+
+bool AstVariable::IsMutable() const
+{
+    return !IsLiteral();
 }
 
 } // namespace hyperion::compiler

@@ -39,9 +39,7 @@ struct BuiltinTypes {
     static const SymbolTypePtr_t CONST_TYPE;
     static const SymbolTypePtr_t BLOCK_TYPE;
     static const SymbolTypePtr_t CLOSURE_TYPE;
-    static const SymbolTypePtr_t META_CLOSURE_TYPE;
     static const SymbolTypePtr_t GENERIC_VARIABLE_TYPE;
-    static const SymbolTypePtr_t SELF_TYPE;
 };
 
 } // namespace hyperion::compiler

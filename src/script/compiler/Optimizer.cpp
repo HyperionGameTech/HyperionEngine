@@ -44,13 +44,8 @@ std::shared_ptr<AstExpression> Optimizer::OptimizeExpr(
         // the side is a variable, so we can further optimize by inlining,
         // only if it is const, and a literal.
         if (const Identifier *ident = expr_as_var->GetProperties().GetIdentifier()) {
-            const SymbolTypePtr_t &identifier_type = ident->GetSymbolType();
-            const std::shared_ptr<AstExpression> &current_value = ident->GetCurrentValue();
-
-            if (current_value != nullptr) {
-                AssertThrow(identifier_type != nullptr);
-                
-                if (identifier_type->IsConstType()) {
+            if (const auto current_value = ident->GetCurrentValue()) {
+                if (ident->GetFlags() & FLAG_CONST) {
                     // decrement use count because it would have been incremented by Visit()
                     ident->DecUseCount();
                     return Optimizer::OptimizeExpr(current_value, visitor, mod);

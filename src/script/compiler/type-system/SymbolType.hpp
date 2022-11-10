@@ -259,9 +259,7 @@ public:
     SymbolTypePtr_t GetUnaliased();
     
     bool IsArrayType() const;
-    bool IsConstType() const;
     bool IsBoxedType() const;
-    bool IsAnonymousType() const { return m_flags & FLAG_ANONYMOUS_TYPE; }
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
     bool IsGeneric() const;

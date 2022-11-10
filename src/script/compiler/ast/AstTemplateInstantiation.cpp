@@ -38,9 +38,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     m_block.reset(new AstBlock({}, m_location));
 
-    mod->m_scopes.Open(Scope(
-        SCOPE_TYPE_GENERIC_INSTANTIATION, 0
-    ));
+    ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
 
     for (auto &arg : m_generic_args) {
         AssertThrow(arg != nullptr);
@@ -61,69 +59,62 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             m_expr->GetLocation(),
             expr_type->GetName()
         ));
-    } else {
-        // temporarily define all generic parameters.
-        const AstExpression *value_of = m_expr->GetValueOf();
-        const SymbolTypePtr_t symbol_type = value_of != nullptr ? value_of->GetExprType() : nullptr;
-        const AstExpression *generic_expr = value_of->GetHeldGenericExpr();
 
-        if (generic_expr && symbol_type != nullptr && symbol_type->IsGeneric()) {
-
-
-        // if (const auto *template_expr = dynamic_cast<const AstTemplateExpression *>(value_of)) {
-            FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
-                visitor, mod, /*template_expr->GetExprType()*/ symbol_type, m_generic_args, m_location
-            );
-
-            const auto m_expr_type = substituted.first;
-            const auto args_substituted = substituted.second;
-
-            // there can be more because of varargs
-            // if (args_substituted.size() >= template_expr->GetGenericParameters().size()) {
-            if (args_substituted.size() + 1 >= symbol_type->GetGenericInstanceInfo().m_generic_args.size()) {//template_expr->GetGenericParameters().size()) {
-                // for (size_t i = 0; i < template_expr->GetGenericParameters().size(); i++) {
-                for (size_t i = 0; i < symbol_type->GetGenericInstanceInfo().m_generic_args.size() - 1; i++) {
-                    AssertThrow(args_substituted[i]->GetExpr() != nullptr);
-
-                    if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
-                        std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-                            // template_expr->GetGenericParameters()[i]->GetName(),
-                            symbol_type->GetGenericInstanceInfo().m_generic_args[i + 1].m_name,
-                            nullptr,
-                            CloneAstNode(args_substituted[i]->GetExpr()),
-                            {},
-                            IdentifierFlags::FLAG_CONST,
-                            args_substituted[i]->GetLocation()
-                        ));
-
-                        m_block->AddChild(param_override);
-                    }
-                }
-
-                // AssertThrow(template_expr->GetInnerExpression() != nullptr);
-                // m_inner_expr = CloneAstNode(template_expr->GetInnerExpression());
-
-                // AssertThrow(template_expr->GetInnerExpression().get() == value_of->GetValueOf());
-
-                m_inner_expr = CloneAstNode(generic_expr);//template_expr->GetInnerExpression());
-
-                m_block->AddChild(m_inner_expr);
-                m_block->Visit(visitor, mod);
-
-                // TODO: Cache instantiations so we don't create a new one for every set of arguments
-            }
-        // }
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_expression_not_generic,
-                m_expr->GetLocation(),
-                expr_type->GetName()
-            ));
-        }
+        return;
     }
 
-    mod->m_scopes.Close();
+    // temporarily define all generic parameters so there are no undefined reference errors.
+    const AstExpression *value_of = m_expr->GetValueOf();
+    const AstExpression *generic_expr = value_of->GetHeldGenericExpr();
+
+    if (generic_expr == nullptr) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_expression_not_generic,
+            m_expr->GetLocation(),
+            expr_type->GetName()
+        ));
+
+        return;
+    }
+
+    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+        visitor, mod,
+        expr_type,
+        m_generic_args,
+        m_location
+    );
+
+    m_expr_type = substituted.first;
+    const auto args_substituted = substituted.second;
+
+    // there can be more because of varargs
+    if (args_substituted.size() + 1 >= expr_type->GetGenericInstanceInfo().m_generic_args.size()) {
+        for (SizeType i = 0; i < expr_type->GetGenericInstanceInfo().m_generic_args.size() - 1; i++) {
+            AssertThrow(args_substituted[i]->GetExpr() != nullptr);
+
+            if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
+                std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
+                    // template_expr->GetGenericParameters()[i]->GetName(),
+                    expr_type->GetGenericInstanceInfo().m_generic_args[i + 1].m_name,
+                    nullptr,
+                    CloneAstNode(args_substituted[i]->GetExpr()),
+                    {},
+                    IdentifierFlags::FLAG_CONST,
+                    args_substituted[i]->GetLocation()
+                ));
+
+                m_block->AddChild(param_override);
+            }
+        }
+
+        m_inner_expr = CloneAstNode(generic_expr);
+
+        m_block->AddChild(m_inner_expr);
+        m_block->Visit(visitor, mod);
+
+        // TODO: Cache instantiations so we don't create a new one for every set of arguments
+    }
 }
 
 std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, Module *mod)
@@ -131,12 +122,8 @@ std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, 
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
     AssertThrow(m_block != nullptr);
-    chunk->Append(m_block->Build(visitor, mod));
-
-    return std::move(chunk);
+    return m_block->Build(visitor, mod);
 }
 
 void AstTemplateInstantiation::Optimize(AstVisitor *visitor, Module *mod)
@@ -155,15 +142,15 @@ Pointer<AstStatement> AstTemplateInstantiation::Clone() const
 
 Tribool AstTemplateInstantiation::IsTrue() const
 {
-    AssertThrow(m_inner_expr != nullptr);
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->IsTrue();
+    }
 
-    return m_inner_expr->IsTrue();
+    return Tribool::Indeterminate();
 }
 
 bool AstTemplateInstantiation::MayHaveSideEffects() const
 {
-    AssertThrow(m_inner_expr != nullptr);
-
     for (auto &arg : m_generic_args) {
         AssertThrow(arg != nullptr);
 
@@ -171,8 +158,12 @@ bool AstTemplateInstantiation::MayHaveSideEffects() const
             return true;
         }
     }
+    
+    if (m_inner_expr != nullptr) {
+        return m_inner_expr->MayHaveSideEffects();
+    }
 
-    return m_inner_expr->MayHaveSideEffects();
+    return true;
 }
 
 SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
@@ -187,6 +178,8 @@ SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
 const AstExpression *AstTemplateInstantiation::GetValueOf() const
 {
     if (m_inner_expr != nullptr) {
+        AssertThrow(m_inner_expr.get() != this);
+
         return m_inner_expr->GetValueOf();
     }
 

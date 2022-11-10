@@ -11,6 +11,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_illegal_expression, "Illegal expression" },
     { Msg_illegal_operator, "Illegal usage of operator '%'" },
     { Msg_invalid_operator_for_type, "Operator '%' is not valid for type '%'" },
+    { Msg_cannot_overload_operator, "Operator '%' does not support overloading" },
     { Msg_invalid_symbol_query, "Unknown symbol query '%'" },
     { Msg_const_modified, "Cannot modify a constant" },
     { Msg_const_missing_assignment, "Constant is missing an assignment" },

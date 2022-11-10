@@ -886,6 +886,8 @@ void VM::Invoke(
     UInt8 nargs
 )
 {
+    static const UInt32 invoke_hash = hash_fnv_1("$invoke");
+
     VMState *state = handler->state;
     ExecutionThread *thread = handler->thread;
     BytecodeStream *bs = handler->bs;
@@ -928,7 +930,7 @@ void VM::Invoke(
                 );
                 return;
             } else if (VMObject *object = value.m_value.ptr->GetPointer<VMObject>()) {
-                if (Member *member = object->LookupMemberFromHash(hash_fnv_1("$invoke"))) {
+                if (Member *member = object->LookupMemberFromHash(invoke_hash)) {
                     const Int64 sp = static_cast<Int64>(thread->m_stack.GetStackPointer());
                     const Int64 args_start = sp - nargs;
 
@@ -937,7 +939,7 @@ void VM::Invoke(
                         // make a copy of last item to not overwrite it
                         thread->m_stack.Push(thread->m_stack[sp - 1]);
 
-                        for (size_t i = args_start; i < sp - 1; i++) {
+                        for (SizeType i = args_start; i < sp - 1; i++) {
                             thread->m_stack[i + 1] = thread->m_stack[i];
                         }
                         

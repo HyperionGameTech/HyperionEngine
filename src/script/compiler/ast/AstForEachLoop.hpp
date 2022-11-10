@@ -2,7 +2,6 @@
 #define AST_FOR_EACH_LOOP_HPP
 
 #include <script/compiler/ast/AstStatement.hpp>
-#include <script/compiler/ast/AstActionExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
