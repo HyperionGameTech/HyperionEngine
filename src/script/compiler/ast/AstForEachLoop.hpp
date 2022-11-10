@@ -13,7 +13,8 @@
 
 namespace hyperion::compiler {
 
-class AstForEachLoop : public AstStatement {
+class AstForEachLoop : public AstStatement
+{
 public:
     AstForEachLoop(const std::vector<std::shared_ptr<AstParameter>> &params,
         const std::shared_ptr<AstExpression> &iteree,

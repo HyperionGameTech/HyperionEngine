@@ -29,11 +29,18 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
 
     // transverse the scope tree to make sure we are in a function
     bool in_function = false;
+    bool is_constructor = false;
 
     TreeNode<Scope> *top = mod->m_scopes.TopNode();
+
     while (top != nullptr) {
         if (top->m_value.GetScopeType() == SCOPE_TYPE_FUNCTION) {
             in_function = true;
+
+            if (top->m_value.GetScopeFlags() & CONSTRUCTOR_DEFINITION_FLAG) {
+                is_constructor = true;
+            }
+
             break;
         }
 
@@ -41,7 +48,13 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
         top = top->m_parent;
     }
 
-    if (in_function) {
+    /*if (is_constructor) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_return_invalid_in_constructor,
+            m_location
+        ));
+    } else*/ if (in_function) {
         AssertThrow(top != nullptr);
         // add return type
 

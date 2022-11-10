@@ -3,6 +3,7 @@
 
 #include <core/lib/Any.hpp>
 #include <Constants.hpp>
+#include <util/Defines.hpp>
 
 #include <type_traits>
 #include <typeinfo>

@@ -2,6 +2,7 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstObject.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
+#include <script/compiler/ast/AstTypeName.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Module.hpp>
@@ -27,8 +28,7 @@ AstTypeExpression::AstTypeExpression(
       m_name(name),
       m_base_specification(base_specification),
       m_members(members),
-      m_static_members(static_members),
-      m_num_members(0)
+      m_static_members(static_members)
 {
 }
 
@@ -43,7 +43,15 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     );
 
     // TODO: allow custom bases (which would have to extend Type somewhere)
-    auto base_type = BuiltinTypes::CLASS_TYPE;
+    SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
+
+    if (m_base_specification != nullptr) {
+        m_base_specification->Visit(visitor, mod);
+
+        if (auto base_type_inner = m_base_specification->GetHeldType()) {
+            base_type = base_type_inner;
+        }
+    }
 
     m_symbol_type = SymbolType::Extend(
         m_name,
@@ -57,13 +65,19 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_location
     ));
 
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, 0));
+    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, 0);
 
     // add symbol type to be usable within members
-    mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(m_symbol_type);
+    scope->GetIdentifierTable().AddSymbolType(m_symbol_type);
 
-    for (auto &outside_member : m_outside_members) {
-        outside_member->Visit(visitor, mod);
+    {
+        // type alias
+        SymbolTypePtr_t internal_type = SymbolType::Alias(
+            "Self",
+            { m_symbol_type }
+        );
+
+        scope->GetIdentifierTable().AddSymbolType(internal_type);
     }
 
     // check if one with the name $proto already exists.
@@ -104,63 +118,59 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         });
     }
 
-    m_symbol_type->SetTypeObject(CloneAstNode(m_expr));
+    m_symbol_type->SetTypeObject(m_expr);
 
     // ===== STATIC DATA MEMBERS ======
+    {
+        ScopeGuard static_data_members(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
 
-    // open the scope for static data members
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
+        for (const auto &mem : m_static_members) {
+            AssertThrow(mem != nullptr);
+            mem->Visit(visitor, mod);
 
-    for (const auto &mem : m_static_members) {
-        AssertThrow(mem != nullptr);
-        mem->Visit(visitor, mod);
+            std::string mem_name = mem->GetName();
 
-        std::string mem_name = mem->GetName();
-
-        AssertThrow(mem->GetIdentifier() != nullptr);
-        SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
-        
-        m_symbol_type->AddMember(SymbolMember_t {
-            mem_name,
-            mem_type,
-            mem->GetRealAssignment()
-        });
+            AssertThrow(mem->GetIdentifier() != nullptr);
+            SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
+            
+            m_symbol_type->AddMember(SymbolMember_t {
+                mem_name,
+                mem_type,
+                mem->GetRealAssignment()
+            });
+        }
     }
-
-    // close the scope for static data members
-    mod->m_scopes.Close();
 
     // ===== INSTANCE DATA MEMBERS =====
 
     // open the scope for data members
-    mod->m_scopes.Open(Scope(SCOPE_TYPE_TYPE_DEFINITION, 0));
+    {
+        ScopeGuard instance_data_members(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
 
-    for (const auto &mem : m_members) {
-        if (mem != nullptr) {
-            if (mem->GetName() == m_name) { // it is the constructor
-                mem->SetName("$construct");
+        for (const auto &mem : m_members) {
+            if (mem != nullptr) {
+                // if name of the method matches that of the class, it is the constructor.
+                const bool is_constructor_definition = mem->GetName() == m_name;
+
+                if (is_constructor_definition) {
+                    ScopeGuard constructor_definition_scope(mod, SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
+
+                    mem->SetName("$construct");
+                    mem->Visit(visitor, mod);
+                } else {
+                    mem->Visit(visitor, mod);
+                }
+
+                AssertThrow(mem->GetIdentifier() != nullptr);
+                
+                prototype_type->AddMember(SymbolMember_t(
+                    mem->GetName(),
+                    mem->GetIdentifier()->GetSymbolType(),
+                    mem->GetRealAssignment()
+                ));
             }
-
-            mem->Visit(visitor, mod);
-
-            AssertThrow(mem->GetIdentifier() != nullptr);
-
-            std::string mem_name = mem->GetName();
-            SymbolTypePtr_t mem_type = mem->GetIdentifier()->GetSymbolType();
-            
-            prototype_type->AddMember(SymbolMember_t(
-                mem_name,
-                mem_type,
-                mem->GetRealAssignment()
-            ));
         }
     }
-
-    // close the scope for data members
-    mod->m_scopes.Close();
-
-    // close scope for Self var
-    mod->m_scopes.Close();
 
     m_expr->Visit(visitor, mod);
 }
@@ -168,12 +178,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 std::unique_ptr<Buildable> AstTypeExpression::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    // for (auto &outside_member : m_outside_members) {
-    //     AssertThrow(outside_member != nullptr);
-
-    //     chunk->Append(outside_member->Build(visitor, mod));
-    // }
 
     AssertThrow(m_expr != nullptr);
     chunk->Append(m_expr->Build(visitor, mod));
@@ -183,12 +187,6 @@ std::unique_ptr<Buildable> AstTypeExpression::Build(AstVisitor *visitor, Module 
 
 void AstTypeExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    // for (auto &outside_member : m_outside_members) {
-    //     AssertThrow(outside_member != nullptr);
-    
-    //     outside_member->Optimize(visitor, mod);
-    // }
-
     AssertThrow(m_expr != nullptr);
     m_expr->Optimize(visitor, mod);
 }
