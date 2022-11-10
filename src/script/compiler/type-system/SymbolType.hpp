@@ -264,6 +264,7 @@ public:
     bool IsAnonymousType() const { return m_flags & FLAG_ANONYMOUS_TYPE; }
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
+    bool IsGeneric() const;
 
 private:
     std::string m_name;
