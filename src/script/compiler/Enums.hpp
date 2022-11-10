@@ -1,14 +1,18 @@
 #ifndef ENUMS_HPP
 #define ENUMS_HPP
 
+#include <Types.hpp>
+
 namespace hyperion::compiler {
 
-enum AccessMode {
+enum AccessMode : Int
+{
     ACCESS_MODE_LOAD = 1,
     ACCESS_MODE_STORE = 2
 };
 
-enum IdentifierType {
+enum IdentifierType : Int
+{
     IDENTIFIER_TYPE_UNKNOWN = -1,
     IDENTIFIER_TYPE_NOT_FOUND = 0,
     IDENTIFIER_TYPE_VARIABLE,

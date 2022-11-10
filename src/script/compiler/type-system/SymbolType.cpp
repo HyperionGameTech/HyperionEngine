@@ -590,7 +590,7 @@ SymbolTypePtr_t SymbolType::Function(
     std::vector<std::shared_ptr<AstParameter>> parameters; // TODO
     std::shared_ptr<AstBlock> block(new AstBlock(SourceLocation::eof));
     std::shared_ptr<AstFunctionExpression> value(new AstFunctionExpression(
-        parameters, nullptr, block, false, false, false, SourceLocation::eof
+        parameters, nullptr, block, SourceLocation::eof
     ));
 
     value->SetReturnType(return_type);
