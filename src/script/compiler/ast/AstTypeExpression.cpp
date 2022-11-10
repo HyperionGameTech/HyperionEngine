@@ -1,6 +1,5 @@
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstNil.hpp>
-#include <script/compiler/ast/AstObject.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTypeName.hpp>
 #include <script/compiler/AstVisitor.hpp>

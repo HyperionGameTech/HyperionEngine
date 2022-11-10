@@ -5,14 +5,12 @@
 #include <script/compiler/ast/AstFunctionExpression.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
-#include <script/compiler/ast/AstTupleExpression.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
 #include <script/compiler/ast/AstUnsignedInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstUndefined.hpp>
-#include <script/compiler/ast/AstBlockExpression.hpp>
 
 namespace hyperion::compiler {
 
@@ -247,9 +245,6 @@ const SymbolTypePtr_t BuiltinTypes::FUNCTION = SymbolType::Generic(
                 {},
                 nullptr,
                 sp<AstBlock>(new AstBlock(SourceLocation::eof)),
-                false,
-                false,
-                false,
                 SourceLocation::eof
             ))
         },
@@ -293,17 +288,6 @@ const SymbolTypePtr_t BuiltinTypes::ARRAY = SymbolType::Generic(
     BuiltinTypes::CLASS_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::TUPLE = SymbolType::Generic(
-    "tuple",
-    sp<AstTupleExpression>(new AstTupleExpression(
-        {},
-        SourceLocation::eof
-    )),
-    {},
-    GenericTypeInfo { -1 },
-    BuiltinTypes::CLASS_TYPE
-);
-
 const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
     "Args",
     sp<AstArrayExpression>(new AstArrayExpression(
@@ -318,30 +302,6 @@ const SymbolTypePtr_t BuiltinTypes::VAR_ARGS = SymbolType::Generic(
 const SymbolTypePtr_t BuiltinTypes::NULL_TYPE = SymbolType::Primitive(
     "Null",
     sp<AstNil>(new AstNil(SourceLocation::eof)),
-    BuiltinTypes::CLASS_TYPE
-);
-
-const SymbolTypePtr_t BuiltinTypes::EVENT_IMPL = SymbolType::Object(
-    "Event_impl",
-    {
-        SymbolMember_t {
-            "key",
-            BuiltinTypes::STRING,
-            BuiltinTypes::STRING->GetDefaultValue()
-        },
-        SymbolMember_t {
-            "trigger",
-            BuiltinTypes::FUNCTION,
-            BuiltinTypes::FUNCTION->GetDefaultValue()
-        }
-    }
-);
-
-const SymbolTypePtr_t BuiltinTypes::EVENT = SymbolType::Generic(
-    "$Event",
-    BuiltinTypes::UNDEFINED->GetDefaultValue(),
-    {},
-    GenericTypeInfo { 1 },
     BuiltinTypes::CLASS_TYPE
 );
 
@@ -367,9 +327,6 @@ const SymbolTypePtr_t BuiltinTypes::GENERATOR = SymbolType::Generic(
         {},
         nullptr, 
         sp<AstBlock>(new AstBlock(SourceLocation::eof)),
-        false,
-        false,
-        false,
         SourceLocation::eof
     )),
     {},

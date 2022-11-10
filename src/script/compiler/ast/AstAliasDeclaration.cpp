@@ -48,7 +48,7 @@ void AstAliasDeclaration::Visit(AstVisitor *visitor, Module *mod)
         m_identifier->SetSymbolType(m_aliasee->GetExprType());
         m_identifier->SetCurrentValue(m_aliasee);*/
 
-        if (AstIdentifier *aliasee_ident = dynamic_cast<AstIdentifier*>(m_aliasee.get())) {
+        if (AstIdentifier *aliasee_ident = dynamic_cast<AstIdentifier *>(m_aliasee.get())) {
             AssertThrow(aliasee_ident->GetProperties().GetIdentifier() != nullptr);
 
             m_identifier = scope.GetIdentifierTable().AddAlias(m_name, aliasee_ident->GetProperties().GetIdentifier());

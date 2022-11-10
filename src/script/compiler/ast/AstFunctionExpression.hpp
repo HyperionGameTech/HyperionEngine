@@ -19,9 +19,6 @@ public:
         const std::vector<std::shared_ptr<AstParameter>> &parameters,
         const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
         const std::shared_ptr<AstBlock> &block,
-        bool is_async,
-        bool is_pure,
-        bool is_generator,
         const SourceLocation &location
     );
     virtual ~AstFunctionExpression() = default;
@@ -43,16 +40,11 @@ protected:
     std::vector<std::shared_ptr<AstParameter>> m_parameters;
     std::shared_ptr<AstPrototypeSpecification> m_return_type_specification;
     std::shared_ptr<AstBlock> m_block;
-    bool m_is_async;
-    bool m_is_pure;
-    bool m_is_generator;
     bool m_is_closure;
 
     std::shared_ptr<AstExpression> m_closure_object;
     std::shared_ptr<AstParameter> m_closure_self_param;
 
-    std::shared_ptr<AstFunctionExpression> m_generator_closure;
-    bool m_is_generator_closure;
     bool m_is_constructor_definition;
 
     SymbolTypePtr_t m_symbol_type;
@@ -64,19 +56,12 @@ protected:
     int m_static_id;
 
     std::unique_ptr<Buildable> BuildFunctionBody(AstVisitor *visitor, Module *mod);
-
-    void SetIsGeneratorClosure(bool is_generator_closure)
-        { m_is_generator_closure = is_generator_closure; }
-
     Pointer<AstFunctionExpression> CloneImpl() const
     {
         return Pointer<AstFunctionExpression>(new AstFunctionExpression(
             CloneAllAstNodes(m_parameters),
             CloneAstNode(m_return_type_specification),
             CloneAstNode(m_block),
-            m_is_async,
-            m_is_pure,
-            m_is_generator,
             m_location
         ));
     }
