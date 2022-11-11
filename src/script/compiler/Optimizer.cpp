@@ -12,7 +12,8 @@ std::shared_ptr<AstConstant> Optimizer::ConstantFold(
     std::shared_ptr<AstExpression> &left,
     std::shared_ptr<AstExpression> &right,
     Operators op_type,
-    AstVisitor *visitor)
+    AstVisitor *visitor
+)
 {
     AssertThrow(left != nullptr);
     AssertThrow(right != nullptr);

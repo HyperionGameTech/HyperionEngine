@@ -87,13 +87,13 @@ const char *Value::GetTypeString() const
 
             return "Pointer";
 
-        case FUNCTION:        return "Function";
+        case FUNCTION: return "Function";
         case NATIVE_FUNCTION: return "NativeFunction";
-        case ADDRESS:         return "Address";
-        case FUNCTION_CALL:   return "FunctionCallInfo";
-        case TRY_CATCH_INFO:  return "TryCatchInfo";
-        case USER_DATA:       return "UserData";
-        default:              return "??";
+        case ADDRESS: return "Address";
+        case FUNCTION_CALL: return "FunctionCallInfo";
+        case TRY_CATCH_INFO: return "TryCatchInfo";
+        case USER_DATA: return "UserData";
+        default: return "??";
     }
 }
 

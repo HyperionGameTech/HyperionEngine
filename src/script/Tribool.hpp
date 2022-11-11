@@ -1,10 +1,15 @@
 #ifndef TRIBOOL_HPP
 #define TRIBOOL_HPP
 
+#include <Types.hpp>
+
+namespace hyperion {
+
 class Tribool
 {
 public:
-    enum TriboolValue : signed char {
+    enum TriboolValue : Int8
+    {
         TRI_INDETERMINATE = -1,
         TRI_FALSE = 0,
         TRI_TRUE = 1
@@ -30,6 +35,8 @@ public:
         return m_value == other.m_value;
     }
 
+    explicit operator bool() const = delete;
+
     operator int() const
     {
         return static_cast<int>(m_value);
@@ -53,5 +60,7 @@ public:
 private:
     TriboolValue m_value;
 };
+
+} // namespace hyperion
 
 #endif

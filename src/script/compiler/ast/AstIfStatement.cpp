@@ -12,19 +12,23 @@
 
 namespace hyperion::compiler {
 
-AstIfStatement::AstIfStatement(const std::shared_ptr<AstExpression> &conditional,
+AstIfStatement::AstIfStatement(
+    const std::shared_ptr<AstExpression> &conditional,
     const std::shared_ptr<AstBlock> &block,
     const std::shared_ptr<AstBlock> &else_block,
-    const SourceLocation &location)
-    : AstStatement(location),
-      m_conditional(conditional),
-      m_block(block),
-      m_else_block(else_block)
+    const SourceLocation &location
+) : AstStatement(location),
+    m_conditional(conditional),
+    m_block(block),
+    m_else_block(else_block)
 {
 }
 
 void AstIfStatement::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(m_conditional != nullptr);
+    AssertThrow(m_block != nullptr);
+
     // visit the conditional
     m_conditional->Visit(visitor, mod);
     // visit the body
@@ -40,6 +44,7 @@ std::unique_ptr<Buildable> AstIfStatement::Build(AstVisitor *visitor, Module *mo
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     int condition_is_true = m_conditional->IsTrue();
+
     if (condition_is_true == -1) {
         // the condition cannot be determined at compile time
         chunk->Append(Compiler::CreateConditional(

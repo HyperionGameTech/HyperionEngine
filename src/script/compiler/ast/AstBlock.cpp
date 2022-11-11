@@ -61,7 +61,7 @@ std::unique_ptr<Buildable> AstBlock::Build(AstVisitor *visitor, Module *mod)
     }
 
     // how many times to pop the stack
-    size_t pop_times = 0;
+    SizeType pop_times = 0;
 
     // pop all local variables off the stack
     for (int i = 0; i < m_num_locals; i++) {

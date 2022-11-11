@@ -48,7 +48,29 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
             }
         }
     } else {
-        std::cout << "could not find nested module " << m_left << "\n";
+        auto nested_modules = mod->CollectNestedModules();
+
+        std::stringstream nested_modules_string;
+        nested_modules_string << "[";
+
+        for (SizeType i = 0; i < nested_modules.size(); i++) {
+            nested_modules_string << '"' << nested_modules[i] << '"';
+
+            if (i != nested_modules.size() - 1) {
+                nested_modules_string << ", ";
+            }
+        }
+
+        nested_modules_string << "]";
+
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_could_not_find_nested_module,
+            m_location,
+            m_left,
+            mod->GetName(),
+            nested_modules_string.str()
+        ));
     }
 }
 
@@ -180,6 +202,8 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
                 tried_paths_string << ", ";
             }
         }
+
+        tried_paths_string << "]";
 
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,

@@ -10,6 +10,8 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
+#include <math/MathUtil.hpp>
+
 #include <script/Instructions.hpp>
 #include <system/Debug.hpp>
 #include <util/UTF8.hpp>
@@ -47,46 +49,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     m_substituted_args = m_args;
 
     if (m_insert_self) {
-        // if the target is a member expression,
-        // place it as 'self' argument to the call
-        /*if (auto *target_mem = dynamic_cast<const AstMember *>(m_target.get())) {
-            m_is_method_call = true;
-
-            const auto self_target = CloneAstNode(target_mem->GetTarget());
-            AssertThrow(self_target != nullptr);
-
-            std::shared_ptr<AstArgument> self_arg(new AstArgument(
-                self_target,
-                false,
-                true,
-                "self",
-                self_target->GetLocation()
-            ));
-            
-            // insert at front
-            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
-        } else if (dynamic_cast<const AstCallExpression *>(m_target.get())) {
-            m_is_method_call = true;
-
-            const auto self_target = m_target;//CloneAstNode(m_target);
-            AssertThrow(self_target != nullptr);
-
-            std::shared_ptr<AstArgument> self_arg(new AstArgument(
-                self_target,
-                false,
-                true,
-                "self",
-                self_target->GetLocation()
-            ));
-            
-            // insert at front
-            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
-        }*/
-
-        /*if (const auto *new_target = dynamic_cast<const AstNewExpression *>(m_target.get())) {
-
-        } else */
-        
         if (const auto *left_target = m_target->GetTarget()) {
             m_is_method_call = true;
 
@@ -187,6 +149,14 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             target_type->GetName()
         ));
     }
+
+    if (m_substituted_args.size() > MathUtil::MaxSafeValue<UInt8>()) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_maximum_number_of_arguments,
+            m_location
+        ));
+    }
 }
 
 std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module *mod)
@@ -206,7 +176,7 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
         visitor,
         mod,
         m_target,
-        static_cast<uint8_t>(m_substituted_args.size())
+        UInt8(m_substituted_args.size())
     ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(

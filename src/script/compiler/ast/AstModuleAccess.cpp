@@ -106,4 +106,21 @@ const AstExpression *AstModuleAccess::GetDeepValueOf() const
     return m_expr->GetDeepValueOf();
 }
 
+AstExpression *AstModuleAccess::GetTarget() const
+{
+    return AstExpression::GetTarget();
+}
+
+bool AstModuleAccess::IsMutable() const
+{
+    AssertThrow(m_expr != nullptr && m_expr.get() != this);
+    return m_expr->IsMutable();
+}
+
+bool AstModuleAccess::IsLiteral() const
+{
+    AssertThrow(m_expr != nullptr && m_expr.get() != this);
+    return m_expr->IsLiteral();
+}
+
 } // namespace hyperion::compiler

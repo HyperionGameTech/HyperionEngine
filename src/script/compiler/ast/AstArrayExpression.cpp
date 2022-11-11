@@ -12,6 +12,8 @@
 #include <script/Instructions.hpp>
 #include <system/Debug.hpp>
 
+#include <Types.hpp>
+
 #include <unordered_set>
 
 namespace hyperion::compiler {
@@ -64,17 +66,17 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    bool has_side_effects = MayHaveSideEffects();
-    uint32_t array_size = (uint32_t)m_members.size();
+    const bool has_side_effects = MayHaveSideEffects();
+    const UInt32 array_size = UInt32(m_members.size());
     
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     { // add NEW_ARRAY instruction
         auto instr_new_array = BytecodeUtil::Make<RawOperation<>>();
         instr_new_array->opcode = NEW_ARRAY;
-        instr_new_array->Accept<uint8_t>(rp);
-        instr_new_array->Accept<uint32_t>(array_size);
+        instr_new_array->Accept<UInt8>(rp);
+        instr_new_array->Accept<UInt32>(array_size);
         chunk->Append(std::move(instr_new_array));
     }
     
@@ -85,7 +87,7 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
         { // store value of the right hand side on the stack
             auto instr_push = BytecodeUtil::Make<RawOperation<>>();
             instr_push->opcode = PUSH;
-            instr_push->Accept<uint8_t>(rp);
+            instr_push->Accept<UInt8>(rp);
             chunk->Append(std::move(instr_push));
         }
         
@@ -120,17 +122,17 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
             { // load array from stack back into register
                 auto instr_load_offset = BytecodeUtil::Make<RawOperation<>>();
                 instr_load_offset->opcode = LOAD_OFFSET;
-                instr_load_offset->Accept<uint8_t>(rp);
-                instr_load_offset->Accept<uint16_t>(diff);
+                instr_load_offset->Accept<UInt8>(rp);
+                instr_load_offset->Accept<UInt16>(diff);
                 chunk->Append(std::move(instr_load_offset));
             }
 
             { // send to the array
                 auto instr_mov_array_idx = BytecodeUtil::Make<RawOperation<>>();
                 instr_mov_array_idx->opcode = MOV_ARRAYIDX;
-                instr_mov_array_idx->Accept<uint8_t>(rp);
-                instr_mov_array_idx->Accept<uint32_t>(index);
-                instr_mov_array_idx->Accept<uint8_t>(rp - 1);
+                instr_mov_array_idx->Accept<UInt8>(rp);
+                instr_mov_array_idx->Accept<UInt32>(index);
+                instr_mov_array_idx->Accept<UInt8>(rp - 1);
                 chunk->Append(std::move(instr_mov_array_idx));
             }
 
@@ -142,9 +144,9 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
             // send to the array
             auto instr_mov_array_idx = BytecodeUtil::Make<RawOperation<>>();
             instr_mov_array_idx->opcode = MOV_ARRAYIDX;
-            instr_mov_array_idx->Accept<uint8_t>(rp - 1);
-            instr_mov_array_idx->Accept<uint32_t>(index);
-            instr_mov_array_idx->Accept<uint8_t>(rp);
+            instr_mov_array_idx->Accept<UInt8>(rp - 1);
+            instr_mov_array_idx->Accept<UInt32>(index);
+            instr_mov_array_idx->Accept<UInt8>(rp);
             chunk->Append(std::move(instr_mov_array_idx));
         }
 
@@ -164,12 +166,6 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
         AssertThrow(diff == 1);
         
         { // load array from stack back into register
-            /*auto instr_load_offset = BytecodeUtil::Make<RawOperation<>>();
-            instr_load_offset->opcode = LOAD_OFFSET;
-            instr_load_offset->Accept<uint8_t>(rp);
-            instr_load_offset->Accept<uint16_t>(diff);
-            chunk->Append(std::move(instr_load_offset));*/
-
             auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
             instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(diff);
             chunk->Append(std::move(instr_load_offset));

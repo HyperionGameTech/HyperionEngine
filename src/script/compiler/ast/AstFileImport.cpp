@@ -7,9 +7,10 @@
 
 #include <util/StringUtil.hpp>
 
+#include <Types.hpp>
+
 #include <fstream>
 #include <iostream>
-#include <functional>
 
 namespace hyperion::compiler {
 
@@ -24,10 +25,11 @@ AstFileImport::AstFileImport(
 void AstFileImport::Visit(AstVisitor *visitor, Module *mod)
 {
     // find the folder which the current file is in
-    std::string dir;
-    const size_t index = m_location.GetFileName().find_last_of("/\\");
+    std::string dir = m_location.GetFileName();
+    const SizeType index = dir.find_last_of("/\\");
+
     if (index != std::string::npos) {
-        dir = m_location.GetFileName().substr(0, index) + "/";
+        dir = dir.substr(0, index) + "/";
     }
 
     // create relative path

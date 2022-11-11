@@ -12,6 +12,8 @@
 
 #include <script/Instructions.hpp>
 
+#include <Types.hpp>
+
 namespace hyperion::compiler {
 
 AstNil::AstNil(const SourceLocation &location)
@@ -22,7 +24,7 @@ AstNil::AstNil(const SourceLocation &location)
 std::unique_ptr<Buildable> AstNil::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     return BytecodeUtil::Make<ConstNull>(rp);
 }
