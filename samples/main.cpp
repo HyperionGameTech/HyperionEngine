@@ -136,6 +136,7 @@ public:
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
+        batch.Add<Node>("monkey_fbx", "models/monkey.fbx");
         batch.LoadAsync();
         auto obj_models = batch.AwaitResults();
 

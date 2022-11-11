@@ -83,7 +83,7 @@ public:
     using ValueType = T;
     using Storage = ValueStorage<ValueType>;
     
-    static constexpr bool use_inline_storage = sizeof(T) <= NumInlineBytes || NumInlineBytes == 0;
+    static constexpr bool use_inline_storage = sizeof(T) <= NumInlineBytes && NumInlineBytes != 0;
     static constexpr SizeType num_inline_bytes = use_inline_storage ? NumInlineBytes : 0;
     static constexpr SizeType num_inline_elements = use_inline_storage ? (num_inline_bytes / sizeof(T)) : 0;
 

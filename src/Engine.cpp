@@ -11,6 +11,7 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <asset/model_loaders/FBOMModelLoader.hpp>
+#include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
 #include <asset/material_loaders/MTLMaterialLoader.hpp>
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
@@ -76,6 +77,7 @@ void Engine::RegisterDefaultAssetLoaders()
     m_asset_manager.Register<WAVAudioLoader>("wav");
     m_asset_manager.Register<ScriptLoader>("hypscript");
     m_asset_manager.Register<FBOMModelLoader>("fbom");
+    m_asset_manager.Register<FBXModelLoader>("fbx");
 }
 
 void Engine::FindTextureFormatDefaults()

@@ -198,9 +198,6 @@ protected:
 public:
     virtual ~AssetLoader() = default;
 
-    virtual bool IsSerializedObjectLoader() const
-        { return false; }
-
     virtual LoadedAsset Load(AssetManager &asset_manager, const String &path) const override final
     {
         LoadedAsset asset;

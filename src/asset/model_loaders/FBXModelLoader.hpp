@@ -1,19 +1,18 @@
-#ifndef HYPERION_V2_FBOM_MODEL_LOADER_H
-#define HYPERION_V2_FBOM_MODEL_LOADER_H
+#ifndef HYPERION_V2_FBX_MODEL_LOADER_HPP
+#define HYPERION_V2_FBX_MODEL_LOADER_HPP
 
 #include <asset/Assets.hpp>
 #include <scene/Node.hpp>
-#include <asset/serialization/Serialization.hpp>
 #include <core/Containers.hpp>
 
 #include <Types.hpp>
 
 namespace hyperion::v2 {
 
-class FBOMModelLoader : public AssetLoader
+class FBXModelLoader : public AssetLoader
 {
 public:
-    virtual ~FBOMModelLoader() = default;
+    virtual ~FBXModelLoader() = default;
 
     virtual LoadedAsset LoadAsset(LoaderState &state) const override;
 };

@@ -1,3 +1,6 @@
 [submodule "glslang"]
 	path = glslang
 	url = https://github.com/KhronosGroup/glslang
+[submodule "zlib"]
+	path = zlib
+	url = https://github.com/madler/zlib

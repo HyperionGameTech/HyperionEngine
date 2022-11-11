@@ -24,9 +24,9 @@ public:
             return;
         }
 
-        AssertThrow(Position() + std::streamoff(size) <= Max());
+        AssertThrow(Position() + size <= Max());
 
-        ReadBytes(reinterpret_cast<char *>(ptr), size);
+        ReadBytes(static_cast<void *>(ptr), size);
     }
 
     /*! \brief Reads from the current position, to current position + \ref{size}.
@@ -36,12 +36,12 @@ public:
     SizeType Read(SizeType size, ByteBuffer &out_byte_buffer)
     {
         if (Eof()) {
-            return {};
+            return 0;
         }
     
         const SizeType read_to_position = MathUtil::Min(
-            SizeType(Position() + std::streamoff(size)),
-            SizeType(Max())
+            Position() + size,
+            Max()
         );
 
         if (read_to_position <= SizeType(Position())) {
@@ -60,10 +60,10 @@ public:
     ByteBuffer Read()
     {
         if (Eof()) {
-            return {};
+            return ByteBuffer();
         }
 
-        return ReadBytes(SizeType(Max()) - SizeType(Position()));
+        return ReadBytes(Max() - Position());
     }
     
     template <typename T>
@@ -73,8 +73,8 @@ public:
         Rewind(size);
     }
 
-    virtual std::streampos Position() const = 0;
-    virtual std::streampos Max() const = 0;
+    virtual SizeType Position() const = 0;
+    virtual SizeType Max() const = 0;
     virtual void Skip(unsigned amount) = 0;
     virtual void Rewind(unsigned long amount) = 0;
     virtual void Seek(unsigned long where_to) = 0;
@@ -90,23 +90,22 @@ protected:
 class MemoryByteReader : public ByteReader
 {
 public:
-    MemoryByteReader(size_t size, const char *data)
-        : m_data(data),
-          m_size(size),
+    MemoryByteReader(ByteBuffer *byte_buffer)
+        : m_byte_buffer(byte_buffer),
           m_pos(0)
     {
     }
 
     virtual ~MemoryByteReader() override = default;
 
-    virtual std::streampos Position() const override
+    virtual SizeType Position() const override
     {
         return m_pos;
     }
 
-    virtual std::streampos Max() const override
+    virtual SizeType Max() const override
     {
-        return m_size;
+        return m_byte_buffer != nullptr ? m_byte_buffer->Size() : 0;
     }
 
     virtual void Skip(unsigned amount) override
@@ -125,21 +124,28 @@ public:
     }
 
 protected:
-    const char *m_data;
-    SizeType m_size;
+    ByteBuffer *m_byte_buffer;
     SizeType m_pos;
 
     virtual void ReadBytes(void *ptr, SizeType size) override
     {
-        Memory::Copy(ptr, m_data + m_pos, size);
+        if (m_byte_buffer == nullptr) {
+            return;
+        }
+
+        Memory::Copy(ptr, m_byte_buffer->Data() + m_pos, size);
         m_pos += size;
     }
 
     virtual ByteBuffer ReadBytes(SizeType size) override
     {
+        if (m_byte_buffer == nullptr) {
+            return ByteBuffer();
+        }
+
         const auto previous_offset = m_pos;
         m_pos += size;
-        return ByteBuffer(size, m_data + previous_offset);
+        return ByteBuffer(size, m_byte_buffer->Data() + previous_offset);
     }
 };
 
@@ -147,7 +153,9 @@ class FileByteReader : public ByteReader
 {
 public:
     FileByteReader(const std::string &filepath, std::streampos begin = 0)
-        : filepath(filepath)
+        : filepath(filepath),
+          pos(0),
+          max_pos(0)
     {
         DebugLog(
             LogType::Debug,
@@ -175,7 +183,7 @@ public:
         }
     }
 
-    virtual ~FileByteReader()
+    virtual ~FileByteReader() override
     {
         delete file;
     }
@@ -185,12 +193,12 @@ public:
         return filepath;
     }
 
-    virtual std::streampos Position() const override
+    virtual SizeType Position() const override
     {
         return pos;
     }
 
-    virtual std::streampos Max() const override
+    virtual SizeType Max() const override
     {
         return max_pos;
     }
@@ -212,8 +220,8 @@ public:
 
 protected:
     std::istream *file;
-    std::streampos pos;
-    std::streampos max_pos;
+    SizeType pos;
+    SizeType max_pos;
     std::string filepath;
 
     virtual void ReadBytes(void *ptr, size_t size) override

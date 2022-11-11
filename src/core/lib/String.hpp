@@ -254,7 +254,8 @@ DynString<T, IsUtf8>::DynString(DynString &&other) noexcept
 
 template <class T, bool IsUtf8>
 DynString<T, IsUtf8>::DynString(const CharArray<T> &char_array)
-    : Base()
+    : Base(),
+      m_length(0)
 {
     Base::Resize(char_array.Size());
     Memory::Copy(Data(), char_array.Data(), char_array.Size());
@@ -263,14 +264,29 @@ DynString<T, IsUtf8>::DynString(const CharArray<T> &char_array)
     if (char_array.Empty() || char_array.Back() != 0) {
         Base::PushBack(0);
     }
+
+    m_length = utf::utf_strlen<T, IsUtf8>(Base::Data());
 }
 
 template <class T, bool IsUtf8>
 DynString<T, IsUtf8>::DynString(const ByteBuffer &byte_buffer)
-    : Base()
+    : Base(),
+      m_length(0)
 {
-    Base::Resize(byte_buffer.Size() + 1);
-    Memory::Copy(Data(), byte_buffer.Data(), byte_buffer.Size());
+    SizeType size = byte_buffer.Size();
+
+    for (SizeType index = 0; index < size; ++index) {
+        if (byte_buffer.Data()[index] == 0x00) {
+            size = index;
+
+            break;
+        }
+    }
+
+    Base::Resize((size / sizeof(T)) + 1); // +1 for null char
+    Memory::Copy(Data(), byte_buffer.Data(), size / sizeof(T));
+
+    m_length = utf::utf_strlen<T, IsUtf8>(Base::Data());
 }
 
 template <class T, bool IsUtf8>
@@ -372,7 +388,7 @@ bool DynString<T, IsUtf8>::operator==(const DynString &other) const
         return true;
     }
 
-    return utf::utf_strcmp<T, IsUtf8>(&Base::GetBuffer()[0], &other.GetBuffer()[0]) == 0;
+    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), other.Data()) == 0;
 }
 
 template <class T, bool IsUtf8>
@@ -392,7 +408,7 @@ bool DynString<T, IsUtf8>::operator==(const T *str) const
         return true;
     }
 
-    return utf::utf_strcmp<T, IsUtf8>(&Base::GetBuffer()[0], str) == 0;
+    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), str) == 0;
 }
 
 template <class T, bool IsUtf8>
@@ -410,7 +426,7 @@ bool DynString<T, IsUtf8>::operator!=(const T *str) const
 template <class T, bool IsUtf8>
 bool DynString<T, IsUtf8>::operator<(const DynString &other) const
 {
-    return utf::utf_strcmp<T, IsUtf8>(&Base::GetBuffer()[0], &other.GetBuffer()[0]) < 0;
+    return utf::utf_strcmp<T, IsUtf8>(Base::Data(), other.Data()) < 0;
 }
 
 template <class T, bool IsUtf8>

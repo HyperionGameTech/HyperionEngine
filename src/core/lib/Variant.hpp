@@ -233,7 +233,7 @@ public:
         { return m_current_type_id != invalid_type_id; }
 
     template <class T, class ReturnType = NormalizedType<T>>
-    bool Get(const ReturnType *out_value) const
+    bool Get(ReturnType *out_value) const
     {
         AssertThrow(out_value != nullptr);
         
@@ -526,7 +526,7 @@ struct Variant
         { return m_holder.IsValid(); }
 
     template <class T, class ReturnType = NormalizedType<T>>
-    bool Get(const ReturnType *out_value) const
+    bool Get(ReturnType *out_value) const
         { return m_holder.template Get<T, ReturnType>(out_value); }
 
     template <class T>

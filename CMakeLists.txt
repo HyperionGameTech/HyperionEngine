@@ -51,7 +51,18 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/glslang/glslang")
         glslang
         SPIRV
     )
+endif()
 
+if(EXISTS "${CMAKE_SOURCE_DIR}/zlib")
+    add_definitions(-DHYP_ZLIB=1)
+
+    include_directories(zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+    add_subdirectory(zlib)
+    
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        zlibstatic
+    )
 endif()
 
 
