@@ -24,7 +24,8 @@ using SymbolTypeWeakPtr_t = wp<SymbolType>;
 using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, sp<AstExpression>>;
 using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<std::shared_ptr<AstArgument>>>;
 
-enum SymbolTypeClass {
+enum SymbolTypeClass
+{
     TYPE_BUILTIN,
     TYPE_USER_DEFINED,
     TYPE_ALIAS,
@@ -35,26 +36,27 @@ enum SymbolTypeClass {
     TYPE_GENERIC_PARAMETER,
 };
 
-enum SymbolTypeFlags {
-    FLAG_ANONYMOUS_TYPE = 0b00000001
-};
-
-struct AliasTypeInfo {
+struct AliasTypeInfo
+{
     SymbolTypeWeakPtr_t m_aliasee;
 };
 
-struct FunctionTypeInfo {
+struct FunctionTypeInfo
+{
     vec<SymbolTypePtr_t> m_param_types;
     SymbolTypePtr_t m_return_type;
 };
 
-struct GenericTypeInfo {
+struct GenericTypeInfo
+{
     int m_num_parameters; // -1 for variadic
     vec<SymbolTypePtr_t> m_params;
 };
 
-struct GenericInstanceTypeInfo {
-    struct Arg {
+struct GenericInstanceTypeInfo
+{
+    struct Arg
+    {
         std::string m_name;
         SymbolTypePtr_t m_type;
         sp<AstExpression> m_default_value;
@@ -63,11 +65,13 @@ struct GenericInstanceTypeInfo {
     vec<Arg> m_generic_args;
 };
 
-struct GenericParameterTypeInfo {
+struct GenericParameterTypeInfo
+{
     SymbolTypeWeakPtr_t m_substitution;
 };
 
-class SymbolType : public std::enable_shared_from_this<SymbolType> {
+class SymbolType : public std::enable_shared_from_this<SymbolType>
+{
 public:
     static SymbolTypePtr_t Alias(
         const std::string &name,

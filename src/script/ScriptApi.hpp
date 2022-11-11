@@ -21,6 +21,7 @@
 #include <util/Defines.hpp>
 
 #include <unordered_map>
+#include <list>
 
 #ifndef __cplusplus
 #error Script requires a C++ compiler
@@ -158,6 +159,15 @@
             return (decltype(name))0; \
         } \
         name = (num.flags & vm::Number::FLAG_SIGNED) ? static_cast<UInt64>(num.i) : num.u; \
+    } while (false)
+
+#define HYP_SCRIPT_GET_ARG_BOOLEAN(index, name) \
+    bool name; \
+    do { \
+        if (!params.args[index]->GetBoolean(&name)) { \
+            params.handler->state->ThrowException(params.handler->thread, vm::Exception("Expected argument at index " #index " to be of type bool")); \
+            return (decltype(name))0; \
+        } \
     } while (false)
 
 #define HYP_SCRIPT_GET_ARG_FLOAT(index, name) \
@@ -478,22 +488,27 @@ public:
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            Int32 int_value
+            Int32 value
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            Int64 int_value
+            Int64 alue
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            UInt32 int_value
+            UInt32 value
         );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
-            UInt64 int_value
+            UInt64 value
+        );
+
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            Float value
         );
 
         // ModuleDefine &Variable(
@@ -571,7 +586,7 @@ public:
     );
 
 private:
-    std::vector<API::ModuleDefine> m_module_defs;
+    std::list<API::ModuleDefine> m_module_defs;
 };
 
 template <class T>
