@@ -16,6 +16,8 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
+#include <math/MathUtil.hpp>
+
 #include <system/Debug.hpp>
 #include <util/UTF8.hpp>
 #include <script/Hasher.hpp>
@@ -339,6 +341,15 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         m_closure_object = prototype_value;
         m_closure_object->Visit(visitor, mod);
     }
+
+    // we do +1 to account for closure self var.
+    if (m_parameters.size() + (m_is_closure ? 1 : 0) > MathUtil::MaxSafeValue<UInt8>()) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_maximum_number_of_arguments,
+            m_location
+        ));
+    }
 }
 
 std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Module *mod)
@@ -348,15 +359,18 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // the register index variable we will reuse
-    uint8_t rp;
+    UInt8 rp;
+
+    AssertThrow(m_parameters.size() + (m_is_closure ? 1 : 0) <= MathUtil::MaxSafeValue<UInt8>());
 
     // the properties of this function
-    uint8_t nargs = (uint8_t)m_parameters.size();
+    UInt8 nargs = UInt8(m_parameters.size());
+
     if (m_is_closure) {
         nargs++; // make room for the closure self object
     }
 
-    uint8_t flags = FunctionFlags::NONE;
+    UInt8 flags = FunctionFlags::NONE;
     if (!m_parameters.empty()) {
         const std::shared_ptr<AstParameter> &last = m_parameters.back();
         AssertThrow(last != nullptr);
@@ -411,7 +425,7 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
 
         chunk->Append(m_closure_object->Build(visitor, mod));
 
-        const uint32_t hash = hash_fnv_1("$invoke");
+        const UInt32 hash = hash_fnv_1("$invoke");
         chunk->Append(Compiler::StoreMemberFromHash(visitor, mod, hash));
         
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
@@ -422,8 +436,8 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
         // swap regs, so the closure object returned (put on register zero)
         auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();
         instr_mov_reg->opcode = MOV_REG;
-        instr_mov_reg->Accept<uint8_t>(0); // dst
-        instr_mov_reg->Accept<uint8_t>(closure_obj_reg); // src
+        instr_mov_reg->Accept<UInt8>(0); // dst
+        instr_mov_reg->Accept<UInt8>(closure_obj_reg); // src
         chunk->Append(std::move(instr_mov_reg));
     }
 

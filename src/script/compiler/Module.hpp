@@ -59,6 +59,8 @@ public:
     /** Look up a child module of this module */
     Module *LookupNestedModule(const std::string &name);
 
+    std::vector<Module *> CollectNestedModules() const;
+
     /** Check to see if the identifier exists in multiple scopes, starting
         from the currently opened scope.
         If this_scope_only is set to true, only the current scope will be
@@ -92,7 +94,8 @@ private:
 
     SymbolTypePtr_t PerformLookup(
         std::function<SymbolTypePtr_t(TreeNode<Scope>*)>,
-        std::function<SymbolTypePtr_t(Module *mod)>);
+        std::function<SymbolTypePtr_t(Module *mod)>
+    );
 };
 
 struct ScopeGuard

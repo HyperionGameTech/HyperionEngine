@@ -8,6 +8,8 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
+#include <Types.hpp>
+
 namespace hyperion::compiler {
 
 AstFalse::AstFalse(const SourceLocation &location)
@@ -18,7 +20,7 @@ AstFalse::AstFalse(const SourceLocation &location)
 std::unique_ptr<Buildable> AstFalse::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     return BytecodeUtil::Make<ConstBool>(rp, false);
 }
 

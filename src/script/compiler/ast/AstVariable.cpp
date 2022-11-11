@@ -289,19 +289,17 @@ bool AstVariable::MayHaveSideEffects() const
 
 bool AstVariable::IsLiteral() const
 {
-    const Identifier *ident = m_properties.GetIdentifier();
-    AssertThrow(ident != nullptr);
+    if (const Identifier *ident = m_properties.GetIdentifier()) {
+        const Identifier *ident_unaliased = ident->Unalias();
+        AssertThrow(ident_unaliased != nullptr);
 
-    const Identifier *ident_unaliased = ident->Unalias();
-    AssertThrow(ident_unaliased != nullptr);
+        const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
+        const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
 
-    const SymbolTypePtr_t ident_type = ident_unaliased->GetSymbolType();
-    AssertThrow(ident_type != nullptr);
+        return is_const || is_generic;
+    }
 
-    const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
-    const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
-
-    return is_const || is_generic;
+    return false;
 }
 
 SymbolTypePtr_t AstVariable::GetExprType() const

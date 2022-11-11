@@ -31,6 +31,7 @@ enum ErrorMessage {
     Msg_cannot_modify_rvalue,
     Msg_prohibited_action_attribute,
     Msg_unbalanced_expression,
+    Msg_unmatched_parentheses,
     Msg_unexpected_character,
     Msg_unexpected_identifier,
     Msg_unexpected_token,
@@ -40,6 +41,7 @@ enum ErrorMessage {
     Msg_unterminated_string_literal,
     Msg_argument_after_varargs,
     Msg_incorrect_number_of_arguments,
+    Msg_maximum_number_of_arguments,
     Msg_arg_type_incompatible,
     Msg_named_arg_not_found,
     Msg_redeclared_identifier,
@@ -115,6 +117,7 @@ enum ErrorMessage {
     Msg_module_declared_in_block,
     Msg_could_not_open_file,
     Msg_could_not_find_module,
+    Msg_could_not_find_nested_module,
     Msg_identifier_is_module,
     Msg_import_outside_global,
     Msg_import_current_file,
@@ -142,23 +145,26 @@ enum ErrorMessage {
     Msg_module_name_begins_lowercase,
 };
 
-class CompilerError {
+class CompilerError
+{
     static const std::map<ErrorMessage, std::string> error_message_strings;
 
 public:
     template <typename...Args>
-    CompilerError(ErrorLevel level, ErrorMessage msg,
-        const SourceLocation &location, const Args &...args)
-        : m_level(level),
-          m_msg(msg),
-          m_location(location)
+    CompilerError(
+        ErrorLevel level, ErrorMessage msg,
+        const SourceLocation &location,
+        const Args &...args
+    ) : m_level(level),
+        m_msg(msg),
+        m_location(location)
     {
         std::string msg_str = error_message_strings.at(m_msg);
         MakeMessage(msg_str.c_str(), args...);
     }
     
     CompilerError(const CompilerError &other);
-    ~CompilerError() {}
+    ~CompilerError() = default;
 
     ErrorLevel GetLevel() const { return m_level; }
     ErrorMessage GetMessage() const { return m_msg; }
@@ -181,6 +187,7 @@ private:
                 MakeMessage(format + 1, args...);
                 return;
             }
+
             m_text += *format;
         }
     }

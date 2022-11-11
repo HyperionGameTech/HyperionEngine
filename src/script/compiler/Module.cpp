@@ -123,6 +123,24 @@ Module *Module::LookupNestedModule(const std::string &name)
     return nullptr;
 }
 
+std::vector<Module *> Module::CollectNestedModules() const
+{
+    AssertThrow(m_tree_link != nullptr);
+
+    std::vector<Module *> nested_modules;
+
+    // search siblings of the current module,
+    // rather than global lookup.
+    for (auto *sibling : m_tree_link->m_siblings) {
+        AssertThrow(sibling != nullptr);
+        AssertThrow(sibling->m_value != nullptr);
+
+        nested_modules.push_back(sibling->m_value);
+    }
+
+    return nested_modules;
+}
+
 Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules)
 {
     TreeNode<Scope> *top = m_scopes.TopNode();

@@ -45,6 +45,7 @@ std::unique_ptr<Buildable> AstTernaryExpression::Build(AstVisitor *visitor, Modu
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     int condition_is_true = m_conditional->IsTrue();
+
     if (condition_is_true == -1) {
         // the condition cannot be determined at compile time
         chunk->Append(Compiler::CreateConditional(
@@ -100,13 +101,9 @@ Tribool AstTernaryExpression::IsTrue() const
     AssertThrow(m_left != nullptr);
     AssertThrow(m_right != nullptr);
 
-    switch (m_conditional->IsTrue()) {
+    switch (int(m_conditional->IsTrue())) {
     case Tribool::TRI_INDETERMINATE:
-        if (m_left->IsTrue() == m_right->IsTrue()) {
-            return m_left->IsTrue();
-        } else {
-            return Tribool::Indeterminate();
-        }
+        return Tribool::Indeterminate();
     case Tribool::TRI_FALSE:
         return m_right->IsTrue();
     case Tribool::TRI_TRUE:
@@ -126,7 +123,7 @@ bool AstTernaryExpression::MayHaveSideEffects() const
         return true;
     }
 
-    switch (m_conditional->IsTrue()) {
+    switch (int(m_conditional->IsTrue())) {
     case Tribool::TRI_INDETERMINATE:
         return m_left->MayHaveSideEffects() || m_right->MayHaveSideEffects();
     case Tribool::TRI_TRUE:
@@ -144,7 +141,7 @@ SymbolTypePtr_t AstTernaryExpression::GetExprType() const
     AssertThrow(m_left != nullptr);
     AssertThrow(m_right != nullptr);
 
-    switch (m_conditional->IsTrue()) {
+    switch (int(m_conditional->IsTrue())) {
     case Tribool::TRI_INDETERMINATE: {
         AssertThrow(m_left != nullptr);
 

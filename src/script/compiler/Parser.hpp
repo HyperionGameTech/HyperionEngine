@@ -108,7 +108,8 @@ private:
         bool override_fat_arrows = false,
         bool override_angle_brackets = false,
         bool override_square_brackets = false,
-        bool override_parentheses = false
+        bool override_parentheses = false,
+        bool override_question_mark = false
     );
     std::shared_ptr<AstExpression> ParseParentheses();
     std::shared_ptr<AstExpression> ParseAngleBrackets(std::shared_ptr<AstExpression> target);
@@ -148,7 +149,8 @@ private:
     std::shared_ptr<AstExpression> ParseExpression(
         bool override_commas = false,
         bool override_fat_arrows = false,
-        bool override_angle_brackets = false
+        bool override_angle_brackets = false,
+        bool override_question_mark = false
     );
     std::shared_ptr<AstPrototypeSpecification> ParsePrototypeSpecification();
     std::shared_ptr<AstExpression> ParseAssignment();

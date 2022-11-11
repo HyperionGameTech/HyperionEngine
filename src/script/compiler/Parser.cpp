@@ -522,7 +522,8 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
     bool override_fat_arrows,
     bool override_angle_brackets,
     bool override_square_brackets,
-    bool override_parentheses
+    bool override_parentheses,
+    bool override_question_mark
 )
 {
     Token token = m_token_stream->Peek();
@@ -621,8 +622,6 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
     while (expr != nullptr && (
         Match(TK_DOT) ||
         (!override_parentheses && Match(TK_OPEN_PARENTH)) ||
-        // (!override_commas && Match(TK_COMMA)) ||
-        Match(TK_QUESTION_MARK) ||
         (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
         (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
         (!override_angle_brackets && MatchOperator("<")) ||
@@ -650,10 +649,6 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
 
         if (!override_parentheses && Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
-        }
-
-        if (Match(TK_QUESTION_MARK)) {
-            expr = ParseTernaryExpression(expr);
         }
 
         if (MatchKeyword(Keyword_has)) {
@@ -1011,6 +1006,10 @@ std::shared_ptr<AstModuleAccess> Parser::ParseModuleAccess()
             expr = ParseModuleAccess();
         } else {
             expr = ParseIdentifier(true);
+
+            if (MatchOperator("<")) {
+                expr = ParseAngleBrackets(expr);
+            }
         }
 
         if (expr != nullptr) {
@@ -1226,8 +1225,10 @@ std::shared_ptr<AstBlock> Parser::ParseBlock()
 std::shared_ptr<AstIfStatement> Parser::ParseIfStatement()
 {
     if (Token token = ExpectKeyword(Keyword_if, true)) {
-        if (!Expect(TK_OPEN_PARENTH, true)) {
-            return nullptr;
+        bool has_parentheses = false;
+
+        if (Match(TK_OPEN_PARENTH, true)) {
+            has_parentheses = true;
         }
 
         std::shared_ptr<AstExpression> conditional;
@@ -1235,8 +1236,18 @@ std::shared_ptr<AstIfStatement> Parser::ParseIfStatement()
             return nullptr;
         }
 
-        if (!Expect(TK_CLOSE_PARENTH, true)) {
-            return nullptr;
+        if (has_parentheses) {
+            if (!Match(TK_CLOSE_PARENTH, true)) {
+                m_compilation_unit->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_unmatched_parentheses,
+                    token.GetLocation()
+                ));
+                
+                if (m_token_stream->HasNext()) {
+                    m_token_stream->Next();
+                }
+            }
         }
 
         std::shared_ptr<AstBlock> block;
@@ -1411,8 +1422,10 @@ std::shared_ptr<AstThrowExpression> Parser::ParseThrowExpression()
     return nullptr;
 }
 
-std::shared_ptr<AstExpression> Parser::ParseBinaryExpression(int expr_prec,
-    std::shared_ptr<AstExpression> left)
+std::shared_ptr<AstExpression> Parser::ParseBinaryExpression(
+    int expr_prec,
+    std::shared_ptr<AstExpression> left
+)
 {
     while (true) {
         // get precedence
@@ -1538,20 +1551,27 @@ std::shared_ptr<AstExpression> Parser::ParseTernaryExpression(const std::shared_
 std::shared_ptr<AstExpression> Parser::ParseExpression(
     bool override_commas,
     bool override_fat_arrows,
-    bool override_angle_brackets
+    bool override_angle_brackets,
+    bool override_question_mark
 )
 {
-    if (auto term = ParseTerm(override_commas, override_fat_arrows, override_angle_brackets)) {
+    if (auto term = ParseTerm(override_commas, override_fat_arrows, override_angle_brackets, false, false, override_question_mark)) {
         if (Match(TK_OPERATOR, false)) {
             // drop out of expression, return to parent call
             if (MatchOperator(">", false) && m_template_argument_depth > 0) {
                 return term;
             }
-            
+
             if (auto bin_expr = ParseBinaryExpression(0, term)) {
                 term = bin_expr;
             } else {
                 return nullptr;
+            }
+        }
+
+        if (Match(TK_QUESTION_MARK)) {
+            if (auto ternary_expr = ParseTernaryExpression(term)) {
+                term = ternary_expr;
             }
         }
 
@@ -1947,7 +1967,7 @@ std::vector<std::shared_ptr<AstParameter>> Parser::ParseFunctionParameters()
             is_const = true;
         }
         
-        if (token = ExpectIdentifier(true, true)) {
+        if ((token = ExpectIdentifier(true, true))) {
             std::shared_ptr<AstPrototypeSpecification> type_spec;
             std::shared_ptr<AstExpression> default_param;
 

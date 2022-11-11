@@ -37,6 +37,9 @@ public:
 
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;
+    virtual AstExpression *GetTarget() const override;
+    virtual bool IsMutable() const override;
+    virtual bool IsLiteral() const override;
 
 private:
     std::string m_target;

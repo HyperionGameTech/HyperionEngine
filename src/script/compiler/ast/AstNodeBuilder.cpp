@@ -11,19 +11,18 @@ ModuleBuilder AstNodeBuilder::Module(const std::string &name)
     return ModuleBuilder(name);
 }
 
-
 ModuleBuilder::ModuleBuilder(
-    const std::string &name)
-    : m_name(name),
-      m_parent(nullptr)
+    const std::string &name
+) : m_name(name),
+    m_parent(nullptr)
 {
 }
 
 ModuleBuilder::ModuleBuilder(
     const std::string &name,
-    ModuleBuilder *parent)
-    : m_name(name),
-      m_parent(parent)
+    ModuleBuilder *parent
+) : m_name(name),
+    m_parent(parent)
 {
 }
 
@@ -56,17 +55,17 @@ sp<AstModuleAccess> ModuleBuilder::Build(const sp<AstExpression> &expr)
 
 
 FunctionBuilder::FunctionBuilder(
-    const std::string &name)
-    : m_name(name),
-      m_parent(nullptr)
+    const std::string &name
+) : m_name(name),
+    m_parent(nullptr)
 {
 }
 
 FunctionBuilder::FunctionBuilder(
     const std::string &name,
-    ModuleBuilder *parent)
-    : m_name(name),
-      m_parent(parent)
+    ModuleBuilder *parent
+) : m_name(name),
+    m_parent(parent)
 {
 }
 
