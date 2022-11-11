@@ -80,65 +80,61 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    Int32 int_value
+    Int32 value
 )
 {
-    vm::Value value;
-    value.m_type      = Value::I32;
-    value.m_value.i32 = int_value;
-
     return Variable(
         variable_name,
         BuiltinTypes::INT,
-        value
+        vm::Value(Value::I32, { .i32 = value })
     );
 }
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    Int64 int_value
+    Int64 value
 )
 {
-    vm::Value value;
-    value.m_type      = Value::I64;
-    value.m_value.i64 = int_value;
-
     return Variable(
         variable_name,
         BuiltinTypes::INT,
-        value
+        vm::Value(Value::I64, { .i64 = value })
     );
 }
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    UInt32 uint_value
+    UInt32 value
 )
 {
-    vm::Value value;
-    value.m_type      = Value::U32;
-    value.m_value.u32 = uint_value;
-
     return Variable(
         variable_name,
         BuiltinTypes::UNSIGNED_INT,
-        value
+        vm::Value(Value::U32, { .u32 = value })
     );
 }
 
 API::ModuleDefine &API::ModuleDefine::Variable(
     const std::string &variable_name,
-    UInt64 uint_value
+    UInt64 value
 )
 {
-    vm::Value value;
-    value.m_type      = Value::U64;
-    value.m_value.u64 = uint_value;
-
     return Variable(
         variable_name,
         BuiltinTypes::UNSIGNED_INT,
-        value
+        vm::Value(Value::U64, { .u64 = value })
+    );
+}
+
+API::ModuleDefine &API::ModuleDefine::Variable(
+    const std::string &variable_name,
+    Float value
+)
+{
+    return Variable(
+        variable_name,
+        BuiltinTypes::FLOAT,
+        vm::Value(Value::F32, { .f = value })
     );
 }
 

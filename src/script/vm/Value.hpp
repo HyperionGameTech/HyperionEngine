@@ -245,6 +245,17 @@ struct Value
         }
     }
 
+    HYP_FORCE_INLINE bool GetBoolean(bool *out) const
+    {
+        if (m_type == ValueType::BOOLEAN) {
+            *out = m_value.b;
+
+            return true;
+        }
+
+        return false;
+    }
+
     template <class T>
     HYP_FORCE_INLINE bool GetPointer(T **out) const
     {

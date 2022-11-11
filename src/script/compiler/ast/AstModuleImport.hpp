@@ -10,9 +10,9 @@ namespace hyperion::compiler {
 class AstModuleImportPart : public AstStatement {
 public:
     AstModuleImportPart(
-      const std::string &left,
-      const std::vector<std::shared_ptr<AstModuleImportPart>> &right_parts,
-      const SourceLocation &location
+        const std::string &left,
+        const std::vector<std::shared_ptr<AstModuleImportPart>> &right_parts,
+        const SourceLocation &location
     );
     virtual ~AstModuleImportPart() = default;
 
