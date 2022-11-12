@@ -115,7 +115,7 @@ public:
             first_value.m_type = Value::USER_DATA;
             first_value.m_value.user_data = static_cast<void *>(item);
         } else {
-            static_assert(resolution_failure<ArgType>, "Cannot pass value type to script function statically!");
+            static_assert(resolution_failure<ArgType>, "Cannot pass value type to script function!");
         }
 
         return first_value;
@@ -150,6 +150,23 @@ public:
         if (VMObject *ptr = object._inner.m_value.ptr->GetPointer<VMObject>()) {
             if (Member *member = ptr->LookupMemberFromHash(hash_fnv_1(member_name))) {
                 out_value = ValueHandle { member->value };
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool SetMember(const ObjectHandle &object, const char *member_name, const Value &value)
+    {
+        if (object._inner.m_type != Value::HEAP_POINTER) {
+            return false;
+        }
+
+        if (VMObject *ptr = object._inner.m_value.ptr->GetPointer<VMObject>()) {
+            if (Member *member = ptr->LookupMemberFromHash(hash_fnv_1(member_name))) {
+                member->value = value;
 
                 return true;
             }

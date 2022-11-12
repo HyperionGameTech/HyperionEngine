@@ -63,6 +63,16 @@ Entity::Entity(
     }
 }
 
+// Entity::Entity(Entity &&other) noexcept
+// {
+
+// }
+
+// Entity &Entity::operator=(Entity &&other) noexcept
+// {
+    
+// }
+
 Entity::~Entity()
 {
     Teardown();

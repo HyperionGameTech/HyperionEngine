@@ -341,6 +341,7 @@ Token Lexer::ReadNumberLiteral()
     std::memset(token_flags, 0, sizeof(token_flags));
 
     u32char ch = m_source_stream.Peek();
+
     while (m_source_stream.HasNext() && utf32_isdigit(ch)) {
         int pos_change = 0;
         u32char next_ch = m_source_stream.Next(pos_change);
@@ -371,22 +372,20 @@ Token Lexer::ReadNumberLiteral()
         }
         
         ch = m_source_stream.Peek();
+    }
 
-        switch ((char)ch) {
-        case 'u':
-        case 'f':
-        case 'i':
-        // case 'd':
-        // case 'l':
-            token_flags[0] = (char)ch;
+    switch ((char)ch) {
+    case 'u':
+    case 'f':
+    case 'i':
+        token_flags[0] = (char)ch;
 
-            if (m_source_stream.HasNext()) {
-                m_source_stream.Next();
-                ch = m_source_stream.Peek();
-            }
-
-            break;
+        if (m_source_stream.HasNext()) {
+            m_source_stream.Next();
+            ch = m_source_stream.Peek();
         }
+
+        break;
     }
 
     return Token(token_class, value, token_flags, location);
@@ -402,26 +401,47 @@ Token Lexer::ReadHexNumberLiteral()
 
     // read the "0x"
     for (int i = 0; i < 2; i++) {
+        if (!m_source_stream.HasNext()) {
+            break;
+        }
+
         int pos_change = 0;
         u32char next_ch = m_source_stream.Next(pos_change);
         value.append(utf::get_bytes(next_ch));
         m_source_location.GetColumn() += pos_change;
     }
 
-    u32char ch = (u32char)('\0');
-    do {
+    Token::Flags token_flags;
+    std::memset(token_flags, 0, sizeof(token_flags));
+
+    u32char ch = m_source_stream.Peek();
+
+    while (m_source_stream.HasNext() && utf32_isxdigit(ch)) {
         int pos_change = 0;
         u32char next_ch = m_source_stream.Next(pos_change);
         value.append(utf::get_bytes(next_ch));
         m_source_location.GetColumn() += pos_change;
         ch = m_source_stream.Peek();
-    } while (std::isxdigit(ch));
+    }
 
-    long num = std::strtol(value.c_str(), 0, 16);
+    switch ((char)ch) {
+    case 'u':
+    case 'i':
+        token_flags[0] = (char)ch;
+
+        if (m_source_stream.HasNext()) {
+            m_source_stream.Next();
+            ch = m_source_stream.Peek();
+        }
+
+        break;
+    }
+
+    Int64 num = std::strtoll(value.c_str(), 0, 16);
     std::stringstream ss;
     ss << num;
 
-    return Token(TK_INTEGER, ss.str(), location);
+    return Token(TK_INTEGER, value, token_flags, location);
 }
 
 Token Lexer::ReadLineComment()

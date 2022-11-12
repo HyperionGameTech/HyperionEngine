@@ -1147,20 +1147,26 @@ public:
         Value *lhs = &thread->m_regs[lhs_reg];
         Value *rhs = &thread->m_regs[rhs_reg];
 
-        union {
-            Int64 i;
-            UInt64 u;
-            Float64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetUnsigned(&a.u) && rhs->GetUnsigned(&b.u)) {
-            thread->m_regs.m_flags = (a.u == b.u)
-                ? EQUAL : ((a.u > b.u)
-                ? GREATER : NONE);
-        } else if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            thread->m_regs.m_flags = (a.i == b.i)
-                ? EQUAL : ((a.i > b.i)
-                ? GREATER : NONE);
+        if (lhs->GetSignedOrUnsigned(&a) && rhs->GetSignedOrUnsigned(&b)) {
+            if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_SIGNED) {
+                thread->m_regs.m_flags = (a.i == b.i)
+                    ? EQUAL : ((a.i > b.i)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs.m_flags = (a.i == b.u)
+                    ? EQUAL : ((a.i > b.u)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_SIGNED) {
+                thread->m_regs.m_flags = (a.u == b.i)
+                    ? EQUAL : ((a.u > b.i)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs.m_flags = (a.u == b.u)
+                    ? EQUAL : ((a.u > b.u)
+                    ? GREATER : NONE);
+            }
         } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
             thread->m_regs.m_flags = (a.f == b.f)
                 ? EQUAL : ((a.f > b.f)
@@ -1203,15 +1209,12 @@ public:
         // load values from registers
         Value *lhs = &thread->m_regs[reg];
 
-        union {
-            Int64 i;
-            Float64 f;
-        };
+        Number num;
 
-        if (lhs->GetInteger(&i)) {
-            thread->m_regs.m_flags = !i ? EQUAL : NONE;
-        } else if (lhs->GetFloatingPoint(&f)) {
-            thread->m_regs.m_flags = !f ? EQUAL : NONE;
+        if (lhs->GetSignedOrUnsigned(&num)) {
+            thread->m_regs.m_flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? EQUAL : NONE;
+        } else if (lhs->GetFloatingPoint(&num.f)) {
+            thread->m_regs.m_flags = !num.f ? EQUAL : NONE;
         } else if (lhs->m_type == Value::BOOLEAN) {
             thread->m_regs.m_flags = !lhs->m_value.b ? EQUAL : NONE;
         } else if (lhs->m_type == Value::HEAP_POINTER) {
@@ -1403,21 +1406,9 @@ public:
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.i);
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.u);
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.f);
                 }
                 break;
@@ -1430,22 +1421,10 @@ public:
                     result.m_value.d = a.f;
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / static_cast<Float64>(b.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / static_cast<Float64>(b.u);
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / b.f;
                 }
                 break;
@@ -1545,22 +1524,10 @@ public:
                     result.m_value.f = static_cast<Float32>(a.f);
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, static_cast<Float32>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, static_cast<Float32>(b.u));
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, a.f);
                 }
                 break;
@@ -1573,22 +1540,10 @@ public:
                     result.m_value.d = a.f;
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.u));
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, a.f);
                 }
                 break;
@@ -1643,9 +1598,11 @@ public:
         thread->m_regs[dst_reg] = result;
     }
 
-    HYP_FORCE_INLINE void Or(BCRegister lhs_reg,
+    HYP_FORCE_INLINE void Or(
+        BCRegister lhs_reg,
         BCRegister rhs_reg,
-        BCRegister dst_reg)
+        BCRegister dst_reg
+    )
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];
@@ -1674,9 +1631,11 @@ public:
         thread->m_regs[dst_reg] = result;
     }
 
-    HYP_FORCE_INLINE void Xor(BCRegister lhs_reg,
+    HYP_FORCE_INLINE void Xor(
+        BCRegister lhs_reg,
         BCRegister rhs_reg,
-        BCRegister dst_reg)
+        BCRegister dst_reg
+    )
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];

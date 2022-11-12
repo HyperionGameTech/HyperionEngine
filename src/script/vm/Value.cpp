@@ -4,6 +4,7 @@
 #include <script/vm/VMMemoryBuffer.hpp>
 #include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
+#include <script/vm/HeapValue.hpp>
 #include <script/Hasher.hpp>
 
 #include <system/Debug.hpp>
@@ -28,6 +29,42 @@ Value::Value(ValueType value_type, ValueData value_data)
     : m_type(value_type),
       m_value(value_data)
 {
+}
+
+int Value::CompareAsPointers(
+    Value *lhs,
+    Value *rhs
+)
+{
+    HeapValue *a = lhs->m_value.ptr;
+    HeapValue *b = rhs->m_value.ptr;
+
+    if (a == b) {
+        // pointers equal, drop out early.
+        return CompareFlags::EQUAL;
+    } else if (a == nullptr || b == nullptr) {
+        return CompareFlags::NONE;
+    } else if (a->GetRawPointer() == b->GetRawPointer()) {
+        // pointers equal
+        return CompareFlags::EQUAL;
+    } else if (a->GetTypeID() != b->GetTypeID()) {
+        // type IDs not equal, drop out
+        return CompareFlags::NONE;
+    } else if (const VMObject *vm_object = a->GetPointer<VMObject>()) {
+        return *vm_object == b->Get<VMObject>()
+            ? CompareFlags::EQUAL
+            : CompareFlags::NONE;
+    } else if (const VMString *vm_string = a->GetPointer<VMString>()) {
+        return *vm_string == b->Get<VMString>()
+            ? CompareFlags::EQUAL
+            : CompareFlags::NONE;
+    } else if (const VMArray *vm_array = a->GetPointer<VMArray>()) {
+        return *vm_array == b->Get<VMArray>()
+            ? CompareFlags::EQUAL
+            : CompareFlags::NONE;
+    } else {
+        return CompareFlags::NONE;
+    }
 }
 
 void Value::Mark()
@@ -62,14 +99,17 @@ const char *Value::GetTypeString() const
         case NONE:
             return "<Uninitialized Data>";
         case I32: // fallthrough
+            return "Int32";
         case I64:
-            return "Int";
+            return "Int64";
         case U32: // fallthrough
+            return "UInt32";
         case U64:
-            return "UInt";
+            return "UInt64";
         case F32: // fallthrough
-        case F64:
             return "Float";
+        case F64:
+            return "Double";
         case BOOLEAN:
             return "Bool";
         case VALUE_REF:

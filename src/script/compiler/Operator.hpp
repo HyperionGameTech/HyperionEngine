@@ -8,7 +8,8 @@ namespace hyperion::compiler {
 
 using OperatorTypeBits = uint32_t;
 
-enum OperatorType : OperatorTypeBits {
+enum OperatorType : OperatorTypeBits
+{
     ARITHMETIC = 1,
     BITWISE    = 2,
     LOGICAL    = 4,
@@ -19,7 +20,8 @@ enum OperatorType : OperatorTypeBits {
     POSTFIX    = 64
 };
 
-enum Operators {
+enum Operators
+{
     OP_add,
     OP_subtract,
     OP_multiply,

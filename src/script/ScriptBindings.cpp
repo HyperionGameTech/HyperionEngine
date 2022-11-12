@@ -6,6 +6,8 @@
 #include <script/compiler/ast/AstFloat.hpp>
 
 #include <scene/Node.hpp>
+#include <scene/Entity.hpp>
+#include <Engine.hpp>
 
 #include <math/MathUtil.hpp>
  
@@ -486,12 +488,108 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
     }
 }
 
+static HYP_SCRIPT_FUNCTION(EntityGetName)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    auto &entity_handle = GetArgument<0, Handle<Entity>>(params);
+
+    if (!entity_handle) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(VMString(entity_handle->GetName().Data()));
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
+}
+
+static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    Engine *engine_ptr = GetArgument<0, Engine *>(params);
+
+    if (!engine_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    auto entity_handle = engine_ptr->CreateHandle<Entity>();
+
+    const auto class_name_it = APIInstance::class_bindings.class_names.Find<Handle<Entity>>();
+    AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+
+    const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
+    AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+
+    HYP_SCRIPT_CREATE_PTR(entity_handle, result);
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+    HYP_SCRIPT_RETURN(ptr);
+}
+
 void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
 
     // auto vector3_add = CxxMemberFn<Vector3, Vector3, Vector3, &Vector3::operator+>;
     // static_assert(std::is_same_v<decltype(vector3_add), NativeFunctionPtr_t>);
+
+
+    // api_instance.Module(Config::global_module_name)
+    //     .Class<Engine *>(
+    //         "Engine",
+    //         {
+    //             API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+    //             API::NativeMemberDefine(
+    //                 "CreateHandle",
+    //                 BuiltinTypes::ANY,
+    //                 {
+    //                     { "self", BuiltinTypes::ANY },
+    //                     EngineCreateHandle
+    //                 }
+    //             )
+    //         }
+    //     )
+
+    api_instance.Module(Config::global_module_name)
+        .Function(
+            "Engine_CreateEntity",
+            BuiltinTypes::ANY,
+            {
+                { "engine", BuiltinTypes::ANY },
+            },
+            EngineCreateEntity
+        );
+
+    api_instance.Module(Config::global_module_name)
+        .Class<Handle<Entity>>(
+            "Entity",
+            {
+                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                API::NativeMemberDefine(
+                    "$construct",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxCtor< Handle<Entity> > 
+                ),
+                API::NativeMemberDefine(
+                    "GetName",
+                    BuiltinTypes::STRING,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    EntityGetName
+                )
+            }
+        );
 
     api_instance.Module(Config::global_module_name)
         .Class<Vector3>(

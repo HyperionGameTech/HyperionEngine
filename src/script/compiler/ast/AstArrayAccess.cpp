@@ -13,12 +13,13 @@
 
 namespace hyperion::compiler {
 
-AstArrayAccess::AstArrayAccess(const std::shared_ptr<AstExpression> &target,
+AstArrayAccess::AstArrayAccess(
+    const std::shared_ptr<AstExpression> &target,
     const std::shared_ptr<AstExpression> &index,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
-      m_target(target),
-      m_index(index)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
+    m_target(target),
+    m_index(index)
 {
 }
 
@@ -57,9 +58,9 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
     bool target_side_effects = m_target->MayHaveSideEffects();
     bool index_side_effects = m_index->MayHaveSideEffects();
     
-    uint8_t rp_before = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-    uint8_t rp;
-    uint8_t r0, r1;
+    UInt8 rp_before = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp;
+    UInt8 r0, r1;
 
     Compiler::ExprInfo info {
         m_target.get(), m_index.get()
@@ -91,17 +92,17 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
     if (m_access_mode == ACCESS_MODE_LOAD) {
         auto instr = BytecodeUtil::Make<RawOperation<>>();
         instr->opcode = LOAD_ARRAYIDX;
-        instr->Accept<uint8_t>(r0); // destination
-        instr->Accept<uint8_t>(r0); // source
-        instr->Accept<uint8_t>(r1); // index
+        instr->Accept<UInt8>(r0); // destination
+        instr->Accept<UInt8>(r0); // source
+        instr->Accept<UInt8>(r1); // index
 
         chunk->Append(std::move(instr));
     } else if (m_access_mode == ACCESS_MODE_STORE) {
         auto instr = BytecodeUtil::Make<RawOperation<>>();
         instr->opcode = MOV_ARRAYIDX_REG;
-        instr->Accept<uint8_t>(r0); // destination
-        instr->Accept<uint8_t>(r1); // index
-        instr->Accept<uint8_t>(rp_before - 1); // source
+        instr->Accept<UInt8>(r0); // destination
+        instr->Accept<UInt8>(r1); // index
+        instr->Accept<UInt8>(rp_before - 1); // source
 
         chunk->Append(std::move(instr));
     }
@@ -167,15 +168,6 @@ AstExpression *AstArrayAccess::GetTarget() const
         }
 
         return m_target.get();
-    }
-
-    return AstExpression::GetTarget();
-}
-
-AstExpression *AstArrayAccess::GetHeldGenericExpr() const
-{
-    if (m_target != nullptr) {
-        return m_target->GetHeldGenericExpr();
     }
 
     return AstExpression::GetTarget();

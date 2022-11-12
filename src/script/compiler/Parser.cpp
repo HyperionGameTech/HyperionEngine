@@ -852,6 +852,14 @@ std::shared_ptr<AstConstant> Parser::ParseIntegerLiteral()
                 value,
                 token.GetLocation()
             ));
+        } else if (token.GetFlags()[0] == 'f') {
+            hyperion::Float32 value;
+            ss >> value;
+
+            return std::shared_ptr<AstFloat>(new AstFloat(
+                value,
+                token.GetLocation()
+            ));
         } else {
             m_compilation_unit->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
