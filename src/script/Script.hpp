@@ -39,7 +39,19 @@ public:
     using Bytes = std::vector<UByte>;
 
     using ArgCount = UInt16;
-    using FunctionHandle = Value;
+
+    struct ValueHandle
+    {
+        Value _inner = Value(
+            Value::NONE,
+            Value::ValueData {
+                .user_data = nullptr
+            }
+        );
+    };
+
+    struct ObjectHandle : ValueHandle { };
+    struct FunctionHandle : ValueHandle { };
 
     Script(const SourceFile &source_file);
     ~Script();
@@ -73,7 +85,11 @@ public:
 
         Value first_value;
 
-        if constexpr (std::is_same_v<int32_t, ArgType>) {
+        if constexpr (std::is_same_v<Value, ArgType>) {
+            first_value = item;
+        } else if constexpr (std::is_base_of_v<ValueHandle, ArgType>) {
+            first_value = item._inner;
+        } else if constexpr (std::is_same_v<int32_t, ArgType>) {
             first_value.m_type = Value::I32;
             first_value.m_value.i32 = item;
         } else if constexpr (std::is_same_v<int64_t, ArgType>) {
@@ -91,6 +107,9 @@ public:
         } else if constexpr (std::is_same_v<double, ArgType>) {
             first_value.m_type = Value::F64;
             first_value.m_value.d = item;
+        } else if constexpr (std::is_same_v<bool, ArgType>) {
+            first_value.m_type = Value::BOOLEAN;
+            first_value.m_value.b = item;
         } else if constexpr (std::is_pointer_v<ArgType>) {
             // set to userdata
             first_value.m_type = Value::USER_DATA;
@@ -110,48 +129,49 @@ public:
         };
     }
 
-    void CallFunction(FunctionHandle handle);
-    void CallFunction(const char *name);
-    void CallFunction(HashFNV1 hash);
-    void CallFunctionArgV(const char *name, Value *args, ArgCount num_args);
-    void CallFunctionArgV(HashFNV1 hash, Value *args, ArgCount num_args);
-    void CallFunctionArgV(FunctionHandle handle, Value *args, ArgCount num_args);
+    void CallFunctionArgV(const FunctionHandle &handle, Value *args, ArgCount num_args);
 
-    bool GetExportedValue(const char *name, Value *value)
+    bool GetFunctionHandle(const char *name, FunctionHandle &out_handle)
     {
-        return GetExportedSymbols().Find(hash_fnv_1(name), value);
+        return GetExportedValue(name, &out_handle._inner);
     }
 
-    bool GetFunctionHandle(const char *name, FunctionHandle *handle)
+    bool GetObjectHandle(const char *name, ObjectHandle &out_handle)
     {
-        return GetExportedValue(name, handle);
+        return GetExportedValue(name, &out_handle._inner);
+    }
+
+    bool GetMember(const ObjectHandle &object, const char *member_name, ValueHandle &out_value)
+    {
+        if (object._inner.m_type != Value::HEAP_POINTER) {
+            return false;
+        }
+
+        if (VMObject *ptr = object._inner.m_value.ptr->GetPointer<VMObject>()) {
+            if (Member *member = ptr->LookupMemberFromHash(hash_fnv_1(member_name))) {
+                out_value = ValueHandle { member->value };
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     template <class ...Args>
-    void CallFunction(const char *name, Args &&... args)
-    {
-        auto arguments = CreateArguments(std::forward<Args>(args)...);
-
-        CallFunctionArgV(name, arguments.data(), arguments.size());
-    }
-
-    template <class ...Args>
-    void CallFunction(FunctionHandle handle, Args &&... args)
+    void CallFunction(const FunctionHandle &handle, Args &&... args)
     {
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
         CallFunctionArgV(handle, arguments.data(), arguments.size());
     }
 
-    template <class ...Args>
-    void CallFunction(HashFNV1 hash, Args &&... args)
+private:
+    bool GetExportedValue(const char *name, Value *value)
     {
-        auto arguments = CreateArguments(std::forward<Args>(args)...);
-
-        CallFunctionArgV(hash, arguments.data(), arguments.size());
+        return GetExportedSymbols().Find(hash_fnv_1(name), value);
     }
 
-private:
     SourceFile  m_source_file;
     CompilationUnit m_compilation_unit;
     ErrorList m_errors;

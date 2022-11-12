@@ -831,17 +831,34 @@ std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstExp
     return nullptr;
 }
 
-std::shared_ptr<AstInteger> Parser::ParseIntegerLiteral()
+std::shared_ptr<AstConstant> Parser::ParseIntegerLiteral()
 {
     if (Token token = Expect(TK_INTEGER, true)) {
         std::istringstream ss(token.GetValue());
-        hyperion::Int32 value;
-        ss >> value;
 
-        return std::shared_ptr<AstInteger>(new AstInteger(
-            value,
-            token.GetLocation()
-        ));
+        if (token.GetFlags()[0] == '\0' || token.GetFlags()[0] == 'i') {
+            hyperion::Int32 value;
+            ss >> value;
+
+            return std::shared_ptr<AstInteger>(new AstInteger(
+                value,
+                token.GetLocation()
+            ));
+        } else if (token.GetFlags()[0] == 'u') {
+            hyperion::UInt32 value;
+            ss >> value;
+
+            return std::shared_ptr<AstUnsignedInteger>(new AstUnsignedInteger(
+                value,
+                token.GetLocation()
+            ));
+        } else {
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_illegal_expression,
+                token.GetLocation()
+            ));
+        }
     }
 
     return nullptr;

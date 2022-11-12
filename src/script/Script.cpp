@@ -145,34 +145,7 @@ void Script::Run()
     m_vm.Execute(&m_bs);
 }
 
-void Script::CallFunction(const char *name)
-{
-    CallFunctionArgV(name, nullptr, 0);
-}
-
-void Script::CallFunctionArgV(const char *name, Value *args, ArgCount num_args)
-{
-    CallFunctionArgV(hash_fnv_1(name), args, num_args);    
-}
-
-void Script::CallFunction(FunctionHandle handle)
-{
-    CallFunctionArgV(handle, nullptr, 0);
-}
-
-void Script::CallFunction(HashFNV1 hash)
-{
-    CallFunctionArgV(hash, nullptr, 0);
-}
-
-void Script::CallFunctionArgV(HashFNV1 hash, Value *args, ArgCount num_args)
-{
-    Value handle;
-    AssertThrow(GetExportedSymbols().Find(hash, &handle));
-    CallFunctionArgV(handle, args, num_args);
-}
-
-void Script::CallFunctionArgV(FunctionHandle handle, Value *args, ArgCount num_args)
+void Script::CallFunctionArgV(const FunctionHandle &handle, Value *args, ArgCount num_args)
 {
     AssertThrow(IsCompiled() && IsBaked());
 
@@ -188,7 +161,7 @@ void Script::CallFunctionArgV(FunctionHandle handle, Value *args, ArgCount num_a
 
     m_vm.InvokeNow(
         &m_bs,
-        handle,
+        handle._inner,
         num_args
     );
 

@@ -277,7 +277,8 @@ class APIInstance;
 class API
 {
 public:
-    struct NativeVariableDefine {
+    struct NativeVariableDefine
+    {
         std::string name;
         SymbolTypePtr_t type;
         enum { INITIALIZER, VALUE } value_type;
@@ -410,7 +411,8 @@ public:
         }
     };
 
-    struct TypeDefine {
+    struct TypeDefine
+    {
         std::string name;
         SymbolTypePtr_t base_class;
         std::vector<NativeMemberDefine> members;
@@ -624,10 +626,5 @@ API::ModuleDefine &API::ModuleDefine::Class(
 }
 
 }
-
-namespace hyperion {
-
-} // namespace hyperion
-
 
 #endif

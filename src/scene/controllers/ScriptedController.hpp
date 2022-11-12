@@ -9,6 +9,7 @@ namespace hyperion::v2 {
 
 class ScriptedController : public Controller
 {
+    Script::ObjectHandle m_controller_object;
     Script::FunctionHandle m_onadded;
     Script::FunctionHandle m_onremoved;
     Script::FunctionHandle m_ontick;

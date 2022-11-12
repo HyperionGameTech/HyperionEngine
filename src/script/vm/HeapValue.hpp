@@ -43,7 +43,7 @@ public:
 
     template <class T>
     bool TypeCompatible() const 
-        { return m_any.GetTypeID() == TypeID::ForType<NormalizedType<T>>(); }
+        { return m_any.Is<T>(); }
 
     bool HasValue() const
         { return m_any.HasValue(); }
@@ -64,13 +64,12 @@ public:
     const T &Get() const
         { return m_any.Get<T>(); }
 
-    template <class T>
-    auto GetRawPointer() -> NormalizedType<T> *
-        { return static_cast<NormalizedType<T> *>(m_any.GetPointer()); }
+    void *GetRawPointer() const
+        { return m_any.GetPointer(); }
 
     template <class T>
-    auto GetPointer() -> NormalizedType<T> *
-        { return TypeCompatible<T>() ? GetRawPointer<T>() : nullptr; }
+    T *GetPointer()
+        { return TypeCompatible<T>() ? static_cast<T *>(GetRawPointer()) : nullptr; }
 
     void Mark();
 

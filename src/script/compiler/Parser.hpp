@@ -26,6 +26,7 @@
 #include <script/compiler/ast/AstFileImport.hpp>
 #include <script/compiler/ast/AstModuleImport.hpp>
 #include <script/compiler/ast/AstInteger.hpp>
+#include <script/compiler/ast/AstUnsignedInteger.hpp>
 #include <script/compiler/ast/AstFloat.hpp>
 #include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/ast/AstBinaryExpression.hpp>
@@ -113,7 +114,7 @@ private:
     );
     std::shared_ptr<AstExpression> ParseParentheses();
     std::shared_ptr<AstExpression> ParseAngleBrackets(std::shared_ptr<AstExpression> target);
-    std::shared_ptr<AstInteger> ParseIntegerLiteral();
+    std::shared_ptr<AstConstant> ParseIntegerLiteral();
     std::shared_ptr<AstFloat> ParseFloatLiteral();
     std::shared_ptr<AstString> ParseStringLiteral();
     std::shared_ptr<AstIdentifier> ParseIdentifier(bool allow_keyword = false);

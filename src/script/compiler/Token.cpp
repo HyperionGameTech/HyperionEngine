@@ -1,5 +1,7 @@
 #include <script/compiler/Token.hpp>
 
+#include <cstring>
+
 namespace hyperion::compiler {
 
 const Token Token::EMPTY = Token(TK_EMPTY, "", SourceLocation::eof);
@@ -42,6 +44,15 @@ Token::Token(TokenClass token_class, const std::string &value, const SourceLocat
       m_value(value),
       m_location(location)
 {
+    std::memset(m_flags, 0, sizeof(m_flags));
+}
+
+Token::Token(TokenClass token_class, const std::string &value, Flags flags, const SourceLocation &location)
+    : m_token_class(token_class),
+      m_value(value),
+      m_location(location)
+{
+    std::memcpy(m_flags, flags, sizeof(m_flags));
 }
 
 Token::Token(const Token &other)
@@ -49,6 +60,7 @@ Token::Token(const Token &other)
       m_value(other.m_value),
       m_location(other.m_location)
 {
+    std::memcpy(m_flags, other.m_flags, sizeof(m_flags));
 }
 
 bool Token::IsContinuationToken() const
