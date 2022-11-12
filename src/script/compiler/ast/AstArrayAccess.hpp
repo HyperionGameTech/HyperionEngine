@@ -10,7 +10,8 @@
 
 namespace hyperion::compiler {
 
-class AstArrayAccess : public AstExpression {
+class AstArrayAccess : public AstExpression
+{
 public:
     AstArrayAccess(
         const std::shared_ptr<AstExpression> &target,
@@ -29,7 +30,6 @@ public:
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
     virtual AstExpression *GetTarget() const override;
-    virtual AstExpression *GetHeldGenericExpr() const override;
     virtual bool IsMutable() const override;
 
 private:

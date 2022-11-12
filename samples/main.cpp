@@ -310,9 +310,6 @@ public:
             monkey.SetName("monkey");
             auto monkey_entity = monkey[0].GetEntity();
             monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-            monkey_entity->AddController<ScriptedController>(
-                engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
-            );
             monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
             monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
@@ -327,6 +324,11 @@ public:
             monkey.Translate(Vector3(40, 250.5f, 0));
             monkey.Scale(12.0f);
             engine->InitObject(monkey_entity);
+
+            monkey_entity->AddController<ScriptedController>(
+                engine->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
+            );
+
             monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);
 

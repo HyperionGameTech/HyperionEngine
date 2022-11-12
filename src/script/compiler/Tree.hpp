@@ -13,7 +13,8 @@
 namespace hyperion::compiler {
 
 template <typename T>
-struct TreeNode {
+struct TreeNode
+{
     TreeNode(const T &value)
         : m_value(value)
     {
@@ -49,7 +50,8 @@ struct TreeNode {
 };
 
 template <typename T>
-class Tree {
+class Tree
+{
 public:
     std::ostream &operator<<(std::ostream &os) const
     {

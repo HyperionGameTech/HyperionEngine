@@ -106,7 +106,7 @@ Exception Exception::InvalidConstructorException()
 
 Exception Exception::NullReferenceException()
 {
-    return Exception("Null reference exception");
+    return Exception("Null object dereferenced");
 }
 
 Exception Exception::DivisionByZeroException()

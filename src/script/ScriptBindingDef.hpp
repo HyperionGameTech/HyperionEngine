@@ -41,12 +41,13 @@ GetArgument(sdk::Params &params)
         HYP_SCRIPT_GET_ARG_BOOLEAN(index, arg0);
 
         return arg0;
+    } else if constexpr (std::is_pointer_v<ReturnType>) {
+        using ReturnTypeWithoutPtr = std::remove_pointer_t<ReturnType>;
+        HYP_SCRIPT_GET_ARG_PTR_RAW(index, ReturnTypeWithoutPtr, arg0);
+
+        return arg0;
     } else {
         static_assert(resolution_failure<ReturnType>, "Unable to use type as arg");
-        HYP_SCRIPT_GET_ARG_PTR(index, vm::VMObject, arg0);
-        HYP_SCRIPT_GET_MEMBER_PTR(arg0, "__intern", ReturnType, member);
-
-        return member;
     }
 }
 
@@ -115,6 +116,53 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     using Normalized = NormalizedType<ReturnType>;
 
     auto &&arg0 = GetArgument<0, ThisType>(params);
+    
+    if constexpr (std::is_same_v<void, Normalized>) {
+        HYP_SCRIPT_RETURN_VOID((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<int32_t, Normalized>) {
+        HYP_SCRIPT_RETURN_INT32((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<int64_t, Normalized>) {
+        HYP_SCRIPT_RETURN_INT64((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<uint32_t, Normalized>) {
+        HYP_SCRIPT_RETURN_UINT32((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<uint64_t, Normalized>) {
+        HYP_SCRIPT_RETURN_UINT64((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<float, Normalized>) {
+        HYP_SCRIPT_RETURN_FLOAT32((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<double, Normalized>) {
+        HYP_SCRIPT_RETURN_FLOAT64((arg0.*MemFn)());
+    } else if constexpr (std::is_same_v<bool, Normalized>) {
+        HYP_SCRIPT_RETURN_BOOLEAN((arg0.*MemFn)());
+    } else {
+        HYP_SCRIPT_CREATE_PTR((arg0.*MemFn)(), result);
+
+        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+
+        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+
+        vm::VMObject result_value(prototype_it->second); // construct from prototype
+        HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+
+        HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+
+        HYP_SCRIPT_RETURN(ptr);
+    }
+}
+
+
+template <class ReturnType, class ThisType, class PtrType, ReturnType(ThisType::*MemFn)()>
+HYP_SCRIPT_FUNCTION(CxxPtrMemberFn)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    // static_assert(std::is_pointer_v<ThisType>);
+    // static_assert(std::is_class_v<std::remove_pointer_t<ThisType>>);
+
+    using Normalized = NormalizedType<ReturnType>;
+
+    auto &&arg0 = *GetArgument<0, PtrType>(params);
     
     if constexpr (std::is_same_v<void, Normalized>) {
         HYP_SCRIPT_RETURN_VOID((arg0.*MemFn)());

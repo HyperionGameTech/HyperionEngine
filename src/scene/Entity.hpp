@@ -79,6 +79,8 @@ public:
 
     Entity(const Entity &other) = delete;
     Entity &operator=(const Entity &other) = delete;
+    // Entity(Entity &&other) noexcept;
+    // Entity &operator=(Entity &&other) noexcept;
     ~Entity();
 
     Octree *GetOctree() const

@@ -273,7 +273,7 @@ struct Value
             return false;
         }
 
-        *out = reinterpret_cast<T *>(m_value.user_data);
+        *out = static_cast<T *>(m_value.user_data);
 
         return true;
     }

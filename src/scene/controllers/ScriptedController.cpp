@@ -25,6 +25,26 @@ void ScriptedController::OnAdded()
         m_script->Decompile(&utf::cout);
         m_script->Run();
 
+        Script::ObjectHandle engine_object_handle;
+        if (!m_script->GetObjectHandle("engine", engine_object_handle)) {
+            DebugLog(
+                LogType::Error,
+                "Failed to get `engine` object\n"
+            );
+            return;
+        }
+
+        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *>(GetEngine()) });
+
+        if (!m_script->SetMember(engine_object_handle, "handle", engine_handle_value)) {
+            DebugLog(
+                LogType::Error,
+                "Failed to set `engine.handle` member\n"
+            );
+
+            return;
+        }
+
         if (!m_script->GetObjectHandle("movement_controller", m_controller_object)) {
             DebugLog(
                 LogType::Error,

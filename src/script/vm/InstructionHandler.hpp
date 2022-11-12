@@ -1406,21 +1406,9 @@ public:
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.i);
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.u);
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = result.m_value.f / static_cast<Float32>(b.f);
                 }
                 break;
@@ -1433,22 +1421,10 @@ public:
                     result.m_value.d = a.f;
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / static_cast<Float64>(b.i);
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / static_cast<Float64>(b.u);
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = result.m_value.d / b.f;
                 }
                 break;
@@ -1548,22 +1524,10 @@ public:
                     result.m_value.f = static_cast<Float32>(a.f);
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, static_cast<Float32>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, static_cast<Float32>(b.u));
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.f = fmodf(result.m_value.f, a.f);
                 }
                 break;
@@ -1576,22 +1540,10 @@ public:
                     result.m_value.d = a.f;
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
-                    if (b.i == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.i));
                 } else if (a.flags & Number::FLAG_UNSIGNED) {
-                    if (b.u == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, static_cast<Float64>(b.u));
                 } else {
-                    if (b.f == 0) {
-                        state->ThrowException(thread, Exception::DivisionByZeroException());
-                        break;
-                    }
                     result.m_value.d = std::fmod(result.m_value.d, a.f);
                 }
                 break;
@@ -1646,9 +1598,11 @@ public:
         thread->m_regs[dst_reg] = result;
     }
 
-    HYP_FORCE_INLINE void Or(BCRegister lhs_reg,
+    HYP_FORCE_INLINE void Or(
+        BCRegister lhs_reg,
         BCRegister rhs_reg,
-        BCRegister dst_reg)
+        BCRegister dst_reg
+    )
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];
@@ -1677,9 +1631,11 @@ public:
         thread->m_regs[dst_reg] = result;
     }
 
-    HYP_FORCE_INLINE void Xor(BCRegister lhs_reg,
+    HYP_FORCE_INLINE void Xor(
+        BCRegister lhs_reg,
         BCRegister rhs_reg,
-        BCRegister dst_reg)
+        BCRegister dst_reg
+    )
     {
         // load values from registers
         Value *lhs = &thread->m_regs[lhs_reg];

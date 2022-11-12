@@ -4,6 +4,7 @@
 #include <script/vm/VMMemoryBuffer.hpp>
 #include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
+#include <script/vm/HeapValue.hpp>
 #include <script/Hasher.hpp>
 
 #include <system/Debug.hpp>
