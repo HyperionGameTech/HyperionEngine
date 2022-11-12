@@ -18,18 +18,16 @@ void ScriptedController::OnAdded()
         return;
     }
 
-    APIInstance api_instance;
-
-    if (m_script->Compile(api_instance)) {
+    if (m_script->Compile()) {
         m_script->Bake();
         m_script->Decompile(&utf::cout);
         m_script->Run();
 
         Script::ObjectHandle engine_object_handle;
-        if (!m_script->GetObjectHandle("engine", engine_object_handle)) {
+        if (!m_script->GetObjectHandle("_engine", engine_object_handle)) {
             DebugLog(
                 LogType::Error,
-                "Failed to get `engine` object\n"
+                "Failed to get `_engine` object\n"
             );
             return;
         }
@@ -39,7 +37,7 @@ void ScriptedController::OnAdded()
         if (!m_script->SetMember(engine_object_handle, "handle", engine_handle_value)) {
             DebugLog(
                 LogType::Error,
-                "Failed to set `engine.handle` member\n"
+                "Failed to set `_engine.handle` member\n"
             );
 
             return;

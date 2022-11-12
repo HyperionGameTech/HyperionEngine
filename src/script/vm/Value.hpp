@@ -14,6 +14,8 @@
 
 namespace hyperion {
 
+class APIInstance;
+
 namespace vm {
 
 typedef UInt32 BCAddress;
@@ -57,13 +59,13 @@ namespace sdk {
 
 struct Params
 {
+    APIInstance &api_instance;
     vm::InstructionHandler *handler;
     vm::Value **args;
     Int32 nargs;
 };
 
 } // namespace sdk
-
 } // namespace hyperion
 
 // native typedefs
@@ -89,7 +91,7 @@ struct Value
     {
         NONE,
 
-        /* These first types are listed in order of precedence */
+        /* These first types are listed in order of conversion precedence */
         I32,
         I64,
         U32,

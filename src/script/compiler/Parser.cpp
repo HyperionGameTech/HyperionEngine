@@ -268,13 +268,6 @@ bool Parser::ExpectEndOfStmt()
             location
         ));
 
-        // skip until end of statement, end of line, or end of file.
-        // do {
-        //     m_token_stream->Next();
-        // } while (m_token_stream->HasNext() &&
-        //     !Match(TK_NEWLINE, true) &&
-        //     !Match(TK_SEMICOLON, true));
-
         return false;
     }
 
@@ -391,8 +384,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
 
                 res = nullptr;
             }
-        } else if (MatchKeyword(Keyword_use, false)) {
-            res = ParseDirective();
         } else if (MatchKeyword(Keyword_import, false)) {
             res = ParseImport();
         } else if (MatchKeyword(Keyword_export, false)) {
@@ -430,6 +421,8 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
         } else {
             res = ParseExpression();
         }
+    } else if (Match(TK_DIRECTIVE, false)) {
+        res = ParseDirective();
     } else if (Match(TK_OPEN_BRACE, false)) {
         res = ParseBlock();
     } else if (Match(TK_IDENT, false) && MatchAhead(TK_COLON, 1)) {
@@ -481,37 +474,22 @@ std::shared_ptr<AstModuleDeclaration> Parser::ParseModuleDeclaration()
 
 std::shared_ptr<AstDirective> Parser::ParseDirective()
 {
-    if (Token token = ExpectKeyword(Keyword_use, true)) {
-        if (Token ident = Expect(TK_IDENT, true)) {
-            // the arguments will be held in an array expression
-            std::vector<std::string> args;
+    if (Token token = Expect(TK_DIRECTIVE, true)) {
+        // the arguments will be held in an array expression
+        std::vector<std::string> args;
 
-            if (Match(TK_OPEN_BRACKET)) {
-                if (Token token = Expect(TK_OPEN_BRACKET, true)) {
-                    while (true) {
-                        if (Match(TK_CLOSE_BRACKET, false)) {
-                            break;
-                        }
+        while (m_token_stream->HasNext() && !(Match(TK_SEMICOLON, true) || Match(TK_NEWLINE, true))) {
+            Token token = m_token_stream->Peek();
 
-                        if (Token arg = Expect(TK_STRING, true)) {
-                            args.push_back(arg.GetValue());
-                        }
-
-                        if (!Match(TK_COMMA, true)) {
-                            break;
-                        }
-                    }
-
-                    Expect(TK_CLOSE_BRACKET, true);
-                }
-            }
-
-            return std::shared_ptr<AstDirective>(new AstDirective(
-                ident.GetValue(),
-                args,
-                token.GetLocation()
-            ));
+            args.push_back(token.GetValue());
+            m_token_stream->Next();
         }
+
+        return std::shared_ptr<AstDirective>(new AstDirective(
+            token.GetValue(),
+            args,
+            token.GetLocation()
+        ));
     }
 
     return nullptr;

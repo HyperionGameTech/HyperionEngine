@@ -123,7 +123,8 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::ArraySize)
     vm::Exception e(buffer);
 
     if (target_ptr->GetType() == Value::ValueType::HEAP_POINTER) {
-        union {
+        union
+        {
             VMString *str_ptr;
             VMArray *array_ptr;
             VMMemoryBuffer *memory_buffer_ptr;
@@ -520,11 +521,11 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
 
     auto entity_handle = engine_ptr->CreateHandle<Entity>();
 
-    const auto class_name_it = APIInstance::class_bindings.class_names.Find<Handle<Entity>>();
-    AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Handle<Entity>>();
+    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-    const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-    AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
     HYP_SCRIPT_CREATE_PTR(entity_handle, result);
     vm::VMObject result_value(prototype_it->second); // construct from prototype
@@ -536,26 +537,6 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
 void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
-
-    // auto vector3_add = CxxMemberFn<Vector3, Vector3, Vector3, &Vector3::operator+>;
-    // static_assert(std::is_same_v<decltype(vector3_add), NativeFunctionPtr_t>);
-
-
-    // api_instance.Module(Config::global_module_name)
-    //     .Class<Engine *>(
-    //         "Engine",
-    //         {
-    //             API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
-    //             API::NativeMemberDefine(
-    //                 "CreateHandle",
-    //                 BuiltinTypes::ANY,
-    //                 {
-    //                     { "self", BuiltinTypes::ANY },
-    //                     EngineCreateHandle
-    //                 }
-    //             )
-    //         }
-    //     )
 
     api_instance.Module(Config::global_module_name)
         .Function(
@@ -831,6 +812,11 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
     api_instance.Module(Config::global_module_name)
         .Variable("SCRIPT_VERSION", 200)
         .Variable("ENGINE_VERSION", 200)
+#ifdef HYP_DEBUG_MODE
+        .Variable("DEBUG_MODE", true)
+#else
+        .Variable("DEBUG_MODE", false)
+#endif
         .Variable("NAN", MathUtil::NaN<Float32>())
         .Function(
             "ArraySize",
@@ -941,7 +927,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 
 void ScriptBindings::RegisterBindings(APIInstance &api_instance)
 {
-    class_bindings = APIInstance::class_bindings;
+    // class_bindings = APIInstance::class_bindings;
 }
 
 } // namespace hyperion
