@@ -7,7 +7,8 @@
 
 namespace hyperion::compiler {
 
-class AstInteger : public AstConstant {
+class AstInteger : public AstConstant
+{
 public:
     AstInteger(hyperion::Int32 value, const SourceLocation &location);
 

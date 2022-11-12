@@ -129,7 +129,9 @@ Token Lexer::NextToken()
                ch[0] == '%' || ch[0] == '^' ||
                ch[0] == '&' || ch[0] == '|' ||
                ch[0] == '<' || ch[0] == '>' ||
-               ch[0] == '=' || ch[0] == '!') {
+               ch[0] == '=' || ch[0] == '!' ||
+               ch[0] == '~')
+    {
         return ReadOperator();
     } else if (ch[0] == ',') {
         int pos_change = 0;
@@ -335,6 +337,9 @@ Token Lexer::ReadNumberLiteral()
         m_source_location.GetColumn() += pos_change;
     }
 
+    Token::Flags token_flags;
+    std::memset(token_flags, 0, sizeof(token_flags));
+
     u32char ch = m_source_stream.Peek();
     while (m_source_stream.HasNext() && utf32_isdigit(ch)) {
         int pos_change = 0;
@@ -366,9 +371,25 @@ Token Lexer::ReadNumberLiteral()
         }
         
         ch = m_source_stream.Peek();
+
+        switch ((char)ch) {
+        case 'u':
+        case 'f':
+        case 'i':
+        // case 'd':
+        // case 'l':
+            token_flags[0] = (char)ch;
+
+            if (m_source_stream.HasNext()) {
+                m_source_stream.Next();
+                ch = m_source_stream.Peek();
+            }
+
+            break;
+        }
     }
 
-    return Token(token_class, value, location);
+    return Token(token_class, value, token_flags, location);
 }
 
 Token Lexer::ReadHexNumberLiteral()

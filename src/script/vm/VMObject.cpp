@@ -246,7 +246,8 @@ void VMObject::GetRepresentation(
 
         if (mem.value.m_type == Value::HEAP_POINTER &&
             mem.value.m_value.ptr != nullptr &&
-            mem.value.m_value.ptr->GetRawPointer<void>() == static_cast<const void *>(this)) {
+            mem.value.m_value.ptr->GetRawPointer() == static_cast<const void *>(this))
+        {
             mem.value.ToRepresentation(
                 ss,
                 add_type_name,

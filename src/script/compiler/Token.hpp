@@ -7,7 +7,8 @@
 
 namespace hyperion::compiler {
 
-enum TokenClass {
+enum TokenClass
+{
     TK_EMPTY,
     TK_INTEGER,
     TK_FLOAT,
@@ -37,20 +38,34 @@ enum TokenClass {
     TK_CLOSE_BRACE
 };
 
-class Token {
+class Token
+{
 public:
     static std::string TokenTypeToString(TokenClass token_class);
     
     static const Token EMPTY;
 
 public:
-    Token(TokenClass token_class,
+    using Flags = char[4];
+
+    Token(
+        TokenClass token_class,
         const std::string &value,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
+
+    Token(
+        TokenClass token_class,
+        const std::string &value,
+        Flags flags,
+        const SourceLocation &location
+    );
+
     Token(const Token &other);
 
     TokenClass GetTokenClass() const { return m_token_class; }
     const std::string &GetValue() const { return m_value; }
+    const Flags &GetFlags() const { return m_flags; }
     const SourceLocation &GetLocation() const { return m_location; }
     bool Empty() const { return m_token_class == TK_EMPTY; }
     
@@ -71,6 +86,7 @@ public:
 private:
     TokenClass m_token_class;
     std::string m_value;
+    Flags m_flags;
     SourceLocation m_location;
 };
 

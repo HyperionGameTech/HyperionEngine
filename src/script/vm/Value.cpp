@@ -4,6 +4,7 @@
 #include <script/vm/VMMemoryBuffer.hpp>
 #include <script/vm/VMArraySlice.hpp>
 #include <script/vm/VMString.hpp>
+#include <script/Hasher.hpp>
 
 #include <system/Debug.hpp>
 
@@ -63,6 +64,9 @@ const char *Value::GetTypeString() const
         case I32: // fallthrough
         case I64:
             return "Int";
+        case U32: // fallthrough
+        case U64:
+            return "UInt";
         case F32: // fallthrough
         case F64:
             return "Float";
@@ -116,6 +120,21 @@ VMString Value::ToString() const
                 buf_size,
                 "%" PRId64,
                 m_value.i64
+            );
+            return VMString(buf, n);
+        }
+
+        case Value::U32: {
+            int n = snprintf(buf, buf_size, "%u", m_value.u32);
+            return VMString(buf, n);
+        }
+
+        case Value::U64: {
+            int n = snprintf(
+                buf,
+                buf_size,
+                "%" PRIu64,
+                m_value.u64
             );
             return VMString(buf, n);
         }
