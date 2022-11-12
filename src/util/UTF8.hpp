@@ -84,18 +84,28 @@ inline void init()
 
 inline bool utf32_isspace(u32char ch)
 {
-    return ch == static_cast<u32char>(' ')  ||
-           ch == static_cast<u32char>('\n') ||
-           ch == static_cast<u32char>('\t') ||
-           ch == static_cast<u32char>('\r');
+    return ch == u32char(' ')  ||
+           ch == u32char('\n') ||
+           ch == u32char('\t') ||
+           ch == u32char('\r');
 }
 
-inline bool utf32_isdigit(u32char ch) { return (ch >= static_cast<u32char>('0')) && (ch <= static_cast<u32char>('9')); }
+inline bool utf32_isdigit(u32char ch)
+{
+    return (ch >= u32char('0')) && (ch <= u32char('9'));
+}
+
+inline bool utf32_isxdigit(u32char ch)
+{
+    return (ch >= u32char('0')) && (ch <= u32char('9'))
+        || ((ch >= u32char('A') && ch <= u32char('F')))
+        || ((ch >= u32char('a') && ch <= u32char('f')));
+}
 
 inline bool utf32_isalpha(u32char ch)
 {
-    return (ch >= 0xC0) || ((ch >= static_cast<u32char>('A') && ch <= static_cast<u32char>('Z')) ||
-                            (ch >= static_cast<u32char>('a') && ch <= static_cast<u32char>('z')));
+    return (ch >= 0xC0) || ((ch >= u32char('A') && ch <= u32char('Z')) ||
+                            (ch >= u32char('a') && ch <= u32char('z')));
 }
 
 inline int utf8_strlen(const char *str, int *out_count = nullptr)

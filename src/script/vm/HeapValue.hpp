@@ -42,6 +42,10 @@ public:
         { return m_flags; }
 
     template <class T>
+    bool Is() const
+        { return m_any.Is<T>(); }
+
+    template <class T>
     bool TypeCompatible() const 
         { return m_any.Is<T>(); }
 

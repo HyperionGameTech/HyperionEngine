@@ -1147,20 +1147,26 @@ public:
         Value *lhs = &thread->m_regs[lhs_reg];
         Value *rhs = &thread->m_regs[rhs_reg];
 
-        union {
-            Int64 i;
-            UInt64 u;
-            Float64 f;
-        } a, b;
+        Number a, b;
 
-        if (lhs->GetUnsigned(&a.u) && rhs->GetUnsigned(&b.u)) {
-            thread->m_regs.m_flags = (a.u == b.u)
-                ? EQUAL : ((a.u > b.u)
-                ? GREATER : NONE);
-        } else if (lhs->GetInteger(&a.i) && rhs->GetInteger(&b.i)) {
-            thread->m_regs.m_flags = (a.i == b.i)
-                ? EQUAL : ((a.i > b.i)
-                ? GREATER : NONE);
+        if (lhs->GetSignedOrUnsigned(&a) && rhs->GetSignedOrUnsigned(&b)) {
+            if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_SIGNED) {
+                thread->m_regs.m_flags = (a.i == b.i)
+                    ? EQUAL : ((a.i > b.i)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs.m_flags = (a.i == b.u)
+                    ? EQUAL : ((a.i > b.u)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_SIGNED) {
+                thread->m_regs.m_flags = (a.u == b.i)
+                    ? EQUAL : ((a.u > b.i)
+                    ? GREATER : NONE);
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+                thread->m_regs.m_flags = (a.u == b.u)
+                    ? EQUAL : ((a.u > b.u)
+                    ? GREATER : NONE);
+            }
         } else if (lhs->GetNumber(&a.f) && rhs->GetNumber(&b.f)) {
             thread->m_regs.m_flags = (a.f == b.f)
                 ? EQUAL : ((a.f > b.f)
@@ -1203,15 +1209,12 @@ public:
         // load values from registers
         Value *lhs = &thread->m_regs[reg];
 
-        union {
-            Int64 i;
-            Float64 f;
-        };
+        Number num;
 
-        if (lhs->GetInteger(&i)) {
-            thread->m_regs.m_flags = !i ? EQUAL : NONE;
-        } else if (lhs->GetFloatingPoint(&f)) {
-            thread->m_regs.m_flags = !f ? EQUAL : NONE;
+        if (lhs->GetSignedOrUnsigned(&num)) {
+            thread->m_regs.m_flags = ((num.flags & Number::FLAG_SIGNED) ? !num.i : !num.u) ? EQUAL : NONE;
+        } else if (lhs->GetFloatingPoint(&num.f)) {
+            thread->m_regs.m_flags = !num.f ? EQUAL : NONE;
         } else if (lhs->m_type == Value::BOOLEAN) {
             thread->m_regs.m_flags = !lhs->m_value.b ? EQUAL : NONE;
         } else if (lhs->m_type == Value::HEAP_POINTER) {

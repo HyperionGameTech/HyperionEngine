@@ -162,7 +162,7 @@ struct Value
     HYP_FORCE_INLINE Value::ValueData &GetValue() { return m_value; }
     HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
 
-    HYP_FORCE_INLINE bool GetUnsigned(uint64_t *out) const
+    HYP_FORCE_INLINE bool GetUnsigned(UInt64 *out) const
     {
         switch (m_type) {
             case U32: *out = static_cast<UInt64>(m_value.u32); return true;
@@ -171,7 +171,7 @@ struct Value
         }
     }
 
-    HYP_FORCE_INLINE bool GetInteger(int64_t *out) const
+    HYP_FORCE_INLINE bool GetInteger(Int64 *out) const
     {
         switch (m_type) {
             case I32: *out = static_cast<Int64>(m_value.i32); return true;
@@ -278,25 +278,7 @@ struct Value
         return true;
     }
 
-    /** Returns -1 on error */
-    HYP_FORCE_INLINE static int CompareAsPointers(
-        Value *lhs,
-        Value *rhs
-    )
-    {
-        HeapValue *a = lhs->m_value.ptr;
-        HeapValue *b = rhs->m_value.ptr;
-
-        if (a == b) {
-            // pointers equal, drop out early.
-            return CompareFlags::EQUAL;
-        } else {
-            return CompareFlags::NONE;
-        }
-
-        // error
-        return -1;
-    }
+    static int CompareAsPointers(Value *lhs, Value *rhs);
 
     HYP_FORCE_INLINE static int CompareAsFunctions(
         Value *lhs,
