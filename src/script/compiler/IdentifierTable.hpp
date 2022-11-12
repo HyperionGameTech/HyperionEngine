@@ -11,39 +11,45 @@
 
 namespace hyperion::compiler {
 
-class IdentifierTable {
+class IdentifierTable
+{
 public:
     IdentifierTable();
     IdentifierTable(const IdentifierTable &other);
 
     int CountUsedVariables() const;
     
-    void PopIdentifier() { m_identifiers.pop_back(); m_identifier_index--; }
-    int GetIdentifierIndex() const { return m_identifier_index; }
     std::vector<std::shared_ptr<Identifier>> &GetIdentifiers()
         { return m_identifiers; }
+
     const std::vector<std::shared_ptr<Identifier>> &GetIdentifiers() const
         { return m_identifiers; }
 
     /** Constructs an identifier with the given name, as an alias to the given identifier. */
-    Identifier *AddAlias(const std::string &name, Identifier *aliasee);
+    std::shared_ptr<Identifier> AddAlias(const std::string &name, Identifier *aliasee);
 
     /** Constructs an identifier with the given name, and assigns an index to it. */
-    Identifier *AddIdentifier(const std::string &name,
+    std::shared_ptr<Identifier> AddIdentifier(
+        const std::string &name,
         int flags = 0,
         std::shared_ptr<AstExpression> current_value = nullptr,
-        SymbolTypePtr_t symbol_type = nullptr);
+        SymbolTypePtr_t symbol_type = nullptr
+    );
+
+    bool AddIdentifier(const std::shared_ptr<Identifier> &identifier);
 
     /** Look up an identifier by name. Returns nullptr if not found */
-    Identifier *LookUpIdentifier(const std::string &name);
+    std::shared_ptr<Identifier> LookUpIdentifier(const std::string &name);
 
     void BindTypeToIdentifier(const std::string &name, SymbolTypePtr_t symbol_type);
 
     /** Look up symbol type by name */
     SymbolTypePtr_t LookupSymbolType(const std::string &name) const;
     /** Look up an instance of a generic type, with the given parameters*/
-    SymbolTypePtr_t LookupGenericInstance(const SymbolTypePtr_t &base, 
-        const std::vector<GenericInstanceTypeInfo::Arg> &params) const;
+    SymbolTypePtr_t LookupGenericInstance(
+        const SymbolTypePtr_t &base, 
+        const std::vector<GenericInstanceTypeInfo::Arg> &params
+    ) const;
         
     void AddSymbolType(const SymbolTypePtr_t &type);
 

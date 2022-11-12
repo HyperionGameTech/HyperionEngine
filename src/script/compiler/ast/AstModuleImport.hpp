@@ -7,7 +7,9 @@
 
 namespace hyperion::compiler {
 
-class AstModuleImportPart : public AstStatement {
+class Identifier;
+class AstModuleImportPart : public AstStatement
+{
 public:
     AstModuleImportPart(
         const std::string &left,
@@ -20,7 +22,14 @@ public:
     const std::vector<std::shared_ptr<AstModuleImportPart>> &GetParts() const
         { return m_right_parts; }
 
-    void SetPullInModules(bool pull_in_modules) { m_pull_in_modules = pull_in_modules; }
+    void SetPullInModules(bool pull_in_modules)
+        { m_pull_in_modules = pull_in_modules; }
+
+    std::vector<std::shared_ptr<Identifier>> &GetIdentifiers()
+        { return m_identifiers; }
+
+    const std::vector<std::shared_ptr<Identifier>> &GetIdentifiers() const
+        { return m_identifiers; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -31,8 +40,8 @@ public:
 private:
     std::string m_left;
     std::vector<std::shared_ptr<AstModuleImportPart>> m_right_parts;
-
     bool m_pull_in_modules;
+    std::vector<std::shared_ptr<Identifier>> m_identifiers;
 
     Pointer<AstModuleImportPart> CloneImpl() const
     {

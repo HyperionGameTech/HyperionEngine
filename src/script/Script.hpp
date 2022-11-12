@@ -69,7 +69,7 @@ public:
     bool IsBaked() const { return !m_baked_bytes.empty(); }
     bool IsCompiled() const { return !m_bytecode_chunk.buildables.empty(); }
 
-    bool Compile(APIInstance &api_instance);
+    bool Compile();
 
     InstructionStream Decompile(utf::utf8_ostream *os = nullptr) const;
 
@@ -188,6 +188,8 @@ private:
     {
         return GetExportedSymbols().Find(hash_fnv_1(name), value);
     }
+
+    APIInstance m_api_instance;
 
     SourceFile  m_source_file;
     CompilationUnit m_compilation_unit;

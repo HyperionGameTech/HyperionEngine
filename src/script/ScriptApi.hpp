@@ -513,11 +513,10 @@ public:
             Float value
         );
 
-        // ModuleDefine &Variable(
-        //     const std::string &variable_name,
-        //     const SymbolTypePtr_t &object_type,
-        //     const std::vector<NativeVariableDefine> &object_members
-        // );
+        ModuleDefine &Variable(
+            const std::string &variable_name,
+            bool value
+        );
 
         ModuleDefine &Variable(
             const std::string &variable_name,
@@ -570,7 +569,7 @@ public:
 class APIInstance
 {
 public:
-    static struct ClassBindings
+    struct ClassBindings
     {
         TypeMap<std::string> class_names;
         std::unordered_map<std::string, vm::HeapValue *> class_prototypes;
@@ -598,7 +597,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
     const std::vector<NativeMemberDefine> &members
 )
 {
-    APIInstance::class_bindings.class_names.Set<T>(class_name);
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
     m_type_defs.push_back(TypeDefine(
         class_name,
@@ -615,7 +614,7 @@ API::ModuleDefine &API::ModuleDefine::Class(
     const std::vector<NativeMemberDefine> &members
 )
 {
-    APIInstance::class_bindings.class_names.Set<T>(class_name);
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
     m_type_defs.push_back(TypeDefine(
         class_name,

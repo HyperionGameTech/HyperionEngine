@@ -32,6 +32,8 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
+    std::shared_ptr<Identifier> left_identifier;
+
     if (Module *this_module = mod->LookupNestedModule(m_left)) {
         if (m_pull_in_modules && m_right_parts.empty()) {
             // pull this module into scope
@@ -45,31 +47,24 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
             for (const std::shared_ptr<AstModuleImportPart> &part : m_right_parts) {
                 AssertThrow(part != nullptr);
                 part->Visit(visitor, this_module);
+
+                if (!part->GetIdentifiers().empty()) {
+                    for (const auto &identifier : part->GetIdentifiers()) {
+                        m_identifiers.push_back(identifier);
+                    }
+                }
             }
         }
+    } else if (m_right_parts.empty() && (left_identifier = mod->LookUpIdentifier(m_left, false))) {
+        // pull the identifier into local scope
+        m_identifiers.push_back(std::move(left_identifier));
     } else {
-        auto nested_modules = mod->CollectNestedModules();
-
-        std::stringstream nested_modules_string;
-        nested_modules_string << "[";
-
-        for (SizeType i = 0; i < nested_modules.size(); i++) {
-            nested_modules_string << '"' << nested_modules[i] << '"';
-
-            if (i != nested_modules.size() - 1) {
-                nested_modules_string << ", ";
-            }
-        }
-
-        nested_modules_string << "]";
-
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_could_not_find_nested_module,
             m_location,
             m_left,
-            mod->GetName(),
-            nested_modules_string.str()
+            mod->GetName()
         ));
     }
 }
@@ -124,7 +119,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     // and we won't import the 'range' module again
     if (first->GetParts().empty() || !opened) {
         // find the folder which the current file is in
-        const size_t index = m_location.GetFileName().find_last_of("/\\");
+        const SizeType index = m_location.GetFileName().find_last_of("/\\");
 
         std::string current_dir;
         if (index != std::string::npos) {
@@ -187,9 +182,26 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (opened) {
+        std::vector<std::shared_ptr<Identifier>> pulled_in_identifiers;
+
         for (const std::shared_ptr<AstModuleImportPart> &part : m_parts) {
             AssertThrow(part != nullptr);
             part->Visit(visitor, mod);
+
+            for (const std::shared_ptr<Identifier> &identifier : part->GetIdentifiers()) {
+                pulled_in_identifiers.push_back(identifier);
+            }
+        }
+
+        for (auto &identifier : pulled_in_identifiers) {
+            if (!mod->m_scopes.Top().GetIdentifierTable().AddIdentifier(identifier)) {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_redeclared_identifier,
+                    m_location,
+                    identifier->GetName()
+                ));
+            }
         }
     } else {
         std::stringstream tried_paths_string;

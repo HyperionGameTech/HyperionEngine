@@ -7,25 +7,26 @@
 
 namespace hyperion::compiler {
 
-AstDirective::AstDirective(const std::string &key,
+AstDirective::AstDirective(
+    const std::string &key,
     const std::vector<std::string> &args,
-    const SourceLocation &location)
-    : AstStatement(location),
-      m_key(key),
-      m_args(args)
+    const SourceLocation &location
+) : AstStatement(location),
+    m_key(key),
+    m_args(args)
 {
 }
 
 void AstDirective::Visit(AstVisitor *visitor, Module *mod)
 {
-    if (m_key == "library") {
+    if (m_key == "importpath") {
         // library names should be supplied in arguments as all strings
         if (m_args.empty()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_custom_error,
                 m_location,
-                std::string("'library' directive requires path names supplied in an array (e.g 'use library [\"...\"]')")
+                std::string("'importpath' directive requires path names to be provided (e.g '#importpath \"../path\" \"../other/path\"')")
             ));
         } else {
             // find the folder which the current file is in
@@ -45,8 +46,6 @@ void AstDirective::Visit(AstVisitor *visitor, Module *mod)
                 mod->AddScanPath(scan_path);
             }
         }
-    } else if (m_key == "strict") {
-
     } else {
         CompilerError error(
             LEVEL_ERROR,

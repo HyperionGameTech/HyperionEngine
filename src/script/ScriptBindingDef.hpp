@@ -91,11 +91,11 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     } else {
         HYP_SCRIPT_CREATE_PTR((arg0.*MemFn)(), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -136,11 +136,11 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     } else {
         HYP_SCRIPT_CREATE_PTR((arg0.*MemFn)(), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -183,11 +183,11 @@ HYP_SCRIPT_FUNCTION(CxxPtrMemberFn)
     } else {
         HYP_SCRIPT_CREATE_PTR((arg0.*MemFn)(), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -229,11 +229,11 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     } else {
         HYP_SCRIPT_CREATE_PTR((self_arg.*MemFn)(std::forward<Arg1Type>(arg1)), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -275,11 +275,11 @@ HYP_SCRIPT_FUNCTION(CxxMemberFn)
     } else {
         HYP_SCRIPT_CREATE_PTR((self_arg.*MemFn)(std::forward<Arg1Type>(arg1)), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Normalized>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
 
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -312,11 +312,11 @@ HYP_SCRIPT_FUNCTION(CxxCtor)
     } else {
         HYP_SCRIPT_CREATE_PTR(Type(), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Type>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Type>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
     
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -351,11 +351,11 @@ HYP_SCRIPT_FUNCTION(CxxCtor)
     } else {
         HYP_SCRIPT_CREATE_PTR(Type(std::forward<Arg1Type>(arg1)), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Type>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Type>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
     
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -391,11 +391,11 @@ HYP_SCRIPT_FUNCTION(CxxCtor)
     } else {
         HYP_SCRIPT_CREATE_PTR(Type(std::forward<Arg1Type>(arg1), std::forward<Arg2Type>(arg2)), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Type>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Type>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
     
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -432,11 +432,11 @@ HYP_SCRIPT_FUNCTION(CxxCtor)
     } else {
         HYP_SCRIPT_CREATE_PTR(Type(std::forward<Arg1Type>(arg1), std::forward<Arg2Type>(arg2), std::forward<Arg3Type>(arg3)), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<Type>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Type>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
     
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
@@ -471,11 +471,11 @@ HYP_SCRIPT_FUNCTION(CxxFn)
     } else {
         HYP_SCRIPT_CREATE_PTR(Fn(), result);
 
-        const auto class_name_it = APIInstance::class_bindings.class_names.Find<ReturnType>();
-        AssertThrowMsg(class_name_it != APIInstance::class_bindings.class_names.End(), "Class not registered!");
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<ReturnType>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
     
-        const auto prototype_it = APIInstance::class_bindings.class_prototypes.find(class_name_it->second);
-        AssertThrowMsg(prototype_it != APIInstance::class_bindings.class_prototypes.end(), "Class not registered!");
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
 
         vm::VMObject result_value(prototype_it->second); // construct from prototype
         HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);

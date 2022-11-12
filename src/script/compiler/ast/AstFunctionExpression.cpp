@@ -224,10 +224,10 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     for (const auto &it : function_scope.GetClosureCaptures()) {
         const std::string &name = it.first;
-        const Identifier *ident = it.second;
+        const std::shared_ptr<Identifier> &identifier = it.second;
 
-        AssertThrow(ident != nullptr);
-        AssertThrow(ident->GetSymbolType() != nullptr);
+        AssertThrow(identifier != nullptr);
+        AssertThrow(identifier->GetSymbolType() != nullptr);
 
         std::shared_ptr<AstExpression> current_value(new AstVariable(
             name,
@@ -235,8 +235,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         ));
         
         closure_obj_members.push_back(SymbolMember_t {
-            ident->GetName(),
-            ident->GetSymbolType(),
+            identifier->GetName(),
+            identifier->GetSymbolType(),
             current_value
         });
     }

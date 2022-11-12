@@ -237,17 +237,20 @@ public:
     bool IsAlias() const { return m_type_class == TYPE_ALIAS; }
 
     bool TypeEqual(const SymbolType &other) const;
-    bool TypeCompatible(const SymbolType &other,
+    bool TypeCompatible(
+        const SymbolType &other,
         bool strict_numbers,
-        bool strict_const = false) const;
+        bool strict_const = false
+    ) const;
 
     bool operator==(const SymbolType &other) const { return TypeEqual(other); }
     bool operator!=(const SymbolType &other) const { return !operator==(other); }
+
     const SymbolTypePtr_t FindMember(const std::string &name) const;
     bool FindMember(const std::string &name, SymbolMember_t &out) const;
+
     const SymbolTypePtr_t FindPrototypeMember(const std::string &name) const;
     bool FindPrototypeMember(const std::string &name, SymbolMember_t &out) const;
-    const sp<AstExpression> GetPrototypeValue() const;
 
     const sp<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }

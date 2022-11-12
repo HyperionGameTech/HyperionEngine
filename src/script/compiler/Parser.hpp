@@ -17,8 +17,6 @@
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
 #include <script/compiler/ast/AstAliasDeclaration.hpp>
-#include <script/compiler/ast/AstMixinDeclaration.hpp>
-#include <script/compiler/ast/AstMixin.hpp>
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstImport.hpp>
@@ -183,8 +181,6 @@ private:
         std::string enum_name = "<Anonymous Enum>"
     );
     std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
-    std::shared_ptr<AstMixinDeclaration> ParseMixinDeclaration();
-    std::shared_ptr<AstMixin> ParseMixinExpression(const std::string &name);
     std::shared_ptr<AstImport> ParseImport();
     std::shared_ptr<AstExportStatement> ParseExportStatement();
     std::shared_ptr<AstFileImport> ParseFileImport();

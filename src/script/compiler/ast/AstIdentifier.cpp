@@ -77,7 +77,7 @@ int AstIdentifier::GetStackOffset(int stack_size) const
 
 const AstExpression *AstIdentifier::GetValueOf() const
 {
-    if (const Identifier *ident = m_properties.GetIdentifier()) {
+    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
         if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
@@ -95,7 +95,7 @@ const AstExpression *AstIdentifier::GetValueOf() const
 
 const AstExpression *AstIdentifier::GetDeepValueOf() const
 {
-    if (const Identifier *ident = m_properties.GetIdentifier()) {
+    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
         if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
@@ -113,7 +113,7 @@ const AstExpression *AstIdentifier::GetDeepValueOf() const
 
 const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 {
-    if (const Identifier *ident = m_properties.GetIdentifier()) {
+    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
         if (const auto current_value = ident->GetCurrentValue()) {
             if (auto *nested_identifier = dynamic_cast<const AstIdentifier *>(current_value.get())) {
                 if (nested_identifier == this) {
@@ -132,7 +132,7 @@ const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 
 ExprAccessBits AstIdentifier::GetExprAccess() const
 {
-    if (const Identifier *ident = m_properties.GetIdentifier()) {
+    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
         ExprAccessBits expr_access_bits = 0;
 
         if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PUBLIC) {

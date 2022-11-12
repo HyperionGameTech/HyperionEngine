@@ -25,6 +25,7 @@ namespace hyperion::v2 {
 
 Script::Script(const SourceFile &source_file)
     : EngineComponentBase(),
+      m_vm(m_api_instance),
       m_source_file(source_file)
 {
 }
@@ -43,16 +44,16 @@ void Script::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 }
 
-bool Script::Compile(APIInstance &api_instance)
+bool Script::Compile()
 {
     if (!m_source_file.IsValid()) {
         return false;
     }
 
     // bind all set vars if an api instance has been set
-    ScriptBindings::DeclareAll(api_instance);
-    api_instance.BindAll(&m_vm, &m_compilation_unit);
-    ScriptBindings::RegisterBindings(api_instance);
+    ScriptBindings::DeclareAll(m_api_instance);
+    m_api_instance.BindAll(&m_vm, &m_compilation_unit);
+    ScriptBindings::RegisterBindings(m_api_instance);
 
     SourceStream source_stream(&m_source_file);
 

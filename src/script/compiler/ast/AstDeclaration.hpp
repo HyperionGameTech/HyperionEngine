@@ -8,14 +8,17 @@
 
 namespace hyperion::compiler {
 
-class AstDeclaration : public AstStatement {
+class AstDeclaration : public AstStatement
+{
 public:
     AstDeclaration(const std::string &name,
         const SourceLocation &location);
     virtual ~AstDeclaration() = default;
 
     void SetName(const std::string &name) { m_name = name; }
-    Identifier *GetIdentifier() const { return m_identifier; }
+
+    std::shared_ptr<Identifier> &GetIdentifier() { return m_identifier; }
+    const std::shared_ptr<Identifier> &GetIdentifier() const { return m_identifier; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
@@ -27,7 +30,7 @@ public:
 
 protected:
     std::string m_name;
-    Identifier *m_identifier;
+    std::shared_ptr<Identifier> m_identifier;
 };
 
 } // namespace hyperion::compiler

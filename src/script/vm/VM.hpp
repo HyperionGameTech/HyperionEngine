@@ -26,13 +26,17 @@
     ((left_type) < (right_type)) ? (right_type) : (left_type)
 
 namespace hyperion {
+
+class APIInstance;
+
 namespace vm {
 
 class VM
 {
 public:
-    VM();
+    VM(APIInstance &api_instance);
     VM(const VM &other) = delete;
+    VM &operator=(const VM &other) = delete;
     ~VM();
 
     void PushNativeFunctionPtr(NativeFunctionPtr_t ptr);
@@ -43,7 +47,7 @@ public:
     const VMState &GetState() const
         { return m_state; }
     
-    static void Invoke(
+    void Invoke(
         InstructionHandler *handler,
         const Value &value,
         UInt8 nargs
@@ -61,6 +65,7 @@ private:
     bool HandleException(InstructionHandler *handler);
     void CreateStackTrace(ExecutionThread *thread, StackTrace *out);
 
+    APIInstance &m_api_instance;
     VMState m_state;
 };
 

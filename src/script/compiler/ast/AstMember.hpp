@@ -5,7 +5,8 @@
 
 namespace hyperion::compiler {
 
-class AstMember : public AstExpression {
+class AstMember : public AstExpression
+{
 public:
     AstMember(
       const std::string &field_name,

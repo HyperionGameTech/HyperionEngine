@@ -5,7 +5,8 @@
 
 namespace hyperion {
 
-class ScriptBindings {
+class ScriptBindings
+{
 public:
     static APIInstance::ClassBindings class_bindings;
 

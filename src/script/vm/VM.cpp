@@ -859,7 +859,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
     }
 }
 
-VM::VM()
+VM::VM(APIInstance &api_instance)
+    : m_api_instance(api_instance)
 {
     m_state.m_vm = non_owning_ptr<VM>(this);
     // create main thread
@@ -905,10 +906,12 @@ void VM::Invoke(
                 args[j] = &thread->m_stack[i];
             }
 
-            sdk::Params params;
-            params.handler = handler;
-            params.args = args;
-            params.nargs = nargs;
+            sdk::Params params {
+                .api_instance = m_api_instance,
+                .handler = handler,
+                .args = args,
+                .nargs = nargs
+            };
 
             // disable auto gc so no collections happen during a native function
             state->enable_auto_gc = false;
@@ -949,7 +952,7 @@ void VM::Invoke(
                         thread->m_stack.Push(value);
                     }
 
-                    VM::Invoke(
+                    Invoke(
                         handler,
                         member->value,
                         nargs + 1
@@ -1060,10 +1063,8 @@ void VM::InvokeNow(
     UInt8 nargs
 )
 {
-    auto *thread = m_state.MAIN_THREAD;
-
+    ExecutionThread *thread = m_state.MAIN_THREAD;
     const SizeType position_before = bs->Position();
-
     const UInt original_function_depth = thread->m_func_depth;
     const SizeType stack_size_before = thread->GetStack().GetStackPointer();
 

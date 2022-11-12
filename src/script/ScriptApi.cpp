@@ -13,8 +13,6 @@ namespace hyperion {
 using namespace vm;
 using namespace compiler;
 
-APIInstance::ClassBindings APIInstance::class_bindings = {};
-
 static Module *GetModule(CompilationUnit *compilation_unit, const std::string &module_name)
 {
     if (Module *mod = compilation_unit->LookupModule(module_name)) {
@@ -24,7 +22,7 @@ static Module *GetModule(CompilationUnit *compilation_unit, const std::string &m
     return nullptr;
 }
 
-static Identifier *CreateIdentifier(
+static std::shared_ptr<Identifier> CreateIdentifier(
     CompilationUnit *compilation_unit,
     Module *mod,
     const std::string &name
@@ -39,7 +37,7 @@ static Identifier *CreateIdentifier(
     // look up variable to make sure it doesn't already exist
     // only this scope matters, variables with the same name outside
     // of this scope are fine
-    Identifier *ident = mod->LookUpIdentifier(name, true);
+    std::shared_ptr<Identifier> ident = mod->LookUpIdentifier(name, true);
     AssertThrowMsg(ident == nullptr, "Cannot create multiple objects with the same name");
 
     // add identifier
@@ -135,6 +133,18 @@ API::ModuleDefine &API::ModuleDefine::Variable(
         variable_name,
         BuiltinTypes::FLOAT,
         vm::Value(Value::F32, { .f = value })
+    );
+}
+
+API::ModuleDefine &API::ModuleDefine::Variable(
+    const std::string &variable_name,
+    bool value
+)
+{
+    return Variable(
+        variable_name,
+        BuiltinTypes::BOOLEAN,
+        vm::Value(Value::BOOLEAN, { .b = value })
     );
 }
 
@@ -245,7 +255,7 @@ void API::ModuleDefine::BindNativeVariable(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    Identifier *ident = CreateIdentifier(compilation_unit, mod, def.name);
+    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.name);
 
     AssertThrow(ident != nullptr);
 
@@ -294,7 +304,7 @@ void API::ModuleDefine::BindNativeFunction(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    Identifier *ident = CreateIdentifier(compilation_unit, mod, def.function_name);
+    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.function_name);
     AssertThrow(ident != nullptr);
 
     // create value
@@ -512,7 +522,7 @@ void API::ModuleDefine::BindType(
         // create heap value for object
         prototype_ptr = vm->GetState().HeapAlloc(main_thread);
 
-        APIInstance::class_bindings.class_prototypes[def.name] = prototype_ptr;
+        api_instance.class_bindings.class_prototypes[def.name] = prototype_ptr;
 
         AssertThrow(prototype_ptr != nullptr);
         prototype_ptr->Assign(prototype_object);

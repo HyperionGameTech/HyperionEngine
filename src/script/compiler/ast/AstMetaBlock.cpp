@@ -57,10 +57,9 @@ void AstMetaBlock::Visit(AstVisitor *visitor, Module *mod)
         ast_iterator.Push(child);
     }
 
-    vm::VM vm;
-    CompilationUnit compilation_unit;
-
     APIInstance meta_api;
+    vm::VM vm(meta_api);
+    CompilationUnit compilation_unit;
 
     meta_api.Module(compiler::Config::global_module_name)
         .Variable("__meta_context", BuiltinTypes::ANY, (UserData_t)&meta_context)
@@ -81,7 +80,7 @@ void AstMetaBlock::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(arg2 != nullptr);
 
                 if (vm::VMString *str_ptr = arg2->GetValue().ptr->GetPointer<vm::VMString>()) {
-                    if (Identifier *ident = meta_context->m_mod->LookUpIdentifier(std::string(str_ptr->GetData()), false, true)) {
+                    if (std::shared_ptr<Identifier> ident = meta_context->m_mod->LookUpIdentifier(std::string(str_ptr->GetData()), false, true)) {
                         // @TODO return a "Variable" instance that gives info on the variable
                         std::cout << "found " << ident->GetName() << "\n";
                     } else {
