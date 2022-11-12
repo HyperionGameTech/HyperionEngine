@@ -407,7 +407,7 @@ DynArray<T, NumInlineBytes>::DynArray(DynArray &&other) noexcept
     other.m_start_offset = 0;
 
 #ifdef HYP_DEBUG_MODE
-    if constexpr (other.use_inline_storage) {
+    if constexpr (use_inline_storage) {
         Memory::Garble(&other.m_inline_storage[0], num_inline_elements * sizeof(Storage));
     }
 #endif

@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # if glslang folder exists, link with it.
-if(EXISTS "${CMAKE_SOURCE_DIR}/glslang/glslang")
+if(EXISTS "${CMAKE_SOURCE_DIR}/glslang/glslang/CMakeLists.txt")
     add_definitions(-DHYP_GLSLANG=1)
 
     include_directories(BEFORE glslang)
@@ -54,7 +54,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/glslang/glslang")
     )
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/zlib")
+if(EXISTS "${CMAKE_SOURCE_DIR}/zlib/CMakeLists.txt")
     add_definitions(-DHYP_ZLIB=1)
 
     include_directories(zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")

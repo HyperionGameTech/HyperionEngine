@@ -52,9 +52,6 @@ inline std::vector<wchar_t> ToWide(const char *str)
 #define HYP_UTF8_WIDE
 #define HYP_UTF8_TOWIDE(str) utf::ToWide(str).data()
 
-#define HYP_UTF8_CHECK_BOUNDS(idx, max) \
-    do { if ((idx) == (max)) { return -1; } } while (0)
-
 #else
 typedef std::string stdstring;
 typedef std::ostream utf8_ostream;
@@ -74,6 +71,9 @@ static auto &fputs = std::fputs;
 using u32char = hyperion::UInt32;
 using u16char = hyperion::UInt16;
 using u8char = hyperion::UInt8;
+
+#define HYP_UTF8_CHECK_BOUNDS(idx, max) \
+    do { if ((idx) == (max)) { return -1; } } while (0)
 
 inline void init()
 {
