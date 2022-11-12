@@ -50,10 +50,10 @@ class Device;
 class CommandBuffer;
 class StagingBuffer;
 
-enum BufferIDMask : UInt32
+enum BufferIDMask : UInt64
 {
-    ID_MASK_BUFFER = 0x1u << 32u,
-    ID_MASK_IMAGE = 0x2u << 32u
+    ID_MASK_BUFFER = (0x1ull << 32ull),
+    ID_MASK_IMAGE = (0x2ull << 32ull)
 };
 
 class StagingBufferPool

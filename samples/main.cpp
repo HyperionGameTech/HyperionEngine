@@ -136,7 +136,7 @@ public:
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
-        batch.Add<Node>("monkey_fbx", "models/monkey.fbx");
+        // batch.Add<Node>("monkey_fbx", "models/monkey.fbx");
         batch.LoadAsync();
         auto obj_models = batch.AwaitResults();
 
@@ -340,12 +340,12 @@ public:
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
         plane->SetTranslation(Vector3(0, 15, 8));
-        plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
+        // plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
         plane->SetScale(20.0f);
         plane->SetMaterial(engine->CreateHandle<Material>());
         plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
         plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
-        plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
+        // plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
         GetScene()->AddEntity(Handle<Entity>(plane));
         plane->CreateBLAS();
         plane->AddController<RigidBodyController>(
