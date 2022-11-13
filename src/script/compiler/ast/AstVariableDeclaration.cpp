@@ -64,6 +64,31 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         m_real_assignment = m_assignment;
     }
 
+    bool pass_by_ref_scope = false;
+
+    if (IsRef()) {
+        if (has_user_assigned) {
+            if (m_real_assignment->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE) {
+                mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG));
+
+                pass_by_ref_scope = true;
+            } else {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_cannot_create_reference,
+                    m_location
+                ));
+            }
+        } else {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_ref_missing_assignment,
+                m_location,
+                m_name
+            ));
+        }
+    }
+
     if (IsGeneric()) {
         mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
     }
@@ -194,6 +219,10 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
+    if (pass_by_ref_scope) {
+        mod->m_scopes.Close();
+    }
+
     if (IsGeneric()) {
         // close template param scope
         mod->m_scopes.Close();
@@ -204,7 +233,8 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_const_missing_assignment,
-                m_location
+                m_location,
+                m_name
             ));
         }
     }

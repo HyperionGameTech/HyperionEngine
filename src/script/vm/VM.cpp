@@ -335,7 +335,29 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
         break;
     }
-    case LOAD_REF: {
+    case LOAD_OFFSET_REF: {
+        BCRegister reg; bs->Read(&reg);
+        UInt16 offset; bs->Read(&offset);
+
+        handler.LoadOffsetRef(
+            reg,
+            offset
+        );
+
+        break;
+    }
+    case LOAD_INDEX_REF: {
+        BCRegister reg; bs->Read(&reg);
+        UInt16 index; bs->Read(&index);
+
+        handler.LoadIndexRef(
+            reg,
+            index
+        );
+
+        break;
+    }
+    case REF: {
         BCRegister dst_reg;
         BCRegister src_reg;
 
@@ -346,8 +368,10 @@ HYP_FORCE_INLINE static void HandleInstruction(
             dst_reg,
             src_reg
         );
+
+        break;
     }
-    case LOAD_DEREF: {
+    case DEREF: {
         BCRegister dst_reg;
         BCRegister src_reg;
 
@@ -358,6 +382,8 @@ HYP_FORCE_INLINE static void HandleInstruction(
             dst_reg,
             src_reg
         );
+
+        break;
     }
     case LOAD_NULL: {
         BCRegister reg; bs->Read(&reg);

@@ -72,8 +72,11 @@ void Value::Mark()
     switch (m_type) {
         case Value::VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
-            AssertThrowMsg(false, "Not supported");
-            m_value.value_ref->Mark();
+
+            if (m_value.value_ref != this) {
+                m_value.value_ref->Mark();
+            }
+
             break;
         
         case Value::HEAP_POINTER: {
@@ -114,7 +117,12 @@ const char *Value::GetTypeString() const
             return "Bool";
         case VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
-            return m_value.value_ref->GetTypeString();
+
+            if (m_value.value_ref != this) {
+                return m_value.value_ref->GetTypeString();
+            } else {
+                return "<Circular Reference>";
+            }
 
         case HEAP_POINTER: 
             if (m_value.ptr == nullptr) {
@@ -204,7 +212,11 @@ VMString Value::ToString() const
 
         case Value::VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
-            return m_value.value_ref->ToString();
+            if (m_value.value_ref == this) {
+                return VMString("<Circular Reference>");
+            } else {
+                return m_value.value_ref->ToString();
+            }
 
         case Value::HEAP_POINTER: {
             if (m_value.ptr == nullptr) {
@@ -255,11 +267,15 @@ void Value::ToRepresentation(
         case Value::VALUE_REF:
             AssertThrow(m_value.value_ref != nullptr);
 
-            m_value.value_ref->ToRepresentation(
-                ss,
-                add_type_name,
-                depth - 1
-            );
+            if (m_value.value_ref == this) {
+                ss << "<Circular Reference>";
+            } else {
+                m_value.value_ref->ToRepresentation(
+                    ss,
+                    add_type_name,
+                    depth - 1
+                );
+            }
 
             return;
 

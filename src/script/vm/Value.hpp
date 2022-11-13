@@ -164,6 +164,15 @@ struct Value
     HYP_FORCE_INLINE Value::ValueData &GetValue() { return m_value; }
     HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
 
+    HYP_FORCE_INLINE void AssignValue(const Value &other, bool assign_ref = true)
+    {
+        if (assign_ref && m_type == VALUE_REF) {
+            *m_value.value_ref = other;
+        } else {
+            *this = other;
+        }
+    }
+
     HYP_FORCE_INLINE bool GetUnsigned(UInt64 *out) const
     {
         switch (m_type) {

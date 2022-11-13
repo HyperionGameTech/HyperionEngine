@@ -106,6 +106,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             nullptr,
             false,
             false,
+            false,
             m_location
         ));
     }
@@ -132,9 +133,10 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(param->GetIdentifier() != nullptr);
             // add to list of param types
             param_symbol_types.push_back(GenericInstanceTypeInfo::Arg {
-                param->GetName(),
-                param->GetIdentifier()->GetSymbolType(),
-                param->GetDefaultValue()
+                .m_name = param->GetName(),
+                .m_type = param->GetIdentifier()->GetSymbolType(),
+                .m_default_value = param->GetDefaultValue(),
+                .m_is_ref = param->IsRef()
             });
         }
     }

@@ -1,21 +1,23 @@
 #ifndef BUILDABLE_HPP
 #define BUILDABLE_HPP
 
+#include <Types.hpp>
+
 #include <streambuf>
 #include <vector>
 #include <cstdint>
 
 namespace hyperion::compiler {
 
-using byte = uint8_t;
-using Buffer = std::basic_streambuf<byte>;
-using LabelPosition = uint32_t;
+using byte = UByte;
+using LabelPosition = UInt32;
 
-using Opcode = uint8_t;
-using RegIndex = uint8_t;
-using LabelId = size_t;
+using Opcode = UInt8;
+using RegIndex = UInt8;
+using LabelId = SizeType;
 
-struct LabelInfo {
+struct LabelInfo
+{
     LabelPosition position;
 };
 
@@ -26,7 +28,8 @@ struct BuildParams
     std::vector<LabelInfo> labels;
 };
 
-struct Buildable {
+struct Buildable
+{
     virtual ~Buildable() = default;
 };
 

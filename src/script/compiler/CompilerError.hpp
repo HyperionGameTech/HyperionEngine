@@ -9,13 +9,15 @@
 
 namespace hyperion::compiler {
 
-enum ErrorLevel {
+enum ErrorLevel
+{
     LEVEL_INFO,
     LEVEL_WARN,
     LEVEL_ERROR
 };
 
-enum ErrorMessage {
+enum ErrorMessage
+{
     /* Fatal errors */
     Msg_internal_error,
     Msg_custom_error,
@@ -28,6 +30,8 @@ enum ErrorMessage {
     Msg_invalid_symbol_query,
     Msg_const_modified,
     Msg_const_missing_assignment,
+    Msg_ref_missing_assignment,
+    Msg_cannot_create_reference,
     Msg_cannot_modify_rvalue,
     Msg_prohibited_action_attribute,
     Msg_unbalanced_expression,

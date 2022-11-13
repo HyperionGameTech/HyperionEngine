@@ -18,7 +18,8 @@ namespace hyperion::compiler {
 std::unique_ptr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor *visitor,
     Module *mod,
-    const std::vector<std::shared_ptr<AstArgument>> &args)
+    const std::vector<std::shared_ptr<AstArgument>> &args
+)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
@@ -87,85 +88,6 @@ std::unique_ptr<Buildable> Compiler::BuildCall(
     instr_call->Accept<UInt8>(rp);
     instr_call->Accept<UInt8>(nargs);
     chunk->Append(std::move(instr_call));
-
-    return std::move(chunk);
-}
-
-std::unique_ptr<Buildable> Compiler::BuildMethodCall(
-    AstVisitor *visitor,
-    Module *mod,
-    const std::shared_ptr<AstMember> &target,
-    const std::vector<std::shared_ptr<AstArgument>> &args)
-{
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    const UInt8 nargs = static_cast<UInt8>(args.size());
-
-    UInt8 rp;
-    UInt8 self_register;
-
-    AssertThrow(target->GetTarget() != nullptr);
-
-    // build target and stash it
-    chunk->Append(target->GetTarget()->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));
-    // reserve register
-    self_register = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-
-    // push a copy of each argument to the stack
-    for (UInt8 i = 0; i < nargs; i++) {
-        auto &arg = args[i];
-        AssertThrow(args[i] != nullptr);
-
-        // get active register
-        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-        
-        if (i == 0) {
-            // self param
-            chunk->Append(target->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));
-            // reserve register
-            self_register = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
-        } else {
-            // build in current module (not mod)
-            chunk->Append(arg->Build(visitor, visitor->GetCompilationUnit()->GetCurrentModule()));
-        }
-
-        // now that it's loaded into the register, make a copy
-        // add instruction to store on stack
-        auto instr_push = BytecodeUtil::Make<RawOperation<>>();
-        instr_push->opcode = PUSH;
-        instr_push->Accept<UInt8>(rp);
-        chunk->Append(std::move(instr_push));
-
-        // increment stack size
-        visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-    }
-
-    // un-reserve self
-    rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
-
-    // load self (from reserved register)
-    auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();
-    instr_mov_reg->opcode = MOV_REG;
-    instr_mov_reg->Accept<UInt8>(rp); // dst
-    instr_mov_reg->Accept<UInt8>(self_register); // src
-    chunk->Append(std::move(instr_mov_reg));
-    
-    auto instr_call = BytecodeUtil::Make<RawOperation<>>();
-    instr_call->opcode = CALL;
-    instr_call->Accept<UInt8>(rp);
-    instr_call->Accept<UInt8>(nargs);
-    chunk->Append(std::move(instr_call));
-
-    // the reason we decrement the compiler's record of the stack size directly after
-    // is because the function body will actually handle the management of the stack size,
-    // so that the parameters are actually local variables to the function body.
-    for (UInt8 i = 0; i < nargs; i++) {
-        // increment stack size
-        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-    }
-
-    // pop arguments from stack
-    chunk->Append(Compiler::PopStack(visitor, nargs));
 
     return std::move(chunk);
 }

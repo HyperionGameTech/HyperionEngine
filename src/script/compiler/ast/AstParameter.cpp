@@ -10,17 +10,20 @@
 
 namespace hyperion::compiler {
 
-AstParameter::AstParameter(const std::string &name, 
+AstParameter::AstParameter(
+    const std::string &name, 
     const std::shared_ptr<AstPrototypeSpecification> &type_spec, 
     const std::shared_ptr<AstExpression> &default_param, 
     bool is_variadic,
     bool is_const,
+    bool is_ref,
     const SourceLocation &location
 ) : AstDeclaration(name, location),
     m_type_spec(type_spec),
     m_default_param(default_param),
     m_is_variadic(is_variadic),
     m_is_const(is_const),
+    m_is_ref(is_ref),
     m_is_generic_param(false)
 {
 }
@@ -31,7 +34,7 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
 
     // params are `Any` by default
     SymbolTypePtr_t symbol_type = BuiltinTypes::UNDEFINED,
-                    specified_symbol_type;
+        specified_symbol_type;
 
     if (m_type_spec != nullptr) {
         m_type_spec->Visit(visitor, mod);
@@ -81,9 +84,14 @@ void AstParameter::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_identifier != nullptr) {
         m_identifier->SetSymbolType(symbol_type);
+        m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_ARGUMENT);
 
         if (m_is_const) {
-            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ARGUMENT);
+            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
+        }
+
+        if (m_is_ref) {
+            m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_REF);
         }
 
         if (m_default_param != nullptr) {

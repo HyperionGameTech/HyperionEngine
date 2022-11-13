@@ -39,12 +39,15 @@ struct StorageOperation : public Buildable {
 
     OperationBuilder GetBuilder();
 
-    struct {
-        union {
+    struct
+    {
+        union
+        {
             RegIndex reg;
         } a;
 
-        union {
+        union
+        {
             uint16_t index;
             uint16_t offset;
             uint32_t hash;
@@ -59,6 +62,8 @@ struct StorageOperation : public Buildable {
                 } member;
             } object_data;
         } b;
+
+        bool is_ref = false;
     } op;
 
     Operations operation;
@@ -69,7 +74,8 @@ struct StorageOperation : public Buildable {
         virtual ~StorageOperationBuilder() = default;
     };
 
-    struct OperationBuilder : public StorageOperationBuilder {
+    struct OperationBuilder : public StorageOperationBuilder
+    {
         OperationBuilder(StorageOperation *op)
             : op(op)
         {
@@ -77,14 +83,15 @@ struct StorageOperation : public Buildable {
 
         virtual ~OperationBuilder() = default;
 
-        MethodBuilder Load(RegIndex dst);
+        MethodBuilder Load(RegIndex dst, bool is_ref = false);
         MethodBuilder Store(RegIndex src);
 
     private:
         StorageOperation *op;
     };
 
-    struct MethodBuilder : public StorageOperationBuilder {
+    struct MethodBuilder : public StorageOperationBuilder
+    {
         MethodBuilder(StorageOperation *op, OperationBuilder *parent)
             : op(op),
               parent(parent)

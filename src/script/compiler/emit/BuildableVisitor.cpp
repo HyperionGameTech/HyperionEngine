@@ -20,6 +20,10 @@ void BuildableVisitor::Visit(Buildable *buildable)
         Visit(node);
     } else if (auto *node = dynamic_cast<PopLocal*>(buildable)) {
         Visit(node);
+    } else if (auto *node = dynamic_cast<LoadRef*>(buildable)) {
+        Visit(node);
+    } else if (auto *node = dynamic_cast<LoadDeref*>(buildable)) {
+        Visit(node);
     } else if (auto *node = dynamic_cast<ConstI32*>(buildable)) {
         Visit(node);
     } else if (auto *node = dynamic_cast<ConstI64*>(buildable)) {

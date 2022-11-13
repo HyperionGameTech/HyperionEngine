@@ -6,7 +6,8 @@
 
 namespace hyperion::compiler {
 
-class AstVariable : public AstIdentifier {
+class AstVariable : public AstIdentifier
+{
 public:
     AstVariable(const std::string &name, const SourceLocation &location);
     virtual ~AstVariable() = default;
@@ -29,6 +30,7 @@ private:
     std::shared_ptr<AstMember> m_closure_member_access;
     std::shared_ptr<AstExpression> m_inline_value;
     bool m_should_inline;
+    bool m_is_in_ref_assignment;
 
     Pointer<AstVariable> CloneImpl() const
     {

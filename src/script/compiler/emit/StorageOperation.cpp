@@ -77,10 +77,11 @@ StorageOperation::StrategyBuilder StorageOperation::MethodBuilder::Member(RegInd
     return StrategyBuilder(op, this);
 }
 
-StorageOperation::MethodBuilder StorageOperation::OperationBuilder::Load(RegIndex dst)
+StorageOperation::MethodBuilder StorageOperation::OperationBuilder::Load(RegIndex dst, bool is_ref)
 {
     op->operation = Operations::LOAD;
     op->op.a.reg = dst;
+    op->op.is_ref = is_ref;
 
     return MethodBuilder(op, this);
 }

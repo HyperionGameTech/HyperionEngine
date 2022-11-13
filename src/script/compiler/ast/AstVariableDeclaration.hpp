@@ -14,7 +14,8 @@ namespace hyperion::compiler {
 
 class AstVariableDeclaration : public AstDeclaration {
 public:
-    AstVariableDeclaration(const std::string &name,
+    AstVariableDeclaration(
+        const std::string &name,
         const std::shared_ptr<AstPrototypeSpecification> &proto,
         const std::shared_ptr<AstExpression> &assignment,
         const std::vector<std::shared_ptr<AstParameter>> &template_params,
@@ -35,6 +36,7 @@ public:
         { m_proto = proto; }
 
     bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
+    bool IsRef() const { return m_flags & IdentifierFlags::FLAG_REF; }
     bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;

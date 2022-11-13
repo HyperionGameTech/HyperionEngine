@@ -49,13 +49,6 @@ public:
         UInt8 nargs
     );
 
-    static std::unique_ptr<Buildable> BuildMethodCall(
-        AstVisitor *visitor,
-        Module *mod,
-        const std::shared_ptr<AstMember> &target,
-        const std::vector<std::shared_ptr<AstArgument>> &args
-    );
-
     static std::unique_ptr<Buildable> LoadMemberFromHash(AstVisitor *visitor, Module *mod, UInt32 hash);
 
     static std::unique_ptr<Buildable> StoreMemberFromHash(AstVisitor *visitor, Module *mod, UInt32 hash);

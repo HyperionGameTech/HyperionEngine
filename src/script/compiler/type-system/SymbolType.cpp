@@ -393,8 +393,7 @@ bool SymbolType::IsArrayType() const
         // type is not Array, so check base class if it is a generic instance
         // e.g Array(Int)
         if (const SymbolTypePtr_t base = m_base.lock()) {
-            if (base == BuiltinTypes::ARRAY ||
-                base == BuiltinTypes::VAR_ARGS) {
+            if (base == BuiltinTypes::ARRAY || base == BuiltinTypes::VAR_ARGS) {
                 return true;
             }
         }

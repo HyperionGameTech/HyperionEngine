@@ -106,14 +106,14 @@ void CodeGenerator::Visit(PopLocal *node)
 
 void CodeGenerator::Visit(LoadRef *node)
 {
-    m_ibs.Put(Instructions::LOAD_REF);
+    m_ibs.Put(Instructions::REF);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
 
 void CodeGenerator::Visit(LoadDeref *node)
 {
-    m_ibs.Put(Instructions::LOAD_DEREF);
+    m_ibs.Put(Instructions::DEREF);
     m_ibs.Put(node->dst);
     m_ibs.Put(node->src);
 }
@@ -229,7 +229,7 @@ void CodeGenerator::Visit(StorageOperation *node)
                 case Strategies::BY_OFFSET:
                     switch (node->operation) {
                         case Operations::LOAD:
-                            m_ibs.Put(Instructions::LOAD_OFFSET);
+                            m_ibs.Put(node->op.is_ref ? Instructions::LOAD_OFFSET_REF : Instructions::LOAD_OFFSET);
                             m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
                             m_ibs.Put((byte*)&node->op.b.offset, sizeof(node->op.b.offset));
 
@@ -247,7 +247,7 @@ void CodeGenerator::Visit(StorageOperation *node)
                 case Strategies::BY_INDEX:
                     switch (node->operation) {
                         case Operations::LOAD:
-                            m_ibs.Put(Instructions::LOAD_INDEX);
+                            m_ibs.Put(node->op.is_ref ? Instructions::LOAD_INDEX_REF : Instructions::LOAD_INDEX);
                             m_ibs.Put((byte*)&node->op.a.reg, sizeof(node->op.a.reg));
                             m_ibs.Put((byte*)&node->op.b.index, sizeof(node->op.b.index));
 

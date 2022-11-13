@@ -9,12 +9,16 @@ namespace hyperion::compiler {
 
 class AstParameter : public AstDeclaration {
 public:
-    AstParameter(const std::string &name,
+    AstParameter(
+        const std::string &name,
         const std::shared_ptr<AstPrototypeSpecification> &type_spec,
         const std::shared_ptr<AstExpression> &default_param,
         bool is_variadic,
         bool is_const,
-        const SourceLocation &location);
+        bool is_ref,
+        const SourceLocation &location
+    );
+
     virtual ~AstParameter() = default;
 
     const std::shared_ptr<AstExpression> &GetDefaultValue() const
@@ -30,6 +34,7 @@ public:
 
     bool IsVariadic() const { return m_is_variadic; }
     bool IsConst() const { return m_is_const; }
+    bool IsRef() const { return m_is_ref; }
 
     bool IsGenericParam() const { return m_is_generic_param; }
     void SetIsGenericParam(bool is_generic_param) { m_is_generic_param = is_generic_param; }
@@ -37,6 +42,7 @@ public:
     // used by AstTemplateExpression
     const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
         { return m_type_spec; } 
+
     void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &type_spec)
         { m_type_spec = type_spec; }
 
@@ -45,6 +51,7 @@ private:
     std::shared_ptr<AstExpression> m_default_param;
     bool m_is_variadic;
     bool m_is_const;
+    bool m_is_ref;
     bool m_is_generic_param;
 
     Pointer<AstParameter> CloneImpl() const
@@ -55,6 +62,7 @@ private:
             CloneAstNode(m_default_param),
             m_is_variadic,
             m_is_const,
+            m_is_ref,
             m_location
         ));
     }

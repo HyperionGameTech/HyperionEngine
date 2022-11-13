@@ -34,6 +34,15 @@ void AstArrayAccess::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t target_type = m_target->GetExprType();
     AssertThrow(target_type != nullptr);
 
+    if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG)) {
+        // TODO: implement
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_internal_error,
+            m_location
+        ));
+    }
+
     // check if target is an array
     if (target_type != BuiltinTypes::ANY) {
         if (!target_type->IsArrayType()) {

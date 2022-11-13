@@ -21,7 +21,8 @@ AstVariable::AstVariable(
     const std::string &name,
     const SourceLocation &location)
     : AstIdentifier(name, location),
-      m_should_inline(false)
+      m_should_inline(false),
+      m_is_in_ref_assignment(false)
 {
 }
 
@@ -50,6 +51,9 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_generic = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC;
             const bool is_argument = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
             const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
+            const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+
+            m_is_in_ref_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG);
 
             if (is_generic) {
                 if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)
@@ -230,12 +234,19 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
             // get active register
             UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
+            // if we are a reference, we deference it before doing anything
+            const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+
             if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
                 if (m_access_mode == ACCESS_MODE_LOAD) {
                     // load stack value at offset value into register
                     auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
-                    instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(offset);
+                    instr_load_offset->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByOffset(offset);
                     chunk->Append(std::move(instr_load_offset));
+
+                    if (is_ref && !m_is_in_ref_assignment) {
+                        chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
+                    }
                 } else if (m_access_mode == ACCESS_MODE_STORE) {
                     // store the value at (rp - 1) into this local variable
                     auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
@@ -247,8 +258,12 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
                 if (m_access_mode == ACCESS_MODE_LOAD) {
                     // load stack value at index into register
                     auto instr_load_index = BytecodeUtil::Make<StorageOperation>();
-                    instr_load_index->GetBuilder().Load(rp).Local().ByIndex(stack_location);
+                    instr_load_index->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByIndex(stack_location);
                     chunk->Append(std::move(instr_load_index));
+
+                    if (is_ref && !m_is_in_ref_assignment) {
+                        chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
+                    }
                 } else if (m_access_mode == ACCESS_MODE_STORE) {
                     // store the value at the index into this local variable
                     auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
@@ -256,6 +271,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
                     chunk->Append(std::move(instr_mov_index));
                 }
             }
+
 
 #if ACE_ENABLE_VARIABLE_INLINING
         }

@@ -15,7 +15,8 @@ public:
         bool is_splat,
         bool is_named,
         const std::string &name,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstArgument() = default;
 
     const std::shared_ptr<AstExpression> &GetExpr() const
@@ -23,6 +24,10 @@ public:
 
     bool IsSplat() const { return m_is_splat; }
     bool IsNamed() const { return m_is_named; }
+    bool IsPassByRef() const { return m_is_pass_by_ref; }
+
+    void SetIsPassByRef(bool is_pass_by_ref)
+        { m_is_pass_by_ref = is_pass_by_ref; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -41,6 +46,7 @@ private:
     std::shared_ptr<AstExpression> m_expr;
     bool m_is_splat;
     bool m_is_named;
+    bool m_is_pass_by_ref;
     std::string m_name;
 
     Pointer<AstArgument> CloneImpl() const
