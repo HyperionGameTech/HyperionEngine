@@ -388,7 +388,10 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseImport();
         } else if (MatchKeyword(Keyword_export, false)) {
             res = ParseExportStatement();
-        } else if (MatchKeyword(Keyword_let, false) || MatchKeyword(Keyword_const, false)) {
+        } else if (MatchKeyword(Keyword_let, false)
+            || MatchKeyword(Keyword_const, false)
+            || MatchKeyword(Keyword_ref, false))
+        {
             res = ParseVariableDeclaration();
         } else if (MatchKeyword(Keyword_func, false)) {
             if (MatchAhead(TK_IDENT, 1)) {
@@ -400,8 +403,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseTypeDefinition();
         } else if (MatchKeyword(Keyword_enum, false)) {
             res = ParseEnumDefinition();
-        } else if (MatchKeyword(Keyword_alias, false)) {
-            res = ParseAliasDeclaration();
         } else if (MatchKeyword(Keyword_if, false)) {
             res = ParseIfStatement();
         } else if (MatchKeyword(Keyword_while, false)) {
@@ -1674,7 +1675,11 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 {
     const SourceLocation location = CurrentLocation();
 
-    static const Keywords prefix_keywords[] = {  Keyword_let, Keyword_const };
+    static const Keywords prefix_keywords[] = {
+        Keyword_let,
+        Keyword_const,
+        Keyword_ref
+    };
 
     std::set<Keywords> used_specifiers;
 
@@ -1709,6 +1714,10 @@ std::shared_ptr<AstVariableDeclaration> Parser::ParseVariableDeclaration(
 
     if (used_specifiers.find(Keyword_const) != used_specifiers.end()) {
         flags |= IdentifierFlags::FLAG_CONST;
+    }
+
+    if (used_specifiers.find(Keyword_ref) != used_specifiers.end()) {
+        flags |= IdentifierFlags::FLAG_REF;
     }
 
     Token identifier = Token::EMPTY;
@@ -1963,9 +1972,15 @@ std::vector<std::shared_ptr<AstParameter>> Parser::ParseFunctionParameters()
             break;
         }
 
-        bool is_const = false;
-        if (MatchKeyword(Keyword_const, false)) {
+        bool is_const = false,
+            is_ref = false;
+
+        if (MatchKeyword(Keyword_const, true)) {
             is_const = true;
+        }
+
+        if (MatchKeyword(Keyword_ref, true)) {
+            is_ref = true;
         }
         
         if ((token = ExpectIdentifier(true, true))) {
@@ -2005,6 +2020,7 @@ std::vector<std::shared_ptr<AstParameter>> Parser::ParseFunctionParameters()
                 default_param,
                 is_variadic,
                 is_const,
+                is_ref,
                 token.GetLocation()
             )));
 
@@ -2160,6 +2176,12 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
 
             if (MatchKeyword(Keyword_let, true)) {
                 is_variable = true;
+            }
+
+            if (MatchKeyword(Keyword_ref, true)) {
+                is_variable = true;
+
+                flags |= IdentifierFlags::FLAG_REF;
             }
 
             if (MatchKeyword(Keyword_const, true)) {

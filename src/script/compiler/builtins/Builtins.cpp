@@ -62,7 +62,7 @@ Builtins::Builtins()
         )),
         {
             sp<AstParameter>(new AstParameter(
-                "of", nullptr, nullptr, false, false, SourceLocation::eof
+                "of", nullptr, nullptr, false, false, false, SourceLocation::eof
             ))
         },
         nullptr,

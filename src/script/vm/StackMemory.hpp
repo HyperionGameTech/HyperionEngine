@@ -4,6 +4,8 @@
 #include <script/vm/Value.hpp>
 #include <system/Debug.hpp>
 
+#include <Types.hpp>
+
 #include <array>
 
 namespace hyperion {
@@ -12,7 +14,7 @@ namespace vm {
 class StackMemory
 {
 public:
-    static const size_t STACK_SIZE;
+    static const SizeType STACK_SIZE;
 
     friend std::ostream &operator<<(std::ostream &os, const StackMemory &stack);
 
@@ -28,7 +30,7 @@ public:
 
     Value *GetData() { return m_data; }
     const Value *GetData() const { return m_data; }
-    size_t GetStackPointer() const { return m_sp; }
+    SizeType GetStackPointer() const { return m_sp; }
 
     Value &operator[](size_t index)
     {

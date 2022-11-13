@@ -60,6 +60,14 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
+    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+        visitor,
+        mod,
+        m_symbol_type,
+        m_substituted_args,
+        m_location
+    );
+
     // visit each argument
     for (auto &arg : m_substituted_args) {
         AssertThrow(arg != nullptr);
@@ -69,8 +77,8 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         // yet still pass variables from the local module.
         arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
-
-    FunctionTypeSignature_t substituted = SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
+    
+    SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
         visitor,
         mod,
         m_symbol_type,

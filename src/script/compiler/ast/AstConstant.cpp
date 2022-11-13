@@ -1,4 +1,6 @@
 #include <script/compiler/ast/AstConstant.hpp>
+#include <script/compiler/Module.hpp>
+#include <script/compiler/AstVisitor.hpp>
 
 namespace hyperion::compiler {
 
@@ -9,7 +11,13 @@ AstConstant::AstConstant(const SourceLocation &location)
 
 void AstConstant::Visit(AstVisitor *visitor, Module *mod)
 {
-    // do nothing
+    if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG)) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_cannot_create_reference,
+            m_location
+        ));
+    }
 }
 
 void AstConstant::Optimize(AstVisitor *visitor, Module *mod)

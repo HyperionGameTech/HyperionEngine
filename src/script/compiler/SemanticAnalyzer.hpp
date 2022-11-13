@@ -21,21 +21,37 @@ class SemanticAnalyzer : public AstVisitor
 public:
     struct Helpers
     {
-        static std::vector<std::shared_ptr<AstArgument>> SubstituteGenericArgs(
-            AstVisitor *visitor,
-            Module *mod,
-            const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-            const std::vector<std::shared_ptr<AstArgument>> &args,
-            const SourceLocation &location
-        );
-
         static FunctionTypeSignature_t SubstituteFunctionArgs(
             AstVisitor *visitor,
-            Module *mod, 
+            Module *mod,
             const SymbolTypePtr_t &identifier_type, 
             const std::vector<std::shared_ptr<AstArgument>> &args,
             const SourceLocation &location
         );
+
+        // static std::vector<std::shared_ptr<AstArgument>> SubstituteGenericArgs(
+        //     AstVisitor *visitor,
+        //     Module *mod,
+        //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
+        //     const std::vector<std::shared_ptr<AstArgument>> &args,
+        //     const SourceLocation &location
+        // );
+
+        static void EnsureFunctionArgCompatibility(
+            AstVisitor *visitor,
+            Module *mod,
+            const SymbolTypePtr_t &identifier_type, 
+            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const SourceLocation &location
+        );
+
+        // static void EnsureFunctionArgCompatibility(
+        //     AstVisitor *visitor,
+        //     Module *mod,
+        //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
+        //     const std::vector<std::shared_ptr<AstArgument>> &args,
+        //     const SourceLocation &location
+        // );
 
         static void EnsureLooseTypeAssignmentCompatibility(
             AstVisitor *visitor,

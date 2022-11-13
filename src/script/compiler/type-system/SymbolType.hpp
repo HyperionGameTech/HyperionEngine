@@ -60,6 +60,7 @@ struct GenericInstanceTypeInfo
         std::string m_name;
         SymbolTypePtr_t m_type;
         sp<AstExpression> m_default_value;
+        bool m_is_ref;
     };
 
     vec<Arg> m_generic_args;

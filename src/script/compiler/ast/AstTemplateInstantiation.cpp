@@ -83,6 +83,13 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         m_location
     );
 
+    SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
+        visitor, mod,
+        expr_type,
+        m_generic_args,
+        m_location
+    );
+
     m_expr_type = substituted.first;
     const auto args_substituted = substituted.second;
 

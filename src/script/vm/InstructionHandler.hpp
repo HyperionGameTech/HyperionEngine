@@ -205,59 +205,71 @@ public:
     HYP_FORCE_INLINE void LoadI32(BCRegister reg, Int32 i32)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::I32;
         value.m_value.i32 = i32;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
     HYP_FORCE_INLINE void LoadI64(BCRegister reg, Int64 i64)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::I64;
         value.m_value.i64 = i64;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
     HYP_FORCE_INLINE void LoadU32(BCRegister reg, UInt32 u32)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::U32;
         value.m_value.u32 = u32;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
     HYP_FORCE_INLINE void LoadU64(BCRegister reg, UInt64 u64)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::U64;
         value.m_value.u64 = u64;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
     HYP_FORCE_INLINE void LoadF32(BCRegister reg, Float32 f32)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::F32;
         value.m_value.f = f32;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
     HYP_FORCE_INLINE void LoadF64(BCRegister reg, Float64 f64)
     {
         // get register value given
-        Value &value = thread->m_regs[reg];
+        Value value;
         value.m_type = Value::F64;
         value.m_value.d = f64;
+
+        thread->m_regs[reg].AssignValue(value, false);
     }
 
-    HYP_FORCE_INLINE void LoadOffset(BCRegister reg, uint16_t offset)
+    HYP_FORCE_INLINE void LoadOffset(BCRegister reg, UInt16 offset)
     {
         // read value from stack at (sp - offset)
         // into the the register
-        thread->m_regs[reg] = thread->m_stack[thread->m_stack.GetStackPointer() - offset];
+        thread->m_regs[reg].AssignValue(thread->m_stack[thread->m_stack.GetStackPointer() - offset], false);
     }
 
-    HYP_FORCE_INLINE void LoadIndex(BCRegister reg, uint16_t index)
+    HYP_FORCE_INLINE void LoadIndex(BCRegister reg, UInt16 index)
     {
         const auto &stk = state->MAIN_THREAD->m_stack;
 
@@ -270,25 +282,27 @@ public:
 
         // read value from stack at the index into the the register
         // NOTE: read from main thread
-        thread->m_regs[reg] = stk[index];
+        thread->m_regs[reg].AssignValue(stk[index], false);
     }
 
-    HYP_FORCE_INLINE void LoadStatic(BCRegister reg, uint16_t index)
+    HYP_FORCE_INLINE void LoadStatic(BCRegister reg, UInt16 index)
     {
         // read value from static memory
         // at the index into the the register
-        thread->m_regs[reg] = state->m_static_memory[index];
+        thread->m_regs[reg].AssignValue(state->m_static_memory[index], false);
     }
 
-    HYP_FORCE_INLINE void LoadString(BCRegister reg, uint32_t len, const char *str)
+    HYP_FORCE_INLINE void LoadString(BCRegister reg, UInt32 len, const char *str)
     {
         if (HeapValue *hv = state->HeapAlloc(thread)) {
             hv->Assign(VMString(str));
 
             // assign register value to the allocated object
-            Value &sv = thread->m_regs[reg];
-            sv.m_type = Value::HEAP_POINTER;
-            sv.m_value.ptr = hv;
+            Value v;
+            v.m_type = Value::HEAP_POINTER;
+            v.m_value.ptr = hv;
+
+            thread->m_regs[reg].AssignValue(v, false);
 
             hv->Mark();
         }
@@ -296,9 +310,11 @@ public:
 
     HYP_FORCE_INLINE void LoadAddr(BCRegister reg, BCAddress addr)
     {
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::ADDRESS;
-        sv.m_value.addr = addr;
+        Value v;
+        v.m_type = Value::ADDRESS;
+        v.m_value.addr = addr;
+
+        thread->m_regs[reg].AssignValue(v, false);
     }
 
     HYP_FORCE_INLINE void LoadFunc(BCRegister reg,
@@ -306,11 +322,13 @@ public:
         uint8_t nargs,
         uint8_t flags)
     {
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::FUNCTION;
-        sv.m_value.func.m_addr = addr;
-        sv.m_value.func.m_nargs = nargs;
-        sv.m_value.func.m_flags = flags;
+        Value v;
+        v.m_type = Value::FUNCTION;
+        v.m_value.func.m_addr = addr;
+        v.m_value.func.m_nargs = nargs;
+        v.m_value.func.m_flags = flags;
+
+        thread->m_regs[reg].AssignValue(v, false);
     }
 
     HYP_FORCE_INLINE void LoadType(
@@ -340,9 +358,11 @@ public:
         delete[] members;
 
         // assign register value to the allocated object
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::HEAP_POINTER;
-        sv.m_value.ptr = hv;
+        Value v;
+        v.m_type = Value::HEAP_POINTER;
+        v.m_value.ptr = hv;
+
+        thread->m_regs[reg].AssignValue(v, false);
 
         hv->Mark();
     }
@@ -361,7 +381,7 @@ public:
                 return;
             } else if (VMObject *obj_ptr = hv->GetPointer<VMObject>()) {
                 AssertThrow(index < obj_ptr->GetSize());
-                thread->m_regs[dst] = obj_ptr->GetMember(index).value;
+                thread->m_regs[dst].AssignValue(obj_ptr->GetMember(index).value, false);
                 return;
             }
         }
@@ -387,7 +407,7 @@ public:
                 return;
             } else if (VMObject *object = hv->GetPointer<VMObject>()) {
                 if (Member *member = object->LookupMemberFromHash(hash)) {
-                    thread->m_regs[dst_reg] = member->value;
+                    thread->m_regs[dst_reg].AssignValue(member->value, false);
                 } else {
                     state->ThrowException(
                         thread,
@@ -483,7 +503,7 @@ public:
                     memory_buffer_data.m_value.i32 = static_cast<Int32>(static_cast<UInt8 *>(memory_buffer->GetBuffer())[key.index.u]);
                 }
 
-                thread->m_regs[dst_reg] = memory_buffer_data;
+                thread->m_regs[dst_reg].AssignValue(memory_buffer_data, false);
 
                 return;
             }
@@ -517,7 +537,7 @@ public:
                 }
             }
 
-            thread->m_regs[dst_reg] = array->AtIndex(key.index.i);
+            thread->m_regs[dst_reg].AssignValue(array->AtIndex(key.index.i), false);
         } else if (key.index.flags & Number::FLAG_UNSIGNED) {
             if (static_cast<SizeType>(key.index.u) >= array->GetSize()) {
                 state->ThrowException(
@@ -527,15 +547,42 @@ public:
                 return;
             }
             
-            thread->m_regs[dst_reg] = array->AtIndex(key.index.u);
+            thread->m_regs[dst_reg].AssignValue(array->AtIndex(key.index.u), false);
         }
+    }
+
+    HYP_FORCE_INLINE void LoadOffsetRef(BCRegister reg, UInt16 offset)
+    {
+        thread->m_regs[reg] = Value(
+            Value::ValueType::VALUE_REF,
+            Value::ValueData { .value_ref = &thread->m_stack[thread->m_stack.GetStackPointer() - offset] }
+        );
+    }
+
+    HYP_FORCE_INLINE void LoadIndexRef(BCRegister reg, UInt16 index)
+    {
+        auto &stk = state->MAIN_THREAD->m_stack;
+
+        AssertThrowMsg(
+            index < stk.GetStackPointer(),
+            "Stack index out of bounds (%u >= %llu)",
+            index,
+            stk.GetStackPointer()
+        );
+
+        thread->m_regs[reg] = Value(
+            Value::ValueType::VALUE_REF,
+            Value::ValueData { .value_ref = &stk[index] }
+        );
     }
 
     HYP_FORCE_INLINE void LoadRef(BCRegister dst_reg, BCRegister src_reg)
     {
-        Value &src = thread->m_regs[dst_reg];
-        src.m_type = Value::VALUE_REF;
-        src.m_value.value_ref = &thread->m_regs[src_reg];
+        Value value;
+        value.m_type = Value::ValueType::VALUE_REF;
+        value.m_value.value_ref = &thread->m_regs[src_reg];
+
+        thread->m_regs[dst_reg] = value;
     }
 
     HYP_FORCE_INLINE void LoadDeref(BCRegister dst_reg, BCRegister src_reg)
@@ -544,45 +591,52 @@ public:
         AssertThrowMsg(src.m_type == Value::VALUE_REF, "Value type must be VALUE_REF in order to deref");
         AssertThrow(src.m_value.value_ref != nullptr);
 
-        thread->m_regs[dst_reg] = *src.m_value.value_ref;
+        Value deref = *src.m_value.value_ref;
+
+        thread->m_regs[dst_reg] = deref;
     }
 
     HYP_FORCE_INLINE void LoadNull(BCRegister reg)
     {
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::HEAP_POINTER;
-        sv.m_value.ptr = nullptr;
+        Value v;
+        v.m_type = Value::HEAP_POINTER;
+        v.m_value.ptr = nullptr;
+
+        thread->m_regs[reg].AssignValue(v, false);
     }
 
     HYP_FORCE_INLINE void LoadTrue(BCRegister reg)
     {
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::BOOLEAN;
-        sv.m_value.b = true;
+        Value v;
+        v.m_type = Value::BOOLEAN;
+        v.m_value.b = true;
+
+        thread->m_regs[reg].AssignValue(v, false);
     }
 
     HYP_FORCE_INLINE void LoadFalse(BCRegister reg)
     {
-        Value &sv = thread->m_regs[reg];
-        sv.m_type = Value::BOOLEAN;
-        sv.m_value.b = false;
+        Value v;
+        v.m_type = Value::BOOLEAN;
+        v.m_value.b = false;
+
+        thread->m_regs[reg].AssignValue(v, false);
     }
 
-    HYP_FORCE_INLINE void MovOffset(uint16_t offset, BCRegister reg)
+    HYP_FORCE_INLINE void MovOffset(UInt16 offset, BCRegister reg)
     {
         // copy value from register to stack value at (sp - offset)
-        thread->m_stack[thread->m_stack.GetStackPointer() - offset] =
-            thread->m_regs[reg];
+        thread->m_stack[thread->m_stack.GetStackPointer() - offset].AssignValue(thread->m_regs[reg], true);
     }
 
-    HYP_FORCE_INLINE void MovIndex(uint16_t index, BCRegister reg)
+    HYP_FORCE_INLINE void MovIndex(UInt16 index, BCRegister reg)
     {
         // copy value from register to stack value at index
         // NOTE: storing on main thread
-        state->MAIN_THREAD->m_stack[index] = thread->m_regs[reg];
+        state->MAIN_THREAD->m_stack[index].AssignValue(thread->m_regs[reg], true);
     }
 
-    HYP_FORCE_INLINE void MovMem(BCRegister dst_reg, uint8_t index, BCRegister src_reg)
+    HYP_FORCE_INLINE void MovMem(BCRegister dst_reg, UInt8 index, BCRegister src_reg)
     {
         Value &sv = thread->m_regs[dst_reg];
         if (sv.m_type != Value::HEAP_POINTER) {
@@ -619,7 +673,7 @@ public:
             return;
         }
         
-        object->GetMember(index).value = thread->m_regs[src_reg];
+        object->GetMember(index).value.AssignValue(thread->m_regs[src_reg], true);
     }
 
     HYP_FORCE_INLINE void MovMemHash(BCRegister dst_reg, uint32_t hash, BCRegister src_reg)
@@ -662,7 +716,7 @@ public:
         }
         
         // set value in member
-        member->value = thread->m_regs[src_reg];
+        member->value.AssignValue(thread->m_regs[src_reg], true);
     }
 
     HYP_FORCE_INLINE void MovArrayIdx(BCRegister dst_reg, uint32_t index, BCRegister src_reg)

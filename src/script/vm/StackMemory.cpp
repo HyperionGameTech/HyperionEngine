@@ -8,7 +8,7 @@
 namespace hyperion {
 namespace vm {
 
-const size_t StackMemory::STACK_SIZE = 20000;
+const SizeType StackMemory::STACK_SIZE = 20000;
 
 std::ostream &operator<<(std::ostream &os, const StackMemory &stack)
 {

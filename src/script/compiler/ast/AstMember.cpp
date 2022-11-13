@@ -45,6 +45,15 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     m_target_type = m_target->GetExprType();
     AssertThrow(m_target_type != nullptr);
 
+    if (mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG)) {
+        // TODO: implement
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_internal_error,
+            m_location
+        ));
+    }
+
     const SymbolTypePtr_t original_type = m_target_type;
 
     // start looking at the target type,
@@ -152,7 +161,7 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 
     if (m_target_type == BuiltinTypes::ANY) {
         // for Any type we will have to load from hash
-        const uint32_t hash = hash_fnv_1(m_field_name.c_str());
+        const UInt32 hash = hash_fnv_1(m_field_name.c_str());
 
         switch (m_access_mode) {
             case ACCESS_MODE_LOAD:

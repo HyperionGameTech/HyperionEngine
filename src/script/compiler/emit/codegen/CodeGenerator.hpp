@@ -13,7 +13,8 @@
 
 namespace hyperion::compiler {
 
-class CodeGenerator : public BuildableVisitor {
+class CodeGenerator : public BuildableVisitor
+{
 public:
     CodeGenerator(BuildParams &build_params);
     virtual ~CodeGenerator() = default;

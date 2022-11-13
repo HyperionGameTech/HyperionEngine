@@ -480,7 +480,45 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_REF:
+    case LOAD_OFFSET_REF:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint16_t offset;
+        bs.Read(&offset);
+
+        if (os != nullptr) {
+            (*os)
+                << "load_offset_ref ["
+                    << "%" << (int)reg << ", "
+                    "$(sp-" << offset << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case LOAD_INDEX_REF:
+    {
+        uint8_t reg;
+        bs.Read(&reg);
+
+        uint16_t idx;
+        bs.Read(&idx);
+
+        if (os != nullptr) {
+            (*os)
+                << "load_index_ref ["
+                    << "%" << (int)reg << ", "
+                    "u16(" << idx << ")"
+                << "]"
+                << std::endl;
+        }
+
+        break;
+    }
+    case REF:
     {
         uint8_t src_reg;
         uint8_t dst_reg;
@@ -490,7 +528,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr) {
             (*os)
-                << "load_ref ["
+                << "ref ["
                     << "%" << (int)dst_reg << ", "
                     << "%" << (int)src_reg
                 << "]"
@@ -499,7 +537,7 @@ void DecompilationUnit::DecodeNext(
 
         break;
     }
-    case LOAD_DEREF:
+    case DEREF:
     {
         uint8_t src_reg;
         uint8_t dst_reg;
@@ -509,7 +547,7 @@ void DecompilationUnit::DecodeNext(
 
         if (os != nullptr) {
             (*os)
-                << "load_deref ["
+                << "deref ["
                     << "%" << (int)dst_reg << ", "
                     << "%" << (int)src_reg
                 << "]"
