@@ -232,7 +232,9 @@ Tribool AstMember::IsTrue() const
 
 bool AstMember::MayHaveSideEffects() const
 {
-    return false;
+    AssertThrow(m_target != nullptr);
+
+    return m_target->MayHaveSideEffects() || m_access_mode == ACCESS_MODE_STORE;
 }
 
 SymbolTypePtr_t AstMember::GetExprType() const

@@ -21,6 +21,7 @@ AstArgument::AstArgument(
     m_is_splat(is_splat),
     m_is_named(is_named),
     m_is_pass_by_ref(false),
+    m_is_pass_const(false),
     m_name(name)
 {
 }
@@ -39,6 +40,13 @@ void AstArgument::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_expr != nullptr);
 
     bool pass_by_ref_scope = false;
+    bool pass_const_scope = false;
+
+    if (IsPassConst()) {
+        mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG));
+
+        pass_const_scope = true;
+    }
 
     if (IsPassByRef()) {
         if (m_expr->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE) {
@@ -57,6 +65,10 @@ void AstArgument::Visit(AstVisitor *visitor, Module *mod)
     m_expr->Visit(visitor, mod);
 
     if (pass_by_ref_scope) {
+        mod->m_scopes.Close();
+    }
+
+    if (pass_const_scope) {
         mod->m_scopes.Close();
     }
 }

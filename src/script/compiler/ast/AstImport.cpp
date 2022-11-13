@@ -130,6 +130,8 @@ void AstImport::PerformImport(
     if (it != visitor->GetCompilationUnit()->m_imported_modules.end()) {
         // imported file found, so just re-open all
         // modules that belong to the file into this scope
+
+        // TODO: Fix issues with duplicated symbols...
         for (std::shared_ptr<Module> &mod : it->second) {
             AstImport::CopyModules(
                 visitor,

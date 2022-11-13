@@ -97,11 +97,15 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
         r1 = rp;
     }
 
+
+    // unclaim register
+    rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+
     // do the operation
     if (m_access_mode == ACCESS_MODE_LOAD) {
         auto instr = BytecodeUtil::Make<RawOperation<>>();
         instr->opcode = LOAD_ARRAYIDX;
-        instr->Accept<UInt8>(r0); // destination
+        instr->Accept<UInt8>(rp); // destination
         instr->Accept<UInt8>(r0); // source
         instr->Accept<UInt8>(r1); // index
 
@@ -109,15 +113,12 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
     } else if (m_access_mode == ACCESS_MODE_STORE) {
         auto instr = BytecodeUtil::Make<RawOperation<>>();
         instr->opcode = MOV_ARRAYIDX_REG;
-        instr->Accept<UInt8>(r0); // destination
+        instr->Accept<UInt8>(rp); // destination
         instr->Accept<UInt8>(r1); // index
         instr->Accept<UInt8>(rp_before - 1); // source
 
         chunk->Append(std::move(instr));
     }
-
-    // unclaim register
-    visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
 
     return std::move(chunk);
 }

@@ -331,6 +331,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
                         res_args[found_index] = std::get<1>(arg);
                         res_args[found_index]->SetIsPassByRef(generic_args[found_index].m_is_ref);
+                        res_args[found_index]->SetIsPassConst(generic_args[found_index].m_is_const);
                     } else {
                         std::stringstream ss;
 
@@ -390,17 +391,23 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                             ? generic_args[generic_args.size() - 1].m_is_ref
                             : false;
 
+                        const bool is_const = generic_args.size() != 0
+                            ? generic_args[generic_args.size() - 1].m_is_const
+                            : false;
+
                         if (found_index == -1 || found_index >= res_args.size()) {
                             used_indices.insert(res_args.size());
 
                             // at end, push
                             res_args.push_back(std::get<1>(arg));
                             res_args.back()->SetIsPassByRef(is_ref);
+                            res_args.back()->SetIsPassConst(is_const);
                         } else {
                             used_indices.insert(found_index);
 
                             res_args[found_index] = std::get<1>(arg);
                             res_args[found_index]->SetIsPassByRef(is_ref);
+                            res_args[found_index]->SetIsPassConst(is_const);
                         }
                     } else if (found_index != -1) {
                         // store used index
@@ -420,6 +427,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                         AssertThrow(found_index < res_args.size());
                         res_args[found_index] = std::get<1>(arg);
                         res_args[found_index]->SetIsPassByRef(param.m_is_ref);
+                        res_args[found_index]->SetIsPassConst(param.m_is_const);
                     } else {
                         // too many args supplied
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -450,6 +458,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
             
                     const bool has_default_value = generic_args[unused_index].m_default_value != nullptr;
                     const bool is_ref = generic_args[unused_index].m_is_ref;
+                    const bool is_const = generic_args[unused_index].m_is_const;
 
                     std::shared_ptr<AstArgument> substituted_arg(new AstArgument(
                         has_default_value
@@ -481,11 +490,13 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     if (found_index == -1) {
                         res_args.push_back(std::move(substituted_arg));
                         res_args.back()->SetIsPassByRef(is_ref);
+                        res_args.back()->SetIsPassConst(is_const);
                     } else {
                         AssertThrow(found_index < res_args.size());
 
                         res_args[found_index] = std::move(substituted_arg);
                         res_args[found_index]->SetIsPassByRef(is_ref);
+                        res_args[found_index]->SetIsPassConst(is_const);
                     }
                 
                     if (!has_default_value) {

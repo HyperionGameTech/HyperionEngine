@@ -61,6 +61,7 @@ struct GenericInstanceTypeInfo
         SymbolTypePtr_t m_type;
         sp<AstExpression> m_default_value;
         bool m_is_ref;
+        bool m_is_const;
     };
 
     vec<Arg> m_generic_args;

@@ -136,7 +136,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 .m_name = param->GetName(),
                 .m_type = param->GetIdentifier()->GetSymbolType(),
                 .m_default_value = param->GetDefaultValue(),
-                .m_is_ref = param->IsRef()
+                .m_is_ref = param->IsRef(),
+                .m_is_const = param->IsConst()
             });
         }
     }

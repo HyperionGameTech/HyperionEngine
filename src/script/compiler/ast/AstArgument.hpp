@@ -24,8 +24,12 @@ public:
 
     bool IsSplat() const { return m_is_splat; }
     bool IsNamed() const { return m_is_named; }
-    bool IsPassByRef() const { return m_is_pass_by_ref; }
+    
+    bool IsPassConst() const { return m_is_pass_const; }
+    void SetIsPassConst(bool is_pass_const)
+        { m_is_pass_const = is_pass_const; }
 
+    bool IsPassByRef() const { return m_is_pass_by_ref; }
     void SetIsPassByRef(bool is_pass_by_ref)
         { m_is_pass_by_ref = is_pass_by_ref; }
 
@@ -47,6 +51,7 @@ private:
     bool m_is_splat;
     bool m_is_named;
     bool m_is_pass_by_ref;
+    bool m_is_pass_const;
     std::string m_name;
 
     Pointer<AstArgument> CloneImpl() const
