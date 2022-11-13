@@ -64,31 +64,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         m_real_assignment = m_assignment;
     }
 
-    bool pass_by_ref_scope = false;
-
-    if (IsRef()) {
-        if (has_user_assigned) {
-            if (m_real_assignment->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE) {
-                mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG));
-
-                pass_by_ref_scope = true;
-            } else {
-                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                    LEVEL_ERROR,
-                    Msg_cannot_create_reference,
-                    m_location
-                ));
-            }
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_ref_missing_assignment,
-                m_location,
-                m_name
-            ));
-        }
-    }
-
     if (IsGeneric()) {
         mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
     }
@@ -174,6 +149,39 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
             as_enum_expr->SetName(m_name);
         } // @TODO more polymorphic way of doing this..
 
+        // do this only within the scope of the assignment being visited.
+        bool pass_by_ref_scope = false;
+        bool pass_by_const_scope = false;
+
+        if (IsConst()) {
+            mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, CONST_VARIABLE_FLAG));
+
+            pass_by_const_scope = true;
+        }
+
+        if (IsRef()) {
+            if (has_user_assigned) {
+                if (m_real_assignment->GetAccessOptions() & AccessMode::ACCESS_MODE_STORE) {
+                    mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, REF_VARIABLE_FLAG));
+
+                    pass_by_ref_scope = true;
+                } else {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_cannot_create_reference,
+                        m_location
+                    ));
+                }
+            } else {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_ref_missing_assignment,
+                    m_location,
+                    m_name
+                ));
+            }
+        }
+
         // visit assignment
         m_real_assignment->Visit(visitor, mod);
 
@@ -217,10 +225,14 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 symbol_type->GetName()
             ));
         }
-    }
 
-    if (pass_by_ref_scope) {
-        mod->m_scopes.Close();
+        if (pass_by_ref_scope) {
+            mod->m_scopes.Close();
+        }
+
+        if (pass_by_const_scope) {
+            mod->m_scopes.Close();
+        }
     }
 
     if (IsGeneric()) {

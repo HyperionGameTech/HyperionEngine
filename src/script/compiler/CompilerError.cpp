@@ -18,6 +18,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_ref_missing_assignment, "'%': ref value missing assignment" },
     { Msg_cannot_create_reference, "Cannot create a reference to this value" },
     { Msg_cannot_modify_rvalue, "The left hand side is not suitable for assignment" },
+    { Msg_const_assigned_to_non_const_ref, "'%': const value assigned to a non-const ref." },
     { Msg_prohibited_action_attribute, "Attribute '%' prohibits this action" },
     { Msg_unbalanced_expression, "Unbalanced expression" },
     { Msg_unmatched_parentheses, "Unmatched parentheses: Expected '}'" },

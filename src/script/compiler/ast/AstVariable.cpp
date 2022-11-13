@@ -22,7 +22,8 @@ AstVariable::AstVariable(
     const SourceLocation &location)
     : AstIdentifier(name, location),
       m_should_inline(false),
-      m_is_in_ref_assignment(false)
+      m_is_in_ref_assignment(false),
+      m_is_in_const_assignment(false)
 {
 }
 
@@ -54,6 +55,18 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
 
             m_is_in_ref_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::REF_VARIABLE_FLAG);
+            m_is_in_const_assignment = mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_NORMAL, ScopeFunctionFlags::CONST_VARIABLE_FLAG);
+
+            if (m_is_in_ref_assignment) {
+                if (is_const && !m_is_in_const_assignment) {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_const_assigned_to_non_const_ref,
+                        m_location,
+                        m_name
+                    ));
+                }
+            }
 
             if (is_generic) {
                 if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)

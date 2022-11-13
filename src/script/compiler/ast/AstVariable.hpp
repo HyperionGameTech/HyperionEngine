@@ -31,6 +31,7 @@ private:
     std::shared_ptr<AstExpression> m_inline_value;
     bool m_should_inline;
     bool m_is_in_ref_assignment;
+    bool m_is_in_const_assignment;
 
     Pointer<AstVariable> CloneImpl() const
     {

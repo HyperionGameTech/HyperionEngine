@@ -32,6 +32,7 @@ enum ErrorMessage
     Msg_const_missing_assignment,
     Msg_ref_missing_assignment,
     Msg_cannot_create_reference,
+    Msg_const_assigned_to_non_const_ref,
     Msg_cannot_modify_rvalue,
     Msg_prohibited_action_attribute,
     Msg_unbalanced_expression,
