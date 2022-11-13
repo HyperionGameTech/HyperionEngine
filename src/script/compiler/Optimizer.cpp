@@ -44,7 +44,7 @@ std::shared_ptr<AstExpression> Optimizer::OptimizeExpr(
     if (const AstVariable *expr_as_var = dynamic_cast<AstVariable*>(expr.get())) {
         // the side is a variable, so we can further optimize by inlining,
         // only if it is const, and a literal.
-        if (const Identifier *ident = expr_as_var->GetProperties().GetIdentifier()) {
+        if (const std::shared_ptr<Identifier> &ident = expr_as_var->GetProperties().GetIdentifier()) {
             if (const auto current_value = ident->GetCurrentValue()) {
                 if (ident->GetFlags() & FLAG_CONST) {
                     // decrement use count because it would have been incremented by Visit()

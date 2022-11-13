@@ -80,7 +80,7 @@ void AstMetaBlock::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(arg2 != nullptr);
 
                 if (vm::VMString *str_ptr = arg2->GetValue().ptr->GetPointer<vm::VMString>()) {
-                    if (Identifier *ident = meta_context->m_mod->LookUpIdentifier(std::string(str_ptr->GetData()), false, true)) {
+                    if (std::shared_ptr<Identifier> ident = meta_context->m_mod->LookUpIdentifier(std::string(str_ptr->GetData()), false, true)) {
                         // @TODO return a "Variable" instance that gives info on the variable
                         std::cout << "found " << ident->GetName() << "\n";
                     } else {

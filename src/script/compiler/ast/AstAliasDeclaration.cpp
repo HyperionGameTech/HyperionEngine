@@ -16,9 +16,9 @@ namespace hyperion::compiler {
 AstAliasDeclaration::AstAliasDeclaration(
     const std::string &name,
     const std::shared_ptr<AstExpression> &aliasee,
-    const SourceLocation &location)
-    : AstDeclaration(name, location),
-      m_aliasee(aliasee)
+    const SourceLocation &location
+) : AstDeclaration(name, location),
+    m_aliasee(aliasee)
 {
 }
 
@@ -26,11 +26,6 @@ void AstAliasDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
-
-    AssertThrow(m_aliasee != nullptr);
-    m_aliasee->Visit(visitor, mod);
-
-    AssertThrow(m_aliasee->GetExprType() != nullptr);
 
     if (mod->LookUpIdentifier(m_name, true) != nullptr) {
         // a collision was found, add an error
@@ -48,26 +43,30 @@ void AstAliasDeclaration::Visit(AstVisitor *visitor, Module *mod)
         m_identifier->SetSymbolType(m_aliasee->GetExprType());
         m_identifier->SetCurrentValue(m_aliasee);*/
 
-        if (AstIdentifier *aliasee_ident = dynamic_cast<AstIdentifier *>(m_aliasee.get())) {
-            AssertThrow(aliasee_ident->GetProperties().GetIdentifier() != nullptr);
+        {
+            ScopeGuard guard(mod, ScopeType::SCOPE_TYPE_ALIAS_DECLARATION, 0);
 
-            m_identifier = scope.GetIdentifierTable().AddAlias(m_name, aliasee_ident->GetProperties().GetIdentifier());
-            AssertThrow(m_identifier != nullptr);
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_WARN,
-                Msg_alias_must_be_identifier,
-                m_location,
-                m_name
-            ));
-
-            // work like a mixin
-            m_identifier = scope.GetIdentifierTable().AddIdentifier(m_name, FLAG_ALIAS);
-            AssertThrow(m_identifier != nullptr);
-
-            m_identifier->SetSymbolType(m_aliasee->GetExprType());
-            m_identifier->SetCurrentValue(m_aliasee);
+            AssertThrow(m_aliasee != nullptr);
+            m_aliasee->Visit(visitor, mod);
         }
+
+        if (const AstExpression *alias_deep_value = m_aliasee->GetDeepValueOf()) {
+            if (const AstIdentifier *aliasee_ident = dynamic_cast<const AstIdentifier *>(alias_deep_value)) {
+                AssertThrow(aliasee_ident->GetProperties().GetIdentifier() != nullptr);
+
+                m_identifier = scope.GetIdentifierTable().AddAlias(m_name, aliasee_ident->GetProperties().GetIdentifier().get());
+                AssertThrow(m_identifier != nullptr);
+
+                return;
+            }
+        }
+    
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_WARN,
+            Msg_alias_must_be_identifier,
+            m_location,
+            m_name
+        ));
     }
 }
 

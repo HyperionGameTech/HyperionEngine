@@ -11,6 +11,8 @@
 #include <script/Instructions.hpp>
 #include <system/Debug.hpp>
 
+#include <Types.hpp>
+
 #include <iostream>
 
 namespace hyperion::compiler {
@@ -50,7 +52,9 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
 
             if (is_generic) {
-                if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)) {
+                if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)
+                    && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION))
+                {
                     visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                         LEVEL_ERROR,
                         Msg_generic_expression_no_arguments_provided,
@@ -224,7 +228,7 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
             int offset = stack_size - stack_location;
 
             // get active register
-            uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+            UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
             if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
                 if (m_access_mode == ACCESS_MODE_LOAD) {
@@ -289,7 +293,7 @@ bool AstVariable::MayHaveSideEffects() const
 
 bool AstVariable::IsLiteral() const
 {
-    if (const Identifier *ident = m_properties.GetIdentifier()) {
+    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
         const Identifier *ident_unaliased = ident->Unalias();
         AssertThrow(ident_unaliased != nullptr);
 

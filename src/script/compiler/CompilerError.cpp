@@ -98,7 +98,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_module_declared_in_block, "A module may not be declared within a conditional, loop or function" },
     { Msg_could_not_open_file, "Could not open file '%'" },
     { Msg_could_not_find_module, "Could not find module '%' in paths %" },
-    { Msg_could_not_find_nested_module, "Could not find nested module '%' in module '%'. Nested modules: %" },
+    { Msg_could_not_find_nested_module, "Could not find nested module or identifier '%' in module '%'" },
     { Msg_import_outside_global, "Import statement must be in module or global scope" },
     { Msg_import_current_file, "Attempt to import current file" },
     { Msg_export_outside_global, "Export statement must be in module or global scope" },

@@ -351,23 +351,6 @@ bool SymbolType::FindPrototypeMember(const std::string &name, SymbolMember_t &ou
     return false;
 }
 
-const sp<AstExpression> SymbolType::GetPrototypeValue() const
-{
-    SymbolMember_t proto_mem;
-
-    if (FindMember("$proto", proto_mem)) {
-        if (auto value = std::get<2>(proto_mem)) {
-            return value;
-        }
-
-        if (auto proto_type = std::get<1>(proto_mem)) {
-            return proto_type->GetPrototypeValue();
-        }
-    }
-
-    return nullptr;
-}
-
 bool SymbolType::IsOrHasBase(const SymbolType &base_type) const
 {
     return TypeEqual(base_type ) || HasBase(base_type);

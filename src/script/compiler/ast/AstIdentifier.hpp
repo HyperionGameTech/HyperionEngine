@@ -13,8 +13,9 @@ namespace hyperion::compiler {
 class Scope;
 class AstTypeObject;
 
-struct AstIdentifierProperties {
-    Identifier *m_identifier = nullptr;
+struct AstIdentifierProperties
+{
+    std::shared_ptr<Identifier> m_identifier = nullptr;
 
     IdentifierType m_identifier_type = IDENTIFIER_TYPE_UNKNOWN;
 
@@ -28,9 +29,9 @@ struct AstIdentifierProperties {
     SymbolTypePtr_t m_found_type = nullptr;
 
     // getters & setters
-    Identifier *GetIdentifier() { return m_identifier; }
-    const Identifier *GetIdentifier() const { return m_identifier; }
-    void SetIdentifier(Identifier *identifier) { m_identifier = identifier; }
+    std::shared_ptr<Identifier> &GetIdentifier() { return m_identifier; }
+    const std::shared_ptr<Identifier> &GetIdentifier() const { return m_identifier; }
+    void SetIdentifier(const std::shared_ptr<Identifier> &identifier) { m_identifier = identifier; }
 
     IdentifierType GetIdentifierType() const { return m_identifier_type; }
     void SetIdentifierType(IdentifierType identifier_type) { m_identifier_type = identifier_type; }
@@ -41,10 +42,13 @@ struct AstIdentifierProperties {
     Scope *GetFunctionScope() const { return m_function_scope; }
 };
 
-class AstIdentifier : public AstExpression {
+class AstIdentifier : public AstExpression
+{
 public:
-    AstIdentifier(const std::string &name,
-        const SourceLocation &location);
+    AstIdentifier(
+        const std::string &name,
+        const SourceLocation &location
+    );
     virtual ~AstIdentifier() = default;
 
     void PerformLookup(AstVisitor *visitor, Module *mod);

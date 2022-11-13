@@ -10,11 +10,15 @@
 
 namespace hyperion::compiler {
 
-class AstAliasDeclaration : public AstDeclaration {
+class AstAliasDeclaration : public AstDeclaration
+{
 public:
-    AstAliasDeclaration(const std::string &name,
+    AstAliasDeclaration(
+        const std::string &name,
         const std::shared_ptr<AstExpression> &aliasee,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
+
     virtual ~AstAliasDeclaration() = default;
 
     const std::shared_ptr<AstExpression> &GetAliasee() const

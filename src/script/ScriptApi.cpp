@@ -22,7 +22,7 @@ static Module *GetModule(CompilationUnit *compilation_unit, const std::string &m
     return nullptr;
 }
 
-static Identifier *CreateIdentifier(
+static std::shared_ptr<Identifier> CreateIdentifier(
     CompilationUnit *compilation_unit,
     Module *mod,
     const std::string &name
@@ -37,7 +37,7 @@ static Identifier *CreateIdentifier(
     // look up variable to make sure it doesn't already exist
     // only this scope matters, variables with the same name outside
     // of this scope are fine
-    Identifier *ident = mod->LookUpIdentifier(name, true);
+    std::shared_ptr<Identifier> ident = mod->LookUpIdentifier(name, true);
     AssertThrowMsg(ident == nullptr, "Cannot create multiple objects with the same name");
 
     // add identifier
@@ -255,7 +255,7 @@ void API::ModuleDefine::BindNativeVariable(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    Identifier *ident = CreateIdentifier(compilation_unit, mod, def.name);
+    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.name);
 
     AssertThrow(ident != nullptr);
 
@@ -304,7 +304,7 @@ void API::ModuleDefine::BindNativeFunction(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    Identifier *ident = CreateIdentifier(compilation_unit, mod, def.function_name);
+    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.function_name);
     AssertThrow(ident != nullptr);
 
     // create value

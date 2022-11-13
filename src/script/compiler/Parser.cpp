@@ -402,8 +402,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseEnumDefinition();
         } else if (MatchKeyword(Keyword_alias, false)) {
             res = ParseAliasDeclaration();
-        } else if (MatchKeyword(Keyword_mixin, false)) {
-            res = ParseMixinDeclaration();
         } else if (MatchKeyword(Keyword_if, false)) {
             res = ParseIfStatement();
         } else if (MatchKeyword(Keyword_while, false)) {
@@ -2448,48 +2446,6 @@ std::shared_ptr<AstAliasDeclaration> Parser::ParseAliasDeclaration()
         ident.GetValue(),
         aliasee,
         token.GetLocation()
-    ));
-}
-
-std::shared_ptr<AstMixinDeclaration> Parser::ParseMixinDeclaration()
-{
-    const Token token = ExpectKeyword(Keyword_mixin, true);
-    if (!token) {
-        return nullptr;
-    }
-
-    const Token ident = ExpectIdentifier(true, true);
-    if (!ident) {
-        return nullptr;
-    }
-
-    const Token op = ExpectOperator("=", true);
-    if (!op) {
-        return nullptr;
-    }
-
-    if (const auto mixin_expr = ParseMixinExpression(ident.GetValue())) {
-        return std::shared_ptr<AstMixinDeclaration>(new AstMixinDeclaration(
-            ident.GetValue(),
-            mixin_expr,
-            ident.GetLocation()
-        ));
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<AstMixin> Parser::ParseMixinExpression(const std::string &name)
-{
-    const Token str_expr = Expect(TK_STRING, true);
-    if (!str_expr) {
-        return nullptr;
-    }
-
-    return std::shared_ptr<AstMixin>(new AstMixin(
-        name,
-        str_expr.GetValue(),
-        str_expr.GetLocation()
     ));
 }
 

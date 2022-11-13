@@ -19,7 +19,8 @@ enum ScopeType
     SCOPE_TYPE_FUNCTION,
     SCOPE_TYPE_TYPE_DEFINITION,
     SCOPE_TYPE_LOOP,
-    SCOPE_TYPE_GENERIC_INSTANTIATION
+    SCOPE_TYPE_GENERIC_INSTANTIATION,
+    SCOPE_TYPE_ALIAS_DECLARATION
 };
 
 enum ScopeFunctionFlags : int
@@ -41,6 +42,7 @@ public:
 
     IdentifierTable &GetIdentifierTable()
         { return m_identifier_table; }
+
     const IdentifierTable &GetIdentifierTable() const
         { return m_identifier_table; }
 
@@ -52,17 +54,20 @@ public:
 
     void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
         { m_return_types.push_back({type, location}); }
+
     const std::vector<ReturnType_t> &GetReturnTypes() const
         { return m_return_types; }
 
-    Identifier *FindClosureCapture(const std::string &name) 
+    std::shared_ptr<Identifier> FindClosureCapture(const std::string &name) 
     {
         auto it = m_closure_captures.find(name);
+
         return it != m_closure_captures.end() ? it->second : nullptr;
     }
-    void AddClosureCapture(const std::string &name, Identifier *ident) 
+    void AddClosureCapture(const std::string &name, const std::shared_ptr<Identifier> &ident) 
         { m_closure_captures.insert({ name, ident }); }
-    const std::map<std::string, Identifier*> &GetClosureCaptures() const
+
+    const std::map<std::string, std::shared_ptr<Identifier>> &GetClosureCaptures() const
         { return m_closure_captures; }
 
 private:
@@ -70,7 +75,7 @@ private:
     ScopeType m_scope_type;
     int m_scope_flags;
     std::vector<ReturnType_t> m_return_types;
-    std::map<std::string, Identifier*> m_closure_captures;
+    std::map<std::string, std::shared_ptr<Identifier>> m_closure_captures;
 };
 
 } // namespace hyperion::compiler

@@ -141,12 +141,12 @@ std::vector<Module *> Module::CollectNestedModules() const
     return nested_modules;
 }
 
-Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules)
+std::shared_ptr<Identifier> Module::LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules)
 {
     TreeNode<Scope> *top = m_scopes.TopNode();
 
     while (top != nullptr) {
-        if (Identifier *result = top->m_value.GetIdentifierTable().LookUpIdentifier(name)) {
+        if (std::shared_ptr<Identifier> result = top->m_value.GetIdentifierTable().LookUpIdentifier(name)) {
             // a result was found
             return result;
         }
@@ -183,14 +183,12 @@ Identifier *Module::LookUpIdentifier(const std::string &name, bool this_scope_on
     return nullptr;
 }
 
-Identifier *Module::LookUpIdentifierDepth(const std::string &name, int depth_level)
+std::shared_ptr<Identifier> Module::LookUpIdentifierDepth(const std::string &name, int depth_level)
 {
     TreeNode<Scope> *top = m_scopes.TopNode();
 
     for (int i = 0; top != nullptr && i < depth_level; i++) {
-        Identifier *result = top->m_value.GetIdentifierTable().LookUpIdentifier(name);
-
-        if (result != nullptr) {
+        if (std::shared_ptr<Identifier> result = top->m_value.GetIdentifierTable().LookUpIdentifier(name)) {
             return result;
         }
 

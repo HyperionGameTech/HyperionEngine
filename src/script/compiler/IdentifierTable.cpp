@@ -35,7 +35,7 @@ int IdentifierTable::CountUsedVariables() const
     return used_variables.size();
 }
 
-Identifier *IdentifierTable::AddAlias(const std::string &name, Identifier *aliasee)
+std::shared_ptr<Identifier> IdentifierTable::AddAlias(const std::string &name, Identifier *aliasee)
 {
     AssertThrow(aliasee != nullptr);
 
@@ -46,13 +46,15 @@ Identifier *IdentifierTable::AddAlias(const std::string &name, Identifier *alias
         aliasee
     )));
     
-    return m_identifiers.back().get();
+    return m_identifiers.back();
 }
 
-Identifier *IdentifierTable::AddIdentifier(const std::string &name,
+std::shared_ptr<Identifier> IdentifierTable::AddIdentifier(
+    const std::string &name,
     int flags,
     std::shared_ptr<AstExpression> current_value,
-    SymbolTypePtr_t symbol_type)
+    SymbolTypePtr_t symbol_type
+)
 {
     std::shared_ptr<Identifier> ident(new Identifier(
         name,
@@ -74,15 +76,30 @@ Identifier *IdentifierTable::AddIdentifier(const std::string &name,
 
     m_identifiers.push_back(ident);
 
-    return m_identifiers.back().get();
+    return m_identifiers.back();
 }
 
-Identifier *IdentifierTable::LookUpIdentifier(const std::string &name)
+bool IdentifierTable::AddIdentifier(const std::shared_ptr<Identifier> &identifier)
+{
+    if (identifier == nullptr) {
+        return false;
+    }
+
+    if (auto already_existing_identifier = LookUpIdentifier(identifier->GetName())) {
+        return false;
+    }
+
+    m_identifiers.push_back(identifier);
+
+    return true;
+}
+
+std::shared_ptr<Identifier> IdentifierTable::LookUpIdentifier(const std::string &name)
 {
     for (auto &ident : m_identifiers) {
         if (ident != nullptr) {
             if (ident->GetName() == name) {
-                return ident.get()->Unalias();
+                return ident;
             }
         }
     }

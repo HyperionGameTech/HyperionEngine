@@ -19,18 +19,8 @@ class Module;
 class SemanticAnalyzer : public AstVisitor
 {
 public:
-    struct Helpers {
-        struct IdentifierLookupResult
-        {
-            Identifier *as_identifier = nullptr;
-            Module *as_module = nullptr;
-            SymbolTypePtr_t as_type;
-
-            IdentifierType type;
-        };
-
-        static IdentifierLookupResult LookupIdentifier(AstVisitor *visitor, Module *mod, const std::string &name);
-
+    struct Helpers
+    {
         static std::vector<std::shared_ptr<AstArgument>> SubstituteGenericArgs(
             AstVisitor *visitor,
             Module *mod,

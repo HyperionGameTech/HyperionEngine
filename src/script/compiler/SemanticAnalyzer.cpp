@@ -14,35 +14,6 @@
 
 namespace hyperion::compiler {
 
-SemanticAnalyzer::Helpers::IdentifierLookupResult
-SemanticAnalyzer::Helpers::LookupIdentifier(
-    AstVisitor *visitor,
-    Module *mod,
-    const std::string &name
-)
-{
-    IdentifierLookupResult res;
-    res.type = IDENTIFIER_TYPE_UNKNOWN;
-
-    // the variable must exist in the active scope or a parent scope
-    if ((res.as_identifier = mod->LookUpIdentifier(name, false))) {
-        res.type = IDENTIFIER_TYPE_VARIABLE;
-    } else if ((res.as_identifier = visitor->GetCompilationUnit()->GetGlobalModule()->LookUpIdentifier(name, false))) {
-        // if the identifier was not found,
-        // look in the global module to see if it is a global function.
-        res.type = IDENTIFIER_TYPE_VARIABLE;
-    } else if ((res.as_module = visitor->GetCompilationUnit()->LookupModule(name))) {
-        res.type = IDENTIFIER_TYPE_MODULE;
-    } else if ((res.as_type = mod->LookupSymbolType(name))) {
-        res.type = IDENTIFIER_TYPE_TYPE;
-    } else {
-        // nothing was found
-        res.type = IDENTIFIER_TYPE_NOT_FOUND;
-    }
-    
-    return res;
-}
-
 void CheckArgTypeCompatible(
     AstVisitor *visitor,
     const SourceLocation &location,

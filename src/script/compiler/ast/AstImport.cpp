@@ -138,32 +138,6 @@ void AstImport::PerformImport(
             );
         }
     } else {
-        /*if (make_parent_module) {
-            // Create a new module object called whatever the FILENAME is,
-            // and copy all the modules from that file into it.
-            // e.g a file called car.ace with module "car_example" in it:
-            // import car
-            //    to use something, write car::car_example::car1 or whatever
-            // or you can write:
-            // import car::car_example to get around having to write car
-
-            AssertThrow(!parent_module_name.empty());
-
-            SourceLocation mod_location = m_location;
-            mod_location.SetFileName(filepath);
-
-            std::shared_ptr<Module> new_module(new Module(
-                parent_module_name,
-                mod_location
-            ));
-
-            // map filepath to module
-            visitor->GetCompilationUnit()->m_imported_modules[canon_path] = { new_module };
-
-            visitor->GetCompilationUnit()->m_module_tree.Open(new_module.get());
-            new_module->SetImportTreeLink(visitor->GetCompilationUnit()->m_module_tree.TopNode());
-        }*/
-
         // file hasn't been imported, so open it
         std::ifstream file;
 

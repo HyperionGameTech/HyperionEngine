@@ -1,7 +1,5 @@
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
-#include <script/compiler/ast/AstAliasDeclaration.hpp>
-#include <script/compiler/ast/AstMixinDeclaration.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstBlock.hpp>
