@@ -10,25 +10,29 @@
 
 namespace hyperion::compiler {
 
-enum class Operations {
+enum class Operations
+{
     LOAD,
-    STORE,
+    STORE
 };
 
-enum class Methods {
+enum class Methods
+{
     LOCAL,
     STATIC,
     ARRAY,
-    MEMBER,
+    MEMBER
 };
 
-enum class Strategies {
+enum class Strategies
+{
     BY_OFFSET,
     BY_INDEX,
     BY_HASH,
 };
 
-struct StorageOperation : public Buildable {
+struct StorageOperation : public Buildable
+{
     // fwd decls
     struct OperationBuilder;
     struct MethodBuilder;
@@ -70,7 +74,8 @@ struct StorageOperation : public Buildable {
     Methods method;
     Strategies strategy;
 
-    struct StorageOperationBuilder {
+    struct StorageOperationBuilder
+    {
         virtual ~StorageOperationBuilder() = default;
     };
 
@@ -112,7 +117,8 @@ struct StorageOperation : public Buildable {
         OperationBuilder *parent;
     };
 
-    struct StrategyBuilder : public StorageOperationBuilder {
+    struct StrategyBuilder : public StorageOperationBuilder
+    {
         StrategyBuilder(StorageOperation *op, MethodBuilder *parent)
             : op(op),
               parent(parent)

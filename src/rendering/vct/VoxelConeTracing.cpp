@@ -377,7 +377,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     m_voxel_image = engine->CreateHandle<Texture>(
         StorageImage(
             voxel_map_extent,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            InternalFormat::RGBA8,
             ImageType::TEXTURE_TYPE_3D,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
         ),
@@ -390,7 +390,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     m_temporal_blending_image = engine->CreateHandle<Texture>(
         StorageImage(
             temporal_image_extent,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8, // alpha channel is used as temporal blending amount.
+            InternalFormat::RGBA8, // alpha channel is used as temporal blending amount.
             ImageType::TEXTURE_TYPE_3D,
             FilterMode::TEXTURE_FILTER_LINEAR
         ),

@@ -84,6 +84,8 @@ public:
     /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
     bool RemoveEntityInternal(const Handle<Entity> &entity);
 
+    const Handle<Entity> &FindEntityWithID(const Entity::ID &id) const;
+
     bool AddLight(Handle<Light> &&light);
     bool AddLight(const Handle<Light> &light);
     bool RemoveLight(Light::ID id);

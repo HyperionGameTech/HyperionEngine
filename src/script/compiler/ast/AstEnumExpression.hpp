@@ -11,13 +11,15 @@
 
 namespace hyperion::compiler {
 
-struct EnumEntry {
+struct EnumEntry
+{
     std::string name;
     std::shared_ptr<AstExpression> assignment;
     SourceLocation location;
 };
 
-class AstEnumExpression : public AstExpression {
+class AstEnumExpression : public AstExpression
+{
 public:
     AstEnumExpression(
         const std::string &name,

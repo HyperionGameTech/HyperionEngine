@@ -21,10 +21,14 @@ struct IDBase
 {
     using ValueType = UInt32;
     
-    HYP_FORCE_INLINE explicit constexpr operator ValueType() const { return value; }
-    HYP_FORCE_INLINE constexpr ValueType Value() const { return value; }
+    HYP_FORCE_INLINE explicit constexpr operator ValueType() const
+        { return value; }
     
-    HYP_FORCE_INLINE explicit constexpr operator bool() const { return bool(value); }
+    HYP_FORCE_INLINE constexpr ValueType Value() const
+        { return value; }
+    
+    HYP_FORCE_INLINE explicit constexpr operator bool() const
+        { return bool(value); }
 
     HYP_FORCE_INLINE constexpr bool operator==(const IDBase &other) const
         { return value == other.value; }
@@ -56,40 +60,46 @@ struct IDBase
 template <class T>
 struct ComponentID : IDBase {};
 
+template <class T>
 struct HandleID : IDBase
 {
-    TypeID type_id;
+    // TypeID type_id;
 
     constexpr HandleID() = default;
 
-    constexpr HandleID(TypeID type_id, IDBase::ValueType value)
-        : IDBase { value },
-          type_id(type_id)
+    explicit HandleID(const IDBase &other)
+        : IDBase(other)
+    {
+    }
+
+    constexpr HandleID(IDBase::ValueType value)
+        : IDBase { value }
     {
     }
 
     constexpr HandleID(const HandleID &other)
-        : IDBase(other),
-          type_id(other.type_id)
+        : IDBase(other)
     {
     }
+
+    HandleID &operator=(const IDBase &other) = delete; // delete so we cannot assign a type's ID to a different type
+    HandleID &operator=(const HandleID &other) = default;
 
     HYP_FORCE_INLINE operator bool() const
         { return IDBase::operator bool(); }
 
     HYP_FORCE_INLINE bool operator==(const HandleID &other) const
-        { return IDBase::operator==(other) && type_id == other.type_id; }
+        { return IDBase::operator==(other); }
 
     HYP_FORCE_INLINE bool operator!=(const HandleID &other) const
-        { return IDBase::operator!=(other) || type_id != other.type_id; }
+        { return IDBase::operator!=(other); }
 
     HYP_FORCE_INLINE bool operator<(const HandleID &other) const
-        { return IDBase::operator<(other) || (!IDBase::operator<(other) && type_id < other.type_id); }
+        { return IDBase::operator<(other); }
 
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(type_id.GetHashCode());
         hc.Add(IDBase::GetHashCode());
 
         return hc;
@@ -114,11 +124,11 @@ protected:
     using Base::Get;
 
     template <class T>
-    static inline HandleID NextID()
+    static inline HandleID<T> NextID()
     {
         static std::atomic<UInt> id_counter { 0u };
 
-        return HandleID(TypeID::ForType<T>(), ++id_counter);
+        return HandleID<T>(++id_counter);
     }
 
     /* Engine class uses these constructors */
@@ -254,7 +264,7 @@ protected:
     }
 
 public:
-    using ID = HandleID;
+    using ID = HandleID<T>;
 
     using Base::operator bool;
     using Base::operator!;
@@ -321,9 +331,9 @@ public:
 template <class T>
 const Handle<T> Handle<T>::empty = Handle();
 
-class WeakHandleBase : WeakAtomicRefCountedPtr<void>
+class WeakHandleBase : Weak<void>
 {
-    using Base = WeakAtomicRefCountedPtr<void>;
+    using Base = Weak<void>;
 
 protected:
     using Base::m_ref;

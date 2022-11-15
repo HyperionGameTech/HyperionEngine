@@ -7,6 +7,7 @@
 #include <rendering/backend/RendererHelpers.hpp>
 
 #include <util/Defines.hpp>
+#include <Types.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -196,9 +197,8 @@ public:
     }
 
     bool IsSupportedFormat(
-        VkFormat format,
-        VkImageTiling tiling,
-        VkFormatFeatureFlags features
+        InternalFormat format,
+        ImageSupportType support_type
     ) const
     {
         if (m_physical_device == nullptr) {
@@ -207,26 +207,51 @@ public:
 
         DebugLog(
             LogType::Debug,
-            "Checking support for Vulkan format %d with tiling mode %d and feature flags %d.\n",
-            format,
-            tiling,
-            features
+            "Checking support for format %d with support_type %d.\n",
+            int(format),
+            int(support_type)
         );
 
+        const VkFormat vulkan_format = helpers::ToVkFormat(format);
+
+        VkFormatFeatureFlags feature_flags = 0;
+
+        switch (support_type) {
+        case ImageSupportType::SRV:
+            feature_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            break;
+        case ImageSupportType::UAV:
+            feature_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+            break;
+        case ImageSupportType::DEPTH:
+            feature_flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            break;
+        default:
+            DebugLog(
+                LogType::RenError,
+                "Unknown image support type %d.\n",
+                int(support_type)
+            );
+
+            return false;
+        }
+
         VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(m_physical_device, format, &props);
+        vkGetPhysicalDeviceFormatProperties(m_physical_device, vulkan_format, &props);
+
+        const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
 
         const VkFormatFeatureFlags flags = (tiling == VK_IMAGE_TILING_LINEAR)
             ? props.linearTilingFeatures
             : (tiling == VK_IMAGE_TILING_OPTIMAL) ? props.optimalTilingFeatures : 0;
 
-        if ((flags & features) == features) {
+        if ((flags & feature_flags) == feature_flags) {
             DebugLog(
                 LogType::Debug,
                 "Vulkan format %d with tiling mode %d and feature flags %d support found!\n",
                 format,
                 tiling,
-                features
+                feature_flags
             );
 
             return true;
@@ -237,80 +262,44 @@ public:
             "Vulkan format %d with tiling mode %d and feature flags %d not supported.\n",
             format,
             tiling,
-            features
+            feature_flags
         );
 
         return false;
     }
 
     /* get the first supported format out of the provided list of format choices. */
-    template <size_t Size>
+    template <SizeType Size>
     InternalFormat FindSupportedFormat(
         const std::array<InternalFormat, Size> &possible_formats,
-        VkImageTiling tiling,
-        VkFormatFeatureFlags features
+        ImageSupportType support_type
     ) const
     {
         static_assert(Size > 0, "Size must be greater than zero!");
 
         DebugLog(
             LogType::Debug,
-            "Looking for format to use with tiling option %d and format features %d. First choice: %d\n",
-            tiling,
-            features,
-            helpers::ToVkFormat(possible_formats[0])
+            "Looking for format to use with support type %d. First choice: %d\n",
+            int(support_type),
+            int(possible_formats[0])
         );
 
         if (m_physical_device == nullptr) {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-            return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+            return InternalFormat::NONE;
         }
 
-        for (size_t i = 0; i < Size; i++) {
-            if (IsSupportedFormat(helpers::ToVkFormat(possible_formats[i]), tiling, features) != VK_FORMAT_UNDEFINED) {
+        for (SizeType i = 0; i < Size; i++) {
+            if (IsSupportedFormat(possible_formats[i], support_type) != VK_FORMAT_UNDEFINED) {
                 return possible_formats[i];
             }
         }
 
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     /* get the first supported format out of the provided list of format choices. */
-    template <size_t Size>
-    VkFormat FindSupportedFormat(
-        const std::array<VkFormat, Size> &possible_formats,
-        VkImageTiling tiling,
-        VkFormatFeatureFlags features
-    ) const
-    {
-        static_assert(Size > 0, "Size must be greater than zero!");
-
-        DebugLog(
-            LogType::Debug,
-            "Looking for format to use with tiling option %d and format features %d. First choice: %d\n",
-            tiling,
-            features,
-            possible_formats[0]
-        );
-
-        if (m_physical_device == VK_NULL_HANDLE) {
-            DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-            return VK_FORMAT_UNDEFINED;
-        }
-
-        for (size_t i = 0; i < Size; i++) {
-            VkFormat format = possible_formats[i];
-
-            if (IsSupportedFormat(format, tiling, features)) {
-                return format;
-            }
-        }
-
-        return VK_FORMAT_UNDEFINED;
-    }
-
-    /* get the first supported format out of the provided list of format choices. */
-    template <size_t Size, class LambdaFunction>
+    template <SizeType Size, class LambdaFunction>
     InternalFormat FindSupportedSurfaceFormat(
         const SwapchainSupportDetails &details,
         const std::array<InternalFormat, Size> &possible_formats,
@@ -367,7 +356,7 @@ public:
             "No surface format found out of the selected options!\n"
         );
 
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     Result GetImageFormatProperties(

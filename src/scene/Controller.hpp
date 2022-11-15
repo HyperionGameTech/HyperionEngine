@@ -2,11 +2,10 @@
 #define HYPERION_V2_CONTROLLER_H
 
 #include <core/Base.hpp>
-#include <math/Transform.hpp>
-#include "../GameCounter.hpp"
-
 #include <core/Containers.hpp>
-
+#include <math/Transform.hpp>
+#include <script/Script.hpp>
+#include <GameCounter.hpp>
 #include <Types.hpp>
 
 #include <atomic>
@@ -26,6 +25,29 @@ class Controller
 {
     friend class Entity;
 
+protected:
+    enum ScriptMethods
+    {
+        SCRIPT_METHOD_ON_ADDED,
+        SCRIPT_METHOD_ON_REMOVED,
+        SCRIPT_METHOD_ON_TICK,
+
+        SCRIPT_METHOD_0,
+        SCRIPT_METHOD_1,
+        SCRIPT_METHOD_2,
+        SCRIPT_METHOD_3,
+        SCRIPT_METHOD_4,
+        SCRIPT_METHOD_5,
+        SCRIPT_METHOD_6,
+        SCRIPT_METHOD_7,
+        SCRIPT_METHOD_8,
+        SCRIPT_METHOD_9,
+        SCRIPT_METHOD_10,
+        SCRIPT_METHOD_11,
+
+        SCRIPT_METHOD_MAX
+    };
+
 public:
     Controller(const String &name, bool receives_update = true);
     Controller(const Controller &other) = delete;
@@ -36,13 +58,28 @@ public:
 
     virtual ~Controller();
 
-    const String &GetName() const { return m_name; }
-    Entity *GetOwner() const { return m_owner; }
-    bool ReceivesUpdate() const { return m_receives_update; }
+    const String &GetName() const
+        { return m_name; }
 
-    virtual void OnAdded() = 0;
-    virtual void OnRemoved() = 0;
-    virtual void OnUpdate(GameCounter::TickUnit delta) {};
+    Entity *GetOwner() const
+        { return m_owner; }
+
+    bool ReceivesUpdate() const
+        { return m_receives_update; }
+
+    bool HasScript() const
+        { return m_script != nullptr; }
+
+    bool IsScriptValid() const
+        { return m_script_valid; }
+
+    void SetScript(const Handle<Script> &script);
+    void SetScript(Handle<Script> &&script);
+
+    virtual void OnAdded();
+    virtual void OnRemoved();
+    virtual void OnUpdate(GameCounter::TickUnit delta);
+
     virtual void OnTransformUpdate(const Transform &transform) {}
 
     virtual void OnDetachedFromNode(Node *node) {}
@@ -53,6 +90,14 @@ public:
 
 protected:
     Engine *GetEngine() const;
+
+    bool CreateScriptedObjects();
+    virtual bool CreateScriptedMethods();
+    
+    Script::ObjectHandle m_self_object;
+    FixedArray<Script::FunctionHandle, SCRIPT_METHOD_MAX> m_script_methods;
+    Handle<Script> m_script;
+    bool m_script_valid;
 
 private:
     String m_name;

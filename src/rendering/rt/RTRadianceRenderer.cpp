@@ -40,12 +40,12 @@ RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent)
       m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           ))
       },

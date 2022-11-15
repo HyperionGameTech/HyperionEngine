@@ -65,8 +65,8 @@ void BlurRadiance::Destroy(Engine *engine)
 void BlurRadiance::CreateImageOutputs(Engine *engine)
 {
     static const FixedArray image_formats {
-        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-        InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8
+        InternalFormat::RGBA8,
+        InternalFormat::RGBA8
     };
     
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {

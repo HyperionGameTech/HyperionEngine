@@ -184,7 +184,7 @@ public:
     const auto &GetAttachmentRefs() const { return m_attachment_refs; }
 
     InternalFormat GetFormat() const
-        { return m_image ? m_image->GetTextureFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE; }
+        { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
 
     bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }

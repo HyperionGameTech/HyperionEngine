@@ -534,9 +534,153 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     HYP_SCRIPT_RETURN(ptr);
 }
 
+static HYP_SCRIPT_FUNCTION(LoadModule)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    VMString *str = GetArgument<1, VMString>(params);
+
+    if (str == nullptr) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    FilePath path = FilePath::Current() / str->GetData();
+
+    if (!path.Exists()) {
+        path += ".hypscript";
+    }
+
+    if (!path.Exists()) {
+        DebugLog(
+            LogType::Error,
+            "Failed to load module %s: File not found\n",
+            path.Data()
+        );
+
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    // TODO: Use hash code other than source path.
+    const UInt32 hash_code = UInt32(path.GetHashCode().Value());
+
+    RC<DynModule> dyn_module;
+
+    {
+        const auto it = params.handler->state->m_dyn_modules.Find(hash_code);
+
+        if (it != params.handler->state->m_dyn_modules.End()) {
+            dyn_module = it->second.Lock();
+        }
+    }
+
+    if (dyn_module == nullptr) {
+        if (auto reader = path.Open()) {
+            const ByteBuffer byte_buffer = reader.ReadBytes();
+
+            SourceFile source_file(str->GetData(), reader.Max());
+            source_file.ReadIntoBuffer(byte_buffer.Data(), byte_buffer.Size());
+
+            dyn_module.Reset(new DynModule);
+            UniquePtr<Script> script(new Script(source_file));
+
+            if (script->Compile()) {
+                script->Bake();
+                script->Decompile(&utf::cout);
+                script->Run();
+            } else {
+                DebugLog(
+                    LogType::Error,
+                    "Failed to load module %s: Compilation failed\n",
+                    path.Data()
+                );
+
+                HYP_SCRIPT_RETURN_NULL();
+            }
+
+            dyn_module->ptr = std::move(script);
+            params.handler->state->m_dyn_modules.Insert(hash_code, Weak<DynModule>(dyn_module));
+        } else {
+            DebugLog(
+                LogType::Error,
+                "Failed to load module %s: Failed to open path\n",
+                path.Data()
+            );
+
+            HYP_SCRIPT_RETURN_NULL();
+        }
+    } else {
+        DebugLog(
+            LogType::Info,
+            "Reuse dyn module %s\n",
+            path.Data()
+        );
+    }
+
+    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<RC<DynModule>>();
+    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
+
+    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
+
+    HYP_SCRIPT_CREATE_PTR(std::move(dyn_module), result);
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+    HYP_SCRIPT_RETURN(ptr);
+}
+
+static HYP_SCRIPT_FUNCTION(GetModuleExportedValue)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    RC<DynModule> &dyn_module = GetArgument<0, RC<DynModule>>(params);
+    VMString *name_ptr = GetArgument<1, VMString>(params);
+
+    if (dyn_module == nullptr || dyn_module->ptr == nullptr || name_ptr == nullptr) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    vm::Value out_value;
+
+    if (!static_cast<Script *>(dyn_module->ptr.Get())->GetExportedValue(name_ptr->GetData(), &out_value)) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    HYP_SCRIPT_RETURN(out_value);
+}
+
 void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
+
+    api_instance.Module(Config::global_module_name)
+        .Class<RC<DynModule>>(
+            "Module",
+            {
+                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+
+                API::NativeMemberDefine(
+                    "Get",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "name", BuiltinTypes::STRING }
+                    },
+                    GetModuleExportedValue
+                )
+            },
+            {
+                API::NativeMemberDefine(
+                    "Load",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::CLASS_TYPE },
+                        { "name", BuiltinTypes::STRING }
+                    },
+                    LoadModule
+                )
+            }
+        );
 
     api_instance.Module(Config::global_module_name)
         .Function(

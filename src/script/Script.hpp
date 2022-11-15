@@ -54,6 +54,8 @@ public:
     struct FunctionHandle : ValueHandle { };
 
     Script(const SourceFile &source_file);
+    Script(const Script &other) = delete;
+    Script &operator=(const Script &other) = delete;
     ~Script();
 
     void Init(Engine *engine);
@@ -141,6 +143,11 @@ public:
         return GetExportedValue(name, &out_handle._inner);
     }
 
+    bool GetExportedValue(const char *name, Value *value)
+    {
+        return GetExportedSymbols().Find(hash_fnv_1(name), value);
+    }
+
     bool GetMember(const ObjectHandle &object, const char *member_name, ValueHandle &out_value)
     {
         if (object._inner.m_type != Value::HEAP_POINTER) {
@@ -184,10 +191,6 @@ public:
     }
 
 private:
-    bool GetExportedValue(const char *name, Value *value)
-    {
-        return GetExportedSymbols().Find(hash_fnv_1(name), value);
-    }
 
     APIInstance m_api_instance;
 

@@ -10,14 +10,13 @@
 
 #include <core/Containers.hpp>
 #include <util/fs/FsUtil.hpp>
+#include <util/Defines.hpp>
+#include <Types.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
 
 #include <vector>
 #include <string>
-
-#include <util/Defines.hpp>
-#include <Types.hpp>
 
 namespace hyperion {
 

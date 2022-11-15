@@ -61,7 +61,7 @@ void TemporalBlending::CreateImageOutputs(Engine *engine)
 
         image_output.image = StorageImage(
             Extent3D(m_extent),
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            InternalFormat::RGBA8,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
             nullptr

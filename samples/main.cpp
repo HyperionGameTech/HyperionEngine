@@ -173,10 +173,15 @@ public:
 
         test_model.Scale(0.35f);
 
-        if (false) {
+        if (true) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(engine->CreateHandle<Entity>());
             btn_node.GetEntity()->AddController<UIButtonController>();
+
+            if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
+                controller->SetScript(engine->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
+            }
+
             btn_node.Scale(0.01f);
         }
 
@@ -414,7 +419,7 @@ public:
 
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
-                    if (auto lookup_result = engine->GetObjectSystem().Lookup<Entity>(Entity::ID { TypeID::ForType<Entity>(), hit.id })) {
+                    if (auto lookup_result = engine->GetObjectSystem().Lookup<Entity>(Entity::ID(hit.id))) {
                         if (auto &mesh = lookup_result->GetMesh()) {
                             ray.TestTriangleList(
                                 mesh->GetVertices(),
@@ -530,7 +535,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication);
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
     
     SystemEvent event;
 

@@ -145,6 +145,12 @@ private:
     FixedArray<Vector2, 255> m_char_texture_coords;
 };
 
+class UIText
+{
+public:
+    static UniquePtr<Mesh> BuildTextMesh(const FontMap &font_map, const String &text);
+};
+
 // class UIText : public UIObject
 // {
 // protected:

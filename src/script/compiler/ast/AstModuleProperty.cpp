@@ -10,6 +10,8 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
+#include <util/fs/FsUtil.hpp>
+
 #include <script/Instructions.hpp>
 #include <system/Debug.hpp>
 #include <script/Hasher.hpp>
@@ -40,6 +42,16 @@ void AstModuleProperty::Visit(AstVisitor *visitor, Module *mod)
     } else if (m_field_name == "path") {
         m_expr_value = std::shared_ptr<AstString>(new AstString(
             mod->GetLocation().GetFileName(),
+            m_location
+        ));
+    } else if (m_field_name == "directory") {
+        m_expr_value = std::shared_ptr<AstString>(new AstString(
+            FilePath(mod->GetLocation().GetFileName().c_str()).BasePath().Data(),
+            m_location
+        ));
+    } else if (m_field_name == "basename") {
+        m_expr_value = std::shared_ptr<AstString>(new AstString(
+            FilePath(mod->GetLocation().GetFileName().c_str()).Basename().Data(),
             m_location
         ));
     }

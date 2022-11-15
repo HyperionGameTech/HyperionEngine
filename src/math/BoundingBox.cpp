@@ -204,7 +204,7 @@ bool BoundingBox::ContainsPoint(const Vector3 &vec) const
     return true;
 }
 
-double BoundingBox::Area() const
+float BoundingBox::Area() const
 {
     Vector3 dimensions(max - min);
     return dimensions.x * dimensions.y * dimensions.z;

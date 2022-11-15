@@ -332,7 +332,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
 
             m_cubemaps[frame_index] = engine->CreateHandle<Texture>(new TextureCube(
                 m_cubemap_dimensions,
-                InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+                InternalFormat::RGBA8_SRGB,
                 m_filter_mode,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 nullptr
@@ -413,7 +413,7 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
             m_cubemap_dimensions,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+            InternalFormat::RGBA8_SRGB,
             nullptr
         ),
         RenderPassStage::SHADER

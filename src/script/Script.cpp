@@ -47,6 +47,11 @@ void Script::Init(Engine *engine)
 bool Script::Compile()
 {
     if (!m_source_file.IsValid()) {
+        DebugLog(
+            LogType::Error,
+            "Source file not valid\n"
+        );
+
         return false;
     }
 
@@ -78,7 +83,9 @@ bool Script::Compile()
     m_compilation_unit.GetErrorList().SortErrors();
     m_errors = m_compilation_unit.GetErrorList();
 
-    if (!m_compilation_unit.GetErrorList().HasFatalErrors()) {
+    m_errors.WriteOutput(utf::cout);
+
+    if (!m_errors.HasFatalErrors()) {
         // only optimize if there were no errors
         // before this point
         ast_iterator.ResetPosition();
@@ -88,12 +95,16 @@ bool Script::Compile()
         // compile into bytecode instructions
         ast_iterator.ResetPosition();
 
-
         Compiler compiler(&ast_iterator, &m_compilation_unit);
 
         if (auto builtins_result = builtins.Build(&m_compilation_unit)) {            
             m_bytecode_chunk.Append(std::move(builtins_result));
         } else {
+            DebugLog(
+                LogType::Error,
+                "Failed to add builtins to script\n"
+            );
+
             return false;
         }
 
@@ -101,6 +112,11 @@ bool Script::Compile()
             // HYP_BREAKPOINT;
             m_bytecode_chunk.Append(std::move(compile_result));
         } else {
+            DebugLog(
+                LogType::Error,
+                "Failed to compile source file\n"
+            );
+
             return false;
         }
 

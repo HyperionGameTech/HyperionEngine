@@ -46,16 +46,16 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     switch (data.num_components) {
     case STBI_rgb_alpha:
-        data.format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8;
+        data.format = InternalFormat::RGBA8;
         break;
     case STBI_rgb:
-        data.format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8;
+        data.format = InternalFormat::RGB8;
         break;
     case STBI_grey_alpha:
-        data.format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8;
+        data.format = InternalFormat::RG8;
         break;
     case STBI_grey:
-        data.format = InternalFormat::TEXTURE_INTERNAL_FORMAT_R8;
+        data.format = InternalFormat::R8;
         break;
     default:
         return { { LoaderResult::Status::ERR, "Invalid format -- invalid number of components returned" }, UniquePtr<void>() };

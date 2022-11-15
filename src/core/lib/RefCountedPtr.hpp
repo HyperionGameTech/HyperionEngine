@@ -240,6 +240,8 @@ protected:
 template <class T, class CountType = UInt>
 class RefCountedPtr : public RefCountedPtrBase<CountType>
 {
+    friend class WeakRefCountedPtr<T, CountType>;
+
 protected:
     using Base = RefCountedPtrBase<CountType>;
 
@@ -407,6 +409,8 @@ public:
 template <class CountType>
 class RefCountedPtr<void, CountType> : public RefCountedPtrBase<CountType>
 {
+    friend class WeakRefCountedPtr<void, CountType>;
+
 protected:
     using Base = RefCountedPtrBase<CountType>;
 
@@ -743,11 +747,12 @@ using AtomicRefCountedPtr = detail::RefCountedPtr<T, std::atomic<UInt>>;
 template <class T>
 using RefCountedPtr = detail::RefCountedPtr<T, UInt>;
 
-template <class T>
-using WeakAtomicRefCountedPtr = detail::WeakRefCountedPtr<T, std::atomic<UInt>>;
 
-template <class T>
-using WeakRefCountedPtr = detail::WeakRefCountedPtr<T, UInt>; 
+template <class T, class CountType = std::atomic<UInt>>
+using Weak = detail::WeakRefCountedPtr<T, CountType>; 
+
+template <class T, class CountType = std::atomic<UInt>>
+using RC = detail::RefCountedPtr<T, CountType>; 
 
 } // namespace hyperion
 

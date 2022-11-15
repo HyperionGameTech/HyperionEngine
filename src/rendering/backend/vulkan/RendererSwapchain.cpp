@@ -10,7 +10,7 @@ namespace renderer {
 
 Swapchain::Swapchain()
     : swapchain(nullptr),
-      image_format(InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE)
+      image_format(InternalFormat::NONE)
 {
 }
 
@@ -22,7 +22,7 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
     this->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
         this->support_details,
         std::array{
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB
+            InternalFormat::BGRA8_SRGB
         },
         [this](const VkSurfaceFormatKHR &format) {
             if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -35,7 +35,7 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
         }
     );
 
-    if (this->image_format != InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE) {
+    if (this->image_format != InternalFormat::NONE) {
         return this->surface_format;
     }
 
@@ -45,9 +45,9 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
     this->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
         this->support_details,
         std::array{
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F
+            InternalFormat::RGBA8,
+            InternalFormat::RGBA16F,
+            InternalFormat::RGBA32F
         },
         [this](const VkSurfaceFormatKHR &format) {
             this->surface_format = format;
@@ -56,7 +56,7 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
         }
     );
 
-    AssertThrowMsg(this->image_format != InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE, "Failed to find a surface format!");
+    AssertThrowMsg(this->image_format != InternalFormat::NONE, "Failed to find a surface format!");
 
     return this->surface_format;
 

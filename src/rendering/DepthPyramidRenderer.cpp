@@ -46,7 +46,7 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
                 static_cast<UInt>(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
                 1
             },
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F,
+            InternalFormat::R32F,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
             nullptr

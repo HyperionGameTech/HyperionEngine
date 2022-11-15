@@ -30,60 +30,60 @@ enum class BaseFormat
 
 enum class InternalFormat
 {
-    TEXTURE_INTERNAL_FORMAT_NONE,
+    NONE,
 
-    TEXTURE_INTERNAL_FORMAT_R8,
-    TEXTURE_INTERNAL_FORMAT_RG8,
-    TEXTURE_INTERNAL_FORMAT_RGB8,
-    TEXTURE_INTERNAL_FORMAT_RGBA8,
+    R8,
+    RG8,
+    RGB8,
+    RGBA8,
     
-    TEXTURE_INTERNAL_FORMAT_B8,
-    TEXTURE_INTERNAL_FORMAT_BG8,
-    TEXTURE_INTERNAL_FORMAT_BGR8,
-    TEXTURE_INTERNAL_FORMAT_BGRA8,
+    B8,
+    BG8,
+    BGR8,
+    BGRA8,
 
-    TEXTURE_INTERNAL_FORMAT_R16,
-    TEXTURE_INTERNAL_FORMAT_RG16,
-    TEXTURE_INTERNAL_FORMAT_RGB16,
-    TEXTURE_INTERNAL_FORMAT_RGBA16,
+    R16,
+    RG16,
+    RGB16,
+    RGBA16,
 
-    TEXTURE_INTERNAL_FORMAT_R32,
-    TEXTURE_INTERNAL_FORMAT_RG32,
-    TEXTURE_INTERNAL_FORMAT_RGB32,
-    TEXTURE_INTERNAL_FORMAT_RGBA32,
+    R32,
+    RG32,
+    RGB32,
+    RGBA32,
 
-    TEXTURE_INTERNAL_FORMAT_R32_,
-    TEXTURE_INTERNAL_FORMAT_RG16_,
-    TEXTURE_INTERNAL_FORMAT_R11G11B10F,
-    TEXTURE_INTERNAL_FORMAT_R10G10B10A2,
+    R32_,
+    RG16_,
+    R11G11B10F,
+    R10G10B10A2,
 
-    TEXTURE_INTERNAL_FORMAT_R16F,
-    TEXTURE_INTERNAL_FORMAT_RG16F,
-    TEXTURE_INTERNAL_FORMAT_RGB16F,
-    TEXTURE_INTERNAL_FORMAT_RGBA16F,
+    R16F,
+    RG16F,
+    RGB16F,
+    RGBA16F,
 
-    TEXTURE_INTERNAL_FORMAT_R32F,
-    TEXTURE_INTERNAL_FORMAT_RG32F,
-    TEXTURE_INTERNAL_FORMAT_RGB32F,
-    TEXTURE_INTERNAL_FORMAT_RGBA32F,
+    R32F,
+    RG32F,
+    RGB32F,
+    RGBA32F,
 
-    TEXTURE_INTERNAL_FORMAT_SRGB, /* begin srgb */
+    SRGB, /* begin srgb */
 
-    TEXTURE_INTERNAL_FORMAT_R8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_RG8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_RGB8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+    R8_SRGB,
+    RG8_SRGB,
+    RGB8_SRGB,
+    RGBA8_SRGB,
     
-    TEXTURE_INTERNAL_FORMAT_B8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_BG8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_BGR8_SRGB,
-    TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB,
+    B8_SRGB,
+    BG8_SRGB,
+    BGR8_SRGB,
+    BGRA8_SRGB,
     
-    TEXTURE_INTERNAL_FORMAT_DEPTH, /* begin depth */
+    DEPTH, /* begin depth */
 
-    TEXTURE_INTERNAL_FORMAT_DEPTH_16,
-    TEXTURE_INTERNAL_FORMAT_DEPTH_24,
-    TEXTURE_INTERNAL_FORMAT_DEPTH_32F
+    DEPTH_16 = DEPTH,
+    DEPTH_24,
+    DEPTH_32F
 };
 
 enum class FilterMode
@@ -105,46 +105,46 @@ enum class WrapMode
 static inline BaseFormat GetBaseFormat(InternalFormat fmt)
 {
     switch (fmt) {
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32_:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R32F:
+    case InternalFormat::R8:
+    case InternalFormat::R8_SRGB:
+    case InternalFormat::R32_:
+    case InternalFormat::R16:
+    case InternalFormat::R32:
+    case InternalFormat::R16F:
+    case InternalFormat::R32F:
         return BaseFormat::TEXTURE_FORMAT_R;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16_:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RG32F:
+    case InternalFormat::RG8:
+    case InternalFormat::RG8_SRGB:
+    case InternalFormat::RG16_:
+    case InternalFormat::RG16:
+    case InternalFormat::RG32:
+    case InternalFormat::RG16F:
+    case InternalFormat::RG32F:
         return BaseFormat::TEXTURE_FORMAT_RG;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R11G11B10F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB32F:
+    case InternalFormat::RGB8:
+    case InternalFormat::RGB8_SRGB:
+    case InternalFormat::R11G11B10F:
+    case InternalFormat::RGB16:
+    case InternalFormat::RGB32:
+    case InternalFormat::RGB16F:
+    case InternalFormat::RGB32F:
         return BaseFormat::TEXTURE_FORMAT_RGB;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_R10G10B10A2:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA32F:
+    case InternalFormat::RGBA8:
+    case InternalFormat::RGBA8_SRGB:
+    case InternalFormat::R10G10B10A2:
+    case InternalFormat::RGBA16:
+    case InternalFormat::RGBA32:
+    case InternalFormat::RGBA16F:
+    case InternalFormat::RGBA32F:
         return BaseFormat::TEXTURE_FORMAT_RGBA;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGR8_SRGB:
+    case InternalFormat::BGR8_SRGB:
         return BaseFormat::TEXTURE_FORMAT_BGR;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_BGRA8_SRGB:
+    case InternalFormat::BGRA8:
+    case InternalFormat::BGRA8_SRGB:
         return BaseFormat::TEXTURE_FORMAT_BGRA;
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_16:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_24:
-    case InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH_32F:
+    case InternalFormat::DEPTH_16:
+    case InternalFormat::DEPTH_24:
+    case InternalFormat::DEPTH_32F:
         return BaseFormat::TEXTURE_FORMAT_DEPTH;
     default:
         // undefined result
@@ -177,7 +177,7 @@ static inline UInt NumComponents(InternalFormat format)
 static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, UInt8 new_num_components)
 {
     if (new_num_components == 0) {
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     new_num_components = MathUtil::Clamp(new_num_components, static_cast<UInt8>(1), static_cast<UInt8>(4));
@@ -199,8 +199,7 @@ static inline bool IsDepthFormat(InternalFormat fmt)
 
 static inline bool IsSRGBFormat(InternalFormat fmt)
 {
-    return fmt >= InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB
-        && fmt < InternalFormat::TEXTURE_INTERNAL_FORMAT_DEPTH;
+    return fmt >= InternalFormat::SRGB && fmt < InternalFormat::DEPTH;
 }
 
 } // namespace hyperion::renderer

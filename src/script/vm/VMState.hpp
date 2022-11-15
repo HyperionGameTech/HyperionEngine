@@ -1,6 +1,10 @@
 #ifndef VM_STATE_HPP
 #define VM_STATE_HPP
 
+#include <core/lib/UniquePtr.hpp>
+#include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/FlatMap.hpp>
+
 #include <script/vm/StackMemory.hpp>
 #include <script/vm/StaticMemory.hpp>
 #include <script/vm/HeapMemory.hpp>
@@ -15,7 +19,7 @@
 
 #define ENABLE_GC 1
 #define GC_THRESHOLD_MIN 150
-#define GC_THRESHOLD_MAX 5000
+#define GC_THRESHOLD_MAX 50000
 
 #define VM_MAX_THREADS 1//8
 #define VM_NUM_REGISTERS 8
@@ -26,12 +30,13 @@ namespace vm {
 // forward declaration
 class VM;
 
-struct Registers {
+struct Registers
+{
     Value m_reg[VM_NUM_REGISTERS];
     int m_flags = 0;
 
     Value &operator[](UInt8 index) { return m_reg[index]; }
-    void ResetFlags()              { m_flags = 0; }
+    void ResetFlags() { m_flags = 0; }
 };
 
 struct ExceptionState
@@ -66,7 +71,13 @@ private:
     int m_id;
 };
 
-struct VMState {
+struct DynModule
+{
+    UniquePtr<void> ptr;
+};
+
+struct VMState
+{
     VMState();
     VMState(const VMState &other) = delete;
     ~VMState();
@@ -77,6 +88,7 @@ struct VMState {
     non_owning_ptr<VM> m_vm;
     Tracemap m_tracemap;
     ExportedSymbolTable m_exported_symbols;
+    FlatMap<UInt32, Weak<DynModule>> m_dyn_modules;
 
     bool good = true;
     bool enable_auto_gc = ENABLE_GC;

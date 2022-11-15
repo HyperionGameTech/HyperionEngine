@@ -21,9 +21,19 @@ AstTypeObject::AstTypeObject(
     const SymbolTypePtr_t &symbol_type,
     const std::shared_ptr<AstVariable> &proto,
     const SourceLocation &location
+) : AstTypeObject(symbol_type, proto, nullptr, location)
+{
+}
+
+AstTypeObject::AstTypeObject(
+    const SymbolTypePtr_t &symbol_type,
+    const std::shared_ptr<AstVariable> &proto,
+    const SymbolTypePtr_t &enum_underlying_type,
+    const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_symbol_type(symbol_type),
-    m_proto(proto)
+    m_proto(proto),
+    m_enum_underlying_type(enum_underlying_type)
 {
 }
 

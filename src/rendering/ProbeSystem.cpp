@@ -207,7 +207,7 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
     });
 
     { // irradiance image
-        constexpr InternalFormat irradiance_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F;
+        constexpr InternalFormat irradiance_format = InternalFormat::RGBA16F;
 
         const Extent3D extent {
             (m_grid_info.irradiance_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,
@@ -240,7 +240,7 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
     }
 
     { // depth image
-        constexpr InternalFormat depth_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F;
+        constexpr InternalFormat depth_format = InternalFormat::RG16F;
 
         const Extent3D extent {
             (m_grid_info.depth_octahedron_size + 2) * probe_counts.width * probe_counts.height + 2,

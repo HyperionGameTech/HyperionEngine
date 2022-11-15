@@ -54,12 +54,12 @@ MotionVectors::MotionVectors(const Extent2D &extent)
     : m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
+              InternalFormat::RG16F,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F,
+              InternalFormat::RG16F,
               ImageType::TEXTURE_TYPE_2D
           ))
       },

@@ -53,11 +53,13 @@ private:
     }
 };
 
-class AstModuleImport : public AstImport {
+class AstModuleImport : public AstImport
+{
 public:
     AstModuleImport(
-      const std::vector<std::shared_ptr<AstModuleImportPart>> &parts,
-      const SourceLocation &location);
+        const std::vector<std::shared_ptr<AstModuleImportPart>> &parts,
+        const SourceLocation &location
+    );
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     

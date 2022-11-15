@@ -8,7 +8,7 @@
 namespace hyperion {
 
 template <int index, class ReturnType>
-HYP_ENABLE_IF(!std::is_class_v<ReturnType>, ReturnType)
+typename std::enable_if_t<!std::is_class_v<ReturnType> || std::is_same_v<vm::VMString, ReturnType>, std::conditional_t<std::is_class_v<ReturnType>, std::add_pointer_t<ReturnType>, ReturnType>>
 GetArgument(sdk::Params &params)
 {
     static_assert(!std::is_same_v<void, ReturnType>);
@@ -46,13 +46,17 @@ GetArgument(sdk::Params &params)
         HYP_SCRIPT_GET_ARG_PTR_RAW(index, ReturnTypeWithoutPtr, arg0);
 
         return arg0;
+    } else if constexpr (std::is_class_v<ReturnType>) {
+        HYP_SCRIPT_GET_ARG_PTR(index, ReturnType, arg0);
+
+        return arg0;
     } else {
         static_assert(resolution_failure<ReturnType>, "Unable to use type as arg");
     }
 }
 
 template <int index, class ReturnType>
-HYP_ENABLE_IF(std::is_class_v<ReturnType>, ReturnType &)
+typename std::enable_if_t<std::is_class_v<ReturnType> && !std::is_same_v<vm::VMString, ReturnType>, ReturnType &>
 GetArgument(sdk::Params &params)
 {
     HYP_SCRIPT_GET_ARG_PTR(index, vm::VMObject, arg0);

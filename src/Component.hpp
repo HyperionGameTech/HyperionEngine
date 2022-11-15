@@ -35,7 +35,7 @@ public:
         }
 
         if (!handle->GetID()) {
-            handle->SetID(GetIDCreator<Normalized>().NextID());
+            handle->SetID(HandleID<T>(GetIDCreator<Normalized>().NextID()));
         }
 
         auto &registered_components = GetRegisteredComponents<Normalized>();
@@ -80,20 +80,20 @@ private:
         TypeID type_id;
         std::atomic<UInt> id_counter { 0u };
         std::mutex free_id_mutex;
-        Queue<HandleID> free_ids;
+        Queue<IDBase> free_ids;
 
-        HandleID NextID()
+        IDBase NextID()
         {
             std::lock_guard guard(free_id_mutex);
 
             if (free_ids.Empty()) {
-                return HandleID(type_id, ++id_counter);
+                return IDBase { ++id_counter };
             }
 
             return free_ids.Pop();
         }
 
-        void FreeID(const HandleID &id)
+        void FreeID(const IDBase &id)
         {
             std::lock_guard guard(free_id_mutex);
 
@@ -104,9 +104,7 @@ private:
     template <class T>
     IDCreator &GetIDCreator()
     {
-        static IDCreator id_creator {
-            .type_id = TypeID::ForType<T>()
-        };
+        static IDCreator id_creator { TypeID::ForType<T>() };
 
         return id_creator;
     }

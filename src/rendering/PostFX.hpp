@@ -44,17 +44,17 @@ class PostFXPass
 {
 public:
     PostFXPass(
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(
         Handle<Shader> &&shader,
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(
         Handle<Shader> &&shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(const PostFXPass &) = delete;
     PostFXPass &operator=(const PostFXPass &) = delete;
@@ -76,7 +76,7 @@ public:
     PostProcessingEffect(
         Stage stage,
         UInt index,
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F//RGBA8_SRGB
+        InternalFormat image_format = InternalFormat::RGBA16F//RGBA8_SRGB
     );
     PostProcessingEffect(const PostProcessingEffect &other) = delete;
     PostProcessingEffect &operator=(const PostProcessingEffect &other) = delete;

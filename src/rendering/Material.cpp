@@ -196,7 +196,13 @@ void Material::EnqueueRenderUpdates()
                     GetParameter<float>(MATERIAL_KEY_TRANSMISSION),
                     0.0f
                 )),
-                0, 0, 0
+                0, 0,
+                ByteUtil::PackColorU32(Vector4(
+                    0.0f,
+                    0.0f,
+                    0.0f,
+                    0.0f
+                ))
             ),
             .uv_scale = GetParameter<Vector2>(MATERIAL_KEY_UV_SCALE),
             .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)

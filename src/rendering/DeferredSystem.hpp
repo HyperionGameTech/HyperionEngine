@@ -22,7 +22,7 @@ class Engine;
 using renderer::Image;
 using renderer::AttachmentRef;
 
-using GBufferFormat = Variant<TextureFormatDefault, InternalFormat>;
+using GBufferFormat = Variant<TextureFormatDefault, InternalFormat, Array<InternalFormat>>;
 
 enum GBufferResourceName : UInt
 {
@@ -31,7 +31,8 @@ enum GBufferResourceName : UInt
     GBUFFER_RESOURCE_MATERIAL = 2,
     GBUFFER_RESOURCE_TANGENTS = 3,
     GBUFFER_RESOURCE_VELOCITY = 4,
-    GBUFFER_RESOURCE_DEPTH = 5,
+    GBUFFER_RESOURCE_MASK = 5,
+    GBUFFER_RESOURCE_DEPTH = 6,
 
     GBUFFER_RESOURCE_MAX
 };
@@ -116,6 +117,7 @@ public:
     void AddFramebuffersToPipelines(Engine *engine);
 
 private:
+
     FixedArray<RendererInstanceHolder, Bucket::BUCKET_MAX> m_buckets;
 };
 

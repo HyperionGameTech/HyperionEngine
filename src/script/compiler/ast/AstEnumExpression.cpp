@@ -91,9 +91,42 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_expr.reset(new AstTypeExpression(
         m_name,
+        // std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        //     std::shared_ptr<AstVariable>(new AstVariable(
+        //         "Enum",
+        //         m_location
+        //     )),
+        //     m_location
+        // )),
+        nullptr,
+        {},
+        enum_members,
+        m_underlying_type->GetExprType() ? m_underlying_type->GetExprType() : BuiltinTypes::INT,
+        m_location
+    ));
+
+    /*
+    
+    m_expr.reset(new AstTypeExpression(
+        m_name,
         std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-            std::shared_ptr<AstVariable>(new AstVariable(
-                "Enum",
+            std::shared_ptr<AstTemplateInstantiation>(new AstTemplateInstantiation(
+                std::shared_ptr<AstVariable>(new AstVariable(
+                    BuiltinTypes::ENUM_TYPE->GetName(),
+                    m_location
+                )),
+                {
+                    std::shared_ptr<AstArgument>(new AstArgument(
+                        std::shared_ptr<AstVariable>(new AstVariable(
+                            BuiltinTypes::INT->GetName(), // m_name
+                            m_location
+                        )),
+                        false,
+                        false,
+                        "",
+                        m_location
+                    ))
+                },
                 m_location
             )),
             m_location
@@ -101,7 +134,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
         {},
         enum_members,
         m_location
-    ));
+    ));*/
 
     m_expr->Visit(visitor, mod);
 }

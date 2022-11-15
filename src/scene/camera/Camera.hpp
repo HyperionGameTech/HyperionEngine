@@ -126,6 +126,9 @@ public:
     /*! \brief Transform a 3D vector in world space into NDC space */
     Vector3 TransformWorldToNDC(const Vector3 &world) const;
 
+    /*! \brief Transform a 3D vector in world space into screen space */
+    Vector2 TransformWorldToScreen(const Vector3 &world) const;
+
     /*! \brief Transform a 3D vector in NDC into screen space */
     Vector2 TransformNDCToScreen(const Vector3 &ndc) const;
 
