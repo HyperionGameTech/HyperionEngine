@@ -1,7 +1,7 @@
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
-#include "../RendererDevice.hpp"
-#include "../RendererInstance.hpp"
-#include "../RendererFeatures.hpp"
+#include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererInstance.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 
 #include <core/lib/Range.hpp>
 #include <math/MathUtil.hpp>

@@ -1,7 +1,7 @@
 #include "Deferred.hpp"
 #include <Engine.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/backend/vulkan/RendererFeatures.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>

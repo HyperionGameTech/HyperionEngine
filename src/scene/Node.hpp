@@ -203,7 +203,7 @@ public:
     
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
     void SetLocalRotation(const Quaternion &rotation)
-        { SetLocalTransform({ m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation }); }
+        { SetLocalTransform(Transform(m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation)); }
 
     /*! \brief Rotate the Node by multiplying the current local-space rotation by the given quaternion.
      * @param rotation The quaternion to rotate this Node by

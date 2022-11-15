@@ -481,6 +481,7 @@ SymbolTypePtr_t AstFunctionExpression::GetExprType() const
     if (m_is_closure && m_closure_type != nullptr) {
         return m_closure_type;
     }
+
     return m_symbol_type;
 }
 

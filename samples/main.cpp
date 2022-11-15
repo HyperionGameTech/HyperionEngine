@@ -173,7 +173,7 @@ public:
 
         test_model.Scale(0.35f);
 
-        if (false) {
+        if (true) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(engine->CreateHandle<Entity>());
             btn_node.GetEntity()->AddController<UIButtonController>();
@@ -530,7 +530,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication);
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
     
     SystemEvent event;
 

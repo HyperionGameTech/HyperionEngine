@@ -3,9 +3,10 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/CubemapRenderer.hpp>
 
+#include <rendering/backend/RendererFeatures.hpp>
+
 #include <math/Halton.hpp>
 
-#include "rendering/backend/vulkan/RendererFeatures.hpp"
 
 namespace hyperion::v2 {
 

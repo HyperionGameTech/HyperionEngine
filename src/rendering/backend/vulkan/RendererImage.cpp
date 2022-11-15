@@ -225,21 +225,21 @@ Result Image::CreateImage(
         HYPERION_BUBBLE_ERRORS(format_support_result);
     }
 
-    if (format_features != 0) {
-        if (!device->GetFeatures().IsSupportedFormat(format, m_internal_info.tiling, format_features)) {
-            DebugLog(
-                LogType::Error,
-                "Device does not support the format %u with requested tiling %d and format features %d\n",
-                static_cast<UInt>(format),
-                static_cast<Int>(m_internal_info.tiling),
-                static_cast<Int>(format_features)
-            );
+    // if (format_features != 0) {
+    //     if (!device->GetFeatures().IsSupportedFormat(format, m_internal_info.tiling, format_features)) {
+    //         DebugLog(
+    //             LogType::Error,
+    //             "Device does not support the format %u with requested tiling %d and format features %d\n",
+    //             static_cast<UInt>(format),
+    //             static_cast<Int>(m_internal_info.tiling),
+    //             static_cast<Int>(format_features)
+    //         );
 
-            HYP_BREAKPOINT;
+    //         HYP_BREAKPOINT;
 
-            return Result(Result::RENDERER_ERR, "Format does not support requested features.");
-        }
-    }
+    //         return Result(Result::RENDERER_ERR, "Format does not support requested features.");
+    //     }
+    // }
 
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const UInt32 image_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };

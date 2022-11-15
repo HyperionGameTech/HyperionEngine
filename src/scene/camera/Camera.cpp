@@ -152,7 +152,7 @@ Vector3 Camera::TransformScreenToNDC(const Vector2 &screen) const
 
 Vector4 Camera::TransformNDCToWorld(const Vector3 &ndc) const
 {
-    Vector4 clip(ndc.x, ndc.y, -1.0f, 1.0f);
+    const Vector4 clip(ndc.x, ndc.y, -1.0f, 1.0f);
 
     Vector4 eye = m_proj_mat.Inverted() * clip;
     eye = Vector4(eye.x, eye.y, -1.0f, 0.0f);
@@ -163,6 +163,11 @@ Vector4 Camera::TransformNDCToWorld(const Vector3 &ndc) const
 Vector3 Camera::TransformWorldToNDC(const Vector3 &world) const
 {
     return m_view_proj_mat * world;
+}
+
+Vector2 Camera::TransformWorldToScreen(const Vector3 &world) const
+{
+    return TransformNDCToScreen(m_view_proj_mat * world);
 }
 
 Vector2 Camera::TransformNDCToScreen(const Vector3 &ndc) const

@@ -16,6 +16,12 @@
 #endif
 namespace hyperion::v2 {
 
+enum class ShaderLanguage
+{
+    GLSL,
+    HLSL
+};
+
 #if defined(HYP_VULKAN) && defined(HYP_GLSLANG)
 
 static TBuiltInResource DefaultResources()
@@ -140,7 +146,9 @@ static TBuiltInResource DefaultResources()
 
 static ByteBuffer CompileToSPIRV(
     ShaderModule::Type type,
-    const char *source, const char *filename,
+    ShaderLanguage language,
+    const char *source,
+    const char *filename,
     const Array<String> &version_strings,
     Array<String> &error_messages
 )
@@ -219,7 +227,7 @@ static ByteBuffer CompileToSPIRV(
     }
 
     const glslang_input_t input {
-        .language = GLSLANG_SOURCE_GLSL,
+        .language = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL : GLSLANG_SOURCE_GLSL,
         .stage = stage,
         .client = GLSLANG_CLIENT_VULKAN,
         .client_version = static_cast<glslang_target_client_version_t>(vulkan_api_version),
@@ -305,6 +313,7 @@ static ByteBuffer CompileToSPIRV(
 
 static ByteBuffer CompileToSPIRV(
     ShaderModule::Type type,
+    ShaderLanguage language,
     const char *source, const char *filename, 
     const Array<String> &version_strings,
     Array<String> &error_messages
@@ -503,17 +512,26 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
 
     DebugLog(
         LogType::Info,
-        "Attempting load of compiled shader %s...\n",
+        "Attempting to load compiled shader %s...\n",
         output_file_path.Data()
     );
 
     if (auto err = reader.LoadFromFile(output_file_path, deserialized)) {
-        DebugLog(
-            LogType::Error,
-            "Failed to load compiled shader file: %s\n\tMessage: %s\n",
-            output_file_path.Data(),
-            err.message
-        );
+        if (CanCompileShaders()) {
+            DebugLog(
+                LogType::Info,
+                "Could not load compiled shader at path: %s\n\tMessage: %s\n\tAttempting to compile...\n",
+                output_file_path.Data(),
+                err.message
+            );
+        } else {
+            DebugLog(
+                LogType::Error,
+                "Failed to load compiled shader file: %s\n\tMessage: %s\n",
+                output_file_path.Data(),
+                err.message
+            );
+        }
 
         return CompileBundle(bundle, out);
     }
@@ -709,6 +727,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
 struct LoadedSourceFile
 {
     ShaderModule::Type type;
+    ShaderLanguage language;
     ShaderCompiler::SourceFile file;
     UInt64 last_modified_timestamp;
     String original_source;
@@ -723,6 +742,7 @@ struct LoadedSourceFile
     {
         HashCode hc;
         hc.Add(type);
+        hc.Add(language);
         hc.Add(file);
         hc.Add(last_modified_timestamp);
         hc.Add(original_source);
@@ -775,6 +795,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
 
         loaded_source_files.PushBack(LoadedSourceFile {
             .type = it.first,
+            .language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
             .file = it.second,
             .last_modified_timestamp = filepath.LastModifiedTimestamp(),
             .original_source = String(byte_buffer)
@@ -877,7 +898,7 @@ bool ShaderCompiler::CompileBundle(const Bundle &bundle, CompiledShaderBatch &ou
             const auto dir = m_engine->GetAssetManager().GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), m_engine->GetAssetManager().GetBasePath());
 
             FileSystem::PushDirectory(dir);
-            byte_buffer = CompileToSPIRV(item.type, item.original_source.Data(), item.file.path.Data(), version_strings, error_messages);
+            byte_buffer = CompileToSPIRV(item.type, item.language, item.original_source.Data(), item.file.path.Data(), version_strings, error_messages);
             FileSystem::PopDirectory();
 
             if (byte_buffer.Empty()) {

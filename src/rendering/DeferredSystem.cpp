@@ -1,4 +1,5 @@
 #include <rendering/DeferredSystem.hpp>
+#include <rendering/backend/RendererFeatures.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
@@ -9,8 +10,92 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
     GBufferResource { GBufferFormat(InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8) }, // material
     GBufferResource { GBufferFormat(InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8) }, // tangent
     GBufferResource { GBufferFormat(InternalFormat::TEXTURE_INTERNAL_FORMAT_RG16F) }, // velocity
+    GBufferResource {  // objects mask
+        GBufferFormat(Array<InternalFormat> {
+            //InternalFormat::TEXTURE_INTERNAL_FORMAT_R32,
+            InternalFormat::TEXTURE_INTERNAL_FORMAT_R16
+        })
+    },
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_DEPTH) } // depth
 };
+
+static void AddOwnedAttachment(
+    Engine *engine,
+    InternalFormat format,
+    Handle<RenderPass> &render_pass,
+    Array<std::unique_ptr<Attachment>> &attachments
+)
+{
+    AttachmentRef *attachment_ref;
+
+    auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
+        engine->GetInstance()->swapchain->extent,
+        format,
+        nullptr
+    );
+
+    attachments.PushBack(std::make_unique<renderer::Attachment>(
+        std::move(framebuffer_image),
+        RenderPassStage::SHADER
+    ));
+
+    HYPERION_ASSERT_RESULT(attachments.Back()->AddAttachmentRef(
+        engine->GetInstance()->GetDevice(),
+        renderer::LoadOperation::CLEAR,
+        renderer::StoreOperation::STORE,
+        &attachment_ref
+    ));
+
+    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+}
+
+static void AddSharedAttachment(
+    Engine *engine,
+    UInt attachment_index,
+    Handle<RenderPass> &render_pass,
+    Array<std::unique_ptr<Attachment>> &attachments
+)
+{
+    auto &opaque_fbo = engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffers()[0];
+    AssertThrow(opaque_fbo != nullptr);
+
+    renderer::AttachmentRef *attachment_ref;
+
+    AssertThrow(attachment_index < opaque_fbo->GetFramebuffer().GetAttachmentRefs().size());
+
+    HYPERION_ASSERT_RESULT(opaque_fbo->GetFramebuffer().GetAttachmentRefs().at(attachment_index)->AddAttachmentRef(
+        engine->GetInstance()->GetDevice(),
+        renderer::StoreOperation::STORE,
+        &attachment_ref
+    ));
+
+    attachment_ref->SetBinding(attachment_index);
+
+    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+}
+
+static InternalFormat GetImageFormat(Engine *engine, GBufferResourceName resource)
+{
+    InternalFormat color_format;
+
+    if (const InternalFormat *format = DeferredSystem::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
+        color_format = *format;
+    } else if (const TextureFormatDefault *default_format = DeferredSystem::gbuffer_resources[resource].format.TryGet<TextureFormatDefault>()) {
+        color_format = engine->GetDefaultFormat(*default_format);   
+    } else if (const Array<InternalFormat> *default_formats = DeferredSystem::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>()) {
+        for (const InternalFormat format : *default_formats) {
+            if (engine->GetDevice()->GetFeatures().IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
+                color_format = format;
+
+                break;
+            }
+        }
+    } else {
+        AssertThrowMsg(false, "Invalid value set for gbuffer image format");
+    }
+
+    return color_format;
+}
 
 DeferredSystem::DeferredSystem()
 {
@@ -112,61 +197,6 @@ void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipeline(Handle<Re
     }
 }
 
-static void AddOwnedAttachment(
-    Engine *engine,
-    InternalFormat format,
-    Handle<RenderPass> &render_pass,
-    Array<std::unique_ptr<Attachment>> &attachments
-)
-{
-    AttachmentRef *attachment_ref;
-
-    auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        engine->GetInstance()->swapchain->extent,
-        format,
-        nullptr
-    );
-
-    attachments.PushBack(std::make_unique<renderer::Attachment>(
-        std::move(framebuffer_image),
-        RenderPassStage::SHADER
-    ));
-
-    HYPERION_ASSERT_RESULT(attachments.Back()->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE,
-        &attachment_ref
-    ));
-
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
-}
-
-static void AddSharedAttachment(
-    Engine *engine,
-    UInt attachment_index,
-    Handle<RenderPass> &render_pass,
-    Array<std::unique_ptr<Attachment>> &attachments
-)
-{
-    auto &opaque_fbo = engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffers()[0];
-    AssertThrow(opaque_fbo != nullptr);
-
-    renderer::AttachmentRef *attachment_ref;
-
-    AssertThrow(attachment_index < opaque_fbo->GetFramebuffer().GetAttachmentRefs().size());
-
-    HYPERION_ASSERT_RESULT(opaque_fbo->GetFramebuffer().GetAttachmentRefs().at(attachment_index)->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
-        renderer::StoreOperation::STORE,
-        &attachment_ref
-    ));
-
-    attachment_ref->SetBinding(attachment_index);
-
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
-}
-
 void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
 {
     AssertThrow(render_pass == nullptr);
@@ -182,9 +212,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
         mode
     );
 
-    const auto color_format = gbuffer_resources[GBUFFER_RESOURCE_ALBEDO].format.Is<InternalFormat>()
-        ? gbuffer_resources[GBUFFER_RESOURCE_ALBEDO].format.Get<InternalFormat>()
-        : engine->GetDefaultFormat(gbuffer_resources[GBUFFER_RESOURCE_ALBEDO].format.Get<TextureFormatDefault>());
+    const InternalFormat color_format = GetImageFormat(engine, GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
@@ -208,9 +236,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
         // which will be shared with other renderable buckets
         if (bucket == BUCKET_OPAQUE) {
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
-                const auto format = gbuffer_resources[i].format.Is<InternalFormat>()
-                    ? gbuffer_resources[i].format.Get<InternalFormat>()
-                    : engine->GetDefaultFormat(gbuffer_resources[i].format.Get<TextureFormatDefault>());
+                const InternalFormat format = GetImageFormat(engine, GBufferResourceName(i));
 
                 AddOwnedAttachment(
                     engine,
