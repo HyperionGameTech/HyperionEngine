@@ -86,9 +86,9 @@ Pointer<AstStatement> AstModuleImportPart::Clone() const
 
 AstModuleImport::AstModuleImport(
     const std::vector<std::shared_ptr<AstModuleImportPart>> &parts,
-    const SourceLocation &location)
-    : AstImport(location),
-      m_parts(parts)
+    const SourceLocation &location
+) : AstImport(location),
+    m_parts(parts)
 {
 }
 

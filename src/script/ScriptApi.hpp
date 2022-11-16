@@ -75,6 +75,14 @@
         HYP_SCRIPT_RETURN(_res); \
     } while (false)
 
+#define HYP_SCRIPT_RETURN_NULL() \
+    do { \
+        vm::Value _res; \
+        _res.m_type = vm::Value::HEAP_POINTER; \
+        _res.m_value.ptr = nullptr; \
+        HYP_SCRIPT_RETURN(_res); \
+    } while (false)
+
 #define HYP_SCRIPT_RETURN_VOID(value) \
     do { \
         (void)(value); \
@@ -245,7 +253,7 @@
         vm::HeapValue *ptr_result = params.handler->state->HeapAlloc(params.handler->thread); \
         AssertThrow(ptr_result != nullptr); \
         \
-        ptr_result->Assign(assignment); \
+        ptr_result->Assign((assignment)); \
         ptr_result->Mark(); \
         \
         out_name = vm::Value(vm::Value::HEAP_POINTER, {.ptr = ptr_result}); \
@@ -416,6 +424,7 @@ public:
         std::string name;
         SymbolTypePtr_t base_class;
         std::vector<NativeMemberDefine> members;
+        std::vector<NativeMemberDefine> static_members;
 
         TypeDefine() = default;
         TypeDefine(const TypeDefine &other) = default;
@@ -432,12 +441,35 @@ public:
 
         TypeDefine(
             const std::string &name,
-            const std::vector<NativeMemberDefine> &members
+            const SymbolTypePtr_t &base_class,
+            const std::vector<NativeMemberDefine> &members,
+            const std::vector<NativeMemberDefine> &static_members
+        ) : name(name),
+            base_class(base_class),
+            members(members),
+            static_members(static_members)
+        {
+        }
+
+        TypeDefine(
+            const std::string &name,
+            const std::vector<NativeMemberDefine> &members,
+            const std::vector<NativeMemberDefine> &static_members
         ) : TypeDefine(
                 name,
                 nullptr,
-                members
+                members,
+                static_members
             )
+        {
+        }
+
+        TypeDefine(
+            const std::string &name,
+            const std::vector<NativeMemberDefine> &members
+        ) : name(name),
+            base_class(nullptr),
+            members(members)
         {
         }
     };
@@ -458,11 +490,6 @@ public:
         std::vector<NativeVariableDefine> m_variable_defs;
         std::shared_ptr<Module> m_mod;
 
-        // ModuleDefine &Class(
-        //     const std::string &class_name,
-        //     const std::vector<NativeMemberDefine> &members
-        // );
-
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
@@ -473,7 +500,22 @@ public:
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
+            const SymbolTypePtr_t &base_class,
+            const std::vector<NativeMemberDefine> &members,
+            const std::vector<NativeMemberDefine> &static_members
+        );
+
+        template <class T>
+        ModuleDefine &Class(
+            const std::string &class_name,
             const std::vector<NativeMemberDefine> &members
+        );
+
+        template <class T>
+        ModuleDefine &Class(
+            const std::string &class_name,
+            const std::vector<NativeMemberDefine> &members,
+            const std::vector<NativeMemberDefine> &static_members
         );
 
         ModuleDefine &Variable(
@@ -611,6 +653,26 @@ API::ModuleDefine &API::ModuleDefine::Class(
 template <class T>
 API::ModuleDefine &API::ModuleDefine::Class(
     const std::string &class_name,
+    const SymbolTypePtr_t &base_class,
+    const std::vector<NativeMemberDefine> &members,
+    const std::vector<NativeMemberDefine> &static_members
+)
+{
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
+
+    m_type_defs.push_back(TypeDefine(
+        class_name,
+        base_class,
+        members,
+        static_members
+    ));
+
+    return *this;
+}
+
+template <class T>
+API::ModuleDefine &API::ModuleDefine::Class(
+    const std::string &class_name,
     const std::vector<NativeMemberDefine> &members
 )
 {
@@ -619,6 +681,24 @@ API::ModuleDefine &API::ModuleDefine::Class(
     m_type_defs.push_back(TypeDefine(
         class_name,
         members
+    ));
+
+    return *this;
+}
+
+template <class T>
+API::ModuleDefine &API::ModuleDefine::Class(
+    const std::string &class_name,
+    const std::vector<NativeMemberDefine> &members,
+    const std::vector<NativeMemberDefine> &static_members
+)
+{
+    m_api_instance.class_bindings.class_names.Set<T>(class_name);
+
+    m_type_defs.push_back(TypeDefine(
+        class_name,
+        members,
+        static_members
     ));
 
     return *this;

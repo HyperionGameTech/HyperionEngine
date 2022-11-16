@@ -374,10 +374,38 @@ void API::ModuleDefine::BindType(
     prototype_member_types.reserve(def.members.size());
 
     std::vector<SymbolMember_t> class_instance_member_types;
-    class_instance_member_types.reserve(2);
+    class_instance_member_types.reserve(2 + def.static_members.size());
 
     std::vector<NativeMemberDefine> class_instance_members;
-    class_instance_members.reserve(2);
+    class_instance_members.reserve(2 + def.static_members.size());
+
+    // add static members
+
+    for (auto &member : def.static_members) {
+        if (member.member_type == NativeMemberDefine::MEMBER_TYPE_FUNCTION) {
+            member.value_type = SymbolType::Function(
+                member.fn.return_type,
+                member.fn.param_types
+            );
+
+            member.value.m_type = vm::Value::NATIVE_FUNCTION;
+            member.value.m_value.native_func = member.fn.ptr;
+        }
+
+        AssertThrow(member.value_type != nullptr);
+
+        class_instance_member_types.push_back(SymbolMember_t {
+            member.name,
+            member.value_type,
+            member.value_type->GetDefaultValue()
+        });
+
+        class_instance_members.push_back(NativeMemberDefine(
+            member.name,
+            member.value_type,
+            member.value
+        ));
+    }
 
     for (auto &member : def.members) {
         if (member.member_type == NativeMemberDefine::MEMBER_TYPE_FUNCTION) {
@@ -392,7 +420,7 @@ void API::ModuleDefine::BindType(
 
         AssertThrow(member.value_type != nullptr);
 
-        prototype_member_types.push_back(SymbolMember_t{
+        prototype_member_types.push_back(SymbolMember_t {
             member.name,
             member.value_type,
             member.value_type->GetDefaultValue()
@@ -468,7 +496,7 @@ void API::ModuleDefine::BindType(
     top_scope.GetIdentifierTable().AddSymbolType(class_symbol_type);
 
     vm::Value initial_value;
-    initial_value.m_type      = vm::Value::HEAP_POINTER;
+    initial_value.m_type = vm::Value::HEAP_POINTER;
     initial_value.m_value.ptr = nullptr;
 
     { // create + bind the native variable

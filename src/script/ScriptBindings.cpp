@@ -534,9 +534,99 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     HYP_SCRIPT_RETURN(ptr);
 }
 
+static HYP_SCRIPT_FUNCTION(LoadModule)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    VMString *str = GetArgument<1, VMString>(params);
+
+    if (str == nullptr) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    FilePath path = FilePath::Current() / str->GetData();
+
+    if (!path.Exists()) {
+        path += ".hypscript";
+    }
+
+    if (!path.Exists()) {
+        DebugLog(
+            LogType::Error,
+            "Failed to load module %s: File not found\n",
+            path.Data()
+        );
+
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+
+    if (auto reader = path.Open()) {
+        const ByteBuffer byte_buffer = reader.ReadBytes();
+
+        SourceFile source_file(str->GetData(), reader.Max());
+        source_file.ReadIntoBuffer(byte_buffer.Data(), byte_buffer.Size());
+
+        UniquePtr<Script> script(new Script(source_file));
+
+        if (script->Compile()) {
+            script->Bake();
+            script->Decompile(&utf::cout);
+            script->Run();
+        } else {
+            DebugLog(
+                LogType::Error,
+                "Failed to load module %s: Compilation failed\n",
+                path.Data()
+            );
+
+            HYP_SCRIPT_RETURN_NULL();
+        }
+
+        const auto class_name_it = params.api_instance.class_bindings.class_names.Find<UniquePtr<Script>>();
+        AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
+
+        const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
+
+        HYP_SCRIPT_CREATE_PTR(std::move(script), result);
+        vm::VMObject result_value(prototype_it->second); // construct from prototype
+        HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+        HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+        HYP_SCRIPT_RETURN(ptr);
+    } else {
+        DebugLog(
+            LogType::Error,
+            "Failed to load module %s: Failed to open path\n",
+            path.Data()
+        );
+
+        HYP_SCRIPT_RETURN_NULL();
+    }
+}
+
 void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
+
+    api_instance.Module(Config::global_module_name)
+        .Class<UniquePtr<Script>>(
+            "Module",
+            {
+                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr }))
+            },
+            {
+                API::NativeMemberDefine(
+                    "Load",
+                    BuiltinTypes::STRING,
+                    {
+                        { "self", BuiltinTypes::CLASS_TYPE },
+                        { "name", BuiltinTypes::STRING }
+                    },
+                    LoadModule
+                )
+            }
+        );
 
     api_instance.Module(Config::global_module_name)
         .Function(

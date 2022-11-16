@@ -8,7 +8,8 @@
 
 namespace hyperion::compiler {
 
-class AstImport : public AstStatement {
+class AstImport : public AstStatement
+{
 public:
     AstImport(const SourceLocation &location);
     virtual ~AstImport() = default;
@@ -16,11 +17,13 @@ public:
     static void CopyModules(
         AstVisitor *visitor,
         Module *mod_to_copy,
-        bool update_tree_link = false);
+        bool update_tree_link = false
+    );
 
     static bool TryOpenFile(
         const std::string &path,
-        std::ifstream &is);
+        std::ifstream &is
+    );
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override = 0;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -36,9 +39,7 @@ protected:
         AstVisitor *visitor,
         Module *mod,
         const std::string &filepath
-        /*bool make_parent_module = false, // should we pull in all modules under a single one?
-                                           // used for module-based imports, rather than includes.
-        const std::string &parent_module_name = ""*/);
+    );
 };
 
 } // namespace hyperion::compiler

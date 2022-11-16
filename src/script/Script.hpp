@@ -54,6 +54,8 @@ public:
     struct FunctionHandle : ValueHandle { };
 
     Script(const SourceFile &source_file);
+    Script(const Script &other) = delete;
+    Script &operator=(const Script &other) = delete;
     ~Script();
 
     void Init(Engine *engine);
