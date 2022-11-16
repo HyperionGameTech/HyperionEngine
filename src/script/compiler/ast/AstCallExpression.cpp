@@ -4,6 +4,7 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
+#include <script/compiler/Keywords.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -59,7 +60,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
                 self_target,
                 false,
                 true,
-                "self",
+                Keyword::ToString(Keywords::Keyword_self),
                 self_target->GetLocation()
             ));
             

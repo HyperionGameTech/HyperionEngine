@@ -113,12 +113,12 @@ void Image::SetIsSRGB(bool srgb)
     const auto internal_format = m_format;
 
     if (is_srgb) {
-        m_format = InternalFormat(static_cast<Int>(internal_format) - static_cast<Int>(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB));
+        m_format = InternalFormat(static_cast<Int>(internal_format) - static_cast<Int>(InternalFormat::SRGB));
 
         return;
     }
 
-    const auto to_srgb_format = InternalFormat(static_cast<Int>(InternalFormat::TEXTURE_INTERNAL_FORMAT_SRGB) + static_cast<Int>(internal_format));
+    const auto to_srgb_format = InternalFormat(static_cast<Int>(InternalFormat::SRGB) + static_cast<Int>(internal_format));
 
     if (!IsSRGBFormat(to_srgb_format)) {
         DebugLog(

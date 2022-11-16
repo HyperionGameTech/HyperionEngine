@@ -74,29 +74,30 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t found_symbol_type;
 
     if (type_obj != nullptr) {
-        m_type_object = CloneAstNode(type_obj);
-        m_type_object->Visit(visitor, mod);
-
-        AssertThrow(m_type_object->GetHeldType() != nullptr);
-        found_symbol_type = m_type_object->GetHeldType();
-    } else if (identifier != nullptr) {
-        if ((found_symbol_type = mod->LookupSymbolType(identifier->GetName()))) {
-            found_symbol_type = found_symbol_type->GetUnaliased();
+        if (type_obj->IsEnum()) {
+            found_symbol_type = type_obj->GetEnumUnderlyingType();
+        } else {
+            found_symbol_type = type_obj->GetHeldType();
         }
+
+        AssertThrow(found_symbol_type != nullptr);
+    } else if (identifier != nullptr) {
+        found_symbol_type = mod->LookupSymbolType(identifier->GetName());
     }
 
     if (found_symbol_type != nullptr) {
+        found_symbol_type = found_symbol_type->GetUnaliased();
+        AssertThrow(found_symbol_type != nullptr);
+
         if (FindPrototypeType(found_symbol_type)) {
             m_symbol_type = found_symbol_type;
         } else {
-            SymbolTypePtr_t unaliased;
-
-            if (unaliased != expr_type && unaliased != nullptr) {
+            if (found_symbol_type != expr_type && found_symbol_type != nullptr) {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,
                     Msg_type_missing_prototype,
                     m_location,
-                    expr_type->GetName() + " (expanded: " + unaliased->GetName() + ")"
+                    expr_type->GetName() + " (expanded: " + found_symbol_type->GetName() + ")"
                 ));
             } else {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(

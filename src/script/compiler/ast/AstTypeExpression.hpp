@@ -19,15 +19,32 @@ public:
         const std::shared_ptr<AstPrototypeSpecification> &base_specification,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
+
+    AstTypeExpression(
+        const std::string &name,
+        const std::shared_ptr<AstPrototypeSpecification> &base_specification,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+        const SymbolTypePtr_t &enum_underlying_type,
+        const SourceLocation &location
+    );
+
     virtual ~AstTypeExpression() = default;
 
     /** enable setting to that variable declarations can change the type name */
-    void SetName(const std::string &name) { m_name = name; }
+    void SetName(const std::string &name)
+        { m_name = name; }
 
-    const std::vector<std::shared_ptr<AstVariableDeclaration>>
-        &GetMembers() const { return m_members; }
-    int GetNumMembers() const { return m_num_members; }
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &GetMembers() const
+        { return m_members; }
+
+    int GetNumMembers() const
+        { return m_num_members; }
+
+    bool IsEnum() const
+        { return m_enum_underlying_type != nullptr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -49,6 +66,7 @@ protected:
     std::shared_ptr<AstPrototypeSpecification> m_base_specification;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
+    SymbolTypePtr_t m_enum_underlying_type;
     int m_num_members;
 
     SymbolTypePtr_t m_symbol_type;
@@ -63,6 +81,7 @@ protected:
             CloneAstNode(m_base_specification),
             CloneAllAstNodes(m_members),
             CloneAllAstNodes(m_static_members),
+            m_enum_underlying_type,
             m_location
         ));
     }

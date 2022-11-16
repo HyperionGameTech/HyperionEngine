@@ -45,7 +45,6 @@ protected:
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_prototype_type;
     std::shared_ptr<AstExpression> m_default_value;
-    std::shared_ptr<AstTypeObject> m_type_object;
 
 private:
     Pointer<AstPrototypeSpecification> CloneImpl() const

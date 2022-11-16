@@ -450,6 +450,14 @@ void Scene::RemovePendingEntities()
     m_entities_pending_removal.Clear();
 }
 
+const Handle<Entity> &Scene::FindEntityWithID(const Entity::ID &id) const
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(m_root_node_proxy);
+    return m_root_node_proxy.Get()->FindEntityWithID(id);
+}
+
 bool Scene::AddLight(Handle<Light> &&light)
 {
     if (!light) {

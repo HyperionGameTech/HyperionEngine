@@ -19,7 +19,8 @@ enum ExprAccess : ExprAccessBits {
     EXPR_ACCESS_PROTECTED = 1 << 2
 };
 
-class AstExpression : public AstStatement {
+class AstExpression : public AstStatement
+{
 public:
     AstExpression(
         const SourceLocation &location,

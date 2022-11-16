@@ -2,10 +2,11 @@
 #include <util/MeshBuilder.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
+#include <ui/controllers/UIController.hpp>
 #include <system/SdlSystem.hpp>
 #include <input/InputManager.hpp>
-#include <Engine.hpp>
 #include <Threads.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 
@@ -129,18 +130,17 @@ bool UIScene::OnInputEvent(
         );
 
         if (TestRay(mouse_screen, hit)) {
-            // clicked item
+            UIEvent ui_event;
+            ui_event.type = UIEvent::Type::MOUSE_DOWN;
+            ui_event.original_event = &event;
 
-            DebugLog(
-                LogType::Debug,
-                "Mousedown on %u\n",
-                hit.id
-            );
-
-            // std::cout << ((m_ui_objects[0]->GetEntity()->GetWorldAABB().GetExtent()) * Vector3(input_manager->GetWindow()->width, input_manager->GetWindow()->height, 1.0)) << "\n";
-
-            // std::cout << "hp : " << hit.hitpoint << "\n";
-            // std::cout << "dist : " << hit.distance << "\n";
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(Entity::ID(hit.id))) {
+                for (auto &it : entity->GetControllers()) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                        ui_controller->OnEvent(ui_event);
+                    }
+                }
+            }
 
             return true;
         }
@@ -163,13 +163,17 @@ bool UIScene::OnInputEvent(
         );
 
         if (TestRay(mouse_screen, hit)) {
-            // clicked item
+            UIEvent ui_event;
+            ui_event.type = UIEvent::Type::MOUSE_UP;
+            ui_event.original_event = &event;
 
-            DebugLog(
-                LogType::Debug,
-                "Mouse up on %u\n",
-                hit.id
-            );
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(Entity::ID(hit.id))) {
+                for (auto &it : entity->GetControllers()) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                        ui_controller->OnEvent(ui_event);
+                    }
+                }
+            }
 
             return true;
         }

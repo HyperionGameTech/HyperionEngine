@@ -198,7 +198,7 @@ public:
     StorageImage()
         : StorageImage(
             Extent3D { 1, 1, 1 },
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+            InternalFormat::RGBA16F,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_NEAREST,
             nullptr

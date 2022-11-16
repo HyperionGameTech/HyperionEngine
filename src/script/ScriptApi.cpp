@@ -419,7 +419,7 @@ void API::ModuleDefine::BindType(
             vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr})
         ));
 
-        class_instance_member_types.push_back(SymbolMember_t{
+        class_instance_member_types.push_back(SymbolMember_t {
             "$proto",
             proto_type,
             std::shared_ptr<AstTypeObject>(new AstTypeObject(

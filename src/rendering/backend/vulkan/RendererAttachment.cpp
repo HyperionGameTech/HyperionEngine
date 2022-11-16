@@ -86,7 +86,7 @@ InternalFormat AttachmentRef::GetFormat() const
     if (m_attachment == nullptr) {
         DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
 
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     return m_attachment->GetFormat();

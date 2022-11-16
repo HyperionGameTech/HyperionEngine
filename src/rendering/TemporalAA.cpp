@@ -45,12 +45,12 @@ TemporalAA::TemporalAA(const Extent2D &extent)
     : m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+              InternalFormat::RGBA16F,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+              InternalFormat::RGBA16F,
               ImageType::TEXTURE_TYPE_2D
           ))
       }

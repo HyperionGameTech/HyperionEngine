@@ -37,17 +37,17 @@ class FullScreenPass
 
 public:
     FullScreenPass(
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     FullScreenPass(
         Handle<Shader> &&shader,
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     FullScreenPass(
         Handle<Shader> &&shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
-        InternalFormat image_format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     FullScreenPass(const FullScreenPass &) = delete;
     FullScreenPass &operator=(const FullScreenPass &) = delete;

@@ -83,6 +83,31 @@ const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Primitive(
     BuiltinTypes::PRIMITIVE_TYPE
 );
 
+/*
+const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
+    "Enum",
+    std::vector<SymbolMember_t> {
+        SymbolMember_t {
+            "$proto",
+            SymbolType::Primitive(
+                "__Enum", nullptr
+            ),
+            sp<AstUndefined>(new AstUndefined(SourceLocation::eof))
+        },
+        SymbolMember_t {
+            "base",
+            BuiltinTypes::CLASS_TYPE,
+            sp<AstTypeObject>(new AstTypeObject(
+                BuiltinTypes::CLASS_TYPE,
+                nullptr,
+                SourceLocation::eof
+            )),
+        }
+    },
+    GenericTypeInfo { 1 },
+    BuiltinTypes::CLASS_TYPE
+);*/
+
 const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
     "Int",
     BuiltinTypes::CLASS_TYPE,

@@ -39,12 +39,12 @@ HBAO::HBAO(const Extent2D &extent)
     : m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           ))
       },

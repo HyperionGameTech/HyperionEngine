@@ -7,11 +7,27 @@
 
 namespace hyperion::v2 {
 
-
-
 UIButtonController::UIButtonController()
-    : Controller("UIButtonController", false)
+    : UIController("UIButtonController", true)
 {
+}
+
+bool UIButtonController::CreateScriptedMethods()
+{
+    if (!Controller::CreateScriptedMethods()) {
+        return false;
+    }
+
+    if (!m_script->GetMember(m_self_object, "OnEvent", m_script_methods[SCRIPT_METHOD_0])) {
+        DebugLog(
+            LogType::Error,
+            "Failed to get `OnEvent` method\n"
+        );
+
+        return false;
+    }
+
+    return true;
 }
 
 void UIButtonController::OnAdded()
@@ -32,10 +48,31 @@ void UIButtonController::OnAdded()
     mat->SetFaceCullMode(renderer::FaceCullMode::NONE);
     mat->SetIsAlphaBlended(true);
     GetOwner()->SetMaterial(std::move(mat));
+
+    Controller::OnAdded();
 }
 
 void UIButtonController::OnRemoved()
 {
+    Controller::OnRemoved();
+}
+
+void UIButtonController::OnEvent(const UIEvent &event)
+{
+    if (event.type == UIEvent::Type::MOUSE_DOWN) {
+        std::cout << "Mouse down on" << GetOwner()->GetID().value << "\n";
+    } else if (event.type == UIEvent::Type::MOUSE_UP) {
+        std::cout << "Mouse up on" << GetOwner()->GetID().value << "\n";
+    }
+
+    if (HasScript() && IsScriptValid()) {
+        m_script->CallFunction(m_script_methods[SCRIPT_METHOD_0], m_self_object, Int(event.type));
+    }
+}
+
+void UIButtonController::OnUpdate(GameCounter::TickUnit delta)
+{
+    Controller::OnUpdate(delta);
 }
 
 void UIButtonController::OnTransformUpdate(const Transform &transform)

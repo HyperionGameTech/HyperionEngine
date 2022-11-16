@@ -22,12 +22,31 @@ AstTypeExpression::AstTypeExpression(
     const std::shared_ptr<AstPrototypeSpecification> &base_specification,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_name(name),
-      m_base_specification(base_specification),
-      m_members(members),
-      m_static_members(static_members)
+    const SymbolTypePtr_t &enum_underlying_type,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_name(name),
+    m_base_specification(base_specification),
+    m_members(members),
+    m_static_members(static_members),
+    m_enum_underlying_type(enum_underlying_type)
+{
+}
+
+AstTypeExpression::AstTypeExpression(
+    const std::string &name,
+    const std::shared_ptr<AstPrototypeSpecification> &base_specification,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+    const SourceLocation &location
+) : AstTypeExpression(
+        name,
+        base_specification,
+        members,
+        static_members,
+        nullptr,
+        location
+    )
 {
 }
 
@@ -61,10 +80,11 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     m_expr.reset(new AstTypeObject(
         m_symbol_type,
         nullptr, // prototype - TODO
+        m_enum_underlying_type,
         m_location
     ));
 
-    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, 0);
+    ScopeGuard scope(mod, SCOPE_TYPE_NORMAL, IsEnum() ? ScopeFunctionFlags::ENUM_MEMBERS_FLAG : 0);
 
     // add symbol type to be usable within members
     scope->GetIdentifierTable().AddSymbolType(m_symbol_type);

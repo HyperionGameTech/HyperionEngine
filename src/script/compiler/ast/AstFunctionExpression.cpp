@@ -155,7 +155,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             // add implicit 'return self' at the end
             m_block->AddChild(std::shared_ptr<AstReturnStatement>(new AstReturnStatement(
                 std::shared_ptr<AstVariable>(new AstVariable(
-                    "self",
+                    Keyword::ToString(Keywords::Keyword_self),
                     m_block->GetLocation()
                 )),
                 m_block->GetLocation()

@@ -56,6 +56,10 @@ Builtins::Builtins()
         BuiltinTypes::FUNCTION, nullptr, SourceLocation::eof
     ));
 
+    m_vars["Enum"].reset(new AstTypeObject(
+        BuiltinTypes::ENUM_TYPE, nullptr, SourceLocation::eof
+    ));
+
     m_vars["Array"].reset(new AstTemplateExpression(
         sp<AstTypeObject>(new AstTypeObject(
             BuiltinTypes::ARRAY, nullptr, SourceLocation::eof

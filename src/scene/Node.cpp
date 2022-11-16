@@ -494,4 +494,29 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     return has_entity_hit;
 }
 
+const Handle<Entity> &Node::FindEntityWithID(const Entity::ID &id) const
+{
+    // breadth-first search
+    Queue<const Node *> queue;
+    queue.Push(this);
+
+    while (queue.Any()) {
+        const Node *parent = queue.Pop();
+
+        for (const NodeProxy &child : parent->GetChildren()) {
+            if (!child) {
+                continue;
+            }
+
+            if (child.GetEntity()->GetID() == id) {
+                return child.GetEntity();
+            }
+
+            queue.Push(child.Get());
+        }
+    }
+
+    return Handle<Entity>::empty;
+}
+
 } // namespace hyperion::v2

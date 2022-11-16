@@ -2158,7 +2158,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
                 }
             }
 
-            IdentifierFlagBits flags = 0;
+            IdentifierFlagBits flags = IdentifierFlags::FLAG_MEMBER;
 
             // read ident
             bool is_static = false,
@@ -2369,7 +2369,7 @@ std::shared_ptr<AstStatement> Parser::ParseEnumDefinition()
                 nullptr, // prototype specification
                 assignment,
                 {}, //template_expr_params,
-                IdentifierFlags::FLAG_CONST,
+                IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_ENUM,
                 token.GetLocation()
             ));
         }
@@ -2407,7 +2407,7 @@ std::shared_ptr<AstEnumExpression> Parser::ParseEnumExpression(
 
     if (Expect(TK_OPEN_BRACE, true)) {
         while (!Match(TK_CLOSE_BRACE, false)) {
-            EnumEntry entry{};
+            EnumEntry entry { };
 
             if (const Token ident = Expect(TK_IDENT, true)) {
                 entry.name = ident.GetValue();

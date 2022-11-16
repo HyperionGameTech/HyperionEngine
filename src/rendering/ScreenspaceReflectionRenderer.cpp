@@ -49,7 +49,7 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
             image_output = ImageOutput {
                 .image = StorageImage(
                     Extent3D(m_extent),
-                    InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+                    InternalFormat::RGBA8,
                     ImageType::TEXTURE_TYPE_2D,
                     nullptr
                 )
@@ -59,7 +59,7 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
         m_radius_output[frame_index] = ImageOutput {
             .image = StorageImage(
                 Extent3D(m_extent),
-                InternalFormat::TEXTURE_INTERNAL_FORMAT_R8,
+                InternalFormat::R8,
                 ImageType::TEXTURE_TYPE_2D,
                 nullptr
             )

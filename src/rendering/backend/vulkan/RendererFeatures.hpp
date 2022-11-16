@@ -286,7 +286,7 @@ public:
 
         if (m_physical_device == nullptr) {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-            return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+            return InternalFormat::NONE;
         }
 
         for (SizeType i = 0; i < Size; i++) {
@@ -295,7 +295,7 @@ public:
             }
         }
 
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     /* get the first supported format out of the provided list of format choices. */
@@ -356,7 +356,7 @@ public:
             "No surface format found out of the selected options!\n"
         );
 
-        return InternalFormat::TEXTURE_INTERNAL_FORMAT_NONE;
+        return InternalFormat::NONE;
     }
 
     Result GetImageFormatProperties(

@@ -20,7 +20,7 @@ const Extent2D DeferredRenderer::hbao_extent(512, 512);
 const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
-    : FullScreenPass(InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F),
+    : FullScreenPass(InternalFormat::RGBA16F),
       m_is_indirect_pass(is_indirect_pass)
 {
 }
@@ -225,7 +225,7 @@ void DeferredRenderer::Create(Engine *engine)
         m_results[i] = engine->CreateHandle<Texture>(
             StorageImage(
                 Extent3D(engine->GetInstance()->GetSwapchain()->extent),
-                InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F,
+                InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_2D,
                 FilterMode::TEXTURE_FILTER_NEAREST
             ),
@@ -237,7 +237,7 @@ void DeferredRenderer::Create(Engine *engine)
 
         m_mipmapped_results[i] = engine->CreateHandle<Texture>(new Texture2D(
             mipmap_chain_extent,
-            InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8_SRGB,
+            InternalFormat::RGBA8_SRGB,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr

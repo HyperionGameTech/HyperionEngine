@@ -9,7 +9,7 @@ SSAOEffect::SSAOEffect()
     : PostProcessingEffect(
           stage,
           index,
-          InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA16F
+          InternalFormat::RGBA16F
       )
 {
 }

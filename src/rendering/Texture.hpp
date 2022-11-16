@@ -148,7 +148,7 @@ public:
                         ? Extent3D(other->GetImage().GetExtent().width / 4, other->GetImage().GetExtent().height / 3, 1)
                         : (other->GetImage().GetExtent() / Extent3D(6, 6, 1))))
                 : Extent3D { 1, 1, 1 },
-              other ? other->GetFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+              other ? other->GetFormat() : InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_CUBEMAP,
               other ? other->GetFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST,
               other ? other->GetWrapMode() : WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -167,7 +167,7 @@ public:
         FixedArray<Handle<Texture>, 6> &&texture_faces
     ) : Texture(
             texture_faces[0] ? texture_faces[0]->GetExtent() : Extent3D { },
-            texture_faces[0] ? texture_faces[0]->GetFormat() : InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8,
+            texture_faces[0] ? texture_faces[0]->GetFormat() : InternalFormat::RGBA8,
             ImageType::TEXTURE_TYPE_CUBEMAP,
             texture_faces[0] ? texture_faces[0]->GetFilterMode() : FilterMode::TEXTURE_FILTER_NEAREST,
             texture_faces[0] ? texture_faces[0]->GetWrapMode() : WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,

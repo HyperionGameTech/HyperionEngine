@@ -60,7 +60,7 @@ public:
             }
         }
 
-        InternalFormat format = InternalFormat::TEXTURE_INTERNAL_FORMAT_RGBA8;
+        InternalFormat format = InternalFormat::RGBA8;
         in.GetProperty("format").ReadUnsignedInt(&format);
 
         ImageType type = ImageType::TEXTURE_TYPE_2D;
