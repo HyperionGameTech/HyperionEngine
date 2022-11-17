@@ -133,6 +133,14 @@ void TemporalBlending::CreateDescriptorSets(Engine *engine)
                 .range = static_cast<UInt>(sizeof(SceneShaderData))
             });
 
+        // depth texture
+        descriptor_set
+            ->AddDescriptor<ImageDescriptor>(7)
+            ->SetSubDescriptor({
+                .image_view = engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                    .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView()
+            });
+
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
@@ -176,9 +184,14 @@ void TemporalBlending::Render(
 
     struct alignas(128) {
         ShaderVec2<UInt32> output_dimensions;
+        ShaderVec2<UInt32> depth_texture_dimensions;
     } push_constants;
 
     push_constants.output_dimensions = Extent2D(extent);
+    push_constants.depth_texture_dimensions = Extent2D(
+        engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
+    );
 
     m_perform_blending->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
     m_perform_blending->GetPipeline()->Bind(frame->GetCommandBuffer());

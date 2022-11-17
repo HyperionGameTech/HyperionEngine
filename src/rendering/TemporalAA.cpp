@@ -225,10 +225,17 @@ void TemporalAA::Render(
     const auto &extent = m_image_outputs[frame->GetFrameIndex()].image.GetExtent();
 
     struct alignas(128) {
-        ShaderVec2<UInt32> dimension;
+        ShaderVec2<UInt32> dimensions;
+        ShaderVec2<UInt32> depth_texture_dimensions;
+        ShaderVec2<Float> camera_near_far;
     } push_constants;
 
-    push_constants.dimension = Extent2D(extent);
+    push_constants.dimensions = Extent2D(extent);
+    push_constants.depth_texture_dimensions = Extent2D(
+        engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
+    );
+    push_constants.camera_near_far = Vector2(scene.camera.clip_near, scene.camera.clip_far);
 
     m_compute_taa->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->GetPipeline()->Bind(frame->GetCommandBuffer());
