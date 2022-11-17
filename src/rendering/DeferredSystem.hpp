@@ -79,9 +79,9 @@ public:
         AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
             AssertThrow(render_pass.IsValid());
-            AssertThrow(static_cast<UInt>(resource_name) < static_cast<UInt>(GBUFFER_RESOURCE_MAX));
+            AssertThrow(UInt(resource_name) < UInt(GBUFFER_RESOURCE_MAX));
 
-            return render_pass->GetRenderPass().GetAttachmentRefs()[static_cast<UInt>(resource_name)];
+            return render_pass->GetRenderPass().GetAttachmentRefs()[UInt(resource_name)];
         }
 
         void AddRendererInstance(Handle<RendererInstance> &renderer_instance);

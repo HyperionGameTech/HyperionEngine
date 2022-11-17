@@ -133,7 +133,7 @@ bool Configuration::SaveToDefinitionsFile(Engine *engine)
         return false;
     }
 
-    writer.Write(str_result.Data(), str_result.Size() + 1); // + 1 for NULL char
+    writer.Write(str_result.Data(), str_result.Size());
     writer.Close();
 
     return true;
