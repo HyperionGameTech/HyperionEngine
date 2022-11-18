@@ -116,8 +116,7 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
+                ->SetElement(0, {
                     .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
                 });
         }
@@ -138,13 +137,13 @@ void ScreenspaceReflectionRenderer::CreateUniformBuffers(Engine *engine)
         SSRParams ssr_params {
             .dimensions = Vector2(m_extent),
             .ray_step = 4.0f,
-            .num_iterations = 256.0f,
-            .max_ray_distance = 256.0f,
+            .num_iterations = 128.0f,
+            .max_ray_distance = 100.0f,
             .distance_bias = 0.15f,
             .offset = 0.01f,
-            .eye_fade_start = 0.95f,
+            .eye_fade_start = 0.75f,
             .eye_fade_end = 0.98f,
-            .screen_edge_fade_start = 0.75f,
+            .screen_edge_fade_start = 0.80f,
             .screen_edge_fade_end = 0.995f
         };
 
@@ -174,89 +173,88 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
 
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::StorageImageDescriptor>(0)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][0].image_view
             });
 
         descriptor_set // 2nd stage -- sample
             ->AddDescriptor<renderer::StorageImageDescriptor>(1)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][1].image_view
             });
 
         descriptor_set // 2nd stage -- write radii
             ->AddDescriptor<renderer::StorageImageDescriptor>(2)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_radius_output[frame_index].image_view
             });
 
         descriptor_set // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::StorageImageDescriptor>(3)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][2].image_view
             });
 
         descriptor_set // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::StorageImageDescriptor>(4)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][3].image_view
             });
 
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::ImageDescriptor>(5)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][0].image_view
             });
 
         descriptor_set // 2nd stage -- sample
             ->AddDescriptor<renderer::ImageDescriptor>(6)
-            ->SetSubDescriptor({
-                .element_index = 0u,
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][1].image_view
             });
 
         descriptor_set // 2nd stage -- write radii
             ->AddDescriptor<renderer::ImageDescriptor>(7)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_radius_output[frame_index].image_view
             });
 
         descriptor_set // 3rd stage -- blur horizontal
             ->AddDescriptor<renderer::ImageDescriptor>(8)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][2].image_view
             });
 
         descriptor_set // 3rd stage -- blur vertical
             ->AddDescriptor<renderer::ImageDescriptor>(9)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &m_image_outputs[frame_index][3].image_view
             });
 
         descriptor_set // gbuffer albedo texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = &engine->GetDeferredRenderer()
                     .GetMipChain(frame_index)->GetImageView()
             });
 
         descriptor_set // gbuffer normals texture
             ->AddDescriptor<renderer::ImageDescriptor>(11)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                     .GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView()
             });
 
         descriptor_set // gbuffer material texture
             ->AddDescriptor<renderer::ImageDescriptor>(12)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                     .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView()
             });
 
         descriptor_set // gbuffer albedo texture
             ->AddDescriptor<renderer::ImageDescriptor>(13)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .image_view = engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                     .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView()
             });
@@ -264,29 +262,29 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
         // nearest sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(14)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .sampler = &engine->GetPlaceholderData().GetSamplerNearest()
             });
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(15)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
             });
 
         // scene data
         descriptor_set
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(16)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .buffer = engine->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                .range = static_cast<UInt>(sizeof(SceneShaderData))
+                .range = UInt32(sizeof(SceneShaderData))
             });
 
         // uniforms
         descriptor_set
             ->AddDescriptor<renderer::UniformBufferDescriptor>(17)
-            ->SetSubDescriptor({
+            ->SetElement(0, {
                 .buffer = m_uniform_buffers[frame_index].Get(),
             });
 
@@ -309,9 +307,9 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
+                ->SetElement(0, {
                     .image_view = &m_temporal_blending.GetImageOutput(frame_index).image_view
+                        //&m_image_outputs[frame_index].Back().image_view
                 });
         }
 

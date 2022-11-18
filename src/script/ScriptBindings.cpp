@@ -730,7 +730,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                         { "y", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
                         { "z", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
                     },
-                    CxxCtor< Vector3, Float32, Float32, Float32 > 
+                    CxxCtor< Vector3, Float, Float, Float > 
                 ),
                 API::NativeMemberDefine(
                     "operator+",
@@ -887,7 +887,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< Float32, Vector3, &Vector3::GetX >
+                    CxxMemberFn< Float, Vector3, &Vector3::GetX >
                 ),
                 API::NativeMemberDefine(
                     "GetY",
@@ -895,7 +895,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< Float32, Vector3, &Vector3::GetY >
+                    CxxMemberFn< Float, Vector3, &Vector3::GetY >
                 ),
                 API::NativeMemberDefine(
                     "GetZ",
@@ -903,7 +903,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    CxxMemberFn< Float32, Vector3, &Vector3::GetZ >
+                    CxxMemberFn< Float, Vector3, &Vector3::GetZ >
                 )
                 // {
                 //     "SetX",
@@ -912,7 +912,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 //         { "self", BuiltinTypes::ANY },
                 //         { "value", BuiltinTypes::FLOAT }
                 //     },
-                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetX >
+                //     CxxMemberFn< Vector3 &, Vector3, Float, &Vector3::SetX >
                 // },
                 // {
                 //     "SetY",
@@ -921,7 +921,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 //         { "self", BuiltinTypes::ANY },
                 //         { "value", BuiltinTypes::FLOAT }
                 //     },
-                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetY >
+                //     CxxMemberFn< Vector3 &, Vector3, Float, &Vector3::SetY >
                 // },
                 // {
                 //     "SetZ",
@@ -930,7 +930,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 //         { "self", BuiltinTypes::ANY },
                 //         { "value", BuiltinTypes::FLOAT }
                 //     },
-                //     CxxMemberFn< Vector3 &, Vector3, Float32, &Vector3::SetZ >
+                //     CxxMemberFn< Vector3 &, Vector3, Float, &Vector3::SetZ >
                 // },
                 // {
                 //     "operator+",
@@ -961,7 +961,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 #else
         .Variable("DEBUG_MODE", false)
 #endif
-        .Variable("NAN", MathUtil::NaN<Float32>())
+        .Variable("NAN", MathUtil::NaN<Float>())
         .Function(
             "ArraySize",
             BuiltinTypes::INT,

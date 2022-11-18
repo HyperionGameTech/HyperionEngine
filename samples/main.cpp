@@ -307,7 +307,7 @@ public:
         { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
                 Handle<Light>(m_sun),
-                BoundingBox(Vector3(-500, -10, -500), Vector3(500, 300, 500))//test_model.GetWorldAABB()
+                test_model.GetWorldAABB()
             );
         }
 
@@ -347,12 +347,14 @@ public:
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
         plane->SetTranslation(Vector3(0, 15, 8));
-        // plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
-        plane->SetScale(20.0f);
+        plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
+        plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
+        plane->SetScale(50.0f);
         plane->SetMaterial(engine->CreateHandle<Material>());
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.08f);
         plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
-        // plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
+        plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
+        plane->RebuildRenderableAttributes();
         GetScene()->AddEntity(Handle<Entity>(plane));
         plane->CreateBLAS();
         plane->AddController<RigidBodyController>(

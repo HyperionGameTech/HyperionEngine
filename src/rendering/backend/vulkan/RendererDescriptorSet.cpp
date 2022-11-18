@@ -1260,6 +1260,15 @@ UInt Descriptor::SetSubDescriptor(SubDescriptor &&sub_descriptor)
     return element_index;
 }
 
+Descriptor *Descriptor::SetElement(UInt index, SubDescriptor &&sub_descriptor)
+{
+    sub_descriptor.element_index = index;
+
+    SetSubDescriptor(std::move(sub_descriptor));
+
+    return this;
+}
+
 void Descriptor::RemoveSubDescriptor(UInt index)
 {
     const auto it = m_sub_descriptors.Find(index);

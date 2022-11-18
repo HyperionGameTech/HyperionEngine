@@ -17,7 +17,7 @@ using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 const Extent2D DeferredRenderer::hbao_extent(512, 512);
-const Extent2D DeferredRenderer::ssr_extent(512, 512);
+const Extent2D DeferredRenderer::ssr_extent(1024, 1024);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
     : FullScreenPass(InternalFormat::RGBA16F),
@@ -218,7 +218,7 @@ void DeferredRenderer::Create(Engine *engine)
 
     m_dpr.Create(engine, depth_attachment_ref);
 
-    m_hbao.Reset(new HBAO(engine->GetInstance()->GetSwapchain()->extent));
+    m_hbao.Reset(new HBAO(engine->GetInstance()->GetSwapchain()->extent / 2));
     m_hbao->Create(engine);
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {

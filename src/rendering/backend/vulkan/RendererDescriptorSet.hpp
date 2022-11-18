@@ -112,14 +112,19 @@ public:
     Descriptor &operator=(const Descriptor &other) = delete;
     ~Descriptor();
 
-    UInt GetBinding() const               { return m_binding; }
-    void SetBinding(UInt binding)         { m_binding = binding; }
+    UInt GetBinding() const
+        { return m_binding; }
+
+    void SetBinding(UInt binding)
+        { m_binding = binding; }
                                           
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
-    auto &GetSubDescriptors()             { return m_sub_descriptors; }
+    auto &GetSubDescriptors()
+        { return m_sub_descriptors; }
 
     /* Sub descriptor --> ... uniform Thing { ... } things[5]; */
-    const auto &GetSubDescriptors() const { return m_sub_descriptors; }
+    const auto &GetSubDescriptors() const
+        { return m_sub_descriptors; }
 
     SubDescriptor &GetSubDescriptor(UInt index)
         { return m_sub_descriptors.At(index); }
@@ -134,6 +139,7 @@ public:
      * @returns index of descriptor
      */
     UInt SetSubDescriptor(SubDescriptor &&sub_descriptor);
+    Descriptor *SetElement(UInt index, SubDescriptor &&sub_descriptor);
     /*! \brief Remove the sub-descriptor at the given index. */
     void RemoveSubDescriptor(UInt index);
     /*! \brief Mark a sub-descriptor as dirty */
@@ -146,14 +152,15 @@ public:
     );
 
 protected:
-
     static VkDescriptorType ToVkDescriptorType(DescriptorType descriptor_type);
 
     void BuildUpdates(Device *device, Array<VkWriteDescriptorSet> &writes);
-    void UpdateSubDescriptorBuffer(const SubDescriptor &sub_descriptor,
+    void UpdateSubDescriptorBuffer(
+        const SubDescriptor &sub_descriptor,
         VkDescriptorBufferInfo &out_buffer,
         VkDescriptorImageInfo &out_image,
-        VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure) const;
+        VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure
+    ) const;
 
     Range<UInt> m_dirty_sub_descriptors;
 

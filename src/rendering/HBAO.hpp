@@ -7,6 +7,8 @@
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/Compute.hpp>
 
+#include <array>
+
 namespace hyperion::v2 {
 
 using renderer::StorageImage;
@@ -19,6 +21,8 @@ class Engine;
 
 class HBAO
 {
+    static constexpr bool blur_result = true;
+
 public:
     HBAO(const Extent2D &extent);
     HBAO(const HBAO &other) = delete;
@@ -63,10 +67,14 @@ private:
     };
 
     FixedArray<ImageOutput, max_frames_in_flight> m_image_outputs;
+    std::array<std::array<ImageOutput, 2>, max_frames_in_flight> m_blur_image_outputs;
 
     FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> m_blur_descriptor_sets;
 
     Handle<ComputePipeline> m_compute_hbao;
+    Handle<ComputePipeline> m_blur_hor;
+    Handle<ComputePipeline> m_blur_vert;
     TemporalBlending m_temporal_blending;
 };
 
