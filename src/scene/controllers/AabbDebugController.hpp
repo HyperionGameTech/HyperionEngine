@@ -13,7 +13,7 @@ class Engine;
 class AABBDebugController : public Controller
 {
 public:
-    AABBDebugController(Engine *engine);
+    AABBDebugController();
     virtual ~AABBDebugController() override = default;
     
     virtual void OnAdded() override;
@@ -21,7 +21,6 @@ public:
     virtual void OnTransformUpdate(const Transform &transform) override;
 
 protected:
-    Engine *m_engine;
     Handle<Entity> m_aabb_entity;
     BoundingBox m_aabb;
 };

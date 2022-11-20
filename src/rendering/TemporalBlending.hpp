@@ -56,6 +56,13 @@ public:
         const FixedArray<ImageView *, max_frames_in_flight> &input_image_views
     );
 
+    TemporalBlending(
+        const Extent2D &extent,
+        InternalFormat image_format,
+        const FixedArray<Image *, max_frames_in_flight> &input_images,
+        const FixedArray<ImageView *, max_frames_in_flight> &input_image_views
+    );
+
     TemporalBlending(const TemporalBlending &other) = delete;
     TemporalBlending &operator=(const TemporalBlending &other) = delete;
     ~TemporalBlending();
@@ -80,6 +87,7 @@ private:
     void CreateComputePipelines(Engine *engine);
 
     Extent2D m_extent;
+    InternalFormat m_image_format;
 
     FixedArray<Image *, max_frames_in_flight> m_input_images;
     FixedArray<ImageView *, max_frames_in_flight> m_input_image_views;

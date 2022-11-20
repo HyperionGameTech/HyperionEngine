@@ -2,10 +2,11 @@
 #define HYPERION_V2_PHYSICS_RIGID_BODY_HPP
 
 #include <core/Base.hpp>
-#include <core/lib/UniquePtr.hpp>
+#include <core/Containers.hpp>
 #include <math/Transform.hpp>
 #include <math/BoundingBox.hpp>
 #include <math/BoundingSphere.hpp>
+#include <math/Vector3.hpp>
 #include <physics/PhysicsMaterial.hpp>
 
 #include <type_traits>
@@ -23,7 +24,8 @@ enum class PhysicsShapeType
     NONE,
     BOX,
     SPHERE,
-    PLANE
+    PLANE,
+    CONVEX_HULL
 };
 
 class PhysicsShape
@@ -110,6 +112,33 @@ public:
 
 protected:
     Vector4 m_plane;
+};
+
+class ConvexHullPhysicsShape : public PhysicsShape
+{
+public:
+    ConvexHullPhysicsShape(const Array<Vector3> &vertices)
+        : PhysicsShape(PhysicsShapeType::CONVEX_HULL)
+    {
+        m_vertices.Resize(vertices.Size() * 3);
+
+        for (SizeType index = 0; index < vertices.Size(); index++) {
+            m_vertices[index * 3] = vertices[index].x;
+            m_vertices[index * 3 + 1] = vertices[index].y;
+            m_vertices[index * 3 + 2] = vertices[index].z;
+        }
+    }
+
+    ~ConvexHullPhysicsShape() = default;
+
+    const Float *GetVertexData() const
+        { return m_vertices.Data(); }
+
+    SizeType NumVertices() const
+        { return m_vertices.Size() / 3; }
+
+protected:
+    Array<Float> m_vertices;
 };
 
 class RigidBody : public EngineComponentBase<STUB_CLASS(RigidBody)>

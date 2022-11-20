@@ -91,6 +91,8 @@ struct ShaderProperty
 
 class ShaderProps
 {
+    friend class ShaderCompiler;
+
 public:
     using Iterator = FlatSet<ShaderProperty>::Iterator;
     using ConstIterator = FlatSet<ShaderProperty>::ConstIterator;
@@ -166,38 +168,28 @@ public:
         return true;
     }
 
-    ShaderProps &Set(const String &key, bool is_permutation, bool value = true)
+    ShaderProps &Set(const ShaderProperty &shader_property, bool enabled = true)
     {
-        ShaderProperty shader_property(key, is_permutation);
-
         const auto it = m_props.Find(shader_property);
 
-        if (!value) {
-            if (it != m_props.End()) {
-                m_props.Erase(it);
-            }
-        } else {
+        if (enabled) {
             if (it == m_props.End()) {
                 m_props.Insert(shader_property);
             } else {
-                it->is_permutation = is_permutation;
+                *it = shader_property;
+            }
+        } else {
+            if (it != m_props.End()) {
+                m_props.Erase(it);
             }
         }
 
         return *this;
     }
 
-    ShaderProps &Set(const ShaderProperty &shader_property)
+    ShaderProps &Set(const String &name, bool enabled = true)
     {
-        const auto it = m_props.Find(shader_property);
-
-        if (it == m_props.End()) {
-            m_props.Insert(shader_property);
-        } else {
-            it->is_permutation = shader_property.is_permutation;
-        }
-
-        return *this;
+        return Set(ShaderProperty(name, true), enabled);
     }
 
     /*! \brief Applies \ref{other} properties onto this set */
@@ -241,6 +233,21 @@ public:
     )
 
 private:
+    ShaderProps &AddPermutation(const String &key)
+    {
+        ShaderProperty shader_property(key, true);
+
+        const auto it = m_props.Find(shader_property);
+
+        if (it == m_props.End()) {
+            m_props.Insert(shader_property);
+        } else {
+            *it = shader_property;
+        }
+
+        return *this;
+    }
+
     FlatSet<ShaderProperty> m_props;
 };
 

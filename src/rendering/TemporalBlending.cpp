@@ -20,7 +20,22 @@ TemporalBlending::TemporalBlending(
     const Extent2D &extent,
     const FixedArray<Image *, max_frames_in_flight> &input_images,
     const FixedArray<ImageView *, max_frames_in_flight> &input_image_views
+) : TemporalBlending(
+        extent,
+        InternalFormat::RGBA8,
+        input_images,
+        input_image_views
+    )
+{
+}
+
+TemporalBlending::TemporalBlending(
+    const Extent2D &extent,
+    InternalFormat image_format,
+    const FixedArray<Image *, max_frames_in_flight> &input_images,
+    const FixedArray<ImageView *, max_frames_in_flight> &input_image_views
 ) : m_extent(extent),
+    m_image_format(image_format),
     m_input_images(input_images),
     m_input_image_views(input_image_views)
 {
@@ -161,6 +176,20 @@ void TemporalBlending::CreateDescriptorSets(Engine *engine)
 
 void TemporalBlending::CreateComputePipelines(Engine *engine)
 {
+    ShaderProps shader_props;
+
+    switch (m_image_format) {
+    case InternalFormat::RGBA8:
+        shader_props.Set("OUTPUT_RGBA8");
+        break;
+    case InternalFormat::RGBA16F:
+        shader_props.Set("OUTPUT_RGBA16F");
+        break;
+    case InternalFormat::RGBA32F:
+        shader_props.Set("OUTPUT_RGBA32F");
+        break;
+    }
+
     m_perform_blending = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("TemporalBlending")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }

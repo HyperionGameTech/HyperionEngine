@@ -158,13 +158,13 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 {
     BuildVertexAttributes(m_construction_info.vertex_attributes);
 
-    VkPipelineVertexInputStateCreateInfo vertex_input_info{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-    vertex_input_info.vertexBindingDescriptionCount = static_cast<UInt32>(vertex_binding_descriptions.size());
+    VkPipelineVertexInputStateCreateInfo vertex_input_info { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+    vertex_input_info.vertexBindingDescriptionCount = UInt32(vertex_binding_descriptions.size());
     vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions.data();
-    vertex_input_info.vertexAttributeDescriptionCount = static_cast<UInt32>(vertex_attributes.size());
+    vertex_input_info.vertexAttributeDescriptionCount = UInt32(vertex_attributes.size());
     vertex_input_info.pVertexAttributeDescriptions = vertex_attributes.data();
 
-    VkPipelineInputAssemblyStateCreateInfo input_asm_info{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+    VkPipelineInputAssemblyStateCreateInfo input_asm_info { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     input_asm_info.primitiveRestartEnable = VK_FALSE;
 
     switch (m_construction_info.topology) {
@@ -266,7 +266,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 
     VkPipelineColorBlendStateCreateInfo color_blending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
     color_blending.logicOpEnable = VK_FALSE;
-    color_blending.attachmentCount = static_cast<uint32_t>(color_blend_attachments.size());
+    color_blending.attachmentCount = UInt32(color_blend_attachments.size());
     color_blending.pAttachments = color_blend_attachments.data();
     color_blending.blendConstants[0] = 0.0f;
     color_blending.blendConstants[1] = 0.0f;
@@ -278,7 +278,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     VkPipelineDynamicStateCreateInfo dynamic_state { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
     const auto &states = GetDynamicStates();
 
-    dynamic_state.dynamicStateCount = static_cast<uint32_t>(states.size());
+    dynamic_state.dynamicStateCount = UInt32(states.size());
     dynamic_state.pDynamicStates = states.data();
     DebugLog(
         LogType::Debug,
@@ -309,7 +309,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         return Result{Result::RENDERER_ERR, "Device max bound descriptor sets exceeded"};
     }
 
-    layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
+    layout_info.setLayoutCount = UInt32(used_layouts.size());
     layout_info.pSetLayouts = used_layouts.data();
 
     /* Push constants */
@@ -317,11 +317,11 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         {
             .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = static_cast<uint32_t>(device->GetFeatures().PaddedSize<PushConstantData>())
+            .size = UInt32(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
-    layout_info.pushConstantRangeCount = static_cast<uint32_t>(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = UInt32(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     DebugLog(
@@ -378,7 +378,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 
     auto &stages = m_construction_info.shader->GetShaderStages();
 
-    pipeline_info.stageCount          = static_cast<uint32_t>(stages.size());
+    pipeline_info.stageCount          = UInt32(stages.size());
     pipeline_info.pStages             = stages.data();
     pipeline_info.pVertexInputState   = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_asm_info;

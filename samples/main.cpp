@@ -145,33 +145,41 @@ public:
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
 
-#if 0
-        if (auto house = GetScene()->GetRoot().AddChild(obj_models["house"].Get<Node>())) {
-            house.Scale(10.0f);
-            house.SetName("house");
+        test_model.Scale(30.35f);
 
+        {
             int i = 0;
 
-            for (auto &child : house.GetChildren()) {
+            for (auto &child : test_model.GetChildren()) {
                 if (!child) {
                     continue;
                 }
 
                 if (auto ent = child.GetEntity()) {
-                    //if (i > 6) {
-                    //    std::cout << "entity name = " << ent->GetName() << std::endl;
-                    //    break;
-                   // }
                     engine->InitObject(ent);
-                    ent->CreateBLAS();
+                    // ent->CreateBLAS();
+
+                    if (!ent->GetMesh()) {
+                        continue;
+                    }
+
+                    Array<Vector3> vertices;
+                    vertices.Reserve(ent->GetMesh()->GetVertices().size());
+
+                    for (auto &vertex : ent->GetMesh()->GetVertices()) {
+                        vertices.PushBack(vertex.GetPosition());
+                    }
+
+                    ent->AddController<RigidBodyController>(
+                        UniquePtr<physics::ConvexHullPhysicsShape>::Construct(vertices),
+                        physics::PhysicsMaterial { .mass = 0.0f }
+                    );
+                    // ent->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(true);
 
                     i++;
                 }
             }
         }
-#endif
-
-        test_model.Scale(20.35f);
 
         if (false) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
@@ -184,6 +192,7 @@ public:
 
             btn_node.Scale(0.01f);
         }
+
 
         auto cubemap = engine->CreateHandle<Texture>(new TextureCube(
             engine->GetAssetManager().LoadMany<Texture>(
@@ -315,18 +324,18 @@ public:
             monkey.SetName("monkey");
             auto monkey_entity = monkey[0].GetEntity();
             monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-            monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.0f);
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+            // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
            //monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
            // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             //monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
             monkey_entity->RebuildRenderableAttributes();
-            monkey.Translate(Vector3(40, 250.5f, 0));
+            monkey.Translate(Vector3(0, 250.5f, 0));
             monkey.Scale(12.0f);
             engine->InitObject(monkey_entity);
 
@@ -343,6 +352,9 @@ public:
             );
         }
 
+        auto mh = engine->GetAssetManager().Load<Node>("models/mh/mh1.obj");
+        GetScene()->GetRoot().AddChild(mh);
+
         // add a plane physics shape
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
@@ -351,9 +363,10 @@ public:
         plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
         plane->SetScale(250.0f);
         plane->SetMaterial(engine->CreateHandle<Material>());
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.6f, 1.0f, 0.65f));
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.025f);
-        // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, engine->GetAssetManager().Load<Texture>("textures/water.jpg"));
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.8f, 1.0f, 1.0f));
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.075f);
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
+        plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, engine->GetAssetManager().Load<Texture>("textures/water.jpg"));
         // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
         plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
         plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
@@ -374,9 +387,11 @@ public:
 
     bool svo_ready_to_build = false;
 
-    virtual void OnFrameBegin(Engine *engine, Frame *frame) override
+    virtual void OnFrameBegin(Engine *engine, Frame *) override
     {
         engine->render_state.BindScene(m_scene.Get());
+
+        engine->GetImmediateMode().Sphere(Vector3(0.0f, 20.0f, 0.0f), 6.0f);
     }
 
     virtual void OnFrameEnd(Engine *engine, Frame *) override
@@ -396,18 +411,18 @@ public:
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
         }
 
-        #if 0 // bad performance on large meshes. need bvh
-        //if (input_manager->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
-        //    ray_cast_timer = 0.0f;
+        #if 1 // bad performance on large meshes. need bvh
+        if (GetInputManager()->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
+            ray_cast_timer = 0.0f;
             const auto &mouse_position = GetInputManager()->GetMousePosition();
 
-            const auto mouse_x = mouse_position.x.load();
-            const auto mouse_y = mouse_position.y.load();
+            const Int mouse_x = mouse_position.GetX();
+            const Int mouse_y = mouse_position.GetY();
 
             const auto mouse_world = m_scene->GetCamera()->TransformScreenToWorld(
                 Vector2(
-                    mouse_x / static_cast<float>(GetInputManager()->GetWindow()->width),
-                    mouse_y / static_cast<float>(GetInputManager()->GetWindow()->height)
+                    mouse_x / Float(GetInputManager()->GetWindow()->GetExtent().width),
+                    mouse_y / Float(GetInputManager()->GetWindow()->GetExtent().height)
                 )
             );
 
@@ -425,6 +440,8 @@ public:
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
                     if (auto lookup_result = engine->GetObjectSystem().Lookup<Entity>(Entity::ID(hit.id))) {
+                        lookup_result->AddController<AABBDebugController>();
+
                         if (auto &mesh = lookup_result->GetMesh()) {
                             ray.TestTriangleList(
                                 mesh->GetVertices(),
@@ -440,12 +457,15 @@ public:
                 if (!triangle_mesh_results.Empty()) {
                     const auto &mesh_hit = triangle_mesh_results.Front();
 
-                    if (auto sphere = m_scene->GetRoot().Select("monkey")) {
-                        sphere.SetLocalTranslation(mesh_hit.hitpoint);
-                        sphere.SetLocalRotation(Quaternion::LookAt((m_scene->GetCamera()->GetTranslation() - mesh_hit.hitpoint).Normalized(), Vector3::UnitY()));
+                    if (auto target = m_scene->GetRoot().Select("monkey")) {
+                        target.SetLocalTranslation(mesh_hit.hitpoint);
+                        target.SetLocalRotation(Quaternion::LookAt((m_scene->GetCamera()->GetTranslation() - mesh_hit.hitpoint).Normalized(), Vector3::UnitY()));
                     }
                 }
             }
+        } else {
+            ray_cast_timer += delta;
+        }
         #endif
     }
 

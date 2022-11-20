@@ -5,6 +5,7 @@
 #define NUM_MOUSE_BUTTONS 3
 
 #include <core/lib/FlatMap.hpp>
+#include <math/Vector2.hpp>
 
 #include "system/SdlSystem.hpp"
 
@@ -15,10 +16,53 @@
 
 namespace hyperion {
 
-struct AtomicScalar2D
+template <bool IsAtomic>
+struct Scalar2D
 {
-    std::atomic_int x { 0 };
-    std::atomic_int y { 0 };
+    std::conditional_t<IsAtomic, std::atomic<Int>, Int> x { 0 };
+    std::conditional_t<IsAtomic, std::atomic<Int>, Int> y { 0 };
+};
+
+template <bool IsAtomic>
+struct MousePosition { };
+
+template<>
+struct MousePosition<true> : Scalar2D<true>
+{
+    Int GetX() const
+        { return x.load(std::memory_order_relaxed); }
+
+    Int GetY() const
+        { return y.load(std::memory_order_relaxed); }
+
+    explicit operator Vector2() const
+        { return Vector2(Float(GetX()), Float(GetY())); }
+};
+
+template<>
+struct MousePosition<false> : Scalar2D<false>
+{
+    MousePosition() = default;
+
+    MousePosition(Int x, Int y)
+    {
+        Scalar2D::x = x;
+        Scalar2D::y = y;
+    }
+
+    MousePosition(const MousePosition &other) = default;
+    MousePosition &operator=(const MousePosition &other) = default;
+    MousePosition(MousePosition &&other) noexcept = default;
+    MousePosition &operator=(MousePosition &other) noexcept = default;
+
+    Int GetX() const
+        { return x; }
+
+    Int GetY() const
+        { return y; }
+
+    explicit operator Vector2() const
+        { return Vector2(Float(GetX()), Float(GetY())); }
 };
 
 struct InputState
@@ -43,19 +87,28 @@ public:
 
     void CheckEvent(SystemEvent *event);
 
-    AtomicScalar2D &GetMousePosition() { return m_mouse_position; }
-    const AtomicScalar2D &GetMousePosition() const { return m_mouse_position; }
+    const MousePosition<true> &GetMousePosition() const
+        { return m_mouse_position; }
 
-    AtomicScalar2D &GetWindowSize() { return m_window_size; }
-    const AtomicScalar2D &GetWindowSize() const { return m_window_size; }
+    Scalar2D<true> &GetWindowSize()
+        { return m_window_size; }
+
+    const Scalar2D<true> &GetWindowSize() const
+        { return m_window_size; }
 
     void SetMousePosition(Int x, Int y);
 
-    void KeyDown(int key) { SetKey(key, true); }
-    void KeyUp(int key) { SetKey(key, false); }
+    void KeyDown(int key)
+        { SetKey(key, true); }
 
-    void MouseButtonDown(int btn) { SetMouseButton(btn, true); }
-    void MouseButtonUp(int btn) { SetMouseButton(btn, false); }
+    void KeyUp(int key)
+        { SetKey(key, false); }
+
+    void MouseButtonDown(int btn)
+        { SetMouseButton(btn, true); }
+
+    void MouseButtonUp(int btn)
+        { SetMouseButton(btn, false); }
 
     void UpdateMousePosition();
     void UpdateWindowSize();
@@ -68,12 +121,13 @@ public:
     void SetWindow(ApplicationWindow *window)
         { m_window = window; }
 
-    ApplicationWindow *GetWindow() { return m_window; }
+    ApplicationWindow *GetWindow()
+        { return m_window; }
 
 private:
     InputState m_input_state;
-    AtomicScalar2D m_mouse_position;
-    AtomicScalar2D m_window_size;
+    MousePosition<true> m_mouse_position;
+    Scalar2D<true> m_window_size;
 
     ApplicationWindow *m_window;
 

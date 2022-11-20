@@ -453,7 +453,7 @@ void ShaderCompiler::ParseDefinitionSection(
         if (section_it.first == "permute") {
             // set each property
             for (const auto &element : section_it.second.elements) {
-                bundle.versions.Set(element, true);
+                bundle.versions.AddPermutation(element);
             }
         } else if (shader_type_names.Contains(section_it.first)) {
             bundle.sources[shader_type_names.At(section_it.first)] = SourceFile {
@@ -1308,13 +1308,16 @@ bool ShaderCompiler::GetCompiledShader(
         }
     }
 
-    // should not happen unless hash differs from what is stored in cache
-    AssertThrowMsg(
-        it != batch.compiled_shaders.End(),
-        "Hash calculation does not match %llu!\n\tRequested for properties: [%s]\n",
-        final_properties_hash.Value(),
-        requested_properties_string.Data()
-    );
+    if (it == batch.compiled_shaders.End()) {
+        DebugLog(
+            LogType::Error,
+            "Hash calculation does not match %llu! Invalid shader property combination.\n\tRequested instance with properties: [%s]\n",
+            final_properties_hash.Value(),
+            requested_properties_string.Data()
+        );
+
+        return false;
+    }
 
     out = *it;
 

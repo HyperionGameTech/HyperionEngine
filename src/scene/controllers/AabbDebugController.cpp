@@ -6,9 +6,8 @@
 
 namespace hyperion::v2 {
 
-AABBDebugController::AABBDebugController(Engine *engine)
-    : Controller("AABBDebugController", false),
-      m_engine(engine)
+AABBDebugController::AABBDebugController()
+    : Controller("AABBDebugController", false)
 {
 }
 
@@ -27,13 +26,12 @@ void AABBDebugController::OnAdded()
         return;
     }
 
-    AssertThrow(m_engine != nullptr);
-
     auto mesh = MeshBuilder::Cube();
     auto vertex_attributes = mesh->GetVertexAttributes();
+
     auto material = GetEngine()->CreateHandle<Material>("aabb_material");
 
-    auto shader = m_engine->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
+    auto shader = GetEngine()->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
 
     m_aabb_entity = GetEngine()->CreateHandle<Entity>(
         GetEngine()->CreateHandle<Mesh>(std::move(mesh)),

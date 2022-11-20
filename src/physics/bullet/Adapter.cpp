@@ -38,15 +38,26 @@ static UniquePtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape *physic
 {
     switch (physics_shape->GetType()) {
     case PhysicsShapeType::BOX:
-        return UniquePtr<btBoxShape>::Construct(ToBtVector(static_cast<BoxPhysicsShape *>(physics_shape)->GetAABB().GetExtent()));
+        return UniquePtr<btBoxShape>::Construct(
+            ToBtVector(static_cast<BoxPhysicsShape *>(physics_shape)->GetAABB().GetExtent())
+        );
     case PhysicsShapeType::SPHERE:
-        return UniquePtr<btSphereShape>::Construct(static_cast<SpherePhysicsShape *>(physics_shape)->GetSphere().GetRadius());
+        return UniquePtr<btSphereShape>::Construct(
+            static_cast<SpherePhysicsShape *>(physics_shape)->GetSphere().GetRadius()
+        );
     case PhysicsShapeType::PLANE:
         return UniquePtr<btStaticPlaneShape>::Construct(
             ToBtVector(Vector3(static_cast<PlanePhysicsShape *>(physics_shape)->GetPlane())),
             static_cast<PlanePhysicsShape *>(physics_shape)->GetPlane().w
         );
-    // others...
+    case PhysicsShapeType::CONVEX_HULL:
+        static_assert(sizeof(btScalar) == sizeof(Float), "sizeof(btScalar) must be sizeof(Float) for reinterpret_cast to be safe");
+
+        return UniquePtr<btConvexHullShape>::Construct(
+            reinterpret_cast<const btScalar *>(static_cast<ConvexHullPhysicsShape *>(physics_shape)->GetVertexData()),
+            static_cast<ConvexHullPhysicsShape *>(physics_shape)->NumVertices(),
+            sizeof(Float) * 3
+        );
     default:
         AssertThrowMsg(false, "Unknown PhysicsShapeType!");
     }
