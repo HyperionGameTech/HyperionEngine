@@ -6,7 +6,7 @@
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
-#include <rendering/ProbeSystem.hpp>
+#include <rendering/rt/ProbeSystem.hpp>
 
 #include <core/Base.hpp>
 #include <core/Containers.hpp>

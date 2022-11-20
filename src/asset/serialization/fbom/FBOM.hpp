@@ -345,7 +345,7 @@ public:
             const UByte endianness = header_bytes[sizeof(FBOM::header_identifier)];
             
             // set if it needs to swap endianness.
-            m_swap_endianness = endianness != IsBigEndian();
+            m_swap_endianness = bool(endianness) != IsBigEndian();
 
             // get version info
             UInt32 binary_version;

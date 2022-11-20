@@ -78,7 +78,10 @@ Result CommandBuffer::Begin(Device *device, const RenderPass *render_pass)
     VkCommandBufferBeginInfo begin_info { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 
     if (m_type == COMMAND_BUFFER_SECONDARY) {
-        AssertThrowMsg(render_pass != nullptr, "Render pass not provided for secondary command buffer!");
+        if (render_pass == nullptr) {
+            return Result { Result::RENDERER_ERR, "Render pass not provided for secondary command buffer!" };
+        }
+
         inheritance_info.renderPass = render_pass->GetHandle();
 
         begin_info.pInheritanceInfo = &inheritance_info;
@@ -232,6 +235,24 @@ void CommandBuffer::BindDescriptorSet(
         static_cast<const Pipeline *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         set,
+        binding,
+        nullptr,
+        0
+    );
+}
+
+void CommandBuffer::BindDescriptorSet(
+    const DescriptorPool &pool,
+    const GraphicsPipeline *pipeline,
+    const DescriptorSet *descriptor_set,
+    DescriptorSet::Index binding
+) const
+{
+    BindDescriptorSet(
+        pool,
+        static_cast<const Pipeline *>(pipeline),
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        descriptor_set,
         binding,
         nullptr,
         0

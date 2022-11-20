@@ -16,6 +16,7 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/debug/ImmediateMode.hpp>
 #include <scene/World.hpp>
 #include <scene/System.hpp>
 
@@ -117,7 +118,11 @@ using RenderFunctor = Task<Result, CommandBuffer * /* command_buffer */, UInt /*
  */
 class Engine
 {
+#ifdef HYP_DEBUG_MODE
+    static constexpr bool use_debug_layers = true;
+#else
     static constexpr bool use_debug_layers = false;
+#endif
 
 public:
     Engine(RefCountedPtr<Application> application, const char *app_name);
@@ -161,9 +166,26 @@ public:
     ComponentRegistry &GetComponents() { return m_components; }
     const ComponentRegistry &GetComponents() const { return m_components; }
 
+    ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
+    const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
+
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
+    Handle<RendererInstance> CreateRendererInstance(
+        const Handle<Shader> &shader,
+        const RenderableAttributeSet &renderable_attributes,
+        bool cache = false
+    );
+    
+    /*! \brief Create a RendererInstance using defined set of DescriptorSets. The result will not be cached. */
+    Handle<RendererInstance> CreateRendererInstance(
+        const Handle<Shader> &shader,
+        const RenderableAttributeSet &renderable_attributes,
+        const Array<const DescriptorSet *> &used_descriptor_sets
+    );
+
+    /*! \brief Find or create a RendererInstance from cache, or create a descriptor set. If created, the result will always be cached. */
     Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
     Handle<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
 
@@ -366,6 +388,8 @@ private:
 
     AssetManager m_asset_manager;
     Configuration m_configuration;
+
+    ImmediateMode m_immediate_mode;
 
     CrashHandler m_crash_handler;
 

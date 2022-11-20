@@ -155,6 +155,12 @@ struct alignas(16) EnvProbeShaderData
     UInt32 flags;
 };
 
+struct alignas(256) ImmediateDrawShaderData
+{
+    ShaderMat4 transform;
+    UInt32 color_packed;
+};
+
 struct ObjectInstance
 {
     UInt32 entity_id;
@@ -190,6 +196,9 @@ static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowSha
 /* max number of env probes, based on size in kb */
 static const SizeType max_env_probes = (16ull * 1024ull) / sizeof(EnvProbeShaderData);
 static const SizeType max_env_probes_bytes = max_env_probes * sizeof(EnvProbeShaderData);
+/* max number of immediate drawn objects, based on size in mb */
+static const SizeType max_immediate_draws = (1ull * 1024ull * 1024ull) / sizeof(ImmediateDrawShaderData);
+static const SizeType max_immediate_draws_bytes = max_immediate_draws * sizeof(ImmediateDrawShaderData);
 
 template <class Buffer, class StructType, SizeType Size>
 class ShaderData
@@ -218,6 +227,9 @@ public:
     ShaderData(const ShaderData &other) = delete;
     ShaderData &operator=(const ShaderData &other) = delete;
     ~ShaderData() = default;
+
+    const auto &GetBuffer(UInt frame_index) const
+        { return m_buffers[frame_index]; }
 
     const auto &GetBuffers() const { return m_buffers; }
     

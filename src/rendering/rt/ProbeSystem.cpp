@@ -1,5 +1,5 @@
-#include "ProbeSystem.hpp"
-#include "../Engine.hpp"
+#include <rendering/rt/ProbeSystem.hpp>
+#include <Engine.hpp>
 #include <Types.hpp>
 
 #include <rendering/backend/RendererShader.hpp>

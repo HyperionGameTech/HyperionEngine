@@ -14,6 +14,7 @@ void ShaderGlobals::Create(Engine *engine)
     lights.Create(device);
     shadow_maps.Create(device);
     env_probes.Create(device);
+    immediate_draws.Create(device);
     textures.Create(engine);
 
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
@@ -32,6 +33,7 @@ void ShaderGlobals::Destroy(Engine *engine)
     skeletons.Destroy(device);
     lights.Destroy(device);
     shadow_maps.Destroy(device);
+    immediate_draws.Destroy(device);
 }
 
 Shader::Shader(const std::vector<SubShader> &sub_shaders)

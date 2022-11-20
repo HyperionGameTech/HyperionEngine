@@ -187,8 +187,8 @@ private:
 
     InternalInfo m_internal_info;
 
-    size_t m_size;
-    size_t m_bpp; // bytes per pixel
+    SizeType m_size;
+    SizeType m_bpp; // bytes per pixel
     GPUImageMemory *m_image;
 };
 

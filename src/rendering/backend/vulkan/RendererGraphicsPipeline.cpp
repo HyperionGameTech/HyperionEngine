@@ -17,10 +17,18 @@
 
 namespace hyperion {
 namespace renderer {
+
 GraphicsPipeline::GraphicsPipeline()
     : Pipeline(),
-      viewport{},
-      scissor{}
+      viewport { },
+      scissor { }
+{
+}
+
+GraphicsPipeline::GraphicsPipeline(const Array<const DescriptorSet *> &used_descriptor_sets)
+    : Pipeline(used_descriptor_sets),
+      viewport { },
+      scissor { }
 {
 }
 

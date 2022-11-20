@@ -83,7 +83,14 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline  *pipeline,
+        const GraphicsPipeline *pipeline,
+        const DescriptorSet *descriptor_set,
+        DescriptorSet::Index binding
+    ) const;
+
+    void BindDescriptorSet(
+        const DescriptorPool &pool,
+        const GraphicsPipeline *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,

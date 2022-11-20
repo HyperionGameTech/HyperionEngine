@@ -204,6 +204,12 @@ void RenderEnvironment::RenderRTRadiance(Engine *engine, Frame *frame)
 
         m_probe_system.RenderProbes(engine, frame);
         m_probe_system.ComputeIrradiance(engine, frame);
+
+        if (engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
+            for (const auto &probe : m_probe_system.GetProbes()) {
+                engine->GetImmediateMode().Sphere(probe.position);
+            }
+        }
     }
 }
 

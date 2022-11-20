@@ -120,6 +120,9 @@ public:
     ProbeGrid &operator=(const ProbeGrid &other) = delete;
     ~ProbeGrid();
 
+    const Array<Probe> &GetProbes() const
+        { return m_probes; }
+
     void SetTLAS(const Handle<TLAS> &tlas)
         { m_tlas = tlas; }
 

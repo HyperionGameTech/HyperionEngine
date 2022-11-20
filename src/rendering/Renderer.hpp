@@ -11,6 +11,7 @@
 #include "IndirectDraw.hpp"
 #include "CullData.hpp"
 #include "Compute.hpp"
+#include <rendering/Mesh.hpp>
 #include <Constants.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <util/Defines.hpp>
@@ -42,11 +43,69 @@ using renderer::StorageBuffer;
 
 class Engine;
 
+/*! \brief Represents a handle to a graphics pipeline,
+    which can be used for doing standalone drawing without requiring
+    all objects to be Entities or have them attached to the RendererInstance */
+class RendererProxy
+{
+    friend class RendererInstance;
+
+    RendererProxy(RendererInstance *renderer_instance)
+        : m_renderer_instance(renderer_instance)
+    {
+    }
+
+    RendererProxy(const RendererProxy &other) = delete;
+    RendererProxy &operator=(const RendererProxy &other) = delete;
+
+public:
+    CommandBuffer *GetCommandBuffer(UInt frame_index);
+    renderer::GraphicsPipeline *GetGraphicsPipeline();
+
+    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void Bind(
+        Engine *engine,
+        Frame *frame
+    );
+
+    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void BindEntityObject(
+        Engine *engine,
+        Frame *frame,
+        const EntityDrawProxy &entity
+    );
+    
+    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void SetConstants(void *ptr, SizeType size);
+
+    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void DrawMesh(
+        Engine *engine,
+        Frame *frame,
+        Mesh *mesh
+    );
+
+    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+        be bound, with all draw calls recorded elsewhere. */
+    void Submit(
+        Engine *engine,
+        Frame *frame
+    );
+
+private:
+    RendererInstance *m_renderer_instance;
+};
+
 class RendererInstance
     : public EngineComponentBase<STUB_CLASS(RendererInstance)>
 {
     friend class Engine;
     friend class Entity;
+    friend class RendererProxy;
 
 public:
     static constexpr bool parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
@@ -55,6 +114,13 @@ public:
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
+    );
+
+    RendererInstance(
+        Handle<Shader> &&shader,
+        Handle<RenderPass> &&render_pass,
+        const RenderableAttributeSet &renderable_attributes,
+        const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
     RendererInstance(const RendererInstance &other) = delete;
@@ -115,7 +181,16 @@ public:
         Frame *frame
     );
 
+    RendererProxy GetProxy()
+        { return RendererProxy(this); }
+
 private:
+    void BindDescriptorSets(
+        Engine *engine,
+        CommandBuffer *command_buffer,
+        UInt scene_index
+    );
+
     void PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_index);
     
     void UpdateEnqueuedEntitiesFlag()

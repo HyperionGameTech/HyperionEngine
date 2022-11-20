@@ -113,12 +113,12 @@ void Image::SetIsSRGB(bool srgb)
     const auto internal_format = m_format;
 
     if (is_srgb) {
-        m_format = InternalFormat(static_cast<Int>(internal_format) - static_cast<Int>(InternalFormat::SRGB));
+        m_format = InternalFormat(Int(internal_format) - Int(InternalFormat::SRGB));
 
         return;
     }
 
-    const auto to_srgb_format = InternalFormat(static_cast<Int>(InternalFormat::SRGB) + static_cast<Int>(internal_format));
+    const auto to_srgb_format = InternalFormat(Int(InternalFormat::SRGB) + Int(internal_format));
 
     if (!IsSRGBFormat(to_srgb_format)) {
         DebugLog(
@@ -148,7 +148,7 @@ Result Image::CreateImage(
         DebugLog(LogType::Debug, "Mipmapped image needs blitting support. Enabling...\n");
 
         format_features |= VK_FORMAT_FEATURE_BLIT_DST_BIT
-                        |  VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+            | VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 
         m_internal_info.usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -259,7 +259,7 @@ Result Image::CreateImage(
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.flags = image_create_flags; // TODO: look into flags for sparse s for VCT
     image_info.pQueueFamilyIndices = image_family_indices;
-    image_info.queueFamilyIndexCount = static_cast<UInt32>(std::size(image_family_indices));
+    image_info.queueFamilyIndexCount = UInt32(std::size(image_family_indices));
 
     *out_image_info = image_info;
 
@@ -522,10 +522,10 @@ Result Image::GenerateMipmaps(
     const auto num_mipmaps = NumMipmaps();
 
     for (UInt32 face = 0; face < num_faces; face++) {
-        for (Int32 i = 1; i < static_cast<Int32>(num_mipmaps + 1); i++) {
-            const auto mip_width = static_cast<Int32>(helpers::MipmapSize(m_extent.width, i)),
-                mip_height = static_cast<Int32>(helpers::MipmapSize(m_extent.height, i)),
-                mip_depth = static_cast<Int32>(helpers::MipmapSize(m_extent.depth, i));
+        for (Int32 i = 1; i < Int32(num_mipmaps + 1); i++) {
+            const auto mip_width = Int32(helpers::MipmapSize(m_extent.width, i)),
+                mip_height = Int32(helpers::MipmapSize(m_extent.height, i)),
+                mip_depth = Int32(helpers::MipmapSize(m_extent.depth, i));
 
             /* Memory barrier for transfer - note that after generating the mipmaps,
                 we'll still need to transfer into a layout primed for reading from shaders. */
@@ -535,13 +535,13 @@ Result Image::GenerateMipmaps(
                     ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
                     : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .base_array_layer = face,
-                .base_mip_level = static_cast<UInt32>(i - 1)
+                .base_mip_level = UInt32(i - 1)
             };
 
             const ImageSubResource dst {
                 .flags = src.flags,
                 .base_array_layer = src.base_array_layer,
-                .base_mip_level  = static_cast<UInt32>(i)
+                .base_mip_level = UInt32(i)
             };
             
             m_image->InsertSubResourceBarrier(
@@ -550,7 +550,7 @@ Result Image::GenerateMipmaps(
                 ResourceState::COPY_SRC
             );
 
-            if (i == static_cast<Int32>(num_mipmaps)) {
+            if (i == Int32(num_mipmaps)) {
                 if (face == num_faces - 1) {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
@@ -577,11 +577,11 @@ Result Image::GenerateMipmaps(
                     .layerCount = src.num_layers
                 },
                 .srcOffsets = {
-                    {0, 0, 0},
+                    { 0, 0, 0 },
                     {
-                        static_cast<Int32>(helpers::MipmapSize(m_extent.width, i - 1)),
-                        static_cast<Int32>(helpers::MipmapSize(m_extent.height, i - 1)),
-                        static_cast<Int32>(helpers::MipmapSize(m_extent.depth, i - 1))
+                        Int32(helpers::MipmapSize(m_extent.width, i - 1)),
+                        Int32(helpers::MipmapSize(m_extent.height, i - 1)),
+                        Int32(helpers::MipmapSize(m_extent.depth, i - 1))
                     }
                 },
                 .dstSubresource = {
@@ -591,7 +591,7 @@ Result Image::GenerateMipmaps(
                     .layerCount = dst.num_layers
                 },
                 .dstOffsets = {
-                    {0, 0, 0},
+                    { 0, 0, 0 },
                     {
                         mip_width,
                         mip_height,
@@ -631,10 +631,10 @@ void Image::CopyFromBuffer(
             
     // copy from staging to image
     const auto num_faces = NumFaces();
-    const auto buffer_offset_step = static_cast<UInt>(m_size) / num_faces;
+    const auto buffer_offset_step = UInt(m_size) / num_faces;
 
     for (UInt i = 0; i < num_faces; i++) {
-        VkBufferImageCopy region{};
+        VkBufferImageCopy region { };
         region.bufferOffset = i * buffer_offset_step;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
@@ -672,7 +672,7 @@ void Image::CopyToBuffer(
             
     // copy from staging to image
     const auto num_faces = NumFaces();
-    const auto buffer_offset_step = static_cast<UInt>(m_size) / num_faces;
+    const auto buffer_offset_step = UInt(m_size) / num_faces;
 
     for (UInt i = 0; i < num_faces; i++) {
         VkBufferImageCopy region { };

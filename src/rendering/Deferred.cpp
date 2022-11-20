@@ -607,6 +607,8 @@ void DeferredRenderer::Render(
             RenderParticles(engine, frame, environment);
         }
 
+        engine->GetImmediateMode().Render(engine, frame);
+
         m_translucent_fbos[frame_index]->EndCapture(primary);
     }
 

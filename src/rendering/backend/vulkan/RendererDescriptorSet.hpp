@@ -139,7 +139,68 @@ public:
      * @returns index of descriptor
      */
     UInt SetSubDescriptor(SubDescriptor &&sub_descriptor);
-    Descriptor *SetElement(UInt index, SubDescriptor &&sub_descriptor);
+
+    template <class Buffer>
+    Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
+    {
+        SubDescriptor element;
+        element.element_index = index;
+        element.buffer = buffer;
+        element.range = UInt32(sizeof(Buffer));
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
+    Descriptor *SetElementSRV(UInt index, const ImageView *image_view)
+    {
+        AssertThrowMsg(
+            m_descriptor_type == DescriptorType::IMAGE,
+            "SetElementSRV() requires descriptor of type IMAGE."
+        );
+
+        SubDescriptor element;
+        element.element_index = index;
+        element.image_view = image_view;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
+    Descriptor *SetElementUAV(UInt index, const ImageView *image_view)
+    {
+        AssertThrowMsg(
+            m_descriptor_type == DescriptorType::IMAGE_STORAGE,
+            "SetElementUAV() requires descriptor of type IMAGE_STORAGE."
+        );
+
+        SubDescriptor element;
+        element.element_index = index;
+        element.image_view = image_view;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
+    Descriptor *SetElementSampler(UInt index, const Sampler *sampler)
+    {
+        AssertThrowMsg(
+            m_descriptor_type == DescriptorType::SAMPLER,
+            "SetElementSampler() requires descriptor of type SAMPLER."
+        );
+
+        SubDescriptor element;
+        element.element_index = index;
+        element.sampler = sampler;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
     /*! \brief Remove the sub-descriptor at the given index. */
     void RemoveSubDescriptor(UInt index);
     /*! \brief Mark a sub-descriptor as dirty */
@@ -213,6 +274,7 @@ enum class DescriptorKey
     RT_IRRADIANCE_GRID,
     RT_DEPTH_GRID,
     TEMPORAL_AA_RESULT,
+    IMMEDIATE_DRAWS,
 
     SCENE_BUFFER,
     LIGHTS_BUFFER,

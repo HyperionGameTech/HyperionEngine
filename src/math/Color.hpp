@@ -30,14 +30,29 @@ public:
     Color(const Color &other);
     Color(const Vector4 &vec);
 
-    Float GetRed() const { return Float(bytes[0]) / 255.0f; }
-    Color &SetRed(Float red) { bytes[0] = static_cast<UByte>(red * 255.0f); return *this; }
-    Float GetGreen() const { return Float(bytes[1]) / 255.0f; }
-    Color &SetGreen(Float green) { bytes[1] = static_cast<UByte>(green * 255.0f); return *this; }
-    Float GetBlue() const { return Float(bytes[0]) / 255.0f; }
-    Color &SetBlue(Float blue) { bytes[2] = static_cast<UByte>(blue * 255.0f); return *this; }
-    Float GetAlpha() const { return Float(bytes[0]) / 255.0f; }
-    Color &SetAlpha(Float alpha) { bytes[3] = static_cast<UByte>(alpha * 255.0f); return *this; }
+    HYP_FORCE_INLINE Float GetRed() const
+        { return Float(bytes[0]) / 255.0f; }
+
+    HYP_FORCE_INLINE Color &SetRed(Float red)
+        { bytes[0] = static_cast<UByte>(red * 255.0f); return *this; }
+
+    HYP_FORCE_INLINE Float GetGreen() const
+        { return Float(bytes[1]) / 255.0f; }
+
+    HYP_FORCE_INLINE Color &SetGreen(Float green)
+        { bytes[1] = static_cast<UByte>(green * 255.0f); return *this; }
+
+    HYP_FORCE_INLINE Float GetBlue() const
+        { return Float(bytes[0]) / 255.0f; }
+
+    HYP_FORCE_INLINE Color &SetBlue(Float blue)
+        { bytes[2] = static_cast<UByte>(blue * 255.0f); return *this; }
+
+    HYP_FORCE_INLINE Float GetAlpha() const
+        { return Float(bytes[0]) / 255.0f; }
+
+    HYP_FORCE_INLINE Color &SetAlpha(Float alpha)
+        { bytes[3] = static_cast<UByte>(alpha * 255.0f); return *this; }
     
     constexpr Float operator[](UInt index) const
         { return Float(bytes[index]) / 255.0f; }
@@ -54,14 +69,17 @@ public:
     bool operator==(const Color &other) const;
     bool operator!=(const Color &other) const;
 
-    bool operator<(const Color &other) const
+    HYP_FORCE_INLINE bool operator<(const Color &other) const
         { return value < other.value; }
 
-    explicit operator UInt32() const
+    HYP_FORCE_INLINE explicit operator UInt32() const
         { return value; }
 
-    explicit operator Vector4() const
+    HYP_FORCE_INLINE explicit operator Vector4() const
         { return Vector4(GetRed(), GetGreen(), GetBlue(), GetAlpha()); }
+
+    HYP_FORCE_INLINE UInt32 Packed() const
+        { return value; }
 
     Color &Lerp(const Color &to, Float amt);
 

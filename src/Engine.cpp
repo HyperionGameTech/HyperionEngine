@@ -47,6 +47,7 @@ Engine::Engine(RefCountedPtr<Application> application, const char *app_name)
 Engine::~Engine()
 {
     m_placeholder_data.Destroy(this);
+    m_immediate_mode.Destroy(this);
 
     HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
 
@@ -296,14 +297,14 @@ void Engine::Initialize()
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .buffer = shader_globals->scenes.GetBuffers()[0].get(),
-            .range = static_cast<UInt>(sizeof(SceneShaderData))
+            .range = UInt32(sizeof(SceneShaderData))
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .buffer = shader_globals->lights.GetBuffers()[0].get(),
-            .range  = static_cast<UInt>(sizeof(LightDrawProxy))
+            .range = UInt32(sizeof(LightDrawProxy))
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
@@ -317,7 +318,7 @@ void Engine::Initialize()
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .buffer = shader_globals->materials.GetBuffers()[0].get(),
-            .range = static_cast<UInt>(sizeof(MaterialShaderData))
+            .range = UInt32(sizeof(MaterialShaderData))
         });
 
 
@@ -689,77 +690,7 @@ void Engine::Initialize()
         }
 
         { // SSR placeholders
-            /* SSR Data */
-            descriptor_set_globals // 1st stage -- trace, write UVs
-                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_UV_IMAGE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            descriptor_set_globals // 2nd stage -- sample
-                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_SAMPLE_IMAGE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            descriptor_set_globals // 2nd stage -- write radii
-                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_RADIUS_IMAGE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            descriptor_set_globals // 3rd stage -- blur horizontal
-                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_IMAGE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            descriptor_set_globals // 3rd stage -- blur vertical
-                ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_IMAGE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            /* SSR Data */
-            descriptor_set_globals // 1st stage -- trace, write UVs
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_UV_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-               });
-
-            descriptor_set_globals // 2nd stage -- sample
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_SAMPLE_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-               });
-
-            descriptor_set_globals // 2nd stage -- write radii
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RADIUS_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-               });
-
-            descriptor_set_globals // 3rd stage -- blur horizontal
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_HOR_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            descriptor_set_globals // 3rd stage -- blur vertical
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_BLUR_VERT_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
-                });
+            
         }
 
         { // POST FX processing placeholders
@@ -809,6 +740,9 @@ void Engine::Initialize()
 
     m_render_list_container.Create(this);
 
+    // has to be after we create framebuffers
+    m_immediate_mode.Create(this);
+
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
     m_running.store(true);
@@ -841,6 +775,9 @@ void Engine::Compile()
 
         /* Finalize scene data */
         shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), i);
+
+        /* Finalize immediate draw data */
+        shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
@@ -954,6 +891,70 @@ void Engine::RenderNextFrame(Game *game)
     GetInstance()->GetFrameHandler()->NextFrame();
 }
 
+Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
+{
+    if (!shader) {
+        DebugLog(
+            LogType::Warn,
+            "Shader is empty; Cannot create RendererInstance.\n"
+        );
+
+        return Handle<RendererInstance>::empty;
+    }
+
+    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
+    new_renderable_attributes.shader_id = shader->GetID();
+
+    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
+
+    // create a RendererInstance with the given params
+    auto renderer_instance = CreateHandle<RendererInstance>(
+        Handle<Shader>(shader),
+        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
+        new_renderable_attributes
+    );
+
+    if (cache) {
+        std::lock_guard guard(m_renderer_instance_mapping_mutex);
+
+        AddRendererInstanceInternal(renderer_instance);
+    }
+
+    return renderer_instance;
+}
+
+
+Handle<RendererInstance> Engine::CreateRendererInstance(
+    const Handle<Shader> &shader,
+    const RenderableAttributeSet &renderable_attributes,
+    const Array<const DescriptorSet *> &used_descriptor_sets
+)
+{
+    if (!shader) {
+        DebugLog(
+            LogType::Warn,
+            "Shader is empty; Cannot create RendererInstance.\n"
+        );
+
+        return Handle<RendererInstance>::empty;
+    }
+
+    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
+    new_renderable_attributes.shader_id = shader->GetID();
+
+    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
+
+    // create a RendererInstance with the given params
+    auto renderer_instance = CreateHandle<RendererInstance>(
+        Handle<Shader>(shader),
+        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
+        new_renderable_attributes,
+        used_descriptor_sets
+    );
+
+    return renderer_instance;
+}
+
 Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
 {
     if (!shader) {
@@ -1046,6 +1047,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);

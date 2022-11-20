@@ -15,7 +15,7 @@
 #include <rendering/Atomics.hpp>
 #include <scene/animation/Bone.hpp>
 #include <rendering/rt/AccelerationStructureBuilder.hpp>
-#include <rendering/ProbeSystem.hpp>
+#include <rendering/rt/ProbeSystem.hpp>
 #include <rendering/post_fx/FXAA.hpp>
 #include <rendering/post_fx/Tonemap.hpp>
 #include <scene/controllers/AudioController.hpp>
@@ -132,7 +132,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/living_room/living_room.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/city/city.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");

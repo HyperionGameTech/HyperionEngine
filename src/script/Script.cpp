@@ -83,7 +83,7 @@ bool Script::Compile()
     m_compilation_unit.GetErrorList().SortErrors();
     m_errors = m_compilation_unit.GetErrorList();
 
-    m_errors.WriteOutput(utf::cout);
+    m_errors.WriteOutput(std::cout);
 
     if (!m_errors.HasFatalErrors()) {
         // only optimize if there were no errors

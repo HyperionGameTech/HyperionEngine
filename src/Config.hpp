@@ -22,6 +22,8 @@ enum OptionName
     CONFIG_RT_REFLECTIONS,
     CONFIG_RT_GI,
 
+    CONFIG_RT_GI_DEBUG_PROBES,
+
     CONFIG_SSR,
     
     CONFIG_HBAO,

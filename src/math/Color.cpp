@@ -19,6 +19,11 @@ Color::Color(Float r, Float g, Float b, Float a)
 {
 }
 
+Color::Color(Float rgba)
+    : value(ByteUtil::PackColorU32(Vector4(rgba, rgba, rgba, rgba)))
+{
+}
+
 Color::Color(const Color &other)
     : value(other.value)
 {

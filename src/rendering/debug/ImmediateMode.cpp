@@ -1,0 +1,248 @@
+#include <rendering/debug/ImmediateMode.hpp>
+#include <util/MeshBuilder.hpp>
+#include <Engine.hpp>
+
+namespace hyperion::v2 {
+
+using renderer::DynamicStorageBufferDescriptor;
+
+ImmediateMode::ImmediateMode()
+{
+    m_draw_commands.Reserve(256);
+}
+
+ImmediateMode::~ImmediateMode()
+{
+}
+
+void ImmediateMode::Create(Engine *engine)
+{
+    m_shapes[UInt(DebugDrawShape::SPHERE)] = engine->CreateHandle<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
+    m_shapes[UInt(DebugDrawShape::BOX)] = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
+    m_shapes[UInt(DebugDrawShape::PLANE)] = engine->CreateHandle<Mesh>(MeshBuilder::Quad());
+
+    for (auto &shape : m_shapes) {
+        AssertThrow(engine->InitObject(shape));
+    }
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
+
+        m_descriptor_sets[frame_index]
+            ->AddDescriptor<DynamicStorageBufferDescriptor>(0)
+            ->SetElementBuffer<ImmediateDrawShaderData>(0, engine->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
+    }
+
+    engine->GetRenderScheduler().Enqueue([engine, this](...) {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    });
+
+    m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader(
+        "DebugAABB",
+        ShaderProps(
+            renderer::static_mesh_vertex_attributes,
+            Array<String> { "IMMEDIATE_MODE" }
+        )
+    ));
+
+    engine->InitObject(m_shader);
+
+    m_renderer_instance = engine->CreateRendererInstance(
+        m_shader,
+        RenderableAttributeSet(
+            MeshAttributes {
+                .vertex_attributes = renderer::static_mesh_vertex_attributes
+            },
+            MaterialAttributes {
+                .bucket = Bucket::BUCKET_TRANSLUCENT,
+                .fill_mode = FillMode::LINE,
+                .cull_faces = FaceCullMode::NONE,
+                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
+            }
+        ),
+        Array<const DescriptorSet *> {
+            m_descriptor_sets[0].Get(),
+            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
+            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+        }
+    );
+    
+    if (m_renderer_instance) {
+        engine->GetDeferredSystem()
+            .Get(m_renderer_instance->GetRenderableAttributes().material_attributes.bucket)
+            .AddFramebuffersToPipeline(m_renderer_instance);
+
+        engine->InitObject(m_renderer_instance);
+    }
+}
+
+void ImmediateMode::Destroy(Engine *engine)
+{
+    m_shapes = { };
+
+    m_renderer_instance.Reset();
+    m_shader.Reset();
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        engine->SafeRelease(std::move(m_descriptor_sets[frame_index]));
+    }
+}
+
+void ImmediateMode::Render(
+    Engine *engine,
+    Frame *frame
+)
+{
+    if (m_num_draw_commands_pending_additon.load(std::memory_order_relaxed) != 0) {
+        UpdateDrawCommands();
+    }
+
+    if (m_draw_commands.Empty()) {
+        return;
+    }
+
+    if (!m_renderer_instance) {
+        m_draw_commands.Clear();
+
+        return;
+    }
+
+    const UInt frame_index = frame->GetFrameIndex();
+
+    for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
+        const auto &draw_command = m_draw_commands[index];
+
+        const ImmediateDrawShaderData shader_data {
+            draw_command.transform.GetMatrix(),
+            draw_command.color.Packed()
+        };
+
+        engine->GetRenderData()->immediate_draws.Set(index, shader_data);
+    }
+
+    engine->GetRenderData()->immediate_draws.UpdateBuffer(
+        engine->GetDevice(),
+        frame->GetFrameIndex()
+    );
+
+    RendererProxy proxy = m_renderer_instance->GetProxy();
+    proxy.Bind(engine, frame);
+
+    proxy.GetCommandBuffer(frame->GetFrameIndex())->BindDescriptorSets(
+        engine->GetInstance()->GetDescriptorPool(),
+        proxy.GetGraphicsPipeline(),
+        FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
+        FixedArray<DescriptorSet::Index, 2> { DescriptorSet::Index(1), DescriptorSet::Index(2) },
+        FixedArray {
+            UInt32(engine->render_state.GetScene().id.ToIndex() * sizeof(SceneShaderData)),
+            HYP_RENDER_OBJECT_OFFSET(Light, 0)
+        }
+    );
+
+    for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
+        const DebugDrawCommand &draw_command = m_draw_commands[index];
+
+        proxy.GetCommandBuffer(frame_index)->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
+            proxy.GetGraphicsPipeline(),
+            m_descriptor_sets[frame_index].Get(),
+            0,
+            FixedArray<UInt32, 1> { UInt32(index * sizeof(ImmediateDrawShaderData)) }
+        );
+
+        proxy.DrawMesh(engine, frame, m_shapes[UInt(draw_command.shape)].Get());
+    }
+
+    proxy.Submit(engine, frame);
+
+    m_draw_commands.Clear();
+}
+
+void ImmediateMode::UpdateDrawCommands()
+{
+    std::lock_guard guard(m_draw_commands_mutex);
+
+    SizeType size = m_draw_commands_pending_addition.Size();
+    Int64 previous_value = m_num_draw_commands_pending_additon.fetch_sub(Int64(size), std::memory_order_relaxed);
+    AssertThrow(previous_value - Int64(size) >= 0);
+
+    m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
+}
+
+void ImmediateMode::CommitCommands(DebugDrawCommandList &&command_list)
+{
+    std::lock_guard guard(m_draw_commands_mutex);
+    
+    m_num_draw_commands_pending_additon.fetch_add(Int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
+    m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
+}
+
+void ImmediateMode::Sphere(const Vector3 &position, Float radius, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::SPHERE,
+        Transform(position, radius, Quaternion::identity),
+        color
+    });
+}
+
+void ImmediateMode::Box(const Vector3 &position, const Vector3 &size, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::BOX,
+        Transform(position, size, Quaternion::identity),
+        color
+    });
+}
+
+void ImmediateMode::Plane(const Vector3 &position, const Vector2 &size, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::PLANE,
+        Transform(position, Vector3(size, 1.0f), Quaternion::identity),
+        color
+    });
+}
+
+// command list methods
+
+void DebugDrawCommandList::Sphere(const Vector3 &position, Float radius, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::SPHERE,
+        Transform(position, radius, Quaternion::identity),
+        color
+    });
+}
+
+void DebugDrawCommandList::Box(const Vector3 &position, const Vector3 &size, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::BOX,
+        Transform(position, size, Quaternion::identity),
+        color
+    });
+}
+
+void DebugDrawCommandList::Plane(const Vector3 &position, const Vector2 &size, Color color)
+{
+    m_draw_commands.PushBack(DebugDrawCommand {
+        DebugDrawShape::PLANE,
+        Transform(position, Vector3(size, 1.0f), Quaternion::identity),
+        color
+    });
+}
+
+void DebugDrawCommandList::Commit()
+{
+    m_immediate_mode->CommitCommands(std::move(*this));
+}
+
+} // namespace hyperion::v2

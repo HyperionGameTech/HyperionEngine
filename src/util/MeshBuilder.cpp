@@ -218,7 +218,7 @@ UniquePtr<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
         vertices,
         indices,
         Topology::TRIANGLES,
-        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
+        renderer::static_mesh_vertex_attributes
     );
 
     mesh->CalculateNormals(true);

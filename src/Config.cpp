@@ -14,6 +14,7 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_RT_ENABLED, "RTEnabled" },
     { CONFIG_RT_REFLECTIONS, "RTReflections" },
     { CONFIG_RT_GI, "RTGlobalIllumination" },
+    { CONFIG_RT_GI_DEBUG_PROBES, "DebugDDGIProbes" },
     { CONFIG_SSR, "ScreenSpaceReflections" },
     { CONFIG_HBAO, "HBAO" },
     { CONFIG_HBIL, "HBIL" },
@@ -47,7 +48,8 @@ bool Configuration::IsRTOption(OptionName option)
     return option == CONFIG_RT_SUPPORTED
         || option == CONFIG_RT_ENABLED
         || option == CONFIG_RT_REFLECTIONS
-        || option == CONFIG_RT_GI;
+        || option == CONFIG_RT_GI
+        || option == CONFIG_RT_GI_DEBUG_PROBES;
 }
 
 Configuration::Configuration() = default;

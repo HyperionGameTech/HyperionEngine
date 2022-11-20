@@ -46,6 +46,7 @@ public:
     };
 
     GraphicsPipeline();
+    GraphicsPipeline(const Array<const DescriptorSet *> &used_descriptor_sets);
     GraphicsPipeline(const GraphicsPipeline &other) = delete;
     GraphicsPipeline &operator=(const GraphicsPipeline &other) = delete;
     ~GraphicsPipeline();

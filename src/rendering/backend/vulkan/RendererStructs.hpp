@@ -397,9 +397,9 @@ using ImageSubResourceFlagBits = UInt;
 
 enum ImageSubResourceFlags : ImageSubResourceFlagBits
 {
-    IMAGE_SUB_RESOURCE_FLAGS_NONE = 0,
-    IMAGE_SUB_RESOURCE_FLAGS_COLOR = 1 << 0,
-    IMAGE_SUB_RESOURCE_FLAGS_DEPTH = 1 << 1,
+    IMAGE_SUB_RESOURCE_FLAGS_NONE    = 0,
+    IMAGE_SUB_RESOURCE_FLAGS_COLOR   = 1 << 0,
+    IMAGE_SUB_RESOURCE_FLAGS_DEPTH   = 1 << 1,
     IMAGE_SUB_RESOURCE_FLAGS_STENCIL = 1 << 2
 };
 

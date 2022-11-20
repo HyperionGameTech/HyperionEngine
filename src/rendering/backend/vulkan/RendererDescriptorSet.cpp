@@ -74,7 +74,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::RT_DEPTH_GRID,         48},
 
             // result from temporal AA pass - temp, will be put into post fx chain
-            {DescriptorKey::TEMPORAL_AA_RESULT,    50}
+            {DescriptorKey::TEMPORAL_AA_RESULT,    50},
+            
+            // immediate drawing transforms
+            {DescriptorKey::IMMEDIATE_DRAWS,       51}
         }
     },
     {
@@ -1174,7 +1177,7 @@ void Descriptor::UpdateSubDescriptorBuffer(
         out_buffer = {
             .buffer = sub_descriptor.buffer->buffer,
             .offset = 0,
-            .range  = sub_descriptor.range != 0
+            .range = sub_descriptor.range != 0
                 ? sub_descriptor.range
                 : sub_descriptor.buffer->size
         };
@@ -1258,15 +1261,6 @@ UInt Descriptor::SetSubDescriptor(SubDescriptor &&sub_descriptor)
     MarkDirty(element_index);
 
     return element_index;
-}
-
-Descriptor *Descriptor::SetElement(UInt index, SubDescriptor &&sub_descriptor)
-{
-    sub_descriptor.element_index = index;
-
-    SetSubDescriptor(std::move(sub_descriptor));
-
-    return this;
 }
 
 void Descriptor::RemoveSubDescriptor(UInt index)

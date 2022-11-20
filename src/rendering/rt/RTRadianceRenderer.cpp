@@ -311,5 +311,4 @@ void RTRadianceRenderer::CreateTemporalBlending(Engine *engine)
     m_temporal_blending.Create(engine);
 }
 
-
 } // namespace hyperion::v2

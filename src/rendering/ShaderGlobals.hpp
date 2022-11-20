@@ -34,7 +34,8 @@ struct ShaderGlobals
           materials(num_buffers),
           skeletons(num_buffers),
           shadow_maps(num_buffers),
-          env_probes(num_buffers)
+          env_probes(num_buffers),
+          immediate_draws(num_buffers)
     {
     }
 
@@ -51,6 +52,7 @@ struct ShaderGlobals
     ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons> skeletons;
     ShaderData<UniformBuffer, ShadowShaderData, max_shadow_maps> shadow_maps;
     ShaderData<UniformBuffer, EnvProbeShaderData, max_env_probes> env_probes;
+    ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws> immediate_draws;
     BindlessStorage textures;
 
     UniformBuffer cubemap_uniforms;
