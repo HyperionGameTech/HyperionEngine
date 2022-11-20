@@ -132,7 +132,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/living_room/living_room.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -171,9 +171,9 @@ public:
         }
 #endif
 
-        test_model.Scale(0.35f);
+        test_model.Scale(20.35f);
 
-        if (true) {
+        if (false) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(engine->CreateHandle<Entity>());
             btn_node.GetEntity()->AddController<UIButtonController>();
@@ -217,9 +217,9 @@ public:
         
         { // adding lights to scene
             m_sun = engine->CreateHandle<Light>(new DirectionalLight(
-                Vector3(-0.5f, 0.75f, 0.0f).Normalize(),
+                Vector3(-0.5f, 1.0f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                150000.0f
+                300000.0f
             ));
             m_scene->AddLight(m_sun);
 
@@ -241,7 +241,7 @@ public:
         //auto tex = engine->GetAssetManager().Load<Texture>("textures/smoke.png");
         //AssertThrow(tex);
 
-        if (false) { // particles test
+        if (true) { // particles test
             auto particle_spawner = engine->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = engine->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -346,12 +346,15 @@ public:
         // add a plane physics shape
         auto plane = engine->CreateHandle<Entity>();
         plane->SetName("Plane entity");
-        plane->SetTranslation(Vector3(0, 15, 8));
+        plane->SetTranslation(Vector3(0, 12, 8));
         plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
         plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
-        plane->SetScale(50.0f);
+        plane->SetScale(250.0f);
         plane->SetMaterial(engine->CreateHandle<Material>());
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.08f);
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.6f, 1.0f, 0.65f));
+        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.025f);
+        // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, engine->GetAssetManager().Load<Texture>("textures/water.jpg"));
+        // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
         plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
         plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
         plane->RebuildRenderableAttributes();
@@ -563,12 +566,12 @@ int main()
 
     engine->shader_manager.SetShader(
         ShaderKey::BASIC_FORWARD,
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps { }))
+        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
     );
 
     engine->shader_manager.SetShader(
         ShaderKey::TERRAIN,
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("Terrain", ShaderProps { }))
+        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("Terrain", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
     );
 
     engine->shader_manager.SetShader(

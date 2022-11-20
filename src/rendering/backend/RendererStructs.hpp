@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_BACKEND_RENDERER_STRUCTS_H
 #define HYPERION_V2_BACKEND_RENDERER_STRUCTS_H
 
+#include <core/lib/String.hpp>
 #include <util/Defines.hpp>
 #include <util/EnumOptions.hpp>
 #include <Types.hpp>
@@ -81,10 +82,10 @@ struct VertexAttribute
 
     static const EnumOptions<Type, VertexAttribute, 16> mapping;
 
+    const char *name;
     UInt32 location;
     UInt32 binding;
-    // total size -- num elements * sizeof(float)
-    SizeType size;
+    SizeType size; // total size -- num elements * sizeof(float)
 
     bool operator<(const VertexAttribute &other) const
         { return location < other.location; }
@@ -92,9 +93,10 @@ struct VertexAttribute
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(this->location);
-        hc.Add(this->binding);
-        hc.Add(this->size);
+        hc.Add(String(name));
+        hc.Add(location);
+        hc.Add(binding);
+        hc.Add(size);
 
         return hc;
     }
@@ -122,27 +124,48 @@ struct VertexAttributeSet
 
     ~VertexAttributeSet() = default;
 
-    explicit operator bool() const { return bool(flag_mask); }
+    explicit operator bool() const { return flag_mask != 0; }
 
-    bool operator==(const VertexAttributeSet &other) const              { return flag_mask == other.flag_mask; }
-    bool operator!=(const VertexAttributeSet &other) const              { return flag_mask != other.flag_mask; }
+    bool operator==(const VertexAttributeSet &other) const
+        { return flag_mask == other.flag_mask; }
 
-    bool operator==(UInt64 flags) const                                 { return flag_mask == flags; }
-    bool operator!=(UInt64 flags) const                                 { return flag_mask != flags; }
+    bool operator!=(const VertexAttributeSet &other) const
+        { return flag_mask != other.flag_mask; }
 
-    VertexAttributeSet operator~() const                                { return ~flag_mask; }
+    bool operator==(UInt64 flags) const
+        { return flag_mask == flags; }
 
-    VertexAttributeSet operator&(const VertexAttributeSet &other) const { return {flag_mask & other.flag_mask}; }
-    VertexAttributeSet &operator&=(const VertexAttributeSet &other)     { flag_mask &= other.flag_mask; return *this; }
-    VertexAttributeSet operator&(UInt64 flags) const                    { return {flag_mask & flags}; }
-    VertexAttributeSet &operator&=(UInt64 flags)                        { flag_mask &= flags; return *this; }
+    bool operator!=(UInt64 flags) const
+        { return flag_mask != flags; }
+
+    VertexAttributeSet operator~() const
+        { return ~flag_mask; }
+
+    VertexAttributeSet operator&(const VertexAttributeSet &other) const
+        { return {flag_mask & other.flag_mask}; }
+
+    VertexAttributeSet &operator&=(const VertexAttributeSet &other)
+        { flag_mask &= other.flag_mask; return *this; }
+
+    VertexAttributeSet operator&(UInt64 flags) const
+        { return {flag_mask & flags}; }
+
+    VertexAttributeSet &operator&=(UInt64 flags)
+        { flag_mask &= flags; return *this; }
     
-    VertexAttributeSet operator|(const VertexAttributeSet &other) const { return {flag_mask | other.flag_mask}; }
-    VertexAttributeSet &operator|=(const VertexAttributeSet &other)     { flag_mask |= other.flag_mask; return *this; }
-    VertexAttributeSet operator|(UInt64 flags) const                    { return {flag_mask | flags}; }
-    VertexAttributeSet &operator|=(UInt64 flags)                        { flag_mask |= flags; return *this; }
+    VertexAttributeSet operator|(const VertexAttributeSet &other) const
+        { return { flag_mask | other.flag_mask }; }
 
-    bool operator<(const VertexAttributeSet &other) const               { return flag_mask < other.flag_mask; }
+    VertexAttributeSet &operator|=(const VertexAttributeSet &other)
+        { flag_mask |= other.flag_mask; return *this; }
+
+    VertexAttributeSet operator|(UInt64 flags) const
+        { return { flag_mask | flags }; }
+
+    VertexAttributeSet &operator|=(UInt64 flags)
+        { flag_mask |= flags; return *this; }
+
+    bool operator<(const VertexAttributeSet &other) const { return flag_mask < other.flag_mask; }
 
     bool Has(VertexAttribute::Type type) const { return bool(operator&(UInt64(type))); }
 

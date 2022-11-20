@@ -29,7 +29,11 @@ ShadowPass::~ShadowPass() = default;
 
 void ShadowPass::CreateShader(Engine *engine)
 {
-    m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("Shadows"));
+    m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader(
+        "Shadows",
+        ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)
+    ));
+
     engine->InitObject(m_shader);
 }
 
@@ -521,7 +525,7 @@ void ShadowRenderer::UpdateSceneCamera(Engine *engine)
     const auto center = aabb.GetCenter();
 
     const auto light_direction = m_shadow_pass.GetLight()
-        ? m_shadow_pass.GetLight()->GetPosition() * -1.0f
+        ? m_shadow_pass.GetLight()->GetPosition().Normalized() * -1.0f
         : Vector3::Zero();
 
     auto &camera = m_shadow_pass.GetScene()->GetCamera();

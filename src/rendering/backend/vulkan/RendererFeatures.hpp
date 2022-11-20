@@ -140,7 +140,7 @@ public:
     {
         REQUIRES_VK_FEATURE_MSG(m_features.fragmentStoresAndAtomics, "Image stores and atomics in fragment shaders"); /* for imageStore() in fragment shaders */
         REQUIRES_VK_FEATURE_MSG(m_features.shaderSampledImageArrayDynamicIndexing, "Dynamic sampler / image array indexing"); /* for accessing textures based on dynamic index (push constant) */
-        REQUIRES_VK_FEATURE_MSG(m_indexing_features.descriptorBindingPartiallyBound && m_indexing_features.runtimeDescriptorArray, "Bindless descriptors"); /* bindless support */
+        // REQUIRES_VK_FEATURE_MSG(m_indexing_features.descriptorBindingPartiallyBound && m_indexing_features.runtimeDescriptorArray, "Bindless descriptors"); /* bindless support */
         REQUIRES_VK_FEATURE_MSG(m_multiview_features.multiview, "Multiview not supported");
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetSamplers >= 16);
         REQUIRES_VK_FEATURE(m_properties.limits.maxDescriptorSetUniformBuffers >= 16);
@@ -155,6 +155,14 @@ public:
     }
 
 #undef REQUIRES_VK_FEATURE
+
+    bool SupportsBindlessTextures() const
+    {
+        return m_indexing_features.descriptorBindingPartiallyBound
+            && m_indexing_features.runtimeDescriptorArray
+            && m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSamplers >= 4096
+            && m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSampledImages >= 4096;
+    }
 
     void LoadDynamicFunctions(Device *device);
     void SetDeviceFeatures(Device *device);

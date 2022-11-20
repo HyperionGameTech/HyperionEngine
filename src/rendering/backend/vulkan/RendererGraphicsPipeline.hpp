@@ -25,7 +25,8 @@ class FramebufferObject;
 class GraphicsPipeline : public Pipeline
 {
 public:
-    struct ConstructionInfo {
+    struct ConstructionInfo
+    {
         VertexAttributeSet vertex_attributes;
 
         Topology topology = Topology::TRIANGLES;

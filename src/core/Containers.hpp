@@ -16,6 +16,7 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/Variant.hpp>
+#include <core/lib/Optional.hpp>
 #include <core/ThreadSafeContainer.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>

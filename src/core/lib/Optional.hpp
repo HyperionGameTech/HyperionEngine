@@ -186,7 +186,8 @@ public:
     }
 
 private:
-    struct Storage {
+    struct Storage
+    {
         using StorageType = typename std::aligned_storage_t<sizeof(T), alignof(T)>;
 
         StorageType data_buffer;
