@@ -367,9 +367,13 @@ public:
     void MathTest(const long iterations) {
         Vector4 vec1 = { 0.0f, 0.0f, 0.0f, 0.0f };
         Vector4 vec2 = { 1.0f, 2.0f, 3.0f, 4.0f };
+
+        Vector4 vec3(vec2);
+        vec3 -= 2.0f;
+
         auto start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < iterations; i++) {
-            vec1 += (vec2 * Vector4(0.03f)) / Vector4(1.1f);
+            vec1 += (vec2 * Vector4(0.03f)) / Vector4(1.1f) + Vector4(2, 3, 4, 5) + vec3;
         }
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -514,7 +518,8 @@ int main()
 
     HYP_BREAKPOINT;
 #endif
-    
+
+
     SystemSDL system;
     SystemWindow *window = SystemSDL::CreateSystemWindow("Hyperion Engine", 1024, 1024);
     system.SetCurrentWindow(window);

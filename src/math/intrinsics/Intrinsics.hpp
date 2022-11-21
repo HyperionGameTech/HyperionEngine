@@ -18,6 +18,7 @@ using Float128 = __m128;
 
 #else
 using Float128 = float[4];
+#define Float128Zero() { 0.0f, 0.0f, 0.0f, 0.0f };
 #endif
 
 #ifdef HYP_AVX_SUPPORTED
@@ -43,11 +44,14 @@ static const HYP_FORCE_INLINE Float128 Float128Set(Float32 value)
     return vec;
 }
 
-static const HYP_FORCE_INLINE Float128 Float128Load(const Float32 *src)
+#define Float128Load(src) (_mm_loadu_ps(src))
+
+/*static const HYP_FORCE_INLINE Float128 Float128Load(const Float32 *src)
 {
-    const Float128 vec = _mm_loadu_ps(src);
-    return vec;
-}
+    //const Float128 vec = _mm_loadu_ps(src);
+    //return vec;
+    return _mm_loadu_ps(src);
+}*/
 static const HYP_FORCE_INLINE void Float128Store(Float32 *dest, Float128 vec)
 {
     _mm_storeu_ps(dest, vec);
