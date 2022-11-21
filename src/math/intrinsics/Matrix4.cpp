@@ -7,7 +7,7 @@
 
 #include "Intrinsics.hpp"
 
-#if defined(HYP_FEATURES_INTRINSICS)
+#if defined(HYP_FEATURES_INTRINSICS) && HYP_FEATURES_INTRINSICS
 
 namespace hyperion {
 
@@ -216,7 +216,11 @@ Matrix4::Matrix4(const float *v)
 
 Matrix4::Matrix4(const Matrix4 &other)
 {
-    hyperion::Memory::Copy(values, other.values, sizeof(values));
+    rows[0] = other.rows[0];
+    rows[1] = other.rows[1];
+    rows[2] = other.rows[2];
+    rows[3] = other.rows[3];
+    //hyperion::Memory::Copy(values, other.values, sizeof(values));
 }
 
 float Matrix4::Determinant() const

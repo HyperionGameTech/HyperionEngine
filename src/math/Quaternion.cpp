@@ -2,7 +2,7 @@
 
 #include <float.h>
 
-#if !defined(HYP_FEATURES_INTRINSICS)
+#if !defined(HYP_FEATURES_INTRINSICS) || 1
 
 namespace hyperion {
 

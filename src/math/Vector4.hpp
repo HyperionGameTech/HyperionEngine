@@ -22,12 +22,12 @@ class Vector4
 public:
     static constexpr UInt size = 4;
 
-    static const Vector4 zero;
-    static const Vector4 one;
-
-    union {
-        struct alignas(8) { float x, y, z, w; };
+    static constexpr Vector4 zero;
+    static constexpr Vector4 one;
+    union alignas(16) {
+        struct alignas(16) { float x, y, z, w; };
         float values[4];
+        __m128 vector;
     };
 
     Vector4();
