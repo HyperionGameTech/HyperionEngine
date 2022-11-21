@@ -272,8 +272,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 it.second.values.Size()
             ));
 
-            if (it.first == Material::MATERIAL_KEY_TRANSMISSION
-                && it.second.values.Any([](float value) { return value > 0.0f; })) {
+            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; })) {
                 material->SetIsAlphaBlended(true);
                 material->SetBucket(BUCKET_TRANSLUCENT);
             }

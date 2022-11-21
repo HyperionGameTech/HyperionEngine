@@ -34,6 +34,7 @@ void DeferredPass::CreateShader(Engine *engine)
     ShaderProps props { };
     props.Set("RT_ENABLED", engine->GetConfig().Get(CONFIG_RT_ENABLED));
     props.Set("SSR_ENABLED", engine->GetConfig().Get(CONFIG_SSR));
+    props.Set("ENV_PROBE_ENABLED", true);
 
     if (m_is_indirect_pass) {
         compiled_shader = engine->GetShaderCompiler().GetCompiledShader(

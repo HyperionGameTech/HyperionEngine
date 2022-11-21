@@ -20,7 +20,7 @@ FollowCamera::FollowCamera(
 
 void FollowCamera::UpdateLogic(double dt)
 {
-    m_real_offset.Lerp(m_offset, MathUtil::Clamp(static_cast<float>(dt) * 25.0f, 0.0f, 1.0f));
+    m_real_offset.Lerp(m_offset, MathUtil::Clamp(Float(dt) * 25.0f, 0.0f, 1.0f));
 
     const auto origin = GetTarget();
     const auto normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();

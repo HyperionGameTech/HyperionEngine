@@ -17,18 +17,14 @@
 namespace hyperion {
 
 template <bool IsAtomic>
-struct Scalar2D
-{
-    std::conditional_t<IsAtomic, std::atomic<Int>, Int> x { 0 };
-    std::conditional_t<IsAtomic, std::atomic<Int>, Int> y { 0 };
-};
-
-template <bool IsAtomic>
-struct MousePosition { };
+struct Scalar2D { };
 
 template<>
-struct MousePosition<true> : Scalar2D<true>
+struct Scalar2D<true>
 {
+    std::atomic<Int> x { 0 };
+    std::atomic<Int> y { 0 };
+
     Int GetX() const
         { return x.load(std::memory_order_relaxed); }
 
@@ -40,20 +36,23 @@ struct MousePosition<true> : Scalar2D<true>
 };
 
 template<>
-struct MousePosition<false> : Scalar2D<false>
+struct Scalar2D<false>
 {
-    MousePosition() = default;
+    Int x { 0 };
+    Int y { 0 };
 
-    MousePosition(Int x, Int y)
+    Scalar2D() = default;
+
+    Scalar2D(Int x, Int y)
     {
         Scalar2D::x = x;
         Scalar2D::y = y;
     }
 
-    MousePosition(const MousePosition &other) = default;
-    MousePosition &operator=(const MousePosition &other) = default;
-    MousePosition(MousePosition &&other) noexcept = default;
-    MousePosition &operator=(MousePosition &other) noexcept = default;
+    Scalar2D(const Scalar2D &other) = default;
+    Scalar2D &operator=(const Scalar2D &other) = default;
+    Scalar2D(Scalar2D &&other) noexcept = default;
+    Scalar2D &operator=(Scalar2D &other) noexcept = default;
 
     Int GetX() const
         { return x; }
@@ -67,11 +66,13 @@ struct MousePosition<false> : Scalar2D<false>
 
 struct InputState
 {
-    struct KeyState {
+    struct KeyState
+    {
         std::atomic_bool is_pressed{false};
     };
 
-    struct MouseButtonState {
+    struct MouseButtonState
+    {
         std::atomic_bool is_pressed{false};
     };
 
@@ -87,7 +88,7 @@ public:
 
     void CheckEvent(SystemEvent *event);
 
-    const MousePosition<true> &GetMousePosition() const
+    const Scalar2D<true> &GetMousePosition() const
         { return m_mouse_position; }
 
     Scalar2D<true> &GetWindowSize()
@@ -126,7 +127,7 @@ public:
 
 private:
     InputState m_input_state;
-    MousePosition<true> m_mouse_position;
+    Scalar2D<true> m_mouse_position;
     Scalar2D<true> m_window_size;
 
     ApplicationWindow *m_window;

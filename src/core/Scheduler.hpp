@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_CORE_SCHEDULER_H
 #define HYPERION_V2_CORE_SCHEDULER_H
 
-#define HYP_SCHEDULER_USE_ATOMIC_LOCK 1
+// #define HYP_SCHEDULER_USE_ATOMIC_LOCK 1
 
 #include "lib/AtomicSemaphore.hpp"
 #include "lib/DynArray.hpp"
@@ -23,7 +23,7 @@
 #include <deque>
 #include <type_traits>
 
-#if !HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifndef HYP_SCHEDULER_USE_ATOMIC_LOCK
 #include <mutex>
 #include <condition_variable>
 #endif
@@ -207,7 +207,7 @@ public:
      */
     TaskID Enqueue(Task &&fn)
     {
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -215,7 +215,7 @@ public:
 
         auto result = EnqueueInternal(std::forward<Task>(fn), nullptr /* No atomic counter */);
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #endif
 
@@ -229,7 +229,7 @@ public:
      */
     TaskID Enqueue(Task &&fn, std::atomic<UInt> *atomic_counter)
     {
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -237,7 +237,7 @@ public:
 
         auto result = EnqueueInternal(std::forward<Task>(fn), atomic_counter);
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #endif
 
@@ -252,14 +252,14 @@ public:
             return false;
         }
         
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
 #endif
 
         if (DequeueInternal(id)) {
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
             m_sp.Signal();
 #else
             if (m_scheduled_functions.Empty()) {
@@ -272,7 +272,7 @@ public:
             return true;
         }
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #endif
 
@@ -290,7 +290,7 @@ public:
             return results;
         }
         
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -310,7 +310,7 @@ public:
             }
         }
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #else
         if (m_scheduled_functions.Empty()) {
@@ -343,7 +343,7 @@ public:
             return;
         }
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         while (m_num_enqueued.load() != 0u);
 #else
         std::unique_lock lock(m_mutex);
@@ -357,7 +357,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
         
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -371,7 +371,7 @@ public:
             m_num_enqueued.fetch_sub(1u, std::memory_order_relaxed);
         }
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #else
         lock.unlock();
@@ -386,7 +386,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -399,7 +399,7 @@ public:
         m_scheduled_functions.Clear();
         m_num_enqueued.store(0u, std::memory_order_relaxed);
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #else
         lock.unlock();
@@ -415,7 +415,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Wait();
 #else
         std::unique_lock lock(m_mutex);
@@ -435,7 +435,7 @@ public:
 
         m_num_enqueued.store(0u, std::memory_order_relaxed);
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
         m_sp.Signal();
 #else
         lock.unlock();
@@ -482,7 +482,7 @@ private:
     std::atomic_uint m_num_enqueued { 0 };
     ScheduledFunctionQueue m_scheduled_functions;
 
-#if HYP_SCHEDULER_USE_ATOMIC_LOCK
+#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
     BinarySemaphore m_sp;
 #else
     std::mutex m_mutex;

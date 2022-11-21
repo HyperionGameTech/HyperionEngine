@@ -110,7 +110,8 @@ public:
         Game::InitGame(engine);
         
         m_scene->SetCamera(
-            engine->CreateHandle<Camera>(new FirstPersonCamera(
+            engine->CreateHandle<Camera>(new FollowCamera(
+                Vector3(0.0f), Vector3(0.0f, 150.0f, -35.0f),
                 1920, 1080,
                 70.0f,
                 0.5f, 30000.0f
@@ -132,7 +133,7 @@ public:
         auto batch = engine->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/city/city.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models//city/city.obj"); //"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -208,9 +209,6 @@ public:
         engine->InitObject(cubemap);
 
         if (false) { // hardware skinning
-
-
-
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
@@ -353,31 +351,35 @@ public:
         }
 
         auto mh = engine->GetAssetManager().Load<Node>("models/mh/mh1.obj");
+        mh.SetName("mh_model");
+        mh.Scale(5.0f);
         GetScene()->GetRoot().AddChild(mh);
 
-        // add a plane physics shape
-        auto plane = engine->CreateHandle<Entity>();
-        plane->SetName("Plane entity");
-        plane->SetTranslation(Vector3(0, 12, 8));
-        plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
-        plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
-        plane->SetScale(250.0f);
-        plane->SetMaterial(engine->CreateHandle<Material>());
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.8f, 1.0f, 1.0f));
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.075f);
-        plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
-        plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, engine->GetAssetManager().Load<Texture>("textures/water.jpg"));
-        // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-        plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
-        plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
-        plane->RebuildRenderableAttributes();
-        GetScene()->AddEntity(Handle<Entity>(plane));
-        plane->CreateBLAS();
-        plane->AddController<RigidBodyController>(
-            UniquePtr<physics::PlanePhysicsShape>::Construct(Vector4(0, 1, 0, 1)),
-            physics::PhysicsMaterial { .mass = 0.0f }
-        );
-        plane->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
+        if (false) {
+            // add a plane physics shape
+            auto plane = engine->CreateHandle<Entity>();
+            plane->SetName("Plane entity");
+            plane->SetTranslation(Vector3(0, 12, 8));
+            plane->SetMesh(engine->CreateHandle<Mesh>(MeshBuilder::Quad()));
+            plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
+            plane->SetScale(250.0f);
+            plane->SetMaterial(engine->CreateHandle<Material>());
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.8f, 1.0f, 1.0f));
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.075f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, engine->GetAssetManager().Load<Texture>("textures/water.jpg"));
+            // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            plane->SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(-90.0f)));
+            plane->SetShader(Handle<Shader>(engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
+            plane->RebuildRenderableAttributes();
+            GetScene()->AddEntity(Handle<Entity>(plane));
+            plane->CreateBLAS();
+            plane->AddController<RigidBodyController>(
+                UniquePtr<physics::PlanePhysicsShape>::Construct(Vector4(0, 1, 0, 1)),
+                physics::PhysicsMaterial { .mass = 0.0f }
+            );
+            plane->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
+        }
     }
 
     virtual void Teardown(Engine *engine) override
@@ -390,8 +392,6 @@ public:
     virtual void OnFrameBegin(Engine *engine, Frame *) override
     {
         engine->render_state.BindScene(m_scene.Get());
-
-        engine->GetImmediateMode().Sphere(Vector3(0.0f, 20.0f, 0.0f), 6.0f);
     }
 
     virtual void OnFrameEnd(Engine *engine, Frame *) override
@@ -405,7 +405,11 @@ public:
 
         m_ui.Update(engine, delta);
 
-        HandleCameraMovement();
+        HandleCameraMovement(delta);
+
+        GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("mh_model").GetWorldTranslation());
+
+        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.01), MathUtil::Cos(timer * 0.01), 0.0f).Normalize());
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
@@ -496,8 +500,31 @@ public:
     }
 
     // not overloading; just creating a method to handle camera movement
-    void HandleCameraMovement()
+    void HandleCameraMovement(GameCounter::TickUnit delta)
     {
+        if (auto mh_model = GetScene()->GetRoot().Select("mh_model")) {
+            constexpr Float speed = 0.75f;
+
+            mh_model.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
+
+            if (m_input_manager->IsKeyDown(KEY_W)) {
+                mh_model.Translate(GetScene()->GetCamera()->GetDirection() * delta * speed);
+            }
+
+            if (m_input_manager->IsKeyDown(KEY_S)) {
+                mh_model.Translate(GetScene()->GetCamera()->GetDirection() * -1.0f * delta * speed);
+            }
+
+            if (m_input_manager->IsKeyDown(KEY_A)) {
+                mh_model.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * -1.0f * delta * speed);
+            }
+
+            if (m_input_manager->IsKeyDown(KEY_D)) {
+                mh_model.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * delta * speed);
+            }
+        }
+
+        #if 0
         if (m_input_manager->IsKeyDown(KEY_W)) {
             if (m_scene && m_scene->GetCamera()) {
                 m_scene->GetCamera()->PushCommand(CameraCommand {
@@ -545,6 +572,7 @@ public:
                 });
             }
         }
+        #endif
     }
 
     std::unique_ptr<Node> zombie;

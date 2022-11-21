@@ -153,9 +153,16 @@ struct Proc : detail::ProcBase
 
         // static_assert(alignof(Functor) == alignof(decltype(functor.memory)),
         //     "Alignment not valid to be used as functor!");
+
+        {
+            Functor tmp = std::forward<Functor>(fn);
+            Memory::Set(functor.memory.GetPointer(), 0, inline_storage_size_bytes);
+            Memory::Copy(functor.memory.GetPointer(), &tmp, sizeof(tmp));
+            Memory::Set(&tmp, 0, sizeof(tmp));
+        }
         
         // move-construct the functor object into inline storage
-        Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
+        // Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
     }
 
     Proc(const Proc &other) = delete;
