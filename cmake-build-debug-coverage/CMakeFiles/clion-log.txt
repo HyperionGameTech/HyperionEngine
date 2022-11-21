@@ -1,4 +1,0 @@
-/var/lib/snapd/snap/clion/209/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/var/lib/snapd/snap/clion/209/bin/ninja/linux/ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -G Ninja "-DCMAKE_CXX_FLAGS=-fprofile-instr-generate -fcoverage-mapping" "-DCMAKE_C_FLAGS=-fprofile-instr-generate -fcoverage-mapping" -S /home/emd22/CLionProjects/hyperion-engine -B /home/emd22/CLionProjects/hyperion-engine/cmake-build-debug-coverage
--- Configuring done
--- Generating done
--- Build files have been written to: /home/emd22/CLionProjects/hyperion-engine/cmake-build-debug-coverage
