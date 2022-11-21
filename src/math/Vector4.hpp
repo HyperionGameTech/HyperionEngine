@@ -22,10 +22,10 @@ class Vector4
 public:
     static constexpr UInt size = 4;
 
-    union alignas(16) {
-        struct alignas(16) { float x, y, z, w; };
+    union {
+        struct { float x, y, z, w; };
         float values[4];
-        __m128 vector;
+        intrinsics::Float128U vector;
     };
 
     Vector4();
