@@ -27,7 +27,7 @@ public:
     union alignas(16) {
         struct alignas(16) { float x, y, z, w; };
         float values[4];
-        intrinsics::Float128U vector;
+        intrinsics::Float128 vector;
     };
 
     Vector4();

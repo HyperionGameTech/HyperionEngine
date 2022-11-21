@@ -14,8 +14,7 @@ namespace hyperion::intrinsics {
 
 #if HYP_FEATURES_INTRINSICS && !defined(HYP_ARM)
 /* set of 4 32-bit floats */
-using Float128  = __m128;
-using Float128U = __m128_u;
+using Float128 = __m128;
 
 #else
 using Float128 = float[4];
