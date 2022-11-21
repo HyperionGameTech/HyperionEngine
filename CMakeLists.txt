@@ -69,10 +69,10 @@ endif()
 
 # if aftermath lib exists on windows, link to it
 if(WIN32)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} windows/64/GFSDK_Aftermath_Lib.x64)
-        add_definitions(-DHYP_AFTERMATH=1)
-    endif()
+    #if(EXISTS "${CMAKE_SOURCE_DIR}/lib/windows/64/GFSDK_Aftermath_Lib.x64.lib")
+    #    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} windows/64/GFSDK_Aftermath_Lib.x64)
+    #    add_definitions(-DHYP_AFTERMATH=1)
+    #endif()
 endif()
 
 include_directories(

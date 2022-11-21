@@ -684,7 +684,8 @@ Result TopLevelAccelerationStructure::CreateOrRebuildInstancesBuffer(Instance *i
             m_instances_buffer->size,
             instances_buffer_size
         );
-
+		// Wait for the device in case another device is using the buffer.
+		HYPERION_BUBBLE_ERRORS(device->Wait());
         HYPERION_BUBBLE_ERRORS(m_instances_buffer->Destroy(device));
         HYPERION_BUBBLE_ERRORS(m_instances_buffer->Create(device, instances_buffer_size));
     }
