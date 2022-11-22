@@ -345,7 +345,7 @@ protected:
 
     struct alignas(max_align) Storage
     {
-        alignas(max_align) std::byte data_buffer[max_size];
+        alignas(max_align) UByte data_buffer[max_size];
 
         void *GetPointer() { return static_cast<void *>(&data_buffer[0]); }
         const void *GetPointer() const { return static_cast<const void *>(&data_buffer[0]); }

@@ -93,7 +93,7 @@ void Scene::Init(Engine *engine)
             light_ids[index++] = it.first;
         }
 
-        engine->GetRenderScheduler().Enqueue([engine, light_ids, num_lights = index](...) mutable {
+        engine->GetRenderScheduler().Enqueue([engine, light_ids, num_lights = index](...) {
             for (SizeType i = 0; i < num_lights; i++) {
                 engine->GetRenderState().BindLight(light_ids[i]);
             }
@@ -116,7 +116,7 @@ void Scene::Init(Engine *engine)
             env_probe_ids[index++] = it.first;
         }
 
-        engine->GetRenderScheduler().Enqueue([engine, env_probe_ids, num_env_probes = index](...) mutable {
+        engine->GetRenderScheduler().Enqueue([engine, env_probe_ids, num_env_probes = index](...) {
             for (SizeType i = 0; i < num_env_probes; i++) {
                 engine->GetRenderState().BindEnvProbe(env_probe_ids[i]);
             }

@@ -37,14 +37,24 @@ public:
         return std::strlen(str);
     }
 
-    static inline void *Set(void *dest, int ch, SizeType length)
+    static inline void *Set(void *dest, int ch, SizeType size)
     {
-        return std::memset(dest, ch, length);
+        return std::memset(dest, ch, size);
     }
 
     static inline void *Copy(void *dest, const void *src, SizeType size) 
     {
         return std::memcpy(dest, src, size);
+    }
+
+    static inline void *Move(void *dest, const void *src, SizeType size)
+    {
+        return std::memmove(dest, src, size);
+    }
+
+    static inline void *Clear(void *dest, SizeType size)
+    {
+        return std::memset(dest, 0, size);
     }
 
     static void Garble(void *dest, SizeType length)

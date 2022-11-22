@@ -91,7 +91,7 @@ void AnimationController::Play(float speed, LoopMode loop_mode)
         return;
     }
 
-    if (!MathUtil::InRange(m_animation_index, { 0u, static_cast<UInt>(m_skeleton->NumAnimations()) })) {
+    if (!MathUtil::InRange(m_animation_index, { 0u, UInt(m_skeleton->NumAnimations()) })) {
         m_animation_index = 0;
     }
     

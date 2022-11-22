@@ -587,6 +587,107 @@ int main()
 {
     using namespace hyperion::renderer;
 
+
+    Profile p1([]() {
+        /*for (int i = 0; i < 1000; i++) {
+            RenderCommand2_UpdateEntityData cmd;
+            cmd(nullptr, 0);
+        }
+
+        while (!update_commands.empty()) {
+            (*update_commands.back())(nullptr, 0);
+            delete update_commands.back();
+            update_commands.pop_back();
+        }*/
+
+        
+        alignas(RenderCommand2_UpdateEntityData) static UByte buffer_memory[sizeof(RenderCommand2_UpdateEntityData) * 1000] = {};
+
+        Array<RenderCommandBase2 *> update_commands;
+
+        for (int i = 0; i < 1000; i++) {
+            new (&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]) RenderCommand2_UpdateEntityData();
+
+            update_commands.PushBack(reinterpret_cast<RenderCommand2_UpdateEntityData *>(&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]));
+        }
+
+        while (!update_commands.Empty()) {
+            auto back = update_commands.PopBack();
+            (*back)(nullptr, 0);
+            back->~RenderCommandBase2();
+        }
+    });
+
+    Profile p2([]() {
+        Array<RenderCommandBase> update_commands;
+
+        for (int i = 0; i < 1000; i++) {
+            update_commands.PushBack(RENDER_COMMAND(UpdateEntityData)());
+        }
+
+        while (!update_commands.Empty()) {
+            update_commands.Back()(nullptr, 0);
+            update_commands.PopBack();
+        }
+
+        
+        /*for (int i = 0; i < 1000; i++) {
+            RENDER_COMMAND(UpdateEntityData) cmd;
+            cmd(nullptr, 0);
+        }*/
+    });
+
+
+
+    Profile p3([]() {
+        Array<Proc<Result, CommandBuffer *, UInt>> update_commands;
+
+        for (int i = 0; i < 1000; i++) {
+            struct alignas(8) Foo { char ch[256]; };
+            Foo foo;
+            foo.ch[0] = i % 255;
+            update_commands.PushBack([foo](...) {
+
+                volatile int y = 0;
+
+                for (int x = 0; x < 100; x++) {
+                    ++y;
+                }
+                
+                HYPERION_RETURN_OK;
+            });
+        }
+
+        while (!update_commands.Empty()) {
+            update_commands.Back()(nullptr, 0);
+            update_commands.PopBack();
+        }
+
+        
+        /*for (int i = 0; i < 1000; i++) {
+            RENDER_COMMAND(UpdateEntityData) cmd;
+            cmd(nullptr, 0);
+        }*/
+    });
+
+    auto results = Profile::RunInterleved({ p1, p2, p3, }, 50, 10, 5);
+    std::cout << "Results[0] = " << results[0] << "\n";
+    std::cout << "Results[1] = " << results[1] << "\n";
+    std::cout << "Results[2] = " << results[2] << "\n";
+
+    if (results[0] > results[1]) {
+        const auto ratio = results[0] / results[1];
+
+        std::cout << "RESULT 2 is " << ratio << " TIMES FASTER THAN RESULT 1\n";
+    } else {
+        const auto ratio = results[1] / results[0];
+
+        std::cout << "RESULT 1 is " << ratio << " TIMES FASTER THAN RESULT 2\n";
+    }
+
+    Array<ObjectShaderData> ary;
+    ary.Resize(23);
+
     RefCountedPtr<Application> application(new SDLApplication);
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
     

@@ -11,6 +11,24 @@
 
 namespace hyperion::v2 {
 
+struct RENDER_COMMAND(UpdateEntityRenderData);
+
+template <>
+struct RenderCommandData<RENDER_COMMAND(UpdateEntityRenderData)>
+{
+    EntityDrawProxy draw_proxy;
+    Transform transform;
+    Transform previous_transform;
+};
+
+struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand<RENDER_COMMAND(UpdateEntityRenderData)>
+{
+    Result Call(RenderCommandData<RENDER_COMMAND(UpdateEntityRenderData)> *data, CommandBuffer * command_buffer, UInt frame_index)
+    {
+        HYPERION_RETURN_OK;
+    }
+};
+
 Entity::Entity()
   : Entity(
         Handle<Mesh>(),

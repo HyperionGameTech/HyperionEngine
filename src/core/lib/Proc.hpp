@@ -15,7 +15,7 @@ namespace detail {
 template <SizeType Sz>
 struct ProcFunctorMemory
 {
-    UByte bytes[Sz];
+    alignas(std::max_align_t) UByte bytes[Sz];
 
     HYP_FORCE_INLINE void *GetPointer()
         { return &bytes[0]; }
@@ -28,6 +28,8 @@ template <SizeType Sz, class ReturnType, class ...Args>
 struct ProcFunctorInternal
 {
     ProcFunctorMemory<Sz> memory;
+    //static constexpr SizeType alignment = alignof(ProcFunctorMemory<Sz>);
+
     ReturnType (*invoke_fn)(void *, Args &&...);
     void (*delete_fn)(void *);
 
@@ -130,6 +132,10 @@ struct Proc : detail::ProcBase
 {
     static constexpr UInt inline_storage_size_bytes = 512u;
 
+    using FunctorDataType = detail::ProcFunctorInternal<inline_storage_size_bytes, ReturnType, Args...>;
+
+public:
+
     Proc()
         : functor { }
     {
@@ -149,20 +155,21 @@ struct Proc : detail::ProcBase
             "Functor object too large; must fit into inline storage");
 
         functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<Functor>;
-        functor.delete_fn = &Memory::Destruct<Functor>;
 
-        // static_assert(alignof(Functor) == alignof(decltype(functor.memory)),
-        //     "Alignment not valid to be used as functor!");
+        static_assert(alignof(Functor) <= alignof(std::max_align_t), "Alignment not valid to be used as functor!");
 
-        {
-            Functor tmp = std::forward<Functor>(fn);
-            Memory::Set(functor.memory.GetPointer(), 0, inline_storage_size_bytes);
-            Memory::Copy(functor.memory.GetPointer(), &tmp, sizeof(tmp));
-            Memory::Set(&tmp, 0, sizeof(tmp));
-        }
-        
-        // move-construct the functor object into inline storage
-        // Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
+        /*if constexpr (std::is_trivially_copyable_v<Functor>) {
+            Memory::Copy(functor.memory.GetPointer(), &fn, sizeof(Functor));
+
+            if constexpr (sizeof(Functor) < inline_storage_size_bytes) {
+                Memory::Set(functor.memory.GetPointer() + sizeof(Functor), 0, inline_storage_size_bytes - sizeof(Functor));
+            }
+
+            functor.delete_fn = [](void *ptr) { Memory::Set(ptr, 0, sizeof(Functor)); };
+        } else {*/
+            Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
+            functor.delete_fn = &Memory::Destruct<Functor>;
+        //}
     }
 
     Proc(const Proc &other) = delete;
@@ -185,7 +192,7 @@ struct Proc : detail::ProcBase
     explicit operator bool() const
         { return functor.HasValue(); }
 
-    detail::ProcFunctorInternal<inline_storage_size_bytes, ReturnType, Args...> functor;
+    FunctorDataType functor;
 
     HYP_FORCE_INLINE ReturnType operator()(Args... args)
         { return functor.Invoke(std::forward<Args>(args)...); }

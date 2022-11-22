@@ -4,16 +4,18 @@
 
 namespace hyperion {
 
-std::vector<double> Profile::RunInterleved(std::vector<Profile> &&profiles, size_t runs_per, size_t num_iterations, size_t runs_per_iteration)
+std::vector<double> Profile::RunInterleved(std::vector<Profile> &&profiles, SizeType runs_per, SizeType num_iterations, SizeType runs_per_iteration)
 {
     std::vector<double> results;
     results.resize(profiles.size());
 
-    for (size_t i = 0; i < runs_per; i++) {
+    SizeType run_index = 0;
+
+    for (SizeType i = 0; i < runs_per; i++) {
 
         // size_t index = 0;
-        size_t index = std::rand() % profiles.size();
-        size_t counter = 0;
+        SizeType index = run_index++ % profiles.size();
+        SizeType counter = 0;
 
         while (counter < profiles.size()) {
             profiles[index].Run(num_iterations, runs_per_iteration);
@@ -24,21 +26,21 @@ std::vector<double> Profile::RunInterleved(std::vector<Profile> &&profiles, size
         }
     }
 
-    for (size_t i = 0; i < profiles.size(); i++) {
+    for (SizeType i = 0; i < profiles.size(); i++) {
         results[i] = profiles[i].GetResult();
     }
 
     return results;
 }
 
-Profile &Profile::Run(size_t num_iterations, size_t runs_per_iteration)
+Profile &Profile::Run(SizeType num_iterations, SizeType runs_per_iteration)
 {
     using namespace std;
     using namespace std::chrono;
 
     auto *times = new double[num_iterations];
 
-    for (size_t i = 0; i < num_iterations; i++) {
+    for (SizeType i = 0; i < num_iterations; i++) {
         auto start = high_resolution_clock::now();
 
         for (int j = 0; j < runs_per_iteration; j++) {
@@ -52,7 +54,7 @@ Profile &Profile::Run(size_t num_iterations, size_t runs_per_iteration)
 
     double result = 0.0;
 
-    for (size_t i = 0; i < num_iterations; i++) {
+    for (SizeType i = 0; i < num_iterations; i++) {
         result += times[i];
     }
 

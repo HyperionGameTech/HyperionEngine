@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="hyperion::containers::detail::DynArray&lt;hyperion::v2::ObjectShaderData,256&gt;">
+    <AlternativeType Name="hyperion::containers::detail::DynArray&lt;*,*&gt;"/>
+    
+    <DisplayString>{{ size={m_size} }}</DisplayString>
+    <DisplayString Condition="m_is_dynamic == true">Is Dynamic</DisplayString>
+
+    
+    
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">m_size</Item>
+      <Item Name="[capacity]" ExcludeView="simple">m_capacity</Item>
+
+      <ArrayItems Condition="m_is_dynamic == true">
+        <Size>m_size</Size>
+        <ValuePointer>m_buffer</ValuePointer>
+      </ArrayItems>
+
+      <ArrayItems Condition="m_is_dynamic == false">
+        <Size>m_size</Size>
+        <ValuePointer>m_inline_buffer</ValuePointer>
+      </ArrayItems>
+    </Expand>
+
+  </Type>
+</AutoVisualizer>
