@@ -22,8 +22,9 @@ class Vector4
 public:
     static constexpr UInt size = 4;
 
-    static constexpr Vector4 zero;
-    static constexpr Vector4 one;
+    static const Vector4 zero;
+    static const Vector4 one;
+
     union alignas(16) {
         struct alignas(16) { float x, y, z, w; };
         float values[4];
@@ -66,7 +67,6 @@ public:
     Vector4 operator*(const Vector4 &other) const;
     Vector4 &operator*=(const Vector4 &other);
     Vector4 operator*(const Matrix4 &mat) const;
-    Vector4 operator*(const float &other) const;
     Vector4 &operator*=(const Matrix4 &mat);
     Vector4 operator/(const Vector4 &other) const;
     Vector4 &operator/=(const Vector4 &other);

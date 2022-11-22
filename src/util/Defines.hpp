@@ -182,7 +182,7 @@
 #define HYP_AVX_SUPPORTED 1
 #endif
 
-#if HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE 1
     #define HYP_BREAKPOINT_DEBUG_MODE HYP_BREAKPOINT
 #else
     #define HYP_BREAK_IF_DEBUG_MODE  (void(0))
