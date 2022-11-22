@@ -67,7 +67,6 @@ public:
     Vector4 operator*(const Vector4 &other) const;
     Vector4 &operator*=(const Vector4 &other);
     Vector4 operator*(const Matrix4 &mat) const;
-    Vector4 operator*(const float &other) const;
     Vector4 &operator*=(const Matrix4 &mat);
     Vector4 operator/(const Vector4 &other) const;
     Vector4 &operator/=(const Vector4 &other);

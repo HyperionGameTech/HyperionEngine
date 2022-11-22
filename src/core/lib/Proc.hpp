@@ -162,12 +162,12 @@ struct Proc : detail::ProcBase
         }
         
         // move-construct the functor object into inline storage
-        //Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
+        Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
 
-        Functor tmp = std::forward<Functor>(fn);
+        /*Functor tmp = std::forward<Functor>(fn);
         Memory::Set(functor.memory.GetPointer(), 0, inline_storage_size_bytes);
         Memory::Copy(functor.memory.GetPointer(), &tmp, sizeof(tmp));
-        Memory::Set(&tmp, 0, sizeof(tmp));
+        Memory::Set(&tmp, 0, sizeof(tmp));*/
     }
 
     Proc(const Proc &other) = delete;
