@@ -13,6 +13,8 @@ namespace hyperion::v2 {
 
 struct ThreadID
 {
+    static const ThreadID invalid;
+
     UInt value;
     StringView name;
 

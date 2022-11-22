@@ -11,6 +11,7 @@
 
 namespace hyperion::v2 {
 
+#if 0
 struct RENDER_COMMAND(UpdateEntityRenderData);
 
 template <>
@@ -28,6 +29,7 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand<RENDER_COMMAND(Upd
         HYPERION_RETURN_OK;
     }
 };
+#endif
 
 Entity::Entity()
   : Entity(

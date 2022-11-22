@@ -583,58 +583,469 @@ public:
 } // namespace hyperion::v2
 
 
+
+
+
+#define RENDER_COMMAND(name) RenderCommand_##name
+
+template <class Derived>
+struct RenderCommand;
+
+struct RenderCommandDataBase
+{
+    static constexpr SizeType size = 256;
+};
+
+template <class T>
+struct RenderCommandData : RenderCommandDataBase
+{
+};
+
+struct RenderCommandBase
+{
+    UByte buffer[RenderCommandDataBase::size];
+
+    Result(*fnptr)(RenderCommandBase *self, CommandBuffer *command_buffer, UInt frame_index);
+    void(*delete_ptr)(RenderCommandBase *self);
+    
+    RenderCommandBase()
+        : fnptr(nullptr),
+          delete_ptr(nullptr)
+    {
+        Memory::Clear(buffer, sizeof(buffer));
+    }
+
+    RenderCommandBase(const RenderCommandBase &other) = delete;
+    RenderCommandBase &operator=(const RenderCommandBase &other) = delete;
+
+    RenderCommandBase(RenderCommandBase &&other) noexcept
+        : fnptr(other.fnptr),
+          delete_ptr(other.delete_ptr)
+    {
+        Memory::Move(buffer, other.buffer, sizeof(buffer));
+
+        other.fnptr = nullptr;
+        other.delete_ptr = nullptr;
+    }
+
+    RenderCommandBase &operator=(RenderCommandBase &&other) noexcept
+    {
+        if (IsValid()) {
+            delete_ptr(this);
+        }
+
+        Memory::Move(buffer, other.buffer, sizeof(buffer));
+
+        fnptr = other.fnptr;
+        other.fnptr = nullptr;
+
+        delete_ptr = other.delete_ptr;
+        other.delete_ptr = nullptr;
+
+        return *this;
+    }
+
+    ~RenderCommandBase()
+    {
+        if (IsValid()) {
+            delete_ptr(this);
+        }
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return fnptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE Result operator()(CommandBuffer *command_buffer, UInt frame_index)
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrow(IsValid());
+#endif
+
+        return fnptr(this, command_buffer, frame_index);
+    }
+};
+
+template <class Derived, class ReturnType, class ...Args>
+static ReturnType InvokeRenderCommand(RenderCommandBase *self, Args ...args)
+{
+    alignas(alignof(RenderCommandData<Derived>)) UByte render_command_data[sizeof(RenderCommandData<Derived>)];
+    Memory::Copy(render_command_data, self->buffer, sizeof(RenderCommandData<Derived>));
+
+    return static_cast<Derived *>(self)->Call(reinterpret_cast<RenderCommandData<Derived> *>(&render_command_data[0]), args...);
+}
+
+template <class Derived>
+static void DestroyRenderCommand(RenderCommandBase *self)
+{
+    using DataType = RenderCommandData<Derived>;
+
+    alignas(alignof(DataType)) UByte render_command_data[sizeof(DataType)];
+    Memory::Copy(render_command_data, self->buffer, sizeof(DataType));
+
+    reinterpret_cast<DataType *>(render_command_data)->~DataType();
+
+    Memory::Clear(self->buffer, sizeof(DataType));
+}
+
+template <class Derived>
+struct RenderCommand : RenderCommandBase
+{
+    RenderCommand()
+    {
+        static_assert(sizeof(RenderCommandData<Derived>) <= RenderCommandDataBase::size, "sizeof(RenderCommandData<Derived>) must be <= RenderCommandDataBase::size!");
+
+        RenderCommandBase::fnptr = &InvokeRenderCommand<Derived, Result, CommandBuffer *, UInt>;
+        RenderCommandBase::delete_ptr = &DestroyRenderCommand<Derived>;
+
+        Memory::Clear(buffer, sizeof(buffer));
+    }
+
+    /*RenderCommand(RenderCommandData<Derived> &&data)
+        : RenderCommand()
+    {
+        alignas(alignof(RenderCommandData<Derived>)) UByte render_command_data[sizeof(RenderCommandData<Derived>)];
+        new (render_command_data) RenderCommandData<Derived>(std::move(data));
+
+        Memory::Move(buffer, render_command_data, sizeof(sizeof(RenderCommandData<Derived>));
+    }*/
+
+    RenderCommand(const RenderCommand &other) = delete;
+    RenderCommand &operator=(const RenderCommand &other) = delete;
+
+    RenderCommand(RenderCommand &&other) noexcept
+        : RenderCommandBase(std::move(other))
+    {
+    }
+
+    RenderCommand &operator=(RenderCommand &&other) noexcept
+    {
+        RenderCommandBase::operator=(std::move(other));
+
+        return *this;
+    }
+
+    operator RenderCommandBase() const
+    {
+        static_assert(sizeof(RenderCommand<Derived>) == sizeof(RenderCommandBase));
+        return RenderCommandBase(static_cast<const RenderCommandBase &>(*this));
+    }
+};
+
+struct RenderCommand_UpdateEntityData;
+
+template <>
+struct RenderCommandData<RenderCommand_UpdateEntityData>
+{
+    // ObjectShaderData shader_data;
+
+    Int x[64];
+};
+
+struct RENDER_COMMAND(UpdateEntityData) : RenderCommand<RENDER_COMMAND(UpdateEntityData)>
+{
+    Result Call(RenderCommandData<RenderCommand_UpdateEntityData> *data, CommandBuffer * command_buffer, UInt frame_index)
+    {
+        // data->shader_data.bucket = Bucket::BUCKET_INTERNAL;
+
+        volatile int y = 0;
+
+        for (int x = 0; x < 100; x++) {
+            ++y;
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+
+struct RenderCommandBase2
+{
+    virtual ~RenderCommandBase2() = default;
+
+    virtual Result operator()(CommandBuffer * command_buffer, UInt frame_index) = 0;
+};
+
+struct RenderCommand2_UpdateEntityData : RenderCommandBase2
+{
+    // RenderCommandData<RenderCommand_UpdateEntityData> data;
+    Int x[64];
+
+    virtual Result operator()(CommandBuffer *command_buffer, UInt frame_index)
+    {
+        // data.shader_data.bucket = Bucket::BUCKET_INTERNAL;
+
+        volatile int y = 0;
+
+        for (int x = 0; x < 100; x++) {
+            ++y;
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RenderScheduler
+{
+    struct FlushResult
+    {
+        Result result;
+        SizeType num_executed;
+    };
+
+    Array<RenderCommandBase2 *> m_commands;
+
+    std::mutex m_mutex;
+    std::atomic<SizeType> m_num_enqueued;
+    std::condition_variable m_flushed_cv;
+    ThreadID m_owner_thread;
+
+    RenderScheduler()
+        : m_owner_thread(ThreadID::invalid)
+    {
+    }
+
+    void SetOwnerThreadID(ThreadID id)
+    {
+        m_owner_thread = id;
+    }
+
+    template <class T>
+    void Commit(T *command)
+    {
+        static_assert(std::is_base_of_v<RenderCommandBase2, T>, "T must be a derived class of RenderCommand");
+
+        std::lock_guard lock(m_mutex);
+
+        m_commands.PushBack(command);
+        m_num_enqueued.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    FlushResult Flush(CommandBuffer *command_buffer, UInt frame_index)
+    {
+        FlushResult result { Result::OK, 0 };
+
+        std::unique_lock lock(m_mutex);
+        SizeType count = m_commands.Size();
+
+        while (count) {
+            --count;
+
+            RenderCommandBase2 *front = m_commands.Front();
+
+            ++result.num_executed;
+
+            if (!(result.result = (*front)(command_buffer, frame_index))) {
+                front->~RenderCommandBase2();
+
+                SizeType num_executed = result.num_executed;
+                m_num_enqueued.fetch_sub(num_executed, std::memory_order_relaxed);
+
+                while (num_executed) {
+                    m_commands.PopFront();
+                    --num_executed;
+                }
+
+                return result;
+            }
+
+            front->~RenderCommandBase2();
+        }
+
+        m_commands.Clear();
+
+        m_num_enqueued.store(0, std::memory_order_relaxed);
+
+        lock.unlock();
+        m_flushed_cv.notify_all();
+
+        return result;
+    }
+
+    FlushResult FlushOrWait(CommandBuffer *command_buffer, UInt frame_index)
+    {
+        if (Threads::IsOnThread(m_owner_thread)) {
+            return Flush(command_buffer, frame_index);
+        }
+
+        Wait();
+
+        return { Result::OK, 0 };
+    }
+
+    void Wait()
+    {
+        std::unique_lock lock(m_mutex);
+        m_flushed_cv.wait(lock, [this] { return m_num_enqueued.load(std::memory_order_relaxed) == 0; });
+    }
+};
+
+
+
+struct RenderCommands
+{
+private:
+    struct HolderRef
+    {
+        std::atomic<SizeType> *counter_ptr = nullptr;
+
+        explicit operator bool() const
+        {
+            return counter_ptr != nullptr;
+        }
+    };
+
+    static constexpr SizeType max_render_command_types = 128;
+    static constexpr SizeType render_command_cache_size = 1024;
+
+    // last item must always evaluate to false, same way null terminated char strings work
+    static HeapArray<HolderRef, max_render_command_types> holders;
+    static std::atomic<SizeType> render_command_type_index;
+
+    static RenderScheduler scheduler;
+
+public:
+    static void Rewind()
+    {
+        HolderRef *p = &holders[0];
+
+        while (*p) {
+            // all items in the cache must have had destructor called on them!
+            p->counter_ptr->store(0);
+            ++p;
+        }
+    }
+
+    static void Rewind(SizeType count)
+    {
+        if (count == 0) {
+            return;
+        }
+
+        HolderRef *p = &holders[0];
+        SizeType i = 0;
+
+        while (*p && i < count) {
+            // all items in the cache must have had destructor called on them!
+            p->counter_ptr->store(0);
+            ++p;
+            ++i;
+        }
+    }
+
+    template <class T>
+    static T *Commit()
+    {
+        static struct Data
+        {
+            alignas(T) UByte cache[sizeof(T) * render_command_cache_size] = { };
+            std::atomic<SizeType> counter { 0 };
+
+            Data()
+            {
+                SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
+                AssertThrow(index < max_render_command_types - 1);
+
+                RenderCommands::holders[index] = HolderRef { &counter };
+            }
+        } data;
+
+        const SizeType cache_index = data.counter.fetch_add(1);
+
+        AssertThrowMsg(cache_index < render_command_cache_size,
+            "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
+
+        T *ptr = new (&data.cache[cache_index * sizeof(T)]) T();
+
+        scheduler.Commit(ptr);
+
+        return ptr;
+    }
+
+    static void SetOwnerThreadID(ThreadID id)
+    {
+        scheduler.SetOwnerThreadID(id);
+    }
+
+    static Result Flush(CommandBuffer *command_buffer, UInt frame_index)
+    {
+        auto flush_result = scheduler.Flush(command_buffer, frame_index);
+        Rewind(flush_result.num_executed);
+
+        return flush_result.result;
+    }
+
+    static Result FlushOrWait(CommandBuffer *command_buffer, UInt frame_index)
+    {
+        auto flush_result = scheduler.FlushOrWait(command_buffer, frame_index);
+        Rewind(flush_result.num_executed);
+
+        return flush_result.result;
+    }
+
+    static void Wait()
+    {
+        scheduler.Wait();
+    }
+};
+
+HeapArray<RenderCommands::HolderRef, RenderCommands::max_render_command_types> RenderCommands::holders = { };
+std::atomic<SizeType> RenderCommands::render_command_type_index = { 0 };
+RenderScheduler RenderCommands::scheduler = { };
+
 int main()
 {
     using namespace hyperion::renderer;
 
 
     Profile p1([]() {
-        /*for (int i = 0; i < 1000; i++) {
-            RenderCommand2_UpdateEntityData cmd;
-            cmd(nullptr, 0);
+        for (SizeType i = 0; i < 1000; i++) {
+            RenderCommands::Commit<RenderCommand2_UpdateEntityData>();
         }
 
-        while (!update_commands.empty()) {
-            (*update_commands.back())(nullptr, 0);
-            delete update_commands.back();
-            update_commands.pop_back();
-        }*/
-
+        RenderCommands::Flush(nullptr, 0);
         
-        alignas(RenderCommand2_UpdateEntityData) static UByte buffer_memory[sizeof(RenderCommand2_UpdateEntityData) * 1000] = {};
+        // alignas(RenderCommand2_UpdateEntityData) static UByte buffer_memory[sizeof(RenderCommand2_UpdateEntityData) * 1000] = {};
 
-        Array<RenderCommandBase2 *> update_commands;
+        // Array<RenderCommandBase2 *> update_commands;
 
-        for (int i = 0; i < 1000; i++) {
-            new (&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]) RenderCommand2_UpdateEntityData();
+        // for (int i = 0; i < 1000; i++) {
+        //     new (&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]) RenderCommand2_UpdateEntityData();
 
-            update_commands.PushBack(reinterpret_cast<RenderCommand2_UpdateEntityData *>(&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]));
-        }
+        //     update_commands.PushBack(reinterpret_cast<RenderCommand2_UpdateEntityData *>(&buffer_memory[i * sizeof(RenderCommand2_UpdateEntityData)]));
+        // }
 
-        while (!update_commands.Empty()) {
-            auto back = update_commands.PopBack();
-            (*back)(nullptr, 0);
-            back->~RenderCommandBase2();
-        }
+
+        // while (!update_commands.Empty()) {
+        //     auto back = update_commands.PopBack();
+        //     (*back)(nullptr, 0);
+        //     back->~RenderCommandBase2();
+        // }
     });
 
     Profile p2([]() {
-        Array<RenderCommandBase> update_commands;
+        // Array<RenderCommandBase> update_commands;
 
-        for (int i = 0; i < 1000; i++) {
-            update_commands.PushBack(RENDER_COMMAND(UpdateEntityData)());
+        // for (int i = 0; i < 1000; i++) {
+        //     update_commands.PushBack(RENDER_COMMAND(UpdateEntityData)());
+        // }
+
+        // while (!update_commands.Empty()) {
+        //     update_commands.Back()(nullptr, 0);
+        //     update_commands.PopBack();
+        // }
+
+        Scheduler<RenderFunctor> scheduler;
+
+        for (SizeType i = 0; i < 1000; i++) {
+            scheduler.Enqueue(RENDER_COMMAND(UpdateEntityData)());
         }
 
-        while (!update_commands.Empty()) {
-            update_commands.Back()(nullptr, 0);
-            update_commands.PopBack();
-        }
+        scheduler.Flush([](auto &item) {
+            item(nullptr, 0);
+        });
 
-        
-        /*for (int i = 0; i < 1000; i++) {
-            RENDER_COMMAND(UpdateEntityData) cmd;
-            cmd(nullptr, 0);
-        }*/
     });
 
 
@@ -687,6 +1098,8 @@ int main()
 
     Array<ObjectShaderData> ary;
     ary.Resize(23);
+
+    HYP_BREAKPOINT;
 
     RefCountedPtr<Application> application(new SDLApplication);
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));

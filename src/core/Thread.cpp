@@ -3,6 +3,7 @@
 
 namespace hyperion::v2 {
 
+const ThreadID ThreadID::invalid = ThreadID { ~0u, "INVALID" };
 
 void SetCurrentThreadID(const ThreadID &thread_id)
 {
