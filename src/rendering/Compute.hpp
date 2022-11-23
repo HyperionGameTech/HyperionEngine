@@ -23,6 +23,9 @@ public:
     ComputePipeline &operator=(const ComputePipeline &) = delete;
     ~ComputePipeline();
 
+    Handle<Shader> &GetShader() { return m_shader; }
+    const Handle<Shader> &GetShader() const { return m_shader; }
+
     renderer::ComputePipeline *GetPipeline() { return &m_pipeline; }
     const renderer::ComputePipeline *GetPipeline() const { return &m_pipeline; }
 

@@ -2,6 +2,41 @@
 #include "../Engine.hpp"
 
 namespace hyperion::v2 {
+
+struct RENDER_COMMAND(CreateComputeShader) : RenderCommandBase2
+{
+    ComputePipeline &pipeline;
+
+    RENDER_COMMAND(CreateComputeShader)(ComputePipeline &pipeline)
+        : pipeline(pipeline)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return pipeline.GetPipeline()->Create(
+            pipeline.GetEngine()->GetDevice(),
+            pipeline.GetShader()->GetShaderProgram(),
+            &engine->GetInstance()->GetDescriptorPool()
+        );
+    }
+};
+
+struct RENDER_COMMAND(DestroyComputeShader) : RenderCommandBase2
+{
+    ComputePipeline &pipeline;
+
+    RENDER_COMMAND(DestroyComputeShader)(ComputePipeline &pipeline)
+        : pipeline(pipeline)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return pipeline.GetPipeline()->Destroy(engine->GetDevice());
+    }
+};
+    
 ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
     : EngineComponentBase(),
       m_shader(std::move(shader))
@@ -35,13 +70,7 @@ void ComputePipeline::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            return m_pipeline.Create(
-                engine->GetDevice(),
-                m_shader->GetShaderProgram(),
-                &engine->GetInstance()->GetDescriptorPool()
-            );
-        });
+        RenderCommands::Push<RENDER_COMMAND(CreateComputeShader)>(*this);
 
         SetReady(true);
 
@@ -50,9 +79,7 @@ void ComputePipeline::Init(Engine *engine)
 
             SetReady(false);
 
-            engine->render_scheduler.Enqueue([this, engine](...) {
-               return m_pipeline.Destroy(engine->GetDevice()); 
-            });
+            RenderCommands::Push<RENDER_COMMAND(DestroyComputeShader)>(*this);
             
             HYP_FLUSH_RENDER_QUEUE(engine);
         });

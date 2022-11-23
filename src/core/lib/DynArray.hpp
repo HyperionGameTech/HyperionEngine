@@ -143,6 +143,20 @@ public:
         }
     }
 
+    DynArray(Iterator first, Iterator last)
+        : DynArray()
+    {
+        const SizeType dist = last - first;
+
+        Resize(dist);
+
+        auto *buffer = GetBuffer();
+
+        for (SizeType index = 0; index < dist; index++) {
+            buffer[index] = *(first + index);
+        }
+    }
+
     DynArray(const DynArray &other);
     DynArray(DynArray &&other) noexcept;
     ~DynArray();

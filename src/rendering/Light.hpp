@@ -13,10 +13,14 @@ namespace hyperion::v2 {
 
 class Engine;
 
+struct RenderCommand_UpdateLightShaderData;
+
 class Light
     : public EngineComponentBase<STUB_CLASS(Light)>,
       public HasDrawProxy<STUB_CLASS(Light)>
 {
+    friend struct RenderCommand_UpdateLightShaderData;
+
 public:
     Light(
         LightType type,

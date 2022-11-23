@@ -10,11 +10,15 @@
 
 namespace hyperion::v2 {
 
+struct RenderCommand_UpdateEnvProbeRenderData;
+
 class EnvProbe
     : public EngineComponentBase<STUB_CLASS(EnvProbe)>,
       public HasDrawProxy<STUB_CLASS(EnvProbe)>,
       public RenderResource
 {
+    friend struct RenderCommand_UpdateEnvProbeRenderData;
+
 public:
     EnvProbe(Handle<Texture> &&texture);
     EnvProbe(Handle<Texture> &&texture, const BoundingBox &aabb);

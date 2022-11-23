@@ -153,6 +153,18 @@ public:
         return this;
     }
 
+    Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
+    {
+        SubDescriptor element;
+        element.element_index = index;
+        element.buffer = buffer;
+        element.range = 0;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
     Descriptor *SetElementSRV(UInt index, const ImageView *image_view)
     {
         AssertThrowMsg(

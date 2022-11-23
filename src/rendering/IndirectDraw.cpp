@@ -10,6 +10,127 @@ using renderer::ShaderVec2;
 using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 
+class IndirectRenderer;
+
+struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommandBase2
+{
+    IndirectRenderer &indirect_renderer;
+
+    RENDER_COMMAND(CreateIndirectRenderer)(IndirectRenderer &indirect_renderer)
+        : indirect_renderer(indirect_renderer)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_draw_state.Create(engine));
+
+        const IndirectParams initial_params { };
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_params_buffers[frame_index].Create(
+                engine->GetDevice(),
+                sizeof(IndirectParams)
+            ));
+
+            indirect_renderer.m_indirect_params_buffers[frame_index].Copy(
+                engine->GetDevice(),
+                sizeof(IndirectParams),
+                &initial_params
+            );
+
+            AssertThrow(indirect_renderer.m_descriptor_sets[frame_index] != nullptr);
+
+            // global object data
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
+                ->SetSubDescriptor({
+                    .buffer = engine->GetRenderData()->objects.GetBuffers()[frame_index].get(),
+                    .range = static_cast<UInt>(sizeof(ObjectShaderData))
+                });
+
+            // global scene data
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+                ->SetSubDescriptor({
+                    .buffer = engine->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
+                    .range = static_cast<UInt>(sizeof(SceneShaderData))
+                });
+
+            // params buffer
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::UniformBufferDescriptor>(2)
+                ->SetSubDescriptor({
+                    .buffer = &indirect_renderer.m_indirect_params_buffers[frame_index]
+                });
+
+            // instances buffer
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
+                ->SetSubDescriptor({
+                    .buffer = indirect_renderer.m_indirect_draw_state.GetInstanceBuffer(frame_index)
+                });
+
+            // indirect commands
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(4)
+                ->SetSubDescriptor({
+                    .buffer = indirect_renderer.m_indirect_draw_state.GetIndirectBuffer(frame_index)
+                });
+
+            // depth pyramid image (set to placeholder)
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(5)
+                ->SetSubDescriptor({
+                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
+                });
+
+            // sampler
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(6)
+                ->SetSubDescriptor({
+                    .sampler = &engine->GetPlaceholderData().GetSamplerNearest()
+                });
+
+            HYPERION_BUBBLE_ERRORS(indirect_renderer.m_descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyIndirectRenderer) : RenderCommandBase2
+{
+    IndirectRenderer &indirect_renderer;
+
+    RENDER_COMMAND(DestroyIndirectRenderer)(IndirectRenderer &indirect_renderer)
+        : indirect_renderer(indirect_renderer)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = renderer::Result::OK;
+
+        for (auto &params_buffer : indirect_renderer.m_indirect_params_buffers) {
+            HYPERION_PASS_ERRORS(
+                params_buffer.Destroy(engine->GetDevice()),
+                result
+            );
+        }
+
+        for (auto &descriptor_set : indirect_renderer.m_descriptor_sets) {
+            HYPERION_PASS_ERRORS(
+                descriptor_set->Destroy(engine->GetDevice()),
+                result
+            );
+        }
+
+        HYPERION_PASS_ERRORS(
+            indirect_renderer.m_indirect_draw_state.Destroy(engine),
+            result
+        );
+
+        return result;
+    }
+};
+
 IndirectDrawState::IndirectDrawState()
 {
 }
@@ -316,77 +437,7 @@ void IndirectRenderer::Create(Engine *engine)
         m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
     }
 
-    engine->render_scheduler.Enqueue([this, engine](...) {
-        HYPERION_BUBBLE_ERRORS(m_indirect_draw_state.Create(engine));
-
-        const IndirectParams initial_params { };
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(m_indirect_params_buffers[frame_index].Create(
-                engine->GetDevice(),
-                sizeof(IndirectParams)
-            ));
-
-            m_indirect_params_buffers[frame_index].Copy(
-                engine->GetDevice(),
-                sizeof(IndirectParams),
-                &initial_params
-            );
-
-            AssertThrow(m_descriptor_sets[frame_index] != nullptr);
-
-            // global object data
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-                ->SetSubDescriptor({
-                    .buffer = engine->GetRenderData()->objects.GetBuffers()[frame_index].get(),
-                    .range = static_cast<UInt>(sizeof(ObjectShaderData))
-                });
-
-            // global scene data
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-                ->SetSubDescriptor({
-                    .buffer = engine->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                    .range = static_cast<UInt>(sizeof(SceneShaderData))
-                });
-
-            // params buffer
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::UniformBufferDescriptor>(2)
-                ->SetSubDescriptor({
-                    .buffer = &m_indirect_params_buffers[frame_index]
-                });
-
-            // instances buffer
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                ->SetSubDescriptor({
-                    .buffer = m_indirect_draw_state.GetInstanceBuffer(frame_index)
-                });
-
-            // indirect commands
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(4)
-                ->SetSubDescriptor({
-                    .buffer = m_indirect_draw_state.GetIndirectBuffer(frame_index)
-                });
-
-            // depth pyramid image (set to placeholder)
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(5)
-                ->SetSubDescriptor({
-                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
-                });
-
-            // sampler
-            m_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(6)
-                ->SetSubDescriptor({
-                    .sampler = &engine->GetPlaceholderData().GetSamplerNearest()
-                });
-
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateIndirectRenderer)>(*this);
 
     // create compute pipeline for object visibility (for indirect render)
     // TODO: cache pipelines: re-use this
@@ -402,30 +453,7 @@ void IndirectRenderer::Destroy(Engine *engine)
 {
     m_object_visibility.Reset();
 
-    engine->render_scheduler.Enqueue([this, engine](...) {
-        auto result = renderer::Result::OK;
-
-        for (auto &params_buffer : m_indirect_params_buffers) {
-            HYPERION_PASS_ERRORS(
-                params_buffer.Destroy(engine->GetDevice()),
-                result
-            );
-        }
-
-        for (auto &descriptor_set : m_descriptor_sets) {
-            HYPERION_PASS_ERRORS(
-                descriptor_set->Destroy(engine->GetDevice()),
-                result
-            );
-        }
-
-        HYPERION_PASS_ERRORS(
-            m_indirect_draw_state.Destroy(engine),
-            result
-        );
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyIndirectRenderer)>(*this);
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 }

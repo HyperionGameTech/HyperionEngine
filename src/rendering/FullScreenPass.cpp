@@ -16,6 +16,51 @@ using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::FillMode;
 
+struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommandBase2
+{
+    UniquePtr<renderer::CommandBuffer> *command_buffers;
+
+    RENDER_COMMAND(CreateCommandBuffers)(UniquePtr<renderer::CommandBuffer> *command_buffers)
+        : command_buffers(command_buffers)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommandBase2
+{
+    Array<std::unique_ptr<renderer::Attachment>> attachments;
+
+    RENDER_COMMAND(DestroyFullScreenPassAttachments)(Array<std::unique_ptr<renderer::Attachment>> &&attachments)
+        : attachments(std::move(attachments))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = renderer::Result::OK;
+
+        for (auto &attachment : attachments) {
+            HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
+        }
+
+        attachments.Clear();
+
+        return result;
+    }
+};
+
 FullScreenPass::FullScreenPass(InternalFormat image_format)
     : FullScreenPass(Handle<Shader>(), image_format)
 {
@@ -118,15 +163,11 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
 void FullScreenPass::CreateCommandBuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto command_buffer = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
-
-        HYPERION_ASSERT_RESULT(command_buffer->Create(
-            engine->GetInstance()->GetDevice(),
-            engine->GetInstance()->GetGraphicsCommandPool()
-        ));
-
-        m_command_buffers[i] = std::move(command_buffer);
+        m_command_buffers[i] = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
     }
+
+    // create command buffers in render thread
+    RenderCommands::Push<RENDER_COMMAND(CreateCommandBuffers)>(m_command_buffers.Data());
 }
 
 void FullScreenPass::CreateFramebuffers(Engine *engine)
@@ -180,6 +221,7 @@ void FullScreenPass::Destroy(Engine *engine)
 {
     engine->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
 
+    // TODO: Move all attachment ops into render thread
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         if (m_framebuffers[i] != nullptr) {
             for (auto &attachment : m_attachments) {
@@ -206,17 +248,7 @@ void FullScreenPass::Destroy(Engine *engine)
         engine->SafeRelease(std::move(m_command_buffers[i]));
     }
 
-    engine->render_scheduler.Enqueue([this, engine](...) {
-        auto result = renderer::Result::OK;
-
-        for (auto &attachment : m_attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
-        }
-
-        m_attachments.Clear();
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyFullScreenPassAttachments)>(std::move(m_attachments));
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 }

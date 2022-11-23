@@ -64,8 +64,8 @@ struct alignas(256) ObjectShaderData
     ShaderMat4 model_matrix;
     ShaderMat4 previous_model_matrix;
 
-    ShaderVec4<Float32> local_aabb_max;
-    ShaderVec4<Float32> local_aabb_min;
+    ShaderVec4<Float32> _pad0;
+    ShaderVec4<Float32> _pad1;
     ShaderVec4<Float32> world_aabb_max;
     ShaderVec4<Float32> world_aabb_min;
 

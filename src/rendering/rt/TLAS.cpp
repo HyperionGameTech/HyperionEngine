@@ -3,6 +3,44 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateTLAS) : RenderCommandBase2
+{
+    renderer::TopLevelAccelerationStructure *tlas;
+    Array<renderer::BottomLevelAccelerationStructure *> blases;
+
+    RENDER_COMMAND(CreateTLAS)(renderer::TopLevelAccelerationStructure *tlas, Array<renderer::BottomLevelAccelerationStructure *> &&blases)
+        : tlas(tlas),
+          blases(std::move(blases))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return tlas->Create(
+            engine->GetDevice(),
+            engine->GetInstance(),
+            std::vector<renderer::BottomLevelAccelerationStructure *>(blases.Begin(), blases.End())
+        );
+    }
+};
+
+struct RENDER_COMMAND(DestroyTLAS) : RenderCommandBase2
+{
+    renderer::TopLevelAccelerationStructure *tlas;
+
+    RENDER_COMMAND(DestroyTLAS)(renderer::TopLevelAccelerationStructure *tlas)
+        : tlas(tlas),
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return tlas->Destroy(engine->GetDevice());
+    }
+};
+
 TLAS::TLAS()
     : EngineComponentBase()
 {
@@ -54,15 +92,14 @@ void TLAS::Init(Engine *engine)
         AssertThrow(engine->InitObject(m_blas[i]));
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        std::vector<BottomLevelAccelerationStructure *> internal_blases(m_blas.Size());
-        
-        for (SizeType i = 0; i < m_blas.Size(); i++) {
-            internal_blases[i] = &m_blas[i]->GetInternalBLAS();
-        }
+    Array<BottomLevelAccelerationStructure *> internal_blases;
+    internal_blases.Resize(m_blas.Size());
 
-        return m_tlas.Create(engine->GetDevice(), engine->GetInstance(), std::move(internal_blases));
-    });
+    for (SizeType i = 0; i < m_blas.Size(); i++) {
+        internal_blases[i] = &m_blas[i]->GetInternalBLAS();
+    }
+
+    RenderCommands::Push<RENDER_COMMAND(CreateTLAS)>(&m_tlas, std::move(internal_blases));
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -79,10 +116,8 @@ void TLAS::Init(Engine *engine)
             m_blas_updates_mutex.unlock();
             m_has_blas_updates.store(false);
         }
-        
-        GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-           return m_tlas.Destroy(GetEngine()->GetDevice());
-        });
+
+        RenderCommands::Push<RENDER_COMMAND(DestroyTLAS)>(&m_tlas);
 
         HYP_FLUSH_RENDER_QUEUE(GetEngine());
     });

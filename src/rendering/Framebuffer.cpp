@@ -3,6 +3,38 @@
 
 namespace hyperion::v2 {
 
+struct RENDER_COMMAND(CreateFramebuffer) : RenderCommandBase2
+{
+    renderer::FramebufferObject *framebuffer;
+    renderer::RenderPass *render_pass;
+
+    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, renderer::RenderPass *render_pass)
+        : framebuffer(framebuffer),
+          render_pass(render_pass)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return framebuffer->Create(engine->GetDevice(), render_pass);
+    }
+};
+
+struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommandBase2
+{
+    renderer::FramebufferObject *framebuffer;
+
+    RENDER_COMMAND(DestroyFramebuffer)(renderer::FramebufferObject *framebuffer)
+        : framebuffer(framebuffer)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return framebuffer->Destroy(engine->GetDevice());
+    }
+};
+
 Framebuffer::Framebuffer(
     Extent2D extent,
     Handle<RenderPass> &&render_pass
@@ -33,10 +65,8 @@ void Framebuffer::Init(Engine *engine)
     EngineComponentBase::Init(engine);
 
     engine->InitObject(m_render_pass);
-    
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        return m_framebuffer.Create(engine->GetDevice(), &m_render_pass->GetRenderPass());
-    });
+
+    RenderCommands::Push<RENDER_COMMAND(CreateFramebuffer)>(&m_framebuffer, &m_render_pass->GetRenderPass());
 
     SetReady(true);
 
@@ -45,9 +75,7 @@ void Framebuffer::Init(Engine *engine)
 
         SetReady(false);
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            return m_framebuffer.Destroy(engine->GetDevice());
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyFramebuffer)>(&m_framebuffer);
         
         HYP_FLUSH_RENDER_QUEUE(engine);
     });

@@ -36,9 +36,15 @@ using renderer::RTUpdateStateFlags;
 
 class Engine;
 
+struct RenderCommand_DestroyRTRadianceRenderer;
+struct RenderCommand_CreateRTRadianceImageOutputs;
+
 class RTRadianceRenderer
 {
 public:
+    friend struct RenderCommand_DestroyRTRadianceRenderer;
+    friend struct RenderCommand_CreateRTRadianceImageOutputs;
+ 
     RTRadianceRenderer(const Extent2D &extent);
     ~RTRadianceRenderer();
 

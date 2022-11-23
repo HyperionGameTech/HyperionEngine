@@ -748,6 +748,7 @@ struct RENDER_COMMAND(UpdateEntityData) : RenderCommand<RENDER_COMMAND(UpdateEnt
     Result Call(RenderCommandData<RenderCommand_UpdateEntityData> *data, CommandBuffer * command_buffer, UInt frame_index)
     {
         // data->shader_data.bucket = Bucket::BUCKET_INTERNAL;
+        data->x[0] = 123;
 
         volatile int y = 0;
 
@@ -759,240 +760,7 @@ struct RENDER_COMMAND(UpdateEntityData) : RenderCommand<RENDER_COMMAND(UpdateEnt
     }
 };
 
-
-struct RenderCommandBase2
-{
-    virtual ~RenderCommandBase2() = default;
-
-    virtual Result operator()(CommandBuffer * command_buffer, UInt frame_index) = 0;
-};
-
-struct RenderCommand2_UpdateEntityData : RenderCommandBase2
-{
-    // RenderCommandData<RenderCommand_UpdateEntityData> data;
-    Int x[64];
-
-    virtual Result operator()(CommandBuffer *command_buffer, UInt frame_index)
-    {
-        // data.shader_data.bucket = Bucket::BUCKET_INTERNAL;
-
-        volatile int y = 0;
-
-        for (int x = 0; x < 100; x++) {
-            ++y;
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RenderScheduler
-{
-    struct FlushResult
-    {
-        Result result;
-        SizeType num_executed;
-    };
-
-    Array<RenderCommandBase2 *> m_commands;
-
-    std::mutex m_mutex;
-    std::atomic<SizeType> m_num_enqueued;
-    std::condition_variable m_flushed_cv;
-    ThreadID m_owner_thread;
-
-    RenderScheduler()
-        : m_owner_thread(ThreadID::invalid)
-    {
-    }
-
-    void SetOwnerThreadID(ThreadID id)
-    {
-        m_owner_thread = id;
-    }
-
-    template <class T>
-    void Commit(T *command)
-    {
-        static_assert(std::is_base_of_v<RenderCommandBase2, T>, "T must be a derived class of RenderCommand");
-
-        std::lock_guard lock(m_mutex);
-
-        m_commands.PushBack(command);
-        m_num_enqueued.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    FlushResult Flush(CommandBuffer *command_buffer, UInt frame_index)
-    {
-        FlushResult result { Result::OK, 0 };
-
-        std::unique_lock lock(m_mutex);
-        SizeType count = m_commands.Size();
-
-        while (count) {
-            --count;
-
-            RenderCommandBase2 *front = m_commands.Front();
-
-            ++result.num_executed;
-
-            if (!(result.result = (*front)(command_buffer, frame_index))) {
-                front->~RenderCommandBase2();
-
-                SizeType num_executed = result.num_executed;
-                m_num_enqueued.fetch_sub(num_executed, std::memory_order_relaxed);
-
-                while (num_executed) {
-                    m_commands.PopFront();
-                    --num_executed;
-                }
-
-                return result;
-            }
-
-            front->~RenderCommandBase2();
-        }
-
-        m_commands.Clear();
-
-        m_num_enqueued.store(0, std::memory_order_relaxed);
-
-        lock.unlock();
-        m_flushed_cv.notify_all();
-
-        return result;
-    }
-
-    FlushResult FlushOrWait(CommandBuffer *command_buffer, UInt frame_index)
-    {
-        if (Threads::IsOnThread(m_owner_thread)) {
-            return Flush(command_buffer, frame_index);
-        }
-
-        Wait();
-
-        return { Result::OK, 0 };
-    }
-
-    void Wait()
-    {
-        std::unique_lock lock(m_mutex);
-        m_flushed_cv.wait(lock, [this] { return m_num_enqueued.load(std::memory_order_relaxed) == 0; });
-    }
-};
-
-
-
-struct RenderCommands
-{
-private:
-    struct HolderRef
-    {
-        std::atomic<SizeType> *counter_ptr = nullptr;
-
-        explicit operator bool() const
-        {
-            return counter_ptr != nullptr;
-        }
-    };
-
-    static constexpr SizeType max_render_command_types = 128;
-    static constexpr SizeType render_command_cache_size = 1024;
-
-    // last item must always evaluate to false, same way null terminated char strings work
-    static HeapArray<HolderRef, max_render_command_types> holders;
-    static std::atomic<SizeType> render_command_type_index;
-
-    static RenderScheduler scheduler;
-
-public:
-    static void Rewind()
-    {
-        HolderRef *p = &holders[0];
-
-        while (*p) {
-            // all items in the cache must have had destructor called on them!
-            p->counter_ptr->store(0);
-            ++p;
-        }
-    }
-
-    static void Rewind(SizeType count)
-    {
-        if (count == 0) {
-            return;
-        }
-
-        HolderRef *p = &holders[0];
-        SizeType i = 0;
-
-        while (*p && i < count) {
-            // all items in the cache must have had destructor called on them!
-            p->counter_ptr->store(0);
-            ++p;
-            ++i;
-        }
-    }
-
-    template <class T>
-    static T *Commit()
-    {
-        static struct Data
-        {
-            alignas(T) UByte cache[sizeof(T) * render_command_cache_size] = { };
-            std::atomic<SizeType> counter { 0 };
-
-            Data()
-            {
-                SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
-                AssertThrow(index < max_render_command_types - 1);
-
-                RenderCommands::holders[index] = HolderRef { &counter };
-            }
-        } data;
-
-        const SizeType cache_index = data.counter.fetch_add(1);
-
-        AssertThrowMsg(cache_index < render_command_cache_size,
-            "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
-
-        T *ptr = new (&data.cache[cache_index * sizeof(T)]) T();
-
-        scheduler.Commit(ptr);
-
-        return ptr;
-    }
-
-    static void SetOwnerThreadID(ThreadID id)
-    {
-        scheduler.SetOwnerThreadID(id);
-    }
-
-    static Result Flush(CommandBuffer *command_buffer, UInt frame_index)
-    {
-        auto flush_result = scheduler.Flush(command_buffer, frame_index);
-        Rewind(flush_result.num_executed);
-
-        return flush_result.result;
-    }
-
-    static Result FlushOrWait(CommandBuffer *command_buffer, UInt frame_index)
-    {
-        auto flush_result = scheduler.FlushOrWait(command_buffer, frame_index);
-        Rewind(flush_result.num_executed);
-
-        return flush_result.result;
-    }
-
-    static void Wait()
-    {
-        scheduler.Wait();
-    }
-};
-
-HeapArray<RenderCommands::HolderRef, RenderCommands::max_render_command_types> RenderCommands::holders = { };
-std::atomic<SizeType> RenderCommands::render_command_type_index = { 0 };
-RenderScheduler RenderCommands::scheduler = { };
+#include <rendering/RenderCommands.hpp>
 
 int main()
 {
@@ -1001,10 +769,10 @@ int main()
 
     Profile p1([]() {
         for (SizeType i = 0; i < 1000; i++) {
-            RenderCommands::Commit<RenderCommand2_UpdateEntityData>();
+            RenderCommands::Push<RenderCommand_FooBar>();
         }
 
-        RenderCommands::Flush(nullptr, 0);
+        RenderCommands::Flush(nullptr);
         
         // alignas(RenderCommand2_UpdateEntityData) static UByte buffer_memory[sizeof(RenderCommand2_UpdateEntityData) * 1000] = {};
 
@@ -1051,34 +819,56 @@ int main()
 
 
     Profile p3([]() {
-        Array<Proc<Result, CommandBuffer *, UInt>> update_commands;
+        // Array<Proc<Result, CommandBuffer *, UInt>> update_commands;
 
-        for (int i = 0; i < 1000; i++) {
-            struct alignas(8) Foo { char ch[256]; };
-            Foo foo;
-            foo.ch[0] = i % 255;
-            update_commands.PushBack([foo](...) {
+        // for (int i = 0; i < 1000; i++) {
+        //     struct alignas(8) Foo { char ch[256]; };
+        //     Foo foo;
+        //     foo.ch[0] = i % 255;
+        //     update_commands.PushBack([foo](...) {
 
-                volatile int y = 0;
+        //         volatile int y = 0;
 
-                for (int x = 0; x < 100; x++) {
-                    ++y;
-                }
+        //         for (int x = 0; x < 100; x++) {
+        //             ++y;
+        //         }
                 
-                HYPERION_RETURN_OK;
-            });
-        }
+        //         HYPERION_RETURN_OK;
+        //     });
+        // }
 
-        while (!update_commands.Empty()) {
-            update_commands.Back()(nullptr, 0);
-            update_commands.PopBack();
-        }
+        // while (!update_commands.Empty()) {
+        //     update_commands.Back()(nullptr, 0);
+        //     update_commands.PopBack();
+        // }
 
         
         /*for (int i = 0; i < 1000; i++) {
             RENDER_COMMAND(UpdateEntityData) cmd;
             cmd(nullptr, 0);
         }*/
+
+
+        Scheduler<RenderFunctor> scheduler;
+
+        for (SizeType i = 0; i < 1000; i++) {
+            struct Dat { Int x[64]; } dat;
+            scheduler.Enqueue([d = dat](...) mutable {
+                d.x[0] = 123;
+
+                volatile int y = 0;
+
+                for (int x = 0; x < 100; x++) {
+                    ++y;
+                }
+
+                HYPERION_RETURN_OK;
+            });
+        }
+
+        scheduler.Flush([](auto &item) {
+            item(nullptr, 0);
+        });
     });
 
     auto results = Profile::RunInterleved({ p1, p2, p3, }, 50, 10, 5);

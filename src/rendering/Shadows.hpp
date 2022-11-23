@@ -31,8 +31,12 @@ enum class ShadowMode
     VSM
 };
 
+struct RenderCommand_CreateShadowMapDescriptors;
+
 class ShadowPass : public FullScreenPass
 {
+    friend struct RenderCommand_CreateShadowMapDescriptors;
+
 public:
     ShadowPass();
     ShadowPass(const ShadowPass &other) = delete;

@@ -1,4 +1,5 @@
 #include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/backend/RendererResult.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
@@ -9,6 +10,121 @@ using renderer::StorageImageDescriptor;
 using renderer::StorageBufferDescriptor;
 using renderer::TlasDescriptor;
 using renderer::ResourceState;
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : RenderCommandBase2
+{
+    UniquePtr<DescriptorSet> *descriptor_sets;
+    FixedArray<renderer::ImageView *, max_frames_in_flight> image_views;
+
+    RENDER_COMMAND(CreateRTRadianceDescriptorSets)(UniquePtr<DescriptorSet> *descriptor_sets, FixedArray<renderer::ImageView *, max_frames_in_flight> &&image_views)
+        : descriptor_sets(descriptor_sets),
+          image_views(std::move(image_views))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            // create our own descriptor sets
+            AssertThrow(descriptor_sets[frame_index] != nullptr);
+            
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+
+            // Add the final result to the global descriptor set
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = image_views[frame_index]
+                });
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateRTRadiancePipeline) : RenderCommandBase2
+{
+    renderer::RaytracingPipeline *pipeline;
+    renderer::ShaderProgram *shader_program;
+
+    RENDER_COMMAND(CreateRTRadiancePipeline)(renderer::RaytracingPipeline *pipeline, renderer::ShaderProgram *shader_program)
+        : pipeline(pipeline),
+          shader_program(shader_program)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return pipeline->Create(
+            engine->GetDevice(),
+            shader_program,
+            &engine->GetInstance()->GetDescriptorPool()
+        );
+    }
+};
+
+struct RENDER_COMMAND(DestroyRTRadianceRenderer) : RenderCommandBase2
+{
+    RTRadianceRenderer::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(DestroyRTRadianceRenderer)(RTRadianceRenderer::ImageOutput *image_outputs)
+        : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        // remove result image from global descriptor set
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_PASS_ERRORS(
+                image_outputs[frame_index].Destroy(engine->GetDevice()),
+                result
+            );
+
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            // set to placeholder image
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
+                });
+        }
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : RenderCommandBase2
+{
+    RTRadianceRenderer::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(CreateRTRadianceImageOutputs)(RTRadianceRenderer::ImageOutput *image_outputs)
+        : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(engine->GetDevice()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
 
 Result RTRadianceRenderer::ImageOutput::Create(Device *device)
 {
@@ -88,32 +204,7 @@ void RTRadianceRenderer::Destroy(Engine *engine)
         engine->SafeRelease(std::move(descriptor_set));
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
-
-        for (auto &image_output : m_image_outputs) {
-            HYPERION_PASS_ERRORS(
-                image_output.Destroy(engine->GetDevice()),
-                result
-            );
-        }
-
-        // remove result image from global descriptor set
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            // set to placeholder image
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
-                });
-        }
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyRTRadianceRenderer)>(m_image_outputs.Data());
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 }
@@ -177,13 +268,7 @@ void RTRadianceRenderer::Render(
 
 void RTRadianceRenderer::CreateImages(Engine *engine)
 {
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (auto &image_output : m_image_outputs) {
-            HYPERION_BUBBLE_ERRORS(image_output.Create(engine->GetDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateRTRadianceImageOutputs)>(m_image_outputs.Data());
 }
 
 void RTRadianceRenderer::ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags flags)
@@ -255,31 +340,14 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
-    
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // create our own descriptor sets
-            AssertThrow(m_descriptor_sets[frame_index] != nullptr);
-            
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
 
-            // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::RT_RADIANCE_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &m_temporal_blending.GetImageOutput(frame_index).image_view
-                });
+    RenderCommands::Push<RENDER_COMMAND(CreateRTRadianceDescriptorSets)>(
+        m_descriptor_sets.Data(),
+        FixedArray<ImageView *, max_frames_in_flight> {
+            &m_temporal_blending.GetImageOutput(0).image_view,
+            &m_temporal_blending.GetImageOutput(1).image_view
         }
-
-        HYPERION_RETURN_OK;
-    });
+    );
 }
 
 void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
@@ -296,13 +364,10 @@ void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
     ));
 
     engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this, engine](...) {
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            return m_raytracing_pipeline->Create(
-                engine->GetDevice(),
-                m_shader->GetShaderProgram(),
-                &engine->GetInstance()->GetDescriptorPool()
-            );
-        });
+        RenderCommands::Push<RENDER_COMMAND(CreateRTRadiancePipeline)>(
+            m_raytracing_pipeline.Get(),
+            m_shader.Get()
+        );
     });
 }
 

@@ -16,6 +16,7 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/RenderCommands.hpp>
 #include <rendering/debug/ImmediateMode.hpp>
 #include <scene/World.hpp>
 #include <scene/System.hpp>
@@ -51,9 +52,7 @@
 
 #define HYP_FLUSH_RENDER_QUEUE(engine) \
     do { \
-        (engine)->render_scheduler.FlushOrWait([](auto &fn) { \
-            HYPERION_ASSERT_RESULT(fn(nullptr, 0)); \
-        }); \
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush(engine)); \
     } while (0)
 
 namespace hyperion::v2 {

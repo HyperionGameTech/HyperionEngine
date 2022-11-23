@@ -3,6 +3,8 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
 void ShaderGlobals::Create(Engine *engine)
 {
     auto *device = engine->GetDevice();
@@ -36,6 +38,46 @@ void ShaderGlobals::Destroy(Engine *engine)
     immediate_draws.Destroy(device);
 }
 
+struct RENDER_COMMAND(CreateShaderProgram) : RenderCommandBase2
+{
+    renderer::ShaderProgram *shader_program;
+    Array<SubShader> subshaders;
+
+    RENDER_COMMAND(CreateShaderProgram)(renderer::ShaderProgram *shader_program, Array<SubShader> subshaders)
+        : shader_program(shader_program),
+          subshaders(subshaders)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (const SubShader &sub_shader : subshaders) {
+            HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
+                engine->GetInstance()->GetDevice(),
+                sub_shader.type,
+                sub_shader.spirv
+            ));
+        }
+
+        return shader_program->Create(engine->GetDevice());
+    }
+};
+
+struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommandBase2
+{
+    renderer::ShaderProgram *shader_program;
+
+    RENDER_COMMAND(DestroyShaderProgram)(renderer::ShaderProgram *shader_program)
+        : shader_program(shader_program)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return shader_program->Destroy(engine->GetDevice());
+    }
+};
+
 Shader::Shader(const std::vector<SubShader> &sub_shaders)
     : EngineComponentBase(),
       m_shader_program(std::make_unique<ShaderProgram>()),
@@ -56,7 +98,7 @@ Shader::Shader(const CompiledShader &compiled_shader)
             }
 
             m_sub_shaders.push_back(SubShader {
-                .type = static_cast<ShaderModule::Type>(index),
+                .type = ShaderModule::Type(index),
                 .spirv = {
                     .bytes = byte_buffer
                 }
@@ -82,32 +124,19 @@ void Shader::Init(Engine *engine)
         AssertThrowMsg(sub_shader.spirv.bytes.Any(), "Shader data missing");
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (const auto &sub_shader : m_sub_shaders) {
-            HYPERION_BUBBLE_ERRORS(
-                m_shader_program->AttachShader(
-                    engine->GetInstance()->GetDevice(),
-                    sub_shader.type,
-                    sub_shader.spirv
-                )
-            );
-        }
+    RenderCommands::Push<RENDER_COMMAND(CreateShaderProgram)>(
+        m_shader_program.get(),
+        Array<SubShader>(m_sub_shaders.data(), m_sub_shaders.data() + m_sub_shaders.size())
+    );
 
-        HYPERION_BUBBLE_ERRORS(m_shader_program->Create(engine->GetDevice()));
-        
-        SetReady(true);
-        
-        HYPERION_RETURN_OK;
-    });
+    SetReady(true);
 
     OnTeardown([this]() {
         auto *engine = GetEngine();
 
         SetReady(false);
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            return m_shader_program->Destroy(engine->GetDevice());
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyShaderProgram)>(m_shader_program.get());
         
         HYP_FLUSH_RENDER_QUEUE(engine);
     });

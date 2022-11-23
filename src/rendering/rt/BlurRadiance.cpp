@@ -14,6 +14,109 @@ using renderer::DynamicStorageBufferDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::DescriptorKey;
 using renderer::Rect;
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommandBase2
+{
+    FixedArray<BlurRadiance::ImageOutput, 2> *image_outputs;
+
+    RENDER_COMMAND(CreateBlurImageOuptuts)(FixedArray<BlurRadiance::ImageOutput, 2> *image_outputs)
+        : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (UInt i = 0; i < 2; i++) {
+                image_outputs[frame_index][i].Create(engine->GetDevice());
+            }
+        }
+
+        HYPERION_RETURN_OK;
+
+    }
+};
+
+struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommandBase2
+{
+    FixedArray<FixedArray<BlurRadiance::ImageOutput, 2>, max_frames_in_flight> image_outputs;
+
+    RENDER_COMMAND(DestroyBlurImageOutputs)(FixedArray<FixedArray<BlurRadiance::ImageOutput, 2>, max_frames_in_flight> &&image_outputs)
+        : image_outputs(std::move(image_outputs))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            // destroy our images
+            for (auto &image_output : image_outputs[frame_index]) {
+                HYPERION_PASS_ERRORS(
+                    image_output.Destroy(engine->GetDevice()),
+                    result
+                );
+            }
+        }
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommandBase2
+{
+    FixedArray<UniquePtr<DescriptorSet>, 2> *descriptor_sets;
+
+    RENDER_COMMAND(CreateBlurDescriptors)(FixedArray<UniquePtr<DescriptorSet>, 2> *descriptor_sets)
+        : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (auto &descriptor_set : descriptor_sets[frame_index]) {
+                AssertThrow(descriptor_set != nullptr);
+                
+                HYPERION_ASSERT_RESULT(descriptor_set->Create(
+                    engine->GetDevice(),
+                    &engine->GetInstance()->GetDescriptorPool()
+                ));
+            }
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommandBase2
+{
+    FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> descriptor_sets;
+
+    RENDER_COMMAND(DestroyBlurDescriptors)(FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> &&descriptor_sets)
+        : descriptor_sets(std::move(descriptor_sets))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            // destroy our descriptor sets
+            for (auto &descriptor_set : descriptor_sets[frame_index]) {
+                HYPERION_PASS_ERRORS(
+                    descriptor_set->Destroy(engine->GetDevice()),
+                    result
+                );
+            }
+        }
+
+        return result;
+    }
+};
 
 BlurRadiance::BlurRadiance(
     const Extent2D &extent,
@@ -39,27 +142,8 @@ void BlurRadiance::Destroy(Engine *engine)
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (auto &image_output : m_image_outputs[frame_index]) {
-                image_output.Destroy(engine->GetDevice());
-            }
-
-            if constexpr (!generate_mipmap) {
-                // destroy our descriptor sets
-                for (auto &descriptor_set : m_descriptor_sets[frame_index]) {
-                    HYPERION_PASS_ERRORS(
-                        descriptor_set->Destroy(engine->GetDevice()),
-                        result
-                    );
-                }
-            }
-        }
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyBlurDescriptors)>(std::move(m_descriptor_sets));
+    RenderCommands::Push<RENDER_COMMAND(DestroyBlurImageOutputs)>(std::move(m_image_outputs));
 }
 
 void BlurRadiance::CreateImageOutputs(Engine *engine)
@@ -77,29 +161,17 @@ void BlurRadiance::CreateImageOutputs(Engine *engine)
                 Extent3D(m_extent),
                 image_formats[i],
                 ImageType::TEXTURE_TYPE_2D,
-                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+                FilterMode::TEXTURE_FILTER_LINEAR,
                 nullptr
             );
         }
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (UInt i = 0; i < m_image_outputs[frame_index].Size(); i++) {
-                m_image_outputs[frame_index][i].Create(engine->GetDevice());
-            }
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateBlurImageOuptuts)>(m_image_outputs.Data());
 }
 
 void BlurRadiance::CreateDescriptorSets(Engine *engine)
 {
-    if constexpr (generate_mipmap) {
-        return;
-    }
-
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
             auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -161,28 +233,11 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
         }
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (auto &descriptor_set : m_descriptor_sets[frame_index]) {
-                AssertThrow(descriptor_set != nullptr);
-                
-                HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                    engine->GetDevice(),
-                    &engine->GetInstance()->GetDescriptorPool()
-                ));
-            }
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateBlurDescriptors)>(m_descriptor_sets.Data());
 }
 
 void BlurRadiance::CreateComputePipelines(Engine *engine)
 {
-    if constexpr (generate_mipmap) {
-        return;
-    }
-
     m_blur_hor = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurRadianceHor")),
         Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
@@ -203,69 +258,42 @@ void BlurRadiance::Render(
     Frame *frame
 )
 {
-    if constexpr (generate_mipmap) {
-        // assume render thread
-        auto *src_image = m_input_images[frame->GetFrameIndex()];
-        auto &dst_image = m_image_outputs[frame->GetFrameIndex()][0].image;
+    auto &descriptor_sets = m_descriptor_sets[frame->GetFrameIndex()];
+    FixedArray passes { m_blur_hor.Get(), m_blur_vert.Get() };
+    
+    const auto &scene_binding = engine->render_state.GetScene();
+    const UInt scene_index = scene_binding.id.ToIndex();
 
-        // generate mips
-        // put src image in state for copying from
-        src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
-        // put dst image in state for copying to
-        dst_image.GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+    for (UInt i = 0; i < static_cast<UInt>(passes.Size()); i++) {
+        m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
+            ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-        // Blit into the mipmap chain img
-        dst_image.Blit(
-            frame->GetCommandBuffer(),
-            src_image,
-            Rect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-            Rect { 0, 0, dst_image.GetExtent().width, dst_image.GetExtent().height }
+        auto *pass = passes[i];
+
+        pass->GetPipeline()->Bind(frame->GetCommandBuffer());
+
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            engine->GetInstance()->GetDescriptorPool(),
+            pass->GetPipeline(),
+            descriptor_sets[i].Get(),
+            0,
+            FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
         );
 
-        HYPERION_ASSERT_RESULT(dst_image.GenerateMipmaps(
-            engine->GetDevice(),
-            frame->GetCommandBuffer()
-        ));
+        const auto &extent = m_image_outputs[frame->GetFrameIndex()][i].image.GetExtent();
 
-        src_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    } else {
-        auto &descriptor_sets = m_descriptor_sets[frame->GetFrameIndex()];
-        FixedArray passes { m_blur_hor.Get(), m_blur_vert.Get() };
-        
-        const auto &scene_binding = engine->render_state.GetScene();
-        const UInt scene_index = scene_binding.id.ToIndex();
+        pass->GetPipeline()->Dispatch(
+            frame->GetCommandBuffer(),
+            Extent3D {
+                (extent.width + 7) / 8,
+                (extent.height + 7) / 8,
+                1
+            }
+        );
 
-        for (UInt i = 0; i < static_cast<UInt>(passes.Size()); i++) {
-            m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
-                ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-            auto *pass = passes[i];
-
-            pass->GetPipeline()->Bind(frame->GetCommandBuffer());
-
-            frame->GetCommandBuffer()->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
-                pass->GetPipeline(),
-                descriptor_sets[i].Get(),
-                0,
-                FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
-            );
-
-            const auto &extent = m_image_outputs[frame->GetFrameIndex()][i].image.GetExtent();
-
-            pass->GetPipeline()->Dispatch(
-                frame->GetCommandBuffer(),
-                Extent3D {
-                    (extent.width + 7) / 8,
-                    (extent.height + 7) / 8,
-                    1
-                }
-            );
-
-            // set it to be able to be used as texture2D for next pass, or outside of this
-            m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
-                ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-        }
+        // set it to be able to be used as texture2D for next pass, or outside of this
+        m_image_outputs[frame->GetFrameIndex()][i].image.GetGPUImage()
+            ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 

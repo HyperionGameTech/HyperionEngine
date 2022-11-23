@@ -27,10 +27,16 @@ using renderer::Image;
 using renderer::ImageView;
 using renderer::Extent2D;
 
+struct RenderCommand_CreateCubemapImages;
+struct RenderCommand_DestroyCubemapRenderPass;
+
 class CubemapRenderer
     : public EngineComponentBase<STUB_CLASS(CubemapRenderer)>,
       public RenderComponent<CubemapRenderer>
 {
+    friend struct RenderCommand_CreateCubemapImages;
+    friend struct RenderCommand_DestroyCubemapRenderPass;
+
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_CUBEMAP;
 
@@ -100,7 +106,7 @@ private:
     Handle<EnvProbe> m_env_probe;
 
     CubemapUniforms m_cubemap_uniforms;
-    FixedArray<std::unique_ptr<UniformBuffer>, max_frames_in_flight> m_cubemap_render_uniform_buffers;
+    FixedArray<UniquePtr<UniformBuffer>, max_frames_in_flight> m_cubemap_render_uniform_buffers;
 };
 
 

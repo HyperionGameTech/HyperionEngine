@@ -13,7 +13,6 @@
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
-#include <rendering/MotionVectors.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>

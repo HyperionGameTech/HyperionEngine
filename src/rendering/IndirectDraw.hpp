@@ -37,8 +37,12 @@ class Material;
 class Engine;
 class Entity;
 
+struct RenderCommand_CreateIndirectRenderer;
+
 class IndirectDrawState
 {
+    friend struct RenderCommand_CreateIndirectRenderer;
+
 public:
     static constexpr UInt batch_size = 256u;
     static constexpr UInt initial_count = batch_size;

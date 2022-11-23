@@ -6,6 +6,66 @@
 
 namespace hyperion::v2 {
 
+class Light;
+
+struct RENDER_COMMAND(BindLight) : RenderCommandBase2
+{
+    Light::ID id;
+
+    RENDER_COMMAND(BindLight)(Light::ID id)
+        : id(id)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        engine->GetRenderState().BindLight(id);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(UnbindLight) : RenderCommandBase2
+{
+    Light::ID id;
+
+    RENDER_COMMAND(UnbindLight)(Light::ID id)
+        : id(id)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        engine->GetRenderState().UnbindLight(id);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommandBase2
+{
+    Light &light;
+    LightDrawProxy draw_proxy;
+
+    RENDER_COMMAND(UpdateLightShaderData)(Light &light, LightDrawProxy &&draw_proxy)
+        : light(light),
+          draw_proxy(std::move(draw_proxy))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        light.m_draw_proxy = draw_proxy;
+
+        engine->GetRenderData()->lights.Set(
+            light.GetID().ToIndex(),
+            draw_proxy
+        );
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 Light::Light(
     LightType type,
     const Vector3 &position,
@@ -52,11 +112,7 @@ void Light::EnqueueBind(Engine *engine) const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    GetEngine()->GetRenderScheduler().Enqueue([engine, id = m_id](...) {
-        engine->render_state.BindLight(id);
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(BindLight)>(m_id);
 }
 
 void Light::EnqueueUnbind(Engine *engine) const
@@ -64,11 +120,7 @@ void Light::EnqueueUnbind(Engine *engine) const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    GetEngine()->GetRenderScheduler().Enqueue([engine, id = m_id](...) {
-        engine->render_state.UnbindLight(id);
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(UnbindLight)>(m_id);
 }
 
 void Light::Update(Engine *)
@@ -80,24 +132,13 @@ void Light::Update(Engine *)
 
 void Light::EnqueueRenderUpdates()
 {
-    LightDrawProxy draw_proxy {
+    RenderCommands::Push<RENDER_COMMAND(UpdateLightShaderData)>(*this, LightDrawProxy {
         .id = m_id,
         .type = m_type,
         .color = m_color,
         .radius = m_radius,
         .shadow_map_index = m_shadow_map_index,
         .position_intensity = Vector4(m_position, m_intensity)
-    };
-
-    GetEngine()->GetRenderScheduler().Enqueue([this, draw_proxy = std::move(draw_proxy)](...) mutable {
-        m_draw_proxy = draw_proxy;
-
-        GetEngine()->GetRenderData()->lights.Set(
-            GetID().value - 1,
-            m_draw_proxy
-        );
-
-        HYPERION_RETURN_OK;
     });
 
     m_shader_data_state = ShaderDataState::CLEAN;

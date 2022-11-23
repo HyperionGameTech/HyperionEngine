@@ -5,31 +5,57 @@
 #include <Engine.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/RenderCommands.hpp>
 
 #include <script/ScriptApi.hpp>
 #include <script/ScriptBindingDef.hpp>
 
 namespace hyperion::v2 {
 
-#if 0
-struct RENDER_COMMAND(UpdateEntityRenderData);
+class Entity;
 
-template <>
-struct RenderCommandData<RENDER_COMMAND(UpdateEntityRenderData)>
+struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommandBase2
 {
+    Entity *entity;
     EntityDrawProxy draw_proxy;
-    Transform transform;
-    Transform previous_transform;
-};
+    Matrix4 transform_matrix;
+    Matrix4 previous_transform_matrix;
 
-struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand<RENDER_COMMAND(UpdateEntityRenderData)>
-{
-    Result Call(RenderCommandData<RENDER_COMMAND(UpdateEntityRenderData)> *data, CommandBuffer * command_buffer, UInt frame_index)
+    RenderCommand_UpdateEntityRenderData(
+        Entity *entity,
+        EntityDrawProxy &&draw_proxy,
+        const Matrix4 &transform_matrix,
+        const Matrix4 &previous_transform_matrix
+    ) : entity(entity),
+        draw_proxy(std::move(draw_proxy)),
+        transform_matrix(transform_matrix),
+        previous_transform_matrix(previous_transform_matrix)
     {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        entity->m_draw_proxy = draw_proxy;
+
+        entity->GetEngine()->GetRenderData()->objects.Set(
+            entity->GetID().ToIndex(),
+            ObjectShaderData {
+                .model_matrix = transform_matrix,
+                .previous_model_matrix = previous_transform_matrix,
+                .world_aabb_max = Vector4(draw_proxy.bounding_box.max, 1.0f),
+                .world_aabb_min = Vector4(draw_proxy.bounding_box.min, 1.0f),
+                .entity_id = draw_proxy.entity_id.value,
+                .scene_id = draw_proxy.scene_id.value,
+                .mesh_id = draw_proxy.mesh_id.value,
+                .material_id = draw_proxy.material_id.value,
+                .skeleton_id = draw_proxy.skeleton_id.value,
+                .bucket = UInt32(draw_proxy.bucket)
+            }
+        );
+    
         HYPERION_RETURN_OK;
     }
 };
-#endif
 
 Entity::Entity()
   : Entity(
@@ -254,7 +280,7 @@ void Entity::EnqueueRenderUpdates()
         ? m_scene->GetID()
         : Scene::empty_id;
 
-    const EntityDrawProxy draw_proxy {
+    EntityDrawProxy draw_proxy {
         .mesh = m_mesh.Get(),
         .material = m_material.Get(),
         .entity_id = m_id,
@@ -266,30 +292,37 @@ void Entity::EnqueueRenderUpdates()
         .bucket = m_renderable_attributes.material_attributes.bucket
     };
 
-    EnqueueRenderUpdate([this, transform_matrix = m_transform.GetMatrix(), previous_transform_matrix = m_previous_transform_matrix, draw_proxy](...) {
-        // update m_draw_proxy on render thread.
-        m_draw_proxy = draw_proxy;
+    RenderCommands::Push<RENDER_COMMAND(UpdateEntityRenderData)>(
+        this,
+        std::move(draw_proxy),
+        m_transform.GetMatrix(),
+        m_previous_transform_matrix
+    );
 
-        GetEngine()->GetRenderData()->objects.Set(
-            m_id.value - 1,
-            ObjectShaderData {
-                .model_matrix = transform_matrix,
-                .previous_model_matrix = previous_transform_matrix,
-                .local_aabb_max = Vector4(m_local_aabb.max, 1.0f),
-                .local_aabb_min = Vector4(m_local_aabb.min, 1.0f),
-                .world_aabb_max = Vector4(m_world_aabb.max, 1.0f),
-                .world_aabb_min = Vector4(m_world_aabb.min, 1.0f),
-                .entity_id = draw_proxy.entity_id.value,
-                .scene_id = draw_proxy.scene_id.value,
-                .mesh_id = draw_proxy.mesh_id.value,
-                .material_id = draw_proxy.material_id.value,
-                .skeleton_id = draw_proxy.skeleton_id.value,
-                .bucket = static_cast<UInt32>(draw_proxy.bucket)
-            }
-        );
+    // EnqueueRenderUpdate([this, transform_matrix = m_transform.GetMatrix(), previous_transform_matrix = m_previous_transform_matrix, draw_proxy](...) {
+    //     // update m_draw_proxy on render thread.
+    //     m_draw_proxy = draw_proxy;
 
-        HYPERION_RETURN_OK;
-    });
+    //     GetEngine()->GetRenderData()->objects.Set(
+    //         m_id.value - 1,
+    //         ObjectShaderData {
+    //             .model_matrix = transform_matrix,
+    //             .previous_model_matrix = previous_transform_matrix,
+    //             .local_aabb_max = Vector4(m_local_aabb.max, 1.0f),
+    //             .local_aabb_min = Vector4(m_local_aabb.min, 1.0f),
+    //             .world_aabb_max = Vector4(m_world_aabb.max, 1.0f),
+    //             .world_aabb_min = Vector4(m_world_aabb.min, 1.0f),
+    //             .entity_id = draw_proxy.entity_id.value,
+    //             .scene_id = draw_proxy.scene_id.value,
+    //             .mesh_id = draw_proxy.mesh_id.value,
+    //             .material_id = draw_proxy.material_id.value,
+    //             .skeleton_id = draw_proxy.skeleton_id.value,
+    //             .bucket = static_cast<UInt32>(draw_proxy.bucket)
+    //         }
+    //     );
+
+    //     HYPERION_RETURN_OK;
+    // });
 
     if (m_previous_transform_matrix == m_transform.GetMatrix()) {
         m_shader_data_state = ShaderDataState::CLEAN;

@@ -19,6 +19,11 @@ namespace hyperion::v2 {
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
 
+// struct RENDER_COMMAND(CreateParticleBuffers) : RenderCommandBase2
+// {
+
+// };
+
 struct alignas(16) ParticleShaderData
 {
     ShaderVec4<Float32> position;

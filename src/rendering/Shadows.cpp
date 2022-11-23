@@ -16,6 +16,109 @@ using renderer::ImageSamplerDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::StorageImage2D;
 
+struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommandBase2
+{
+    ShadowPass &shadow_pass;
+
+    RENDER_COMMAND(CreateShadowMapDescriptors)(ShadowPass &shadow_pass)
+        : shadow_pass(shadow_pass)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
+
+            auto *shadow_map_descriptor = descriptor_set
+                ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+        
+            AssertThrow(m_shadow_map_image != nullptr);
+
+            const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
+                .element_index = shadow_pass.m_shadow_map_index,
+                .image_view = shadow_pass.m_shadow_map_image_view.get(),
+                .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
+            });
+
+            AssertThrow(sub_descriptor_index == m_shadow_map_index);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommandBase2
+{
+    renderer::Image *shadow_map_image;
+    renderer::ImageView *shadow_map_image_view;
+
+    RENDER_COMMAND(CreateShadowMapImage)(renderer::Image *shadow_map_image, renderer::ImageView *shadow_map_image_view)
+        : shadow_map_image(shadow_map_image),
+          shadow_map_image_view(shadow_map_image_view)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(engine->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(engine->GetDevice(), shadow_map_image));
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommandBase2
+{
+    renderer::DescriptorSet *descriptor_sets;
+
+    RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)(renderer::DescriptorSet *descriptor_sets)
+        : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[i].Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommandBase2
+{
+    renderer::Image *shadow_map_image;
+    renderer::ImageView *shadow_map_image_view;
+    renderer::DescriptorSet *descriptor_sets;
+
+    RENDER_COMMAND(DestroyShadowPassData)(renderer::Image *shadow_map_image, renderer::ImageView *shadow_map_image_view, renderer::DescriptorSet *descriptor_sets)
+        : shadow_map_image(shadow_map_image),
+          shadow_map_image_view(shadow_map_image_view),
+          descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(engine->GetDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(engine->GetDevice()), result);
+
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(engine->GetDevice()), result);
+        }
+
+        return result;
+    }
+};
+
 ShadowPass::ShadowPass()
     : FullScreenPass(),
       m_shadow_mode(ShadowMode::VSM),
@@ -96,6 +199,7 @@ void ShadowPass::CreateRenderPass(Engine *engine)
         render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
     }
 
+    // should be created in render thread
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
     }
@@ -108,28 +212,7 @@ void ShadowPass::CreateDescriptors(Engine *engine)
 {
     AssertThrow(m_shadow_map_index != ~0u);
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            /* TODO: Removal of these descriptors */
-            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
-
-            auto *shadow_map_descriptor = descriptor_set
-                ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-        
-            AssertThrow(m_shadow_map_image != nullptr);
-
-            const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
-                .element_index = m_shadow_map_index,
-                .image_view = m_shadow_map_image_view.get(),
-                .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
-            });
-
-            AssertThrow(sub_descriptor_index == m_shadow_map_index);
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapDescriptors)>(*this);
 }
 
 void ShadowPass::CreateRendererInstance(Engine *engine)
@@ -165,12 +248,7 @@ void ShadowPass::CreateShadowMap(Engine *engine)
 
     m_shadow_map_image_view = std::make_unique<ImageView>();
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        HYPERION_BUBBLE_ERRORS(m_shadow_map_image->Create(engine->GetDevice()));
-        HYPERION_BUBBLE_ERRORS(m_shadow_map_image_view->Create(engine->GetDevice(), m_shadow_map_image.get()));
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapImage)>(m_shadow_map_image.get(), m_shadow_map_image_view.get());
 }
 
 void ShadowPass::CreateComputePipelines(Engine *engine)
@@ -197,16 +275,7 @@ void ShadowPass::CreateComputePipelines(Engine *engine)
             });
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_BUBBLE_ERRORS(m_blur_descriptor_sets[i].Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets.Data());
 
     m_blur_shadow_map = engine->CreateHandle<ComputePipeline>(
         engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurShadowMap")),
@@ -250,25 +319,10 @@ void ShadowPass::Create(Engine *engine)
 
             engine->InitObject(m_framebuffers[i]);
         }
-
-        m_command_buffers[i] = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
     }
 
     CreateRendererInstance(engine);
-
-    // create command buffers in render thread
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (auto &command_buffer : m_command_buffers) {
-            AssertThrow(command_buffer != nullptr);
-
-            HYPERION_ASSERT_RESULT(command_buffer->Create(
-                engine->GetInstance()->GetDevice(),
-                engine->GetInstance()->GetGraphicsCommandPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    CreateCommandBuffers(engine);
 
     HYP_FLUSH_RENDER_QUEUE(engine); // force init stuff
 }
@@ -280,20 +334,13 @@ void ShadowPass::Destroy(Engine *engine)
         m_scene.Reset();
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
+    RenderCommands::Push<RENDER_COMMAND(DestroyShadowPassData)>(
+        m_shadow_map_image.get(),
+        m_shadow_map_image_view.get(),
+        m_blur_descriptor_sets.Data()
+    );
 
-        HYPERION_PASS_ERRORS(m_shadow_map_image->Destroy(engine->GetDevice()), result);
-        HYPERION_PASS_ERRORS(m_shadow_map_image_view->Destroy(engine->GetDevice()), result);
-
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_PASS_ERRORS(m_blur_descriptor_sets[i].Destroy(engine->GetDevice()), result);
-        }
-
-        return result;
-    });
-
-    FullScreenPass::Destroy(engine); // flushes render queue
+    FullScreenPass::Destroy(engine); // flushes render queue, releases command buffers...
 }
 
 void ShadowPass::Render(Engine *engine, Frame *frame)
