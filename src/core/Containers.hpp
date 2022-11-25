@@ -540,7 +540,7 @@ enum class EngineCallback
     DESTROY_RAYTRACING_PIPELINES
 };
 
-using EngineCallbacks = Callbacks<EngineCallback, >;
+using EngineCallbacks = Callbacks<EngineCallback, Engine *>;
 
 /* v1 callback utility used by octree */
 template <class CallbacksClass>
@@ -1082,10 +1082,10 @@ private:
 };
 
 template <class T>
-using Ref = typename RefCounter<T, >::Ref;
+using Ref = typename RefCounter<T, Engine *>::Ref;
 
 template <class T>
-using WeakRef = typename RefCounter<T, >::WeakRef;
+using WeakRef = typename RefCounter<T, Engine *>::WeakRef;
 
 } // namespace hyperion::v2
 

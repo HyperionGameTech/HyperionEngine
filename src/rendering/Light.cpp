@@ -101,7 +101,7 @@ void Light::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     EnqueueRenderUpdates();
 

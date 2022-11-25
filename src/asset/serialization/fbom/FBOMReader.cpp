@@ -4,8 +4,7 @@
 namespace hyperion::v2::fbom {
 
 FBOMReader::FBOMReader( const FBOMConfig &config)
-    : m_engine(engine),
-      m_config(config),
+    : m_config(config),
       m_in_static_data(false),
       m_swap_endianness(false)
 {
@@ -303,7 +302,7 @@ FBOMResult FBOMReader::ReadObject(ByteReader *reader, FBOMObject &object, FBOMOb
             }
         }
 
-        if (auto err = FBOMReader(m_engine, m_config).LoadFromFile(ref_path, object)) {
+        if (auto err = FBOMReader(m_config).LoadFromFile(ref_path, object)) {
             if (!m_config.continue_on_external_load_error) {
                 return err;
             }

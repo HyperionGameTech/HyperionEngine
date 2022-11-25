@@ -80,17 +80,17 @@ void RenderEnvironment::Init()
         return;
     }
     
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     m_particle_system = Engine::Get()->CreateHandle<ParticleSystem>();
     Engine::Get()->InitObject(m_particle_system);
     
     if (auto tlas = m_tlas.Lock()) {
         m_rt_radiance.SetTLAS(tlas);
-        m_rt_radiance.Create(Engine::Get());
+        m_rt_radiance.Create;
 
         m_probe_system.SetTLAS(tlas);
-        m_probe_system.Init(Engine::Get());
+        m_probe_system.Init;
 
         m_has_rt_radiance = true;
     }
@@ -100,7 +100,7 @@ void RenderEnvironment::Init()
         
         for (auto &it : m_render_components_pending_addition) {
             AssertThrow(it.second != nullptr);
-            it.second->ComponentInit(Engine::Get());
+            it.second->ComponentInit;
         }
     }
 
@@ -112,9 +112,9 @@ void RenderEnvironment::Init()
         m_particle_system.Reset();
             
         if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED) && m_has_rt_radiance) {
-            m_rt_radiance.Destroy(Engine::Get());
+            m_rt_radiance.Destroy;
 
-            m_probe_system.Destroy(Engine::Get());
+            m_probe_system.Destroy;
 
             m_has_rt_radiance = false;
         }
@@ -147,7 +147,7 @@ void RenderEnvironment::Update( GameCounter::TickUnit delta)
     std::lock_guard guard(m_render_component_mutex);
 
     for (const auto &component : m_render_components) {
-        component.second->ComponentUpdate(Engine::Get(), delta);
+        component.second->ComponentUpdatedelta);
     }
 }
 
@@ -193,8 +193,8 @@ void RenderEnvironment::ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags
     AssertThrow(Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
-        m_rt_radiance.ApplyTLASUpdates(Engine::Get(), flags);
-        m_probe_system.ApplyTLASUpdates(Engine::Get(), flags);
+        m_rt_radiance.ApplyTLASUpdatesflags);
+        m_probe_system.ApplyTLASUpdatesflags);
     }
 }
 
@@ -206,10 +206,10 @@ void RenderEnvironment::RenderRTRadiance( Frame *frame)
     AssertThrow(Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
-        m_rt_radiance.Render(Engine::Get(), frame);
+        m_rt_radiance.Renderframe);
 
-        m_probe_system.RenderProbes(Engine::Get(), frame);
-        m_probe_system.ComputeIrradiance(Engine::Get(), frame);
+        m_probe_system.RenderProbesframe);
+        m_probe_system.ComputeIrradianceframe);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
             for (const auto &probe : m_probe_system.GetProbes()) {
@@ -263,7 +263,7 @@ void RenderEnvironment::RenderComponents( Frame *frame)
 
     for (const auto &component : m_render_components) {
         m_next_enabled_render_components_mask |= 1u << static_cast<UInt32>(component.second->GetName());
-        component.second->ComponentRender(Engine::Get(), frame);
+        component.second->ComponentRenderframe);
     }
 
     // add RenderComponents AFTER rendering, so that the render scheduler can complete
@@ -299,22 +299,22 @@ void RenderEnvironment::RenderComponents( Frame *frame)
 
             if (auto tlas = m_tlas.Lock()) {
                 if (m_has_rt_radiance) {
-                    m_rt_radiance.Destroy(Engine::Get());
-                    m_probe_system.Destroy(Engine::Get());
+                    m_rt_radiance.Destroy;
+                    m_probe_system.Destroy;
                 }
                 
                 m_probe_system.SetTLAS(tlas);
                 m_rt_radiance.SetTLAS(tlas);
 
-                m_rt_radiance.Create(Engine::Get());
-                m_probe_system.Init(Engine::Get());
+                m_rt_radiance.Create;
+                m_probe_system.Init;
                 m_has_rt_radiance = true;
 
                 HYP_FLUSH_RENDER_QUEUE();
             } else {
                 if (m_has_rt_radiance) {
-                    m_rt_radiance.Destroy(Engine::Get());
-                    m_probe_system.Destroy(Engine::Get());
+                    m_rt_radiance.Destroy;
+                    m_probe_system.Destroy;
 
                     HYP_FLUSH_RENDER_QUEUE();
                 }
@@ -334,7 +334,7 @@ void RenderEnvironment::RenderComponents( Frame *frame)
             );
 
             if (update_state_flags) {
-                ApplyTLASUpdates(Engine::Get(), frame, update_state_flags);
+                ApplyTLASUpdatesframe, update_state_flags);
             }
         }
     }

@@ -156,13 +156,13 @@ void CubemapRenderer::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
-    CreateShader(Engine::Get());
-    CreateRenderPass(Engine::Get());
-    CreateFramebuffers(Engine::Get());
-    CreateImagesAndBuffers(Engine::Get());
-    CreateRendererInstance(Engine::Get());
+    CreateShader;
+    CreateRenderPass;
+    CreateFramebuffers;
+    CreateImagesAndBuffers;
+    CreateRendererInstance;
 
     m_scene = Engine::Get()->CreateHandle<Scene>(Handle<Camera>());
     Engine::Get()->InitObject(m_scene);
@@ -292,7 +292,7 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
 
 void CubemapRenderer::OnUpdate( GameCounter::TickUnit delta)
 {
-    //m_env_probe->Update(Engine::Get());
+    //m_env_probe->Update;
 }
 
 void CubemapRenderer::OnRender( Frame *frame)
@@ -313,7 +313,7 @@ void CubemapRenderer::OnRender( Frame *frame)
     };
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Render(Engine::Get(), frame);
+    m_renderer_instance->Renderframe);
     Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame_index]->EndCapture(command_buffer);

@@ -24,7 +24,6 @@ class Frame;
 
 namespace hyperion::v2 {
 
-class Engine;
 class RenderEnvironment;
 
 using renderer::Frame;
@@ -130,7 +129,7 @@ public:
         // Threads::AssertOnThread(THREAD_RENDER);
         Threads::AssertOnThread(THREAD_GAME);
 
-        static_cast<Derived *>(this)->Init(engine);
+        static_cast<Derived *>(this)->Init();
 
         m_component_is_render_init = true;
     }
@@ -140,12 +139,12 @@ public:
         Threads::AssertOnThread(THREAD_GAME);
 
         if (!m_component_is_game_init) {
-            static_cast<Derived *>(this)->InitGame(engine);
+            static_cast<Derived *>(this)->InitGame();
 
             m_component_is_game_init = true;
         }
 
-        static_cast<Derived *>(this)->OnUpdate(engine, delta);
+        static_cast<Derived *>(this)->OnUpdate(delta);
     }
 
     virtual void ComponentRender( Frame *frame) override final
@@ -153,7 +152,7 @@ public:
         Threads::AssertOnThread(THREAD_RENDER);
 
         if (m_render_frame_slicing_counter >= m_render_frame_slicing) {
-            static_cast<Derived *>(this)->OnRender(engine, frame);
+            static_cast<Derived *>(this)->OnRender(frame);
 
             m_render_frame_slicing_counter = 0;
         } else {

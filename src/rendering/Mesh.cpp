@@ -187,7 +187,7 @@ void Mesh::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 

@@ -15,7 +15,7 @@ LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    fbom::FBOMReader reader(Engine::Get(), fbom::FBOMConfig { });
+    fbom::FBOMReader readerfbom::FBOMConfig { });
     fbom::FBOMDeserializedObject object;
 
     DebugLog(LogType::Info, "Begin loading serialized object at %s\n", state.filepath.c_str());

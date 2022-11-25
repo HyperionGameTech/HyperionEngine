@@ -177,8 +177,7 @@ public:
           m_init_info(init_info),
           m_id(empty_id),
           m_init_called(false),
-          m_is_ready(false),
-          m_engine(nullptr)
+          m_is_ready(false)
     {
     }
 
@@ -239,19 +238,8 @@ public:
         );
 
         m_init_called.store(true);
-        m_engine = engine;
 
         //m_attachment_map.InitializeAll(static_cast<InnerType *>(this));
-    }
-
-    HYP_FORCE_INLINE GetEngine() const
-    {
-        AssertThrowMsg(
-            m_engine != nullptr,
-            "GetEngine() called when engine is not set! This indicates using a component which has not had Init() called on it."
-        );
-
-        return m_engine;
     }
 
 protected:
@@ -282,7 +270,6 @@ protected:
     void Destroy()
     {
         m_init_called.store(false);
-        m_engine = nullptr;
     }
     
     void SetReady(bool is_ready)
@@ -310,7 +297,6 @@ protected:
     String m_name;
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
-    m_engine;
     InitInfo m_init_info;
 
     //AttachmentMap<InnerType> m_attachment_map;

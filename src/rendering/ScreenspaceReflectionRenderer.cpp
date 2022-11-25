@@ -223,11 +223,11 @@ void ScreenspaceReflectionRenderer::Create()
         m_radius_output.Data()
     );
 
-    m_temporal_blending.Create(Engine::Get());
+    m_temporal_blending.Create;
 
-    CreateUniformBuffers(Engine::Get());
-    CreateDescriptorSets(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateUniformBuffers;
+    CreateDescriptorSets;
+    CreateComputePipelines;
 }
 
 void ScreenspaceReflectionRenderer::Destroy()
@@ -239,7 +239,7 @@ void ScreenspaceReflectionRenderer::Destroy()
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    m_temporal_blending.Destroy(Engine::Get());
+    m_temporal_blending.Destroy;
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         Engine::Get()->SafeRelease(std::move(m_descriptor_sets[frame_index]));
@@ -501,7 +501,7 @@ void ScreenspaceReflectionRenderer::Render(
     m_image_outputs[frame_index][3].image.GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
-    m_temporal_blending.Render(Engine::Get(), frame);
+    m_temporal_blending.Renderframe);
 
     m_is_rendered = true;
     /* ==========  END SSR  ========== */

@@ -27,7 +27,7 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
 
         ++result.num_executed;
 
-        result.result = (*front)(engine);
+        result.result = (*front)();
         front->~RenderCommandBase2();
 
         m_commands.PopFront();

@@ -6,7 +6,7 @@ namespace hyperion::v2 {
 
 using namespace renderer;
 
-GetEngine()
+Engine *GetEngine()
 {
     return Engine::Get();
 }

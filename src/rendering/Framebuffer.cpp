@@ -62,7 +62,7 @@ void Framebuffer::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     Engine::Get()->InitObject(m_render_pass);
 

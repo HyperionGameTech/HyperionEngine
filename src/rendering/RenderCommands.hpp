@@ -40,7 +40,7 @@ struct RenderCommandBase2
 
     HYP_FORCE_INLINE Result Call()
     {
-        return operator()(engine);
+        return operator()();
     }
 
     virtual Result operator()() = 0;

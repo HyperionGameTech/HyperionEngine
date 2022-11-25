@@ -135,7 +135,7 @@ struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommandBase2
         );
 
         if (spawners->HasUpdatesPending()) {
-            spawners->UpdateItems(Engine::Get());
+            spawners->UpdateItems;
         }
 
         spawners->Clear();
@@ -251,7 +251,7 @@ void ParticleSpawner::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     if (m_params.texture) {
         Engine::Get()->InitObject(m_params.texture);
@@ -408,7 +408,7 @@ void ParticleSystem::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     m_quad_mesh = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
     Engine::Get()->InitObject(m_quad_mesh);
@@ -459,7 +459,7 @@ void ParticleSystem::UpdateParticles( Frame *frame)
     AssertReady();
 
     if (m_particle_spawners.HasUpdatesPending()) {
-        m_particle_spawners.UpdateItems(Engine::Get());
+        m_particle_spawners.UpdateItems;
     }
 
     if (m_particle_spawners.GetItems().Empty()) {
@@ -542,7 +542,7 @@ void ParticleSystem::UpdateParticles( Frame *frame)
     ++m_counter;
 
     if (m_particle_spawners.HasUpdatesPending()) {
-        m_particle_spawners.UpdateItems(Engine::Get());
+        m_particle_spawners.UpdateItems;
     }
 }
 

@@ -623,7 +623,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     const FilePath output_file_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders" / name + ".hypshader";
 
     // read file if it already exists.
-    fbom::FBOMReader reader(Engine::Get(), fbom::FBOMConfig { });
+    fbom::FBOMReader readerfbom::FBOMConfig { });
     fbom::FBOMDeserializedObject deserialized;
 
     DebugLog(

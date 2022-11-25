@@ -227,7 +227,7 @@ void Material::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
         if (auto &texture = m_textures.ValueAt(i)) {
@@ -429,7 +429,7 @@ void MaterialGroup::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     for (auto &it : m_materials) {
         Engine::Get()->InitObject(it.second);

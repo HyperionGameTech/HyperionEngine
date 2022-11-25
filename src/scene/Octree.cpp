@@ -516,7 +516,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
             AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
             m_root->node_to_octree[entity] = this;
-            m_root->events.on_insert_node(Engine::Get(), this, entity);
+            m_root->events.on_insert_nodethis, entity);
         }
 
         entity->OnMovedToOctant(this);
@@ -603,7 +603,7 @@ Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
             // hack
             CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
 
-            auto insert_result = Insert(Engine::Get(), node.entity);
+            auto insert_result = Insertnode.entity);
 
             if (!insert_result) {
                 return insert_result;

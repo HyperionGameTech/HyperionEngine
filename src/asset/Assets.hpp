@@ -5,6 +5,7 @@
 #include <asset/AssetLoader.hpp>
 #include <scene/Node.hpp>
 
+#include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <util/Defines.hpp>
@@ -22,8 +23,6 @@
 
 namespace hyperion::v2 {
 
-class Engine;
-
 class AssetManager
 {
     friend struct AssetBatch;
@@ -31,7 +30,6 @@ class AssetManager
 
 public:
     AssetManager()
-        : m_engine(engine)
     {
     }
 
@@ -121,7 +119,7 @@ public:
         }
 
         return AssetLoaderWrapper<NormalizedType<T>>(*loader)
-            .Load(*this, m_engine, path, out_result);
+            .Load(*this, GetEngine(), path, out_result);
     }
 
     template <class T>
@@ -171,7 +169,6 @@ public:
 private:
     ComponentSystem &GetObjectSystem();
 
-    m_engine;
     FilePath m_base_path;
     FlatMap<String, UniquePtr<AssetLoaderBase>> m_loaders;
 };

@@ -124,7 +124,7 @@ void EnvProbe::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     Engine::Get()->InitObject(m_texture);
 

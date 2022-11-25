@@ -107,7 +107,7 @@ public:
 
     virtual void InitGame() override
     {
-        Game::InitGame(Engine::Get());
+        Game::InitGame;
         
         m_scene->SetCamera(
             Engine::Get()->CreateHandle<Camera>(new FollowCamera(
@@ -384,7 +384,7 @@ public:
 
     virtual void Teardown() override
     {
-        Game::Teardown(Engine::Get());
+        Game::Teardown;
     }
 
     bool svo_ready_to_build = false;
@@ -403,7 +403,7 @@ public:
     {
         timer += delta;
 
-        m_ui.Update(Engine::Get(), delta);
+        m_ui.Updatedelta);
 
         HandleCameraMovement(delta);
 
@@ -475,7 +475,7 @@ public:
 
     virtual void OnInputEvent( const SystemEvent &event) override
     {
-        Game::OnInputEvent(Engine::Get(), event);
+        Game::OnInputEventevent);
 
         if (event.GetType() == SystemEventType::EVENT_FILE_DROP) {
             if (const FilePath *path = event.GetEventData().TryGet<FilePath>()) {
@@ -932,11 +932,11 @@ int main()
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skybox", ShaderProps { }))
     );
 
-    my_game->Init(Engine::Get());
+    my_game->Init;
 
     Engine::Get()->Compile();
     
-    Engine::Get()->game_thread.Start(Engine::Get(), my_game);
+    Engine::Get()->game_thread.Startmy_game);
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;
@@ -945,7 +945,7 @@ int main()
     while (Engine::Get()->IsRenderLoopActive()) {
         // input manager stuff
         while (application->PollEvent(event)) {
-            my_game->HandleEvent(Engine::Get(), std::move(event));
+            my_game->HandleEventstd::move(event));
         }
 
         counter.NextTick();

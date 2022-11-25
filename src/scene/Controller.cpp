@@ -79,7 +79,7 @@ bool Controller::CreateScriptedObjects()
             return false;
         }
 
-        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *>(Engine::Get()) });
+        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *> });
 
         if (!m_script->SetMember(engine_object_handle, "handle", engine_handle_value)) {
             DebugLog(

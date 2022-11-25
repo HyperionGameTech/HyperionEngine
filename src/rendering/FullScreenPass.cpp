@@ -97,12 +97,12 @@ void FullScreenPass::Create()
 
     Engine::Get()->InitObject(m_shader);
 
-    CreateQuad(Engine::Get());
-    CreateRenderPass(Engine::Get());
-    CreateCommandBuffers(Engine::Get());
-    CreateFramebuffers(Engine::Get());
-    CreatePipeline(Engine::Get());
-    CreateDescriptors(Engine::Get());
+    CreateQuad;
+    CreateRenderPass;
+    CreateCommandBuffers;
+    CreateFramebuffers;
+    CreatePipeline;
+    CreateDescriptors;
     
     HYP_FLUSH_RENDER_QUEUE();
 }
@@ -189,7 +189,7 @@ void FullScreenPass::CreateFramebuffers()
 
 void FullScreenPass::CreatePipeline()
 {
-    CreatePipeline(Engine::Get(), RenderableAttributeSet(
+    CreatePipelineRenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = renderer::static_mesh_vertex_attributes
         },
@@ -318,7 +318,7 @@ void FullScreenPass::Record( UInt frame_index)
          //   }
 #endif
 
-            m_full_screen_quad->Render(Engine::Get(), cmd);
+            m_full_screen_quad->Rendercmd);
 
             HYPERION_RETURN_OK;
         });

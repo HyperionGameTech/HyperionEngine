@@ -74,7 +74,7 @@ struct AssetLoaderWrapper
         { return CastedType(); }
 
     template <class Engine>
-    CastedType Load(AssetManager &asset_manager,  const String &path, LoaderResult &out_result)
+    CastedType Load(AssetManager &asset_manager, Engine *engine, const String &path, LoaderResult &out_result)
     {
         auto loaded_asset = loader.Load(asset_manager, path);
         out_result = loaded_asset.result;
@@ -99,7 +99,7 @@ struct AssetLoaderWrapper
     }
 
     template <class Engine>
-    static auto MakeCastedType( UniquePtr<T> &&casted_result) -> CastedType
+    static auto MakeCastedType(Engine *engine, UniquePtr<T> &&casted_result) -> CastedType
     {
         if (casted_result) {
             if constexpr (std::is_same_v<ResultType, HandleBase>) {
@@ -115,7 +115,7 @@ struct AssetLoaderWrapper
     }
 
     template <class Engine>
-    static auto MakeResultType( UniquePtr<T> &&casted_result) -> ResultType
+    static auto MakeResultType(Engine *engine, UniquePtr<T> &&casted_result) -> ResultType
     {
         if constexpr (std::is_base_of_v<EngineComponentBaseBase, T>) {
             return MakeCastedType(engine, std::move(casted_result));
@@ -142,7 +142,7 @@ struct AssetLoaderWrapper<Node>
         { return NodeProxy(); }
 
     template <class Engine>
-    NodeProxy Load(AssetManager &asset_manager,  const String &path, LoaderResult &out_result)
+    NodeProxy Load(AssetManager &asset_manager, Engine *engine, const String &path, LoaderResult &out_result)
     {
         auto loaded_asset = loader.Load(asset_manager, path);
         out_result = loaded_asset.result;
@@ -167,7 +167,7 @@ struct AssetLoaderWrapper<Node>
     }
 
     template <class Engine>
-    static auto MakeCastedType( UniquePtr<Node> &&casted_result) -> CastedType
+    static auto MakeCastedType(Engine *engine, UniquePtr<Node> &&casted_result) -> CastedType
     {
         if (casted_result) {
             return NodeProxy(casted_result.Release());
@@ -177,7 +177,7 @@ struct AssetLoaderWrapper<Node>
     }
 
     template <class Engine>
-    static auto MakeResultType( UniquePtr<Node> &&casted_result) -> ResultType
+    static auto MakeResultType(Engine *engine, UniquePtr<Node> &&casted_result) -> ResultType
     {
         return MakeCastedType(engine, std::move(casted_result));
     }

@@ -146,7 +146,7 @@ void ImmediateMode::Render(
     );
 
     RendererProxy proxy = m_renderer_instance->GetProxy();
-    proxy.Bind(Engine::Get(), frame);
+    proxy.Bindframe);
 
     proxy.GetCommandBuffer(frame->GetFrameIndex())->BindDescriptorSets(
         Engine::Get()->GetInstance()->GetDescriptorPool(),
@@ -170,10 +170,10 @@ void ImmediateMode::Render(
             FixedArray<UInt32, 1> { UInt32(index * sizeof(ImmediateDrawShaderData)) }
         );
 
-        proxy.DrawMesh(Engine::Get(), frame, m_shapes[UInt(draw_command.shape)].Get());
+        proxy.DrawMeshframe, m_shapes[UInt(draw_command.shape)].Get());
     }
 
-    proxy.Submit(Engine::Get(), frame);
+    proxy.Submitframe);
 
     m_draw_commands.Clear();
 }

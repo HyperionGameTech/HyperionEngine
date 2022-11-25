@@ -31,7 +31,7 @@ void GameThread::operator()( Game *game)
 
     m_is_running.store(true, std::memory_order_relaxed);
 
-    game->InitGame(Engine::Get());
+    game->InitGame;
     
     Queue<Scheduler::ScheduledTask> tasks;
 

@@ -76,7 +76,7 @@ void TLAS::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
     
     // add all pending to be added to the list
     if (m_has_blas_updates.load()) {
@@ -162,7 +162,7 @@ void TLAS::UpdateRender(
         AssertThrow(blas->GetInternalBLAS().GetGeometries()[0]->GetPackedVertexStorageBuffer() != nullptr);
 
         //bool was_blas_rebuilt = false;
-        //blas->UpdateRender(Engine::Get(), frame, was_blas_rebuilt);
+        //blas->UpdateRenderframe, was_blas_rebuilt);
     }
     
     HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(Engine::Get()->GetInstance(), out_update_state_flags));

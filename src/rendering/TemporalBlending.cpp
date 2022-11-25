@@ -111,9 +111,9 @@ TemporalBlending::~TemporalBlending() = default;
 
 void TemporalBlending::Create()
 {
-    CreateImageOutputs(Engine::Get());
-    CreateDescriptorSets(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateImageOutputs;
+    CreateDescriptorSets;
+    CreateComputePipelines;
 }
 
 void TemporalBlending::Destroy()

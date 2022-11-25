@@ -28,7 +28,7 @@ void AudioSource::Init()
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init();
 
     if (AudioManager::GetInstance()->IsInitialized()) {
         auto al_format = AL_FORMAT_MONO8;

@@ -35,7 +35,7 @@ using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
 
-Engine::Get()
+Engine *Engine::Get()
 {
     static Engine engine;
 

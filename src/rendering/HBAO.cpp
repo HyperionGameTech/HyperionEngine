@@ -87,15 +87,15 @@ HBAO::~HBAO() = default;
 
 void HBAO::Create()
 {
-    CreateImages(Engine::Get());
-    CreateTemporalBlending(Engine::Get());
-    CreateDescriptorSets(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateImages;
+    CreateTemporalBlending;
+    CreateDescriptorSets;
+    CreateComputePipelines;
 }
 
 void HBAO::Destroy()
 {
-    m_temporal_blending.Destroy(Engine::Get());
+    m_temporal_blending.Destroy;
 
     m_compute_hbao.Reset();
     m_blur_hor.Reset();
@@ -385,7 +385,7 @@ void HBAO::CreateComputePipelines()
 
 void HBAO::CreateTemporalBlending()
 {
-    m_temporal_blending.Create(Engine::Get());
+    m_temporal_blending.Create;
 }
 
 void HBAO::Render(
@@ -438,7 +438,7 @@ void HBAO::Render(
     m_image_outputs[frame_index].image.GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
-    m_temporal_blending.Render(Engine::Get(), frame);
+    m_temporal_blending.Renderframe);
 
     if constexpr (blur_result) { // apply blurring
         for (UInt blur_pass_index = 0; blur_pass_index < 2; blur_pass_index++) {

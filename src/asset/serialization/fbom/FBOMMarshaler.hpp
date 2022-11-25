@@ -54,7 +54,7 @@ private:
     {
         UniquePtr<T> ptr;
 
-        auto result = Deserialize(engine, in, ptr);
+        auto result = Deserialize(in, ptr);
 
         if (result.value == FBOMResult::FBOM_OK) {
             AssertThrow(ptr != nullptr);

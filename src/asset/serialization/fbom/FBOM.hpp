@@ -310,7 +310,7 @@ public:
             return { FBOMResult::FBOM_ERR, "Loader not registered for type" };
         }
 
-        return loader->Deserialize(m_engine, in, out_object);
+        return loader->Deserialize(in, out_object);
     }
 
     FBOMResult LoadFromFile(const String &path, FBOMObject &out)
@@ -418,7 +418,6 @@ private:
 
     FBOMResult Handle(ByteReader *, FBOMCommand, FBOMObject *root);
 
-    m_engine;
     FBOMConfig m_config;
 
     std::vector<FBOMType> m_registered_types;

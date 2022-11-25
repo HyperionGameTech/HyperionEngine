@@ -114,22 +114,22 @@ void DeferredSystem::AddFramebuffersToPipelines()
 void DeferredSystem::AddPendingRendererInstances()
 {
     for (auto &bucket : m_buckets) {
-        bucket.AddPendingRendererInstances(Engine::Get());
+        bucket.AddPendingRendererInstances;
     }
 }
 
 void DeferredSystem::Create()
 {
     for (auto &bucket : m_buckets) {
-        bucket.CreateRenderPass(Engine::Get());
-        bucket.CreateFramebuffers(Engine::Get());
+        bucket.CreateRenderPass;
+        bucket.CreateFramebuffers;
     }
 }
 
 void DeferredSystem::Destroy()
 {
     for (auto &bucket : m_buckets) {
-        bucket.Destroy(Engine::Get());
+        bucket.Destroy;
     }
 }
 
@@ -212,7 +212,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         mode
     );
 
-    const InternalFormat color_format = GetImageFormat(Engine::Get(), GBUFFER_RESOURCE_ALBEDO);
+    const InternalFormat color_format = GetImageFormatGBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
@@ -236,7 +236,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         // which will be shared with other renderable buckets
         if (bucket == BUCKET_OPAQUE) {
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
-                const InternalFormat format = GetImageFormat(Engine::Get(), GBufferResourceName(i));
+                const InternalFormat format = GetImageFormatGBufferResourceName(i));
 
                 AddOwnedAttachment(
                     Engine::Get(),

@@ -151,9 +151,9 @@ TemporalAA::~TemporalAA() = default;
 
 void TemporalAA::Create()
 {
-    CreateImages(Engine::Get());
-    CreateDescriptorSets(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateImages;
+    CreateDescriptorSets;
+    CreateComputePipelines;
 }
 
 void TemporalAA::Destroy()

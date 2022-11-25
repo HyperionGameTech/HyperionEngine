@@ -101,7 +101,7 @@ void UIText::Init()
     //     return;
     // }
 
-    // UIObject::Init(Engine::Get());
+    // UIObject::Init;
 
     // auto char_meshes = BuildCharMeshes(m_font_map, m_text);
     // auto mesh = OptimizeCharMeshes(std::move(char_meshes));

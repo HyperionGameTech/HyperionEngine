@@ -52,7 +52,7 @@
 
 #define HYP_FLUSH_RENDER_QUEUE() \
     do { \
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush(Engine::Get())); \
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush); \
     } while (0)
 
 namespace hyperion::v2 {
@@ -134,7 +134,7 @@ class Engine
 #endif
 
 public:
-    static Get();
+    static Engine *Get();
 
     Engine();
     ~Engine();

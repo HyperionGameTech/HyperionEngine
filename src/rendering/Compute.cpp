@@ -67,7 +67,7 @@ void ComputePipeline::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     AssertThrow(Engine::Get()->InitObject(m_shader));
 

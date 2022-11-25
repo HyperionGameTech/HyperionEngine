@@ -88,7 +88,7 @@ void Scene::Init()
         return;
     }
     
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     Engine::Get()->InitObject(m_camera);
 
@@ -103,7 +103,7 @@ void Scene::Init()
     Engine::Get()->InitObject(m_tlas);
 
     {
-        m_environment->Init(Engine::Get());
+        m_environment->Init;
 
         if (m_tlas) {
             m_environment->SetTLAS(m_tlas);
@@ -184,7 +184,7 @@ void Scene::Init()
             RemoveFromRendererInstances(it.second);
 
             if (it.second->m_octree != nullptr) {
-                it.second->RemoveFromOctree(Engine::Get());
+                it.second->RemoveFromOctree;
             }
         }
 
@@ -224,7 +224,7 @@ void Scene::SetWorld(World *world)
                 entity->GetID().value
             );
 
-            entity->RemoveFromOctree(Engine::Get());
+            entity->RemoveFromOctree;
         }
     }
 
@@ -251,7 +251,7 @@ void Scene::SetWorld(World *world)
         );
 #endif
 
-        entity->AddToOctree(Engine::Get(), m_world->GetOctree());
+        entity->AddToOctreem_world->GetOctree());
     }
 }
 
@@ -420,7 +420,7 @@ void Scene::AddPendingEntities()
                 );
 #endif
 
-                entity->AddToOctree(Engine::Get(), m_world->GetOctree());
+                entity->AddToOctreem_world->GetOctree());
             }
         }
 
@@ -458,7 +458,7 @@ void Scene::RemovePendingEntities()
                 found_entity->GetID().value
             );
 
-            found_entity->RemoveFromOctree(Engine::Get());
+            found_entity->RemoveFromOctree;
         }
 
         DebugLog(
@@ -614,7 +614,7 @@ void Scene::ForceUpdate()
 {
     AssertReady();
 
-    Update(Engine::Get(), 0.01f);
+    Update0.01f);
 }
 
 void Scene::Update(
@@ -634,7 +634,7 @@ void Scene::Update(
     }
 
     if (m_camera) {
-        m_camera->Update(Engine::Get(), delta);
+        m_camera->Updatedelta);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
@@ -646,7 +646,7 @@ void Scene::Update(
 
     if (!IsVirtualScene()) {
         // update render environment
-        m_environment->Update(Engine::Get(), delta);
+        m_environment->Updatedelta);
 
         // update each light
         for (auto &it : m_lights) {
@@ -666,7 +666,7 @@ void Scene::Update(
         for (auto &it : m_entities) {
             auto &entity = it.second;
 
-            entity->Update(Engine::Get(), delta);
+            entity->Updatedelta);
 
             if (entity->m_primary_renderer_instance.changed) {
                 RequestRendererInstanceUpdate(entity);

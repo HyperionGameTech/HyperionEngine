@@ -30,19 +30,19 @@ void SparseVoxelOctree::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     /* For now, until revoxelization is implemented */
     AssertThrow(m_octree_buffer == nullptr);
 
     if (m_voxelizer == nullptr) {
         m_voxelizer = std::make_unique<Voxelizer>();
-        m_voxelizer->Init(Engine::Get());
+        m_voxelizer->Init;
     }
 
-    CreateBuffers(Engine::Get());
-    CreateDescriptors(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateBuffers;
+    CreateDescriptors;
+    CreateComputePipelines;
     
     SetReady(true);
 
@@ -74,7 +74,7 @@ void SparseVoxelOctree::Init()
                 }
 
                 if (svo.m_counter != nullptr) {
-                    svo.m_counter->Destroy(Engine::Get());
+                    svo.m_counter->Destroy;
                 }
 
                 if (svo.m_build_info_buffer != nullptr) {
@@ -246,7 +246,7 @@ void SparseVoxelOctree::CreateBuffers()
         {
             auto result = Result::OK;
 
-            svo.m_counter->Create(Engine::Get());
+            svo.m_counter->Create;
 
             HYPERION_PASS_ERRORS(
                 svo.m_build_info_buffer->Create(Engine::Get()->GetInstance()->GetDevice(), 2 * sizeof(UInt32)),
@@ -437,7 +437,7 @@ void SparseVoxelOctree::OnRender( Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertThrow(m_voxelizer != nullptr);
-    m_voxelizer->Render(Engine::Get(), frame);
+    m_voxelizer->Renderframe);
     
     // temp
     m_descriptor_sets[0]
@@ -446,7 +446,7 @@ void SparseVoxelOctree::OnRender( Frame *frame)
 
     m_descriptor_sets[0]->ApplyUpdates(Engine::Get()->GetDevice());
 
-    m_counter->Reset(Engine::Get());
+    m_counter->Reset;
 
     static constexpr UInt32 build_info[] = { 0, 8 };
     static constexpr UInt32 indirect_info[] = { 1, 1, 1 };
@@ -524,13 +524,13 @@ void SparseVoxelOctree::OnRender( Frame *frame)
             for (UInt i = 1; i <= m_voxelizer->octree_depth; i++) {
                 commands.Push([&, index = i](CommandBuffer *command_buffer) {
                     m_init_nodes->GetPipeline()->Bind(command_buffer, push_constants);
-                    BindDescriptorSets(Engine::Get(), command_buffer, 0, m_init_nodes.Get());
+                    BindDescriptorSetscommand_buffer, 0, m_init_nodes.Get());
                     m_init_nodes->GetPipeline()->DispatchIndirect(command_buffer, m_indirect_buffer.get());
 
                     m_octree_buffer->InsertBarrier(command_buffer, ResourceState::UNORDERED_ACCESS);
 
                     m_tag_nodes->GetPipeline()->Bind(command_buffer, push_constants);
-                    BindDescriptorSets(Engine::Get(), command_buffer, 0, m_tag_nodes.Get());
+                    BindDescriptorSetscommand_buffer, 0, m_tag_nodes.Get());
                     m_tag_nodes->GetPipeline()->Dispatch(command_buffer, {fragment_group_x, 1, 1});
 
                     if (index == m_voxelizer->octree_depth) {
@@ -540,13 +540,13 @@ void SparseVoxelOctree::OnRender( Frame *frame)
                     m_octree_buffer->InsertBarrier(command_buffer, ResourceState::UNORDERED_ACCESS);
                     
                     m_alloc_nodes->GetPipeline()->Bind(command_buffer, push_constants);
-                    BindDescriptorSets(Engine::Get(), command_buffer, 0, m_alloc_nodes.Get());
+                    BindDescriptorSetscommand_buffer, 0, m_alloc_nodes.Get());
                     m_alloc_nodes->GetPipeline()->DispatchIndirect(command_buffer, m_indirect_buffer.get());
 
                     m_octree_buffer->InsertBarrier(command_buffer, ResourceState::UNORDERED_ACCESS);
 
                     m_modify_args->GetPipeline()->Bind(command_buffer);
-                    BindDescriptorSets(Engine::Get(), command_buffer, 0, m_modify_args.Get());
+                    BindDescriptorSetscommand_buffer, 0, m_modify_args.Get());
                     m_modify_args->GetPipeline()->Dispatch(command_buffer, {1, 1, 1});
                     
                     m_indirect_buffer->InsertBarrier(command_buffer, ResourceState::INDIRECT_ARG);
@@ -560,7 +560,7 @@ void SparseVoxelOctree::OnRender( Frame *frame)
         }
     ));
 
-    WriteMipmaps(Engine::Get());
+    WriteMipmaps;
 }
 
 void SparseVoxelOctree::WriteMipmaps()
@@ -581,7 +581,7 @@ void SparseVoxelOctree::WriteMipmaps()
             push_constants.octree_data.mipmap_level = i;
 
             m_write_mipmaps->GetPipeline()->Bind(command_buffer, push_constants);
-            BindDescriptorSets(Engine::Get(), command_buffer, 0, m_write_mipmaps.Get());
+            BindDescriptorSetscommand_buffer, 0, m_write_mipmaps.Get());
             m_write_mipmaps->GetPipeline()->Dispatch(command_buffer, {fragment_group_x, 1, 1});
 
             if (i != m_voxelizer->octree_depth) {

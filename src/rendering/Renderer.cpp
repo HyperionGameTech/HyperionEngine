@@ -267,11 +267,11 @@ void RendererInstance::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     // create our indirect renderer
     // will be created with some initial size.
-    m_indirect_renderer.Create(Engine::Get());
+    m_indirect_renderer.Create;
 
     AssertThrow(m_fbos.Any());
 
@@ -330,7 +330,7 @@ void RendererInstance::Init()
         OnTeardown([this]() {
             SetReady(false);
 
-            m_indirect_renderer.Destroy(Engine::Get()); // make sure we have the render queue flush at the end of
+            m_indirect_renderer.Destroy; // make sure we have the render queue flush at the end of
                                                  // this, as the indirect renderer has a call back that needs to be exec'd
                                                  // before the destructor is called
 
@@ -385,7 +385,7 @@ void RendererInstance::CollectDrawCalls( Frame *frame)
     AssertReady();
 
     if (m_enqueued_entities_flag.load()) {
-        PerformEnqueuedEntityUpdates(Engine::Get(), frame->GetFrameIndex());
+        PerformEnqueuedEntityUpdatesframe->GetFrameIndex());
     }
     
     m_indirect_renderer.GetDrawState().Reset();
@@ -428,7 +428,7 @@ void RendererInstance::CollectDrawCalls(
     const CullData &cull_data
 )
 {
-    CollectDrawCalls(Engine::Get(), frame);
+    CollectDrawCallsframe);
 
     m_indirect_renderer.ExecuteCullShaderInBatches(
         Engine::Get(),
@@ -627,7 +627,7 @@ RenderAll(
                                 draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
                             );
                         } else {
-                            draw_proxy.mesh->Render(Engine::Get(), secondary);
+                            draw_proxy.mesh->Rendersecondary);
                         }
                     }
 
@@ -687,8 +687,8 @@ void RendererInstance::PerformRenderingIndirect( Frame *frame)
 void RendererInstance::Render( Frame *frame)
 {
     // perform all ops in one batch
-    CollectDrawCalls(Engine::Get(), frame);
-    PerformRendering(Engine::Get(), frame);
+    CollectDrawCallsframe);
+    PerformRenderingframe);
 }
 
 // Proxied methods
@@ -751,7 +751,7 @@ void RendererProxy::DrawMesh(
     CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    mesh->Render(Engine::Get(), command_buffer);
+    mesh->Rendercommand_buffer);
 }
 
 void RendererProxy::Submit(

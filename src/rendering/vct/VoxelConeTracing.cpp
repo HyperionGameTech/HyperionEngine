@@ -31,7 +31,7 @@ void VoxelConeTracing::Init()
         return;
     }
 
-    EngineComponentBase::Init(Engine::Get());
+    EngineComponentBase::Init;
 
     m_scene = Engine::Get()->CreateHandle<Scene>(
         Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
@@ -44,13 +44,13 @@ void VoxelConeTracing::Init()
 
     Engine::Get()->InitObject(m_scene);
 
-    CreateImagesAndBuffers(Engine::Get());
-    CreateShader(Engine::Get());
-    CreateRenderPass(Engine::Get());
-    CreateFramebuffers(Engine::Get());
-    CreateRendererInstance(Engine::Get());
-    CreateDescriptors(Engine::Get());
-    CreateComputePipelines(Engine::Get());
+    CreateImagesAndBuffers;
+    CreateShader;
+    CreateRenderPass;
+    CreateFramebuffers;
+    CreateRendererInstance;
+    CreateDescriptors;
+    CreateComputePipelines;
     
     SetReady(true);
 

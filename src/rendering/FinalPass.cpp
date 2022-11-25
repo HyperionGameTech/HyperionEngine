@@ -169,7 +169,7 @@ void FinalPass::Render( Frame *frame)
 #endif
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(Engine::Get(), frame->GetCommandBuffer());
+    m_full_screen_quad->Renderframe->GetCommandBuffer());
     
     m_renderer_instance->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }
