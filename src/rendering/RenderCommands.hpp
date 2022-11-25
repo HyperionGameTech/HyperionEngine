@@ -41,13 +41,9 @@ struct RenderCommandBase2
     HYP_FORCE_INLINE Result Call(Engine *engine)
     {
         return operator()(engine);
-        // return fn_ptr(this, engine);
     }
 
-    virtual Result operator()(Engine *engine) { return fn_ptr(this, engine); /* no-op, for testing perf with just using a fn ptr. */ }
-
-
-    // virtual Result operator()(Engine *) = 0;
+    virtual Result operator()(Engine *engine) = 0;
 };
 
 struct RenderCommand2_UpdateEntityData : RenderCommandBase2
@@ -181,29 +177,18 @@ struct RenderScheduler
         m_owner_thread = id;
     }
 
-    template <class T>
-    void Commit(T *command)
-    {
-        static_assert(std::is_base_of_v<RenderCommandBase2, T>, "T must be a derived class of RenderCommand");
-
-        std::lock_guard lock(m_mutex);
-
-        m_commands.PushBack(command);
-        m_num_enqueued.fetch_add(1, std::memory_order_relaxed);
-    }
+    void Commit(RenderCommandBase2 *command);
 
     FlushResult Flush(Engine *engine);
-    FlushResult FlushOrWait(Engine *engine);
-    void Wait();
 };
 
-struct RenderCommands
+class RenderCommands
 {
 private:
     struct HolderRef
     {
         std::atomic<SizeType> *counter_ptr = nullptr;
-        UByte *memory_ptr = nullptr;
+        void *memory_ptr = nullptr;
         SizeType object_size = 0;
         SizeType object_alignment = 0;
 
@@ -220,72 +205,19 @@ private:
     static HeapArray<HolderRef, max_render_command_types> holders;
     static std::atomic<SizeType> render_command_type_index;
 
+    static std::mutex mtx;
+    static std::condition_variable flushed_cv;
+
     static RenderScheduler scheduler;
 
 public:
-    static void Rewind()
-    {
-        HolderRef *p = &holders[0];
-
-
-        while (*p) {
-            const SizeType counter_value = p->counter_ptr->load();
-
-            if (counter_value) {
-                Memory::Set(p->memory_ptr, 0x00, p->object_size * counter_value);
-
-                // for (SizeType index = 0; index < counter_value; index++) {
-                    // ::operator delete ((void *)&((p->memory_ptr)[index * p->object_size]), std::align_val_t(p->object_alignment));
-                // }
-
-                // all items in the cache must have had destructor called on them!
-                p->counter_ptr->store(0);
-            }
-            ++p;
-        }
-    }
-
-    // static void Rewind(SizeType count)
-    // {
-    //     if (count == 0) {
-    //         return;
-    //     }
-
-    //     HolderRef *p = &holders[0];
-
-    //     while (*p) {
-    //         // all items in the cache must have had destructor called on them!
-    //         p->counter_ptr->fetch_sub(count);
-    //         ++p;
-    //     }
-    // }
-
     template <class T, class ...Args>
     static T *Push(Args &&... args)
     {
-        static struct Data
-        {
-            alignas(T) UByte cache[sizeof(T) * render_command_cache_size] = { };
-            std::atomic<SizeType> counter { 0 };
-
-            Data()
-            {
-                // zero out cache memory
-                Memory::Set(cache, 0x00, sizeof(T) * render_command_cache_size);
-
-                SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
-                AssertThrow(index < max_render_command_types - 1);
-
-                RenderCommands::holders[index] = HolderRef { &counter, cache, sizeof(T), alignof(T) };
-            }
-        } data;
-
-        const SizeType cache_index = data.counter.fetch_add(1);
-
-        AssertThrowMsg(cache_index < render_command_cache_size,
-            "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
-
-        T *ptr = new (&data.cache[cache_index * sizeof(T)]) T(std::forward<Args>(args)...);
+        std::lock_guard lock(mtx);
+        
+        void *mem = Alloc<T>();
+        T *ptr = new (mem) T(std::forward<Args>(args)...);
 
         scheduler.Commit(ptr);
 
@@ -297,30 +229,81 @@ public:
         scheduler.SetOwnerThreadID(id);
     }
 
-    static Result Flush(Engine *engine)
+    HYP_FORCE_INLINE static SizeType Count()
     {
-        auto flush_result = scheduler.Flush(engine);
-        Rewind();
-        // Rewind(flush_result.num_executed);
-
-        return flush_result.result;
+        return scheduler.m_num_enqueued.load(std::memory_order_relaxed);
     }
 
-    static Result FlushOrWait(Engine *engine)
+    HYP_FORCE_INLINE static Result Flush(Engine *engine)
     {
-        auto flush_result = scheduler.FlushOrWait(engine);
+        // if (Count() == 0) {
+        //     HYPERION_RETURN_OK;
+        // }
+
+        std::unique_lock lock(mtx);
+
+        auto flush_result = scheduler.Flush(engine);
         if (flush_result.num_executed) {
             Rewind();
         }
-        // Rewind(flush_result.num_executed);
+
+        lock.unlock();
+        flushed_cv.notify_all();
 
         return flush_result.result;
     }
 
-    static void Wait()
+    HYP_FORCE_INLINE static Result FlushOrWait(Engine *engine)
     {
-        scheduler.Wait();
+        if (Count() == 0) {
+            HYPERION_RETURN_OK;
+        }
+
+        if (Threads::CurrentThreadID() == scheduler.m_owner_thread) {
+            return Flush(engine);
+        }
+
+        Wait();
+
+        HYPERION_RETURN_OK;
     }
+
+    HYP_FORCE_INLINE static void Wait()
+    {
+        std::unique_lock lock(mtx);
+        flushed_cv.wait(lock, [] { return RenderCommands::Count() == 0; });
+    }
+
+private:
+    template <class T>
+    static void *Alloc()
+    {
+        static struct Data
+        {
+            alignas(T) std::byte cache[sizeof(T) * render_command_cache_size] = { };
+            std::atomic<SizeType> counter { 0 };
+
+            Data()
+            {
+                // zero out cache memory
+                Memory::Set(cache, 0x00, sizeof(T) * render_command_cache_size);
+
+                SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
+                AssertThrow(index < max_render_command_types - 1);
+
+                RenderCommands::holders[index] = HolderRef { &counter, (void *)cache, sizeof(T), alignof(T) };
+            }
+        } data;
+
+        const SizeType cache_index = data.counter.fetch_add(1);
+
+        AssertThrowMsg(cache_index < render_command_cache_size,
+            "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
+
+        return data.cache + (cache_index * sizeof(T));
+    }
+
+    static void Rewind();
 };
 
 } // namespace v2

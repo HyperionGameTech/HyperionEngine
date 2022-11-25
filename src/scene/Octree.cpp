@@ -600,7 +600,8 @@ Octree::Result Octree::Rebuild(Engine *engine, const BoundingBox &new_aabb)
                 continue;
             }
             
-            //CopyVisibilityState(entity->GetScene()->GetOctree().GetVisibilityState());
+            // hack
+            CopyVisibilityState(engine->GetWorld()->GetOctree().GetVisibilityState());
 
             auto insert_result = Insert(engine, node.entity);
 

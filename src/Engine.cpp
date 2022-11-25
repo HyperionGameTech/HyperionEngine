@@ -256,6 +256,8 @@ void Engine::Initialize()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
+    RenderCommands::SetOwnerThreadID(Threads::GetThreadID(THREAD_RENDER));
+
     m_crash_handler.Initialize();
 
     task_system.Start();
@@ -797,6 +799,8 @@ void Engine::Compile()
     callbacks.TriggerPersisted(EngineCallback::CREATE_COMPUTE_PIPELINES, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_RAYTRACING_PIPELINES, this);
 
+    HYP_FLUSH_RENDER_QUEUE(this);
+
     m_is_render_loop_active = true;
 }
 
@@ -1019,10 +1023,15 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     m_render_list_container.AddPendingRendererInstances(this);
     
-    if (auto num_enqueued = render_scheduler.NumEnqueued()) {
-        render_scheduler.Flush([frame](RenderFunctor &fn) {
-            HYPERION_ASSERT_RESULT(fn(frame->GetCommandBuffer(), frame->GetFrameIndex()));
-        });
+    // TMEP: leaving here
+    // if (auto num_enqueued = render_scheduler.NumEnqueued()) {
+    //     render_scheduler.Flush([frame](RenderFunctor &fn) {
+    //         HYPERION_ASSERT_RESULT(fn(frame->GetCommandBuffer(), frame->GetFrameIndex()));
+    //     });
+    // }
+
+    if (RenderCommands::Count() != 0) {
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush(this));
     }
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());

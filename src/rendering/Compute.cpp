@@ -5,18 +5,22 @@ namespace hyperion::v2 {
 
 struct RENDER_COMMAND(CreateComputeShader) : RenderCommandBase2
 {
-    ComputePipeline &pipeline;
+    renderer::ComputePipeline *pipeline;
+    renderer::ShaderProgram *shader_program;
 
-    RENDER_COMMAND(CreateComputeShader)(ComputePipeline &pipeline)
-        : pipeline(pipeline)
+    RENDER_COMMAND(CreateComputeShader)(
+        renderer::ComputePipeline *pipeline,
+        renderer::ShaderProgram *shader_program
+    ) : pipeline(pipeline),
+        shader_program(shader_program)
     {
     }
 
     virtual Result operator()(Engine *engine)
     {
-        return pipeline.GetPipeline()->Create(
-            pipeline.GetEngine()->GetDevice(),
-            pipeline.GetShader()->GetShaderProgram(),
+        return pipeline->Create(
+            engine->GetDevice(),
+            shader_program,
             &engine->GetInstance()->GetDescriptorPool()
         );
     }
@@ -70,7 +74,10 @@ void ComputePipeline::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
-        RenderCommands::Push<RENDER_COMMAND(CreateComputeShader)>(*this);
+        RenderCommands::Push<RENDER_COMMAND(CreateComputeShader)>(
+            &m_pipeline,
+            m_shader->GetShaderProgram()
+        );
 
         SetReady(true);
 

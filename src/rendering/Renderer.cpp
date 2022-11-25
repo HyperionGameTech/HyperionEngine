@@ -55,20 +55,18 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommandBase2
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             for (UInt j = 0; j < UInt(command_buffers[i].Size()); j++) {
-                HYPERION_ASSERT_RESULT(command_buffers[i][j]->Create(
+                HYPERION_BUBBLE_ERRORS(command_buffers[i][j]->Create(
                     engine->GetInstance()->GetDevice(),
                     engine->GetInstance()->GetGraphicsCommandPool(j)
                 ));
             }
         }
 
-        HYPERION_BUBBLE_ERRORS(pipeline->Create(
+        return pipeline->Create(
             engine->GetDevice(),
             std::move(construction_info),
             &engine->GetInstance()->GetDescriptorPool()
-        ));
-        
-        HYPERION_RETURN_OK;
+        );
     }
 };
 
