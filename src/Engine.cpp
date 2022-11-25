@@ -35,9 +35,15 @@ using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
 
-Engine::Engine(RefCountedPtr<Application> application, const char *app_name)
+Engine *Engine::Get()
+{
+    static Engine engine;
+
+    return &engine;
+}
+
+Engine::Engine()
     : shader_globals(nullptr),
-      m_instance(new Instance(application, app_name, "HyperionEngine")),
       m_asset_manager(this),
       m_shader_compiler(this)
 {
@@ -49,7 +55,7 @@ Engine::~Engine()
     m_placeholder_data.Destroy(this);
     m_immediate_mode.Destroy(this);
 
-    HYP_FLUSH_RENDER_QUEUE(this); // just to clear anything remaining up 
+    HYP_FLUSH_RENDER_QUEUE(); // just to clear anything remaining up 
 
     AssertThrow(m_instance != nullptr);
     (void)m_instance->GetDevice()->Wait();
@@ -252,7 +258,7 @@ void Engine::PrepareFinalPass()
     });
 }
 
-void Engine::Initialize()
+void Engine::Initialize(RefCountedPtr<Application> application)
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
@@ -267,6 +273,8 @@ void Engine::Initialize()
     //SetThreadAffinityMask(GetCurrentThread(), (1 << 8));
 #endif
 
+    AssertThrow(m_instance == nullptr);
+    m_instance.Reset(new Instance(application));
     HYPERION_ASSERT_RESULT(m_instance->Initialize(use_debug_layers));
 
     FindTextureFormatDefaults();
@@ -306,7 +314,7 @@ void Engine::Initialize()
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .buffer = shader_globals->lights.GetBuffers()[0].get(),
-            .range = UInt32(sizeof(LightDrawProxy))
+            .range = UInt32(sizeof(LightShaderData))
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
@@ -350,7 +358,7 @@ void Engine::Initialize()
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .buffer = shader_globals->lights.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(LightDrawProxy))
+            .range = static_cast<UInt>(sizeof(LightShaderData))
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
@@ -793,13 +801,13 @@ void Engine::Compile()
         "Finalized descriptor pool\n"
     );
 
-    HYP_FLUSH_RENDER_QUEUE(this);
+    HYP_FLUSH_RENDER_QUEUE();
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_GRAPHICS_PIPELINES, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_COMPUTE_PIPELINES, this);
     callbacks.TriggerPersisted(EngineCallback::CREATE_RAYTRACING_PIPELINES, this);
 
-    HYP_FLUSH_RENDER_QUEUE(this);
+    HYP_FLUSH_RENDER_QUEUE();
 
     m_is_render_loop_active = true;
 }
@@ -822,7 +830,7 @@ void Engine::FinalizeStop()
     HYPERION_ASSERT_RESULT(GetInstance()->GetDevice()->Wait());
 
     while (game_thread.IsRunning()) {
-        HYP_FLUSH_RENDER_QUEUE(this);
+        HYP_FLUSH_RENDER_QUEUE();
     }
 
     game_thread.Join();
@@ -836,11 +844,11 @@ void Engine::FinalizeStop()
 
     m_safe_deleter.ForceReleaseAll(this);
 
-    HYP_FLUSH_RENDER_QUEUE(this);
+    HYP_FLUSH_RENDER_QUEUE();
 
     m_renderer_instance_mapping.Clear();
 
-    HYP_FLUSH_RENDER_QUEUE(this);
+    HYP_FLUSH_RENDER_QUEUE();
 
     HYPERION_ASSERT_RESULT(GetInstance()->GetDevice()->Wait());
 }

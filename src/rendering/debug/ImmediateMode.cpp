@@ -19,8 +19,8 @@ struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetDevice(),
+                &Engine::Get()->GetInstance()->GetDescriptorPool()
             ));
         }
 
@@ -39,12 +39,12 @@ ImmediateMode::~ImmediateMode()
 
 void ImmediateMode::Create(Engine *engine)
 {
-    m_shapes[UInt(DebugDrawShape::SPHERE)] = engine->CreateHandle<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
-    m_shapes[UInt(DebugDrawShape::BOX)] = engine->CreateHandle<Mesh>(MeshBuilder::Cube());
-    m_shapes[UInt(DebugDrawShape::PLANE)] = engine->CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_shapes[UInt(DebugDrawShape::SPHERE)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
+    m_shapes[UInt(DebugDrawShape::BOX)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Cube());
+    m_shapes[UInt(DebugDrawShape::PLANE)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
 
     for (auto &shape : m_shapes) {
-        AssertThrow(engine->InitObject(shape));
+        AssertThrow(Engine::Get()->InitObject(shape));
     }
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -52,12 +52,12 @@ void ImmediateMode::Create(Engine *engine)
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<ImmediateDrawShaderData>(0, engine->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
+            ->SetElementBuffer<ImmediateDrawShaderData>(0, Engine::Get()->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
 
-    m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader(
+    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
         "DebugAABB",
         ShaderProps(
             renderer::static_mesh_vertex_attributes,
@@ -65,9 +65,9 @@ void ImmediateMode::Create(Engine *engine)
         )
     ));
 
-    engine->InitObject(m_shader);
+    Engine::Get()->InitObject(m_shader);
 
-    m_renderer_instance = engine->CreateRendererInstance(
+    m_renderer_instance = Engine::Get()->CreateRendererInstance(
         m_shader,
         RenderableAttributeSet(
             MeshAttributes {
@@ -82,17 +82,17 @@ void ImmediateMode::Create(Engine *engine)
         ),
         Array<const DescriptorSet *> {
             m_descriptor_sets[0].Get(),
-            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
-            engine->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+            Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
+            Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         }
     );
     
     if (m_renderer_instance) {
-        engine->GetDeferredSystem()
+        Engine::Get()->GetDeferredSystem()
             .Get(m_renderer_instance->GetRenderableAttributes().material_attributes.bucket)
             .AddFramebuffersToPipeline(m_renderer_instance);
 
-        engine->InitObject(m_renderer_instance);
+        Engine::Get()->InitObject(m_renderer_instance);
     }
 }
 
@@ -104,7 +104,7 @@ void ImmediateMode::Destroy(Engine *engine)
     m_shader.Reset();
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        engine->SafeRelease(std::move(m_descriptor_sets[frame_index]));
+        Engine::Get()->SafeRelease(std::move(m_descriptor_sets[frame_index]));
     }
 }
 
@@ -137,24 +137,24 @@ void ImmediateMode::Render(
             draw_command.color.Packed()
         };
 
-        engine->GetRenderData()->immediate_draws.Set(index, shader_data);
+        Engine::Get()->GetRenderData()->immediate_draws.Set(index, shader_data);
     }
 
-    engine->GetRenderData()->immediate_draws.UpdateBuffer(
-        engine->GetDevice(),
+    Engine::Get()->GetRenderData()->immediate_draws.UpdateBuffer(
+        Engine::Get()->GetDevice(),
         frame->GetFrameIndex()
     );
 
     RendererProxy proxy = m_renderer_instance->GetProxy();
-    proxy.Bind(engine, frame);
+    proxy.Bind(Engine::Get(), frame);
 
     proxy.GetCommandBuffer(frame->GetFrameIndex())->BindDescriptorSets(
-        engine->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetInstance()->GetDescriptorPool(),
         proxy.GetGraphicsPipeline(),
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::Index(1), DescriptorSet::Index(2) },
         FixedArray {
-            UInt32(engine->render_state.GetScene().id.ToIndex() * sizeof(SceneShaderData)),
+            UInt32(Engine::Get()->render_state.GetScene().id.ToIndex() * sizeof(SceneShaderData)),
             HYP_RENDER_OBJECT_OFFSET(Light, 0)
         }
     );
@@ -163,17 +163,17 @@ void ImmediateMode::Render(
         const DebugDrawCommand &draw_command = m_draw_commands[index];
 
         proxy.GetCommandBuffer(frame_index)->BindDescriptorSet(
-            engine->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetInstance()->GetDescriptorPool(),
             proxy.GetGraphicsPipeline(),
             m_descriptor_sets[frame_index].Get(),
             0,
             FixedArray<UInt32, 1> { UInt32(index * sizeof(ImmediateDrawShaderData)) }
         );
 
-        proxy.DrawMesh(engine, frame, m_shapes[UInt(draw_command.shape)].Get());
+        proxy.DrawMesh(Engine::Get(), frame, m_shapes[UInt(draw_command.shape)].Get());
     }
 
-    proxy.Submit(engine, frame);
+    proxy.Submit(Engine::Get(), frame);
 
     m_draw_commands.Clear();
 }

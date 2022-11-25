@@ -55,9 +55,9 @@ public:
         { m_world_position = world_position; SetNeedsUpdate(); }
 
     void Init(Engine *engine);
-    void EnqueueBind(Engine *engine) const;
-    void EnqueueUnbind(Engine *engine) const;
-    void Update(Engine *engine);
+    void EnqueueBind() const;
+    void EnqueueUnbind() const;
+    void Update();
 
 private:
     void SetNeedsUpdate() { m_needs_update = true; }

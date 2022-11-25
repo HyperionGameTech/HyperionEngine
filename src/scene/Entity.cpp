@@ -37,7 +37,7 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommandBase2
     {
         entity->m_draw_proxy = draw_proxy;
 
-        entity->GetEngine()->GetRenderData()->objects.Set(
+        Engine::Get()->GetRenderData()->objects.Set(
             entity->GetID().ToIndex(),
             ObjectShaderData {
                 .model_matrix = transform_matrix,
@@ -130,22 +130,22 @@ void Entity::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     if (!m_shader) {
-        m_shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
+        m_shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
     }
 
     m_draw_proxy.entity_id = m_id;
     m_previous_transform_matrix = m_transform.GetMatrix();
 
-    engine->InitObject(m_shader);
-    engine->InitObject(m_material);
-    engine->InitObject(m_skeleton);
-    engine->InitObject(m_blas);
+    Engine::Get()->InitObject(m_shader);
+    Engine::Get()->InitObject(m_material);
+    Engine::Get()->InitObject(m_skeleton);
+    Engine::Get()->InitObject(m_blas);
 
     // set our aabb to be the mesh aabb now that it is init
-    if (engine->InitObject(m_mesh)) {
+    if (Engine::Get()->InitObject(m_mesh)) {
         m_local_aabb = m_mesh->CalculateAABB();
 
         if (!m_local_aabb.Empty()) {
@@ -162,14 +162,12 @@ void Entity::Init(Engine *engine)
     SetReady(true);
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    //if (engine->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+    //if (Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
     //    CreateBLAS();
     //}
 #endif
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
-
         DebugLog(
             LogType::Debug,
             "Destroy entity with id %u, with name %s\n",
@@ -203,11 +201,11 @@ void Entity::Init(Engine *engine)
         m_material.Reset();
         m_blas.Reset();
 
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
         
-        engine->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
-        engine->SafeReleaseHandle<Mesh>(std::move(m_mesh));
-        engine->SafeReleaseHandle<Shader>(std::move(m_shader));
+        Engine::Get()->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
+        Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_mesh));
+        Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
     });
 }
 
@@ -222,7 +220,7 @@ void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
     }
 
     if (m_material != nullptr && m_material->IsReady()) {
-        m_material->Update(engine);
+        m_material->Update(Engine::Get());
 
         // make changes if it was updated
         if (m_material->GetRenderAttributes() != m_renderable_attributes.material_attributes) {
@@ -231,7 +229,7 @@ void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
         }
     }
 
-    UpdateControllers(engine, delta);
+    UpdateControllers(Engine::Get(), delta);
 
     if (m_octree) {
         if (m_needs_octree_update) {
@@ -311,7 +309,7 @@ void Entity::UpdateOctree()
     AssertReady();
 
     if (Octree *octree = m_octree) {
-        const auto update_result = octree->Update(GetEngine(), this);
+        const auto update_result = octree->Update(Engine::Get(), this);
 
         if (!update_result) {
             DebugLog(
@@ -333,13 +331,13 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
     }
 
     if (m_mesh && IsInitCalled()) {
-        GetEngine()->SafeReleaseHandle<Mesh>(std::move(m_mesh));
+        Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_mesh));
     }
 
     m_mesh = std::move(mesh);
 
     if (IsInitCalled()) {
-        if (GetEngine()->InitObject(m_mesh)) {
+        if (Engine::Get()->InitObject(m_mesh)) {
             m_local_aabb = m_mesh->CalculateAABB();
 
             if (!m_local_aabb.Empty()) {
@@ -362,13 +360,13 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
     }
 
     if (m_skeleton && IsInitCalled()) {
-        GetEngine()->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
+        Engine::Get()->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
     }
 
     m_skeleton = std::move(skeleton);
 
     if (m_skeleton && IsInitCalled()) {
-        GetEngine()->InitObject(m_skeleton);
+        Engine::Get()->InitObject(m_skeleton);
     }
 
     RebuildRenderableAttributes();
@@ -381,14 +379,14 @@ void Entity::SetShader(Handle<Shader> &&shader)
     }
 
     if (m_shader && IsInitCalled()) {
-        GetEngine()->SafeReleaseHandle<Shader>(std::move(m_shader));
+        Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
     }
 
     m_shader = std::move(shader);
     
     if (m_shader) {
         if (IsInitCalled()) {
-            GetEngine()->InitObject(m_shader);
+            Engine::Get()->InitObject(m_shader);
         }
 
         RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
@@ -413,7 +411,7 @@ void Entity::SetMaterial(Handle<Material> &&material)
         new_renderable_attributes.material_attributes = m_material->GetRenderAttributes();
 
         if (IsInitCalled()) {
-            GetEngine()->InitObject(m_material);
+            Engine::Get()->InitObject(m_material);
         }
     } else {
         new_renderable_attributes.material_attributes = { };
@@ -659,7 +657,7 @@ void Entity::AddToOctree(Engine *engine, Octree &octree)
 {
     AssertThrow(m_octree == nullptr);
 
-    if (!octree.Insert(engine, this)) {
+    if (!octree.Insert(Engine::Get(), this)) {
         DebugLog(LogType::Warn, "Entity #%lu could not be added to octree\n", m_id.value);
     }
 }
@@ -672,7 +670,7 @@ void Entity::RemoveFromOctree(Engine *engine)
         GetID().value
     );
 
-    m_octree->OnEntityRemoved(engine, this);
+    m_octree->OnEntityRemoved(Engine::Get(), this);
 }
 
 bool Entity::IsReady() const
@@ -689,7 +687,7 @@ bool Entity::CreateBLAS()
     }
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+    if (!Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
         return false;
     }
 #else
@@ -701,7 +699,7 @@ bool Entity::CreateBLAS()
         return false;
     }
 
-    m_blas = GetEngine()->CreateHandle<BLAS>(
+    m_blas = Engine::Get()->CreateHandle<BLAS>(
         m_id,
         Handle<Mesh>(m_mesh),
         Handle<Material>(m_material),
@@ -709,7 +707,7 @@ bool Entity::CreateBLAS()
     );
 
     if (IsInitCalled()) {
-        if (GetEngine()->InitObject(m_blas)) {
+        if (Engine::Get()->InitObject(m_blas)) {
             // add it to the scene if it exists
             // otherwise, have to add to scene when the Entity is added to a scene
 

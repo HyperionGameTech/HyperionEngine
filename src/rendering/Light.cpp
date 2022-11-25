@@ -19,7 +19,7 @@ struct RENDER_COMMAND(BindLight) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        engine->GetRenderState().BindLight(id);
+        Engine::Get()->GetRenderState().BindLight(id);
 
         HYPERION_RETURN_OK;
     }
@@ -36,7 +36,7 @@ struct RENDER_COMMAND(UnbindLight) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        engine->GetRenderState().UnbindLight(id);
+        Engine::Get()->GetRenderState().UnbindLight(id);
 
         HYPERION_RETURN_OK;
     }
@@ -57,9 +57,16 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommandBase2
     {
         light.m_draw_proxy = draw_proxy;
 
-        engine->GetRenderData()->lights.Set(
+        Engine::Get()->GetRenderData()->lights.Set(
             light.GetID().ToIndex(),
-            draw_proxy
+            LightShaderData {
+                .light_id           = UInt32(draw_proxy.id),
+                .light_type         = UInt32(draw_proxy.type),
+                .color_packed       = UInt32(draw_proxy.color),
+                .radius             = draw_proxy.radius,
+                .shadow_map_index   = draw_proxy.shadow_map_index,
+                .position_intensity = draw_proxy.position_intensity
+            }
         );
 
         HYPERION_RETURN_OK;
@@ -94,7 +101,7 @@ void Light::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     EnqueueRenderUpdates();
 
@@ -103,11 +110,11 @@ void Light::Init(Engine *engine)
     OnTeardown([this]() {
         SetReady(false);
 
-        HYP_FLUSH_RENDER_QUEUE(GetEngine());
+        HYP_FLUSH_RENDER_QUEUE();
     });
 }
 
-void Light::EnqueueBind(Engine *engine) const
+void Light::EnqueueBind() const
 {
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
@@ -115,7 +122,7 @@ void Light::EnqueueBind(Engine *engine) const
     RenderCommands::Push<RENDER_COMMAND(BindLight)>(m_id);
 }
 
-void Light::EnqueueUnbind(Engine *engine) const
+void Light::EnqueueUnbind() const
 {
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
@@ -123,7 +130,7 @@ void Light::EnqueueUnbind(Engine *engine) const
     RenderCommands::Push<RENDER_COMMAND(UnbindLight)>(m_id);
 }
 
-void Light::Update(Engine *)
+void Light::Update()
 {
     if (m_shader_data_state.IsDirty()) {
         EnqueueRenderUpdates();

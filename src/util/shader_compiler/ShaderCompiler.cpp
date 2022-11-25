@@ -394,8 +394,7 @@ static String GetPropertiesString(const Array<ShaderProperty> &properties)
 }
 
 ShaderCompiler::ShaderCompiler(Engine *engine)
-    : m_engine(engine),
-      m_definitions(nullptr)
+    : m_definitions(nullptr)
 {
 #if HYP_GLSLANG
     ShInitialize();
@@ -439,7 +438,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProps &props) const
     props.Set(ShaderProperty("DX12", false));
 #endif
 
-    if (m_engine->GetDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (Engine::Get()->GetDevice()->GetFeatures().SupportsBindlessTextures()) {
         props.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 }
@@ -457,7 +456,7 @@ void ShaderCompiler::ParseDefinitionSection(
             }
         } else if (shader_type_names.Contains(section_it.first)) {
             bundle.sources[shader_type_names.At(section_it.first)] = SourceFile {
-                m_engine->GetAssetManager().GetBasePath() / "vkshaders" / section_it.second.GetValue()
+                Engine::Get()->GetAssetManager().GetBasePath() / "vkshaders" / section_it.second.GetValue()
             };
         } else {
             DebugLog(
@@ -589,7 +588,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         DebugLog(
             LogType::Warn,
             "Not compiled with GLSL compiler support... Shaders may become out of date.\n"
-            "If any .hypshader files are missing, you may need to recompile the engine with glslang linked, "
+            "If any .hypshader files are missing, you may need to recompile the Engine::Get() with glslang linked, "
             "so that they can be generated.\n"
         );
     }
@@ -621,10 +620,10 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     const auto &section = m_definitions->GetSection(name);
     ParseDefinitionSection(section, bundle);
     
-    const FilePath output_file_path = m_engine->GetAssetManager().GetBasePath() / "data/compiled_shaders" / name + ".hypshader";
+    const FilePath output_file_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders" / name + ".hypshader";
 
     // read file if it already exists.
-    fbom::FBOMReader reader(m_engine, fbom::FBOMConfig { });
+    fbom::FBOMReader reader(Engine::Get(), fbom::FBOMConfig { });
     fbom::FBOMDeserializedObject deserialized;
 
     DebugLog(
@@ -666,7 +665,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
 
 bool ShaderCompiler::LoadShaderDefinitions()
 {
-    const FilePath data_path = m_engine->GetAssetManager().GetBasePath() / "data/compiled_shaders";
+    const FilePath data_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders";
 
     if (!data_path.Exists()) {
         if (FileSystem::Mkdir(data_path.Data()) != 0) {
@@ -684,7 +683,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
         delete m_definitions;
     }
 
-    m_definitions = new DefinitionsFile(m_engine->GetAssetManager().GetBasePath() / "shaders.def");
+    m_definitions = new DefinitionsFile(Engine::Get()->GetAssetManager().GetBasePath() / "shaders.def");
 
     if (!m_definitions->IsValid()) {
         DebugLog(
@@ -713,7 +712,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supports_rt_shaders = m_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
+    const bool supports_rt_shaders = Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED);
 
     FlatMap<Bundle *, bool> results;
 
@@ -787,7 +786,7 @@ struct LoadedSourceFile
 
 bool ShaderCompiler::CanCompileShaders() const
 {
-    if (!m_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
+    if (!Engine::Get()->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
         return false;
     }
 
@@ -938,7 +937,7 @@ bool ShaderCompiler::CompileBundle(
     }
 
     // run with spirv-cross
-    FileSystem::Mkdir((m_engine->GetAssetManager().GetBasePath() / "data/compiled_shaders/tmp").Data());
+    FileSystem::Mkdir((Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders/tmp").Data());
 
     Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Reserve(bundle.sources.Size());
@@ -1071,7 +1070,7 @@ bool ShaderCompiler::CompileBundle(
             // check if a file exists w/ same hash
             
             const auto output_filepath = item.GetOutputFilepath(
-                m_engine->GetAssetManager().GetBasePath(),
+                Engine::Get()->GetAssetManager().GetBasePath(),
                 version_hash
             );
 
@@ -1134,7 +1133,7 @@ bool ShaderCompiler::CompileBundle(
             Array<String> error_messages;
 
             // set directory to the directory of the shader
-            const auto dir = m_engine->GetAssetManager().GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), m_engine->GetAssetManager().GetBasePath());
+            const auto dir = Engine::Get()->GetAssetManager().GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), Engine::Get()->GetAssetManager().GetBasePath());
 
             FileSystem::PushDirectory(dir);
             byte_buffer = CompileToSPIRV(item.type, item.language, item.original_source.Data(), item.file.path.Data(), property_set, error_messages);
@@ -1178,7 +1177,7 @@ bool ShaderCompiler::CompileBundle(
         out.compiled_shaders.PushBack(std::move(compiled_shader));
     });
 
-    const FilePath final_output_path = m_engine->GetAssetManager().GetBasePath() / "data/compiled_shaders" / bundle.name + ".hypshader";
+    const FilePath final_output_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders" / bundle.name + ".hypshader";
 
     FileByteWriter byte_writer(final_output_path.Data());
 

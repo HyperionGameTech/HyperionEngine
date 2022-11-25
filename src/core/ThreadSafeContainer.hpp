@@ -92,7 +92,7 @@ public:
 
     /*! \brief Adds and removes all pending items to be added or removed.
         Only call from the owner thread.
-        @param engine A pointer to the Engine object. Used to initialize any newly objects. */
+        @param Engine::Get() A pointer to the Engine object. Used to initialize any newly objects. */
     template <class Engine>
     void UpdateItems(Engine *engine)
     {
@@ -131,7 +131,7 @@ public:
             });
 
             if (it == m_owned_items.End()) {
-                // engine->InitObject(front);
+                // Engine::Get()->InitObject(front);
 
                 m_owned_items.PushBack(std::move(front));
             }

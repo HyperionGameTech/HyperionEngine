@@ -14,10 +14,8 @@ namespace hyperion::v2 {
 LoadedAsset FBOMModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
-    auto *engine = state.asset_manager->GetEngine();
-    AssertThrow(engine != nullptr);
 
-    fbom::FBOMReader reader(engine, fbom::FBOMConfig { });
+    fbom::FBOMReader reader(Engine::Get(), fbom::FBOMConfig { });
     fbom::FBOMDeserializedObject object;
 
     DebugLog(LogType::Info, "Begin loading serialized object at %s\n", state.filepath.c_str());

@@ -264,8 +264,6 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
 LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 {
     AssertThrow(state.asset_manager != nullptr);
-    auto *engine = state.asset_manager->GetEngine();
-    AssertThrow(engine != nullptr);
 
     auto top = UniquePtr<Node>::Construct(model.tag.c_str());
 
@@ -362,10 +360,10 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         }
 
         if (!material) {
-            material = engine->CreateHandle<Material>();
+            material = Engine::Get()->CreateHandle<Material>();
         }
 
-        auto mesh = engine->CreateHandle<Mesh>(
+        auto mesh = Engine::Get()->CreateHandle<Mesh>(
             vertices, 
             indices,
             Topology::TRIANGLES
@@ -379,9 +377,9 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         auto vertex_attributes = mesh->GetVertexAttributes();
 
-        auto shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
+        auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
 
-        auto entity = engine->CreateHandle<Entity>(
+        auto entity = Engine::Get()->CreateHandle<Entity>(
             std::move(mesh),
             std::move(shader),
             std::move(material),

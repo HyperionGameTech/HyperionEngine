@@ -29,8 +29,8 @@ struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommandBase2
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
-                engine->GetDevice(),
-                engine->GetInstance()->GetGraphicsCommandPool()
+                Engine::Get()->GetDevice(),
+                Engine::Get()->GetInstance()->GetGraphicsCommandPool()
             ));
         }
 
@@ -52,7 +52,7 @@ struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommandBase2
         auto result = renderer::Result::OK;
 
         for (auto &attachment : attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
+            HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetInstance()->GetDevice()), result);
         }
 
         attachments.Clear();
@@ -95,16 +95,16 @@ void FullScreenPass::Create(Engine *engine)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    engine->InitObject(m_shader);
+    Engine::Get()->InitObject(m_shader);
 
-    CreateQuad(engine);
-    CreateRenderPass(engine);
-    CreateCommandBuffers(engine);
-    CreateFramebuffers(engine);
-    CreatePipeline(engine);
-    CreateDescriptors(engine);
+    CreateQuad(Engine::Get());
+    CreateRenderPass(Engine::Get());
+    CreateCommandBuffers(Engine::Get());
+    CreateFramebuffers(Engine::Get());
+    CreatePipeline(Engine::Get());
+    CreateDescriptors(Engine::Get());
     
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE();
 }
 
 void FullScreenPass::SetShader(Handle<Shader> &&shader)
@@ -118,8 +118,8 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
 
 void FullScreenPass::CreateQuad(Engine *engine)
 {
-    m_full_screen_quad = engine->CreateHandle<Mesh>(MeshBuilder::Quad());
-    engine->InitObject(m_full_screen_quad);
+    m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    Engine::Get()->InitObject(m_full_screen_quad);
 }
 
 void FullScreenPass::CreateRenderPass(Engine *engine)
@@ -133,7 +133,7 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     renderer::AttachmentRef *attachment_ref;
 
     auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        engine->GetInstance()->swapchain->extent,
+        Engine::Get()->GetInstance()->swapchain->extent,
         m_image_format,
         nullptr
     );
@@ -144,7 +144,7 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
+        Engine::Get()->GetInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -153,11 +153,11 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
 
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetInstance()->GetDevice()));
     }
 
-    m_render_pass = engine->CreateHandle<RenderPass>(render_pass.release());
-    engine->InitObject(m_render_pass);
+    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(render_pass.release());
+    Engine::Get()->InitObject(m_render_pass);
 }
 
 void FullScreenPass::CreateCommandBuffers(Engine *engine)
@@ -173,8 +173,8 @@ void FullScreenPass::CreateCommandBuffers(Engine *engine)
 void FullScreenPass::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
-            engine->GetInstance()->swapchain->extent,
+        m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
+            Engine::Get()->GetInstance()->swapchain->extent,
             Handle<RenderPass>(m_render_pass)
         );
 
@@ -183,13 +183,13 @@ void FullScreenPass::CreateFramebuffers(Engine *engine)
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
         
-        engine->InitObject(m_framebuffers[i]);
+        Engine::Get()->InitObject(m_framebuffers[i]);
     }
 }
 
 void FullScreenPass::CreatePipeline(Engine *engine)
 {
-    CreatePipeline(engine, RenderableAttributeSet(
+    CreatePipeline(Engine::Get(), RenderableAttributeSet(
         MeshAttributes {
             .vertex_attributes = renderer::static_mesh_vertex_attributes
         },
@@ -213,13 +213,13 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
         _renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    m_renderer_instance = engine->AddRendererInstance(std::move(_renderer_instance));
-    engine->InitObject(m_renderer_instance);
+    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(_renderer_instance));
+    Engine::Get()->InitObject(m_renderer_instance);
 }
 
 void FullScreenPass::Destroy(Engine *engine)
 {
-    engine->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
+    Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
 
     // TODO: Move all attachment ops into render thread
     for (UInt i = 0; i < max_frames_in_flight; i++) {
@@ -245,75 +245,72 @@ void FullScreenPass::Destroy(Engine *engine)
     m_renderer_instance.Reset();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        engine->SafeRelease(std::move(m_command_buffers[i]));
+        Engine::Get()->SafeRelease(std::move(m_command_buffers[i]));
     }
 
     RenderCommands::Push<RENDER_COMMAND(DestroyFullScreenPassAttachments)>(std::move(m_attachments));
 
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE();
 }
 
 void FullScreenPass::Record(Engine *engine, UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    using renderer::Result;
-
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
     auto record_result = command_buffer->Record(
-        engine->GetInstance()->GetDevice(),
+        Engine::Get()->GetInstance()->GetDevice(),
         m_renderer_instance->GetPipeline()->GetConstructionInfo().render_pass,
-        [this, engine, frame_index](CommandBuffer *cmd) {
+        [this, frame_index](CommandBuffer *cmd) {
             m_renderer_instance->GetPipeline()->push_constants = m_push_constant_data;
             m_renderer_instance->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = engine->render_state.GetScene();
-            const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
+            const UInt scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
 
             cmd->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
+                Engine::Get()->GetInstance()->GetDescriptorPool(),
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
 
             cmd->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
+                Engine::Get()->GetInstance()->GetDescriptorPool(),
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
-                    static_cast<UInt32>(sizeof(SceneShaderData) * scene_index),
+                    HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                     HYP_RENDER_OBJECT_OFFSET(Light, 0)
                 }
             );
             
 #if HYP_FEATURES_BINDLESS_TEXTURES
             cmd->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
+                Engine::Get()->GetInstance()->GetDescriptorPool(),
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::bindless_textures_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             );
 #else
             cmd->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
+                Engine::Get()->GetInstance()->GetDescriptorPool(),
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
 
             cmd->BindDescriptorSet(
-                engine->GetInstance()->GetDescriptorPool(),
+                Engine::Get()->GetInstance()->GetDescriptorPool(),
                 m_renderer_instance->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
             );
             
 #if HYP_FEATURES_ENABLE_RAYTRACING
-          //  if (!engine->GetDevice()->GetFeatures().IsRaytracingDisabled()) {
+          //  if (!Engine::Get()->GetDevice()->GetFeatures().IsRaytracingDisabled()) {
                 cmd->BindDescriptorSet(
-                    engine->GetInstance()->GetDescriptorPool(),
+                    Engine::Get()->GetInstance()->GetDescriptorPool(),
                     m_renderer_instance->GetPipeline(),
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
@@ -321,7 +318,7 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
          //   }
 #endif
 
-            m_full_screen_quad->Render(engine, cmd);
+            m_full_screen_quad->Render(Engine::Get(), cmd);
 
             HYPERION_RETURN_OK;
         });

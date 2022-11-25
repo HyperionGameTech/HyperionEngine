@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_COMPONENTS_BASE_H
 #define HYPERION_V2_COMPONENTS_BASE_H
 
+#include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/Class.hpp>
 #include <core/Handle.hpp>
@@ -21,10 +22,6 @@ namespace hyperion::v2 {
 
 using renderer::Instance;
 using renderer::Device;
-
-class Engine;
-
-Device *GetEngineDevice(Engine *engine);
 
 template <class Parent>
 struct AttachmentSet

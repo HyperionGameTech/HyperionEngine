@@ -5,6 +5,8 @@
 #include "SdlSystem.hpp"
 #include "Debug.hpp"
 
+#include <core/lib/CMemory.hpp>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.hpp>
@@ -81,7 +83,7 @@ Extent2D SDLApplicationWindow::GetExtent() const
     Int width, height;
     SDL_GetWindowSize(window, &width, &height);
 
-    return Extent2D { UInt(width), UInt(height) };
+    return Extent2D { UInt32(width), UInt32(height) };
 }
 
 void SDLApplicationWindow::SetMouseLocked(bool locked)
@@ -89,8 +91,8 @@ void SDLApplicationWindow::SetMouseLocked(bool locked)
     SDL_SetRelativeMouseMode(locked ? SDL_TRUE : SDL_FALSE);
 }
 
-SDLApplication::SDLApplication()
-    : Application()
+SDLApplication::SDLApplication(const char *name)
+    : Application(name)
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 }
@@ -147,8 +149,22 @@ bool SDLApplication::GetVkExtensions(Array<const char *> &out_extensions) const
 }
 #endif
 
-Application::Application()
+Application::Application(const char *name)
 {
+    if (name == nullptr) {
+        name = "HyperionApp";
+    }
+
+    const SizeType len = Memory::StringLength(name);
+
+    m_name = new char[len + 1];
+    Memory::Copy(m_name, name, len);
+    m_name[len] = '\0';
+}
+
+Application::~Application()
+{
+    delete[] m_name;
 }
 
 } // namespace hyperion

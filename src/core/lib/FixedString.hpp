@@ -53,7 +53,7 @@ public:
 
     ~StringView() = default;
 
-    operator const char *() const { return m_str; }
+    explicit operator const char *() const { return m_str; }
 
     bool operator<(const StringView &other) const
         { return m_str == nullptr ? true : bool(std::strcmp(m_str, other.m_str) < 0); }

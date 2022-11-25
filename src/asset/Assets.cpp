@@ -6,9 +6,7 @@ namespace hyperion::v2 {
 
 ComponentSystem &AssetManager::GetObjectSystem()
 {
-    AssertThrow(m_engine != nullptr);
-
-    return m_engine->GetObjectSystem();
+    return Engine::Get()->GetObjectSystem();
 }
 
 } // namespace hyperion::v2

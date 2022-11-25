@@ -70,10 +70,10 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommandBase2
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &image_output : image_outputs[frame_index]) {
-                image_output.Create(engine->GetDevice());
+                image_output.Create(Engine::Get()->GetDevice());
             }
 
-            radius_outputs[frame_index].Create(engine->GetDevice());
+            radius_outputs[frame_index].Create(Engine::Get()->GetDevice());
         }
 
         HYPERION_RETURN_OK;
@@ -112,12 +112,12 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommandBase2
             AssertThrow(uniform_buffers[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create(
-                engine->GetDevice(),
+                Engine::Get()->GetDevice(),
                 sizeof(ssr_params)
             ));
 
             uniform_buffers[frame_index]->Copy(
-                engine->GetDevice(),
+                Engine::Get()->GetDevice(),
                 sizeof(ssr_params),
                 &ssr_params
             );
@@ -147,12 +147,12 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommandBase2
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetDevice(),
+                &Engine::Get()->GetInstance()->GetDescriptorPool()
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = Engine::Get()->GetInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -181,18 +181,18 @@ struct RENDER_COMMAND(DestroySSRInstance) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt j = 0; j < UInt(image_outputs[frame_index].Size()); j++) {
-                image_outputs[frame_index][j].Destroy(engine->GetDevice());
+                image_outputs[frame_index][j].Destroy(Engine::Get()->GetDevice());
             }
 
-            radius_outputs[frame_index].Destroy(engine->GetDevice());
+            radius_outputs[frame_index].Destroy(Engine::Get()->GetDevice());
 
             // unset final result from the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = Engine::Get()->GetInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetElementSRV(0, &engine->GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -223,11 +223,11 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
         m_radius_output.Data()
     );
 
-    m_temporal_blending.Create(engine);
+    m_temporal_blending.Create(Engine::Get());
 
-    CreateUniformBuffers(engine);
-    CreateDescriptorSets(engine);
-    CreateComputePipelines(engine);
+    CreateUniformBuffers(Engine::Get());
+    CreateDescriptorSets(Engine::Get());
+    CreateComputePipelines(Engine::Get());
 }
 
 void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
@@ -239,11 +239,11 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    m_temporal_blending.Destroy(engine);
+    m_temporal_blending.Destroy(Engine::Get());
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        engine->SafeRelease(std::move(m_descriptor_sets[frame_index]));
-        engine->SafeRelease(std::move(m_uniform_buffers[frame_index]));
+        Engine::Get()->SafeRelease(std::move(m_descriptor_sets[frame_index]));
+        Engine::Get()->SafeRelease(std::move(m_uniform_buffers[frame_index]));
     }
 
     RenderCommands::Push<RENDER_COMMAND(DestroySSRInstance)>(
@@ -251,7 +251,7 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
         m_radius_output.Data()
     );
 
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE();
 }
 
 void ScreenspaceReflectionRenderer::CreateUniformBuffers(Engine *engine)
@@ -313,37 +313,37 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
 
         descriptor_set // gbuffer albedo texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
-            ->SetElementSRV(0, &engine->GetDeferredRenderer().GetMipChain(frame_index)->GetImageView());
+            ->SetElementSRV(0, &Engine::Get()->GetDeferredRenderer().GetMipChain(frame_index)->GetImageView());
 
         descriptor_set // gbuffer normals texture
             ->AddDescriptor<renderer::ImageDescriptor>(11)
-            ->SetElementSRV(0, engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
 
         descriptor_set // gbuffer material texture
             ->AddDescriptor<renderer::ImageDescriptor>(12)
-            ->SetElementSRV(0, engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
 
         descriptor_set // gbuffer albedo texture
             ->AddDescriptor<renderer::ImageDescriptor>(13)
-            ->SetElementSRV(0, engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // nearest sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(14)
-            ->SetElementSampler(0, &engine->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(15)
-            ->SetElementSampler(0, &engine->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
         // scene data
         descriptor_set
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(16)
-            ->SetElementBuffer<SceneShaderData>(0, engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
         // uniforms
         descriptor_set
@@ -364,33 +364,33 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
 
 void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
 {
-    m_write_uvs = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
+    m_write_uvs = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
-    engine->InitObject(m_write_uvs);
+    Engine::Get()->InitObject(m_write_uvs);
 
-    m_sample = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("SSRSample")),
+    m_sample = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRSample")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
-    engine->InitObject(m_sample);
+    Engine::Get()->InitObject(m_sample);
 
-    m_blur_hor = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("SSRBlurHor")),
+    m_blur_hor = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurHor")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
-    engine->InitObject(m_blur_hor);
+    Engine::Get()->InitObject(m_blur_hor);
 
-    m_blur_vert = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("SSRBlurVert")),
+    m_blur_vert = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurVert")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
-    engine->InitObject(m_blur_vert);
+    Engine::Get()->InitObject(m_blur_vert);
 }
 
 void ScreenspaceReflectionRenderer::Render(
@@ -398,7 +398,7 @@ void ScreenspaceReflectionRenderer::Render(
     Frame *frame
 )
 {
-    const auto &scene_binding = engine->render_state.GetScene();
+    const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
 
     auto *command_buffer = frame->GetCommandBuffer();
@@ -415,11 +415,11 @@ void ScreenspaceReflectionRenderer::Render(
     m_write_uvs->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetInstance()->GetDescriptorPool(),
         m_write_uvs->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { static_cast<UInt32>(engine->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+        FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
     );
 
     m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -440,11 +440,11 @@ void ScreenspaceReflectionRenderer::Render(
     m_sample->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetInstance()->GetDescriptorPool(),
         m_sample->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { static_cast<UInt32>(engine->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+        FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
     );
 
     m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -465,11 +465,11 @@ void ScreenspaceReflectionRenderer::Render(
     m_blur_hor->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetInstance()->GetDescriptorPool(),
         m_blur_hor->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { static_cast<UInt32>(engine->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+        FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
     );
 
     m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -488,11 +488,11 @@ void ScreenspaceReflectionRenderer::Render(
     m_blur_vert->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        engine->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetInstance()->GetDescriptorPool(),
         m_blur_vert->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { static_cast<UInt32>(engine->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+        FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
     );
 
     m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -501,7 +501,7 @@ void ScreenspaceReflectionRenderer::Render(
     m_image_outputs[frame_index][3].image.GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
-    m_temporal_blending.Render(engine, frame);
+    m_temporal_blending.Render(Engine::Get(), frame);
 
     m_is_rendered = true;
     /* ==========  END SSR  ========== */

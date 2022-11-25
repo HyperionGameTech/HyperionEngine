@@ -30,10 +30,10 @@ void World::Init(Engine *engine)
     }
 
     for (auto &it : m_scenes) {
-        engine->InitObject(it.second);
+        Engine::Get()->InitObject(it.second);
     }
     
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     m_physics_world.Init();
 
@@ -120,7 +120,7 @@ void World::Update(
     }
 
     for (auto &it : m_scenes) {
-        it.second->Update(engine, delta);
+        it.second->Update(Engine::Get(), delta);
     }
 }
 
@@ -134,7 +134,7 @@ void World::Render(
     AssertReady();
 
     // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
-    engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
+    Engine::Get()->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
 }
 
 void World::AddScene(Handle<Scene> &&scene)
@@ -143,9 +143,7 @@ void World::AddScene(Handle<Scene> &&scene)
         return;
     }
 
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(scene);
-    }
+    Engine::Get()->InitObject(scene);
 
     std::lock_guard guard(m_scene_update_mutex);
 

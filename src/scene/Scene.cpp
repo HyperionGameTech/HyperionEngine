@@ -26,7 +26,7 @@ struct RENDER_COMMAND(BindLights) : RenderCommandBase2
     virtual Result operator()(Engine *engine)
     {
         for (SizeType i = 0; i < num_lights; i++) {
-            engine->GetRenderState().BindLight(ids[i]);
+            Engine::Get()->GetRenderState().BindLight(ids[i]);
         }
 
         delete[] ids;
@@ -49,7 +49,7 @@ struct RENDER_COMMAND(BindEnvProbes) : RenderCommandBase2
     virtual Result operator()(Engine *engine)
     {
         for (SizeType i = 0; i < num_env_probes; i++) {
-            engine->GetRenderState().BindEnvProbe(ids[i]);
+            Engine::Get()->GetRenderState().BindEnvProbe(ids[i]);
         }
 
         delete[] ids;
@@ -88,22 +88,22 @@ void Scene::Init(Engine *engine)
         return;
     }
     
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
-    engine->InitObject(m_camera);
+    Engine::Get()->InitObject(m_camera);
 
     if (!m_tlas) {
-        if (engine->GetConfig().Get(CONFIG_RT_SUPPORTED) && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
+        if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED) && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
             CreateTLAS();
         } else {
             SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
         }
     }
 
-    engine->InitObject(m_tlas);
+    Engine::Get()->InitObject(m_tlas);
 
     {
-        m_environment->Init(engine);
+        m_environment->Init(Engine::Get());
 
         if (m_tlas) {
             m_environment->SetTLAS(m_tlas);
@@ -112,7 +112,7 @@ void Scene::Init(Engine *engine)
 
     for (auto &it : m_entities) {
         auto &entity = it.second;
-        AssertThrow(engine->InitObject(entity));
+        AssertThrow(Engine::Get()->InitObject(entity));
     }
 
     if (m_entities_pending_removal.Any()) {
@@ -123,7 +123,7 @@ void Scene::Init(Engine *engine)
         for (auto &entity : m_entities_pending_addition) {
             AssertThrow(entity);
             
-            engine->InitObject(entity);
+            Engine::Get()->InitObject(entity);
         }
 
         AddPendingEntities();
@@ -136,7 +136,7 @@ void Scene::Init(Engine *engine)
 
         for (auto &it : m_lights) {
             auto &light = it.second;
-            AssertThrow(engine->InitObject(light));
+            AssertThrow(Engine::Get()->InitObject(light));
 
             light_ids[index++] = it.first;
         }
@@ -154,7 +154,7 @@ void Scene::Init(Engine *engine)
 
         for (auto &it : m_env_probes) {
             auto &env_probe = it.second;
-            AssertThrow(engine->InitObject(env_probe));
+            AssertThrow(Engine::Get()->InitObject(env_probe));
 
             env_probe_ids[index++] = it.first;
         }
@@ -168,7 +168,7 @@ void Scene::Init(Engine *engine)
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
+        auto *engine = Engine::Get();
 
         m_camera.Reset();
         m_tlas.Reset();
@@ -184,7 +184,7 @@ void Scene::Init(Engine *engine)
             RemoveFromRendererInstances(it.second);
 
             if (it.second->m_octree != nullptr) {
-                it.second->RemoveFromOctree(GetEngine());
+                it.second->RemoveFromOctree(Engine::Get());
             }
         }
 
@@ -192,7 +192,7 @@ void Scene::Init(Engine *engine)
         m_entities_pending_addition.Clear();
         m_entities_pending_removal.Clear();
 
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
 
         SetReady(false);
     });
@@ -202,9 +202,7 @@ void Scene::SetCamera(Handle<Camera> &&camera)
 {
     m_camera = std::move(camera);
 
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(m_camera);
-    }
+    Engine::Get()->InitObject(m_camera);
 }
 
 void Scene::SetWorld(World *world)
@@ -226,7 +224,7 @@ void Scene::SetWorld(World *world)
                 entity->GetID().value
             );
 
-            entity->RemoveFromOctree(GetEngine());
+            entity->RemoveFromOctree(Engine::Get());
         }
     }
 
@@ -253,7 +251,7 @@ void Scene::SetWorld(World *world)
         );
 #endif
 
-        entity->AddToOctree(GetEngine(), m_world->GetOctree());
+        entity->AddToOctree(Engine::Get(), m_world->GetOctree());
     }
 }
 
@@ -329,9 +327,7 @@ bool Scene::AddEntityInternal(Handle<Entity> &&entity)
         return false;
     }
 
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(entity);
-    }
+    Engine::Get()->InitObject(entity);
 
     entity->SetScene(this);
 
@@ -395,7 +391,7 @@ void Scene::AddPendingEntities()
         const auto id = entity->GetID();
 
         if (entity->IsRenderable() && !entity->GetPrimaryRendererInstance()) {
-            if (auto renderer_instance = GetEngine()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
+            if (auto renderer_instance = Engine::Get()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
                 renderer_instance->AddEntity(Handle<Entity>(entity));
                 entity->EnqueueRenderUpdates();
 
@@ -424,7 +420,7 @@ void Scene::AddPendingEntities()
                 );
 #endif
 
-                entity->AddToOctree(GetEngine(), m_world->GetOctree());
+                entity->AddToOctree(Engine::Get(), m_world->GetOctree());
             }
         }
 
@@ -462,7 +458,7 @@ void Scene::RemovePendingEntities()
                 found_entity->GetID().value
             );
 
-            found_entity->RemoveFromOctree(GetEngine());
+            found_entity->RemoveFromOctree(Engine::Get());
         }
 
         DebugLog(
@@ -511,10 +507,8 @@ bool Scene::AddLight(Handle<Light> &&light)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (GetEngine()->InitObject(it->second)) {
-            it->second->EnqueueBind(GetEngine());
-        }
+    if (Engine::Get()->InitObject(it->second)) {
+        it->second->EnqueueBind();
     }
 
     return true;
@@ -535,10 +529,8 @@ bool Scene::AddLight(const Handle<Light> &light)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (GetEngine()->InitObject(it->second)) {
-            it->second->EnqueueBind(GetEngine());
-        }
+    if (Engine::Get()->InitObject(it->second)) {
+        it->second->EnqueueBind();
     }
 
     return true;
@@ -552,10 +544,8 @@ bool Scene::RemoveLight(Light::ID id)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (it->second) {
-            it->second->EnqueueUnbind(GetEngine());
-        }
+    if (it->second) {
+        it->second->EnqueueUnbind();
     }
 
     return m_lights.Erase(it);
@@ -576,10 +566,8 @@ bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (GetEngine()->InitObject(it->second)) {
-            it->second->EnqueueBind(GetEngine());
-        }
+    if (Engine::Get()->InitObject(it->second)) {
+        it->second->EnqueueBind();
     }
 
     return true;
@@ -600,10 +588,8 @@ bool Scene::AddEnvProbe(const Handle<EnvProbe> &env_probe)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (GetEngine()->InitObject(it->second)) {
-            it->second->EnqueueBind(GetEngine());
-        }
+    if (Engine::Get()->InitObject(it->second)) {
+        it->second->EnqueueBind();
     }
 
     return true;
@@ -617,10 +603,8 @@ bool Scene::RemoveEnvProbe(EnvProbe::ID id)
         return false;
     }
 
-    if (IsInitCalled()) {
-        if (it->second) {
-            it->second->EnqueueUnbind(GetEngine());
-        }
+    if (it->second) {
+        it->second->EnqueueUnbind();
     }
 
     return m_env_probes.Erase(it);
@@ -630,7 +614,7 @@ void Scene::ForceUpdate()
 {
     AssertReady();
 
-    Update(GetEngine(), 0.01f);
+    Update(Engine::Get(), 0.01f);
 }
 
 void Scene::Update(
@@ -650,7 +634,7 @@ void Scene::Update(
     }
 
     if (m_camera) {
-        m_camera->Update(engine, delta);
+        m_camera->Update(Engine::Get(), delta);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
@@ -662,27 +646,27 @@ void Scene::Update(
 
     if (!IsVirtualScene()) {
         // update render environment
-        m_environment->Update(engine, delta);
+        m_environment->Update(Engine::Get(), delta);
 
         // update each light
         for (auto &it : m_lights) {
             auto &light = it.second;
 
-            light->Update(engine);
+            light->Update();
         }
 
         // update each environment probe
         for (auto &it : m_env_probes) {
             auto &env_probe = it.second;
 
-            env_probe->Update(engine);
+            env_probe->Update();
         }
 
         // update each entity
         for (auto &it : m_entities) {
             auto &entity = it.second;
 
-            entity->Update(engine, delta);
+            entity->Update(Engine::Get(), delta);
 
             if (entity->m_primary_renderer_instance.changed) {
                 RequestRendererInstanceUpdate(entity);
@@ -703,7 +687,7 @@ void Scene::RequestRendererInstanceUpdate(Handle<Entity> &entity)
     }
 
     if (entity->IsRenderable()) {
-        if (auto renderer_instance = GetEngine()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
+        if (auto renderer_instance = Engine::Get()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
             renderer_instance->AddEntity(Handle<Entity>(entity));
 
             entity->m_primary_renderer_instance.renderer_instance = renderer_instance.Get();
@@ -826,11 +810,11 @@ void Scene::EnqueueRenderUpdates()
             shader_data.taa_params       = Vector4(jitter, previous_jitter);
             shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
 
-            if (engine->render_state.env_probes.Any()) {
+            if (Engine::Get()->render_state.env_probes.Any()) {
                 // TODO: Make to be packed uvec2 containing indices (each are 1 byte)
                 shader_data.environment_texture_index = 0u;
 
-                for (const auto &it : engine->render_state.env_probes) {
+                for (const auto &it : Engine::Get()->render_state.env_probes) {
                     if (it.second.Empty()) {
                         continue;
                     }
@@ -839,7 +823,7 @@ void Scene::EnqueueRenderUpdates()
                 }
             }
             
-            engine->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
+            Engine::Get()->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
 
             HYPERION_RETURN_OK;
         }
@@ -868,17 +852,17 @@ bool Scene::CreateTLAS()
         return true;
     }
     
-    if (!GetEngine()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+    if (!Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
         // cannot create TLAS if RT is not supported.
         SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
 
         return false;
     }
 
-    m_tlas = GetEngine()->CreateHandle<TLAS>();
+    m_tlas = Engine::Get()->CreateHandle<TLAS>();
 
     if (IsReady()) {
-        GetEngine()->InitObject(m_tlas);
+        Engine::Get()->InitObject(m_tlas);
 
         m_environment->SetTLAS(m_tlas);
     }

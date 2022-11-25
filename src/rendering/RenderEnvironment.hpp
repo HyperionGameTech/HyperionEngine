@@ -79,7 +79,7 @@ public:
         component->SetComponentIndex(0);
 
         if (IsInitCalled()) {
-            component->ComponentInit(GetEngine());
+            component->ComponentInit(hyperion::v2::GetEngine());
         }
 
         std::lock_guard guard(m_render_component_mutex);

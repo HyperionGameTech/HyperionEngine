@@ -24,6 +24,9 @@
 
 #define HYP_BUFFERS_USE_SPINLOCK 0
 
+#define HYP_RENDER_OBJECT_OFFSET(cls, index) \
+    (UInt32((index) * sizeof(cls ## ShaderData)))
+
 namespace hyperion::renderer {
 
 class Device;
@@ -186,6 +189,21 @@ struct ObjectInstance
 
 static_assert(sizeof(ObjectInstance) == 64);
 
+struct LightShaderData
+{
+    UInt32 light_id;
+    UInt32 light_type;
+    UInt32 color_packed;
+    Float radius;
+    UInt32 shadow_map_index;
+
+    HYP_PAD_STRUCT_HERE(UInt32, 7);
+
+    ShaderVec4<Float> position_intensity;
+};
+
+static_assert(sizeof(LightShaderData) == 64);
+
 /* max number of skeletons, based on size in mb */
 static const SizeType max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);
 static const SizeType max_skeletons_bytes = max_skeletons * sizeof(SkeletonShaderData);
@@ -199,8 +217,8 @@ static const SizeType max_objects_bytes = max_materials * sizeof(ObjectShaderDat
 static const SizeType max_scenes = (32ull * 1024ull) / sizeof(SceneShaderData);
 static const SizeType max_scenes_bytes = max_scenes * sizeof(SceneShaderData);
 /* max number of lights, based on size in kb */
-static const SizeType max_lights = (16ull * 1024ull) / sizeof(LightDrawProxy);
-static const SizeType max_lights_bytes = max_lights * sizeof(LightDrawProxy);
+static const SizeType max_lights = (16ull * 1024ull) / sizeof(LightShaderData);
+static const SizeType max_lights_bytes = max_lights * sizeof(LightShaderData);
 /* max number of shadow maps, based on size in kb */
 static const SizeType max_shadow_maps = (16ull * 1024ull) / sizeof(ShadowShaderData);
 static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);

@@ -29,13 +29,13 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
                 .direction = Vector3::UnitY() * -1.0f
             };
 
-            if (GetEngine()->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
+            if (Engine::Get()->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
                 RayTestResults triangle_mesh_results;
 
                 auto &hit = m_ray_test_results.Front();
                     // now ray test each result as triangle mesh to find exact hit point
 
-                if (auto lookup_result = GetEngine()->GetObjectSystem().template Lookup<Entity>(Entity::ID(hit.id))) {
+                if (auto lookup_result = Engine::Get()->GetObjectSystem().template Lookup<Entity>(Entity::ID(hit.id))) {
                     if (auto &mesh = lookup_result->GetMesh()) {
                         ray.TestTriangleList(
                             mesh->GetVertices(),

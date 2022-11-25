@@ -56,7 +56,7 @@ Configuration::Configuration() = default;
 
 bool Configuration::LoadFromDefinitionsFile(Engine *engine)
 {
-    const DefinitionsFile definitions(engine->GetAssetManager().GetBasePath() / "config.def");
+    const DefinitionsFile definitions(Engine::Get()->GetAssetManager().GetBasePath() / "config.def");
 
     if (!definitions.IsValid()) {
         return false;
@@ -79,7 +79,7 @@ bool Configuration::LoadFromDefinitionsFile(Engine *engine)
 
             Option value;
 
-            if (IsRTOption(option_name) && !engine->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+            if (IsRTOption(option_name) && !Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
                 value = false;
             } else {
                 union { Int i; Float f; } tmp_value;
@@ -127,7 +127,7 @@ bool Configuration::SaveToDefinitionsFile(Engine *engine)
         str_result += OptionNameToString(OptionName(index)) + " = " + value_string + "\n";
     }
 
-    const String path = engine->GetAssetManager().GetBasePath() / "config.def";
+    const String path = Engine::Get()->GetAssetManager().GetBasePath() / "config.def";
 
     FileByteWriter writer(path.Data());
 
@@ -151,8 +151,8 @@ void Configuration::SetToDefaultConfiguration(Engine *engine)
     m_variables[CONFIG_SHADER_COMPILATION] = true;
 #endif
     
-    m_variables[CONFIG_RT_SUPPORTED] = engine->GetDevice()->GetFeatures().IsRaytracingSupported();
-    m_variables[CONFIG_RT_ENABLED] = m_variables[CONFIG_RT_SUPPORTED] && engine->GetDevice()->GetFeatures().IsRaytracingEnabled();
+    m_variables[CONFIG_RT_SUPPORTED] = Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported();
+    m_variables[CONFIG_RT_ENABLED] = m_variables[CONFIG_RT_SUPPORTED] && Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled();
     m_variables[CONFIG_RT_REFLECTIONS] = m_variables[CONFIG_RT_ENABLED];
     m_variables[CONFIG_RT_GI] = m_variables[CONFIG_RT_ENABLED];
 

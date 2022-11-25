@@ -26,10 +26,10 @@ void UIScene::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
-    m_scene = engine->CreateHandle<Scene>(
-        engine->CreateHandle<Camera>(new OrthoCamera(
+    m_scene = Engine::Get()->CreateHandle<Scene>(
+        Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
             2048, 2048,
             -1, 1,
             -1, 1,
@@ -37,12 +37,12 @@ void UIScene::Init(Engine *engine)
         ))
     );
 
-    engine->InitObject(m_scene);
+    Engine::Get()->InitObject(m_scene);
 
     m_scene->GetCamera()->SetDirection(Vector3(0.0f, 0.0f, -1.0f));
 
     // for (auto &object : m_ui_objects) {
-    //     AssertThrow(engine->InitObject(object));
+    //     AssertThrow(Engine::Get()->InitObject(object));
 
     //     m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
     // }
@@ -59,7 +59,7 @@ void UIScene::Init(Engine *engine)
 
 void UIScene::Update(Engine *engine, GameCounter::TickUnit delta)
 {
-    m_scene->Update(engine, delta, false);
+    m_scene->Update(Engine::Get(), delta, false);
 }
 
 bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)
@@ -187,64 +187,5 @@ bool UIScene::OnInputEvent(
     // no handle for it
     return false;
 }
-
-#if 0
-bool UIScene::Add(Handle<UIObject> &&ui_object)
-{
-    if (!ui_object || !ui_object->GetID()) {
-        return false;
-    }
-
-    auto result = m_ui_objects.Insert(ui_object->GetID(), std::move(ui_object));
-
-    if (!result.second) {
-        return false;
-    }
-
-    auto insert_result = result.first;
-
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(insert_result->second);
-    }
-
-    return true;
-}
-
-bool UIScene::Add(const Handle<UIObject> &ui_object)
-{
-    if (!ui_object || !ui_object->GetID()) {
-        return false;
-    }
-
-    auto result = m_ui_objects.Insert(ui_object->GetID(), ui_object);
-
-    if (!result.second) {
-        return false;
-    }
-
-    auto insert_result = result.first;
-
-    if (IsInitCalled()) {
-        GetEngine()->InitObject(insert_result->second);
-    }
-
-    return true;
-}
-
-bool UIScene::Remove(const UIObject::ID &id)
-{
-    if (!id) {
-        return false;
-    }
-
-    auto it = m_ui_objects.Find(id);
-
-    if (it == m_ui_objects.End()) {
-        return false;
-    }
-
-    return m_ui_objects.Erase(it);
-}
-#endif
 
 } // namespace hyperion::v2

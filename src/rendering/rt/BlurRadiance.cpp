@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < 2; i++) {
-                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(engine->GetDevice()));
+                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(Engine::Get()->GetDevice()));
             }
         }
 
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommandBase2
             // destroy our images
             for (auto &image_output : image_outputs[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    image_output.Destroy(engine->GetDevice()),
+                    image_output.Destroy(Engine::Get()->GetDevice()),
                     result
                 );
             }
@@ -80,8 +80,8 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommandBase2
                 AssertThrow(descriptor_set != nullptr);
                 
                 HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                    engine->GetDevice(),
-                    &engine->GetInstance()->GetDescriptorPool()
+                    Engine::Get()->GetDevice(),
+                    &Engine::Get()->GetInstance()->GetDescriptorPool()
                 ));
             }
         }
@@ -107,7 +107,7 @@ struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommandBase2
             // destroy our descriptor sets
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    descriptor_set->Destroy(engine->GetDevice()),
+                    descriptor_set->Destroy(Engine::Get()->GetDevice()),
                     result
                 );
             }
@@ -131,9 +131,9 @@ BlurRadiance::~BlurRadiance() = default;
 
 void BlurRadiance::Create(Engine *engine)
 {
-    CreateImageOutputs(engine);
-    CreateDescriptorSets(engine);
-    CreateComputePipelines(engine);
+    CreateImageOutputs(Engine::Get());
+    CreateDescriptorSets(Engine::Get());
+    CreateComputePipelines(Engine::Get());
 }
 
 void BlurRadiance::Destroy(Engine *engine)
@@ -195,7 +195,7 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
             descriptor_set
                 ->AddDescriptor<ImageDescriptor>(2)
                 ->SetSubDescriptor({
-                    .image_view = engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                    .image_view = Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
                         .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView()
                 });
 
@@ -203,14 +203,14 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(3)
                 ->SetSubDescriptor({
-                    .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
+                    .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
                 });
 
             // sampler to use
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(4)
                 ->SetSubDescriptor({
-                    .sampler = &engine->GetPlaceholderData().GetSamplerNearest()
+                    .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
                 });
 
             // blurred output
@@ -224,7 +224,7 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
             descriptor_set
                 ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
                 ->SetSubDescriptor({
-                    .buffer = engine->shader_globals->scenes.GetBuffers()[frame_index].get(),
+                    .buffer = Engine::Get()->shader_globals->scenes.GetBuffers()[frame_index].get(),
                     .range = static_cast<UInt>(sizeof(SceneShaderData))
                 });
 
@@ -237,19 +237,19 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
 
 void BlurRadiance::CreateComputePipelines(Engine *engine)
 {
-    m_blur_hor = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurRadianceHor")),
+    m_blur_hor = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("BlurRadianceHor")),
         Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
     );
 
-    engine->InitObject(m_blur_hor);
+    Engine::Get()->InitObject(m_blur_hor);
 
-    m_blur_vert = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("BlurRadianceVert")),
+    m_blur_vert = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("BlurRadianceVert")),
         Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
     );
 
-    engine->InitObject(m_blur_vert);
+    Engine::Get()->InitObject(m_blur_vert);
 }
 
 void BlurRadiance::Render(
@@ -260,7 +260,7 @@ void BlurRadiance::Render(
     auto &descriptor_sets = m_descriptor_sets[frame->GetFrameIndex()];
     FixedArray passes { m_blur_hor.Get(), m_blur_vert.Get() };
     
-    const auto &scene_binding = engine->render_state.GetScene();
+    const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const UInt scene_index = scene_binding.id.ToIndex();
 
     for (UInt i = 0; i < static_cast<UInt>(passes.Size()); i++) {
@@ -272,7 +272,7 @@ void BlurRadiance::Render(
         pass->GetPipeline()->Bind(frame->GetCommandBuffer());
 
         frame->GetCommandBuffer()->BindDescriptorSet(
-            engine->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetInstance()->GetDescriptorPool(),
             pass->GetPipeline(),
             descriptor_sets[i].Get(),
             0,

@@ -101,14 +101,14 @@ void UIText::Init(Engine *engine)
     //     return;
     // }
 
-    // UIObject::Init(engine);
+    // UIObject::Init(Engine::Get());
 
     // auto char_meshes = BuildCharMeshes(m_font_map, m_text);
     // auto mesh = OptimizeCharMeshes(std::move(char_meshes));
 
-    // UIObject::GetEntity()->SetMesh(engine->CreateHandle<Mesh>(std::move(mesh)));
+    // UIObject::GetEntity()->SetMesh(Engine::Get()->CreateHandle<Mesh>(std::move(mesh)));
 
-    // auto mat = engine->CreateHandle<Material>();
+    // auto mat = Engine::Get()->CreateHandle<Material>();
     // mat->SetBucket(Bucket::BUCKET_UI);
     // mat->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle(m_font_map.GetTexture()));
     // mat->SetFaceCullMode(renderer::FaceCullMode::NONE);

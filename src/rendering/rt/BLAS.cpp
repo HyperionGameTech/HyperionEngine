@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateBLAS) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return blas->Create(engine->GetDevice(), engine->GetInstance());
+        return blas->Create(Engine::Get()->GetDevice(), Engine::Get()->GetInstance());
     }
 };
 
@@ -31,7 +31,7 @@ struct RENDER_COMMAND(DestroyBLAS) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return blas->Destroy(engine->GetDevice());
+        return blas->Destroy(Engine::Get()->GetDevice());
     }
 };
 
@@ -67,8 +67,8 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
         }
     }
 
-    if (m_mesh && IsInitCalled()) {
-        GetEngine()->InitObject(m_mesh);
+    if (m_mesh) {
+        Engine::Get()->InitObject(m_mesh);
 
         auto material_id = m_material
             ? m_material->GetID()
@@ -127,15 +127,15 @@ void BLAS::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     UInt material_index = 0;
 
-    if (engine->InitObject(m_material)) {
+    if (Engine::Get()->InitObject(m_material)) {
         material_index = m_material->GetID().ToIndex();
     }
 
-    AssertThrow(engine->InitObject(m_mesh));
+    AssertThrow(Engine::Get()->InitObject(m_mesh));
     
     m_blas.SetTransform(m_transform.GetMatrix());
     m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
@@ -147,7 +147,7 @@ void BLAS::Init(Engine *engine)
 
     RenderCommands::Push<RENDER_COMMAND(CreateBLAS)>(&m_blas);
 
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE();
 
     SetReady(true);
 
@@ -156,7 +156,7 @@ void BLAS::Init(Engine *engine)
 
         RenderCommands::Push<RENDER_COMMAND(DestroyBLAS)>(&m_blas);
 
-        HYP_FLUSH_RENDER_QUEUE(GetEngine());
+        HYP_FLUSH_RENDER_QUEUE();
     });
 }
 
@@ -179,7 +179,7 @@ void BLAS::UpdateRender(
         return;
     }
     
-    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(engine->GetInstance(), out_was_rebuilt));
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(Engine::Get()->GetInstance(), out_was_rebuilt));
 #endif
 }
 

@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_SAFE_DELETER_H
 #define HYPERION_V2_SAFE_DELETER_H
 
+#include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/Handle.hpp>
@@ -14,24 +15,17 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
-#include <Types.hpp>
-
 #include <mutex>
 #include <tuple>
 #include <atomic>
 
 namespace hyperion::v2 {
 
-
-class Engine;
-
 using renderer::Device;
 using renderer::GPUBuffer;
 using renderer::GPUImageMemory;
 
 using HandleDeletionMaskBits = UInt;
-
-extern Device *GetEngineDevice(Engine *engine);
 
 enum HandleDeletionMask : HandleDeletionMaskBits
 {

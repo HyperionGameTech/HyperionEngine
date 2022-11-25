@@ -354,9 +354,6 @@ static LoaderResult ReadFBXNode(ByteReader &reader, UniquePtr<FBXNode> &out_node
 LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
-    auto *engine = state.asset_manager->GetEngine();
-    AssertThrow(engine != nullptr);
-
     
     // Include our root dir as part of the path
     const auto path = String(state.filepath.c_str());

@@ -1,5 +1,6 @@
 #include "Controller.hpp"
 #include <scene/Entity.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 
@@ -78,7 +79,7 @@ bool Controller::CreateScriptedObjects()
             return false;
         }
 
-        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *>(GetEngine()) });
+        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *>(Engine::Get()) });
 
         if (!m_script->SetMember(engine_object_handle, "handle", engine_handle_value)) {
             DebugLog(

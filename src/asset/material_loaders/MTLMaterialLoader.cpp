@@ -1,5 +1,5 @@
 #include "MTLMaterialLoader.hpp"
-#include "../../Engine.hpp"
+#include <Engine.hpp>
 
 #include <util/fs/FsUtil.hpp>
 
@@ -89,8 +89,6 @@ static bool IsTransparencyModel(IlluminationModel illum_model)
 LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
-    auto *engine = state.asset_manager->GetEngine();
-    AssertThrow(engine != nullptr);
 
     MaterialLibrary library;
     library.filepath = state.filepath;
@@ -264,7 +262,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     }
 
     for (auto &item : library.materials) {
-        auto material = engine->CreateHandle<Material>(item.tag.c_str());
+        auto material = Engine::Get()->CreateHandle<Material>(item.tag.c_str());
 
         for (auto &it : item.parameters) {
             material->SetParameter(it.first, Material::Parameter(

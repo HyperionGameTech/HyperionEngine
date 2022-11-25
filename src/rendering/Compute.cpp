@@ -19,9 +19,9 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommandBase2
     virtual Result operator()(Engine *engine)
     {
         return pipeline->Create(
-            engine->GetDevice(),
+            Engine::Get()->GetDevice(),
             shader_program,
-            &engine->GetInstance()->GetDescriptorPool()
+            &Engine::Get()->GetInstance()->GetDescriptorPool()
         );
     }
 };
@@ -37,7 +37,7 @@ struct RENDER_COMMAND(DestroyComputeShader) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return pipeline.GetPipeline()->Destroy(engine->GetDevice());
+        return pipeline.GetPipeline()->Destroy(Engine::Get()->GetDevice());
     }
 };
     
@@ -67,13 +67,11 @@ void ComputePipeline::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
-    AssertThrow(engine->InitObject(m_shader));
+    AssertThrow(Engine::Get()->InitObject(m_shader));
 
-    OnInit(engine->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
-        auto *engine = GetEngine();
-
+    OnInit(Engine::Get()->callbacks.Once(EngineCallback::CREATE_COMPUTE_PIPELINES, [this](...) {
         RenderCommands::Push<RENDER_COMMAND(CreateComputeShader)>(
             &m_pipeline,
             m_shader->GetShaderProgram()
@@ -82,13 +80,11 @@ void ComputePipeline::Init(Engine *engine)
         SetReady(true);
 
         OnTeardown([this]() {
-            auto *engine = GetEngine();
-
             SetReady(false);
 
             RenderCommands::Push<RENDER_COMMAND(DestroyComputeShader)>(*this);
             
-            HYP_FLUSH_RENDER_QUEUE(engine);
+            HYP_FLUSH_RENDER_QUEUE();
         });
     }));
 }

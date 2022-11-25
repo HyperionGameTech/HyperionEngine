@@ -30,7 +30,7 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     );
 
-    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(engine->GetDevice()));
+    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(Engine::Get()->GetDevice()));
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         const auto *depth_attachment = m_depth_attachment_ref->GetAttachment();
@@ -52,10 +52,10 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
             nullptr
         );
 
-        m_depth_pyramid[i]->Create(engine->GetDevice());
+        m_depth_pyramid[i]->Create(Engine::Get()->GetDevice());
 
         m_depth_pyramid_results[i] = std::make_unique<ImageView>();
-        m_depth_pyramid_results[i]->Create(engine->GetDevice(), m_depth_pyramid[i].get());
+        m_depth_pyramid_results[i]->Create(Engine::Get()->GetDevice(), m_depth_pyramid[i].get());
 
         const auto num_mip_levels = m_depth_pyramid[i]->NumMipmaps();
 
@@ -65,7 +65,7 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
             auto mip_image_view = std::make_unique<ImageView>();
 
             HYPERION_ASSERT_RESULT(mip_image_view->Create(
-                engine->GetDevice(),
+                Engine::Get()->GetDevice(),
                 m_depth_pyramid[i].get(),
                 mip_level, 1,
                 0, m_depth_pyramid[i]->NumFaces()
@@ -108,42 +108,42 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
                 });
 
             HYPERION_ASSERT_RESULT(depth_pyramid_descriptor_set->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetDevice(),
+                &Engine::Get()->GetInstance()->GetDescriptorPool()
             ));
 
             m_depth_pyramid_descriptor_sets[i].PushBack(std::move(depth_pyramid_descriptor_set));
         }
     }
     // create compute pipeline for rendering depth image
-    m_generate_depth_pyramid = engine->CreateHandle<ComputePipeline>(
-        engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("GenerateDepthPyramid")),
+    m_generate_depth_pyramid = Engine::Get()->CreateHandle<ComputePipeline>(
+        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("GenerateDepthPyramid")),
         Array<const DescriptorSet *> { m_depth_pyramid_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
     );
 
-    engine->InitObject(m_generate_depth_pyramid);
+    Engine::Get()->InitObject(m_generate_depth_pyramid);
 }
 
 void DepthPyramidRenderer::Destroy(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (auto &descriptor_set : m_depth_pyramid_descriptor_sets[i]) {
-            HYPERION_ASSERT_RESULT(descriptor_set->Destroy(engine->GetDevice()));
+            HYPERION_ASSERT_RESULT(descriptor_set->Destroy(Engine::Get()->GetDevice()));
         }
 
         m_depth_pyramid_descriptor_sets[i].Clear();
 
         for (auto &mip_image_view : m_depth_pyramid_mips[i]) {
-            HYPERION_ASSERT_RESULT(mip_image_view->Destroy(engine->GetDevice()));
+            HYPERION_ASSERT_RESULT(mip_image_view->Destroy(Engine::Get()->GetDevice()));
         }
 
         m_depth_pyramid_mips[i].Clear();
 
-        HYPERION_ASSERT_RESULT(m_depth_pyramid_results[i]->Destroy(engine->GetDevice()));
-        HYPERION_ASSERT_RESULT(m_depth_pyramid[i]->Destroy(engine->GetDevice()));
+        HYPERION_ASSERT_RESULT(m_depth_pyramid_results[i]->Destroy(Engine::Get()->GetDevice()));
+        HYPERION_ASSERT_RESULT(m_depth_pyramid[i]->Destroy(Engine::Get()->GetDevice()));
     }
 
-    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(engine->GetDevice()));
+    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(Engine::Get()->GetDevice()));
 
     if (m_depth_attachment_ref != nullptr) {
         m_depth_attachment_ref->DecRef(HYP_ATTACHMENT_REF_INSTANCE);
@@ -186,7 +186,7 @@ void DepthPyramidRenderer::Render(Engine *engine, Frame *frame)
 
         // bind descriptor set to compute pipeline
         primary->BindDescriptorSet(
-            engine->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetInstance()->GetDescriptorPool(),
             m_generate_depth_pyramid->GetPipeline(),
             m_depth_pyramid_descriptor_sets[frame_index][mip_level].get(),
             static_cast<DescriptorSet::Index>(0)

@@ -40,8 +40,8 @@ struct RENDER_COMMAND(UploadMeshData) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        auto *instance = engine->GetInstance();
-        auto *device  = engine->GetDevice();
+        auto *instance = Engine::Get()->GetInstance();
+        auto *device = Engine::Get()->GetDevice();
 
         const SizeType packed_buffer_size = vertex_data.size() * sizeof(Float);
         const SizeType packed_indices_size = index_data.size() * sizeof(Mesh::Index);
@@ -98,7 +98,7 @@ struct RENDER_COMMAND(DestroyMeshData) : RenderCommandBase2
     {
         auto result = renderer::Result::OK;
 
-        auto *device = engine->GetDevice();
+        auto *device = Engine::Get()->GetDevice();
         
         HYPERION_PASS_ERRORS(vbo->Destroy(device), result);
         HYPERION_PASS_ERRORS(ibo->Destroy(device), result);
@@ -187,7 +187,7 @@ void Mesh::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
@@ -235,8 +235,6 @@ void Mesh::Init(Engine *engine)
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
-
         DebugLog(
             LogType::Debug,
             "Destroy mesh with id %u\n",
@@ -250,7 +248,7 @@ void Mesh::Init(Engine *engine)
             m_ibo.get()
         );
         
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
 
         SetReady(false);
     });

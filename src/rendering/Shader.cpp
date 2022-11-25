@@ -7,7 +7,7 @@ using renderer::Result;
 
 void ShaderGlobals::Create(Engine *engine)
 {
-    auto *device = engine->GetDevice();
+    auto *device = Engine::Get()->GetDevice();
 
     scenes.Create(device);
     materials.Create(device);
@@ -17,14 +17,14 @@ void ShaderGlobals::Create(Engine *engine)
     shadow_maps.Create(device);
     env_probes.Create(device);
     immediate_draws.Create(device);
-    textures.Create(engine);
+    textures.Create(Engine::Get());
 
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
 }
 
 void ShaderGlobals::Destroy(Engine *engine)
 {
-    auto *device = engine->GetDevice();
+    auto *device = Engine::Get()->GetDevice();
 
     cubemap_uniforms.Destroy(device);
     env_probes.Destroy(device);
@@ -62,13 +62,13 @@ struct RENDER_COMMAND(CreateShaderProgram) : RenderCommandBase2
     {
         for (const SubShader &sub_shader : subshaders) {
             HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
-                engine->GetInstance()->GetDevice(),
+                Engine::Get()->GetInstance()->GetDevice(),
                 sub_shader.type,
                 sub_shader.spirv
             ));
         }
 
-        return shader_program->Create(engine->GetDevice());
+        return shader_program->Create(Engine::Get()->GetDevice());
     }
 };
 
@@ -83,7 +83,7 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return shader_program->Destroy(engine->GetDevice());
+        return shader_program->Destroy(Engine::Get()->GetDevice());
     }
 };
 
@@ -127,7 +127,7 @@ void Shader::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     for (const auto &sub_shader : m_sub_shaders) {
         AssertThrowMsg(sub_shader.spirv.bytes.Any(), "Shader data missing");
@@ -143,13 +143,11 @@ void Shader::Init(Engine *engine)
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
-
         SetReady(false);
 
         RenderCommands::Push<RENDER_COMMAND(DestroyShaderProgram)>(m_shader_program.get());
         
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
     });
 }
 

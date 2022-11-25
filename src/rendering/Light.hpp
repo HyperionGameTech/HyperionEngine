@@ -74,9 +74,9 @@ public:
     }
 
     void Init(Engine *engine);
-    void EnqueueBind(Engine *engine) const;
-    void EnqueueUnbind(Engine *engine) const;
-    void Update(Engine *engine);
+    void EnqueueBind() const;
+    void EnqueueUnbind() const;
+    void Update();
 
 protected:
     LightType m_type;

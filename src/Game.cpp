@@ -33,29 +33,29 @@ void Game::Init(Engine *engine)
     m_input_manager = new InputManager();
     m_input_manager->SetWindow(m_application->GetCurrentWindow());
 
-    m_scene = engine->CreateHandle<Scene>(
+    m_scene = Engine::Get()->CreateHandle<Scene>(
         Handle<Camera>(),
         Scene::InitInfo {
             .flags = Scene::InitInfo::SCENE_FLAGS_HAS_TLAS // default it to having a top level acceleration structure for RT
         }
     );
 
-    engine->InitObject(m_scene);
+    Engine::Get()->InitObject(m_scene);
 
     m_is_init = true;
 
     static_assert(THREAD_MAIN == THREAD_RENDER,
         "InitRender must be enqueued instead of directly called if main thread != render thread!");
 
-    InitRender(engine);
+    InitRender(Engine::Get());
 }
 
 void Game::Update(Engine *engine, GameCounter::TickUnit delta)
 {
-    engine->GetComponents().Update(engine, delta);
-    engine->GetWorld()->Update(engine, delta);
+    Engine::Get()->GetComponents().Update(Engine::Get(), delta);
+    Engine::Get()->GetWorld()->Update(Engine::Get(), delta);
 
-    Logic(engine, delta);
+    Logic(Engine::Get(), delta);
 }
 
 void Game::InitRender(Engine *engine)
@@ -67,17 +67,17 @@ void Game::InitGame(Engine *engine)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
-    m_ui.Init(engine);
+    m_ui.Init(Engine::Get());
 }
 
 void Game::Teardown(Engine *engine)
 {
     if (m_scene) {
-        engine->GetWorld()->RemoveScene(m_scene->GetID());
+        Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
         m_scene.Reset();
     }
 
-    engine->GetWorld().Reset();
+    Engine::Get()->GetWorld().Reset();
 
     m_is_init = false;
 }
@@ -92,13 +92,13 @@ void Game::HandleEvent(Engine *engine, SystemEvent &&event)
 
     switch (event.GetType()) {
         case SystemEventType::EVENT_SHUTDOWN:
-            engine->RequestStop();
+            Engine::Get()->RequestStop();
 
             break;
         default:
-            if (engine->game_thread.IsRunning()) {
-                engine->game_thread.GetScheduler().Enqueue([this, engine, event = std::move(event)](...) mutable {
-                    OnInputEvent(engine, event);
+            if (Engine::Get()->game_thread.IsRunning()) {
+                Engine::Get()->game_thread.GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
+                    OnInputEvent(Engine::Get(), event);
 
                     HYPERION_RETURN_OK;
                 });

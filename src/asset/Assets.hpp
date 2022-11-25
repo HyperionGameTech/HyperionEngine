@@ -45,9 +45,6 @@ public:
     void SetBasePath(const FilePath &base_path)
         { m_base_path = base_path; }
 
-    Engine *GetEngine() const
-        { return m_engine; }
-
     template <class Loader, class ... Formats>
     void Register(Formats &&... formats)
     {

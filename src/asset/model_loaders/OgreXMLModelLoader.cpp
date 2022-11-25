@@ -164,8 +164,6 @@ void BuildVertices(OgreXMLModel &model)
 LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
-    auto *engine = state.asset_manager->GetEngine();
-    AssertThrow(engine != nullptr);
 
     OgreXMLModel model;
     model.filepath = state.filepath;
@@ -203,9 +201,9 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             continue;
         }
 
-        auto material = engine->CreateHandle<Material>("ogrexml_material");
+        auto material = Engine::Get()->CreateHandle<Material>("ogrexml_material");
 
-        auto mesh = engine->CreateHandle<Mesh>(
+        auto mesh = Engine::Get()->CreateHandle<Mesh>(
             model.vertices,
             sub_mesh.indices,
             Topology::TRIANGLES
@@ -219,10 +217,10 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 
         auto vertex_attributes = mesh->GetVertexAttributes();
 
-        auto shader = engine->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
+        auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
         const auto shader_id = shader != nullptr ? shader->GetID() : Shader::empty_id;
 
-        auto entity = engine->CreateHandle<Entity>(
+        auto entity = Engine::Get()->CreateHandle<Entity>(
             std::move(mesh),
             std::move(shader),
             std::move(material),

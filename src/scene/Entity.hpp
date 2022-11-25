@@ -81,12 +81,7 @@ public:
 
     Entity(const Entity &other) = delete;
     Entity &operator=(const Entity &other) = delete;
-    // Entity(Entity &&other) noexcept;
-    // Entity &operator=(Entity &&other) noexcept;
     ~Entity();
-
-    Octree *GetOctree() const
-        { return m_octree; }
 
     const VisibilityState &GetVisibilityState() const
         { return m_visibility_state; }

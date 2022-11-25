@@ -33,22 +33,22 @@ void TerrainPagingController::OnAdded()
         .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, base_height * 0.03f, 0.0f, Vector(3.125f, 3.125f, 0.0f, 0.0f) * global_terrain_noise_scale)
         .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, base_height * 0.015f, 0.0f, Vector(1.56f, 1.56f, 0.0f, 0.0f) * global_terrain_noise_scale);
 
-    m_material = GetEngine()->CreateHandle<Material>("terrain_material");
+    m_material = Engine::Get()->CreateHandle<Material>("terrain_material");
 
     // m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.2f, 0.99f, 0.5f, 1.0f));
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     // m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 50.0f);
 
-    if (auto albedo_texture = GetEngine()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_albedo.png")) {
+    if (auto albedo_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_albedo.png")) {
         albedo_texture->GetImage().SetIsSRGB(true);
         m_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
     }
 
-    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, GetEngine()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_Normal-ogl.png"));
-    m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, GetEngine()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_Roughness.png"));
+    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_Normal-ogl.png"));
+    m_material->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/snow/snowdrift1_Roughness.png"));
 
-    GetEngine()->InitObject(m_material);
+    Engine::Get()->InitObject(m_material);
 
     PagingController::OnAdded();
 }
@@ -59,7 +59,7 @@ void TerrainPagingController::OnRemoved()
     for (const auto &enqueued_patch : m_enqueued_patches) {
         const auto &task = enqueued_patch.second;
 
-        GetEngine()->task_system.Unschedule(task);
+        Engine::Get()->task_system.Unschedule(task);
     }
 
     PagingController::OnRemoved();
@@ -102,12 +102,12 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
     DebugLog(LogType::Info, "Terrain patch added at [%f, %f], enqueuing terrain generation\n", patch->info.coord.x, patch->info.coord.y);
     
-    auto &shader = GetEngine()->shader_manager.GetShader(ShaderManager::Key::TERRAIN);
+    auto &shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::TERRAIN);
     AssertThrow(shader.IsValid());
 
     const auto vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
 
-    patch->entity = GetEngine()->CreateHandle<Entity>(
+    patch->entity = Engine::Get()->CreateHandle<Entity>(
         Handle<Mesh>(), // mesh added later, after task thread generates it
         Handle<Shader>(shader),
         Handle<Material>(m_material),
@@ -141,7 +141,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
         );
     }
 
-    const auto task_ref = GetEngine()->task_system.ScheduleTask([this, patch_info = patch->info]() {
+    const auto task_ref = Engine::Get()->task_system.ScheduleTask([this, patch_info = patch->info]() {
         TerrainMeshBuilder builder(patch_info);
         builder.GenerateHeights(m_noise_combinator);
 
@@ -176,7 +176,7 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
             it->first.y
         );
 
-        GetEngine()->task_system.Unschedule(it->second);
+        Engine::Get()->task_system.Unschedule(it->second);
 
         m_enqueued_patches.Erase(it);
     }
@@ -247,7 +247,7 @@ void TerrainPagingController::AddEnqueuedChunks()
             patch_info.coord.y
         );
 
-        auto mesh = GetEngine()->CreateHandle<Mesh>(terrain_generation_result.mesh.release());
+        auto mesh = Engine::Get()->CreateHandle<Mesh>(terrain_generation_result.mesh.release());
         AssertThrow(mesh != nullptr);
 
         if (auto *patch = GetPatch(patch_info.coord)) {

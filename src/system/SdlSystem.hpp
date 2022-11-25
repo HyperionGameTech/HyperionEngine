@@ -270,8 +270,11 @@ private:
 class Application
 {
 public:
-    Application();
-    virtual ~Application() = default;
+    Application(const char *name);
+    virtual ~Application();
+
+    const char *GetAppName() const
+        { return m_name; }
 
     ApplicationWindow *GetCurrentWindow()
         { return m_current_window.Get(); }
@@ -291,12 +294,13 @@ public:
     
 protected:
     UniquePtr<ApplicationWindow> m_current_window;
+    char *m_name;
 };
 
 class SDLApplication : public Application
 {
 public:
-    SDLApplication();
+    SDLApplication(const char *name);
     virtual ~SDLApplication();
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(const ANSIString &title, UInt width, UInt height) override;

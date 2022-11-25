@@ -19,10 +19,6 @@
 #include <memory>
 #include <atomic>
 
-// using the template param like DrawProxy<cls> doesn't work
-#define HYP_RENDER_OBJECT_OFFSET(cls, index) \
-    (UInt32((index) * sizeof(cls ## DrawProxy)))
-
 namespace hyperion::v2 {
 
 using renderer::IndirectDrawCommand;
@@ -149,14 +145,10 @@ struct DrawProxy<STUB_CLASS(Light)>
     Color color;
     Float radius;
     UInt32 shadow_map_index;
-
-    HYP_PAD_STRUCT_HERE(UInt32, 7);
-
     Vector4 position_intensity;
 };
 
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;
-static_assert(sizeof(LightDrawProxy) == 64);
 
 
 

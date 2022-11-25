@@ -14,12 +14,12 @@ RigidBodyController::RigidBodyController(
 
 void RigidBodyController::OnAdded()
 {
-    m_rigid_body = GetEngine()->CreateHandle<physics::RigidBody>(
+    m_rigid_body = Engine::Get()->CreateHandle<physics::RigidBody>(
         std::move(m_shape),
         m_physics_material
     );
 
-    GetEngine()->InitObject(m_rigid_body);
+    Engine::Get()->InitObject(m_rigid_body);
 
     m_rigid_body->SetTransform(GetOwner()->GetTransform());    
 }
@@ -31,12 +31,12 @@ void RigidBodyController::OnRemoved()
 
 void RigidBodyController::OnAttachedToScene(Scene *scene)
 {
-    GetEngine()->GetWorld()->GetPhysicsWorld().AddRigidBody(Handle<physics::RigidBody>(m_rigid_body));
+    Engine::Get()->GetWorld()->GetPhysicsWorld().AddRigidBody(Handle<physics::RigidBody>(m_rigid_body));
 }
 
 void RigidBodyController::OnDetachedFromScene(Scene *scene)
 {
-    GetEngine()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(m_rigid_body);
+    Engine::Get()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(m_rigid_body);
 }
 
 void RigidBodyController::OnUpdate(GameCounter::TickUnit delta)

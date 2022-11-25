@@ -32,17 +32,17 @@ bool UIButtonController::CreateScriptedMethods()
 
 void UIButtonController::OnAdded()
 {
-    auto font_texture = GetEngine()->GetAssetManager().Load<Texture>("textures/fontmap.png");
+    auto font_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/fontmap.png");
             
     FontMap font_map(
         font_texture,
         Extent2D { 32, 32 }
     );
 
-    GetOwner()->SetMesh(GetEngine()->CreateHandle<Mesh>(UIText::BuildTextMesh(font_map, "hello world")));
-    GetOwner()->SetShader(Handle<Shader>(GetEngine()->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
+    GetOwner()->SetMesh(Engine::Get()->CreateHandle<Mesh>(UIText::BuildTextMesh(font_map, "hello world")));
+    GetOwner()->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
 
-    auto mat = GetEngine()->CreateHandle<Material>();
+    auto mat = Engine::Get()->CreateHandle<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);
     mat->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle(font_map.GetTexture()));
     mat->SetFaceCullMode(renderer::FaceCullMode::NONE);

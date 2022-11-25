@@ -31,11 +31,11 @@ void GameThread::operator()(Engine *engine, Game *game)
 
     m_is_running.store(true, std::memory_order_relaxed);
 
-    game->InitGame(engine);
+    game->InitGame(Engine::Get());
     
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (engine->m_running.load(std::memory_order_relaxed)) {
+    while (Engine::Get()->m_running.load(std::memory_order_relaxed)) {
         if (auto num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 

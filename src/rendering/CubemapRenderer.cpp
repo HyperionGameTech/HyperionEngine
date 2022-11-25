@@ -23,10 +23,10 @@ struct RENDER_COMMAND(CreateCubemapImages) : RenderCommandBase2
     virtual Result operator()(Engine *engine)
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_ASSERT_RESULT(cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Create(engine->GetDevice(), sizeof(CubemapUniforms)));
-            cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Copy(engine->GetDevice(), sizeof(CubemapUniforms), &cubemap_renderer.m_cubemap_uniforms);
+            HYPERION_ASSERT_RESULT(cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Create(Engine::Get()->GetDevice(), sizeof(CubemapUniforms)));
+            cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Copy(Engine::Get()->GetDevice(), sizeof(CubemapUniforms), &cubemap_renderer.m_cubemap_uniforms);
 
-            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set
@@ -69,7 +69,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommandBase2
             }
         }
         for (auto &attachment : cubemap_renderer.m_attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(engine->GetInstance()->GetDevice()), result);
+            HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetInstance()->GetDevice()), result);
         }
 
         cubemap_renderer.m_attachments.clear();
@@ -95,16 +95,16 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommandBase2
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_PASS_ERRORS(
-                uniform_buffers[i]->Destroy(engine->GetDevice()),
+                uniform_buffers[i]->Destroy(Engine::Get()->GetDevice()),
                 result
             );
 
-            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
 
             descriptor_set
                 ->GetDescriptor(DescriptorKey::CUBEMAP_UNIFORMS)
-                ->SetElementBuffer(component_index, engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(engine->GetDevice(), sizeof(CubemapUniforms)));
+                ->SetElementBuffer(component_index, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(Engine::Get()->GetDevice(), sizeof(CubemapUniforms)));
         }
 
         return result;
@@ -156,20 +156,20 @@ void CubemapRenderer::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
-    CreateShader(engine);
-    CreateRenderPass(engine);
-    CreateFramebuffers(engine);
-    CreateImagesAndBuffers(engine);
-    CreateRendererInstance(engine);
+    CreateShader(Engine::Get());
+    CreateRenderPass(Engine::Get());
+    CreateFramebuffers(Engine::Get());
+    CreateImagesAndBuffers(Engine::Get());
+    CreateRendererInstance(Engine::Get());
 
-    m_scene = engine->CreateHandle<Scene>(Handle<Camera>());
-    engine->InitObject(m_scene);
+    m_scene = Engine::Get()->CreateHandle<Scene>(Handle<Camera>());
+    Engine::Get()->InitObject(m_scene);
 
     // testing global skybox
-    auto tex = engine->CreateHandle<Texture>(new TextureCube(
-        engine->GetAssetManager().LoadMany<Texture>(
+    auto tex = Engine::Get()->CreateHandle<Texture>(new TextureCube(
+        Engine::Get()->GetAssetManager().LoadMany<Texture>(
             "textures/chapel/posx.jpg",
             "textures/chapel/negx.jpg",
             "textures/chapel/posy.jpg",
@@ -180,7 +180,7 @@ void CubemapRenderer::Init(Engine *engine)
     ));
     tex->GetImage().SetIsSRGB(true);
 
-    m_env_probe = engine->CreateHandle<EnvProbe>(
+    m_env_probe = Engine::Get()->CreateHandle<EnvProbe>(
 
         // TEMP
         std::move(tex),
@@ -188,27 +188,25 @@ void CubemapRenderer::Init(Engine *engine)
         // Handle<Texture>(m_cubemaps[0]), // TODO
         m_aabb
     );
-    engine->InitObject(m_env_probe);
+    Engine::Get()->InitObject(m_env_probe);
 
-    HYP_FLUSH_RENDER_QUEUE(engine);
+    HYP_FLUSH_RENDER_QUEUE();
 
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
-
         RenderCommands::Push<RENDER_COMMAND(DestroyCubemapRenderPass)>(*this);
 
         for (auto &cubemap : m_cubemaps) {
-            engine->SafeReleaseHandle<Texture>(std::move(cubemap));
+            Engine::Get()->SafeReleaseHandle<Texture>(std::move(cubemap));
         }
 
-        engine->SafeReleaseHandle<Shader>(std::move(m_shader));
+        Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
 
         m_env_probe.Reset();
         m_scene.Reset();
 
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
 
         SetReady(false);
 
@@ -294,7 +292,7 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
 
 void CubemapRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
 {
-    //m_env_probe->Update(engine);
+    //m_env_probe->Update(Engine::Get());
 }
 
 void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
@@ -314,9 +312,9 @@ void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
         }
     };
 
-    engine->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Render(engine, frame);
-    engine->render_state.UnbindScene();
+    Engine::Get()->render_state.BindScene(m_scene.Get());
+    m_renderer_instance->Render(Engine::Get(), frame);
+    Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame_index]->EndCapture(command_buffer);
 
@@ -328,7 +326,7 @@ void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
 
     if (m_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP) {
         HYPERION_PASS_ERRORS(
-            m_cubemaps[frame_index]->GetImage().GenerateMipmaps(engine->GetDevice(), command_buffer),
+            m_cubemaps[frame_index]->GetImage().GenerateMipmaps(Engine::Get()->GetDevice(), command_buffer),
             result
         );
     }
@@ -369,7 +367,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             m_cubemap_render_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
 
-            m_cubemaps[frame_index] = engine->CreateHandle<Texture>(new TextureCube(
+            m_cubemaps[frame_index] = Engine::Get()->CreateHandle<Texture>(new TextureCube(
                 m_cubemap_dimensions,
                 InternalFormat::RGBA8_SRGB,
                 m_filter_mode,
@@ -377,7 +375,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
                 nullptr
             ));
 
-            engine->InitObject(m_cubemaps[frame_index]);
+            Engine::Get()->InitObject(m_cubemaps[frame_index]);
         }
     }
 
@@ -410,19 +408,19 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
         renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    m_renderer_instance = engine->AddRendererInstance(std::move(renderer_instance));
-    engine->InitObject(m_renderer_instance);
+    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(renderer_instance));
+    Engine::Get()->InitObject(m_renderer_instance);
 }
 
 void CubemapRenderer::CreateShader(Engine *engine)
 {
-    m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("CubemapRenderer"));
-    engine->InitObject(m_shader);
+    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("CubemapRenderer"));
+    Engine::Get()->InitObject(m_shader);
 }
 
 void CubemapRenderer::CreateRenderPass(Engine *engine)
 {
-    m_render_pass = engine->CreateHandle<RenderPass>(
+    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
@@ -440,7 +438,7 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
+        Engine::Get()->GetInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -451,14 +449,14 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
             m_cubemap_dimensions,
-            engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+            Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
         ),
         RenderPassStage::SHADER
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
-        engine->GetInstance()->GetDevice(),
+        Engine::Get()->GetInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -468,16 +466,16 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
 
     // attachment should be created in render thread?
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(engine->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetInstance()->GetDevice()));
     }
 
-    engine->InitObject(m_render_pass);
+    Engine::Get()->InitObject(m_render_pass);
 }
 
 void CubemapRenderer::CreateFramebuffers(Engine *engine)
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = engine->CreateHandle<Framebuffer>(
+        m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
             m_cubemap_dimensions,
             Handle<RenderPass>(m_render_pass)
         );
@@ -487,7 +485,7 @@ void CubemapRenderer::CreateFramebuffers(Engine *engine)
             m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
         }
 
-        engine->InitObject(m_framebuffers[i]);
+        Engine::Get()->InitObject(m_framebuffers[i]);
     }
 }
 

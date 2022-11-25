@@ -17,7 +17,7 @@ struct RENDER_COMMAND(CreateRenderPass) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return render_pass->Create(engine->GetDevice());
+        return render_pass->Create(Engine::Get()->GetDevice());
     }
 };
 
@@ -32,7 +32,7 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommandBase2
 
     virtual Result operator()(Engine *engine)
     {
-        return render_pass->Destroy(engine->GetDevice());
+        return render_pass->Destroy(Engine::Get()->GetDevice());
     }
 };
 
@@ -59,20 +59,18 @@ void RenderPass::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     RenderCommands::Push<RENDER_COMMAND(CreateRenderPass)>(&m_render_pass);
 
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = GetEngine();
-
         RenderCommands::Push<RENDER_COMMAND(DestroyRenderPass)>(&m_render_pass);
 
         SetReady(false);
         
-        HYP_FLUSH_RENDER_QUEUE(engine);
+        HYP_FLUSH_RENDER_QUEUE();
     });
 }
 

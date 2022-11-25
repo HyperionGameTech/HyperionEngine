@@ -50,9 +50,9 @@
 #include <mutex>
 #include <stack>
 
-#define HYP_FLUSH_RENDER_QUEUE(engine) \
+#define HYP_FLUSH_RENDER_QUEUE() \
     do { \
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush(engine)); \
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush(Engine::Get())); \
     } while (0)
 
 namespace hyperion::v2 {
@@ -124,6 +124,7 @@ using RenderFunctor = Task<Result, CommandBuffer * /* command_buffer */, UInt /*
  * This class holds all shaders, descriptor sets, framebuffers etc. needed for pipeline generation (which it hands off to Instance)
  *
  */
+
 class Engine
 {
 #ifdef HYP_DEBUG_MODE
@@ -133,10 +134,12 @@ class Engine
 #endif
 
 public:
-    Engine(RefCountedPtr<Application> application, const char *app_name);
+    static Engine *Get();
+
+    Engine();
     ~Engine();
     
-    Instance *GetInstance() const { return m_instance.get(); }
+    Instance *GetInstance() const { return m_instance.Get(); }
     Device *GetDevice() const { return m_instance ? m_instance->GetDevice() : nullptr; }
 
     DeferredRenderer &GetDeferredRenderer() { return m_deferred_renderer; }
@@ -212,7 +215,7 @@ public:
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
-    void Initialize();
+    void Initialize(RefCountedPtr<Application> application);
     void Compile();
     void RequestStop();
 
@@ -370,7 +373,7 @@ private:
 
     void AddRendererInstanceInternal(Handle<RendererInstance> &);
     
-    std::unique_ptr<Instance> m_instance;
+    UniquePtr<Instance> m_instance;
     Handle<RendererInstance> m_root_pipeline;
 
     EnumOptions<TextureFormatDefault, InternalFormat, 16> m_texture_format_defaults;

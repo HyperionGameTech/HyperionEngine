@@ -86,7 +86,7 @@ struct ProbeGridInfo
 
     Extent2D GetImageDimensions() const
     {
-        return { static_cast<UInt32>(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
+        return { UInt32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
     }
 };
 

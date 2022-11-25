@@ -22,29 +22,29 @@ FinalPass::~FinalPass()
 
 void FinalPass::Create(Engine *engine)
 {
-    m_full_screen_quad = engine->CreateHandle<Mesh>(MeshBuilder::Quad());
-    engine->InitObject(m_full_screen_quad);
+    m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    Engine::Get()->InitObject(m_full_screen_quad);
 
-    auto shader = engine->CreateHandle<Shader>(
+    auto shader = Engine::Get()->CreateHandle<Shader>(
         std::vector<SubShader> {
-            {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_vert.spv")).Read()}},
-            {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(engine->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_frag.spv")).Read()}}
+            {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_vert.spv")).Read()}},
+            {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_frag.spv")).Read()}}
         }
     );
 
-    engine->InitObject(shader);
+    Engine::Get()->InitObject(shader);
 
     UInt iteration = 0;
     
-    auto render_pass = engine->CreateHandle<RenderPass>(
+    auto render_pass = Engine::Get()->CreateHandle<RenderPass>(
         renderer::RenderPassStage::PRESENT,
         renderer::RenderPass::Mode::RENDER_PASS_INLINE
     );
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
         std::make_unique<renderer::FramebufferImage2D>(
-            engine->GetInstance()->swapchain->extent,
-            engine->GetInstance()->swapchain->image_format,
+            Engine::Get()->GetInstance()->swapchain->extent,
+            Engine::Get()->GetInstance()->swapchain->image_format,
             nullptr
         ),
         renderer::RenderPassStage::PRESENT
@@ -52,20 +52,20 @@ void FinalPass::Create(Engine *engine)
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
         std::make_unique<renderer::FramebufferImage2D>(
-            engine->GetInstance()->swapchain->extent,
-            engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+            Engine::Get()->GetInstance()->swapchain->extent,
+            Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
         ),
         renderer::RenderPassStage::PRESENT
     ));
     
     for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(engine->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetDevice()));
     }
 
-    for (auto img : engine->GetInstance()->swapchain->images) {
+    for (auto img : Engine::Get()->GetInstance()->swapchain->images) {
         auto fbo = std::make_unique<Framebuffer>(
-            engine->GetInstance()->swapchain->extent,
+            Engine::Get()->GetInstance()->swapchain->extent,
             Handle<RenderPass>(render_pass)
         );
 
@@ -73,9 +73,9 @@ void FinalPass::Create(Engine *engine)
             *depth_attachment_ref;
 
         HYPERION_ASSERT_RESULT(m_render_pass_attachments[0]->AddAttachmentRef(
-            engine->GetDevice(),
+            Engine::Get()->GetDevice(),
             img,
-            renderer::Image::ToVkFormat(engine->GetInstance()->swapchain->image_format),
+            renderer::Image::ToVkFormat(Engine::Get()->GetInstance()->swapchain->image_format),
             VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D,
             1, 1,
             renderer::LoadOperation::CLEAR,
@@ -88,7 +88,7 @@ void FinalPass::Create(Engine *engine)
         fbo->GetFramebuffer().AddAttachmentRef(color_attachment_ref);
 
         HYPERION_ASSERT_RESULT(m_render_pass_attachments[1]->AddAttachmentRef(
-            engine->GetDevice(),
+            Engine::Get()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
             &depth_attachment_ref
@@ -102,9 +102,9 @@ void FinalPass::Create(Engine *engine)
             render_pass->GetRenderPass().AddAttachmentRef(color_attachment_ref);
             render_pass->GetRenderPass().AddAttachmentRef(depth_attachment_ref);
 
-            engine->InitObject(render_pass);
+            Engine::Get()->InitObject(render_pass);
 
-            m_renderer_instance = engine->CreateHandle<RendererInstance>(
+            m_renderer_instance = Engine::Get()->CreateHandle<RendererInstance>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -119,18 +119,18 @@ void FinalPass::Create(Engine *engine)
             );
         }
 
-        m_renderer_instance->AddFramebuffer(engine->CreateHandle<Framebuffer>(fbo.release()));
+        m_renderer_instance->AddFramebuffer(Engine::Get()->CreateHandle<Framebuffer>(fbo.release()));
 
         ++iteration;
     }
 
-    engine->InitObject(m_renderer_instance);
+    Engine::Get()->InitObject(m_renderer_instance);
 }
 
 void FinalPass::Destroy(Engine *engine)
 {
     for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Destroy(engine->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Destroy(Engine::Get()->GetDevice()));
     }
 }
 
@@ -139,14 +139,14 @@ void FinalPass::Render(Engine *engine, Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     auto *pipeline = m_renderer_instance->GetPipeline();
-    const UInt acquired_image_index = engine->GetInstance()->GetFrameHandler()->GetAcquiredImageIndex();
+    const UInt acquired_image_index = Engine::Get()->GetInstance()->GetFrameHandler()->GetAcquiredImageIndex();
 
     m_renderer_instance->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer());
     
     pipeline->Bind(frame->GetCommandBuffer());
 
-    engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(),
+    Engine::Get()->GetInstance()->GetDescriptorPool().Bind(
+        Engine::Get()->GetDevice(),
         frame->GetCommandBuffer(),
         pipeline,
         {
@@ -157,8 +157,8 @@ void FinalPass::Render(Engine *engine, Frame *frame)
 
 #if HYP_FEATURES_ENABLE_RAYTRACING
     /* TMP */
-    engine->GetInstance()->GetDescriptorPool().Bind(
-        engine->GetDevice(),
+    Engine::Get()->GetInstance()->GetDescriptorPool().Bind(
+        Engine::Get()->GetDevice(),
         command_buffer,
         pipeline,
         {{
@@ -169,7 +169,7 @@ void FinalPass::Render(Engine *engine, Frame *frame)
 #endif
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(engine, frame->GetCommandBuffer());
+    m_full_screen_quad->Render(Engine::Get(), frame->GetCommandBuffer());
     
     m_renderer_instance->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }

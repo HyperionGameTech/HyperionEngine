@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_ASSET_LOADER_HPP
 #define HYPERION_V2_ASSET_LOADER_HPP
 
+#include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/Handle.hpp>
 #include <scene/Node.hpp>

@@ -45,7 +45,7 @@ class Instance
     Result CreateCommandPool(DeviceQueue &queue, UInt index);
 
 public:
-    Instance(RefCountedPtr<Application> application, const char *app_name, const char *engine_name);
+    Instance(RefCountedPtr<Application> application);
     Result Initialize(bool load_debug_layers = false);
     void CreateSurface();
     

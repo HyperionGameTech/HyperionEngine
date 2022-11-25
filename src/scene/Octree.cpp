@@ -505,7 +505,7 @@ Octree::Result Octree::Move(Engine *engine, Entity *entity, const std::vector<No
         entity_it->aabb = new_aabb;
     } else { /* Moved into new octant */
         // force this octant to be visible to prevent flickering
-        CopyVisibilityState(engine->GetWorld()->GetOctree().GetVisibilityState());
+        CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
 
         m_nodes.push_back(Node {
             .entity = entity,
@@ -516,7 +516,7 @@ Octree::Result Octree::Move(Engine *engine, Entity *entity, const std::vector<No
             AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
             m_root->node_to_octree[entity] = this;
-            m_root->events.on_insert_node(engine, this, entity);
+            m_root->events.on_insert_node(Engine::Get(), this, entity);
         }
 
         entity->OnMovedToOctant(this);
@@ -601,9 +601,9 @@ Octree::Result Octree::Rebuild(Engine *engine, const BoundingBox &new_aabb)
             }
             
             // hack
-            CopyVisibilityState(engine->GetWorld()->GetOctree().GetVisibilityState());
+            CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
 
-            auto insert_result = Insert(engine, node.entity);
+            auto insert_result = Insert(Engine::Get(), node.entity);
 
             if (!insert_result) {
                 return insert_result;

@@ -74,14 +74,14 @@ void Camera::Init(Engine *engine)
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init(Engine::Get());
 
     SetReady(true);
 
     OnTeardown([this]() {
         SetReady(false);
 
-        HYP_FLUSH_RENDER_QUEUE(GetEngine());
+        HYP_FLUSH_RENDER_QUEUE();
     });
 }
 
