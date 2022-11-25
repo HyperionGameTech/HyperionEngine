@@ -49,13 +49,13 @@ struct RENDER_COMMAND(CreateProbeGridImageView) : RenderCommandBase2
 
 struct RENDER_COMMAND(CreateProbeGridDescriptors) : RenderCommandBase2
 {
-    UniquePtr<renderer::DescriptorSet *, max_frames_in_flight> *descriptor_sets;
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
     renderer::UniformBuffer *uniform_buffer;
     renderer::ImageView *irradiance_image_view;
     renderer::ImageView *depth_image_view;
 
     RENDER_COMMAND(CreateProbeGridDescriptors)(
-        UniquePtr<renderer::DescriptorSet *, max_frames_in_flight> *descriptor_sets,
+        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
         renderer::UniformBuffer *uniform_buffer,
         renderer::ImageView *irradiance_image_view,
         renderer::ImageView *depth_image_view

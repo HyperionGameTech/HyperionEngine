@@ -203,6 +203,9 @@ private:
     struct HolderRef
     {
         std::atomic<SizeType> *counter_ptr = nullptr;
+        UByte *memory_ptr = nullptr;
+        SizeType object_size = 0;
+        SizeType object_alignment = 0;
 
         explicit operator bool() const
         {
@@ -224,29 +227,38 @@ public:
     {
         HolderRef *p = &holders[0];
 
+
         while (*p) {
-            // all items in the cache must have had destructor called on them!
-            p->counter_ptr->store(0);
+            const SizeType counter_value = p->counter_ptr->load();
+
+            if (counter_value) {
+                Memory::Set(p->memory_ptr, 0x00, p->object_size * counter_value);
+
+                // for (SizeType index = 0; index < counter_value; index++) {
+                    // ::operator delete ((void *)&((p->memory_ptr)[index * p->object_size]), std::align_val_t(p->object_alignment));
+                // }
+
+                // all items in the cache must have had destructor called on them!
+                p->counter_ptr->store(0);
+            }
             ++p;
         }
     }
 
-    static void Rewind(SizeType count)
-    {
-        if (count == 0) {
-            return;
-        }
+    // static void Rewind(SizeType count)
+    // {
+    //     if (count == 0) {
+    //         return;
+    //     }
 
-        HolderRef *p = &holders[0];
-        SizeType i = 0;
+    //     HolderRef *p = &holders[0];
 
-        while (*p && i < count) {
-            // all items in the cache must have had destructor called on them!
-            p->counter_ptr->store(0);
-            ++p;
-            ++i;
-        }
-    }
+    //     while (*p) {
+    //         // all items in the cache must have had destructor called on them!
+    //         p->counter_ptr->fetch_sub(count);
+    //         ++p;
+    //     }
+    // }
 
     template <class T, class ...Args>
     static T *Push(Args &&... args)
@@ -258,10 +270,13 @@ public:
 
             Data()
             {
+                // zero out cache memory
+                Memory::Set(cache, 0x00, sizeof(T) * render_command_cache_size);
+
                 SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
                 AssertThrow(index < max_render_command_types - 1);
 
-                RenderCommands::holders[index] = HolderRef { &counter };
+                RenderCommands::holders[index] = HolderRef { &counter, cache, sizeof(T), alignof(T) };
             }
         } data;
 
@@ -285,7 +300,8 @@ public:
     static Result Flush(Engine *engine)
     {
         auto flush_result = scheduler.Flush(engine);
-        Rewind(flush_result.num_executed);
+        Rewind();
+        // Rewind(flush_result.num_executed);
 
         return flush_result.result;
     }
@@ -293,7 +309,10 @@ public:
     static Result FlushOrWait(Engine *engine)
     {
         auto flush_result = scheduler.FlushOrWait(engine);
-        Rewind(flush_result.num_executed);
+        if (flush_result.num_executed) {
+            Rewind();
+        }
+        // Rewind(flush_result.num_executed);
 
         return flush_result.result;
     }

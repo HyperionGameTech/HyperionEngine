@@ -7,6 +7,68 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommandBase2
+{
+    SizeType component_index;
+    FixedArray<renderer::ImageView *, max_frames_in_flight> image_views;
+
+    RENDER_COMMAND(CreateUIDescriptors)(
+        SizeType component_index,
+        FixedArray<renderer::ImageView *, max_frames_in_flight> &&image_views
+    ) : component_index(component_index),
+        image_views(std::move(image_views))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
+                ->SetElementSRV(UInt(component_index), image_views[frame_index]);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyUIDescriptors) : RenderCommandBase2
+{
+    SizeType component_index;
+
+    RENDER_COMMAND(DestroyUIDescriptors)(
+        SizeType component_index
+    ) : component_index(component_index)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = renderer::Result::OK;
+
+        // remove descriptors from global descriptor set
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            // set to placeholder data.
+            descriptor_set
+                ->GetDescriptor(DescriptorKey::UI_TEXTURE)
+                ->SetSubDescriptor({
+                    .element_index = UInt(component_index),
+                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
+                });
+        }
+
+        return result;
+    }
+};
+
 UIRenderer::UIRenderer(Handle<Scene> &&scene)
     : EngineComponentBase(),
       RenderComponent(),
@@ -39,25 +101,7 @@ void UIRenderer::Init(Engine *engine)
 
         auto *engine = GetEngine();
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            auto result = renderer::Result::OK;
-
-            // remove descriptors from global descriptor set
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                    .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-                // set to placeholder data.
-                descriptor_set
-                    ->GetDescriptor(DescriptorKey::UI_TEXTURE)
-                    ->SetSubDescriptor({
-                        .element_index = GetComponentIndex(),
-                        .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
-                    });
-            }
-
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyUIDescriptors)>(GetComponentIndex());
 
         HYP_FLUSH_RENDER_QUEUE(engine);
     });
@@ -73,21 +117,13 @@ void UIRenderer::CreateFramebuffers(Engine *engine)
 void UIRenderer::CreateDescriptors(Engine *engine)
 {
     // create descriptors in render thread
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
-                ->SetSubDescriptor({
-                    .element_index = GetComponentIndex(),
-                    .image_view = m_framebuffers[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
-                });
+    RenderCommands::Push<RENDER_COMMAND(CreateUIDescriptors)>(
+        GetComponentIndex(),
+        FixedArray<renderer::ImageView *, max_frames_in_flight> {
+            m_framebuffers[0]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView(),
+            m_framebuffers[1]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
         }
-
-        HYPERION_RETURN_OK;
-    });
+    );
 }
 
 // called from game thread

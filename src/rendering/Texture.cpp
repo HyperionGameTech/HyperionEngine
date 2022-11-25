@@ -3,6 +3,79 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+class Texture;
+
+struct RENDER_COMMAND(CreateTexture) : RenderCommandBase2
+{
+    Texture *texture;
+    renderer::ResourceState initial_state;
+    renderer::Image *image;
+    renderer::ImageView *image_view;
+    renderer::Sampler *sampler;
+
+    RENDER_COMMAND(CreateTexture)(
+        Texture *texture,
+        renderer::ResourceState initial_state,
+        renderer::Image *image,
+        renderer::ImageView *image_view,
+        renderer::Sampler *sampler
+    ) : texture(texture),
+        initial_state(initial_state),
+        image(image),
+        image_view(image_view),
+        sampler(sampler)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        HYPERION_BUBBLE_ERRORS(image->Create(engine->GetDevice(), engine->GetInstance(), initial_state));
+        HYPERION_BUBBLE_ERRORS(image_view->Create(engine->GetInstance()->GetDevice(), image));
+        HYPERION_BUBBLE_ERRORS(sampler->Create(engine->GetInstance()->GetDevice()));
+
+#if HYP_FEATURES_BINDLESS_TEXTURES
+        engine->GetRenderData()->textures.AddResource(texture);
+#endif
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyTexture) : RenderCommandBase2
+{
+    Texture::ID id;
+    renderer::Image *image;
+    renderer::ImageView *image_view;
+    renderer::Sampler *sampler;
+
+    RENDER_COMMAND(DestroyTexture)(
+        Texture::ID id,
+        renderer::Image *image,
+        renderer::ImageView *image_view,
+        renderer::Sampler *sampler
+    ) : id(id),
+        image(image),
+        image_view(image_view),
+        sampler(sampler)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+#if HYP_FEATURES_BINDLESS_TEXTURES
+        engine->GetRenderData()->textures.RemoveResource(id);
+#endif
+
+        HYPERION_BUBBLE_ERRORS(sampler->Destroy(engine->GetInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(image_view->Destroy(engine->GetInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(image->Destroy(engine->GetInstance()->GetDevice()));
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 Texture::Texture(
     Extent3D extent,
     InternalFormat format,
@@ -48,38 +121,27 @@ void Texture::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        const auto initial_state = renderer::ResourceState::SHADER_RESOURCE;
+    RenderCommands::Push<RENDER_COMMAND(CreateTexture)>(
+        this,
+        renderer::ResourceState::SHADER_RESOURCE,
+        &m_image,
+        &m_image_view,
+        &m_sampler
+    );
 
-        HYPERION_BUBBLE_ERRORS(m_image.Create(engine->GetDevice(), engine->GetInstance(), initial_state));
-        HYPERION_BUBBLE_ERRORS(m_image_view.Create(engine->GetInstance()->GetDevice(), &m_image));
-        HYPERION_BUBBLE_ERRORS(m_sampler.Create(engine->GetInstance()->GetDevice()));
-
-#if HYP_FEATURES_BINDLESS_TEXTURES
-        engine->GetRenderData()->textures.AddResource(this);
-#endif
-        
-        SetReady(true);
-
-        HYPERION_RETURN_OK;
-    });
+    SetReady(true);
     
     OnTeardown([this]() {
         auto *engine = GetEngine();
 
         SetReady(false);
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-#if HYP_FEATURES_BINDLESS_TEXTURES
-            engine->GetRenderData()->textures.RemoveResource(m_id);
-#endif
-
-            HYPERION_BUBBLE_ERRORS(m_sampler.Destroy(engine->GetInstance()->GetDevice()));
-            HYPERION_BUBBLE_ERRORS(m_image_view.Destroy(engine->GetInstance()->GetDevice()));
-            HYPERION_BUBBLE_ERRORS(m_image.Destroy(engine->GetInstance()->GetDevice()));
-
-            HYPERION_RETURN_OK;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyTexture)>(
+            m_id,
+            &m_image,
+            &m_image_view,
+            &m_sampler
+        );
         
         HYP_FLUSH_RENDER_QUEUE(engine);
     });

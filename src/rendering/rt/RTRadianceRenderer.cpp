@@ -353,7 +353,9 @@ void RTRadianceRenderer::CreateDescriptorSets(Engine *engine)
 void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
 {
     m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader("RTRadiance"));
-    engine->InitObject(m_shader);
+    if (!engine->InitObject(m_shader)) {
+        return;
+    }
 
     m_raytracing_pipeline.Reset(new RaytracingPipeline(
         Array<const DescriptorSet *> {
@@ -366,7 +368,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline(Engine *engine)
     engine->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this, engine](...) {
         RenderCommands::Push<RENDER_COMMAND(CreateRTRadiancePipeline)>(
             m_raytracing_pipeline.Get(),
-            m_shader.Get()
+            m_shader->GetShaderProgram()
         );
     });
 }

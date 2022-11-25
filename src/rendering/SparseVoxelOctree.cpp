@@ -51,47 +51,60 @@ void SparseVoxelOctree::Init(Engine *engine)
 
         SetReady(false);
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            auto result = Result::OK;
+        struct RENDER_COMMAND(DestroySVO) : RenderCommandBase2
+        {
+            SparseVoxelOctree &svo;
 
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                if (m_descriptor_sets[frame_index] == nullptr) {
-                    continue;
+            RENDER_COMMAND(DestroySVO)(SparseVoxelOctree &svo)
+                : svo(svo)
+            {
+            }
+
+            virtual Result operator()(Engine *engine)
+            {
+                auto result = Result::OK;
+
+                for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                    if (svo.m_descriptor_sets[frame_index] == nullptr) {
+                        continue;
+                    }
+
+                    HYPERION_PASS_ERRORS(
+                        svo.m_descriptor_sets[frame_index]->Destroy(engine->GetDevice()),
+                        result
+                    );
                 }
 
-                HYPERION_PASS_ERRORS(
-                    m_descriptor_sets[frame_index]->Destroy(engine->GetDevice()),
-                    result
-                );
-            }
+                if (svo.m_counter != nullptr) {
+                    svo.m_counter->Destroy(engine);
+                }
 
-            if (m_counter != nullptr) {
-                m_counter->Destroy(engine);
-            }
+                if (svo.m_build_info_buffer != nullptr) {
+                    HYPERION_PASS_ERRORS(
+                        svo.m_build_info_buffer->Destroy(engine->GetDevice()),
+                        result
+                    );
+                }
 
-            if (m_build_info_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_build_info_buffer->Destroy(engine->GetDevice()),
-                    result
-                );
-            }
+                if (svo.m_indirect_buffer != nullptr) {
+                    HYPERION_PASS_ERRORS(
+                        svo.m_indirect_buffer->Destroy(engine->GetDevice()),
+                        result
+                    );
+                }
 
-            if (m_indirect_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_indirect_buffer->Destroy(engine->GetDevice()),
-                    result
-                );
-            }
+                if (svo.m_octree_buffer != nullptr) {
+                    HYPERION_PASS_ERRORS(
+                        svo.m_octree_buffer->Destroy(engine->GetDevice()),
+                        result
+                    );
+                }
 
-            if (m_octree_buffer != nullptr) {
-                HYPERION_PASS_ERRORS(
-                    m_octree_buffer->Destroy(engine->GetDevice()),
-                    result
-                );
+                return result;
             }
+        };
 
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroySVO)>(*this);
 
         HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -222,58 +235,71 @@ void SparseVoxelOctree::CreateBuffers(Engine *engine)
     m_indirect_buffer = std::make_unique<IndirectBuffer>();
     m_counter = std::make_unique<AtomicCounter>();
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
+    struct RENDER_COMMAND(CreateSVOBuffers) : RenderCommandBase2
+    {
+        SparseVoxelOctree &svo;
 
-        m_counter->Create(engine);
-
-        HYPERION_PASS_ERRORS(
-            m_build_info_buffer->Create(engine->GetInstance()->GetDevice(), 2 * sizeof(UInt32)),
-            result
-        );
-
-        HYPERION_PASS_ERRORS(
-            m_indirect_buffer->Create(engine->GetInstance()->GetDevice(), 3 * sizeof(UInt32)),
-            result
-        );
-
-        m_octree_buffer = std::make_unique<StorageBuffer>();
-
-        const auto num_nodes = CalculateNumNodes();
-
-        DebugLog(
-            LogType::Debug,
-            "%llu rendered fragments, creating %llu octree nodes (%llu MiB)\n",
-            m_voxelizer->NumFragments(),
-            num_nodes,
-            (num_nodes * sizeof(OctreeNode)) / 1000000
-        );
-
-        HYPERION_PASS_ERRORS(
-            m_octree_buffer->Create(engine->GetInstance()->GetDevice(), num_nodes * sizeof(OctreeNode)),
-            result
-        );
-
-        if (!result) {
-            engine->SafeRelease(UniquePtr<renderer::StorageBuffer>(m_octree_buffer.release()));
-
-            HYPERION_PASS_ERRORS(
-                m_build_info_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                result
-            );
-
-            m_build_info_buffer.reset(nullptr);
-
-            HYPERION_PASS_ERRORS(
-                m_indirect_buffer->Destroy(engine->GetInstance()->GetDevice()),
-                result
-            );
-
-            m_indirect_buffer.reset(nullptr);
+        RENDER_COMMAND(CreateSVOBuffers)(SparseVoxelOctree &svo)
+            : svo(svo)
+        {
         }
 
-        return result;
-    });
+        virtual Result operator()(Engine *engine)
+        {
+            auto result = Result::OK;
+
+            svo.m_counter->Create(engine);
+
+            HYPERION_PASS_ERRORS(
+                svo.m_build_info_buffer->Create(engine->GetInstance()->GetDevice(), 2 * sizeof(UInt32)),
+                result
+            );
+
+            HYPERION_PASS_ERRORS(
+                svo.m_indirect_buffer->Create(engine->GetInstance()->GetDevice(), 3 * sizeof(UInt32)),
+                result
+            );
+
+            svo.m_octree_buffer = std::make_unique<StorageBuffer>();
+
+            const auto num_nodes = svo.CalculateNumNodes();
+
+            DebugLog(
+                LogType::Debug,
+                "%llu rendered fragments, creating %llu octree nodes (%llu MiB)\n",
+                svo.m_voxelizer->NumFragments(),
+                num_nodes,
+                (num_nodes * sizeof(OctreeNode)) / 1000000
+            );
+
+            HYPERION_PASS_ERRORS(
+                svo.m_octree_buffer->Create(engine->GetInstance()->GetDevice(), num_nodes * sizeof(OctreeNode)),
+                result
+            );
+
+            if (!result) {
+                engine->SafeRelease(UniquePtr<renderer::StorageBuffer>(svo.m_octree_buffer.release()));
+
+                HYPERION_PASS_ERRORS(
+                    svo.m_build_info_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                    result
+                );
+
+                svo.m_build_info_buffer.reset(nullptr);
+
+                HYPERION_PASS_ERRORS(
+                    svo.m_indirect_buffer->Destroy(engine->GetInstance()->GetDevice()),
+                    result
+                );
+
+                svo.m_indirect_buffer.reset(nullptr);
+            }
+
+            return result;
+        }
+    };
+
+    RenderCommands::Push<RENDER_COMMAND(CreateSVOBuffers)>(*this);
 }
 
 void SparseVoxelOctree::CreateDescriptors(Engine *engine)
@@ -282,59 +308,72 @@ void SparseVoxelOctree::CreateDescriptors(Engine *engine)
         m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto &descriptor_set = m_descriptor_sets[frame_index];
-            AssertThrow(descriptor_set != nullptr);
+    struct RENDER_COMMAND(CreateSVODescriptors) : RenderCommandBase2
+    {
+        SparseVoxelOctree &svo;
 
-            /* 0 = voxel atomic counter */
-            /* 1 = fragment list  */
-            /* 2 = octree         */
-            /* 3 = build info     */
-            /* 4 = indirect       */
-            /* 5 = octree atomic counter */
-    
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-                ->SetSubDescriptor({ .buffer = m_voxelizer->GetAtomicCounter()->GetBuffer() });
-    
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
-                ->SetSubDescriptor({ .buffer = m_voxelizer->GetFragmentListBuffer() });
-
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(2)
-                ->SetSubDescriptor({ .buffer = m_octree_buffer.get() });
-
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                ->SetSubDescriptor({ .buffer = m_build_info_buffer.get() });
-
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(4)
-                ->SetSubDescriptor({ .buffer = m_indirect_buffer.get() });
-
-            descriptor_set
-                ->AddDescriptor<renderer::StorageBufferDescriptor>(5)
-                ->SetSubDescriptor({ .buffer = m_counter->GetBuffer() });
-
-            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-
-            // set octree buffer in global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-            
-            descriptor_set_globals->GetDescriptor(DescriptorKey::SVO_BUFFER)->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_octree_buffer.get()
-            });
+        RENDER_COMMAND(CreateSVODescriptors)(SparseVoxelOctree &svo)
+            : svo(svo)
+        {
         }
 
-        HYPERION_RETURN_OK;
-    });
+        virtual Result operator()(Engine *engine)
+        {
+            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                auto &descriptor_set = svo.m_descriptor_sets[frame_index];
+                AssertThrow(descriptor_set != nullptr);
+
+                /* 0 = voxel atomic counter */
+                /* 1 = fragment list  */
+                /* 2 = octree         */
+                /* 3 = build info     */
+                /* 4 = indirect       */
+                /* 5 = octree atomic counter */
+        
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
+                    ->SetSubDescriptor({ .buffer = svo.m_voxelizer->GetAtomicCounter()->GetBuffer() });
+        
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
+                    ->SetSubDescriptor({ .buffer = svo.m_voxelizer->GetFragmentListBuffer() });
+
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(2)
+                    ->SetSubDescriptor({ .buffer = svo.m_octree_buffer.get() });
+
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(3)
+                    ->SetSubDescriptor({ .buffer = svo.m_build_info_buffer.get() });
+
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(4)
+                    ->SetSubDescriptor({ .buffer = svo.m_indirect_buffer.get() });
+
+                descriptor_set
+                    ->AddDescriptor<renderer::StorageBufferDescriptor>(5)
+                    ->SetSubDescriptor({ .buffer = svo.m_counter->GetBuffer() });
+
+                HYPERION_BUBBLE_ERRORS(descriptor_set->Create(
+                    engine->GetDevice(),
+                    &engine->GetInstance()->GetDescriptorPool()
+                ));
+
+                // set octree buffer in global descriptor set
+                auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                    .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+                
+                descriptor_set_globals->GetDescriptor(DescriptorKey::SVO_BUFFER)->SetSubDescriptor({
+                    .element_index = 0u,
+                    .buffer = svo.m_octree_buffer.get()
+                });
+            }
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    RenderCommands::Push<RENDER_COMMAND(CreateSVODescriptors)>(*this);
 }
 
 void SparseVoxelOctree::CreateComputePipelines(Engine *engine)

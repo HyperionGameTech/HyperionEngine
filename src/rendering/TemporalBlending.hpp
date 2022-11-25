@@ -26,27 +26,38 @@ using renderer::Device;
 using renderer::DescriptorSet;
 using renderer::AttachmentRef;
 using renderer::Extent2D;
+using renderer::Result;
 
 class Engine;
+
+struct RenderCommand_CreateTemporalImageOutputs;
 
 class TemporalBlending
 {
 public:
+    friend struct RenderCommand_CreateTemporalImageOutputs;
+
     struct ImageOutput
     {
         StorageImage image;
         ImageView image_view;
 
-        void Create(Device *device)
+        Result Create(Device *device)
         {
-            HYPERION_ASSERT_RESULT(image.Create(device));
-            HYPERION_ASSERT_RESULT(image_view.Create(device, &image));
+            HYPERION_BUBBLE_ERRORS(image.Create(device));
+            HYPERION_BUBBLE_ERRORS(image_view.Create(device, &image));
+
+            HYPERION_RETURN_OK;
         }
 
-        void Destroy(Device *device)
+        Result Destroy(Device *device)
         {
-            HYPERION_ASSERT_RESULT(image.Destroy(device));
-            HYPERION_ASSERT_RESULT(image_view.Destroy(device));
+            auto result = Result::OK;
+
+            HYPERION_PASS_ERRORS(image.Destroy(device), result);
+            HYPERION_PASS_ERRORS(image_view.Destroy(device), result);
+
+            return result;
         }
     };
 

@@ -18,10 +18,14 @@ using renderer::StorageImage2D;
 
 struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommandBase2
 {
-    ShadowPass &shadow_pass;
+    SizeType shadow_map_index;
+    renderer::ImageView *shadow_map_image_view;
 
-    RENDER_COMMAND(CreateShadowMapDescriptors)(ShadowPass &shadow_pass)
-        : shadow_pass(shadow_pass)
+    RENDER_COMMAND(CreateShadowMapDescriptors)(
+        SizeType shadow_map_index,
+        renderer::ImageView *shadow_map_image_view
+    ) : shadow_map_index(shadow_map_index),
+        shadow_map_image_view(shadow_map_image_view)
     {
     }
 
@@ -33,16 +37,12 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommandBase2
 
             auto *shadow_map_descriptor = descriptor_set
                 ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-        
-            AssertThrow(m_shadow_map_image != nullptr);
 
-            const auto sub_descriptor_index = shadow_map_descriptor->SetSubDescriptor({
-                .element_index = shadow_pass.m_shadow_map_index,
-                .image_view = shadow_pass.m_shadow_map_image_view.get(),
-                .sampler = &engine->GetPlaceholderData().GetSamplerLinear()
-            });
-
-            AssertThrow(sub_descriptor_index == m_shadow_map_index);
+            shadow_map_descriptor->SetElementImageSamplerCombined(
+                UInt(shadow_map_index),
+                shadow_map_image_view,
+                &engine->GetPlaceholderData().GetSamplerLinear()
+            );
         }
 
         HYPERION_RETURN_OK;
@@ -212,7 +212,10 @@ void ShadowPass::CreateDescriptors(Engine *engine)
 {
     AssertThrow(m_shadow_map_index != ~0u);
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapDescriptors)>(*this);
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapDescriptors)>(
+        m_shadow_map_index,
+        m_shadow_map_image_view.get()
+    );
 }
 
 void ShadowPass::CreateRendererInstance(Engine *engine)

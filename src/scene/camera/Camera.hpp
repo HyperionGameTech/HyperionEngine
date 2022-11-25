@@ -65,11 +65,15 @@ struct CameraCommand
     };
 };
 
+struct RenderCommand_UpdateCameraDrawProxy;
+
 class Camera :
     public EngineComponentBase<STUB_CLASS(Camera)>,
     public HasDrawProxy<STUB_CLASS(Camera)>
 {
 public:
+    friend struct RenderCommand_UpdateCameraDrawProxy;
+
     Camera(CameraType camera_type, int width, int height, float _near, float _far);
     virtual ~Camera();
 
@@ -102,17 +106,21 @@ public:
 
     void Rotate(const Vector3 &axis, float radians);
 
+    /*! \brief For deserialization, allow modification of the object. */
     Frustum &GetFrustum() { return m_frustum; }
     const Frustum &GetFrustum() const { return m_frustum; }
 
+    /*! \brief For deserialization, allow modification of the object. */
     Matrix4 &GetViewMatrix() { return m_view_mat; }
     const Matrix4 &GetViewMatrix() const { return m_view_mat; }
     void SetViewMatrix(const Matrix4 &view_mat);
 
+    /*! \brief For deserialization, allow modification of the object. */
     Matrix4 &GetProjectionMatrix() { return m_proj_mat; }
     const Matrix4 &GetProjectionMatrix() const { return m_proj_mat; }
     void SetProjectionMatrix(const Matrix4 &proj_mat);
 
+    /*! \brief For deserialization, allow modification of the object. */
     Matrix4 &GetViewProjectionMatrix() { return m_view_proj_mat; }
     const Matrix4 &GetViewProjectionMatrix() const { return m_view_proj_mat; }
     void SetViewProjectionMatrix(const Matrix4 &view_mat, const Matrix4 &proj_mat);

@@ -21,15 +21,20 @@ RenderScheduler::FlushResult RenderScheduler::Flush(Engine *engine)
         ++result.num_executed;
 
         if (!(result.result = front->Call(engine))) {
-            front->~RenderCommandBase2();
+            DebugLog(LogType::Error, "Error! %s\n", result.result.message);
 
-            SizeType num_executed = result.num_executed;
-            m_num_enqueued.fetch_sub(num_executed, std::memory_order_relaxed);
+            // SizeType num_executed = result.num_executed;
+            // m_num_enqueued.fetch_sub(num_executed, std::memory_order_relaxed);
 
-            while (num_executed) {
-                m_commands.PopFront();
-                --num_executed;
+            // while (num_executed) {
+            //     m_commands.PopFront();
+            //     --num_executed;
+            // }
+            for (SizeType index = m_commands.Size() - count; index < m_commands.Size(); index++) {
+                m_commands[index]->~RenderCommandBase2();
             }
+            m_num_enqueued.store(0, std::memory_order_relaxed);
+            m_commands.Clear();
 
             return result;
         }

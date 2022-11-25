@@ -5,6 +5,37 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(RemoveAllRenderComponents) : RenderCommandBase2
+{
+    TypeMap<UniquePtr<RenderComponentBase>> *render_components;
+
+    RENDER_COMMAND(RemoveAllRenderComponents)(TypeMap<UniquePtr<RenderComponentBase>> *render_components)
+        : render_components(render_components)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (auto &it : *render_components) {
+            if (it.second == nullptr) {
+                result = { Result::RENDERER_ERR, "RenderComponent was null" };
+
+                continue;
+            }
+
+            it.second->ComponentRemoved();
+        }
+
+        render_components->Clear();
+
+        return result;
+    }
+};
+
 RenderEnvironment::RenderEnvironment(Scene *scene)
     : EngineComponentBase(),
       m_scene(scene),
@@ -100,20 +131,7 @@ void RenderEnvironment::Init(Engine *engine)
 
         const auto update_marker_value = m_update_marker.load();
 
-        // have to store render components into temporary container
-        // from render thread so we don't run into a race condition.
-        // and can't directly Clear() because destructors may enqueue
-        // into render scheduler
-        TypeMap<UniquePtr<RenderComponentBase>> tmp_render_components;
-
-        engine->GetRenderScheduler().Enqueue([this, engine, &tmp_render_components](...) {
-            m_current_enabled_render_components_mask = 0u;
-            m_next_enabled_render_components_mask = 0u;
-            
-            tmp_render_components = std::move(m_render_components);
-
-            HYPERION_RETURN_OK;
-        });
+        RenderCommands::Push<RENDER_COMMAND(RemoveAllRenderComponents)>(&m_render_components);
 
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS) {
             std::lock_guard guard(m_render_component_mutex);
@@ -125,8 +143,6 @@ void RenderEnvironment::Init(Engine *engine)
         m_update_marker.fetch_and(~RENDER_ENVIRONMENT_UPDATES_CONTAINERS);
 
         HYP_FLUSH_RENDER_QUEUE(engine);
-
-        tmp_render_components.Clear();
     });
 }
 
@@ -275,8 +291,13 @@ void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
         m_render_components_pending_addition.Clear();
 
         for (const auto &it : m_render_components_pending_removal) {
-            m_next_enabled_render_components_mask &= ~(1u << static_cast<UInt32>(it.second));
-            m_render_components.Remove(it.first);
+            const auto components_it = m_render_components.Find(it.first);
+
+            if (components_it != m_render_components.End()) {
+                components_it->second->ComponentRemoved();
+                m_next_enabled_render_components_mask &= ~(1u << static_cast<UInt32>(it.second));
+                m_render_components.Erase(components_it);
+            }
         }
 
         m_render_components_pending_removal.Clear();

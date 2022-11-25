@@ -766,7 +766,7 @@ int main()
 {
     using namespace hyperion::renderer;
 
-
+#if 0
     Profile p1([]() {
         for (SizeType i = 0; i < 1000; i++) {
             RenderCommands::Push<RenderCommand_FooBar>();
@@ -890,6 +890,7 @@ int main()
     ary.Resize(23);
 
     HYP_BREAKPOINT;
+#endif
 
     RefCountedPtr<Application> application(new SDLApplication);
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));

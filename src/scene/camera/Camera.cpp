@@ -5,6 +5,29 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+class Camera;
+
+struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommandBase2
+{
+    Camera *camera;
+    CameraDrawProxy draw_proxy;
+
+    RENDER_COMMAND(UpdateCameraDrawProxy)(Camera *camera, const CameraDrawProxy &draw_proxy)
+        : camera(camera),
+          draw_proxy(draw_proxy)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        camera->m_draw_proxy = draw_proxy;
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 static Matrix4 BuildJitterMatrix(const Camera &camera, UInt frame_counter)
 {
     if (camera.GetWidth() == 0 || camera.GetHeight() == 0) {
@@ -192,20 +215,22 @@ void Camera::Update(Engine *engine, GameCounter::TickUnit dt)
 
     UpdateMatrices();
 
-    // enqueue render update to update the draw_proxy proxy object
-    EnqueueDrawProxyUpdate(engine, CameraDrawProxy {
-        .view = m_view_mat,
-        .projection = m_proj_mat,
-        .previous_view = m_previous_view_matrix,
-        .position = m_translation,
-        .direction = m_direction,
-        .up = m_up,
-        .dimensions = Extent2D { UInt(m_width), UInt(m_height) },
-        .clip_near = m_near,
-        .clip_far = m_far,
-        .fov = m_fov,
-        .frustum = m_frustum
-    });
+    RenderCommands::Push<RENDER_COMMAND(UpdateCameraDrawProxy)>(
+        this,
+        CameraDrawProxy {
+            .view = m_view_mat,
+            .projection = m_proj_mat,
+            .previous_view = m_previous_view_matrix,
+            .position = m_translation,
+            .direction = m_direction,
+            .up = m_up,
+            .dimensions = Extent2D { UInt(m_width), UInt(m_height) },
+            .clip_near = m_near,
+            .clip_far = m_far,
+            .fov = m_fov,
+            .frustum = m_frustum
+        }
+    );
 }
 
 void Camera::UpdateMatrices()

@@ -10,6 +10,8 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
 Voxelizer::Voxelizer()
     : EngineComponentBase(),
       m_num_fragments(0)
@@ -56,28 +58,41 @@ void Voxelizer::Init(Engine *engine)
         m_framebuffer.Reset();
         m_render_pass.Reset();
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            auto result = renderer::Result::OK;
+        struct RENDER_COMMAND(DestroyVoxelizer) : RenderCommandBase2
+        {
+            Voxelizer &voxelizer;
 
-            if (m_counter != nullptr) {
-                m_counter->Destroy(engine);
+            RENDER_COMMAND(DestroyVoxelizer)(Voxelizer &voxelizer)
+                : voxelizer(voxelizer)
+            {
             }
 
-            if (m_fragment_list_buffer != nullptr) {
-                engine->SafeRelease(UniquePtr<StorageBuffer>(m_fragment_list_buffer.release()));
+            virtual Result operator()(Engine *engine)
+            {
+                auto result = renderer::Result::OK;
+
+                if (voxelizer.m_counter != nullptr) {
+                    voxelizer.m_counter->Destroy(engine);
+                }
+
+                if (voxelizer.m_fragment_list_buffer != nullptr) {
+                    engine->SafeRelease(UniquePtr<StorageBuffer>(voxelizer.m_fragment_list_buffer.release()));
+                }
+
+                for (auto &attachment : voxelizer.m_attachments) {
+                    HYPERION_PASS_ERRORS(
+                        attachment->Destroy(engine->GetInstance()->GetDevice()),
+                        result
+                    );
+                }
+
+                voxelizer.m_num_fragments = 0;
+
+                return result;
             }
+        };
 
-            for (auto &attachment : m_attachments) {
-                HYPERION_PASS_ERRORS(
-                    attachment->Destroy(engine->GetInstance()->GetDevice()),
-                    result
-                );
-            }
-
-            m_num_fragments = 0;
-
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyVoxelizer)>(*this);
 
         HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -126,18 +141,31 @@ void Voxelizer::CreateBuffers(Engine *engine)
     m_counter = std::make_unique<AtomicCounter>();
     m_fragment_list_buffer = std::make_unique<StorageBuffer>();
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
+    struct RENDER_COMMAND(CreateVoxelizerBuffers) : RenderCommandBase2
+    {
+        Voxelizer &voxelizer;
 
-        m_counter->Create(engine);
-        
-        HYPERION_PASS_ERRORS(
-            m_fragment_list_buffer->Create(engine->GetInstance()->GetDevice(), default_fragment_list_buffer_size),
-            result
-        );
+        RENDER_COMMAND(CreateVoxelizerBuffers)(Voxelizer &voxelizer)
+            : voxelizer(voxelizer)
+        {
+        }
 
-        return result;
-    });
+        virtual Result operator()(Engine *engine)
+        {
+            auto result = Result::OK;
+
+            voxelizer.m_counter->Create(engine);
+            
+            HYPERION_PASS_ERRORS(
+                voxelizer.m_fragment_list_buffer->Create(engine->GetInstance()->GetDevice(), default_fragment_list_buffer_size),
+                result
+            );
+
+            return result;
+        }
+    };
+
+    RenderCommands::Push<RENDER_COMMAND(CreateVoxelizerBuffers)>(*this);
 }
 
 void Voxelizer::CreateShader(Engine *engine)
@@ -182,26 +210,39 @@ void Voxelizer::CreateFramebuffer(Engine *engine)
 
 void Voxelizer::CreateDescriptors(Engine *engine)
 {
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
-            .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
+    struct RENDER_COMMAND(CreateVoxelizerDescriptors) : RenderCommandBase2
+    {
+        Voxelizer &voxelizer;
 
-        descriptor_set
-            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_counter->GetBuffer()
-            });
+        RENDER_COMMAND(CreateVoxelizerDescriptors)(Voxelizer &voxelizer)
+            : voxelizer(voxelizer)
+        {
+        }
 
-        descriptor_set
-            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_fragment_list_buffer.get()
-            });
+        virtual Result operator()(Engine *engine)
+        {
+            auto *descriptor_set = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 
-        HYPERION_RETURN_OK;
-    });
+            descriptor_set
+                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .buffer = voxelizer.m_counter->GetBuffer()
+                });
+
+            descriptor_set
+                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
+                ->SetSubDescriptor({
+                    .element_index = 0u,
+                    .buffer = voxelizer.m_fragment_list_buffer.get()
+                });
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    RenderCommands::Push<RENDER_COMMAND(CreateVoxelizerDescriptors)>(*this);
 }
 
 /* We only reconstruct the buffer if the number of rendered fragments is

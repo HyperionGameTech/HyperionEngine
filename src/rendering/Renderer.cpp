@@ -7,6 +7,86 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommandBase2
+{
+    renderer::GraphicsPipeline *pipeline;
+    renderer::ShaderProgram *shader_program;
+    renderer::RenderPass *render_pass;
+    Array<renderer::FramebufferObject *> framebuffers;
+    Array<Array<renderer::CommandBuffer *>> command_buffers;
+    RenderableAttributeSet attributes;
+
+    RENDER_COMMAND(CreateGraphicsPipeline)(
+        renderer::GraphicsPipeline *pipeline,
+        renderer::ShaderProgram *shader_program,
+        renderer::RenderPass *render_pass,
+        Array<renderer::FramebufferObject *> &&framebuffers,
+        Array<Array<renderer::CommandBuffer *>> &&command_buffers,
+        const RenderableAttributeSet &attributes
+    ) : pipeline(pipeline),
+        shader_program(shader_program),
+        render_pass(render_pass),
+        framebuffers(std::move(framebuffers)),
+        command_buffers(std::move(command_buffers)),
+        attributes(attributes)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        renderer::GraphicsPipeline::ConstructionInfo construction_info {
+            .vertex_attributes = attributes.mesh_attributes.vertex_attributes,
+            .topology          = attributes.mesh_attributes.topology,
+            .cull_mode         = attributes.material_attributes.cull_faces,
+            .fill_mode         = attributes.material_attributes.fill_mode,
+            .depth_test        = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
+            .depth_write       = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
+            .blend_enabled     = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING),
+            .shader            = shader_program,
+            .render_pass       = render_pass,
+            .stencil_state     = attributes.stencil_state
+        };
+
+        for (renderer::FramebufferObject *framebuffer : framebuffers) {
+            construction_info.fbos.push_back(framebuffer);
+        }
+
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            for (UInt j = 0; j < UInt(command_buffers[i].Size()); j++) {
+                HYPERION_ASSERT_RESULT(command_buffers[i][j]->Create(
+                    engine->GetInstance()->GetDevice(),
+                    engine->GetInstance()->GetGraphicsCommandPool(j)
+                ));
+            }
+        }
+
+        HYPERION_BUBBLE_ERRORS(pipeline->Create(
+            engine->GetDevice(),
+            std::move(construction_info),
+            &engine->GetInstance()->GetDescriptorPool()
+        ));
+        
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommandBase2
+{
+    renderer::GraphicsPipeline *pipeline;
+
+    RENDER_COMMAND(DestroyGraphicsPipeline)(renderer::GraphicsPipeline *pipeline)
+        : pipeline(pipeline)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return pipeline->Destroy(engine->GetDevice());
+    }
+};
+
 RendererInstance::RendererInstance(
     Handle<Shader> &&shader,
     Handle<RenderPass> &&render_pass,
@@ -219,43 +299,37 @@ void RendererInstance::Init(Engine *engine)
     OnInit(engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         auto *engine = GetEngine();
 
-        engine->render_scheduler.Enqueue([this, engine](...) {
-            renderer::GraphicsPipeline::ConstructionInfo construction_info {
-                .vertex_attributes = m_renderable_attributes.mesh_attributes.vertex_attributes,
-                .topology = m_renderable_attributes.mesh_attributes.topology,
-                .cull_mode = m_renderable_attributes.material_attributes.cull_faces,
-                .fill_mode = m_renderable_attributes.material_attributes.fill_mode,
-                .depth_test = bool(m_renderable_attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
-                .depth_write = bool(m_renderable_attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
-                .blend_enabled = bool(m_renderable_attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING),
-                .shader = m_shader->GetShaderProgram(),
-                .render_pass = &m_render_pass->GetRenderPass(),
-                .stencil_state = m_renderable_attributes.stencil_state
-            };
+        Array<renderer::FramebufferObject *> framebuffers;
+        framebuffers.Reserve(m_fbos.Size());
 
-            for (auto &fbo : m_fbos) {
-                construction_info.fbos.push_back(&fbo->GetFramebuffer());
+        for (auto &fbo : m_fbos) {
+            framebuffers.PushBack(&fbo->GetFramebuffer());
+        }
+
+        Array<Array<renderer::CommandBuffer *>> command_buffers;
+        command_buffers.Reserve(m_command_buffers.Size());
+        
+        for (auto &item : m_command_buffers) {
+            Array<renderer::CommandBuffer *> frame_command_buffers;
+            frame_command_buffers.Reserve(item.Size());
+
+            for (auto &command_buffer : item) {
+                frame_command_buffers.PushBack(command_buffer.Get());
             }
 
-            for (UInt i = 0; i < max_frames_in_flight; i++) {
-                for (UInt j = 0; j < static_cast<UInt>(m_command_buffers[i].Size()); j++) {
-                    HYPERION_ASSERT_RESULT(m_command_buffers[i][j]->Create(
-                        engine->GetInstance()->GetDevice(),
-                        engine->GetInstance()->GetGraphicsCommandPool(j)
-                    ));
-                }
-            }
+            command_buffers.PushBack(std::move(frame_command_buffers));
+        }
 
-            HYPERION_BUBBLE_ERRORS(m_pipeline->Create(
-                engine->GetDevice(),
-                std::move(construction_info),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
+        RenderCommands::Push<RENDER_COMMAND(CreateGraphicsPipeline)>(
+            m_pipeline.get(),
+            m_shader->GetShaderProgram(),
+            &m_render_pass->GetRenderPass(),
+            std::move(framebuffers),
+            std::move(command_buffers),
+            m_renderable_attributes
+        );
             
-            SetReady(true);
-            
-            HYPERION_RETURN_OK;
-        });
+        SetReady(true);
 
         OnTeardown([this]() {
             auto *engine = GetEngine();
@@ -273,39 +347,37 @@ void RendererInstance::Init(Engine *engine)
             }
 
             m_entities.Clear();
-            
-            // std::lock_guard guard(m_enqueued_entities_mutex);
 
-            m_enqueued_entities_sp.Wait();
+            {
+                m_enqueued_entities_sp.Wait();
 
-            for (auto &&entity : m_entities_pending_addition) {
-                if (entity == nullptr) {
-                    continue;
+                for (auto &&entity : m_entities_pending_addition) {
+                    if (entity == nullptr) {
+                        continue;
+                    }
+
+                    entity->OnRemovedFromPipeline(this);
                 }
 
-                entity->OnRemovedFromPipeline(this);
+                m_entities_pending_addition.Clear();
+                m_entities_pending_removal.Clear();
+
+                m_enqueued_entities_sp.Signal();
             }
-
-            m_entities_pending_addition.Clear();
-            m_entities_pending_removal.Clear();
-
-            m_enqueued_entities_sp.Signal();
 
             m_shader.Reset();
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                for (UInt i = 0; i < static_cast<UInt>(m_command_buffers[frame_index].Size()); i++) {
+                for (UInt i = 0; i < UInt(m_command_buffers[frame_index].Size()); i++) {
                     engine->SafeRelease(std::move(m_command_buffers[frame_index][i]));
                 }
             }
 
-            engine->render_scheduler.Enqueue([this, engine](...) {
-                auto result = renderer::Result::OK;
+            for (auto &fbo : m_fbos) {
+                fbo.Reset();
+            }
 
-                HYPERION_PASS_ERRORS(m_pipeline->Destroy(engine->GetDevice()), result);
-
-                return result;
-            });
+            RenderCommands::Push<RENDER_COMMAND(DestroyGraphicsPipeline)>(m_pipeline.get());
             
             HYP_FLUSH_RENDER_QUEUE(engine);
         });

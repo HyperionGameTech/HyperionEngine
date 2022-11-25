@@ -213,6 +213,23 @@ public:
         return this;
     }
 
+    Descriptor *SetElementImageSamplerCombined(UInt index, const ImageView *image_view, const Sampler *sampler)
+    {
+        AssertThrowMsg(
+            m_descriptor_type == DescriptorType::IMAGE_SAMPLER,
+            "SetElementImageSamplerCombined() requires descriptor of type IMAGE_SAMPLER."
+        );
+
+        SubDescriptor element;
+        element.element_index = index;
+        element.image_view = image_view;
+        element.sampler = sampler;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
     /*! \brief Remove the sub-descriptor at the given index. */
     void RemoveSubDescriptor(UInt index);
     /*! \brief Mark a sub-descriptor as dirty */

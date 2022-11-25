@@ -6,6 +6,28 @@ namespace hyperion::v2 {
 
 using renderer::DynamicStorageBufferDescriptor;
 
+struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommandBase2
+{
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+
+    RENDER_COMMAND(CreateImmediateModeDescriptors)(UniquePtr<renderer::DescriptorSet> *descriptor_sets)
+        : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 ImmediateMode::ImmediateMode()
 {
     m_draw_commands.Reserve(256);
@@ -33,16 +55,7 @@ void ImmediateMode::Create(Engine *engine)
             ->SetElementBuffer<ImmediateDrawShaderData>(0, engine->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
     }
 
-    engine->GetRenderScheduler().Enqueue([engine, this](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
 
     m_shader = engine->CreateHandle<Shader>(engine->GetShaderCompiler().GetCompiledShader(
         "DebugAABB",

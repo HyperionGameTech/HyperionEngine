@@ -4,7 +4,7 @@
 
 namespace hyperion::renderer {
 
-const decltype(VertexAttribute::mapping) VertexAttribute::mapping({
+const decltype(VertexAttribute::mapping) VertexAttribute::mapping(std::vector {
     std::make_pair(MESH_INPUT_ATTRIBUTE_POSITION,     VertexAttribute { .name = "a_position",     .location = 0, .binding = 0, .size = 3 * sizeof(float) }),
     std::make_pair(MESH_INPUT_ATTRIBUTE_NORMAL,       VertexAttribute { .name = "a_normal",       .location = 1, .binding = 0, .size = 3 * sizeof(float) }),
     std::make_pair(MESH_INPUT_ATTRIBUTE_TEXCOORD0,    VertexAttribute { .name = "a_texcoord0",    .location = 2, .binding = 0, .size = 2 * sizeof(float) }),

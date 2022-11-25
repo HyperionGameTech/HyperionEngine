@@ -31,7 +31,7 @@ struct RENDER_COMMAND(DestroyTLAS) : RenderCommandBase2
     renderer::TopLevelAccelerationStructure *tlas;
 
     RENDER_COMMAND(DestroyTLAS)(renderer::TopLevelAccelerationStructure *tlas)
-        : tlas(tlas),
+        : tlas(tlas)
     {
     }
 

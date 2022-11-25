@@ -30,7 +30,7 @@ struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommandBase2
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
                 engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
+                engine->GetInstance()->GetGraphicsCommandPool()
             ));
         }
 

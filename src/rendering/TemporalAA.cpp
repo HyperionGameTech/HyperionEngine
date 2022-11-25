@@ -16,6 +16,96 @@ using renderer::DynamicStorageBufferDescriptor;
 using renderer::ShaderVec2;
 using renderer::ShaderMat4;
 
+struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommandBase2
+{
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+    TemporalAA::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(CreateTemporalAADescriptors)(
+        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
+        TemporalAA::ImageOutput *image_outputs
+    ) : descriptor_sets(descriptor_sets),
+        image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            // create our own descriptor sets
+            AssertThrow(descriptor_sets[frame_index] != nullptr);
+            
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+
+            // Add the final result to the global descriptor set
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::TEMPORAL_AA_RESULT)
+                ->SetElementSRV(0, &image_outputs[frame_index].image_view);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderCommandBase2
+{
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+    TemporalAA::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)(
+        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
+        TemporalAA::ImageOutput *image_outputs
+    ) : descriptor_sets(descriptor_sets),
+        image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            image_outputs[frame_index].Destroy(engine->GetDevice());
+
+            // unset final result from the global descriptor set
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::TEMPORAL_AA_RESULT)
+                ->SetElementSRV(0, &engine->GetPlaceholderData().GetImageView2D1x1R8());
+        }
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(CreateTemporalAAImageOutputs) : RenderCommandBase2
+{
+    TemporalAA::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(CreateTemporalAAImageOutputs)(
+        TemporalAA::ImageOutput *image_outputs
+    ) : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(engine->GetDevice()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 Result TemporalAA::ImageOutput::Create(Device *device)
 {
     HYPERION_BUBBLE_ERRORS(image.Create(device));
@@ -79,39 +169,19 @@ void TemporalAA::Destroy(Engine *engine)
         engine->SafeRelease(std::move(uniform_buffer));
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            m_image_outputs[frame_index].Destroy(engine->GetDevice());
-
-            // unset final result from the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::TEMPORAL_AA_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &engine->GetPlaceholderData().GetImageView2D1x1R8()
-                });
-        }
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)>(
+        m_descriptor_sets.Data(),
+        m_image_outputs.Data()
+    );
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 }
 
 void TemporalAA::CreateImages(Engine *engine)
 {
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (auto &image_output : m_image_outputs) {
-            HYPERION_BUBBLE_ERRORS(image_output.Create(engine->GetDevice()));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateTemporalAAImageOutputs)>(
+        m_image_outputs.Data()
+    );
 }
 
 void TemporalAA::CreateDescriptorSets(Engine *engine)
@@ -176,30 +246,10 @@ void TemporalAA::CreateDescriptorSets(Engine *engine)
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
     
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // create our own descriptor sets
-            AssertThrow(m_descriptor_sets[frame_index] != nullptr);
-            
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-
-            // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::TEMPORAL_AA_RESULT)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = &m_image_outputs[frame_index].image_view
-                });
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateTemporalAADescriptors)>(
+        m_descriptor_sets.Data(),
+        m_image_outputs.Data()
+    );
 }
 
 void TemporalAA::CreateComputePipelines(Engine *engine)

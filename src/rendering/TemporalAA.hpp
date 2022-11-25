@@ -25,9 +25,17 @@ using renderer::Result;
 
 class Engine;
 
+struct RenderCommand_CreateTemporalAADescriptors;
+struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
+struct RenderCommand_CreateTemporalAAImageOutputs;
+
 class TemporalAA
 {
 public:
+    friend struct RenderCommand_CreateTemporalAADescriptors;
+    friend struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
+    friend struct RenderCommand_CreateTemporalAAImageOutputs;
+
     TemporalAA(const Extent2D &extent);
     TemporalAA(const TemporalAA &other) = delete;
     TemporalAA &operator=(const TemporalAA &other) = delete;

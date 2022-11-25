@@ -3,6 +3,38 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateBLAS) : RenderCommandBase2
+{
+    renderer::BottomLevelAccelerationStructure *blas;
+
+    RENDER_COMMAND(CreateBLAS)(renderer::BottomLevelAccelerationStructure *blas)
+        : blas(blas)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return blas->Create(engine->GetDevice(), engine->GetInstance());
+    }
+};
+
+struct RENDER_COMMAND(DestroyBLAS) : RenderCommandBase2
+{
+    renderer::BottomLevelAccelerationStructure *blas;
+
+    RENDER_COMMAND(DestroyBLAS)(renderer::BottomLevelAccelerationStructure *blas)
+        : blas(blas)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return blas->Destroy(engine->GetDevice());
+    }
+};
+
 BLAS::BLAS(
     IDBase entity_id,
     Handle<Mesh> &&mesh,
@@ -97,10 +129,10 @@ void BLAS::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    UInt material_index = 0u;
+    UInt material_index = 0;
 
     if (engine->InitObject(m_material)) {
-        material_index = m_material->GetID().value - 1;
+        material_index = m_material->GetID().ToIndex();
     }
 
     AssertThrow(engine->InitObject(m_mesh));
@@ -113,9 +145,7 @@ void BLAS::Init(Engine *engine)
         material_index
     ));
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        return m_blas.Create(engine->GetDevice(), engine->GetInstance());
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateBLAS)>(&m_blas);
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -123,12 +153,8 @@ void BLAS::Init(Engine *engine)
 
     OnTeardown([this]() {
         SetReady(false);
-        
-        GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-            return m_blas.Destroy(GetEngine()->GetDevice());
-        });
 
-        m_mesh.Reset();
+        RenderCommands::Push<RENDER_COMMAND(DestroyBLAS)>(&m_blas);
 
         HYP_FLUSH_RENDER_QUEUE(GetEngine());
     });

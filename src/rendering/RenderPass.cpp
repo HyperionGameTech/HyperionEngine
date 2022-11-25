@@ -4,6 +4,38 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(CreateRenderPass) : RenderCommandBase2
+{
+    renderer::RenderPass *render_pass;
+
+    RENDER_COMMAND(CreateRenderPass)(renderer::RenderPass *render_pass)
+        : render_pass(render_pass)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return render_pass->Create(engine->GetDevice());
+    }
+};
+
+struct RENDER_COMMAND(DestroyRenderPass) : RenderCommandBase2
+{
+    renderer::RenderPass *render_pass;
+
+    RENDER_COMMAND(DestroyRenderPass)(renderer::RenderPass *render_pass)
+        : render_pass(render_pass)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        return render_pass->Destroy(engine->GetDevice());
+    }
+};
+
 RenderPass::RenderPass(RenderPassStage stage, renderer::RenderPass::Mode mode)
     : EngineComponentBase(),
       m_render_pass(stage, mode)
@@ -29,16 +61,16 @@ void RenderPass::Init(Engine *engine)
 
     EngineComponentBase::Init(engine);
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        return m_render_pass.Create(engine->GetDevice());
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateRenderPass)>(&m_render_pass);
+
+    SetReady(true);
 
     OnTeardown([this]() {
         auto *engine = GetEngine();
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            return m_render_pass.Destroy(engine->GetDevice());
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyRenderPass)>(&m_render_pass);
+
+        SetReady(false);
         
         HYP_FLUSH_RENDER_QUEUE(engine);
     });

@@ -16,6 +16,72 @@ using renderer::DescriptorKey;
 using renderer::Rect;
 using renderer::ShaderVec2;
 
+struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommandBase2
+{
+    TemporalBlending::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(CreateTemporalBlendingImageOutputs)(TemporalBlending::ImageOutput *image_outputs)
+        : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(engine->GetDevice()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyTemporalBlendingImageOutputs) : RenderCommandBase2
+{
+    TemporalBlending::ImageOutput *image_outputs;
+
+    RENDER_COMMAND(DestroyTemporalBlendingImageOutputs)(TemporalBlending::ImageOutput *image_outputs)
+        : image_outputs(image_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            image_outputs[frame_index].Destroy(engine->GetDevice());
+        }
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommandBase2
+{
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+
+    RENDER_COMMAND(CreateTemporalBlendingDescriptors)(UniquePtr<renderer::DescriptorSet> *descriptor_sets)
+        : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto &descriptor_set = descriptor_sets[frame_index];
+            AssertThrow(descriptor_set != nullptr);
+                
+            HYPERION_ASSERT_RESULT(descriptor_set->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+
 TemporalBlending::TemporalBlending(
     const Extent2D &extent,
     const FixedArray<Image *, max_frames_in_flight> &input_images,
@@ -58,15 +124,9 @@ void TemporalBlending::Destroy(Engine *engine)
         engine->SafeRelease(std::move(descriptor_set));
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        auto result = Result::OK;
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            m_image_outputs[frame_index].Destroy(engine->GetDevice());
-        }
-
-        return result;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroyTemporalBlendingImageOutputs)>(
+        m_image_outputs.Data()
+    );
 }
 
 void TemporalBlending::CreateImageOutputs(Engine *engine)
@@ -83,13 +143,9 @@ void TemporalBlending::CreateImageOutputs(Engine *engine)
         );
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            m_image_outputs[frame_index].Create(engine->GetDevice());
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateTemporalBlendingImageOutputs)>(
+        m_image_outputs.Data()
+    );
 }
 
 void TemporalBlending::CreateDescriptorSets(Engine *engine)
@@ -159,19 +215,9 @@ void TemporalBlending::CreateDescriptorSets(Engine *engine)
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto &descriptor_set = m_descriptor_sets[frame_index];
-            AssertThrow(descriptor_set != nullptr);
-                
-            HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateTemporalBlendingDescriptors)>(
+        m_descriptor_sets.Data()
+    );
 }
 
 void TemporalBlending::CreateComputePipelines(Engine *engine)

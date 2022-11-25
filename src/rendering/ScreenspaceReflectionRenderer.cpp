@@ -12,6 +12,7 @@ using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
 using renderer::Rect;
 using renderer::ShaderVec2;
+using renderer::Result;
 
 struct alignas(16) SSRParams
 {
@@ -25,6 +26,177 @@ struct alignas(16) SSRParams
         eye_fade_end,
         screen_edge_fade_start,
         screen_edge_fade_end;
+};
+
+struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommandBase2
+{
+    Extent2D extent;
+    FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs;
+    ScreenspaceReflectionRenderer::ImageOutput *radius_outputs;
+
+    RENDER_COMMAND(CreateSSRImageOutputs)(
+        Extent2D extent,
+        FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs,
+        ScreenspaceReflectionRenderer::ImageOutput *radius_outputs
+    ) : extent(extent),
+        image_outputs(image_outputs),
+        radius_outputs(radius_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (auto &image_output : image_outputs[frame_index]) {
+                image_output = ScreenspaceReflectionRenderer::ImageOutput {
+                    .image = StorageImage(
+                        Extent3D(extent),
+                        InternalFormat::RGBA16F,
+                        ImageType::TEXTURE_TYPE_2D,
+                        nullptr
+                    )
+                };
+            }
+
+            radius_outputs[frame_index] = ScreenspaceReflectionRenderer::ImageOutput {
+                .image = StorageImage(
+                    Extent3D(extent),
+                    InternalFormat::R8,
+                    ImageType::TEXTURE_TYPE_2D,
+                    nullptr
+                )
+            };
+        }
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (auto &image_output : image_outputs[frame_index]) {
+                image_output.Create(engine->GetDevice());
+            }
+
+            radius_outputs[frame_index].Create(engine->GetDevice());
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommandBase2
+{
+    Extent2D extent;
+    UniquePtr<UniformBuffer> *uniform_buffers;
+
+    RENDER_COMMAND(CreateSSRUniformBuffer)(
+        Extent2D extent,
+        UniquePtr<UniformBuffer> *uniform_buffers
+    ) : extent(extent),
+        uniform_buffers(uniform_buffers)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        SSRParams ssr_params {
+            .dimensions = Vector2(extent),
+            .ray_step = 4.0f,
+            .num_iterations = 128.0f,
+            .max_ray_distance = 100.0f,
+            .distance_bias = 0.15f,
+            .offset = 0.01f,
+            .eye_fade_start = 0.75f,
+            .eye_fade_end = 0.98f,
+            .screen_edge_fade_start = 0.80f,
+            .screen_edge_fade_end = 0.995f
+        };
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            AssertThrow(uniform_buffers[frame_index] != nullptr);
+            
+            HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create(
+                engine->GetDevice(),
+                sizeof(ssr_params)
+            ));
+
+            uniform_buffers[frame_index]->Copy(
+                engine->GetDevice(),
+                sizeof(ssr_params),
+                &ssr_params
+            );
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommandBase2
+{
+    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+    FixedArray<renderer::ImageView *, max_frames_in_flight> image_views;
+
+    RENDER_COMMAND(CreateSSRDescriptors)(
+        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
+        FixedArray<renderer::ImageView *, max_frames_in_flight> &&image_views
+    ) : descriptor_sets(descriptor_sets),
+        image_views(std::move(image_views))
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            // create our own descriptor sets
+            AssertThrow(descriptor_sets[frame_index] != nullptr);
+            
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+
+            // Add the final result to the global descriptor set
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
+                ->SetElementSRV(0, image_views[frame_index]);
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroySSRInstance) : RenderCommandBase2
+{
+    FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs;
+    ScreenspaceReflectionRenderer::ImageOutput *radius_outputs;
+
+    RENDER_COMMAND(DestroySSRInstance)(
+        FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs,
+        ScreenspaceReflectionRenderer::ImageOutput *radius_outputs
+    ) : image_outputs(image_outputs),
+        radius_outputs(radius_outputs)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (UInt j = 0; j < UInt(image_outputs[frame_index].Size()); j++) {
+                image_outputs[frame_index][j].Destroy(engine->GetDevice());
+            }
+
+            radius_outputs[frame_index].Destroy(engine->GetDevice());
+
+            // unset final result from the global descriptor set
+            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
+                ->SetElementSRV(0, &engine->GetPlaceholderData().GetImageView2D1x1R8());
+        }
+
+        HYPERION_RETURN_OK;
+    }
 };
 
 ScreenspaceReflectionRenderer::ScreenspaceReflectionRenderer(const Extent2D &extent)
@@ -45,45 +217,16 @@ ScreenspaceReflectionRenderer::~ScreenspaceReflectionRenderer()
 
 void ScreenspaceReflectionRenderer::Create(Engine *engine)
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (auto &image_output : m_image_outputs[frame_index]) {
-            image_output = ImageOutput {
-                .image = StorageImage(
-                    Extent3D(m_extent),
-                    InternalFormat::RGBA16F,
-                    ImageType::TEXTURE_TYPE_2D,
-                    nullptr
-                )
-            };
-        }
-
-        m_radius_output[frame_index] = ImageOutput {
-            .image = StorageImage(
-                Extent3D(m_extent),
-                InternalFormat::R8,
-                ImageType::TEXTURE_TYPE_2D,
-                nullptr
-            )
-        };
-    }
-
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (auto &image_output : m_image_outputs[frame_index]) {
-                image_output.Create(engine->GetDevice());
-            }
-
-            m_radius_output[frame_index].Create(engine->GetDevice());
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateSSRImageOutputs)>(
+        m_extent,
+        m_image_outputs.Data(),
+        m_radius_output.Data()
+    );
 
     m_temporal_blending.Create(engine);
 
     CreateUniformBuffers(engine);
     CreateDescriptorSets(engine);
-
     CreateComputePipelines(engine);
 }
 
@@ -103,25 +246,10 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
         engine->SafeRelease(std::move(m_uniform_buffers[frame_index]));
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (UInt j = 0; j < static_cast<UInt>(m_image_outputs[frame_index].Size()); j++) {
-                m_image_outputs[frame_index][j].Destroy(engine->GetDevice());
-            }
-
-            m_radius_output[frame_index].Destroy(engine->GetDevice());
-
-            // unset final result from the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetElementSRV(0, &engine->GetPlaceholderData().GetImageView2D1x1R8());
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(DestroySSRInstance)>(
+        m_image_outputs.Data(),
+        m_radius_output.Data()
+    );
 
     HYP_FLUSH_RENDER_QUEUE(engine);
 }
@@ -132,37 +260,10 @@ void ScreenspaceReflectionRenderer::CreateUniformBuffers(Engine *engine)
         m_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        SSRParams ssr_params {
-            .dimensions = Vector2(m_extent),
-            .ray_step = 4.0f,
-            .num_iterations = 128.0f,
-            .max_ray_distance = 100.0f,
-            .distance_bias = 0.15f,
-            .offset = 0.01f,
-            .eye_fade_start = 0.75f,
-            .eye_fade_end = 0.98f,
-            .screen_edge_fade_start = 0.80f,
-            .screen_edge_fade_end = 0.995f
-        };
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            AssertThrow(m_uniform_buffers[frame_index] != nullptr);
-            
-            HYPERION_BUBBLE_ERRORS(m_uniform_buffers[frame_index]->Create(
-                engine->GetDevice(),
-                sizeof(ssr_params)
-            ));
-
-            m_uniform_buffers[frame_index]->Copy(
-                engine->GetDevice(),
-                sizeof(ssr_params),
-                &ssr_params
-            );
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateSSRUniformBuffer)>(
+        m_extent,
+        m_uniform_buffers.Data()
+    );
 }
 
 void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
@@ -252,27 +353,13 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 
-    engine->GetRenderScheduler().Enqueue([this, engine](...) {
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // create our own descriptor sets
-            AssertThrow(m_descriptor_sets[frame_index] != nullptr);
-            
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index]->Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-
-            // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = engine->GetInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-
-            descriptor_set_globals
-                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetElementSRV(0, &m_temporal_blending.GetImageOutput(frame_index).image_view);
+    RenderCommands::Push<RENDER_COMMAND(CreateSSRDescriptors)>(
+        m_descriptor_sets.Data(),
+        FixedArray<renderer::ImageView *, max_frames_in_flight> {
+            &m_temporal_blending.GetImageOutput(0).image_view,
+            &m_temporal_blending.GetImageOutput(1).image_view
         }
-
-        HYPERION_RETURN_OK;
-    });
+    );
 }
 
 void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)

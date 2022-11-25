@@ -29,12 +29,11 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < 2; i++) {
-                image_outputs[frame_index][i].Create(engine->GetDevice());
+                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(engine->GetDevice()));
             }
         }
 
         HYPERION_RETURN_OK;
-
     }
 };
 

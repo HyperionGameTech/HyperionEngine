@@ -10,6 +10,54 @@
 
 namespace hyperion::v2 {
 
+using renderer::Result;
+
+struct RENDER_COMMAND(BindLights) : RenderCommandBase2
+{
+    SizeType num_lights;
+    Light::ID *ids;
+
+    RENDER_COMMAND(BindLights)(SizeType num_lights, Light::ID *ids)
+        : num_lights(num_lights),
+          ids(ids)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (SizeType i = 0; i < num_lights; i++) {
+            engine->GetRenderState().BindLight(ids[i]);
+        }
+
+        delete[] ids;
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(BindEnvProbes) : RenderCommandBase2
+{
+    SizeType num_env_probes;
+    EnvProbe::ID *ids;
+
+    RENDER_COMMAND(BindEnvProbes)(SizeType num_env_probes, EnvProbe::ID *ids)
+        : num_env_probes(num_env_probes),
+          ids(ids)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (SizeType i = 0; i < num_env_probes; i++) {
+            engine->GetRenderState().BindEnvProbe(ids[i]);
+        }
+
+        delete[] ids;
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 Scene::Scene(Handle<Camera> &&camera)
     : Scene(std::move(camera), { })
 {
@@ -93,15 +141,10 @@ void Scene::Init(Engine *engine)
             light_ids[index++] = it.first;
         }
 
-        engine->GetRenderScheduler().Enqueue([engine, light_ids, num_lights = index](...) {
-            for (SizeType i = 0; i < num_lights; i++) {
-                engine->GetRenderState().BindLight(light_ids[i]);
-            }
-
-            delete[] light_ids;
-
-            HYPERION_RETURN_OK;
-        });
+        RenderCommands::Push<RENDER_COMMAND(BindLights)>(
+            index,
+            light_ids
+        );
     }
 
     if (m_env_probes.Any()) {
@@ -116,15 +159,10 @@ void Scene::Init(Engine *engine)
             env_probe_ids[index++] = it.first;
         }
 
-        engine->GetRenderScheduler().Enqueue([engine, env_probe_ids, num_env_probes = index](...) {
-            for (SizeType i = 0; i < num_env_probes; i++) {
-                engine->GetRenderState().BindEnvProbe(env_probe_ids[i]);
-            }
-
-            delete[] env_probe_ids;
-
-            HYPERION_RETURN_OK;
-        });
+        RenderCommands::Push<RENDER_COMMAND(BindEnvProbes)>(
+            index,
+            env_probe_ids
+        );
     }
 
     SetReady(true);
@@ -704,92 +742,119 @@ void Scene::RemoveFromRendererInstances(Handle<Entity> &entity)
 
 void Scene::EnqueueRenderUpdates()
 {
-    struct {
+    struct RENDER_COMMAND(UpdateSceneRenderData) : RenderCommandBase2
+    {
+        Scene::ID id;
         BoundingBox aabb;
         Float global_timer;
-        UInt32 frame_counter;
-        UInt32 num_lights;
+        SizeType num_lights;
         FogParams fog_params;
-    } params = {
-        .aabb = m_root_node_proxy.GetWorldAABB(),
-        .global_timer = m_environment->GetGlobalTimer(),
-        .frame_counter = m_environment->GetFrameCounter(),
-        .num_lights = static_cast<UInt32>(m_lights.Size()),
-        .fog_params = m_fog_params
-    };
+        RenderEnvironment *render_environment;
+        CameraDrawProxy camera_draw_proxy;
+        SceneDrawProxy &draw_proxy;
 
-    GetEngine()->render_scheduler.Enqueue([this, params](...) {
-        m_draw_proxy.frame_counter = params.frame_counter;
-
-        if (m_camera) {
-            m_draw_proxy.camera = m_camera->GetDrawProxy();
-        } else {
-            m_draw_proxy.camera = { };
+        RENDER_COMMAND(UpdateSceneRenderData)(
+            Scene::ID id,
+            const BoundingBox &aabb,
+            Float global_timer,
+            SizeType num_lights,
+            const FogParams &fog_params,
+            RenderEnvironment *render_environment,
+            const CameraDrawProxy &camera_draw_proxy,
+            SceneDrawProxy &draw_proxy
+        ) : id(id),
+            aabb(aabb),
+            global_timer(global_timer),
+            num_lights(num_lights),
+            fog_params(fog_params),
+            render_environment(render_environment),
+            camera_draw_proxy(camera_draw_proxy),
+            draw_proxy(draw_proxy)
+        {
         }
 
-        Matrix4 offset_matrix;
-        Vector2 jitter;
-        Vector2 previous_jitter;
+        virtual Result operator()(Engine *engine)
+        {
+            const UInt frame_counter = render_environment->GetFrameCounter();
 
-        // TODO: Is this the main camera in the scene?
-        if (m_draw_proxy.camera.projection[3][3] < MathUtil::epsilon<Float>) {
-            // perspective if [3][3] is zero
-            static const HaltonSequence halton;
+            draw_proxy.frame_counter = frame_counter;
+            draw_proxy.camera = camera_draw_proxy;
 
-            const UInt halton_index = params.frame_counter % HaltonSequence::size;
+            Matrix4 offset_matrix;
+            Vector2 jitter;
+            Vector2 previous_jitter;
 
-            jitter = halton.sequence[halton_index];
+            // TODO: Is this the main camera in the scene?
+            if (draw_proxy.camera.projection[3][3] < MathUtil::epsilon<Float>) {
+                // perspective if [3][3] is zero
+                static const HaltonSequence halton;
 
-            if (params.frame_counter != 0) {
-                previous_jitter = halton.sequence[(params.frame_counter - 1) % HaltonSequence::size];
-            }
+                const UInt halton_index = frame_counter % HaltonSequence::size;
 
-            offset_matrix = Matrix4::Jitter(
-                m_draw_proxy.camera.dimensions.width,
-                m_draw_proxy.camera.dimensions.height,
-                jitter
-            );
-        }
-        
-        SceneShaderData shader_data { };
-        shader_data.view = m_draw_proxy.camera.view;
-        shader_data.projection = offset_matrix * m_draw_proxy.camera.projection;
-        shader_data.previous_view = m_draw_proxy.camera.previous_view;
-        shader_data.camera_position = m_draw_proxy.camera.position.ToVector4();
-        shader_data.camera_direction = m_draw_proxy.camera.direction.ToVector4();
-        shader_data.camera_up = m_draw_proxy.camera.up.ToVector4();
-        shader_data.camera_near = m_draw_proxy.camera.clip_near;
-        shader_data.camera_fov = m_draw_proxy.camera.fov;
-        shader_data.camera_far = m_draw_proxy.camera.clip_far;
-        shader_data.resolution_x = m_draw_proxy.camera.dimensions.width;
-        shader_data.resolution_y = m_draw_proxy.camera.dimensions.height;
-        shader_data.environment_texture_usage = 0u;
-        shader_data.aabb_max = params.aabb.max.ToVector4();
-        shader_data.aabb_min = params.aabb.min.ToVector4();
-        shader_data.global_timer = params.global_timer;
-        shader_data.frame_counter = params.frame_counter;
-        shader_data.num_lights = params.num_lights;
-        shader_data.enabled_render_components_mask = m_environment->GetEnabledRenderComponentsMask();
-        shader_data.taa_params = Vector4(jitter, previous_jitter);
-        shader_data.fog_params = Vector4(UInt32(params.fog_params.color), params.fog_params.start_distance, params.fog_params.end_distance, 0.0f);
+                jitter = halton.sequence[halton_index];
 
-        if (GetEngine()->render_state.env_probes.Any()) {
-            // TODO: Make to be packed uvec2 containing indices (each are 1 byte)
-            shader_data.environment_texture_index = 0u;
-
-            for (const auto &it : GetEngine()->render_state.env_probes) {
-                if (it.second.Empty()) {
-                    continue;
+                if (frame_counter != 0) {
+                    previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
                 }
 
-                shader_data.environment_texture_usage |= 1u << it.second.Get();
+                offset_matrix = Matrix4::Jitter(
+                    draw_proxy.camera.dimensions.width,
+                    draw_proxy.camera.dimensions.height,
+                    jitter
+                );
             }
-        }
-        
-        GetEngine()->GetRenderData()->scenes.Set(m_id.ToIndex(), shader_data);
+            
+            SceneShaderData shader_data { };
+            shader_data.view             = draw_proxy.camera.view;
+            shader_data.projection       = offset_matrix * draw_proxy.camera.projection;
+            shader_data.previous_view    = draw_proxy.camera.previous_view;
+            shader_data.camera_position  = draw_proxy.camera.position.ToVector4();
+            shader_data.camera_direction = draw_proxy.camera.direction.ToVector4();
+            shader_data.camera_up        = draw_proxy.camera.up.ToVector4();
+            shader_data.camera_near      = draw_proxy.camera.clip_near;
+            shader_data.camera_fov       = draw_proxy.camera.fov;
+            shader_data.camera_far       = draw_proxy.camera.clip_far;
+            shader_data.resolution_x     = draw_proxy.camera.dimensions.width;
+            shader_data.resolution_y     = draw_proxy.camera.dimensions.height;
+            shader_data.environment_texture_usage = 0u;
+            shader_data.aabb_max         = aabb.max.ToVector4();
+            shader_data.aabb_min         = aabb.min.ToVector4();
+            shader_data.global_timer     = global_timer;
+            shader_data.frame_counter    = frame_counter;
+            shader_data.num_lights       = UInt32(num_lights);
+            shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();
+            shader_data.taa_params       = Vector4(jitter, previous_jitter);
+            shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
 
-        HYPERION_RETURN_OK;
-    });
+            if (engine->render_state.env_probes.Any()) {
+                // TODO: Make to be packed uvec2 containing indices (each are 1 byte)
+                shader_data.environment_texture_index = 0u;
+
+                for (const auto &it : engine->render_state.env_probes) {
+                    if (it.second.Empty()) {
+                        continue;
+                    }
+
+                    shader_data.environment_texture_usage |= 1u << it.second.Get();
+                }
+            }
+            
+            engine->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    RenderCommands::Push<RENDER_COMMAND(UpdateSceneRenderData)>(
+        m_id,
+        m_root_node_proxy.GetWorldAABB(),
+        m_environment->GetGlobalTimer(),
+        m_lights.Size(),
+        m_fog_params,
+        m_environment.Get(),
+        m_camera ? m_camera->GetDrawProxy() : CameraDrawProxy { },
+        m_draw_proxy
+    );
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }

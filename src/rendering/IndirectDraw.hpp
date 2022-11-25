@@ -38,11 +38,10 @@ class Engine;
 class Entity;
 
 struct RenderCommand_CreateIndirectRenderer;
+struct RenderCommand_DestroyIndirectRenderer;
 
 class IndirectDrawState
 {
-    friend struct RenderCommand_CreateIndirectRenderer;
-
 public:
     static constexpr UInt batch_size = 256u;
     static constexpr UInt initial_count = batch_size;
@@ -97,6 +96,9 @@ struct alignas(16) IndirectParams
 class IndirectRenderer
 {
 public:
+    friend struct RenderCommand_CreateIndirectRenderer;
+    friend struct RenderCommand_DestroyIndirectRenderer;
+
     IndirectRenderer();
     ~IndirectRenderer();
 

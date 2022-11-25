@@ -3,6 +3,7 @@
 #include "../Engine.hpp"
 
 #include <rendering/backend/RendererCommandBuffer.hpp>
+#include <rendering/backend/RendererResult.hpp>
 
 #include <vector>
 #include <unordered_map>
@@ -15,6 +16,96 @@
 #endif
 
 namespace hyperion::v2 {
+
+using renderer::Result;
+
+struct RENDER_COMMAND(UploadMeshData) : RenderCommandBase2
+{
+    std::vector<Float> vertex_data;
+    std::vector<Mesh::Index> index_data;
+    renderer::VertexBuffer *vbo;
+    renderer::IndexBuffer *ibo;
+
+    RENDER_COMMAND(UploadMeshData)(
+        const std::vector<Float> &vertex_data,
+        const std::vector<Mesh::Index> &index_data,
+        renderer::VertexBuffer *vbo,
+        renderer::IndexBuffer *ibo
+    ) : vertex_data(vertex_data),
+        index_data(index_data),
+        vbo(vbo),
+        ibo(ibo)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto *instance = engine->GetInstance();
+        auto *device  = engine->GetDevice();
+
+        const SizeType packed_buffer_size = vertex_data.size() * sizeof(Float);
+        const SizeType packed_indices_size = index_data.size() * sizeof(Mesh::Index);
+
+        HYPERION_BUBBLE_ERRORS(vbo->Create(device, packed_buffer_size));
+        HYPERION_BUBBLE_ERRORS(ibo->Create(device, packed_indices_size));
+
+        HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
+            device,
+            [&](renderer::StagingBufferPool::Context &holder) {
+                auto commands = instance->GetSingleTimeCommands();
+
+                auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
+                staging_buffer_vertices->Copy(device, packed_buffer_size, vertex_data.data());
+
+                auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
+                staging_buffer_indices->Copy(device, packed_indices_size, index_data.data());
+
+                commands.Push([&](CommandBuffer *cmd) {
+                    vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
+
+                    HYPERION_RETURN_OK;
+                });
+            
+                commands.Push([&](CommandBuffer *cmd) {
+                    ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
+
+                    HYPERION_RETURN_OK;
+                });
+            
+                HYPERION_BUBBLE_ERRORS(commands.Execute(device));
+
+                HYPERION_RETURN_OK;
+            }));
+    
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyMeshData) : RenderCommandBase2
+{
+    renderer::VertexBuffer *vbo;
+    renderer::IndexBuffer *ibo;
+
+    RENDER_COMMAND(DestroyMeshData)(
+        renderer::VertexBuffer *vbo,
+        renderer::IndexBuffer *ibo
+    ) : vbo(vbo),
+        ibo(ibo)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = renderer::Result::OK;
+
+        auto *device = engine->GetDevice();
+        
+        HYPERION_PASS_ERRORS(vbo->Destroy(device), result);
+        HYPERION_PASS_ERRORS(ibo->Destroy(device), result);
+
+        return result;
+    }
+};
 
 std::pair<std::vector<Vertex>, std::vector<Mesh::Index>>
 Mesh::CalculateIndices(const std::vector<Vertex> &vertices)
@@ -132,57 +223,16 @@ void Mesh::Init(Engine *engine)
         }
     }
 
-    engine->GetRenderScheduler().Enqueue([this, packed_buffer = BuildVertexBuffer(), indices = m_indices](...) {
-        using renderer::StagingBuffer;
+    m_indices_count = m_indices.size();
 
-        auto *engine = GetEngine();
-
-        auto *instance = engine->GetInstance();
-        auto *device  = engine->GetDevice();
-
-        const size_t packed_buffer_size  = packed_buffer.size() * sizeof(float);
-        const size_t packed_indices_size = indices.size() * sizeof(Index);
-
-        m_indices_count = indices.size();
-
-        HYPERION_BUBBLE_ERRORS(m_vbo->Create(device, packed_buffer_size));
-        HYPERION_BUBBLE_ERRORS(m_ibo->Create(device, packed_indices_size));
-
-        HYPERION_BUBBLE_ERRORS(instance->GetStagingBufferPool().Use(
-            device,
-            [&](renderer::StagingBufferPool::Context &holder) {
-                auto commands = instance->GetSingleTimeCommands();
-
-                auto *staging_buffer_vertices = holder.Acquire(packed_buffer_size);
-                staging_buffer_vertices->Copy(device, packed_buffer_size, packed_buffer.data());
-
-                auto *staging_buffer_indices = holder.Acquire(packed_indices_size);
-                staging_buffer_indices->Copy(device, packed_indices_size, indices.data());
-
-                commands.Push([&](CommandBuffer *cmd) {
-                    m_vbo->CopyFrom(cmd, staging_buffer_vertices, packed_buffer_size);
-
-                    HYPERION_RETURN_OK;
-                });
+    RenderCommands::Push<RENDER_COMMAND(UploadMeshData)>(
+        BuildVertexBuffer(),
+        m_indices,
+        m_vbo.get(),
+        m_ibo.get()
+    );
             
-                commands.Push([&](CommandBuffer *cmd) {
-                    m_ibo->CopyFrom(cmd, staging_buffer_indices, packed_indices_size);
-
-                    HYPERION_RETURN_OK;
-                });
-            
-                HYPERION_BUBBLE_ERRORS(commands.Execute(device));
-
-                HYPERION_RETURN_OK;
-            }));
-        
-        SetReady(true);
-    
-        HYPERION_RETURN_OK;
-    });
-
-    // m_vertices.clear();
-    // m_indices.clear();
+    SetReady(true);
 
     OnTeardown([this]() {
         auto *engine = GetEngine();
@@ -194,17 +244,11 @@ void Mesh::Init(Engine *engine)
         );
 
         m_indices_count = 0;
-        
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            auto result = renderer::Result::OK;
 
-            auto *device = engine->GetDevice();
-            
-            HYPERION_PASS_ERRORS(m_vbo->Destroy(device), result);
-            HYPERION_PASS_ERRORS(m_ibo->Destroy(device), result);
-
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyMeshData)>(
+            m_vbo.get(),
+            m_ibo.get()
+        );
         
         HYP_FLUSH_RENDER_QUEUE(engine);
 
@@ -228,7 +272,7 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
     /* Raw buffer that is used with our helper macro. */
     float *raw_buffer = packed_buffer.data();
-    size_t current_offset = 0;
+    SizeType current_offset = 0;
 
     for (size_t i = 0; i < m_vertices.size(); i++) {
         auto &vertex = m_vertices[i];

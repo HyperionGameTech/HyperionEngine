@@ -203,7 +203,7 @@ void Entity::Init(Engine *engine)
         m_material.Reset();
         m_blas.Reset();
 
-        WaitForRenderUpdatesToComplete();
+        HYP_FLUSH_RENDER_QUEUE(engine);
         
         engine->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
         engine->SafeReleaseHandle<Mesh>(std::move(m_mesh));
@@ -298,31 +298,6 @@ void Entity::EnqueueRenderUpdates()
         m_transform.GetMatrix(),
         m_previous_transform_matrix
     );
-
-    // EnqueueRenderUpdate([this, transform_matrix = m_transform.GetMatrix(), previous_transform_matrix = m_previous_transform_matrix, draw_proxy](...) {
-    //     // update m_draw_proxy on render thread.
-    //     m_draw_proxy = draw_proxy;
-
-    //     GetEngine()->GetRenderData()->objects.Set(
-    //         m_id.value - 1,
-    //         ObjectShaderData {
-    //             .model_matrix = transform_matrix,
-    //             .previous_model_matrix = previous_transform_matrix,
-    //             .local_aabb_max = Vector4(m_local_aabb.max, 1.0f),
-    //             .local_aabb_min = Vector4(m_local_aabb.min, 1.0f),
-    //             .world_aabb_max = Vector4(m_world_aabb.max, 1.0f),
-    //             .world_aabb_min = Vector4(m_world_aabb.min, 1.0f),
-    //             .entity_id = draw_proxy.entity_id.value,
-    //             .scene_id = draw_proxy.scene_id.value,
-    //             .mesh_id = draw_proxy.mesh_id.value,
-    //             .material_id = draw_proxy.material_id.value,
-    //             .skeleton_id = draw_proxy.skeleton_id.value,
-    //             .bucket = static_cast<UInt32>(draw_proxy.bucket)
-    //         }
-    //     );
-
-    //     HYPERION_RETURN_OK;
-    // });
 
     if (m_previous_transform_matrix == m_transform.GetMatrix()) {
         m_shader_data_state = ShaderDataState::CLEAN;

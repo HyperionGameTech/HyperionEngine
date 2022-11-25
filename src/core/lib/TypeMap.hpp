@@ -72,6 +72,14 @@ public:
         return m_map.Set(type_id, std::move(value));
     }
 
+    Value &Get(const TypeID &type_id)
+    {
+        Iterator it = m_map.Find(type_id);
+        AssertThrow(it != m_map.End());
+
+        return it->second;
+    }
+
     template <class T>
     Iterator Find()
     {
@@ -86,6 +94,26 @@ public:
         const auto id = TypeID::ForType<T>();
 
         return m_map.Find(id);
+    }
+
+    Iterator Find(const TypeID &type_id)
+    {
+        return m_map.Find(type_id);
+    }
+
+    ConstIterator Find(const TypeID &type_id) const
+    {
+        return m_map.Find(type_id);
+    }
+
+    bool Erase(Iterator it)
+    {
+        return m_map.Erase(it);
+    }
+
+    bool Erase(const TypeID &type_id)
+    {
+        return m_map.Erase(type_id);
     }
 
     template <class T>

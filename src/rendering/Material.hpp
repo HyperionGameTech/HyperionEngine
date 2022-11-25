@@ -31,6 +31,14 @@ public:
     static constexpr UInt max_parameters = 32u;
     static constexpr UInt max_textures = 32u;
 
+    static constexpr UInt max_textures_to_set = MathUtil::Min(
+        max_textures,
+        MaterialShaderData::max_bound_textures,
+        HYP_FEATURES_BINDLESS_TEXTURES
+            ? DescriptorSet::max_bindless_resources
+            : DescriptorSet::max_material_texture_samplers
+    );
+
     enum TextureKey : UInt64
     {
         MATERIAL_TEXTURE_NONE = 0,
@@ -401,14 +409,6 @@ public:
     }
 
 private:
-    static constexpr UInt max_textures_to_set = MathUtil::Min(
-        max_textures,
-        MaterialShaderData::max_bound_textures,
-        HYP_FEATURES_BINDLESS_TEXTURES
-            ? DescriptorSet::max_bindless_resources
-            : DescriptorSet::max_material_texture_samplers
-    );
-
     void EnqueueRenderUpdates();
     void EnqueueTextureUpdate(TextureKey key);
     void EnqueueDescriptorSetCreate();

@@ -31,9 +31,15 @@ using renderer::UniformBuffer;
 
 class Engine;
 
+struct RenderCommand_CreateSSRImageOutputs;
+struct RenderCommand_DestroySSRInstance;
+
 class ScreenspaceReflectionRenderer
 {
 public:
+    friend struct RenderCommand_CreateSSRImageOutputs;
+    friend struct RenderCommand_DestroySSRInstance;
+
     ScreenspaceReflectionRenderer(const Extent2D &extent);
     ~ScreenspaceReflectionRenderer();
 

@@ -18,18 +18,216 @@ namespace hyperion::v2 {
 
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
+using renderer::StagingBuffer;
+using renderer::Result;
 
-// struct RENDER_COMMAND(CreateParticleBuffers) : RenderCommandBase2
-// {
-
-// };
-
-struct alignas(16) ParticleShaderData
+struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommandBase2
 {
-    ShaderVec4<Float32> position;
-    ShaderVec4<Float32> velocity;
-    Float32 lifetime;
-    Color color;
+    StorageBuffer *particle_buffer;
+    IndirectBuffer *indirect_buffer;
+    StorageBuffer *noise_buffer;
+    ParticleSpawnerParams params;
+
+    RENDER_COMMAND(CreateParticleSpawnerBuffers)(
+        StorageBuffer *particle_buffer,
+        IndirectBuffer *indirect_buffer,
+        StorageBuffer *noise_buffer,
+        const ParticleSpawnerParams &params
+    ) : particle_buffer(particle_buffer),
+        indirect_buffer(indirect_buffer),
+        noise_buffer(noise_buffer),
+        params(params)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        static constexpr UInt seed = 0xff;
+
+        SimplexNoiseGenerator noise_generator(seed);
+        auto noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
+
+        HYPERION_BUBBLE_ERRORS(particle_buffer->Create(
+            engine->GetDevice(),
+            params.max_particles * sizeof(ParticleShaderData)
+        ));
+
+        HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(
+            engine->GetDevice(),
+            sizeof(IndirectDrawCommand)
+        ));
+
+        HYPERION_BUBBLE_ERRORS(noise_buffer->Create(
+            engine->GetDevice(),
+            noise_map.GetByteSize() * sizeof(Float)
+        ));
+
+        // copy zeroes into particle buffer
+        // if we don't do this, garbage values could be in the particle buffer,
+        // meaning we'd get some crazy high lifetimes
+        particle_buffer->Memset(
+            engine->GetDevice(),
+            particle_buffer->size,
+            0u
+        );
+
+        // copy bytes into noise buffer
+        Array<Float> unpacked_floats;
+        noise_map.GetUnpackedFloats(unpacked_floats);
+        AssertThrow(noise_map.GetByteSize() == unpacked_floats.Size());
+
+        noise_buffer->Copy(
+            engine->GetDevice(),
+            unpacked_floats.Size() * sizeof(Float),
+            unpacked_floats.Data()
+        );
+
+        // don't need it anymore
+        noise_map = Bitmap<1>();
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateParticleDescriptors) : RenderCommandBase2
+{
+    renderer::DescriptorSet *descriptor_sets;
+
+    RENDER_COMMAND(CreateParticleDescriptors)(
+        renderer::DescriptorSet *descriptor_sets
+    ) : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index].Create(
+                engine->GetDevice(),
+                &engine->GetInstance()->GetDescriptorPool()
+            ));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommandBase2
+{
+    StagingBuffer *staging_buffer;
+    ThreadSafeContainer<ParticleSpawner> *spawners;
+
+    RENDER_COMMAND(DestroyParticleSystem)(
+        StagingBuffer *staging_buffer,
+        ThreadSafeContainer<ParticleSpawner> *spawners
+    ) : staging_buffer(staging_buffer),
+        spawners(spawners)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        HYPERION_PASS_ERRORS(
+            staging_buffer->Destroy(engine->GetDevice()),
+            result
+        );
+
+        if (spawners->HasUpdatesPending()) {
+            spawners->UpdateItems(engine);
+        }
+
+        spawners->Clear();
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(DestroyParticleDescriptors) : RenderCommandBase2
+{
+    renderer::DescriptorSet *descriptor_sets;
+
+    RENDER_COMMAND(DestroyParticleDescriptors)(
+        renderer::DescriptorSet *descriptor_sets
+    ) : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        auto result = Result::OK;
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            HYPERION_PASS_ERRORS(
+                descriptor_sets[frame_index].Destroy(engine->GetDevice()),
+                result
+            );
+        }
+
+        return result;
+    }
+};
+
+struct RENDER_COMMAND(CreateParticleSystemBuffers) : RenderCommandBase2
+{
+    renderer::StagingBuffer *staging_buffer;
+    Mesh *quad_mesh;
+
+    RENDER_COMMAND(CreateParticleSystemBuffers)(
+        renderer::StagingBuffer *staging_buffer,
+        Mesh *quad_mesh
+    ) : staging_buffer(staging_buffer),
+        quad_mesh(quad_mesh)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        HYPERION_BUBBLE_ERRORS(staging_buffer->Create(
+            engine->GetDevice(),
+            sizeof(IndirectDrawCommand)
+        ));
+
+        IndirectDrawCommand empty_draw_command { };
+        quad_mesh->PopulateIndirectDrawCommand(empty_draw_command);
+
+        // copy zeros to buffer
+        staging_buffer->Copy(
+            engine->GetDevice(),
+            sizeof(IndirectDrawCommand),
+            &empty_draw_command
+        );
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : RenderCommandBase2
+{
+    FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers;
+
+    RENDER_COMMAND(CreateParticleSystemCommandBuffers)(
+        FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers
+    ) : command_buffers(command_buffers)
+    {
+    }
+
+    virtual Result operator()(Engine *engine)
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            for (UInt i = 0; i < UInt(command_buffers[frame_index].Size()); i++) {
+                command_buffers[frame_index][i].Reset(new CommandBuffer(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY));
+    
+                HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(
+                    engine->GetInstance()->GetDevice(),
+                    engine->GetInstance()->GetGraphicsCommandPool(i)
+                ));
+            }
+        }
+
+        HYPERION_RETURN_OK;
+    }
 };
 
 ParticleSpawner::ParticleSpawner()
@@ -59,7 +257,6 @@ void ParticleSpawner::Init(Engine *engine)
         engine->InitObject(m_params.texture);
     }
 
-    CreateNoiseMap();
     CreateBuffers();
     CreateShader();
     CreateDescriptorSets();
@@ -76,19 +273,9 @@ void ParticleSpawner::Init(Engine *engine)
         GetEngine()->SafeReleaseHandle(std::move(m_params.texture));
         GetEngine()->SafeReleaseHandle(std::move(m_shader));
 
-        GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-            auto *engine = GetEngine();
-            auto result = Result::OK;
-
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                HYPERION_PASS_ERRORS(
-                    m_descriptor_sets[frame_index].Destroy(engine->GetDevice()),
-                    result
-                );
-            }
-
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyParticleDescriptors)>(
+            m_descriptor_sets.Data()
+        );
 
         HYP_FLUSH_RENDER_QUEUE(GetEngine());
     });
@@ -99,62 +286,18 @@ void ParticleSpawner::Record(Engine *engine, CommandBuffer *command_buffer)
 
 }
 
-void ParticleSpawner::CreateNoiseMap()
-{
-    static constexpr UInt seed = 0xff;
-
-    SimplexNoiseGenerator noise_generator(seed);
-    m_noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
-}
-
 void ParticleSpawner::CreateBuffers()
 {
     m_particle_buffer = UniquePtr<StorageBuffer>::Construct();
     m_indirect_buffer = UniquePtr<IndirectBuffer>::Construct();
     m_noise_buffer = UniquePtr<StorageBuffer>::Construct();
-    
-    GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-        HYPERION_BUBBLE_ERRORS(m_particle_buffer->Create(
-            GetEngine()->GetDevice(),
-            m_params.max_particles * sizeof(ParticleShaderData)
-        ));
 
-        HYPERION_BUBBLE_ERRORS(m_indirect_buffer->Create(
-            GetEngine()->GetDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
-
-        HYPERION_BUBBLE_ERRORS(m_noise_buffer->Create(
-            GetEngine()->GetDevice(),
-            m_noise_map.GetByteSize() * sizeof(Float)
-        ));
-
-        // copy zeroes into particle buffer
-        // if we don't do this, garbage values could be in the particle buffer,
-        // meaning we'd get some crazy high lifetimes
-        m_particle_buffer->Memset(
-            GetEngine()->GetDevice(),
-            m_particle_buffer->size,
-            0u
-        );
-
-        // copy bytes into noise buffer
-        Array<Float> unpacked_floats;
-        m_noise_map.GetUnpackedFloats(unpacked_floats);
-
-        AssertThrow(m_noise_map.GetByteSize() == unpacked_floats.Size());
-
-        m_noise_buffer->Copy(
-            GetEngine()->GetDevice(),
-            unpacked_floats.Size() * sizeof(Float),
-            unpacked_floats.Data()
-        );
-
-        // don't need it anymore
-        m_noise_map = Bitmap<1>();
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateParticleSpawnerBuffers)>(
+        m_particle_buffer.Get(),
+        m_indirect_buffer.Get(),
+        m_noise_buffer.Get(),
+        m_params
+    );
 }
 
 void ParticleSpawner::CreateShader()
@@ -169,64 +312,39 @@ void ParticleSpawner::CreateDescriptorSets()
         // particle data
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_particle_buffer.Get()
-            });
+            ->SetElementBuffer(0, m_particle_buffer.Get());
 
         // indirect rendering data
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::StorageBufferDescriptor>(1)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_indirect_buffer.Get()
-            });
+            ->SetElementBuffer(0, m_indirect_buffer.Get());
 
         // noise buffer
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::StorageBufferDescriptor>(2)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_noise_buffer.Get()
-            });
+            ->SetElementBuffer(0, m_noise_buffer.Get());
 
         // scene data (for camera matrices)
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetSubDescriptor({
-                .buffer = GetEngine()->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                .range = static_cast<UInt32>(sizeof(SceneShaderData))
-            });
+            ->SetElementBuffer(0, GetEngine()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::ImageDescriptor>(6)
-            ->SetSubDescriptor({
-                .image_view = m_params.texture
-                    ? &m_params.texture->GetImageView()
-                    : &GetEngine()->GetPlaceholderData().GetImageView2D1x1R8()
-            });
+            ->SetElementSRV(0, m_params.texture
+                ? &m_params.texture->GetImageView()
+                : &GetEngine()->GetPlaceholderData().GetImageView2D1x1R8());
 
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::SamplerDescriptor>(7)
-            ->SetSubDescriptor({
-                .sampler = m_params.texture
-                    ? &m_params.texture->GetSampler()
-                    : &GetEngine()->GetPlaceholderData().GetSamplerLinear()
-            });
+            ->SetElementSampler(0, m_params.texture
+                ? &m_params.texture->GetSampler()
+                : &GetEngine()->GetPlaceholderData().GetSamplerLinear());
     }
 
-    GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-        auto *engine = GetEngine();
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(m_descriptor_sets[frame_index].Create(
-                engine->GetDevice(),
-                &engine->GetInstance()->GetDescriptorPool()
-            ));
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateParticleDescriptors)>(
+        m_descriptor_sets.Data()
+    );
 }
 
 void ParticleSpawner::CreateRendererInstance()
@@ -311,22 +429,10 @@ void ParticleSystem::Init(Engine *engine)
             }
         }
 
-        engine->GetRenderScheduler().Enqueue([this, engine](...) {
-            auto result = Result::OK;
-
-            HYPERION_PASS_ERRORS(
-                m_staging_buffer.Destroy(engine->GetDevice()),
-                result
-            );
-
-            if (m_particle_spawners.HasUpdatesPending()) {
-                m_particle_spawners.UpdateItems(engine);
-            }
-
-            m_particle_spawners.Clear();
-
-            return result;
-        });
+        RenderCommands::Push<RENDER_COMMAND(DestroyParticleSystem)>(
+            &m_staging_buffer,
+            &m_particle_spawners
+        );
         
         HYP_FLUSH_RENDER_QUEUE(engine);
         
@@ -336,48 +442,17 @@ void ParticleSystem::Init(Engine *engine)
 
 void ParticleSystem::CreateBuffers()
 {
-    GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-        HYPERION_BUBBLE_ERRORS(m_staging_buffer.Create(
-            GetEngine()->GetDevice(),
-            sizeof(IndirectDrawCommand)
-        ));
-
-        IndirectDrawCommand empty_draw_command { };
-        m_quad_mesh->PopulateIndirectDrawCommand(empty_draw_command);
-
-        // copy zeros to buffer
-        m_staging_buffer.Copy(
-            GetEngine()->GetDevice(),
-            sizeof(IndirectDrawCommand),
-            &empty_draw_command
-        );
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemBuffers)>(
+        &m_staging_buffer,
+        m_quad_mesh.Get()
+    );
 }
 
 void ParticleSystem::CreateCommandBuffers()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (auto &command_buffer : m_command_buffers[frame_index]) {
-            command_buffer.Reset(new CommandBuffer(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY));
-        }
-    }
-
-    GetEngine()->GetRenderScheduler().Enqueue([this](...) {
-        auto *engine = GetEngine();
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (UInt i = 0; i < static_cast<UInt>(m_command_buffers[frame_index].Size()); i++) {
-                HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index][i]->Create(
-                    engine->GetInstance()->GetDevice(),
-                    engine->GetInstance()->GetGraphicsCommandPool(i)
-                ));
-            }
-        }
-
-        HYPERION_RETURN_OK;
-    });
+    RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemCommandBuffers)>(
+        m_command_buffers
+    );
 }
 
 void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
@@ -385,16 +460,15 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    if (m_particle_spawners.GetItems().Empty()) {
-        if (m_particle_spawners.HasUpdatesPending()) {
-            m_particle_spawners.UpdateItems(engine);
-        }
+    if (m_particle_spawners.HasUpdatesPending()) {
+        m_particle_spawners.UpdateItems(engine);
+    }
 
+    if (m_particle_spawners.GetItems().Empty()) {
         return;
     }
 
-    const auto scene_id = engine->render_state.GetScene().id;
-    const auto scene_index = scene_id ? scene_id.value - 1 : 0u;
+    const auto scene_index = engine->render_state.GetScene().id.ToIndex();
 
     m_staging_buffer.InsertBarrier(
         frame->GetCommandBuffer(),
@@ -433,14 +507,14 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
 
         spawner->GetComputePipeline()->GetPipeline()->SetPushConstants(Pipeline::PushConstantData {
             .particle_spawner_data = {
-                .origin = ShaderVec4<Float32>(Vector4(spawner->GetParams().origin, 1.0f)),
-                .spawn_radius = spawner->GetParams().radius,
-                .randomness = spawner->GetParams().randomness,
-                .avg_lifespan = spawner->GetParams().lifespan,
-                .max_particles = static_cast<UInt32>(max_particles),
-                .max_particles_sqrt = MathUtil::Sqrt(static_cast<Float>(max_particles)),
-                .delta_time = 0.016f, // TODO! Delta time for particles. we currentl don't have delta time for render thread.
-                .global_counter = m_counter
+                .origin             = ShaderVec4<Float32>(Vector4(spawner->GetParams().origin, 1.0f)),
+                .spawn_radius       = spawner->GetParams().radius,
+                .randomness         = spawner->GetParams().randomness,
+                .avg_lifespan       = spawner->GetParams().lifespan,
+                .max_particles      = UInt32(max_particles),
+                .max_particles_sqrt = MathUtil::Sqrt(Float(max_particles)),
+                .delta_time         = 0.016f, // TODO! Delta time for particles. we currentl don't have delta time for render thread.
+                .global_counter     = m_counter
             }
         });
 
@@ -451,13 +525,13 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
             spawner->GetComputePipeline()->GetPipeline(),
             &spawner->GetDescriptorSets()[frame->GetFrameIndex()],
             0,
-            FixedArray { static_cast<UInt32>(scene_index * sizeof(SceneShaderData)) }
+            FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
         );
 
         spawner->GetComputePipeline()->GetPipeline()->Dispatch(
             frame->GetCommandBuffer(),
             Extent3D {
-                static_cast<UInt32>((max_particles + 255) / 256), 1, 1
+                UInt32((max_particles + 255) / 256), 1, 1
             }
         );
 
@@ -479,8 +553,7 @@ void ParticleSystem::Render(Engine *engine, Frame *frame)
     AssertReady();
 
     const auto frame_index = frame->GetFrameIndex();
-    const auto scene_id = engine->render_state.GetScene().id;
-    const auto scene_index = scene_id ? scene_id.value - 1 : 0u;
+    const auto scene_index = engine->render_state.GetScene().id.ToIndex();
 
     FixedArray<UInt, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
@@ -505,7 +578,7 @@ void ParticleSystem::Render(Engine *engine, Frame *frame)
                         pipeline,
                         &particle_spawner->GetDescriptorSets()[frame_index],
                         0,
-                        FixedArray { static_cast<UInt32>(scene_index * sizeof(SceneShaderData)) }
+                        FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
                     );
 
                     m_quad_mesh->RenderIndirect(

@@ -62,6 +62,14 @@ private:
 };
 
 template <>
+struct DrawProxy<STUB_CLASS(Material)>
+{
+    // TODO
+};
+
+using MaterialDrawProxy = DrawProxy<STUB_CLASS(Material)>;
+
+template <>
 struct DrawProxy<STUB_CLASS(Entity)>
 {
     // rendering objects (sent from game thread to
@@ -150,6 +158,8 @@ struct DrawProxy<STUB_CLASS(Light)>
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;
 static_assert(sizeof(LightDrawProxy) == 64);
 
+
+
 template <class T>
 class HasDrawProxy
 {
@@ -205,48 +215,6 @@ public:
 protected:
     bool HasPendingRenderUpdates() const
         { return m_has_render_updates.load(std::memory_order_acquire) != 0; }
-
-    void WaitForRenderUpdatesToComplete()
-    {
-        if (!HasPendingRenderUpdates()) {
-            return;
-        }
-
-        auto *self = static_cast<typename T::InnerType *>(this);
-
-        hyperion::v2::WaitForRenderUpdatesToComplete(self->GetEngine());
-    }
-
-    /*! Enqueue an update /for/ the render thread to update the draw proxy.
-        Cannot set it directly in a thread-safe manner if not on the render thread,
-        so use this.
-    */
-    template <class EngineImpl>
-    void EnqueueDrawProxyUpdate(EngineImpl *engine, DrawProxy<T> &&draw_proxy)
-    {
-        engine->GetRenderScheduler().Enqueue([this, _drawable = std::move(draw_proxy)](...) mutable {
-            // just update draw_proxy object on render thread
-            HasDrawProxy::m_draw_proxy = _drawable;
-
-            HYPERION_RETURN_OK;
-        });
-    }
-
-    template <class Lambda>
-    void EnqueueRenderUpdate(Lambda &&lambda)
-    {
-        m_has_render_updates.fetch_add(1u, std::memory_order_release);
-
-        auto *self = static_cast<typename T::InnerType *>(this);
-
-        self->GetEngine()->GetRenderScheduler().Enqueue([this, lambda = std::forward<Lambda>(lambda)](...) mutable {
-            lambda();
-
-            m_has_render_updates.fetch_sub(1u, std::memory_order_release);
-
-            HYPERION_RETURN_OK;
-        });
-    }
 
     // Only touch from render thread.
     // Update this when updates are enqueued, so just update

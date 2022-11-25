@@ -41,12 +41,21 @@ void ShaderGlobals::Destroy(Engine *engine)
 struct RENDER_COMMAND(CreateShaderProgram) : RenderCommandBase2
 {
     renderer::ShaderProgram *shader_program;
-    Array<SubShader> subshaders;
+    // Array<SubShader> subshaders;
+    std::vector<SubShader> subshaders;
 
-    RENDER_COMMAND(CreateShaderProgram)(renderer::ShaderProgram *shader_program, Array<SubShader> subshaders)
-        : shader_program(shader_program),
-          subshaders(subshaders)
+    RENDER_COMMAND(CreateShaderProgram)(
+        renderer::ShaderProgram *shader_program,
+        // Array<SubShader> &&subshaders
+        const std::vector<SubShader> &subshaders
+    ) : shader_program(shader_program),
+        subshaders(subshaders)
     {
+    }
+
+    virtual ~RENDER_COMMAND(CreateShaderProgram)()
+    {
+        DebugLog(LogType::Error, "Destruct %s  %p\n", __FUNCTION__, (void*)this);
     }
 
     virtual Result operator()(Engine *engine)
@@ -126,7 +135,9 @@ void Shader::Init(Engine *engine)
 
     RenderCommands::Push<RENDER_COMMAND(CreateShaderProgram)>(
         m_shader_program.get(),
-        Array<SubShader>(m_sub_shaders.data(), m_sub_shaders.data() + m_sub_shaders.size())
+        m_sub_shaders
+        // Array<SubShader>(m_sub_shaders.data(), m_sub_shaders.size())
+        //Array<SubShader>(m_sub_shaders.data(), m_sub_shaders.data() + m_sub_shaders.size())
     );
 
     SetReady(true);

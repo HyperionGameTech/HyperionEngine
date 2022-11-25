@@ -42,6 +42,17 @@ using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
+struct alignas(16) ParticleShaderData
+{
+    ShaderVec4<Float32> position; // 4 x 4    = 16
+    ShaderVec4<Float32> velocity; // + 4 x 4  = 32
+    Float lifetime;               // + 4      = 36
+    Color color;                  // + 4      = 40
+                                  // align 16 = 48   
+};
+
+static_assert(sizeof(ParticleShaderData) == 48);
+
 struct alignas(256) CubemapUniforms
 {
     Matrix4 projection_matrices[6];
