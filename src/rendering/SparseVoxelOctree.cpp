@@ -24,7 +24,7 @@ SparseVoxelOctree::~SparseVoxelOctree()
     Teardown();
 }
 
-void SparseVoxelOctree::Init(Engine *engine)
+void SparseVoxelOctree::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -58,7 +58,7 @@ void SparseVoxelOctree::Init(Engine *engine)
             {
             }
 
-            virtual Result operator()(Engine *engine)
+            virtual Result operator()()
             {
                 auto result = Result::OK;
 
@@ -123,7 +123,7 @@ void SparseVoxelOctree::Init(Engine *engine)
 }
 
 // called from game thread
-void SparseVoxelOctree::InitGame(Engine *engine)
+void SparseVoxelOctree::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -191,7 +191,7 @@ void SparseVoxelOctree::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
     }
 }
 
-void SparseVoxelOctree::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
+void SparseVoxelOctree::OnUpdate( GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
@@ -227,7 +227,7 @@ UInt32 SparseVoxelOctree::CalculateNumNodes() const
     return num_nodes;
 }
 
-void SparseVoxelOctree::CreateBuffers(Engine *engine)
+void SparseVoxelOctree::CreateBuffers()
 {
     m_build_info_buffer = std::make_unique<StorageBuffer>();
     m_indirect_buffer = std::make_unique<IndirectBuffer>();
@@ -242,7 +242,7 @@ void SparseVoxelOctree::CreateBuffers(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             auto result = Result::OK;
 
@@ -300,7 +300,7 @@ void SparseVoxelOctree::CreateBuffers(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateSVOBuffers)>(*this);
 }
 
-void SparseVoxelOctree::CreateDescriptors(Engine *engine)
+void SparseVoxelOctree::CreateDescriptors()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
@@ -315,7 +315,7 @@ void SparseVoxelOctree::CreateDescriptors(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 auto &descriptor_set = svo.m_descriptor_sets[frame_index];
@@ -374,7 +374,7 @@ void SparseVoxelOctree::CreateDescriptors(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateSVODescriptors)>(*this);
 }
 
-void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
+void SparseVoxelOctree::CreateComputePipelines()
 {
     m_alloc_nodes = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(
@@ -432,7 +432,7 @@ void SparseVoxelOctree::CreateComputePipelines(Engine *engine)
     AssertThrow(Engine::Get()->InitObject(m_write_mipmaps));
 }
 
-void SparseVoxelOctree::OnRender(Engine *engine, Frame *frame)
+void SparseVoxelOctree::OnRender( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -563,7 +563,7 @@ void SparseVoxelOctree::OnRender(Engine *engine, Frame *frame)
     WriteMipmaps(Engine::Get());
 }
 
-void SparseVoxelOctree::WriteMipmaps(Engine *engine)
+void SparseVoxelOctree::WriteMipmaps()
 {
     renderer::ComputePipeline::PushConstantData push_constants {
         .octree_data = {
@@ -596,7 +596,7 @@ void SparseVoxelOctree::WriteMipmaps(Engine *engine)
 }
 
 void SparseVoxelOctree::BindDescriptorSets(
-    Engine *engine,
+    
     CommandBuffer *command_buffer,
     UInt frame_index,
     const ComputePipeline *pipeline

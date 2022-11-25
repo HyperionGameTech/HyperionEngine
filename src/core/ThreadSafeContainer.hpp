@@ -94,7 +94,7 @@ public:
         Only call from the owner thread.
         @param Engine::Get() A pointer to the Engine object. Used to initialize any newly objects. */
     template <class Engine>
-    void UpdateItems(Engine *engine)
+    void UpdateItems()
     {
         Threads::AssertOnThread(m_owner_thread);
 

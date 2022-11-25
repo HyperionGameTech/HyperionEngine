@@ -25,7 +25,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetDevice()));
@@ -44,7 +44,7 @@ struct RENDER_COMMAND(DestroyTemporalBlendingImageOutputs) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -65,7 +65,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto &descriptor_set = descriptor_sets[frame_index];
@@ -109,14 +109,14 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending() = default;
 
-void TemporalBlending::Create(Engine *engine)
+void TemporalBlending::Create()
 {
     CreateImageOutputs(Engine::Get());
     CreateDescriptorSets(Engine::Get());
     CreateComputePipelines(Engine::Get());
 }
 
-void TemporalBlending::Destroy(Engine *engine)
+void TemporalBlending::Destroy()
 {
     m_perform_blending.Reset();
 
@@ -129,7 +129,7 @@ void TemporalBlending::Destroy(Engine *engine)
     );
 }
 
-void TemporalBlending::CreateImageOutputs(Engine *engine)
+void TemporalBlending::CreateImageOutputs()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto &image_output = m_image_outputs[frame_index];
@@ -148,7 +148,7 @@ void TemporalBlending::CreateImageOutputs(Engine *engine)
     );
 }
 
-void TemporalBlending::CreateDescriptorSets(Engine *engine)
+void TemporalBlending::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -220,7 +220,7 @@ void TemporalBlending::CreateDescriptorSets(Engine *engine)
     );
 }
 
-void TemporalBlending::CreateComputePipelines(Engine *engine)
+void TemporalBlending::CreateComputePipelines()
 {
     ShaderProps shader_props;
 
@@ -245,7 +245,7 @@ void TemporalBlending::CreateComputePipelines(Engine *engine)
 }
 
 void TemporalBlending::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

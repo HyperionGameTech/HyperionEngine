@@ -513,7 +513,7 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    Engine *engine_ptr = GetArgument<0, Engine *>(params);
+    _ptr = GetArgument<0, >(params);
 
     if (!engine_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());

@@ -33,7 +33,7 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         entity->m_draw_proxy = draw_proxy;
 
@@ -124,7 +124,7 @@ Entity::~Entity()
     Teardown();
 }
 
-void Entity::Init(Engine *engine)
+void Entity::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -209,7 +209,7 @@ void Entity::Init(Engine *engine)
     });
 }
 
-void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
+void Entity::Update( GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -247,7 +247,7 @@ void Entity::Update(Engine *engine, GameCounter::TickUnit delta)
     }
 }
 
-void Entity::UpdateControllers(Engine *engine, GameCounter::TickUnit delta)
+void Entity::UpdateControllers( GameCounter::TickUnit delta)
 {
     for (auto &it : m_controllers) {
         if (!it.second->ReceivesUpdate()) {
@@ -653,7 +653,7 @@ void Entity::OnMovedToOctant(Octree *octree)
 }
 
 
-void Entity::AddToOctree(Engine *engine, Octree &octree)
+void Entity::AddToOctree( Octree &octree)
 {
     AssertThrow(m_octree == nullptr);
 
@@ -662,7 +662,7 @@ void Entity::AddToOctree(Engine *engine, Octree &octree)
     }
 }
 
-void Entity::RemoveFromOctree(Engine *engine)
+void Entity::RemoveFromOctree()
 {
     DebugLog(
         LogType::Debug,

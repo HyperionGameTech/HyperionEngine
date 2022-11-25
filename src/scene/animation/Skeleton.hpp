@@ -56,7 +56,7 @@ public:
     Animation *GetAnimation(SizeType index) const { return m_animations[index].get(); }
     Animation *FindAnimation(const String &name, UInt *out_index) const;
     
-    void Init(Engine *engine);
+    void Init();
     void EnqueueRenderUpdates() const;
 
 private:

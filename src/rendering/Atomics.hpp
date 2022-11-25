@@ -31,11 +31,11 @@ public:
 
     AtomicCounterBuffer *GetBuffer() const { return m_buffer.get(); }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
-    void Reset(Engine *engine, CountType value = 0);
-    CountType Read(Engine *engine) const;
+    void Reset( CountType value = 0);
+    CountType Read() const;
 
 private:
     std::unique_ptr<AtomicCounterBuffer> m_buffer;

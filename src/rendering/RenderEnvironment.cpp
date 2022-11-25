@@ -16,7 +16,7 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -74,7 +74,7 @@ void RenderEnvironment::SetTLAS(Handle<TLAS> &&tlas)
     m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_TLAS);
 }
 
-void RenderEnvironment::Init(Engine *engine)
+void RenderEnvironment::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -136,7 +136,7 @@ void RenderEnvironment::Init(Engine *engine)
     });
 }
 
-void RenderEnvironment::Update(Engine *engine, GameCounter::TickUnit delta)
+void RenderEnvironment::Update( GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -185,7 +185,7 @@ void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
     m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_ENTITIES);
 }
 
-void RenderEnvironment::ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags)
+void RenderEnvironment::ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -198,7 +198,7 @@ void RenderEnvironment::ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateS
     }
 }
 
-void RenderEnvironment::RenderRTRadiance(Engine *engine, Frame *frame)
+void RenderEnvironment::RenderRTRadiance( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -219,7 +219,7 @@ void RenderEnvironment::RenderRTRadiance(Engine *engine, Frame *frame)
     }
 }
 
-void RenderEnvironment::RenderComponents(Engine *engine, Frame *frame)
+void RenderEnvironment::RenderComponents( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();

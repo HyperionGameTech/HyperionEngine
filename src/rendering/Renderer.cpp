@@ -34,7 +34,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         renderer::GraphicsPipeline::ConstructionInfo construction_info {
             .vertex_attributes = attributes.mesh_attributes.vertex_attributes,
@@ -79,7 +79,7 @@ struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return pipeline->Destroy(Engine::Get()->GetDevice());
     }
@@ -206,7 +206,7 @@ void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_remove
     m_enqueued_entities_sp.Signal();
 }
 
-void RendererInstance::PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_index)
+void RendererInstance::PerformEnqueuedEntityUpdates( UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -261,7 +261,7 @@ void RendererInstance::PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_i
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::Init(Engine *engine)
+void RendererInstance::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -378,7 +378,7 @@ void RendererInstance::Init(Engine *engine)
     }));
 }
 
-void RendererInstance::CollectDrawCalls(Engine *engine, Frame *frame)
+void RendererInstance::CollectDrawCalls( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -423,7 +423,7 @@ void RendererInstance::CollectDrawCalls(Engine *engine, Frame *frame)
 
 
 void RendererInstance::CollectDrawCalls(
-    Engine *engine,
+    
     Frame *frame,
     const CullData &cull_data
 )
@@ -461,7 +461,7 @@ static void GetDividedDrawCalls(
 }
 
 static void BindGlobalDescriptorSets(
-    Engine *engine,
+    
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
@@ -505,7 +505,7 @@ static void BindGlobalDescriptorSets(
 }
 
 static void BindPerObjectDescriptorSets(
-    Engine *engine,
+    
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
@@ -546,7 +546,7 @@ static void BindPerObjectDescriptorSets(
 template <bool IsIndirect>
 static HYP_FORCE_INLINE void
 RenderAll(
-    Engine *engine,
+    
     Frame *frame,
     FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers,
     UInt &command_buffer_index,
@@ -650,7 +650,7 @@ RenderAll(
     command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
 }
 
-void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
+void RendererInstance::PerformRendering( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -667,7 +667,7 @@ void RendererInstance::PerformRendering(Engine *engine, Frame *frame)
     );
 }
 
-void RendererInstance::PerformRenderingIndirect(Engine *engine, Frame *frame)
+void RendererInstance::PerformRenderingIndirect( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -684,7 +684,7 @@ void RendererInstance::PerformRenderingIndirect(Engine *engine, Frame *frame)
     );
 }
 
-void RendererInstance::Render(Engine *engine, Frame *frame)
+void RendererInstance::Render( Frame *frame)
 {
     // perform all ops in one batch
     CollectDrawCalls(Engine::Get(), frame);
@@ -704,7 +704,7 @@ renderer::GraphicsPipeline *RendererProxy::GetGraphicsPipeline()
     return m_renderer_instance->m_pipeline.get();
 }
 
-void RendererProxy::Bind(Engine *engine, Frame *frame)
+void RendererProxy::Bind( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -726,7 +726,7 @@ void RendererProxy::SetConstants(void *ptr, SizeType size)
 }
 
 void RendererProxy::BindEntityObject(
-    Engine *engine,
+    
     Frame *frame,
     const EntityDrawProxy &entity
 )
@@ -743,7 +743,7 @@ void RendererProxy::BindEntityObject(
 }
 
 void RendererProxy::DrawMesh(
-    Engine *engine,
+    
     Frame *frame,
     Mesh *mesh
 )
@@ -755,7 +755,7 @@ void RendererProxy::DrawMesh(
 }
 
 void RendererProxy::Submit(
-    Engine *engine,
+    
     Frame *frame
 )
 {

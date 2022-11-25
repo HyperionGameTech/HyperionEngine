@@ -20,7 +20,7 @@ struct LoaderState
     AssetManager *asset_manager;
     std::string filepath;
     BufferedReader<HYP_LOADER_BUFFER_SIZE> stream;
-    Engine *engine; // deprecated
+    ; // deprecated
 };
 
 struct LoaderResult

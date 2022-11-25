@@ -26,7 +26,7 @@ public:
     bool IsMultiview() const { return m_render_pass.IsMultiview(); }
     UInt NumMultiviewLayers() const { return m_render_pass.NumMultiviewLayers(); }
 
-    void Init(Engine *engine);
+    void Init();
 
 private:
     renderer::RenderPass m_render_pass;

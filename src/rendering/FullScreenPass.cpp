@@ -25,7 +25,7 @@ struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
@@ -47,7 +47,7 @@ struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = renderer::Result::OK;
 
@@ -91,7 +91,7 @@ FullScreenPass::FullScreenPass(
 
 FullScreenPass::~FullScreenPass() = default;
 
-void FullScreenPass::Create(Engine *engine)
+void FullScreenPass::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -116,13 +116,13 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
     m_shader = std::move(shader);
 }
 
-void FullScreenPass::CreateQuad(Engine *engine)
+void FullScreenPass::CreateQuad()
 {
     m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
     Engine::Get()->InitObject(m_full_screen_quad);
 }
 
-void FullScreenPass::CreateRenderPass(Engine *engine)
+void FullScreenPass::CreateRenderPass()
 {
     /* Add the filters' renderpass */
     auto render_pass = std::make_unique<RenderPass>(
@@ -160,7 +160,7 @@ void FullScreenPass::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(m_render_pass);
 }
 
-void FullScreenPass::CreateCommandBuffers(Engine *engine)
+void FullScreenPass::CreateCommandBuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_command_buffers[i] = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
@@ -170,7 +170,7 @@ void FullScreenPass::CreateCommandBuffers(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateCommandBuffers)>(m_command_buffers.Data());
 }
 
-void FullScreenPass::CreateFramebuffers(Engine *engine)
+void FullScreenPass::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
@@ -187,7 +187,7 @@ void FullScreenPass::CreateFramebuffers(Engine *engine)
     }
 }
 
-void FullScreenPass::CreatePipeline(Engine *engine)
+void FullScreenPass::CreatePipeline()
 {
     CreatePipeline(Engine::Get(), RenderableAttributeSet(
         MeshAttributes {
@@ -201,7 +201,7 @@ void FullScreenPass::CreatePipeline(Engine *engine)
     ));
 }
 
-void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet &renderable_attributes)
+void FullScreenPass::CreatePipeline( const RenderableAttributeSet &renderable_attributes)
 {
     auto _renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
@@ -217,7 +217,7 @@ void FullScreenPass::CreatePipeline(Engine *engine, const RenderableAttributeSet
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void FullScreenPass::Destroy(Engine *engine)
+void FullScreenPass::Destroy()
 {
     Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
 
@@ -253,7 +253,7 @@ void FullScreenPass::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void FullScreenPass::Record(Engine *engine, UInt frame_index)
+void FullScreenPass::Record( UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -326,7 +326,7 @@ void FullScreenPass::Record(Engine *engine, UInt frame_index)
     HYPERION_ASSERT_RESULT(record_result);
 }
 
-void FullScreenPass::Render(Engine *engine, Frame *frame)
+void FullScreenPass::Render( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

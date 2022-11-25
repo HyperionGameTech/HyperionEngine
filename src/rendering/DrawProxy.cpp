@@ -3,7 +3,7 @@
 
 namespace hyperion::v2 {
 
-void WaitForRenderUpdatesToComplete(Engine *engine)
+void WaitForRenderUpdatesToComplete()
 {
     HYP_FLUSH_RENDER_QUEUE();
 }

@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return pipeline->Create(
             Engine::Get()->GetDevice(),
@@ -35,7 +35,7 @@ struct RENDER_COMMAND(DestroyComputeShader) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return pipeline.GetPipeline()->Destroy(Engine::Get()->GetDevice());
     }
@@ -61,7 +61,7 @@ ComputePipeline::~ComputePipeline()
     Teardown();
 }
 
-void ComputePipeline::Init(Engine *engine)
+void ComputePipeline::Init()
 {
     if (IsInitCalled()) {
         return;

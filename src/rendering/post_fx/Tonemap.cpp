@@ -12,7 +12,7 @@ TonemapEffect::TonemapEffect()
 
 TonemapEffect::~TonemapEffect() = default;
 
-Handle<Shader> TonemapEffect::CreateShader(Engine *engine)
+Handle<Shader> TonemapEffect::CreateShader()
 {
     return Engine::Get()->CreateHandle<Shader>(
         std::vector<SubShader> {

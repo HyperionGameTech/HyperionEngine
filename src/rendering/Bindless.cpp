@@ -11,7 +11,7 @@ BindlessStorage::BindlessStorage()
 
 BindlessStorage::~BindlessStorage() = default;
 
-void BindlessStorage::Create(Engine *engine)
+void BindlessStorage::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -19,7 +19,7 @@ void BindlessStorage::Create(Engine *engine)
     m_descriptor_sets[1] = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
 }
 
-void BindlessStorage::Destroy(Engine *engine)
+void BindlessStorage::Destroy()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

@@ -23,7 +23,7 @@ struct RENDER_COMMAND(BindLights) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (SizeType i = 0; i < num_lights; i++) {
             Engine::Get()->GetRenderState().BindLight(ids[i]);
@@ -46,7 +46,7 @@ struct RENDER_COMMAND(BindEnvProbes) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (SizeType i = 0; i < num_env_probes; i++) {
             Engine::Get()->GetRenderState().BindEnvProbe(ids[i]);
@@ -82,7 +82,7 @@ Scene::~Scene()
     Teardown();
 }
     
-void Scene::Init(Engine *engine)
+void Scene::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -618,7 +618,7 @@ void Scene::ForceUpdate()
 }
 
 void Scene::Update(
-    Engine *engine,
+    
     GameCounter::TickUnit delta,
     bool update_octree_visibility
 )
@@ -757,7 +757,7 @@ void Scene::EnqueueRenderUpdates()
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             const UInt frame_counter = render_environment->GetFrameCounter();
 

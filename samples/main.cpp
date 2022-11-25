@@ -100,12 +100,12 @@ public:
     {
     }
 
-    virtual void InitRender(Engine *engine) override
+    virtual void InitRender() override
     {
         Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
     }
 
-    virtual void InitGame(Engine *engine) override
+    virtual void InitGame() override
     {
         Game::InitGame(Engine::Get());
         
@@ -382,24 +382,24 @@ public:
         }
     }
 
-    virtual void Teardown(Engine *engine) override
+    virtual void Teardown() override
     {
         Game::Teardown(Engine::Get());
     }
 
     bool svo_ready_to_build = false;
 
-    virtual void OnFrameBegin(Engine *engine, Frame *) override
+    virtual void OnFrameBegin( Frame *) override
     {
         Engine::Get()->render_state.BindScene(m_scene.Get());
     }
 
-    virtual void OnFrameEnd(Engine *engine, Frame *) override
+    virtual void OnFrameEnd( Frame *) override
     {
         Engine::Get()->render_state.UnbindScene();
     }
 
-    virtual void Logic(Engine *engine, GameCounter::TickUnit delta) override
+    virtual void Logic( GameCounter::TickUnit delta) override
     {
         timer += delta;
 
@@ -473,7 +473,7 @@ public:
         #endif
     }
 
-    virtual void OnInputEvent(Engine *engine, const SystemEvent &event) override
+    virtual void OnInputEvent( const SystemEvent &event) override
     {
         Game::OnInputEvent(Engine::Get(), event);
 

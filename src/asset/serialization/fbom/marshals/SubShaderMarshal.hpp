@@ -31,7 +31,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, UniquePtr<SubShader> &out_object) const override
+    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<SubShader> &out_object) const override
     {
         out_object.Reset(new SubShader());
 

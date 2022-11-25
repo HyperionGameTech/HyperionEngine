@@ -298,7 +298,7 @@ struct FBOMConfig
 class FBOMReader
 {
 public:
-    FBOMReader(Engine *engine, const FBOMConfig &config);
+    FBOMReader( const FBOMConfig &config);
     ~FBOMReader();
 
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)
@@ -418,7 +418,7 @@ private:
 
     FBOMResult Handle(ByteReader *, FBOMCommand, FBOMObject *root);
 
-    Engine *m_engine;
+    m_engine;
     FBOMConfig m_config;
 
     std::vector<FBOMType> m_registered_types;

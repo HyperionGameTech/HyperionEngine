@@ -69,7 +69,7 @@ public:
     FilterMode GetFilterMode() const { return m_sampler.GetFilterMode(); }
     WrapMode GetWrapMode() const { return m_sampler.GetWrapMode(); }
     
-    void Init(Engine *engine);
+    void Init();
 
 protected:
     Image m_image;

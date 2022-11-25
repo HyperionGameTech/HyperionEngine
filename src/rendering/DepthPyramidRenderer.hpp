@@ -38,11 +38,11 @@ public:
 
     bool IsRendered() const { return m_is_rendered; }
 
-    void Create(Engine *engine, const AttachmentRef *depth_attachment_ref);
-    void Destroy(Engine *engine);
+    void Create( const AttachmentRef *depth_attachment_ref);
+    void Destroy();
 
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 

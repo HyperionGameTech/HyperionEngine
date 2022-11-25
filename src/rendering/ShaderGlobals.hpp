@@ -42,8 +42,8 @@ struct ShaderGlobals
     ShaderGlobals(const ShaderGlobals &other) = delete;
     ShaderGlobals &operator=(const ShaderGlobals &other) = delete;
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     ShaderData<StorageBuffer, SceneShaderData, max_scenes> scenes;
     ShaderData<StorageBuffer, LightShaderData, max_lights> lights;

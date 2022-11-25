@@ -89,7 +89,7 @@ public:
     virtual void OnAttachedToScene(Scene *scene) {}
 
 protected:
-    Engine *GetEngine() const;
+    GetEngine() const;
 
     bool CreateScriptedObjects();
     virtual bool CreateScriptedMethods();

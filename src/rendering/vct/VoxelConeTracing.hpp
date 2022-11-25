@@ -65,22 +65,22 @@ public:
     Handle<Texture> &GetVoxelImage() { return m_voxel_image; }
     const Handle<Texture> &GetVoxelImage() const { return m_voxel_image; }
 
-    void Init(Engine *engine);
-    void InitGame(Engine *engine); // init on game thread
+    void Init();
+    void InitGame(); // init on game thread
 
-    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
-    void OnRender(Engine *engine, Frame *frame);
+    void OnUpdate( GameCounter::TickUnit delta);
+    void OnRender( Frame *frame);
 
-    // void RenderVoxels(Engine *engine, Frame *frame);
+    // void RenderVoxels( Frame *frame);
 
 private:
-    void CreateImagesAndBuffers(Engine *engine);
-    void CreateRendererInstance(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
-    void CreateShader(Engine *engine);
-    void CreateRenderPass(Engine *engine);
-    void CreateFramebuffers(Engine *engine);
-    void CreateDescriptors(Engine *engine);
+    void CreateImagesAndBuffers();
+    void CreateRendererInstance();
+    void CreateComputePipelines();
+    void CreateShader();
+    void CreateRenderPass();
+    void CreateFramebuffers();
+    void CreateDescriptors();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(Handle<Entity> &entity) override;

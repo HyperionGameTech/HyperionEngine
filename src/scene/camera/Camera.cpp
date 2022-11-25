@@ -20,7 +20,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         camera->m_draw_proxy = draw_proxy;
 
@@ -68,7 +68,7 @@ Camera::~Camera()
     Teardown();
 }
 
-void Camera::Init(Engine *engine)
+void Camera::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -206,7 +206,7 @@ Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
     return TransformNDCToWorld(TransformScreenToNDC(screen));
 }
 
-void Camera::Update(Engine *engine, GameCounter::TickUnit dt)
+void Camera::Update( GameCounter::TickUnit dt)
 {
     UpdateCommandQueue(dt);
     UpdateLogic(dt);

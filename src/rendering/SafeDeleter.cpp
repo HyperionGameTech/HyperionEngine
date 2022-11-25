@@ -2,7 +2,7 @@
 
 namespace hyperion::v2 {
 
-void SafeDeleter::PerformEnqueuedDeletions(Engine *engine)
+void SafeDeleter::PerformEnqueuedDeletions()
 {
     if (auto deletion_flags = m_render_resource_deletion_flag.load()) {
         std::lock_guard guard(m_render_resource_deletion_mutex);
@@ -41,7 +41,7 @@ void SafeDeleter::PerformEnqueuedDeletions(Engine *engine)
     }
 }
 
-void SafeDeleter::ForceReleaseAll(Engine *engine)
+void SafeDeleter::ForceReleaseAll()
 {
     if (auto deletion_flags = m_render_resource_deletion_flag.load()) {
         std::lock_guard guard(m_render_resource_deletion_mutex);

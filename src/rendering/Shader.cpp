@@ -5,7 +5,7 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-void ShaderGlobals::Create(Engine *engine)
+void ShaderGlobals::Create()
 {
     auto *device = Engine::Get()->GetDevice();
 
@@ -22,7 +22,7 @@ void ShaderGlobals::Create(Engine *engine)
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
 }
 
-void ShaderGlobals::Destroy(Engine *engine)
+void ShaderGlobals::Destroy()
 {
     auto *device = Engine::Get()->GetDevice();
 
@@ -58,7 +58,7 @@ struct RENDER_COMMAND(CreateShaderProgram) : RenderCommandBase2
         DebugLog(LogType::Error, "Destruct %s  %p\n", __FUNCTION__, (void*)this);
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (const SubShader &sub_shader : subshaders) {
             HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
@@ -81,7 +81,7 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return shader_program->Destroy(Engine::Get()->GetDevice());
     }
@@ -121,7 +121,7 @@ Shader::~Shader()
     Teardown();
 }
 
-void Shader::Init(Engine *engine)
+void Shader::Init()
 {
     if (IsInitCalled()) {
         return;

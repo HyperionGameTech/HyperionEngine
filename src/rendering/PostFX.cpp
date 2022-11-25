@@ -47,7 +47,7 @@ PostFXPass::PostFXPass(
 
 PostFXPass::~PostFXPass() = default;
 
-void PostFXPass::CreateDescriptors(Engine *engine)
+void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -93,7 +93,7 @@ PostProcessingEffect::~PostProcessingEffect()
     Teardown();
 }
 
-void PostProcessingEffect::Init(Engine *engine)
+void PostProcessingEffect::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -122,7 +122,7 @@ void PostProcessingEffect::Init(Engine *engine)
 PostProcessing::PostProcessing() = default;
 PostProcessing::~PostProcessing() = default;
 
-void PostProcessing::Create(Engine *engine)
+void PostProcessing::Create()
 {
     // Fill out placeholder images -- 8 pre, 8 post.
     {
@@ -157,7 +157,7 @@ void PostProcessing::Create(Engine *engine)
     CreateUniformBuffer(Engine::Get());
 }
 
-void PostProcessing::Destroy(Engine *engine)
+void PostProcessing::Destroy()
 {
     m_pre_effects.Clear();
     m_post_effects.Clear();
@@ -177,7 +177,7 @@ void PostProcessing::Destroy(Engine *engine)
     HYPERION_ASSERT_RESULT(m_uniform_buffer.Destroy(Engine::Get()->GetDevice()));
 }
 
-void PostProcessing::CreateUniformBuffer(Engine *engine)
+void PostProcessing::CreateUniformBuffer()
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
@@ -230,7 +230,7 @@ void PostProcessing::CreateUniformBuffer(Engine *engine)
     }
 }
 
-void PostProcessing::RenderPre(Engine *engine, Frame *frame) const
+void PostProcessing::RenderPre( Frame *frame) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -250,7 +250,7 @@ void PostProcessing::RenderPre(Engine *engine, Frame *frame) const
     }
 }
 
-void PostProcessing::RenderPost(Engine *engine, Frame *frame) const
+void PostProcessing::RenderPost( Frame *frame) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

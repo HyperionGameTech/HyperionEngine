@@ -19,7 +19,7 @@ World::~World()
     Teardown();
 }
     
-void World::Init(Engine *engine)
+void World::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -99,7 +99,7 @@ void World::PerformSceneUpdates()
 }
 
 void World::Update(
-    Engine *engine,
+    
     GameCounter::TickUnit delta
 )
 {
@@ -125,7 +125,7 @@ void World::Update(
 }
 
 void World::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

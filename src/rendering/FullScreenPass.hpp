@@ -91,21 +91,21 @@ public:
         }
     }
 
-    virtual void CreateRenderPass(Engine *engine);
-    virtual void CreateCommandBuffers(Engine *engine);
-    virtual void CreateFramebuffers(Engine *engine);
-    virtual void CreatePipeline(Engine *engine, const RenderableAttributeSet &renderable_attributes);
-    virtual void CreatePipeline(Engine *engine);
-    virtual void CreateDescriptors(Engine *engine) = 0;
+    virtual void CreateRenderPass();
+    virtual void CreateCommandBuffers();
+    virtual void CreateFramebuffers();
+    virtual void CreatePipeline( const RenderableAttributeSet &renderable_attributes);
+    virtual void CreatePipeline();
+    virtual void CreateDescriptors() = 0;
 
-    virtual void Create(Engine *engine);
-    virtual void Destroy(Engine *engine);
+    virtual void Create();
+    virtual void Destroy();
 
-    virtual void Render(Engine *engine, Frame *frame);
-    virtual void Record(Engine *engine, UInt frame_index);
+    virtual void Render( Frame *frame);
+    virtual void Record( UInt frame_index);
 
 protected:
-    void CreateQuad(Engine *engine);
+    void CreateQuad();
 
     FixedArray<UniquePtr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
     FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;

@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateTLAS) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return tlas->Create(
             Engine::Get()->GetDevice(),
@@ -35,7 +35,7 @@ struct RENDER_COMMAND(DestroyTLAS) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return tlas->Destroy(Engine::Get()->GetDevice());
     }
@@ -70,7 +70,7 @@ void TLAS::AddBLAS(Handle<BLAS> &&blas)
     m_has_blas_updates.store(true);
 }
 
-void TLAS::Init(Engine *engine)
+void TLAS::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -140,7 +140,7 @@ void TLAS::PerformBLASUpdates()
 }
 
 void TLAS::UpdateRender(
-    Engine *engine,
+    
     Frame *frame,
     RTUpdateStateFlags &out_update_state_flags
 )

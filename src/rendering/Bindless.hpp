@@ -33,8 +33,8 @@ public:
     BindlessStorage &operator=(const BindlessStorage &other) = delete;
     ~BindlessStorage();
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     /*! \brief Add a texture to the bindless descriptor set. */
     void AddResource(const Texture *texture);

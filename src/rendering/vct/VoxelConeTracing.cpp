@@ -25,7 +25,7 @@ VoxelConeTracing::~VoxelConeTracing()
     Teardown();
 }
 
-void VoxelConeTracing::Init(Engine *engine)
+void VoxelConeTracing::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -76,7 +76,7 @@ void VoxelConeTracing::Init(Engine *engine)
             {
             }
 
-            virtual Result operator()(Engine *engine)
+            virtual Result operator()()
             {
                 // unset descriptors
                 auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
@@ -137,7 +137,7 @@ void VoxelConeTracing::Init(Engine *engine)
 }
 
 // called from game thread
-void VoxelConeTracing::InitGame(Engine *engine)
+void VoxelConeTracing::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -205,13 +205,13 @@ void VoxelConeTracing::OnEntityRenderableAttributesChanged(Handle<Entity> &entit
     }
 }
 
-void VoxelConeTracing::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
+void VoxelConeTracing::OnUpdate( GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
 }
 
-void VoxelConeTracing::OnRender(Engine *engine, Frame *frame)
+void VoxelConeTracing::OnRender( Frame *frame)
 {
     if (!Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) {
         return;
@@ -382,7 +382,7 @@ void VoxelConeTracing::OnComponentIndexChanged(RenderComponentBase::Index new_in
     // TODO: Remove descriptor, set new descriptor
 }
 
-void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
+void VoxelConeTracing::CreateImagesAndBuffers()
 {
     m_voxel_image = Engine::Get()->CreateHandle<Texture>(
         StorageImage(
@@ -432,7 +432,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             HYPERION_BUBBLE_ERRORS(vct.m_uniform_buffer.Create(Engine::Get()->GetDevice(), sizeof(VoxelUniforms)));
 
@@ -473,7 +473,7 @@ void VoxelConeTracing::CreateImagesAndBuffers(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateVCTImagesAndBuffers)>(*this);
 }
 
-void VoxelConeTracing::CreateRendererInstance(Engine *engine)
+void VoxelConeTracing::CreateRendererInstance()
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
@@ -498,7 +498,7 @@ void VoxelConeTracing::CreateRendererInstance(Engine *engine)
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void VoxelConeTracing::CreateComputePipelines(Engine *engine)
+void VoxelConeTracing::CreateComputePipelines()
 {
     m_clear_voxels = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("VCTClearVoxels"))
@@ -526,7 +526,7 @@ void VoxelConeTracing::CreateComputePipelines(Engine *engine)
     Engine::Get()->InitObject(m_perform_temporal_blending);
 }
 
-void VoxelConeTracing::CreateShader(Engine *engine)
+void VoxelConeTracing::CreateShader()
 {
     std::vector<SubShader> sub_shaders = {
         {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/vct/voxelize.vert.spv")).Read()}},
@@ -546,7 +546,7 @@ void VoxelConeTracing::CreateShader(Engine *engine)
     Engine::Get()->InitObject(m_shader);
 }
 
-void VoxelConeTracing::CreateRenderPass(Engine *engine)
+void VoxelConeTracing::CreateRenderPass()
 {
     m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
@@ -556,7 +556,7 @@ void VoxelConeTracing::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(m_render_pass);
 }
 
-void VoxelConeTracing::CreateFramebuffers(Engine *engine)
+void VoxelConeTracing::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
@@ -568,7 +568,7 @@ void VoxelConeTracing::CreateFramebuffers(Engine *engine)
     }
 }
 
-void VoxelConeTracing::CreateDescriptors(Engine *engine)
+void VoxelConeTracing::CreateDescriptors()
 {
     // create own descriptor sets
     if constexpr (manual_mipmap_generation) {
@@ -629,7 +629,7 @@ void VoxelConeTracing::CreateDescriptors(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             DebugLog(LogType::Debug, "Add voxel cone tracing descriptors\n");
 

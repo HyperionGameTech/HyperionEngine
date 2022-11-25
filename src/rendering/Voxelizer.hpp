@@ -58,20 +58,20 @@ public:
     UInt32 NumFragments() const
         { return m_num_fragments; }
 
-    void Init(Engine *engine);
-    void Render(Engine *engine, Frame *frame);
+    void Init();
+    void Render( Frame *frame);
 
 private:
-    void CreateBuffers(Engine *engine);
-    void CreatePipeline(Engine *engine);
-    void CreateShader(Engine *engine);
-    void CreateRenderPass(Engine *engine);
-    void CreateFramebuffer(Engine *engine);
-    void CreateDescriptors(Engine *engine);
+    void CreateBuffers();
+    void CreatePipeline();
+    void CreateShader();
+    void CreateRenderPass();
+    void CreateFramebuffer();
+    void CreateDescriptors();
 
-    void ResizeFragmentListBuffer(Engine *engine, Frame *frame);
+    void ResizeFragmentListBuffer( Frame *frame);
 
-    void RenderFragmentList(Engine *engine, Frame *frame, bool count_mode);
+    void RenderFragmentList( Frame *frame, bool count_mode);
 
     Handle<Scene> m_scene;
 

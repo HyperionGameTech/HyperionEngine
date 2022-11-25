@@ -164,7 +164,7 @@ public:
 //     UIText(const FontMap &font_map, const String &text);
 //     virtual ~UIText();
 
-//     virtual void Init(Engine *engine) override;
+//     virtual void Init() override;
 
 // protected:
 //     static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text);

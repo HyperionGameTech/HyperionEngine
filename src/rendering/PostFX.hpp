@@ -60,7 +60,7 @@ public:
     PostFXPass &operator=(const PostFXPass &) = delete;
     virtual ~PostFXPass();
 
-    virtual void CreateDescriptors(Engine *engine) override;
+    virtual void CreateDescriptors() override;
 };
 
 class PostProcessingEffect
@@ -94,10 +94,10 @@ public:
     bool IsEnabled() const { return m_is_enabled; }
     void SetIsEnabled(bool is_enabled) { m_is_enabled = is_enabled; }
 
-    void Init(Engine *engine);
+    void Init();
 
 protected:
-    virtual Handle<Shader> CreateShader(Engine *engine) = 0;
+    virtual Handle<Shader> CreateShader() = 0;
 
     PostFXPass m_pass;
 
@@ -166,13 +166,13 @@ public:
         }
     }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
-    void RenderPre(Engine *engine, Frame *frame) const;
-    void RenderPost(Engine *engine, Frame *frame) const;
+    void Create();
+    void Destroy();
+    void RenderPre( Frame *frame) const;
+    void RenderPost( Frame *frame) const;
 
 private:
-    void CreateUniformBuffer(Engine *engine);
+    void CreateUniformBuffer();
 
     template <class EffectClass>
     void AddEffectInternal(std::unique_ptr<EffectClass> &&effect, TypeMap<std::unique_ptr<PostProcessingEffect>> &effects)

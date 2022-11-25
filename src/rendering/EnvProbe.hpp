@@ -54,7 +54,7 @@ public:
     void SetWorldPosition(const Vector3 &world_position)
         { m_world_position = world_position; SetNeedsUpdate(); }
 
-    void Init(Engine *engine);
+    void Init();
     void EnqueueBind() const;
     void EnqueueUnbind() const;
     void Update();

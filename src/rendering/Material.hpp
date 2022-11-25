@@ -397,8 +397,8 @@ public:
     const MaterialAttributes &GetRenderAttributes() const
         { return m_render_attributes; }
 
-    void Init(Engine *engine);
-    void Update(Engine *engine);
+    void Init();
+    void Update();
 
     HashCode GetHashCode() const
     {
@@ -433,7 +433,7 @@ public:
     MaterialGroup &operator=(const MaterialGroup &other) = delete;
     ~MaterialGroup();
 
-    void Init(Engine *engine);
+    void Init();
     void Add(const std::string &name, Handle<Material> &&material);
     bool Remove(const std::string &name);
 

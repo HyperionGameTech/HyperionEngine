@@ -30,17 +30,17 @@ public:
     UIRenderer &operator=(const UIRenderer &other) = delete;
     ~UIRenderer();
 
-    void Init(Engine *engine);
-    void InitGame(Engine *engine); // init on game thread
+    void Init();
+    void InitGame(); // init on game thread
     void OnRemoved();
 
-    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
-    void OnRender(Engine *engine, Frame *frame);
+    void OnUpdate( GameCounter::TickUnit delta);
+    void OnRender( Frame *frame);
 
 private:
-    void CreateRenderPass(Engine *engine);
-    void CreateFramebuffers(Engine *engine);
-    void CreateDescriptors(Engine *engine);
+    void CreateRenderPass();
+    void CreateFramebuffers();
+    void CreateDescriptors();
 
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }

@@ -151,15 +151,15 @@ public:
     UInt32 GetFrameCounter() const
         { return m_frame_counter; }
 
-    void Init(Engine *engine);
-    void Update(Engine *engine, GameCounter::TickUnit delta);
+    void Init();
+    void Update( GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(Engine *engine, Frame *frame);
+    void RenderRTRadiance( Frame *frame);
 
-    void RenderComponents(Engine *engine, Frame *frame);
+    void RenderComponents( Frame *frame);
 
 private:
-    void ApplyTLASUpdates(Engine *engine, Frame *frame, RTUpdateStateFlags flags);
+    void ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags);
 
     Scene *m_scene;
 

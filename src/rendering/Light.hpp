@@ -73,7 +73,7 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    void Init(Engine *engine);
+    void Init();
     void EnqueueBind() const;
     void EnqueueUnbind() const;
     void Update();

@@ -41,7 +41,7 @@ class Scene;
 class EnvProbe;
 class Light;
 
-void WaitForRenderUpdatesToComplete(Engine *engine);
+void WaitForRenderUpdatesToComplete();
 
 enum class LightType : UInt32
 {

@@ -189,10 +189,10 @@ public:
     HYP_FORCE_INLINE const Option &Get(OptionName option) const
         { return m_variables[UInt(option)]; }
 
-    bool LoadFromDefinitionsFile(Engine *engine);
-    bool SaveToDefinitionsFile(Engine *engine);
+    bool LoadFromDefinitionsFile();
+    bool SaveToDefinitionsFile();
 
-    void SetToDefaultConfiguration(Engine *engine);
+    void SetToDefaultConfiguration();
 
     static OptionName StringToOptionName(const String &str);
     static String OptionNameToString(OptionName option);

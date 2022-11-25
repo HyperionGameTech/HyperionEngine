@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
@@ -60,7 +60,7 @@ struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(Engine::Get()->GetDevice()));
         HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(Engine::Get()->GetDevice(), shadow_map_image));
@@ -78,7 +78,7 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[i].Create(
@@ -104,7 +104,7 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -130,7 +130,7 @@ ShadowPass::ShadowPass()
 
 ShadowPass::~ShadowPass() = default;
 
-void ShadowPass::CreateShader(Engine *engine)
+void ShadowPass::CreateShader()
 {
     m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
         "Shadows",
@@ -149,7 +149,7 @@ void ShadowPass::SetParentScene(Scene::ID id)
     }
 }
 
-void ShadowPass::CreateRenderPass(Engine *engine)
+void ShadowPass::CreateRenderPass()
 {
     /* Add the filters' renderpass */
     auto render_pass = std::make_unique<RenderPass>(
@@ -208,7 +208,7 @@ void ShadowPass::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(m_render_pass);
 }
 
-void ShadowPass::CreateDescriptors(Engine *engine)
+void ShadowPass::CreateDescriptors()
 {
     AssertThrow(m_shadow_map_index != ~0u);
 
@@ -218,7 +218,7 @@ void ShadowPass::CreateDescriptors(Engine *engine)
     );
 }
 
-void ShadowPass::CreateRendererInstance(Engine *engine)
+void ShadowPass::CreateRendererInstance()
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
@@ -242,7 +242,7 @@ void ShadowPass::CreateRendererInstance(Engine *engine)
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void ShadowPass::CreateShadowMap(Engine *engine)
+void ShadowPass::CreateShadowMap()
 {
     m_shadow_map_image = std::make_unique<StorageImage2D>(
         m_dimensions,
@@ -254,7 +254,7 @@ void ShadowPass::CreateShadowMap(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateShadowMapImage)>(m_shadow_map_image.get(), m_shadow_map_image_view.get());
 }
 
-void ShadowPass::CreateComputePipelines(Engine *engine)
+void ShadowPass::CreateComputePipelines()
 {
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
@@ -288,7 +288,7 @@ void ShadowPass::CreateComputePipelines(Engine *engine)
     Engine::Get()->InitObject(m_blur_shadow_map);
 }
 
-void ShadowPass::Create(Engine *engine)
+void ShadowPass::Create()
 {
     CreateShadowMap(Engine::Get());
     CreateShader(Engine::Get());
@@ -330,7 +330,7 @@ void ShadowPass::Create(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE(); // force init stuff
 }
 
-void ShadowPass::Destroy(Engine *engine)
+void ShadowPass::Destroy()
 {
     if (m_scene) {
         Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
@@ -346,7 +346,7 @@ void ShadowPass::Destroy(Engine *engine)
     FullScreenPass::Destroy(Engine::Get()); // flushes render queue, releases command buffers...
 }
 
-void ShadowPass::Render(Engine *engine, Frame *frame)
+void ShadowPass::Render( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -438,7 +438,7 @@ ShadowRenderer::~ShadowRenderer()
 }
 
 // called from render thread
-void ShadowRenderer::Init(Engine *engine)
+void ShadowRenderer::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -460,7 +460,7 @@ void ShadowRenderer::Init(Engine *engine)
 }
 
 // called from game thread
-void ShadowRenderer::InitGame(Engine *engine)
+void ShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -527,7 +527,7 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
     }
 }
 
-void ShadowRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
+void ShadowRenderer::OnUpdate( GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
@@ -536,7 +536,7 @@ void ShadowRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
     UpdateSceneCamera(Engine::Get());
 }
 
-void ShadowRenderer::OnRender(Engine *engine, Frame *frame)
+void ShadowRenderer::OnRender( Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 
@@ -567,7 +567,7 @@ void ShadowRenderer::OnRender(Engine *engine, Frame *frame)
     m_shadow_pass.Render(Engine::Get(), frame);
 }
 
-void ShadowRenderer::UpdateSceneCamera(Engine *engine)
+void ShadowRenderer::UpdateSceneCamera()
 {
     // runs in game thread
 

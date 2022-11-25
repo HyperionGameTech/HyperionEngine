@@ -134,7 +134,7 @@ class Engine
 #endif
 
 public:
-    static Engine *Get();
+    static Get();
 
     Engine();
     ~Engine();

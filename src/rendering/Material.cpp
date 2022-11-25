@@ -35,7 +35,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommandBase2
     {
     }
     
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         shader_data.texture_usage = 0;
 
@@ -81,7 +81,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.value - 1, frame_index);
@@ -116,7 +116,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
@@ -179,7 +179,7 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto &descriptor_pool = Engine::Get()->GetInstance()->GetDescriptorPool();
 
@@ -221,7 +221,7 @@ Material::~Material()
     Teardown();
 }
 
-void Material::Init(Engine *engine)
+void Material::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -260,7 +260,7 @@ void Material::Init(Engine *engine)
     });
 }
 
-void Material::Update(Engine *engine)
+void Material::Update()
 {
     AssertReady();
 
@@ -423,7 +423,7 @@ MaterialGroup::~MaterialGroup()
     Teardown();
 }
 
-void MaterialGroup::Init(Engine *engine)
+void MaterialGroup::Init()
 {
     if (IsInitCalled()) {
         return;

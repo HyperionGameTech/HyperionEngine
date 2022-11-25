@@ -63,21 +63,21 @@ public:
     const Array<EntityDrawProxy> &GetDrawProxies() const
         { return m_draw_proxies; }
 
-    Result Create(Engine *engine);
-    Result Destroy(Engine *engine);
+    Result Create();
+    Result Destroy();
 
     void PushDrawProxy(const EntityDrawProxy &draw_proxy);
     void Reset();
-    void Reserve(Engine *engine, Frame *frame, SizeType count);
+    void Reserve( Frame *frame, SizeType count);
 
-    void UpdateBufferData(Engine *engine, Frame *frame, bool *out_was_resized);
+    void UpdateBufferData( Frame *frame, bool *out_was_resized);
 
 private:
-    bool ResizeIndirectDrawCommandsBuffer(Engine *engine, Frame *frame, SizeType count);
-    bool ResizeInstancesBuffer(Engine *engine, Frame *frame, SizeType count);
+    bool ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType count);
+    bool ResizeInstancesBuffer( Frame *frame, SizeType count);
 
     // returns true if resize happened.
-    bool ResizeIfNeeded(Engine *engine, Frame *frame, SizeType count);
+    bool ResizeIfNeeded( Frame *frame, SizeType count);
 
     Array<ObjectInstance> m_object_instances;
     Array<EntityDrawProxy> m_draw_proxies;
@@ -108,17 +108,17 @@ public:
     const IndirectDrawState &GetDrawState() const
         { return m_indirect_draw_state; }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     void ExecuteCullShaderInBatches(
-        Engine *engine,
+        
         Frame *frame,
         const CullData &cull_data
     );
 
 private:
-    void RebuildDescriptors(Engine *engine, Frame *frame);
+    void RebuildDescriptors( Frame *frame);
 
     IndirectDrawState m_indirect_draw_state;
     Handle<ComputePipeline> m_object_visibility;

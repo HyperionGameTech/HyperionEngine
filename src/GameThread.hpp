@@ -15,7 +15,7 @@ class Engine;
 class Game;
 
 class GameThread
-    : public Thread<Scheduler<Task<void, GameCounter::TickUnit>>, Engine *, Game *>
+    : public Thread<Scheduler<Task<void, GameCounter::TickUnit>>,  Game *>
 {
 public:
     GameThread();
@@ -25,7 +25,7 @@ public:
         { return m_is_running.load(std::memory_order_relaxed); }
 
 private:
-    virtual void operator()(Engine *engine, Game *game) override;
+    virtual void operator()( Game *game) override;
 
     std::atomic_bool m_is_running;
 };

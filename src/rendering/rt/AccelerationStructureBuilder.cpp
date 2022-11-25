@@ -8,7 +8,7 @@ AccelerationStructureBuilder::AccelerationStructureBuilder(std::vector<Handle<En
 {
 }
 
-std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> AccelerationStructureBuilder::Build(Engine *engine)
+std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> AccelerationStructureBuilder::Build()
 {
     if (m_entities.empty()) {
         return { };

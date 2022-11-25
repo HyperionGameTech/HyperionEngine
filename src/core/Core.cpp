@@ -6,12 +6,12 @@ namespace hyperion::v2 {
 
 using namespace renderer;
 
-Engine *GetEngine()
+GetEngine()
 {
     return Engine::Get();
 }
 
-Device *GetEngineDevice(Engine *engine)
+Device *GetEngineDevice()
 {
     return Engine::Get()->GetInstance()->GetDevice();
 }

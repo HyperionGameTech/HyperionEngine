@@ -84,11 +84,11 @@ public:
     ImmediateMode();
     ~ImmediateMode();
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 

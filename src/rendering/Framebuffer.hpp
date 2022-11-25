@@ -35,7 +35,7 @@ public:
     Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
     const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
 
-    void Init(Engine *engine);
+    void Init();
 
     void BeginCapture(CommandBuffer *command_buffer);
     void EndCapture(CommandBuffer *command_buffer);

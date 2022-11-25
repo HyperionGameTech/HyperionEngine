@@ -58,7 +58,7 @@ public:
     Script &operator=(const Script &other) = delete;
     ~Script();
 
-    void Init(Engine *engine);
+    void Init();
 
     const ErrorList &GetErrors() const { return m_errors; }
 

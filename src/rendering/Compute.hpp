@@ -29,7 +29,7 @@ public:
     renderer::ComputePipeline *GetPipeline() { return &m_pipeline; }
     const renderer::ComputePipeline *GetPipeline() const { return &m_pipeline; }
 
-    void Init(Engine *engine);
+    void Init();
 
 private:
     renderer::ComputePipeline m_pipeline;

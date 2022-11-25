@@ -28,7 +28,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, UniquePtr<Shader> &out_object) const override
+    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Shader> &out_object) const override
     {
         std::vector<SubShader> sub_shaders;
 

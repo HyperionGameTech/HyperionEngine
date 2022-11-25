@@ -57,8 +57,8 @@ public:
 #undef HYP_DEF_DUMMY_DATA
 
 public:
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     /*! \brief Get or create a buffer of at least the given size */
     template <class T>

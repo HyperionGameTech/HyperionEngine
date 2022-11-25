@@ -22,7 +22,7 @@ struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
@@ -47,7 +47,7 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = renderer::Result::OK;
 
@@ -81,7 +81,7 @@ UIRenderer::~UIRenderer()
     Teardown();
 }
 
-void UIRenderer::Init(Engine *engine)
+void UIRenderer::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -105,14 +105,14 @@ void UIRenderer::Init(Engine *engine)
     });
 }
 
-void UIRenderer::CreateFramebuffers(Engine *engine)
+void UIRenderer::CreateFramebuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index] = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffers()[frame_index];
     }
 }
 
-void UIRenderer::CreateDescriptors(Engine *engine)
+void UIRenderer::CreateDescriptors()
 {
     // create descriptors in render thread
     RenderCommands::Push<RENDER_COMMAND(CreateUIDescriptors)>(
@@ -125,13 +125,13 @@ void UIRenderer::CreateDescriptors(Engine *engine)
 }
 
 // called from game thread
-void UIRenderer::InitGame(Engine *engine) { }
+void UIRenderer::InitGame() { }
 
 void UIRenderer::OnRemoved() { }
 
-void UIRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta) { }
+void UIRenderer::OnUpdate( GameCounter::TickUnit delta) { }
 
-void UIRenderer::OnRender(Engine *engine, Frame *frame)
+void UIRenderer::OnRender( Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 

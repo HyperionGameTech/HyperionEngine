@@ -38,7 +38,7 @@ struct RENDER_COMMAND(UploadMeshData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto *instance = Engine::Get()->GetInstance();
         auto *device = Engine::Get()->GetDevice();
@@ -94,7 +94,7 @@ struct RENDER_COMMAND(DestroyMeshData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = renderer::Result::OK;
 
@@ -181,7 +181,7 @@ Mesh::~Mesh()
     Teardown();
 }
 
-void Mesh::Init(Engine *engine)
+void Mesh::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -310,7 +310,7 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 #undef PACKED_SET_ATTR
 
-void Mesh::Render(Engine *, CommandBuffer *cmd) const
+void Mesh::Render( CommandBuffer *cmd) const
 {
     //Threads::AssertOnThread(THREAD_RENDER);
 
@@ -325,7 +325,7 @@ void Mesh::Render(Engine *, CommandBuffer *cmd) const
 }
 
 void Mesh::RenderIndirect(
-    Engine *engine,
+    
     CommandBuffer *cmd,
     const IndirectBuffer *indirect_buffer,
     UInt32 buffer_offset

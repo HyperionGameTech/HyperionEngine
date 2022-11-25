@@ -44,7 +44,7 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &image_output : image_outputs[frame_index]) {
@@ -93,7 +93,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         SSRParams ssr_params {
             .dimensions = Vector2(extent),
@@ -140,7 +140,7 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
@@ -177,7 +177,7 @@ struct RENDER_COMMAND(DestroySSRInstance) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt j = 0; j < UInt(image_outputs[frame_index].Size()); j++) {
@@ -215,7 +215,7 @@ ScreenspaceReflectionRenderer::~ScreenspaceReflectionRenderer()
 {
 }
 
-void ScreenspaceReflectionRenderer::Create(Engine *engine)
+void ScreenspaceReflectionRenderer::Create()
 {
     RenderCommands::Push<RENDER_COMMAND(CreateSSRImageOutputs)>(
         m_extent,
@@ -230,7 +230,7 @@ void ScreenspaceReflectionRenderer::Create(Engine *engine)
     CreateComputePipelines(Engine::Get());
 }
 
-void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
+void ScreenspaceReflectionRenderer::Destroy()
 {
     m_is_rendered = false;
 
@@ -254,7 +254,7 @@ void ScreenspaceReflectionRenderer::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void ScreenspaceReflectionRenderer::CreateUniformBuffers(Engine *engine)
+void ScreenspaceReflectionRenderer::CreateUniformBuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
@@ -266,7 +266,7 @@ void ScreenspaceReflectionRenderer::CreateUniformBuffers(Engine *engine)
     );
 }
 
-void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
+void ScreenspaceReflectionRenderer::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -362,7 +362,7 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets(Engine *engine)
     );
 }
 
-void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
+void ScreenspaceReflectionRenderer::CreateComputePipelines()
 {
     m_write_uvs = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
@@ -394,7 +394,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines(Engine *engine)
 }
 
 void ScreenspaceReflectionRenderer::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

@@ -61,7 +61,7 @@ public:
     auto &GetSubShaders() { return m_sub_shaders; }
     const auto &GetSubShaders() const { return m_sub_shaders; }
 
-    void Init(Engine *engine);
+    void Init();
 
 private:
     std::unique_ptr<ShaderProgram> m_shader_program;

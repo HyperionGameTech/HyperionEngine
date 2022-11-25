@@ -16,7 +16,7 @@ SSAOEffect::SSAOEffect()
 
 SSAOEffect::~SSAOEffect() = default;
 
-Handle<Shader> SSAOEffect::CreateShader(Engine *engine)
+Handle<Shader> SSAOEffect::CreateShader()
 {
     return Engine::Get()->CreateHandle<Shader>(
         std::vector<SubShader>{

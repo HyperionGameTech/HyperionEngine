@@ -43,7 +43,7 @@ PlaceholderData::PlaceholderData()
 {
 }
 
-void PlaceholderData::Create(Engine *engine)
+void PlaceholderData::Create()
 {
     auto *device = Engine::Get()->GetDevice();
 
@@ -60,7 +60,7 @@ void PlaceholderData::Create(Engine *engine)
     HYPERION_ASSERT_RESULT(m_sampler_nearest.Create(device));
 }
 
-void PlaceholderData::Destroy(Engine *engine)
+void PlaceholderData::Destroy()
 {
     auto *device = Engine::Get()->GetDevice();
 

@@ -35,27 +35,27 @@ public:
 
     Voxelizer *GetVoxelizer() const { return m_voxelizer.get(); }
 
-    void Init(Engine *engine);
-    void InitGame(Engine *engine); // init on game thread
+    void Init();
+    void InitGame(); // init on game thread
 
-    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
-    void OnRender(Engine *engine, Frame *frame);
+    void OnUpdate( GameCounter::TickUnit delta);
+    void OnRender( Frame *frame);
 
 private:
     UInt32 CalculateNumNodes() const;
-    void CreateBuffers(Engine *engine);
-    void CreateDescriptors(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
+    void CreateBuffers();
+    void CreateDescriptors();
+    void CreateComputePipelines();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(Handle<Entity> &entity) override;
     virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override;
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    void WriteMipmaps(Engine *engine);
+    void WriteMipmaps();
 
     void BindDescriptorSets(
-        Engine *engine,
+        
         CommandBuffer *command_buffer,
         UInt frame_index,
         const ComputePipeline *pipeline

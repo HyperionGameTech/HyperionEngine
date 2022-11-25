@@ -33,7 +33,7 @@ public:
     AudioSource(Format format, const unsigned char *data, size_t size, size_t freq);
     ~AudioSource();
 
-    void Init(Engine *engine);
+    void Init();
 
     Format GetFormat() const { return m_format; }
     unsigned int GetSampleLength() const { return m_sample_length; }

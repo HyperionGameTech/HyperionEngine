@@ -85,7 +85,7 @@ HBAO::HBAO(const Extent2D &extent)
 
 HBAO::~HBAO() = default;
 
-void HBAO::Create(Engine *engine)
+void HBAO::Create()
 {
     CreateImages(Engine::Get());
     CreateTemporalBlending(Engine::Get());
@@ -93,7 +93,7 @@ void HBAO::Create(Engine *engine)
     CreateComputePipelines(Engine::Get());
 }
 
-void HBAO::Destroy(Engine *engine)
+void HBAO::Destroy()
 {
     m_temporal_blending.Destroy(Engine::Get());
 
@@ -118,7 +118,7 @@ void HBAO::Destroy(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             auto result = Result::OK;
 
@@ -143,7 +143,7 @@ void HBAO::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void HBAO::CreateImages(Engine *engine)
+void HBAO::CreateImages()
 {
     struct RENDER_COMMAND(CreateHBAOImageOutputs) : RenderCommandBase2
     {
@@ -156,7 +156,7 @@ void HBAO::CreateImages(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetDevice()));
@@ -175,7 +175,7 @@ void HBAO::CreateImages(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateHBAOImageOutputs)>(m_image_outputs.Data(), m_blur_image_outputs.data());
 }
 
-void HBAO::CreateDescriptorSets(Engine *engine)
+void HBAO::CreateDescriptorSets()
 {
     // create main descriptor sets
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -309,7 +309,7 @@ void HBAO::CreateDescriptorSets(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 // create our own descriptor sets
@@ -357,7 +357,7 @@ void HBAO::CreateDescriptorSets(Engine *engine)
     );
 }
 
-void HBAO::CreateComputePipelines(Engine *engine)
+void HBAO::CreateComputePipelines()
 {
     m_compute_hbao = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("HBAO")),
@@ -383,13 +383,13 @@ void HBAO::CreateComputePipelines(Engine *engine)
     }
 }
 
-void HBAO::CreateTemporalBlending(Engine *engine)
+void HBAO::CreateTemporalBlending()
 {
     m_temporal_blending.Create(Engine::Get());
 }
 
 void HBAO::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

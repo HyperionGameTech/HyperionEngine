@@ -65,14 +65,14 @@ public:
     /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void Bind(
-        Engine *engine,
+        
         Frame *frame
     );
 
     /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void BindEntityObject(
-        Engine *engine,
+        
         Frame *frame,
         const EntityDrawProxy &entity
     );
@@ -84,7 +84,7 @@ public:
     /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void DrawMesh(
-        Engine *engine,
+        
         Frame *frame,
         Mesh *mesh
     );
@@ -92,7 +92,7 @@ public:
     /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void Submit(
-        Engine *engine,
+        
         Frame *frame
     );
 
@@ -144,12 +144,12 @@ public:
     Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
     const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
     
-    void Init(Engine *engine);
+    void Init();
 
     /*! \brief Collect drawable objects, must only be used with non-indirect rendering!
      */
     void CollectDrawCalls(
-        Engine *engine,
+        
         Frame *frame
     );
 
@@ -157,27 +157,27 @@ public:
      * to mark any occluded objects as such. Must be used with indirect rendering.
      */
     void CollectDrawCalls(
-        Engine *engine,
+        
         Frame *frame,
         const CullData &cull_data
     );
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
     void PerformRendering(
-        Engine *engine,
+        
         Frame *frame
     );
     
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
     void PerformRenderingIndirect(
-        Engine *engine,
+        
         Frame *frame
     );
 
     // render non-indirect (collects draw calls, then renders)
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
@@ -186,12 +186,12 @@ public:
 
 private:
     void BindDescriptorSets(
-        Engine *engine,
+        
         CommandBuffer *command_buffer,
         UInt scene_index
     );
 
-    void PerformEnqueuedEntityUpdates(Engine *engine, UInt frame_index);
+    void PerformEnqueuedEntityUpdates( UInt frame_index);
     
     void UpdateEnqueuedEntitiesFlag()
     {

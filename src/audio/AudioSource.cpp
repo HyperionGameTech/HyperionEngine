@@ -22,7 +22,7 @@ AudioSource::~AudioSource()
     Teardown();
 }
 
-void AudioSource::Init(Engine *engine)
+void AudioSource::Init()
 {
     if (IsInitCalled()) {
         return;

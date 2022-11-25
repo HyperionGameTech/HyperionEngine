@@ -62,12 +62,12 @@ public:
     Handle<EnvProbe> &GetEnvProbe() { return m_env_probe; }
     const Handle<EnvProbe> &GetEnvProbe() const { return m_env_probe; }
 
-    void Init(Engine *engine);
-    void InitGame(Engine *engine); // init on game thread
+    void Init();
+    void InitGame(); // init on game thread
     void OnRemoved();
 
-    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
-    void OnRender(Engine *engine, Frame *frame);
+    void OnUpdate( GameCounter::TickUnit delta);
+    void OnRender( Frame *frame);
 
 private:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
@@ -82,11 +82,11 @@ private:
         return m_framebuffers[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView();
     }
 
-    void CreateImagesAndBuffers(Engine *engine);
-    void CreateRendererInstance(Engine *engine);
-    void CreateShader(Engine *engine);
-    void CreateRenderPass(Engine *engine);
-    void CreateFramebuffers(Engine *engine);
+    void CreateImagesAndBuffers();
+    void CreateRendererInstance();
+    void CreateShader();
+    void CreateRenderPass();
+    void CreateFramebuffers();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(Handle<Entity> &entity) override;

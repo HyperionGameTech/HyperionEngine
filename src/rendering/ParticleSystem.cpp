@@ -40,7 +40,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         static constexpr UInt seed = 0xff;
 
@@ -99,7 +99,7 @@ struct RENDER_COMMAND(CreateParticleDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index].Create(
@@ -125,7 +125,7 @@ struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -154,7 +154,7 @@ struct RENDER_COMMAND(DestroyParticleDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -182,7 +182,7 @@ struct RENDER_COMMAND(CreateParticleSystemBuffers) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(staging_buffer->Create(
             Engine::Get()->GetDevice(),
@@ -213,7 +213,7 @@ struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < UInt(command_buffers[frame_index].Size()); i++) {
@@ -245,7 +245,7 @@ ParticleSpawner::~ParticleSpawner()
     Teardown();
 }
 
-void ParticleSpawner::Init(Engine *engine)
+void ParticleSpawner::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -281,7 +281,7 @@ void ParticleSpawner::Init(Engine *engine)
     });
 }
 
-void ParticleSpawner::Record(Engine *engine, CommandBuffer *command_buffer)
+void ParticleSpawner::Record( CommandBuffer *command_buffer)
 {
 
 }
@@ -402,7 +402,7 @@ ParticleSystem::~ParticleSystem()
     Teardown();
 }
 
-void ParticleSystem::Init(Engine *engine)
+void ParticleSystem::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -453,7 +453,7 @@ void ParticleSystem::CreateCommandBuffers()
     );
 }
 
-void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
+void ParticleSystem::UpdateParticles( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -546,7 +546,7 @@ void ParticleSystem::UpdateParticles(Engine *engine, Frame *frame)
     }
 }
 
-void ParticleSystem::Render(Engine *engine, Frame *frame)
+void ParticleSystem::Render( Frame *frame)
 {
     AssertReady();
 

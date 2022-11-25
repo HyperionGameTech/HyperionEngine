@@ -54,7 +54,7 @@ bool Configuration::IsRTOption(OptionName option)
 
 Configuration::Configuration() = default;
 
-bool Configuration::LoadFromDefinitionsFile(Engine *engine)
+bool Configuration::LoadFromDefinitionsFile()
 {
     const DefinitionsFile definitions(Engine::Get()->GetAssetManager().GetBasePath() / "config.def");
 
@@ -104,7 +104,7 @@ bool Configuration::LoadFromDefinitionsFile(Engine *engine)
     return true;
 }
 
-bool Configuration::SaveToDefinitionsFile(Engine *engine)
+bool Configuration::SaveToDefinitionsFile()
 {
     String str_result = "[Default]\n";
 
@@ -142,7 +142,7 @@ bool Configuration::SaveToDefinitionsFile(Engine *engine)
 }
 
 
-void Configuration::SetToDefaultConfiguration(Engine *engine)
+void Configuration::SetToDefaultConfiguration()
 {
     m_variables = { };
 

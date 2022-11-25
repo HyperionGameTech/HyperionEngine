@@ -15,9 +15,9 @@ namespace hyperion::v2 {
 
 class Engine;
 
-Engine *GetEngine();
+GetEngine();
 
-renderer::Device *GetEngineDevice(Engine *engine);
+renderer::Device *GetEngineDevice();
 
 } // namespace hyperion::v2
 

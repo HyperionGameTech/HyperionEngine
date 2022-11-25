@@ -35,7 +35,7 @@ Script::~Script()
     Teardown();
 }
 
-void Script::Init(Engine *engine)
+void Script::Init()
 {
     if (IsInitCalled()) {
         return;

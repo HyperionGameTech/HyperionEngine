@@ -57,13 +57,13 @@ public:
     DeferredPass &operator=(const DeferredPass &other) = delete;
     virtual ~DeferredPass() override;
 
-    void CreateShader(Engine *engine);
-    virtual void CreateRenderPass(Engine *engine) override;
-    virtual void CreateDescriptors(Engine *engine) override;
-    virtual void Create(Engine *engine) override;
-    virtual void Destroy(Engine *engine) override;
-    virtual void Record(Engine *engine, UInt frame_index) override;
-    virtual void Render(Engine *engine, Frame *frame) override;
+    void CreateShader();
+    virtual void CreateRenderPass() override;
+    virtual void CreateDescriptors() override;
+    virtual void Create() override;
+    virtual void Destroy() override;
+    virtual void Record( UInt frame_index) override;
+    virtual void Render( Frame *frame) override;
 
 private:
     const bool m_is_indirect_pass;
@@ -108,28 +108,28 @@ public:
     const Handle<Texture> &GetMipChain(UInt frame_index) const
         { return m_mipmapped_results[frame_index]; }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
     void Render(
-        Engine *engine,
+        
         Frame *frame,
         RenderEnvironment *environment
     );
 
-    void RenderUI(Engine *engine, Frame *frame);
+    void RenderUI( Frame *frame);
 
 private:
-    void CreateComputePipelines(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
+    void CreateComputePipelines();
+    void CreateDescriptorSets();
 
-    void CollectDrawCalls(Engine *engine, Frame *frame);
-    void RenderOpaqueObjects(Engine *engine, Frame *frame);
-    void RenderTranslucentObjects(Engine *engine, Frame *frame);
+    void CollectDrawCalls( Frame *frame);
+    void RenderOpaqueObjects( Frame *frame);
+    void RenderTranslucentObjects( Frame *frame);
 
-    void GenerateMipChain(Engine *engine, Frame *frame, Image *image);
+    void GenerateMipChain( Frame *frame, Image *image);
 
-    void UpdateParticles(Engine *engine, Frame *frame, RenderEnvironment *environment);
-    void RenderParticles(Engine *engine, Frame *frame, RenderEnvironment *environment);
+    void UpdateParticles( Frame *frame, RenderEnvironment *environment);
+    void RenderParticles( Frame *frame, RenderEnvironment *environment);
 
     DeferredPass m_indirect_pass;
     DeferredPass m_direct_pass;

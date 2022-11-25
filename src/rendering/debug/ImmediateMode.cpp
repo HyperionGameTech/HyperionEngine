@@ -15,7 +15,7 @@ struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
@@ -37,7 +37,7 @@ ImmediateMode::~ImmediateMode()
 {
 }
 
-void ImmediateMode::Create(Engine *engine)
+void ImmediateMode::Create()
 {
     m_shapes[UInt(DebugDrawShape::SPHERE)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
     m_shapes[UInt(DebugDrawShape::BOX)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Cube());
@@ -96,7 +96,7 @@ void ImmediateMode::Create(Engine *engine)
     }
 }
 
-void ImmediateMode::Destroy(Engine *engine)
+void ImmediateMode::Destroy()
 {
     m_shapes = { };
 
@@ -109,7 +109,7 @@ void ImmediateMode::Destroy(Engine *engine)
 }
 
 void ImmediateMode::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

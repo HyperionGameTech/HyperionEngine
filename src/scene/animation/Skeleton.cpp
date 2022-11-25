@@ -25,7 +25,7 @@ Skeleton::~Skeleton()
     Teardown();
 }
 
-void Skeleton::Init(Engine *engine)
+void Skeleton::Init()
 {
     if (IsInitCalled()) {
         return;

@@ -68,11 +68,11 @@ public:
     virtual void SetComponentIndex(Index index) { m_index = index; }
 
     /*! \brief Init the component. Runs in RENDER/MAIN thread. */
-    virtual void ComponentInit(Engine *engine) = 0;
+    virtual void ComponentInit() = 0;
     /*! \brief Update data for the component. Runs on GAME thread. */
-    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) { }
+    virtual void ComponentUpdate( GameCounter::TickUnit delta) { }
     /*! \brief Perform rendering. Runs in RENDER thread. */
-    virtual void ComponentRender(Engine *engine, Frame *frame) = 0;
+    virtual void ComponentRender( Frame *frame) = 0;
     /*! \brief Called when the component is removed. */
     virtual void ComponentRemoved() = 0;
 
@@ -125,7 +125,7 @@ public:
         }
     }
     
-    virtual void ComponentInit(Engine *engine) override final
+    virtual void ComponentInit() override final
     {
         // Threads::AssertOnThread(THREAD_RENDER);
         Threads::AssertOnThread(THREAD_GAME);
@@ -135,7 +135,7 @@ public:
         m_component_is_render_init = true;
     }
 
-    virtual void ComponentUpdate(Engine *engine, GameCounter::TickUnit delta) override final
+    virtual void ComponentUpdate( GameCounter::TickUnit delta) override final
     {
         Threads::AssertOnThread(THREAD_GAME);
 
@@ -148,7 +148,7 @@ public:
         static_cast<Derived *>(this)->OnUpdate(engine, delta);
     }
 
-    virtual void ComponentRender(Engine *engine, Frame *frame) override final
+    virtual void ComponentRender( Frame *frame) override final
     {
         Threads::AssertOnThread(THREAD_RENDER);
 

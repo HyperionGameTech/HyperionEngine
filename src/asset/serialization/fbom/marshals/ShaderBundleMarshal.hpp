@@ -36,7 +36,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, UniquePtr<CompiledShader> &out_object) const override
+    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<CompiledShader> &out_object) const override
     {
         out_object.Reset(new CompiledShader);
 
@@ -78,7 +78,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, UniquePtr<CompiledShaderBatch> &out_object) const override
+    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<CompiledShaderBatch> &out_object) const override
     {
         out_object.Reset(new CompiledShaderBatch);
 

@@ -24,7 +24,7 @@ struct RENDER_COMMAND(CreateProbeGridImage) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return storage_image->Create(Engine::Get()->GetDevice());
     }
@@ -41,7 +41,7 @@ struct RENDER_COMMAND(CreateProbeGridImageView) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return image_view->Create(Engine::Get()->GetDevice(), image);
     }
@@ -66,7 +66,7 @@ struct RENDER_COMMAND(CreateProbeGridDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
@@ -113,7 +113,7 @@ struct RENDER_COMMAND(DestroyProbeGridDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -155,7 +155,7 @@ struct RENDER_COMMAND(CreateProbeGridUniformBuffer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(Engine::Get()->GetDevice(), sizeof(ProbeSystemUniforms)));
         uniform_buffer->Copy(Engine::Get()->GetDevice(), sizeof(ProbeSystemUniforms), &uniforms);
@@ -175,7 +175,7 @@ struct RENDER_COMMAND(CreateProbeGridRadianceBuffer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(radiance_buffer->Create(Engine::Get()->GetDevice(), grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData)));
         radiance_buffer->Memset(Engine::Get()->GetDevice(), grid_info.GetImageDimensions().Size() * sizeof(ProbeRayData), 0x00);
@@ -195,7 +195,7 @@ struct RENDER_COMMAND(CreateProbeGridPipeline) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return pipeline->Create(
             Engine::Get()->GetDevice(),
@@ -216,7 +216,7 @@ ProbeGrid::~ProbeGrid()
 {
 }
 
-void ProbeGrid::Init(Engine *engine)
+void ProbeGrid::Init()
 {
     AssertThrowMsg(
         Engine::Get()->InitObject(m_tlas),
@@ -251,14 +251,14 @@ void ProbeGrid::Init(Engine *engine)
     CreateDescriptorSets(Engine::Get());
 
     /* TMP */
-    Engine::Get()->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this](Engine *engine) {
+    Engine::Get()->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this]() {
         CreatePipeline(Engine::Get());
     });
     
     CreateComputePipelines(Engine::Get());
 }
 
-void ProbeGrid::Destroy(Engine *engine)
+void ProbeGrid::Destroy()
 {
     Engine::Get()->SafeReleaseHandle(std::move(m_shader));
 
@@ -280,7 +280,7 @@ void ProbeGrid::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void ProbeGrid::CreatePipeline(Engine *engine)
+void ProbeGrid::CreatePipeline()
 {
     m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbe"));
     Engine::Get()->InitObject(m_shader);
@@ -299,7 +299,7 @@ void ProbeGrid::CreatePipeline(Engine *engine)
     );
 }
 
-void ProbeGrid::CreateComputePipelines(Engine *engine)
+void ProbeGrid::CreateComputePipelines()
 {
     m_update_irradiance = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbeUpdateIrradiance")),
@@ -330,7 +330,7 @@ void ProbeGrid::CreateComputePipelines(Engine *engine)
     Engine::Get()->InitObject(m_copy_border_texels_depth);
 }
 
-void ProbeGrid::CreateUniformBuffer(Engine *engine)
+void ProbeGrid::CreateUniformBuffer()
 {
     m_uniform_buffer.Reset(new UniformBuffer);
 
@@ -348,7 +348,7 @@ void ProbeGrid::CreateUniformBuffer(Engine *engine)
     );
 }
 
-void ProbeGrid::CreateStorageBuffers(Engine *engine)
+void ProbeGrid::CreateStorageBuffers()
 {
     const Extent3D probe_counts = m_grid_info.NumProbesPerDimension();
 
@@ -418,7 +418,7 @@ void ProbeGrid::CreateStorageBuffers(Engine *engine)
     }
 }
 
-void ProbeGrid::CreateDescriptorSets(Engine *engine)
+void ProbeGrid::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -503,7 +503,7 @@ void ProbeGrid::CreateDescriptorSets(Engine *engine)
     );
 }
 
-void ProbeGrid::ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags flags)
+void ProbeGrid::ApplyTLASUpdates( RTUpdateStateFlags flags)
 {
     if (!flags) {
         return;
@@ -532,7 +532,7 @@ void ProbeGrid::ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags flags)
     }
 }
 
-void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffer)
+void ProbeGrid::SubmitPushConstants( CommandBuffer *command_buffer)
 {
     m_random_generator.Next();
 
@@ -547,7 +547,7 @@ void ProbeGrid::SubmitPushConstants(Engine *engine, CommandBuffer *command_buffe
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
+void ProbeGrid::RenderProbes( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
@@ -601,7 +601,7 @@ void ProbeGrid::RenderProbes(Engine *engine, Frame *frame)
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
 }
 
-void ProbeGrid::ComputeIrradiance(Engine *engine, Frame *frame)
+void ProbeGrid::ComputeIrradiance( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

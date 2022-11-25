@@ -14,7 +14,7 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return framebuffer->Create(Engine::Get()->GetDevice(), render_pass);
     }
@@ -29,7 +29,7 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return framebuffer->Destroy(Engine::Get()->GetDevice());
     }
@@ -56,7 +56,7 @@ Framebuffer::~Framebuffer()
     Teardown();
 }
 
-void Framebuffer::Init(Engine *engine)
+void Framebuffer::Init()
 {
     if (IsInitCalled()) {
         return;

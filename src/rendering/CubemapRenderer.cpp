@@ -20,7 +20,7 @@ struct RENDER_COMMAND(CreateCubemapImages) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_ASSERT_RESULT(cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Create(Engine::Get()->GetDevice(), sizeof(CubemapUniforms)));
@@ -47,7 +47,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -89,7 +89,7 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -150,7 +150,7 @@ CubemapRenderer::~CubemapRenderer()
     Teardown();
 }
 
-void CubemapRenderer::Init(Engine *engine)
+void CubemapRenderer::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -218,7 +218,7 @@ void CubemapRenderer::Init(Engine *engine)
 }
 
 // called from game thread
-void CubemapRenderer::InitGame(Engine *engine)
+void CubemapRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -290,12 +290,12 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
     }
 }
 
-void CubemapRenderer::OnUpdate(Engine *engine, GameCounter::TickUnit delta)
+void CubemapRenderer::OnUpdate( GameCounter::TickUnit delta)
 {
     //m_env_probe->Update(Engine::Get());
 }
 
-void CubemapRenderer::OnRender(Engine *engine, Frame *frame)
+void CubemapRenderer::OnRender( Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 
@@ -345,7 +345,7 @@ void CubemapRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_ind
     // TODO: Remove descriptor, set new descriptor
 }
 
-void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
+void CubemapRenderer::CreateImagesAndBuffers()
 {
     const auto origin = m_aabb.GetCenter();
 
@@ -387,7 +387,7 @@ void CubemapRenderer::CreateImagesAndBuffers(Engine *engine)
     );
 }
 
-void CubemapRenderer::CreateRendererInstance(Engine *engine)
+void CubemapRenderer::CreateRendererInstance()
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         Handle<Shader>(m_shader),
@@ -412,13 +412,13 @@ void CubemapRenderer::CreateRendererInstance(Engine *engine)
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void CubemapRenderer::CreateShader(Engine *engine)
+void CubemapRenderer::CreateShader()
 {
     m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("CubemapRenderer"));
     Engine::Get()->InitObject(m_shader);
 }
 
-void CubemapRenderer::CreateRenderPass(Engine *engine)
+void CubemapRenderer::CreateRenderPass()
 {
     m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
@@ -472,7 +472,7 @@ void CubemapRenderer::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(m_render_pass);
 }
 
-void CubemapRenderer::CreateFramebuffers(Engine *engine)
+void CubemapRenderer::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(

@@ -24,10 +24,10 @@ public:
     FinalPass();
     ~FinalPass();
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
-    void Render(Engine *engine, Frame *frame);
+    void Render( Frame *frame);
 
 private:
     Handle<RendererInstance> m_renderer_instance;

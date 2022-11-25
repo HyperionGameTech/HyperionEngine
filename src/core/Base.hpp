@@ -231,7 +231,7 @@ public:
     /*! \brief Just a function to store that Init() has been called from a derived class
      * for book-keeping. Use to prevent adding OnInit() callbacks multiple times.
      */
-    void Init(Engine *engine)
+    void Init()
     {
         AssertThrowMsg(
             engine != nullptr,
@@ -244,7 +244,7 @@ public:
         //m_attachment_map.InitializeAll(static_cast<InnerType *>(this));
     }
 
-    HYP_FORCE_INLINE Engine *GetEngine() const
+    HYP_FORCE_INLINE GetEngine() const
     {
         AssertThrowMsg(
             m_engine != nullptr,
@@ -310,7 +310,7 @@ protected:
     String m_name;
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
-    Engine *m_engine;
+    m_engine;
     InitInfo m_init_info;
 
     //AttachmentMap<InnerType> m_attachment_map;
@@ -358,7 +358,7 @@ public:
 
     /* Standard non-specialized initialization function */
     template <class ...Args>
-    void Create(Engine *engine, Args &&... args)
+    void Create( Args &&... args)
     {
         const char *wrapped_type_name = EngineComponentBase<Type>::GetClass().GetName();
 
@@ -388,7 +388,7 @@ public:
 
     /* Standard non-specialized destruction function */
     template <class ...Args>
-    void Destroy(Engine *engine, Args &&... args)
+    void Destroy( Args &&... args)
     {
         const char *wrapped_type_name = typeid(WrappedType).name();
 

@@ -18,7 +18,7 @@ Controller::~Controller()
 {
 }
 
-Engine *Controller::GetEngine() const
+Controller::GetEngine() const
 {
     AssertThrow(m_owner != nullptr);
 

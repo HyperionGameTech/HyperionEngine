@@ -25,7 +25,7 @@ class ComponentContainerBase
 public:
     virtual ~ComponentContainerBase() = default;
 
-    virtual void Update(Engine *engine, GameCounter::TickUnit delta) = 0;
+    virtual void Update( GameCounter::TickUnit delta) = 0;
 
 protected:
     ComponentContainerBase() = default;
@@ -47,7 +47,7 @@ public:
 
     ControllerType *Get(const Entity::ID &id);
 
-    virtual void Update(Engine *engine, GameCounter::TickUnit delta) override;
+    virtual void Update( GameCounter::TickUnit delta) override;
 };
 
 template <class ControllerType>
@@ -146,7 +146,7 @@ ControllerType *ComponentContainer<ControllerType>::Get(const Entity::ID &id)
 }
 
 template <class ControllerType>
-void ComponentContainer<ControllerType>::Update(Engine *engine, GameCounter::TickUnit delta)
+void ComponentContainer<ControllerType>::Update( GameCounter::TickUnit delta)
 {
     for (auto &it : ComponentContainerBase::m_entity_to_controller) {
         static_cast<ControllerType *>(it.second.Get())->ControllerType::OnUpdate(delta);
@@ -175,7 +175,7 @@ public:
         GetComponentContainer<ControllerType>()->Remove(id);
     }
 
-    void Update(Engine *engine, GameCounter::TickUnit delta)
+    void Update( GameCounter::TickUnit delta)
     {
         Threads::AssertOnThread(THREAD_GAME);
 

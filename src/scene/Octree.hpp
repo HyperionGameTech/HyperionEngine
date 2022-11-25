@@ -32,7 +32,7 @@ class Octree
 
     struct Callback
     {
-        using CallbackFunction = std::function<void(Engine *, Octree *, Entity *)>;
+        using CallbackFunction = std::function<void( Octree *, Entity *)>;
     };
 
     static constexpr float growth_factor = 1.5f;
@@ -116,11 +116,11 @@ public:
     BoundingBox &GetAABB() { return m_aabb; }
     const BoundingBox &GetAABB() const { return m_aabb; }
 
-    void Clear(Engine *engine);
-    Result Insert(Engine *engine, Entity *entity);
-    Result Remove(Engine *engine, Entity *entity);
-    Result Update(Engine *engine, Entity *entity);
-    Result Rebuild(Engine *engine, const BoundingBox &new_aabb);
+    void Clear();
+    Result Insert( Entity *entity);
+    Result Remove( Entity *entity);
+    Result Update( Entity *entity);
+    Result Rebuild( const BoundingBox &new_aabb);
 
     void CollectEntities(std::vector<Entity *> &out) const;
     void CollectEntitiesInRange(const Vector3 &position, float radius, std::vector<Entity *> &out) const;
@@ -134,9 +134,9 @@ public:
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
 private:
-    void ClearInternal(Engine *engine, std::vector<Node> &out_nodes);
-    void Clear(Engine *engine, std::vector<Node> &out_nodes);
-    Result Move(Engine *engine, Entity *entity, const std::vector<Node>::iterator *it = nullptr);
+    void ClearInternal( std::vector<Node> &out_nodes);
+    void Clear( std::vector<Node> &out_nodes);
+    Result Move( Entity *entity, const std::vector<Node>::iterator *it = nullptr);
 
     void CopyVisibilityState(const VisibilityState &visibility_state);
 
@@ -159,19 +159,19 @@ private:
     bool EmptyDeep(int depth = DEPTH_SEARCH_INF, UInt8 octant_mask = 0xff) const;
 
     void InitOctants();
-    void Divide(Engine *engine);
-    void Undivide(Engine *engine);
+    void Divide();
+    void Undivide();
 
     /* Remove any potentially empty octants above the node */
-    void CollapseParents(Engine *engine);
-    Result InsertInternal(Engine *engine, Entity *entity);
-    Result UpdateInternal(Engine *engine, Entity *entity);
-    Result RemoveInternal(Engine *engine, Entity *entity);
-    Result RebuildExtendInternal(Engine *engine, const BoundingBox &extend_include_aabb);
+    void CollapseParents();
+    Result InsertInternal( Entity *entity);
+    Result UpdateInternal( Entity *entity);
+    Result RemoveInternal( Entity *entity);
+    Result RebuildExtendInternal( const BoundingBox &extend_include_aabb);
     void UpdateVisibilityState(Scene *scene, UInt8 cursor);
 
     /* Called from entity - remove the pointer */
-    void OnEntityRemoved(Engine *engine, Entity *entity);
+    void OnEntityRemoved( Entity *entity);
     
     std::vector<Node>      m_nodes;
     Octree                *m_parent;

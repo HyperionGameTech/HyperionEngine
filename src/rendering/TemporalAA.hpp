@@ -41,18 +41,18 @@ public:
     TemporalAA &operator=(const TemporalAA &other) = delete;
     ~TemporalAA();
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
     
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
 private:
-    void CreateImages(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
+    void CreateImages();
+    void CreateDescriptorSets();
+    void CreateComputePipelines();
 
     struct ImageOutput
     {

@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(image->Create(Engine::Get()->GetDevice(), Engine::Get()->GetInstance(), initial_state));
         HYPERION_BUBBLE_ERRORS(image_view->Create(Engine::Get()->GetInstance()->GetDevice(), image));
@@ -62,7 +62,7 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
 #if HYP_FEATURES_BINDLESS_TEXTURES
         Engine::Get()->GetRenderData()->textures.RemoveResource(id);
@@ -113,7 +113,7 @@ Texture::~Texture()
     Teardown();
 }
 
-void Texture::Init(Engine *engine)
+void Texture::Init()
 {
     if (IsInitCalled()) {
         return;

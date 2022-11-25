@@ -35,21 +35,21 @@ public:
     const Handle<Scene> &GetScene() const
         { return m_scene; }
 
-    virtual void Init(Engine *engine) final;
-    virtual void Update(Engine *engine, GameCounter::TickUnit delta) final;
-    virtual void Teardown(Engine *engine);
+    virtual void Init() final;
+    virtual void Update( GameCounter::TickUnit delta) final;
+    virtual void Teardown();
 
-    virtual void InitRender(Engine *engine);
-    virtual void InitGame(Engine *engine);
+    virtual void InitRender();
+    virtual void InitGame();
 
-    virtual void OnFrameBegin(Engine *engine, Frame *frame) = 0;
-    virtual void OnFrameEnd(Engine *engine, Frame *frame) = 0;
+    virtual void OnFrameBegin( Frame *frame) = 0;
+    virtual void OnFrameEnd( Frame *frame) = 0;
 
-    virtual void HandleEvent(Engine *engine, SystemEvent &&event) final;
-    virtual void OnInputEvent(Engine *engine, const SystemEvent &event);
+    virtual void HandleEvent( SystemEvent &&event) final;
+    virtual void OnInputEvent( const SystemEvent &event);
 
 protected:
-    virtual void Logic(Engine *engine, GameCounter::TickUnit delta) = 0;
+    virtual void Logic( GameCounter::TickUnit delta) = 0;
 
     UIScene &GetUI()
         { return m_ui; }

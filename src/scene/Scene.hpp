@@ -165,14 +165,14 @@ public:
     bool IsVirtualScene() const
         { return m_parent_id != Scene::empty_id; }
     
-    void Init(Engine *engine);
+    void Init();
 
     void ForceUpdate();
 
 private:
     // World only calls
     void Update(
-        Engine *engine,
+        
         GameCounter::TickUnit delta,
         bool update_octree_visiblity = true
     );

@@ -20,7 +20,7 @@ FinalPass::~FinalPass()
 {
 }
 
-void FinalPass::Create(Engine *engine)
+void FinalPass::Create()
 {
     m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
     Engine::Get()->InitObject(m_full_screen_quad);
@@ -127,14 +127,14 @@ void FinalPass::Create(Engine *engine)
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void FinalPass::Destroy(Engine *engine)
+void FinalPass::Destroy()
 {
     for (auto &attachment : m_render_pass_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Destroy(Engine::Get()->GetDevice()));
     }
 }
 
-void FinalPass::Render(Engine *engine, Frame *frame)
+void FinalPass::Render( Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

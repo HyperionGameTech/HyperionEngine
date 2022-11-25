@@ -3,7 +3,7 @@
 
 namespace hyperion::v2::fbom {
 
-FBOMReader::FBOMReader(Engine *engine, const FBOMConfig &config)
+FBOMReader::FBOMReader( const FBOMConfig &config)
     : m_engine(engine),
       m_config(config),
       m_in_static_data(false),

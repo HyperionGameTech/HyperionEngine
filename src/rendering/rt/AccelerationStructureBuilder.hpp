@@ -25,7 +25,7 @@ public:
 
     void AddEntity(Handle<Entity> &&entity) { m_entities.push_back(std::move(entity)); }
 
-    std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> Build(Engine *engine);
+    std::vector<std::unique_ptr<BottomLevelAccelerationStructure>> Build();
 
 private:
     std::vector<Handle<Entity>> m_entities;

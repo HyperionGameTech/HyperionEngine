@@ -12,7 +12,7 @@ FXAAEffect::FXAAEffect()
 
 FXAAEffect::~FXAAEffect() = default;
 
-Handle<Shader> FXAAEffect::CreateShader(Engine *engine)
+Handle<Shader> FXAAEffect::CreateShader()
 {
     return Engine::Get()->CreateHandle<Shader>(
         std::vector<SubShader> {

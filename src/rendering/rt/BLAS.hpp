@@ -43,10 +43,10 @@ public:
     const Transform &GetTransform() const { return m_transform; }
     void SetTransform(const Transform &transform);
 
-    void Init(Engine *engine);
-    void Update(Engine *engine);
+    void Init();
+    void Update();
     void UpdateRender(
-        Engine *engine,
+        
         Frame *frame,
         bool &out_was_rebuilt
     );

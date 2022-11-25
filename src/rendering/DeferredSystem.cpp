@@ -20,7 +20,7 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
 };
 
 static void AddOwnedAttachment(
-    Engine *engine,
+    
     InternalFormat format,
     Handle<RenderPass> &render_pass,
     Array<std::unique_ptr<Attachment>> &attachments
@@ -50,7 +50,7 @@ static void AddOwnedAttachment(
 }
 
 static void AddSharedAttachment(
-    Engine *engine,
+    
     UInt attachment_index,
     Handle<RenderPass> &render_pass,
     Array<std::unique_ptr<Attachment>> &attachments
@@ -74,7 +74,7 @@ static void AddSharedAttachment(
     render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
 }
 
-static InternalFormat GetImageFormat(Engine *engine, GBufferResourceName resource)
+static InternalFormat GetImageFormat( GBufferResourceName resource)
 {
     InternalFormat color_format;
 
@@ -104,21 +104,21 @@ DeferredSystem::DeferredSystem()
     }
 }
 
-void DeferredSystem::AddFramebuffersToPipelines(Engine *engine)
+void DeferredSystem::AddFramebuffersToPipelines()
 {
     for (auto &bucket : m_buckets) {
         bucket.AddFramebuffersToPipelines();
     }
 }
 
-void DeferredSystem::AddPendingRendererInstances(Engine *engine)
+void DeferredSystem::AddPendingRendererInstances()
 {
     for (auto &bucket : m_buckets) {
         bucket.AddPendingRendererInstances(Engine::Get());
     }
 }
 
-void DeferredSystem::Create(Engine *engine)
+void DeferredSystem::Create()
 {
     for (auto &bucket : m_buckets) {
         bucket.CreateRenderPass(Engine::Get());
@@ -126,7 +126,7 @@ void DeferredSystem::Create(Engine *engine)
     }
 }
 
-void DeferredSystem::Destroy(Engine *engine)
+void DeferredSystem::Destroy()
 {
     for (auto &bucket : m_buckets) {
         bucket.Destroy(Engine::Get());
@@ -158,7 +158,7 @@ void DeferredSystem::RendererInstanceHolder::AddRendererInstance(Handle<Renderer
     );
 }
 
-void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances(Engine *engine)
+void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -197,7 +197,7 @@ void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipeline(Handle<Re
     }
 }
 
-void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
+void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
 {
     AssertThrow(render_pass == nullptr);
 
@@ -265,7 +265,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(render_pass);
 }
 
-void DeferredSystem::RendererInstanceHolder::CreateFramebuffers(Engine *engine)
+void DeferredSystem::RendererInstanceHolder::CreateFramebuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto framebuffer = Engine::Get()->CreateHandle<Framebuffer>(
@@ -282,7 +282,7 @@ void DeferredSystem::RendererInstanceHolder::CreateFramebuffers(Engine *engine)
     }
 }
 
-void DeferredSystem::RendererInstanceHolder::Destroy(Engine *engine)
+void DeferredSystem::RendererInstanceHolder::Destroy()
 {
     auto result = renderer::Result::OK;
 

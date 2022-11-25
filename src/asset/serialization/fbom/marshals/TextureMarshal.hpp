@@ -42,7 +42,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(Engine *, const FBOMObject &in, UniquePtr<Texture> &out_object) const override
+    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Texture> &out_object) const override
     {
         Extent3D extent;
 

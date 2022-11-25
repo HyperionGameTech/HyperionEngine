@@ -100,8 +100,8 @@ public:
         );
     }
 
-    void Init(Engine *engine);
-    void Record(Engine *engine, CommandBuffer *command_buffer);
+    void Init();
+    void Record( CommandBuffer *command_buffer);
 
 private:
     void CreateNoiseMap();
@@ -137,12 +137,12 @@ public:
     const ThreadSafeContainer<ParticleSpawner> &GetParticleSpawners() const
         { return m_particle_spawners; }
 
-    void Init(Engine *engine);
+    void Init();
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles(Engine *engine, Frame *frame);
+    void UpdateParticles( Frame *frame);
 
-    void Render(Engine *engine, Frame *frame);
+    void Render( Frame *frame);
 
 private:
     void CreateBuffers();

@@ -23,7 +23,7 @@ Game::~Game()
     delete m_input_manager;
 }
 
-void Game::Init(Engine *engine)
+void Game::Init()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
@@ -50,7 +50,7 @@ void Game::Init(Engine *engine)
     InitRender(Engine::Get());
 }
 
-void Game::Update(Engine *engine, GameCounter::TickUnit delta)
+void Game::Update( GameCounter::TickUnit delta)
 {
     Engine::Get()->GetComponents().Update(Engine::Get(), delta);
     Engine::Get()->GetWorld()->Update(Engine::Get(), delta);
@@ -58,19 +58,19 @@ void Game::Update(Engine *engine, GameCounter::TickUnit delta)
     Logic(Engine::Get(), delta);
 }
 
-void Game::InitRender(Engine *engine)
+void Game::InitRender()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 }
 
-void Game::InitGame(Engine *engine)
+void Game::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     m_ui.Init(Engine::Get());
 }
 
-void Game::Teardown(Engine *engine)
+void Game::Teardown()
 {
     if (m_scene) {
         Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
@@ -82,7 +82,7 @@ void Game::Teardown(Engine *engine)
     m_is_init = false;
 }
 
-void Game::HandleEvent(Engine *engine, SystemEvent &&event)
+void Game::HandleEvent( SystemEvent &&event)
 {
     if (m_input_manager == nullptr) {
         return;
@@ -108,7 +108,7 @@ void Game::HandleEvent(Engine *engine, SystemEvent &&event)
     }
 }
 
-void Game::OnInputEvent(Engine *engine, const SystemEvent &event)
+void Game::OnInputEvent( const SystemEvent &event)
 {
     Threads::AssertOnThread(THREAD_GAME);
 

@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // create our own descriptor sets
@@ -66,7 +66,7 @@ struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderComma
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -96,7 +96,7 @@ struct RENDER_COMMAND(CreateTemporalAAImageOutputs) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetDevice()));
@@ -149,14 +149,14 @@ TemporalAA::TemporalAA(const Extent2D &extent)
 
 TemporalAA::~TemporalAA() = default;
 
-void TemporalAA::Create(Engine *engine)
+void TemporalAA::Create()
 {
     CreateImages(Engine::Get());
     CreateDescriptorSets(Engine::Get());
     CreateComputePipelines(Engine::Get());
 }
 
-void TemporalAA::Destroy(Engine *engine)
+void TemporalAA::Destroy()
 {
     m_compute_taa.Reset();
 
@@ -177,14 +177,14 @@ void TemporalAA::Destroy(Engine *engine)
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void TemporalAA::CreateImages(Engine *engine)
+void TemporalAA::CreateImages()
 {
     RenderCommands::Push<RENDER_COMMAND(CreateTemporalAAImageOutputs)>(
         m_image_outputs.Data()
     );
 }
 
-void TemporalAA::CreateDescriptorSets(Engine *engine)
+void TemporalAA::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -252,7 +252,7 @@ void TemporalAA::CreateDescriptorSets(Engine *engine)
     );
 }
 
-void TemporalAA::CreateComputePipelines(Engine *engine)
+void TemporalAA::CreateComputePipelines()
 {
     m_compute_taa = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("TemporalAA")),
@@ -263,7 +263,7 @@ void TemporalAA::CreateComputePipelines(Engine *engine)
 }
 
 void TemporalAA::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

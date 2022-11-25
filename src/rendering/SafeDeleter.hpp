@@ -118,7 +118,7 @@ public:
         bool operator<(const HandleDeletionEntry &other) const
             { return Base::operator<(other); }
     
-        void PerformDeletion(Engine *engine, bool force = false)
+        void PerformDeletion( bool force = false)
         {
             // cycle should be at zero
             AssertThrow(force || Base::second == 0u);
@@ -168,7 +168,7 @@ public:
 
         ~BufferOrImageDeletionEntry() = default;
 
-        void PerformDeletion(Engine *engine, bool force = false)
+        void PerformDeletion( bool force = false)
         {
             // cycle should be at zero
             AssertThrow(force || Base::second == 0u);
@@ -194,17 +194,17 @@ public:
         }
     };
 
-    void PerformEnqueuedDeletions(Engine *engine);
-    void ForceReleaseAll(Engine *engine);
+    void PerformEnqueuedDeletions();
+    void ForceReleaseAll();
 
-    bool DeleteEnqueuedBuffersAndImages(Engine *engine)
+    bool DeleteEnqueuedBuffersAndImages()
     {
         auto &queue = m_buffers_and_images;
 
         return DeleteEnqueuedItemsImpl(engine, queue);
     }
 
-    void ForceDeleteBuffersAndImages(Engine *engine)
+    void ForceDeleteBuffersAndImages()
     {
         auto &queue = m_buffers_and_images;
 
@@ -212,7 +212,7 @@ public:
     }
 
     template <class T>
-    bool DeleteEnqueuedHandlesOfType(Engine *engine)
+    bool DeleteEnqueuedHandlesOfType()
     {
         auto &queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
 
@@ -220,7 +220,7 @@ public:
     }
 
     template <class T>
-    void ForceDeleteHandlesOfType(Engine *engine)
+    void ForceDeleteHandlesOfType()
     {
         auto &queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
 
@@ -229,7 +229,7 @@ public:
 
     // returns true if all were completed
     template <class Container>
-    bool DeleteEnqueuedItemsImpl(Engine *engine, Container &queue)
+    bool DeleteEnqueuedItemsImpl( Container &queue)
     {
         for (auto it = queue.Begin(); it != queue.End();) {
             auto &front = *it;
@@ -251,7 +251,7 @@ public:
     }
 
     template <class Container>
-    void ForceDeleteEnqueuedItemsImpl(Engine *engine, Container &queue)
+    void ForceDeleteEnqueuedItemsImpl( Container &queue)
     {
         for (auto it = queue.Begin(); it != queue.End();) {
             auto &front = *it;

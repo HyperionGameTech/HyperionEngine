@@ -27,7 +27,7 @@ DeferredPass::DeferredPass(bool is_indirect_pass)
 
 DeferredPass::~DeferredPass() = default;
 
-void DeferredPass::CreateShader(Engine *engine)
+void DeferredPass::CreateShader()
 {
     CompiledShader compiled_shader;
 
@@ -52,12 +52,12 @@ void DeferredPass::CreateShader(Engine *engine)
     Engine::Get()->InitObject(m_shader);
 }
 
-void DeferredPass::CreateRenderPass(Engine *engine)
+void DeferredPass::CreateRenderPass()
 {
     m_render_pass = Handle<RenderPass>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass());
 }
 
-void DeferredPass::CreateDescriptors(Engine *engine)
+void DeferredPass::CreateDescriptors()
 {
     // if (m_is_indirect_pass) {
     //     return;
@@ -86,7 +86,7 @@ void DeferredPass::CreateDescriptors(Engine *engine)
     // }
 }
 
-void DeferredPass::Create(Engine *engine)
+void DeferredPass::Create()
 {
     CreateShader(Engine::Get());
     FullScreenPass::CreateQuad(Engine::Get());
@@ -110,12 +110,12 @@ void DeferredPass::Create(Engine *engine)
     FullScreenPass::CreatePipeline(Engine::Get(), renderable_attributes);
 }
 
-void DeferredPass::Destroy(Engine *engine)
+void DeferredPass::Destroy()
 {
     FullScreenPass::Destroy(Engine::Get()); // flushes render queue
 }
 
-void DeferredPass::Record(Engine *engine, UInt frame_index)
+void DeferredPass::Record( UInt frame_index)
 {
     if (m_is_indirect_pass) {
         FullScreenPass::Record(Engine::Get(), frame_index);
@@ -183,7 +183,7 @@ void DeferredPass::Record(Engine *engine, UInt frame_index)
     HYPERION_ASSERT_RESULT(record_result);
 }
 
-void DeferredPass::Render(Engine *engine, Frame *frame)
+void DeferredPass::Render( Frame *frame)
 {
     FullScreenPass::Render(Engine::Get(), frame);
 }
@@ -197,7 +197,7 @@ DeferredRenderer::DeferredRenderer()
 
 DeferredRenderer::~DeferredRenderer() = default;
 
-void DeferredRenderer::Create(Engine *engine)
+void DeferredRenderer::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -271,7 +271,7 @@ void DeferredRenderer::Create(Engine *engine)
     //}
 }
 
-void DeferredRenderer::CreateDescriptorSets(Engine *engine)
+void DeferredRenderer::CreateDescriptorSets()
 {
     // set global gbuffer data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -459,7 +459,7 @@ void DeferredRenderer::CreateDescriptorSets(Engine *engine)
     }
 }
 
-void DeferredRenderer::CreateComputePipelines(Engine *engine)
+void DeferredRenderer::CreateComputePipelines()
 {
     m_combine = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DeferredCombine")),
@@ -469,7 +469,7 @@ void DeferredRenderer::CreateComputePipelines(Engine *engine)
     Engine::Get()->InitObject(m_combine);
 }
 
-void DeferredRenderer::Destroy(Engine *engine)
+void DeferredRenderer::Destroy()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -504,7 +504,7 @@ void DeferredRenderer::Destroy(Engine *engine)
 }
 
 void DeferredRenderer::Render(
-    Engine *engine,
+    
     Frame *frame,
     RenderEnvironment *environment
 )
@@ -671,7 +671,7 @@ void DeferredRenderer::Render(
     m_temporal_aa->Render(Engine::Get(), frame);
 }
 
-void DeferredRenderer::GenerateMipChain(Engine *engine, Frame *frame, Image *src_image)
+void DeferredRenderer::GenerateMipChain( Frame *frame, Image *src_image)
 {
     auto *primary = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();
@@ -699,7 +699,7 @@ void DeferredRenderer::GenerateMipChain(Engine *engine, Frame *frame, Image *src
     ));
 }
 
-void DeferredRenderer::CollectDrawCalls(Engine *engine, Frame *frame)
+void DeferredRenderer::CollectDrawCalls( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
@@ -728,7 +728,7 @@ void DeferredRenderer::CollectDrawCalls(Engine *engine, Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderOpaqueObjects(Engine *engine, Frame *frame)
+void DeferredRenderer::RenderOpaqueObjects( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
@@ -749,7 +749,7 @@ void DeferredRenderer::RenderOpaqueObjects(Engine *engine, Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderTranslucentObjects(Engine *engine, Frame *frame)
+void DeferredRenderer::RenderTranslucentObjects( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
@@ -762,19 +762,19 @@ void DeferredRenderer::RenderTranslucentObjects(Engine *engine, Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderUI(Engine *engine, Frame *frame)
+void DeferredRenderer::RenderUI( Frame *frame)
 {
     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
         renderer_instance->Render(Engine::Get(), frame);
     }
 }
 
-void DeferredRenderer::UpdateParticles(Engine *engine, Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::UpdateParticles( Frame *frame, RenderEnvironment *environment)
 {
     environment->GetParticleSystem()->UpdateParticles(Engine::Get(), frame);
 }
 
-void DeferredRenderer::RenderParticles(Engine *engine, Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::RenderParticles( Frame *frame, RenderEnvironment *environment)
 {
     environment->GetParticleSystem()->Render(Engine::Get(), frame);
 }

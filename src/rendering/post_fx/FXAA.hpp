@@ -15,7 +15,7 @@ public:
     virtual ~FXAAEffect();
 
 protected:
-    virtual Handle<Shader> CreateShader(Engine *engine) override;
+    virtual Handle<Shader> CreateShader() override;
 };
 
 } // namespace hyperion::v2

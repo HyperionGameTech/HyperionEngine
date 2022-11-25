@@ -54,21 +54,21 @@ public:
     void SetTLAS(Handle<TLAS> &&tlas)
         { m_tlas = std::move(tlas); }
 
-    void ApplyTLASUpdates(Engine *engine, RTUpdateStateFlags flags);
+    void ApplyTLASUpdates( RTUpdateStateFlags flags);
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
 private:
-    void CreateImages(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
-    void CreateRaytracingPipeline(Engine *engine);
-    void CreateTemporalBlending(Engine *engine);
+    void CreateImages();
+    void CreateDescriptorSets();
+    void CreateRaytracingPipeline();
+    void CreateTemporalBlending();
     
     struct ImageOutput
     {

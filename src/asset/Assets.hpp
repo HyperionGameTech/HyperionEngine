@@ -30,7 +30,7 @@ class AssetManager
     friend class AssetLoader;
 
 public:
-    AssetManager(Engine *engine)
+    AssetManager()
         : m_engine(engine)
     {
     }
@@ -171,7 +171,7 @@ public:
 private:
     ComponentSystem &GetObjectSystem();
 
-    Engine *m_engine;
+    m_engine;
     FilePath m_base_path;
     FlatMap<String, UniquePtr<AssetLoaderBase>> m_loaders;
 };

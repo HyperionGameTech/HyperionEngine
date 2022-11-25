@@ -30,20 +30,20 @@ public:
     void AddScene(Handle<Scene> &&scene);
     void RemoveScene(Scene::ID id);
 
-    void Init(Engine *engine);
+    void Init();
     
     /*! \brief Perform any necessary game thread specific updates to the World.
      * The main logic loop of the engine happens here. Each Scene in the World is updated,
      * and within each Scene, each Entity, etc.
      */
     void Update(
-        Engine *engine,
+        
         GameCounter::TickUnit delta
     );
 
     /*! \brief Perform any necessary render thread specific updates to the World. */
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 

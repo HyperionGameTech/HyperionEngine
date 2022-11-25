@@ -95,7 +95,7 @@ UIText::~UIText()
 {
 }
 
-void UIText::Init(Engine *engine)
+void UIText::Init()
 {
     // if (IsInitCalled()) {
     //     return;

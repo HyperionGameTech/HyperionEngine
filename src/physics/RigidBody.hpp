@@ -161,7 +161,7 @@ public:
     RigidBody &operator=(const RigidBody &other) = delete;
     ~RigidBody();
 
-    void Init(Engine *engine);
+    void Init();
 
     /*! \brief Get the world-space transform of this RigidBody.
         If changed, you will have to flag that the transform has changed,

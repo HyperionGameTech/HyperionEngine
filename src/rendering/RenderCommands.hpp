@@ -34,16 +34,16 @@ struct RenderCommandData2<RenderCommand2_UpdateEntityData>
 
 struct RenderCommandBase2
 {
-    Result(*fn_ptr)(RenderCommandBase2 *, Engine *);
+    Result(*fn_ptr)(RenderCommandBase2 *, );
 
     virtual ~RenderCommandBase2() = default;
 
-    HYP_FORCE_INLINE Result Call(Engine *engine)
+    HYP_FORCE_INLINE Result Call()
     {
         return operator()(engine);
     }
 
-    virtual Result operator()(Engine *engine) = 0;
+    virtual Result operator()() = 0;
 };
 
 struct RenderCommand2_UpdateEntityData : RenderCommandBase2
@@ -52,7 +52,7 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
 
     RenderCommand2_UpdateEntityData()
     {
-        RenderCommandBase2::fn_ptr = [](RenderCommandBase2 *self, Engine *engine) -> Result
+        RenderCommandBase2::fn_ptr = [](RenderCommandBase2 *self, ) -> Result
         {
             auto *self_casted = static_cast<RenderCommand2_UpdateEntityData *>(self);
             self_casted->data.x[0] = 123;
@@ -71,7 +71,7 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
 
     // Int x[64];
 
-    // virtual Result operator()(Engine *engine)
+    // virtual Result operator()()
     // {
     //     // data.shader_data.bucket = Bucket::BUCKET_INTERNAL;
 
@@ -105,7 +105,7 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
         virtual ~RenderCommand_##name() = default; \
         \
         \
-        static Result Execute(RenderCommandBase2 *ptr, Engine *engine) \
+        static Result Execute(RenderCommandBase2 *ptr, ) \
         { \
             auto tmp = (fnptr); \
             return tmp(static_cast< RenderCommand_##name * >(ptr), engine); \
@@ -121,7 +121,7 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
 //     Int x[64];
 // };
 
-// DEFINE_RENDER_COMMAND(FooBar, [](RenderCommand_FooBar *self, Engine *engine) -> Result {
+// DEFINE_RENDER_COMMAND(FooBar, [](RenderCommand_FooBar *self, ) -> Result {
 //     self->data.x[0] = 123;
 
 //     volatile int y = 0;
@@ -137,7 +137,7 @@ struct RENDER_COMMAND(FooBar) : RenderCommandBase2
 {
     Int x[64];
 
-    virtual Result operator()(Engine *engine) final
+    virtual Result operator()() final
     {
         x[0] = 123;
 
@@ -179,7 +179,7 @@ struct RenderScheduler
 
     void Commit(RenderCommandBase2 *command);
 
-    FlushResult Flush(Engine *engine);
+    FlushResult Flush();
 };
 
 class RenderCommands
@@ -234,7 +234,7 @@ public:
         return scheduler.m_num_enqueued.load(std::memory_order_relaxed);
     }
 
-    HYP_FORCE_INLINE static Result Flush(Engine *engine)
+    HYP_FORCE_INLINE static Result Flush()
     {
         // if (Count() == 0) {
         //     HYPERION_RETURN_OK;
@@ -253,7 +253,7 @@ public:
         return flush_result.result;
     }
 
-    HYP_FORCE_INLINE static Result FlushOrWait(Engine *engine)
+    HYP_FORCE_INLINE static Result FlushOrWait()
     {
         if (Count() == 0) {
             HYPERION_RETURN_OK;

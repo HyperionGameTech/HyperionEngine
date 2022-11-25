@@ -17,7 +17,7 @@ struct RENDER_COMMAND(BindLight) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         Engine::Get()->GetRenderState().BindLight(id);
 
@@ -34,7 +34,7 @@ struct RENDER_COMMAND(UnbindLight) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         Engine::Get()->GetRenderState().UnbindLight(id);
 
@@ -53,7 +53,7 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         light.m_draw_proxy = draw_proxy;
 
@@ -95,7 +95,7 @@ Light::~Light()
     Teardown();
 }
 
-void Light::Init(Engine *engine)
+void Light::Init()
 {
     if (IsInitCalled()) {
         return;

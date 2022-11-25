@@ -27,13 +27,13 @@ public:
 
     void AddBLAS(Handle<BLAS> &&blas);
 
-    void Init(Engine *engine);
+    void Init();
 
     /*! \brief Update the TLAS on the RENDER thread, performing any
      * updates to the structure. This is also called for each BLAS underneath this.
      */
     void UpdateRender(
-        Engine *engine,
+        
         Frame *frame,
         RTUpdateStateFlags &out_flags
     );

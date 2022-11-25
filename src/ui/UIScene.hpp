@@ -37,7 +37,7 @@ using renderer::Extent2D;
 //     UIObject();
 //     virtual ~UIObject();
 
-//     virtual void Init(Engine *engine);
+//     virtual void Init();
 // };
 
 class UIScene : public EngineComponentBase<STUB_CLASS(UIScene)>
@@ -64,8 +64,8 @@ public:
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
     bool TestRay(const Vector2 &position, RayHit &out_first_hit);
 
-    void Init(Engine *engine);
-    void Update(Engine *engine, GameCounter::TickUnit delta);
+    void Init();
+    void Update( GameCounter::TickUnit delta);
 
 private:
     // Array<Handle<UIObject>> m_ui_objects;

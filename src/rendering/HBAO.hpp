@@ -29,19 +29,19 @@ public:
     HBAO &operator=(const HBAO &other) = delete;
     ~HBAO();
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
     
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
 private:
-    void CreateImages(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
-    void CreateTemporalBlending(Engine *engine);
+    void CreateImages();
+    void CreateDescriptorSets();
+    void CreateComputePipelines();
+    void CreateTemporalBlending();
     
     struct ImageOutput
     {

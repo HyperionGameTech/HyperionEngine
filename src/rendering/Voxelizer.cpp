@@ -23,7 +23,7 @@ Voxelizer::~Voxelizer()
     Teardown();
 }
 
-void Voxelizer::Init(Engine *engine)
+void Voxelizer::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -65,7 +65,7 @@ void Voxelizer::Init(Engine *engine)
             {
             }
 
-            virtual Result operator()(Engine *engine)
+            virtual Result operator()()
             {
                 auto result = renderer::Result::OK;
 
@@ -102,7 +102,7 @@ void Voxelizer::Init(Engine *engine)
     });
 }
 
-void Voxelizer::CreatePipeline(Engine *engine)
+void Voxelizer::CreatePipeline()
 {
     auto renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
@@ -134,7 +134,7 @@ void Voxelizer::CreatePipeline(Engine *engine)
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
-void Voxelizer::CreateBuffers(Engine *engine)
+void Voxelizer::CreateBuffers()
 {
     m_counter = std::make_unique<AtomicCounter>();
     m_fragment_list_buffer = std::make_unique<StorageBuffer>();
@@ -148,7 +148,7 @@ void Voxelizer::CreateBuffers(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             auto result = Result::OK;
 
@@ -166,7 +166,7 @@ void Voxelizer::CreateBuffers(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateVoxelizerBuffers)>(*this);
 }
 
-void Voxelizer::CreateShader(Engine *engine)
+void Voxelizer::CreateShader()
 {
     std::vector<SubShader> sub_shaders = {
         {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.vert.spv")).Read()}},
@@ -186,7 +186,7 @@ void Voxelizer::CreateShader(Engine *engine)
     Engine::Get()->InitObject(m_shader);
 }
 
-void Voxelizer::CreateRenderPass(Engine *engine)
+void Voxelizer::CreateRenderPass()
 {
     m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
         RenderPassStage::SHADER,
@@ -196,7 +196,7 @@ void Voxelizer::CreateRenderPass(Engine *engine)
     Engine::Get()->InitObject(m_render_pass);
 }
 
-void Voxelizer::CreateFramebuffer(Engine *engine)
+void Voxelizer::CreateFramebuffer()
 {
     m_framebuffer = Engine::Get()->CreateHandle<Framebuffer>(
         Extent2D { voxel_map_size, voxel_map_size },
@@ -206,7 +206,7 @@ void Voxelizer::CreateFramebuffer(Engine *engine)
     Engine::Get()->InitObject(m_framebuffer);
 }
 
-void Voxelizer::CreateDescriptors(Engine *engine)
+void Voxelizer::CreateDescriptors()
 {
     struct RENDER_COMMAND(CreateVoxelizerDescriptors) : RenderCommandBase2
     {
@@ -217,7 +217,7 @@ void Voxelizer::CreateDescriptors(Engine *engine)
         {
         }
 
-        virtual Result operator()(Engine *engine)
+        virtual Result operator()()
         {
             auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
@@ -246,7 +246,7 @@ void Voxelizer::CreateDescriptors(Engine *engine)
 /* We only reconstruct the buffer if the number of rendered fragments is
  * greater than what our buffer can hold (or the buffer has not yet been created).
  * We round up to the nearest power of two. */
-void Voxelizer::ResizeFragmentListBuffer(Engine *engine, Frame *)
+void Voxelizer::ResizeFragmentListBuffer( Frame *)
 {
     const SizeType new_size = m_num_fragments * sizeof(Fragment);
 
@@ -285,7 +285,7 @@ void Voxelizer::ResizeFragmentListBuffer(Engine *engine, Frame *)
     descriptor_set->ApplyUpdates(Engine::Get()->GetInstance()->GetDevice());
 }
 
-void Voxelizer::RenderFragmentList(Engine *engine, Frame *, bool count_mode)
+void Voxelizer::RenderFragmentList( Frame *, bool count_mode)
 {
     m_renderer_instance->GetPipeline()->push_constants.voxelizer_data = {
         .grid_size = voxel_map_size,
@@ -315,7 +315,7 @@ void Voxelizer::RenderFragmentList(Engine *engine, Frame *, bool count_mode)
     HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetDevice()));
 }
 
-void Voxelizer::Render(Engine *engine, Frame *frame)
+void Voxelizer::Render( Frame *frame)
 {
     m_scene->GetCamera()->UpdateMatrices();
 

@@ -21,7 +21,7 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_draw_state.Create(Engine::Get()));
 
@@ -104,7 +104,7 @@ struct RENDER_COMMAND(DestroyIndirectRenderer) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = renderer::Result::OK;
 
@@ -139,7 +139,7 @@ IndirectDrawState::~IndirectDrawState()
 {
 }
 
-Result IndirectDrawState::Create(Engine *engine)
+Result IndirectDrawState::Create()
 {
     auto single_time_commands = Engine::Get()->GetInstance()->GetSingleTimeCommands();
 
@@ -162,7 +162,7 @@ Result IndirectDrawState::Create(Engine *engine)
     return single_time_commands.Execute(Engine::Get()->GetDevice());
 }
 
-Result IndirectDrawState::Destroy(Engine *engine)
+Result IndirectDrawState::Destroy()
 {
     auto result = Result::OK;
     
@@ -210,7 +210,7 @@ Result IndirectDrawState::Destroy(Engine *engine)
 
 template <class BufferType>
 static bool ResizeBuffer(
-    Engine *engine,
+    
     Frame *frame,
     FixedArray<UniquePtr<BufferType>, max_frames_in_flight> &buffers,
     SizeType new_buffer_size
@@ -294,7 +294,7 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
     m_is_dirty = { true, true };
 }
 
-bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Engine *engine, Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<IndirectBuffer>(
         Engine::Get(),
@@ -334,7 +334,7 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Engine *engine, Frame *
     return true;
 }
 
-bool IndirectDrawState::ResizeInstancesBuffer(Engine *engine, Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeInstancesBuffer( Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<StorageBuffer>(
         Engine::Get(),
@@ -354,7 +354,7 @@ bool IndirectDrawState::ResizeInstancesBuffer(Engine *engine, Frame *frame, Size
     return was_created_or_resized;
 }
 
-bool IndirectDrawState::ResizeIfNeeded(Engine *engine, Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeIfNeeded( Frame *frame, SizeType count)
 {
     // assume render thread
 
@@ -383,7 +383,7 @@ void IndirectDrawState::Reset()
     m_is_dirty = { true, true };
 }
 
-void IndirectDrawState::Reserve(Engine *engine, Frame *frame, SizeType count)
+void IndirectDrawState::Reserve( Frame *frame, SizeType count)
 {
     // assume render thread
 
@@ -398,7 +398,7 @@ void IndirectDrawState::Reserve(Engine *engine, Frame *frame, SizeType count)
     m_is_dirty[frame->GetFrameIndex()] |= resize_happened;
 }
 
-void IndirectDrawState::UpdateBufferData(Engine *engine, Frame *frame, bool *out_was_resized)
+void IndirectDrawState::UpdateBufferData( Frame *frame, bool *out_was_resized)
 {
     // assume render thread
 
@@ -431,7 +431,7 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer() = default;
 
-void IndirectRenderer::Create(Engine *engine)
+void IndirectRenderer::Create()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
@@ -449,7 +449,7 @@ void IndirectRenderer::Create(Engine *engine)
     Engine::Get()->InitObject(m_object_visibility);
 }
 
-void IndirectRenderer::Destroy(Engine *engine)
+void IndirectRenderer::Destroy()
 {
     m_object_visibility.Reset();
 
@@ -459,7 +459,7 @@ void IndirectRenderer::Destroy(Engine *engine)
 }
 
 void IndirectRenderer::ExecuteCullShaderInBatches(
-    Engine *engine,
+    
     Frame *frame,
     const CullData &cull_data
 )
@@ -533,7 +533,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(
     }
 }
 
-void IndirectRenderer::RebuildDescriptors(Engine *engine, Frame *frame)
+void IndirectRenderer::RebuildDescriptors( Frame *frame)
 {
     const auto frame_index = frame->GetFrameIndex();
 

@@ -85,12 +85,12 @@ public:
         }
 
         void AddRendererInstance(Handle<RendererInstance> &renderer_instance);
-        void AddPendingRendererInstances(Engine *engine);
+        void AddPendingRendererInstances();
         void AddFramebuffersToPipelines();
         void AddFramebuffersToPipeline(Handle<RendererInstance> &pipeline);
-        void CreateRenderPass(Engine *engine);
-        void CreateFramebuffers(Engine *engine);
-        void Destroy(Engine *engine);
+        void CreateRenderPass();
+        void CreateFramebuffers();
+        void Destroy();
     };
 
     DeferredSystem();
@@ -110,11 +110,11 @@ public:
     const RendererInstanceHolder &operator[](Bucket bucket) const
         { return Get(bucket); }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
-    void AddPendingRendererInstances(Engine *engine);
-    void AddFramebuffersToPipelines(Engine *engine);
+    void AddPendingRendererInstances();
+    void AddFramebuffersToPipelines();
 
 private:
 

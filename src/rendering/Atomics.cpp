@@ -13,7 +13,7 @@ AtomicCounter::~AtomicCounter()
     AssertThrowMsg(m_buffer == nullptr, "buffer should have been destroyed before destructor call");
 }
 
-void AtomicCounter::Create(Engine *engine)
+void AtomicCounter::Create()
 {
     AssertThrow(m_buffer == nullptr);
 
@@ -21,7 +21,7 @@ void AtomicCounter::Create(Engine *engine)
     HYPERION_ASSERT_RESULT(m_buffer->Create(Engine::Get()->GetInstance()->GetDevice(), sizeof(UInt32)));
 }
 
-void AtomicCounter::Destroy(Engine *engine)
+void AtomicCounter::Destroy()
 {
     AssertThrow(m_buffer != nullptr);
 
@@ -29,7 +29,7 @@ void AtomicCounter::Destroy(Engine *engine)
     m_buffer.reset();
 }
 
-void AtomicCounter::Reset(Engine *engine, CountType value)
+void AtomicCounter::Reset( CountType value)
 {
     HYPERION_ASSERT_RESULT(Engine::Get()->GetInstance()->GetStagingBufferPool().Use(
         Engine::Get()->GetInstance()->GetDevice(),
@@ -51,7 +51,7 @@ void AtomicCounter::Reset(Engine *engine, CountType value)
     ));
 }
 
-auto AtomicCounter::Read(Engine *engine) const -> CountType
+auto AtomicCounter::Read() const -> CountType
 {
     auto result = MathUtil::MaxSafeValue<CountType>();
 

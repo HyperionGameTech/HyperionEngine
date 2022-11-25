@@ -393,7 +393,7 @@ static String GetPropertiesString(const Array<ShaderProperty> &properties)
     return properties_string;
 }
 
-ShaderCompiler::ShaderCompiler(Engine *engine)
+ShaderCompiler::ShaderCompiler()
     : m_definitions(nullptr)
 {
 #if HYP_GLSLANG

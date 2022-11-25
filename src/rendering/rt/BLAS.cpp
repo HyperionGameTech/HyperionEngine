@@ -14,7 +14,7 @@ struct RENDER_COMMAND(CreateBLAS) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return blas->Create(Engine::Get()->GetDevice(), Engine::Get()->GetInstance());
     }
@@ -29,7 +29,7 @@ struct RENDER_COMMAND(DestroyBLAS) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         return blas->Destroy(Engine::Get()->GetDevice());
     }
@@ -121,7 +121,7 @@ void BLAS::SetTransform(const Transform &transform)
     }
 }
 
-void BLAS::Init(Engine *engine)
+void BLAS::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -160,13 +160,13 @@ void BLAS::Init(Engine *engine)
     });
 }
 
-void BLAS::Update(Engine *engine)
+void BLAS::Update()
 {
     // no-op
 }
 
 void BLAS::UpdateRender(
-    Engine *engine,
+    
     Frame *frame,
     bool &out_was_rebuilt
 )

@@ -84,18 +84,18 @@ public:
     const ImageOutput &GetImageOutput(UInt frame_index) const
         { return m_image_outputs[frame_index]; }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
 private:
-    void CreateImageOutputs(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
+    void CreateImageOutputs();
+    void CreateDescriptorSets();
+    void CreateComputePipelines();
 
     Extent2D m_extent;
     InternalFormat m_image_format;

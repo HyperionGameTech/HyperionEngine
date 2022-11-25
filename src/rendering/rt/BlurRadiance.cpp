@@ -25,7 +25,7 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < 2; i++) {
@@ -46,7 +46,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -73,7 +73,7 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
@@ -99,7 +99,7 @@ struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         auto result = Result::OK;
 
@@ -129,14 +129,14 @@ BlurRadiance::BlurRadiance(
 
 BlurRadiance::~BlurRadiance() = default;
 
-void BlurRadiance::Create(Engine *engine)
+void BlurRadiance::Create()
 {
     CreateImageOutputs(Engine::Get());
     CreateDescriptorSets(Engine::Get());
     CreateComputePipelines(Engine::Get());
 }
 
-void BlurRadiance::Destroy(Engine *engine)
+void BlurRadiance::Destroy()
 {
     m_blur_hor.Reset();
     m_blur_vert.Reset();
@@ -145,7 +145,7 @@ void BlurRadiance::Destroy(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(DestroyBlurImageOutputs)>(std::move(m_image_outputs));
 }
 
-void BlurRadiance::CreateImageOutputs(Engine *engine)
+void BlurRadiance::CreateImageOutputs()
 {
     static const FixedArray image_formats {
         InternalFormat::RGBA8,
@@ -169,7 +169,7 @@ void BlurRadiance::CreateImageOutputs(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateBlurImageOuptuts)>(m_image_outputs.Data());
 }
 
-void BlurRadiance::CreateDescriptorSets(Engine *engine)
+void BlurRadiance::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
@@ -235,7 +235,7 @@ void BlurRadiance::CreateDescriptorSets(Engine *engine)
     RenderCommands::Push<RENDER_COMMAND(CreateBlurDescriptors)>(m_descriptor_sets.Data());
 }
 
-void BlurRadiance::CreateComputePipelines(Engine *engine)
+void BlurRadiance::CreateComputePipelines()
 {
     m_blur_hor = Engine::Get()->CreateHandle<ComputePipeline>(
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("BlurRadianceHor")),
@@ -253,7 +253,7 @@ void BlurRadiance::CreateComputePipelines(Engine *engine)
 }
 
 void BlurRadiance::Render(
-    Engine *engine,
+    
     Frame *frame
 )
 {

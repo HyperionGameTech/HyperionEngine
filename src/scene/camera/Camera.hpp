@@ -143,7 +143,7 @@ public:
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into world coordinates */
     Vector4 TransformScreenToWorld(const Vector2 &screen) const;
 
-    void Update(Engine *engine, GameCounter::TickUnit dt);
+    void Update( GameCounter::TickUnit dt);
 
     virtual void UpdateLogic(double dt) = 0;
 
@@ -154,7 +154,7 @@ public:
     /*! \brief Push a command to the camera in a thread-safe way. */
     void PushCommand(const CameraCommand &command);
 
-    void Init(Engine *engine);
+    void Init();
 
 protected:
     virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {}

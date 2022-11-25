@@ -102,18 +102,18 @@ public:
         return nullptr;
     }
 
-    void CreateShader(Engine *engine);
-    void CreateRendererInstance(Engine *engine);
-    virtual void CreateRenderPass(Engine *engine) override;
-    virtual void CreateDescriptors(Engine *engine) override;
+    void CreateShader();
+    void CreateRendererInstance();
+    virtual void CreateRenderPass() override;
+    virtual void CreateDescriptors() override;
 
-    virtual void Create(Engine *engine) override;
-    virtual void Destroy(Engine *engine) override;
-    virtual void Render(Engine *engine, Frame *frame) override;
+    virtual void Create() override;
+    virtual void Destroy() override;
+    virtual void Render( Frame *frame) override;
 
 private:
-    void CreateShadowMap(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
+    void CreateShadowMap();
+    void CreateComputePipelines();
 
     ShadowMode m_shadow_mode;
     Handle<Scene> m_scene;
@@ -162,14 +162,14 @@ public:
         }
     }
 
-    void Init(Engine *engine);     // init on render thread
-    void InitGame(Engine *engine); // init on game thread
+    void Init();     // init on render thread
+    void InitGame(); // init on game thread
 
-    void OnUpdate(Engine *engine, GameCounter::TickUnit delta);
-    void OnRender(Engine *engine, Frame *frame);
+    void OnUpdate( GameCounter::TickUnit delta);
+    void OnRender( Frame *frame);
 
 private:
-    void UpdateSceneCamera(Engine *engine);
+    void UpdateSceneCamera();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(Handle<Entity> &entity) override;

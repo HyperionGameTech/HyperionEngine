@@ -17,7 +17,7 @@ GameThread::GameThread()
 {
 }
 
-void GameThread::operator()(Engine *engine, Game *game)
+void GameThread::operator()( Game *game)
 {
 #ifdef HYP_WINDOWS
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);

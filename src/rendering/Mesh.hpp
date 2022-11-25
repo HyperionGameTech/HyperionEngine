@@ -97,15 +97,15 @@ public:
 
     BoundingBox CalculateAABB() const;
 
-    void Init(Engine *engine);
+    void Init();
 
     void Render(
-        Engine *engine,
+        
         CommandBuffer *cmd
     ) const;
 
     void RenderIndirect(
-        Engine *engine,
+        
         CommandBuffer *cmd,
         const IndirectBuffer *indirect_buffer,
         UInt32 buffer_offset = 0

@@ -20,7 +20,7 @@ UIScene::~UIScene()
     Teardown();
 }
 
-void UIScene::Init(Engine *engine)
+void UIScene::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -57,7 +57,7 @@ void UIScene::Init(Engine *engine)
     });
 }
 
-void UIScene::Update(Engine *engine, GameCounter::TickUnit delta)
+void UIScene::Update( GameCounter::TickUnit delta)
 {
     m_scene->Update(Engine::Get(), delta, false);
 }

@@ -45,18 +45,18 @@ public:
 
     bool IsRendered() const { return m_is_rendered; }
 
-    void Create(Engine *engine);
-    void Destroy(Engine *engine);
+    void Create();
+    void Destroy();
 
     void Render(
-        Engine *engine,
+        
         Frame *frame
     );
 
 private:
-    void CreateUniformBuffers(Engine *engine);
-    void CreateDescriptorSets(Engine *engine);
-    void CreateComputePipelines(Engine *engine);
+    void CreateUniformBuffers();
+    void CreateDescriptorSets();
+    void CreateComputePipelines();
     
     struct ImageOutput
     {

@@ -19,7 +19,7 @@ DepthPyramidRenderer::DepthPyramidRenderer()
 DepthPyramidRenderer::~DepthPyramidRenderer()
 {
 }
-void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_attachment_ref)
+void DepthPyramidRenderer::Create( const AttachmentRef *depth_attachment_ref)
 {
     AssertThrow(m_depth_attachment_ref == nullptr);
     // AssertThrow(depth_attachment_ref->IsDepthAttachment());
@@ -124,7 +124,7 @@ void DepthPyramidRenderer::Create(Engine *engine, const AttachmentRef *depth_att
     Engine::Get()->InitObject(m_generate_depth_pyramid);
 }
 
-void DepthPyramidRenderer::Destroy(Engine *engine)
+void DepthPyramidRenderer::Destroy()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (auto &descriptor_set : m_depth_pyramid_descriptor_sets[i]) {
@@ -153,7 +153,7 @@ void DepthPyramidRenderer::Destroy(Engine *engine)
     m_is_rendered = false;
 }
 
-void DepthPyramidRenderer::Render(Engine *engine, Frame *frame)
+void DepthPyramidRenderer::Render( Frame *frame)
 {
     auto *primary = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();

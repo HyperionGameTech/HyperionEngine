@@ -14,7 +14,7 @@ struct RENDER_COMMAND(BindEnvProbe) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         Engine::Get()->GetRenderState().BindEnvProbe(id);
 
@@ -31,7 +31,7 @@ struct RENDER_COMMAND(UnbindEnvProbe) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         Engine::Get()->GetRenderState().UnbindEnvProbe(id);
 
@@ -50,7 +50,7 @@ struct RENDER_COMMAND(UpdateEnvProbeRenderData) : RenderCommandBase2
     {
     }
 
-    virtual Result operator()(Engine *engine)
+    virtual Result operator()()
     {
         // find the texture slot of this env probe (if it exists)
         UInt texture_index = ~0u;
@@ -118,7 +118,7 @@ EnvProbe::~EnvProbe()
     Teardown();
 }
 
-void EnvProbe::Init(Engine *engine)
+void EnvProbe::Init()
 {
     if (IsInitCalled()) {
         return;
