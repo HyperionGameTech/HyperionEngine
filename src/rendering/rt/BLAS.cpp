@@ -127,7 +127,7 @@ void BLAS::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     UInt material_index = 0;
 

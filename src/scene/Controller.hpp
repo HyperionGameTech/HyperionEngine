@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_CONTROLLER_H
 #define HYPERION_V2_CONTROLLER_H
 
+#include <core/Core.hpp>
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
 #include <math/Transform.hpp>
@@ -89,8 +90,6 @@ public:
     virtual void OnAttachedToScene(Scene *scene) {}
 
 protected:
-    GetEngine() const;
-
     bool CreateScriptedObjects();
     virtual bool CreateScriptedMethods();
     

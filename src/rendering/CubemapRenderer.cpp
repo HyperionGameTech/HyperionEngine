@@ -156,13 +156,13 @@ void CubemapRenderer::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
-    CreateShader;
-    CreateRenderPass;
-    CreateFramebuffers;
-    CreateImagesAndBuffers;
-    CreateRendererInstance;
+    CreateShader();
+    CreateRenderPass();
+    CreateFramebuffers();
+    CreateImagesAndBuffers();
+    CreateRendererInstance();
 
     m_scene = Engine::Get()->CreateHandle<Scene>(Handle<Camera>());
     Engine::Get()->InitObject(m_scene);
@@ -313,7 +313,7 @@ void CubemapRenderer::OnRender( Frame *frame)
     };
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Renderframe);
+    m_renderer_instance->Render(frame);
     Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame_index]->EndCapture(command_buffer);

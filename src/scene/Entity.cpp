@@ -130,7 +130,7 @@ void Entity::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     if (!m_shader) {
         m_shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
@@ -220,7 +220,7 @@ void Entity::Update( GameCounter::TickUnit delta)
     }
 
     if (m_material != nullptr && m_material->IsReady()) {
-        m_material->Update;
+        m_material->Update();
 
         // make changes if it was updated
         if (m_material->GetRenderAttributes() != m_renderable_attributes.material_attributes) {
@@ -229,7 +229,7 @@ void Entity::Update( GameCounter::TickUnit delta)
         }
     }
 
-    UpdateControllersdelta);
+    UpdateControllers(delta);
 
     if (m_octree) {
         if (m_needs_octree_update) {
@@ -247,7 +247,7 @@ void Entity::Update( GameCounter::TickUnit delta)
     }
 }
 
-void Entity::UpdateControllers( GameCounter::TickUnit delta)
+void Entity::UpdateControllers(GameCounter::TickUnit delta)
 {
     for (auto &it : m_controllers) {
         if (!it.second->ReceivesUpdate()) {
@@ -309,7 +309,7 @@ void Entity::UpdateOctree()
     AssertReady();
 
     if (Octree *octree = m_octree) {
-        const auto update_result = octree->Updatethis);
+        const auto update_result = octree->Update(this);
 
         if (!update_result) {
             DebugLog(
@@ -657,7 +657,7 @@ void Entity::AddToOctree( Octree &octree)
 {
     AssertThrow(m_octree == nullptr);
 
-    if (!octree.Insertthis)) {
+    if (!octree.Insert(this)) {
         DebugLog(LogType::Warn, "Entity #%lu could not be added to octree\n", m_id.value);
     }
 }
@@ -670,7 +670,7 @@ void Entity::RemoveFromOctree()
         GetID().value
     );
 
-    m_octree->OnEntityRemovedthis);
+    m_octree->OnEntityRemoved(this);
 }
 
 bool Entity::IsReady() const

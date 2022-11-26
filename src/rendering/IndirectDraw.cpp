@@ -23,7 +23,7 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_draw_state.Create);
+        HYPERION_BUBBLE_ERRORS(indirect_renderer.m_indirect_draw_state.Create());
 
         const IndirectParams initial_params { };
 
@@ -123,7 +123,7 @@ struct RENDER_COMMAND(DestroyIndirectRenderer) : RenderCommandBase2
         }
 
         HYPERION_PASS_ERRORS(
-            indirect_renderer.m_indirect_draw_state.Destroy,
+            indirect_renderer.m_indirect_draw_state.Destroy(),
             result
         );
 
@@ -147,11 +147,11 @@ Result IndirectDrawState::Create()
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto frame = Frame::TemporaryFrame(command_buffer, frame_index);
 
-            if (!ResizeIndirectDrawCommandsBuffer&frame, initial_count)) {
+            if (!ResizeIndirectDrawCommandsBuffer(&frame, initial_count)) {
                 return { Result::RENDERER_ERR, "Failed to create indirect draw commands buffer!" };
             }
 
-            if (!ResizeInstancesBuffer&frame, initial_count)) {
+            if (!ResizeInstancesBuffer(&frame, initial_count)) {
                 return { Result::RENDERER_ERR, "Failed to create instances buffer!" };
             }
         }
@@ -210,7 +210,6 @@ Result IndirectDrawState::Destroy()
 
 template <class BufferType>
 static bool ResizeBuffer(
-    
     Frame *frame,
     FixedArray<UniquePtr<BufferType>, max_frames_in_flight> &buffers,
     SizeType new_buffer_size
@@ -297,7 +296,6 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
 bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<IndirectBuffer>(
-        Engine::Get(),
         frame,
         m_indirect_buffers,
         count * sizeof(IndirectDrawCommand)
@@ -337,7 +335,6 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType
 bool IndirectDrawState::ResizeInstancesBuffer( Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<StorageBuffer>(
-        Engine::Get(),
         frame,
         m_instance_buffers,
         count * sizeof(ObjectInstance)
@@ -361,11 +358,11 @@ bool IndirectDrawState::ResizeIfNeeded( Frame *frame, SizeType count)
     bool resize_happened = false;
     
     if (m_is_dirty[frame->GetFrameIndex()] || m_indirect_buffers[frame->GetFrameIndex()] == nullptr) {
-        resize_happened |= ResizeIndirectDrawCommandsBufferframe, count);
+        resize_happened |= ResizeIndirectDrawCommandsBuffer(frame, count);
     }
     
     if (m_is_dirty[frame->GetFrameIndex()] || m_instance_buffers[frame->GetFrameIndex()] == nullptr) {
-        resize_happened |= ResizeInstancesBufferframe, count);
+        resize_happened |= ResizeInstancesBuffer(frame, count);
     }
 
     return resize_happened;
@@ -392,8 +389,8 @@ void IndirectDrawState::Reserve( Frame *frame, SizeType count)
 
     bool resize_happened = false;
     
-    resize_happened |= ResizeIndirectDrawCommandsBufferframe, count);
-    resize_happened |= ResizeInstancesBufferframe, count);
+    resize_happened |= ResizeIndirectDrawCommandsBuffer(frame, count);
+    resize_happened |= ResizeInstancesBuffer(frame, count);
 
     m_is_dirty[frame->GetFrameIndex()] |= resize_happened;
 }
@@ -404,7 +401,7 @@ void IndirectDrawState::UpdateBufferData( Frame *frame, bool *out_was_resized)
 
     const auto frame_index = frame->GetFrameIndex();
 
-    if ((*out_was_resized = ResizeIfNeededframe, m_max_entity_id))) {
+    if ((*out_was_resized = ResizeIfNeeded(frame, m_max_entity_id))) {
         m_is_dirty[frame_index] = true;
     }
 
@@ -478,10 +475,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(
     }
 
     bool was_buffer_resized = false;
-    m_indirect_draw_state.UpdateBufferDataframe, &was_buffer_resized);
+    m_indirect_draw_state.UpdateBufferData(frame, &was_buffer_resized);
 
     if (was_buffer_resized) {
-        RebuildDescriptorsframe);
+        RebuildDescriptors(frame);
     }
 
     if (m_cached_cull_data != cull_data) {

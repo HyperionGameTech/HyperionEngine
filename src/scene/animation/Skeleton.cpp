@@ -31,7 +31,7 @@ void Skeleton::Init()
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init();
 
     EnqueueRenderUpdates();
 

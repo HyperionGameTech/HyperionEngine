@@ -119,7 +119,7 @@ void Texture::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     RenderCommands::Push<RENDER_COMMAND(CreateTexture)>(
         this,

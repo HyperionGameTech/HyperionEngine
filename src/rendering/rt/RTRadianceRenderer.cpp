@@ -185,15 +185,15 @@ void RTRadianceRenderer::Create()
         "Failed to initialize the top level acceleration structure!"
     );
 
-    CreateImages;
-    CreateTemporalBlending;
-    CreateDescriptorSets;
-    CreateRaytracingPipeline;
+    CreateImages();
+    CreateTemporalBlending();
+    CreateDescriptorSets();
+    CreateRaytracingPipeline();
 }
 
 void RTRadianceRenderer::Destroy()
 {
-    m_temporal_blending.Destroy;
+    m_temporal_blending.Destroy();
 
     Engine::Get()->SafeReleaseHandle(std::move(m_shader));
 
@@ -263,7 +263,7 @@ void RTRadianceRenderer::Render(
         ResourceState::SHADER_RESOURCE
     );
 
-    m_temporal_blending.Renderframe);
+    m_temporal_blending.Render(frame);
 }
 
 void RTRadianceRenderer::CreateImages()
@@ -375,7 +375,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
 void RTRadianceRenderer::CreateTemporalBlending()
 {
-    m_temporal_blending.Create;
+    m_temporal_blending.Create();
 }
 
 } // namespace hyperion::v2

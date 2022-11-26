@@ -29,7 +29,7 @@ void Voxelizer::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
@@ -44,12 +44,12 @@ void Voxelizer::Init()
 
     Engine::Get()->InitObject(m_scene);
     
-    CreateBuffers;
-    CreateShader;
-    CreateRenderPass;
-    CreateFramebuffer;
-    CreateDescriptors;
-    CreatePipeline;
+    CreateBuffers();
+    CreateShader();
+    CreateRenderPass();
+    CreateFramebuffer();
+    CreateDescriptors();
+    CreatePipeline();
 
     OnTeardown([this]() {
         m_shader.Reset();
@@ -70,7 +70,7 @@ void Voxelizer::Init()
                 auto result = renderer::Result::OK;
 
                 if (voxelizer.m_counter != nullptr) {
-                    voxelizer.m_counter->Destroy;
+                    voxelizer.m_counter->Destroy();
                 }
 
                 if (voxelizer.m_fragment_list_buffer != nullptr) {
@@ -152,7 +152,7 @@ void Voxelizer::CreateBuffers()
         {
             auto result = Result::OK;
 
-            voxelizer.m_counter->Create;
+            voxelizer.m_counter->Create();
             
             HYPERION_PASS_ERRORS(
                 voxelizer.m_fragment_list_buffer->Create(Engine::Get()->GetInstance()->GetDevice(), default_fragment_list_buffer_size),
@@ -301,10 +301,10 @@ void Voxelizer::RenderFragmentList( Frame *, bool count_mode)
         
         if (!Engine::Get()->render_state.GetScene()) {
             Engine::Get()->render_state.BindScene(m_scene.Get());
-            m_renderer_instance->Render&temp_frame);
+            m_renderer_instance->Render(&temp_frame);
             Engine::Get()->render_state.UnbindScene();
         } else {
-            m_renderer_instance->Render&temp_frame);
+            m_renderer_instance->Render(&temp_frame);
         }
 
         m_framebuffer->EndCapture(command_buffer);
@@ -319,20 +319,20 @@ void Voxelizer::Render( Frame *frame)
 {
     m_scene->GetCamera()->UpdateMatrices();
 
-    m_counter->Reset;
+    m_counter->Reset();
 
-    RenderFragmentListframe, true);
+    RenderFragmentList(frame, true);
 
-    m_num_fragments = m_counter->Read;
+    m_num_fragments = m_counter->Read();
     DebugLog(LogType::Debug, "Render %lu fragments (%llu MiB)\n", m_num_fragments, (m_num_fragments * sizeof(Fragment)) / 1000000ull);
 
-    ResizeFragmentListBufferframe);
+    ResizeFragmentListBuffer(frame);
 
-    m_counter->Reset;
+    m_counter->Reset();
 
     /* now we render the scene again, this time storing color values into the
      * fragment list buffer.  */
-    RenderFragmentListframe, false);
+    RenderFragmentList(frame, false);
 }
 
 } // namespace hyperion::v2

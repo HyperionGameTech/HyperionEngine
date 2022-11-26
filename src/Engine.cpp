@@ -43,17 +43,15 @@ Engine *Engine::Get()
 }
 
 Engine::Engine()
-    : shader_globals(nullptr),
-      m_asset_manager(this),
-      m_shader_compiler(this)
+    : shader_globals(nullptr)
 {
     RegisterDefaultAssetLoaders();
 }
 
 Engine::~Engine()
 {
-    m_placeholder_data.Destroy(this);
-    m_immediate_mode.Destroy(this);
+    m_placeholder_data.Destroy();
+    m_immediate_mode.Destroy();
 
     HYP_FLUSH_RENDER_QUEUE(); // just to clear anything remaining up 
 
@@ -61,7 +59,7 @@ Engine::~Engine()
     (void)m_instance->GetDevice()->Wait();
 
     if (shader_globals != nullptr) {
-        shader_globals->Destroy(this);
+        shader_globals->Destroy();
 
         delete shader_globals;
     }
@@ -253,7 +251,7 @@ void Engine::PrepareFinalPass()
     }
 
     callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
-        m_render_list_container.AddFramebuffersToPipelines(this);
+        m_render_list_container.AddFramebuffersToPipelines();
         InitObject(m_root_pipeline);
     });
 }
@@ -279,12 +277,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     FindTextureFormatDefaults();
     
-    m_configuration.SetToDefaultConfiguration(this);
-    m_configuration.LoadFromDefinitionsFile(this);
+    m_configuration.SetToDefaultConfiguration();
+    m_configuration.LoadFromDefinitionsFile();
     
     // save default configuration to file if
     // anything changed from the loading process
-    if (!m_configuration.SaveToDefinitionsFile(this)) {
+    if (!m_configuration.SaveToDefinitionsFile()) {
         DebugLog(
             LogType::Error,
             "Failed to save configuration file\n"
@@ -296,9 +294,9 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     }
 
     shader_globals = new ShaderGlobals(max_frames_in_flight);
-    shader_globals->Create(this);
+    shader_globals->Create();
 
-    m_placeholder_data.Create(this);
+    m_placeholder_data.Create();
 
     m_world = CreateHandle<World>();
     InitObject(m_world);
@@ -744,14 +742,14 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 #endif
 
     /* for textures */
-    //shader_globals->textures.Create(this);
+    //shader_globals->textures.Create();
     
     HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().Create(m_instance->GetDevice()));
 
-    m_render_list_container.Create(this);
+    m_render_list_container.Create();
 
     // has to be after we create framebuffers
-    m_immediate_mode.Create(this);
+    m_immediate_mode.Create();
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
@@ -792,7 +790,7 @@ void Engine::Compile()
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
     
-    m_deferred_renderer.Create(this);
+    m_deferred_renderer.Create();
     
     /* Finalize descriptor pool */
     HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().CreateDescriptorSets(m_instance->GetDevice()));
@@ -835,14 +833,14 @@ void Engine::FinalizeStop()
 
     game_thread.Join();
 
-    m_render_list_container.Destroy(this);
-    m_deferred_renderer.Destroy(this);
+    m_render_list_container.Destroy();
+    m_deferred_renderer.Destroy();
 
     for (auto &attachment : m_render_pass_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
     }
 
-    m_safe_deleter.ForceReleaseAll(this);
+    m_safe_deleter.ForceReleaseAll();
 
     HYP_FLUSH_RENDER_QUEUE();
 
@@ -876,13 +874,13 @@ void Engine::RenderNextFrame(Game *game)
 
     HYPERION_ASSERT_RESULT(frame->BeginCapture(GetInstance()->GetDevice()));
 
-    m_world->Render(this, frame);
+    m_world->Render(frame);
 
-    game->OnFrameBegin(this, frame);
+    game->OnFrameBegin(frame);
 
     if (auto *environment = render_state.GetScene().render_environment) {
         if (environment->IsReady()) {
-            environment->RenderComponents(this, frame);
+            environment->RenderComponents(frame);
         }
     }
 
@@ -897,7 +895,7 @@ void Engine::RenderNextFrame(Game *game)
         m_crash_handler.HandleGPUCrash(frame_result);
     }
 
-    game->OnFrameEnd(this, frame);
+    game->OnFrameEnd(frame);
 
     GetInstance()->GetFrameHandler()->PresentFrame(&GetInstance()->GetGraphicsQueue(), GetInstance()->GetSwapchain());
     GetInstance()->GetFrameHandler()->NextFrame();
@@ -1029,7 +1027,7 @@ void Engine::PreFrameUpdate(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_render_list_container.AddPendingRendererInstances(this);
+    m_render_list_container.AddPendingRendererInstances();
     
     // TMEP: leaving here
     // if (auto num_enqueued = render_scheduler.NumEnqueued()) {
@@ -1039,7 +1037,7 @@ void Engine::PreFrameUpdate(Frame *frame)
     // }
 
     if (RenderCommands::Count() != 0) {
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush(this));
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush());
     }
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
@@ -1055,7 +1053,7 @@ void Engine::ResetRenderState(RenderStateMask mask)
 
 void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
 {
-    m_safe_deleter.PerformEnqueuedDeletions(this);
+    m_safe_deleter.PerformEnqueuedDeletions();
 
     shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
@@ -1075,7 +1073,7 @@ void Engine::RenderDeferred(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_deferred_renderer.Render(this, frame, render_state.GetScene().render_environment);
+    m_deferred_renderer.Render(frame, render_state.GetScene().render_environment);
 }
 
 void Engine::RenderFinalPass(Frame *frame)
@@ -1113,7 +1111,7 @@ void Engine::RenderFinalPass(Frame *frame)
 #endif
 
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(this, frame->GetCommandBuffer());
+    m_full_screen_quad->Render(frame->GetCommandBuffer());
     
     m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }

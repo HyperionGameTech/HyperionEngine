@@ -16,4 +16,9 @@ Device *GetEngineDevice()
     return Engine::Get()->GetInstance()->GetDevice();
 }
 
+ComponentSystem &GetObjectSystem()
+{
+    return Engine::Get()->GetObjectSystem();
+}
+
 } // namespace hyperion::v2

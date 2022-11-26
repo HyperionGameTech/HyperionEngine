@@ -14,10 +14,13 @@ class Device;
 namespace hyperion::v2 {
 
 class Engine;
+class ComponentSystem;
 
 Engine *GetEngine();
 
 renderer::Device *GetEngineDevice();
+
+ComponentSystem &GetObjectSystem();
 
 } // namespace hyperion::v2
 

@@ -88,11 +88,11 @@ void DeferredPass::CreateDescriptors()
 
 void DeferredPass::Create()
 {
-    CreateShader;
-    FullScreenPass::CreateQuad;
-    FullScreenPass::CreateRenderPass;
-    FullScreenPass::CreateCommandBuffers;
-    FullScreenPass::CreateFramebuffers;
+    CreateShader();
+    FullScreenPass::CreateQuad();
+    FullScreenPass::CreateRenderPass();
+    FullScreenPass::CreateCommandBuffers();
+    FullScreenPass::CreateFramebuffers();
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
@@ -107,18 +107,18 @@ void DeferredPass::Create()
         }
     );
 
-    FullScreenPass::CreatePipelinerenderable_attributes);
+    FullScreenPass::CreatePipeline(renderable_attributes);
 }
 
 void DeferredPass::Destroy()
 {
-    FullScreenPass::Destroy; // flushes render queue
+    FullScreenPass::Destroy(); // flushes render queue
 }
 
 void DeferredPass::Record( UInt frame_index)
 {
     if (m_is_indirect_pass) {
-        FullScreenPass::Recordframe_index);
+        FullScreenPass::Record(frame_index);
         
         return;
     }
@@ -174,7 +174,7 @@ void DeferredPass::Record( UInt frame_index)
                     }
                 );
 
-                m_full_screen_quad->Rendercmd);
+                m_full_screen_quad->Render(cmd);
             }
 
             HYPERION_RETURN_OK;
@@ -185,7 +185,7 @@ void DeferredPass::Record( UInt frame_index)
 
 void DeferredPass::Render( Frame *frame)
 {
-    FullScreenPass::Renderframe);
+    FullScreenPass::Render(frame);
 }
 
 DeferredRenderer::DeferredRenderer()
@@ -201,10 +201,9 @@ void DeferredRenderer::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_post_processing.Create;
-
-    m_indirect_pass.Create;
-    m_direct_pass.Create;
+    m_post_processing.Create();
+    m_indirect_pass.Create();
+    m_direct_pass.Create();
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_opaque_fbos[frame_index] = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffers()[frame_index];
@@ -217,10 +216,10 @@ void DeferredRenderer::Create()
     const auto *depth_attachment_ref = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()->GetRenderPass().GetAttachmentRefs().back();
     AssertThrow(depth_attachment_ref != nullptr);
 
-    m_dpr.Createdepth_attachment_ref);
+    m_dpr.Create(depth_attachment_ref);
 
     m_hbao.Reset(new HBAO(Engine::Get()->GetInstance()->GetSwapchain()->extent / 2));
-    m_hbao->Create;
+    m_hbao->Create();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         m_results[i] = Engine::Get()->CreateHandle<Texture>(
@@ -247,7 +246,7 @@ void DeferredRenderer::Create()
         Engine::Get()->InitObject(m_mipmapped_results[i]);
     }
 
-    m_ssr.Create;
+    m_ssr.Create();
     
     m_sampler = UniquePtr<Sampler>::Construct(FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP);
     HYPERION_ASSERT_RESULT(m_sampler->Create(Engine::Get()->GetDevice()));
@@ -255,16 +254,16 @@ void DeferredRenderer::Create()
     m_depth_sampler = UniquePtr<Sampler>::Construct(FilterMode::TEXTURE_FILTER_NEAREST);
     HYPERION_ASSERT_RESULT(m_depth_sampler->Create(Engine::Get()->GetDevice()));
     
-    m_indirect_pass.CreateDescriptors; // no-op
-    m_direct_pass.CreateDescriptors;
+    m_indirect_pass.CreateDescriptors(); // no-op
+    m_direct_pass.CreateDescriptors();
     
     m_temporal_aa.Reset(new TemporalAA(Engine::Get()->GetInstance()->GetSwapchain()->extent));
-    m_temporal_aa->Create;
+    m_temporal_aa->Create();
 
     HYP_FLUSH_RENDER_QUEUE();
 
-    CreateDescriptorSets;
-    CreateComputePipelines;
+    CreateDescriptorSets();
+    CreateComputePipelines();
 
     //if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
     //    m_rt_radiance.Create;
@@ -475,12 +474,12 @@ void DeferredRenderer::Destroy()
 
     //! TODO: remove all descriptors
 
-    m_ssr.Destroy;
-    m_dpr.Destroy;
-    m_hbao->Destroy;
-    m_temporal_aa->Destroy;
+    m_ssr.Destroy();
+    m_dpr.Destroy();
+    m_hbao->Destroy();
+    m_temporal_aa->Destroy();
 
-    m_post_processing.Destroy;
+    m_post_processing.Destroy();
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         Engine::Get()->SafeRelease(std::move(m_combine_descriptor_sets[frame_index]));
@@ -499,8 +498,8 @@ void DeferredRenderer::Destroy()
 
     m_combine.Reset();
 
-    m_indirect_pass.Destroy;  // flushes render queue
-    m_direct_pass.Destroy;    // flushes render queue
+    m_indirect_pass.Destroy();  // flushes render queue
+    m_direct_pass.Destroy();    // flushes render queue
 }
 
 void DeferredRenderer::Render(
@@ -531,10 +530,10 @@ void DeferredRenderer::Render(
     deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     
-    CollectDrawCallsframe);
+    CollectDrawCalls(frame);
 
     if (do_particles) {
-        UpdateParticlesframe, environment);
+        UpdateParticles(frame, environment);
     }
 
     if (use_ssr) { // screen space reflection
@@ -543,42 +542,42 @@ void DeferredRenderer::Render(
         auto &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
 
         if (mipmapped_result.GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
-            m_ssr.Renderframe);
+            m_ssr.Render(frame);
         }
     } else if (use_rt_radiance) { // rt radiance
         DebugMarker marker(primary, "RT Radiance");
 
-        environment->RenderRTRadianceframe);
+        environment->RenderRTRadiance(frame);
     }
 
     { // indirect lighting
         DebugMarker marker(primary, "Record deferred indirect lighting pass");
 
         m_indirect_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_indirect_pass.Recordframe_index); // could be moved to only do once
+        m_indirect_pass.Record(frame_index); // could be moved to only do once
     }
 
     { // direct lighting
         DebugMarker marker(primary, "Record deferred direct lighting pass");
         
         m_direct_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_direct_pass.Recordframe_index);
+        m_direct_pass.Record(frame_index);
     }
 
     { // opaque objects
         DebugMarker marker(primary, "Render opaque objects");
 
         m_opaque_fbos[frame_index]->BeginCapture(primary);
-        RenderOpaqueObjectsframe);
+        RenderOpaqueObjects(frame);
         m_opaque_fbos[frame_index]->EndCapture(primary);
     }
     // end opaque objs
 
     if (use_hbao || use_hbil) {
-        m_hbao->Renderframe);
+        m_hbao->Render(frame);
     }
     
-    m_post_processing.RenderPreframe);
+    m_post_processing.RenderPre(frame);
 
     auto &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer(frame_index);
 
@@ -602,13 +601,13 @@ void DeferredRenderer::Render(
         m_translucent_fbos[frame_index]->BeginCapture(primary);
 
         // begin translucent with forward rendering
-        RenderTranslucentObjectsframe);
+        RenderTranslucentObjects(frame);
 
         if (do_particles) {
-            RenderParticlesframe, environment);
+            RenderParticles(frame, environment);
         }
 
-        Engine::Get()->GetImmediateMode().Renderframe);
+        Engine::Get()->GetImmediateMode().Render(frame);
 
         m_translucent_fbos[frame_index]->EndCapture(primary);
     }
@@ -651,7 +650,7 @@ void DeferredRenderer::Render(
     );
 
     { // render depth pyramid
-        m_dpr.Renderframe);
+        m_dpr.Render(frame);
         // update culling info now that depth pyramid has been rendered
         m_cull_data.depth_pyramid_image_views[frame_index] = m_dpr.GetResults()[frame_index].get();
         m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
@@ -660,15 +659,15 @@ void DeferredRenderer::Render(
     auto *src_image = deferred_pass_framebuffer->GetRenderPass()
         ->GetRenderPass().GetAttachmentRefs()[0]->GetAttachment()->GetImage();
 
-    GenerateMipChainframe, src_image);
+    GenerateMipChain(frame, src_image);
 
     // put src image in state for reading
     src_image->GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
     m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
 
-    m_post_processing.RenderPostframe);
+    m_post_processing.RenderPost(frame);
     
-    m_temporal_aa->Renderframe);
+    m_temporal_aa->Render(frame);
 }
 
 void DeferredRenderer::GenerateMipChain( Frame *frame, Image *src_image)
@@ -703,27 +702,27 @@ void DeferredRenderer::CollectDrawCalls( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe, m_cull_data);
+            renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
         
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe, m_cull_data);
+            renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
 
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe, m_cull_data);
+            renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
     } else {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe);
+            renderer_instance->CollectDrawCalls(frame);
         }
         
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe);
+            renderer_instance->CollectDrawCalls(frame);
         }
 
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
-            renderer_instance->CollectDrawCallsframe);
+            renderer_instance->CollectDrawCalls(frame);
         }
     }
 }
@@ -732,19 +731,19 @@ void DeferredRenderer::RenderOpaqueObjects( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
-            renderer_instance->PerformRenderingIndirectframe);
+            renderer_instance->PerformRenderingIndirect(frame);
         }
         
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
-            renderer_instance->PerformRenderingIndirectframe);
+            renderer_instance->PerformRenderingIndirect(frame);
         }
     } else {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
-            renderer_instance->PerformRenderingframe);
+            renderer_instance->PerformRendering(frame);
         }
         
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
-            renderer_instance->PerformRenderingframe);
+            renderer_instance->PerformRendering(frame);
         }
     }
 }
@@ -753,11 +752,11 @@ void DeferredRenderer::RenderTranslucentObjects( Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
-            renderer_instance->PerformRenderingIndirectframe);
+            renderer_instance->PerformRenderingIndirect(frame);
         }
     } else {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
-            renderer_instance->PerformRenderingframe);
+            renderer_instance->PerformRendering(frame);
         }
     }
 }
@@ -765,18 +764,18 @@ void DeferredRenderer::RenderTranslucentObjects( Frame *frame)
 void DeferredRenderer::RenderUI( Frame *frame)
 {
     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
-        renderer_instance->Renderframe);
+        renderer_instance->Render(frame);
     }
 }
 
 void DeferredRenderer::UpdateParticles( Frame *frame, RenderEnvironment *environment)
 {
-    environment->GetParticleSystem()->UpdateParticlesframe);
+    environment->GetParticleSystem()->UpdateParticles(frame);
 }
 
 void DeferredRenderer::RenderParticles( Frame *frame, RenderEnvironment *environment)
 {
-    environment->GetParticleSystem()->Renderframe);
+    environment->GetParticleSystem()->Render(frame);
 }
 
 } // namespace hyperion::v2

@@ -175,7 +175,7 @@ public:
 
             if (Base::first != nullptr) {
                 AssertThrow(destroy_buffer_fn != nullptr);
-                auto result = destroy_buffer_fn(Base::first.Get(), GetEngineDevice(engine));
+                auto result = destroy_buffer_fn(Base::first.Get(), GetEngineDevice());
 
                 if (!result) {
                     DebugLog(
@@ -201,14 +201,14 @@ public:
     {
         auto &queue = m_buffers_and_images;
 
-        return DeleteEnqueuedItemsImpl(engine, queue);
+        return DeleteEnqueuedItemsImpl(queue);
     }
 
     void ForceDeleteBuffersAndImages()
     {
         auto &queue = m_buffers_and_images;
 
-        ForceDeleteEnqueuedItemsImpl(engine, queue);
+        ForceDeleteEnqueuedItemsImpl(queue);
     }
 
     template <class T>
@@ -216,7 +216,7 @@ public:
     {
         auto &queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
 
-        return DeleteEnqueuedItemsImpl(engine, queue);
+        return DeleteEnqueuedItemsImpl(queue);
     }
 
     template <class T>
@@ -224,7 +224,7 @@ public:
     {
         auto &queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
 
-        ForceDeleteEnqueuedItemsImpl(engine, queue);
+        ForceDeleteEnqueuedItemsImpl(queue);
     }
 
     // returns true if all were completed
@@ -237,7 +237,7 @@ public:
             AssertThrow(front.first != nullptr);
 
             if (!front.second) {
-                front.PerformDeletion(engine);
+                front.PerformDeletion();
 
                 it = queue.Erase(it);
             } else {
@@ -257,7 +257,7 @@ public:
             auto &front = *it;
 
             AssertThrow(front.first != nullptr);
-            front.PerformDeletion(engine, true);
+            front.PerformDeletion(true);
             it = queue.Erase(it);
         }
 

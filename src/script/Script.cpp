@@ -41,7 +41,7 @@ void Script::Init()
         return;
     }
 
-    EngineComponentBase::Init(engine);
+    EngineComponentBase::Init();
 }
 
 bool Script::Compile()

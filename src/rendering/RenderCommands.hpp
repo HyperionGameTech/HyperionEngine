@@ -34,7 +34,7 @@ struct RenderCommandData2<RenderCommand2_UpdateEntityData>
 
 struct RenderCommandBase2
 {
-    Result(*fn_ptr)(RenderCommandBase2 *, );
+    Result(*fn_ptr)(RenderCommandBase2 *);
 
     virtual ~RenderCommandBase2() = default;
 
@@ -52,7 +52,7 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
 
     RenderCommand2_UpdateEntityData()
     {
-        RenderCommandBase2::fn_ptr = [](RenderCommandBase2 *self, ) -> Result
+        RenderCommandBase2::fn_ptr = [](RenderCommandBase2 *self) -> Result
         {
             auto *self_casted = static_cast<RenderCommand2_UpdateEntityData *>(self);
             self_casted->data.x[0] = 123;
@@ -105,10 +105,10 @@ struct RenderCommand2_UpdateEntityData : RenderCommandBase2
         virtual ~RenderCommand_##name() = default; \
         \
         \
-        static Result Execute(RenderCommandBase2 *ptr, ) \
+        static Result Execute(RenderCommandBase2 *ptr) \
         { \
             auto tmp = (fnptr); \
-            return tmp(static_cast< RenderCommand_##name * >(ptr), engine); \
+            return tmp(static_cast< RenderCommand_##name * >(ptr), ); \
         } \
     };
 
@@ -242,7 +242,7 @@ public:
 
         std::unique_lock lock(mtx);
 
-        auto flush_result = scheduler.Flush(engine);
+        auto flush_result = scheduler.Flush();
         if (flush_result.num_executed) {
             Rewind();
         }
@@ -260,7 +260,7 @@ public:
         }
 
         if (Threads::CurrentThreadID() == scheduler.m_owner_thread) {
-            return Flush(engine);
+            return Flush();
         }
 
         Wait();

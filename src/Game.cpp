@@ -47,15 +47,15 @@ void Game::Init()
     static_assert(THREAD_MAIN == THREAD_RENDER,
         "InitRender must be enqueued instead of directly called if main thread != render thread!");
 
-    InitRender;
+    InitRender();
 }
 
 void Game::Update( GameCounter::TickUnit delta)
 {
-    Engine::Get()->GetComponents().Updatedelta);
-    Engine::Get()->GetWorld()->Updatedelta);
+    Engine::Get()->GetComponents().Update(delta);
+    Engine::Get()->GetWorld()->Update(delta);
 
-    Logicdelta);
+    Logic(delta);
 }
 
 void Game::InitRender()
@@ -67,7 +67,7 @@ void Game::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
-    m_ui.Init;
+    m_ui.Init();
 }
 
 void Game::Teardown()
@@ -98,7 +98,7 @@ void Game::HandleEvent( SystemEvent &&event)
         default:
             if (Engine::Get()->game_thread.IsRunning()) {
                 Engine::Get()->game_thread.GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
-                    OnInputEventevent);
+                    OnInputEvent(event);
 
                     HYPERION_RETURN_OK;
                 });

@@ -17,9 +17,9 @@ void ShaderGlobals::Create()
     shadow_maps.Create(device);
     env_probes.Create(device);
     immediate_draws.Create(device);
-    textures.Create;
-
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
+
+    textures.Create();
 }
 
 void ShaderGlobals::Destroy()
@@ -127,7 +127,7 @@ void Shader::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     for (const auto &sub_shader : m_sub_shaders) {
         AssertThrowMsg(sub_shader.spirv.bytes.Any(), "Shader data missing");

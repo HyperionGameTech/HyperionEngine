@@ -3,6 +3,7 @@
 
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
+#include <Component.hpp>
 #include <core/Class.hpp>
 #include <core/Handle.hpp>
 #include <core/lib/TypeMap.hpp>
@@ -232,14 +233,7 @@ public:
      */
     void Init()
     {
-        AssertThrowMsg(
-            engine != nullptr,
-            "Engine was nullptr!"
-        );
-
         m_init_called.store(true);
-
-        //m_attachment_map.InitializeAll(static_cast<InnerType *>(this));
     }
 
 protected:
@@ -248,9 +242,7 @@ protected:
 
     void Teardown()
     {
-        if (IsInitCalled()) {
-            GetEngine()->GetObjectSystem().template Release<InnerType>(GetID());
-        }
+        RemoveFromObjectSystem();
 
         CallbackTrackable::Teardown();
     }
@@ -300,6 +292,15 @@ protected:
     InitInfo m_init_info;
 
     //AttachmentMap<InnerType> m_attachment_map;
+
+private:
+
+    void RemoveFromObjectSystem()
+    {
+        if (IsInitCalled()) {
+            GetObjectSystem().template Release<InnerType>(GetID());
+        }
+    }
 };
 
 template <class Type, class WrappedType>
@@ -354,7 +355,7 @@ public:
             wrapped_type_name
         );
 
-        auto result = m_wrapped.Create(GetEngineDevice(engine), std::forward<Args>(args)...);
+        auto result = m_wrapped.Create(GetEngineDevice(), std::forward<Args>(args)...);
         AssertThrowMsg(
             result,
             "Creation of object of type %s failed.\n\tError Code: %d\n\tMessage: %s",
@@ -369,7 +370,7 @@ public:
         m_wrapped_destroyed = false;
 #endif
 
-        EngineComponentBase<Type>::Init(engine);
+        EngineComponentBase<Type>::Init();
     }
 
     /* Standard non-specialized destruction function */
@@ -392,7 +393,7 @@ public:
             wrapped_type_name
         );
 
-        auto result = m_wrapped.Destroy(GetEngineDevice(engine), std::move(args)...);
+        auto result = m_wrapped.Destroy(GetEngineDevice(), std::move(args)...);
         AssertThrowMsg(result, "Destruction of object of type %s failed: %s", wrapped_type_name, result.message);
 
         m_wrapped_created = false;

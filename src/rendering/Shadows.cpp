@@ -290,11 +290,11 @@ void ShadowPass::CreateComputePipelines()
 
 void ShadowPass::Create()
 {
-    CreateShadowMap;
-    CreateShader;
-    CreateRenderPass;
-    CreateDescriptors;
-    CreateComputePipelines;
+    CreateShadowMap();
+    CreateShader();
+    CreateRenderPass();
+    CreateDescriptors();
+    CreateComputePipelines();
 
     m_scene = Engine::Get()->CreateHandle<Scene>(
         Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
@@ -324,8 +324,8 @@ void ShadowPass::Create()
         }
     }
 
-    CreateRendererInstance;
-    CreateCommandBuffers;
+    CreateRendererInstance();
+    CreateCommandBuffers();
 
     HYP_FLUSH_RENDER_QUEUE(); // force init stuff
 }
@@ -343,7 +343,7 @@ void ShadowPass::Destroy()
         m_blur_descriptor_sets.Data()
     );
 
-    FullScreenPass::Destroy; // flushes render queue, releases command buffers...
+    FullScreenPass::Destroy(); // flushes render queue, releases command buffers...
 }
 
 void ShadowPass::Render( Frame *frame)
@@ -361,7 +361,7 @@ void ShadowPass::Render( Frame *frame)
     m_framebuffers[frame->GetFrameIndex()]->BeginCapture(command_buffer);
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Renderframe);
+    m_renderer_instance->Render(frame);
     Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame->GetFrameIndex()]->EndCapture(command_buffer);
@@ -444,16 +444,16 @@ void ShadowRenderer::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     AssertThrow(IsValidComponent());
     m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
-    m_shadow_pass.Create;
+    m_shadow_pass.Create();
 
     SetReady(true);
 
     OnTeardown([this]() {
-        m_shadow_pass.Destroy; // flushes render queue
+        m_shadow_pass.Destroy(); // flushes render queue
 
         SetReady(false);
     });
@@ -533,7 +533,7 @@ void ShadowRenderer::OnUpdate( GameCounter::TickUnit delta)
 
     AssertReady();
     
-    UpdateSceneCamera;
+    UpdateSceneCamera();
 }
 
 void ShadowRenderer::OnRender( Frame *frame)
@@ -564,7 +564,7 @@ void ShadowRenderer::OnRender( Frame *frame)
         );
     }
 
-    m_shadow_pass.Renderframe);
+    m_shadow_pass.Render(frame);
 }
 
 void ShadowRenderer::UpdateSceneCamera()

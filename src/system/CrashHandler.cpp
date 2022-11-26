@@ -66,7 +66,7 @@ void CrashHandler::Initialize()
                 DebugLog(LogType::Error, "GPU page fault at 0x%016llx", fault_info.faultingGpuVA);
                 DebugLog(LogType::Error, "Fault Type: %u", fault_info.faultType);
                 DebugLog(LogType::Error, "Access Type: %u", fault_info.accessType);
-                DebugLog(LogType::Error, "Engine: %u", fault_info.engine);
+                DebugLog(LogType::Error, "Engine: %u", fault_info.);
                 DebugLog(LogType::Error, "Client: %u", fault_info.client);
                 if (fault_info.bHasResourceInfo)
                 {

@@ -50,7 +50,6 @@ static void AddOwnedAttachment(
 }
 
 static void AddSharedAttachment(
-    
     UInt attachment_index,
     Handle<RenderPass> &render_pass,
     Array<std::unique_ptr<Attachment>> &attachments
@@ -114,22 +113,22 @@ void DeferredSystem::AddFramebuffersToPipelines()
 void DeferredSystem::AddPendingRendererInstances()
 {
     for (auto &bucket : m_buckets) {
-        bucket.AddPendingRendererInstances;
+        bucket.AddPendingRendererInstances();
     }
 }
 
 void DeferredSystem::Create()
 {
     for (auto &bucket : m_buckets) {
-        bucket.CreateRenderPass;
-        bucket.CreateFramebuffers;
+        bucket.CreateRenderPass();
+        bucket.CreateFramebuffers();
     }
 }
 
 void DeferredSystem::Destroy()
 {
     for (auto &bucket : m_buckets) {
-        bucket.Destroy;
+        bucket.Destroy();
     }
 }
 
@@ -212,12 +211,11 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         mode
     );
 
-    const InternalFormat color_format = GetImageFormatGBUFFER_RESOURCE_ALBEDO);
+    const InternalFormat color_format = GetImageFormat(GBUFFER_RESOURCE_ALBEDO);
 
     if (bucket == BUCKET_UI) {
         // ui only has this attachment.
         AddOwnedAttachment(
-            Engine::Get(),
             color_format,
             render_pass,
             attachments
@@ -226,7 +224,6 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         // add gbuffer attachments
         // color attachment is unique for all buckets
         AddOwnedAttachment(
-            Engine::Get(),
             color_format,
             render_pass,
             attachments
@@ -236,10 +233,9 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         // which will be shared with other renderable buckets
         if (bucket == BUCKET_OPAQUE) {
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
-                const InternalFormat format = GetImageFormatGBufferResourceName(i));
+                const InternalFormat format = GetImageFormat(GBufferResourceName(i));
 
                 AddOwnedAttachment(
-                    Engine::Get(),
                     format,
                     render_pass,
                     attachments
@@ -249,7 +245,6 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
             // add the attachments shared with opaque bucket
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
-                    Engine::Get(),
                     i,
                     render_pass,
                     attachments

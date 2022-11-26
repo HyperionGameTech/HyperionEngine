@@ -135,7 +135,7 @@ struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommandBase2
         );
 
         if (spawners->HasUpdatesPending()) {
-            spawners->UpdateItems;
+            spawners->UpdateItems();
         }
 
         spawners->Clear();
@@ -251,7 +251,7 @@ void ParticleSpawner::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     if (m_params.texture) {
         Engine::Get()->InitObject(m_params.texture);
@@ -408,7 +408,7 @@ void ParticleSystem::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     m_quad_mesh = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
     Engine::Get()->InitObject(m_quad_mesh);
@@ -459,7 +459,7 @@ void ParticleSystem::UpdateParticles( Frame *frame)
     AssertReady();
 
     if (m_particle_spawners.HasUpdatesPending()) {
-        m_particle_spawners.UpdateItems;
+        m_particle_spawners.UpdateItems();
     }
 
     if (m_particle_spawners.GetItems().Empty()) {
@@ -542,7 +542,7 @@ void ParticleSystem::UpdateParticles( Frame *frame)
     ++m_counter;
 
     if (m_particle_spawners.HasUpdatesPending()) {
-        m_particle_spawners.UpdateItems;
+        m_particle_spawners.UpdateItems();
     }
 }
 
@@ -562,7 +562,6 @@ void ParticleSystem::Render( Frame *frame)
         TaskPriority::HIGH,
         m_particle_spawners.GetItems(),
         [this, &command_buffers_recorded_states, frame_index, scene_index](const Handle<ParticleSpawner> &particle_spawner, UInt index, UInt batch_index) {
-            auto *engine = Engine::Get();
             auto *pipeline = particle_spawner->GetRendererInstance()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -580,7 +579,6 @@ void ParticleSystem::Render( Frame *frame)
                     );
 
                     m_quad_mesh->RenderIndirect(
-                        Engine::Get(),
                         secondary,
                         particle_spawner->GetIndirectBuffer().Get()
                     );

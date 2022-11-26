@@ -99,20 +99,20 @@ void PostProcessingEffect::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
-    m_shader = CreateShader;
+    m_shader = CreateShader();
     Engine::Get()->InitObject(m_shader);
 
     m_pass.SetShader(Handle<Shader>(m_shader));
-    m_pass.Create;
+    m_pass.Create();
 
     SetReady(true);
 
     OnTeardown([this]() {
         SetReady(false);
 
-        m_pass.Destroy;
+        m_pass.Destroy();
         m_shader.Reset();
 
         HYP_FLUSH_RENDER_QUEUE();
@@ -145,16 +145,16 @@ void PostProcessing::Create()
     for (auto &effect : m_pre_effects) {
         AssertThrow(effect.second != nullptr);
 
-        effect.second->Init;
+        effect.second->Init();
     }
     
     for (auto &effect : m_post_effects) {
         AssertThrow(effect.second != nullptr);
 
-        effect.second->Init;
+        effect.second->Init();
     }
 
-    CreateUniformBuffer;
+    CreateUniformBuffer();
 }
 
 void PostProcessing::Destroy()
@@ -243,8 +243,8 @@ void PostProcessing::RenderPre( Frame *frame) const
             .post_fx_data = { index << 1 }
         });
 
-        effect->GetPass().Recordframe->GetFrameIndex());
-        effect->GetPass().Renderframe);
+        effect->GetPass().Record(frame->GetFrameIndex());
+        effect->GetPass().Render(frame);
 
         ++index;
     }
@@ -263,8 +263,8 @@ void PostProcessing::RenderPost( Frame *frame) const
             .post_fx_data = { (index << 1) | 1 }
         });
 
-        effect->GetPass().Recordframe->GetFrameIndex());
-        effect->GetPass().Renderframe);
+        effect->GetPass().Record(frame->GetFrameIndex());
+        effect->GetPass().Render(frame);
 
         ++index;
     }

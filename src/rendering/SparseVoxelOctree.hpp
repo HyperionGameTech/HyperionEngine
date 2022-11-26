@@ -55,7 +55,6 @@ private:
     void WriteMipmaps();
 
     void BindDescriptorSets(
-        
         CommandBuffer *command_buffer,
         UInt frame_index,
         const ComputePipeline *pipeline

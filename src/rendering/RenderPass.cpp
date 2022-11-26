@@ -59,7 +59,7 @@ void RenderPass::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     RenderCommands::Push<RENDER_COMMAND(CreateRenderPass)>(&m_render_pass);
 

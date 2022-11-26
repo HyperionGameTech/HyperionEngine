@@ -1,11 +1,12 @@
 #ifndef HYPERION_V2_FBOM_MARSHALER_HPP
 #define HYPERION_V2_FBOM_MARSHALER_HPP
 
+#include <core/Core.hpp>
+#include <core/lib/UniquePtr.hpp>
+
 #include <asset/serialization/fbom/FBOMDeserializedObject.hpp>
 #include <asset/serialization/fbom/FBOMType.hpp>
 #include <asset/serialization/fbom/FBOMResult.hpp>
-
-#include <core/lib/UniquePtr.hpp>
 
 #include <Constants.hpp>
 
@@ -59,7 +60,7 @@ private:
         if (result.value == FBOMResult::FBOM_OK) {
             AssertThrow(ptr != nullptr);
 
-            auto result_value = AssetLoaderWrapper<T>::MakeResultType(engine, std::move(ptr));
+            auto result_value = AssetLoaderWrapper<T>::MakeResultType(GetEngine(), std::move(ptr));
             AssertThrow(result_value.Get() != nullptr);
 
             out.Set<T>(std::move(result_value));

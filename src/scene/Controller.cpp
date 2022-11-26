@@ -18,13 +18,6 @@ Controller::~Controller()
 {
 }
 
-Controller::GetEngine() const
-{
-    AssertThrow(m_owner != nullptr);
-
-    return m_owner->GetEngine();
-}
-
 void Controller::SetScript(const Handle<Script> &script)
 {
     m_script = script;
@@ -79,7 +72,7 @@ bool Controller::CreateScriptedObjects()
             return false;
         }
 
-        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *> });
+        vm::Value engine_handle_value(vm::Value::ValueType::USER_DATA, { .user_data = static_cast<void *>(GetEngine()) });
 
         if (!m_script->SetMember(engine_object_handle, "handle", engine_handle_value)) {
             DebugLog(

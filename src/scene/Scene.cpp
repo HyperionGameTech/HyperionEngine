@@ -88,7 +88,7 @@ void Scene::Init()
         return;
     }
     
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     Engine::Get()->InitObject(m_camera);
 
@@ -103,7 +103,7 @@ void Scene::Init()
     Engine::Get()->InitObject(m_tlas);
 
     {
-        m_environment->Init;
+        m_environment->Init();
 
         if (m_tlas) {
             m_environment->SetTLAS(m_tlas);
@@ -184,7 +184,7 @@ void Scene::Init()
             RemoveFromRendererInstances(it.second);
 
             if (it.second->m_octree != nullptr) {
-                it.second->RemoveFromOctree;
+                it.second->RemoveFromOctree();
             }
         }
 
@@ -224,7 +224,7 @@ void Scene::SetWorld(World *world)
                 entity->GetID().value
             );
 
-            entity->RemoveFromOctree;
+            entity->RemoveFromOctree();
         }
     }
 
@@ -251,7 +251,7 @@ void Scene::SetWorld(World *world)
         );
 #endif
 
-        entity->AddToOctreem_world->GetOctree());
+        entity->AddToOctree(m_world->GetOctree());
     }
 }
 
@@ -420,7 +420,7 @@ void Scene::AddPendingEntities()
                 );
 #endif
 
-                entity->AddToOctreem_world->GetOctree());
+                entity->AddToOctree(m_world->GetOctree());
             }
         }
 
@@ -458,7 +458,7 @@ void Scene::RemovePendingEntities()
                 found_entity->GetID().value
             );
 
-            found_entity->RemoveFromOctree;
+            found_entity->RemoveFromOctree();
         }
 
         DebugLog(
@@ -473,6 +473,7 @@ void Scene::RemovePendingEntities()
 
         if (m_tlas) {
             if (const auto &blas = found_entity->GetBLAS()) {
+                // TODO:
                 //m_tlas->RemoveBLAS(blas);
             }
         }
@@ -614,7 +615,7 @@ void Scene::ForceUpdate()
 {
     AssertReady();
 
-    Update0.01f);
+    Update(0.0166f);
 }
 
 void Scene::Update(
@@ -634,7 +635,7 @@ void Scene::Update(
     }
 
     if (m_camera) {
-        m_camera->Updatedelta);
+        m_camera->Update(delta);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
             m_last_view_projection_matrix = m_camera->GetViewProjectionMatrix();
@@ -646,7 +647,7 @@ void Scene::Update(
 
     if (!IsVirtualScene()) {
         // update render environment
-        m_environment->Updatedelta);
+        m_environment->Update(delta);
 
         // update each light
         for (auto &it : m_lights) {
@@ -666,7 +667,7 @@ void Scene::Update(
         for (auto &it : m_entities) {
             auto &entity = it.second;
 
-            entity->Updatedelta);
+            entity->Update(delta);
 
             if (entity->m_primary_renderer_instance.changed) {
                 RequestRendererInstanceUpdate(entity);

@@ -52,7 +52,7 @@
 
 #define HYP_FLUSH_RENDER_QUEUE() \
     do { \
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush); \
+        HYPERION_ASSERT_RESULT(RenderCommands::Flush()); \
     } while (0)
 
 namespace hyperion::v2 {
@@ -330,7 +330,7 @@ public:
             return false;
         }
 
-        handle->Init(this);
+        handle->Init();
 
         return true;
     }
@@ -353,7 +353,7 @@ public:
         registry.template Attach<T>(handle);
 
         if (init) {
-            handle->Init(this);
+            handle->Init();
         }
     }
 

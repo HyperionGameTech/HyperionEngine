@@ -107,7 +107,7 @@ public:
 
     virtual void InitGame() override
     {
-        Game::InitGame;
+        Game::InitGame();
         
         m_scene->SetCamera(
             Engine::Get()->CreateHandle<Camera>(new FollowCamera(
@@ -384,26 +384,26 @@ public:
 
     virtual void Teardown() override
     {
-        Game::Teardown;
+        Game::Teardown();
     }
 
     bool svo_ready_to_build = false;
 
-    virtual void OnFrameBegin( Frame *) override
+    virtual void OnFrameBegin(Frame *) override
     {
         Engine::Get()->render_state.BindScene(m_scene.Get());
     }
 
-    virtual void OnFrameEnd( Frame *) override
+    virtual void OnFrameEnd(Frame *) override
     {
         Engine::Get()->render_state.UnbindScene();
     }
 
-    virtual void Logic( GameCounter::TickUnit delta) override
+    virtual void Logic(GameCounter::TickUnit delta) override
     {
         timer += delta;
 
-        m_ui.Updatedelta);
+        m_ui.Update(delta);
 
         HandleCameraMovement(delta);
 
@@ -475,7 +475,7 @@ public:
 
     virtual void OnInputEvent( const SystemEvent &event) override
     {
-        Game::OnInputEventevent);
+        Game::OnInputEvent(event);
 
         if (event.GetType() == SystemEventType::EVENT_FILE_DROP) {
             if (const FilePath *path = event.GetEventData().TryGet<FilePath>()) {
@@ -932,11 +932,11 @@ int main()
         Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skybox", ShaderProps { }))
     );
 
-    my_game->Init;
+    my_game->Init();
 
     Engine::Get()->Compile();
     
-    Engine::Get()->game_thread.Startmy_game);
+    Engine::Get()->game_thread.Start(my_game);
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;
@@ -945,7 +945,7 @@ int main()
     while (Engine::Get()->IsRenderLoopActive()) {
         // input manager stuff
         while (application->PollEvent(event)) {
-            my_game->HandleEventstd::move(event));
+            my_game->HandleEvent(std::move(event));
         }
 
         counter.NextTick();

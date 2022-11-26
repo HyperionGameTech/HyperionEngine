@@ -180,7 +180,7 @@ public:
         Threads::AssertOnThread(THREAD_GAME);
 
         for (auto &it : m_systems) {
-            it.second->Update(engine, delta);
+            it.second->Update(delta);
         }
     }
 

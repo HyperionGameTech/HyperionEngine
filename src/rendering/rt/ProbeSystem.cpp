@@ -246,16 +246,16 @@ void ProbeGrid::Init()
         }
     }
 
-    CreateStorageBuffers;
-    CreateUniformBuffer;
-    CreateDescriptorSets;
+    CreateStorageBuffers();
+    CreateUniformBuffer();
+    CreateDescriptorSets();
 
     /* TMP */
-    Engine::Get()->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this]() {
-        CreatePipeline;
+    Engine::Get()->callbacks.Once(EngineCallback::CREATE_RAYTRACING_PIPELINES, [this](...) {
+        CreatePipeline();
     });
     
-    CreateComputePipelines;
+    CreateComputePipelines();
 }
 
 void ProbeGrid::Destroy()
@@ -559,7 +559,7 @@ void ProbeGrid::RenderProbes( Frame *frame)
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
     
-    SubmitPushConstantsframe->GetCommandBuffer());
+    SubmitPushConstants(frame->GetCommandBuffer());
 
     m_pipeline->Bind(frame->GetCommandBuffer());
 

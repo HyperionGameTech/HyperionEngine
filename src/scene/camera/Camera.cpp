@@ -74,7 +74,7 @@ void Camera::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     SetReady(true);
 

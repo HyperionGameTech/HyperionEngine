@@ -76,7 +76,7 @@ void TLAS::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
     
     // add all pending to be added to the list
     if (m_has_blas_updates.load()) {

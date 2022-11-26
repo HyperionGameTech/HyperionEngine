@@ -26,7 +26,7 @@ void UIScene::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     m_scene = Engine::Get()->CreateHandle<Scene>(
         Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
@@ -59,7 +59,7 @@ void UIScene::Init()
 
 void UIScene::Update( GameCounter::TickUnit delta)
 {
-    m_scene->Updatedelta, false);
+    m_scene->Update(delta, false);
 }
 
 bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)

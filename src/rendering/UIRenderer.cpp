@@ -87,12 +87,12 @@ void UIRenderer::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     Engine::Get()->InitObject(m_scene);
 
-    CreateFramebuffers;
-    CreateDescriptors;
+    CreateFramebuffers();
+    CreateDescriptors();
 
     SetReady(true);
 
@@ -142,7 +142,7 @@ void UIRenderer::OnRender( Frame *frame)
     Engine::Get()->render_state.BindScene(m_scene.Get());
 
     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
-        renderer_instance->Renderframe);
+        renderer_instance->Render(frame);
     }
 
     Engine::Get()->render_state.UnbindScene();

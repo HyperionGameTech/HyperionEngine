@@ -126,7 +126,7 @@ void Octree::Divide()
         octant.octree.reset(new Octree(this, octant.aabb, static_cast<UInt8>(i)));
 
         if (m_root != nullptr) {
-            m_root->events.on_insert_octant(engine, octant.octree.get(), nullptr);
+            m_root->events.on_insert_octant(octant.octree.get(), nullptr);
         }
     }
 
@@ -142,11 +142,11 @@ void Octree::Undivide()
         AssertThrow(octant.octree != nullptr);
 
         if (octant.octree->m_is_divided) {
-            octant.octree->Undivide(engine);
+            octant.octree->Undivide();
         }
         
         if (m_root != nullptr) {
-            m_root->events.on_remove_octant(engine, octant.octree.get(), nullptr);
+            m_root->events.on_remove_octant(octant.octree.get(), nullptr);
         }
 
         octant.octree.reset();
@@ -188,7 +188,7 @@ void Octree::CollapseParents()
 
 undivide:
     if (highest_empty != nullptr) {
-        highest_empty->Undivide(engine);
+        highest_empty->Undivide();
     }
 }
 
@@ -196,15 +196,15 @@ void Octree::Clear()
 {
     std::vector<Node> nodes;
 
-    Clear(engine, nodes);
+    Clear(nodes);
 }
 
 void Octree::Clear( std::vector<Node> &out_nodes)
 {
-    ClearInternal(engine, out_nodes);
+    ClearInternal(out_nodes);
 
     if (m_is_divided) {
-        Undivide(engine);
+        Undivide();
     }
 }
 
@@ -233,7 +233,7 @@ void Octree::ClearInternal( std::vector<Node> &out_nodes)
     for (auto &octant : m_octants) {
         AssertThrow(octant.octree != nullptr);
 
-        octant.octree->ClearInternal(engine, out_nodes);
+        octant.octree->ClearInternal(out_nodes);
     }
 }
 
@@ -244,7 +244,7 @@ Octree::Result Octree::Insert( Entity *entity)
     const auto &entity_aabb = entity->GetWorldAABB();
 
     if (!m_aabb.Contains(entity_aabb)) {
-        auto rebuild_result = RebuildExtendInternal(engine, entity_aabb);
+        auto rebuild_result = RebuildExtendInternal(entity_aabb);
 
         if (!rebuild_result) {
             DebugLog(
@@ -262,17 +262,17 @@ Octree::Result Octree::Insert( Entity *entity)
         for (Octant &octant : m_octants) {
             if (octant.aabb.Contains(entity_aabb)) {
                 if (!m_is_divided) {
-                    Divide(engine);
+                    Divide();
                 }
 
                 AssertThrow(octant.octree != nullptr);
 
-                return octant.octree->Insert(engine, entity);
+                return octant.octree->Insert(entity);
             }
         }
     }
 
-    return InsertInternal(engine, entity);
+    return InsertInternal(entity);
 }
 
 Octree::Result Octree::InsertInternal( Entity *entity)
@@ -286,7 +286,7 @@ Octree::Result Octree::InsertInternal( Entity *entity)
         AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
         m_root->node_to_octree[entity] = this;
-        m_root->events.on_insert_node(engine, this, entity);
+        m_root->events.on_insert_node(this, entity);
     }
 
     entity->OnAddedToOctree(this);
@@ -306,7 +306,7 @@ Octree::Result Octree::Remove( Entity *entity)
         if (auto *octree = it->second) {
             m_root->node_to_octree.erase(it);
 
-            return octree->RemoveInternal(engine, entity);
+            return octree->RemoveInternal(entity);
         }
 
         return {Result::OCTREE_ERR, "Could not be removed from any sub octants"};
@@ -316,7 +316,7 @@ Octree::Result Octree::Remove( Entity *entity)
         return {Result::OCTREE_ERR, "AABB does not contain object aabb"};
     }
 
-    return RemoveInternal(engine, entity);
+    return RemoveInternal(entity);
 }
 
 Octree::Result Octree::RemoveInternal( Entity *entity)
@@ -328,7 +328,7 @@ Octree::Result Octree::RemoveInternal( Entity *entity)
             for (auto &octant : m_octants) {
                 AssertThrow(octant.octree != nullptr);
 
-                if (octant.octree->RemoveInternal(engine, entity)) {
+                if (octant.octree->RemoveInternal(entity)) {
                     return {};
                 }
             }
@@ -338,7 +338,7 @@ Octree::Result Octree::RemoveInternal( Entity *entity)
     }
 
     if (m_root != nullptr) {
-        m_root->events.on_remove_node(engine, this, entity);
+        m_root->events.on_remove_node(this, entity);
         m_root->node_to_octree.erase(entity);
     }
 
@@ -368,7 +368,7 @@ Octree::Result Octree::RemoveInternal( Entity *entity)
             AssertThrow(last_empty_parent->EmptyDeep(DEPTH_SEARCH_INF));
 
             /* At highest empty parent octant, call Undivide() to collapse nodes */
-            last_empty_parent->Undivide(engine);
+            last_empty_parent->Undivide();
         }
     }
 
@@ -397,7 +397,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
             );
 #endif
 
-            return RebuildExtendInternal(engine, new_aabb);
+            return RebuildExtendInternal(new_aabb);
         }
 
         // not root
@@ -423,7 +423,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
                 
                 if (it != nullptr) {
                     if (m_root != nullptr) {
-                        m_root->events.on_remove_node(engine, this, entity);
+                        m_root->events.on_remove_node(this, entity);
                         m_root->node_to_octree.erase(entity);
                     }
 
@@ -431,7 +431,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
                 }
 
 
-                inserted = bool(parent->Move(engine, entity));
+                inserted = bool(parent->Move(entity));
 
                 break;
             }
@@ -441,7 +441,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
 
         if (inserted) { // succesfully inserted, safe to call CollapseParents()
             /* Node has now been added to it's appropriate octant -- remove any potential empty octants */
-            CollapseParents(engine);
+            CollapseParents();
 
             return {};
         }
@@ -460,7 +460,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
 
         AssertThrow(last_parent != nullptr);
 
-        return last_parent->Move(engine, entity);
+        return last_parent->Move(entity);
     }
 
     // CONTAINS AABB HERE
@@ -478,7 +478,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
                 */
                 if (it != nullptr) {
                     if (m_root != nullptr) {
-                        m_root->events.on_remove_node(engine, this, entity);
+                        m_root->events.on_remove_node(this, entity);
                         m_root->node_to_octree.erase(entity);
                     }
 
@@ -486,12 +486,12 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
                 }
 
                 if (!m_is_divided) {
-                    Divide(engine);
+                    Divide();
                 }
                 
                 AssertThrow(octant.octree != nullptr);
 
-                const auto octant_move_result = octant.octree->Move(engine, entity, nullptr);
+                const auto octant_move_result = octant.octree->Move(entity, nullptr);
                 AssertThrow(octant_move_result);
 
                 return octant_move_result;
@@ -516,7 +516,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
             AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
             m_root->node_to_octree[entity] = this;
-            m_root->events.on_insert_nodethis, entity);
+            m_root->events.on_insert_node(this, entity);
         }
 
         entity->OnMovedToOctant(this);
@@ -535,13 +535,13 @@ Octree::Result Octree::Update( Entity *entity)
         }
 
         if (auto *octree = it->second) {
-            return octree->UpdateInternal(engine, entity);
+            return octree->UpdateInternal(entity);
         }
 
         return {Result::OCTREE_ERR, "Object has no octree in node map!"};
     }
 
-    return UpdateInternal(engine, entity);
+    return UpdateInternal(entity);
 }
 
 Octree::Result Octree::UpdateInternal( Entity *entity)
@@ -553,7 +553,7 @@ Octree::Result Octree::UpdateInternal( Entity *entity)
             for (auto &octant : m_octants) {
                 AssertThrow(octant.octree != nullptr);
 
-                if (octant.octree->UpdateInternal(engine, entity)) {
+                if (octant.octree->UpdateInternal(entity)) {
                     return {};
                 }
             }
@@ -575,7 +575,7 @@ Octree::Result Octree::UpdateInternal( Entity *entity)
      * If we do still contain it - we will remove it from this octree and re-insert it to find the deepest child octant
      */
 
-    return Move(engine, entity, &it);
+    return Move(entity, &it);
 }
 
 Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
@@ -584,7 +584,7 @@ Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
 
     std::vector<Node> new_nodes;
 
-    Clear(engine, new_nodes);
+    Clear(new_nodes);
 
     m_aabb = new_aabb;
 
@@ -603,7 +603,7 @@ Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
             // hack
             CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
 
-            auto insert_result = Insertnode.entity);
+            auto insert_result = Insert(node.entity);
 
             if (!insert_result) {
                 return insert_result;
@@ -624,7 +624,7 @@ Octree::Result Octree::RebuildExtendInternal( const BoundingBox &extend_include_
     // to keep it from constantly resizing
     new_aabb *= growth_factor;
 
-    return Rebuild(engine, new_aabb);
+    return Rebuild(new_aabb);
 }
 
 void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
@@ -797,7 +797,7 @@ void Octree::OnEntityRemoved( Entity *entity)
         return;
     }
     
-    if (!Remove(engine, entity)) {
+    if (!Remove(entity)) {
         DebugLog(LogType::Error, "Failed to find Entity #%lu in octree\n", entity->GetID().value);
     }
 }

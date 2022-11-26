@@ -33,7 +33,7 @@ void World::Init()
         Engine::Get()->InitObject(it.second);
     }
     
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     m_physics_world.Init();
 
@@ -120,7 +120,7 @@ void World::Update(
     }
 
     for (auto &it : m_scenes) {
-        it.second->Updatedelta);
+        it.second->Update(delta);
     }
 }
 

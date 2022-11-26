@@ -267,11 +267,11 @@ void RendererInstance::Init()
         return;
     }
 
-    EngineComponentBase::Init;
+    EngineComponentBase::Init();
 
     // create our indirect renderer
     // will be created with some initial size.
-    m_indirect_renderer.Create;
+    m_indirect_renderer.Create();
 
     AssertThrow(m_fbos.Any());
 
@@ -330,7 +330,7 @@ void RendererInstance::Init()
         OnTeardown([this]() {
             SetReady(false);
 
-            m_indirect_renderer.Destroy; // make sure we have the render queue flush at the end of
+            m_indirect_renderer.Destroy(); // make sure we have the render queue flush at the end of
                                                  // this, as the indirect renderer has a call back that needs to be exec'd
                                                  // before the destructor is called
 
@@ -385,7 +385,7 @@ void RendererInstance::CollectDrawCalls( Frame *frame)
     AssertReady();
 
     if (m_enqueued_entities_flag.load()) {
-        PerformEnqueuedEntityUpdatesframe->GetFrameIndex());
+        PerformEnqueuedEntityUpdates(frame->GetFrameIndex());
     }
     
     m_indirect_renderer.GetDrawState().Reset();
@@ -428,10 +428,9 @@ void RendererInstance::CollectDrawCalls(
     const CullData &cull_data
 )
 {
-    CollectDrawCallsframe);
+    CollectDrawCalls(frame);
 
     m_indirect_renderer.ExecuteCullShaderInBatches(
-        Engine::Get(),
         frame,
         cull_data
     );
@@ -505,7 +504,6 @@ static void BindGlobalDescriptorSets(
 }
 
 static void BindPerObjectDescriptorSets(
-    
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
@@ -546,7 +544,6 @@ static void BindPerObjectDescriptorSets(
 template <bool IsIndirect>
 static HYP_FORCE_INLINE void
 RenderAll(
-    
     Frame *frame,
     FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers,
     UInt &command_buffer_index,
@@ -597,7 +594,6 @@ RenderAll(
                     pipeline->Bind(secondary);
 
                     BindGlobalDescriptorSets(
-                        Engine::Get(),
                         frame,
                         pipeline,
                         secondary,
@@ -606,7 +602,6 @@ RenderAll(
                     
                     for (const auto &draw_proxy : draw_proxies) {
                         BindPerObjectDescriptorSets(
-                            Engine::Get(),
                             frame,
                             pipeline,
                             secondary,
@@ -621,13 +616,12 @@ RenderAll(
 #endif
                             
                             draw_proxy.mesh->RenderIndirect(
-                                Engine::Get(),
                                 secondary,
                                 indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
                                 draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
                             );
                         } else {
-                            draw_proxy.mesh->Rendersecondary);
+                            draw_proxy.mesh->Render(secondary);
                         }
                     }
 
@@ -656,7 +650,6 @@ void RendererInstance::PerformRendering( Frame *frame)
     AssertReady();
 
     RenderAll<false>(
-        Engine::Get(),
         frame,
         m_command_buffers,
         m_command_buffer_index,
@@ -673,7 +666,6 @@ void RendererInstance::PerformRenderingIndirect( Frame *frame)
     AssertReady();
 
     RenderAll<true>(
-        Engine::Get(),
         frame,
         m_command_buffers,
         m_command_buffer_index,
@@ -687,8 +679,8 @@ void RendererInstance::PerformRenderingIndirect( Frame *frame)
 void RendererInstance::Render( Frame *frame)
 {
     // perform all ops in one batch
-    CollectDrawCallsframe);
-    PerformRenderingframe);
+    CollectDrawCalls(frame);
+    PerformRendering(frame);
 }
 
 // Proxied methods
@@ -726,13 +718,11 @@ void RendererProxy::SetConstants(void *ptr, SizeType size)
 }
 
 void RendererProxy::BindEntityObject(
-    
     Frame *frame,
     const EntityDrawProxy &entity
 )
 {
     BindPerObjectDescriptorSets(
-        Engine::Get(),
         frame,
         m_renderer_instance->m_pipeline.get(),
         m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get(),
@@ -743,7 +733,6 @@ void RendererProxy::BindEntityObject(
 }
 
 void RendererProxy::DrawMesh(
-    
     Frame *frame,
     Mesh *mesh
 )
@@ -751,11 +740,10 @@ void RendererProxy::DrawMesh(
     CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    mesh->Rendercommand_buffer);
+    mesh->Render(command_buffer);
 }
 
 void RendererProxy::Submit(
-    
     Frame *frame
 )
 {

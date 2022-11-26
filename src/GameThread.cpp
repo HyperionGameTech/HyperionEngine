@@ -31,7 +31,7 @@ void GameThread::operator()( Game *game)
 
     m_is_running.store(true, std::memory_order_relaxed);
 
-    game->InitGame;
+    game->InitGame();
     
     Queue<Scheduler::ScheduledTask> tasks;
 
@@ -52,7 +52,7 @@ void GameThread::operator()( Game *game)
 
         counter.NextTick();
         
-        game->Update(engine, counter.delta);
+        game->Update(counter.delta);
     }
 
     // flush scheduler
@@ -60,7 +60,7 @@ void GameThread::operator()( Game *game)
         fn(MathUtil::epsilon<GameCounter::TickUnit>);
     });
 
-    game->Teardown(engine);
+    game->Teardown();
 
     m_is_running.store(false, std::memory_order_relaxed);
 }

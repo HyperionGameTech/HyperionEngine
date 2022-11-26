@@ -131,9 +131,9 @@ BlurRadiance::~BlurRadiance() = default;
 
 void BlurRadiance::Create()
 {
-    CreateImageOutputs;
-    CreateDescriptorSets;
-    CreateComputePipelines;
+    CreateImageOutputs();
+    CreateDescriptorSets();
+    CreateComputePipelines();
 }
 
 void BlurRadiance::Destroy()
