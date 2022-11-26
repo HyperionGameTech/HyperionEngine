@@ -4,10 +4,11 @@
 #include "Camera.hpp"
 
 namespace hyperion::v2 {
-class PerspectiveCamera : public Camera {
+class PerspectiveCameraController : public CameraController
+{
 public:
-    PerspectiveCamera(float fov, int width, int height, float _near, float _far);
-    virtual ~PerspectiveCamera() = default;
+    PerspectiveCameraController();
+    virtual ~PerspectiveCameraController() = default;
 
     virtual void UpdateLogic(double dt) override;
     virtual void UpdateViewMatrix() override;

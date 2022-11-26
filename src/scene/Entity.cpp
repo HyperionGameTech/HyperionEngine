@@ -699,7 +699,7 @@ bool Entity::CreateBLAS()
         return false;
     }
 
-    m_blas = Engine::Get()->CreateHandle<BLAS>(
+    m_blas = Engine::Get()->CreateObject<BLAS>(
         m_id,
         Handle<Mesh>(m_mesh),
         Handle<Material>(m_material),

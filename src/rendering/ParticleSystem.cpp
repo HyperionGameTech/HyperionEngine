@@ -302,7 +302,7 @@ void ParticleSpawner::CreateBuffers()
 
 void ParticleSpawner::CreateShader()
 {
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Particle"));
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Particle"));
     Engine::Get()->InitObject(m_shader);
 }
 
@@ -352,7 +352,7 @@ void ParticleSpawner::CreateRendererInstance()
     // Not using Engine::FindOrCreateRendererInstance because we want to use
     // our own descriptor sets which will be destroyed when this object is destroyed.
     // we don't want any other objects to use our RendererInstance then!
-    m_renderer_instance = Engine::Get()->CreateHandle<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         Handle<Shader>(m_shader),
         Handle<RenderPass>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()),
         RenderableAttributeSet(
@@ -382,8 +382,8 @@ void ParticleSpawner::CreateRendererInstance()
 
 void ParticleSpawner::CreateComputePipelines()
 {
-    m_update_particles = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("UpdateParticles")),
+    m_update_particles = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("UpdateParticles")),
         Array<const DescriptorSet *> { &m_descriptor_sets[0] }
     );
 
@@ -410,7 +410,7 @@ void ParticleSystem::Init()
 
     EngineComponentBase::Init();
 
-    m_quad_mesh = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_quad_mesh = MeshBuilder::Quad();
     Engine::Get()->InitObject(m_quad_mesh);
 
     CreateBuffers();

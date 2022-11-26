@@ -110,13 +110,16 @@ public:
         Game::InitGame();
         
         m_scene->SetCamera(
-            Engine::Get()->CreateHandle<Camera>(new FollowCamera(
-                Vector3(0.0f), Vector3(0.0f, 150.0f, -35.0f),
+            Engine::Get()->CreateObject<Camera>(
+                70.0f
                 1920, 1080,
-                70.0f,
                 0.5f, 30000.0f
-            ))
+            )
         );
+
+        m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
+            Vector3(0.0f), Vector3(0.0f, 150.0f, -35.0f)
+        ));
 
 #ifdef HYP_TEST_VCT
         { // voxel cone tracing for indirect light and reflections
@@ -137,6 +140,7 @@ public:
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
+        
         // batch.Add<Node>("monkey_fbx", "models/monkey.fbx");
         batch.LoadAsync();
         auto obj_models = batch.AwaitResults();
@@ -184,7 +188,7 @@ public:
 
         if (false) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
-            btn_node.SetEntity(Engine::Get()->CreateHandle<Entity>());
+            btn_node.SetEntity(Engine::Get()->CreateObject<Entity>());
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
@@ -195,7 +199,7 @@ public:
         }
 
 
-        auto cubemap = Engine::Get()->CreateHandle<Texture>(new TextureCube(
+        auto cubemap = Engine::Get()->CreateObject<Texture>(new TextureCube(
             Engine::Get()->GetAssetManager().LoadMany<Texture>(
                 "textures/chapel/posx.jpg",
                 "textures/chapel/negx.jpg",
@@ -223,33 +227,20 @@ public:
         }
         
         { // adding lights to scene
-            m_sun = Engine::Get()->CreateHandle<Light>(new DirectionalLight(
+            m_sun = Engine::Get()->CreateObject<Light>(DirectionalLight(
                 Vector3(-0.5f, 1.0f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
                 300000.0f
             ));
+
             m_scene->AddLight(m_sun);
-
-            // m_scene->AddLight(Engine::Get()->CreateHandle<Light>(new PointLight(
-            //      Vector3(0.0f, 4.0f, 0.0f),
-            //      Color(1.0f, 0.0f, 0.0f),
-            //      100000.0f,
-            //      30.0f
-            // )));
-
-            // m_scene->AddLight(Engine::Get()->CreateHandle<Light>(new PointLight(
-            //      Vector3(5.0f, 4.0f, 12.0f),
-            //      Color(0.0f, 0.0f, 1.0f),
-            //      50000.0f,
-            //      30.0f
-            // )));
         }
 
         //auto tex = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png");
         //AssertThrow(tex);
 
         if (true) { // particles test
-            auto particle_spawner = Engine::Get()->CreateHandle<ParticleSpawner>(ParticleSpawnerParams {
+            auto particle_spawner = Engine::Get()->CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
                 .origin = Vector3(0.0f, 8.0f, -17.0f),
@@ -274,7 +265,7 @@ public:
 
         cube_obj.Scale(50.0f);
 
-        auto skybox_material = Engine::Get()->CreateHandle<Material>();
+        auto skybox_material = Engine::Get()->CreateObject<Material>();
         skybox_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Material::Parameter(Vector4{ 1.0f, 1.0f, 1.0f, 1.0f }));
         skybox_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(cubemap));
         skybox_material->SetBucket(BUCKET_SKYBOX);
@@ -305,7 +296,7 @@ public:
 #ifdef HYP_TEST_TERRAIN
         { // paged procedural terrain
             if (auto terrain_node = m_scene->GetRoot().AddChild()) {
-                terrain_node.SetEntity(Engine::Get()->CreateHandle<Entity>());
+                terrain_node.SetEntity(Engine::Get()->CreateObject<Entity>());
                 terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(16.0f, 16.0f, 16.0f), 2.0f);
             }
         }
@@ -357,13 +348,13 @@ public:
 
         if (false) {
             // add a plane physics shape
-            auto plane = Engine::Get()->CreateHandle<Entity>();
+            auto plane = Engine::Get()->CreateObject<Entity>();
             plane->SetName("Plane entity");
             plane->SetTranslation(Vector3(0, 12, 8));
-            plane->SetMesh(Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad()));
+            plane->SetMesh(Engine::Get()->CreateObject<Mesh>(MeshBuilder::Quad()));
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(250.0f);
-            plane->SetMaterial(Engine::Get()->CreateHandle<Material>());
+            plane->SetMaterial(Engine::Get()->CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.8f, 1.0f, 1.0f));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.075f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
@@ -443,10 +434,12 @@ public:
 
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
-                    if (auto lookup_result = Engine::Get()->GetObjectSystem().Lookup<Entity>(Entity::ID(hit.id))) {
+                    Entity::ID entity(hit.id);
+
+                    if (entity) {
                         lookup_result->AddController<AABBDebugController>();
 
-                        if (auto &mesh = lookup_result->GetMesh()) {
+                        if (auto &mesh = entity->GetMesh()) {
                             ray.TestTriangleList(
                                 mesh->GetVertices(),
                                 mesh->GetIndices(),
@@ -892,6 +885,12 @@ int main()
     HYP_BREAKPOINT;
 #endif
 
+    OpaqueHandle<Entity> test_ent;
+    test_ent = Engine::Get()->CreateObject<Entity>();
+    // test_ent.Reset();
+    std::cout << "FOO " << test_ent->GetName() << std::endl << "\n";
+    HYP_BREAKPOINT;
+
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
     
@@ -904,32 +903,32 @@ int main()
 
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::BASIC_VEGETATION,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Vegetation", ShaderProps { }))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Vegetation", ShaderProps { }))
     );
 
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::BASIC_UI,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("UIObject", ShaderProps { }))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("UIObject", ShaderProps { }))
     );
 
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::DEBUG_AABB,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DebugAABB", ShaderProps { }))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DebugAABB", ShaderProps { }))
     );
 
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::BASIC_FORWARD,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
     );
 
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::TERRAIN,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Terrain", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Terrain", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
     );
 
     Engine::Get()->shader_manager.SetShader(
         ShaderManager::Key::BASIC_SKYBOX,
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skybox", ShaderProps { }))
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skybox", ShaderProps { }))
     );
 
     my_game->Init();

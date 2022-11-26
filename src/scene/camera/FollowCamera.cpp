@@ -1,34 +1,38 @@
 #include "FollowCamera.hpp"
 
 namespace hyperion::v2 {
-FollowCamera::FollowCamera(
-    const Vector3 &target, const Vector3 &offset,
-    int width, int height,
-    float fov,
-    float _near, float _far
-) : PerspectiveCamera(fov, width, height, _near, _far),
-    m_offset(offset),
-    m_real_offset(offset),
-    m_mx(0.0f),
-    m_my(0.0f),
-    m_prev_mx(0.0f),
-    m_prev_my(0.0f),
-    m_desired_distance(target.Distance(offset))
+
+FollowCameraController::FollowCameraController(const Vector3 &target, const Vector3 &offset)
+    : PerspectiveCameraController(),
+      m_target(target),
+      m_offset(offset),
+      m_real_offset(offset),
+      m_mx(0.0f),
+      m_my(0.0f),
+      m_prev_mx(0.0f),
+      m_prev_my(0.0f),
+      m_desired_distance(target.Distance(offset))
 {
-    SetTarget(target);
 }
 
-void FollowCamera::UpdateLogic(double dt)
+void FollowCameraController::OnAdded(Camera *camera)
+{
+    CameraController::OnAdded(camera);
+
+    camera->SetTarget(m_target);
+}
+
+void FollowCameraController::UpdateLogic(double dt)
 {
     m_real_offset.Lerp(m_offset, MathUtil::Clamp(Float(dt) * 25.0f, 0.0f, 1.0f));
 
-    const auto origin = GetTarget();
+    const auto origin = m_camera->GetTarget();
     const auto normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();
 
-    SetTranslation(origin + normalized_offset_direction * m_desired_distance);
+    m_camera->SetTranslation(origin + normalized_offset_direction * m_desired_distance);
 }
 
-void FollowCamera::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
+void FollowCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
 {
     switch (command.command) {
     case CameraCommand::CAMERA_COMMAND_MAG:
@@ -55,7 +59,7 @@ void FollowCamera::RespondToCommand(const CameraCommand &command, GameCounter::T
     {
         constexpr float scroll_speed = 150.0f;
         
-        m_desired_distance -= static_cast<float>(command.scroll_data.wheel_y) * scroll_speed * dt;
+        m_desired_distance -= Float(command.scroll_data.wheel_y) * scroll_speed * dt;
 
         break;
     }
@@ -64,15 +68,15 @@ void FollowCamera::RespondToCommand(const CameraCommand &command, GameCounter::T
         constexpr float movement_speed = 500.0f;
         const float speed = movement_speed * dt;
 
-        const auto dir_cross_y = Vector3(m_direction).Cross(m_up);
+        const auto dir_cross_y = Vector3(m_camera->m_direction).Cross(m_camera->m_up);
 
         switch (command.movement_data.movement_type) {
         case CameraCommand::CAMERA_MOVEMENT_FORWARD:
-            m_offset -= m_up * speed;
+            m_offset -= m_camera->m_up * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
-            m_offset += m_up * speed;
+            m_offset += m_camera->m_up * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_LEFT:

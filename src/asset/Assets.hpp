@@ -142,8 +142,6 @@ public:
         UInt path_index = 0;
 
         for (const auto &path : paths_array) {
-            DebugLog(LogType::Error, "path %s\n", path.Data());
-            // temp:
             batch.Add<T>(String::ToString(path_index++), path);
         }
 

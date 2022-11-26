@@ -3,6 +3,7 @@
 
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
+#include <core/OpaqueHandle.hpp>
 
 #include <ui/UIScene.hpp>
 
@@ -148,7 +149,7 @@ private:
 class UIText
 {
 public:
-    static UniquePtr<Mesh> BuildTextMesh(const FontMap &font_map, const String &text);
+    static Handle<Mesh> BuildTextMesh(const FontMap &font_map, const String &text);
 };
 
 // class UIText : public UIObject

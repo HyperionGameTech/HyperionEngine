@@ -68,15 +68,7 @@ public:
     template <class T>
     auto Get() -> typename AssetLoaderWrapper<T>::CastedType
     {
-        using Wrapper = AssetLoaderWrapper<T>;
-
-        if constexpr (std::is_same_v<typename Wrapper::CastedType, typename Wrapper::ResultType>) {
-            return m_value.Get<typename Wrapper::ResultType>();
-        } else {
-            return m_value.Get<typename Wrapper::ResultType>().template Cast<T>();
-        }
-
-        return typename Wrapper::CastedType();
+        return ExtractAssetValue<T>(m_value);
     }
 
     /*! \brief Extracts the value held inside the Any */

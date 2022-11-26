@@ -201,9 +201,9 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             continue;
         }
 
-        auto material = Engine::Get()->CreateHandle<Material>("ogrexml_material");
+        auto material = Engine::Get()->CreateObject<Material>("ogrexml_material");
 
-        auto mesh = Engine::Get()->CreateHandle<Mesh>(
+        auto mesh = Engine::Get()->CreateObject<Mesh>(
             model.vertices,
             sub_mesh.indices,
             Topology::TRIANGLES
@@ -218,9 +218,9 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         auto vertex_attributes = mesh->GetVertexAttributes();
 
         auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
-        const auto shader_id = shader != nullptr ? shader->GetID() : Shader::empty_id;
+        const auto shader_id = shader ? shader->GetID() : Shader::empty_id;
 
-        auto entity = Engine::Get()->CreateHandle<Entity>(
+        auto entity = Engine::Get()->CreateObject<Entity>(
             std::move(mesh),
             std::move(shader),
             std::move(material),

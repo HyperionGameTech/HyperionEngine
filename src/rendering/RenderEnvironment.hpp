@@ -183,7 +183,7 @@ private:
     RTRadianceRenderer m_rt_radiance;
     ProbeGrid m_probe_system;
     bool m_has_rt_radiance;
-    WeakHandle<TLAS> m_tlas;
+    Handle<TLAS> m_tlas;
 
     Float m_global_timer;
     UInt32 m_frame_counter;

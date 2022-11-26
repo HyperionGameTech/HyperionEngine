@@ -1,31 +1,30 @@
 #include "PerspectiveCamera.hpp"
 
 namespace hyperion::v2 {
-PerspectiveCamera::PerspectiveCamera(float fov, int width, int height, float _near, float _far)
-    : Camera(CameraType::PERSPECTIVE, width, height, _near, _far)
-{
-    m_fov = fov;
-}
-
-void PerspectiveCamera::UpdateLogic(double dt)
+PerspectiveCameraController::PerspectiveCameraController()
+    : CameraController(CameraType::PERSPECTIVE)
 {
 }
 
-void PerspectiveCamera::UpdateViewMatrix()
+void PerspectiveCameraController::UpdateLogic(double dt)
 {
-    m_view_mat = Matrix4::LookAt(
-        m_translation,
-        GetTarget(),
-        m_up
+}
+
+void PerspectiveCameraController::UpdateViewMatrix()
+{
+    m_camera->m_view_mat = Matrix4::LookAt(
+        m_camera->m_translation,
+        m_camera->GetTarget(),
+        m_camera->m_up
     );
 }
 
-void PerspectiveCamera::UpdateProjectionMatrix()
+void PerspectiveCameraController::UpdateProjectionMatrix()
 {
-    m_proj_mat = Matrix4::Perspective(
-        m_fov,
-        m_width, m_height,
-        m_near,  m_far
+    m_camera->m_proj_mat = Matrix4::Perspective(
+        m_camera->m_fov,
+        m_camera->m_width, m_camera->m_height,
+        m_camera->m_near,  m_camera->m_far
     );
 }
 } // namespace hyperion::v2

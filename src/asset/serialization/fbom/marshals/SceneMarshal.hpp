@@ -40,22 +40,24 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Scene> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        out_object.Reset(new Scene(Handle<Camera>()));
+        auto scene_handle = UniquePtr<OpaqueHandle<Scene>>::Construct(Engine::Get()->CreateObject<Scene>(Handle<Camera>()));
 
         String name;
         in.GetProperty("name").ReadString(name);
-        out_object->SetName(std::move(name));
+        (*scene_handle)->SetName(std::move(name));
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                out_object->GetRoot().AddChild(node.deserialized.Get<Node>());
+                (*scene_handle)->GetRoot().AddChild(node.deserialized.Get<Node>());
                 // out_object->SetRoot(node.deserialized.Get<Node>());
             } else if (node.GetType().IsOrExtends(Camera::GetClass().GetName())) {
-                out_object->SetCamera(node.deserialized.Get<Camera>());
+                (*scene_handle)->SetCamera(node.deserialized.Get<Camera>());
             }
         }
+
+        out_object = std::move(scene_handle);
 
         return { FBOMResult::FBOM_OK };
     }

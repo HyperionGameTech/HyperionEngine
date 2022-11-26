@@ -364,29 +364,29 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets()
 
 void ScreenspaceReflectionRenderer::CreateComputePipelines()
 {
-    m_write_uvs = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
+    m_write_uvs = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_write_uvs);
 
-    m_sample = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRSample")),
+    m_sample = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRSample")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_sample);
 
-    m_blur_hor = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurHor")),
+    m_blur_hor = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurHor")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_blur_hor);
 
-    m_blur_vert = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurVert")),
+    m_blur_vert = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRBlurVert")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

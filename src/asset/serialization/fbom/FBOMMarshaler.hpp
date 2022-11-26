@@ -41,7 +41,7 @@ public:
     virtual FBOMType GetObjectType() const override = 0;
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<T> &out_object) const = 0;
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const = 0;
 
 private:
     virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const override
@@ -53,7 +53,7 @@ private:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override
     {
-        UniquePtr<T> ptr;
+        UniquePtr<void> ptr;
 
         auto result = Deserialize(in, ptr);
 

@@ -82,14 +82,14 @@ void RenderEnvironment::Init()
     
     EngineComponentBase::Init();
 
-    m_particle_system = Engine::Get()->CreateHandle<ParticleSystem>();
+    m_particle_system = Engine::Get()->CreateObject<ParticleSystem>();
     Engine::Get()->InitObject(m_particle_system);
     
-    if (auto tlas = m_tlas.Lock()) {
-        m_rt_radiance.SetTLAS(tlas);
+    if (m_tlas) {
+        m_rt_radiance.SetTLAS(m_tlas);
         m_rt_radiance.Create();
 
-        m_probe_system.SetTLAS(tlas);
+        m_probe_system.SetTLAS(m_tlas);
         m_probe_system.Init();
 
         m_has_rt_radiance = true;

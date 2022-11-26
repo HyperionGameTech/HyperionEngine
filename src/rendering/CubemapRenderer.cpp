@@ -164,11 +164,11 @@ void CubemapRenderer::Init()
     CreateImagesAndBuffers();
     CreateRendererInstance();
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(Handle<Camera>());
+    m_scene = Engine::Get()->CreateObject<Scene>(Handle<Camera>());
     Engine::Get()->InitObject(m_scene);
 
     // testing global skybox
-    auto tex = Engine::Get()->CreateHandle<Texture>(new TextureCube(
+    auto tex = Engine::Get()->CreateObject<Texture>(TextureCube(
         Engine::Get()->GetAssetManager().LoadMany<Texture>(
             "textures/chapel/posx.jpg",
             "textures/chapel/negx.jpg",
@@ -180,7 +180,7 @@ void CubemapRenderer::Init()
     ));
     tex->GetImage().SetIsSRGB(true);
 
-    m_env_probe = Engine::Get()->CreateHandle<EnvProbe>(
+    m_env_probe = Engine::Get()->CreateObject<EnvProbe>(
 
         // TEMP
         std::move(tex),
@@ -367,7 +367,7 @@ void CubemapRenderer::CreateImagesAndBuffers()
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             m_cubemap_render_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
 
-            m_cubemaps[frame_index] = Engine::Get()->CreateHandle<Texture>(new TextureCube(
+            m_cubemaps[frame_index] = Engine::Get()->CreateObject<Texture>(TextureCube(
                 m_cubemap_dimensions,
                 InternalFormat::RGBA8_SRGB,
                 m_filter_mode,
@@ -389,7 +389,7 @@ void CubemapRenderer::CreateImagesAndBuffers()
 
 void CubemapRenderer::CreateRendererInstance()
 {
-    auto renderer_instance = std::make_unique<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         Handle<Shader>(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -405,22 +405,22 @@ void CubemapRenderer::CreateRendererInstance()
     );
 
     for (auto &framebuffer: m_framebuffers) {
-        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(renderer_instance));
+    Engine::Get()->AddRendererInstance(m_renderer_instance);
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
 void CubemapRenderer::CreateShader()
 {
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("CubemapRenderer"));
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("CubemapRenderer"));
     Engine::Get()->InitObject(m_shader);
 }
 
 void CubemapRenderer::CreateRenderPass()
 {
-    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
+    m_render_pass = Engine::Get()->CreateObject<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
@@ -475,7 +475,7 @@ void CubemapRenderer::CreateRenderPass()
 void CubemapRenderer::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
+        m_framebuffers[i] = Engine::Get()->CreateObject<Framebuffer>(
             m_cubemap_dimensions,
             Handle<RenderPass>(m_render_pass)
         );

@@ -48,7 +48,7 @@ void DeferredPass::CreateShader()
         );
     }
 
-    m_shader = Engine::Get()->CreateHandle<Shader>(compiled_shader);
+    m_shader = Engine::Get()->CreateObject<Shader>(compiled_shader);
     Engine::Get()->InitObject(m_shader);
 }
 
@@ -222,7 +222,7 @@ void DeferredRenderer::Create()
     m_hbao->Create();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_results[i] = Engine::Get()->CreateHandle<Texture>(
+        m_results[i] = Engine::Get()->CreateObject<Texture>(
             StorageImage(
                 Extent3D(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent),
                 InternalFormat::RGBA16F,
@@ -235,7 +235,7 @@ void DeferredRenderer::Create()
 
         Engine::Get()->InitObject(m_results[i]);
 
-        m_mipmapped_results[i] = Engine::Get()->CreateHandle<Texture>(new Texture2D(
+        m_mipmapped_results[i] = Engine::Get()->CreateObject<Texture>(Texture2D(
             mipmap_chain_extent,
             InternalFormat::RGBA8_SRGB,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
@@ -460,8 +460,8 @@ void DeferredRenderer::CreateDescriptorSets()
 
 void DeferredRenderer::CreateComputePipelines()
 {
-    m_combine = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DeferredCombine")),
+    m_combine = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DeferredCombine")),
         Array<const DescriptorSet *> { m_combine_descriptor_sets[0].Get() }
     );
 

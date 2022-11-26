@@ -18,7 +18,7 @@ SSAOEffect::~SSAOEffect() = default;
 
 Handle<Shader> SSAOEffect::CreateShader()
 {
-    return Engine::Get()->CreateHandle<Shader>(
+    return Engine::Get()->CreateObject<Shader>(
         std::vector<SubShader>{
             SubShader{ShaderModule::Type::VERTEX, {
                 Reader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/PostEffect.vert.spv")).ReadBytes()

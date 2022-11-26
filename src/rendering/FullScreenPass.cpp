@@ -118,14 +118,14 @@ void FullScreenPass::SetShader(Handle<Shader> &&shader)
 
 void FullScreenPass::CreateQuad()
 {
-    m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_full_screen_quad = MeshBuilder::Quad();
     Engine::Get()->InitObject(m_full_screen_quad);
 }
 
 void FullScreenPass::CreateRenderPass()
 {
     /* Add the filters' renderpass */
-    auto render_pass = std::make_unique<RenderPass>(
+    m_render_pass = Engine::Get()->CreateObject<RenderPass>(
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -150,13 +150,12 @@ void FullScreenPass::CreateRenderPass()
         &attachment_ref
     ));
 
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
 
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
-    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(render_pass.release());
     Engine::Get()->InitObject(m_render_pass);
 }
 
@@ -173,7 +172,7 @@ void FullScreenPass::CreateCommandBuffers()
 void FullScreenPass::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
+        m_framebuffers[i] = Engine::Get()->CreateObject<Framebuffer>(
             Engine::Get()->GetGPUInstance()->swapchain->extent,
             Handle<RenderPass>(m_render_pass)
         );
@@ -203,17 +202,17 @@ void FullScreenPass::CreatePipeline()
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
-    auto _renderer_instance = std::make_unique<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         renderable_attributes
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        _renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(_renderer_instance));
+    Engine::Get()->AddRendererInstance(m_renderer_instance);
     Engine::Get()->InitObject(m_renderer_instance);
 }
 

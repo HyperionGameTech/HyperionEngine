@@ -69,7 +69,7 @@ public:
         { return m_receives_update; }
 
     bool HasScript() const
-        { return m_script != nullptr; }
+        { return m_script.IsValid(); }
 
     bool IsScriptValid() const
         { return m_script_valid; }

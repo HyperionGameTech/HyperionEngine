@@ -33,8 +33,8 @@ void VoxelConeTracing::Init()
 
     EngineComponentBase::Init();
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(
-        Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
+    m_scene = Engine::Get()->CreateObject<Scene>(
+        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
             voxel_map_extent.width, voxel_map_extent.height,
             -static_cast<float>(voxel_map_extent[0]) * 0.5f, static_cast<float>(voxel_map_extent[0]) * 0.5f,
             -static_cast<float>(voxel_map_extent[1]) * 0.5f, static_cast<float>(voxel_map_extent[1]) * 0.5f,
@@ -384,7 +384,7 @@ void VoxelConeTracing::OnComponentIndexChanged(RenderComponentBase::Index new_in
 
 void VoxelConeTracing::CreateImagesAndBuffers()
 {
-    m_voxel_image = Engine::Get()->CreateHandle<Texture>(
+    m_voxel_image = Engine::Get()->CreateObject<Texture>(
         StorageImage(
             voxel_map_extent,
             InternalFormat::RGBA8,
@@ -397,7 +397,7 @@ void VoxelConeTracing::CreateImagesAndBuffers()
 
     Engine::Get()->InitObject(m_voxel_image);
 
-    m_temporal_blending_image = Engine::Get()->CreateHandle<Texture>(
+    m_temporal_blending_image = Engine::Get()->CreateObject<Texture>(
         StorageImage(
             temporal_image_extent,
             InternalFormat::RGBA8, // alpha channel is used as temporal blending amount.
@@ -475,7 +475,7 @@ void VoxelConeTracing::CreateImagesAndBuffers()
 
 void VoxelConeTracing::CreateRendererInstance()
 {
-    auto renderer_instance = std::make_unique<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -491,32 +491,32 @@ void VoxelConeTracing::CreateRendererInstance()
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
     
-    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(renderer_instance));
+    Engine::Get()->AddRendererInstance(m_renderer_instance);
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
 void VoxelConeTracing::CreateComputePipelines()
 {
-    m_clear_voxels = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("VCTClearVoxels"))
+    m_clear_voxels = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("VCTClearVoxels"))
     );
 
     Engine::Get()->InitObject(m_clear_voxels);
 
     if constexpr (manual_mipmap_generation) {
-        m_generate_mipmap = Engine::Get()->CreateHandle<ComputePipeline>(
-            Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("VCTGenerateMipmap")),
+        m_generate_mipmap = Engine::Get()->CreateObject<ComputePipeline>(
+            Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("VCTGenerateMipmap")),
             Array<const DescriptorSet *> { m_generate_mipmap_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
         );
 
         Engine::Get()->InitObject(m_generate_mipmap);
     }
 
-    m_perform_temporal_blending = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_perform_temporal_blending = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/vct/TemporalBlending.comp.spv")).Read()}}
             }
@@ -542,13 +542,13 @@ void VoxelConeTracing::CreateShader()
         );
     }
     
-    m_shader = Engine::Get()->CreateHandle<Shader>(sub_shaders);
+    m_shader = Engine::Get()->CreateObject<Shader>(sub_shaders);
     Engine::Get()->InitObject(m_shader);
 }
 
 void VoxelConeTracing::CreateRenderPass()
 {
-    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
+    m_render_pass = Engine::Get()->CreateObject<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -559,7 +559,7 @@ void VoxelConeTracing::CreateRenderPass()
 void VoxelConeTracing::CreateFramebuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
+        m_framebuffers[i] = Engine::Get()->CreateObject<Framebuffer>(
             Extent2D(voxel_map_extent),
             Handle<RenderPass>(m_render_pass)
         );

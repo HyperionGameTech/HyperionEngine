@@ -246,6 +246,12 @@ protected:
     using Base = RefCountedPtrBase<CountType>;
 
 public:
+    template <class ...Args>
+    [[nodiscard]] static RefCountedPtr Construct(Args &&... args)
+    {
+        return RefCountedPtr(new T(std::forward<Args>(args)...));
+    }
+
     RefCountedPtr()
         : Base()
     {

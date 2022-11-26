@@ -21,7 +21,7 @@ public:
 
     Animation *GetCurrentAnimation() const
     {
-        return m_skeleton != nullptr && m_animation_index != ~0u
+        return m_skeleton && m_animation_index != ~0u
             ? m_skeleton->GetAnimation(m_animation_index)
             : nullptr;
     }

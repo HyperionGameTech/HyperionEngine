@@ -89,17 +89,17 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Material> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
         String name;
         in.GetProperty("name").ReadString(name);
 
-        out_object.Reset(new Material(name));
+        auto material_handle = UniquePtr<OpaqueHandle<Material>>::Construct(Engine::Get()->CreateObject<Material>(name));
 
-        in.GetProperty("attributes.bucket").ReadUnsignedInt(&out_object->GetRenderAttributes().bucket);
-        in.GetProperty("attributes.flags").ReadUnsignedInt(&out_object->GetRenderAttributes().flags);
-        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&out_object->GetRenderAttributes().cull_faces);
-        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&out_object->GetRenderAttributes().fill_mode);
+        in.GetProperty("attributes.bucket").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().bucket);
+        in.GetProperty("attributes.flags").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().flags);
+        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().cull_faces);
+        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().fill_mode);
 
         UInt num_parameters;
 
@@ -138,7 +138,7 @@ public:
                 }
             }
 
-            out_object->SetParameter(key, param);
+            (*material_handle)->SetParameter(key, param);
         }
 
         UInt32 texture_keys[Material::max_textures];
@@ -154,7 +154,7 @@ public:
             if (node.GetType().IsOrExtends("Texture")) {
                 if (texture_index < std::size(texture_keys)) {
                     if (auto texture = node.deserialized.Get<Texture>()) {
-                        out_object->SetTexture(
+                        (*material_handle)->SetTexture(
                             static_cast<Material::TextureKey>(texture_keys[texture_index]), 
                             std::move(texture)
                         );
@@ -164,6 +164,8 @@ public:
                 }
             }
         }
+
+        out_object = std::move(material_handle);
 
         return { FBOMResult::FBOM_OK };
     }

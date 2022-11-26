@@ -359,23 +359,23 @@ void HBAO::CreateDescriptorSets()
 
 void HBAO::CreateComputePipelines()
 {
-    m_compute_hbao = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("HBAO")),
+    m_compute_hbao = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("HBAO")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_compute_hbao);
 
     if constexpr (blur_result) {
-        m_blur_hor = Engine::Get()->CreateHandle<ComputePipeline>(
-            Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "HORIZONTAL" }))),
+        m_blur_hor = Engine::Get()->CreateObject<ComputePipeline>(
+            Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "HORIZONTAL" }))),
             Array<const DescriptorSet *> { m_blur_descriptor_sets[0][0].Get() }
         );
 
         Engine::Get()->InitObject(m_blur_hor);
 
-        m_blur_vert = Engine::Get()->CreateHandle<ComputePipeline>(
-            Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute")),
+        m_blur_vert = Engine::Get()->CreateObject<ComputePipeline>(
+            Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute")),
             Array<const DescriptorSet *> { m_blur_descriptor_sets[0][1].Get() }
         );
 

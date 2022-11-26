@@ -2,6 +2,7 @@
 #include <Threads.hpp>
 #include <math/MathUtil.hpp>
 #include <terrain/TerrainErosion.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 
@@ -42,14 +43,14 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator &noise_combinator
     TerrainErosion::Erode(m_height_data);
 }
 
-std::unique_ptr<Mesh> TerrainMeshBuilder::BuildMesh() const
+Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 {
     Threads::AssertOnThread(THREAD_TASK);
 
     std::vector<Vertex> vertices = BuildVertices();
     std::vector<Mesh::Index> indices = BuildIndices();
 
-    auto mesh = std::make_unique<Mesh>(
+    auto mesh = Engine::Get()->CreateObject<Mesh>(
         vertices,
         indices,
         Topology::TRIANGLES,

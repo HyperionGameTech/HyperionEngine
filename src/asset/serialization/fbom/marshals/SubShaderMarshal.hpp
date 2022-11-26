@@ -31,11 +31,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<SubShader> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        out_object.Reset(new SubShader());
+        auto sub_shader = UniquePtr<SubShader>::Construct();
 
-        if (auto err = in.GetProperty("type").ReadUnsignedInt(&out_object->type)) {
+        if (auto err = in.GetProperty("type").ReadUnsignedInt(&sub_shader->type)) {
             return err;
         }
 
@@ -43,11 +43,13 @@ public:
             const auto num_bytes = bytes_property.NumArrayElements(FBOMByte());
 
             if (num_bytes != 0) {
-                if (auto err = bytes_property.ReadBytes(num_bytes, out_object->spirv.bytes)) {
+                if (auto err = bytes_property.ReadBytes(num_bytes, sub_shader->spirv.bytes)) {
                     return err;
                 }
             }
         }
+
+        out_object = std::move(sub_shader);
 
         return { FBOMResult::FBOM_OK };
     }

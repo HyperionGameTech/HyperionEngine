@@ -282,7 +282,7 @@ void ProbeGrid::Destroy()
 
 void ProbeGrid::CreatePipeline()
 {
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbe"));
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbe"));
     Engine::Get()->InitObject(m_shader);
 
     m_pipeline.Reset(new RaytracingPipeline(
@@ -301,29 +301,29 @@ void ProbeGrid::CreatePipeline()
 
 void ProbeGrid::CreateComputePipelines()
 {
-    m_update_irradiance = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbeUpdateIrradiance")),
+    m_update_irradiance = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbeUpdateIrradiance")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_update_irradiance);
 
-    m_update_depth = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbeUpdateDepth")),
+    m_update_depth = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTProbeUpdateDepth")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_update_depth);
 
-    m_copy_border_texels_irradiance = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsIrradiance")),
+    m_copy_border_texels_irradiance = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsIrradiance")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     Engine::Get()->InitObject(m_copy_border_texels_irradiance);
 
-    m_copy_border_texels_depth = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsDepth")),
+    m_copy_border_texels_depth = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTCopyBorderTexelsDepth")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

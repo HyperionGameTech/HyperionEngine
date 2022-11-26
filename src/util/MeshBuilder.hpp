@@ -4,6 +4,7 @@
 #include <rendering/Mesh.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/OpaqueHandle.hpp>
 #include <math/BoundingBox.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
@@ -47,16 +48,16 @@ public:
         Float voxel_size;
     };
 
-    static UniquePtr<Mesh> Quad(Topology topology = Topology::TRIANGLES);
-    static UniquePtr<Mesh> Cube();
-    static UniquePtr<Mesh> NormalizedCubeSphere(UInt num_divisions);
+    static Handle<Mesh> Quad(Topology topology = Topology::TRIANGLES);
+    static Handle<Mesh> Cube();
+    static Handle<Mesh> NormalizedCubeSphere(UInt num_divisions);
 
-    static UniquePtr<Mesh> ApplyTransform(const Mesh *mesh, const Transform &transform);
-    static UniquePtr<Mesh> Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform);
-    static UniquePtr<Mesh> Merge(const Mesh *a, const Mesh *b);
+    static Handle<Mesh> ApplyTransform(const Mesh *mesh, const Transform &transform);
+    static Handle<Mesh> Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform);
+    static Handle<Mesh> Merge(const Mesh *a, const Mesh *b);
 
     static VoxelGrid Voxelize(const Mesh *mesh, float voxel_size);
-    static UniquePtr<Mesh> BuildVoxelMesh(VoxelGrid &&voxel_grid);
+    static Handle<Mesh> BuildVoxelMesh(VoxelGrid &&voxel_grid);
 };
 
 } // namespace hyperion::v2

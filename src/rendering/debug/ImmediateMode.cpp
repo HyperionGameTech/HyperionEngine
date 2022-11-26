@@ -39,9 +39,9 @@ ImmediateMode::~ImmediateMode()
 
 void ImmediateMode::Create()
 {
-    m_shapes[UInt(DebugDrawShape::SPHERE)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
-    m_shapes[UInt(DebugDrawShape::BOX)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Cube());
-    m_shapes[UInt(DebugDrawShape::PLANE)] = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_shapes[UInt(DebugDrawShape::SPHERE)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
+    m_shapes[UInt(DebugDrawShape::BOX)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::Cube());
+    m_shapes[UInt(DebugDrawShape::PLANE)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::Quad());
 
     for (auto &shape : m_shapes) {
         AssertThrow(Engine::Get()->InitObject(shape));
@@ -57,7 +57,7 @@ void ImmediateMode::Create()
 
     RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
 
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
         "DebugAABB",
         ShaderProps(
             renderer::static_mesh_vertex_attributes,

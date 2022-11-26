@@ -67,7 +67,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Node> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
         Node::Type node_type = Node::Type::NODE;
 
@@ -75,12 +75,14 @@ public:
             return err;
         }
 
+        UniquePtr<Node> node_ptr;
+
         switch (node_type) {
         case Node::Type::NODE:
-            out_object.Reset(new Node());
+            node_ptr.Reset(new Node());
             break;
         case Node::Type::BONE:
-            out_object.Reset(new Bone());
+            node_ptr.Reset(new Bone());
             break;
         default:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" }; 
@@ -88,7 +90,7 @@ public:
 
         String name;
         in.GetProperty("name").ReadString(name);
-        out_object->SetName(std::move(name));
+        node_ptr->SetName(std::move(name));
 
         { // local transform
             Transform transform = Transform::identity;
@@ -106,7 +108,7 @@ public:
             }
 
             transform.UpdateMatrix();
-            out_object->SetLocalTransform(transform);
+            node_ptr->SetLocalTransform(transform);
         }
 
         { // world transform
@@ -125,7 +127,7 @@ public:
             }
 
             transform.UpdateMatrix();
-            out_object->SetWorldTransform(transform);
+            node_ptr->SetWorldTransform(transform);
         }
 
         { // bounding box
@@ -136,22 +138,24 @@ public:
                 return err;
             }
 
-            out_object->SetLocalAABB(local_aabb);
+            node_ptr->SetLocalAABB(local_aabb);
 
             if (auto err = in.GetProperty("world_aabb").ReadStruct(sizeof(BoundingBox), &world_aabb)) {
                 return err;
             }
 
-            out_object->SetWorldAABB(world_aabb);
+            node_ptr->SetWorldAABB(world_aabb);
         }
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Node")) {
-                out_object->AddChild(node.deserialized.Get<Node>());
+                node_ptr->AddChild(node.deserialized.Get<Node>());
             } else if (node.GetType().IsOrExtends("Entity")) {
-                out_object->SetEntity(node.deserialized.Get<Entity>());
+                node_ptr->SetEntity(node.deserialized.Get<Entity>());
             }
         }
+
+        out_object = std::move(node_ptr);
 
         return { FBOMResult::FBOM_OK };
     }

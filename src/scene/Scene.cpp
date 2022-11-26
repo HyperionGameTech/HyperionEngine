@@ -860,7 +860,7 @@ bool Scene::CreateTLAS()
         return false;
     }
 
-    m_tlas = Engine::Get()->CreateHandle<TLAS>();
+    m_tlas = Engine::Get()->CreateObject<TLAS>();
 
     if (IsReady()) {
         Engine::Get()->InitObject(m_tlas);

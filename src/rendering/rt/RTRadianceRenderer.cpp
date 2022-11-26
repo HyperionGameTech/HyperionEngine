@@ -352,7 +352,7 @@ void RTRadianceRenderer::CreateDescriptorSets()
 
 void RTRadianceRenderer::CreateRaytracingPipeline()
 {
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTRadiance"));
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("RTRadiance"));
     if (!Engine::Get()->InitObject(m_shader)) {
         return;
     }

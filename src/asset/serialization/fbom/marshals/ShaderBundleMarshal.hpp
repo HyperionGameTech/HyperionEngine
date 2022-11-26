@@ -36,11 +36,11 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<CompiledShader> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        out_object.Reset(new CompiledShader);
+        auto compiled_shader = UniquePtr<CompiledShader>::Construct();
 
-        if (auto err = in.GetProperty("version").ReadUnsignedLong(&out_object->version_hash)) {
+        if (auto err = in.GetProperty("version").ReadUnsignedLong(&compiled_shader->version_hash)) {
             return err;
         }
 
@@ -48,11 +48,13 @@ public:
             const auto module_property_name = String("module[") + String::ToString(index) + "]";
 
             if (const auto &property = in.GetProperty(module_property_name)) {
-                if (auto err = property.ReadByteBuffer(out_object->modules[static_cast<ShaderModule::Type>(index)])) {
+                if (auto err = property.ReadByteBuffer(compiled_shader->modules[static_cast<ShaderModule::Type>(index)])) {
                     return err;
                 }
             }
         }
+
+        out_object = std::move(compiled_shader);
 
         return { FBOMResult::FBOM_OK };
     }
@@ -78,18 +80,20 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<CompiledShaderBatch> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        out_object.Reset(new CompiledShaderBatch);
+        auto batch = UniquePtr<CompiledShaderBatch>::Construct();
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("CompiledShader")) {
                 auto compiled_shader = node.deserialized.Get<CompiledShader>();
                 AssertThrow(compiled_shader != nullptr);
 
-                out_object->compiled_shaders.PushBack(*compiled_shader);
+                batch->compiled_shaders.PushBack(*compiled_shader);
             }
         }
+
+        out_object = std::move(batch);
 
         return { FBOMResult::FBOM_OK };
     }

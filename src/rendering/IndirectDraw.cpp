@@ -438,8 +438,8 @@ void IndirectRenderer::Create()
 
     // create compute pipeline for object visibility (for indirect render)
     // TODO: cache pipelines: re-use this
-    m_object_visibility = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ObjectVisibility")),
+    m_object_visibility = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ObjectVisibility")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

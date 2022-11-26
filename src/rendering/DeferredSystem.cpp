@@ -206,7 +206,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
     
-    render_pass = Engine::Get()->CreateHandle<RenderPass>(
+    render_pass = Engine::Get()->CreateObject<RenderPass>(
         RenderPassStage::SHADER,
         mode
     );
@@ -263,7 +263,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
 void DeferredSystem::RendererInstanceHolder::CreateFramebuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto framebuffer = Engine::Get()->CreateHandle<Framebuffer>(
+        auto framebuffer = Engine::Get()->CreateObject<Framebuffer>(
             Engine::Get()->GetGPUInstance()->swapchain->extent,
             Handle<RenderPass>(render_pass)
         );

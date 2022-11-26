@@ -236,8 +236,8 @@ void TemporalBlending::CreateComputePipelines()
         break;
     }
 
-    m_perform_blending = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("TemporalBlending")),
+    m_perform_blending = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("TemporalBlending")),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

@@ -154,16 +154,16 @@ void Engine::FindTextureFormatDefaults()
 
 void Engine::PrepareFinalPass()
 {
-    m_full_screen_quad = CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_full_screen_quad = MeshBuilder::Quad();
     AssertThrow(InitObject(m_full_screen_quad));
 
-    auto shader = CreateHandle<Shader>(m_shader_compiler.GetCompiledShader("FinalOutput", ShaderProps { }));
+    auto shader = CreateObject<Shader>(m_shader_compiler.GetCompiledShader("FinalOutput", ShaderProps { }));
 
     AssertThrow(InitObject(shader));
 
     UInt iteration = 0;
     
-    auto render_pass = CreateHandle<RenderPass>(
+    auto render_pass = CreateObject<RenderPass>(
         renderer::RenderPassStage::PRESENT,
         renderer::RenderPass::Mode::RENDER_PASS_INLINE
     );
@@ -191,7 +191,7 @@ void Engine::PrepareFinalPass()
     }
 
     for (VkImage img : m_instance->swapchain->images) {
-        auto fbo = std::make_unique<Framebuffer>(
+        auto fbo = CreateObject<Framebuffer>(
             m_instance->swapchain->extent,
             Handle<RenderPass>(render_pass)
         );
@@ -231,7 +231,7 @@ void Engine::PrepareFinalPass()
 
             InitObject(render_pass);
 
-            m_root_pipeline = CreateHandle<RendererInstance>(
+            m_root_pipeline = CreateObject<RendererInstance>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -245,7 +245,7 @@ void Engine::PrepareFinalPass()
             );
         }
 
-        m_root_pipeline->AddFramebuffer(CreateHandle<Framebuffer>(fbo.release()));
+        m_root_pipeline->AddFramebuffer(std::move(fbo));
 
         ++iteration;
     }
@@ -298,7 +298,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     m_placeholder_data.Create();
 
-    m_world = CreateHandle<World>();
+    m_world = CreateObject<World>();
     InitObject(m_world);
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
@@ -418,7 +418,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     }
 #endif
 
-    for (UInt frame_index = 0; frame_index < static_cast<UInt>(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
+    for (UInt frame_index = 0; frame_index < UInt(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
         const auto descriptor_set_index = DescriptorSet::global_buffer_mapping[frame_index];
 
         auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
@@ -915,7 +915,7 @@ Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &sh
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
     // create a RendererInstance with the given params
-    auto renderer_instance = CreateHandle<RendererInstance>(
+    auto renderer_instance = CreateObject<RendererInstance>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
@@ -952,7 +952,7 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
     // create a RendererInstance with the given params
-    auto renderer_instance = CreateHandle<RendererInstance>(
+    auto renderer_instance = CreateObject<RendererInstance>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes,
@@ -981,13 +981,13 @@ Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shade
     const auto it = m_renderer_instance_mapping.Find(new_renderable_attributes);
 
     if (it != m_renderer_instance_mapping.End()) {
-        return it->second.Lock();
+        return it->second;
     }
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
     // create a RendererInstance with the given params
-    auto renderer_instance = CreateHandle<RendererInstance>(
+    auto renderer_instance = CreateObject<RendererInstance>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
@@ -998,14 +998,11 @@ Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shade
     return renderer_instance;
 }
     
-Handle<RendererInstance> Engine::AddRendererInstance(std::unique_ptr<RendererInstance> &&_renderer_instance)
+void Engine::AddRendererInstance(Handle<RendererInstance> &renderer_instance)
 {
-    auto renderer_instance = CreateHandle<RendererInstance>(_renderer_instance.release());
-    
     std::lock_guard guard(m_renderer_instance_mapping_mutex);
-    AddRendererInstanceInternal(renderer_instance);
 
-    return renderer_instance;
+    AddRendererInstanceInternal(renderer_instance);
 }
     
 void Engine::AddRendererInstanceInternal(Handle<RendererInstance> &renderer_instance)

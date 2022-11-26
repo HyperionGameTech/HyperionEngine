@@ -35,13 +35,15 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
                 auto &hit = m_ray_test_results.Front();
                     // now ray test each result as triangle mesh to find exact hit point
 
-                if (auto lookup_result = Engine::Get()->GetObjectSystem().template Lookup<Entity>(Entity::ID(hit.id))) {
-                    if (auto &mesh = lookup_result->GetMesh()) {
+                Handle<Entity> entity(Entity::ID { hit.id });
+
+                if (entity) {
+                    if (auto &mesh = entity->GetMesh()) {
                         ray.TestTriangleList(
                             mesh->GetVertices(),
                             mesh->GetIndices(),
-                            lookup_result->GetTransform(),
-                            lookup_result->GetID().value,
+                            entity->GetTransform(),
+                            entity->GetID().value,
                             triangle_mesh_results
                         );
                     }

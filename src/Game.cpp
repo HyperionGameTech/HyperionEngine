@@ -33,7 +33,7 @@ void Game::Init()
     m_input_manager = new InputManager();
     m_input_manager->SetWindow(m_application->GetCurrentWindow());
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(
+    m_scene = Engine::Get()->CreateObject<Scene>(
         Handle<Camera>(),
         Scene::InitInfo {
             .flags = Scene::InitInfo::SCENE_FLAGS_HAS_TLAS // default it to having a top level acceleration structure for RT
@@ -127,13 +127,15 @@ void Game::OnInputEvent(const SystemEvent &event)
 
                 event.GetMouseWheel(&wheel_x, &wheel_y);
 
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_SCROLL,
-                    .scroll_data = {
-                        .wheel_x = wheel_x,
-                        .wheel_y = wheel_y
-                    }
-                });
+                if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+                    controller->PushCommand(CameraCommand {
+                        .command = CameraCommand::CAMERA_COMMAND_SCROLL,
+                        .scroll_data = {
+                            .wheel_x = wheel_x,
+                            .wheel_y = wheel_y
+                        }
+                    });
+                }
             }
 
             break;

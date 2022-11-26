@@ -1,38 +1,30 @@
 #include "OrthoCamera.hpp"
 
 namespace hyperion::v2 {
-OrthoCamera::OrthoCamera(
-    int width, int height,
-    float left, float right,
-    float bottom, float top,
-    float _near, float _far
-) : Camera(CameraType::ORTHOGRAPHIC, width, height, _near, _far),
-    m_left(left),
-    m_right(right),
-    m_bottom(bottom),
-    m_top(top)
+OrthoCameraController::OrthoCameraController()
+    : CameraController(CameraType::ORTHOGRAPHIC)
 {
 }
 
-void OrthoCamera::UpdateLogic(double dt)
+void OrthoCameraController::UpdateLogic(double dt)
 {
 }
 
-void OrthoCamera::UpdateViewMatrix()
+void OrthoCameraController::UpdateViewMatrix()
 {
-    m_view_mat = Matrix4::LookAt(
-        m_translation,
-        GetTarget(),
-        m_up
+    m_camera->m_view_mat = Matrix4::LookAt(
+        m_camera->m_translation,
+        m_camera->GetTarget(),
+        m_camera->m_up
     );
 }
 
-void OrthoCamera::UpdateProjectionMatrix()
+void OrthoCameraController::UpdateProjectionMatrix()
 {
-    m_proj_mat = Matrix4::Orthographic(
-        m_left,   m_right,
-        m_bottom, m_top,
-        m_near,   m_far
+    m_camera->m_proj_mat = Matrix4::Orthographic(
+        m_camera->m_left,   m_camera->m_right,
+        m_camera->m_bottom, m_camera->m_top,
+        m_camera->m_near,   m_camera->m_far
     );
 }
 } // namespace hyperion::v2

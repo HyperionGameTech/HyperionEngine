@@ -28,8 +28,8 @@ void UIScene::Init()
 
     EngineComponentBase::Init();
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(
-        Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
+    m_scene = Engine::Get()->CreateObject<Scene>(
+        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
             2048, 2048,
             -1, 1,
             -1, 1,

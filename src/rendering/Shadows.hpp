@@ -53,7 +53,7 @@ public:
     {
         m_light = std::move(light);
 
-        if (m_light != nullptr) {
+        if (m_light.IsValid()) {
             m_light->SetShadowMapIndex(m_shadow_map_index);
         }
     }
@@ -84,7 +84,7 @@ public:
     {
         m_shadow_map_index = index;
 
-        if (m_light != nullptr) {
+        if (m_light.IsValid()) {
             m_light->SetShadowMapIndex(index);
         }
     }
@@ -155,7 +155,7 @@ public:
 
     void SetParentScene(const Handle<Scene> &parent_scene)
     {
-        if (parent_scene != nullptr) {
+        if (parent_scene.IsValid()) {
             m_shadow_pass.SetParentScene(parent_scene->GetID());
         } else {
             m_shadow_pass.SetParentScene(Scene::empty_id);

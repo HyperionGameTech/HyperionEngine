@@ -106,6 +106,8 @@ struct HandleID : IDBase
     }
 };
 
+#if 0
+
 template <class T>
 class Handle;
 
@@ -499,6 +501,8 @@ public:
 
 static_assert(sizeof(Handle<int>) == sizeof(HandleBase), "No members may be added to Handle<T>");
 static_assert(sizeof(WeakHandle<int>) == sizeof(WeakHandleBase), "No members may be added to WeakHandle<T>");
+
+#endif
 
 } // namespace hyperion
 

@@ -52,7 +52,7 @@ static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &
     return char_meshes;
 }
 
-static UniquePtr<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
+static Handle<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 {
     if (char_meshes.Empty()) {
         return { };
@@ -76,7 +76,7 @@ static UniquePtr<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
     return transformed_mesh;
 }
 
-UniquePtr<Mesh> UIText::BuildTextMesh(const FontMap &font_map, const String &text)
+Handle<Mesh> UIText::BuildTextMesh(const FontMap &font_map, const String &text)
 {
     auto char_meshes = BuildCharMeshes(font_map, text);
 
@@ -106,9 +106,9 @@ void UIText::Init()
     // auto char_meshes = BuildCharMeshes(m_font_map, m_text);
     // auto mesh = OptimizeCharMeshes(std::move(char_meshes));
 
-    // UIObject::GetEntity()->SetMesh(Engine::Get()->CreateHandle<Mesh>(std::move(mesh)));
+    // UIObject::GetEntity()->SetMesh(Engine::Get()->CreateObject<Mesh>(std::move(mesh)));
 
-    // auto mat = Engine::Get()->CreateHandle<Material>();
+    // auto mat = Engine::Get()->CreateObject<Material>();
     // mat->SetBucket(Bucket::BUCKET_UI);
     // mat->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle(m_font_map.GetTexture()));
     // mat->SetFaceCullMode(renderer::FaceCullMode::NONE);

@@ -33,8 +33,8 @@ void Voxelizer::Init()
 
     const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(
-        Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
+    m_scene = Engine::Get()->CreateObject<Scene>(
+        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
             voxel_map_size, voxel_map_size,
             -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
             -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
@@ -104,7 +104,7 @@ void Voxelizer::Init()
 
 void Voxelizer::CreatePipeline()
 {
-    auto renderer_instance = std::make_unique<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -121,7 +121,7 @@ void Voxelizer::CreatePipeline()
     
     Engine::Get()->InitObject(m_framebuffer);
     
-    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(renderer_instance));
+    Engine::Get()->AddRendererInstance(m_renderer_instance);
     
     for (auto &item : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
         for (auto &entity : item->GetEntities()) {
@@ -182,13 +182,13 @@ void Voxelizer::CreateShader()
         );
     }
     
-    m_shader = Engine::Get()->CreateHandle<Shader>(sub_shaders);
+    m_shader = Engine::Get()->CreateObject<Shader>(sub_shaders);
     Engine::Get()->InitObject(m_shader);
 }
 
 void Voxelizer::CreateRenderPass()
 {
-    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(
+    m_render_pass = Engine::Get()->CreateObject<RenderPass>(
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -198,7 +198,7 @@ void Voxelizer::CreateRenderPass()
 
 void Voxelizer::CreateFramebuffer()
 {
-    m_framebuffer = Engine::Get()->CreateHandle<Framebuffer>(
+    m_framebuffer = Engine::Get()->CreateObject<Framebuffer>(
         Extent2D { voxel_map_size, voxel_map_size },
         Handle<RenderPass>(m_render_pass)
     );

@@ -262,7 +262,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     }
 
     for (auto &item : library.materials) {
-        auto material = Engine::Get()->CreateHandle<Material>(item.tag.c_str());
+        auto material = Engine::Get()->CreateObject<Material>(item.tag.c_str());
 
         for (auto &it : item.parameters) {
             material->SetParameter(it.first, Material::Parameter(

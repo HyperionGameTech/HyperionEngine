@@ -376,8 +376,8 @@ void SparseVoxelOctree::CreateDescriptors()
 
 void SparseVoxelOctree::CreateComputePipelines()
 {
-    m_alloc_nodes = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_alloc_nodes = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/voxel/octree_alloc_nodes.comp.spv")).Read()}}
             }
@@ -387,8 +387,8 @@ void SparseVoxelOctree::CreateComputePipelines()
 
     AssertThrow(Engine::Get()->InitObject(m_alloc_nodes));
 
-    m_init_nodes = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_init_nodes = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/voxel/octree_init_nodes.comp.spv")).Read()}}
             }
@@ -398,8 +398,8 @@ void SparseVoxelOctree::CreateComputePipelines()
 
     AssertThrow(Engine::Get()->InitObject(m_init_nodes));
 
-    m_tag_nodes = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_tag_nodes = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/voxel/octree_tag_nodes.comp.spv")).Read()}}
             }
@@ -409,8 +409,8 @@ void SparseVoxelOctree::CreateComputePipelines()
 
     AssertThrow(Engine::Get()->InitObject(m_tag_nodes));
 
-    m_modify_args = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_modify_args = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/voxel/octree_modify_args.comp.spv")).Read()}}
             }
@@ -420,8 +420,8 @@ void SparseVoxelOctree::CreateComputePipelines()
 
     AssertThrow(Engine::Get()->InitObject(m_modify_args));
 
-    m_write_mipmaps = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(
+    m_write_mipmaps = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(
             std::vector<SubShader>{
                 { ShaderModule::Type::COMPUTE, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/voxel/octree_write_mipmaps.comp.spv")).Read()}}
             }

@@ -22,10 +22,10 @@ FinalPass::~FinalPass()
 
 void FinalPass::Create()
 {
-    m_full_screen_quad = Engine::Get()->CreateHandle<Mesh>(MeshBuilder::Quad());
+    m_full_screen_quad = MeshBuilder::Quad();
     Engine::Get()->InitObject(m_full_screen_quad);
 
-    auto shader = Engine::Get()->CreateHandle<Shader>(
+    auto shader = Engine::Get()->CreateObject<Shader>(
         std::vector<SubShader> {
             {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_vert.spv")).Read()}},
             {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "vkshaders/blit_frag.spv")).Read()}}
@@ -36,7 +36,7 @@ void FinalPass::Create()
 
     UInt iteration = 0;
     
-    auto render_pass = Engine::Get()->CreateHandle<RenderPass>(
+    auto render_pass = Engine::Get()->CreateObject<RenderPass>(
         renderer::RenderPassStage::PRESENT,
         renderer::RenderPass::Mode::RENDER_PASS_INLINE
     );
@@ -104,7 +104,7 @@ void FinalPass::Create()
 
             Engine::Get()->InitObject(render_pass);
 
-            m_renderer_instance = Engine::Get()->CreateHandle<RendererInstance>(
+            m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -119,7 +119,7 @@ void FinalPass::Create()
             );
         }
 
-        m_renderer_instance->AddFramebuffer(Engine::Get()->CreateHandle<Framebuffer>(fbo.release()));
+        m_renderer_instance->AddFramebuffer(Engine::Get()->CreateObject<Framebuffer>(fbo.release()));
 
         ++iteration;
     }

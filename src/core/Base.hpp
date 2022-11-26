@@ -158,7 +158,7 @@ protected:
 
     void Teardown()
     {
-        RemoveFromObjectSystem();
+        // RemoveFromObjectSystem();
 
         CallbackTrackable::Teardown();
     }
@@ -197,12 +197,12 @@ protected:
 
 private:
 
-    void RemoveFromObjectSystem()
-    {
-        if (IsInitCalled()) {
-            GetObjectSystem().template Release<InnerType>(GetID());
-        }
-    }
+    // void RemoveFromObjectSystem()
+    // {
+    //     if (IsInitCalled()) {
+    //         GetObjectSystem().template Release<InnerType>(GetID());
+    //     }
+    // }
 };
 
 template <class Type, class WrappedType>

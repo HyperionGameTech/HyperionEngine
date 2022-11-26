@@ -1,7 +1,7 @@
 #ifndef HYPERION_V2_LIB_THREAD_SAFE_CONTAINER_HPP
 #define HYPERION_V2_LIB_THREAD_SAFE_CONTAINER_HPP
 
-#include <core/Handle.hpp>
+#include <core/OpaqueHandle.hpp>
 #include <core/Thread.hpp>
 #include <core/lib/DynArray.hpp>
 

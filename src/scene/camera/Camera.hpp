@@ -67,17 +67,78 @@ struct CameraCommand
 
 struct RenderCommand_UpdateCameraDrawProxy;
 
+class Camera;
+
+class CameraController
+{
+    friend class Camera;
+public:
+    CameraController(CameraType type);
+    virtual ~CameraController() = default;
+
+    CameraType GetType() const { return m_type; }
+
+    virtual void OnAdded(Camera *camera) { m_camera = camera; }
+
+    virtual void SetTranslation(const Vector3 &translation) { }
+    virtual void SetNextTranslation(const Vector3 &translation) { }
+    virtual void SetDirection(const Vector3 &direction) { }
+    virtual void SetUpVector(const Vector3 &up) { }
+
+    virtual void UpdateLogic(double dt) = 0;
+    virtual void UpdateViewMatrix() = 0;
+    virtual void UpdateProjectionMatrix() = 0;
+
+    void PushCommand(const CameraCommand &command);
+
+protected:
+    virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {}
+
+    void UpdateCommandQueue(GameCounter::TickUnit dt);
+
+    Camera *m_camera;
+
+    CameraType m_type;
+
+    std::mutex m_command_queue_mutex;
+    std::atomic_uint m_command_queue_count;
+    Queue<CameraCommand> m_command_queue;
+};
+
+class PerspectiveCameraController;
+class OrthoCameraController;
+class FirstPersonCameraController;
+class FollowCameraController;
+
 class Camera :
     public EngineComponentBase<STUB_CLASS(Camera)>,
     public HasDrawProxy<STUB_CLASS(Camera)>
 {
 public:
+    friend class CameraController;
+    friend class PerspectiveCameraController;
+    friend class OrthoCameraController;
+    friend class FirstPersonCameraController;
+    friend class FollowCameraController;
+
     friend struct RenderCommand_UpdateCameraDrawProxy;
 
-    Camera(CameraType camera_type, int width, int height, float _near, float _far);
-    virtual ~Camera();
+    Camera();
+    Camera(float fov, int width, int height, float _near, float _far);
+    Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
+    ~Camera();
 
-    CameraType GetCameraType() const { return m_camera_type; }
+    CameraController *GetCameraController() const
+        { return m_camera_controller.Get(); }
+
+    void SetCameraController(UniquePtr<CameraController> &&camera_controller)
+    {
+        m_camera_controller = std::move(camera_controller);
+
+        if (m_camera_controller) {
+            m_camera_controller->OnAdded(this);
+        }
+    }
 
     int GetWidth() const { return m_width; }
     void SetWidth(int width) { m_width = width; }
@@ -87,17 +148,29 @@ public:
     void SetNear(float _near) { m_near = _near; }
     float GetFar() const { return m_far; }
     void SetFar(float _far) { m_far = _far; }
+
+    // perspective only
     float GetFov() const { return m_fov; }
 
+    // ortho only
+    float GetLeft() const { return m_left; }
+    void SetLeft(float left) { m_left = left; }
+    float GetRight() const { return m_right; }
+    void SetRight(float right) { m_right = right; }
+    float GetBottom() const { return m_bottom; }
+    void SetBottom(float bottom) { m_bottom = bottom; }
+    float GetTop() const { return m_top; }
+    void SetTop(float top) { m_top = top; }
+
     const Vector3 &GetTranslation() const { return m_translation; }
-    virtual void SetTranslation(const Vector3 &translation);
-    virtual void SetNextTranslation(const Vector3 &translation);
+    void SetTranslation(const Vector3 &translation);
+    void SetNextTranslation(const Vector3 &translation);
 
     const Vector3 &GetDirection() const { return m_direction; }
-    virtual void SetDirection(const Vector3 &direction);
+    void SetDirection(const Vector3 &direction);
 
     const Vector3 &GetUpVector() const { return m_up; }
-    virtual void SetUpVector(const Vector3 &up);
+    void SetUpVector(const Vector3 &up);
 
     Vector3 GetSideVector() const { return m_up.Cross(m_direction); }
 
@@ -145,23 +218,16 @@ public:
 
     void Update(GameCounter::TickUnit dt);
 
-    virtual void UpdateLogic(double dt) = 0;
-
-    virtual void UpdateViewMatrix() = 0;
-    virtual void UpdateProjectionMatrix() = 0;
     void UpdateMatrices();
-
-    /*! \brief Push a command to the camera in a thread-safe way. */
-    void PushCommand(const CameraCommand &command);
 
     void Init();
 
 protected:
-    virtual void RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt) {}
-
+    void UpdateViewMatrix();
+    void UpdateProjectionatrix();
     void UpdateViewProjectionMatrix();
 
-    CameraType m_camera_type;
+    UniquePtr<CameraController> m_camera_controller;
 
     Vector3 m_translation, m_next_translation, m_direction, m_up;
     Matrix4 m_view_mat, m_proj_mat;
@@ -171,15 +237,12 @@ protected:
     float m_near, m_far;
     float m_fov; // only for perspective
 
-private:
-    void UpdateCommandQueue(GameCounter::TickUnit dt);
+    // only for ortho
+    float m_left, m_right, m_bottom, m_top;
 
+private:
     Matrix4 m_view_proj_mat;
     Matrix4 m_previous_view_matrix;
-
-    std::mutex m_command_queue_mutex;
-    std::atomic_uint m_command_queue_count;
-    Queue<CameraCommand> m_command_queue;
 };
 
 } // namespace v2

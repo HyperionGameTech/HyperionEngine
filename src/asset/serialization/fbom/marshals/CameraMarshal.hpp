@@ -54,7 +54,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Camera> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
         CameraType camera_type = CameraType::NONE;
 
@@ -71,12 +71,14 @@ public:
         in.GetProperty("near").ReadFloat(&_near);
         in.GetProperty("far").ReadFloat(&_far);
 
+        UniquePtr<OpaqueHandle<Camera>> camera_handle;
+
         switch (camera_type) {
         case CameraType::PERSPECTIVE:
             fov = 45.0f;
             in.GetProperty("fov").ReadFloat(&fov);
 
-            out_object.Reset(new PerspectiveCamera(fov, width, height, _near, _far));
+            camera_handle.Reset(new OpaqueHandle<PerspectiveCamera>(Engine::Get()->CreateObject<PerspectiveCamera>(fov, width, height, _near, _far)));
             break;
         case CameraType::ORTHOGRAPHIC:
             in.GetProperty("left").ReadFloat(&left);
@@ -84,7 +86,7 @@ public:
             in.GetProperty("bottom").ReadFloat(&bottom);
             in.GetProperty("top").ReadFloat(&top);
 
-            out_object.Reset(new OrthoCamera(width, height, left, right, bottom, top, _near, _far));
+            camera_handle.Reset(new OpaqueHandle<OrthoCamera>(Engine::Get()->CreateObject<OrthoCamera>(width, height, left, right, bottom, top, _near, _far)));
             break;
         default:
             return { FBOMResult::FBOM_ERR, "Unknown camera type!" };
@@ -96,14 +98,14 @@ public:
             in.GetProperty("direction").ReadArrayElements(FBOMFloat(), 3, &direction);
             in.GetProperty("up").ReadArrayElements(FBOMFloat(), 3, &up_vector);
 
-            out_object->SetTranslation(translation);
-            out_object->SetDirection(direction);
-            out_object->SetUpVector(up_vector);
+            (*camera_handle)->SetTranslation(translation);
+            (*camera_handle)->SetDirection(direction);
+            (*camera_handle)->SetUpVector(up_vector);
 
             Matrix4 view_matrix, projection_matrix, view_projection_matrix;
-            in.GetProperty("view_matrix").ReadAsType(FBOMMat4(), &out_object->GetViewMatrix());
-            in.GetProperty("projection_matrix").ReadAsType(FBOMMat4(), &out_object->GetProjectionMatrix());
-            in.GetProperty("view_projection_matrix").ReadAsType(FBOMMat4(), &out_object->GetViewProjectionMatrix());
+            in.GetProperty("view_matrix").ReadAsType(FBOMMat4(), &(*camera_handle)->GetViewMatrix());
+            in.GetProperty("projection_matrix").ReadAsType(FBOMMat4(), &(*camera_handle)->GetProjectionMatrix());
+            in.GetProperty("view_projection_matrix").ReadAsType(FBOMMat4(), &(*camera_handle)->GetViewProjectionMatrix());
         }
 
         { // frustum
@@ -112,9 +114,11 @@ public:
             in.GetProperty("frustum").ReadArrayElements(FBOMVec4f(), 6, &planes[0]);
 
             for (UInt i = 0; i < std::size(planes); i++) {
-                out_object->GetFrustum().GetPlane(i) = planes[i];
+                (*camera_handle)->GetFrustum().GetPlane(i) = planes[i];
             }
         }
+
+        out_object = std::move(camera_handle);
 
         return { FBOMResult::FBOM_OK };
     }

@@ -67,6 +67,11 @@ using renderer::StorageBuffer;
 class Engine;
 class Game;
 
+
+template <class T>
+struct OpaqueHandle;
+
+
 struct DebugMarker
 {
     CommandBuffer *command_buffer = nullptr;
@@ -198,7 +203,7 @@ public:
 
     /*! \brief Find or create a RendererInstance from cache, or create a descriptor set. If created, the result will always be cached. */
     Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
-    Handle<RendererInstance> AddRendererInstance(std::unique_ptr<RendererInstance> &&renderer_instance);
+    void AddRendererInstance(Handle<RendererInstance> &renderer_instance);
 
     template <class T>
     void SafeReleaseHandle(Handle<T> &&resource)
@@ -248,10 +253,18 @@ public:
     TaskSystem task_system;
 
     template <class T, class First, class Second, class ...Rest>
-    Handle<T> CreateHandle(First &&first, Second &&second, Rest &&... args)
+    OpaqueHandle<T> CreateObject(First &&first, Second &&second, Rest &&... args)
     {
-        Handle<T> handle(new T(std::forward<First>(first), std::forward<Second>(second), std::forward<Rest>(args)...));
-        registry.template Attach<T>(handle);
+        SizeType index = GetObjectSystem().GetContainer<T>().NextIndex();
+        GetObjectSystem().GetContainer<T>().ConstructAtIndex(
+            index,
+            std::forward<First>(first),
+            std::forward<Second>(second),
+            std::forward<Rest>(args)...
+        );
+
+        OpaqueHandle<T> handle;
+        handle.index = index;
 
         return handle;
     }
@@ -261,63 +274,107 @@ public:
         (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
             && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>
             && !std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<First>>,
-        Handle<T>
+        OpaqueHandle<T>
     >
-    CreateHandle(First &&first)
+    CreateObject(First &&first)
     {
-        Handle<T> handle(new T(std::forward<First>(first)));
-        registry.template Attach<T>(handle);
+        SizeType index = GetObjectSystem().GetContainer<T>().NextIndex();
+        GetObjectSystem().GetContainer<T>().ConstructAtIndex(
+            index,
+            std::forward<First>(first)
+        );
 
-        return handle;
-    }
-
-    template <class T, class Ptr>
-    typename std::enable_if_t<
-        std::is_pointer_v<std::remove_reference_t<Ptr>> && std::is_convertible_v<std::remove_reference_t<Ptr>, std::add_pointer_t<T>>,
-        Handle<T>
-    >
-    CreateHandle(Ptr &&ptr)
-    {
-        Handle<T> handle(static_cast<T *>(ptr));
-        registry.template Attach<T>(handle);
-
-        return handle;
-    }
-
-    template <class T, class Ptr>
-    typename std::enable_if_t<
-        std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<Ptr>>,
-        Handle<T>
-    >
-    CreateHandle(Ptr &&ptr)
-    {
-        Handle<T> handle(ptr.template MakeRefCounted<std::atomic<UInt>>());
-        registry.template Attach<T>(handle);
-
-        return handle;
-    }
-
-    template <class T, class RC>
-    typename std::enable_if_t<
-        std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<RC>>,
-        Handle<T>
-    >
-    CreateHandle(RC &&rc)
-    {
-        Handle<T> handle(rc.template Cast<T>());
-        registry.template Attach<T>(handle);
+        OpaqueHandle<T> handle;
+        handle.index = index;
 
         return handle;
     }
 
     template <class T>
-    Handle<T> CreateHandle()
+    OpaqueHandle<T> CreateObject()
     {
-        Handle<T> handle(new T());
-        registry.template Attach<T>(handle);
+        auto &container = GetObjectSystem().GetContainer<T>();
+
+        SizeType index = container.NextIndex();
+        container.ConstructAtIndex(index - 1);
+
+        OpaqueHandle<T> handle;
+        handle.index = index;
 
         return handle;
     }
+
+    // template <class T, class First, class Second, class ...Rest>
+    // Handle<T> CreateHandle(First &&first, Second &&second, Rest &&... args)
+    // {
+    //     Handle<T> handle(new T(std::forward<First>(first), std::forward<Second>(second), std::forward<Rest>(args)...));
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    // template <class T, class First>
+    // typename std::enable_if_t<
+    //     (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
+    //         && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>
+    //         && !std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<First>>,
+    //     Handle<T>
+    // >
+    // CreateHandle(First &&first)
+    // {
+    //     Handle<T> handle(new T(std::forward<First>(first)));
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    // template <class T, class Ptr>
+    // typename std::enable_if_t<
+    //     std::is_pointer_v<std::remove_reference_t<Ptr>> && std::is_convertible_v<std::remove_reference_t<Ptr>, std::add_pointer_t<T>>,
+    //     Handle<T>
+    // >
+    // CreateHandle(Ptr &&ptr)
+    // {
+    //     Handle<T> handle(static_cast<T *>(ptr));
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    // template <class T, class Ptr>
+    // typename std::enable_if_t<
+    //     std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<Ptr>>,
+    //     Handle<T>
+    // >
+    // CreateHandle(Ptr &&ptr)
+    // {
+    //     Handle<T> handle(ptr.template MakeRefCounted<std::atomic<UInt>>());
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    // template <class T, class RC>
+    // typename std::enable_if_t<
+    //     std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<RC>>,
+    //     Handle<T>
+    // >
+    // CreateHandle(RC &&rc)
+    // {
+    //     Handle<T> handle(rc.template Cast<T>());
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
+
+    // template <class T>
+    // Handle<T> CreateHandle()
+    // {
+    //     Handle<T> handle(new T());
+    //     registry.template Attach<T>(handle);
+
+    //     return handle;
+    // }
 
     template <class T>
     bool InitObject(Handle<T> &handle)
@@ -335,27 +392,27 @@ public:
         return true;
     }
 
-    template <class T>
-    bool InitObject(WeakHandle<T> &handle)
-    {
-        auto locked = handle.Lock();
+    // template <class T>
+    // bool InitObject(WeakHandle<T> &handle)
+    // {
+    //     auto locked = handle.Lock();
 
-        return InitObject(locked);
-    }
+    //     return InitObject(locked);
+    // }
 
-    template <class T>
-    void Attach(Handle<T> &handle, bool init = true)
-    {
-        if (!handle) {
-            return;
-        }
+    // template <class T>
+    // void Attach(Handle<T> &handle, bool init = true)
+    // {
+    //     if (!handle) {
+    //         return;
+    //     }
 
-        registry.template Attach<T>(handle);
+    //     registry.template Attach<T>(handle);
 
-        if (init) {
-            handle->Init();
-        }
-    }
+    //     if (init) {
+    //         handle->Init();
+    //     }
+    // }
 
     ComponentSystem registry;
 
@@ -384,7 +441,7 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, WeakHandle<RendererInstance>> m_renderer_instance_mapping;
+    FlatMap<RenderableAttributeSet, Handle<RendererInstance>> m_renderer_instance_mapping;
     std::mutex m_renderer_instance_mapping_mutex;
 
     ComponentRegistry m_components;

@@ -1,4 +1,5 @@
 #include "MeshBuilder.hpp"
+#include <Engine.hpp>
 
 // temp
 #include <util/NoiseFactory.hpp>
@@ -67,9 +68,9 @@ const std::vector<Vertex> MeshBuilder::cube_vertices = {
     Vertex{{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
 };
 
-UniquePtr<Mesh> MeshBuilder::Quad(Topology topology)
+Handle<Mesh> MeshBuilder::Quad(Topology topology)
 {
-    UniquePtr<Mesh> mesh;
+    Handle<Mesh> mesh;
 
     const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
 
@@ -78,23 +79,23 @@ UniquePtr<Mesh> MeshBuilder::Quad(Topology topology)
     case Topology::TRIANGLE_FAN: {
         auto [new_vertices, new_indices] = Mesh::CalculateIndices(quad_vertices);
 
-        mesh.Reset(new Mesh(
+        mesh = Engine::Get()->CreateObject<Mesh>(
             new_vertices,
             new_indices,
             topology,
             vertex_attributes
-        ));
+        );
 
         break;
     }
     default:
 #endif
-        mesh.Reset(new Mesh(
+        mesh = Engine::Get()->CreateObject<Mesh>(
             quad_vertices,
             quad_indices,
             topology,
             vertex_attributes
-        ));
+        );
 
 #ifndef HYP_APPLE
         break;
@@ -106,27 +107,27 @@ UniquePtr<Mesh> MeshBuilder::Quad(Topology topology)
     return mesh;
 }
 
-UniquePtr<Mesh> MeshBuilder::Cube()
+Handle<Mesh> MeshBuilder::Cube()
 {
-    UniquePtr<Mesh> mesh;
+    Handle<Mesh> mesh;
 
     const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
 
     auto mesh_data = Mesh::CalculateIndices(cube_vertices);
 
-    mesh.Reset(new Mesh(
+    mesh = Engine::Get()->CreateObject<Mesh>(
         mesh_data.first,
         mesh_data.second,
         Topology::TRIANGLES,
         vertex_attributes
-    ));
+    );
 
     mesh->CalculateTangents();
 
     return mesh;
 }
 
-UniquePtr<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
+Handle<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
 {
     const Float step = 1.0f / static_cast<Float>(num_divisions);
 
@@ -214,7 +215,7 @@ UniquePtr<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
         }
     }
 
-    auto mesh = UniquePtr<Mesh>::Construct(
+    auto mesh = Engine::Get()->CreateObject<Mesh>(
         vertices,
         indices,
         Topology::TRIANGLES,
@@ -227,7 +228,7 @@ UniquePtr<Mesh> MeshBuilder::NormalizedCubeSphere(UInt num_divisions)
     return mesh;
 }
 
-UniquePtr<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &transform)
+Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &transform)
 {
     AssertThrow(mesh != nullptr);
 
@@ -242,7 +243,7 @@ UniquePtr<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &t
         vertex.SetBitangent(normal_matrix * vertex.GetBitangent());
     }
 
-    return UniquePtr<Mesh>::Construct(
+    return Engine::Get()->CreateObject<Mesh>(
         new_vertices,
         mesh->GetIndices(),
         mesh->GetTopology(),
@@ -251,12 +252,12 @@ UniquePtr<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &t
     );
 }
 
-UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform)
+Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform)
 {
     AssertThrow(a != nullptr);
     AssertThrow(b != nullptr);
 
-    UniquePtr<Mesh> transformed_meshes[] = {
+    Handle<Mesh> transformed_meshes[] = {
         ApplyTransform(a, a_transform),
         ApplyTransform(b, b_transform)
     };
@@ -281,7 +282,7 @@ UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform
         }
     }
 
-    return UniquePtr<Mesh>::Construct(
+    return Engine::Get()->CreateObject<Mesh>(
         all_vertices,
         all_indices,
         a->GetTopology(),
@@ -290,7 +291,7 @@ UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform
     );
 }
 
-UniquePtr<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
+Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
 {
     return Merge(a, b, Transform(), Transform());
 }
@@ -351,9 +352,9 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
     return grid;
 }
 
-UniquePtr<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
+Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
 {
-    UniquePtr<Mesh> mesh;
+    Handle<Mesh> mesh;
 
     for (UInt x = 0; x < voxel_grid.size_x; x++) {
         for (UInt y = 0; y < voxel_grid.size_y; y++) {

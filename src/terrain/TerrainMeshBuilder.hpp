@@ -24,7 +24,7 @@ public:
     ~TerrainMeshBuilder() = default;
 
     void GenerateHeights(const NoiseCombinator &noise_combinator);
-    std::unique_ptr<Mesh> BuildMesh() const;
+    Handle<Mesh> BuildMesh() const;
 
 private:
     std::vector<Vertex> BuildVertices() const;

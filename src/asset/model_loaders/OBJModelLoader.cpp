@@ -360,10 +360,10 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         }
 
         if (!material) {
-            material = Engine::Get()->CreateHandle<Material>();
+            material = Engine::Get()->CreateObject<Material>();
         }
 
-        auto mesh = Engine::Get()->CreateHandle<Mesh>(
+        auto mesh = Engine::Get()->CreateObject<Mesh>(
             vertices, 
             indices,
             Topology::TRIANGLES
@@ -379,7 +379,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
 
-        auto entity = Engine::Get()->CreateHandle<Entity>(
+        auto entity = Engine::Get()->CreateObject<Entity>(
             std::move(mesh),
             std::move(shader),
             std::move(material),

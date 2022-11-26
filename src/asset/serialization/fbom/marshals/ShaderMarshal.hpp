@@ -28,7 +28,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Shader> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
         std::vector<SubShader> sub_shaders;
 
@@ -41,7 +41,9 @@ public:
             }
         }
 
-        out_object.Reset(new Shader(sub_shaders));
+        out_object = UniquePtr<OpaqueHandle<Shader>>::Construct(
+            Engine::Get()->CreateObject<Shader>(sub_shaders)
+        );
 
         return { FBOMResult::FBOM_OK };
     }

@@ -14,7 +14,7 @@ RigidBodyController::RigidBodyController(
 
 void RigidBodyController::OnAdded()
 {
-    m_rigid_body = Engine::Get()->CreateHandle<physics::RigidBody>(
+    m_rigid_body = Engine::Get()->CreateObject<physics::RigidBody>(
         std::move(m_shape),
         m_physics_material
     );

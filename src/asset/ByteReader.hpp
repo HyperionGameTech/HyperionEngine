@@ -15,7 +15,7 @@ class ByteReader
 public:
     using Bytes = std::vector<UByte>;
 
-    virtual ~ByteReader() {}
+    virtual ~ByteReader() = default;
 
     template <typename T>
     void Read(T *ptr, SizeType size = sizeof(T))

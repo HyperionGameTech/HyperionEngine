@@ -45,9 +45,9 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Entity> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        out_object.Reset(new Entity());
+        auto entity_handle = UniquePtr<OpaqueHandle<Entity>>::Construct(Engine::Get()->CreateObject<Entity>());
 
         { // transform
             Transform transform = Transform::identity;
@@ -65,7 +65,7 @@ public:
             }
 
             transform.UpdateMatrix();
-            out_object->SetTransform(transform);
+            (*entity_handle)->SetTransform(transform);
         }
 
         { // bounding box
@@ -76,26 +76,28 @@ public:
                 return err;
             }
 
-            out_object->SetLocalAABB(local_aabb);
+            (*entity_handle)->SetLocalAABB(local_aabb);
 
             if (auto err = in.GetProperty("world_aabb").ReadStruct(sizeof(BoundingBox), &world_aabb)) {
                 return err;
             }
 
-            out_object->SetWorldAABB(world_aabb);
+            (*entity_handle)->SetWorldAABB(world_aabb);
         }
 
         for (auto &node : *in.nodes) {
             if (node.GetType().IsOrExtends("Mesh")) {
-                out_object->SetMesh(node.deserialized.Get<Mesh>());
+                (*entity_handle)->SetMesh(node.deserialized.Get<Mesh>());
             } else if (node.GetType().IsOrExtends("Shader")) {
-                out_object->SetShader(node.deserialized.Get<Shader>());
+                (*entity_handle)->SetShader(node.deserialized.Get<Shader>());
             } else if (node.GetType().IsOrExtends("Material")) {
-                out_object->SetMaterial(node.deserialized.Get<Material>());
+                (*entity_handle)->SetMaterial(node.deserialized.Get<Material>());
             }
         }
 
-        out_object->RebuildRenderableAttributes();
+        (*entity_handle)->RebuildRenderableAttributes();
+
+        out_object = std::move(entity_handle);
 
         return { FBOMResult::FBOM_OK };
     }

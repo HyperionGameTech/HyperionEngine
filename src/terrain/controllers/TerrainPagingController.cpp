@@ -33,7 +33,7 @@ void TerrainPagingController::OnAdded()
         .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, base_height * 0.03f, 0.0f, Vector(3.125f, 3.125f, 0.0f, 0.0f) * global_terrain_noise_scale)
         .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, base_height * 0.015f, 0.0f, Vector(1.56f, 1.56f, 0.0f, 0.0f) * global_terrain_noise_scale);
 
-    m_material = Engine::Get()->CreateHandle<Material>("terrain_material");
+    m_material = Engine::Get()->CreateObject<Material>("terrain_material");
 
     // m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.2f, 0.99f, 0.5f, 1.0f));
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
@@ -107,7 +107,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
     const auto vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
 
-    patch->entity = Engine::Get()->CreateHandle<Entity>(
+    patch->entity = Engine::Get()->CreateObject<Entity>(
         Handle<Mesh>(), // mesh added later, after task thread generates it
         Handle<Shader>(shader),
         Handle<Material>(m_material),
@@ -247,12 +247,12 @@ void TerrainPagingController::AddEnqueuedChunks()
             patch_info.coord.y
         );
 
-        auto mesh = Engine::Get()->CreateHandle<Mesh>(terrain_generation_result.mesh.release());
-        AssertThrow(mesh != nullptr);
+        auto mesh = std::move(terrain_generation_result.mesh);
+        AssertThrow(mesh.IsValid());
 
         if (auto *patch = GetPatch(patch_info.coord)) {
-            AssertThrow(patch->entity != nullptr);
-            AssertThrow(patch->entity->GetMesh() == nullptr);
+            AssertThrow(patch->entity.IsValid());
+            AssertThrow(!patch->entity->GetMesh().IsValid());
 
             ++num_chunks_added;
 

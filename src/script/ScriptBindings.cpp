@@ -519,7 +519,7 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
     }
 
-    auto entity_handle = engine_ptr->CreateHandle<Entity>();
+    auto entity_handle = engine_ptr->CreateObject<Entity>();
 
     const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Handle<Entity>>();
     AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");

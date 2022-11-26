@@ -4,6 +4,7 @@
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/Handle.hpp>
+#include <core/OpaqueHandle.hpp>
 #include <scene/Node.hpp>
 
 #include <system/Debug.hpp>
@@ -16,7 +17,7 @@ namespace hyperion::v2 {
 class AssetManager;
 
 // reference counted value (used internally and by serializer/deserializer)
-using AssetValue = Variant<NodeProxy, AtomicRefCountedPtr<void>, HandleBase>;
+using AssetValue = Variant<NodeProxy, AtomicRefCountedPtr<void>>;
 
 struct LoadedAsset
 {
@@ -60,8 +61,14 @@ public:
 template <class T>
 struct AssetLoaderWrapper
 {
-    using ResultType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, HandleBase, AtomicRefCountedPtr<void>>;
-    using CastedType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, Handle<T>, AtomicRefCountedPtr<T>>;
+    // using ResultType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, HandleBase, AtomicRefCountedPtr<void>>;
+    // using CastedType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, Handle<T>, AtomicRefCountedPtr<T>>;
+
+    static constexpr bool is_opaque_handle = std::is_base_of_v<EngineComponentBaseBase, T>;
+
+    using ResultType = AtomicRefCountedPtr<void>;
+    using CastedType = std::conditional_t<is_opaque_handle, OpaqueHandle<T>, AtomicRefCountedPtr<T>>;
+
 
     AssetLoaderBase &loader;
 
@@ -84,43 +91,68 @@ struct AssetLoaderWrapper
         }
 
         if (loaded_asset.value.template Is<UniquePtr<void>>()) {
-            auto casted_result = loaded_asset.value.template Get<UniquePtr<void>>().template Cast<T>();
+            UniquePtr<void> &casted_result = loaded_asset.value.template Get<UniquePtr<void>>();
             
             return MakeCastedType<Engine>(engine, std::move(casted_result));
         } else if (loaded_asset.value.template Is<AssetValue>()) {
-            auto &as_ref_counted = loaded_asset.value.template Get<AssetValue>();
+            AssetValue &as_ref_counted = loaded_asset.value.template Get<AssetValue>();
 
             if (as_ref_counted.template Is<ResultType>()) {
-                return as_ref_counted.template Get<ResultType>().template Cast<T>();
+                if constexpr (is_opaque_handle) {
+                    return *(as_ref_counted.template Get<ResultType>().template Cast<OpaqueHandle<T>>());
+                } else {
+                    return as_ref_counted.template Get<ResultType>().template Cast<T>();
+                }
             }
-        }
-
-        return CastedType();
-    }
-
-    template <class Engine>
-    static auto MakeCastedType(Engine *engine, UniquePtr<T> &&casted_result) -> CastedType
-    {
-        if (casted_result) {
-            if constexpr (std::is_same_v<ResultType, HandleBase>) {
-                return engine->template CreateHandle<T>(casted_result.Release());
-            } else {
-                AtomicRefCountedPtr<T> ptr;
-                ptr.Reset(casted_result.Release());
-                return ptr;
-            }
-        }
-
-        return CastedType();
-    }
-
-    template <class Engine>
-    static auto MakeResultType(Engine *engine, UniquePtr<T> &&casted_result) -> ResultType
-    {
-        if constexpr (std::is_base_of_v<EngineComponentBaseBase, T>) {
-            return MakeCastedType(engine, std::move(casted_result));
         } else {
-            return MakeCastedType(engine, std::move(casted_result)).template Cast<void>();
+            AssertThrowMsg(false, "Unhandled asset type");
+        }
+
+        return CastedType();
+    }
+
+    template <class Engine>
+    static auto MakeCastedType(Engine *engine, UniquePtr<void> &&ptr) -> CastedType
+    {
+        if (ptr) {
+            if constexpr (is_opaque_handle/*std::is_same_v<ResultType, HandleBase>*/) {
+                auto casted = ptr.Cast<OpaqueHandle<T>>();
+                
+                return *casted;
+                // return engine->template CreateHandle<T>(casted_result.Release());
+            } else if (auto casted = ptr.Cast<T>()) {
+                AtomicRefCountedPtr<T> ref_counted_ptr;
+                ref_counted_ptr.Reset(casted.Release());
+                return ref_counted_ptr;
+            }
+        }
+
+        return CastedType();
+    }
+
+    template <class Engine>
+    static auto MakeResultType(Engine *engine, UniquePtr<void> &&ptr) -> ResultType
+    {
+        if constexpr (is_opaque_handle/*std::is_base_of_v<EngineComponentBaseBase, T>*/) {
+            // store OpaqueHandle<T> in AtomicRefCountedPtr<void>
+            OpaqueHandle<T> handle = MakeCastedType(engine, std::move(ptr));
+
+            return AtomicRefCountedPtr<OpaqueHandle<T>>::Construct(std::move(handle)).template Cast<void>();
+        } else {
+            // AtomicRefCountedPtr<void>
+            return MakeCastedType(engine, std::move(ptr)).template Cast<void>();
+        }
+    }
+
+    template <class Engine>
+    static auto MakeResultType(Engine *engine, CastedType &&casted_value) -> ResultType
+    {
+        if constexpr (is_opaque_handle/*std::is_base_of_v<EngineComponentBaseBase, T>*/) {
+            static_assert(std::is_same_v<CastedType, OpaqueHandle<T>>);
+            return AtomicRefCountedPtr<OpaqueHandle<T>>::Construct(std::move(casted_value)).template Cast<void>();
+        } else {
+            // AtomicRefCountedPtr<void>
+            return casted_value.template Cast<void>();
         }
     }
 };
@@ -167,8 +199,10 @@ struct AssetLoaderWrapper<Node>
     }
 
     template <class Engine>
-    static auto MakeCastedType(Engine *engine, UniquePtr<Node> &&casted_result) -> CastedType
+    static auto MakeCastedType(Engine *engine, UniquePtr<void> &&ptr) -> CastedType
     {
+        auto casted_result = ptr.Cast<Node>();
+
         if (casted_result) {
             return NodeProxy(casted_result.Release());
         }
@@ -177,9 +211,9 @@ struct AssetLoaderWrapper<Node>
     }
 
     template <class Engine>
-    static auto MakeResultType(Engine *engine, UniquePtr<Node> &&casted_result) -> ResultType
+    static auto MakeResultType(Engine *engine, UniquePtr<void> &&ptr) -> ResultType
     {
-        return MakeCastedType(engine, std::move(casted_result));
+        return MakeCastedType(engine, std::move(ptr));
     }
 };
 

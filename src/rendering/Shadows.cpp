@@ -132,7 +132,7 @@ ShadowPass::~ShadowPass() = default;
 
 void ShadowPass::CreateShader()
 {
-    m_shader = Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
+    m_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
         "Shadows",
         ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)
     ));
@@ -152,7 +152,7 @@ void ShadowPass::SetParentScene(Scene::ID id)
 void ShadowPass::CreateRenderPass()
 {
     /* Add the filters' renderpass */
-    auto render_pass = std::make_unique<RenderPass>(
+    m_render_pass = Engine::Get()->CreateObject<RenderPass>(
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -176,7 +176,7 @@ void ShadowPass::CreateRenderPass()
             &attachment_ref
         ));
 
-        render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+        m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
     }
 
     { // standard depth texture
@@ -196,7 +196,7 @@ void ShadowPass::CreateRenderPass()
             &attachment_ref
         ));
 
-        render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+        m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
     }
 
     // should be created in render thread
@@ -204,7 +204,6 @@ void ShadowPass::CreateRenderPass()
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
-    m_render_pass = Engine::Get()->CreateHandle<RenderPass>(render_pass.release());
     Engine::Get()->InitObject(m_render_pass);
 }
 
@@ -220,7 +219,7 @@ void ShadowPass::CreateDescriptors()
 
 void ShadowPass::CreateRendererInstance()
 {
-    auto renderer_instance = std::make_unique<RendererInstance>(
+    m_renderer_instance = Engine::Get()->CreateObject<RendererInstance>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -235,10 +234,10 @@ void ShadowPass::CreateRendererInstance()
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
     
-    m_renderer_instance = Engine::Get()->AddRendererInstance(std::move(renderer_instance));
+    Engine::Get()->AddRendererInstance(m_renderer_instance);
     Engine::Get()->InitObject(m_renderer_instance);
 }
 
@@ -280,8 +279,8 @@ void ShadowPass::CreateComputePipelines()
 
     RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets.Data());
 
-    m_blur_shadow_map = Engine::Get()->CreateHandle<ComputePipeline>(
-        Engine::Get()->CreateHandle<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("BlurShadowMap")),
+    m_blur_shadow_map = Engine::Get()->CreateObject<ComputePipeline>(
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("BlurShadowMap")),
         Array<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
     );
 
@@ -296,8 +295,8 @@ void ShadowPass::Create()
     CreateDescriptors();
     CreateComputePipelines();
 
-    m_scene = Engine::Get()->CreateHandle<Scene>(
-        Engine::Get()->CreateHandle<Camera>(new OrthoCamera(
+    m_scene = Engine::Get()->CreateObject<Scene>(
+        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
             m_dimensions.width, m_dimensions.height,
             -100.0f, 100.0f,
             -100.0f, 100.0f,
@@ -310,7 +309,7 @@ void ShadowPass::Create()
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         { // init framebuffers
-            m_framebuffers[i] = Engine::Get()->CreateHandle<Framebuffer>(
+            m_framebuffers[i] = Engine::Get()->CreateObject<Framebuffer>(
                 m_dimensions,
                 Handle<RenderPass>(m_render_pass)
             );

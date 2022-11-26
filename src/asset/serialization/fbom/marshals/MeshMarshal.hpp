@@ -52,7 +52,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Mesh> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
         Topology topology = Topology::TRIANGLES;
 
@@ -100,7 +100,7 @@ public:
             }
         }
 
-        out_object.Reset(new Mesh(
+        out_object = UniquePtr<OpaqueHandle<Mesh>>::Construct(Engine::Get()->CreateObject<Mesh>(
             vertices,
             indices,
             topology,
