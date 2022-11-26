@@ -10,10 +10,6 @@
 
 #include <Constants.hpp>
 
-namespace hyperion::v2 {
-class Engine;
-} // namespace hyperion::v2
-
 namespace hyperion::v2::fbom {
 
 class FBOMObject;
@@ -60,7 +56,7 @@ private:
         if (result.value == FBOMResult::FBOM_OK) {
             AssertThrow(ptr != nullptr);
 
-            auto result_value = AssetLoaderWrapper<T>::MakeResultType(GetEngine(), std::move(ptr));
+            auto result_value = AssetLoaderWrapper<T>::MakeResultType(std::move(ptr));
             AssertThrow(result_value.Get() != nullptr);
 
             out.Set<T>(std::move(result_value));

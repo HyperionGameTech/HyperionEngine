@@ -138,7 +138,7 @@ void Engine::FindTextureFormatDefaults()
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_UV,
         device->GetFeatures().FindSupportedFormat(
             std::array{ InternalFormat::RG16F,
-                        InternalFormat::RG32F},
+                        InternalFormat::RG32F },
             renderer::ImageSupportType::SRV
         )
     );

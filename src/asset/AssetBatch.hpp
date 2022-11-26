@@ -58,7 +58,6 @@ private:
 
             asset.value.Set(
                 AssetLoaderWrapper<T>::MakeResultType(
-                    GetEngine(),
                     asset_manager->template Load<T>(asset.path, asset.result)
                 )
             );

@@ -377,7 +377,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         auto vertex_attributes = mesh->GetVertexAttributes();
 
-        auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD);
+        auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD_SKINNED);
 
         auto entity = Engine::Get()->CreateObject<Entity>(
             std::move(mesh),

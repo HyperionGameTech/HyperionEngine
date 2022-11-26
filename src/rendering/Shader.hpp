@@ -71,6 +71,7 @@ private:
 enum class ShaderKey
 {
     BASIC_FORWARD,
+    BASIC_FORWARD_SKINNED,
     BASIC_VEGETATION,
     BASIC_SKYBOX,
     BASIC_UI,

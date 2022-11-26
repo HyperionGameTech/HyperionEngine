@@ -175,6 +175,8 @@ private:
 
 class ObjectPool
 {
+    static SizeType total_memory_size;
+
 public:
     template <class T>
     ObjectContainer<T> &GetContainer()

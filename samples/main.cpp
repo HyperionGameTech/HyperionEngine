@@ -130,7 +130,6 @@ public:
             );
         }
 #endif
-
         Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
 
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
@@ -869,6 +868,11 @@ int main()
     Engine::Get()->shader_manager.SetShader(
         ShaderKey::BASIC_FORWARD,
         Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)))
+    );
+
+    Engine::Get()->shader_manager.SetShader(
+        ShaderKey::BASIC_FORWARD_SKINNED,
+        Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes, { "SKINNING" })))
     );
 
     Engine::Get()->shader_manager.SetShader(

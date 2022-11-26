@@ -119,7 +119,7 @@ public:
         }
 
         return AssetLoaderWrapper<NormalizedType<T>>(*loader)
-            .Load(*this, GetEngine(), path, out_result);
+            .Load(*this, path, out_result);
     }
 
     template <class T>
