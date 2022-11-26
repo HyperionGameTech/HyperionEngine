@@ -32,7 +32,7 @@ class Octree
 
     struct Callback
     {
-        using CallbackFunction = std::function<void( Octree *, Entity *)>;
+        using CallbackFunction = std::function<void(Octree *, Entity *)>;
     };
 
     static constexpr float growth_factor = 1.5f;
@@ -117,10 +117,10 @@ public:
     const BoundingBox &GetAABB() const { return m_aabb; }
 
     void Clear();
-    Result Insert( Entity *entity);
-    Result Remove( Entity *entity);
-    Result Update( Entity *entity);
-    Result Rebuild( const BoundingBox &new_aabb);
+    Result Insert(Entity *entity);
+    Result Remove(Entity *entity);
+    Result Update(Entity *entity);
+    Result Rebuild(const BoundingBox &new_aabb);
 
     void CollectEntities(std::vector<Entity *> &out) const;
     void CollectEntitiesInRange(const Vector3 &position, float radius, std::vector<Entity *> &out) const;
@@ -134,9 +134,9 @@ public:
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
 private:
-    void ClearInternal( std::vector<Node> &out_nodes);
-    void Clear( std::vector<Node> &out_nodes);
-    Result Move( Entity *entity, const std::vector<Node>::iterator *it = nullptr);
+    void ClearInternal(std::vector<Node> &out_nodes);
+    void Clear(std::vector<Node> &out_nodes);
+    Result Move(Entity *entity, const std::vector<Node>::iterator *it = nullptr);
 
     void CopyVisibilityState(const VisibilityState &visibility_state);
 
@@ -164,14 +164,14 @@ private:
 
     /* Remove any potentially empty octants above the node */
     void CollapseParents();
-    Result InsertInternal( Entity *entity);
-    Result UpdateInternal( Entity *entity);
-    Result RemoveInternal( Entity *entity);
-    Result RebuildExtendInternal( const BoundingBox &extend_include_aabb);
+    Result InsertInternal(Entity *entity);
+    Result UpdateInternal(Entity *entity);
+    Result RemoveInternal(Entity *entity);
+    Result RebuildExtendInternal(const BoundingBox &extend_include_aabb);
     void UpdateVisibilityState(Scene *scene, UInt8 cursor);
 
     /* Called from entity - remove the pointer */
-    void OnEntityRemoved( Entity *entity);
+    void OnEntityRemoved(Entity *entity);
     
     std::vector<Node>      m_nodes;
     Octree                *m_parent;

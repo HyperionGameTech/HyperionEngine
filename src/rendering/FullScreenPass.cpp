@@ -201,7 +201,7 @@ void FullScreenPass::CreatePipeline()
     ));
 }
 
-void FullScreenPass::CreatePipeline( const RenderableAttributeSet &renderable_attributes)
+void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
     auto _renderer_instance = std::make_unique<RendererInstance>(
         std::move(m_shader),
@@ -253,7 +253,7 @@ void FullScreenPass::Destroy()
     HYP_FLUSH_RENDER_QUEUE();
 }
 
-void FullScreenPass::Record( UInt frame_index)
+void FullScreenPass::Record(UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -326,7 +326,7 @@ void FullScreenPass::Record( UInt frame_index)
     HYPERION_ASSERT_RESULT(record_result);
 }
 
-void FullScreenPass::Render( Frame *frame)
+void FullScreenPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

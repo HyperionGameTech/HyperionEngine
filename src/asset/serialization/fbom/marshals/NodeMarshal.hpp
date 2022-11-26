@@ -67,7 +67,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Node> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Node> &out_object) const override
     {
         Node::Type node_type = Node::Type::NODE;
 

@@ -346,7 +346,7 @@ void ShadowPass::Destroy()
     FullScreenPass::Destroy(); // flushes render queue, releases command buffers...
 }
 
-void ShadowPass::Render( Frame *frame)
+void ShadowPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -527,7 +527,7 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
     }
 }
 
-void ShadowRenderer::OnUpdate( GameCounter::TickUnit delta)
+void ShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
@@ -536,7 +536,7 @@ void ShadowRenderer::OnUpdate( GameCounter::TickUnit delta)
     UpdateSceneCamera();
 }
 
-void ShadowRenderer::OnRender( Frame *frame)
+void ShadowRenderer::OnRender(Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 
@@ -601,7 +601,7 @@ void ShadowRenderer::UpdateSceneCamera()
             mins = MathUtil::Min(mins, corner);
         }
 
-        static_cast<OrthoCamera *>(camera.Get())->Set(  // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+        static_cast<OrthoCamera *>(camera.Get())->Set( // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
             mins.x, maxes.x,
             mins.y, maxes.y,
             mins.z, maxes.z

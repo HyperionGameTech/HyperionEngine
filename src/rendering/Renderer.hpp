@@ -191,7 +191,7 @@ private:
         UInt scene_index
     );
 
-    void PerformEnqueuedEntityUpdates( UInt frame_index);
+    void PerformEnqueuedEntityUpdates(UInt frame_index);
     
     void UpdateEnqueuedEntitiesFlag()
     {

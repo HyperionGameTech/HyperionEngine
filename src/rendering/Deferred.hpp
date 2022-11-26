@@ -62,8 +62,8 @@ public:
     virtual void CreateDescriptors() override;
     virtual void Create() override;
     virtual void Destroy() override;
-    virtual void Record( UInt frame_index) override;
-    virtual void Render( Frame *frame) override;
+    virtual void Record(UInt frame_index) override;
+    virtual void Render(Frame *frame) override;
 
 private:
     const bool m_is_indirect_pass;
@@ -116,20 +116,20 @@ public:
         RenderEnvironment *environment
     );
 
-    void RenderUI( Frame *frame);
+    void RenderUI(Frame *frame);
 
 private:
     void CreateComputePipelines();
     void CreateDescriptorSets();
 
-    void CollectDrawCalls( Frame *frame);
-    void RenderOpaqueObjects( Frame *frame);
-    void RenderTranslucentObjects( Frame *frame);
+    void CollectDrawCalls(Frame *frame);
+    void RenderOpaqueObjects(Frame *frame);
+    void RenderTranslucentObjects(Frame *frame);
 
-    void GenerateMipChain( Frame *frame, Image *image);
+    void GenerateMipChain(Frame *frame, Image *image);
 
-    void UpdateParticles( Frame *frame, RenderEnvironment *environment);
-    void RenderParticles( Frame *frame, RenderEnvironment *environment);
+    void UpdateParticles(Frame *frame, RenderEnvironment *environment);
+    void RenderParticles(Frame *frame, RenderEnvironment *environment);
 
     DeferredPass m_indirect_pass;
     DeferredPass m_direct_pass;

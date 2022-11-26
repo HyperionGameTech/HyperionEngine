@@ -614,7 +614,7 @@ private:
 #define HYP_DEFINE_DESCRIPTOR(class_name, descriptor_type) \
     class class_name : public Descriptor { \
     public: \
-        class_name( \
+        class_name(\
             UInt binding \
         ) : Descriptor(binding, descriptor_type) {} \
     }

@@ -54,7 +54,7 @@ public:
     void SetTLAS(Handle<TLAS> &&tlas)
         { m_tlas = std::move(tlas); }
 
-    void ApplyTLASUpdates( RTUpdateStateFlags flags);
+    void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
     void Create();
     void Destroy();

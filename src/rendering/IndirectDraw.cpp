@@ -293,7 +293,7 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
     m_is_dirty = { true, true };
 }
 
-bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<IndirectBuffer>(
         frame,
@@ -332,7 +332,7 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType
     return true;
 }
 
-bool IndirectDrawState::ResizeInstancesBuffer( Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeInstancesBuffer(Frame *frame, SizeType count)
 {
     const bool was_created_or_resized = ResizeBuffer<StorageBuffer>(
         frame,
@@ -351,7 +351,7 @@ bool IndirectDrawState::ResizeInstancesBuffer( Frame *frame, SizeType count)
     return was_created_or_resized;
 }
 
-bool IndirectDrawState::ResizeIfNeeded( Frame *frame, SizeType count)
+bool IndirectDrawState::ResizeIfNeeded(Frame *frame, SizeType count)
 {
     // assume render thread
 
@@ -380,7 +380,7 @@ void IndirectDrawState::Reset()
     m_is_dirty = { true, true };
 }
 
-void IndirectDrawState::Reserve( Frame *frame, SizeType count)
+void IndirectDrawState::Reserve(Frame *frame, SizeType count)
 {
     // assume render thread
 
@@ -395,7 +395,7 @@ void IndirectDrawState::Reserve( Frame *frame, SizeType count)
     m_is_dirty[frame->GetFrameIndex()] |= resize_happened;
 }
 
-void IndirectDrawState::UpdateBufferData( Frame *frame, bool *out_was_resized)
+void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 {
     // assume render thread
 
@@ -530,7 +530,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(
     }
 }
 
-void IndirectRenderer::RebuildDescriptors( Frame *frame)
+void IndirectRenderer::RebuildDescriptors(Frame *frame)
 {
     const auto frame_index = frame->GetFrameIndex();
 

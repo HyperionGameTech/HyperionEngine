@@ -118,7 +118,7 @@ public:
         bool operator<(const HandleDeletionEntry &other) const
             { return Base::operator<(other); }
     
-        void PerformDeletion( bool force = false)
+        void PerformDeletion(bool force = false)
         {
             // cycle should be at zero
             AssertThrow(force || Base::second == 0u);
@@ -168,7 +168,7 @@ public:
 
         ~BufferOrImageDeletionEntry() = default;
 
-        void PerformDeletion( bool force = false)
+        void PerformDeletion(bool force = false)
         {
             // cycle should be at zero
             AssertThrow(force || Base::second == 0u);
@@ -229,7 +229,7 @@ public:
 
     // returns true if all were completed
     template <class Container>
-    bool DeleteEnqueuedItemsImpl( Container &queue)
+    bool DeleteEnqueuedItemsImpl(Container &queue)
     {
         for (auto it = queue.Begin(); it != queue.End();) {
             auto &front = *it;
@@ -251,7 +251,7 @@ public:
     }
 
     template <class Container>
-    void ForceDeleteEnqueuedItemsImpl( Container &queue)
+    void ForceDeleteEnqueuedItemsImpl(Container &queue)
     {
         for (auto it = queue.Begin(); it != queue.End();) {
             auto &front = *it;

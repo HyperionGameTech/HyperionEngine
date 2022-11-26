@@ -129,9 +129,9 @@ void UIRenderer::InitGame() { }
 
 void UIRenderer::OnRemoved() { }
 
-void UIRenderer::OnUpdate( GameCounter::TickUnit delta) { }
+void UIRenderer::OnUpdate(GameCounter::TickUnit delta) { }
 
-void UIRenderer::OnRender( Frame *frame)
+void UIRenderer::OnRender(Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 

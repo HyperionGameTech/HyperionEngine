@@ -143,7 +143,7 @@ public:
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into world coordinates */
     Vector4 TransformScreenToWorld(const Vector2 &screen) const;
 
-    void Update( GameCounter::TickUnit dt);
+    void Update(GameCounter::TickUnit dt);
 
     virtual void UpdateLogic(double dt) = 0;
 

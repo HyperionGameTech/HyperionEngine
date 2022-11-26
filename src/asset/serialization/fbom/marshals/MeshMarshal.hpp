@@ -52,7 +52,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Mesh> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Mesh> &out_object) const override
     {
         Topology topology = Topology::TRIANGLES;
 

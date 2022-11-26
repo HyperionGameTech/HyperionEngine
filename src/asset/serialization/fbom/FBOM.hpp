@@ -298,7 +298,7 @@ struct FBOMConfig
 class FBOMReader
 {
 public:
-    FBOMReader( const FBOMConfig &config);
+    FBOMReader(const FBOMConfig &config);
     ~FBOMReader();
 
     FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out_object)

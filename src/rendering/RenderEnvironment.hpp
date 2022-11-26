@@ -152,14 +152,14 @@ public:
         { return m_frame_counter; }
 
     void Init();
-    void Update( GameCounter::TickUnit delta);
+    void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance( Frame *frame);
+    void RenderRTRadiance(Frame *frame);
 
-    void RenderComponents( Frame *frame);
+    void RenderComponents(Frame *frame);
 
 private:
-    void ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags);
+    void ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags);
 
     Scene *m_scene;
 

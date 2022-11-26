@@ -135,7 +135,7 @@ void RenderEnvironment::Init()
     });
 }
 
-void RenderEnvironment::Update( GameCounter::TickUnit delta)
+void RenderEnvironment::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -184,7 +184,7 @@ void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
     m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_ENTITIES);
 }
 
-void RenderEnvironment::ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags)
+void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -197,7 +197,7 @@ void RenderEnvironment::ApplyTLASUpdates( Frame *frame, RTUpdateStateFlags flags
     }
 }
 
-void RenderEnvironment::RenderRTRadiance( Frame *frame)
+void RenderEnvironment::RenderRTRadiance(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -218,7 +218,7 @@ void RenderEnvironment::RenderRTRadiance( Frame *frame)
     }
 }
 
-void RenderEnvironment::RenderComponents( Frame *frame)
+void RenderEnvironment::RenderComponents(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();

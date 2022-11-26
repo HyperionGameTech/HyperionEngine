@@ -473,7 +473,7 @@ public:
         #endif
     }
 
-    virtual void OnInputEvent( const SystemEvent &event) override
+    virtual void OnInputEvent(const SystemEvent &event) override
     {
         Game::OnInputEvent(event);
 

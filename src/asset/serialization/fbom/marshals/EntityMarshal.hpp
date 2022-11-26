@@ -45,7 +45,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Entity> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Entity> &out_object) const override
     {
         out_object.Reset(new Entity());
 

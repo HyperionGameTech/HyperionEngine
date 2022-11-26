@@ -50,7 +50,7 @@ void Game::Init()
     InitRender();
 }
 
-void Game::Update( GameCounter::TickUnit delta)
+void Game::Update(GameCounter::TickUnit delta)
 {
     Engine::Get()->GetComponents().Update(delta);
     Engine::Get()->GetWorld()->Update(delta);
@@ -82,7 +82,7 @@ void Game::Teardown()
     m_is_init = false;
 }
 
-void Game::HandleEvent( SystemEvent &&event)
+void Game::HandleEvent(SystemEvent &&event)
 {
     if (m_input_manager == nullptr) {
         return;
@@ -108,7 +108,7 @@ void Game::HandleEvent( SystemEvent &&event)
     }
 }
 
-void Game::OnInputEvent( const SystemEvent &event)
+void Game::OnInputEvent(const SystemEvent &event)
 {
     Threads::AssertOnThread(THREAD_GAME);
 

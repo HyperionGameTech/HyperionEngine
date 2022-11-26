@@ -29,7 +29,7 @@ void AtomicCounter::Destroy()
     m_buffer.reset();
 }
 
-void AtomicCounter::Reset( CountType value)
+void AtomicCounter::Reset(CountType value)
 {
     HYPERION_ASSERT_RESULT(Engine::Get()->GetInstance()->GetStagingBufferPool().Use(
         Engine::Get()->GetInstance()->GetDevice(),

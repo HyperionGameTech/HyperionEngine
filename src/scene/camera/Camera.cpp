@@ -206,7 +206,7 @@ Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
     return TransformNDCToWorld(TransformScreenToNDC(screen));
 }
 
-void Camera::Update( GameCounter::TickUnit dt)
+void Camera::Update(GameCounter::TickUnit dt)
 {
     UpdateCommandQueue(dt);
     UpdateLogic(dt);

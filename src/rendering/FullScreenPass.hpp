@@ -94,15 +94,15 @@ public:
     virtual void CreateRenderPass();
     virtual void CreateCommandBuffers();
     virtual void CreateFramebuffers();
-    virtual void CreatePipeline( const RenderableAttributeSet &renderable_attributes);
+    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
     virtual void CreatePipeline();
     virtual void CreateDescriptors() = 0;
 
     virtual void Create();
     virtual void Destroy();
 
-    virtual void Render( Frame *frame);
-    virtual void Record( UInt frame_index);
+    virtual void Render(Frame *frame);
+    virtual void Record(UInt frame_index);
 
 protected:
     void CreateQuad();

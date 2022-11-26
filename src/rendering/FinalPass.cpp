@@ -134,7 +134,7 @@ void FinalPass::Destroy()
     }
 }
 
-void FinalPass::Render( Frame *frame)
+void FinalPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

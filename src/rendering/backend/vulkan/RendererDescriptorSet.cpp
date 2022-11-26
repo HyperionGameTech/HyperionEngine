@@ -584,7 +584,7 @@ Result DescriptorPool::Create(Device *device)
     );
 
 #define HYP_DEBUG_LOG_LIMIT(limit_name) \
-    DebugLog( \
+    DebugLog(\
         LogType::Debug, \
         "Limit " #limit_name ": %llu\n", \
         device->GetFeatures().GetPhysicalDeviceProperties().limits.limit_name \

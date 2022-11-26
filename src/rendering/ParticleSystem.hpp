@@ -101,7 +101,7 @@ public:
     }
 
     void Init();
-    void Record( CommandBuffer *command_buffer);
+    void Record(CommandBuffer *command_buffer);
 
 private:
     void CreateNoiseMap();
@@ -140,9 +140,9 @@ public:
     void Init();
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles( Frame *frame);
+    void UpdateParticles(Frame *frame);
 
-    void Render( Frame *frame);
+    void Render(Frame *frame);
 
 private:
     void CreateBuffers();

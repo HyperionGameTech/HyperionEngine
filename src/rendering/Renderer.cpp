@@ -206,7 +206,7 @@ void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_remove
     m_enqueued_entities_sp.Signal();
 }
 
-void RendererInstance::PerformEnqueuedEntityUpdates( UInt frame_index)
+void RendererInstance::PerformEnqueuedEntityUpdates(UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -378,7 +378,7 @@ void RendererInstance::Init()
     }));
 }
 
-void RendererInstance::CollectDrawCalls( Frame *frame)
+void RendererInstance::CollectDrawCalls(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -644,7 +644,7 @@ RenderAll(
     command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
 }
 
-void RendererInstance::PerformRendering( Frame *frame)
+void RendererInstance::PerformRendering(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -660,7 +660,7 @@ void RendererInstance::PerformRendering( Frame *frame)
     );
 }
 
-void RendererInstance::PerformRenderingIndirect( Frame *frame)
+void RendererInstance::PerformRenderingIndirect(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -676,7 +676,7 @@ void RendererInstance::PerformRenderingIndirect( Frame *frame)
     );
 }
 
-void RendererInstance::Render( Frame *frame)
+void RendererInstance::Render(Frame *frame)
 {
     // perform all ops in one batch
     CollectDrawCalls(frame);
@@ -684,7 +684,6 @@ void RendererInstance::Render( Frame *frame)
 }
 
 // Proxied methods
-
 
 CommandBuffer *RendererProxy::GetCommandBuffer(UInt frame_index)
 {
@@ -696,7 +695,7 @@ renderer::GraphicsPipeline *RendererProxy::GetGraphicsPipeline()
     return m_renderer_instance->m_pipeline.get();
 }
 
-void RendererProxy::Bind( Frame *frame)
+void RendererProxy::Bind(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

@@ -365,7 +365,7 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     std::vector<const char *> required_extensions_linear;
     required_extensions_linear.reserve(required_extensions.size());
 
-    std::transform( 
+    std::transform(
         required_extensions.begin(), 
         required_extensions.end(),
         std::back_inserter(required_extensions_linear),

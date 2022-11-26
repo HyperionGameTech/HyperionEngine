@@ -24,90 +24,6 @@ namespace hyperion::v2 {
 using renderer::Instance;
 using renderer::Device;
 
-template <class Parent>
-struct AttachmentSet
-{
-    using Initializer = std::add_pointer_t<void(WeakHandleBase &, Parent *)>;
-
-    Initializer init_fn;
-    Array<WeakHandleBase> objects;
-};
-
-template <class Parent>
-class AttachmentMap
-{
-public:
-    void InitializeAll(Parent *parent)
-    {
-        for (auto &it : m_attachments) {
-            for (auto &object_it : it.second.objects) {
-                WeakHandleBase &handle = object_it;
-
-                it.second.init_fn(handle, parent);
-            }
-        }
-    }
-
-    template <class T>
-    void Attach(Parent *parent, Handle<T> &handle, bool init_immediately)
-    {
-        AssertThrow(parent != nullptr);
-
-        if (!handle) {
-            return;
-        }
-
-        if (init_immediately) {
-            parent->GetEngine()->template Attach<T>(handle, init_immediately);
-        }
-
-        auto it = m_attachments.template Find<NormalizedType<T>>();
-
-        if (it == m_attachments.End()) {
-            m_attachments.template Set<NormalizedType<T>>(AttachmentSet<Parent> {
-                .init_fn = [](WeakHandleBase &handle, Parent *parent) {
-                    auto handle_casted = handle.Lock<T>();
-                    AssertThrow(handle_casted);
-
-                    parent->GetEngine()->template Attach<T>(handle_casted);
-                },
-                .objects = Array<WeakHandleBase> {
-                    WeakHandleBase(handle)
-                }
-            });
-
-            return;
-        }
-
-        it->second.objects.PushBack(WeakHandleBase(handle));
-    }
-
-    template <class T>
-    bool Detach(const Handle<T> &handle)
-    {
-        if (!handle) {
-            return false;
-        }
-
-        auto it = m_attachments.template Find<NormalizedType<T>>();
-
-        if (it == m_attachments.End()) {
-            return false;
-        }
-
-        auto objects_it = it->second.objects.Find(handle);
-
-        if (objects_it == it->second.objects.End()) {
-            return false;
-        }
-
-        return it->second.objects.Erase(objects_it);
-    }
-
-private:
-    TypeMap<AttachmentSet<Parent>> m_attachments;
-};
-
 template <class T, class ClassName>
 struct StubbedClass : public Class<ClassName>
 {
@@ -247,18 +163,6 @@ protected:
         CallbackTrackable::Teardown();
     }
 
-    //template <class T>
-    //void Attach(Handle<T> &handle)
-    //    { m_attachment_map.template Attach<T>(static_cast<InnerType *>(this), handle, m_init_called); }
-
-    //template <class T>
-    //void Detach(const Handle<T> &handle)
-    //    { m_attachment_map.template Detach<T>(handle); }
-
-    //template <class T>
-    //void Detach(const typename Handle<T>::ID &id)
-    //    { m_attachment_map.template Detach<T>(id); }
-
     void Destroy()
     {
         m_init_called.store(false);
@@ -290,8 +194,6 @@ protected:
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
     InitInfo m_init_info;
-
-    //AttachmentMap<InnerType> m_attachment_map;
 
 private:
 
@@ -345,7 +247,7 @@ public:
 
     /* Standard non-specialized initialization function */
     template <class ...Args>
-    void Create( Args &&... args)
+    void Create(Args &&... args)
     {
         const char *wrapped_type_name = EngineComponentBase<Type>::GetClass().GetName();
 
@@ -375,7 +277,7 @@ public:
 
     /* Standard non-specialized destruction function */
     template <class ...Args>
-    void Destroy( Args &&... args)
+    void Destroy(Args &&... args)
     {
         const char *wrapped_type_name = typeid(WrappedType).name();
 

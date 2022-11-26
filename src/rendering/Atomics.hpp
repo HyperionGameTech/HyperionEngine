@@ -34,7 +34,7 @@ public:
     void Create();
     void Destroy();
 
-    void Reset( CountType value = 0);
+    void Reset(CountType value = 0);
     CountType Read() const;
 
 private:

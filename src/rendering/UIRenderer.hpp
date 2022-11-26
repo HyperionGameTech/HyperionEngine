@@ -34,8 +34,8 @@ public:
     void InitGame(); // init on game thread
     void OnRemoved();
 
-    void OnUpdate( GameCounter::TickUnit delta);
-    void OnRender( Frame *frame);
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
 
 private:
     void CreateRenderPass();

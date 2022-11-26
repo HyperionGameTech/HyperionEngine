@@ -205,13 +205,13 @@ void VoxelConeTracing::OnEntityRenderableAttributesChanged(Handle<Entity> &entit
     }
 }
 
-void VoxelConeTracing::OnUpdate( GameCounter::TickUnit delta)
+void VoxelConeTracing::OnUpdate(GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
 }
 
-void VoxelConeTracing::OnRender( Frame *frame)
+void VoxelConeTracing::OnRender(Frame *frame)
 {
     if (!Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) {
         return;

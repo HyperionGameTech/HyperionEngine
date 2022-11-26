@@ -503,7 +503,7 @@ void ProbeGrid::CreateDescriptorSets()
     );
 }
 
-void ProbeGrid::ApplyTLASUpdates( RTUpdateStateFlags flags)
+void ProbeGrid::ApplyTLASUpdates(RTUpdateStateFlags flags)
 {
     if (!flags) {
         return;
@@ -532,7 +532,7 @@ void ProbeGrid::ApplyTLASUpdates( RTUpdateStateFlags flags)
     }
 }
 
-void ProbeGrid::SubmitPushConstants( CommandBuffer *command_buffer)
+void ProbeGrid::SubmitPushConstants(CommandBuffer *command_buffer)
 {
     m_random_generator.Next();
 
@@ -547,7 +547,7 @@ void ProbeGrid::SubmitPushConstants( CommandBuffer *command_buffer)
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::RenderProbes( Frame *frame)
+void ProbeGrid::RenderProbes(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
@@ -601,7 +601,7 @@ void ProbeGrid::RenderProbes( Frame *frame)
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
 }
 
-void ProbeGrid::ComputeIrradiance( Frame *frame)
+void ProbeGrid::ComputeIrradiance(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

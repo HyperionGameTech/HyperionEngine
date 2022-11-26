@@ -68,16 +68,16 @@ public:
 
     void PushDrawProxy(const EntityDrawProxy &draw_proxy);
     void Reset();
-    void Reserve( Frame *frame, SizeType count);
+    void Reserve(Frame *frame, SizeType count);
 
-    void UpdateBufferData( Frame *frame, bool *out_was_resized);
+    void UpdateBufferData(Frame *frame, bool *out_was_resized);
 
 private:
-    bool ResizeIndirectDrawCommandsBuffer( Frame *frame, SizeType count);
-    bool ResizeInstancesBuffer( Frame *frame, SizeType count);
+    bool ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType count);
+    bool ResizeInstancesBuffer(Frame *frame, SizeType count);
 
     // returns true if resize happened.
-    bool ResizeIfNeeded( Frame *frame, SizeType count);
+    bool ResizeIfNeeded(Frame *frame, SizeType count);
 
     Array<ObjectInstance> m_object_instances;
     Array<EntityDrawProxy> m_draw_proxies;
@@ -118,7 +118,7 @@ public:
     );
 
 private:
-    void RebuildDescriptors( Frame *frame);
+    void RebuildDescriptors(Frame *frame);
 
     IndirectDrawState m_indirect_draw_state;
     Handle<ComputePipeline> m_object_visibility;

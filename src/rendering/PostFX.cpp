@@ -230,7 +230,7 @@ void PostProcessing::CreateUniformBuffer()
     }
 }
 
-void PostProcessing::RenderPre( Frame *frame) const
+void PostProcessing::RenderPre(Frame *frame) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -250,7 +250,7 @@ void PostProcessing::RenderPre( Frame *frame) const
     }
 }
 
-void PostProcessing::RenderPost( Frame *frame) const
+void PostProcessing::RenderPost(Frame *frame) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

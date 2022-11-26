@@ -59,7 +59,7 @@ public:
         { return m_num_fragments; }
 
     void Init();
-    void Render( Frame *frame);
+    void Render(Frame *frame);
 
 private:
     void CreateBuffers();
@@ -69,9 +69,9 @@ private:
     void CreateFramebuffer();
     void CreateDescriptors();
 
-    void ResizeFragmentListBuffer( Frame *frame);
+    void ResizeFragmentListBuffer(Frame *frame);
 
-    void RenderFragmentList( Frame *frame, bool count_mode);
+    void RenderFragmentList(Frame *frame, bool count_mode);
 
     Handle<Scene> m_scene;
 

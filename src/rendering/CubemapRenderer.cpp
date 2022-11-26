@@ -290,12 +290,12 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
     }
 }
 
-void CubemapRenderer::OnUpdate( GameCounter::TickUnit delta)
+void CubemapRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     //m_env_probe->Update;
 }
 
-void CubemapRenderer::OnRender( Frame *frame)
+void CubemapRenderer::OnRender(Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 

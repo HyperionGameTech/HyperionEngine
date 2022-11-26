@@ -52,7 +52,7 @@
 
 #define HYP_SCRIPT_THROW(exception) \
     do { \
-        params.handler->state->ThrowException( \
+        params.handler->state->ThrowException(\
             params.handler->thread, \
             exception \
         ); \

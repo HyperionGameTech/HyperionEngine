@@ -40,7 +40,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Scene> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Scene> &out_object) const override
     {
         out_object.Reset(new Scene(Handle<Camera>()));
 

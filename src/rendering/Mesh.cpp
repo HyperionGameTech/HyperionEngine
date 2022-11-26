@@ -310,7 +310,7 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 #undef PACKED_SET_ATTR
 
-void Mesh::Render( CommandBuffer *cmd) const
+void Mesh::Render(CommandBuffer *cmd) const
 {
     //Threads::AssertOnThread(THREAD_RENDER);
 

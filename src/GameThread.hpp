@@ -25,7 +25,7 @@ public:
         { return m_is_running.load(std::memory_order_relaxed); }
 
 private:
-    virtual void operator()( Game *game) override;
+    virtual void operator()(Game *game) override;
 
     std::atomic_bool m_is_running;
 };

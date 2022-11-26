@@ -115,7 +115,7 @@ void DeferredPass::Destroy()
     FullScreenPass::Destroy(); // flushes render queue
 }
 
-void DeferredPass::Record( UInt frame_index)
+void DeferredPass::Record(UInt frame_index)
 {
     if (m_is_indirect_pass) {
         FullScreenPass::Record(frame_index);
@@ -183,7 +183,7 @@ void DeferredPass::Record( UInt frame_index)
     HYPERION_ASSERT_RESULT(record_result);
 }
 
-void DeferredPass::Render( Frame *frame)
+void DeferredPass::Render(Frame *frame)
 {
     FullScreenPass::Render(frame);
 }
@@ -670,7 +670,7 @@ void DeferredRenderer::Render(
     m_temporal_aa->Render(frame);
 }
 
-void DeferredRenderer::GenerateMipChain( Frame *frame, Image *src_image)
+void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
     auto *primary = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();
@@ -698,7 +698,7 @@ void DeferredRenderer::GenerateMipChain( Frame *frame, Image *src_image)
     ));
 }
 
-void DeferredRenderer::CollectDrawCalls( Frame *frame)
+void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
@@ -727,7 +727,7 @@ void DeferredRenderer::CollectDrawCalls( Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderOpaqueObjects( Frame *frame)
+void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
@@ -748,7 +748,7 @@ void DeferredRenderer::RenderOpaqueObjects( Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderTranslucentObjects( Frame *frame)
+void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
         for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
@@ -761,19 +761,19 @@ void DeferredRenderer::RenderTranslucentObjects( Frame *frame)
     }
 }
 
-void DeferredRenderer::RenderUI( Frame *frame)
+void DeferredRenderer::RenderUI(Frame *frame)
 {
     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
         renderer_instance->Render(frame);
     }
 }
 
-void DeferredRenderer::UpdateParticles( Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::UpdateParticles(Frame *frame, RenderEnvironment *environment)
 {
     environment->GetParticleSystem()->UpdateParticles(frame);
 }
 
-void DeferredRenderer::RenderParticles( Frame *frame, RenderEnvironment *environment)
+void DeferredRenderer::RenderParticles(Frame *frame, RenderEnvironment *environment)
 {
     environment->GetParticleSystem()->Render(frame);
 }

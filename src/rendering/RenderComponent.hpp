@@ -69,9 +69,9 @@ public:
     /*! \brief Init the component. Runs in RENDER/MAIN thread. */
     virtual void ComponentInit() = 0;
     /*! \brief Update data for the component. Runs on GAME thread. */
-    virtual void ComponentUpdate( GameCounter::TickUnit delta) { }
+    virtual void ComponentUpdate(GameCounter::TickUnit delta) { }
     /*! \brief Perform rendering. Runs in RENDER thread. */
-    virtual void ComponentRender( Frame *frame) = 0;
+    virtual void ComponentRender(Frame *frame) = 0;
     /*! \brief Called when the component is removed. */
     virtual void ComponentRemoved() = 0;
 
@@ -134,7 +134,7 @@ public:
         m_component_is_render_init = true;
     }
 
-    virtual void ComponentUpdate( GameCounter::TickUnit delta) override final
+    virtual void ComponentUpdate(GameCounter::TickUnit delta) override final
     {
         Threads::AssertOnThread(THREAD_GAME);
 
@@ -147,7 +147,7 @@ public:
         static_cast<Derived *>(this)->OnUpdate(delta);
     }
 
-    virtual void ComponentRender( Frame *frame) override final
+    virtual void ComponentRender(Frame *frame) override final
     {
         Threads::AssertOnThread(THREAD_RENDER);
 

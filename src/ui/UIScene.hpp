@@ -65,7 +65,7 @@ public:
     bool TestRay(const Vector2 &position, RayHit &out_first_hit);
 
     void Init();
-    void Update( GameCounter::TickUnit delta);
+    void Update(GameCounter::TickUnit delta);
 
 private:
     // Array<Handle<UIObject>> m_ui_objects;

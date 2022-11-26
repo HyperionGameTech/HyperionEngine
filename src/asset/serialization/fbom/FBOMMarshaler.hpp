@@ -29,7 +29,7 @@ public:
 
 protected:
     virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize( const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
+    virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const = 0;
 };
 
 template <class T>
@@ -41,7 +41,7 @@ public:
     virtual FBOMType GetObjectType() const override = 0;
 
     virtual FBOMResult Serialize(const T &in_object, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<T> &out_object) const = 0;
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<T> &out_object) const = 0;
 
 private:
     virtual FBOMResult Serialize(const FBOMDeserializedObject &in, FBOMObject &out) const override
@@ -51,7 +51,7 @@ private:
         return Serialize(*extracted_value.Get(), out);
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, FBOMDeserializedObject &out) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, FBOMDeserializedObject &out) const override
     {
         UniquePtr<T> ptr;
 

@@ -66,8 +66,8 @@ public:
     void InitGame(); // init on game thread
     void OnRemoved();
 
-    void OnUpdate( GameCounter::TickUnit delta);
-    void OnRender( Frame *frame);
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
 
 private:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;

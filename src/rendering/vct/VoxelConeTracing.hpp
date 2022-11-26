@@ -68,10 +68,10 @@ public:
     void Init();
     void InitGame(); // init on game thread
 
-    void OnUpdate( GameCounter::TickUnit delta);
-    void OnRender( Frame *frame);
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
 
-    // void RenderVoxels( Frame *frame);
+    // void RenderVoxels(Frame *frame);
 
 private:
     void CreateImagesAndBuffers();

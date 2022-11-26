@@ -209,7 +209,7 @@ void Entity::Init()
     });
 }
 
-void Entity::Update( GameCounter::TickUnit delta)
+void Entity::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -653,7 +653,7 @@ void Entity::OnMovedToOctant(Octree *octree)
 }
 
 
-void Entity::AddToOctree( Octree &octree)
+void Entity::AddToOctree(Octree &octree)
 {
     AssertThrow(m_octree == nullptr);
 

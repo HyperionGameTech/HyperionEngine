@@ -271,7 +271,7 @@ void RTRadianceRenderer::CreateImages()
     RenderCommands::Push<RENDER_COMMAND(CreateRTRadianceImageOutputs)>(m_image_outputs.Data());
 }
 
-void RTRadianceRenderer::ApplyTLASUpdates( RTUpdateStateFlags flags)
+void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 {
     if (!flags) {
         return;

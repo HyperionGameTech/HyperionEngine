@@ -168,8 +168,8 @@ public:
 
     void Create();
     void Destroy();
-    void RenderPre( Frame *frame) const;
-    void RenderPost( Frame *frame) const;
+    void RenderPre(Frame *frame) const;
+    void RenderPost(Frame *frame) const;
 
 private:
     void CreateUniformBuffer();

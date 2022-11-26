@@ -73,7 +73,7 @@ static void AddSharedAttachment(
     render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
 }
 
-static InternalFormat GetImageFormat( GBufferResourceName resource)
+static InternalFormat GetImageFormat(GBufferResourceName resource)
 {
     InternalFormat color_format;
 

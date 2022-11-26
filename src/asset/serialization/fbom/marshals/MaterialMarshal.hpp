@@ -89,7 +89,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize( const FBOMObject &in, UniquePtr<Material> &out_object) const override
+    virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<Material> &out_object) const override
     {
         String name;
         in.GetProperty("name").ReadString(name);

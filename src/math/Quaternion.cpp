@@ -91,7 +91,7 @@ Quaternion::Quaternion(const Matrix4 &m)
         switch (h) {
     #define caseMacro(i,j,k,I,J,K) \
         case I:\
-            s = sqrt( (mat[I][I] - (mat[J][J]+mat[K][K])) + mat[W][W] );\
+            s = sqrt((mat[I][I] - (mat[J][J]+mat[K][K])) + mat[W][W] );\
             qu.i = s*0.5;\
             s = 0.5 / s;\
             qu.j = (mat[I][J] + mat[J][I]) * s;\

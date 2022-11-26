@@ -38,7 +38,7 @@ public:
 
     bool IsRendered() const { return m_is_rendered; }
 
-    void Create( const AttachmentRef *depth_attachment_ref);
+    void Create(const AttachmentRef *depth_attachment_ref);
     void Destroy();
 
     void Render(

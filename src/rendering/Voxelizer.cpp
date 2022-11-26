@@ -246,7 +246,7 @@ void Voxelizer::CreateDescriptors()
 /* We only reconstruct the buffer if the number of rendered fragments is
  * greater than what our buffer can hold (or the buffer has not yet been created).
  * We round up to the nearest power of two. */
-void Voxelizer::ResizeFragmentListBuffer( Frame *)
+void Voxelizer::ResizeFragmentListBuffer(Frame *)
 {
     const SizeType new_size = m_num_fragments * sizeof(Fragment);
 
@@ -285,7 +285,7 @@ void Voxelizer::ResizeFragmentListBuffer( Frame *)
     descriptor_set->ApplyUpdates(Engine::Get()->GetInstance()->GetDevice());
 }
 
-void Voxelizer::RenderFragmentList( Frame *, bool count_mode)
+void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
 {
     m_renderer_instance->GetPipeline()->push_constants.voxelizer_data = {
         .grid_size = voxel_map_size,
@@ -315,7 +315,7 @@ void Voxelizer::RenderFragmentList( Frame *, bool count_mode)
     HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetDevice()));
 }
 
-void Voxelizer::Render( Frame *frame)
+void Voxelizer::Render(Frame *frame)
 {
     m_scene->GetCamera()->UpdateMatrices();
 

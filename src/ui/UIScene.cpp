@@ -57,7 +57,7 @@ void UIScene::Init()
     });
 }
 
-void UIScene::Update( GameCounter::TickUnit delta)
+void UIScene::Update(GameCounter::TickUnit delta)
 {
     m_scene->Update(delta, false);
 }
@@ -90,23 +90,6 @@ bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)
 
     return false;
 }
-
-// void UIScene::Add(Handle<UIObject> &&object)
-// {
-//     Threads::AssertOnThread(THREAD_GAME);
-
-//     if (!object) {
-//         return;
-//     }
-
-//     if (IsInitCalled()) {
-//         GetEngine()->InitObject(object);
-
-//         m_scene->AddEntity(Handle<Entity>(object->GetEntity()));
-//     }
-
-//     m_ui_objects.PushBack(std::move(object));
-// }
 
 bool UIScene::OnInputEvent(
     InputManager *input_manager,

@@ -38,8 +38,8 @@ public:
     void Init();
     void InitGame(); // init on game thread
 
-    void OnUpdate( GameCounter::TickUnit delta);
-    void OnRender( Frame *frame);
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
 
 private:
     UInt32 CalculateNumNodes() const;

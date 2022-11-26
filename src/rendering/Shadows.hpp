@@ -109,7 +109,7 @@ public:
 
     virtual void Create() override;
     virtual void Destroy() override;
-    virtual void Render( Frame *frame) override;
+    virtual void Render(Frame *frame) override;
 
 private:
     void CreateShadowMap();
@@ -165,8 +165,8 @@ public:
     void Init();     // init on render thread
     void InitGame(); // init on game thread
 
-    void OnUpdate( GameCounter::TickUnit delta);
-    void OnRender( Frame *frame);
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
 
 private:
     void UpdateSceneCamera();

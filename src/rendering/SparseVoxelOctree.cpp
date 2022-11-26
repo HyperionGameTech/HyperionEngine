@@ -191,7 +191,7 @@ void SparseVoxelOctree::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
     }
 }
 
-void SparseVoxelOctree::OnUpdate( GameCounter::TickUnit delta)
+void SparseVoxelOctree::OnUpdate(GameCounter::TickUnit delta)
 {
     // Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
@@ -432,7 +432,7 @@ void SparseVoxelOctree::CreateComputePipelines()
     AssertThrow(Engine::Get()->InitObject(m_write_mipmaps));
 }
 
-void SparseVoxelOctree::OnRender( Frame *frame)
+void SparseVoxelOctree::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

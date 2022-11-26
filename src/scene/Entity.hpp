@@ -194,7 +194,7 @@ public:
     bool IsReady() const;
 
     void Init();
-    void Update( GameCounter::TickUnit delta);
+    void Update(GameCounter::TickUnit delta);
 
     /* All controller operations should only be used from the GAME thread */
 
@@ -263,10 +263,10 @@ public:
         { return m_controllers; }
 
 public:
-    void AddToOctree( Octree &octree);
+    void AddToOctree(Octree &octree);
 
 private:
-    void UpdateControllers( GameCounter::TickUnit delta);
+    void UpdateControllers(GameCounter::TickUnit delta);
     
     void EnqueueRenderUpdates();
     void UpdateOctree();

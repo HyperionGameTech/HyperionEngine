@@ -199,7 +199,7 @@ void Octree::Clear()
     Clear(nodes);
 }
 
-void Octree::Clear( std::vector<Node> &out_nodes)
+void Octree::Clear(std::vector<Node> &out_nodes)
 {
     ClearInternal(out_nodes);
 
@@ -208,7 +208,7 @@ void Octree::Clear( std::vector<Node> &out_nodes)
     }
 }
 
-void Octree::ClearInternal( std::vector<Node> &out_nodes)
+void Octree::ClearInternal(std::vector<Node> &out_nodes)
 {
     for (auto &node : m_nodes) {
         node.entity->OnRemovedFromOctree(this);
@@ -237,7 +237,7 @@ void Octree::ClearInternal( std::vector<Node> &out_nodes)
     }
 }
 
-Octree::Result Octree::Insert( Entity *entity)
+Octree::Result Octree::Insert(Entity *entity)
 {
     AssertThrow(entity != nullptr);
 
@@ -275,7 +275,7 @@ Octree::Result Octree::Insert( Entity *entity)
     return InsertInternal(entity);
 }
 
-Octree::Result Octree::InsertInternal( Entity *entity)
+Octree::Result Octree::InsertInternal(Entity *entity)
 {
     m_nodes.push_back(Node {
         .entity = entity,
@@ -294,7 +294,7 @@ Octree::Result Octree::InsertInternal( Entity *entity)
     return {};
 }
 
-Octree::Result Octree::Remove( Entity *entity)
+Octree::Result Octree::Remove(Entity *entity)
 {
     if (m_root != nullptr) {
         const auto it = m_root->node_to_octree.find(entity);
@@ -319,7 +319,7 @@ Octree::Result Octree::Remove( Entity *entity)
     return RemoveInternal(entity);
 }
 
-Octree::Result Octree::RemoveInternal( Entity *entity)
+Octree::Result Octree::RemoveInternal(Entity *entity)
 {
     const auto it = FindNode(entity);
 
@@ -375,7 +375,7 @@ Octree::Result Octree::RemoveInternal( Entity *entity)
     return {};
 }
 
-Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *it)
+Octree::Result Octree::Move(Entity *entity, const std::vector<Node>::iterator *it)
 {
     const auto &new_aabb = entity->GetWorldAABB();
 
@@ -525,7 +525,7 @@ Octree::Result Octree::Move( Entity *entity, const std::vector<Node>::iterator *
     return {};
 }
 
-Octree::Result Octree::Update( Entity *entity)
+Octree::Result Octree::Update(Entity *entity)
 {
     if (m_root != nullptr) {
         const auto it = m_root->node_to_octree.find(entity);
@@ -544,7 +544,7 @@ Octree::Result Octree::Update( Entity *entity)
     return UpdateInternal(entity);
 }
 
-Octree::Result Octree::UpdateInternal( Entity *entity)
+Octree::Result Octree::UpdateInternal(Entity *entity)
 {
     const auto it = FindNode(entity);
 
@@ -578,7 +578,7 @@ Octree::Result Octree::UpdateInternal( Entity *entity)
     return Move(entity, &it);
 }
 
-Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
+Octree::Result Octree::Rebuild(const BoundingBox &new_aabb)
 {
     DebugLog(LogType::Debug, "REBUILD OCTREE\n");
 
@@ -614,7 +614,7 @@ Octree::Result Octree::Rebuild( const BoundingBox &new_aabb)
     return {};
 }
 
-Octree::Result Octree::RebuildExtendInternal( const BoundingBox &extend_include_aabb)
+Octree::Result Octree::RebuildExtendInternal(const BoundingBox &extend_include_aabb)
 {
     // have to grow the aabb by rebuilding the octree
     BoundingBox new_aabb(m_aabb);
@@ -791,7 +791,7 @@ void Octree::UpdateVisibilityState(Scene *scene, UInt8 cursor)
     }
 }
 
-void Octree::OnEntityRemoved( Entity *entity)
+void Octree::OnEntityRemoved(Entity *entity)
 {
     if (entity == nullptr) {
         return;

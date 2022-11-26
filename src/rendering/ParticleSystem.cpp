@@ -281,7 +281,7 @@ void ParticleSpawner::Init()
     });
 }
 
-void ParticleSpawner::Record( CommandBuffer *command_buffer)
+void ParticleSpawner::Record(CommandBuffer *command_buffer)
 {
 
 }
@@ -453,7 +453,7 @@ void ParticleSystem::CreateCommandBuffers()
     );
 }
 
-void ParticleSystem::UpdateParticles( Frame *frame)
+void ParticleSystem::UpdateParticles(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -546,7 +546,7 @@ void ParticleSystem::UpdateParticles( Frame *frame)
     }
 }
 
-void ParticleSystem::Render( Frame *frame)
+void ParticleSystem::Render(Frame *frame)
 {
     AssertReady();
 

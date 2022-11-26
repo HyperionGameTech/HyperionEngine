@@ -129,7 +129,7 @@ public:
     void SetTLAS(Handle<TLAS> &&tlas)
         { m_tlas = std::move(tlas); }
 
-    void ApplyTLASUpdates( RTUpdateStateFlags flags);
+    void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
     StorageBuffer *GetRadianceBuffer() const
         { return m_radiance_buffer.Get(); }
@@ -143,8 +143,8 @@ public:
     void Init();
     void Destroy();
 
-    void RenderProbes( Frame *frame);
-    void ComputeIrradiance( Frame *frame);
+    void RenderProbes(Frame *frame);
+    void ComputeIrradiance(Frame *frame);
 
 private:
     void CreatePipeline();
@@ -152,7 +152,7 @@ private:
     void CreateUniformBuffer();
     void CreateStorageBuffers();
     void CreateDescriptorSets();
-    void SubmitPushConstants( CommandBuffer *command_buffer);
+    void SubmitPushConstants(CommandBuffer *command_buffer);
 
     ProbeGridInfo m_grid_info;
     Array<Probe> m_probes;
