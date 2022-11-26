@@ -296,13 +296,10 @@ void ShadowPass::Create()
     CreateComputePipelines();
 
     m_scene = Engine::Get()->CreateObject<Scene>(
-        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
-            m_dimensions.width, m_dimensions.height,
-            -100.0f, 100.0f,
-            -100.0f, 100.0f,
-            -100.0f, 100.0f
-        ))
+        Engine::Get()->CreateObject<Camera>(m_dimensions.width, m_dimensions.height)
     );
+
+    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
 
     m_scene->SetParentID(m_parent_scene_id);
     Engine::Get()->InitObject(m_scene);
@@ -586,33 +583,24 @@ void ShadowRenderer::UpdateSceneCamera()
     camera->SetTranslation(center + light_direction);
     camera->SetTarget(center);
 
-    switch (camera->GetCameraType()) {
-    case CameraType::ORTHOGRAPHIC: {
-        auto corners = aabb.GetCorners();
 
-        auto maxes = MathUtil::MinSafeValue<Vector3>(),
-             mins = MathUtil::MaxSafeValue<Vector3>();
+    auto corners = aabb.GetCorners();
 
-        for (auto &corner : corners) {
-            corner = camera->GetViewMatrix() * corner;
+    auto maxes = MathUtil::MinSafeValue<Vector3>(),
+        mins = MathUtil::MaxSafeValue<Vector3>();
 
-            maxes = MathUtil::Max(maxes, corner);
-            mins = MathUtil::Min(mins, corner);
-        }
+    for (auto &corner : corners) {
+        corner = camera->GetViewMatrix() * corner;
 
-        static_cast<OrthoCamera *>(camera.Get())->Set( // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
-            mins.x, maxes.x,
-            mins.y, maxes.y,
-            mins.z, maxes.z
-            // -m_shadow_pass.GetMaxDistance() * 0.5f,
-            // m_shadow_pass.GetMaxDistance() * 0.5f
-        );
-
-        break;
+        maxes = MathUtil::Max(maxes, corner);
+        mins = MathUtil::Min(mins, corner);
     }
-    default:
-        AssertThrowMsg(false, "Unhandled camera type");
-    }
+
+    camera->SetToOrthographicProjection(
+        mins.x, maxes.x,
+        mins.y, maxes.y,
+        mins.z, maxes.z
+    );
 }
 
 void ShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)

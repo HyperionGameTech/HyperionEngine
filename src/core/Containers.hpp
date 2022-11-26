@@ -462,6 +462,8 @@ public:
     CallbackTrackable() = default;
     CallbackTrackable(const CallbackTrackable &other) = delete;
     CallbackTrackable &operator=(const CallbackTrackable &other) = delete;
+    CallbackTrackable(CallbackTrackable &&other) noexcept = default;
+    CallbackTrackable &operator=(CallbackTrackable &&other) noexcept = delete;
     ~CallbackTrackable() = default;
 
 protected:

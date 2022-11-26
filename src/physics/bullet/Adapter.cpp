@@ -149,7 +149,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(Handle<RigidBody> &rigid_body)
 {
     AssertThrow(m_dynamics_world != nullptr);
 
-    AssertThrow(rigid_body != nullptr);
+    AssertThrow(rigid_body.IsValid());
     AssertThrowMsg(rigid_body->GetShape() != nullptr,
         "No PhysicsShape on RigidBody!");
 

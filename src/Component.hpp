@@ -5,11 +5,14 @@
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/Handle.hpp>
-#include <Types.hpp>
 #include <Constants.hpp>
-
+#include <Types.hpp>
+#include <util/Defines.hpp>
 #include <system/Debug.hpp>
+
 #include <mutex>
+#include <atomic>
+#include <type_traits>
 
 namespace hyperion::v2 {
 
@@ -20,24 +23,24 @@ struct IDCreator
     TypeID type_id;
     std::atomic<UInt> id_counter { 0u };
     std::mutex free_id_mutex;
-    Queue<IDBase> free_ids;
+    Queue<UInt> free_indices;
 
-    IDBase NextID()
+    UInt NextID()
     {
         std::lock_guard guard(free_id_mutex);
 
-        if (free_ids.Empty()) {
-            return IDBase { ++id_counter };
+        if (free_indices.Empty()) {
+            return id_counter.fetch_add(1) + 1;
         }
 
-        return free_ids.Pop();
+        return free_indices.Pop();
     }
 
-    void FreeID(const IDBase &id)
+    void FreeID(UInt index)
     {
         std::lock_guard guard(free_id_mutex);
 
-        free_ids.Push(id);
+        free_indices.Push(index);
     }
 };
 
@@ -49,65 +52,95 @@ IDCreator &GetIDCreator()
     return id_creator;
 }
 
+template <class T>
+struct HasOpaqueHandleDefined;
 
-template <class T, SizeType MaxItems = 16384>
+#define HAS_OPAQUE_HANDLE(T) \
+    class T; \
+    template <> \
+    struct HasOpaqueHandleDefined< T > \
+    { \
+    };
+
+
+#define HAS_OPAQUE_HANDLE_NS(ns, T) \
+    namespace ns { \
+    class T; \
+    } \
+    \
+    template <> \
+    struct HasOpaqueHandleDefined< ns::T > \
+    { \
+    };
+
+template <class T>
+constexpr bool has_opaque_handle_defined = implementation_exists<HasOpaqueHandleDefined<T>>;
+
+template <class T>
 class ObjectContainer
 {
 public:
+    static constexpr SizeType max_items = 16384;
+
     struct ObjectBytes
     {
-        alignas(T) UByte bytes[sizeof(T)];
-        bool has_value;
+        // TODO: Memory order
 
-        UInt16 ref_count;
+        alignas(T) UByte bytes[sizeof(T)];
+        std::atomic<UInt16> ref_count;
 
         ObjectBytes()
-            : has_value(false),
-              ref_count(0)
+            : ref_count(0)
         {
             Memory::Set(bytes, 0, sizeof(T));
         }
 
         ~ObjectBytes()
         {
-            if (has_value) {
+            if (HasValue()) {
                 Get().~T();
                 Memory::Set(bytes, 0, sizeof(T));
-                has_value = false;
             }
         }
 
         template <class ...Args>
-        void Construct(Args &&... args)
+        T *Construct(Args &&... args)
         {
-            AssertThrow(!has_value);
+            AssertThrow(!HasValue());
 
-            new (bytes) T(std::forward<Args>(args)...);
-            has_value = true;
+            return new (bytes) T(std::forward<Args>(args)...);
         }
 
-        void IncRef()
+        UInt IncRef()
         {
-            ++ref_count;
+            return UInt(ref_count.fetch_add(1)) + 1;
         }
 
-        void DecRef()
+        UInt DecRef()
         {
-            AssertThrow(ref_count != 0);
+            AssertThrow(HasValue());
 
-            if (--ref_count == 0) {
-                Get().~T();
+            UInt16 count;
+
+            if ((count = ref_count.fetch_sub(1)) == 1) {
+                reinterpret_cast<T *>(bytes)->~T();
                 Memory::Set(bytes, 0, sizeof(T));
-                has_value = false;
             }
+
+            return UInt(count) - 1;
         }
 
-        T &Get()
+        HYP_FORCE_INLINE T &Get()
         {
-            AssertThrow(has_value);
+            AssertThrow(HasValue());
 
             return *reinterpret_cast<T *>(bytes);
         }
+
+    private:
+
+        HYP_FORCE_INLINE bool HasValue() const
+            { return ref_count.load() != 0; }
     };
 
     ObjectContainer()
@@ -127,136 +160,88 @@ public:
         // }
     }
 
-    SizeType NextIndex()
+    HYP_FORCE_INLINE UInt NextIndex()
     {
-        static IDCreator id_creator;
-
-        return SizeType(id_creator.NextID().Value());
+        return GetIDCreator<T>().NextID() - 1;
     }
 
-    void IncRef(SizeType index)
+    HYP_FORCE_INLINE void IncRef(UInt index)
     {
-        AssertThrow(m_data[index].has_value);
-
-        return m_data[index].IncRef();
+        m_data[index].IncRef();
     }
 
-    void DecRef(SizeType index)
+    HYP_FORCE_INLINE void DecRef(UInt index)
     {
-        AssertThrow(m_data[index].has_value);
-
-        return m_data[index].DecRef();
+        if (m_data[index].DecRef() == 0) {
+            GetIDCreator<T>().FreeID(index + 1);
+        }
     }
 
-    T &Get(SizeType index)
+    HYP_FORCE_INLINE T &Get(UInt index)
     {
-        // AssertThrow(index < m_size);
-        AssertThrow(m_data[index].has_value);
-
         return m_data[index].Get();
     }
     
     template <class ...Args>
-    void ConstructAtIndex(SizeType index, Args &&... args)
+    HYP_FORCE_INLINE void ConstructAtIndex(UInt index, Args &&... args)
     {
-        AssertThrow(!m_data[index].has_value);
-
-        return m_data[index].Construct(std::forward<Args>(args)...);
+        T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
+        ptr->SetID(typename T::ID { index + 1 });
     }
 
-    // void Set(SizeType index, T &&element)
-    // {
-    //     AssertThrow()
-    // }
-
 private:
-    HeapArray<ObjectBytes, MaxItems> m_data;
+    HeapArray<ObjectBytes, max_items> m_data;
     SizeType m_size;
 };
 
 class ComponentSystem
 {
-    // template <class T>
-    // struct RegisteredComponentSet
-    // {
-    //     FlatMap<typename Handle<T>::ID, WeakHandle<T>> map;
-    //     std::mutex mutex;
-    // };
-
 public:
-
-    template <class T, SizeType Size = 16384>
-    ObjectContainer<T, Size> &GetContainer()
+    template <class T>
+    ObjectContainer<T> &GetContainer()
     {
-        static ObjectContainer<T, Size> container;
+        static_assert(has_opaque_handle_defined<T>, "Object type not viable for GetContainer<T> : Does not support handles");
+
+        static ObjectContainer<T> container;
 
         return container;
     }
-
-
-    // template <class T>
-    // bool Attach(Handle<T> &handle)
-    // {
-    //     using Normalized = NormalizedType<T>;
-
-    //     if (!handle) {
-    //         return false;
-    //     }
-
-    //     if (!handle->GetID()) {
-    //         handle->SetID(HandleID<T>(GetIDCreator<Normalized>().NextID()));
-    //     }
-
-    //     auto &registered_components = GetRegisteredComponents<Normalized>();
-
-    //     std::lock_guard guard(registered_components.mutex);
-    //     registered_components.map[handle->GetID()] = WeakHandle<Normalized>(handle);
-
-    //     return true;
-    // }
-
-    // template <class T>
-    // Handle<T> Lookup(const typename Handle<T>::ID &id)
-    // {
-    //     // using Normalized = NormalizedType<T>;
-
-    //     // if (!id) {
-    //     //     return Handle<T>();
-    //     // }
-
-    //     // auto &registered_components = GetRegisteredComponents<Normalized>();
-
-    //     // std::lock_guard guard(registered_components.mutex);
-    //     // return registered_components.map[id].Lock();
-
-    //     return Handle<T> handle(id);
-    // }
-
-    /*! \brief Release an ID from use. Called on destructor of EngineComponentBase. */
-    // template <class T>
-    // bool Release(const typename Handle<T>::ID &id)
-    // {
-    //     if (!id) {
-    //         return false;
-    //     }
-
-    //     GetIDCreator<NormalizedType<T>>().FreeID(id);
-
-    //     return true;
-    // }
-
-private:
-    
-
-    // template <class T>
-    // RegisteredComponentSet<T> &GetRegisteredComponents()
-    // {
-    //     static RegisteredComponentSet<T> registered_components { };
-
-    //     return registered_components;
-    // }
-
 };
+
+HAS_OPAQUE_HANDLE(Texture);
+HAS_OPAQUE_HANDLE(Camera);
+HAS_OPAQUE_HANDLE(Entity);
+HAS_OPAQUE_HANDLE(Mesh);
+HAS_OPAQUE_HANDLE(Framebuffer);
+HAS_OPAQUE_HANDLE(RenderPass);
+HAS_OPAQUE_HANDLE(Shader);
+HAS_OPAQUE_HANDLE(RendererInstance);
+HAS_OPAQUE_HANDLE(Skeleton);
+HAS_OPAQUE_HANDLE(Scene);
+HAS_OPAQUE_HANDLE(Light);
+HAS_OPAQUE_HANDLE(TLAS);
+HAS_OPAQUE_HANDLE(BLAS);
+HAS_OPAQUE_HANDLE(Material);
+HAS_OPAQUE_HANDLE(MaterialGroup);
+HAS_OPAQUE_HANDLE(World);
+HAS_OPAQUE_HANDLE(AudioSource);
+HAS_OPAQUE_HANDLE(RenderEnvironment);
+HAS_OPAQUE_HANDLE(EnvProbe);
+HAS_OPAQUE_HANDLE(UIScene);
+HAS_OPAQUE_HANDLE(ParticleSystem);
+HAS_OPAQUE_HANDLE(ComputePipeline);
+HAS_OPAQUE_HANDLE(ParticleSpawner);
+HAS_OPAQUE_HANDLE(Script);
+HAS_OPAQUE_HANDLE_NS(physics, RigidBody);
+
+// to get rid of:
+HAS_OPAQUE_HANDLE(PostProcessingEffect);
+HAS_OPAQUE_HANDLE(ShadowRenderer);
+HAS_OPAQUE_HANDLE(VoxelConeTracing);
+HAS_OPAQUE_HANDLE(SparseVoxelOctree);
+HAS_OPAQUE_HANDLE(CubemapRenderer);
+HAS_OPAQUE_HANDLE(UIRenderer);
+HAS_OPAQUE_HANDLE(Voxelizer);
 
 } // namespace hyperion::v2
 

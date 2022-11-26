@@ -296,14 +296,14 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
             inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
 
-            if (auto tlas = m_tlas.Lock()) {
+            if (m_tlas) {
                 if (m_has_rt_radiance) {
                     m_rt_radiance.Destroy();
                     m_probe_system.Destroy();
                 }
                 
-                m_probe_system.SetTLAS(tlas);
-                m_rt_radiance.SetTLAS(tlas);
+                m_probe_system.SetTLAS(m_tlas);
+                m_rt_radiance.SetTLAS(m_tlas);
 
                 m_rt_radiance.Create();
                 m_probe_system.Init();

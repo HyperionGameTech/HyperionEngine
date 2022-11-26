@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_LIB_THREAD_SAFE_CONTAINER_HPP
 #define HYPERION_V2_LIB_THREAD_SAFE_CONTAINER_HPP
 
+#include <core/Core.hpp>
 #include <core/OpaqueHandle.hpp>
 #include <core/Thread.hpp>
 #include <core/lib/DynArray.hpp>
@@ -66,7 +67,7 @@ public:
         m_updates_pending.store(true);
     }
 
-    void Remove(typename Handle<T>::ID id)
+    void Remove(HandleID<T> id)
     {
         if (!id) {
             return;
@@ -124,12 +125,10 @@ public:
         while (pending_addition.Any()) {
             auto front = pending_addition.PopFront();
 
-            auto it = m_owned_items.FindIf([&front](const auto &item) {
-                return item->GetID() == front;
-            });
+            auto it = m_owned_items.Find(front);
 
             if (it == m_owned_items.End()) {
-                // Engine::Get()->InitObject(front);
+                InitObject(front);
 
                 m_owned_items.PushBack(std::move(front));
             }
@@ -167,7 +166,7 @@ private:
     ThreadName m_owner_thread;
     Array<Handle<T>> m_owned_items;
     Array<Handle<T>> m_items_pending_addition;
-    Array<typename Handle<T>::ID> m_items_pending_removal;
+    Array<HandleID<T>> m_items_pending_removal;
     std::atomic_bool m_updates_pending;
     std::mutex m_update_mutex;
 };

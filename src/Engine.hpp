@@ -255,18 +255,18 @@ public:
     template <class T, class First, class Second, class ...Rest>
     OpaqueHandle<T> CreateObject(First &&first, Second &&second, Rest &&... args)
     {
-        SizeType index = GetObjectSystem().GetContainer<T>().NextIndex();
-        GetObjectSystem().GetContainer<T>().ConstructAtIndex(
+        auto &container = GetObjectSystem().GetContainer<T>();
+
+        SizeType index = container.NextIndex();
+
+        container.ConstructAtIndex(
             index,
             std::forward<First>(first),
             std::forward<Second>(second),
             std::forward<Rest>(args)...
         );
 
-        OpaqueHandle<T> handle;
-        handle.index = index;
-
-        return handle;
+        return OpaqueHandle<T>(HandleID<T>(index + 1));
     }
 
     template <class T, class First>
@@ -278,16 +278,16 @@ public:
     >
     CreateObject(First &&first)
     {
-        SizeType index = GetObjectSystem().GetContainer<T>().NextIndex();
-        GetObjectSystem().GetContainer<T>().ConstructAtIndex(
+        auto &container = GetObjectSystem().GetContainer<T>();
+
+        SizeType index = container.NextIndex();
+
+        container.ConstructAtIndex(
             index,
             std::forward<First>(first)
         );
 
-        OpaqueHandle<T> handle;
-        handle.index = index;
-
-        return handle;
+        return OpaqueHandle<T>(HandleID<T>(index + 1));
     }
 
     template <class T>
@@ -296,12 +296,9 @@ public:
         auto &container = GetObjectSystem().GetContainer<T>();
 
         SizeType index = container.NextIndex();
-        container.ConstructAtIndex(index - 1);
+        container.ConstructAtIndex(index);
 
-        OpaqueHandle<T> handle;
-        handle.index = index;
-
-        return handle;
+        return OpaqueHandle<T>(HandleID<T>(index + 1));
     }
 
     // template <class T, class First, class Second, class ...Rest>

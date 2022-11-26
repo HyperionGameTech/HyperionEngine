@@ -64,7 +64,7 @@ struct AssetLoaderWrapper
     // using ResultType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, HandleBase, AtomicRefCountedPtr<void>>;
     // using CastedType = std::conditional_t<std::is_base_of_v<EngineComponentBaseBase, T>, Handle<T>, AtomicRefCountedPtr<T>>;
 
-    static constexpr bool is_opaque_handle = std::is_base_of_v<EngineComponentBaseBase, T>;
+    static constexpr bool is_opaque_handle = has_opaque_handle_defined<T>;   //std::is_base_of_v<EngineComponentBaseBase, T>;
 
     using ResultType = AtomicRefCountedPtr<void>;
     using CastedType = std::conditional_t<is_opaque_handle, OpaqueHandle<T>, AtomicRefCountedPtr<T>>;
@@ -99,7 +99,11 @@ struct AssetLoaderWrapper
 
             if (as_ref_counted.template Is<ResultType>()) {
                 if constexpr (is_opaque_handle) {
-                    return *(as_ref_counted.template Get<ResultType>().template Cast<OpaqueHandle<T>>());
+                    auto casted = as_ref_counted.template Get<ResultType>().template Cast<OpaqueHandle<T>>();
+
+                    if (casted) {
+                        return *casted;
+                    }
                 } else {
                     return as_ref_counted.template Get<ResultType>().template Cast<T>();
                 }
@@ -117,8 +121,10 @@ struct AssetLoaderWrapper
         if (ptr) {
             if constexpr (is_opaque_handle/*std::is_same_v<ResultType, HandleBase>*/) {
                 auto casted = ptr.Cast<OpaqueHandle<T>>();
-                
-                return *casted;
+
+                if (casted) {
+                    return *casted;
+                }
                 // return engine->template CreateHandle<T>(casted_result.Release());
             } else if (auto casted = ptr.Cast<T>()) {
                 AtomicRefCountedPtr<T> ref_counted_ptr;
@@ -214,6 +220,12 @@ struct AssetLoaderWrapper<Node>
     static auto MakeResultType(Engine *engine, UniquePtr<void> &&ptr) -> ResultType
     {
         return MakeCastedType(engine, std::move(ptr));
+    }
+
+    template <class Engine>
+    static auto MakeResultType(Engine *engine, CastedType &&casted_value) -> ResultType
+    {
+        return casted_value;
     }
 };
 

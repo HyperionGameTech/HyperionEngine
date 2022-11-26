@@ -17,7 +17,7 @@ FollowCameraController::FollowCameraController(const Vector3 &target, const Vect
 
 void FollowCameraController::OnAdded(Camera *camera)
 {
-    CameraController::OnAdded(camera);
+    PerspectiveCameraController::OnAdded(camera);
 
     camera->SetTarget(m_target);
 }

@@ -32,6 +32,11 @@ public:
 
     Light(const Light &other) = delete;
     Light &operator=(const Light &other) = delete;
+
+    Light(Light &&other) noexcept;
+    Light &operator=(Light &&other) noexcept = delete;
+    // Light &operator=(Light &&other) noexcept;
+
     ~Light();
 
     LightType GetType() const

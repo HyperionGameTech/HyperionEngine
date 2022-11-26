@@ -2,6 +2,7 @@
 #define HYPERION_V2_TEXTURE_H
 
 #include <core/Base.hpp>
+#include <core/OpaqueHandle.hpp>
 
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
@@ -45,6 +46,11 @@ public:
 
     Texture(const Texture &other) = delete;
     Texture &operator=(const Texture &other) = delete;
+
+    Texture(Texture &&other) noexcept;
+    // Texture &operator=(Texture &&other) noexcept;
+    Texture &operator=(Texture &&other) noexcept = delete;
+
     ~Texture();
     
     Image &GetImage() { return m_image; }

@@ -25,6 +25,8 @@ struct OpaqueHandle : OpaqueHandleBase
 {
     using ID = HandleID<T>;
 
+    static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+
     static const OpaqueHandle empty;
 
     OpaqueHandle()
@@ -32,9 +34,9 @@ struct OpaqueHandle : OpaqueHandleBase
         index = 0;
     }
 
-    OpaqueHandle(const ID &id)
+    explicit OpaqueHandle(const ID &id)
     {
-        index = id.ToIndex();
+        index = id.Value();
 
         if (index != 0) {
             GetContainer<T>().IncRef(index - 1);
@@ -101,6 +103,9 @@ struct OpaqueHandle : OpaqueHandleBase
 
     explicit operator bool() const
         { return IsValid(); }
+
+    bool operator==(std::nullptr_t) const
+        { return !IsValid(); }
 
     bool operator==(const OpaqueHandle &other) const
         { return index == other.index; }

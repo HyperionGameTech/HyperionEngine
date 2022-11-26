@@ -18,7 +18,6 @@ class ImageView
 {
 public:
     ImageView();
-    ImageView(VkImage image);
     ImageView(const ImageView &other) = delete;
     ImageView &operator=(const ImageView &other) = delete;
     ImageView(ImageView &&other) noexcept;
@@ -63,7 +62,6 @@ public:
 
 private:
     VkImageView m_image_view;
-    Optional<VkImage> m_image;
 
     UInt m_num_faces;
 };

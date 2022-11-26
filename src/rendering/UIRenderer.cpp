@@ -78,7 +78,15 @@ UIRenderer::UIRenderer(Handle<Scene> &&scene)
 
 UIRenderer::~UIRenderer()
 {
-    Teardown();
+    if (!IsInitCalled()) {
+        return;
+    }
+
+    SetReady(false);
+
+    RenderCommands::Push<RENDER_COMMAND(DestroyUIDescriptors)>(GetComponentIndex());
+
+    HYP_FLUSH_RENDER_QUEUE();
 }
 
 void UIRenderer::Init()
@@ -95,14 +103,6 @@ void UIRenderer::Init()
     CreateDescriptors();
 
     SetReady(true);
-
-    OnTeardown([this]() {
-        SetReady(false);
-
-        RenderCommands::Push<RENDER_COMMAND(DestroyUIDescriptors)>(GetComponentIndex());
-
-        HYP_FLUSH_RENDER_QUEUE();
-    });
 }
 
 void UIRenderer::CreateFramebuffers()

@@ -34,13 +34,14 @@ void VoxelConeTracing::Init()
     EngineComponentBase::Init();
 
     m_scene = Engine::Get()->CreateObject<Scene>(
-        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
-            voxel_map_extent.width, voxel_map_extent.height,
-            -static_cast<float>(voxel_map_extent[0]) * 0.5f, static_cast<float>(voxel_map_extent[0]) * 0.5f,
-            -static_cast<float>(voxel_map_extent[1]) * 0.5f, static_cast<float>(voxel_map_extent[1]) * 0.5f,
-            -static_cast<float>(voxel_map_extent[2]) * 0.5f, static_cast<float>(voxel_map_extent[2]) * 0.5f
-        ))
+        Engine::Get()->CreateObject<Camera>(voxel_map_extent.width, voxel_map_extent.height)
     );
+
+    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+        -Float(voxel_map_extent[0]) * 0.5f, Float(voxel_map_extent[0]) * 0.5f,
+        -Float(voxel_map_extent[1]) * 0.5f, Float(voxel_map_extent[1]) * 0.5f,
+        -Float(voxel_map_extent[2]) * 0.5f, Float(voxel_map_extent[2]) * 0.5f
+    ));
 
     Engine::Get()->InitObject(m_scene);
 

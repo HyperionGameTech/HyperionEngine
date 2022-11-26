@@ -39,9 +39,9 @@ ImmediateMode::~ImmediateMode()
 
 void ImmediateMode::Create()
 {
-    m_shapes[UInt(DebugDrawShape::SPHERE)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::NormalizedCubeSphere(8));
-    m_shapes[UInt(DebugDrawShape::BOX)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::Cube());
-    m_shapes[UInt(DebugDrawShape::PLANE)] = Engine::Get()->CreateObject<Mesh>(MeshBuilder::Quad());
+    m_shapes[UInt(DebugDrawShape::SPHERE)] = MeshBuilder::NormalizedCubeSphere(8);
+    m_shapes[UInt(DebugDrawShape::BOX)] = MeshBuilder::Cube();
+    m_shapes[UInt(DebugDrawShape::PLANE)] = MeshBuilder::Quad();
 
     for (auto &shape : m_shapes) {
         AssertThrow(Engine::Get()->InitObject(shape));

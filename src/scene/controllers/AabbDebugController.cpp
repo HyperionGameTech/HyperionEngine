@@ -34,7 +34,7 @@ void AABBDebugController::OnAdded()
     auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::DEBUG_AABB);
 
     m_aabb_entity = Engine::Get()->CreateObject<Entity>(
-        Engine::Get()->CreateObject<Mesh>(std::move(mesh)),
+        std::move(mesh),
         std::move(shader),
         std::move(material),
         RenderableAttributeSet(

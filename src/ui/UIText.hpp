@@ -152,29 +152,6 @@ public:
     static Handle<Mesh> BuildTextMesh(const FontMap &font_map, const String &text);
 };
 
-// class UIText : public UIObject
-// {
-// protected:
-//     struct UICharMesh
-//     {
-//         UniquePtr<Mesh> quad_mesh;
-//         Transform transform;
-//     };
-
-// public:
-//     UIText(const FontMap &font_map, const String &text);
-//     virtual ~UIText();
-
-//     virtual void Init() override;
-
-// protected:
-//     static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &text);
-//     static UniquePtr<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes);
-
-//     FontMap m_font_map;
-//     String m_text;
-// };
-
 } // namespace hyperion::v2
 
 #endif

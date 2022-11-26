@@ -22,6 +22,8 @@ public:
 
     Sampler(const Sampler &other) = delete;
     Sampler &operator=(const Sampler &other) = delete;
+    Sampler(Sampler &&other) noexcept;
+    Sampler &operator=(Sampler &&other) noexcept;
     ~Sampler();
 
     VkSampler &GetSampler() { return m_sampler; }

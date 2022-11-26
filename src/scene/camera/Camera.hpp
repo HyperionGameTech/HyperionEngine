@@ -124,6 +124,7 @@ public:
     friend struct RenderCommand_UpdateCameraDrawProxy;
 
     Camera();
+    Camera(int width, int height);
     Camera(float fov, int width, int height, float _near, float _far);
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera();
@@ -138,6 +139,38 @@ public:
         if (m_camera_controller) {
             m_camera_controller->OnAdded(this);
         }
+    }
+
+    void SetToPerspectiveProjection(
+        Float fov, Float _near, Float _far
+    )
+    {
+        m_fov  = fov;
+        m_near = _near;
+        m_far  = _far;
+
+        m_proj_mat = Matrix4::Perspective(
+            m_fov,
+            m_width, m_height,
+            m_near,  m_far
+        );
+    }
+
+    void SetToOrthographicProjection(
+        Float left, Float right,
+        Float bottom, Float top,
+        Float _near, Float _far
+    )
+    {
+        m_left = left;     m_right = right;
+        m_bottom = bottom; m_top = top;
+        m_near = _near;    m_far = _far;
+
+        m_proj_mat = Matrix4::Orthographic(
+            m_left,   m_right,
+            m_bottom, m_top,
+            m_near,   m_far
+        );
     }
 
     int GetWidth() const { return m_width; }

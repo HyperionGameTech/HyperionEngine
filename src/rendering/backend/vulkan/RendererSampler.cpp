@@ -14,6 +14,27 @@ Sampler::Sampler(FilterMode filter_mode, WrapMode wrap_mode)
 {
 }
 
+Sampler::Sampler(Sampler &&other) noexcept
+    : m_sampler(other.m_sampler),
+      m_filter_mode(other.m_filter_mode),
+      m_wrap_mode(other.m_wrap_mode)
+{
+    other.m_sampler = VK_NULL_HANDLE;
+}
+
+Sampler &Sampler::operator=(Sampler &&other) noexcept
+{
+    AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");
+
+    m_sampler = other.m_sampler;
+    m_filter_mode = other.m_filter_mode;
+    m_wrap_mode = other.m_wrap_mode;
+
+    other.m_sampler = VK_NULL_HANDLE;
+
+    return *this;
+}
+
 Sampler::~Sampler()
 {
     AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");

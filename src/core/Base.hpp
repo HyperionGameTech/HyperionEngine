@@ -100,7 +100,40 @@ public:
 
     EngineComponentBase(const EngineComponentBase &other) = delete;
     EngineComponentBase &operator=(const EngineComponentBase &other) = delete;
-    ~EngineComponentBase() {}
+
+    EngineComponentBase(EngineComponentBase &&other) noexcept
+        : CallbackTrackable(), // TODO: Get rid of callback trackable then we wont have to do a move for that.
+          m_name(std::move(other.m_name)),
+          m_init_info(std::move(other.m_init_info)),
+          m_id(other.m_id),
+          m_init_called { other.m_init_called.load() },
+          m_is_ready { other.m_is_ready.load() }
+    {
+        other.m_id = empty_id;
+        other.m_init_called.store(false);
+        other.m_is_ready.store(false);
+    }
+
+    EngineComponentBase &operator=(EngineComponentBase &&other) noexcept = delete;
+
+    // EngineComponentBase &operator=(EngineComponentBase &&other) noexcept
+    // {
+    //     CallbackTrackable::operator=(std::move(other));
+
+    //     m_name = std::move(other.m_name);
+    //     m_init_info = std::move(other.m_init_info);
+    //     m_id = std::move(other.m_id);
+    //     m_init_called.store(other.m_init_called.load());
+    //     m_is_ready.store(other.m_is_ready.load());
+
+    //     other.m_id = empty_id;
+    //     other.m_init_called.store(false);
+    //     other.m_is_ready.store(false);
+
+    //     return *this;
+    // }
+
+    ~EngineComponentBase() = default;
 
     HYP_FORCE_INLINE InitInfo &GetInitInfo()
         { return m_init_info; }

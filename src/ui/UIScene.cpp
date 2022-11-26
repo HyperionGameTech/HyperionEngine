@@ -28,14 +28,13 @@ void UIScene::Init()
 
     EngineComponentBase::Init();
 
-    m_scene = Engine::Get()->CreateObject<Scene>(
-        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
-            2048, 2048,
-            -1, 1,
-            -1, 1,
-            -1, 1
-        ))
-    );
+    m_scene = Engine::Get()->CreateObject<Scene>(Engine::Get()->CreateObject<Camera>());
+
+    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+        -1.0f, 1.0f,
+        -1.0f, 1.0f,
+        -1.0f, 1.0f
+    ));
 
     Engine::Get()->InitObject(m_scene);
 

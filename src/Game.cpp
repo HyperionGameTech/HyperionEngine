@@ -155,15 +155,17 @@ void Game::OnInputEvent(const SystemEvent &event)
             my = (Float(mouse_y) - Float(extent.height) * 0.5f) / (Float(extent.height));
             
             if (m_scene) {
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_MAG,
-                    .mag_data = {
-                        .mouse_x = mouse_x,
-                        .mouse_y = mouse_y,
-                        .mx = mx,
-                        .my = my
-                    }
-                });
+                if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+                    controller->PushCommand(CameraCommand {
+                        .command = CameraCommand::CAMERA_COMMAND_MAG,
+                        .mag_data = {
+                            .mouse_x = mouse_x,
+                            .mouse_y = mouse_y,
+                            .mx = mx,
+                            .my = my
+                        }
+                    });
+                }
             }
 
             break;

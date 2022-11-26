@@ -24,7 +24,6 @@ public:
 
     virtual FBOMResult Serialize(const Camera &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMUnsignedInt(), in_object.GetCameraType());
         out.SetProperty("translation", FBOMVec3f(), in_object.GetTranslation());
         out.SetProperty("direction", FBOMVec3f(), in_object.GetDirection());
         out.SetProperty("up", FBOMVec3f(), in_object.GetUpVector());
@@ -36,32 +35,19 @@ public:
         out.SetProperty("near", FBOMFloat(), in_object.GetNear());
         out.SetProperty("far", FBOMFloat(), in_object.GetFar());
         out.SetProperty("frustum", FBOMArray(FBOMVec4f(), 6), &in_object.GetFrustum().GetPlanes()[0]);
+        out.SetProperty("fov", FBOMFloat(), in_object.GetFov());
+        out.SetProperty("left", FBOMFloat(), in_object.GetLeft());
+        out.SetProperty("right", FBOMFloat(), in_object.GetRight());
+        out.SetProperty("bottom", FBOMFloat(), in_object.GetBottom());
+        out.SetProperty("top", FBOMFloat(), in_object.GetTop());
 
-        switch (in_object.GetCameraType()) {
-        case CameraType::PERSPECTIVE:
-            out.SetProperty("fov", FBOMFloat(), static_cast<const PerspectiveCamera &>(in_object).GetFov());
-            break;
-        case CameraType::ORTHOGRAPHIC:
-            out.SetProperty("left", FBOMFloat(), static_cast<const OrthoCamera &>(in_object).GetLeft());
-            out.SetProperty("right", FBOMFloat(), static_cast<const OrthoCamera &>(in_object).GetRight());
-            out.SetProperty("bottom", FBOMFloat(), static_cast<const OrthoCamera &>(in_object).GetBottom());
-            out.SetProperty("top", FBOMFloat(), static_cast<const OrthoCamera &>(in_object).GetTop());
-            break;
-        default:
-            return { FBOMResult::FBOM_ERR, "Unknown camera type!" };
-        }
+        // TODO: Save camera controller!
 
         return { FBOMResult::FBOM_OK };
     }
 
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        CameraType camera_type = CameraType::NONE;
-
-        if (auto err = in.GetProperty("type").ReadUnsignedInt(&camera_type)) {
-            return err;
-        }
-
         Float _near, _far, fov;
         Float left, right, bottom, top;
         UInt32 width, height;
@@ -70,26 +56,26 @@ public:
         in.GetProperty("height").ReadUnsignedInt(&height);
         in.GetProperty("near").ReadFloat(&_near);
         in.GetProperty("far").ReadFloat(&_far);
+        in.GetProperty("fov").ReadFloat(&fov);
+        in.GetProperty("left").ReadFloat(&left);
+        in.GetProperty("right").ReadFloat(&right);
+        in.GetProperty("bottom").ReadFloat(&bottom);
+        in.GetProperty("top").ReadFloat(&top);
 
         UniquePtr<OpaqueHandle<Camera>> camera_handle;
 
-        switch (camera_type) {
-        case CameraType::PERSPECTIVE:
-            fov = 45.0f;
-            in.GetProperty("fov").ReadFloat(&fov);
-
-            camera_handle.Reset(new OpaqueHandle<PerspectiveCamera>(Engine::Get()->CreateObject<PerspectiveCamera>(fov, width, height, _near, _far)));
-            break;
-        case CameraType::ORTHOGRAPHIC:
-            in.GetProperty("left").ReadFloat(&left);
-            in.GetProperty("right").ReadFloat(&right);
-            in.GetProperty("bottom").ReadFloat(&bottom);
-            in.GetProperty("top").ReadFloat(&top);
-
-            camera_handle.Reset(new OpaqueHandle<OrthoCamera>(Engine::Get()->CreateObject<OrthoCamera>(width, height, left, right, bottom, top, _near, _far)));
-            break;
-        default:
-            return { FBOMResult::FBOM_ERR, "Unknown camera type!" };
+        if (fov > MathUtil::epsilon<Float>) {
+            camera_handle = UniquePtr<OpaqueHandle<Camera>>::Construct(
+                Engine::Get()->CreateObject<Camera>(
+                    fov, width, height, _near, _far
+                )
+            );
+        } else {
+            camera_handle = UniquePtr<OpaqueHandle<Camera>>::Construct(
+                Engine::Get()->CreateObject<Camera>(
+                    width, height, left, right, bottom, top, _near, _far
+                )
+            );
         }
         
         {

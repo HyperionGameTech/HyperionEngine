@@ -14,15 +14,8 @@ ImageView::ImageView()
 {
 }
 
-ImageView::ImageView(VkImage image)
-    : m_image(image),
-      m_num_faces(1)
-{
-}
-
 ImageView::ImageView(ImageView &&other) noexcept
     : m_image_view(other.m_image_view),
-      m_image(std::move(other.m_image)),
       m_num_faces(other.m_num_faces)
 {
     other.m_image_view = VK_NULL_HANDLE;
@@ -32,7 +25,6 @@ ImageView::ImageView(ImageView &&other) noexcept
 ImageView &ImageView::operator=(ImageView &&other) noexcept
 {
     m_image_view = other.m_image_view;
-    m_image = std::move(other.m_image);
     m_num_faces = other.m_num_faces;
 
     other.m_image_view = VK_NULL_HANDLE;

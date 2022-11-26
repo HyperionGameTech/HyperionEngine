@@ -82,11 +82,16 @@ void CameraController::UpdateCommandQueue(GameCounter::TickUnit dt)
 }
 
 Camera::Camera()
+    : Camera(128, 128)
+{
+}
+
+Camera::Camera(int width, int height)
     : EngineComponentBase(),
       HasDrawProxy(),
       m_fov(60.0f),
-      m_width(128),
-      m_height(128),
+      m_width(width),
+      m_height(height),
       m_near(0.01f),
       m_far(1000.0f),
       m_translation(Vector3::Zero()),

@@ -33,14 +33,13 @@ void Voxelizer::Init()
 
     const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
 
-    m_scene = Engine::Get()->CreateObject<Scene>(
-        Engine::Get()->CreateObject<Camera>(new OrthoCamera(
-            voxel_map_size, voxel_map_size,
-            -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
-            -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
-            -voxel_map_size_signed / 2, voxel_map_size_signed / 2
-        ))
-    );
+    m_scene = Engine::Get()->CreateObject<Scene>(Engine::Get()->CreateObject<Camera>(voxel_map_size, voxel_map_size));
+
+    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+        -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
+        -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
+        -voxel_map_size_signed / 2, voxel_map_size_signed / 2
+    ));
 
     Engine::Get()->InitObject(m_scene);
     

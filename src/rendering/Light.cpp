@@ -90,6 +90,36 @@ Light::Light(
 {
 }
 
+Light::Light(Light &&other) noexcept
+    : EngineComponentBase(std::move(other)),
+      m_type(other.m_type),
+      m_position(other.m_position),
+      m_color(other.m_color),
+      m_intensity(other.m_intensity),
+      m_radius(other.m_radius),
+      m_shadow_map_index(other.m_shadow_map_index),
+      m_shader_data_state(ShaderDataState::DIRTY)
+{
+    other.m_shadow_map_index = ~0u;
+}
+
+// Light &Light::operator=(Light &&other) noexcept
+// {
+//     EngineComponentBase::operator=(std::move(other));
+
+//     m_type = other.m_type;
+//     m_position = other.m_position;
+//     m_color = other.m_color;
+//     m_intensity = other.m_intensity;
+//     m_radius = other.m_radius;
+//     m_shadow_map_index = other.m_shadow_map_index;
+//     m_shader_data_state = ShaderDataState::DIRTY;
+
+//     other.m_shadow_map_index = ~0u;
+
+//     return *this;
+// }
+
 Light::~Light()
 {
     Teardown();

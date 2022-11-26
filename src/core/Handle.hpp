@@ -97,6 +97,9 @@ struct HandleID : IDBase
     HYP_FORCE_INLINE bool operator<(const HandleID &other) const
         { return IDBase::operator<(other); }
 
+    const TypeID &GetTypeID() const
+        { return TypeID::ForType<NormalizedType<T>>(); } 
+
     HashCode GetHashCode() const
     {
         HashCode hc;

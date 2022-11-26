@@ -108,6 +108,25 @@ Texture::Texture(
 {
 }
 
+Texture::Texture(Texture &&other) noexcept
+    : EngineComponentBase(std::move(other)),
+      m_image(std::move(other.m_image)),
+      m_image_view(std::move(other.m_image_view)),
+      m_sampler(std::move(other.m_sampler))
+{
+}
+
+// Texture &Texture::operator=(Texture &&other) noexcept
+// {
+//     EngineComponentBase::operator=(std::move(other));
+
+//     m_image = std::move(other.m_image),
+//     m_image_view = std::move(other.m_image_view),
+//     m_sampler = std::move(other.m_sampler);
+
+//     return *this;
+// }
+
 Texture::~Texture()
 {
     Teardown();

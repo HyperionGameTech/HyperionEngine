@@ -111,7 +111,7 @@ public:
         
         m_scene->SetCamera(
             Engine::Get()->CreateObject<Camera>(
-                70.0f
+                70.0f,
                 1920, 1080,
                 0.5f, 30000.0f
             )
@@ -198,8 +198,7 @@ public:
             btn_node.Scale(0.01f);
         }
 
-
-        auto cubemap = Engine::Get()->CreateObject<Texture>(new TextureCube(
+        auto cubemap = Engine::Get()->CreateObject<Texture>(TextureCube(
             Engine::Get()->GetAssetManager().LoadMany<Texture>(
                 "textures/chapel/posx.jpg",
                 "textures/chapel/negx.jpg",
@@ -280,8 +279,9 @@ public:
         m_scene->AddEntity(std::move(skybox_spatial));
         
         for (auto &child : test_model.GetChildren()) {
-            if (auto &entity = child.GetEntity()) {
-                auto ent = Handle(entity);
+            if (const Handle<Entity> &entity = child.GetEntity()) {
+                Handle<Entity> ent = entity;
+
                 if (Engine::Get()->InitObject(ent)) {
                     entity->CreateBLAS();
                 }
@@ -351,7 +351,7 @@ public:
             auto plane = Engine::Get()->CreateObject<Entity>();
             plane->SetName("Plane entity");
             plane->SetTranslation(Vector3(0, 12, 8));
-            plane->SetMesh(Engine::Get()->CreateObject<Mesh>(MeshBuilder::Quad()));
+            plane->SetMesh(MeshBuilder::Quad());
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(250.0f);
             plane->SetMaterial(Engine::Get()->CreateObject<Material>());
@@ -434,17 +434,17 @@ public:
 
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
-                    Entity::ID entity(hit.id);
+                    Handle<Entity> entity(Entity::ID { hit.id });
 
                     if (entity) {
-                        lookup_result->AddController<AABBDebugController>();
+                        entity->AddController<AABBDebugController>();
 
                         if (auto &mesh = entity->GetMesh()) {
                             ray.TestTriangleList(
                                 mesh->GetVertices(),
                                 mesh->GetIndices(),
-                                lookup_result->GetTransform(),
-                                lookup_result->GetID().value,
+                                entity->GetTransform(),
+                                entity->GetID().value,
                                 triangle_mesh_results
                             );
                         }
@@ -516,56 +516,6 @@ public:
                 mh_model.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * delta * speed);
             }
         }
-
-        #if 0
-        if (m_input_manager->IsKeyDown(KEY_W)) {
-            if (m_scene && m_scene->GetCamera()) {
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                    .movement_data = {
-                        .movement_type = CameraCommand::CAMERA_MOVEMENT_FORWARD,
-                        .amount = 1.0f
-                    }
-                });
-            }
-        }
-
-        if (m_input_manager->IsKeyDown(KEY_S)) {
-            if (m_scene && m_scene->GetCamera()) {
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                    .movement_data = {
-                        .movement_type = CameraCommand::CAMERA_MOVEMENT_BACKWARD,
-                        .amount = 1.0f
-                    }
-                });
-            }
-        }
-
-        if (m_input_manager->IsKeyDown(KEY_A)) {
-            if (m_scene && m_scene->GetCamera()) {
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                    .movement_data = {
-                        .movement_type = CameraCommand::CAMERA_MOVEMENT_LEFT,
-                        .amount = 1.0f
-                    }
-                });
-            }
-        }
-
-        if (m_input_manager->IsKeyDown(KEY_D)) {
-            if (m_scene && m_scene->GetCamera()) {
-                m_scene->GetCamera()->PushCommand(CameraCommand {
-                    .command = CameraCommand::CAMERA_COMMAND_MOVEMENT,
-                    .movement_data = {
-                        .movement_type = CameraCommand::CAMERA_MOVEMENT_RIGHT,
-                        .amount = 1.0f
-                    }
-                });
-            }
-        }
-        #endif
     }
 
     std::unique_ptr<Node> zombie;
@@ -885,11 +835,11 @@ int main()
     HYP_BREAKPOINT;
 #endif
 
-    OpaqueHandle<Entity> test_ent;
-    test_ent = Engine::Get()->CreateObject<Entity>();
+    // OpaqueHandle<Entity> test_ent;
+    // test_ent = Engine::Get()->CreateObject<Entity>();
     // test_ent.Reset();
-    std::cout << "FOO " << test_ent->GetName() << std::endl << "\n";
-    HYP_BREAKPOINT;
+    // std::cout << "FOO " << test_ent->GetName() << std::endl << "\n";
+    // HYP_BREAKPOINT;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
