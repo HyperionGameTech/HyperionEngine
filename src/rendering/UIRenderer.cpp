@@ -25,7 +25,7 @@ struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommandBase2
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set
@@ -53,7 +53,7 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : RenderCommandBase2
 
         // remove descriptors from global descriptor set
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             // set to placeholder data.

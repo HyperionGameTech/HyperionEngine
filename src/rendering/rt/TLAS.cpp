@@ -19,8 +19,8 @@ struct RENDER_COMMAND(CreateTLAS) : RenderCommandBase2
     virtual Result operator()()
     {
         return tlas->Create(
-            Engine::Get()->GetDevice(),
-            Engine::Get()->GetInstance(),
+            Engine::Get()->GetGPUDevice(),
+            Engine::Get()->GetGPUInstance(),
             std::vector<renderer::BottomLevelAccelerationStructure *>(blases.Begin(), blases.End())
         );
     }
@@ -37,7 +37,7 @@ struct RENDER_COMMAND(DestroyTLAS) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return tlas->Destroy(Engine::Get()->GetDevice());
+        return tlas->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
 
@@ -165,7 +165,7 @@ void TLAS::UpdateRender(
         //blas->UpdateRenderframe, was_blas_rebuilt);
     }
     
-    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(Engine::Get()->GetInstance(), out_update_state_flags));
+    HYPERION_ASSERT_RESULT(m_tlas.UpdateStructure(Engine::Get()->GetGPUInstance(), out_update_state_flags));
 }
 
 } // namespace hyperion::v2

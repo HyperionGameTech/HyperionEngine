@@ -139,8 +139,8 @@ public:
     Engine();
     ~Engine();
     
-    Instance *GetInstance() const { return m_instance.Get(); }
-    Device *GetDevice() const { return m_instance ? m_instance->GetDevice() : nullptr; }
+    Instance *GetGPUInstance() const { return m_instance.Get(); }
+    Device *GetGPUDevice() const { return m_instance ? m_instance->GetDevice() : nullptr; }
 
     DeferredRenderer &GetDeferredRenderer() { return m_deferred_renderer; }
     const DeferredRenderer &GetDeferredRenderer() const { return m_deferred_renderer; }

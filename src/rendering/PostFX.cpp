@@ -55,7 +55,7 @@ void PostFXPass::CreateDescriptors()
         auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
     
         if (!framebuffer.GetAttachmentRefs().empty()) {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
             auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(m_descriptor_key);
 
             AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
@@ -127,7 +127,7 @@ void PostProcessing::Create()
     // Fill out placeholder images -- 8 pre, 8 post.
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             for (auto descriptor_key : { DescriptorKey::POST_FX_PRE_STACK, DescriptorKey::POST_FX_POST_STACK }) {
                 auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(descriptor_key);
@@ -163,7 +163,7 @@ void PostProcessing::Destroy()
     m_post_effects.Clear();
 
     for (const auto descriptor_set_index : DescriptorSet::global_buffer_mapping) {
-        auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(descriptor_set_index);
+        auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(descriptor_set_index);
 
         descriptor_set->GetDescriptor(DescriptorKey::POST_FX_UNIFORMS)
             ->RemoveSubDescriptor(0);
@@ -174,14 +174,14 @@ void PostProcessing::Destroy()
         }
     }
 
-    HYPERION_ASSERT_RESULT(m_uniform_buffer.Destroy(Engine::Get()->GetDevice()));
+    HYPERION_ASSERT_RESULT(m_uniform_buffer.Destroy(Engine::Get()->GetGPUDevice()));
 }
 
 void PostProcessing::CreateUniformBuffer()
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
-    HYPERION_ASSERT_RESULT(m_uniform_buffer.Create(Engine::Get()->GetDevice(), sizeof(PostProcessingUniforms)));
+    HYPERION_ASSERT_RESULT(m_uniform_buffer.Create(Engine::Get()->GetGPUDevice(), sizeof(PostProcessingUniforms)));
 
     PostProcessingUniforms post_processing_uniforms{};
 
@@ -213,13 +213,13 @@ void PostProcessing::CreateUniformBuffer()
     }
 
     m_uniform_buffer.Copy(
-        Engine::Get()->GetDevice(),
+        Engine::Get()->GetGPUDevice(),
         sizeof(PostProcessingUniforms),
         &post_processing_uniforms
     );
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set_globals = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+        auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::POST_FX_UNIFORMS)

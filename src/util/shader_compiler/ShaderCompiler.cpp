@@ -438,7 +438,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProps &props) const
     props.Set(ShaderProperty("DX12", false));
 #endif
 
-    if (Engine::Get()->GetDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
         props.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 }

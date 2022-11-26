@@ -36,12 +36,12 @@ struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommandBase2
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                Engine::Get()->GetDevice(),
-                &Engine::Get()->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetGPUDevice(),
+                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -71,10 +71,10 @@ struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderComma
         auto result = Result::OK;
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            image_outputs[frame_index].Destroy(Engine::Get()->GetDevice());
+            image_outputs[frame_index].Destroy(Engine::Get()->GetGPUDevice());
 
             // unset final result from the global descriptor set
-            auto *descriptor_set_globals = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -99,7 +99,7 @@ struct RENDER_COMMAND(CreateTemporalAAImageOutputs) : RenderCommandBase2
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetDevice()));
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetGPUDevice()));
         }
 
         HYPERION_RETURN_OK;
@@ -291,7 +291,7 @@ void TemporalAA::Render(
     m_compute_taa->GetPipeline()->Bind(frame->GetCommandBuffer());
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
         m_compute_taa->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0

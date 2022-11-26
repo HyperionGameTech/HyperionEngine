@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < 2; i++) {
-                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(Engine::Get()->GetDevice()));
+                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(Engine::Get()->GetGPUDevice()));
             }
         }
 
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommandBase2
             // destroy our images
             for (auto &image_output : image_outputs[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    image_output.Destroy(Engine::Get()->GetDevice()),
+                    image_output.Destroy(Engine::Get()->GetGPUDevice()),
                     result
                 );
             }
@@ -80,8 +80,8 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommandBase2
                 AssertThrow(descriptor_set != nullptr);
                 
                 HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                    Engine::Get()->GetDevice(),
-                    &Engine::Get()->GetInstance()->GetDescriptorPool()
+                    Engine::Get()->GetGPUDevice(),
+                    &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 ));
             }
         }
@@ -107,7 +107,7 @@ struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommandBase2
             // destroy our descriptor sets
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    descriptor_set->Destroy(Engine::Get()->GetDevice()),
+                    descriptor_set->Destroy(Engine::Get()->GetGPUDevice()),
                     result
                 );
             }
@@ -272,7 +272,7 @@ void BlurRadiance::Render(
         pass->GetPipeline()->Bind(frame->GetCommandBuffer());
 
         frame->GetCommandBuffer()->BindDescriptorSet(
-            Engine::Get()->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
             pass->GetPipeline(),
             descriptor_sets[i].Get(),
             0,

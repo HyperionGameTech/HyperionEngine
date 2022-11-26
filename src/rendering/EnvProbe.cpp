@@ -74,7 +74,7 @@ struct RENDER_COMMAND(UpdateEnvProbeRenderData) : RenderCommandBase2
 
         // update cubemap texture in array of bound env probes
         if (texture_index != ~0u) {
-            const auto &descriptor_pool = Engine::Get()->GetInstance()->GetDescriptorPool();
+            const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 const auto *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);

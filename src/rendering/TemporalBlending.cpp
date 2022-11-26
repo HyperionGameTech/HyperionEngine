@@ -28,7 +28,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommandBase2
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetDevice()));
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetGPUDevice()));
         }
 
         HYPERION_RETURN_OK;
@@ -49,7 +49,7 @@ struct RENDER_COMMAND(DestroyTemporalBlendingImageOutputs) : RenderCommandBase2
         auto result = Result::OK;
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            image_outputs[frame_index].Destroy(Engine::Get()->GetDevice());
+            image_outputs[frame_index].Destroy(Engine::Get()->GetGPUDevice());
         }
 
         return result;
@@ -72,8 +72,8 @@ struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommandBase2
             AssertThrow(descriptor_set != nullptr);
                 
             HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                Engine::Get()->GetDevice(),
-                &Engine::Get()->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetGPUDevice(),
+                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -272,7 +272,7 @@ void TemporalBlending::Render(
     m_perform_blending->GetPipeline()->Bind(frame->GetCommandBuffer());
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
         m_perform_blending->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,

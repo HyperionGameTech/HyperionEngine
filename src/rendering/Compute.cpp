@@ -19,9 +19,9 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommandBase2
     virtual Result operator()()
     {
         return pipeline->Create(
-            Engine::Get()->GetDevice(),
+            Engine::Get()->GetGPUDevice(),
             shader_program,
-            &Engine::Get()->GetInstance()->GetDescriptorPool()
+            &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
         );
     }
 };
@@ -37,7 +37,7 @@ struct RENDER_COMMAND(DestroyComputeShader) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return pipeline.GetPipeline()->Destroy(Engine::Get()->GetDevice());
+        return pipeline.GetPipeline()->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
     

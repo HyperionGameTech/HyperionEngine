@@ -23,10 +23,10 @@ struct RENDER_COMMAND(CreateCubemapImages) : RenderCommandBase2
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_ASSERT_RESULT(cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Create(Engine::Get()->GetDevice(), sizeof(CubemapUniforms)));
-            cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Copy(Engine::Get()->GetDevice(), sizeof(CubemapUniforms), &cubemap_renderer.m_cubemap_uniforms);
+            HYPERION_ASSERT_RESULT(cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Create(Engine::Get()->GetGPUDevice(), sizeof(CubemapUniforms)));
+            cubemap_renderer.m_cubemap_render_uniform_buffers[frame_index]->Copy(Engine::Get()->GetGPUDevice(), sizeof(CubemapUniforms), &cubemap_renderer.m_cubemap_uniforms);
 
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set
@@ -69,7 +69,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommandBase2
             }
         }
         for (auto &attachment : cubemap_renderer.m_attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetInstance()->GetDevice()), result);
+            HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()), result);
         }
 
         cubemap_renderer.m_attachments.clear();
@@ -95,16 +95,16 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommandBase2
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_PASS_ERRORS(
-                uniform_buffers[i]->Destroy(Engine::Get()->GetDevice()),
+                uniform_buffers[i]->Destroy(Engine::Get()->GetGPUDevice()),
                 result
             );
 
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
 
             descriptor_set
                 ->GetDescriptor(DescriptorKey::CUBEMAP_UNIFORMS)
-                ->SetElementBuffer(component_index, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(Engine::Get()->GetDevice(), sizeof(CubemapUniforms)));
+                ->SetElementBuffer(component_index, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(Engine::Get()->GetGPUDevice(), sizeof(CubemapUniforms)));
         }
 
         return result;
@@ -326,7 +326,7 @@ void CubemapRenderer::OnRender(Frame *frame)
 
     if (m_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP) {
         HYPERION_PASS_ERRORS(
-            m_cubemaps[frame_index]->GetImage().GenerateMipmaps(Engine::Get()->GetDevice(), command_buffer),
+            m_cubemaps[frame_index]->GetImage().GenerateMipmaps(Engine::Get()->GetGPUDevice(), command_buffer),
             result
         );
     }
@@ -438,7 +438,7 @@ void CubemapRenderer::CreateRenderPass()
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
-        Engine::Get()->GetInstance()->GetDevice(),
+        Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -456,7 +456,7 @@ void CubemapRenderer::CreateRenderPass()
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
-        Engine::Get()->GetInstance()->GetDevice(),
+        Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -466,7 +466,7 @@ void CubemapRenderer::CreateRenderPass()
 
     // attachment should be created in render thread?
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
     Engine::Get()->InitObject(m_render_pass);

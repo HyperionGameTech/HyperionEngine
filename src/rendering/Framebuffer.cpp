@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return framebuffer->Create(Engine::Get()->GetDevice(), render_pass);
+        return framebuffer->Create(Engine::Get()->GetGPUDevice(), render_pass);
     }
 };
 
@@ -31,7 +31,7 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return framebuffer->Destroy(Engine::Get()->GetDevice());
+        return framebuffer->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
 

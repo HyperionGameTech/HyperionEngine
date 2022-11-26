@@ -32,7 +32,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommandBase2
     virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
             auto *shadow_map_descriptor = descriptor_set
@@ -62,8 +62,8 @@ struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(Engine::Get()->GetDevice()));
-        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(Engine::Get()->GetDevice(), shadow_map_image));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(Engine::Get()->GetGPUDevice()));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(Engine::Get()->GetGPUDevice(), shadow_map_image));
 
         HYPERION_RETURN_OK;
     }
@@ -82,8 +82,8 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommandBase2
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[i].Create(
-                Engine::Get()->GetDevice(),
-                &Engine::Get()->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetGPUDevice(),
+                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -108,11 +108,11 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommandBase2
     {
         auto result = Result::OK;
 
-        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(Engine::Get()->GetDevice()), result);
-        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(Engine::Get()->GetDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(Engine::Get()->GetGPUDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(Engine::Get()->GetGPUDevice()), result);
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(Engine::Get()->GetDevice()), result);
+            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(Engine::Get()->GetGPUDevice()), result);
         }
 
         return result;
@@ -170,7 +170,7 @@ void ShadowPass::CreateRenderPass()
         ));
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
-            Engine::Get()->GetInstance()->GetDevice(),
+            Engine::Get()->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::UNDEFINED,
             renderer::StoreOperation::STORE,
             &attachment_ref
@@ -190,7 +190,7 @@ void ShadowPass::CreateRenderPass()
         ));
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
-            Engine::Get()->GetInstance()->GetDevice(),
+            Engine::Get()->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
             &attachment_ref
@@ -201,7 +201,7 @@ void ShadowPass::CreateRenderPass()
 
     // should be created in render thread
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
     m_render_pass = Engine::Get()->CreateHandle<RenderPass>(render_pass.release());
@@ -379,7 +379,7 @@ void ShadowPass::Render(Frame *frame)
 
         // bind descriptor set containing info needed to blur
         command_buffer->BindDescriptorSet(
-            Engine::Get()->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
             m_blur_shadow_map->GetPipeline(),
             &m_blur_descriptor_sets[frame->GetFrameIndex()],
             DescriptorSet::Index(0)

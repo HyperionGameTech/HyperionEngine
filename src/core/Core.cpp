@@ -13,7 +13,7 @@ Engine *GetEngine()
 
 Device *GetEngineDevice()
 {
-    return Engine::Get()->GetInstance()->GetDevice();
+    return Engine::Get()->GetGPUInstance()->GetDevice();
 }
 
 ComponentSystem &GetObjectSystem()

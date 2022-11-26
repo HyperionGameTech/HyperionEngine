@@ -40,8 +40,8 @@ struct RENDER_COMMAND(UploadMeshData) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        auto *instance = Engine::Get()->GetInstance();
-        auto *device = Engine::Get()->GetDevice();
+        auto *instance = Engine::Get()->GetGPUInstance();
+        auto *device = Engine::Get()->GetGPUDevice();
 
         const SizeType packed_buffer_size = vertex_data.size() * sizeof(Float);
         const SizeType packed_indices_size = index_data.size() * sizeof(Mesh::Index);
@@ -98,7 +98,7 @@ struct RENDER_COMMAND(DestroyMeshData) : RenderCommandBase2
     {
         auto result = renderer::Result::OK;
 
-        auto *device = Engine::Get()->GetDevice();
+        auto *device = Engine::Get()->GetGPUDevice();
         
         HYPERION_PASS_ERRORS(vbo->Destroy(device), result);
         HYPERION_PASS_ERRORS(ibo->Destroy(device), result);

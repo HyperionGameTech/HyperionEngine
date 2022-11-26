@@ -421,7 +421,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     for (UInt frame_index = 0; frame_index < static_cast<UInt>(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
         const auto descriptor_set_index = DescriptorSet::global_buffer_mapping[frame_index];
 
-        auto *descriptor_set = GetInstance()->GetDescriptorPool()
+        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(descriptor_set_index);
 
         descriptor_set
@@ -445,7 +445,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::ENV_PROBES)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(EnvProbeShaderData))
+                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(EnvProbeShaderData))
             });
 
         // ssr result image
@@ -493,7 +493,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::RT_PROBE_UNIFORMS)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(ProbeSystemUniforms))
+                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(ProbeSystemUniforms))
             });
 
         // placeholder rt probes irradiance image
@@ -522,7 +522,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     // add placeholder shadowmaps
     for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
-        auto *descriptor_set = GetInstance()->GetDescriptorPool()
+        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(descriptor_set_index);
 
         auto *shadow_map_descriptor = descriptor_set
@@ -538,7 +538,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     }
 
     // add VCT descriptor placeholders
-    auto *vct_descriptor_set = GetInstance()->GetDescriptorPool()
+    auto *vct_descriptor_set = GetGPUInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
     
 #if 1
@@ -555,7 +555,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetDevice(), sizeof(VoxelUniforms))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(VoxelUniforms))
         });
 
     // temporal blend image
@@ -586,7 +586,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(GetDevice(), sizeof(UInt32))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(GetGPUDevice(), sizeof(UInt32))
         });
 
     // fragment list
@@ -594,12 +594,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetDevice(), sizeof(ShaderVec2<UInt32>))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>))
         });
 #endif
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto *descriptor_set_globals = GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+        auto *descriptor_set_globals = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
             ->SetSubDescriptor({
@@ -621,7 +621,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SVO_BUFFER)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetDevice(), sizeof(ShaderVec2<UInt32>))
+                .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>))
             });
 
         { // add placeholder gbuffer textures
@@ -719,7 +719,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
 #if 0//HYP_FEATURES_ENABLE_RAYTRACING
     { // add RT placeholders
-        auto *rt_descriptor_set = GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
+        auto *rt_descriptor_set = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
         rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(1)
             ->SetSubDescriptor({
@@ -741,9 +741,6 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     }
 #endif
 
-    /* for textures */
-    //shader_globals->textures.Create();
-    
     HYPERION_ASSERT_RESULT(m_instance->GetDescriptorPool().Create(m_instance->GetDevice()));
 
     m_render_list_container.Create();
@@ -825,7 +822,7 @@ void Engine::FinalizeStop()
     m_is_render_loop_active = false;
     task_system.Stop();
 
-    HYPERION_ASSERT_RESULT(GetInstance()->GetDevice()->Wait());
+    HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
 
     while (game_thread.IsRunning()) {
         HYP_FLUSH_RENDER_QUEUE();
@@ -848,7 +845,7 @@ void Engine::FinalizeStop()
 
     HYP_FLUSH_RENDER_QUEUE();
 
-    HYPERION_ASSERT_RESULT(GetInstance()->GetDevice()->Wait());
+    HYPERION_ASSERT_RESULT(GetGPUInstance()->GetDevice()->Wait());
 }
 
 void Engine::RenderNextFrame(Game *game)
@@ -859,20 +856,20 @@ void Engine::RenderNextFrame(Game *game)
         return;
     }
 
-    auto frame_result = GetInstance()->GetFrameHandler()->PrepareFrame(
-        GetInstance()->GetDevice(),
-        GetInstance()->GetSwapchain()
+    auto frame_result = GetGPUInstance()->GetFrameHandler()->PrepareFrame(
+        GetGPUInstance()->GetDevice(),
+        GetGPUInstance()->GetSwapchain()
     );
 
     if (!frame_result) {
         m_crash_handler.HandleGPUCrash(frame_result);
     }
 
-    auto *frame = GetInstance()->GetFrameHandler()->GetCurrentFrameData().Get<renderer::Frame>();
+    auto *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrameData().Get<renderer::Frame>();
 
     PreFrameUpdate(frame);
 
-    HYPERION_ASSERT_RESULT(frame->BeginCapture(GetInstance()->GetDevice()));
+    HYPERION_ASSERT_RESULT(frame->BeginCapture(GetGPUInstance()->GetDevice()));
 
     m_world->Render(frame);
 
@@ -887,9 +884,9 @@ void Engine::RenderNextFrame(Game *game)
     RenderDeferred(frame);
     RenderFinalPass(frame);
 
-    HYPERION_ASSERT_RESULT(frame->EndCapture(GetInstance()->GetDevice()));
+    HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
 
-    frame_result = frame->Submit(&GetInstance()->GetGraphicsQueue());
+    frame_result = frame->Submit(&GetGPUInstance()->GetGraphicsQueue());
 
     if (!frame_result) {
         m_crash_handler.HandleGPUCrash(frame_result);
@@ -897,8 +894,8 @@ void Engine::RenderNextFrame(Game *game)
 
     game->OnFrameEnd(frame);
 
-    GetInstance()->GetFrameHandler()->PresentFrame(&GetInstance()->GetGraphicsQueue(), GetInstance()->GetSwapchain());
-    GetInstance()->GetFrameHandler()->NextFrame();
+    GetGPUInstance()->GetFrameHandler()->PresentFrame(&GetGPUInstance()->GetGraphicsQueue(), GetGPUInstance()->GetSwapchain());
+    GetGPUInstance()->GetFrameHandler()->NextFrame();
 }
 
 Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)

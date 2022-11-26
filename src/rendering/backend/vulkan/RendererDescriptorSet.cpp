@@ -710,8 +710,8 @@ void DescriptorPool::RemoveDescriptorSet(UInt index)
 
             // if (IsCreated()) { // creating at runtime, after descriptor sets all created
             //     HYPERION_BUBBLE_ERRORS((*it)->Create(
-            //         Engine::Get()->GetDevice(),
-            //         &Engine::Get()->GetInstance()->GetDescriptorPool()
+            //         Engine::Get()->GetGPUDevice(),
+            //         &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
             //     ));
             // }
 

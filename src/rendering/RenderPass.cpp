@@ -17,7 +17,7 @@ struct RENDER_COMMAND(CreateRenderPass) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return render_pass->Create(Engine::Get()->GetDevice());
+        return render_pass->Create(Engine::Get()->GetGPUDevice());
     }
 };
 
@@ -32,7 +32,7 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return render_pass->Destroy(Engine::Get()->GetDevice());
+        return render_pass->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
 

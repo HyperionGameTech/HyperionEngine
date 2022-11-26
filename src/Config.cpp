@@ -79,7 +79,7 @@ bool Configuration::LoadFromDefinitionsFile()
 
             Option value;
 
-            if (IsRTOption(option_name) && !Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+            if (IsRTOption(option_name) && !Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
                 value = false;
             } else {
                 union { Int i; Float f; } tmp_value;
@@ -151,8 +151,8 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_SHADER_COMPILATION] = true;
 #endif
     
-    m_variables[CONFIG_RT_SUPPORTED] = Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported();
-    m_variables[CONFIG_RT_ENABLED] = m_variables[CONFIG_RT_SUPPORTED] && Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled();
+    m_variables[CONFIG_RT_SUPPORTED] = Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingSupported();
+    m_variables[CONFIG_RT_ENABLED] = m_variables[CONFIG_RT_SUPPORTED] && Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled();
     m_variables[CONFIG_RT_REFLECTIONS] = m_variables[CONFIG_RT_ENABLED];
     m_variables[CONFIG_RT_GI] = m_variables[CONFIG_RT_ENABLED];
 

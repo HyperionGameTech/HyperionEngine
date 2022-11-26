@@ -853,7 +853,7 @@ bool Scene::CreateTLAS()
         return true;
     }
     
-    if (!Engine::Get()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+    if (!Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingSupported()) {
         // cannot create TLAS if RT is not supported.
         SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
 

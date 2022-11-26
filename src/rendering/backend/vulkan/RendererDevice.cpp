@@ -273,11 +273,11 @@ Result Device::CheckDeviceSuitable(const ExtensionMap &unsupported_extensions)
 
 Result Device::SetupAllocator(Instance *instance)
 {
-    VmaVulkanFunctions vkfuncs{};
+    VmaVulkanFunctions vkfuncs { };
     vkfuncs.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
     vkfuncs.vkGetDeviceProcAddr   = &vkGetDeviceProcAddr;
 
-    VmaAllocatorCreateInfo create_info{};
+    VmaAllocatorCreateInfo create_info { };
     create_info.vulkanApiVersion = HYP_VULKAN_API_VERSION;
     create_info.physicalDevice   = this->GetPhysicalDevice();
     create_info.device           = this->GetDevice();

@@ -15,8 +15,8 @@ void BindlessStorage::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_descriptor_sets[0] = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS);
-    m_descriptor_sets[1] = Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
+    m_descriptor_sets[0] = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS);
+    m_descriptor_sets[1] = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
 }
 
 void BindlessStorage::Destroy()

@@ -7,7 +7,7 @@ using renderer::Result;
 
 void ShaderGlobals::Create()
 {
-    auto *device = Engine::Get()->GetDevice();
+    auto *device = Engine::Get()->GetGPUDevice();
 
     scenes.Create(device);
     materials.Create(device);
@@ -24,7 +24,7 @@ void ShaderGlobals::Create()
 
 void ShaderGlobals::Destroy()
 {
-    auto *device = Engine::Get()->GetDevice();
+    auto *device = Engine::Get()->GetGPUDevice();
 
     cubemap_uniforms.Destroy(device);
     env_probes.Destroy(device);
@@ -62,13 +62,13 @@ struct RENDER_COMMAND(CreateShaderProgram) : RenderCommandBase2
     {
         for (const SubShader &sub_shader : subshaders) {
             HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
-                Engine::Get()->GetInstance()->GetDevice(),
+                Engine::Get()->GetGPUInstance()->GetDevice(),
                 sub_shader.type,
                 sub_shader.spirv
             ));
         }
 
-        return shader_program->Create(Engine::Get()->GetDevice());
+        return shader_program->Create(Engine::Get()->GetGPUDevice());
     }
 };
 
@@ -83,7 +83,7 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return shader_program->Destroy(Engine::Get()->GetDevice());
+        return shader_program->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
 

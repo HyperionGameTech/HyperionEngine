@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateBLAS) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return blas->Create(Engine::Get()->GetDevice(), Engine::Get()->GetInstance());
+        return blas->Create(Engine::Get()->GetGPUDevice(), Engine::Get()->GetGPUInstance());
     }
 };
 
@@ -31,7 +31,7 @@ struct RENDER_COMMAND(DestroyBLAS) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        return blas->Destroy(Engine::Get()->GetDevice());
+        return blas->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
 
@@ -179,7 +179,7 @@ void BLAS::UpdateRender(
         return;
     }
     
-    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(Engine::Get()->GetInstance(), out_was_rebuilt));
+    HYPERION_ASSERT_RESULT(m_wrapped.UpdateStructure(Engine::Get()->GetGPUInstance(), out_was_rebuilt));
 #endif
 }
 

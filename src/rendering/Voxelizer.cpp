@@ -79,7 +79,7 @@ void Voxelizer::Init()
 
                 for (auto &attachment : voxelizer.m_attachments) {
                     HYPERION_PASS_ERRORS(
-                        attachment->Destroy(Engine::Get()->GetInstance()->GetDevice()),
+                        attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()),
                         result
                     );
                 }
@@ -155,7 +155,7 @@ void Voxelizer::CreateBuffers()
             voxelizer.m_counter->Create();
             
             HYPERION_PASS_ERRORS(
-                voxelizer.m_fragment_list_buffer->Create(Engine::Get()->GetInstance()->GetDevice(), default_fragment_list_buffer_size),
+                voxelizer.m_fragment_list_buffer->Create(Engine::Get()->GetGPUInstance()->GetDevice(), default_fragment_list_buffer_size),
                 result
             );
 
@@ -173,7 +173,7 @@ void Voxelizer::CreateShader()
         {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.frag.spv")).Read()}}
     };
 
-    if (Engine::Get()->GetDevice()->GetFeatures().SupportsGeometryShaders()) {
+    if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
         sub_shaders.push_back({ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.geom.spv")).Read()}});
     } else {
         DebugLog(
@@ -219,7 +219,7 @@ void Voxelizer::CreateDescriptors()
 
         virtual Result operator()()
         {
-            auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 
             descriptor_set
@@ -268,12 +268,12 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
     m_fragment_list_buffer.reset(new StorageBuffer);
     
     HYPERION_ASSERT_RESULT(m_fragment_list_buffer->Create(
-        Engine::Get()->GetInstance()->GetDevice(),
+        Engine::Get()->GetGPUInstance()->GetDevice(),
         new_size
     ));
 
     // TODO! frame index
-    auto *descriptor_set = Engine::Get()->GetInstance()->GetDescriptorPool()
+    auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
 
     descriptor_set->GetDescriptor(1)->RemoveSubDescriptor(0);
@@ -282,7 +282,7 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
         .buffer = m_fragment_list_buffer.get()
     });
 
-    descriptor_set->ApplyUpdates(Engine::Get()->GetInstance()->GetDevice());
+    descriptor_set->ApplyUpdates(Engine::Get()->GetGPUInstance()->GetDevice());
 }
 
 void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
@@ -292,7 +292,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
         .count_mode = count_mode
     };
 
-    auto single_time_commands = Engine::Get()->GetInstance()->GetSingleTimeCommands();
+    auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
     single_time_commands.Push([&](CommandBuffer *command_buffer) {
         auto temp_frame = Frame::TemporaryFrame(command_buffer);
@@ -312,7 +312,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
         HYPERION_RETURN_OK;
     });
 
-    HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetDevice()));
+    HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetGPUDevice()));
 }
 
 void Voxelizer::Render(Frame *frame)

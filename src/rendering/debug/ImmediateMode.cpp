@@ -19,8 +19,8 @@ struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommandBase2
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                Engine::Get()->GetDevice(),
-                &Engine::Get()->GetInstance()->GetDescriptorPool()
+                Engine::Get()->GetGPUDevice(),
+                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -82,8 +82,8 @@ void ImmediateMode::Create()
         ),
         Array<const DescriptorSet *> {
             m_descriptor_sets[0].Get(),
-            Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
-            Engine::Get()->GetInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         }
     );
     
@@ -141,7 +141,7 @@ void ImmediateMode::Render(
     }
 
     Engine::Get()->GetRenderData()->immediate_draws.UpdateBuffer(
-        Engine::Get()->GetDevice(),
+        Engine::Get()->GetGPUDevice(),
         frame->GetFrameIndex()
     );
 
@@ -149,7 +149,7 @@ void ImmediateMode::Render(
     proxy.Bind(frame);
 
     proxy.GetCommandBuffer(frame->GetFrameIndex())->BindDescriptorSets(
-        Engine::Get()->GetInstance()->GetDescriptorPool(),
+        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
         proxy.GetGraphicsPipeline(),
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::Index(1), DescriptorSet::Index(2) },
@@ -163,7 +163,7 @@ void ImmediateMode::Render(
         const DebugDrawCommand &draw_command = m_draw_commands[index];
 
         proxy.GetCommandBuffer(frame_index)->BindDescriptorSet(
-            Engine::Get()->GetInstance()->GetDescriptorPool(),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
             proxy.GetGraphicsPipeline(),
             m_descriptor_sets[frame_index].Get(),
             0,

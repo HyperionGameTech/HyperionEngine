@@ -31,9 +31,9 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommandBase2
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(image->Create(Engine::Get()->GetDevice(), Engine::Get()->GetInstance(), initial_state));
-        HYPERION_BUBBLE_ERRORS(image_view->Create(Engine::Get()->GetInstance()->GetDevice(), image));
-        HYPERION_BUBBLE_ERRORS(sampler->Create(Engine::Get()->GetInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(image->Create(Engine::Get()->GetGPUDevice(), Engine::Get()->GetGPUInstance(), initial_state));
+        HYPERION_BUBBLE_ERRORS(image_view->Create(Engine::Get()->GetGPUInstance()->GetDevice(), image));
+        HYPERION_BUBBLE_ERRORS(sampler->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
         Engine::Get()->GetRenderData()->textures.AddResource(texture);
@@ -68,9 +68,9 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommandBase2
         Engine::Get()->GetRenderData()->textures.RemoveResource(id);
 #endif
 
-        HYPERION_BUBBLE_ERRORS(sampler->Destroy(Engine::Get()->GetInstance()->GetDevice()));
-        HYPERION_BUBBLE_ERRORS(image_view->Destroy(Engine::Get()->GetInstance()->GetDevice()));
-        HYPERION_BUBBLE_ERRORS(image->Destroy(Engine::Get()->GetInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(sampler->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(image_view->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()));
+        HYPERION_BUBBLE_ERRORS(image->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()));
 
         HYPERION_RETURN_OK;
     }

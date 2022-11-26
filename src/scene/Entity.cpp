@@ -162,7 +162,7 @@ void Entity::Init()
     SetReady(true);
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    //if (Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+    //if (Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled()) {
     //    CreateBLAS();
     //}
 #endif
@@ -687,7 +687,7 @@ bool Entity::CreateBLAS()
     }
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    if (!Engine::Get()->GetDevice()->GetFeatures().IsRaytracingEnabled()) {
+    if (!Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled()) {
         return false;
     }
 #else
