@@ -56,11 +56,13 @@ LoadedAsset WAVAudioLoader::LoadAsset(LoaderState &state) const
         }
     }
 
-    auto audio_source = UniquePtr<AudioSource>::Construct(
-        object.format,
-        &object.wave_bytes[0],
-        object.wave_bytes.size(),
-        object.frequency
+    auto audio_source = UniquePtr<Handle<AudioSource>>::Construct(
+        Engine::Get()->CreateObject<AudioSource>(
+            object.format,
+            &object.wave_bytes[0],
+            object.wave_bytes.size(),
+            object.frequency
+        )
     );
 
     return { { LoaderResult::Status::OK }, audio_source.Cast<void>() };

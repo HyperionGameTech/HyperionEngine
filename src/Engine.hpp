@@ -42,7 +42,7 @@
 #include <util/EnumOptions.hpp>
 #include <util/shader_compiler/ShaderCompiler.hpp>
 
-#include <Component.hpp>
+#include <core/ObjectPool.hpp>
 
 #include <Types.hpp>
 
@@ -52,7 +52,7 @@
 
 #define HYP_FLUSH_RENDER_QUEUE() \
     do { \
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush()); \
+        HYPERION_ASSERT_RESULT(RenderCommands::FlushOrWait()); \
     } while (0)
 
 namespace hyperion::v2 {
@@ -164,8 +164,8 @@ public:
     PlaceholderData &GetPlaceholderData() { return m_placeholder_data; }
     const PlaceholderData &GetPlaceholderData() const { return m_placeholder_data; }
     
-    ComponentSystem &GetObjectSystem() { return registry; }
-    const ComponentSystem &GetObjectSystem() const { return registry; }
+    ObjectPool &GetObjectPool() { return registry; }
+    const ObjectPool &GetObjectPool() const { return registry; }
 
     AssetManager &GetAssetManager() { return m_asset_manager; }
     const AssetManager &GetAssetManager() const { return m_asset_manager; }
@@ -253,9 +253,9 @@ public:
     TaskSystem task_system;
 
     template <class T, class First, class Second, class ...Rest>
-    OpaqueHandle<T> CreateObject(First &&first, Second &&second, Rest &&... args)
+    Handle<T> CreateObject(First &&first, Second &&second, Rest &&... args)
     {
-        auto &container = GetObjectSystem().GetContainer<T>();
+        auto &container = GetObjectPool().GetContainer<T>();
 
         SizeType index = container.NextIndex();
 
@@ -266,7 +266,7 @@ public:
             std::forward<Rest>(args)...
         );
 
-        return OpaqueHandle<T>(HandleID<T>(index + 1));
+        return Handle<T>(HandleID<T>(index + 1));
     }
 
     template <class T, class First>
@@ -274,11 +274,11 @@ public:
         (!std::is_pointer_v<std::remove_reference_t<First>> || !std::is_convertible_v<std::remove_reference_t<First>, std::add_pointer_t<T>>)
             && !std::is_base_of_v<AtomicRefCountedPtr<T>, std::remove_reference_t<First>>
             && !std::is_base_of_v<UniquePtr<T>, std::remove_reference_t<First>>,
-        OpaqueHandle<T>
+        Handle<T>
     >
     CreateObject(First &&first)
     {
-        auto &container = GetObjectSystem().GetContainer<T>();
+        auto &container = GetObjectPool().GetContainer<T>();
 
         SizeType index = container.NextIndex();
 
@@ -287,18 +287,18 @@ public:
             std::forward<First>(first)
         );
 
-        return OpaqueHandle<T>(HandleID<T>(index + 1));
+        return Handle<T>(HandleID<T>(index + 1));
     }
 
     template <class T>
-    OpaqueHandle<T> CreateObject()
+    Handle<T> CreateObject()
     {
-        auto &container = GetObjectSystem().GetContainer<T>();
+        auto &container = GetObjectPool().GetContainer<T>();
 
         SizeType index = container.NextIndex();
         container.ConstructAtIndex(index);
 
-        return OpaqueHandle<T>(HandleID<T>(index + 1));
+        return Handle<T>(HandleID<T>(index + 1));
     }
 
     // template <class T, class First, class Second, class ...Rest>
@@ -411,7 +411,7 @@ public:
     //     }
     // }
 
-    ComponentSystem registry;
+    ObjectPool registry;
 
 private:
     void RegisterDefaultAssetLoaders();

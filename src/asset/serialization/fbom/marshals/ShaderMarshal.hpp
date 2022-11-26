@@ -41,7 +41,7 @@ public:
             }
         }
 
-        out_object = UniquePtr<OpaqueHandle<Shader>>::Construct(
+        out_object = UniquePtr<Handle<Shader>>::Construct(
             Engine::Get()->CreateObject<Shader>(sub_shaders)
         );
 

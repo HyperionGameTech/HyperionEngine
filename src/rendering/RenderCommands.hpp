@@ -231,7 +231,7 @@ public:
 
     HYP_FORCE_INLINE static SizeType Count()
     {
-        return scheduler.m_num_enqueued.load(std::memory_order_relaxed);
+        return scheduler.m_num_enqueued.load();
     }
 
     HYP_FORCE_INLINE static Result Flush()

@@ -85,7 +85,7 @@ using namespace hyperion;
 using namespace hyperion::v2;
 
 //#define HYP_TEST_VCT
-//#define HYP_TEST_TERRAIN
+#define HYP_TEST_TERRAIN
 
 namespace hyperion::v2 {
     
@@ -211,7 +211,7 @@ public:
         cubemap->GetImage().SetIsSRGB(true);
         Engine::Get()->InitObject(cubemap);
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
@@ -835,7 +835,7 @@ int main()
     HYP_BREAKPOINT;
 #endif
 
-    // OpaqueHandle<Entity> test_ent;
+    // Handle<Entity> test_ent;
     // test_ent = Engine::Get()->CreateObject<Entity>();
     // test_ent.Reset();
     // std::cout << "FOO " << test_ent->GetName() << std::endl << "\n";

@@ -1,10 +1,10 @@
-#ifndef HYPERION_V2_COMPONENT_HPP
-#define HYPERION_V2_COMPONENT_HPP
+#ifndef HYPERION_V2_CORE_OBJECT_POOL_HPP
+#define HYPERION_V2_CORE_OBJECT_POOL_HPP
 
 #include <core/Containers.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/FlatMap.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
@@ -53,53 +53,31 @@ IDCreator &GetIDCreator()
 }
 
 template <class T>
-struct HasOpaqueHandleDefined;
-
-#define HAS_OPAQUE_HANDLE(T) \
-    class T; \
-    template <> \
-    struct HasOpaqueHandleDefined< T > \
-    { \
-    };
-
-
-#define HAS_OPAQUE_HANDLE_NS(ns, T) \
-    namespace ns { \
-    class T; \
-    } \
-    \
-    template <> \
-    struct HasOpaqueHandleDefined< ns::T > \
-    { \
-    };
+struct HandleDefinition;
 
 template <class T>
-constexpr bool has_opaque_handle_defined = implementation_exists<HasOpaqueHandleDefined<T>>;
+constexpr bool has_opaque_handle_defined = implementation_exists<HandleDefinition<T>>;
 
 template <class T>
 class ObjectContainer
 {
 public:
-    static constexpr SizeType max_items = 16384;
+    static constexpr SizeType max_size = HandleDefinition<T>::max_size;
 
     struct ObjectBytes
     {
-        // TODO: Memory order
-
         alignas(T) UByte bytes[sizeof(T)];
         std::atomic<UInt16> ref_count;
 
         ObjectBytes()
             : ref_count(0)
         {
-            Memory::Set(bytes, 0, sizeof(T));
         }
 
         ~ObjectBytes()
         {
             if (HasValue()) {
                 Get().~T();
-                Memory::Set(bytes, 0, sizeof(T));
             }
         }
 
@@ -111,9 +89,9 @@ public:
             return new (bytes) T(std::forward<Args>(args)...);
         }
 
-        UInt IncRef()
+        HYP_FORCE_INLINE void IncRef()
         {
-            return UInt(ref_count.fetch_add(1)) + 1;
+            ref_count.fetch_add(1, std::memory_order_relaxed);
         }
 
         UInt DecRef()
@@ -124,7 +102,6 @@ public:
 
             if ((count = ref_count.fetch_sub(1)) == 1) {
                 reinterpret_cast<T *>(bytes)->~T();
-                Memory::Set(bytes, 0, sizeof(T));
             }
 
             return UInt(count) - 1;
@@ -140,7 +117,7 @@ public:
     private:
 
         HYP_FORCE_INLINE bool HasValue() const
-            { return ref_count.load() != 0; }
+            { return ref_count.load(std::memory_order_relaxed) != 0; }
     };
 
     ObjectContainer()
@@ -151,18 +128,20 @@ public:
     ObjectContainer(const ObjectContainer &other) = delete;
     ObjectContainer &operator=(const ObjectContainer &other) = delete;
 
-    ~ObjectContainer()
-    {
-        // for (SizeType index = 0; index < m_size; index++) {
-        //     if (m_data[index].has_value) {
-        //         m_data[index].Destruct();
-        //     }
-        // }
-    }
+    ~ObjectContainer() = default;
 
     HYP_FORCE_INLINE UInt NextIndex()
     {
-        return GetIDCreator<T>().NextID() - 1;
+        const UInt index = GetIDCreator<T>().NextID() - 1;
+
+        AssertThrowMsg(
+            index < HandleDefinition<T>::max_size,
+            "Maximum number of type '%s' allocated! Maximum: %llu\n",
+            T::GetClass().GetName(),
+            HandleDefinition<T>::max_size
+        );
+
+        return index;
     }
 
     HYP_FORCE_INLINE void IncRef(UInt index)
@@ -190,11 +169,11 @@ public:
     }
 
 private:
-    HeapArray<ObjectBytes, max_items> m_data;
+    HeapArray<ObjectBytes, max_size> m_data;
     SizeType m_size;
 };
 
-class ComponentSystem
+class ObjectPool
 {
 public:
     template <class T>
@@ -208,40 +187,62 @@ public:
     }
 };
 
-HAS_OPAQUE_HANDLE(Texture);
-HAS_OPAQUE_HANDLE(Camera);
-HAS_OPAQUE_HANDLE(Entity);
-HAS_OPAQUE_HANDLE(Mesh);
-HAS_OPAQUE_HANDLE(Framebuffer);
-HAS_OPAQUE_HANDLE(RenderPass);
-HAS_OPAQUE_HANDLE(Shader);
-HAS_OPAQUE_HANDLE(RendererInstance);
-HAS_OPAQUE_HANDLE(Skeleton);
-HAS_OPAQUE_HANDLE(Scene);
-HAS_OPAQUE_HANDLE(Light);
-HAS_OPAQUE_HANDLE(TLAS);
-HAS_OPAQUE_HANDLE(BLAS);
-HAS_OPAQUE_HANDLE(Material);
-HAS_OPAQUE_HANDLE(MaterialGroup);
-HAS_OPAQUE_HANDLE(World);
-HAS_OPAQUE_HANDLE(AudioSource);
-HAS_OPAQUE_HANDLE(RenderEnvironment);
-HAS_OPAQUE_HANDLE(EnvProbe);
-HAS_OPAQUE_HANDLE(UIScene);
-HAS_OPAQUE_HANDLE(ParticleSystem);
-HAS_OPAQUE_HANDLE(ComputePipeline);
-HAS_OPAQUE_HANDLE(ParticleSpawner);
-HAS_OPAQUE_HANDLE(Script);
-HAS_OPAQUE_HANDLE_NS(physics, RigidBody);
+#define DEF_HANDLE(T, _max_size) \
+    class T; \
+    template <> \
+    struct HandleDefinition< T > \
+    { \
+        static constexpr SizeType max_size = (_max_size); \
+    };
+
+
+#define HAS_OPAQUE_HANDLE_NS(ns, T, _max_size) \
+    namespace ns { \
+    class T; \
+    } \
+    \
+    template <> \
+    struct HandleDefinition< ns::T > \
+    { \
+        static constexpr SizeType max_size = (_max_size); \
+    };
+
+DEF_HANDLE(Texture,                      16384);
+DEF_HANDLE(Camera,                       256);
+DEF_HANDLE(Entity,                       32768);
+DEF_HANDLE(Mesh,                         65536);
+DEF_HANDLE(Framebuffer,                  256);
+DEF_HANDLE(RenderPass,                   1024);
+DEF_HANDLE(Shader,                       1024);
+DEF_HANDLE(RendererInstance,             256);
+DEF_HANDLE(Skeleton,                     512);
+DEF_HANDLE(Scene,                        64);
+DEF_HANDLE(RenderEnvironment,            64);
+DEF_HANDLE(Light,                        256);
+DEF_HANDLE(TLAS,                         32);
+DEF_HANDLE(BLAS,                         32768);
+DEF_HANDLE(Material,                     32768);
+DEF_HANDLE(MaterialGroup,                256);
+DEF_HANDLE(World,                        8);
+DEF_HANDLE(AudioSource,                  16384);
+DEF_HANDLE(EnvProbe,                     16384);
+DEF_HANDLE(UIScene,                      8);
+DEF_HANDLE(ParticleSystem,               16);
+DEF_HANDLE(ComputePipeline,              16384);
+DEF_HANDLE(ParticleSpawner,              512);
+DEF_HANDLE(Script,                       16384);
+HAS_OPAQUE_HANDLE_NS(physics, RigidBody, 16384);
 
 // to get rid of:
-HAS_OPAQUE_HANDLE(PostProcessingEffect);
-HAS_OPAQUE_HANDLE(ShadowRenderer);
-HAS_OPAQUE_HANDLE(VoxelConeTracing);
-HAS_OPAQUE_HANDLE(SparseVoxelOctree);
-HAS_OPAQUE_HANDLE(CubemapRenderer);
-HAS_OPAQUE_HANDLE(UIRenderer);
-HAS_OPAQUE_HANDLE(Voxelizer);
+DEF_HANDLE(PostProcessingEffect,         512);
+DEF_HANDLE(ShadowRenderer,               512);
+DEF_HANDLE(CubemapRenderer,              512);
+DEF_HANDLE(VoxelConeTracing,             1);
+DEF_HANDLE(SparseVoxelOctree,            1);
+DEF_HANDLE(UIRenderer,                   1);
+DEF_HANDLE(Voxelizer,                    1);
+
+#undef DEF_HANDLE
 
 } // namespace hyperion::v2
 

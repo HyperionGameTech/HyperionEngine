@@ -70,7 +70,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     stbi_image_free(image_bytes);
 
-    UniquePtr<OpaqueHandle<Texture>> texture(new OpaqueHandle<Texture>(Engine::Get()->CreateObject<Texture>(Texture2D(
+    UniquePtr<Handle<Texture>> texture(new Handle<Texture>(Engine::Get()->CreateObject<Texture>(Texture2D(
         Extent2D {
             static_cast<UInt>(data.width),
             static_cast<UInt>(data.height)

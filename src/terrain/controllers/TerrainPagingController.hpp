@@ -3,7 +3,7 @@
 
 #include "../TerrainMeshBuilder.hpp"
 #include <TaskSystem.hpp>
-#include <core/OpaqueHandle.hpp>
+#include <core/Handle.hpp>
 #include <core/lib/Queue.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <scene/controllers/PagingController.hpp>

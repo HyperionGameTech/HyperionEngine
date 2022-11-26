@@ -268,7 +268,9 @@ protected:
 
     int m_width, m_height;
     float m_near, m_far;
-    float m_fov; // only for perspective
+
+    // only for perspective
+    float m_fov;
 
     // only for ortho
     float m_left, m_right, m_bottom, m_top;

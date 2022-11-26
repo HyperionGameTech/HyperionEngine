@@ -15,21 +15,18 @@ class Device;
 namespace hyperion::v2 {
 
 class Engine;
-class ComponentSystem;
+class ObjectPool;
 
 template <class T>
-struct OpaqueHandle;
-
-template <class T>
-using Handle = OpaqueHandle<T>;
+struct Handle;
 
 Engine *GetEngine();
 
 renderer::Device *GetEngineDevice();
 
-ComponentSystem &GetObjectSystem();
+ObjectPool &GetObjectPool();
 
-template <class Engine, class T>
+template <class T, class Engine>
 static HYP_FORCE_INLINE bool InitObjectIntern(Engine *engine, Handle<T> &handle)
 {
     return engine->template InitObject<T>(handle);
@@ -39,6 +36,18 @@ template <class T>
 static HYP_FORCE_INLINE bool InitObject(Handle<T> &handle)
 {
     return InitObjectIntern(GetEngine(), handle);
+}
+
+template <class T, class Engine>
+static HYP_FORCE_INLINE bool CreateObjectIntern(Engine *engine)
+{
+    return engine->template CreateObject<T>();
+}
+
+template <class T>
+static HYP_FORCE_INLINE bool CreateObject()
+{
+    return CreateObjectIntern<T>(GetEngine());
 }
 
 } // namespace hyperion::v2

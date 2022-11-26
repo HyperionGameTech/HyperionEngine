@@ -4,7 +4,7 @@
 #include <asset/AssetLoader.hpp>
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 #include <scene/Node.hpp>
 #include <math/MathUtil.hpp>
 #include <TaskSystem.hpp>
@@ -14,28 +14,6 @@
 namespace hyperion::v2 {
 
 class AssetManager;
-
-template <class T>
-auto ExtractAssetValue(AssetValue &value) -> typename AssetLoaderWrapper<T>::CastedType
-{
-    using Wrapper = AssetLoaderWrapper<T>;
-
-    if constexpr (std::is_same_v<typename Wrapper::CastedType, typename Wrapper::ResultType>) {
-        if (value.Is<typename Wrapper::ResultType>()) {
-            return value.Get<typename Wrapper::ResultType>();
-        }
-    } else {
-        if (value.Is<typename Wrapper::ResultType>()) {
-            if constexpr (Wrapper::is_opaque_handle) {
-                return *(value.Get<typename Wrapper::ResultType>().template Cast<OpaqueHandle<T>>());
-            } else {
-                return value.Get<typename Wrapper::ResultType>().template Cast<T>();
-            }
-        }
-    }
-
-    return typename Wrapper::CastedType();
-}
 
 struct EnqueuedAsset
 {
@@ -49,7 +27,7 @@ struct EnqueuedAsset
     template <class T>
     auto Get() -> typename AssetLoaderWrapper<T>::CastedType
     {
-        return ExtractAssetValue<T>(value);
+        return AssetLoaderWrapper<T>::ExtractAssetValue(value);
     }
 
     explicit operator bool() const

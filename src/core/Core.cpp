@@ -16,9 +16,9 @@ Device *GetEngineDevice()
     return Engine::Get()->GetGPUInstance()->GetDevice();
 }
 
-ComponentSystem &GetObjectSystem()
+ObjectPool &GetObjectPool()
 {
-    return Engine::Get()->GetObjectSystem();
+    return Engine::Get()->GetObjectPool();
 }
 
 } // namespace hyperion::v2

@@ -8,7 +8,9 @@ LoadedAsset ScriptLoader::LoadAsset(LoaderState &state) const
     SourceFile source_file(state.filepath, state.stream.Max());
     state.stream.Read(source_file.GetBuffer(), source_file.GetSize());
 
-    auto script = UniquePtr<Script>::Construct(source_file);
+    auto script = UniquePtr<Handle<Script>>::Construct(
+        Engine::Get()->CreateObject<Script>(source_file)
+    );
 
     return { { LoaderResult::Status::OK }, script.Cast<void>() };
 }

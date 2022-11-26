@@ -11,7 +11,7 @@
 #include <util/Defines.hpp>
 #include <Threads.hpp>
 #include <Constants.hpp>
-#include <Component.hpp>
+#include <core/ObjectPool.hpp>
 
 #include <TaskSystem.hpp>
 
@@ -165,7 +165,7 @@ public:
     }
 
 private:
-    ComponentSystem &GetObjectSystem();
+    ObjectPool &GetObjectPool();
 
     FilePath m_base_path;
     FlatMap<String, UniquePtr<AssetLoaderBase>> m_loaders;

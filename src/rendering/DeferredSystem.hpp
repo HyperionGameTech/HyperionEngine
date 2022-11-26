@@ -5,7 +5,7 @@
 
 #include <core/Containers.hpp>
 #include <core/lib/AtomicVar.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/DefaultFormats.hpp>

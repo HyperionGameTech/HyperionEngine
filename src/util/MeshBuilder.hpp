@@ -4,7 +4,7 @@
 #include <rendering/Mesh.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
-#include <core/OpaqueHandle.hpp>
+#include <core/Handle.hpp>
 #include <math/BoundingBox.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>

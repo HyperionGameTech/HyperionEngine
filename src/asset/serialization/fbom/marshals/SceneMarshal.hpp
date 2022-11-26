@@ -42,7 +42,7 @@ public:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        auto scene_handle = UniquePtr<OpaqueHandle<Scene>>::Construct(Engine::Get()->CreateObject<Scene>(Handle<Camera>()));
+        auto scene_handle = UniquePtr<Handle<Scene>>::Construct(Engine::Get()->CreateObject<Scene>(Handle<Camera>()));
 
         String name;
         in.GetProperty("name").ReadString(name);

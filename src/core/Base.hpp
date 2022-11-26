@@ -3,9 +3,9 @@
 
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
-#include <Component.hpp>
+#include <core/ObjectPool.hpp>
 #include <core/Class.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/StaticString.hpp>
 #include <rendering/backend/RendererInstance.hpp>
@@ -233,7 +233,7 @@ private:
     // void RemoveFromObjectSystem()
     // {
     //     if (IsInitCalled()) {
-    //         GetObjectSystem().template Release<InnerType>(GetID());
+    //         GetObjectPool().template Release<InnerType>(GetID());
     //     }
     // }
 };

@@ -4,7 +4,7 @@
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
 #include <core/lib/Pair.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>

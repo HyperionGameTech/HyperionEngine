@@ -3,7 +3,7 @@
 
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
-#include <core/OpaqueHandle.hpp>
+#include <core/Handle.hpp>
 
 #include <ui/UIScene.hpp>
 

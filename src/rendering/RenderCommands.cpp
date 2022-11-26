@@ -17,6 +17,8 @@ void RenderScheduler::Commit(RenderCommandBase2 *ptr)
 
 RenderScheduler::FlushResult RenderScheduler::Flush()
 {
+    Threads::AssertOnThread(m_owner_thread);
+
     FlushResult result { Result::OK, 0 };
 
     SizeType count = m_num_enqueued.load(std::memory_order_relaxed);

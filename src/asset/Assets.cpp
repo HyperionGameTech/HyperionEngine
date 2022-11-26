@@ -4,9 +4,9 @@
 
 namespace hyperion::v2 {
 
-ComponentSystem &AssetManager::GetObjectSystem()
+ObjectPool &AssetManager::GetObjectPool()
 {
-    return Engine::Get()->GetObjectSystem();
+    return Engine::Get()->GetObjectPool();
 }
 
 } // namespace hyperion::v2

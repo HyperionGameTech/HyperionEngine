@@ -3,7 +3,7 @@
 
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 #include <core/Containers.hpp>
 #include <math/Vector3.hpp>
 

@@ -2,7 +2,7 @@
 #define HYPERION_V2_TEXTURE_H
 
 #include <core/Base.hpp>
-#include <core/OpaqueHandle.hpp>
+#include <core/Handle.hpp>
 
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>

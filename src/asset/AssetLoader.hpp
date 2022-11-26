@@ -3,8 +3,8 @@
 
 #include <core/Core.hpp>
 #include <core/Containers.hpp>
+#include <core/HandleID.hpp>
 #include <core/Handle.hpp>
-#include <core/OpaqueHandle.hpp>
 #include <scene/Node.hpp>
 
 #include <system/Debug.hpp>
@@ -67,10 +67,26 @@ struct AssetLoaderWrapper
     static constexpr bool is_opaque_handle = has_opaque_handle_defined<T>;   //std::is_base_of_v<EngineComponentBaseBase, T>;
 
     using ResultType = AtomicRefCountedPtr<void>;
-    using CastedType = std::conditional_t<is_opaque_handle, OpaqueHandle<T>, AtomicRefCountedPtr<T>>;
-
+    using CastedType = std::conditional_t<is_opaque_handle, Handle<T>, AtomicRefCountedPtr<T>>;
 
     AssetLoaderBase &loader;
+
+    static inline CastedType ExtractAssetValue(AssetValue &value)
+    {   
+        if (value.Is<ResultType>()) {
+            if constexpr (is_opaque_handle) {
+                auto casted = value.Get<ResultType>().template Cast<Handle<T>>();
+
+                if (casted) {
+                    return *casted;
+                }
+            } else {
+                return value.Get<ResultType>().template Cast<T>();
+            }
+        }
+
+        return CastedType();
+    }
 
     AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)
@@ -95,21 +111,22 @@ struct AssetLoaderWrapper
             
             return MakeCastedType<Engine>(engine, std::move(casted_result));
         } else if (loaded_asset.value.template Is<AssetValue>()) {
-            AssetValue &as_ref_counted = loaded_asset.value.template Get<AssetValue>();
 
-            if (as_ref_counted.template Is<ResultType>()) {
-                if constexpr (is_opaque_handle) {
-                    auto casted = as_ref_counted.template Get<ResultType>().template Cast<OpaqueHandle<T>>();
+            return ExtractAssetValue(loaded_asset.value.template Get<AssetValue>());
+            // if (as_ref_counted.template Is<ResultType>()) {
+            //     if constexpr (is_opaque_handle) {
+            //         auto casted = as_ref_counted.template Get<ResultType>().template Cast<Handle<T>>();
 
-                    if (casted) {
-                        return *casted;
-                    }
-                } else {
-                    return as_ref_counted.template Get<ResultType>().template Cast<T>();
-                }
-            }
+            //         if (casted) {
+            //             return *casted;
+            //         }
+            //     } else {
+            //         return as_ref_counted.template Get<ResultType>().template Cast<T>();
+            //     }
+            // }
+
         } else {
-            AssertThrowMsg(false, "Unhandled asset type");
+            AssertThrowMsg(false, "Unhandled variant type!");
         }
 
         return CastedType();
@@ -120,7 +137,7 @@ struct AssetLoaderWrapper
     {
         if (ptr) {
             if constexpr (is_opaque_handle/*std::is_same_v<ResultType, HandleBase>*/) {
-                auto casted = ptr.Cast<OpaqueHandle<T>>();
+                auto casted = ptr.Cast<Handle<T>>();
 
                 if (casted) {
                     return *casted;
@@ -140,10 +157,10 @@ struct AssetLoaderWrapper
     static auto MakeResultType(Engine *engine, UniquePtr<void> &&ptr) -> ResultType
     {
         if constexpr (is_opaque_handle/*std::is_base_of_v<EngineComponentBaseBase, T>*/) {
-            // store OpaqueHandle<T> in AtomicRefCountedPtr<void>
-            OpaqueHandle<T> handle = MakeCastedType(engine, std::move(ptr));
+            // store Handle<T> in AtomicRefCountedPtr<void>
+            Handle<T> handle = MakeCastedType(engine, std::move(ptr));
 
-            return AtomicRefCountedPtr<OpaqueHandle<T>>::Construct(std::move(handle)).template Cast<void>();
+            return AtomicRefCountedPtr<Handle<T>>::Construct(std::move(handle)).template Cast<void>();
         } else {
             // AtomicRefCountedPtr<void>
             return MakeCastedType(engine, std::move(ptr)).template Cast<void>();
@@ -154,8 +171,8 @@ struct AssetLoaderWrapper
     static auto MakeResultType(Engine *engine, CastedType &&casted_value) -> ResultType
     {
         if constexpr (is_opaque_handle/*std::is_base_of_v<EngineComponentBaseBase, T>*/) {
-            static_assert(std::is_same_v<CastedType, OpaqueHandle<T>>);
-            return AtomicRefCountedPtr<OpaqueHandle<T>>::Construct(std::move(casted_value)).template Cast<void>();
+            static_assert(std::is_same_v<CastedType, Handle<T>>);
+            return AtomicRefCountedPtr<Handle<T>>::Construct(std::move(casted_value)).template Cast<void>();
         } else {
             // AtomicRefCountedPtr<void>
             return casted_value.template Cast<void>();
@@ -170,6 +187,15 @@ struct AssetLoaderWrapper<Node>
     using CastedType = NodeProxy;
 
     AssetLoaderBase &loader;
+
+    static inline CastedType ExtractAssetValue(AssetValue &value)
+    {
+        if (value.Is<ResultType>()) {
+            return value.Get<ResultType>();
+        }
+
+        return CastedType();
+    }
 
     AssetLoaderWrapper(AssetLoaderBase &loader)
         : loader(loader)

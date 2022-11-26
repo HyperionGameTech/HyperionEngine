@@ -47,7 +47,7 @@ public:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        auto entity_handle = UniquePtr<OpaqueHandle<Entity>>::Construct(Engine::Get()->CreateObject<Entity>());
+        auto entity_handle = UniquePtr<Handle<Entity>>::Construct(Engine::Get()->CreateObject<Entity>());
 
         { // transform
             Transform transform = Transform::identity;

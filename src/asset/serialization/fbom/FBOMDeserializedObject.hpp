@@ -8,7 +8,7 @@
 #include <core/lib/Variant.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/UniquePtr.hpp>
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 
 #include <asset/AssetBatch.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
@@ -68,7 +68,7 @@ public:
     template <class T>
     auto Get() -> typename AssetLoaderWrapper<T>::CastedType
     {
-        return ExtractAssetValue<T>(m_value);
+        return AssetLoaderWrapper<T>::ExtractAssetValue(m_value);
     }
 
     /*! \brief Extracts the value held inside the Any */

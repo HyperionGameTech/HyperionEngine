@@ -12,7 +12,7 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <core/Handle.hpp>
+#include <core/HandleID.hpp>
 
 namespace hyperion::v2 {
 

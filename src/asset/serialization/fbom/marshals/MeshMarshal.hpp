@@ -100,7 +100,7 @@ public:
             }
         }
 
-        out_object = UniquePtr<OpaqueHandle<Mesh>>::Construct(Engine::Get()->CreateObject<Mesh>(
+        out_object = UniquePtr<Handle<Mesh>>::Construct(Engine::Get()->CreateObject<Mesh>(
             vertices,
             indices,
             topology,

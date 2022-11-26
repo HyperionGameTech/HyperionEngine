@@ -89,7 +89,7 @@ public:
             }
         }
 
-        out_object = UniquePtr<OpaqueHandle<Texture>>::Construct(Engine::Get()->CreateObject<Texture>(
+        out_object = UniquePtr<Handle<Texture>>::Construct(Engine::Get()->CreateObject<Texture>(
             extent,
             format,
             type,

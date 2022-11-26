@@ -94,7 +94,7 @@ public:
         String name;
         in.GetProperty("name").ReadString(name);
 
-        auto material_handle = UniquePtr<OpaqueHandle<Material>>::Construct(Engine::Get()->CreateObject<Material>(name));
+        auto material_handle = UniquePtr<Handle<Material>>::Construct(Engine::Get()->CreateObject<Material>(name));
 
         in.GetProperty("attributes.bucket").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().bucket);
         in.GetProperty("attributes.flags").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().flags);

@@ -62,16 +62,16 @@ public:
         in.GetProperty("bottom").ReadFloat(&bottom);
         in.GetProperty("top").ReadFloat(&top);
 
-        UniquePtr<OpaqueHandle<Camera>> camera_handle;
+        UniquePtr<Handle<Camera>> camera_handle;
 
         if (fov > MathUtil::epsilon<Float>) {
-            camera_handle = UniquePtr<OpaqueHandle<Camera>>::Construct(
+            camera_handle = UniquePtr<Handle<Camera>>::Construct(
                 Engine::Get()->CreateObject<Camera>(
                     fov, width, height, _near, _far
                 )
             );
         } else {
-            camera_handle = UniquePtr<OpaqueHandle<Camera>>::Construct(
+            camera_handle = UniquePtr<Handle<Camera>>::Construct(
                 Engine::Get()->CreateObject<Camera>(
                     width, height, left, right, bottom, top, _near, _far
                 )
