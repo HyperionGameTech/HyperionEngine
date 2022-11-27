@@ -231,7 +231,7 @@ void Engine::PrepareFinalPass()
 
             InitObject(render_pass);
 
-            m_root_pipeline = CreateObject<RendererInstance>(
+            m_root_pipeline = CreateObject<RenderGroup>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -841,7 +841,7 @@ void Engine::FinalizeStop()
 
     HYP_SYNC_RENDER();
 
-    m_renderer_instance_mapping.Clear();
+    m_render_group_mapping.Clear();
 
     HYP_SYNC_RENDER();
 
@@ -898,15 +898,15 @@ void Engine::RenderNextFrame(Game *game)
     GetGPUInstance()->GetFrameHandler()->NextFrame();
 }
 
-Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
+Handle<RenderGroup> Engine::CreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
 {
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create RendererInstance.\n"
+            "Shader is empty; Cannot create RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
@@ -914,24 +914,24 @@ Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &sh
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
     if (cache) {
-        std::lock_guard guard(m_renderer_instance_mapping_mutex);
+        std::lock_guard guard(m_render_group_mapping_mutex);
 
-        AddRendererInstanceInternal(renderer_instance);
+        AddRenderGroupInternal(renderer_instance);
     }
 
     return renderer_instance;
 }
 
 
-Handle<RendererInstance> Engine::CreateRendererInstance(
+Handle<RenderGroup> Engine::CreateRenderGroup(
     const Handle<Shader> &shader,
     const RenderableAttributeSet &renderable_attributes,
     const Array<const DescriptorSet *> &used_descriptor_sets
@@ -940,10 +940,10 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create RendererInstance.\n"
+            "Shader is empty; Cannot create RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
@@ -951,8 +951,8 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes,
@@ -962,66 +962,66 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
     return renderer_instance;
 }
 
-Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
+Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
 {
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create or find RendererInstance.\n"
+            "Shader is empty; Cannot create or find RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
     new_renderable_attributes.shader_id = shader->GetID();
 
-    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+    std::lock_guard guard(m_render_group_mapping_mutex);
 
-    const auto it = m_renderer_instance_mapping.Find(new_renderable_attributes);
+    const auto it = m_render_group_mapping.Find(new_renderable_attributes);
 
-    if (it != m_renderer_instance_mapping.End()) {
+    if (it != m_render_group_mapping.End()) {
         return it->second;
     }
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
-    AddRendererInstanceInternal(renderer_instance);
+    AddRenderGroupInternal(renderer_instance);
 
     return renderer_instance;
 }
     
-void Engine::AddRendererInstance(Handle<RendererInstance> &renderer_instance)
+void Engine::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
 {
-    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+    std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRendererInstanceInternal(renderer_instance);
+    AddRenderGroupInternal(renderer_instance);
 }
     
-void Engine::AddRendererInstanceInternal(Handle<RendererInstance> &renderer_instance)
+void Engine::AddRenderGroupInternal(Handle<RenderGroup> &renderer_instance)
 {
-    m_renderer_instance_mapping.Insert(
+    m_render_group_mapping.Insert(
         renderer_instance->GetRenderableAttributes(),
         renderer_instance
     );
 
     m_render_list_container
         .Get(renderer_instance->GetRenderableAttributes().material_attributes.bucket)
-        .AddRendererInstance(renderer_instance);
+        .AddRenderGroup(renderer_instance);
 }
 
 void Engine::PreFrameUpdate(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_render_list_container.AddPendingRendererInstances();
+    m_render_list_container.AddPendingRenderGroups();
 
     if (RenderCommands::Count() != 0) {
         HYPERION_ASSERT_RESULT(RenderCommands::Flush());

@@ -202,18 +202,18 @@ void FullScreenPass::CreatePipeline()
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
-    m_renderer_instance = CreateObject<RendererInstance>(
+    m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         renderable_attributes
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    Engine::Get()->AddRendererInstance(m_renderer_instance);
-    InitObject(m_renderer_instance);
+    Engine::Get()->AddRenderGroup(m_render_group);
+    InitObject(m_render_group);
 }
 
 void FullScreenPass::Destroy()
@@ -227,8 +227,8 @@ void FullScreenPass::Destroy()
                 m_framebuffers[i]->RemoveAttachmentRef(attachment.get());
             }
 
-            if (m_renderer_instance != nullptr) {
-                m_renderer_instance->RemoveFramebuffer(m_framebuffers[i]->GetID());
+            if (m_render_group != nullptr) {
+                m_render_group->RemoveFramebuffer(m_framebuffers[i]->GetID());
             }
         }
     }
@@ -241,7 +241,7 @@ void FullScreenPass::Destroy()
 
     m_framebuffers = {};
     m_render_pass.Reset();
-    m_renderer_instance.Reset();
+    m_render_group.Reset();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         Engine::Get()->SafeRelease(std::move(m_command_buffers[i]));
@@ -260,23 +260,23 @@ void FullScreenPass::Record(UInt frame_index)
 
     auto record_result = command_buffer->Record(
         Engine::Get()->GetGPUInstance()->GetDevice(),
-        m_renderer_instance->GetPipeline()->GetConstructionInfo().render_pass,
+        m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
-            m_renderer_instance->GetPipeline()->push_constants = m_push_constant_data;
-            m_renderer_instance->GetPipeline()->Bind(cmd);
+            m_render_group->GetPipeline()->push_constants = m_push_constant_data;
+            m_render_group->GetPipeline()->Bind(cmd);
 
             const UInt scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
@@ -288,21 +288,21 @@ void FullScreenPass::Record(UInt frame_index)
 #if HYP_FEATURES_BINDLESS_TEXTURES
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::bindless_textures_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             );
 #else
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
             );
             
@@ -310,7 +310,7 @@ void FullScreenPass::Record(UInt frame_index)
           //  if (!Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingDisabled()) {
                 cmd->BindDescriptorSet(
                     Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                    m_renderer_instance->GetPipeline(),
+                    m_render_group->GetPipeline(),
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
                 );

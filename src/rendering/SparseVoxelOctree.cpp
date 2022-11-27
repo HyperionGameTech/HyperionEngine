@@ -143,9 +143,9 @@ void SparseVoxelOctree::InitGame()
 
         if (BucketHasGlobalIllumination(renderable_attributes.material_attributes.bucket)
             && (renderable_attributes.mesh_attributes.vertex_attributes
-                & m_voxelizer->GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+                & m_voxelizer->GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_voxelizer->GetRendererInstance()->AddEntity(Handle<Entity>(it.second));
+            m_voxelizer->GetRenderGroup()->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
@@ -160,8 +160,8 @@ void SparseVoxelOctree::OnEntityAdded(Handle<Entity> &entity)
 
     if (BucketHasGlobalIllumination(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_voxelizer->GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_voxelizer->GetRendererInstance()->AddEntity(Handle<Entity>(entity));
+            & m_voxelizer->GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+        m_voxelizer->GetRenderGroup()->AddEntity(Handle<Entity>(entity));
     }
 }
 
@@ -171,7 +171,7 @@ void SparseVoxelOctree::OnEntityRemoved(Handle<Entity> &entity)
 
     AssertReady();
 
-    m_voxelizer->GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
+    m_voxelizer->GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
 }
 
 void SparseVoxelOctree::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
@@ -184,10 +184,10 @@ void SparseVoxelOctree::OnEntityRenderableAttributesChanged(Handle<Entity> &enti
 
     if (BucketHasGlobalIllumination(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_voxelizer->GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_voxelizer->GetRendererInstance()->AddEntity(Handle<Entity>(entity));
+            & m_voxelizer->GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+        m_voxelizer->GetRenderGroup()->AddEntity(Handle<Entity>(entity));
     } else {
-        m_voxelizer->GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
+        m_voxelizer->GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
     }
 }
 

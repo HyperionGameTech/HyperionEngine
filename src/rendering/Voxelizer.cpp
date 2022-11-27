@@ -93,7 +93,7 @@ void Voxelizer::Init()
 
         HYP_SYNC_RENDER();
 
-        m_renderer_instance.Reset();
+        m_render_group.Reset();
         m_attachments.clear();
 
         m_fragment_list_buffer.reset();
@@ -103,7 +103,7 @@ void Voxelizer::Init()
 
 void Voxelizer::CreatePipeline()
 {
-    m_renderer_instance = CreateObject<RendererInstance>(
+    m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -120,17 +120,17 @@ void Voxelizer::CreatePipeline()
     
     InitObject(m_framebuffer);
     
-    Engine::Get()->AddRendererInstance(m_renderer_instance);
+    Engine::Get()->AddRenderGroup(m_render_group);
     
-    for (auto &item : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
+    for (auto &item : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
         for (auto &entity : item->GetEntities()) {
             if (entity != nullptr) {
-                m_renderer_instance->AddEntity(Handle<Entity>(entity));
+                m_render_group->AddEntity(Handle<Entity>(entity));
             }
         }
     }
 
-    InitObject(m_renderer_instance);
+    InitObject(m_render_group);
 }
 
 void Voxelizer::CreateBuffers()
@@ -286,7 +286,7 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
 
 void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
 {
-    m_renderer_instance->GetPipeline()->push_constants.voxelizer_data = {
+    m_render_group->GetPipeline()->push_constants.voxelizer_data = {
         .grid_size = voxel_map_size,
         .count_mode = count_mode
     };
@@ -300,10 +300,10 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
         
         if (!Engine::Get()->render_state.GetScene()) {
             Engine::Get()->render_state.BindScene(m_scene.Get());
-            m_renderer_instance->Render(&temp_frame);
+            m_render_group->Render(&temp_frame);
             Engine::Get()->render_state.UnbindScene();
         } else {
-            m_renderer_instance->Render(&temp_frame);
+            m_render_group->Render(&temp_frame);
         }
 
         m_framebuffer->EndCapture(command_buffer);

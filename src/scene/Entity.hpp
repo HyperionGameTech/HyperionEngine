@@ -32,7 +32,7 @@ using renderer::AccelerationStructure;
 using renderer::AccelerationGeometry;
 using renderer::FaceCullMode;
 
-class RendererInstance;
+class RenderGroup;
 class Octree;
 class Scene;
 class Entity;
@@ -57,7 +57,7 @@ class Entity :
     friend struct RenderCommand_UpdateEntityRenderData;
 
     friend class Octree;
-    friend class RendererInstance;
+    friend class RenderGroup;
     friend class Controller;
     friend class Node;
     friend class Scene;
@@ -164,7 +164,7 @@ public:
 
     void SetStencilAttributes(const StencilState &stencil_state);
 
-    RendererInstance *GetPrimaryRendererInstance() const
+    RenderGroup *GetPrimaryRenderGroup() const
         { return m_primary_renderer_instance.renderer_instance; }
 
     const Vector3 &GetTranslation() const
@@ -269,8 +269,7 @@ public:
 
     const ControllerSet &GetControllers() const
         { return m_controllers; }
-
-public:
+    
     void AddToOctree(Octree &octree);
 
 private:
@@ -279,8 +278,8 @@ private:
     void EnqueueRenderUpdates();
     void UpdateOctree();
     
-    void OnAddedToPipeline(RendererInstance *pipeline);
-    void OnRemovedFromPipeline(RendererInstance *pipeline);
+    void OnAddedToPipeline(RenderGroup *pipeline);
+    void OnRemovedFromPipeline(RenderGroup *pipeline);
     
     void OnAddedToOctree(Octree *octree);
     void OnRemovedFromOctree(Octree *octree);
@@ -312,14 +311,14 @@ private:
     VisibilityState m_visibility_state;
 
     struct {
-        RendererInstance *renderer_instance = nullptr;
+        RenderGroup *renderer_instance = nullptr;
         bool changed = false;
     } m_primary_renderer_instance;
 
-    /* Retains a list of pointers to RendererInstances that this Entity is used by,
+    /* Retains a list of pointers to RenderGroups that this Entity is used by,
      * for easy removal when RemoveEntity() is called.
      */
-    FlatSet<RendererInstance *> m_renderer_instances;
+    FlatSet<RenderGroup *> m_render_groups;
     std::mutex m_render_instances_mutex;
 
     Matrix4 m_previous_transform_matrix;

@@ -105,7 +105,7 @@ private:
     void UpdateDrawCommands();
 
     Handle<Shader> m_shader;
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_renderer_instance;
 
     FixedArray<Handle<Mesh>, UInt(DebugDrawShape::MAX)> m_shapes;
     Array<DebugDrawCommand> m_draw_commands;

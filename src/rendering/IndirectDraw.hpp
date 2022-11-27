@@ -63,6 +63,12 @@ public:
     const Array<EntityDrawProxy> &GetDrawProxies() const
         { return m_draw_proxies; }
 
+    Array<IndirectDrawCommand> &GetDrawCalls()
+        { return m_draw_calls; }
+
+    const Array<IndirectDrawCommand> &GetDrawCalls() const
+        { return m_draw_calls; }
+
     Result Create();
     Result Destroy();
 
@@ -80,13 +86,14 @@ private:
     bool ResizeIfNeeded(Frame *frame, SizeType count);
 
     Array<ObjectInstance> m_object_instances;
+    Array<IndirectDrawCommand> m_draw_calls;
     Array<EntityDrawProxy> m_draw_proxies;
 
     FixedArray<UniquePtr<IndirectBuffer>, max_frames_in_flight> m_indirect_buffers;
     FixedArray<UniquePtr<StorageBuffer>, max_frames_in_flight> m_instance_buffers;
     FixedArray<UniquePtr<StagingBuffer>, max_frames_in_flight> m_staging_buffers;
     FixedArray<bool, max_frames_in_flight> m_is_dirty;
-    UInt m_max_entity_id = 0;
+    UInt m_max_draw_command_index = 0;
 };
 
 struct alignas(16) IndirectParams
@@ -111,11 +118,7 @@ public:
     void Create();
     void Destroy();
 
-    void ExecuteCullShaderInBatches(
-        
-        Frame *frame,
-        const CullData &cull_data
-    );
+    void ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data);
 
 private:
     void RebuildDescriptors(Frame *frame);

@@ -2,7 +2,6 @@
 #include <Engine.hpp>
 #include <Constants.hpp>
 
-#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 namespace hyperion::v2 {
@@ -85,7 +84,7 @@ struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommand
     }
 };
 
-RendererInstance::RendererInstance(
+RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes
@@ -97,7 +96,7 @@ RendererInstance::RendererInstance(
 {
 }
 
-RendererInstance::RendererInstance(
+RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes,
@@ -111,12 +110,12 @@ RendererInstance::RendererInstance(
 }
 
 
-RendererInstance::~RendererInstance()
+RenderGroup::~RenderGroup()
 {
     Teardown();
 }
 
-void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
+void RenderGroup::RemoveFramebuffer(Framebuffer::ID id)
 {
     const auto it = m_fbos.FindIf([&](const auto &item) {
         return item->GetID() == id;
@@ -129,7 +128,7 @@ void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
     m_fbos.Erase(it);
 }
 
-void RendererInstance::AddEntity(Handle<Entity> &&entity)
+void RenderGroup::AddEntity(Handle<Entity> &&entity)
 {
     AssertThrow(entity != nullptr);
     // AssertThrow(entity->IsReady());
@@ -141,7 +140,7 @@ void RendererInstance::AddEntity(Handle<Entity> &&entity)
         (m_renderable_attributes.mesh_attributes.vertex_attributes
             & entity->GetRenderableAttributes().mesh_attributes.vertex_attributes)
                 == entity->GetRenderableAttributes().mesh_attributes.vertex_attributes,
-        "RendererInstance vertex attributes does not satisfy the required vertex attributes of the entity."
+        "RenderGroup vertex attributes does not satisfy the required vertex attributes of the entity."
     );
 
     if (IsInitCalled()) {
@@ -166,7 +165,7 @@ void RendererInstance::AddEntity(Handle<Entity> &&entity)
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
+void RenderGroup::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
 {
     // we cannot touch m_entities from any thread other than the render thread
     // we'll have to assume it's here, and check later :/ 
@@ -206,7 +205,7 @@ void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_remove
     m_enqueued_entities_sp.Signal();
 }
 
-void RendererInstance::PerformEnqueuedEntityUpdates(UInt frame_index)
+void RenderGroup::PerformEnqueuedEntityUpdates(UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -261,7 +260,7 @@ void RendererInstance::PerformEnqueuedEntityUpdates(UInt frame_index)
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::Init()
+void RenderGroup::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -378,7 +377,7 @@ void RendererInstance::Init()
     }));
 }
 
-void RendererInstance::CollectDrawCalls(Frame *frame)
+void RenderGroup::CollectDrawCalls(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -422,11 +421,7 @@ void RendererInstance::CollectDrawCalls(Frame *frame)
 }
 
 
-void RendererInstance::CollectDrawCalls(
-    
-    Frame *frame,
-    const CullData &cull_data
-)
+void RenderGroup::CollectDrawCalls(Frame *frame, const CullData &cull_data)
 {
     CollectDrawCalls(frame);
 
@@ -561,7 +556,7 @@ RenderAll(
 
     const UInt frame_index = frame->GetFrameIndex();
 
-    const auto num_batches = RendererInstance::parallel_rendering
+    const auto num_batches = RenderGroup::parallel_rendering
         ? MathUtil::Min(static_cast<UInt>(Engine::Get()->task_system.GetPool(TaskPriority::HIGH).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     
@@ -644,7 +639,7 @@ RenderAll(
     command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
 }
 
-void RendererInstance::PerformRendering(Frame *frame)
+void RenderGroup::PerformRendering(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -660,7 +655,7 @@ void RendererInstance::PerformRendering(Frame *frame)
     );
 }
 
-void RendererInstance::PerformRenderingIndirect(Frame *frame)
+void RenderGroup::PerformRenderingIndirect(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -676,7 +671,7 @@ void RendererInstance::PerformRenderingIndirect(Frame *frame)
     );
 }
 
-void RendererInstance::Render(Frame *frame)
+void RenderGroup::Render(Frame *frame)
 {
     // perform all ops in one batch
     CollectDrawCalls(frame);
@@ -687,24 +682,24 @@ void RendererInstance::Render(Frame *frame)
 
 CommandBuffer *RendererProxy::GetCommandBuffer(UInt frame_index)
 {
-    return m_renderer_instance->m_command_buffers[frame_index].Front().Get();
+    return m_render_group->m_command_buffers[frame_index].Front().Get();
 }
 
 renderer::GraphicsPipeline *RendererProxy::GetGraphicsPipeline()
 {
-    return m_renderer_instance->m_pipeline.get();
+    return m_render_group->m_pipeline.get();
 }
 
 void RendererProxy::Bind(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_renderer_instance->m_pipeline->GetConstructionInfo().render_pass);
+    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
 
-    m_renderer_instance->m_pipeline->Bind(command_buffer);
+    m_render_group->m_pipeline->Bind(command_buffer);
 }
 
 void RendererProxy::SetConstants(void *ptr, SizeType size)
@@ -713,7 +708,7 @@ void RendererProxy::SetConstants(void *ptr, SizeType size)
     AssertThrowMsg(size <= 128, "Size of push constants must be <= 128");
 #endif
 
-    m_renderer_instance->m_pipeline->SetPushConstants(ptr, size);
+    m_render_group->m_pipeline->SetPushConstants(ptr, size);
 }
 
 void RendererProxy::BindEntityObject(
@@ -723,8 +718,8 @@ void RendererProxy::BindEntityObject(
 {
     BindPerObjectDescriptorSets(
         frame,
-        m_renderer_instance->m_pipeline.get(),
-        m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get(),
+        m_render_group->m_pipeline.get(),
+        m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get(),
         entity.entity_id.ToIndex(),
         entity.skeleton_id.ToIndex(),
         entity.material_id.ToIndex()
@@ -736,7 +731,7 @@ void RendererProxy::DrawMesh(
     Mesh *mesh
 )
 {
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
     mesh->Render(command_buffer);
@@ -746,7 +741,7 @@ void RendererProxy::Submit(
     Frame *frame
 )
 {
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
     command_buffer->End(Engine::Get()->GetGPUDevice());

@@ -97,6 +97,7 @@ struct HandleID : IDBase
     HashCode GetHashCode() const
     {
         HashCode hc;
+        hc.Add(GetTypeID().GetHashCode());
         hc.Add(IDBase::GetHashCode());
 
         return hc;

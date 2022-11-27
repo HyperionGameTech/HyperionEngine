@@ -216,7 +216,7 @@ DEF_HANDLE(Mesh,                         65536);
 DEF_HANDLE(Framebuffer,                  256);
 DEF_HANDLE(RenderPass,                   1024);
 DEF_HANDLE(Shader,                       1024);
-DEF_HANDLE(RendererInstance,             256);
+DEF_HANDLE(RenderGroup,                  256);
 DEF_HANDLE(Skeleton,                     512);
 DEF_HANDLE(Scene,                        64);
 DEF_HANDLE(RenderEnvironment,            64);

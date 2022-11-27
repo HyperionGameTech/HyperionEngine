@@ -103,7 +103,7 @@ public:
     }
 
     void CreateShader();
-    void CreateRendererInstance();
+    void CreateRenderGroup();
     virtual void CreateRenderPass() override;
     virtual void CreateDescriptors() override;
 

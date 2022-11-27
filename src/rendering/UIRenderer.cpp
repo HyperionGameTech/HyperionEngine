@@ -141,7 +141,7 @@ void UIRenderer::OnRender(Frame *frame)
     m_framebuffers[frame_index]->BeginCapture(command_buffer);
     Engine::Get()->render_state.BindScene(m_scene.Get());
 
-    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
+    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
         renderer_instance->Render(frame);
     }
 

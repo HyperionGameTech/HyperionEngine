@@ -45,13 +45,13 @@ class Engine;
 
 /*! \brief Represents a handle to a graphics pipeline,
     which can be used for doing standalone drawing without requiring
-    all objects to be Entities or have them attached to the RendererInstance */
+    all objects to be Entities or have them attached to the RenderGroup */
 class RendererProxy
 {
-    friend class RendererInstance;
+    friend class RenderGroup;
 
-    RendererProxy(RendererInstance *renderer_instance)
-        : m_renderer_instance(renderer_instance)
+    RendererProxy(RenderGroup *renderer_instance)
+        : m_render_group(renderer_instance)
     {
     }
 
@@ -62,14 +62,14 @@ public:
     CommandBuffer *GetCommandBuffer(UInt frame_index);
     renderer::GraphicsPipeline *GetGraphicsPipeline();
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void Bind(
         
         Frame *frame
     );
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void BindEntityObject(
         
@@ -77,11 +77,11 @@ public:
         const EntityDrawProxy &entity
     );
     
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void SetConstants(void *ptr, SizeType size);
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void DrawMesh(
         
@@ -89,7 +89,7 @@ public:
         Mesh *mesh
     );
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void Submit(
         
@@ -97,11 +97,11 @@ public:
     );
 
 private:
-    RendererInstance *m_renderer_instance;
+    RenderGroup *m_render_group;
 };
 
-class RendererInstance
-    : public EngineComponentBase<STUB_CLASS(RendererInstance)>
+class RenderGroup
+    : public EngineComponentBase<STUB_CLASS(RenderGroup)>
 {
     friend class Engine;
     friend class Entity;
@@ -110,22 +110,22 @@ class RendererInstance
 public:
     static constexpr bool parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
 
-    RendererInstance(
+    RenderGroup(
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
     );
 
-    RendererInstance(
+    RenderGroup(
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes,
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
-    RendererInstance(const RendererInstance &other) = delete;
-    RendererInstance &operator=(const RendererInstance &other) = delete;
-    ~RendererInstance();
+    RenderGroup(const RenderGroup &other) = delete;
+    RenderGroup &operator=(const RenderGroup &other) = delete;
+    ~RenderGroup();
 
     renderer::GraphicsPipeline *GetPipeline() const { return m_pipeline.get(); }
 

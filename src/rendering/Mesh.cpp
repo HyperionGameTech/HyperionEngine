@@ -312,10 +312,6 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 void Mesh::Render(CommandBuffer *cmd) const
 {
-    //Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 
     m_vbo->Bind(cmd);
@@ -325,14 +321,11 @@ void Mesh::Render(CommandBuffer *cmd) const
 }
 
 void Mesh::RenderIndirect(
-    
     CommandBuffer *cmd,
     const IndirectBuffer *indirect_buffer,
     UInt32 buffer_offset
 ) const
 {
-    AssertReady();
-
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 
     m_vbo->Bind(cmd);

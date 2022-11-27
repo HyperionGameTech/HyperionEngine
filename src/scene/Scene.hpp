@@ -182,9 +182,9 @@ private:
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    void RequestRendererInstanceUpdate(Handle<Entity> &entity);
-    void RemoveFromRendererInstance(Handle<Entity> &entity, RendererInstance *renderer_instance);
-    void RemoveFromRendererInstances(Handle<Entity> &entity);
+    void RequestRenderGroupUpdate(Handle<Entity> &entity);
+    void RemoveFromRenderGroup(Handle<Entity> &entity, RenderGroup *renderer_instance);
+    void RemoveFromRenderGroups(Handle<Entity> &entity);
 
     Handle<Camera> m_camera;
     NodeProxy m_root_node_proxy;

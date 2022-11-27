@@ -139,6 +139,11 @@ public:
             std::memcpy(values.float_values, &xyzw.values, 4 * sizeof(Float));
         }
 
+        Parameter(const Color &color)
+            : Parameter(Vector4(color.GetRed(), color.GetGreen(), color.GetBlue(), color.GetAlpha()))
+        {
+        }
+
         template <size_t Size>
         explicit Parameter(FixedArray<Int32, Size> &&v)
             : Parameter(v.Data(), Size)

@@ -57,8 +57,8 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommand
                     cubemap_renderer.m_framebuffers[i]->RemoveAttachmentRef(attachment.get());
                 }
 
-                if (cubemap_renderer.m_renderer_instance != nullptr) {
-                    cubemap_renderer.m_renderer_instance->RemoveFramebuffer(cubemap_renderer.m_framebuffers[i]->GetID());
+                if (cubemap_renderer.m_render_group != nullptr) {
+                    cubemap_renderer.m_render_group->RemoveFramebuffer(cubemap_renderer.m_framebuffers[i]->GetID());
                 }
             }
         }
@@ -162,7 +162,7 @@ void CubemapRenderer::Init()
     CreateRenderPass();
     CreateFramebuffers();
     CreateImagesAndBuffers();
-    CreateRendererInstance();
+    CreateRenderGroup();
 
     m_scene = CreateObject<Scene>(Handle<Camera>());
     InitObject(m_scene);
@@ -238,9 +238,9 @@ void CubemapRenderer::InitGame()
         }
 
         if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
-            m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
+            m_render_group->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
 
-            m_renderer_instance->AddEntity(Handle<Entity>(it.second));
+            m_render_group->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
@@ -262,8 +262,8 @@ void CubemapRenderer::OnEntityAdded(Handle<Entity> &entity)
     AssertReady();
 
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
-        m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
-        m_renderer_instance->AddEntity(Handle<Entity>(entity));
+        m_render_group->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
+        m_render_group->AddEntity(Handle<Entity>(entity));
     }
 }
 
@@ -273,7 +273,7 @@ void CubemapRenderer::OnEntityRemoved(Handle<Entity> &entity)
 
     AssertReady();
 
-    m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
+    m_render_group->RemoveEntity(Handle<Entity>(entity));
 }
 
 void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
@@ -283,10 +283,10 @@ void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity
     AssertReady();
 
     if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes &
-        m_renderer_instance->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
-        m_renderer_instance->AddEntity(Handle<Entity>(entity));
+        m_render_group->GetRenderableAttributes().mesh_attributes.vertex_attributes) {
+        m_render_group->AddEntity(Handle<Entity>(entity));
     } else {
-        m_renderer_instance->RemoveEntity(Handle<Entity>(entity));
+        m_render_group->RemoveEntity(Handle<Entity>(entity));
     }
 }
 
@@ -306,14 +306,14 @@ void CubemapRenderer::OnRender(Frame *frame)
 
     m_framebuffers[frame_index]->BeginCapture(command_buffer);
 
-    m_renderer_instance->GetPipeline()->push_constants = {
+    m_render_group->GetPipeline()->push_constants = {
         .render_component_data = {
             .index = GetComponentIndex()
         }
     };
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Render(frame);
+    m_render_group->Render(frame);
     Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame_index]->EndCapture(command_buffer);
@@ -387,9 +387,9 @@ void CubemapRenderer::CreateImagesAndBuffers()
     );
 }
 
-void CubemapRenderer::CreateRendererInstance()
+void CubemapRenderer::CreateRenderGroup()
 {
-    m_renderer_instance = CreateObject<RendererInstance>(
+    m_render_group = CreateObject<RenderGroup>(
         Handle<Shader>(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -405,11 +405,11 @@ void CubemapRenderer::CreateRendererInstance()
     );
 
     for (auto &framebuffer: m_framebuffers) {
-        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
-    Engine::Get()->AddRendererInstance(m_renderer_instance);
-    InitObject(m_renderer_instance);
+    Engine::Get()->AddRenderGroup(m_render_group);
+    InitObject(m_render_group);
 }
 
 void CubemapRenderer::CreateShader()

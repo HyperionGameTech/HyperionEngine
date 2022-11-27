@@ -173,22 +173,22 @@ public:
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
-    Handle<RendererInstance> CreateRendererInstance(
+    Handle<RenderGroup> CreateRenderGroup(
         const Handle<Shader> &shader,
         const RenderableAttributeSet &renderable_attributes,
         bool cache = false
     );
     
-    /*! \brief Create a RendererInstance using defined set of DescriptorSets. The result will not be cached. */
-    Handle<RendererInstance> CreateRendererInstance(
+    /*! \brief Create a RenderGroup using defined set of DescriptorSets. The result will not be cached. */
+    Handle<RenderGroup> CreateRenderGroup(
         const Handle<Shader> &shader,
         const RenderableAttributeSet &renderable_attributes,
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
-    /*! \brief Find or create a RendererInstance from cache, or create a descriptor set. If created, the result will always be cached. */
-    Handle<RendererInstance> FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
-    void AddRendererInstance(Handle<RendererInstance> &renderer_instance);
+    /*! \brief Find or create a RenderGroup from cache, or create a descriptor set. If created, the result will always be cached. */
+    Handle<RenderGroup> FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
+    void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
 
     template <class T>
     void SafeReleaseHandle(Handle<T> &&resource)
@@ -314,10 +314,10 @@ private:
 
     void FindTextureFormatDefaults();
 
-    void AddRendererInstanceInternal(Handle<RendererInstance> &);
+    void AddRenderGroupInternal(Handle<RenderGroup> &);
     
     UniquePtr<Instance> m_instance;
-    Handle<RendererInstance> m_root_pipeline;
+    Handle<RenderGroup> m_root_pipeline;
 
     EnumOptions<TextureFormatDefault, InternalFormat, 16> m_texture_format_defaults;
 
@@ -327,8 +327,8 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, Handle<RendererInstance>> m_renderer_instance_mapping;
-    std::mutex m_renderer_instance_mapping_mutex;
+    FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_group_mapping;
+    std::mutex m_render_group_mapping_mutex;
 
     ComponentRegistry m_components;
 

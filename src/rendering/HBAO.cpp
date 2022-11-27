@@ -273,16 +273,12 @@ void HBAO::CreateDescriptorSets()
                 // nearest sampler
                 descriptor_set
                     ->AddDescriptor<SamplerDescriptor>(2)
-                    ->SetSubDescriptor({
-                        .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
-                    });
+                    ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
 
                 // linear sampler
                 descriptor_set
                     ->AddDescriptor<SamplerDescriptor>(3)
-                    ->SetSubDescriptor({
-                        .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
-                    });
+                    ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
                 // output image
                 descriptor_set

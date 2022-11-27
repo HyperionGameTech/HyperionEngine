@@ -30,7 +30,7 @@ public:
     void Render(Frame *frame);
 
 private:
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_render_group;
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
     Handle<Mesh> m_full_screen_quad;
 };

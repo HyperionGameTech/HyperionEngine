@@ -586,14 +586,14 @@ void Entity::SetTransform(const Transform &transform)
 }
 
 // TODO! Investigate if we even need those 2 functions
-void Entity::OnAddedToPipeline(RendererInstance *pipeline)
+void Entity::OnAddedToPipeline(RenderGroup *pipeline)
 {
     std::lock_guard guard(m_render_instances_mutex);
 
-    m_renderer_instances.Insert(pipeline);
+    m_render_groups.Insert(pipeline);
 }
 
-void Entity::OnRemovedFromPipeline(RendererInstance *pipeline)
+void Entity::OnRemovedFromPipeline(RenderGroup *pipeline)
 {
     std::lock_guard guard(m_render_instances_mutex);
 
@@ -604,7 +604,7 @@ void Entity::OnRemovedFromPipeline(RendererInstance *pipeline)
         };
     }
 
-    m_renderer_instances.Erase(pipeline);
+    m_render_groups.Erase(pipeline);
 }
 
 void Entity::OnAddedToOctree(Octree *octree)

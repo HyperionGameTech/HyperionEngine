@@ -291,7 +291,7 @@ public:
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
 
-        m_scene->GetFogParams().end_distance = 30000.0f;
+        m_scene->GetFogParams().end_distance = 40000.0f;
 
 #ifdef HYP_TEST_TERRAIN
         { // paged procedural terrain
@@ -345,7 +345,15 @@ public:
         mh.SetName("mh_model");
         mh.Scale(5.0f);
         for (auto &mh_child : mh.GetChildren()) {
-            mh_child[0].SetEntity(Handle<Entity>::empty);
+            //mh_child.SetEntity(Handle<Entity>::empty);
+
+            if (auto entity = mh_child.GetEntity()) {
+                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 4.0f, 0.0f, 1.0f));
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            }
         }
         GetScene()->GetRoot().AddChild(mh);
 
@@ -366,7 +374,7 @@ public:
             }
 
             if (child.GetEntity()) {
-                child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
+                //child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
             }
         }
 
