@@ -23,10 +23,8 @@
 #include <deque>
 #include <type_traits>
 
-#ifndef HYP_SCHEDULER_USE_ATOMIC_LOCK
 #include <mutex>
 #include <condition_variable>
-#endif
 
 namespace hyperion::v2 {
 
@@ -207,17 +205,11 @@ public:
      */
     TaskID Enqueue(Task &&fn)
     {
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         auto result = EnqueueInternal(std::forward<Task>(fn), nullptr /* No atomic counter */);
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#endif
+        m_has_tasks.notify_all();
 
         return result;
     }
@@ -229,17 +221,11 @@ public:
      */
     TaskID Enqueue(Task &&fn, std::atomic<UInt> *atomic_counter)
     {
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         auto result = EnqueueInternal(std::forward<Task>(fn), atomic_counter);
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#endif
+        m_has_tasks.notify_all();
 
         return result;
     }
@@ -251,30 +237,18 @@ public:
         if (id == Task::empty_id) {
             return false;
         }
-        
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
+
         std::unique_lock lock(m_mutex);
-#endif
 
         if (DequeueInternal(id)) {
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-            m_sp.Signal();
-#else
             if (m_scheduled_functions.Empty()) {
                 lock.unlock();
 
-                m_is_flushed.notify_all();
+                m_is_empty.notify_all();
             }
-#endif
 
             return true;
         }
-
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#endif
 
         return false;
     }
@@ -290,11 +264,7 @@ public:
             return results;
         }
         
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         for (SizeType i = 0; i < ids.Size(); i++) {
             const auto &id = ids[i];
@@ -310,15 +280,11 @@ public:
             }
         }
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#else
         if (m_scheduled_functions.Empty()) {
             lock.unlock();
 
-            m_is_flushed.notify_all();
+            m_is_empty.notify_all();
         }
-#endif
 
         return results;
     }
@@ -343,12 +309,8 @@ public:
             return;
         }
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        while (m_num_enqueued.load() != 0u);
-#else
         std::unique_lock lock(m_mutex);
-        m_is_flushed.wait(lock, [this] { return m_num_enqueued.load() == 0u; });
-#endif
+        m_is_empty.wait(lock, [this] { return m_num_enqueued.load() == 0u; });
     }
 
     /* Move all the next pending task in the queue to an external container. */
@@ -357,11 +319,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
         
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         if (m_scheduled_functions.Any()) {
             auto &front = m_scheduled_functions.Front();
@@ -371,13 +329,9 @@ public:
             m_num_enqueued.fetch_sub(1u, std::memory_order_relaxed);
         }
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#else
         lock.unlock();
 
-        m_is_flushed.notify_all();
-#endif
+        m_is_empty.notify_all();
     }
     
     /* Move all tasks in the queue to an external container. */
@@ -386,11 +340,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
             out_container.Push(std::move(*it));
@@ -399,13 +349,30 @@ public:
         m_scheduled_functions.Clear();
         m_num_enqueued.store(0u, std::memory_order_relaxed);
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#else
         lock.unlock();
 
-        m_is_flushed.notify_all();
-#endif
+        m_is_empty.notify_all();
+    }
+    
+    /* Move all tasks in the queue to an external container. */
+    template <class Container>
+    void WaitForTasks(Container &out_container)
+    {
+        AssertThrow(Threads::IsOnThread(m_owner_thread));
+
+        std::unique_lock lock(m_mutex);
+        m_has_tasks.wait(lock, [this] { return m_num_enqueued.load() != 0u; });
+
+        for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
+            out_container.Push(std::move(*it));
+        }
+
+        m_scheduled_functions.Clear();
+        m_num_enqueued.store(0u, std::memory_order_relaxed);
+
+        lock.unlock();
+
+        m_is_empty.notify_all();
     }
 
     /*! Execute all scheduled tasks. May only be called from the creation thread.
@@ -415,11 +382,7 @@ public:
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Wait();
-#else
         std::unique_lock lock(m_mutex);
-#endif
 
         while (m_scheduled_functions.Any()) {
             auto &front = m_scheduled_functions.Front();
@@ -435,13 +398,9 @@ public:
 
         m_num_enqueued.store(0u, std::memory_order_relaxed);
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-        m_sp.Signal();
-#else
         lock.unlock();
 
-        m_is_flushed.notify_all();
-#endif
+        m_is_empty.notify_all();
     }
     
 private:
@@ -482,12 +441,9 @@ private:
     std::atomic_uint m_num_enqueued { 0 };
     ScheduledFunctionQueue m_scheduled_functions;
 
-#ifdef HYP_SCHEDULER_USE_ATOMIC_LOCK
-    BinarySemaphore m_sp;
-#else
     std::mutex m_mutex;
-    std::condition_variable m_is_flushed;
-#endif
+    std::condition_variable m_is_empty;
+    std::condition_variable m_has_tasks;
 
     ThreadID m_owner_thread;
 };

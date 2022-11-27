@@ -275,6 +275,7 @@ public:
     void ParallelForEach(TaskPriority priority, UInt num_batches, Container &&items, Lambda &&lambda)
     {
         const auto num_items = static_cast<UInt>(items.Size());
+
         if (num_items == 0) {
             return;
         }

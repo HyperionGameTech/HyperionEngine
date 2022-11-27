@@ -66,28 +66,33 @@ protected:
 #endif
 
         while (IsRunning()) {
-            if (is_locked) {
+            /*if (is_locked) {
                 while (counter.Waiting()) {
                     HYP_WAIT_IDLE();
                 }
 
                 counter.NextTick();
-            }
+            }*/
 
             bool active = false;
 
             const bool was_free = m_task_queue.Empty();
 
-            if (m_scheduler.NumEnqueued()) {
-                m_scheduler.AcceptAll(m_task_queue);
+            //if (m_scheduler.NumEnqueued()) {
+            /*{
+                std::unique_lock lock(m_scheduler.m_mutex);
+                m_scheduler.m_is_flushed.wait(lock, [this] { return m_scheduler.m_num_enqueued.load() != 0u; });
+                m_scheduler.AcceptAll(m_task_queue);*/
+
+                m_scheduler.WaitForTasks(m_task_queue);
 
                 active = true;
-            }
+            //}
+            //}
             
             // do not execute within lock
-            if (m_task_queue.Any()) {
-                m_task_queue.Front().Execute();
-                m_task_queue.Pop();
+            while (m_task_queue.Any()) {
+                m_task_queue.Pop().Execute();
 
                 active = true;
             }
