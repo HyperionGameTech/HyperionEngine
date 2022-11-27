@@ -168,7 +168,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             const auto spec = StringUtil::Parse<Int>(tokens[1]);
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_ROUGHNESS] = ParameterDef {
-                .values = { 1.0f - MathUtil::Clamp(static_cast<Float>(spec) / 1000.0f, 0.0f, 1.0f) }
+                .values = { 1.0f - MathUtil::Clamp(Float(spec) / 1000.0f, 0.0f, 1.0f) }
             };
 
             return;
@@ -191,7 +191,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             }
 
             LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
-                .values = { float(illum_model) / 9.0f } /* rough approx */
+                .values = { Float(illum_model) / 9.0f } /* rough approx */
             };
 
             return;

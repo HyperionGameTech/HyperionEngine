@@ -99,6 +99,8 @@ public:
         { return m_mesh; }
 
     void SetMesh(Handle<Mesh> &&mesh);
+    void SetMesh(const Handle<Mesh> &mesh)
+        { SetMesh(Handle<Mesh>(mesh)); }
 
     Handle<Skeleton> &GetSkeleton()
         { return m_skeleton; }
@@ -107,6 +109,8 @@ public:
         { return m_skeleton; }
 
     void SetSkeleton(Handle<Skeleton> &&skeleton);
+    void SetSkeleton(const Handle<Skeleton> &skeleton)
+        { SetSkeleton(Handle<Skeleton>(skeleton)); }
 
     Handle<Shader> &GetShader()
         { return m_shader; }
@@ -115,6 +119,8 @@ public:
         { return m_shader; }
 
     void SetShader(Handle<Shader> &&shader);
+    void SetShader(const Handle<Shader> &shader)
+        { SetShader(Handle<Shader>(shader)); }
 
     Handle<Material> &GetMaterial()
         { return m_material; }
@@ -123,6 +129,8 @@ public:
         { return m_material; }
 
     void SetMaterial(Handle<Material> &&material);
+    void SetMaterial(const Handle<Material> &material)
+        { SetMaterial(Handle<Material>(material)); }
 
     Handle<BLAS> &GetBLAS()
         { return m_blas; }

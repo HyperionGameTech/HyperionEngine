@@ -113,6 +113,8 @@ public:
     HYP_FORCE_INLINE bool Any() const { return Get() != nullptr; }
     HYP_FORCE_INLINE bool Empty() const { return Get() == nullptr; }
 
+    HYP_FORCE_INLINE bool IsValid() const { return Any(); }
+
     /*! \brief Conversion operator to bool, to use in if-statements */
     explicit operator bool() const { return Any(); }
 

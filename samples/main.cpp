@@ -135,7 +135,7 @@ public:
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
-        batch.Add<Node>("test_model", "models/testbed/testbed.obj");//sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/sponza/sponza.obj"); //"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -149,7 +149,7 @@ public:
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
 
-        test_model.Scale(30.35f);
+        test_model.Scale(0.35f);
 
         {
             int i = 0;
@@ -228,7 +228,7 @@ public:
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.5f, 1.0f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                300000.0f
+                500000.0f
             ));
 
             m_scene->AddLight(m_sun);
@@ -344,7 +344,34 @@ public:
         auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
         mh.SetName("mh_model");
         mh.Scale(5.0f);
+        for (auto &mh_child : mh.GetChildren()) {
+            mh_child[0].SetEntity(Handle<Entity>::empty);
+        }
         GetScene()->GetRoot().AddChild(mh);
+
+
+        NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
+        tree.SetName("tree");
+        tree.Scale(5.0f);
+        if (auto needles = tree.Select("Needles")) {
+            if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
+                needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
+                //needles.GetEntity()->GetMaterial()->SetBucket(BUCKET_TRANSLUCENT);
+            }
+        }
+
+        for (auto &child : tree.GetChildren()) {
+            if (child.GetName() == "BlueSpruceBark") {
+                continue;
+            }
+
+            if (child.GetEntity()) {
+                child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
+            }
+        }
+
+        GetScene()->GetRoot().AddChild(tree);
+
 
         if (false) {
             // add a plane physics shape
@@ -400,7 +427,7 @@ public:
 
         GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("mh_model").GetWorldTranslation());
 
-        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.01), MathUtil::Cos(timer * 0.01), 0.0f).Normalize());
+        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.002f), MathUtil::Cos(timer * 0.002f), -MathUtil::Sin(timer * 0.002f)).Normalize());
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
@@ -532,7 +559,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));//1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
     
     SystemEvent event;
 
