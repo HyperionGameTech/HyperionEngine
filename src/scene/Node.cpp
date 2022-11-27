@@ -494,7 +494,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     return has_entity_hit;
 }
 
-const Handle<Entity> &Node::FindEntityWithID(const Entity::ID &id) const
+const Handle<Entity> &Node::FindEntityWithID(HandleID<Entity> entity_id) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -508,7 +508,7 @@ const Handle<Entity> &Node::FindEntityWithID(const Entity::ID &id) const
                 continue;
             }
 
-            if (child.GetEntity()->GetID() == id) {
+            if (child.GetEntity()->GetID() == entity_id) {
                 return child.GetEntity();
             }
 

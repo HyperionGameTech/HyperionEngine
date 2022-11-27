@@ -102,7 +102,7 @@ public:
 
     virtual void InitRender() override
     {
-        Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
+        //Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
     }
 
     virtual void InitGame() override
@@ -215,13 +215,30 @@ public:
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
             zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.0f, 0.0f, 1.0f));
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
             zombie_entity->RebuildRenderableAttributes();
             InitObject(zombie_entity);
             zombie_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(zombie);
+            
+            auto zomb2 = CreateObject<Entity>();
+            zomb2->SetMesh(zombie_entity->GetMesh());
+            zomb2->SetTranslation(Vector3(0, 20, 0));
+            zomb2->SetScale(Vector3(20.0f));
+            zomb2->SetShader(zombie_entity->GetShader());
+            zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
+            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(0.0f, 1.0f, 0.0f, 1.0f));
+            zomb2->SetName("FOOBAR ZOMBO");
+            zomb2->SetSkeleton(zombie_entity->GetSkeleton());
+            zomb2->RebuildRenderableAttributes();
+
+            InitObject(zomb2);
+            m_scene->AddEntity(zomb2);
+
+            DebugLog(LogType::Debug, "FOOBAR ZOMBIE 1 ID : %u\n", zombie_entity->GetID().Value());
+            DebugLog(LogType::Debug, "FOOBAR ZOMBO ID : %u\n", zomb2->GetID().Value());
         }
         
         { // adding lights to scene
@@ -291,7 +308,7 @@ public:
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
 
-        m_scene->GetFogParams().end_distance = 30000.0f;
+        m_scene->GetFogParams().end_distance = 40000.0f;
 
 #ifdef HYP_TEST_TERRAIN
         { // paged procedural terrain
@@ -345,7 +362,15 @@ public:
         mh.SetName("mh_model");
         mh.Scale(5.0f);
         for (auto &mh_child : mh.GetChildren()) {
-            mh_child[0].SetEntity(Handle<Entity>::empty);
+            //mh_child.SetEntity(Handle<Entity>::empty);
+
+            if (auto entity = mh_child.GetEntity()) {
+                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 4.0f, 0.0f, 1.0f));
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            }
         }
         GetScene()->GetRoot().AddChild(mh);
 
@@ -366,7 +391,7 @@ public:
             }
 
             if (child.GetEntity()) {
-                child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
+                //child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
             }
         }
 

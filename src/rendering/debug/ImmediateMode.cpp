@@ -67,7 +67,7 @@ void ImmediateMode::Create()
 
     Engine::Get()->InitObject(m_shader);
 
-    m_renderer_instance = Engine::Get()->CreateRendererInstance(
+    m_renderer_instance = Engine::Get()->CreateRenderGroup(
         m_shader,
         RenderableAttributeSet(
             MeshAttributes {

@@ -47,7 +47,7 @@ class DeferredSystem
 public:
     static const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> gbuffer_resources;
     
-    class RendererInstanceHolder
+    class RenderGroupHolder
     {
         friend class DeferredSystem;
 
@@ -55,14 +55,14 @@ public:
         Handle<RenderPass> render_pass;
         FixedArray<Handle<Framebuffer>, max_frames_in_flight> framebuffers;
         Array<std::unique_ptr<Attachment>> attachments;
-        Array<Handle<RendererInstance>> renderer_instances;
-        Array<Handle<RendererInstance>> renderer_instances_pending_addition;
+        Array<Handle<RenderGroup>> renderer_instances;
+        Array<Handle<RenderGroup>> renderer_instances_pending_addition;
         AtomicVar<bool> renderer_instances_changed;
         std::mutex renderer_instances_mutex;
 
     public:
-        RendererInstanceHolder();
-        ~RendererInstanceHolder();
+        RenderGroupHolder();
+        ~RenderGroupHolder();
 
         Bucket GetBucket() const { return bucket; }
         void SetBucket(Bucket bucket) { this->bucket = bucket; }
@@ -73,8 +73,8 @@ public:
         FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() { return framebuffers; }
         const FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() const { return framebuffers; }
 
-        Array<Handle<RendererInstance>> &GetRendererInstances() { return renderer_instances; }
-        const Array<Handle<RendererInstance>> &GetRendererInstances() const { return renderer_instances; }
+        Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
+        const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }
 
         AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
@@ -84,10 +84,10 @@ public:
             return render_pass->GetRenderPass().GetAttachmentRefs()[UInt(resource_name)];
         }
 
-        void AddRendererInstance(Handle<RendererInstance> &renderer_instance);
-        void AddPendingRendererInstances();
+        void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
+        void AddPendingRenderGroups();
         void AddFramebuffersToPipelines();
-        void AddFramebuffersToPipeline(Handle<RendererInstance> &pipeline);
+        void AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline);
         void CreateRenderPass();
         void CreateFramebuffers();
         void Destroy();
@@ -98,27 +98,27 @@ public:
     DeferredSystem &operator=(const DeferredSystem &other) = delete;
     ~DeferredSystem() = default;
 
-    RendererInstanceHolder &Get(Bucket bucket)
+    RenderGroupHolder &Get(Bucket bucket)
         { return m_buckets[static_cast<UInt>(bucket)]; }
 
-    const RendererInstanceHolder &Get(Bucket bucket) const
+    const RenderGroupHolder &Get(Bucket bucket) const
         { return m_buckets[static_cast<UInt>(bucket)]; }
 
-    RendererInstanceHolder &operator[](Bucket bucket)
+    RenderGroupHolder &operator[](Bucket bucket)
         { return Get(bucket); }
 
-    const RendererInstanceHolder &operator[](Bucket bucket) const
+    const RenderGroupHolder &operator[](Bucket bucket) const
         { return Get(bucket); }
 
     void Create();
     void Destroy();
 
-    void AddPendingRendererInstances();
+    void AddPendingRenderGroups();
     void AddFramebuffersToPipelines();
 
 private:
 
-    FixedArray<RendererInstanceHolder, Bucket::BUCKET_MAX> m_buckets;
+    FixedArray<RenderGroupHolder, Bucket::BUCKET_MAX> m_buckets;
 };
 
 } // namespace hyperion::v2

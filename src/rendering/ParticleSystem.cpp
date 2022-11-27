@@ -260,11 +260,11 @@ void ParticleSpawner::Init()
     CreateBuffers();
     CreateShader();
     CreateDescriptorSets();
-    CreateRendererInstance();
+    CreateRenderGroup();
     CreateComputePipelines();
 
     OnTeardown([this](...) {
-        m_renderer_instance.Reset();
+        m_render_group.Reset();
         m_update_particles.Reset();
 
         Engine::Get()->SafeRelease(std::move(m_particle_buffer));
@@ -347,12 +347,12 @@ void ParticleSpawner::CreateDescriptorSets()
     );
 }
 
-void ParticleSpawner::CreateRendererInstance()
+void ParticleSpawner::CreateRenderGroup()
 {
-    // Not using Engine::FindOrCreateRendererInstance because we want to use
+    // Not using Engine::FindOrCreateRenderGroup because we want to use
     // our own descriptor sets which will be destroyed when this object is destroyed.
-    // we don't want any other objects to use our RendererInstance then!
-    m_renderer_instance = CreateObject<RendererInstance>(
+    // we don't want any other objects to use our RenderGroup then!
+    m_render_group = CreateObject<RenderGroup>(
         Handle<Shader>(m_shader),
         Handle<RenderPass>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()),
         RenderableAttributeSet(
@@ -369,15 +369,15 @@ void ParticleSpawner::CreateRendererInstance()
     );
 
     for (auto &framebuffer : Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()) {
-        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
-    m_renderer_instance->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
+    m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
         &m_descriptor_sets[0]
     });
 
-    AssertThrow(InitObject(m_renderer_instance));
+    AssertThrow(InitObject(m_render_group));
 }
 
 void ParticleSpawner::CreateComputePipelines()
@@ -562,7 +562,7 @@ void ParticleSystem::Render(Frame *frame)
         TaskPriority::HIGH,
         m_particle_spawners.GetItems(),
         [this, &command_buffers_recorded_states, frame_index, scene_index](const Handle<ParticleSpawner> &particle_spawner, UInt index, UInt batch_index) {
-            auto *pipeline = particle_spawner->GetRendererInstance()->GetPipeline();
+            auto *pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
                 Engine::Get()->GetGPUDevice(),

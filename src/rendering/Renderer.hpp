@@ -3,18 +3,21 @@
 
 #include <core/Containers.hpp>
 #include <scene/Entity.hpp>
-#include "Shader.hpp"
-#include "Framebuffer.hpp"
-#include "RenderPass.hpp"
-#include "RenderBucket.hpp"
-#include "RenderableAttributes.hpp"
-#include "IndirectDraw.hpp"
-#include "CullData.hpp"
-#include "Compute.hpp"
+#include <rendering/Shader.hpp>
+#include <rendering/Framebuffer.hpp>
+#include <rendering/RenderPass.hpp>
+#include <rendering/RenderBucket.hpp>
+#include <rendering/RenderableAttributes.hpp>
+#include <rendering/IndirectDraw.hpp>
+#include <rendering/CullData.hpp>
+#include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
 #include <Constants.hpp>
+#include <core/HandleID.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <util/Defines.hpp>
+
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -42,16 +45,19 @@ using renderer::Extent3D;
 using renderer::StorageBuffer;
 
 class Engine;
+class Mesh;
+class Material;
+class Skeleton;
 
 /*! \brief Represents a handle to a graphics pipeline,
     which can be used for doing standalone drawing without requiring
-    all objects to be Entities or have them attached to the RendererInstance */
+    all objects to be Entities or have them attached to the RenderGroup */
 class RendererProxy
 {
-    friend class RendererInstance;
+    friend class RenderGroup;
 
-    RendererProxy(RendererInstance *renderer_instance)
-        : m_renderer_instance(renderer_instance)
+    RendererProxy(RenderGroup *renderer_instance)
+        : m_render_group(renderer_instance)
     {
     }
 
@@ -62,46 +68,28 @@ public:
     CommandBuffer *GetCommandBuffer(UInt frame_index);
     renderer::GraphicsPipeline *GetGraphicsPipeline();
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void Bind(
-        
-        Frame *frame
-    );
-
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void BindEntityObject(
-        
-        Frame *frame,
-        const EntityDrawProxy &entity
-    );
+    void Bind(Frame *frame);
     
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void SetConstants(void *ptr, SizeType size);
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void DrawMesh(
-        
-        Frame *frame,
-        Mesh *mesh
-    );
+    void DrawMesh(Frame *frame, Mesh *mesh);
 
-    /*! \brief For using this RendererInstance as a standalone graphics pipeline that will simply
+    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void Submit(
-        
-        Frame *frame
-    );
+    void Submit(Frame *frame);
 
 private:
-    RendererInstance *m_renderer_instance;
+    RenderGroup *m_render_group;
 };
 
-class RendererInstance
-    : public EngineComponentBase<STUB_CLASS(RendererInstance)>
+class RenderGroup
+    : public EngineComponentBase<STUB_CLASS(RenderGroup)>
 {
     friend class Engine;
     friend class Entity;
@@ -110,22 +98,22 @@ class RendererInstance
 public:
     static constexpr bool parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
 
-    RendererInstance(
+    RenderGroup(
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
     );
 
-    RendererInstance(
+    RenderGroup(
         Handle<Shader> &&shader,
         Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes,
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
-    RendererInstance(const RendererInstance &other) = delete;
-    RendererInstance &operator=(const RendererInstance &other) = delete;
-    ~RendererInstance();
+    RenderGroup(const RenderGroup &other) = delete;
+    RenderGroup &operator=(const RenderGroup &other) = delete;
+    ~RenderGroup();
 
     renderer::GraphicsPipeline *GetPipeline() const { return m_pipeline.get(); }
 
@@ -148,38 +136,25 @@ public:
 
     /*! \brief Collect drawable objects, must only be used with non-indirect rendering!
      */
-    void CollectDrawCalls(
-        
-        Frame *frame
-    );
+    void CollectDrawCalls(Frame *frame);
 
     /*! \brief Collect drawable objects, then run the culling compute shader
      * to mark any occluded objects as such. Must be used with indirect rendering.
      */
     void CollectDrawCalls(
-        
         Frame *frame,
         const CullData &cull_data
     );
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(
-        
-        Frame *frame
-    );
+    void PerformRendering(Frame *frame);
     
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(
-        
-        Frame *frame
-    );
+    void PerformRenderingIndirect(Frame *frame);
 
     // render non-indirect (collects draw calls, then renders)
-    void Render(
-        
-        Frame *frame
-    );
+    void Render(Frame *frame);
 
     RendererProxy GetProxy()
         { return RendererProxy(this); }
@@ -223,13 +198,17 @@ private:
     std::atomic_bool m_enqueued_entities_flag { false };
 
     // cache so we don't allocate every frame
-    Array<Array<EntityDrawProxy>> m_divided_draw_proxies;
+    Array<Array<DrawCall>> m_divided_draw_calls;
 
     // cycle through command buffers, so you can call Render()
     // multiple times in a single pass, only running into issues if you
     // try to call it more than num_async_rendering_command_buffers
     // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
     UInt m_command_buffer_index = 0u;
+
+    FlatMap<UInt, EntityBatchIndex> m_entity_batches;
+
+    DrawState m_draw_state;
 };
 
 } // namespace hyperion::v2

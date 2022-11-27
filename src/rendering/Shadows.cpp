@@ -217,9 +217,9 @@ void ShadowPass::CreateDescriptors()
     );
 }
 
-void ShadowPass::CreateRendererInstance()
+void ShadowPass::CreateRenderGroup()
 {
-    m_renderer_instance = CreateObject<RendererInstance>(
+    m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
         Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
@@ -234,11 +234,11 @@ void ShadowPass::CreateRendererInstance()
     );
 
     for (auto &framebuffer : m_framebuffers) {
-        m_renderer_instance->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
     
-    Engine::Get()->AddRendererInstance(m_renderer_instance);
-    InitObject(m_renderer_instance);
+    Engine::Get()->AddRenderGroup(m_render_group);
+    InitObject(m_render_group);
 }
 
 void ShadowPass::CreateShadowMap()
@@ -320,7 +320,7 @@ void ShadowPass::Create()
         }
     }
 
-    CreateRendererInstance();
+    CreateRenderGroup();
     CreateCommandBuffers();
 
     HYP_SYNC_RENDER(); // force init stuff
@@ -357,7 +357,7 @@ void ShadowPass::Render(Frame *frame)
     m_framebuffers[frame->GetFrameIndex()]->BeginCapture(command_buffer);
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
-    m_renderer_instance->Render(frame);
+    m_render_group->Render(frame);
     Engine::Get()->render_state.UnbindScene();
 
     m_framebuffers[frame->GetFrameIndex()]->EndCapture(command_buffer);
@@ -475,9 +475,9 @@ void ShadowRenderer::InitGame()
 
         if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
             && (renderable_attributes.mesh_attributes.vertex_attributes
-                & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+                & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
 
-            m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(it.second));
+            m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(it.second));
         }
     }
 }
@@ -492,8 +492,8 @@ void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
 
     if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
+            & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+        m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(entity));
     }
 }
 
@@ -503,7 +503,7 @@ void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
 
     AssertReady();
 
-    m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
+    m_shadow_pass.GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
 }
 
 void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
@@ -516,10 +516,10 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 
     if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_shadow_pass.GetRendererInstance()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRendererInstance()->AddEntity(Handle<Entity>(entity));
+            & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
+        m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(entity));
     } else {
-        m_shadow_pass.GetRendererInstance()->RemoveEntity(Handle<Entity>(entity));
+        m_shadow_pass.GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
     }
 }
 

@@ -17,7 +17,7 @@ using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 const Extent2D DeferredRenderer::hbao_extent(512, 512);
-const Extent2D DeferredRenderer::ssr_extent(1024, 1024);
+const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
     : FullScreenPass(InternalFormat::RGBA16F),
@@ -132,17 +132,17 @@ void DeferredPass::Record(UInt frame_index)
 
     auto record_result = command_buffer->Record(
         Engine::Get()->GetGPUInstance()->GetDevice(),
-        m_renderer_instance->GetPipeline()->GetConstructionInfo().render_pass,
+        m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
-            m_renderer_instance->GetPipeline()->push_constants = m_push_constant_data;
-            m_renderer_instance->GetPipeline()->Bind(cmd);
+            m_render_group->GetPipeline()->push_constants = m_push_constant_data;
+            m_render_group->GetPipeline()->Bind(cmd);
 
             const auto &scene_binding = Engine::Get()->render_state.GetScene();
             const auto scene_index = scene_binding.id.ToIndex();
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
@@ -150,14 +150,14 @@ void DeferredPass::Record(UInt frame_index)
 #if HYP_FEATURES_BINDLESS_TEXTURES
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::bindless_textures_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             );
 #else
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_renderer_instance->GetPipeline(),
+                m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
@@ -165,7 +165,7 @@ void DeferredPass::Record(UInt frame_index)
             for (const auto &light : Engine::Get()->render_state.light_bindings) {
                 cmd->BindDescriptorSet(
                     Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                    m_renderer_instance->GetPipeline(),
+                    m_render_group->GetPipeline(),
                     DescriptorSet::scene_buffer_mapping[frame_index],
                     DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                     FixedArray {
@@ -701,27 +701,27 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
 
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame, m_cull_data);
         }
     } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame);
         }
 
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
             renderer_instance->CollectDrawCalls(frame);
         }
     }
@@ -730,19 +730,19 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
             renderer_instance->PerformRenderingIndirect(frame);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
             renderer_instance->PerformRenderingIndirect(frame);
         }
     } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
             renderer_instance->PerformRendering(frame);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
             renderer_instance->PerformRendering(frame);
         }
     }
@@ -751,11 +751,11 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
             renderer_instance->PerformRenderingIndirect(frame);
         }
     } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRendererInstances()) {
+        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
             renderer_instance->PerformRendering(frame);
         }
     }
@@ -763,7 +763,7 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 
 void DeferredRenderer::RenderUI(Frame *frame)
 {
-    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRendererInstances()) {
+    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
         renderer_instance->Render(frame);
     }
 }

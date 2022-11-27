@@ -6,11 +6,13 @@
 #include <rendering/DrawProxy.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/CullData.hpp>
+// #include <rendering/DrawCall.hpp>
 
 #include <core/lib/Queue.hpp>
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/HandleID.hpp>
 
 #include <math/BoundingSphere.hpp>
 
@@ -40,6 +42,13 @@ class Entity;
 struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
 
+struct DrawCall;
+
+struct DrawCommandData
+{
+    UInt draw_command_index;
+};
+
 class IndirectDrawState
 {
 public:
@@ -57,16 +66,22 @@ public:
     IndirectBuffer *GetIndirectBuffer(UInt frame_index) const
         { return m_indirect_buffers[frame_index].Get(); }
 
-    Array<EntityDrawProxy> &GetDrawProxies()
-        { return m_draw_proxies; }
+    Array<ObjectInstance> &GetInstances()
+        { return m_object_instances; }
 
-    const Array<EntityDrawProxy> &GetDrawProxies() const
-        { return m_draw_proxies; }
+    const Array<ObjectInstance> &GetInstances() const
+        { return m_object_instances; }
+
+    Array<IndirectDrawCommand> &GetDrawCommands()
+        { return m_draw_commands; }
+
+    const Array<IndirectDrawCommand> &GetDrawCommands() const
+        { return m_draw_commands; }
 
     Result Create();
     Result Destroy();
 
-    void PushDrawProxy(const EntityDrawProxy &draw_proxy);
+    void PushDrawCall(const DrawCall &draw_call, DrawCommandData &out);
     void Reset();
     void Reserve(Frame *frame, SizeType count);
 
@@ -77,16 +92,16 @@ private:
     bool ResizeInstancesBuffer(Frame *frame, SizeType count);
 
     // returns true if resize happened.
-    bool ResizeIfNeeded(Frame *frame, SizeType count);
+    bool ResizeIfNeeded(Frame *frame);
 
     Array<ObjectInstance> m_object_instances;
-    Array<EntityDrawProxy> m_draw_proxies;
+    Array<IndirectDrawCommand> m_draw_commands;
 
     FixedArray<UniquePtr<IndirectBuffer>, max_frames_in_flight> m_indirect_buffers;
     FixedArray<UniquePtr<StorageBuffer>, max_frames_in_flight> m_instance_buffers;
     FixedArray<UniquePtr<StagingBuffer>, max_frames_in_flight> m_staging_buffers;
     FixedArray<bool, max_frames_in_flight> m_is_dirty;
-    UInt m_max_entity_id = 0;
+    UInt32 m_num_draw_commands;
 };
 
 struct alignas(16) IndirectParams
@@ -111,11 +126,7 @@ public:
     void Create();
     void Destroy();
 
-    void ExecuteCullShaderInBatches(
-        
-        Frame *frame,
-        const CullData &cull_data
-    );
+    void ExecuteCullShaderInBatches(Frame *frame, const CullData &cull_data);
 
 private:
     void RebuildDescriptors(Frame *frame);

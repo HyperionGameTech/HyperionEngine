@@ -181,7 +181,7 @@ void Scene::Init()
 
             it.second->SetScene(nullptr);
 
-            RemoveFromRendererInstances(it.second);
+            RemoveFromRenderGroups(it.second);
 
             if (it.second->m_octree != nullptr) {
                 it.second->RemoveFromOctree();
@@ -273,12 +273,12 @@ bool Scene::AddEntity(Handle<Entity> &&entity)
     return true;
 }
 
-bool Scene::RemoveEntity(const Handle<Entity> &entity)
+bool Scene::RemoveEntity(HandleID<Entity> entity_id)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
 
-    if (!entity) {
+    if (!entity_id) {
         return false;
     }
 
@@ -294,7 +294,7 @@ bool Scene::RemoveEntity(const Handle<Entity> &entity)
                 continue;
             }
 
-            if (child.GetEntity() == entity) {
+            if (child.GetEntity().GetID() == entity_id) {
                 parent->Get()->RemoveChild(&child);
 
                 return true;
@@ -374,11 +374,11 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
     return true;
 }
 
-bool Scene::HasEntity(Entity::ID id) const
+bool Scene::HasEntity(HandleID<Entity> entity_id) const
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
-    return m_entities.Find(id) != m_entities.End();
+    return m_entities.Find(entity_id) != m_entities.End();
 }
 
 void Scene::AddPendingEntities()
@@ -388,10 +388,10 @@ void Scene::AddPendingEntities()
     }
 
     for (auto &entity : m_entities_pending_addition) {
-        const auto id = entity->GetID();
+        const HandleID<Entity> id = entity->GetID();
 
-        if (entity->IsRenderable() && !entity->GetPrimaryRendererInstance()) {
-            if (auto renderer_instance = Engine::Get()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
+        if (entity->IsRenderable() && !entity->GetPrimaryRenderGroup()) {
+            if (auto renderer_instance = Engine::Get()->FindOrCreateRenderGroup(entity->GetShader(), entity->GetRenderableAttributes())) {
                 renderer_instance->AddEntity(Handle<Entity>(entity));
                 entity->EnqueueRenderUpdates();
 
@@ -402,7 +402,7 @@ void Scene::AddPendingEntities()
             } else {
                 DebugLog(
                     LogType::Error,
-                    "Could not find or create optimal RendererInstance for Entity #%lu!\n",
+                    "Could not find or create optimal RenderGroup for Entity #%lu!\n",
                     entity->GetID().value
                 );
 
@@ -431,7 +431,7 @@ void Scene::AddPendingEntities()
         }
 
         m_environment->OnEntityAdded(entity);
-        m_entities.Insert(static_cast<IDBase>(id), std::move(entity));
+        m_entities.Insert(id, std::move(entity));
     }
 
     m_entities_pending_addition.Clear();
@@ -447,9 +447,9 @@ void Scene::RemovePendingEntities()
         auto it = m_entities.Find(id);
 
         auto &found_entity = it->second;
-        AssertThrow(found_entity != nullptr);
+        AssertThrow(found_entity.IsValid());
 
-        RemoveFromRendererInstances(found_entity);
+        RemoveFromRenderGroups(found_entity);
 
         if (found_entity->m_octree != nullptr) {
             DebugLog(
@@ -485,12 +485,12 @@ void Scene::RemovePendingEntities()
     m_entities_pending_removal.Clear();
 }
 
-const Handle<Entity> &Scene::FindEntityWithID(const Entity::ID &id) const
+const Handle<Entity> &Scene::FindEntityWithID(HandleID<Entity> entity_id) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_root_node_proxy);
-    return m_root_node_proxy.Get()->FindEntityWithID(id);
+    return m_root_node_proxy.Get()->FindEntityWithID(entity_id);
 }
 
 bool Scene::AddLight(Handle<Light> &&light)
@@ -670,50 +670,50 @@ void Scene::Update(
             entity->Update(delta);
 
             if (entity->m_primary_renderer_instance.changed) {
-                RequestRendererInstanceUpdate(entity);
+                RequestRenderGroupUpdate(entity);
             }
         }
     }
 }
 
-void Scene::RequestRendererInstanceUpdate(Handle<Entity> &entity)
+void Scene::RequestRenderGroupUpdate(Handle<Entity> &entity)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(entity != nullptr);
     AssertThrow(entity->GetScene() == this);
 
-    if (entity->GetPrimaryRendererInstance() != nullptr) {
-        RemoveFromRendererInstance(entity, entity->m_primary_renderer_instance.renderer_instance);
+    if (entity->GetPrimaryRenderGroup() != nullptr) {
+        RemoveFromRenderGroup(entity, entity->m_primary_renderer_instance.renderer_instance);
     }
 
     if (entity->IsRenderable()) {
-        if (auto renderer_instance = Engine::Get()->FindOrCreateRendererInstance(entity->GetShader(), entity->GetRenderableAttributes())) {
+        if (auto renderer_instance = Engine::Get()->FindOrCreateRenderGroup(entity->GetShader(), entity->GetRenderableAttributes())) {
             renderer_instance->AddEntity(Handle<Entity>(entity));
 
             entity->m_primary_renderer_instance.renderer_instance = renderer_instance.Get();
         } else {
             DebugLog(
                 LogType::Error,
-                "Could not find or create optimal RendererInstance for Entity #%lu!\n",
+                "Could not find or create optimal RenderGroup for Entity #%lu!\n",
                 entity->GetID().value
             );
         }
     }
 
-    // don't continue requesting, even if we couldn't find or create a RendererInstance
+    // don't continue requesting, even if we couldn't find or create a RenderGroup
     entity->m_primary_renderer_instance.changed = false;
 }
 
-void Scene::RemoveFromRendererInstance(Handle<Entity> &entity, RendererInstance *renderer_instance)
+void Scene::RemoveFromRenderGroup(Handle<Entity> &entity, RenderGroup *renderer_instance)
 {
     renderer_instance->RemoveEntity(Handle<Entity>(entity));
     entity->m_primary_renderer_instance.renderer_instance = nullptr;
 }
 
-void Scene::RemoveFromRendererInstances(Handle<Entity> &entity)
+void Scene::RemoveFromRenderGroups(Handle<Entity> &entity)
 {
-    auto renderer_instances = entity->m_renderer_instances;
+    auto renderer_instances = entity->m_render_groups;
 
     for (auto *renderer_instance : renderer_instances) {
         if (renderer_instance == nullptr) {

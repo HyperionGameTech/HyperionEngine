@@ -9,6 +9,8 @@
 #include <math/Color.hpp>
 #include <math/Frustum.hpp>
 
+#include <core/HandleID.hpp>
+
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -37,6 +39,7 @@ class Material;
 class Engine;
 class Entity;
 class Camera;
+class Skeleton;
 class Scene;
 class EnvProbe;
 class Light;
@@ -76,11 +79,11 @@ struct DrawProxy<STUB_CLASS(Entity)>
     Mesh *mesh = nullptr;
     Material *material = nullptr;
 
-    IDBase entity_id,
-        scene_id,
-        mesh_id,
-        material_id,
-        skeleton_id;
+    HandleID<Entity> entity_id;
+    HandleID<Scene> scene_id;
+    HandleID<Mesh> mesh_id;
+    HandleID<Material> material_id;
+    HandleID<Skeleton> skeleton_id;
 
     BoundingBox bounding_box;
 

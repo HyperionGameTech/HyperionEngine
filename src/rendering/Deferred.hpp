@@ -71,9 +71,6 @@ private:
 
 class DeferredRenderer
 {
-    // perform occlusion culling using indirect draw
-    static constexpr bool use_draw_indirect = true;
-
     static const Extent2D mipmap_chain_extent;
     static const Extent2D hbao_extent;
     static const Extent2D ssr_extent;
@@ -110,11 +107,7 @@ public:
 
     void Create();
     void Destroy();
-    void Render(
-        
-        Frame *frame,
-        RenderEnvironment *environment
-    );
+    void Render(Frame *frame, RenderEnvironment *environment);
 
     void RenderUI(Frame *frame);
 

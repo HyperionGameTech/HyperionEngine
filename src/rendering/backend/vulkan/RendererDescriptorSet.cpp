@@ -83,10 +83,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
     {
         DESCRIPTOR_SET_INDEX_SCENE,
         {
-            {DescriptorKey::SCENE_BUFFER,     0},
-            {DescriptorKey::LIGHTS_BUFFER,    1},
-            {DescriptorKey::SHADOW_MAPS,     12},
-            {DescriptorKey::SHADOW_MATRICES, 13}
+            {DescriptorKey::SCENE_BUFFER,      0},
+            {DescriptorKey::LIGHTS_BUFFER,     1},
+            {DescriptorKey::SHADOW_MAPS,      12},
+            {DescriptorKey::SHADOW_MATRICES,  13}
         }
     },
     {
@@ -94,7 +94,8 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
         {
             {DescriptorKey::MATERIAL_BUFFER,  0},
             {DescriptorKey::OBJECT_BUFFER,    1},
-            {DescriptorKey::SKELETON_BUFFER,  2}
+            {DescriptorKey::SKELETON_BUFFER,  2},
+            {DescriptorKey::ENTITY_INSTANCES, 3}
         }
     },
 #if HYP_FEATURES_BINDLESS_TEXTURES

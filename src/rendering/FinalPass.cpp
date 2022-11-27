@@ -104,7 +104,7 @@ void FinalPass::Create()
 
             InitObject(render_pass);
 
-            m_renderer_instance = CreateObject<RendererInstance>(
+            m_render_group = CreateObject<RenderGroup>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -119,12 +119,12 @@ void FinalPass::Create()
             );
         }
 
-        m_renderer_instance->AddFramebuffer(CreateObject<Framebuffer>(fbo.release()));
+        m_render_group->AddFramebuffer(CreateObject<Framebuffer>(fbo.release()));
 
         ++iteration;
     }
 
-    InitObject(m_renderer_instance);
+    InitObject(m_render_group);
 }
 
 void FinalPass::Destroy()
@@ -138,10 +138,10 @@ void FinalPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *pipeline = m_renderer_instance->GetPipeline();
+    auto *pipeline = m_render_group->GetPipeline();
     const UInt acquired_image_index = Engine::Get()->GetGPUInstance()->GetFrameHandler()->GetAcquiredImageIndex();
 
-    m_renderer_instance->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer());
+    m_render_group->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer());
     
     pipeline->Bind(frame->GetCommandBuffer());
 
@@ -171,7 +171,7 @@ void FinalPass::Render(Frame *frame)
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
     m_full_screen_quad->Renderframe->GetCommandBuffer());
     
-    m_renderer_instance->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
+    m_render_group->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
 }
 } // namespace hyperion::v2
 

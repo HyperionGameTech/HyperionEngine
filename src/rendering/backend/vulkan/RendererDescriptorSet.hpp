@@ -329,6 +329,7 @@ enum class DescriptorKey
     MATERIAL_BUFFER,
     OBJECT_BUFFER,
     SKELETON_BUFFER,
+    ENTITY_INSTANCES,
 
     SAMPLER,
     TEXTURES

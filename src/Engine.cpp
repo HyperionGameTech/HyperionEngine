@@ -231,7 +231,7 @@ void Engine::PrepareFinalPass()
 
             InitObject(render_pass);
 
-            m_root_pipeline = CreateObject<RendererInstance>(
+            m_root_pipeline = CreateObject<RenderGroup>(
                 std::move(shader),
                 Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
@@ -322,19 +322,26 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
         ->SetSubDescriptor({ .buffer = shader_globals->shadow_maps.GetBuffers()[0].get() });
     
-    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->materials.GetBuffers()[0].get(),
-            .range = UInt32(sizeof(MaterialShaderData))
-        });
+    if constexpr (use_indexed_array_for_object_data) {
+        m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
+            ->SetSubDescriptor({
+                .buffer = shader_globals->materials.GetBuffers()[0].get(),
+                .range = UInt32(sizeof(MaterialShaderData))
+            });
+    } else {
+        m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
+            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
+            ->SetSubDescriptor({
+                .buffer = shader_globals->materials.GetBuffers()[0].get(),
+                .range = UInt32(sizeof(MaterialShaderData))
+            });
+    }
 
-
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+        ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[0].get(),
-            .range = static_cast<UInt>(sizeof(ObjectShaderData))
+            .buffer = shader_globals->objects.GetBuffers()[0].get()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
@@ -368,18 +375,26 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             .buffer = shader_globals->shadow_maps.GetBuffers()[1].get()
         });
     
-    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->materials.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(MaterialShaderData))
-        });
+    if constexpr (use_indexed_array_for_object_data) {
+        m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
+            ->SetSubDescriptor({
+                .buffer = shader_globals->materials.GetBuffers()[1].get(),
+                .range = UInt32(sizeof(MaterialShaderData))
+            });
+    } else {
+        m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
+            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
+            ->SetSubDescriptor({
+                .buffer = shader_globals->materials.GetBuffers()[1].get(),
+                .range = UInt32(sizeof(MaterialShaderData))
+            });
+    }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+        ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(ObjectShaderData))
+            .buffer = shader_globals->objects.GetBuffers()[1].get()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
@@ -520,10 +535,10 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             });
     }
 
-    // add placeholder shadowmaps
-    for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
+    // add placeholder scene data
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
-            .GetDescriptorSet(descriptor_set_index);
+            .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
@@ -535,6 +550,16 @@ void Engine::Initialize(RefCountedPtr<Application> application)
                 .sampler = &GetPlaceholderData().GetSamplerNearest()
             });
         }
+    }
+
+    // add placeholder scene data
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
+            .GetDescriptorSet(DescriptorSet::object_buffer_mapping[frame_index]);
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::ENTITY_INSTANCES)
+            ->SetElementBuffer<EntityInstanceBatch>(0, shader_globals->entity_instance_batches.GetBuffers()[frame_index].get());
     }
 
     // add VCT descriptor placeholders
@@ -759,7 +784,7 @@ void Engine::Compile()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
-    for (UInt i = 0; i < m_instance->GetFrameHandler()->NumFrames(); i++) {
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
         /* Finalize env probes */
         shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
 
@@ -783,6 +808,9 @@ void Engine::Compile()
 
         /* Finalize immediate draw data */
         shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
+
+        /* Finalize instance batch data */
+        shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
@@ -841,7 +869,7 @@ void Engine::FinalizeStop()
 
     HYP_SYNC_RENDER();
 
-    m_renderer_instance_mapping.Clear();
+    m_render_group_mapping.Clear();
 
     HYP_SYNC_RENDER();
 
@@ -898,15 +926,15 @@ void Engine::RenderNextFrame(Game *game)
     GetGPUInstance()->GetFrameHandler()->NextFrame();
 }
 
-Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
+Handle<RenderGroup> Engine::CreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
 {
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create RendererInstance.\n"
+            "Shader is empty; Cannot create RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
@@ -914,24 +942,24 @@ Handle<RendererInstance> Engine::CreateRendererInstance(const Handle<Shader> &sh
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
     if (cache) {
-        std::lock_guard guard(m_renderer_instance_mapping_mutex);
+        std::lock_guard guard(m_render_group_mapping_mutex);
 
-        AddRendererInstanceInternal(renderer_instance);
+        AddRenderGroupInternal(renderer_instance);
     }
 
     return renderer_instance;
 }
 
 
-Handle<RendererInstance> Engine::CreateRendererInstance(
+Handle<RenderGroup> Engine::CreateRenderGroup(
     const Handle<Shader> &shader,
     const RenderableAttributeSet &renderable_attributes,
     const Array<const DescriptorSet *> &used_descriptor_sets
@@ -940,10 +968,10 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create RendererInstance.\n"
+            "Shader is empty; Cannot create RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
@@ -951,8 +979,8 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes,
@@ -962,75 +990,73 @@ Handle<RendererInstance> Engine::CreateRendererInstance(
     return renderer_instance;
 }
 
-Handle<RendererInstance> Engine::FindOrCreateRendererInstance(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
+Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
 {
     if (!shader) {
         DebugLog(
             LogType::Warn,
-            "Shader is empty; Cannot create or find RendererInstance.\n"
+            "Shader is empty; Cannot create or find RenderGroup.\n"
         );
 
-        return Handle<RendererInstance>::empty;
+        return Handle<RenderGroup>::empty;
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
     new_renderable_attributes.shader_id = shader->GetID();
 
-    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+    std::lock_guard guard(m_render_group_mapping_mutex);
 
-    const auto it = m_renderer_instance_mapping.Find(new_renderable_attributes);
+    const auto it = m_render_group_mapping.Find(new_renderable_attributes);
 
-    if (it != m_renderer_instance_mapping.End()) {
+    if (it != m_render_group_mapping.End()) {
         return it->second;
     }
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 
-    // create a RendererInstance with the given params
-    auto renderer_instance = CreateObject<RendererInstance>(
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
         Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
-    AddRendererInstanceInternal(renderer_instance);
+    AddRenderGroupInternal(renderer_instance);
 
     return renderer_instance;
 }
     
-void Engine::AddRendererInstance(Handle<RendererInstance> &renderer_instance)
+void Engine::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
 {
-    std::lock_guard guard(m_renderer_instance_mapping_mutex);
+    std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRendererInstanceInternal(renderer_instance);
+    AddRenderGroupInternal(renderer_instance);
 }
     
-void Engine::AddRendererInstanceInternal(Handle<RendererInstance> &renderer_instance)
+void Engine::AddRenderGroupInternal(Handle<RenderGroup> &renderer_instance)
 {
-    m_renderer_instance_mapping.Insert(
+    m_render_group_mapping.Insert(
         renderer_instance->GetRenderableAttributes(),
         renderer_instance
     );
 
     m_render_list_container
         .Get(renderer_instance->GetRenderableAttributes().material_attributes.bucket)
-        .AddRendererInstance(renderer_instance);
+        .AddRenderGroup(renderer_instance);
 }
 
 void Engine::PreFrameUpdate(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_render_list_container.AddPendingRendererInstances();
+    m_render_list_container.AddPendingRenderGroups();
 
     if (RenderCommands::Count() != 0) {
         HYPERION_ASSERT_RESULT(RenderCommands::Flush());
     }
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
-    ResetRenderState(
-        RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE
-    );
+    ResetRenderState(RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE);
 }
 
 void Engine::ResetRenderState(RenderStateMask mask)
@@ -1050,6 +1076,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);

@@ -2,7 +2,6 @@
 #include <Engine.hpp>
 #include <Constants.hpp>
 
-#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 namespace hyperion::v2 {
@@ -85,7 +84,7 @@ struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommand
     }
 };
 
-RendererInstance::RendererInstance(
+RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes
@@ -97,7 +96,7 @@ RendererInstance::RendererInstance(
 {
 }
 
-RendererInstance::RendererInstance(
+RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes,
@@ -110,13 +109,12 @@ RendererInstance::RendererInstance(
 {
 }
 
-
-RendererInstance::~RendererInstance()
+RenderGroup::~RenderGroup()
 {
     Teardown();
 }
 
-void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
+void RenderGroup::RemoveFramebuffer(Framebuffer::ID id)
 {
     const auto it = m_fbos.FindIf([&](const auto &item) {
         return item->GetID() == id;
@@ -129,19 +127,16 @@ void RendererInstance::RemoveFramebuffer(Framebuffer::ID id)
     m_fbos.Erase(it);
 }
 
-void RendererInstance::AddEntity(Handle<Entity> &&entity)
+void RenderGroup::AddEntity(Handle<Entity> &&entity)
 {
     AssertThrow(entity != nullptr);
-    // AssertThrow(entity->IsReady());
-
-    // AssertThrow(entity->IsRenderable());
 
     // FIXME: thread safety. this could be called from any thread
     AssertThrowMsg(
         (m_renderable_attributes.mesh_attributes.vertex_attributes
             & entity->GetRenderableAttributes().mesh_attributes.vertex_attributes)
                 == entity->GetRenderableAttributes().mesh_attributes.vertex_attributes,
-        "RendererInstance vertex attributes does not satisfy the required vertex attributes of the entity."
+        "RenderGroup vertex attributes does not satisfy the required vertex attributes of the entity."
     );
 
     if (IsInitCalled()) {
@@ -166,7 +161,7 @@ void RendererInstance::AddEntity(Handle<Entity> &&entity)
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
+void RenderGroup::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
 {
     // we cannot touch m_entities from any thread other than the render thread
     // we'll have to assume it's here, and check later :/ 
@@ -206,7 +201,7 @@ void RendererInstance::RemoveEntity(Handle<Entity> &&entity, bool call_on_remove
     m_enqueued_entities_sp.Signal();
 }
 
-void RendererInstance::PerformEnqueuedEntityUpdates(UInt frame_index)
+void RenderGroup::PerformEnqueuedEntityUpdates(UInt frame_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -261,7 +256,7 @@ void RendererInstance::PerformEnqueuedEntityUpdates(UInt frame_index)
     UpdateEnqueuedEntitiesFlag();
 }
 
-void RendererInstance::Init()
+void RenderGroup::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -276,15 +271,15 @@ void RendererInstance::Init()
     AssertThrow(m_fbos.Any());
 
     for (auto &fbo : m_fbos) {
-        AssertThrow(fbo != nullptr);
+        AssertThrow(fbo.IsValid());
         InitObject(fbo);
     }
 
-    AssertThrow(m_shader != nullptr);
+    AssertThrow(m_shader.IsValid());
     InitObject(m_shader);
 
     for (auto &&entity : m_entities) {
-        AssertThrow(entity != nullptr);
+        AssertThrow(entity.IsValid());
         InitObject(entity);
     }
 
@@ -335,7 +330,7 @@ void RendererInstance::Init()
                                                  // before the destructor is called
 
             for (auto &&entity : m_entities) {
-                AssertThrow(entity != nullptr);
+                AssertThrow(entity.IsValid());
 
                 entity->OnRemovedFromPipeline(this);
             }
@@ -378,7 +373,7 @@ void RendererInstance::Init()
     }));
 }
 
-void RendererInstance::CollectDrawCalls(Frame *frame)
+void RenderGroup::CollectDrawCalls(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -389,11 +384,20 @@ void RendererInstance::CollectDrawCalls(Frame *frame)
     }
     
     m_indirect_renderer.GetDrawState().Reset();
-    m_divided_draw_proxies.Clear();
+    m_divided_draw_calls.Clear();
+
+    DrawState previous_draw_state = std::move(m_draw_state);
+
+    //auto previous_entity_batches = std::move(m_entity_batches);
+    //m_entity_batches.Clear();
+    
+    // for (const auto &it : previous_entity_batches) {
+    //     Engine::Get()->shader_globals->ResetBatch(it.second);
+    // }
 
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const auto scene_id = scene_binding.id;
-    const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
+    const auto scene_index = scene_id.ToIndex();
 
     // check visibility state
     const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
@@ -416,17 +420,44 @@ void RendererInstance::CollectDrawCalls(Frame *frame)
                 continue;
             }
         }
-        
-        m_indirect_renderer.GetDrawState().PushDrawProxy(entity->GetDrawProxy());
+
+        const EntityDrawProxy &draw_proxy = entity->GetDrawProxy();
+
+        DrawCallID draw_call_id;
+
+        if constexpr (DrawCall::unique_per_material) {
+            draw_call_id = DrawCallID(draw_proxy.mesh_id, draw_proxy.material_id);
+        } else {
+            draw_call_id = DrawCallID(draw_proxy.mesh_id);
+        }
+
+        DrawCommandData draw_command_data;
+
+        EntityBatchIndex batch_index = 0;
+
+        if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
+            // take the batch for reuse
+            if ((batch_index = draw_call->batch_index)) {
+                Engine::Get()->shader_globals->ResetBatch(batch_index);
+            }
+
+            draw_call->batch_index = 0;
+        }
+
+        m_draw_state.Push(batch_index, draw_call_id, m_indirect_renderer.GetDrawState(), entity->GetDrawProxy());
+    }
+
+    previous_draw_state.Reset();
+
+    // register draw calls for indirect rendering
+    for (DrawCall &draw_call : m_draw_state.draw_calls) {
+        DrawCommandData draw_command_data;
+        m_indirect_renderer.GetDrawState().PushDrawCall(draw_call, draw_command_data);
+        draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
 }
 
-
-void RendererInstance::CollectDrawCalls(
-    
-    Frame *frame,
-    const CullData &cull_data
-)
+void RenderGroup::CollectDrawCalls(Frame *frame, const CullData &cull_data)
 {
     CollectDrawCalls(frame);
 
@@ -437,30 +468,29 @@ void RendererInstance::CollectDrawCalls(
 }
 
 static void GetDividedDrawCalls(
-    const Array<EntityDrawProxy> &draw_proxies,
+    const Array<DrawCall> &draw_calls,
     UInt num_batches,
-    Array<Array<EntityDrawProxy>> &out_divided_draw_proxies
+    Array<Array<DrawCall>> &out_divided_draw_calls
 )
 {
-    out_divided_draw_proxies.Resize(num_batches);
+    out_divided_draw_calls.Resize(num_batches);
 
-    const UInt num_draw_proxies = static_cast<UInt>(draw_proxies.Size());
-    const UInt num_draw_proxies_divided = (num_draw_proxies + num_batches - 1) / num_batches;
+    const UInt num_draw_calls = UInt(draw_calls.Size());
+    const UInt num_draw_calls_divided = (num_draw_calls + num_batches - 1) / num_batches;
 
-    UInt draw_proxy_index = 0;
+    UInt draw_call_index = 0;
 
     for (SizeType container_index = 0; container_index < num_async_rendering_command_buffers; container_index++) {
-        auto &container = out_divided_draw_proxies[container_index];
-        container.Reserve(num_draw_proxies_divided);
+        auto &container = out_divided_draw_calls[container_index];
+        container.Reserve(num_draw_calls_divided);
 
-        for (SizeType i = 0; i < num_draw_proxies_divided && draw_proxy_index < num_draw_proxies; i++, draw_proxy_index++) {
-            container.PushBack(draw_proxies[draw_proxy_index]);
+        for (SizeType i = 0; i < num_draw_calls_divided && draw_call_index < num_draw_calls; i++, draw_call_index++) {
+            container.PushBack(draw_calls[draw_call_index]);
         }
     }
 }
 
 static void BindGlobalDescriptorSets(
-    
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
@@ -507,7 +537,7 @@ static void BindPerObjectDescriptorSets(
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
     CommandBuffer *command_buffer,
-    UInt entity_index,
+    UInt batch_index,
     UInt skeleton_index,
     UInt material_index
 )
@@ -515,29 +545,55 @@ static void BindPerObjectDescriptorSets(
     const UInt frame_index = frame->GetFrameIndex();
     
 #if HYP_FEATURES_BINDLESS_TEXTURES
-    command_buffer->BindDescriptorSets(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-        pipeline,
-        FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
-        FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
-        FixedArray {
-            UInt32(material_index * sizeof(MaterialShaderData)),
-            UInt32(entity_index * sizeof(ObjectShaderData)),
-            UInt32(skeleton_index * sizeof(SkeletonShaderData))
-        }
-    );
+    if constexpr (use_indexed_array_for_object_data) {
+        command_buffer->BindDescriptorSets(
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            pipeline,
+            FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
+            FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
+            FixedArray {
+                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                UInt32(batch_index * sizeof(EntityInstanceBatch))
+            }
+        );
+    } else {
+        command_buffer->BindDescriptorSets(
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            pipeline,
+            FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
+            FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
+            FixedArray {
+                UInt32(material_index * sizeof(MaterialShaderData)),
+                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                UInt32(batch_index * sizeof(EntityInstanceBatch))
+            }
+        );
+    }
 #else
-    command_buffer->BindDescriptorSets(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-        pipeline,
-        FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
-        FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
-        FixedArray {
-            UInt32(material_index * sizeof(MaterialShaderData)),
-            UInt32(entity_index * sizeof(ObjectShaderData)),
-            UInt32(skeleton_index * sizeof(SkeletonShaderData))
-        }
-    );
+    if constexpr (use_indexed_array_for_object_data) {
+        command_buffer->BindDescriptorSets(
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            pipeline,
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
+            FixedArray {
+                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                UInt32(batch_index * sizeof(EntityInstanceBatch))
+            }
+        );
+    } else {
+        command_buffer->BindDescriptorSets(
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            pipeline,
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
+            FixedArray {
+                UInt32(material_index * sizeof(MaterialShaderData)),
+                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                UInt32(batch_index * sizeof(EntityInstanceBatch))
+            }
+        );
+    }
 #endif
 }
 
@@ -549,26 +605,23 @@ RenderAll(
     UInt &command_buffer_index,
     renderer::GraphicsPipeline *pipeline,
     IndirectRenderer *indirect_renderer,
-    const Array<EntityDrawProxy> &draw_proxies,
-    Array<Array<EntityDrawProxy>> &divided_draw_proxies
+    Array<Array<DrawCall>> &divided_draw_calls,
+    const DrawState &draw_state
 )
 {
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
     const auto scene_id = scene_binding.id;
-
-    auto *instance = Engine::Get()->GetGPUInstance();
-    auto *device = instance->GetDevice();
 
     const UInt frame_index = frame->GetFrameIndex();
 
-    const auto num_batches = RendererInstance::parallel_rendering
-        ? MathUtil::Min(static_cast<UInt>(Engine::Get()->task_system.GetPool(TaskPriority::HIGH).threads.Size()), num_async_rendering_command_buffers)
+    const auto num_batches = RenderGroup::parallel_rendering
+        ? MathUtil::Min(UInt(Engine::Get()->task_system.GetPool(TaskPriority::HIGH).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     
     GetDividedDrawCalls(
-        draw_proxies,
+        draw_state.draw_calls,
         num_async_rendering_command_buffers,
-        divided_draw_proxies
+        divided_draw_calls
     );
 
     // rather than using a single integer, we have to set states in a fixed array
@@ -581,9 +634,9 @@ RenderAll(
     Engine::Get()->task_system.ParallelForEach(
         TaskPriority::HIGH,
         num_batches,
-        divided_draw_proxies,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id](const Array<EntityDrawProxy> &draw_proxies, UInt index, UInt) {
-            if (draw_proxies.Empty()) {
+        divided_draw_calls,
+        [&draw_state, frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id](const Array<DrawCall> &draw_calls, UInt index, UInt) {
+            if (draw_calls.Empty()) {
                 return;
             }
 
@@ -599,29 +652,31 @@ RenderAll(
                         secondary,
                         scene_id.ToIndex()
                     );
-                    
-                    for (const auto &draw_proxy : draw_proxies) {
+
+                    for (const DrawCall &draw_call : draw_calls) {
+                        EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
+
                         BindPerObjectDescriptorSets(
                             frame,
                             pipeline,
                             secondary,
-                            draw_proxy.entity_id.ToIndex(),
-                            draw_proxy.skeleton_id.ToIndex(),
-                            draw_proxy.material_id.ToIndex()
+                            draw_call.batch_index,
+                            draw_call.skeleton_id.ToIndex(),
+                            draw_call.material_id.ToIndex()
                         );
 
                         if constexpr (IsIndirect) {
 #ifdef HYP_DEBUG_MODE
-                            AssertThrow(draw_proxy.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
+                            AssertThrow(draw_call.draw_command_index * sizeof(IndirectDrawCommand) < indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index)->size);
 #endif
                             
-                            draw_proxy.mesh->RenderIndirect(
+                            draw_call.mesh->RenderIndirect(
                                 secondary,
                                 indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
-                                draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
+                                draw_call.draw_command_index * sizeof(IndirectDrawCommand)
                             );
                         } else {
-                            draw_proxy.mesh->Render(secondary);
+                            draw_call.mesh->Render(secondary, entity_batch.num_entities);
                         }
                     }
 
@@ -644,7 +699,7 @@ RenderAll(
     command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
 }
 
-void RendererInstance::PerformRendering(Frame *frame)
+void RenderGroup::PerformRendering(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -655,12 +710,12 @@ void RendererInstance::PerformRendering(Frame *frame)
         m_command_buffer_index,
         m_pipeline.get(),
         &m_indirect_renderer,
-        m_indirect_renderer.GetDrawState().GetDrawProxies(),
-        m_divided_draw_proxies
+        m_divided_draw_calls,
+        m_draw_state
     );
 }
 
-void RendererInstance::PerformRenderingIndirect(Frame *frame)
+void RenderGroup::PerformRenderingIndirect(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -671,12 +726,12 @@ void RendererInstance::PerformRenderingIndirect(Frame *frame)
         m_command_buffer_index,
         m_pipeline.get(),
         &m_indirect_renderer,
-        m_indirect_renderer.GetDrawState().GetDrawProxies(),
-        m_divided_draw_proxies
+        m_divided_draw_calls,
+        m_draw_state
     );
 }
 
-void RendererInstance::Render(Frame *frame)
+void RenderGroup::Render(Frame *frame)
 {
     // perform all ops in one batch
     CollectDrawCalls(frame);
@@ -687,24 +742,24 @@ void RendererInstance::Render(Frame *frame)
 
 CommandBuffer *RendererProxy::GetCommandBuffer(UInt frame_index)
 {
-    return m_renderer_instance->m_command_buffers[frame_index].Front().Get();
+    return m_render_group->m_command_buffers[frame_index].Front().Get();
 }
 
 renderer::GraphicsPipeline *RendererProxy::GetGraphicsPipeline()
 {
-    return m_renderer_instance->m_pipeline.get();
+    return m_render_group->m_pipeline.get();
 }
 
 void RendererProxy::Bind(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_renderer_instance->m_pipeline->GetConstructionInfo().render_pass);
+    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
 
-    m_renderer_instance->m_pipeline->Bind(command_buffer);
+    m_render_group->m_pipeline->Bind(command_buffer);
 }
 
 void RendererProxy::SetConstants(void *ptr, SizeType size)
@@ -713,40 +768,20 @@ void RendererProxy::SetConstants(void *ptr, SizeType size)
     AssertThrowMsg(size <= 128, "Size of push constants must be <= 128");
 #endif
 
-    m_renderer_instance->m_pipeline->SetPushConstants(ptr, size);
+    m_render_group->m_pipeline->SetPushConstants(ptr, size);
 }
 
-void RendererProxy::BindEntityObject(
-    Frame *frame,
-    const EntityDrawProxy &entity
-)
+void RendererProxy::DrawMesh(Frame *frame, Mesh *mesh)
 {
-    BindPerObjectDescriptorSets(
-        frame,
-        m_renderer_instance->m_pipeline.get(),
-        m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get(),
-        entity.entity_id.ToIndex(),
-        entity.skeleton_id.ToIndex(),
-        entity.material_id.ToIndex()
-    );
-}
-
-void RendererProxy::DrawMesh(
-    Frame *frame,
-    Mesh *mesh
-)
-{
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
     mesh->Render(command_buffer);
 }
 
-void RendererProxy::Submit(
-    Frame *frame
-)
+void RendererProxy::Submit(Frame *frame)
 {
-    CommandBuffer *command_buffer = m_renderer_instance->m_command_buffers[frame->GetFrameIndex()].Front().Get();
+    CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
     command_buffer->End(Engine::Get()->GetGPUDevice());

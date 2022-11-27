@@ -44,12 +44,12 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
                 .previous_model_matrix = previous_transform_matrix,
                 .world_aabb_max = Vector4(draw_proxy.bounding_box.max, 1.0f),
                 .world_aabb_min = Vector4(draw_proxy.bounding_box.min, 1.0f),
-                .entity_id = draw_proxy.entity_id.value,
-                .scene_id = draw_proxy.scene_id.value,
-                .mesh_id = draw_proxy.mesh_id.value,
-                .material_id = draw_proxy.material_id.value,
-                .skeleton_id = draw_proxy.skeleton_id.value,
-                .bucket = UInt32(draw_proxy.bucket)
+                .entity_index = draw_proxy.entity_id.ToIndex(),
+                .scene_index = draw_proxy.scene_id.ToIndex(),
+                .material_index = draw_proxy.material_id.ToIndex(),
+                .skeleton_index = draw_proxy.skeleton_id.ToIndex(),
+                .bucket = UInt32(draw_proxy.bucket),
+                .flags = draw_proxy.skeleton_id ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE
             }
         );
     
@@ -96,7 +96,7 @@ Entity::Entity(
     m_renderable_attributes(renderable_attributes),
     m_octree(nullptr),
     m_needs_octree_update(false),
-    m_shader_data_state(ShaderDataState::CLEAN)
+    m_shader_data_state(ShaderDataState::DIRTY)
 {
     if (m_mesh) {
         m_local_aabb = m_mesh->CalculateAABB();
@@ -478,10 +478,6 @@ void Entity::SetScene(Scene *scene)
 
 void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes)
 {
-    // if (m_renderable_attributes == renderable_attributes) {
-    //     return;
-    // }
-
     m_renderable_attributes = renderable_attributes;
     m_primary_renderer_instance.changed = true;
     
@@ -586,14 +582,14 @@ void Entity::SetTransform(const Transform &transform)
 }
 
 // TODO! Investigate if we even need those 2 functions
-void Entity::OnAddedToPipeline(RendererInstance *pipeline)
+void Entity::OnAddedToPipeline(RenderGroup *pipeline)
 {
     std::lock_guard guard(m_render_instances_mutex);
 
-    m_renderer_instances.Insert(pipeline);
+    m_render_groups.Insert(pipeline);
 }
 
-void Entity::OnRemovedFromPipeline(RendererInstance *pipeline)
+void Entity::OnRemovedFromPipeline(RenderGroup *pipeline)
 {
     std::lock_guard guard(m_render_instances_mutex);
 
@@ -604,7 +600,7 @@ void Entity::OnRemovedFromPipeline(RendererInstance *pipeline)
         };
     }
 
-    m_renderer_instances.Erase(pipeline);
+    m_render_groups.Erase(pipeline);
 }
 
 void Entity::OnAddedToOctree(Octree *octree)

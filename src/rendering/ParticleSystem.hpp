@@ -81,11 +81,11 @@ public:
     const UniquePtr<IndirectBuffer> &GetIndirectBuffer() const
         { return m_indirect_buffer; }
 
-    Handle<RendererInstance> &GetRendererInstance()
-        { return m_renderer_instance; }
+    Handle<RenderGroup> &GetRenderGroup()
+        { return m_render_group; }
 
-    const Handle<RendererInstance> &GetRendererInstance() const
-        { return m_renderer_instance; }
+    const Handle<RenderGroup> &GetRenderGroup() const
+        { return m_render_group; }
 
     Handle<ComputePipeline> &GetComputePipeline()
         { return m_update_particles; }
@@ -109,7 +109,7 @@ private:
     void CreateBuffers();
     void CreateShader();
     void CreateDescriptorSets();
-    void CreateRendererInstance();
+    void CreateRenderGroup();
     void CreateComputePipelines();
 
     ParticleSpawnerParams m_params;
@@ -119,7 +119,7 @@ private:
     UniquePtr<StorageBuffer> m_noise_buffer;
     Handle<ComputePipeline> m_update_particles;
     Handle<Shader> m_shader;
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_render_group;
     Bitmap<1> m_noise_map;
 };
 

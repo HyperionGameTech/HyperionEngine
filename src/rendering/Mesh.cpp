@@ -310,29 +310,22 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 #undef PACKED_SET_ATTR
 
-void Mesh::Render(CommandBuffer *cmd) const
+void Mesh::Render(CommandBuffer *cmd, SizeType num_instances) const
 {
-    //Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 
     m_vbo->Bind(cmd);
     m_ibo->Bind(cmd);
 
-    cmd->DrawIndexed(static_cast<UInt32>(m_indices_count));
+    cmd->DrawIndexed(UInt32(m_indices_count), UInt32(num_instances));
 }
 
 void Mesh::RenderIndirect(
-    
     CommandBuffer *cmd,
     const IndirectBuffer *indirect_buffer,
     UInt32 buffer_offset
 ) const
 {
-    AssertReady();
-
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 
     m_vbo->Bind(cmd);
@@ -347,10 +340,8 @@ void Mesh::RenderIndirect(
 void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 {
 #if HYP_VULKAN
-    out = {
-        .command = {
-            .indexCount = static_cast<UInt32>(m_indices_count)
-        }
+    out.command = {
+        .indexCount = static_cast<UInt32>(m_indices_count)
     };
 #else
     #error Not implemented for this platform!

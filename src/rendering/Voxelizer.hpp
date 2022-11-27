@@ -43,11 +43,11 @@ public:
     const Handle<Scene> &GetScene() const
         { return m_scene; }
 
-    Handle<RendererInstance> &GetRendererInstance()
-        { return m_renderer_instance; }
+    Handle<RenderGroup> &GetRenderGroup()
+        { return m_render_group; }
 
-    const Handle<RendererInstance> &GetRendererInstance() const
-        { return m_renderer_instance; }
+    const Handle<RenderGroup> &GetRenderGroup() const
+        { return m_render_group; }
 
     StorageBuffer *GetFragmentListBuffer() const
         { return m_fragment_list_buffer.get(); }
@@ -81,7 +81,7 @@ private:
     Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_render_group;
 
     std::vector<std::unique_ptr<renderer::Attachment>> m_attachments;
 

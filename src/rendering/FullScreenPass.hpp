@@ -66,8 +66,8 @@ public:
     Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
     const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
 
-    Handle<RendererInstance> &GetRendererInstance() { return m_renderer_instance; }
-    const Handle<RendererInstance> &GetRendererInstance() const { return m_renderer_instance; }
+    Handle<RenderGroup> &GetRenderGroup() { return m_render_group; }
+    const Handle<RenderGroup> &GetRenderGroup() const { return m_render_group; }
 
     UInt GetSubDescriptorIndex() const { return m_sub_descriptor_index; }
 
@@ -111,7 +111,7 @@ protected:
     FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_render_group;
     Handle<Mesh> m_full_screen_quad;
 
     Array<std::unique_ptr<Attachment>> m_attachments;

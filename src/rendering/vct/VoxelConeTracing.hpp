@@ -75,7 +75,7 @@ public:
 
 private:
     void CreateImagesAndBuffers();
-    void CreateRendererInstance();
+    void CreateRenderGroup();
     void CreateComputePipelines();
     void CreateShader();
     void CreateRenderPass();
@@ -93,7 +93,7 @@ private:
     FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
-    Handle<RendererInstance> m_renderer_instance;
+    Handle<RenderGroup> m_render_group;
     Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_generate_mipmap;
     Handle<ComputePipeline> m_perform_temporal_blending;

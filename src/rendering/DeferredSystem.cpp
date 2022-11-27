@@ -110,10 +110,10 @@ void DeferredSystem::AddFramebuffersToPipelines()
     }
 }
 
-void DeferredSystem::AddPendingRendererInstances()
+void DeferredSystem::AddPendingRenderGroups()
 {
     for (auto &bucket : m_buckets) {
-        bucket.AddPendingRendererInstances();
+        bucket.AddPendingRenderGroups();
     }
 }
 
@@ -132,15 +132,15 @@ void DeferredSystem::Destroy()
     }
 }
 
-DeferredSystem::RendererInstanceHolder::RendererInstanceHolder()
+DeferredSystem::RenderGroupHolder::RenderGroupHolder()
 {
 }
 
-DeferredSystem::RendererInstanceHolder::~RendererInstanceHolder()
+DeferredSystem::RenderGroupHolder::~RenderGroupHolder()
 {
 }
 
-void DeferredSystem::RendererInstanceHolder::AddRendererInstance(Handle<RendererInstance> &renderer_instance)
+void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
 {
     AddFramebuffersToPipeline(renderer_instance);
 
@@ -151,13 +151,13 @@ void DeferredSystem::RendererInstanceHolder::AddRendererInstance(Handle<Renderer
 
     DebugLog(
         LogType::Debug,
-        "Add RendererInstance (current count: %llu, pending: %llu)\n",
+        "Add RenderGroup (current count: %llu, pending: %llu)\n",
         renderer_instances.Size(),
         renderer_instances_pending_addition.Size()
     );
 }
 
-void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances()
+void DeferredSystem::RenderGroupHolder::AddPendingRenderGroups()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -165,10 +165,10 @@ void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances()
         return;
     }
 
-    DebugLog(LogType::Debug, "Adding %llu pending RendererInstances\n", renderer_instances_pending_addition.Size());
+    DebugLog(LogType::Debug, "Adding %llu pending RenderGroups\n", renderer_instances_pending_addition.Size());
 
     std::lock_guard guard(renderer_instances_mutex);
-    DebugLog(LogType::Debug, "Adding pending RendererInstances, locked mutex.\n");
+    DebugLog(LogType::Debug, "Adding pending RenderGroups, locked mutex.\n");
 
     for (auto it = renderer_instances_pending_addition.Begin(); it != renderer_instances_pending_addition.End(); ++it) {
         AssertThrow(*it != nullptr);
@@ -182,21 +182,21 @@ void DeferredSystem::RendererInstanceHolder::AddPendingRendererInstances()
     renderer_instances_changed.Set(false);
 }
 
-void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipelines()
+void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipelines()
 {
     for (auto &pipeline : renderer_instances) {
         AddFramebuffersToPipeline(pipeline);
     }
 }
 
-void DeferredSystem::RendererInstanceHolder::AddFramebuffersToPipeline(Handle<RendererInstance> &pipeline)
+void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline)
 {
     for (auto &framebuffer : framebuffers) {
         pipeline->AddFramebuffer(Handle<Framebuffer>(framebuffer));
     }
 }
 
-void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
+void DeferredSystem::RenderGroupHolder::CreateRenderPass()
 {
     AssertThrow(render_pass == nullptr);
 
@@ -260,7 +260,7 @@ void DeferredSystem::RendererInstanceHolder::CreateRenderPass()
     InitObject(render_pass);
 }
 
-void DeferredSystem::RendererInstanceHolder::CreateFramebuffers()
+void DeferredSystem::RenderGroupHolder::CreateFramebuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto framebuffer = CreateObject<Framebuffer>(
@@ -277,7 +277,7 @@ void DeferredSystem::RendererInstanceHolder::CreateFramebuffers()
     }
 }
 
-void DeferredSystem::RendererInstanceHolder::Destroy()
+void DeferredSystem::RenderGroupHolder::Destroy()
 {
     auto result = renderer::Result::OK;
 
