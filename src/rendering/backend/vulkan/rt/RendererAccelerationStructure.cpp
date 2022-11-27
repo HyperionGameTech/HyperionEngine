@@ -293,12 +293,14 @@ Result AccelerationStructure::CreateAccelerationStructure(
 	));
 
 	// force recreate (TEMP)
-	// was_rebuilt = true;
+	//was_rebuilt = true;
 
 	if (was_rebuilt) {
 	    out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
 
 		if (update) {
+			HYPERION_BUBBLE_ERRORS(device->Wait()); // To prevent deletion while in use 
+
 		    // delete the current acceleration structure
 		    device->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
 			    device->GetDevice(),
