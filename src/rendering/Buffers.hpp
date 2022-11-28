@@ -22,7 +22,6 @@
 #include <atomic>
 #include <climits>
 
-#define HYP_BUFFERS_USE_SPINLOCK 0
 
 #define HYP_RENDER_OBJECT_OFFSET(cls, index) \
     (UInt32((index) * sizeof(cls ## ShaderData)))
@@ -44,6 +43,16 @@ using renderer::ShaderVec2;
 using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
+
+struct alignas(256) EntityInstanceBatch
+{
+    static constexpr SizeType max_entities_per_instance_batch = 63;
+    
+    UInt32 ids[max_entities_per_instance_batch];
+    UInt32 num_entities;
+};
+
+static_assert(sizeof(EntityInstanceBatch) == 256);
 
 struct alignas(16) ParticleShaderData
 {
@@ -73,7 +82,7 @@ struct SkeletonShaderData
 
 static_assert(sizeof(SkeletonShaderData) % 256 == 0);
 
-struct alignas(256) ObjectShaderData
+struct ObjectShaderData
 {
     ShaderMat4 model_matrix;
     ShaderMat4 previous_model_matrix;
@@ -90,6 +99,11 @@ struct alignas(256) ObjectShaderData
 
     UInt32 skeleton_id;
     UInt32 bucket;
+    UInt32 _pad2;
+    UInt32 _pad3;
+
+    ShaderVec4<Float32> _pad4;
+    ShaderVec4<Float32> _pad5;
 };
 
 static_assert(sizeof(ObjectShaderData) == 256);
@@ -228,6 +242,9 @@ static const SizeType max_env_probes_bytes = max_env_probes * sizeof(EnvProbeSha
 /* max number of immediate drawn objects, based on size in mb */
 static const SizeType max_immediate_draws = (1ull * 1024ull * 1024ull) / sizeof(ImmediateDrawShaderData);
 static const SizeType max_immediate_draws_bytes = max_immediate_draws * sizeof(ImmediateDrawShaderData);
+/* max number of instance batches, based on size in mb */
+static const SizeType max_entity_instance_batches = (4ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
+static const SizeType max_entity_instance_batches_bytes = max_entity_instance_batches * sizeof(EntityInstanceBatch);
 
 template <class Buffer, class StructType, SizeType Size>
 class ShaderData
@@ -266,6 +283,7 @@ public:
     {
         for (SizeType i = 0; i < m_buffers.size(); i++) {
             HYPERION_ASSERT_RESULT(m_buffers[i]->Create(device, sizeof(StructType) * Size));
+            m_buffers[i]->Memset(device, sizeof(StructType) * Size, 0x00); // fill with zeros
         }
     }
 
@@ -278,35 +296,6 @@ public:
 
     void UpdateBuffer(Device *device, SizeType buffer_index)
     {
-#if HYP_BUFFERS_USE_SPINLOCK
-        static constexpr UInt32 max_spins = 2;
-
-        for (UInt32 spin_count = 0; spin_count < max_spins; spin_count++) {
-            auto &current = m_staging_objects_pool.Current();
-
-            if (!current.locked) {
-                current.PerformUpdate(
-                    device,
-                    m_buffers,
-                    buffer_index,
-                    current.objects.Data()
-                );
-                
-                m_staging_objects_pool.Next();
-
-                return;
-            }
-
-            m_staging_objects_pool.Next();
-        }
-        
-        DebugLog(
-            LogType::Warn,
-            "Buffer update spinlock exceeded maximum of %lu -- for %s\n",
-            max_spins,
-            typeid(StructType).name()
-        );
-#else
         auto &current = m_staging_objects_pool.Current();
 
         current.PerformUpdate(
@@ -315,7 +304,6 @@ public:
             buffer_index,
             current.objects.Data()
         );
-#endif
     }
 
     void Set(SizeType index, const StructType &value)
@@ -332,10 +320,15 @@ public:
         return m_staging_objects_pool.Current().objects[index];
     }
     
+    void MarkDirty(SizeType index)
+    {
+        m_staging_objects_pool.Current().MarkDirty(index);
+    }
+    
 private:
     struct StagingObjectsPool
     {
-        static constexpr UInt32 num_staging_buffers = HYP_BUFFERS_USE_SPINLOCK ? 2 : 1;
+        static constexpr UInt32 num_staging_buffers = 1;
 
         StagingObjectsPool() = default;
         StagingObjectsPool(const StagingObjectsPool &other) = delete;
@@ -346,13 +339,16 @@ private:
 
         struct StagingObjects
         {
-#if HYP_BUFFERS_USE_SPINLOCK
-            std::atomic_bool locked { false };
-#endif
             HeapArray<StructType, Size> objects;
             FixedArray<Range<SizeType>, max_frames_in_flight> dirty;
 
-            StagingObjects() = default;
+            StagingObjects()
+            {
+                for (auto &object : objects) {
+                    object = { };
+                }
+            }
+
             StagingObjects(const StagingObjects &other) = delete;
             StagingObjects &operator=(const StagingObjects &other) = delete;
             StagingObjects(StagingObjects &other) = delete;
@@ -394,48 +390,25 @@ private:
             }
 
         } buffers[num_staging_buffers];
-        
-#if HYP_BUFFERS_USE_SPINLOCK
-        std::atomic_uint32_t current_index{0};
-#endif
 
         StagingObjects &Current()
         {
-
-#if HYP_BUFFERS_USE_SPINLOCK
-            return buffers[current_index];
-#else
             return buffers[0];
-#endif
         }
-
-#if HYP_BUFFERS_USE_SPINLOCK
-        void Next()
-        {
-            current_index = (current_index + 1) % num_staging_buffers;
-        }
-#endif
 
         void Set(SizeType index, const StructType &value)
         {
             AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
 
-#if HYP_BUFFERS_USE_SPINLOCK
-            for (UInt32 i = 0; i < num_staging_buffers; i++) {
-                const auto staging_object_index = (current_index + i) % num_staging_buffers;
-                auto &staging_object = buffers[staging_object_index];
-
-                staging_object.locked = true;
-                staging_object.objects[index] = value;
-                staging_object.MarkDirty(index);
-                staging_object.locked = false;
-            }
-#else
             auto &staging_object = buffers[0];
             
             staging_object.objects[index] = value;
             staging_object.MarkDirty(index);
-#endif
+        }
+
+        void MarkDirty(SizeType index)
+        {
+            buffers[0].MarkDirty(index);
         }
     };
 

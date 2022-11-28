@@ -11,6 +11,7 @@
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/HandleID.hpp>
 
 #include <math/BoundingSphere.hpp>
 
@@ -39,6 +40,12 @@ class Entity;
 
 struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
+
+struct InstanceData
+{
+    HandleID<Mesh> mesh_id;
+    bool is_instanced;
+};
 
 class IndirectDrawState
 {
@@ -72,7 +79,7 @@ public:
     Result Create();
     Result Destroy();
 
-    void PushDrawProxy(const EntityDrawProxy &draw_proxy);
+    void PushDrawProxy(const EntityDrawProxy &draw_proxy, InstanceData &out_instance_data);
     void Reset();
     void Reserve(Frame *frame, SizeType count);
 

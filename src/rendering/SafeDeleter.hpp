@@ -268,14 +268,12 @@ private:
     template <class T>
     void SafeReleaseHandleImpl(Handle<T> &&resource, UInt mask)
     {
-        if (resource) {// && resource.GetRefCount() == 1) {
+        if (resource) {
             std::lock_guard guard(m_render_resource_deletion_mutex);
             
             auto &deletion_queue = std::get<FlatSet<HandleDeletionEntry<T>>>(m_render_resource_deletion_queue_items);
-
-            Handle<T> tmp(std::move(resource));
-            deletion_queue.Insert(HandleDeletionEntry<T>(std::move(tmp)));
-            AssertThrow(resource.Get() == nullptr);
+            
+            deletion_queue.Insert(HandleDeletionEntry<T>(std::move(resource)));
 
             m_render_resource_deletion_flag |= mask;
         }

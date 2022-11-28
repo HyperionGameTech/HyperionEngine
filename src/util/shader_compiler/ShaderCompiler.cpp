@@ -173,46 +173,60 @@ static ByteBuffer CompileToSPIRV(
     auto default_resources = DefaultResources();
 
     glslang_stage_t stage;
+    String stage_string;
 
     switch (type) {
     case ShaderModule::Type::VERTEX:
         stage = GLSLANG_STAGE_VERTEX;
+        stage_string = "VERTEX_SHADER";
         break;
     case ShaderModule::Type::FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
+        stage_string = "FRAGMENT_SHADER";
         break;
     case ShaderModule::Type::GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
+        stage_string = "GEOMETRY_SHADER";
         break;
     case ShaderModule::Type::COMPUTE:
         stage = GLSLANG_STAGE_COMPUTE;
+        stage_string = "COMPUTE_SHADER";
         break;
     case ShaderModule::Type::TASK:
         stage = GLSLANG_STAGE_TASK_NV;
+        stage_string = "TASK_SHADER";
         break;
     case ShaderModule::Type::MESH:
         stage = GLSLANG_STAGE_MESH_NV;
+        stage_string = "MESH_SHADER";
         break;
     case ShaderModule::Type::TESS_CONTROL:
         stage = GLSLANG_STAGE_TESSCONTROL;
+        stage_string = "TESS_CONTROL_SHADER";
         break;
     case ShaderModule::Type::TESS_EVAL:
         stage = GLSLANG_STAGE_TESSEVALUATION;
+        stage_string = "TESS_EVAL_SHADER";
         break;
     case ShaderModule::Type::RAY_GEN:
         stage = GLSLANG_STAGE_RAYGEN_NV;
+        stage_string = "RAY_GEN_SHADER";
         break;
     case ShaderModule::Type::RAY_INTERSECT:
         stage = GLSLANG_STAGE_INTERSECT_NV;
+        stage_string = "RAY_INTERSECT_SHADER";
         break;
     case ShaderModule::Type::RAY_ANY_HIT:
         stage = GLSLANG_STAGE_ANYHIT_NV;
+        stage_string = "RAY_ANY_HIT_SHADER";
         break;
     case ShaderModule::Type::RAY_CLOSEST_HIT:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
+        stage_string = "RAY_CLOSEST_HIT_SHADER";
         break;
     case ShaderModule::Type::RAY_MISS:
         stage = GLSLANG_STAGE_MISS_NV;
+        stage_string = "RAY_MISS_SHADER";
         break;
     default:
         HYP_THROW("Invalid shader type");
@@ -249,17 +263,21 @@ static ByteBuffer CompileToSPIRV(
 
     glslang_shader_t *shader = glslang_shader_create(&input);
 
-    String version_strings_combined;
+    String preamble;
     
     for (const ShaderProperty &property : property_set) {
         if (property.name.Empty()) {
             continue;
         }
 
-        version_strings_combined += "#define " + property.name + "\n";
+        preamble += "#define " + property.name + "\n";
     }
 
-    glslang_shader_set_preamble(shader, version_strings_combined.Data());
+    if (stage_string.Any()) {
+        preamble += "\n#ifndef " + stage_string + "\n#define " + stage_string + "\n#endif\n";
+    }
+
+    glslang_shader_set_preamble(shader, preamble.Data());
 
     if (!glslang_shader_preprocess(shader, &input))	{
         GLSL_ERROR(LogType::Error, "GLSL preprocessing failed %s\n", filename);

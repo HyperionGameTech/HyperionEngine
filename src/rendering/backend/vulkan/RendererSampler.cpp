@@ -42,6 +42,8 @@ Sampler::~Sampler()
 
 Result Sampler::Create(Device *device)
 {
+    AssertThrow(m_sampler == VK_NULL_HANDLE);
+
     VkSamplerCreateInfo sampler_info{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     sampler_info.magFilter = helpers::ToVkFilter(m_filter_mode);
     sampler_info.minFilter = helpers::ToVkFilter(m_filter_mode);
@@ -97,6 +99,8 @@ Result Sampler::Create(Device *device)
 
 Result Sampler::Destroy(Device *device)
 {
+    AssertThrow(m_sampler != VK_NULL_HANDLE);
+
     vkDestroySampler(device->GetDevice(), m_sampler, nullptr);
 
     m_sampler = VK_NULL_HANDLE;

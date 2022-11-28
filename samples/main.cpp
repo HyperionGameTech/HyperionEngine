@@ -222,6 +222,20 @@ public:
             InitObject(zombie_entity);
             zombie_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(zombie);
+
+
+            auto zomb2 = CreateObject<Entity>();
+            zomb2->SetMesh(zombie_entity->GetMesh());
+            zomb2->SetTranslation(Vector3(0, 20, 0));
+            zomb2->SetScale(Vector3(20.0f));
+            zomb2->SetShader(zombie_entity->GetShader());
+            zomb2->SetMaterial(zombie_entity->GetMaterial());
+            zomb2->SetName("FOOBAR ZOMBO");
+            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.0f, 0.0f, 1.0f));
+            zomb2->SetSkeleton(zombie_entity->GetSkeleton());
+            zomb2->RebuildRenderableAttributes();
+            InitObject(zomb2);
+            m_scene->AddEntity(zomb2);
         }
         
         { // adding lights to scene

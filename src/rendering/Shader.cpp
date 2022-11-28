@@ -17,6 +17,7 @@ void ShaderGlobals::Create()
     shadow_maps.Create(device);
     env_probes.Create(device);
     immediate_draws.Create(device);
+    entity_instance_batches.Create(device);
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
 
     textures.Create();
@@ -36,6 +37,7 @@ void ShaderGlobals::Destroy()
     lights.Destroy(device);
     shadow_maps.Destroy(device);
     immediate_draws.Destroy(device);
+    entity_instance_batches.Destroy(device);
 }
 
 struct RENDER_COMMAND(CreateShaderProgram) : RenderCommand

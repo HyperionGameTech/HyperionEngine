@@ -340,10 +340,8 @@ void Mesh::RenderIndirect(
 void Mesh::PopulateIndirectDrawCommand(IndirectDrawCommand &out)
 {
 #if HYP_VULKAN
-    out = {
-        .command = {
-            .indexCount = static_cast<UInt32>(m_indices_count)
-        }
+    out.command = {
+        .indexCount = static_cast<UInt32>(m_indices_count)
     };
 #else
     #error Not implemented for this platform!

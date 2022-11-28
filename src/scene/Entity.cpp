@@ -478,10 +478,6 @@ void Entity::SetScene(Scene *scene)
 
 void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes)
 {
-    // if (m_renderable_attributes == renderable_attributes) {
-    //     return;
-    // }
-
     m_renderable_attributes = renderable_attributes;
     m_primary_renderer_instance.changed = true;
     

@@ -110,11 +110,7 @@ public:
 
     void Create();
     void Destroy();
-    void Render(
-        
-        Frame *frame,
-        RenderEnvironment *environment
-    );
+    void Render(Frame *frame, RenderEnvironment *environment);
 
     void RenderUI(Frame *frame);
 

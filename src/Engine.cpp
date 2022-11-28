@@ -331,10 +331,9 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+        ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[0].get(),
-            .range = static_cast<UInt>(sizeof(ObjectShaderData))
+            .buffer = shader_globals->objects.GetBuffers()[0].get()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
@@ -376,10 +375,9 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+        ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(ObjectShaderData))
+            .buffer = shader_globals->objects.GetBuffers()[1].get()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
@@ -520,10 +518,10 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             });
     }
 
-    // add placeholder shadowmaps
-    for (DescriptorSet::Index descriptor_set_index : DescriptorSet::scene_buffer_mapping) {
+    // add placeholder scene data
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
-            .GetDescriptorSet(descriptor_set_index);
+            .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
@@ -535,6 +533,16 @@ void Engine::Initialize(RefCountedPtr<Application> application)
                 .sampler = &GetPlaceholderData().GetSamplerNearest()
             });
         }
+    }
+
+    // add placeholder scene data
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
+            .GetDescriptorSet(DescriptorSet::object_buffer_mapping[frame_index]);
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::ENTITY_INSTANCES)
+            ->SetElementBuffer<EntityInstanceBatch>(0, shader_globals->entity_instance_batches.GetBuffers()[frame_index].get());
     }
 
     // add VCT descriptor placeholders
@@ -759,7 +767,7 @@ void Engine::Compile()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
-    for (UInt i = 0; i < m_instance->GetFrameHandler()->NumFrames(); i++) {
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
         /* Finalize env probes */
         shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
 
@@ -783,6 +791,9 @@ void Engine::Compile()
 
         /* Finalize immediate draw data */
         shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
+
+        /* Finalize instance batch data */
+        shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), i);
     }
 
     callbacks.TriggerPersisted(EngineCallback::CREATE_DESCRIPTOR_SETS, this);
@@ -1028,9 +1039,7 @@ void Engine::PreFrameUpdate(Frame *frame)
     }
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
-    ResetRenderState(
-        RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE
-    );
+    ResetRenderState(RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE);
 }
 
 void Engine::ResetRenderState(RenderStateMask mask)
@@ -1050,6 +1059,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
 
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);

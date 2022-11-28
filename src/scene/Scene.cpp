@@ -273,12 +273,12 @@ bool Scene::AddEntity(Handle<Entity> &&entity)
     return true;
 }
 
-bool Scene::RemoveEntity(const Handle<Entity> &entity)
+bool Scene::RemoveEntity(HandleID<Entity> entity_id)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
 
-    if (!entity) {
+    if (!entity_id) {
         return false;
     }
 
@@ -294,7 +294,7 @@ bool Scene::RemoveEntity(const Handle<Entity> &entity)
                 continue;
             }
 
-            if (child.GetEntity() == entity) {
+            if (child.GetEntity().GetID() == entity_id) {
                 parent->Get()->RemoveChild(&child);
 
                 return true;
@@ -374,11 +374,11 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
     return true;
 }
 
-bool Scene::HasEntity(Entity::ID id) const
+bool Scene::HasEntity(HandleID<Entity> entity_id) const
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
-    return m_entities.Find(id) != m_entities.End();
+    return m_entities.Find(entity_id) != m_entities.End();
 }
 
 void Scene::AddPendingEntities()
@@ -388,7 +388,7 @@ void Scene::AddPendingEntities()
     }
 
     for (auto &entity : m_entities_pending_addition) {
-        const auto id = entity->GetID();
+        const HandleID<Entity> id = entity->GetID();
 
         if (entity->IsRenderable() && !entity->GetPrimaryRenderGroup()) {
             if (auto renderer_instance = Engine::Get()->FindOrCreateRenderGroup(entity->GetShader(), entity->GetRenderableAttributes())) {
@@ -431,7 +431,7 @@ void Scene::AddPendingEntities()
         }
 
         m_environment->OnEntityAdded(entity);
-        m_entities.Insert(static_cast<IDBase>(id), std::move(entity));
+        m_entities.Insert(id, std::move(entity));
     }
 
     m_entities_pending_addition.Clear();
@@ -447,7 +447,7 @@ void Scene::RemovePendingEntities()
         auto it = m_entities.Find(id);
 
         auto &found_entity = it->second;
-        AssertThrow(found_entity != nullptr);
+        AssertThrow(found_entity.IsValid());
 
         RemoveFromRenderGroups(found_entity);
 
@@ -485,12 +485,12 @@ void Scene::RemovePendingEntities()
     m_entities_pending_removal.Clear();
 }
 
-const Handle<Entity> &Scene::FindEntityWithID(const Entity::ID &id) const
+const Handle<Entity> &Scene::FindEntityWithID(HandleID<Entity> entity_id) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_root_node_proxy);
-    return m_root_node_proxy.Get()->FindEntityWithID(id);
+    return m_root_node_proxy.Get()->FindEntityWithID(entity_id);
 }
 
 bool Scene::AddLight(Handle<Light> &&light)

@@ -13,8 +13,11 @@
 #include "Compute.hpp"
 #include <rendering/Mesh.hpp>
 #include <Constants.hpp>
+#include <core/HandleID.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <util/Defines.hpp>
+
+#include <rendering/ShaderGlobals.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -42,6 +45,7 @@ using renderer::Extent3D;
 using renderer::StorageBuffer;
 
 class Engine;
+class Mesh;
 
 /*! \brief Represents a handle to a graphics pipeline,
     which can be used for doing standalone drawing without requiring
@@ -64,18 +68,7 @@ public:
 
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void Bind(
-        
-        Frame *frame
-    );
-
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void BindEntityObject(
-        
-        Frame *frame,
-        const EntityDrawProxy &entity
-    );
+    void Bind(Frame *frame);
     
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
@@ -83,18 +76,11 @@ public:
 
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void DrawMesh(
-        
-        Frame *frame,
-        Mesh *mesh
-    );
+    void DrawMesh(Frame *frame, Mesh *mesh);
 
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
-    void Submit(
-        
-        Frame *frame
-    );
+    void Submit(Frame *frame);
 
 private:
     RenderGroup *m_render_group;
@@ -230,6 +216,8 @@ private:
     // try to call it more than num_async_rendering_command_buffers
     // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
     UInt m_command_buffer_index = 0u;
+
+    FlatMap<HandleID<Mesh>, EntityBatchIndex> m_entity_batches;
 };
 
 } // namespace hyperion::v2

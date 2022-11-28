@@ -257,12 +257,16 @@ static bool ResizeBuffer(
     return false;
 }
 
-void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
+void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy, InstanceData &out_instance_data)
 {
+    out_instance_data = { };
+
     if (draw_proxy.mesh == nullptr) {
         return;
     }
-    
+
+    out_instance_data.mesh_id = HandleID<Mesh>(draw_proxy.mesh_id.Value());
+
     const auto draw_command_index = draw_proxy.mesh_id.ToIndex();
     m_max_draw_command_index = MathUtil::Max(m_max_draw_command_index, draw_command_index + 1);
     
@@ -271,17 +275,15 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
     // first byte = bucket. we currently use only 7, with
     // some having the potential to be combined, so it shouldn't be
     // an issue.
-    packed_data[0] = (1u << static_cast<UInt32>(draw_proxy.bucket)) & 0xFF;
+    packed_data[0] = (1u << UInt32(draw_proxy.bucket)) & 0xFF;
 
     m_object_instances.PushBack(ObjectInstance {
-        .entity_id = static_cast<UInt32>(draw_proxy.entity_id.value),
+        .entity_id = UInt32(draw_proxy.entity_id.value),
         .draw_command_index = draw_command_index,
-        .batch_index  = static_cast<UInt32>(m_object_instances.Size() / batch_size),
-        .num_indices = static_cast<UInt32>(draw_proxy.mesh->NumIndices()),
-        // .packed_data        = packed_data,
+        .batch_index = UInt32(m_object_instances.Size() / batch_size),
+        .num_indices = UInt32(draw_proxy.mesh->NumIndices()),
         .aabb_max = draw_proxy.bounding_box.max.ToVector4(),
         .aabb_min = draw_proxy.bounding_box.min.ToVector4(),
-
         .packed_data = packed_data
     });
 
@@ -292,6 +294,10 @@ void IndirectDrawState::PushDrawProxy(const EntityDrawProxy &draw_proxy)
 
     if (m_draw_calls.Size() < SizeType(m_max_draw_command_index)) {
         m_draw_calls.Resize(SizeType(m_max_draw_command_index));
+    }
+
+    if (m_draw_calls[draw_command_index].command.indexCount != 0) {
+        out_instance_data.is_instanced = true;
     }
 
     draw_proxy.mesh->PopulateIndirectDrawCommand(m_draw_calls[draw_command_index]);
@@ -378,7 +384,7 @@ void IndirectDrawState::Reset()
 {
     // assume render thread
 
-    m_max_draw_command_index = 0u;
+    m_max_draw_command_index = 0;
 
     m_draw_proxies.Clear();
     m_object_instances.Clear();
@@ -419,11 +425,10 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
     
     // fill instances buffer with data of the meshes
     {
-        // reset instance counts
-        for (auto &draw_call : m_draw_calls) {
-            draw_call.command.instanceCount = 0;
-        }
-
+        //for (auto &draw_call : m_draw_calls) {
+        //    draw_call.state = 0;
+        //    draw_call.command.instanceCount = 0;
+        //}
         AssertThrow(m_staging_buffers[frame_index] != nullptr);
         AssertThrow(m_staging_buffers[frame_index]->size >= sizeof(IndirectDrawCommand) * m_draw_calls.Size());
 
@@ -435,10 +440,10 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
             m_draw_calls.Data()
         );
 
-        m_indirect_buffers[frame->GetFrameIndex()]->CopyFrom(
+        m_indirect_buffers[frame_index]->CopyFrom(
             frame->GetCommandBuffer(),
-            m_staging_buffers[frame->GetFrameIndex()].Get(),
-            m_draw_calls.Size() * sizeof(IndirectDrawCommand)
+            m_staging_buffers[frame_index].Get(),
+            m_staging_buffers[frame_index]->size//m_draw_calls.Size() * sizeof(IndirectDrawCommand)
         );
     }
 
