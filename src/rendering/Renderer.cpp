@@ -642,9 +642,15 @@ RenderAll(
                         }
                         EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(batch_index);
                         if (entity_batch.num_entities > 1) {
-                        //    std::cout << "draw_proxy " << draw_proxy.entity_id.Value() << "  " << entity_batch.num_entities <<  "    " << draw_proxy.draw_command_index << "\n";
+                           // if (draw_proxy.entity_id.Value() < 100) {
+                          ///      continue;
+                           // }
+                            std::cout << "draw_proxy " << draw_proxy.entity_id.Value() << "  " << entity_batch.num_entities <<  "    " << draw_proxy.draw_command_index << "\n";
                         }
                         // !TEMP
+
+                        // TODO: Material, skeleton will need to not be dynamic storage buffers,
+                        // and we will index them using object.material_id etc.
 
                         BindPerObjectDescriptorSets(
                             frame,
@@ -667,7 +673,7 @@ RenderAll(
                                 draw_proxy.draw_command_index * sizeof(IndirectDrawCommand)
                             );
                         } else {
-                            draw_proxy.mesh->Render(secondary);
+                            draw_proxy.mesh->Render(secondary, entity_batch.num_entities);
                         }
                     }
 

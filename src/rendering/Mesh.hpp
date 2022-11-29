@@ -99,13 +99,9 @@ public:
 
     void Init();
 
-    void Render(
-        
-        CommandBuffer *cmd
-    ) const;
+    void Render(CommandBuffer *cmd, SizeType num_instances = 1) const;
 
     void RenderIndirect(
-        
         CommandBuffer *cmd,
         const IndirectBuffer *indirect_buffer,
         UInt32 buffer_offset = 0

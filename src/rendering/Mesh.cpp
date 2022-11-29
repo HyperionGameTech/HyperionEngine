@@ -310,14 +310,14 @@ std::vector<float> Mesh::BuildVertexBuffer()
 
 #undef PACKED_SET_ATTR
 
-void Mesh::Render(CommandBuffer *cmd) const
+void Mesh::Render(CommandBuffer *cmd, SizeType num_instances) const
 {
     AssertThrow(m_vbo != nullptr && m_ibo != nullptr);
 
     m_vbo->Bind(cmd);
     m_ibo->Bind(cmd);
 
-    cmd->DrawIndexed(static_cast<UInt32>(m_indices_count));
+    cmd->DrawIndexed(UInt32(m_indices_count), UInt32(num_instances));
 }
 
 void Mesh::RenderIndirect(
