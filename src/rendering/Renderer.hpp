@@ -217,7 +217,7 @@ private:
     // (or if parallel rendering is enabled, more than the number of task threads available (usually 2))
     UInt m_command_buffer_index = 0u;
 
-    FlatMap<HandleID<Mesh>, EntityBatchIndex> m_entity_batches;
+    FlatMap<UInt, EntityBatchIndex> m_entity_batches;
 };
 
 } // namespace hyperion::v2

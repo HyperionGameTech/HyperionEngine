@@ -82,23 +82,27 @@ struct ShaderGlobals
         return entity_instance_batch_data.current_index++;
     }
 
-    void FreeEntityBatch(EntityBatchIndex index)
+    void FreeEntityBatch(EntityBatchIndex batch_index)
     {
-        if (index == 0) {
+        if (batch_index == 0) {
             return;
         }
 
-        ResetBatch(index);
+        ResetBatch(batch_index);
 
-        entity_instance_batch_data.free_indices.Push(index);
+        entity_instance_batch_data.free_indices.Push(batch_index);
     }
 
     void ResetBatch(EntityBatchIndex batch_index)
     {
+        if (batch_index == 0) {
+            return;
+        }
+
         AssertThrow(batch_index < max_entity_instance_batches);
 
         EntityInstanceBatch &batch = entity_instance_batches.Get(batch_index);
-        batch.num_entities = 0;
+        Memory::Set(&batch, 0, sizeof(EntityInstanceBatch));
 
         entity_instance_batches.MarkDirty(batch_index);
     }

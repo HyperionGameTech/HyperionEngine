@@ -17,7 +17,7 @@ using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 const Extent2D DeferredRenderer::hbao_extent(512, 512);
-const Extent2D DeferredRenderer::ssr_extent(1024, 1024);
+const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
     : FullScreenPass(InternalFormat::RGBA16F),

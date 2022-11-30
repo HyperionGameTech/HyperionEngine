@@ -96,7 +96,7 @@ Entity::Entity(
     m_renderable_attributes(renderable_attributes),
     m_octree(nullptr),
     m_needs_octree_update(false),
-    m_shader_data_state(ShaderDataState::CLEAN)
+    m_shader_data_state(ShaderDataState::DIRTY)
 {
     if (m_mesh) {
         m_local_aabb = m_mesh->CalculateAABB();

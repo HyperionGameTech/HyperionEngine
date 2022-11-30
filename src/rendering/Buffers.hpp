@@ -46,10 +46,13 @@ using renderer::ShaderMat4;
 
 struct alignas(256) EntityInstanceBatch
 {
-    static constexpr SizeType max_entities_per_instance_batch = 63;
+    static constexpr SizeType max_entities_per_instance_batch = 60;
     
-    UInt32 ids[max_entities_per_instance_batch];
     UInt32 num_entities;
+    UInt32 _debug_owner_id;
+    UInt32 _pad1;
+    UInt32 _pad2;
+    UInt32 ids[max_entities_per_instance_batch];
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 256);

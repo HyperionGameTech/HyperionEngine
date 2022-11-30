@@ -390,6 +390,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
     m_divided_draw_proxies.Clear();
 
     auto previous_entity_batches = std::move(m_entity_batches);
+    m_entity_batches.Clear();
     
     for (const auto &it : previous_entity_batches) {
         Engine::Get()->shader_globals->ResetBatch(it.second);
@@ -423,38 +424,58 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
 
         InstanceData instance_data;
-        
         m_indirect_renderer.GetDrawState().PushDrawProxy(entity->GetDrawProxy(), instance_data);
 
         //if (instance_data.is_instanced) {
-            FlatMap<HandleID<Mesh>, EntityBatchIndex>::InsertResult insert_result;
+            EntityBatchIndex batch_index = 0;
 
-            const auto it = previous_entity_batches.Find(instance_data.mesh_id);
+            const auto it = previous_entity_batches.Find(instance_data.mesh_id.Value());
 
-            if (it != previous_entity_batches.End()) {
-                insert_result = m_entity_batches.Insert(it->first, it->second);
-                it->second = 0;
+            if (it != previous_entity_batches.End() && it->second != 0) {
+                auto existing_it = m_entity_batches.Find(instance_data.mesh_id.Value());
+                if (existing_it != m_entity_batches.End()) {
+                    batch_index = existing_it->second;
+                } else {
+                    const auto new_batch_index = it->second;
+                    auto insert_result = m_entity_batches.Insert(instance_data.mesh_id.Value(), new_batch_index);
+                    AssertThrow(insert_result.second);
+                    batch_index = new_batch_index;
+                    it->second = 0;
+                }
+
+
             } else {
-                const auto new_batch_index = Engine::Get()->shader_globals->NewEntityBatch();
-                insert_result = m_entity_batches.Insert(instance_data.mesh_id, new_batch_index);
-
-                if (!insert_result.second) {
-                    Engine::Get()->shader_globals->FreeEntityBatch(new_batch_index);
+                auto existing_it = m_entity_batches.Find(instance_data.mesh_id.Value());
+                if (existing_it != m_entity_batches.End()) {
+                    batch_index = existing_it->second;
+                } else {
+                    const auto new_batch_index = Engine::Get()->shader_globals->NewEntityBatch();
+                    auto insert_result = m_entity_batches.Insert(instance_data.mesh_id.Value(), new_batch_index);
+                    AssertThrow(insert_result.second);
+                    batch_index = new_batch_index;
                 }
             }
-
-            EntityBatchIndex batch_index = insert_result.first->second;
-
+            
             if (!Engine::Get()->shader_globals->PushEntityToBatch(batch_index, entity->GetID())) {
                 AssertThrow(false, "Not implemented: Multiple batches per mesh.");
             }
+            AssertThrow(batch_index != 0);
+            auto &batch = Engine::Get()->shader_globals->entity_instance_batches.Get(batch_index);
+            batch._debug_owner_id = m_id.Value();
+            Engine::Get()->shader_globals->entity_instance_batches.MarkDirty(batch_index);
         //}
     }
+    
 
     for (const auto &it : previous_entity_batches) {
         if (it.second != 0) {
             Engine::Get()->shader_globals->FreeEntityBatch(it.second);
         }
+    }
+
+    // temp
+    for (auto &it : m_entity_batches) {
+        AssertThrow(Engine::Get()->shader_globals->entity_instance_batches.Get(it.second)._debug_owner_id == m_id.Value());
     }
 }
 
@@ -584,13 +605,12 @@ RenderAll(
     IndirectRenderer *indirect_renderer,
     const Array<EntityDrawProxy> &draw_proxies,
     Array<Array<EntityDrawProxy>> &divided_draw_proxies,
-    FlatMap<HandleID<Mesh>, EntityBatchIndex> &batches
+    FlatMap<UInt, EntityBatchIndex> &batches,
+    UInt id
 )
 {
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const auto scene_id = scene_binding.id;
-
-    auto *instance = Engine::Get()->GetGPUInstance();
 
     const UInt frame_index = frame->GetFrameIndex();
 
@@ -615,7 +635,7 @@ RenderAll(
         TaskPriority::HIGH,
         num_batches,
         divided_draw_proxies,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id, &batches](const Array<EntityDrawProxy> &draw_proxies, UInt index, UInt) {
+        [id, frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id, &batches](const Array<EntityDrawProxy> &draw_proxies, UInt index, UInt) {
             if (draw_proxies.Empty()) {
                 return;
             }
@@ -634,19 +654,28 @@ RenderAll(
                     );
                     
                     for (const auto &draw_proxy : draw_proxies) {
+                        AssertThrow(draw_proxy.mesh_id.Value() != 0);
+
                         // TEMP
                         EntityBatchIndex batch_index = 0;
-                        auto it = batches.Find(HandleID<Mesh>(draw_proxy.mesh_id.Value()));
+                        auto it = batches.Find(draw_proxy.mesh_id.Value());
                         if (it != batches.End()) {
                             batch_index = it->second;
                         }
+
                         EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(batch_index);
+
+                        AssertThrow(entity_batch._debug_owner_id == id);
+                        
                         if (entity_batch.num_entities > 1) {
                            // if (draw_proxy.entity_id.Value() < 100) {
                           ///      continue;
                            // }
-                            std::cout << "draw_proxy " << draw_proxy.entity_id.Value() << "  " << entity_batch.num_entities <<  "    " << draw_proxy.draw_command_index << "\n";
+
+                        //    std::cout << "  frame : " << frame->GetFrameIndex() << "  render group:  "  << ((void*)indirect_renderer) << "   in batch: " << batch_index << ",   entity " << draw_proxy.entity_id.Value() << " , count : " << entity_batch.num_entities << "    " << draw_proxy.draw_command_index << "\n";
                         }
+                        
+
                         // !TEMP
 
                         // TODO: Material, skeleton will need to not be dynamic storage buffers,
@@ -709,7 +738,8 @@ void RenderGroup::PerformRendering(Frame *frame)
         &m_indirect_renderer,
         m_indirect_renderer.GetDrawState().GetDrawProxies(),
         m_divided_draw_proxies,
-        m_entity_batches
+        m_entity_batches,
+        m_id.Value()
     );
 }
 
@@ -726,7 +756,8 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
         &m_indirect_renderer,
         m_indirect_renderer.GetDrawState().GetDrawProxies(),
         m_divided_draw_proxies,
-        m_entity_batches
+        m_entity_batches,
+        m_id.Value()
     );
 }
 
