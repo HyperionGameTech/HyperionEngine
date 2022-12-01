@@ -70,11 +70,24 @@ FullScreenPass::FullScreenPass(
     Handle<Shader> &&shader,
     InternalFormat image_format
 ) : FullScreenPass(std::move(shader),
-        DescriptorKey::POST_FX_PRE_STACK,
+        DescriptorKey::UNUSED,
         ~0u,
         image_format
     )
 {
+}
+
+FullScreenPass::FullScreenPass(
+    Handle<Shader> &&shader,
+    const Array<const DescriptorSet *> &used_descriptor_sets,
+    InternalFormat image_format
+) : FullScreenPass(std::move(shader),
+        DescriptorKey::UNUSED,
+        ~0u,
+        image_format
+    )
+{
+    m_used_descriptor_sets.Set(used_descriptor_sets);
 }
 
 FullScreenPass::FullScreenPass(
@@ -202,11 +215,20 @@ void FullScreenPass::CreatePipeline()
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
-    m_render_group = CreateObject<RenderGroup>(
-        std::move(m_shader),
-        Handle<RenderPass>(m_render_pass),
-        renderable_attributes
-    );
+    if (m_used_descriptor_sets.HasValue()) {
+        m_render_group = CreateObject<RenderGroup>(
+            Handle<Shader>(m_shader),
+            Handle<RenderPass>(m_render_pass),
+            renderable_attributes,
+            m_used_descriptor_sets.Get()
+        );
+    } else {
+        m_render_group = CreateObject<RenderGroup>(
+            Handle<Shader>(m_shader),
+            Handle<RenderPass>(m_render_pass),
+            renderable_attributes
+        );
+    }
 
     for (auto &framebuffer : m_framebuffers) {
         m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
@@ -214,6 +236,10 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
 
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
+}
+
+void FullScreenPass::CreateDescriptors()
+{
 }
 
 void FullScreenPass::Destroy()
@@ -336,6 +362,34 @@ void FullScreenPass::Render(Frame *frame)
     auto *secondary_command_buffer = m_command_buffers[frame_index].Get();
     HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
 
+    m_framebuffers[frame_index]->EndCapture(frame->GetCommandBuffer());
+}
+
+
+void FullScreenPass::Begin(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    const UInt frame_index = frame->GetFrameIndex();
+
+    auto *command_buffer = m_command_buffers[frame_index].Get();
+
+    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->GetPipeline()->GetConstructionInfo().render_pass);
+
+    m_render_group->GetPipeline()->Bind(command_buffer);
+}
+
+void FullScreenPass::End(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    const UInt frame_index = frame->GetFrameIndex();
+
+    auto *command_buffer = m_command_buffers[frame_index].Get();
+    command_buffer->End(Engine::Get()->GetGPUDevice());
+
+    m_framebuffers[frame_index]->BeginCapture(frame->GetCommandBuffer());
+    HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
     m_framebuffers[frame_index]->EndCapture(frame->GetCommandBuffer());
 }
 

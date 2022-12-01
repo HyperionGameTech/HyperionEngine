@@ -108,10 +108,7 @@ void ImmediateMode::Destroy()
     }
 }
 
-void ImmediateMode::Render(
-    
-    Frame *frame
-)
+void ImmediateMode::Render(Frame *frame)
 {
     if (m_num_draw_commands_pending_additon.load(std::memory_order_relaxed) != 0) {
         UpdateDrawCommands();
