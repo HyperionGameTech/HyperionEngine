@@ -1,7 +1,6 @@
 #ifndef HYPERION_V2_FULL_SCREEN_PASS_H
 #define HYPERION_V2_FULL_SCREEN_PASS_H
 
-#include "RenderPass.hpp"
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Renderer.hpp"
@@ -27,6 +26,7 @@ using renderer::PerFrameData;
 using renderer::VertexAttributeSet;
 using renderer::DescriptorKey;
 using renderer::Image;
+using renderer::ImageView;
 using renderer::Pipeline;
 
 class Engine;
@@ -39,32 +39,44 @@ public:
     FullScreenPass(
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
     FullScreenPass(
         Handle<Shader> &&shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
+    FullScreenPass(
+        Handle<Shader> &&shader,
+        const Array<const DescriptorSet *> &used_descriptor_sets,
+        InternalFormat image_format = InternalFormat::RGB8_SRGB
+    );
+
     FullScreenPass(
         Handle<Shader> &&shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
+
     FullScreenPass(const FullScreenPass &) = delete;
     FullScreenPass &operator=(const FullScreenPass &) = delete;
     virtual ~FullScreenPass();
+
+    AttachmentRef *GetAttachmentRef(UInt attachment_index)
+        { return GetFramebuffer()->GetAttachmentRefs()[attachment_index]; }
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
 
-    Handle<Framebuffer> &GetFramebuffer(UInt index) { return m_framebuffers[index]; }
-    const Handle<Framebuffer> &GetFramebuffer(UInt index) const { return m_framebuffers[index]; }
+    Handle<Framebuffer> &GetFramebuffer() { return m_framebuffer; }
+    const Handle<Framebuffer> &GetFramebuffer() const { return m_framebuffer; }
                                                       
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
 
     void SetShader(Handle<Shader> &&shader);
 
-    Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
-    const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
+    Handle<Mesh> &GetQuadMesh() { return m_full_screen_quad; }
+    const Handle<Mesh> &GetQuadMesh() const { return m_full_screen_quad; }
 
     Handle<RenderGroup> &GetRenderGroup() { return m_render_group; }
     const Handle<RenderGroup> &GetRenderGroup() const { return m_render_group; }
@@ -91,12 +103,11 @@ public:
         }
     }
 
-    virtual void CreateRenderPass();
     virtual void CreateCommandBuffers();
-    virtual void CreateFramebuffers();
+    virtual void CreateFramebuffer();
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
     virtual void CreatePipeline();
-    virtual void CreateDescriptors() = 0;
+    virtual void CreateDescriptors();
 
     virtual void Create();
     virtual void Destroy();
@@ -104,13 +115,15 @@ public:
     virtual void Render(Frame *frame);
     virtual void Record(UInt frame_index);
 
+    void Begin(Frame *frame);
+    void End(Frame *frame);
+
 protected:
     void CreateQuad();
 
     FixedArray<UniquePtr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
     Handle<Mesh> m_full_screen_quad;
 
@@ -122,6 +135,8 @@ protected:
     InternalFormat m_image_format;                                    
     DescriptorKey m_descriptor_key;
     UInt m_sub_descriptor_index;
+
+    Optional<Array<const DescriptorSet *>> m_used_descriptor_sets;
 };
 } // namespace hyperion::v2
 

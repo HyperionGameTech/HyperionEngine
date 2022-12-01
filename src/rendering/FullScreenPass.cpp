@@ -70,11 +70,24 @@ FullScreenPass::FullScreenPass(
     Handle<Shader> &&shader,
     InternalFormat image_format
 ) : FullScreenPass(std::move(shader),
-        DescriptorKey::POST_FX_PRE_STACK,
+        DescriptorKey::UNUSED,
         ~0u,
         image_format
     )
 {
+}
+
+FullScreenPass::FullScreenPass(
+    Handle<Shader> &&shader,
+    const Array<const DescriptorSet *> &used_descriptor_sets,
+    InternalFormat image_format
+) : FullScreenPass(std::move(shader),
+        DescriptorKey::UNUSED,
+        ~0u,
+        image_format
+    )
+{
+    m_used_descriptor_sets.Set(used_descriptor_sets);
 }
 
 FullScreenPass::FullScreenPass(
@@ -98,9 +111,8 @@ void FullScreenPass::Create()
     InitObject(m_shader);
 
     CreateQuad();
-    CreateRenderPass();
     CreateCommandBuffers();
-    CreateFramebuffers();
+    CreateFramebuffer();
     CreatePipeline();
     CreateDescriptors();
     
@@ -122,10 +134,20 @@ void FullScreenPass::CreateQuad()
     InitObject(m_full_screen_quad);
 }
 
-void FullScreenPass::CreateRenderPass()
+void FullScreenPass::CreateCommandBuffers()
 {
-    /* Add the filters' renderpass */
-    m_render_pass = CreateObject<RenderPass>(
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
+        m_command_buffers[i] = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+    }
+
+    // create command buffers in render thread
+    RenderCommands::Push<RENDER_COMMAND(CreateCommandBuffers)>(m_command_buffers.Data());
+}
+
+void FullScreenPass::CreateFramebuffer()
+{
+    m_framebuffer = CreateObject<Framebuffer>(
+        Engine::Get()->GetGPUInstance()->swapchain->extent,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -150,40 +172,13 @@ void FullScreenPass::CreateRenderPass()
         &attachment_ref
     ));
 
-    m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentRef(attachment_ref);
 
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
-
-    InitObject(m_render_pass);
-}
-
-void FullScreenPass::CreateCommandBuffers()
-{
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_command_buffers[i] = UniquePtr<CommandBuffer>::Construct(CommandBuffer::COMMAND_BUFFER_SECONDARY);
-    }
-
-    // create command buffers in render thread
-    RenderCommands::Push<RENDER_COMMAND(CreateCommandBuffers)>(m_command_buffers.Data());
-}
-
-void FullScreenPass::CreateFramebuffers()
-{
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = CreateObject<Framebuffer>(
-            Engine::Get()->GetGPUInstance()->swapchain->extent,
-            Handle<RenderPass>(m_render_pass)
-        );
-
-        /* Add all attachments from the renderpass */
-        for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
-            m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
-        }
-        
-        InitObject(m_framebuffers[i]);
-    }
+    
+    InitObject(m_framebuffer);
 }
 
 void FullScreenPass::CreatePipeline()
@@ -202,18 +197,27 @@ void FullScreenPass::CreatePipeline()
 
 void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
 {
-    m_render_group = CreateObject<RenderGroup>(
-        std::move(m_shader),
-        Handle<RenderPass>(m_render_pass),
-        renderable_attributes
-    );
-
-    for (auto &framebuffer : m_framebuffers) {
-        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+    if (m_used_descriptor_sets.HasValue()) {
+        m_render_group = CreateObject<RenderGroup>(
+            Handle<Shader>(m_shader),
+            renderable_attributes,
+            m_used_descriptor_sets.Get()
+        );
+    } else {
+        m_render_group = CreateObject<RenderGroup>(
+            Handle<Shader>(m_shader),
+            renderable_attributes
+        );
     }
+
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
 
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
+}
+
+void FullScreenPass::CreateDescriptors()
+{
 }
 
 void FullScreenPass::Destroy()
@@ -221,26 +225,15 @@ void FullScreenPass::Destroy()
     Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
 
     // TODO: Move all attachment ops into render thread
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        if (m_framebuffers[i] != nullptr) {
-            for (auto &attachment : m_attachments) {
-                m_framebuffers[i]->RemoveAttachmentRef(attachment.get());
-            }
-
-            if (m_render_group != nullptr) {
-                m_render_group->RemoveFramebuffer(m_framebuffers[i]->GetID());
-            }
-        }
+    for (auto &attachment : m_attachments) {
+        m_framebuffer->RemoveAttachmentRef(attachment.get());
     }
 
-    if (m_render_pass != nullptr) {
-        for (auto &attachment : m_attachments) {
-            m_render_pass->GetRenderPass().RemoveAttachmentRef(attachment.get());
-        }
+    if (m_render_group != nullptr) {
+        m_render_group->RemoveFramebuffer(m_framebuffer->GetID());
     }
 
-    m_framebuffers = {};
-    m_render_pass.Reset();
+    m_framebuffer.Reset();
     m_render_group.Reset();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
@@ -331,12 +324,40 @@ void FullScreenPass::Render(Frame *frame)
 
     const auto frame_index = frame->GetFrameIndex();
 
-    m_framebuffers[frame_index]->BeginCapture(frame->GetCommandBuffer());
+    m_framebuffer->BeginCapture(frame_index, frame->GetCommandBuffer());
 
     auto *secondary_command_buffer = m_command_buffers[frame_index].Get();
     HYPERION_ASSERT_RESULT(secondary_command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
 
-    m_framebuffers[frame_index]->EndCapture(frame->GetCommandBuffer());
+    m_framebuffer->EndCapture(frame_index, frame->GetCommandBuffer());
+}
+
+
+void FullScreenPass::Begin(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    const UInt frame_index = frame->GetFrameIndex();
+
+    auto *command_buffer = m_command_buffers[frame_index].Get();
+
+    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->GetPipeline()->GetConstructionInfo().render_pass);
+
+    m_render_group->GetPipeline()->Bind(command_buffer);
+}
+
+void FullScreenPass::End(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    const UInt frame_index = frame->GetFrameIndex();
+
+    auto *command_buffer = m_command_buffers[frame_index].Get();
+    command_buffer->End(Engine::Get()->GetGPUDevice());
+
+    m_framebuffer->BeginCapture(frame_index, frame->GetCommandBuffer());
+    HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));
+    m_framebuffer->EndCapture(frame_index, frame->GetCommandBuffer());
 }
 
 } // namespace hyperion::v2

@@ -9,6 +9,7 @@
 
 namespace hyperion::v2 {
 
+using renderer::Image;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
@@ -17,7 +18,7 @@ using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
 const Extent2D DeferredRenderer::hbao_extent(512, 512);
-const Extent2D DeferredRenderer::ssr_extent(512, 512);
+const Extent2D DeferredRenderer::ssr_extent(1024, 1024);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
     : FullScreenPass(InternalFormat::RGBA16F),
@@ -50,11 +51,6 @@ void DeferredPass::CreateShader()
 
     m_shader = CreateObject<Shader>(compiled_shader);
     InitObject(m_shader);
-}
-
-void DeferredPass::CreateRenderPass()
-{
-    m_render_pass = Handle<RenderPass>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass());
 }
 
 void DeferredPass::CreateDescriptors()
@@ -90,9 +86,8 @@ void DeferredPass::Create()
 {
     CreateShader();
     FullScreenPass::CreateQuad();
-    FullScreenPass::CreateRenderPass();
     FullScreenPass::CreateCommandBuffers();
-    FullScreenPass::CreateFramebuffers();
+    FullScreenPass::CreateFramebuffer();
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
@@ -169,7 +164,7 @@ void DeferredPass::Record(UInt frame_index)
                     DescriptorSet::scene_buffer_mapping[frame_index],
                     DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                     FixedArray {
-                        UInt32(sizeof(SceneShaderData) * scene_index),
+                        HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                         HYP_RENDER_OBJECT_OFFSET(Light, light.id.ToIndex())
                     }
                 );
@@ -206,14 +201,11 @@ void DeferredRenderer::Create()
     m_direct_pass.Create();
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_opaque_fbos[frame_index] = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffers()[frame_index];
-        AssertThrow(m_opaque_fbos[frame_index]);
-
-        m_translucent_fbos[frame_index] = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()[frame_index];
-        AssertThrow(m_translucent_fbos[frame_index]);
+        m_opaque_fbo = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
+        m_translucent_fbo = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
     }
     
-    const auto *depth_attachment_ref = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()->GetRenderPass().GetAttachmentRefs().back();
+    const auto *depth_attachment_ref = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentRefs().back();
     AssertThrow(depth_attachment_ref != nullptr);
 
     m_dpr.Create(depth_attachment_ref);
@@ -222,18 +214,18 @@ void DeferredRenderer::Create()
     m_hbao->Create();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_results[i] = CreateObject<Texture>(
-            StorageImage(
-                Extent3D(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent),
-                InternalFormat::RGBA16F,
-                ImageType::TEXTURE_TYPE_2D,
-                FilterMode::TEXTURE_FILTER_NEAREST
-            ),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        );
+        // m_results[i] = CreateObject<Texture>(
+        //     StorageImage(
+        //         Extent3D(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent),
+        //         InternalFormat::RGBA16F,
+        //         ImageType::TEXTURE_TYPE_2D,
+        //         FilterMode::TEXTURE_FILTER_NEAREST
+        //     ),
+        //     FilterMode::TEXTURE_FILTER_NEAREST,
+        //     WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+        // );
 
-        InitObject(m_results[i]);
+        // InitObject(m_results[i]);
 
         m_mipmapped_results[i] = CreateObject<Texture>(Texture2D(
             mipmap_chain_extent,
@@ -256,14 +248,14 @@ void DeferredRenderer::Create()
     
     m_indirect_pass.CreateDescriptors(); // no-op
     m_direct_pass.CreateDescriptors();
+
+    CreateCombinePass();
+    CreateDescriptorSets();
     
     m_temporal_aa.Reset(new TemporalAA(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent));
     m_temporal_aa->Create();
 
     HYP_SYNC_RENDER();
-
-    CreateDescriptorSets();
-    CreateComputePipelines();
 
     //if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
     //    m_rt_radiance.Create;
@@ -286,7 +278,7 @@ void DeferredRenderer::CreateDescriptorSets()
             for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
                 gbuffer_textures->SetSubDescriptor({
                     .element_index = element_index,
-                    .image_view = m_opaque_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[attachment_index]->GetImageView()
+                    .image_view = m_opaque_fbo->GetAttachmentRefs()[attachment_index]->GetImageView()
                 });
 
                 ++element_index;
@@ -295,14 +287,14 @@ void DeferredRenderer::CreateDescriptorSets()
             // add translucent bucket's albedo
             gbuffer_textures->SetSubDescriptor({
                 .element_index = element_index,
-                .image_view = m_translucent_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
+                .image_view = m_translucent_fbo->GetAttachmentRefs()[0]->GetImageView()
             });
 
             ++element_index;
         }
 
         // depth attachment goes into separate slot
-        auto *depth_attachment_ref = m_opaque_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[GBUFFER_RESOURCE_MAX - 1];
+        auto *depth_attachment_ref = m_opaque_fbo->GetAttachmentRefs()[GBUFFER_RESOURCE_MAX - 1];
 
         /* Depth texture */
         descriptor_set_globals
@@ -342,130 +334,46 @@ void DeferredRenderer::CreateDescriptorSets()
                 .element_index = 0u,
                 .image_view = m_dpr.GetResults()[frame_index].get()
             });
-            
+
+        descriptor_set_globals
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_AMBIENT)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = m_indirect_pass.GetAttachmentRef(0)->GetImageView()
+            });
+
+        descriptor_set_globals
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_DIRECT)
+            ->SetSubDescriptor({
+                .element_index = 0u,
+                .image_view = m_direct_pass.GetAttachmentRef(0)->GetImageView()
+            });
+
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RESULT)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = &m_results[frame_index]->GetImageView()
+                .image_view = m_combine_pass->GetAttachmentRef(0)->GetImageView() //&m_results[frame_index]->GetImageView()
             });
-    }
-    
-    // create descriptor sets for combine pass (compute shader)
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
-
-        // indirect lighting
-        descriptor_set
-            ->AddDescriptor<renderer::ImageDescriptor>(0)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = m_indirect_pass.GetFramebuffer(frame_index)->GetFramebuffer()
-                    .GetAttachmentRefs()[0]->GetImageView()
-            });
-
-        // direct lighting
-        descriptor_set
-            ->AddDescriptor<renderer::ImageDescriptor>(1)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = m_direct_pass.GetFramebuffer(frame_index)->GetFramebuffer()
-                    .GetAttachmentRefs()[0]->GetImageView()
-            });
-
-        // mip chain
-        descriptor_set
-            ->AddDescriptor<renderer::ImageDescriptor>(2)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = &m_mipmapped_results[frame_index]->GetImageView()
-            });
-
-        // nearest sampler
-        descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(3)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
-            });
-
-        // linear sampler
-        descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(4)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
-            });
-
-        // output result
-        descriptor_set
-            ->AddDescriptor<renderer::StorageImageDescriptor>(5)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = &m_results[frame_index]->GetImageView()
-            });
-
-        // scene data (for camera matrices)
-        descriptor_set
-            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(6)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                .range = static_cast<UInt32>(sizeof(SceneShaderData))
-            });
-
-        { // gbuffer textures
-            auto *gbuffer_textures = descriptor_set->AddDescriptor<renderer::ImageDescriptor>(7);
-
-            UInt element_index = 0u;
-
-            // not including depth texture here
-            for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                gbuffer_textures->SetSubDescriptor({
-                    .element_index = element_index,
-                    .image_view = m_opaque_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[attachment_index]->GetImageView()
-                });
-
-                ++element_index;
-            }
-
-            // add translucent bucket's albedo
-            gbuffer_textures->SetSubDescriptor({
-                .element_index = element_index,
-                .image_view = m_translucent_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
-            });
-
-            ++element_index;
-        }
-
-        // add depth texture
-        auto *depth_attachment_ref = m_opaque_fbos[frame_index]->GetFramebuffer().GetAttachmentRefs()[GBUFFER_RESOURCE_MAX - 1];
-
-        /* Depth texture */
-        descriptor_set
-            ->AddDescriptor<ImageDescriptor>(8)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = depth_attachment_ref->GetImageView()
-            });
-
-        HYPERION_ASSERT_RESULT(descriptor_set->Create(
-            Engine::Get()->GetGPUDevice(),
-            &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
-        ));
-
-        m_combine_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
 }
 
-void DeferredRenderer::CreateComputePipelines()
+void DeferredRenderer::CreateCombinePass()
 {
-    m_combine = CreateObject<ComputePipeline>(
-        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("DeferredCombine")),
-        Array<const DescriptorSet *> { m_combine_descriptor_sets[0].Get() }
-    );
+    ShaderProps props(renderer::static_mesh_vertex_attributes);
+    props.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
+    props.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
+    props.Set("ENV_PROBE_ENABLED", true);
 
-    InitObject(m_combine);
+    auto deferred_combine_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
+        "DeferredCombine",
+        props
+    ));
+
+    Engine::Get()->InitObject(deferred_combine_shader);
+
+    m_combine_pass.Reset(new FullScreenPass(std::move(deferred_combine_shader)));
+    m_combine_pass->Create();
 }
 
 void DeferredRenderer::Destroy()
@@ -481,22 +389,18 @@ void DeferredRenderer::Destroy()
 
     m_post_processing.Destroy();
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        Engine::Get()->SafeRelease(std::move(m_combine_descriptor_sets[frame_index]));
+    m_combine_pass->Destroy();
 
-        Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_results[frame_index]));
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_mipmapped_results[frame_index]));
 
-        AssertThrow(m_results[frame_index] == nullptr);
-
-        m_opaque_fbos[frame_index].Reset();
-        m_translucent_fbos[frame_index].Reset();
     }
+
+    m_opaque_fbo.Reset();
+    m_translucent_fbo.Reset();
 
     Engine::Get()->SafeRelease(std::move(m_sampler));
     Engine::Get()->SafeRelease(std::move(m_depth_sampler));
-
-    m_combine.Reset();
 
     m_indirect_pass.Destroy();  // flushes render queue
     m_direct_pass.Destroy();    // flushes render queue
@@ -567,9 +471,9 @@ void DeferredRenderer::Render(
     { // opaque objects
         DebugMarker marker(primary, "Render opaque objects");
 
-        m_opaque_fbos[frame_index]->BeginCapture(primary);
+        m_opaque_fbo->BeginCapture(frame_index, primary);
         RenderOpaqueObjects(frame);
-        m_opaque_fbos[frame_index]->EndCapture(primary);
+        m_opaque_fbo->EndCapture(frame_index, primary);
     }
     // end opaque objs
 
@@ -579,12 +483,12 @@ void DeferredRenderer::Render(
     
     m_post_processing.RenderPre(frame);
 
-    auto &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer(frame_index);
+    auto &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
 
     { // deferred lighting on opaque objects
         DebugMarker marker(primary, "Deferred shading");
 
-        deferred_pass_framebuffer->BeginCapture(primary);
+        deferred_pass_framebuffer->BeginCapture(frame_index, primary);
 
         m_indirect_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
@@ -592,13 +496,13 @@ void DeferredRenderer::Render(
             m_direct_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
         }
 
-        deferred_pass_framebuffer->EndCapture(primary);
+        deferred_pass_framebuffer->EndCapture(frame_index, primary);
     }
 
     { // translucent objects
         DebugMarker marker(primary, "Render translucent objects");
 
-        m_translucent_fbos[frame_index]->BeginCapture(primary);
+        m_translucent_fbo->BeginCapture(frame_index, primary);
 
         // begin translucent with forward rendering
         RenderTranslucentObjects(frame);
@@ -609,45 +513,40 @@ void DeferredRenderer::Render(
 
         Engine::Get()->GetImmediateMode().Render(frame);
 
-        m_translucent_fbos[frame_index]->EndCapture(primary);
+        m_translucent_fbo->EndCapture(frame_index, primary);
     }
 
-    // combine opaque with translucent
-    m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(
-        primary,
-        renderer::ResourceState::UNORDERED_ACCESS
-    );
+    {
+        struct alignas(128) {
+            ShaderVec2<UInt32> image_dimensions;
+            UInt32 _pad0, _pad1;
+            UInt32 deferred_flags;
+        } deferred_combine_constants;
 
-    m_combine->GetPipeline()->Bind(
-        primary,
-        renderer::Pipeline::PushConstantData {
-            .deferred_combine_data = {
-                .image_dimensions = {
-                    m_results[frame_index]->GetExtent().width,
-                    m_results[frame_index]->GetExtent().height
-                }
+        deferred_combine_constants.image_dimensions = {
+            m_combine_pass->GetFramebuffer()->GetExtent().width,
+            m_combine_pass->GetFramebuffer()->GetExtent().height
+        };
+
+        deferred_combine_constants.deferred_flags = deferred_data.flags;
+
+        m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
+        m_combine_pass->Begin(frame);
+
+        m_combine_pass->GetCommandBuffer(frame_index)->BindDescriptorSets(
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            m_combine_pass->GetRenderGroup()->GetPipeline(),
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
+            FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+                HYP_RENDER_OBJECT_OFFSET(Light, 0)
             }
-        }
-    );
+        );
 
-    primary->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-        m_combine->GetPipeline(),
-        m_combine_descriptor_sets[frame_index].Get(),
-        static_cast<DescriptorSet::Index>(0),
-        FixedArray { static_cast<UInt32>(scene_index * sizeof(SceneShaderData)) }
-    );
-
-    // TODO: benchmark difference vs using a framebuffer and just drawing another quad
-
-    m_combine->GetPipeline()->Dispatch(
-        primary,
-        Extent3D {
-            ((m_results[frame_index]->GetExtent().width) + 31) / 32,
-            ((m_results[frame_index]->GetExtent().height) + 31) / 32,
-            1
-        }
-    );
+        m_combine_pass->GetQuadMesh()->Render(m_combine_pass->GetCommandBuffer(frame_index));
+        m_combine_pass->End(frame);
+    }
 
     { // render depth pyramid
         m_dpr.Render(frame);
@@ -656,17 +555,15 @@ void DeferredRenderer::Render(
         m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
     }
 
-    auto *src_image = deferred_pass_framebuffer->GetRenderPass()
-        ->GetRenderPass().GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+    Image *src_image = deferred_pass_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
 
     GenerateMipChain(frame, src_image);
 
     // put src image in state for reading
     src_image->GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
-    m_results[frame_index]->GetImage().GetGPUImage()->InsertBarrier(primary, renderer::ResourceState::SHADER_RESOURCE);
 
     m_post_processing.RenderPost(frame);
-    
+
     m_temporal_aa->Render(frame);
 }
 

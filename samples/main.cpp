@@ -229,16 +229,18 @@ public:
             zomb2->SetScale(Vector3(20.0f));
             zomb2->SetShader(zombie_entity->GetShader());
             zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
-            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(0.0f, 1.0f, 0.0f, 1.0f));
+            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
+            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
+            zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            zomb2->GetMaterial()->SetIsAlphaBlended(true);
             zomb2->SetName("FOOBAR ZOMBO");
-            zomb2->SetSkeleton(zombie_entity->GetSkeleton());
+            // zomb2->SetSkeleton(zombie_entity->GetSkeleton());
+            zomb2->SetSkeleton(CreateObject<Skeleton>());
             zomb2->RebuildRenderableAttributes();
 
             InitObject(zomb2);
             m_scene->AddEntity(zomb2);
-
-            DebugLog(LogType::Debug, "FOOBAR ZOMBIE 1 ID : %u\n", zombie_entity->GetID().Value());
-            DebugLog(LogType::Debug, "FOOBAR ZOMBO ID : %u\n", zomb2->GetID().Value());
         }
         
         { // adding lights to scene
@@ -249,6 +251,17 @@ public:
             ));
 
             m_scene->AddLight(m_sun);
+
+            // m_scene->AddLight(CreateObject<Light>(PointLight(
+            //     Vector3(0.5f, 20.0f, 20.1f).Normalize(),
+            //     Color(0.0f, 0.0f, 1.0f),
+            //     10000.0f
+            // )));
+            // m_scene->AddLight(CreateObject<Light>(PointLight(
+            //     Vector3(0.5f, 20.0f, -20.1f).Normalize(),
+            //     Color(1.0f, 0.0f, 0.0f),
+            //     10000.0f
+            // )));
         }
 
         //auto tex = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png");
@@ -365,11 +378,11 @@ public:
             //mh_child.SetEntity(Handle<Entity>::empty);
 
             if (auto entity = mh_child.GetEntity()) {
-                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-                entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 4.0f, 0.0f, 1.0f));
-                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-                entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+                // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.05f);
+                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
             }
         }
         GetScene()->GetRoot().AddChild(mh);

@@ -2,9 +2,9 @@
 #define HYPERION_V2_FRAMEBUFFER_H
 
 #include <core/Base.hpp>
-#include <rendering/RenderPass.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
+#include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 namespace hyperion::v2 {
@@ -14,14 +14,28 @@ using renderer::Extent2D;
 using renderer::Extent3D;
 using renderer::AttachmentRef;
 using renderer::Attachment;
+using renderer::RenderPass;
+using renderer::RenderPassStage;
 
 class Framebuffer
     : public EngineComponentBase<STUB_CLASS(Framebuffer)>,
       public RenderResource
 {
 public:
-    Framebuffer(Extent2D extent, Handle<RenderPass> &&render_pass);
-    Framebuffer(Extent3D extent, Handle<RenderPass> &&render_pass);
+    Framebuffer(
+        Extent2D extent,
+        RenderPassStage stage = RenderPassStage::SHADER,
+        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
+        UInt num_multiview_layers = 0
+    );
+
+    Framebuffer(
+        Extent3D extent,
+        RenderPassStage stage = RenderPassStage::SHADER,
+        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
+        UInt num_multiview_layers = 0
+    );
+
     Framebuffer(const Framebuffer &other) = delete;
     Framebuffer &operator=(const Framebuffer &other) = delete;
     ~Framebuffer();
@@ -29,20 +43,26 @@ public:
     void AddAttachmentRef(AttachmentRef *attachment);
     void RemoveAttachmentRef(const Attachment *attachment);
 
-    renderer::FramebufferObject &GetFramebuffer() { return m_framebuffer; }
-    const renderer::FramebufferObject &GetFramebuffer() const { return m_framebuffer; }
+    auto &GetAttachmentRefs() { return m_render_pass.GetAttachmentRefs(); }
+    const auto &GetAttachmentRefs() const { return m_render_pass.GetAttachmentRefs(); }
 
-    Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
-    const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
+    renderer::FramebufferObject &GetFramebuffer(UInt frame_index) { return m_framebuffers[frame_index]; }
+    const renderer::FramebufferObject &GetFramebuffer(UInt frame_index) const { return m_framebuffers[frame_index]; }
+
+    renderer::RenderPass &GetRenderPass() { return m_render_pass; }
+    const renderer::RenderPass &GetRenderPass() const { return m_render_pass; }
+
+    Extent2D GetExtent() const
+        { return { m_framebuffers[0].GetWidth(), m_framebuffers[0].GetHeight() }; }
 
     void Init();
 
-    void BeginCapture(CommandBuffer *command_buffer);
-    void EndCapture(CommandBuffer *command_buffer);
+    void BeginCapture(UInt frame_index, CommandBuffer *command_buffer);
+    void EndCapture(UInt frame_index, CommandBuffer *command_buffer);
 
 private:
-    renderer::FramebufferObject m_framebuffer;
-    Handle<RenderPass> m_render_pass;
+    FixedArray<renderer::FramebufferObject, max_frames_in_flight> m_framebuffers;
+    RenderPass m_render_pass;
 };
 
 } // namespace hyperion::v2

@@ -15,7 +15,6 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommands.hpp>
 #include <rendering/debug/ImmediateMode.hpp>
 #include <scene/World.hpp>

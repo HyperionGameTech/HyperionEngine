@@ -12,13 +12,13 @@ using renderer::Result;
 struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommand
 {
     SizeType component_index;
-    FixedArray<renderer::ImageView *, max_frames_in_flight> image_views;
+    renderer::ImageView *image_view;
 
     RENDER_COMMAND(CreateUIDescriptors)(
         SizeType component_index,
-        FixedArray<renderer::ImageView *, max_frames_in_flight> &&image_views
+        renderer::ImageView *image_view
     ) : component_index(component_index),
-        image_views(std::move(image_views))
+        image_view(image_view)
     {
     }
 
@@ -30,7 +30,7 @@ struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommand
 
             descriptor_set
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::UI_TEXTURE)
-                ->SetElementSRV(UInt(component_index), image_views[frame_index]);
+                ->SetElementSRV(UInt(component_index), image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -99,17 +99,15 @@ void UIRenderer::Init()
 
     InitObject(m_scene);
 
-    CreateFramebuffers();
+    CreateFramebuffer();
     CreateDescriptors();
 
     SetReady(true);
 }
 
-void UIRenderer::CreateFramebuffers()
+void UIRenderer::CreateFramebuffer()
 {
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_framebuffers[frame_index] = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffers()[frame_index];
-    }
+    m_framebuffer = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
 void UIRenderer::CreateDescriptors()
@@ -117,10 +115,7 @@ void UIRenderer::CreateDescriptors()
     // create descriptors in render thread
     RenderCommands::Push<RENDER_COMMAND(CreateUIDescriptors)>(
         GetComponentIndex(),
-        FixedArray<renderer::ImageView *, max_frames_in_flight> {
-            m_framebuffers[0]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView(),
-            m_framebuffers[1]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView()
-        }
+        m_framebuffer->GetAttachmentRefs()[0]->GetImageView()
     );
 }
 
@@ -136,9 +131,9 @@ void UIRenderer::OnRender(Frame *frame)
     // Threads::AssertOnThread(THREAD_RENDER);
 
     auto *command_buffer = frame->GetCommandBuffer();
-    const auto frame_index = frame->GetFrameIndex();
+    const UInt frame_index = frame->GetFrameIndex();
 
-    m_framebuffers[frame_index]->BeginCapture(command_buffer);
+    m_framebuffer->BeginCapture(frame_index, command_buffer);
     Engine::Get()->render_state.BindScene(m_scene.Get());
 
     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
@@ -146,7 +141,7 @@ void UIRenderer::OnRender(Frame *frame)
     }
 
     Engine::Get()->render_state.UnbindScene();
-    m_framebuffers[frame_index]->EndCapture(command_buffer);
+    m_framebuffer->EndCapture(frame_index, command_buffer);
 }
 
 } // namespace hyperion::v2

@@ -47,14 +47,14 @@ struct ClassName
 
 #define STUB_CLASS(name) ::hyperion::v2::StubbedClass<name, ClassName<StaticString(HYP_STR(name))>>
 
-using ComponentFlagBits = UInt;
+using ComponentFlags = UInt;
 
 template <class T>
 struct ComponentInitInfo
 {
-    enum Flags : ComponentFlagBits {};
+    enum Flags : ComponentFlags {};
 
-    ComponentFlagBits flags = 0x0;
+    ComponentFlags flags = 0x0;
 };
 
 class RenderResource { };
@@ -142,10 +142,10 @@ public:
     HYP_FORCE_INLINE const InitInfo &GetInitInfo() const
         { return m_init_info; }
 
-    HYP_FORCE_INLINE bool HasFlags(ComponentFlagBits flags) const
+    HYP_FORCE_INLINE bool HasFlags(ComponentFlags flags) const
         { return bool(m_init_info.flags & flags); }
 
-    HYP_FORCE_INLINE void SetFlags(ComponentFlagBits flags, bool enable)
+    HYP_FORCE_INLINE void SetFlags(ComponentFlags flags, bool enable = true)
         { m_init_info.flags = enable ? (m_init_info.flags | flags) : (m_init_info.flags & ~flags); }
 
     HYP_FORCE_INLINE ID GetID() const

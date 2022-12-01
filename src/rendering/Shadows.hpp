@@ -89,11 +89,11 @@ public:
         }
     }
 
-    ImageView *GetShadowMap(UInt frame_index) const
+    ImageView *GetShadowMap() const
     {
-        if (auto framebuffer = m_framebuffers[frame_index]) {
-            if (!framebuffer->GetFramebuffer().GetAttachmentRefs().empty()) {
-                if (auto *attachment_ref = framebuffer->GetFramebuffer().GetAttachmentRefs().front()) {
+        if (m_framebuffer) {
+            if (!m_framebuffer->GetAttachmentRefs().empty()) {
+                if (auto *attachment_ref = m_framebuffer->GetAttachmentRefs().front()) {
                     return attachment_ref->GetImageView();
                 }
             }
@@ -104,7 +104,7 @@ public:
 
     void CreateShader();
     void CreateRenderGroup();
-    virtual void CreateRenderPass() override;
+    virtual void CreateFramebuffer() override;
     virtual void CreateDescriptors() override;
 
     virtual void Create() override;

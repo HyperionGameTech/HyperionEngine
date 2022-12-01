@@ -191,11 +191,7 @@ void TemporalAA::CreateDescriptorSets()
 
         // input 0 - current frame being rendered
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(0)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = &Engine::Get()->GetDeferredRenderer()
-                    .GetCombinedResult(frame_index)->GetImageView()
-            });
+            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetCombinedResult(frame_index)->GetImageView());
 
         // input 1 - previous frame
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(1)

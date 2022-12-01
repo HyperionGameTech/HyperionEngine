@@ -58,7 +58,6 @@ public:
     virtual ~DeferredPass() override;
 
     void CreateShader();
-    virtual void CreateRenderPass() override;
     virtual void CreateDescriptors() override;
     virtual void Create() override;
     virtual void Destroy() override;
@@ -93,11 +92,11 @@ public:
     const DepthPyramidRenderer &GetDepthPyramidRenderer() const
         { return m_dpr; }
 
-    Handle<Texture> &GetCombinedResult(UInt frame_index)
-        { return m_results[frame_index]; }
+    AttachmentRef *GetCombinedResult(UInt frame_index)
+        { return m_combine_pass->GetAttachmentRef(0); }
 
-    const Handle<Texture> &GetCombinedResult(UInt frame_index) const
-        { return m_results[frame_index]; }
+    const AttachmentRef *GetCombinedResult(UInt frame_index) const
+        { return m_combine_pass->GetAttachmentRef(0); }
 
     Handle<Texture> &GetMipChain(UInt frame_index)
         { return m_mipmapped_results[frame_index]; }
@@ -112,7 +111,7 @@ public:
     void RenderUI(Frame *frame);
 
 private:
-    void CreateComputePipelines();
+    void CreateCombinePass();
     void CreateDescriptorSets();
 
     void CollectDrawCalls(Frame *frame);
@@ -130,11 +129,10 @@ private:
     UniquePtr<HBAO> m_hbao;
     UniquePtr<TemporalAA> m_temporal_aa;
 
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_opaque_fbos;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_translucent_fbos;
+    Handle<Framebuffer> m_opaque_fbo;
+    Handle<Framebuffer> m_translucent_fbo;
 
-    Handle<ComputePipeline> m_combine;
-    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_combine_descriptor_sets;
+    UniquePtr<FullScreenPass> m_combine_pass;
 
     ScreenspaceReflectionRenderer m_ssr;
     DepthPyramidRenderer m_dpr;

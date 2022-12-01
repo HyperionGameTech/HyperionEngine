@@ -74,19 +74,18 @@ private:
 
     Image *GetCubemapImage(UInt frame_index) const
     {
-        return m_framebuffers[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+        return m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
     }
 
     ImageView *GetCubemapImageView(UInt frame_index) const
     {
-        return m_framebuffers[frame_index]->GetFramebuffer().GetAttachmentRefs()[0]->GetImageView();
+        return m_framebuffer->GetAttachmentRefs()[0]->GetImageView();
     }
 
     void CreateImagesAndBuffers();
     void CreateRenderGroup();
     void CreateShader();
-    void CreateRenderPass();
-    void CreateFramebuffers();
+    void CreateFramebuffer();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
     virtual void OnEntityRemoved(Handle<Entity> &entity) override;
@@ -97,9 +96,8 @@ private:
     BoundingBox m_aabb;
     FilterMode m_filter_mode;
     Handle<Scene> m_scene;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     FixedArray<Handle<Texture>, max_frames_in_flight> m_cubemaps;

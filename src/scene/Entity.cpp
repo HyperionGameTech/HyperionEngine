@@ -109,16 +109,6 @@ Entity::Entity(
     }
 }
 
-// Entity::Entity(Entity &&other) noexcept
-// {
-
-// }
-
-// Entity &Entity::operator=(Entity &&other) noexcept
-// {
-    
-// }
-
 Entity::~Entity()
 {
     Teardown();
@@ -162,9 +152,9 @@ void Entity::Init()
     SetReady(true);
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    //if (Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled()) {
-    //    CreateBLAS();
-    //}
+    if (Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled() && HasFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS)) {
+       CreateBLAS();
+    }
 #endif
 
     OnTeardown([this]() {
@@ -718,6 +708,8 @@ bool Entity::CreateBLAS()
 
         return false;
     } else {
+        SetFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS);
+        
         return true;
     }
 }

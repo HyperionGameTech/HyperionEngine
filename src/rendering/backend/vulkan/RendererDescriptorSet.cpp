@@ -77,7 +77,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::TEMPORAL_AA_RESULT,    50},
             
             // immediate drawing transforms
-            {DescriptorKey::IMMEDIATE_DRAWS,       51}
+            {DescriptorKey::IMMEDIATE_DRAWS,       51},
+
+            {DescriptorKey::DEFERRED_LIGHTING_AMBIENT, 55},
+            {DescriptorKey::DEFERRED_LIGHTING_DIRECT,  56}
         }
     },
     {

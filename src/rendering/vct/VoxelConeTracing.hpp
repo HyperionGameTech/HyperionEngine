@@ -9,7 +9,6 @@
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderPass.hpp>
 #include <scene/Scene.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -78,8 +77,7 @@ private:
     void CreateRenderGroup();
     void CreateComputePipelines();
     void CreateShader();
-    void CreateRenderPass();
-    void CreateFramebuffers();
+    void CreateFramebuffer();
     void CreateDescriptors();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
@@ -90,9 +88,8 @@ private:
     Params m_params;
 
     Handle<Scene> m_scene;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
     Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_generate_mipmap;

@@ -52,8 +52,7 @@ public:
         friend class DeferredSystem;
 
         Bucket bucket { BUCKET_OPAQUE };
-        Handle<RenderPass> render_pass;
-        FixedArray<Handle<Framebuffer>, max_frames_in_flight> framebuffers;
+        Handle<Framebuffer> framebuffer;
         Array<std::unique_ptr<Attachment>> attachments;
         Array<Handle<RenderGroup>> renderer_instances;
         Array<Handle<RenderGroup>> renderer_instances_pending_addition;
@@ -67,29 +66,25 @@ public:
         Bucket GetBucket() const { return bucket; }
         void SetBucket(Bucket bucket) { this->bucket = bucket; }
         
-        Handle<RenderPass> &GetRenderPass() { return render_pass; }
-        const Handle<RenderPass> &GetRenderPass() const { return render_pass; }
-        
-        FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() { return framebuffers; }
-        const FixedArray<Handle<Framebuffer>, max_frames_in_flight> &GetFramebuffers() const { return framebuffers; }
+        Handle<Framebuffer> &GetFramebuffer() { return framebuffer; }
+        const Handle<Framebuffer> &GetFramebuffer() const { return framebuffer; }
 
         Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
         const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }
 
         AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
-            AssertThrow(render_pass.IsValid());
+            AssertThrow(framebuffer.IsValid());
             AssertThrow(UInt(resource_name) < UInt(GBUFFER_RESOURCE_MAX));
 
-            return render_pass->GetRenderPass().GetAttachmentRefs()[UInt(resource_name)];
+            return framebuffer->GetAttachmentRefs()[UInt(resource_name)];
         }
 
         void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
         void AddPendingRenderGroups();
         void AddFramebuffersToPipelines();
         void AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline);
-        void CreateRenderPass();
-        void CreateFramebuffers();
+        void CreateFramebuffer();
         void Destroy();
     };
 

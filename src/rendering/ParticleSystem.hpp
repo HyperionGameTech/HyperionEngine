@@ -16,7 +16,6 @@
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderPass.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 

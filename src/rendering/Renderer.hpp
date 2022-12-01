@@ -5,7 +5,6 @@
 #include <scene/Entity.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Framebuffer.hpp>
-#include <rendering/RenderPass.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/IndirectDraw.hpp>
@@ -100,13 +99,11 @@ public:
 
     RenderGroup(
         Handle<Shader> &&shader,
-        Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
     );
 
     RenderGroup(
         Handle<Shader> &&shader,
-        Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes,
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
@@ -128,7 +125,7 @@ public:
     const auto &GetEntities() const { return m_entities; }
 
     void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
-    void RemoveFramebuffer(Framebuffer::ID id);
+    void RemoveFramebuffer(HandleID<Framebuffer> id);
     Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
     const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
     
@@ -178,7 +175,6 @@ private:
     std::unique_ptr<renderer::GraphicsPipeline> m_pipeline;
 
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     RenderableAttributeSet m_renderable_attributes;
 
     IndirectRenderer m_indirect_renderer;

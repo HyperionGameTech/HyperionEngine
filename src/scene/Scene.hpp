@@ -36,13 +36,13 @@ struct FogParams
 template<>
 struct ComponentInitInfo<STUB_CLASS(Scene)>
 {
-    enum Flags : ComponentFlagBits
+    enum Flags : ComponentFlags
     {
         SCENE_FLAGS_NONE = 0x0,
         SCENE_FLAGS_HAS_TLAS = 0x1
     };
 
-    ComponentFlagBits flags = SCENE_FLAGS_NONE;
+    ComponentFlags flags = SCENE_FLAGS_NONE;
 };
 
 class Scene

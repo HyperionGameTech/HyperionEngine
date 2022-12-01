@@ -4,7 +4,6 @@
 #include <core/Base.hpp>
 #include <scene/Scene.hpp>
 #include <core/Containers.hpp>
-#include "RenderPass.hpp"
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Renderer.hpp"
@@ -65,7 +64,6 @@ private:
     void CreateBuffers();
     void CreatePipeline();
     void CreateShader();
-    void CreateRenderPass();
     void CreateFramebuffer();
     void CreateDescriptors();
 
@@ -80,7 +78,6 @@ private:
 
     Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
 
     std::vector<std::unique_ptr<renderer::Attachment>> m_attachments;
