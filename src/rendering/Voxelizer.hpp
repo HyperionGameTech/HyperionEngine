@@ -4,7 +4,6 @@
 #include <core/Base.hpp>
 #include <scene/Scene.hpp>
 #include <core/Containers.hpp>
-#include "RenderPass.hpp"
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Renderer.hpp"

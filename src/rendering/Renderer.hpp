@@ -5,7 +5,6 @@
 #include <scene/Entity.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Framebuffer.hpp>
-#include <rendering/RenderPass.hpp>
 #include <rendering/RenderBucket.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/IndirectDraw.hpp>

@@ -10,10 +10,11 @@
 namespace hyperion::v2 {
 
 using renderer::DescriptorKey;
-using renderer::StorageImageDescriptor;
+using renderer::Image;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::SamplerDescriptor;
+using renderer::StorageImageDescriptor;
 using renderer::StorageImage2D;
 
 struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
@@ -328,7 +329,7 @@ void ShadowPass::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *framebuffer_image = m_attachments.Front()->GetImage();
+    Image *framebuffer_image = m_attachments.Front()->GetImage();
 
     if (framebuffer_image == nullptr) {
         return;

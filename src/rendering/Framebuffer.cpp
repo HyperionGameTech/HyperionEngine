@@ -5,9 +5,9 @@ namespace hyperion::v2 {
 
 struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
 {
-    renderer::RenderPass *render_pass;
+    RenderPass *render_pass;
 
-    RENDER_COMMAND(CreateRenderPass)(renderer::RenderPass *render_pass)
+    RENDER_COMMAND(CreateRenderPass)(RenderPass *render_pass)
         : render_pass(render_pass)
     {
     }
@@ -20,9 +20,9 @@ struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
 
 struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
 {
-    renderer::RenderPass *render_pass;
+    RenderPass *render_pass;
 
-    RENDER_COMMAND(DestroyRenderPass)(renderer::RenderPass *render_pass)
+    RENDER_COMMAND(DestroyRenderPass)(RenderPass *render_pass)
         : render_pass(render_pass)
     {
     }
@@ -36,9 +36,9 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
 struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
 {
     renderer::FramebufferObject *framebuffer;
-    renderer::RenderPass *render_pass;
+    RenderPass *render_pass;
 
-    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, renderer::RenderPass *render_pass)
+    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, RenderPass *render_pass)
         : framebuffer(framebuffer),
           render_pass(render_pass)
     {
@@ -68,8 +68,8 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommand
 
 Framebuffer::Framebuffer(
     Extent2D extent,
-    renderer::RenderPassStage stage,
-    renderer::RenderPass::Mode render_pass_mode,
+    RenderPassStage stage,
+    RenderPass::Mode render_pass_mode,
     UInt num_multiview_layers
 ) : Framebuffer(Extent3D(extent), stage, render_pass_mode)
 {
@@ -77,8 +77,8 @@ Framebuffer::Framebuffer(
 
 Framebuffer::Framebuffer(
     Extent3D extent,
-    renderer::RenderPassStage stage,
-    renderer::RenderPass::Mode render_pass_mode,
+    RenderPassStage stage,
+    RenderPass::Mode render_pass_mode,
     UInt num_multiview_layers
 ) : EngineComponentBase(),
     m_framebuffers { renderer::FramebufferObject(extent), renderer::FramebufferObject(extent) },

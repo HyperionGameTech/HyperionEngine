@@ -1,7 +1,6 @@
 #ifndef HYPERION_V2_POST_FX_H
 #define HYPERION_V2_POST_FX_H
 
-#include "RenderPass.hpp"
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Renderer.hpp"

@@ -1,7 +1,6 @@
 #ifndef HYPERION_V2_FULL_SCREEN_PASS_H
 #define HYPERION_V2_FULL_SCREEN_PASS_H
 
-#include "RenderPass.hpp"
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
 #include "Renderer.hpp"

@@ -198,7 +198,7 @@ public:
     };
 
 
-#define HAS_OPAQUE_HANDLE_NS(ns, T, _max_size) \
+#define DEF_HANDLE_NS(ns, T, _max_size) \
     namespace ns { \
     class T; \
     } \
@@ -214,7 +214,6 @@ DEF_HANDLE(Camera,                       64);
 DEF_HANDLE(Entity,                       32768);
 DEF_HANDLE(Mesh,                         65536);
 DEF_HANDLE(Framebuffer,                  256);
-DEF_HANDLE(RenderPass,                   1024);
 DEF_HANDLE(Shader,                       1024);
 DEF_HANDLE(RenderGroup,                  256);
 DEF_HANDLE(Skeleton,                     512);
@@ -233,7 +232,7 @@ DEF_HANDLE(ParticleSystem,               8);
 DEF_HANDLE(ComputePipeline,              16384);
 DEF_HANDLE(ParticleSpawner,              512);
 DEF_HANDLE(Script,                       8192);
-HAS_OPAQUE_HANDLE_NS(physics, RigidBody, 8192);
+DEF_HANDLE_NS(physics, RigidBody,        8192);
 
 // to get rid of:
 DEF_HANDLE(PostProcessingEffect,         512);
@@ -245,6 +244,7 @@ DEF_HANDLE(UIRenderer,                   1);
 DEF_HANDLE(Voxelizer,                    1);
 
 #undef DEF_HANDLE
+#undef DEF_HANDLE_NS
 
 } // namespace hyperion::v2
 

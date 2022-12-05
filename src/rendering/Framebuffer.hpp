@@ -2,9 +2,9 @@
 #define HYPERION_V2_FRAMEBUFFER_H
 
 #include <core/Base.hpp>
-#include <rendering/RenderPass.hpp>
 
 #include <rendering/backend/RendererFramebuffer.hpp>
+#include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
 namespace hyperion::v2 {
@@ -14,7 +14,8 @@ using renderer::Extent2D;
 using renderer::Extent3D;
 using renderer::AttachmentRef;
 using renderer::Attachment;
-
+using renderer::RenderPass;
+using renderer::RenderPassStage;
 
 class Framebuffer
     : public EngineComponentBase<STUB_CLASS(Framebuffer)>,
@@ -23,15 +24,15 @@ class Framebuffer
 public:
     Framebuffer(
         Extent2D extent,
-        renderer::RenderPassStage stage = renderer::RenderPassStage::SHADER,
-        renderer::RenderPass::Mode render_pass_mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE,
+        RenderPassStage stage = RenderPassStage::SHADER,
+        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 
     Framebuffer(
         Extent3D extent,
-        renderer::RenderPassStage stage = renderer::RenderPassStage::SHADER,
-        renderer::RenderPass::Mode render_pass_mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE,
+        RenderPassStage stage = RenderPassStage::SHADER,
+        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 
@@ -61,7 +62,7 @@ public:
 
 private:
     FixedArray<renderer::FramebufferObject, max_frames_in_flight> m_framebuffers;
-    renderer::RenderPass m_render_pass;
+    RenderPass m_render_pass;
 };
 
 } // namespace hyperion::v2

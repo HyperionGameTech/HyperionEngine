@@ -9,7 +9,6 @@
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderPass.hpp>
 #include <scene/Scene.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
