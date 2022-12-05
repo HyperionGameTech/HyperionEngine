@@ -63,13 +63,13 @@ public:
     FullScreenPass &operator=(const FullScreenPass &) = delete;
     virtual ~FullScreenPass();
 
-    AttachmentRef *GetAttachmentRef(UInt frame_index, UInt attachment_index)
-        { return GetFramebuffer(frame_index)->GetFramebuffer().GetAttachmentRefs()[attachment_index]; }
+    AttachmentRef *GetAttachmentRef(UInt attachment_index)
+        { return GetFramebuffer()->GetAttachmentRefs()[attachment_index]; }
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
 
-    Handle<Framebuffer> &GetFramebuffer(UInt index) { return m_framebuffers[index]; }
-    const Handle<Framebuffer> &GetFramebuffer(UInt index) const { return m_framebuffers[index]; }
+    Handle<Framebuffer2> &GetFramebuffer() { return m_framebuffer; }
+    const Handle<Framebuffer2> &GetFramebuffer() const { return m_framebuffer; }
                                                       
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
@@ -78,9 +78,6 @@ public:
 
     Handle<Mesh> &GetQuadMesh() { return m_full_screen_quad; }
     const Handle<Mesh> &GetQuadMesh() const { return m_full_screen_quad; }
-
-    Handle<RenderPass> &GetRenderPass() { return m_render_pass; }
-    const Handle<RenderPass> &GetRenderPass() const { return m_render_pass; }
 
     Handle<RenderGroup> &GetRenderGroup() { return m_render_group; }
     const Handle<RenderGroup> &GetRenderGroup() const { return m_render_group; }
@@ -107,9 +104,8 @@ public:
         }
     }
 
-    virtual void CreateRenderPass();
     virtual void CreateCommandBuffers();
-    virtual void CreateFramebuffers();
+    virtual void CreateFramebuffer();
     virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes);
     virtual void CreatePipeline();
     virtual void CreateDescriptors();
@@ -127,9 +123,8 @@ protected:
     void CreateQuad();
 
     FixedArray<UniquePtr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer2> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
     Handle<Mesh> m_full_screen_quad;
 

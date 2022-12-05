@@ -38,17 +38,15 @@ public:
     void OnRender(Frame *frame);
 
 private:
-    void CreateRenderPass();
-    void CreateFramebuffers();
+    void CreateFramebuffer();
     void CreateDescriptors();
 
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { AssertThrowMsg(false, "Not permitted!"); }
 
     Handle<Scene> m_scene;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer2> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
 };
 
 

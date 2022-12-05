@@ -162,11 +162,6 @@ void Engine::PrepareFinalPass()
     AssertThrow(InitObject(shader));
 
     UInt iteration = 0;
-    
-    auto render_pass = CreateObject<RenderPass>(
-        renderer::RenderPassStage::PRESENT,
-        renderer::RenderPass::Mode::RENDER_PASS_INLINE
-    );
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
         std::make_unique<renderer::FramebufferImage2D>(
@@ -191,9 +186,10 @@ void Engine::PrepareFinalPass()
     }
 
     for (VkImage img : m_instance->swapchain->images) {
-        auto fbo = CreateObject<Framebuffer>(
+        auto fbo = CreateObject<Framebuffer2>(
             m_instance->swapchain->extent,
-            Handle<RenderPass>(render_pass)
+            renderer::RenderPassStage::PRESENT,
+            renderer::RenderPass::Mode::RENDER_PASS_INLINE
         );
 
         renderer::AttachmentRef *color_attachment_ref,
@@ -212,7 +208,7 @@ void Engine::PrepareFinalPass()
 
         color_attachment_ref->SetBinding(0);
 
-        fbo->GetFramebuffer().AddAttachmentRef(color_attachment_ref);
+        fbo->AddAttachmentRef(color_attachment_ref);
 
         HYPERION_ASSERT_RESULT(m_render_pass_attachments[1]->AddAttachmentRef(
             m_instance->GetDevice(),
@@ -221,19 +217,13 @@ void Engine::PrepareFinalPass()
             &depth_attachment_ref
         ));
 
-        fbo->GetFramebuffer().AddAttachmentRef(depth_attachment_ref);
+        fbo->AddAttachmentRef(depth_attachment_ref);
 
         depth_attachment_ref->SetBinding(1);
 
         if (iteration == 0) {
-            render_pass->GetRenderPass().AddAttachmentRef(color_attachment_ref);
-            render_pass->GetRenderPass().AddAttachmentRef(depth_attachment_ref);
-
-            InitObject(render_pass);
-
             m_root_pipeline = CreateObject<RenderGroup>(
                 std::move(shader),
-                Handle<RenderPass>(render_pass),
                 RenderableAttributeSet(
                     MeshAttributes {
                         .vertex_attributes = renderer::static_mesh_vertex_attributes
@@ -940,12 +930,9 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const Handle<Shader> &shader, cons
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
     new_renderable_attributes.shader_id = shader->GetID();
 
-    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
-
     // create a RenderGroup with the given params
     auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
-        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
@@ -982,7 +969,6 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     // create a RenderGroup with the given params
     auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
-        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes,
         used_descriptor_sets
     );
@@ -1017,7 +1003,6 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader
     // create a RenderGroup with the given params
     auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
-        Handle<RenderPass>(render_list_bucket.GetRenderPass()),
         new_renderable_attributes
     );
 
@@ -1097,7 +1082,7 @@ void Engine::RenderFinalPass(Frame *frame)
     auto *pipeline = m_root_pipeline->GetPipeline();
     const UInt acquired_image_index = m_instance->GetFrameHandler()->GetAcquiredImageIndex();
 
-    m_root_pipeline->GetFramebuffers()[acquired_image_index]->BeginCapture(frame->GetCommandBuffer());
+    m_root_pipeline->GetFramebuffers()[acquired_image_index]->BeginCapture(0, frame->GetCommandBuffer());
     
     pipeline->Bind(frame->GetCommandBuffer());
 
@@ -1127,6 +1112,6 @@ void Engine::RenderFinalPass(Frame *frame)
     /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
     m_full_screen_quad->Render(frame->GetCommandBuffer());
     
-    m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(frame->GetCommandBuffer());
+    m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(0, frame->GetCommandBuffer());
 }
 } // namespace hyperion::v2

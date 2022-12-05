@@ -78,8 +78,7 @@ private:
     void CreateRenderGroup();
     void CreateComputePipelines();
     void CreateShader();
-    void CreateRenderPass();
-    void CreateFramebuffers();
+    void CreateFramebuffer();
     void CreateDescriptors();
 
     virtual void OnEntityAdded(Handle<Entity> &entity) override;
@@ -90,9 +89,8 @@ private:
     Params m_params;
 
     Handle<Scene> m_scene;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_framebuffers;
+    Handle<Framebuffer2> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
     Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_generate_mipmap;

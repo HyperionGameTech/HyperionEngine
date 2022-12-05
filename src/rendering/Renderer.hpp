@@ -100,13 +100,11 @@ public:
 
     RenderGroup(
         Handle<Shader> &&shader,
-        Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes
     );
 
     RenderGroup(
         Handle<Shader> &&shader,
-        Handle<RenderPass> &&render_pass,
         const RenderableAttributeSet &renderable_attributes,
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
@@ -127,10 +125,10 @@ public:
     auto &GetEntities() { return m_entities; }
     const auto &GetEntities() const { return m_entities; }
 
-    void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
-    void RemoveFramebuffer(Framebuffer::ID id);
-    Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
-    const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
+    void AddFramebuffer(Handle<Framebuffer2> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
+    void RemoveFramebuffer(HandleID<Framebuffer2> id);
+    Array<Handle<Framebuffer2>> &GetFramebuffers() { return m_fbos; } 
+    const Array<Handle<Framebuffer2>> &GetFramebuffers() const { return m_fbos; }
     
     void Init();
 
@@ -178,12 +176,11 @@ private:
     std::unique_ptr<renderer::GraphicsPipeline> m_pipeline;
 
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     RenderableAttributeSet m_renderable_attributes;
 
     IndirectRenderer m_indirect_renderer;
     
-    Array<Handle<Framebuffer>> m_fbos;
+    Array<Handle<Framebuffer2>> m_fbos;
 
     Array<Handle<Entity>> m_entities; // lives in RENDER thread
     Array<Handle<Entity>> m_entities_pending_addition; // shared

@@ -50,17 +50,15 @@ PostFXPass::~PostFXPass() = default;
 void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(THREAD_RENDER);
-
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
     
-        if (!framebuffer.GetAttachmentRefs().empty()) {
-            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+    if (!m_framebuffer->GetAttachmentRefs().empty()) {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(m_descriptor_key);
 
-            AssertThrowMsg(framebuffer.GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
+            AssertThrowMsg(m_framebuffer->GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
 
-            for (const auto *attachment_ref : framebuffer.GetAttachmentRefs()) {
+            for (const auto *attachment_ref : m_framebuffer->GetAttachmentRefs()) {
                 m_sub_descriptor_index = descriptor->SetSubDescriptor({
                     .element_index = m_sub_descriptor_index,
                     .image_view = attachment_ref->GetImageView()

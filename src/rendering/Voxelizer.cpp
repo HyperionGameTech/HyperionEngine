@@ -45,7 +45,6 @@ void Voxelizer::Init()
     
     CreateBuffers();
     CreateShader();
-    CreateRenderPass();
     CreateFramebuffer();
     CreateDescriptors();
     CreatePipeline();
@@ -105,7 +104,6 @@ void Voxelizer::CreatePipeline()
 {
     m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
-        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
@@ -117,8 +115,8 @@ void Voxelizer::CreatePipeline()
             }
         )
     );
-    
-    InitObject(m_framebuffer);
+
+    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     
@@ -185,21 +183,12 @@ void Voxelizer::CreateShader()
     InitObject(m_shader);
 }
 
-void Voxelizer::CreateRenderPass()
-{
-    m_render_pass = CreateObject<RenderPass>(
-        RenderPassStage::SHADER,
-        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
-    );
-
-    InitObject(m_render_pass);
-}
-
 void Voxelizer::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer>(
+    m_framebuffer = CreateObject<Framebuffer2>(
         Extent2D { voxel_map_size, voxel_map_size },
-        Handle<RenderPass>(m_render_pass)
+        RenderPassStage::SHADER,
+        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
     
     InitObject(m_framebuffer);
@@ -296,7 +285,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
     single_time_commands.Push([&](CommandBuffer *command_buffer) {
         auto temp_frame = Frame::TemporaryFrame(command_buffer);
 
-        m_framebuffer->BeginCapture(command_buffer);
+        m_framebuffer->BeginCapture(0, command_buffer);
         
         if (!Engine::Get()->render_state.GetScene()) {
             Engine::Get()->render_state.BindScene(m_scene.Get());
@@ -306,7 +295,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
             m_render_group->Render(&temp_frame);
         }
 
-        m_framebuffer->EndCapture(command_buffer);
+        m_framebuffer->EndCapture(0, command_buffer);
 
         HYPERION_RETURN_OK;
     });

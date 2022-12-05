@@ -52,7 +52,7 @@ public:
         // Threads::AssertOnThread(THREAD_GAME);
 
         const FixedArray<String, sizeof...(formats)> format_strings {
-            formats...
+            String(formats)...
         };
 
         for (auto &str : format_strings) {

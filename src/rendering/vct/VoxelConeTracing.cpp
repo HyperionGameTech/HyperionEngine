@@ -47,8 +47,7 @@ void VoxelConeTracing::Init()
 
     CreateImagesAndBuffers();
     CreateShader();
-    CreateRenderPass();
-    CreateFramebuffers();
+    CreateFramebuffer();
     CreateRenderGroup();
     CreateDescriptors();
     CreateComputePipelines();
@@ -61,8 +60,7 @@ void VoxelConeTracing::Init()
             m_scene.Reset();
         }
 
-        m_framebuffers = {};
-        m_render_pass.Reset();
+        m_framebuffer.Reset();
         m_render_group.Reset();
         m_clear_voxels.Reset();
         m_generate_mipmap.Reset();
@@ -219,7 +217,7 @@ void VoxelConeTracing::OnRender(Frame *frame)
     }
 
     auto *command_buffer = frame->GetCommandBuffer();
-    const auto frame_index = frame->GetFrameIndex();
+    const UInt frame_index = frame->GetFrameIndex();
 
     auto result = renderer::Result::OK;
 
@@ -248,9 +246,9 @@ void VoxelConeTracing::OnRender(Frame *frame)
         DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
     );
 
-    m_framebuffers[frame_index]->BeginCapture(command_buffer);
+    m_framebuffer->BeginCapture(frame_index, command_buffer);
     m_render_group->Render(frame);
-    m_framebuffers[frame_index]->EndCapture(command_buffer);
+    m_framebuffer->EndCapture(frame_index, command_buffer);
 
     Engine::Get()->render_state.UnbindScene();
 
@@ -478,7 +476,6 @@ void VoxelConeTracing::CreateRenderGroup()
 {
     m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
-        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
@@ -491,9 +488,7 @@ void VoxelConeTracing::CreateRenderGroup()
         )
     );
 
-    for (auto &framebuffer : m_framebuffers) {
-        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
-    }
+    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
@@ -547,26 +542,15 @@ void VoxelConeTracing::CreateShader()
     InitObject(m_shader);
 }
 
-void VoxelConeTracing::CreateRenderPass()
+void VoxelConeTracing::CreateFramebuffer()
 {
-    m_render_pass = CreateObject<RenderPass>(
+    m_framebuffer = CreateObject<Framebuffer2>(
+        Extent2D(voxel_map_extent),
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
-    InitObject(m_render_pass);
-}
-
-void VoxelConeTracing::CreateFramebuffers()
-{
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_framebuffers[i] = CreateObject<Framebuffer>(
-            Extent2D(voxel_map_extent),
-            Handle<RenderPass>(m_render_pass)
-        );
-        
-        InitObject(m_framebuffers[i]);
-    }
+    InitObject(m_framebuffer);
 }
 
 void VoxelConeTracing::CreateDescriptors()

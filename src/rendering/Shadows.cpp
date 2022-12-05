@@ -149,10 +149,11 @@ void ShadowPass::SetParentScene(Scene::ID id)
     }
 }
 
-void ShadowPass::CreateRenderPass()
+void ShadowPass::CreateFramebuffer()
 {
     /* Add the filters' renderpass */
-    m_render_pass = CreateObject<RenderPass>(
+    m_framebuffer = CreateObject<Framebuffer2>(
+        m_dimensions,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -176,7 +177,7 @@ void ShadowPass::CreateRenderPass()
             &attachment_ref
         ));
 
-        m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+        m_framebuffer->AddAttachmentRef(attachment_ref);
     }
 
     { // standard depth texture
@@ -196,7 +197,7 @@ void ShadowPass::CreateRenderPass()
             &attachment_ref
         ));
 
-        m_render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+        m_framebuffer->AddAttachmentRef(attachment_ref);
     }
 
     // should be created in render thread
@@ -204,7 +205,7 @@ void ShadowPass::CreateRenderPass()
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
-    InitObject(m_render_pass);
+    InitObject(m_framebuffer);
 }
 
 void ShadowPass::CreateDescriptors()
@@ -221,7 +222,6 @@ void ShadowPass::CreateRenderGroup()
 {
     m_render_group = CreateObject<RenderGroup>(
         std::move(m_shader),
-        Handle<RenderPass>(m_render_pass),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
@@ -233,9 +233,7 @@ void ShadowPass::CreateRenderGroup()
         )
     );
 
-    for (auto &framebuffer : m_framebuffers) {
-        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
-    }
+    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
@@ -261,7 +259,7 @@ void ShadowPass::CreateComputePipelines()
         m_blur_descriptor_sets[i].AddDescriptor<ImageDescriptor>(0)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = m_render_pass->GetRenderPass().GetAttachmentRefs().front()->GetImageView()
+                .image_view = m_framebuffer->GetAttachmentRefs().front()->GetImageView()
             });
 
         m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)
@@ -291,7 +289,7 @@ void ShadowPass::Create()
 {
     CreateShadowMap();
     CreateShader();
-    CreateRenderPass();
+    CreateFramebuffer();
     CreateDescriptors();
     CreateComputePipelines();
 
@@ -303,22 +301,6 @@ void ShadowPass::Create()
 
     m_scene->SetParentID(m_parent_scene_id);
     InitObject(m_scene);
-
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        { // init framebuffers
-            m_framebuffers[i] = CreateObject<Framebuffer>(
-                m_dimensions,
-                Handle<RenderPass>(m_render_pass)
-            );
-
-            /* Add all attachments from the renderpass */
-            for (auto *attachment_ref : m_render_pass->GetRenderPass().GetAttachmentRefs()) {
-                m_framebuffers[i]->GetFramebuffer().AddAttachmentRef(attachment_ref);
-            }
-
-            InitObject(m_framebuffers[i]);
-        }
-    }
 
     CreateRenderGroup();
     CreateCommandBuffers();
@@ -353,14 +335,15 @@ void ShadowPass::Render(Frame *frame)
     }
 
     auto *command_buffer = frame->GetCommandBuffer();
+    const UInt frame_index = frame->GetFrameIndex();
 
-    m_framebuffers[frame->GetFrameIndex()]->BeginCapture(command_buffer);
+    m_framebuffer->BeginCapture(frame_index, command_buffer);
 
     Engine::Get()->render_state.BindScene(m_scene.Get());
     m_render_group->Render(frame);
     Engine::Get()->render_state.UnbindScene();
 
-    m_framebuffers[frame->GetFrameIndex()]->EndCapture(command_buffer);
+    m_framebuffer->EndCapture(frame_index, command_buffer);
 
     if (m_shadow_mode == ShadowMode::VSM) {
         // blur the image using compute shader

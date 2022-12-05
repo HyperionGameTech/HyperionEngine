@@ -58,7 +58,6 @@ public:
     virtual ~DeferredPass() override;
 
     void CreateShader();
-    virtual void CreateRenderPass() override;
     virtual void CreateDescriptors() override;
     virtual void Create() override;
     virtual void Destroy() override;
@@ -94,10 +93,10 @@ public:
         { return m_dpr; }
 
     AttachmentRef *GetCombinedResult(UInt frame_index)
-        { return m_combine_pass->GetAttachmentRef(frame_index, 0); }
+        { return m_combine_pass->GetAttachmentRef(0); }
 
     const AttachmentRef *GetCombinedResult(UInt frame_index) const
-        { return m_combine_pass->GetAttachmentRef(frame_index, 0); }
+        { return m_combine_pass->GetAttachmentRef(0); }
 
     Handle<Texture> &GetMipChain(UInt frame_index)
         { return m_mipmapped_results[frame_index]; }
@@ -130,8 +129,8 @@ private:
     UniquePtr<HBAO> m_hbao;
     UniquePtr<TemporalAA> m_temporal_aa;
 
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_opaque_fbos;
-    FixedArray<Handle<Framebuffer>, max_frames_in_flight> m_translucent_fbos;
+    Handle<Framebuffer2> m_opaque_fbo;
+    Handle<Framebuffer2> m_translucent_fbo;
 
     UniquePtr<FullScreenPass> m_combine_pass;
 

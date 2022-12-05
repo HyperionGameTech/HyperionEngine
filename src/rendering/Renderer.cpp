@@ -86,25 +86,21 @@ struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommand
 
 RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
-    Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes
 ) : EngineComponentBase(),
     m_pipeline(std::make_unique<renderer::GraphicsPipeline>()),
     m_shader(std::move(shader)),
-    m_render_pass(std::move(render_pass)),
     m_renderable_attributes(renderable_attributes)
 {
 }
 
 RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
-    Handle<RenderPass> &&render_pass,
     const RenderableAttributeSet &renderable_attributes,
     const Array<const DescriptorSet *> &used_descriptor_sets
 ) : EngineComponentBase(),
     m_pipeline(std::make_unique<renderer::GraphicsPipeline>(used_descriptor_sets)),
     m_shader(std::move(shader)),
-    m_render_pass(std::move(render_pass)),
     m_renderable_attributes(renderable_attributes)
 {
 }
@@ -114,7 +110,7 @@ RenderGroup::~RenderGroup()
     Teardown();
 }
 
-void RenderGroup::RemoveFramebuffer(Framebuffer::ID id)
+void RenderGroup::RemoveFramebuffer(HandleID<Framebuffer2> id)
 {
     const auto it = m_fbos.FindIf([&](const auto &item) {
         return item->GetID() == id;
@@ -290,11 +286,19 @@ void RenderGroup::Init()
     }
 
     OnInit(Engine::Get()->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
+        renderer::RenderPass *render_pass = nullptr;
+        
         Array<renderer::FramebufferObject *> framebuffers;
         framebuffers.Reserve(m_fbos.Size());
 
         for (auto &fbo : m_fbos) {
-            framebuffers.PushBack(&fbo->GetFramebuffer());
+            if (render_pass == nullptr) {
+                render_pass = &fbo->GetRenderPass();
+            }
+
+            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                framebuffers.PushBack(&fbo->GetFramebuffer(frame_index));
+            }
         }
 
         Array<Array<renderer::CommandBuffer *>> command_buffers;
@@ -314,7 +318,7 @@ void RenderGroup::Init()
         RenderCommands::Push<RENDER_COMMAND(CreateGraphicsPipeline)>(
             m_pipeline.get(),
             m_shader->GetShaderProgram(),
-            &m_render_pass->GetRenderPass(),
+            render_pass,
             std::move(framebuffers),
             std::move(command_buffers),
             m_renderable_attributes

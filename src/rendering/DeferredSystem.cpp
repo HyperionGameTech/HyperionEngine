@@ -20,9 +20,8 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
 };
 
 static void AddOwnedAttachment(
-    
     InternalFormat format,
-    Handle<RenderPass> &render_pass,
+    Handle<Framebuffer2> &framebuffer,
     Array<std::unique_ptr<Attachment>> &attachments
 )
 {
@@ -46,23 +45,23 @@ static void AddOwnedAttachment(
         &attachment_ref
     ));
 
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    framebuffer->AddAttachmentRef(attachment_ref);
 }
 
 static void AddSharedAttachment(
     UInt attachment_index,
-    Handle<RenderPass> &render_pass,
+    Handle<Framebuffer2> &framebuffer,
     Array<std::unique_ptr<Attachment>> &attachments
 )
 {
-    auto &opaque_fbo = Engine::Get()->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffers()[0];
+    auto &opaque_fbo = Engine::Get()->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
     AssertThrow(opaque_fbo != nullptr);
 
     renderer::AttachmentRef *attachment_ref;
 
-    AssertThrow(attachment_index < opaque_fbo->GetFramebuffer().GetAttachmentRefs().size());
+    AssertThrow(attachment_index < opaque_fbo->GetAttachmentRefs().size());
 
-    HYPERION_ASSERT_RESULT(opaque_fbo->GetFramebuffer().GetAttachmentRefs().at(attachment_index)->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentRefs().at(attachment_index)->AddAttachmentRef(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::StoreOperation::STORE,
         &attachment_ref
@@ -70,7 +69,7 @@ static void AddSharedAttachment(
 
     attachment_ref->SetBinding(attachment_index);
 
-    render_pass->GetRenderPass().AddAttachmentRef(attachment_ref);
+    framebuffer->AddAttachmentRef(attachment_ref);
 }
 
 static InternalFormat GetImageFormat(GBufferResourceName resource)
@@ -120,8 +119,7 @@ void DeferredSystem::AddPendingRenderGroups()
 void DeferredSystem::Create()
 {
     for (auto &bucket : m_buckets) {
-        bucket.CreateRenderPass();
-        bucket.CreateFramebuffers();
+        bucket.CreateFramebuffer();
     }
 }
 
@@ -191,22 +189,19 @@ void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipelines()
 
 void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline)
 {
-    for (auto &framebuffer : framebuffers) {
-        pipeline->AddFramebuffer(Handle<Framebuffer>(framebuffer));
-    }
+    pipeline->AddFramebuffer(Handle<Framebuffer2>(framebuffer));
 }
 
-void DeferredSystem::RenderGroupHolder::CreateRenderPass()
+void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 {
-    AssertThrow(render_pass == nullptr);
-
     auto mode = renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
     if (bucket == BUCKET_SWAPCHAIN) {
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
-    
-    render_pass = CreateObject<RenderPass>(
+
+    framebuffer = CreateObject<Framebuffer2>(
+        Engine::Get()->GetGPUInstance()->swapchain->extent,
         RenderPassStage::SHADER,
         mode
     );
@@ -217,7 +212,7 @@ void DeferredSystem::RenderGroupHolder::CreateRenderPass()
         // ui only has this attachment.
         AddOwnedAttachment(
             color_format,
-            render_pass,
+            framebuffer,
             attachments
         );
     } else if (BucketIsRenderable(bucket)) {
@@ -225,7 +220,7 @@ void DeferredSystem::RenderGroupHolder::CreateRenderPass()
         // color attachment is unique for all buckets
         AddOwnedAttachment(
             color_format,
-            render_pass,
+            framebuffer,
             attachments
         );
 
@@ -237,7 +232,7 @@ void DeferredSystem::RenderGroupHolder::CreateRenderPass()
 
                 AddOwnedAttachment(
                     format,
-                    render_pass,
+                    framebuffer,
                     attachments
                 );
             }
@@ -246,7 +241,7 @@ void DeferredSystem::RenderGroupHolder::CreateRenderPass()
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
                     i,
-                    render_pass,
+                    framebuffer,
                     attachments
                 );
             }
@@ -256,25 +251,8 @@ void DeferredSystem::RenderGroupHolder::CreateRenderPass()
     for (const auto &attachment : attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
-    
-    InitObject(render_pass);
-}
 
-void DeferredSystem::RenderGroupHolder::CreateFramebuffers()
-{
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto framebuffer = CreateObject<Framebuffer>(
-            Engine::Get()->GetGPUInstance()->swapchain->extent,
-            Handle<RenderPass>(render_pass)
-        );
-
-        for (auto *attachment_ref : render_pass->GetRenderPass().GetAttachmentRefs()) {
-            framebuffer->GetFramebuffer().AddAttachmentRef(attachment_ref);
-        }
-
-        InitObject(framebuffer);
-        framebuffers[frame_index] = std::move(framebuffer);
-    }
+    InitObject(framebuffer);
 }
 
 void DeferredSystem::RenderGroupHolder::Destroy()
@@ -287,7 +265,7 @@ void DeferredSystem::RenderGroupHolder::Destroy()
     renderer_instances_pending_addition.Clear();
     renderer_instances_mutex.unlock();
 
-    framebuffers = { };
+    framebuffer.Reset();
 
     for (const auto &attachment : attachments) {
         HYPERION_PASS_ERRORS(

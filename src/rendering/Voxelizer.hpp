@@ -65,7 +65,6 @@ private:
     void CreateBuffers();
     void CreatePipeline();
     void CreateShader();
-    void CreateRenderPass();
     void CreateFramebuffer();
     void CreateDescriptors();
 
@@ -78,7 +77,7 @@ private:
     std::unique_ptr<AtomicCounter> m_counter;
     std::unique_ptr<StorageBuffer> m_fragment_list_buffer;
 
-    Handle<Framebuffer> m_framebuffer;
+    Handle<Framebuffer2> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;

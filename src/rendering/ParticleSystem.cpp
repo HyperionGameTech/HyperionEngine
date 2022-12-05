@@ -354,7 +354,6 @@ void ParticleSpawner::CreateRenderGroup()
     // we don't want any other objects to use our RenderGroup then!
     m_render_group = CreateObject<RenderGroup>(
         Handle<Shader>(m_shader),
-        Handle<RenderPass>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetRenderPass()),
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes
@@ -368,9 +367,7 @@ void ParticleSpawner::CreateRenderGroup()
         )
     );
 
-    for (auto &framebuffer : Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffers()) {
-        m_render_group->AddFramebuffer(Handle<Framebuffer>(framebuffer));
-    }
+    m_render_group->AddFramebuffer(Handle<Framebuffer2>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
     m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
