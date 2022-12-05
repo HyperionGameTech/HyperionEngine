@@ -67,7 +67,7 @@ public:
         m_updates_pending.store(true);
     }
 
-    void Remove(HandleID<T> id)
+    void Remove(ID<T> id)
     {
         if (!id) {
             return;
@@ -166,7 +166,7 @@ private:
     ThreadName m_owner_thread;
     Array<Handle<T>> m_owned_items;
     Array<Handle<T>> m_items_pending_addition;
-    Array<HandleID<T>> m_items_pending_removal;
+    Array<ID<T>> m_items_pending_removal;
     std::atomic_bool m_updates_pending;
     std::mutex m_update_mutex;
 };

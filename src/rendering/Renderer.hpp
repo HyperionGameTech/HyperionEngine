@@ -12,7 +12,7 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/Mesh.hpp>
 #include <Constants.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <util/Defines.hpp>
 
@@ -125,7 +125,7 @@ public:
     const auto &GetEntities() const { return m_entities; }
 
     void AddFramebuffer(Handle<Framebuffer> &&fbo) { m_fbos.PushBack(std::move(fbo)); }
-    void RemoveFramebuffer(HandleID<Framebuffer> id);
+    void RemoveFramebuffer(ID<Framebuffer> id);
     Array<Handle<Framebuffer>> &GetFramebuffers() { return m_fbos; } 
     const Array<Handle<Framebuffer>> &GetFramebuffers() const { return m_fbos; }
     

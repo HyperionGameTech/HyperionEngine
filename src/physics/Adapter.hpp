@@ -2,7 +2,7 @@
 #define HYPERION_V2_PHYSICS_ADAPTER_HPP
 
 #include <physics/RigidBody.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <GameCounter.hpp>
 
 #include <type_traits>

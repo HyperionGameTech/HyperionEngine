@@ -84,7 +84,7 @@ struct MeshAttributes
 
 struct RenderableAttributeSet
 {
-    Shader::ID shader_id { Shader::empty_id };
+    ID<Shader> shader_id;
     MeshAttributes mesh_attributes;
     MaterialAttributes material_attributes;
     StencilState stencil_state { };
@@ -108,7 +108,7 @@ struct RenderableAttributeSet
     RenderableAttributeSet(
         const MeshAttributes &mesh_attributes,
         const MaterialAttributes &material_attributes,
-        const Shader::ID &shader_id = Shader::empty_id /* TEMP */
+        ID<Shader> shader_id = Shader::empty_id
     ) : mesh_attributes(mesh_attributes),
         material_attributes(material_attributes),
         shader_id(shader_id)

@@ -6,7 +6,7 @@
 #include "DrawProxy.hpp"
 
 #include <core/lib/Queue.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -107,7 +107,7 @@ struct ShaderGlobals
         entity_instance_batches.MarkDirty(batch_index);
     }
 
-    bool PushEntityToBatch(EntityBatchIndex batch_index, HandleID<Entity> entity_id)
+    bool PushEntityToBatch(EntityBatchIndex batch_index, ID<Entity> entity_id)
     {
         AssertThrow(batch_index < max_entity_instance_batches);
 
@@ -124,7 +124,7 @@ struct ShaderGlobals
         return true;
     }
 
-    void SetEntityInBatch(EntityBatchIndex batch_index, SizeType id_index, HandleID<Entity> entity_id)
+    void SetEntityInBatch(EntityBatchIndex batch_index, SizeType id_index, ID<Entity> entity_id)
     {
         AssertThrow(batch_index < max_entity_instance_batches);
         AssertThrow(id_index < max_entities_per_instance_batch);

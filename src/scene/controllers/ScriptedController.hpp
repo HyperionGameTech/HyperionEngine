@@ -3,7 +3,7 @@
 
 #include <scene/Controller.hpp>
 #include <script/Script.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 
 namespace hyperion::v2 {
 

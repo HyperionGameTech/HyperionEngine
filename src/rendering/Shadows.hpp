@@ -58,7 +58,7 @@ public:
         }
     }
 
-    void SetParentScene(Scene::ID id);
+    void SetParentScene(ID<Scene> id);
 
     ShadowMode GetShadowMode() const { return m_shadow_mode; }
     void SetShadowMode(ShadowMode shadow_mode) { m_shadow_mode = shadow_mode; }
@@ -118,7 +118,7 @@ private:
     ShadowMode m_shadow_mode;
     Handle<Scene> m_scene;
     Handle<Light> m_light;
-    Scene::ID m_parent_scene_id;
+    ID<Scene> m_parent_scene_id;
     Vector3 m_origin;
     Float m_max_distance;
     UInt m_shadow_map_index;

@@ -252,19 +252,19 @@ void Entity::EnqueueRenderUpdates()
 {
     AssertReady();
 
-    const Skeleton::ID skeleton_id = m_skeleton
+    const ID<Skeleton> skeleton_id = m_skeleton
         ? m_skeleton->GetID()
         : Skeleton::empty_id;
 
-    const Material::ID material_id = m_material
+    const ID<Material> material_id = m_material
         ? m_material->GetID()
         : Material::empty_id;
 
-    const Mesh::ID mesh_id = m_mesh
+    const ID<Mesh> mesh_id = m_mesh
         ? m_mesh->GetID()
         : Mesh::empty_id;
 
-    const Scene::ID scene_id = m_scene
+    const ID<Scene> scene_id = m_scene
         ? m_scene->GetID()
         : Scene::empty_id;
 

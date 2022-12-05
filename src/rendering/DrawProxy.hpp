@@ -9,7 +9,7 @@
 #include <math/Color.hpp>
 #include <math/Frustum.hpp>
 
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -79,11 +79,11 @@ struct DrawProxy<STUB_CLASS(Entity)>
     Mesh *mesh = nullptr;
     Material *material = nullptr;
 
-    HandleID<Entity> entity_id;
-    HandleID<Scene> scene_id;
-    HandleID<Mesh> mesh_id;
-    HandleID<Material> material_id;
-    HandleID<Skeleton> skeleton_id;
+    ID<Entity> entity_id;
+    ID<Scene> scene_id;
+    ID<Mesh> mesh_id;
+    ID<Material> material_id;
+    ID<Skeleton> skeleton_id;
 
     BoundingBox bounding_box;
 

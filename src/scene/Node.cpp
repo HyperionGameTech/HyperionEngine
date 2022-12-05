@@ -494,7 +494,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results) const
     return has_entity_hit;
 }
 
-const Handle<Entity> &Node::FindEntityWithID(HandleID<Entity> entity_id) const
+const Handle<Entity> &Node::FindEntityWithID(ID<Entity> entity_id) const
 {
     // breadth-first search
     Queue<const Node *> queue;

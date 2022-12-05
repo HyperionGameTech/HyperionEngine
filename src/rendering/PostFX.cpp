@@ -188,10 +188,10 @@ void PostProcessing::CreateUniformBuffer()
         &m_post_effects
     };
 
-    for (UInt i = 0; i < static_cast<UInt>(std::size(effect_passes)); i++) {
+    for (UInt i = 0; i < UInt(std::size(effect_passes)); i++) {
         auto &effects = effect_passes[i];
 
-        post_processing_uniforms.effect_counts[i] = static_cast<UInt32>(effects->Size());
+        post_processing_uniforms.effect_counts[i] = UInt32(effects->Size());
         post_processing_uniforms.masks[i] = 0u;
         post_processing_uniforms.last_enabled_indices[i] = 0u;
 

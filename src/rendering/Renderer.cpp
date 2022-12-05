@@ -110,7 +110,7 @@ RenderGroup::~RenderGroup()
     Teardown();
 }
 
-void RenderGroup::RemoveFramebuffer(HandleID<Framebuffer> id)
+void RenderGroup::RemoveFramebuffer(ID<Framebuffer> id)
 {
     const auto it = m_fbos.FindIf([&](const auto &item) {
         return item->GetID() == id;

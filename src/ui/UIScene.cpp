@@ -116,7 +116,7 @@ bool UIScene::OnInputEvent(
             ui_event.type = UIEvent::Type::MOUSE_DOWN;
             ui_event.original_event = &event;
 
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(Entity::ID(hit.id))) {
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
                 for (auto &it : entity->GetControllers()) {
                     if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
                         ui_controller->OnEvent(ui_event);
@@ -149,7 +149,7 @@ bool UIScene::OnInputEvent(
             ui_event.type = UIEvent::Type::MOUSE_UP;
             ui_event.original_event = &event;
 
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(Entity::ID(hit.id))) {
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
                 for (auto &it : entity->GetControllers()) {
                     if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
                         ui_controller->OnEvent(ui_event);

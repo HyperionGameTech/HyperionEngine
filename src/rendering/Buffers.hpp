@@ -49,7 +49,7 @@ static constexpr SizeType max_entities_per_instance_batch = 60;
 struct alignas(256) EntityInstanceBatch
 {
     UInt32 num_entities;
-    UInt32 _debug_owner_id;
+    UInt32 _pad0;
     UInt32 _pad1;
     UInt32 _pad2;
     UInt32 indices[max_entities_per_instance_batch];

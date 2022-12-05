@@ -528,7 +528,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         m_cached_cull_data_updated_bits &= ~(1u << frame_index);
     }
     
-    const Scene::ID scene_id = Engine::Get()->GetRenderState().GetScene().id;
+    const ID<Scene> scene_id = Engine::Get()->GetRenderState().GetScene().id;
     const UInt scene_index = scene_id.ToIndex();
 
     // bind our descriptor set to binding point 0

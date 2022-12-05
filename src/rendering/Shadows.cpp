@@ -141,7 +141,7 @@ void ShadowPass::CreateShader()
     InitObject(m_shader);
 }
 
-void ShadowPass::SetParentScene(Scene::ID id)
+void ShadowPass::SetParentScene(ID<Scene> id)
 {
     m_parent_scene_id = id;
 

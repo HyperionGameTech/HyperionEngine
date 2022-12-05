@@ -303,7 +303,7 @@ public:
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
     /*! \brief Recursively search child nodes until a node with an Entity with the given ID is found. */
-    const Handle<Entity> &FindEntityWithID(HandleID<Entity> entity_id) const;
+    const Handle<Entity> &FindEntityWithID(ID<Entity> entity_id) const;
 
     HashCode GetHashCode() const
     {

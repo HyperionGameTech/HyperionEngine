@@ -45,13 +45,13 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommand
 
 struct RENDER_COMMAND(DestroyTexture) : RenderCommand
 {
-    Texture::ID id;
+    ID<Texture> id;
     renderer::Image *image;
     renderer::ImageView *image_view;
     renderer::Sampler *sampler;
 
     RENDER_COMMAND(DestroyTexture)(
-        Texture::ID id,
+        ID<Texture> id,
         renderer::Image *image,
         renderer::ImageView *image_view,
         renderer::Sampler *sampler

@@ -7,9 +7,9 @@ class EnvProbe;
 
 struct RENDER_COMMAND(BindEnvProbe) : RenderCommand
 {
-    EnvProbe::ID id;
+    ID<EnvProbe> id;
 
-    RENDER_COMMAND(BindEnvProbe)(EnvProbe::ID id)
+    RENDER_COMMAND(BindEnvProbe)(ID<EnvProbe> id)
         : id(id)
     {
     }
@@ -24,9 +24,9 @@ struct RENDER_COMMAND(BindEnvProbe) : RenderCommand
 
 struct RENDER_COMMAND(UnbindEnvProbe) : RenderCommand
 {
-    EnvProbe::ID id;
+    ID<EnvProbe> id;
 
-    RENDER_COMMAND(UnbindEnvProbe)(EnvProbe::ID id)
+    RENDER_COMMAND(UnbindEnvProbe)(ID<EnvProbe> id)
         : id(id)
     {
     }

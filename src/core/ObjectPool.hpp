@@ -4,7 +4,7 @@
 #include <core/Containers.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/FlatMap.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <Constants.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
@@ -165,7 +165,7 @@ public:
     HYP_FORCE_INLINE void ConstructAtIndex(UInt index, Args &&... args)
     {
         T *ptr = m_data[index].Construct(std::forward<Args>(args)...);
-        ptr->SetID(typename T::ID { index + 1 });
+        ptr->SetID(ID<T> { index + 1 });
     }
 
 private:

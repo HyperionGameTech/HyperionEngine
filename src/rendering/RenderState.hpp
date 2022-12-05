@@ -40,11 +40,11 @@ struct RenderBinding
 {
     static const RenderBinding empty;
 
-    typename T::ID id;
+    ID<T> id;
 
     explicit operator bool() const { return bool(id); }
 
-    explicit operator typename T::ID() const
+    explicit operator ID<T>() const
         { return id; }
 
     bool operator==(const RenderBinding &other) const
@@ -53,7 +53,7 @@ struct RenderBinding
     bool operator<(const RenderBinding &other) const
         { return id < other.id; }
 
-    bool operator==(const typename T::ID &id) const
+    bool operator==(ID<T> id) const
         { return this->id == id; }
 };
 
@@ -65,7 +65,7 @@ struct RenderBinding<Scene>
 {
     static const RenderBinding empty;
 
-    Scene::ID id;
+    ID<Scene> id;
     RenderEnvironment *render_environment = nullptr;
     SceneDrawProxy scene;
 
@@ -76,15 +76,15 @@ struct RenderState
 {
     std::stack<RenderBinding<Scene>> scene_bindings;
     FlatSet<RenderBinding<Light>> light_bindings;
-    FlatMap<EnvProbe::ID, Optional<UInt>> env_probes; // map to texture slot
+    FlatMap<ID<EnvProbe>, Optional<UInt>> env_probes; // map to texture slot
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
 
-    void BindLight(Light::ID light_id)
+    void BindLight(ID<Light> light_id)
     {
         light_bindings.Insert(RenderBinding<Light> { light_id });
     }
 
-    void UnbindLight(Light::ID light_id)
+    void UnbindLight(ID<Light> light_id)
     {
         light_bindings.Erase(RenderBinding<Light> { light_id });
     }
@@ -114,7 +114,7 @@ struct RenderState
             : scene_bindings.top();
     }
 
-    void BindEnvProbe(EnvProbe::ID env_probe)
+    void BindEnvProbe(ID<EnvProbe> env_probe)
     {
         if (m_env_probe_texture_slot_counter >= max_bound_env_probes) {
             DebugLog(
@@ -129,7 +129,7 @@ struct RenderState
         env_probes.Insert(env_probe, Optional<UInt>(m_env_probe_texture_slot_counter++));
     }
 
-    void UnbindEnvProbe(EnvProbe::ID env_probe)
+    void UnbindEnvProbe(ID<EnvProbe> env_probe)
     {
         env_probes.Erase(env_probe);
     }

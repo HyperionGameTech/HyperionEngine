@@ -4,6 +4,9 @@
 
 namespace hyperion::v2 {
 
+/* The index of the descriptor we work on, /within/ the "bindless descriptor set" */
+static const UInt bindless_descriptor_index = 0;
+
 BindlessStorage::BindlessStorage()
     : m_descriptor_sets { }
 {
@@ -27,8 +30,8 @@ void BindlessStorage::Destroy()
     for (auto *descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
-        for (const auto &it : m_texture_ids) {
-            descriptor->RemoveSubDescriptor(it.value - 1);
+        for (const ID<Texture> &id : m_texture_ids) {
+            descriptor->RemoveSubDescriptor(id.ToIndex());
         }
     }
 
@@ -48,53 +51,55 @@ void BindlessStorage::AddResource(const Texture *texture)
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
         
         indices[i] = descriptor->SetSubDescriptor({
-            .element_index = texture->GetID().value - 1,
+            .element_index = texture->GetID().ToIndex(),
             .image_view = &texture->GetImageView(),
             .sampler = &texture->GetSampler()
         });
     }
 
-    AssertThrow(indices[0] == indices[1] && indices[0] == (texture->GetID().value - 1));
+    AssertThrow(indices[0] == indices[1] && indices[0] == (texture->GetID().ToIndex()));
     m_texture_ids.Insert(texture->GetID());
 }
 
-void BindlessStorage::RemoveResource(IDBase id)
+void BindlessStorage::RemoveResource(ID<Texture> id)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    if (id == Texture::empty_id) {
+    if (!id) {
         return;
     }
 
     for (auto *descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
-        descriptor->RemoveSubDescriptor(id.value - 1);
+        descriptor->RemoveSubDescriptor(id.ToIndex());
     }
 
     m_texture_ids.Erase(id);
 }
 
-void BindlessStorage::MarkResourceChanged(const Texture *texture)
+void BindlessStorage::MarkResourceChanged(ID<Texture> id)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
+    if (!id) {
+        return;
+    }
+
     for (auto *descriptor_set : m_descriptor_sets) {
-        descriptor_set->GetDescriptor(bindless_descriptor_index)->MarkDirty(texture->GetID().value - 1);
+        descriptor_set->GetDescriptor(bindless_descriptor_index)->MarkDirty(id.ToIndex());
     }
 }
 
-bool BindlessStorage::GetResourceIndex(const Texture *texture, uint32_t *out_index) const
+bool BindlessStorage::GetResourceIndex(ID<Texture> id, UInt *out_index) const
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    if (texture == nullptr) {
+    if (!id) {
         return false;
     }
 
-    const auto id = texture->GetID();
-
-    *out_index = id.value - 1;
+    *out_index = id.ToIndex();
 
     return m_texture_ids.Contains(id);
 }

@@ -248,7 +248,7 @@ public:
             std::forward<Rest>(args)...
         );
 
-        return Handle<T>(HandleID<T>(index + 1));
+        return Handle<T>(ID<T>(index + 1));
     }
 
     template <class T, class First>
@@ -269,7 +269,7 @@ public:
             std::forward<First>(first)
         );
 
-        return Handle<T>(HandleID<T>(index + 1));
+        return Handle<T>(ID<T>(index + 1));
     }
 
     template <class T>
@@ -280,7 +280,7 @@ public:
         SizeType index = container.NextIndex();
         container.ConstructAtIndex(index);
 
-        return Handle<T>(HandleID<T>(index + 1));
+        return Handle<T>(ID<T>(index + 1));
     }
 
     template <class T>

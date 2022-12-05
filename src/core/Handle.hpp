@@ -2,7 +2,7 @@
 #define HYPERION_V2_CORE_HANDLE_HPP
 
 #include <core/Core.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <core/ObjectPool.hpp>
 
 namespace hyperion::v2 {
@@ -19,7 +19,7 @@ static inline ObjectContainer<T> &GetContainer()
 template <class T>
 struct Handle
 {
-    using ID = HandleID<T>;
+    using ID = ID<T>;
 
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 

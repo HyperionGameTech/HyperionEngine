@@ -80,26 +80,26 @@ public:
         { return AddEntity(Handle<Entity>(entity)); }
 
     /*! \brief Remove a Node from the Scene with the given Entity */
-    bool RemoveEntity(HandleID<Entity> entity_id);
+    bool RemoveEntity(ID<Entity> entity_id);
     /*! \brief Remove a Node from the Scene with the given Entity */
     bool RemoveEntity(const Handle<Entity> &entity)
         { return RemoveEntity(entity.GetID()); }
 
     /*! \brief Add an Entity to the queue. On Update(), it will be added to the scene. */
     bool AddEntityInternal(Handle<Entity> &&entity);
-    bool HasEntity(HandleID<Entity> entity_id) const;
+    bool HasEntity(ID<Entity> entity_id) const;
     /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
     bool RemoveEntityInternal(const Handle<Entity> &entity);
 
-    const Handle<Entity> &FindEntityWithID(HandleID<Entity> entity_id) const;
+    const Handle<Entity> &FindEntityWithID(ID<Entity> entity_id) const;
 
     bool AddLight(Handle<Light> &&light);
     bool AddLight(const Handle<Light> &light);
-    bool RemoveLight(HandleID<Light> id);
+    bool RemoveLight(ID<Light> id);
 
     bool AddEnvProbe(Handle<EnvProbe> &&env_probe);
     bool AddEnvProbe(const Handle<EnvProbe> &env_probe);
-    bool RemoveEnvProbe(HandleID<EnvProbe> id);
+    bool RemoveEnvProbe(ID<EnvProbe> id);
 
     FogParams &GetFogParams()
         { return m_fog_params; }
@@ -159,10 +159,10 @@ public:
 
     void SetWorld(World *world);
 
-    HandleID<Scene> GetParentID() const
+    ID<Scene> GetParentID() const
         { return m_parent_id; }
 
-    void SetParentID(HandleID<Scene> id)
+    void SetParentID(ID<Scene> id)
         { m_parent_id = id; }
 
     /*! \brief A scene is a "virtual scene" if it exists not as an owner of entities,
@@ -201,20 +201,20 @@ private:
     FogParams m_fog_params;
 
     // entities, lights etc. live in GAME thread
-    FlatMap<HandleID<Entity>, Handle<Entity>> m_entities;
-    FlatMap<HandleID<Light>, Handle<Light>> m_lights;
-    FlatMap<HandleID<EnvProbe>, Handle<EnvProbe>> m_env_probes;
+    FlatMap<ID<Entity>, Handle<Entity>> m_entities;
+    FlatMap<ID<Light>, Handle<Light>> m_lights;
+    FlatMap<ID<EnvProbe>, Handle<EnvProbe>> m_env_probes;
 
     // NOTE: not for thread safety, it's to defer updates so we don't
     // remove in the update loop.
-    FlatSet<HandleID<Entity>> m_entities_pending_removal;
+    FlatSet<ID<Entity>> m_entities_pending_removal;
     FlatSet<Handle<Entity>> m_entities_pending_addition;
 
     // TODO: Move to RenderEnvironment
     Handle<TLAS> m_tlas;
 
     Matrix4 m_last_view_projection_matrix;
-    HandleID<Scene> m_parent_id;
+    ID<Scene> m_parent_id;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

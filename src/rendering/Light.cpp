@@ -10,9 +10,9 @@ class Light;
 
 struct RENDER_COMMAND(BindLight) : RenderCommand
 {
-    Light::ID id;
+    ID<Light> id;
 
-    RENDER_COMMAND(BindLight)(Light::ID id)
+    RENDER_COMMAND(BindLight)(ID<Light> id)
         : id(id)
     {
     }
@@ -27,9 +27,9 @@ struct RENDER_COMMAND(BindLight) : RenderCommand
 
 struct RENDER_COMMAND(UnbindLight) : RenderCommand
 {
-    Light::ID id;
+    ID<Light> id;
 
-    RENDER_COMMAND(UnbindLight)(Light::ID id)
+    RENDER_COMMAND(UnbindLight)(ID<Light> id)
         : id(id)
     {
     }

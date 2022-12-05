@@ -8,7 +8,7 @@
 #include <core/lib/Variant.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/UniquePtr.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 
 #include <asset/AssetBatch.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>

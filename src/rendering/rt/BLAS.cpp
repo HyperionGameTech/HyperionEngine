@@ -70,9 +70,9 @@ void BLAS::SetMesh(Handle<Mesh> &&mesh)
     if (m_mesh) {
         InitObject(m_mesh);
 
-        auto material_id = m_material
+        ID<Material> material_id = m_material
             ? m_material->GetID()
-            : Material::empty_id;
+            : ID<Material> { };
         
         m_blas.AddGeometry(std::make_unique<AccelerationGeometry>(
             m_mesh->BuildPackedVertices(),

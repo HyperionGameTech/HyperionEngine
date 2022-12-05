@@ -2,7 +2,7 @@
 #define HYPERION_V2_NODE_PROXY_HPP
 
 #include <core/Containers.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <scene/Entity.hpp>
 #include <math/Transform.hpp>
 #include <math/Ray.hpp>

@@ -15,9 +15,9 @@ using renderer::Result;
 struct RENDER_COMMAND(BindLights) : RenderCommand
 {
     SizeType num_lights;
-    Light::ID *ids;
+    ID<Light> *ids;
 
-    RENDER_COMMAND(BindLights)(SizeType num_lights, Light::ID *ids)
+    RENDER_COMMAND(BindLights)(SizeType num_lights, ID<Light> *ids)
         : num_lights(num_lights),
           ids(ids)
     {
@@ -38,9 +38,9 @@ struct RENDER_COMMAND(BindLights) : RenderCommand
 struct RENDER_COMMAND(BindEnvProbes) : RenderCommand
 {
     SizeType num_env_probes;
-    EnvProbe::ID *ids;
+    ID<EnvProbe> *ids;
 
-    RENDER_COMMAND(BindEnvProbes)(SizeType num_env_probes, EnvProbe::ID *ids)
+    RENDER_COMMAND(BindEnvProbes)(SizeType num_env_probes, ID<EnvProbe> *ids)
         : num_env_probes(num_env_probes),
           ids(ids)
     {
@@ -131,7 +131,7 @@ void Scene::Init()
 
     if (m_lights.Any()) {
         // enqueue bind for all in bulk
-        Light::ID *light_ids = new Light::ID[m_lights.Size()];
+        ID<Light> *light_ids = new ID<Light>[m_lights.Size()];
         SizeType index = 0;
 
         for (auto &it : m_lights) {
@@ -149,7 +149,7 @@ void Scene::Init()
 
     if (m_env_probes.Any()) {
         // enqueue bind for all in bulk
-        EnvProbe::ID *env_probe_ids = new EnvProbe::ID[m_env_probes.Size()];
+        ID<EnvProbe> *env_probe_ids = new ID<EnvProbe>[m_env_probes.Size()];
         SizeType index = 0;
 
         for (auto &it : m_env_probes) {
@@ -273,7 +273,7 @@ bool Scene::AddEntity(Handle<Entity> &&entity)
     return true;
 }
 
-bool Scene::RemoveEntity(HandleID<Entity> entity_id)
+bool Scene::RemoveEntity(ID<Entity> entity_id)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
@@ -374,7 +374,7 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
     return true;
 }
 
-bool Scene::HasEntity(HandleID<Entity> entity_id) const
+bool Scene::HasEntity(ID<Entity> entity_id) const
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
@@ -388,7 +388,7 @@ void Scene::AddPendingEntities()
     }
 
     for (auto &entity : m_entities_pending_addition) {
-        const HandleID<Entity> id = entity->GetID();
+        const ID<Entity> id = entity->GetID();
 
         if (entity->IsRenderable() && !entity->GetPrimaryRenderGroup()) {
             if (auto renderer_instance = Engine::Get()->FindOrCreateRenderGroup(entity->GetShader(), entity->GetRenderableAttributes())) {
@@ -485,7 +485,7 @@ void Scene::RemovePendingEntities()
     m_entities_pending_removal.Clear();
 }
 
-const Handle<Entity> &Scene::FindEntityWithID(HandleID<Entity> entity_id) const
+const Handle<Entity> &Scene::FindEntityWithID(ID<Entity> entity_id) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -537,7 +537,7 @@ bool Scene::AddLight(const Handle<Light> &light)
     return true;
 }
 
-bool Scene::RemoveLight(Light::ID id)
+bool Scene::RemoveLight(ID<Light> id)
 {
     auto it = m_lights.Find(id);
 
@@ -596,7 +596,7 @@ bool Scene::AddEnvProbe(const Handle<EnvProbe> &env_probe)
     return true;
 }
 
-bool Scene::RemoveEnvProbe(EnvProbe::ID id)
+bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
 {
     auto it = m_env_probes.Find(id);
 
@@ -729,7 +729,7 @@ void Scene::EnqueueRenderUpdates()
 {
     struct RENDER_COMMAND(UpdateSceneRenderData) : RenderCommand
     {
-        Scene::ID id;
+        ID<Scene> id;
         BoundingBox aabb;
         Float global_timer;
         SizeType num_lights;
@@ -739,7 +739,7 @@ void Scene::EnqueueRenderUpdates()
         SceneDrawProxy &draw_proxy;
 
         RENDER_COMMAND(UpdateSceneRenderData)(
-            Scene::ID id,
+            ID<Scene> id,
             const BoundingBox &aabb,
             Float global_timer,
             SizeType num_lights,

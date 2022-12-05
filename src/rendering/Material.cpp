@@ -18,16 +18,16 @@ using renderer::Result;
 
 struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
 {
-    Material::ID id;
+    ID<Material> id;
     MaterialShaderData shader_data;
     SizeType num_bound_textures;
-    FixedArray<Texture::ID, MaterialShaderData::max_bound_textures> bound_texture_ids;
+    FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> bound_texture_ids;
 
     RENDER_COMMAND(UpdateMaterialRenderData)(
-        Material::ID id,
+        ID<Material> id,
         const MaterialShaderData &shader_data,
         SizeType num_bound_textures,
-        FixedArray<Texture::ID, MaterialShaderData::max_bound_textures> &&bound_texture_ids
+        FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> &&bound_texture_ids
     ) : id(id),
         shader_data(shader_data),
         num_bound_textures(num_bound_textures),
@@ -67,12 +67,12 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
 
 struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
 {
-    Material::ID id;
+    ID<Material> id;
     SizeType texture_index;
     Texture *texture;
     
     RENDER_COMMAND(UpdateMaterialTexture)(
-        Material::ID id,
+        ID<Material> id,
         SizeType texture_index,
         Texture *texture
     ) : id(id),
@@ -102,12 +102,12 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
 
 struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 {
-    Material::ID id;
+    ID<Material> id;
     Handle<Texture> *textures;
     renderer::DescriptorSet **descriptor_sets;
 
     RENDER_COMMAND(CreateMaterialDescriptors)(
-        Material::ID id,
+        ID<Material> id,
         Handle<Texture> *textures,
         renderer::DescriptorSet **descriptor_sets
     ) : id(id),
@@ -291,7 +291,7 @@ void Material::EnqueueRenderUpdates()
 {
     AssertReady();
     
-    FixedArray<Texture::ID, MaterialShaderData::max_bound_textures> bound_texture_ids { };
+    FixedArray<ID<Texture>, MaterialShaderData::max_bound_textures> bound_texture_ids { };
 
     const UInt num_bound_textures = max_textures_to_set;
     

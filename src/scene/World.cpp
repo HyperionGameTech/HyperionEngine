@@ -65,7 +65,7 @@ void World::PerformSceneUpdates()
 {
     std::lock_guard guard(m_scene_update_mutex);
 
-    for (const Scene::ID &scene_id : m_scenes_pending_removal) {
+    for (const ID<Scene> &scene_id : m_scenes_pending_removal) {
         if (!scene_id) {
             continue;
         }
@@ -152,7 +152,7 @@ void World::AddScene(Handle<Scene> &&scene)
     m_has_scene_updates.store(true);
 }
 
-void World::RemoveScene(Scene::ID id)
+void World::RemoveScene(ID<Scene> id)
 {
     if (!id) {
         return;

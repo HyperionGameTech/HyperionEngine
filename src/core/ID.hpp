@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_CORE_HANDLE_ID_HPP
-#define HYPERION_V2_CORE_HANDLE_ID_HPP
+#ifndef HYPERION_V2_CORE_ID_HPP
+#define HYPERION_V2_CORE_ID_HPP
 
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/TypeID.hpp>
@@ -45,60 +45,52 @@ struct IDBase
     UInt ToIndex() const
         { return value ? value - 1 : 0; }
 
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(value);
-
-        return hc;
-    }
-
     ValueType value { 0 };
 };
 
 template <class T>
-struct HandleID : IDBase
+struct ID : IDBase
 {
-    constexpr HandleID() = default;
+    constexpr ID() = default;
 
-    explicit HandleID(const IDBase &other)
+    explicit ID(const IDBase &other)
         : IDBase(other)
     {
     }
 
-    constexpr HandleID(IDBase::ValueType value)
+    constexpr ID(IDBase::ValueType value)
         : IDBase { value }
     {
     }
 
-    constexpr HandleID(const HandleID &other)
+    constexpr ID(const ID &other)
         : IDBase(other)
     {
     }
 
-    HandleID &operator=(const IDBase &other) = delete; // delete so we cannot assign a type's ID to a different type
-    HandleID &operator=(const HandleID &other) = default;
+    ID &operator=(const IDBase &other) = delete; // delete so we cannot assign a type's ID to a different type
+    ID &operator=(const ID &other) = default;
 
     HYP_FORCE_INLINE operator bool() const
         { return IDBase::operator bool(); }
 
-    HYP_FORCE_INLINE bool operator==(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator==(const ID &other) const
         { return IDBase::operator==(other); }
 
-    HYP_FORCE_INLINE bool operator!=(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator!=(const ID &other) const
         { return IDBase::operator!=(other); }
 
-    HYP_FORCE_INLINE bool operator<(const HandleID &other) const
+    HYP_FORCE_INLINE bool operator<(const ID &other) const
         { return IDBase::operator<(other); }
 
     const TypeID &GetTypeID() const
-        { return TypeID::ForType<NormalizedType<T>>(); } 
+        { return TypeID::ForType<NormalizedType<T>>(); }
 
     HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(GetTypeID().GetHashCode());
-        hc.Add(IDBase::GetHashCode());
+        hc.Add(value);
 
         return hc;
     }

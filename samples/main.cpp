@@ -499,7 +499,7 @@ public:
 
                 for (const auto &hit : results) {
                     // now ray test each result as triangle mesh to find exact hit point
-                    Handle<Entity> entity(Entity::ID { hit.id });
+                    Handle<Entity> entity(ID<Entity> { hit.id });
 
                     if (entity) {
                         entity->AddController<AABBDebugController>();

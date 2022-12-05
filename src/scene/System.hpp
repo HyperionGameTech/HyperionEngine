@@ -30,7 +30,7 @@ public:
 protected:
     ComponentContainerBase() = default;
 
-    FlatMap<Entity::ID, UniquePtr<Controller>> m_entity_to_controller;
+    FlatMap<ID<Entity>, UniquePtr<Controller>> m_entity_to_controller;
 };
 
 template <class ControllerType>
@@ -43,9 +43,9 @@ public:
     virtual ~ComponentContainer() override;
 
     ControllerType *Add(Entity *entity, UniquePtr<ControllerType> &&controller);
-    void Remove(const Entity::ID &id);
+    void Remove(ID<Entity> id);
 
-    ControllerType *Get(const Entity::ID &id);
+    ControllerType *Get(ID<Entity> id);
 
     virtual void Update(GameCounter::TickUnit delta) override;
 };
@@ -112,7 +112,7 @@ ControllerType *ComponentContainer<ControllerType>::Add(Entity *entity, UniquePt
 }
 
 template <class ControllerType>
-void ComponentContainer<ControllerType>::Remove(const Entity::ID &id)
+void ComponentContainer<ControllerType>::Remove(ID<Entity> id)
 {
     auto it = ComponentContainerBase::m_entity_to_controller.Find(id);
 
@@ -134,7 +134,7 @@ void ComponentContainer<ControllerType>::Remove(const Entity::ID &id)
 }
 
 template <class ControllerType>
-ControllerType *ComponentContainer<ControllerType>::Get(const Entity::ID &id)
+ControllerType *ComponentContainer<ControllerType>::Get(ID<Entity> id)
 {
     auto it = ComponentContainerBase::m_entity_to_controller.Find(id);
 
@@ -168,7 +168,7 @@ public:
     }
 
     template <class ControllerType>
-    void Remove(const Entity::ID &id)
+    void Remove(ID<Entity> id)
     {
         Threads::AssertOnThread(THREAD_GAME);
 

@@ -12,7 +12,7 @@
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/UniquePtr.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 
 #include <math/BoundingSphere.hpp>
 

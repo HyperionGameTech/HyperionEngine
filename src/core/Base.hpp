@@ -5,7 +5,7 @@
 #include <core/Containers.hpp>
 #include <core/ObjectPool.hpp>
 #include <core/Class.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <core/Handle.hpp>
 #include <core/lib/TypeMap.hpp>
 #include <core/lib/StaticString.hpp>
@@ -69,10 +69,9 @@ class EngineComponentBase
     using InnerType = typename Type::InnerType;
 
 public:
-    using ID = typename Handle<InnerType>::ID;
     using InitInfo = ComponentInitInfo<Type>;
 
-    static constexpr ID empty_id = ID { };
+    static constexpr ID<InnerType> empty_id = ID<InnerType> { };
 
     EngineComponentBase()
         : EngineComponentBase(InitInfo { })
@@ -117,23 +116,6 @@ public:
 
     EngineComponentBase &operator=(EngineComponentBase &&other) noexcept = delete;
 
-    // EngineComponentBase &operator=(EngineComponentBase &&other) noexcept
-    // {
-    //     CallbackTrackable::operator=(std::move(other));
-
-    //     m_name = std::move(other.m_name);
-    //     m_init_info = std::move(other.m_init_info);
-    //     m_id = std::move(other.m_id);
-    //     m_init_called.store(other.m_init_called.load());
-    //     m_is_ready.store(other.m_is_ready.load());
-
-    //     other.m_id = empty_id;
-    //     other.m_init_called.store(false);
-    //     other.m_is_ready.store(false);
-
-    //     return *this;
-    // }
-
     ~EngineComponentBase() = default;
 
     HYP_FORCE_INLINE InitInfo &GetInitInfo()
@@ -148,11 +130,11 @@ public:
     HYP_FORCE_INLINE void SetFlags(ComponentFlags flags, bool enable = true)
         { m_init_info.flags = enable ? (m_init_info.flags | flags) : (m_init_info.flags & ~flags); }
 
-    HYP_FORCE_INLINE ID GetID() const
+    HYP_FORCE_INLINE ID<InnerType> GetID() const
         { return m_id; }
 
     /* To be called from ObjectHolder<Type> */
-    void SetID(const ID &id)
+    void SetID(ID<InnerType> id)
         { m_id = id; }
 
     /*! \brief Get assigned name of the object */
@@ -223,7 +205,7 @@ protected:
         );
     }
     
-    ID m_id;
+    ID<InnerType> m_id;
     String m_name;
     std::atomic_bool m_init_called;
     std::atomic_bool m_is_ready;
@@ -348,8 +330,6 @@ protected:
 };
 
 } // namespace hyperion::v2
-
-HYP_DEF_STL_HASH(hyperion::IDBase);
 
 #endif // !HYPERION_V2_COMPONENTS_BASE_H
 

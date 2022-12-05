@@ -3,7 +3,7 @@
 
 #include <core/Containers.hpp>
 #include <Constants.hpp>
-#include <core/HandleID.hpp>
+#include <core/ID.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <rendering/Buffers.hpp>
 #include <util/Defines.hpp>
@@ -28,7 +28,7 @@ class IndirectDrawState;
 
 struct DrawCallID
 {
-    static_assert(sizeof(HandleID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
+    static_assert(sizeof(ID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
 
     UInt64 value;
 
@@ -37,12 +37,12 @@ struct DrawCallID
     {
     }
 
-    DrawCallID(HandleID<Mesh> mesh_id)
+    DrawCallID(ID<Mesh> mesh_id)
         : value(mesh_id.Value())
     {
     }
 
-    DrawCallID(HandleID<Mesh> mesh_id, HandleID<Material> material_id)
+    DrawCallID(ID<Mesh> mesh_id, ID<Material> material_id)
         : value(mesh_id.Value() | (UInt64(material_id.Value()) << 32))
     {
     }
@@ -71,11 +71,11 @@ struct DrawCall
     EntityBatchIndex batch_index;
     SizeType draw_command_index;
 
-    HandleID<Material> material_id;
-    HandleID<Skeleton> skeleton_id;
+    ID<Material> material_id;
+    ID<Skeleton> skeleton_id;
 
     UInt entity_id_count;
-    HandleID<Entity> entity_ids[max_entities_per_instance_batch];
+    ID<Entity> entity_ids[max_entities_per_instance_batch];
 
     UInt packed_data[4];
 
