@@ -871,7 +871,7 @@ void Engine::RenderNextFrame(Game *game)
         m_crash_handler.HandleGPUCrash(frame_result);
     }
 
-    auto *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrameData().Get<renderer::Frame>();
+    auto *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrameData().Get<Frame>();
 
     PreFrameUpdate(frame);
 
@@ -986,8 +986,6 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader
         return it->second;
     }
 
-    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
-
     // create a RenderGroup with the given params
     auto renderer_instance = CreateObject<RenderGroup>(
         Handle<Shader>(shader),
@@ -1024,9 +1022,9 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     m_render_list_container.AddPendingRenderGroups();
 
-    if (RenderCommands::Count() != 0) {
+    //if (RenderCommands::Count() != 0) {
         HYPERION_ASSERT_RESULT(RenderCommands::Flush());
-    }
+    //}
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
     ResetRenderState(RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE);

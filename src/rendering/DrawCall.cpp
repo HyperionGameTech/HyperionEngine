@@ -4,13 +4,13 @@
 
 namespace hyperion::v2 {
 
-DrawState::DrawState(DrawState &&other) noexcept
+DrawCallCollection::DrawCallCollection(DrawCallCollection &&other) noexcept
     : draw_calls(std::move(other.draw_calls)),
       index_map(std::move(other.index_map))
 {
 }
 
-DrawState &DrawState::operator=(DrawState &&other) noexcept
+DrawCallCollection &DrawCallCollection::operator=(DrawCallCollection &&other) noexcept
 {
     // for (auto &draw_call : draw_calls) {
     //     if (draw_call.batch_index) {
@@ -25,12 +25,12 @@ DrawState &DrawState::operator=(DrawState &&other) noexcept
     return *this;
 }
 
-DrawState::~DrawState()
+DrawCallCollection::~DrawCallCollection()
 {
     Reset();
 }
 
-void DrawState::Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity)
+void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity)
 {
     if constexpr (!use_indexed_array_for_object_data) {
         AssertThrow(id.Value() != 0);
@@ -82,7 +82,7 @@ void DrawState::Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawSt
     draw_calls.PushBack(draw_call);
 }
 
-DrawCall *DrawState::TakeDrawCall(DrawCallID id)
+DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
 {
     auto it = index_map.find(id.Value());
 
@@ -107,9 +107,9 @@ DrawCall *DrawState::TakeDrawCall(DrawCallID id)
     return nullptr;
 }
 
-void DrawState::Reset()
+void DrawCallCollection::Reset()
 {
-    for (auto &draw_call : draw_calls) {
+    for (const DrawCall &draw_call : draw_calls) {
         if (draw_call.batch_index) {
             Engine::Get()->shader_globals->FreeEntityBatch(draw_call.batch_index);
         }

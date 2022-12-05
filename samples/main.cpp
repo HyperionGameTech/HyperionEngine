@@ -210,7 +210,7 @@ public:
         cubemap->GetImage().SetIsSRGB(true);
         InitObject(cubemap);
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
@@ -230,10 +230,10 @@ public:
             zomb2->SetShader(zombie_entity->GetShader());
             zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
             zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
-            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
-            zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            zomb2->GetMaterial()->SetIsAlphaBlended(true);
+            //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
+            //zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            //zomb2->GetMaterial()->SetIsAlphaBlended(true);
             zomb2->SetName("FOOBAR ZOMBO");
             // zomb2->SetSkeleton(zombie_entity->GetSkeleton());
             zomb2->SetSkeleton(CreateObject<Skeleton>());
@@ -332,7 +332,7 @@ public:
         }
 #endif
 
-        { // adding shadow maps
+        if (false) { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
                 Handle<Light>(m_sun),
                 test_model.GetWorldAABB()
@@ -371,44 +371,46 @@ public:
             );
         }
 
-        auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
-        mh.SetName("mh_model");
-        mh.Scale(5.0f);
-        for (auto &mh_child : mh.GetChildren()) {
-            //mh_child.SetEntity(Handle<Entity>::empty);
+        if (false) {
+            auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
+            mh.SetName("mh_model");
+            mh.Scale(5.0f);
+            for (auto &mh_child : mh.GetChildren()) {
+                //mh_child.SetEntity(Handle<Entity>::empty);
 
-            if (auto entity = mh_child.GetEntity()) {
-                // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-                // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.05f);
-                // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+                if (auto entity = mh_child.GetEntity()) {
+                    // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                    // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                    // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+                    // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.05f);
+                    // entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+                }
             }
+            GetScene()->GetRoot().AddChild(mh);
+
+
+            NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
+            tree.SetName("tree");
+            tree.Scale(5.0f);
+            if (auto needles = tree.Select("Needles")) {
+                if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
+                    needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
+                    //needles.GetEntity()->GetMaterial()->SetBucket(BUCKET_TRANSLUCENT);
+                }
+            }
+
+            for (auto &child : tree.GetChildren()) {
+                if (child.GetName() == "BlueSpruceBark") {
+                    continue;
+                }
+
+                if (child.GetEntity()) {
+                    //child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
+                }
+            }
+
+            GetScene()->GetRoot().AddChild(tree);
         }
-        GetScene()->GetRoot().AddChild(mh);
-
-
-        NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
-        tree.SetName("tree");
-        tree.Scale(5.0f);
-        if (auto needles = tree.Select("Needles")) {
-            if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
-                needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
-                //needles.GetEntity()->GetMaterial()->SetBucket(BUCKET_TRANSLUCENT);
-            }
-        }
-
-        for (auto &child : tree.GetChildren()) {
-            if (child.GetName() == "BlueSpruceBark") {
-                continue;
-            }
-
-            if (child.GetEntity()) {
-                //child.GetEntity()->SetShader(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_VEGETATION));
-            }
-        }
-
-        GetScene()->GetRoot().AddChild(tree);
 
 
         if (false) {

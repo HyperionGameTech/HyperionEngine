@@ -47,6 +47,8 @@ public:
     static const ThreadID &GetThreadID(ThreadName thread_name);
     static const ThreadID &CurrentThreadID();
     static void SetThreadID(const ThreadID &thread_id);
+
+    static SizeType NumCores();
 };
 
 } // namespace hyperion::v2

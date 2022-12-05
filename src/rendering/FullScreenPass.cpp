@@ -106,8 +106,6 @@ FullScreenPass::~FullScreenPass() = default;
 
 void FullScreenPass::Create()
 {
-    Threads::AssertOnThread(THREAD_RENDER);
-
     InitObject(m_shader);
 
     CreateQuad();
@@ -229,7 +227,7 @@ void FullScreenPass::Destroy()
         m_framebuffer->RemoveAttachmentRef(attachment.get());
     }
 
-    if (m_render_group != nullptr) {
+    if (m_render_group) {
         m_render_group->RemoveFramebuffer(m_framebuffer->GetID());
     }
 

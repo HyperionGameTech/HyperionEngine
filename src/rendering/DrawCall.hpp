@@ -82,19 +82,19 @@ struct DrawCall
     Mesh *mesh;
 };
 
-struct DrawState
+struct DrawCallCollection
 {
     Array<DrawCall> draw_calls;
     std::unordered_map<UInt64 /* DrawCallID */, Array<SizeType>> index_map;
 
-    DrawState() = default;
-    DrawState(const DrawState &other) = delete;
-    DrawState &operator=(const DrawState &other) = delete;
+    DrawCallCollection() = default;
+    DrawCallCollection(const DrawCallCollection &other) = delete;
+    DrawCallCollection &operator=(const DrawCallCollection &other) = delete;
 
-    DrawState(DrawState &&other) noexcept;
-    DrawState &operator=(DrawState &&other) noexcept;
+    DrawCallCollection(DrawCallCollection &&other) noexcept;
+    DrawCallCollection &operator=(DrawCallCollection &&other) noexcept;
 
-    ~DrawState();
+    ~DrawCallCollection();
 
     void Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity);
     DrawCall *TakeDrawCall(DrawCallID id);

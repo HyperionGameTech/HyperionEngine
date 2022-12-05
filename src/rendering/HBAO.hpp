@@ -5,6 +5,7 @@
 #include <core/Containers.hpp>
 
 #include <rendering/TemporalBlending.hpp>
+#include <rendering/FullScreenPass.hpp>
 #include <rendering/Compute.hpp>
 
 #include <array>
@@ -21,7 +22,7 @@ class Engine;
 
 class HBAO
 {
-    static constexpr bool blur_result = true;
+    static constexpr bool blur_result = false;
 
 public:
     HBAO(const Extent2D &extent);
@@ -69,7 +70,8 @@ private:
     FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
     FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> m_blur_descriptor_sets;
 
-    Handle<ComputePipeline> m_compute_hbao;
+    UniquePtr<FullScreenPass> m_hbao_pass;
+    //Handle<ComputePipeline> m_compute_hbao;
     Handle<ComputePipeline> m_blur_hor;
     Handle<ComputePipeline> m_blur_vert;
     TemporalBlending m_temporal_blending;

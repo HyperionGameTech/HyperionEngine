@@ -130,5 +130,10 @@ const ThreadID &Threads::CurrentThreadID()
     return current_thread_id;
 }
 
+SizeType Threads::NumCores()
+{
+    return std::thread::hardware_concurrency();
+}
+
 
 } // namespace hyperion::v2

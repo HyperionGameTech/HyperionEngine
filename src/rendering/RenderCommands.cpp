@@ -34,12 +34,15 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
 
         m_commands.PopFront();
 
+        // check if an error occurred
         if (!result.result) {
             DebugLog(LogType::Error, "Error! %s\n", result.result.message);
 
             while (m_commands.Any()) {
                 m_commands.PopFront()->~RenderCommand();
             }
+
+            m_num_enqueued.store(count, std::memory_order_relaxed);
 
             break;
         }

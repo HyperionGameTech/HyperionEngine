@@ -42,26 +42,6 @@ class AccelerationStructure;
 class DescriptorSet;
 class DescriptorPool;
 
-enum class DescriptorSetState
-{
-    DESCRIPTOR_CLEAN = 0,
-    DESCRIPTOR_DIRTY = 1
-};
-
-enum class DescriptorType
-{
-    UNSET,
-    UNIFORM_BUFFER,
-    UNIFORM_BUFFER_DYNAMIC,
-    STORAGE_BUFFER,
-    STORAGE_BUFFER_DYNAMIC,
-    IMAGE,
-    SAMPLER,
-    IMAGE_SAMPLER,
-    IMAGE_STORAGE,
-    ACCELERATION_STRUCTURE
-};
-
 class Descriptor
 {
     friend class DescriptorSet;
@@ -143,6 +123,11 @@ public:
     template <class Buffer>
     Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
     {
+        AssertThrowMsg(
+            IsDescriptorTypeDynamicBuffer(m_descriptor_type),
+            "Descriptor type must be a dynamic buffer to use this method"
+        );
+
         SubDescriptor element;
         element.element_index = index;
         element.buffer = buffer;
@@ -155,6 +140,11 @@ public:
 
     Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
     {
+        AssertThrowMsg(
+            IsDescriptorTypeBuffer(m_descriptor_type) && !IsDescriptorTypeDynamicBuffer(m_descriptor_type),
+            "Descriptor type must be a buffer (non-dynamic) to use this method"
+        );
+
         SubDescriptor element;
         element.element_index = index;
         element.buffer = buffer;

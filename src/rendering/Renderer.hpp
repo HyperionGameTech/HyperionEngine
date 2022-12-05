@@ -95,8 +95,6 @@ class RenderGroup
     friend class RendererProxy;
 
 public:
-    static constexpr bool parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
-
     RenderGroup(
         Handle<Shader> &&shader,
         const RenderableAttributeSet &renderable_attributes
@@ -204,7 +202,7 @@ private:
 
     FlatMap<UInt, EntityBatchIndex> m_entity_batches;
 
-    DrawState m_draw_state;
+    DrawCallCollection m_draw_state;
 };
 
 } // namespace hyperion::v2

@@ -327,7 +327,7 @@ void ParticleSpawner::CreateDescriptorSets()
         // scene data (for camera matrices)
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetElementBuffer(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::ImageDescriptor>(6)

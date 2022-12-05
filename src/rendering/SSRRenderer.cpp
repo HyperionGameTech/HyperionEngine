@@ -1,4 +1,4 @@
-#include "ScreenspaceReflectionRenderer.hpp"
+#include "SSRRenderer.hpp"
 #include <Engine.hpp>
 #include <Threads.hpp>
 
@@ -31,13 +31,13 @@ struct alignas(16) SSRParams
 struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
 {
     Extent2D extent;
-    FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs;
-    ScreenspaceReflectionRenderer::ImageOutput *radius_outputs;
+    FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs;
+    SSRRenderer::ImageOutput *radius_outputs;
 
     RENDER_COMMAND(CreateSSRImageOutputs)(
         Extent2D extent,
-        FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs,
-        ScreenspaceReflectionRenderer::ImageOutput *radius_outputs
+        FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs,
+        SSRRenderer::ImageOutput *radius_outputs
     ) : extent(extent),
         image_outputs(image_outputs),
         radius_outputs(radius_outputs)
@@ -48,7 +48,7 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &image_output : image_outputs[frame_index]) {
-                image_output = ScreenspaceReflectionRenderer::ImageOutput {
+                image_output = SSRRenderer::ImageOutput {
                     .image = StorageImage(
                         Extent3D(extent),
                         InternalFormat::RGBA16F,
@@ -58,7 +58,7 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
                 };
             }
 
-            radius_outputs[frame_index] = ScreenspaceReflectionRenderer::ImageOutput {
+            radius_outputs[frame_index] = SSRRenderer::ImageOutput {
                 .image = StorageImage(
                     Extent3D(extent),
                     InternalFormat::R8,
@@ -166,12 +166,12 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommand
 
 struct RENDER_COMMAND(DestroySSRInstance) : RenderCommand
 {
-    FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs;
-    ScreenspaceReflectionRenderer::ImageOutput *radius_outputs;
+    FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs;
+    SSRRenderer::ImageOutput *radius_outputs;
 
     RENDER_COMMAND(DestroySSRInstance)(
-        FixedArray<ScreenspaceReflectionRenderer::ImageOutput, 4> *image_outputs,
-        ScreenspaceReflectionRenderer::ImageOutput *radius_outputs
+        FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs,
+        SSRRenderer::ImageOutput *radius_outputs
     ) : image_outputs(image_outputs),
         radius_outputs(radius_outputs)
     {
@@ -199,7 +199,7 @@ struct RENDER_COMMAND(DestroySSRInstance) : RenderCommand
     }
 };
 
-ScreenspaceReflectionRenderer::ScreenspaceReflectionRenderer(const Extent2D &extent)
+SSRRenderer::SSRRenderer(const Extent2D &extent)
     : m_extent(extent),
       m_temporal_blending(
           extent,
@@ -211,11 +211,11 @@ ScreenspaceReflectionRenderer::ScreenspaceReflectionRenderer(const Extent2D &ext
 {
 }
 
-ScreenspaceReflectionRenderer::~ScreenspaceReflectionRenderer()
+SSRRenderer::~SSRRenderer()
 {
 }
 
-void ScreenspaceReflectionRenderer::Create()
+void SSRRenderer::Create()
 {
     RenderCommands::Push<RENDER_COMMAND(CreateSSRImageOutputs)>(
         m_extent,
@@ -223,14 +223,16 @@ void ScreenspaceReflectionRenderer::Create()
         m_radius_output.Data()
     );
 
-    m_temporal_blending.Create();
+    if (use_temporal_blending) {
+        m_temporal_blending.Create();
+    }
 
     CreateUniformBuffers();
     CreateDescriptorSets();
     CreateComputePipelines();
 }
 
-void ScreenspaceReflectionRenderer::Destroy()
+void SSRRenderer::Destroy()
 {
     m_is_rendered = false;
 
@@ -239,7 +241,9 @@ void ScreenspaceReflectionRenderer::Destroy()
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    m_temporal_blending.Destroy();
+    if (use_temporal_blending) {
+        m_temporal_blending.Destroy();
+    }
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         Engine::Get()->SafeRelease(std::move(m_descriptor_sets[frame_index]));
@@ -254,7 +258,7 @@ void ScreenspaceReflectionRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void ScreenspaceReflectionRenderer::CreateUniformBuffers()
+void SSRRenderer::CreateUniformBuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
@@ -266,7 +270,7 @@ void ScreenspaceReflectionRenderer::CreateUniformBuffers()
     );
 }
 
-void ScreenspaceReflectionRenderer::CreateDescriptorSets()
+void SSRRenderer::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
@@ -348,7 +352,7 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets()
         // uniforms
         descriptor_set
             ->AddDescriptor<renderer::UniformBufferDescriptor>(17)
-            ->SetElementBuffer<SSRParams>(0, m_uniform_buffers[frame_index].Get());
+            ->SetElementBuffer(0, m_uniform_buffers[frame_index].Get());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -356,13 +360,13 @@ void ScreenspaceReflectionRenderer::CreateDescriptorSets()
     RenderCommands::Push<RENDER_COMMAND(CreateSSRDescriptors)>(
         m_descriptor_sets.Data(),
         FixedArray<renderer::ImageView *, max_frames_in_flight> {
-            &m_temporal_blending.GetImageOutput(0).image_view,
-            &m_temporal_blending.GetImageOutput(1).image_view
+            use_temporal_blending ? &m_temporal_blending.GetImageOutput(0).image_view : &m_image_outputs[0].Back().image_view,
+            use_temporal_blending ? &m_temporal_blending.GetImageOutput(1).image_view : &m_image_outputs[1].Back().image_view
         }
     );
 }
 
-void ScreenspaceReflectionRenderer::CreateComputePipelines()
+void SSRRenderer::CreateComputePipelines()
 {
     m_write_uvs = CreateObject<ComputePipeline>(
         CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("SSRWriteUVs")),
@@ -393,7 +397,7 @@ void ScreenspaceReflectionRenderer::CreateComputePipelines()
     InitObject(m_blur_vert);
 }
 
-void ScreenspaceReflectionRenderer::Render(
+void SSRRenderer::Render(
     
     Frame *frame
 )
@@ -501,7 +505,9 @@ void ScreenspaceReflectionRenderer::Render(
     m_image_outputs[frame_index][3].image.GetGPUImage()
         ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
-    m_temporal_blending.Render(frame);
+    if (use_temporal_blending) {
+        m_temporal_blending.Render(frame);
+    }
 
     m_is_rendered = true;
     /* ==========  END SSR  ========== */

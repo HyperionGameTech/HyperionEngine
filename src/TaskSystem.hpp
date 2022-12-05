@@ -94,6 +94,7 @@ public:
         for (auto &pool : m_pools) {
             for (auto &it : pool.threads) {
                 AssertThrow(THREAD_TASK & mask);
+
                 it.Reset(new TaskThread(Threads::thread_ids.At(static_cast<ThreadName>(mask)), target_ticks_per_second << (2 * priority_value)));
                 mask <<= 1;
             }
@@ -274,7 +275,7 @@ public:
     template <class Container, class Lambda>
     void ParallelForEach(TaskPriority priority, UInt num_batches, Container &&items, Lambda &&lambda)
     {
-        const auto num_items = static_cast<UInt>(items.Size());
+        const UInt num_items = UInt(items.Size());
 
         if (num_items == 0) {
             return;
@@ -285,7 +286,7 @@ public:
 
         TaskBatch batch;
         batch.priority = priority;
-        const auto items_per_batch = num_items / num_batches;
+        const UInt items_per_batch = num_items / num_batches;
 
         for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
             batch.AddTask([&items, batch_index, items_per_batch, num_items, lambda](...) {

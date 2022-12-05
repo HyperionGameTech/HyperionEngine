@@ -73,7 +73,7 @@ Result FrameHandler::PresentFrame(DeviceQueue *queue, Swapchain *swapchain) cons
 
     VkPresentInfoKHR present_info{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 
-    present_info.waitSemaphoreCount = static_cast<UInt>(signal_semaphores.size());
+    present_info.waitSemaphoreCount = UInt32(signal_semaphores.size());
     present_info.pWaitSemaphores = signal_semaphores.data();
 
     present_info.swapchainCount = 1;

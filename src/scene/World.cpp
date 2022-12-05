@@ -124,10 +124,7 @@ void World::Update(
     }
 }
 
-void World::Render(
-    
-    Frame *frame
-)
+void World::Render(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 

@@ -9,7 +9,7 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/ScreenspaceReflectionRenderer.hpp>
+#include <rendering/SSRRenderer.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
@@ -134,7 +134,7 @@ private:
 
     UniquePtr<FullScreenPass> m_combine_pass;
 
-    ScreenspaceReflectionRenderer m_ssr;
+    SSRRenderer m_ssr;
     DepthPyramidRenderer m_dpr;
 
     FixedArray<Handle<Texture>, max_frames_in_flight> m_results;

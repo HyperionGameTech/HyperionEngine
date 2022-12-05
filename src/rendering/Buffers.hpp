@@ -52,6 +52,7 @@ struct alignas(256) EntityInstanceBatch
     UInt32 _pad0;
     UInt32 _pad1;
     UInt32 _pad2;
+    //ShaderVec4<UInt32> indices[max_entities_per_instance_batch / 4];
     UInt32 indices[max_entities_per_instance_batch];
 };
 

@@ -260,6 +260,8 @@ void RenderGroup::Init()
 
     EngineComponentBase::Init();
 
+    DebugLog(LogType::Debug, "CREATING RENDERGROUP #%u\n", GetID().Value());
+
     // create our indirect renderer
     // will be created with some initial size.
     m_indirect_renderer.Create();
@@ -390,7 +392,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
     m_indirect_renderer.GetDrawState().Reset();
     m_divided_draw_calls.Clear();
 
-    DrawState previous_draw_state = std::move(m_draw_state);
+    DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
     //auto previous_entity_batches = std::move(m_entity_batches);
     //m_entity_batches.Clear();
@@ -434,8 +436,6 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
         } else {
             draw_call_id = DrawCallID(draw_proxy.mesh_id);
         }
-
-        DrawCommandData draw_command_data;
 
         EntityBatchIndex batch_index = 0;
 
@@ -610,7 +610,7 @@ RenderAll(
     renderer::GraphicsPipeline *pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Array<DrawCall>> &divided_draw_calls,
-    const DrawState &draw_state
+    const DrawCallCollection &draw_state
 )
 {
     const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
@@ -618,7 +618,7 @@ RenderAll(
 
     const UInt frame_index = frame->GetFrameIndex();
 
-    const auto num_batches = RenderGroup::parallel_rendering
+    const auto num_batches = use_parallel_rendering
         ? MathUtil::Min(UInt(Engine::Get()->task_system.GetPool(TaskPriority::HIGH).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     

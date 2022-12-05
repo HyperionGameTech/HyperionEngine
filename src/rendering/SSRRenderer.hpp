@@ -34,24 +34,23 @@ class Engine;
 struct RenderCommand_CreateSSRImageOutputs;
 struct RenderCommand_DestroySSRInstance;
 
-class ScreenspaceReflectionRenderer
+class SSRRenderer
 {
+    static constexpr bool use_temporal_blending = false;
+
 public:
     friend struct RenderCommand_CreateSSRImageOutputs;
     friend struct RenderCommand_DestroySSRInstance;
 
-    ScreenspaceReflectionRenderer(const Extent2D &extent);
-    ~ScreenspaceReflectionRenderer();
+    SSRRenderer(const Extent2D &extent);
+    ~SSRRenderer();
 
     bool IsRendered() const { return m_is_rendered; }
 
     void Create();
     void Destroy();
 
-    void Render(
-        
-        Frame *frame
-    );
+    void Render(Frame *frame);
 
 private:
     void CreateUniformBuffers();

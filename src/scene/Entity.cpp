@@ -152,7 +152,7 @@ void Entity::Init()
     SetReady(true);
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    if (Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled() && HasFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS)) {
+    if (Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED) && HasFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS)) {
        CreateBLAS();
     }
 #endif
@@ -287,11 +287,11 @@ void Entity::EnqueueRenderUpdates()
         m_previous_transform_matrix
     );
 
-    if (m_previous_transform_matrix == m_transform.GetMatrix()) {
+    if (Memory::Compare(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4)) == 0) {
         m_shader_data_state = ShaderDataState::CLEAN;
     }
 
-    m_previous_transform_matrix = m_transform.GetMatrix();
+    Memory::Copy(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4));
 }
 
 void Entity::UpdateOctree()
@@ -673,7 +673,7 @@ bool Entity::CreateBLAS()
     }
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    if (!Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingEnabled()) {
+    if (!Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return false;
     }
 #else

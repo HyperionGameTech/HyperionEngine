@@ -21,7 +21,7 @@ const Extent2D DeferredRenderer::hbao_extent(512, 512);
 const Extent2D DeferredRenderer::ssr_extent(1024, 1024);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
-    : FullScreenPass(InternalFormat::RGBA16F),
+    : FullScreenPass(InternalFormat::RGBA8_SRGB),
       m_is_indirect_pass(is_indirect_pass)
 {
 }
@@ -55,31 +55,6 @@ void DeferredPass::CreateShader()
 
 void DeferredPass::CreateDescriptors()
 {
-    // if (m_is_indirect_pass) {
-    //     return;
-    // }
-
-    // for (UInt i = 0; i < max_frames_in_flight; i++) {
-    //     auto &framebuffer = m_framebuffers[i]->GetFramebuffer();
-
-    //     if (!framebuffer.GetAttachmentRefs().empty()) {
-    //         auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
-    //         auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::DEFERRED_RESULT);
-
-    //         // only add color attachment
-    //         AssertThrowMsg(!framebuffer.GetAttachmentRefs().empty(),
-    //             "Size should be at least 1! Need to have color attachment to create DEFERRED_RESULT descriptor");
-
-    //         auto *color_attachment_ref = framebuffer.GetAttachmentRefs().front();
-    //         AssertThrow(color_attachment_ref != nullptr);
-    //         AssertThrow(!color_attachment_ref->IsDepthAttachment());
-
-    //         descriptor->SetSubDescriptor({
-    //             .element_index = 0u,
-    //             .image_view = color_attachment_ref->GetImageView()
-    //         });
-    //     }
-    // }
 }
 
 void DeferredPass::Create()
@@ -393,7 +368,6 @@ void DeferredRenderer::Destroy()
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_mipmapped_results[frame_index]));
-
     }
 
     m_opaque_fbo.Reset();
