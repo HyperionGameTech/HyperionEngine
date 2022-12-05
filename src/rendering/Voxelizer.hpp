@@ -77,9 +77,8 @@ private:
     std::unique_ptr<AtomicCounter> m_counter;
     std::unique_ptr<StorageBuffer> m_fragment_list_buffer;
 
-    Handle<Framebuffer2> m_framebuffer;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderPass> m_render_pass;
     Handle<RenderGroup> m_render_group;
 
     std::vector<std::unique_ptr<renderer::Attachment>> m_attachments;

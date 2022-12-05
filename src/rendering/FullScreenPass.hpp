@@ -68,8 +68,8 @@ public:
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
 
-    Handle<Framebuffer2> &GetFramebuffer() { return m_framebuffer; }
-    const Handle<Framebuffer2> &GetFramebuffer() const { return m_framebuffer; }
+    Handle<Framebuffer> &GetFramebuffer() { return m_framebuffer; }
+    const Handle<Framebuffer> &GetFramebuffer() const { return m_framebuffer; }
                                                       
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
@@ -123,7 +123,7 @@ protected:
     void CreateQuad();
 
     FixedArray<UniquePtr<CommandBuffer>, max_frames_in_flight> m_command_buffers;
-    Handle<Framebuffer2> m_framebuffer;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
     Handle<Mesh> m_full_screen_quad;

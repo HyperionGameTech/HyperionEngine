@@ -96,7 +96,7 @@ private:
     BoundingBox m_aabb;
     FilterMode m_filter_mode;
     Handle<Scene> m_scene;
-    Handle<Framebuffer2> m_framebuffer;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
     std::vector<std::unique_ptr<Attachment>> m_attachments;

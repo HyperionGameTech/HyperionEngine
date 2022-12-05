@@ -66,16 +66,16 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommand
 };
 
 
-Framebuffer2::Framebuffer2(
+Framebuffer::Framebuffer(
     Extent2D extent,
     renderer::RenderPassStage stage,
     renderer::RenderPass::Mode render_pass_mode,
     UInt num_multiview_layers
-) : Framebuffer2(Extent3D(extent), stage, render_pass_mode)
+) : Framebuffer(Extent3D(extent), stage, render_pass_mode)
 {
 }
 
-Framebuffer2::Framebuffer2(
+Framebuffer::Framebuffer(
     Extent3D extent,
     renderer::RenderPassStage stage,
     renderer::RenderPass::Mode render_pass_mode,
@@ -86,12 +86,12 @@ Framebuffer2::Framebuffer2(
 {
 }
 
-Framebuffer2::~Framebuffer2()
+Framebuffer::~Framebuffer()
 {
     Teardown();
 }
 
-void Framebuffer2::Init()
+void Framebuffer::Init()
 {
     if (IsInitCalled()) {
         return;
@@ -120,7 +120,7 @@ void Framebuffer2::Init()
     });
 }
 
-void Framebuffer2::AddAttachmentRef(AttachmentRef *attachment_ref)
+void Framebuffer::AddAttachmentRef(AttachmentRef *attachment_ref)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index].AddAttachmentRef(attachment_ref);
@@ -129,7 +129,7 @@ void Framebuffer2::AddAttachmentRef(AttachmentRef *attachment_ref)
     m_render_pass.AddAttachmentRef(attachment_ref);
 }
 
-void Framebuffer2::RemoveAttachmentRef(const Attachment *attachment)
+void Framebuffer::RemoveAttachmentRef(const Attachment *attachment)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_framebuffers[frame_index].RemoveAttachmentRef(attachment);
@@ -138,14 +138,14 @@ void Framebuffer2::RemoveAttachmentRef(const Attachment *attachment)
     m_render_pass.RemoveAttachmentRef(attachment);
 }
 
-void Framebuffer2::BeginCapture(UInt frame_index, CommandBuffer *command_buffer)
+void Framebuffer::BeginCapture(UInt frame_index, CommandBuffer *command_buffer)
 {
     AssertThrow(frame_index < max_frames_in_flight);
 
     m_render_pass.Begin(command_buffer, &m_framebuffers[frame_index]);
 }
 
-void Framebuffer2::EndCapture(UInt frame_index, CommandBuffer *command_buffer)
+void Framebuffer::EndCapture(UInt frame_index, CommandBuffer *command_buffer)
 {
     AssertThrow(frame_index < max_frames_in_flight);
 

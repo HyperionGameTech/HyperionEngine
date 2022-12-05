@@ -52,8 +52,7 @@ public:
         friend class DeferredSystem;
 
         Bucket bucket { BUCKET_OPAQUE };
-        Handle<RenderPass> render_pass;
-        Handle<Framebuffer2> framebuffer;
+        Handle<Framebuffer> framebuffer;
         Array<std::unique_ptr<Attachment>> attachments;
         Array<Handle<RenderGroup>> renderer_instances;
         Array<Handle<RenderGroup>> renderer_instances_pending_addition;
@@ -67,8 +66,8 @@ public:
         Bucket GetBucket() const { return bucket; }
         void SetBucket(Bucket bucket) { this->bucket = bucket; }
         
-        Handle<Framebuffer2> &GetFramebuffer() { return framebuffer; }
-        const Handle<Framebuffer2> &GetFramebuffer() const { return framebuffer; }
+        Handle<Framebuffer> &GetFramebuffer() { return framebuffer; }
+        const Handle<Framebuffer> &GetFramebuffer() const { return framebuffer; }
 
         Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
         const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }

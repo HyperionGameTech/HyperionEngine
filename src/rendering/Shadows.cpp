@@ -152,7 +152,7 @@ void ShadowPass::SetParentScene(Scene::ID id)
 void ShadowPass::CreateFramebuffer()
 {
     /* Add the filters' renderpass */
-    m_framebuffer = CreateObject<Framebuffer2>(
+    m_framebuffer = CreateObject<Framebuffer>(
         m_dimensions,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
@@ -233,7 +233,7 @@ void ShadowPass::CreateRenderGroup()
         )
     );
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);

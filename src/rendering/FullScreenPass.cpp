@@ -146,7 +146,7 @@ void FullScreenPass::CreateCommandBuffers()
 
 void FullScreenPass::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer2>(
+    m_framebuffer = CreateObject<Framebuffer>(
         Engine::Get()->GetGPUInstance()->swapchain->extent,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
@@ -210,7 +210,7 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
         );
     }
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
 
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);

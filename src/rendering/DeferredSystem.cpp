@@ -21,7 +21,7 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
 
 static void AddOwnedAttachment(
     InternalFormat format,
-    Handle<Framebuffer2> &framebuffer,
+    Handle<Framebuffer> &framebuffer,
     Array<std::unique_ptr<Attachment>> &attachments
 )
 {
@@ -50,7 +50,7 @@ static void AddOwnedAttachment(
 
 static void AddSharedAttachment(
     UInt attachment_index,
-    Handle<Framebuffer2> &framebuffer,
+    Handle<Framebuffer> &framebuffer,
     Array<std::unique_ptr<Attachment>> &attachments
 )
 {
@@ -189,7 +189,7 @@ void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipelines()
 
 void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline)
 {
-    pipeline->AddFramebuffer(Handle<Framebuffer2>(framebuffer));
+    pipeline->AddFramebuffer(Handle<Framebuffer>(framebuffer));
 }
 
 void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
@@ -200,7 +200,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
 
-    framebuffer = CreateObject<Framebuffer2>(
+    framebuffer = CreateObject<Framebuffer>(
         Engine::Get()->GetGPUInstance()->swapchain->extent,
         RenderPassStage::SHADER,
         mode

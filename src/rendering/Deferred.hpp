@@ -129,8 +129,8 @@ private:
     UniquePtr<HBAO> m_hbao;
     UniquePtr<TemporalAA> m_temporal_aa;
 
-    Handle<Framebuffer2> m_opaque_fbo;
-    Handle<Framebuffer2> m_translucent_fbo;
+    Handle<Framebuffer> m_opaque_fbo;
+    Handle<Framebuffer> m_translucent_fbo;
 
     UniquePtr<FullScreenPass> m_combine_pass;
 

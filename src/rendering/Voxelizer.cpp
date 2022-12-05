@@ -52,7 +52,6 @@ void Voxelizer::Init()
     OnTeardown([this]() {
         m_shader.Reset();
         m_framebuffer.Reset();
-        m_render_pass.Reset();
 
         struct RENDER_COMMAND(DestroyVoxelizer) : RenderCommand
         {
@@ -116,7 +115,7 @@ void Voxelizer::CreatePipeline()
         )
     );
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     
@@ -185,7 +184,7 @@ void Voxelizer::CreateShader()
 
 void Voxelizer::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer2>(
+    m_framebuffer = CreateObject<Framebuffer>(
         Extent2D { voxel_map_size, voxel_map_size },
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER

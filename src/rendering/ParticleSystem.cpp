@@ -367,7 +367,7 @@ void ParticleSpawner::CreateRenderGroup()
         )
     );
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer2>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
     m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {

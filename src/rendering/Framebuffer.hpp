@@ -16,28 +16,28 @@ using renderer::AttachmentRef;
 using renderer::Attachment;
 
 
-class Framebuffer2
-    : public EngineComponentBase<STUB_CLASS(Framebuffer2)>,
+class Framebuffer
+    : public EngineComponentBase<STUB_CLASS(Framebuffer)>,
       public RenderResource
 {
 public:
-    Framebuffer2(
+    Framebuffer(
         Extent2D extent,
         renderer::RenderPassStage stage = renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode render_pass_mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 
-    Framebuffer2(
+    Framebuffer(
         Extent3D extent,
         renderer::RenderPassStage stage = renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode render_pass_mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 
-    Framebuffer2(const Framebuffer2 &other) = delete;
-    Framebuffer2 &operator=(const Framebuffer2 &other) = delete;
-    ~Framebuffer2();
+    Framebuffer(const Framebuffer &other) = delete;
+    Framebuffer &operator=(const Framebuffer &other) = delete;
+    ~Framebuffer();
 
     void AddAttachmentRef(AttachmentRef *attachment);
     void RemoveAttachmentRef(const Attachment *attachment);

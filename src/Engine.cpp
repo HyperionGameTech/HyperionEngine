@@ -186,7 +186,7 @@ void Engine::PrepareFinalPass()
     }
 
     for (VkImage img : m_instance->swapchain->images) {
-        auto fbo = CreateObject<Framebuffer2>(
+        auto fbo = CreateObject<Framebuffer>(
             m_instance->swapchain->extent,
             renderer::RenderPassStage::PRESENT,
             renderer::RenderPass::Mode::RENDER_PASS_INLINE

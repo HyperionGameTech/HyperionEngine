@@ -89,7 +89,7 @@ private:
     Params m_params;
 
     Handle<Scene> m_scene;
-    Handle<Framebuffer2> m_framebuffer;
+    Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
     Handle<ComputePipeline> m_clear_voxels;

@@ -488,7 +488,7 @@ void VoxelConeTracing::CreateRenderGroup()
         )
     );
 
-    m_render_group->AddFramebuffer(Handle<Framebuffer2>(m_framebuffer));
+    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
     
     Engine::Get()->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
@@ -544,7 +544,7 @@ void VoxelConeTracing::CreateShader()
 
 void VoxelConeTracing::CreateFramebuffer()
 {
-    m_framebuffer = CreateObject<Framebuffer2>(
+    m_framebuffer = CreateObject<Framebuffer>(
         Extent2D(voxel_map_extent),
         RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER

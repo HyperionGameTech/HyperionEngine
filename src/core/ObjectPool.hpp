@@ -214,7 +214,6 @@ DEF_HANDLE(Camera,                       64);
 DEF_HANDLE(Entity,                       32768);
 DEF_HANDLE(Mesh,                         65536);
 DEF_HANDLE(Framebuffer,                  256);
-DEF_HANDLE(Framebuffer2,                 256);
 DEF_HANDLE(RenderPass,                   1024);
 DEF_HANDLE(Shader,                       1024);
 DEF_HANDLE(RenderGroup,                  256);
