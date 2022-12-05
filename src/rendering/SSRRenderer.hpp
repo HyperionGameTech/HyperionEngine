@@ -36,7 +36,7 @@ struct RenderCommand_DestroySSRInstance;
 
 class SSRRenderer
 {
-    static constexpr bool use_temporal_blending = false;
+    static constexpr bool use_temporal_blending = true;
 
 public:
     friend struct RenderCommand_CreateSSRImageOutputs;

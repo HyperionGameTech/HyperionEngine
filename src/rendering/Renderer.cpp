@@ -392,6 +392,10 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
     m_indirect_renderer.GetDrawState().Reset();
     m_divided_draw_calls.Clear();
 
+    if (m_entities.Empty()) {
+        return;
+    }
+
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
     //auto previous_entity_batches = std::move(m_entity_batches);
@@ -708,6 +712,10 @@ void RenderGroup::PerformRendering(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
+    if (m_draw_state.draw_calls.Empty()) {
+        return;
+    }
+
     RenderAll<false>(
         frame,
         m_command_buffers,
@@ -723,6 +731,10 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
+
+    if (m_draw_state.draw_calls.Empty()) {
+        return;
+    }
 
     RenderAll<true>(
         frame,

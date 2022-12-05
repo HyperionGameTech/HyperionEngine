@@ -112,7 +112,7 @@ public:
         m_scene->SetCamera(
             CreateObject<Camera>(
                 70.0f,
-                1920, 1080,
+                1024, 768,
                 0.5f, 30000.0f
             )
         );
@@ -264,9 +264,6 @@ public:
             // )));
         }
 
-        //auto tex = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png");
-        //AssertThrow(tex);
-
         if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
@@ -332,7 +329,7 @@ public:
         }
 #endif
 
-        if (false) { // adding shadow maps
+        if (true) { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
                 Handle<Light>(m_sun),
                 test_model.GetWorldAABB()
@@ -371,7 +368,7 @@ public:
             );
         }
 
-        if (false) {
+        if (true) {
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
             mh.Scale(5.0f);
@@ -599,7 +596,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1024, 768));
     
     SystemEvent event;
 

@@ -496,7 +496,7 @@ void SSRRenderer::Render(
         m_blur_vert->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+        FixedArray { UInt32(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
     );
 
     m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
