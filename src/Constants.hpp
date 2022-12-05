@@ -16,7 +16,7 @@ constexpr UInt max_bound_env_probes = 1; // temp
 constexpr UInt num_gbuffer_textures = 5;
 constexpr bool use_indexed_array_for_object_data = true;
 // perform occlusion culling using indirect draw
-constexpr bool use_draw_indirect = true;
+constexpr bool use_draw_indirect = false;
 
 template <class ...T>
 constexpr bool resolution_failure = false;

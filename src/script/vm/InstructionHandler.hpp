@@ -1410,7 +1410,7 @@ public:
                 if (a.flags & Number::FLAG_SIGNED) {
                     result.m_value.u32 = static_cast<UInt32>(a.i);
                 } else {
-                    result.m_value.u32 = a.u;
+                    result.m_value.u32 = static_cast<UInt32>(a.u);
                 }
                 if (b.flags & Number::FLAG_SIGNED) {
                     if (b.i == 0) {

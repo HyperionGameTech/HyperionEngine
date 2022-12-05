@@ -315,17 +315,11 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .buffer = shader_globals->materials.GetBuffers()[0].get(),
-                .range = UInt32(sizeof(MaterialShaderData))
-            });
+            ->SetElementBuffer(0, shader_globals->materials.GetBuffers()[0].get());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .buffer = shader_globals->materials.GetBuffers()[0].get(),
-                .range = UInt32(sizeof(MaterialShaderData))
-            });
+            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffers()[0].get());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
@@ -368,17 +362,11 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .buffer = shader_globals->materials.GetBuffers()[1].get(),
-                .range = UInt32(sizeof(MaterialShaderData))
-            });
+            ->SetElementBuffer(0, shader_globals->materials.GetBuffers()[1].get());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetSubDescriptor({
-                .buffer = shader_globals->materials.GetBuffers()[1].get(),
-                .range = UInt32(sizeof(MaterialShaderData))
-            });
+            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffers()[1].get());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)

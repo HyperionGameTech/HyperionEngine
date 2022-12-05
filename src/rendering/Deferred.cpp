@@ -406,11 +406,7 @@ void DeferredRenderer::Destroy()
     m_direct_pass.Destroy();    // flushes render queue
 }
 
-void DeferredRenderer::Render(
-    
-    Frame *frame,
-    RenderEnvironment *environment
-)
+void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
