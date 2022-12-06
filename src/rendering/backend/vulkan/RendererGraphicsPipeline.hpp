@@ -32,10 +32,10 @@ public:
         Topology topology = Topology::TRIANGLES;
         FaceCullMode cull_mode = FaceCullMode::BACK;
         FillMode fill_mode = FillMode::FILL;
+        BlendMode blend_mode = BlendMode::NONE;
 
         bool depth_test = true,
-            depth_write = true,
-            blend_enabled = false;
+            depth_write = true;
 
         ShaderProgram *shader = nullptr;
         RenderPass *render_pass = nullptr;

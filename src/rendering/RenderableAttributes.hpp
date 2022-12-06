@@ -15,6 +15,7 @@ using renderer::Topology;
 using renderer::FillMode;
 using renderer::StencilState;
 using renderer::VertexAttributeSet;
+using renderer::BlendMode;
 
 struct MaterialAttributes
 {
@@ -23,13 +24,13 @@ struct MaterialAttributes
     enum MaterialFlagBits : MaterialFlags
     {
         RENDERABLE_ATTRIBUTE_FLAGS_NONE = 0x0,
-        RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING = 0x1,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE = 0x2,
-        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST = 0x4
+        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE = 0x1,
+        RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST = 0x2
     };
 
     Bucket bucket = Bucket::BUCKET_OPAQUE;
     FillMode fill_mode = FillMode::FILL;
+    BlendMode blend_mode = BlendMode::NONE;
     FaceCullMode cull_faces = FaceCullMode::BACK;
     MaterialFlags flags = RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE | RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST;
 
@@ -38,6 +39,7 @@ struct MaterialAttributes
         return std::make_tuple(
             bucket,
             fill_mode,
+            blend_mode,
             cull_faces,
             flags
         );
@@ -47,6 +49,7 @@ struct MaterialAttributes
     {
         return bucket == other.bucket
             && fill_mode == other.fill_mode
+            && blend_mode == other.blend_mode
             && cull_faces == other.cull_faces
             && flags == other.flags;
     }

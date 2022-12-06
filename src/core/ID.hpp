@@ -42,7 +42,7 @@ struct IDBase
         to be used as a storage index. If the value is zero (invalid state),
         zero is returned. Ideally a validation check would be performed before you use this,
         unless you are totally sure that 0 is a valid index. */
-    UInt ToIndex() const
+    HYP_FORCE_INLINE UInt ToIndex() const
         { return value ? value - 1 : 0; }
 
     ValueType value { 0 };

@@ -465,6 +465,8 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProps &props) const
     if (use_indexed_array_for_object_data) {
         props.Set(ShaderProperty("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA", false));
     }
+
+    //props.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS", false));
 }
 
 void ShaderCompiler::ParseDefinitionSection(

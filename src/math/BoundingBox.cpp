@@ -6,6 +6,7 @@
 namespace hyperion {
 
 const BoundingBox BoundingBox::empty = BoundingBox();
+const BoundingBox BoundingBox::infinity = BoundingBox(Vector3(-INFINITY), Vector3(INFINITY));
 
 BoundingBox::BoundingBox()
     : min(MathUtil::MaxSafeValue<Float>()), 

@@ -8,6 +8,8 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
 {
     renderer::GraphicsPipeline *pipeline;
@@ -40,9 +42,9 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
             .topology          = attributes.mesh_attributes.topology,
             .cull_mode         = attributes.material_attributes.cull_faces,
             .fill_mode         = attributes.material_attributes.fill_mode,
+            .blend_mode        = attributes.material_attributes.blend_mode,
             .depth_test        = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
             .depth_write       = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
-            .blend_enabled     = bool(attributes.material_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING),
             .shader            = shader_program,
             .render_pass       = render_pass,
             .stencil_state     = attributes.stencil_state
@@ -83,6 +85,8 @@ struct RENDER_COMMAND(DestroyGraphicsPipeline) : RenderCommand
         return pipeline->Destroy(Engine::Get()->GetGPUDevice());
     }
 };
+
+#pragma endregion
 
 RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
@@ -260,8 +264,6 @@ void RenderGroup::Init()
 
     EngineComponentBase::Init();
 
-    DebugLog(LogType::Debug, "CREATING RENDERGROUP #%u\n", GetID().Value());
-
     // create our indirect renderer
     // will be created with some initial size.
     m_indirect_renderer.Create();
@@ -407,15 +409,18 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const auto scene_id = scene_binding.id;
-    const auto scene_index = scene_id.ToIndex();
 
     // check visibility state
     const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
     const auto visibility_cursor = Engine::Get()->render_state.visibility_cursor;
     const auto &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
 
-    for (auto &&entity : m_entities) {
-        if (entity->GetMesh() == nullptr) {
+    for (Handle<Entity> &entity : m_entities) {
+        AssertThrow(entity.IsValid());
+
+        const EntityDrawProxy &draw_proxy = entity->GetDrawProxy();
+
+        if (draw_proxy.mesh == nullptr) {
             continue;
         }
 
@@ -430,8 +435,6 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
                 continue;
             }
         }
-
-        const EntityDrawProxy &draw_proxy = entity->GetDrawProxy();
 
         DrawCallID draw_call_id;
 
@@ -452,7 +455,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
             draw_call->batch_index = 0;
         }
 
-        m_draw_state.Push(batch_index, draw_call_id, m_indirect_renderer.GetDrawState(), entity->GetDrawProxy());
+        m_draw_state.Push(batch_index, draw_call_id, m_indirect_renderer.GetDrawState(), draw_proxy);
     }
 
     previous_draw_state.Reset();
@@ -618,7 +621,7 @@ RenderAll(
 )
 {
     const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
-    const auto scene_id = scene_binding.id;
+    const ID<Scene> scene_id = scene_binding.id;
 
     const UInt frame_index = frame->GetFrameIndex();
 
@@ -643,7 +646,7 @@ RenderAll(
         TaskPriority::HIGH,
         num_batches,
         divided_draw_calls,
-        [&draw_state, frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, command_buffer_index, frame_index, scene_id](const Array<DrawCall> &draw_calls, UInt index, UInt) {
+        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index, scene_id](const Array<DrawCall> &draw_calls, UInt index, UInt) {
             if (draw_calls.Empty()) {
                 return;
             }
@@ -662,7 +665,9 @@ RenderAll(
                     );
 
                     for (const DrawCall &draw_call : draw_calls) {
-                        EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
+                        AssertThrow(draw_call.mesh != nullptr);
+
+                        const EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
 
                         BindPerObjectDescriptorSets(
                             frame,

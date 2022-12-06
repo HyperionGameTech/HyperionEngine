@@ -30,7 +30,7 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_ENV_PROBES = 0x4,
     RENDER_STATE_VISIBILITY = 0x8,
 
-    RENDER_STATE_ALL = 0xFFFFFFFF
+    RENDER_STATE_ALL = 0xFFFFFFFFu
 };
 
 
@@ -75,18 +75,18 @@ struct RenderBinding<Scene>
 struct RenderState
 {
     std::stack<RenderBinding<Scene>> scene_bindings;
-    FlatSet<RenderBinding<Light>> light_bindings;
+    FlatMap<ID<Light>, LightDrawProxy> lights;
     FlatMap<ID<EnvProbe>, Optional<UInt>> env_probes; // map to texture slot
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
 
-    void BindLight(ID<Light> light_id)
+    void BindLight(ID<Light> id, const LightDrawProxy &light)
     {
-        light_bindings.Insert(RenderBinding<Light> { light_id });
+        lights.Insert(id, light);
     }
 
-    void UnbindLight(ID<Light> light_id)
+    void UnbindLight(ID<Light> id)
     {
-        light_bindings.Erase(RenderBinding<Light> { light_id });
+        lights.Erase(id);
     }
 
     void BindScene(const Scene *scene)
@@ -146,7 +146,7 @@ struct RenderState
         }
 
         if (mask & RENDER_STATE_LIGHTS) {
-            light_bindings.Clear();
+            lights.Clear();
         }
 
         if (mask & RENDER_STATE_VISIBILITY) {

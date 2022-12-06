@@ -173,7 +173,7 @@ void ShadowPass::CreateFramebuffer()
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
             Engine::Get()->GetGPUInstance()->GetDevice(),
-            renderer::LoadOperation::UNDEFINED,
+            renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
             &attachment_ref
         ));
@@ -455,7 +455,7 @@ void ShadowRenderer::InitGame()
             continue;
         }
 
-        const auto &renderable_attributes = entity->GetRenderableAttributes();
+        const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
 
         if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
             && (renderable_attributes.mesh_attributes.vertex_attributes
@@ -472,7 +472,7 @@ void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
 
     AssertReady();
 
-    const auto &renderable_attributes = entity->GetRenderableAttributes();
+    const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
 
     if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
@@ -496,7 +496,7 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
 
     AssertReady();
     
-    const auto &renderable_attributes = entity->GetRenderableAttributes();
+    const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
 
     if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
         && (renderable_attributes.mesh_attributes.vertex_attributes
@@ -522,24 +522,33 @@ void ShadowRenderer::OnRender(Frame *frame)
 
     AssertReady();
 
-    const auto scene_index = m_shadow_pass.GetScene()->GetID().value - 1;
-
     if (const auto &camera = m_shadow_pass.GetScene()->GetCamera()) {
+        const CameraDrawProxy &draw_proxy = camera->GetDrawProxy();
+
+        const BoundingBox aabb(
+            draw_proxy.position + draw_proxy.clip_near,
+            draw_proxy.position + draw_proxy.clip_far
+        );
+
         Engine::Get()->GetRenderData()->shadow_maps.Set(
             m_shadow_pass.GetShadowMapIndex(),
             {
-                .projection = camera->GetDrawProxy().projection,
-                .view = camera->GetDrawProxy().view,
-                .scene_index = scene_index
+                .projection = draw_proxy.projection,
+                .view = draw_proxy.view,
+                .aabb_max = Vector4(aabb.max, 1.0f),
+                .aabb_min = Vector4(aabb.min, 1.0f)
             }
         );
     } else {
+        const BoundingBox &aabb = BoundingBox::empty;
+
         Engine::Get()->GetRenderData()->shadow_maps.Set(
             m_shadow_pass.GetShadowMapIndex(),
             {
                 .projection = Matrix4::Identity(),
                 .view = Matrix4::Identity(),
-                .scene_index = scene_index
+                .aabb_max = Vector4(aabb.max, 1.0f),
+                .aabb_min = Vector4(aabb.min, 1.0f),
             }
         );
     }
@@ -551,10 +560,10 @@ void ShadowRenderer::UpdateSceneCamera()
 {
     // runs in game thread
 
-    const auto aabb = m_shadow_pass.GetAABB();
-    const auto center = aabb.GetCenter();
+    const BoundingBox aabb = m_shadow_pass.GetAABB();
+    const Vector3 center = aabb.GetCenter();
 
-    const auto light_direction = m_shadow_pass.GetLight()
+    const Vector3 light_direction = m_shadow_pass.GetLight()
         ? m_shadow_pass.GetLight()->GetPosition().Normalized() * -1.0f
         : Vector3::Zero();
 
@@ -566,8 +575,7 @@ void ShadowRenderer::UpdateSceneCamera()
 
     camera->SetTranslation(center + light_direction);
     camera->SetTarget(center);
-
-
+    
     auto corners = aabb.GetCorners();
 
     auto maxes = MathUtil::MinSafeValue<Vector3>(),

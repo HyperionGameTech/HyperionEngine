@@ -151,7 +151,7 @@ public:
 
         test_model.Scale(0.35f);
 
-        {
+        if (false) {
             int i = 0;
 
             for (auto &child : test_model.GetChildren()) {
@@ -247,28 +247,30 @@ public:
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.5f, 1.0f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                500000.0f
+                50000.0f
             ));
 
             m_scene->AddLight(m_sun);
 
-            // m_scene->AddLight(CreateObject<Light>(PointLight(
-            //     Vector3(0.5f, 20.0f, 20.1f).Normalize(),
-            //     Color(0.0f, 0.0f, 1.0f),
-            //     10000.0f
-            // )));
-            // m_scene->AddLight(CreateObject<Light>(PointLight(
-            //     Vector3(0.5f, 20.0f, -20.1f).Normalize(),
-            //     Color(1.0f, 0.0f, 0.0f),
-            //     10000.0f
-            // )));
+            m_scene->AddLight(CreateObject<Light>(PointLight(
+                Vector3(0.5f, 50.0f, 70.1f),
+                Color(0.0f, 0.0f, 1.0f),
+                50000.0f,
+                40.0f
+            )));
+            m_scene->AddLight(CreateObject<Light>(PointLight(
+                Vector3(0.5f, 50.0f, -70.1f),
+                Color(1.0f, 0.0f, 0.0f),
+                10000.0f,
+                40.0f
+            )));
         }
 
         if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
-                .origin = Vector3(0.0f, 8.0f, -17.0f),
+                .origin = Vector3(0.0f, 50.0f, -25.0f),
                 .lifespan = 8.0f
             });
 
@@ -277,7 +279,7 @@ public:
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
 
-        if (false) { // adding cubemap rendering with a bounding box
+        if (true) { // adding cubemap rendering with a bounding box
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
                 Extent2D { 512, 512 },
                 test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
@@ -317,17 +319,16 @@ public:
 
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
-
+        
+        m_scene->GetFogParams().start_distance = 5000.0f;
         m_scene->GetFogParams().end_distance = 40000.0f;
-
-#ifdef HYP_TEST_TERRAIN
-        { // paged procedural terrain
+        
+        if (true) { // paged procedural terrain
             if (auto terrain_node = m_scene->GetRoot().AddChild()) {
                 terrain_node.SetEntity(CreateObject<Entity>());
-                terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(16.0f, 16.0f, 16.0f), 2.0f);
+                terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(8.0f, 8.0f, 8.0f), 1.0f);
             }
         }
-#endif
 
         if (true) { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
@@ -410,7 +411,7 @@ public:
         }
 
 
-        if (false) {
+        if (true) {
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
             plane->SetName("Plane entity");

@@ -8,22 +8,7 @@ namespace hyperion::v2 {
 
 class Light;
 
-struct RENDER_COMMAND(BindLight) : RenderCommand
-{
-    ID<Light> id;
-
-    RENDER_COMMAND(BindLight)(ID<Light> id)
-        : id(id)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        Engine::Get()->GetRenderState().BindLight(id);
-
-        HYPERION_RETURN_OK;
-    }
-};
+#pragma region Render commands
 
 struct RENDER_COMMAND(UnbindLight) : RenderCommand
 {
@@ -56,6 +41,12 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommand
     virtual Result operator()()
     {
         light.m_draw_proxy = draw_proxy;
+        
+        if (draw_proxy.visibility_bits == 0) {
+            Engine::Get()->GetRenderState().UnbindLight(draw_proxy.id);
+        } else {
+            Engine::Get()->GetRenderState().BindLight(draw_proxy.id, draw_proxy);
+        }
 
         Engine::Get()->GetRenderData()->lights.Set(
             light.GetID().ToIndex(),
@@ -73,6 +64,8 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommand
     }
 };
 
+#pragma endregion
+
 Light::Light(
     LightType type,
     const Vector3 &position,
@@ -86,6 +79,7 @@ Light::Light(
     m_intensity(intensity),
     m_radius(radius),
     m_shadow_map_index(~0u),
+    m_visibility_bits(0ull),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
 }
@@ -98,27 +92,11 @@ Light::Light(Light &&other) noexcept
       m_intensity(other.m_intensity),
       m_radius(other.m_radius),
       m_shadow_map_index(other.m_shadow_map_index),
+      m_visibility_bits(0ull),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
     other.m_shadow_map_index = ~0u;
 }
-
-// Light &Light::operator=(Light &&other) noexcept
-// {
-//     EngineComponentBase::operator=(std::move(other));
-
-//     m_type = other.m_type;
-//     m_position = other.m_position;
-//     m_color = other.m_color;
-//     m_intensity = other.m_intensity;
-//     m_radius = other.m_radius;
-//     m_shadow_map_index = other.m_shadow_map_index;
-//     m_shader_data_state = ShaderDataState::DIRTY;
-
-//     other.m_shadow_map_index = ~0u;
-
-//     return *this;
-// }
 
 Light::~Light()
 {
@@ -140,10 +118,13 @@ void Light::Init()
     OnTeardown([this]() {
         SetReady(false);
 
+        RenderCommands::Push<RENDER_COMMAND(UnbindLight)>(m_id);
+
         HYP_SYNC_RENDER();
     });
 }
 
+#if 0
 void Light::EnqueueBind() const
 {
     Threads::AssertOnThread(~THREAD_RENDER);
@@ -151,6 +132,7 @@ void Light::EnqueueBind() const
 
     RenderCommands::Push<RENDER_COMMAND(BindLight)>(m_id);
 }
+#endif
 
 void Light::EnqueueUnbind() const
 {
@@ -175,11 +157,44 @@ void Light::EnqueueRenderUpdates()
         .color = m_color,
         .radius = m_radius,
         .shadow_map_index = m_shadow_map_index,
-        .position_intensity = Vector4(m_position, m_intensity)
+        .position_intensity = Vector4(m_position, m_intensity),
+        .visibility_bits = m_visibility_bits.to_ullong()
     });
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
+bool Light::IsVisible(ID<Scene> scene_id) const
+{
+    if (scene_id.ToIndex() >= m_visibility_bits.size()) {
+        return false;
+    }
+
+    return m_visibility_bits.test(scene_id.ToIndex());
+}
+
+void Light::SetIsVisible(ID<Scene> scene_id, bool is_visible)
+{
+    if (scene_id.ToIndex() >= m_visibility_bits.size()) {
+        return;
+    }
+
+    const bool previous_value = m_visibility_bits.test(scene_id.ToIndex());
+
+    m_visibility_bits.set(scene_id.ToIndex(), is_visible);
+
+    if (is_visible != previous_value) {
+        m_shader_data_state |= ShaderDataState::DIRTY;
+    }
+}
+
+BoundingBox Light::GetWorldAABB() const
+{
+    if (m_type == LightType::DIRECTIONAL) {
+        return BoundingBox::infinity;
+    }
+
+    return BoundingBox(m_position - m_radius, m_position + m_radius);
+}
 
 } // namespace hyperion::v2

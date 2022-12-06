@@ -21,7 +21,7 @@ const Extent2D DeferredRenderer::hbao_extent(512, 512);
 const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 DeferredPass::DeferredPass(bool is_indirect_pass)
-    : FullScreenPass(InternalFormat::RGBA8_SRGB),
+    : FullScreenPass(InternalFormat::RGBA16F),
       m_is_indirect_pass(is_indirect_pass)
 {
 }
@@ -71,9 +71,9 @@ void DeferredPass::Create()
         MaterialAttributes {
             .bucket = Bucket::BUCKET_INTERNAL,
             .fill_mode = FillMode::FILL,
-            .flags = m_is_indirect_pass
-                ? MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
-                : MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
+            .blend_mode = m_is_indirect_pass
+                ? BlendMode::NONE
+                : BlendMode::ADDITIVE
         }
     );
 
@@ -94,7 +94,7 @@ void DeferredPass::Record(UInt frame_index)
     }
 
     // no lights bound, do not render direct shading at all
-    if (Engine::Get()->render_state.light_bindings.Empty()) {
+    if (Engine::Get()->render_state.lights.Empty()) {
         return;
     }
 
@@ -132,19 +132,23 @@ void DeferredPass::Record(UInt frame_index)
             );
 #endif
             // render with each light
-            for (const auto &light : Engine::Get()->render_state.light_bindings) {
-                cmd->BindDescriptorSet(
-                    Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                    m_render_group->GetPipeline(),
-                    DescriptorSet::scene_buffer_mapping[frame_index],
-                    DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
-                    FixedArray {
-                        HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                        HYP_RENDER_OBJECT_OFFSET(Light, light.id.ToIndex())
-                    }
-                );
+            for (const auto &it : Engine::Get()->render_state.lights) {
+                const LightDrawProxy &light = it.second;
 
-                m_full_screen_quad->Render(cmd);
+                if (light.visibility_bits & (1ull << SizeType(scene_index))) {
+                    cmd->BindDescriptorSet(
+                        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                        m_render_group->GetPipeline(),
+                        DescriptorSet::scene_buffer_mapping[frame_index],
+                        DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+                        FixedArray {
+                            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+                            HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex())
+                        }
+                    );
+
+                    m_full_screen_quad->Render(cmd);
+                }
             }
 
             HYPERION_RETURN_OK;
@@ -189,19 +193,6 @@ void DeferredRenderer::Create()
     m_hbao->Create();
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        // m_results[i] = CreateObject<Texture>(
-        //     StorageImage(
-        //         Extent3D(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent),
-        //         InternalFormat::RGBA16F,
-        //         ImageType::TEXTURE_TYPE_2D,
-        //         FilterMode::TEXTURE_FILTER_NEAREST
-        //     ),
-        //     FilterMode::TEXTURE_FILTER_NEAREST,
-        //     WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        // );
-
-        // InitObject(m_results[i]);
-
         m_mipmapped_results[i] = CreateObject<Texture>(Texture2D(
             mipmap_chain_extent,
             InternalFormat::RGBA8_SRGB,
@@ -231,10 +222,6 @@ void DeferredRenderer::Create()
     m_temporal_aa->Create();
 
     HYP_SYNC_RENDER();
-
-    //if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED)) {
-    //    m_rt_radiance.Create;
-    //}
 }
 
 void DeferredRenderer::CreateDescriptorSets()
@@ -251,21 +238,11 @@ void DeferredRenderer::CreateDescriptorSets()
 
             // not including depth texture here
             for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                gbuffer_textures->SetSubDescriptor({
-                    .element_index = element_index,
-                    .image_view = m_opaque_fbo->GetAttachmentRefs()[attachment_index]->GetImageView()
-                });
-
-                ++element_index;
+                gbuffer_textures->SetElementSRV(element_index++, m_opaque_fbo->GetAttachmentRefs()[attachment_index]->GetImageView());
             }
 
             // add translucent bucket's albedo
-            gbuffer_textures->SetSubDescriptor({
-                .element_index = element_index,
-                .image_view = m_translucent_fbo->GetAttachmentRefs()[0]->GetImageView()
-            });
-
-            ++element_index;
+            gbuffer_textures->SetElementSRV(element_index++, m_translucent_fbo->GetAttachmentRefs()[0]->GetImageView());
         }
 
         // depth attachment goes into separate slot
@@ -462,7 +439,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         m_indirect_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
-        if (Engine::Get()->render_state.light_bindings.Any()) {
+        if (Engine::Get()->render_state.lights.Any()) {
             m_direct_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
         }
 

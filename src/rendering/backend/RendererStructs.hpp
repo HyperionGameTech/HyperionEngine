@@ -52,6 +52,13 @@ enum class StencilMode : UInt
     OUTLINE
 };
 
+enum class BlendMode : UInt
+{
+    NONE,
+    NORMAL,
+    ADDITIVE
+};
+
 struct StencilState
 {
     UInt id = 0;

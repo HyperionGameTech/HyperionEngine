@@ -309,8 +309,8 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
-        ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetSubDescriptor({ .buffer = shader_globals->shadow_maps.GetBuffers()[0].get() });
+        ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
+        ->SetElementBuffer(0, shader_globals->shadow_maps.GetBuffers()[0].get());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
@@ -354,10 +354,8 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
-        ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->shadow_maps.GetBuffers()[1].get()
-        });
+        ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
+        ->SetElementBuffer(0, shader_globals->shadow_maps.GetBuffers()[1].get());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
@@ -521,7 +519,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         auto *shadow_map_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
         
-        for (UInt i = 0; i < /*max_shadow_maps*/ 1; i++) {
+        for (UInt i = 0; i < max_shadow_maps; i++) {
             shadow_map_descriptor->SetSubDescriptor({
                 .element_index = i,
                 .image_view = &GetPlaceholderData().GetImageView2D1x1R8(),

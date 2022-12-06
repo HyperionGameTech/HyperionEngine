@@ -15,21 +15,21 @@ using renderer::Result;
 struct RENDER_COMMAND(BindLights) : RenderCommand
 {
     SizeType num_lights;
-    ID<Light> *ids;
+    Pair<ID<Light>, LightDrawProxy> *lights;
 
-    RENDER_COMMAND(BindLights)(SizeType num_lights, ID<Light> *ids)
+    RENDER_COMMAND(BindLights)(SizeType num_lights, Pair<ID<Light>, LightDrawProxy> *lights)
         : num_lights(num_lights),
-          ids(ids)
+          lights(lights)
     {
     }
 
     virtual Result operator()()
     {
         for (SizeType i = 0; i < num_lights; i++) {
-            Engine::Get()->GetRenderState().BindLight(ids[i]);
+            Engine::Get()->GetRenderState().BindLight(lights[i].first, lights[i].second);
         }
 
-        delete[] ids;
+        delete[] lights;
 
         HYPERION_RETURN_OK;
     }
@@ -131,19 +131,19 @@ void Scene::Init()
 
     if (m_lights.Any()) {
         // enqueue bind for all in bulk
-        ID<Light> *light_ids = new ID<Light>[m_lights.Size()];
+        auto *lights = new Pair<ID<Light>, LightDrawProxy>[m_lights.Size()];
         SizeType index = 0;
 
         for (auto &it : m_lights) {
             auto &light = it.second;
             AssertThrow(InitObject(light));
 
-            light_ids[index++] = it.first;
+            lights[index++] = { it.first, it.second->GetDrawProxy() };
         }
 
         RenderCommands::Push<RENDER_COMMAND(BindLights)>(
             index,
-            light_ids
+            lights
         );
     }
 
@@ -495,6 +495,8 @@ const Handle<Entity> &Scene::FindEntityWithID(ID<Entity> entity_id) const
 
 bool Scene::AddLight(Handle<Light> &&light)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     if (!light) {
         return false;
     }
@@ -508,15 +510,15 @@ bool Scene::AddLight(Handle<Light> &&light)
         return false;
     }
 
-    if (InitObject(it->second)) {
-        it->second->EnqueueBind();
-    }
+    InitObject(it->second);
 
     return true;
 }
 
 bool Scene::AddLight(const Handle<Light> &light)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     if (!light) {
         return false;
     }
@@ -530,15 +532,15 @@ bool Scene::AddLight(const Handle<Light> &light)
         return false;
     }
 
-    if (InitObject(it->second)) {
-        it->second->EnqueueBind();
-    }
+    InitObject(it->second);
 
     return true;
 }
 
 bool Scene::RemoveLight(ID<Light> id)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     auto it = m_lights.Find(id);
 
     if (it == m_lights.End()) {
@@ -554,6 +556,8 @@ bool Scene::RemoveLight(ID<Light> id)
 
 bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     if (!env_probe) {
         return false;
     }
@@ -576,6 +580,8 @@ bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
 
 bool Scene::AddEnvProbe(const Handle<EnvProbe> &env_probe)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     if (!env_probe) {
         return false;
     }
@@ -598,6 +604,8 @@ bool Scene::AddEnvProbe(const Handle<EnvProbe> &env_probe)
 
 bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     auto it = m_env_probes.Find(id);
 
     if (it == m_env_probes.End()) {
@@ -618,12 +626,10 @@ void Scene::ForceUpdate()
     Update(0.0166f);
 }
 
-void Scene::Update(
-    
-    GameCounter::TickUnit delta,
-    bool update_octree_visibility
-)
+void Scene::Update(GameCounter::TickUnit delta)
 {
+    Threads::AssertOnThread(THREAD_GAME);
+
     AssertReady();
 
     if (m_entities_pending_removal.Any()) {
@@ -651,21 +657,28 @@ void Scene::Update(
 
         // update each light
         for (auto &it : m_lights) {
-            auto &light = it.second;
+            Handle<Light> &light = it.second;
+            
+            const bool in_frustum =  light->GetType() != LightType::DIRECTIONAL
+                || (m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(light->GetWorldAABB()));
+
+            if (in_frustum != light->IsVisible(GetID())) {
+                light->SetIsVisible(GetID(), in_frustum);
+            }
 
             light->Update();
         }
 
         // update each environment probe
         for (auto &it : m_env_probes) {
-            auto &env_probe = it.second;
+            Handle<EnvProbe> &env_probe = it.second;
 
             env_probe->Update();
         }
 
         // update each entity
         for (auto &it : m_entities) {
-            auto &entity = it.second;
+            Handle<Entity> &entity = it.second;
 
             entity->Update(delta);
 

@@ -138,6 +138,7 @@ private:
     void Clear(std::vector<Node> &out_nodes);
     Result Move(Entity *entity, const std::vector<Node>::iterator *it = nullptr);
 
+    void ForceVisibilityStates();
     void CopyVisibilityState(const VisibilityState &visibility_state);
 
     auto FindNode(Entity *entity)

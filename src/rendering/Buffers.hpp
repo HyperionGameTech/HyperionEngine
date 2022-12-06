@@ -97,10 +97,10 @@ struct ObjectShaderData
     ShaderMat4 model_matrix;
     ShaderMat4 previous_model_matrix;
 
-    ShaderVec4<Float32> _pad0;
-    ShaderVec4<Float32> _pad1;
-    ShaderVec4<Float32> world_aabb_max;
-    ShaderVec4<Float32> world_aabb_min;
+    ShaderVec4<Float> _pad0;
+    ShaderVec4<Float> _pad1;
+    ShaderVec4<Float> world_aabb_max;
+    ShaderVec4<Float> world_aabb_min;
 
     UInt32 entity_index;
     UInt32 scene_index;
@@ -111,8 +111,8 @@ struct ObjectShaderData
     UInt32 flags;
     UInt32 _pad3;
 
-    ShaderVec4<Float32> _pad4;
-    ShaderVec4<Float32> _pad5;
+    ShaderVec4<Float> _pad4;
+    ShaderVec4<Float> _pad5;
 };
 
 static_assert(sizeof(ObjectShaderData) == 256);
@@ -121,12 +121,12 @@ struct MaterialShaderData
 {
     static constexpr UInt max_bound_textures = 16u;
     
-    ShaderVec4<Float32> albedo;
+    ShaderVec4<Float> albedo;
     
     // 4 vec4s of 0.0..1.0 values stuffed into uint32s
     ShaderVec4<UInt32> packed_params;
     
-    ShaderVec2<Float32> uv_scale;
+    ShaderVec2<Float> uv_scale;
     Float32 parallax_height;
     Float32 _pad0;
     
@@ -146,9 +146,9 @@ struct alignas(256) SceneShaderData
     Matrix4 projection;
     Matrix4 previous_view;
 
-    ShaderVec4<Float32> camera_position;
-    ShaderVec4<Float32> camera_direction;
-    ShaderVec4<Float32> camera_up;
+    ShaderVec4<Float> camera_position;
+    ShaderVec4<Float> camera_direction;
+    ShaderVec4<Float> camera_up;
 
     float camera_near;
     float camera_far;
@@ -160,28 +160,29 @@ struct alignas(256) SceneShaderData
     UInt32 resolution_x;
     UInt32 resolution_y;
     
-    ShaderVec4<Float32> aabb_max;
-    ShaderVec4<Float32> aabb_min;
+    ShaderVec4<Float> aabb_max;
+    ShaderVec4<Float> aabb_min;
 
     Float32 global_timer;
     UInt32 frame_counter;
     UInt32 num_lights;
     UInt32 enabled_render_components_mask;
 
-    ShaderVec4<Float32> taa_params;
-    ShaderVec4<Float32> fog_params;
+    ShaderVec4<Float> taa_params;
+    ShaderVec4<Float> fog_params;
 };
 
 static_assert(sizeof(SceneShaderData) == 512);
 
-struct alignas(16) ShadowShaderData
+struct alignas(256) ShadowShaderData
 {
-    Matrix4 projection;
-    Matrix4 view;
-    UInt32 scene_index;
+    ShaderMat4 projection;
+    ShaderMat4 view;
+    ShaderVec4<Float> aabb_max;
+    ShaderVec4<Float> aabb_min;
 };
 
-//static_assert(sizeof(ShadowShaderData) == 128);
+static_assert(sizeof(ShadowShaderData) == 256);
 
 struct alignas(16) EnvProbeShaderData
 {

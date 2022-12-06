@@ -580,10 +580,9 @@ Octree::Result Octree::UpdateInternal(Entity *entity)
 
 Octree::Result Octree::Rebuild(const BoundingBox &new_aabb)
 {
-    DebugLog(LogType::Debug, "REBUILD OCTREE\n");
+    DebugLog(LogType::Debug, "Rebuild octree\n");
 
     std::vector<Node> new_nodes;
-
     Clear(new_nodes);
 
     m_aabb = new_aabb;
@@ -599,9 +598,6 @@ Octree::Result Octree::Rebuild(const BoundingBox &new_aabb)
 
                 continue;
             }
-            
-            // hack
-            CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
 
             auto insert_result = Insert(node.entity);
 
@@ -610,6 +606,9 @@ Octree::Result Octree::Rebuild(const BoundingBox &new_aabb)
             }
         }
     }
+    
+    // force all entities visible to prevent flickering
+    ForceVisibilityStates();
 
     return {};
 }
@@ -627,6 +626,24 @@ Octree::Result Octree::RebuildExtendInternal(const BoundingBox &extend_include_a
     return Rebuild(new_aabb);
 }
 
+void Octree::ForceVisibilityStates()
+{
+    m_visibility_state.ForceAllVisible();
+    
+    for (auto &node : m_nodes) {
+        AssertThrow(node.entity != nullptr);
+        node.entity->m_visibility_state.ForceAllVisible();
+    }
+
+    if (m_is_divided) {
+        for (auto &octant : m_octants) {
+            AssertThrow(octant.octree != nullptr);
+
+            octant.octree->ForceVisibilityStates();
+        }
+    }
+}
+
 void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
 {
     /* HACK to prevent objects having no visibility state and flicking when switching octants.
@@ -636,7 +653,7 @@ void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
 
     // tried having it just load from the current and next cursor. doesn't work. not sure why.
     // but it could be a slight performance boost.
-    for (UInt i = 0; i < static_cast<UInt>(m_visibility_state.snapshots.Size()); i++) {
+    for (UInt i = 0; i < UInt(m_visibility_state.snapshots.Size()); i++) {
         // m_visibility_state.snapshots[i] = visibility_state.snapshots[i];
 
         m_visibility_state.snapshots[i].bits.fetch_or(visibility_state.snapshots[i].bits.load(std::memory_order_relaxed), std::memory_order_relaxed);

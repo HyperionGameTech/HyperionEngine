@@ -32,6 +32,8 @@ DrawCallCollection::~DrawCallCollection()
 
 void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity)
 {
+    AssertThrow(entity.mesh != nullptr);
+
     if constexpr (!use_indexed_array_for_object_data) {
         AssertThrow(id.Value() != 0);
         AssertThrow(id.HasMaterial());

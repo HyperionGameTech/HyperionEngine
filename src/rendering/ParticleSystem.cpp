@@ -360,9 +360,9 @@ void ParticleSpawner::CreateRenderGroup()
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
+                .blend_mode = BlendMode::ADDITIVE,
                 .cull_faces = FaceCullMode::NONE,
                 .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
-                    | MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
             }
         )
     );

@@ -21,6 +21,7 @@ class Engine;
 using renderer::Result;
 
 #define RENDER_COMMAND(name) RenderCommand_##name
+#define PUSH_RENDER_COMMAND(name, ...) RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__)
 
 struct RenderCommand
 {

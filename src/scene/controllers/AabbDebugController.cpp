@@ -44,8 +44,9 @@ void AABBDebugController::OnAdded()
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
                 .fill_mode = FillMode::LINE,
+                .blend_mode = BlendMode::NORMAL,
                 .cull_faces = FaceCullMode::NONE,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
+                .flags = 0x0
             }
         ),
         Entity::InitInfo {

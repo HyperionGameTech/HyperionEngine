@@ -2,6 +2,7 @@
 #define HYPERION_V2_VISIBILITY_STATE_H
 
 #include <core/Containers.hpp>
+#include <math/MathUtil.hpp>
 #include <Util.hpp>
 #include <Types.hpp>
 
@@ -94,6 +95,14 @@ struct VisibilityState
 
     HYP_FORCE_INLINE bool ValidToParent(const VisibilityState &parent, UInt8 cursor) const
         { return snapshots[cursor].ValidToParent(parent.snapshots[cursor]); }
+
+    void ForceAllVisible()
+    {
+        for (auto &snapshot : snapshots) {
+            snapshot.bits.store(MathUtil::MaxSafeValue<Bitmask>(), std::memory_order_relaxed);
+            snapshot.nonce.store(~0u, std::memory_order_relaxed);
+        }
+    }
 };
 
 } // namespace hyperion::v2

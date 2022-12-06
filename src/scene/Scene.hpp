@@ -178,11 +178,7 @@ public:
 
 private:
     // World only calls
-    void Update(
-        
-        GameCounter::TickUnit delta,
-        bool update_octree_visiblity = true
-    );
+    void Update(GameCounter::TickUnit delta);
 
     void EnqueueRenderUpdates();
     

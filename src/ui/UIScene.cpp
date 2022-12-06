@@ -58,7 +58,7 @@ void UIScene::Init()
 
 void UIScene::Update(GameCounter::TickUnit delta)
 {
-    m_scene->Update(delta, false);
+    m_scene->Update(delta);
 }
 
 bool UIScene::TestRay(const Vector2 &position, RayHit &out_first_hit)

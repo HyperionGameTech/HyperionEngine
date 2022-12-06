@@ -131,7 +131,7 @@ enum EnvProbeFlags : UInt32
 template <>
 struct DrawProxy<STUB_CLASS(EnvProbe)>
 {
-    IDBase id;
+    ID<EnvProbe> id;
     BoundingBox aabb;
     Vector3 world_position;
     UInt32 texture_index;
@@ -143,12 +143,13 @@ using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;
 template <>
 struct DrawProxy<STUB_CLASS(Light)>
 {
-    IDBase id;
+    ID<Light> id;
     LightType type;
     Color color;
     Float radius;
     UInt32 shadow_map_index;
     Vector4 position_intensity;
+    UInt64 visibility_bits;
 };
 
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;

@@ -9,6 +9,8 @@
 #include <GameCounter.hpp>
 #include <Types.hpp>
 
+#include <bitset>
+
 namespace hyperion::v2 {
 
 class Engine;
@@ -78,8 +80,13 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
+    bool IsVisible(ID<Scene> scene_id) const;
+    void SetIsVisible(ID<Scene> scene_id, bool is_visible);
+
+    BoundingBox GetWorldAABB() const;
+
     void Init();
-    void EnqueueBind() const;
+    //void EnqueueBind() const;
     void EnqueueUnbind() const;
     void Update();
 
@@ -96,6 +103,8 @@ private:
     void EnqueueRenderUpdates();
 
     mutable ShaderDataState m_shader_data_state;
+
+    std::bitset<64> m_visibility_bits;
 };
 
 class DirectionalLight : public Light
@@ -130,7 +139,7 @@ class PointLight : public Light
 {
 public:
     static constexpr float default_intensity = 25.0f;
-    static constexpr float default_radius = 0.5f;
+    static constexpr float default_radius = 15.0f;
 
     PointLight(
         const Vector3 &position,

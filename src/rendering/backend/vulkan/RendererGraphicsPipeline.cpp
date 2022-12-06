@@ -249,13 +249,20 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
             continue;
         }
 
+        const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE;
+
+        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
+        static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+
         color_blend_attachments.push_back(VkPipelineColorBlendAttachmentState {
-            .blendEnable = m_construction_info.blend_enabled,
-            .srcColorBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_SRC_ALPHA : VK_BLEND_FACTOR_ONE,
-            .dstColorBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA : VK_BLEND_FACTOR_ZERO,
+            .blendEnable = blend_enabled,
+            .srcColorBlendFactor = src_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
+            .dstColorBlendFactor = dst_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
             .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor =  m_construction_info.blend_enabled ? VK_BLEND_FACTOR_SRC_ALPHA : VK_BLEND_FACTOR_ONE,
-            .dstAlphaBlendFactor = m_construction_info.blend_enabled ? VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA : VK_BLEND_FACTOR_ZERO,
+            .srcAlphaBlendFactor = src_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
+            .dstAlphaBlendFactor = dst_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
             .alphaBlendOp = VK_BLEND_OP_ADD,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
                 | VK_COLOR_COMPONENT_G_BIT

@@ -25,6 +25,8 @@ class DescriptorSet;
 
 namespace hyperion::v2 {
 
+using renderer::BlendMode;
+
 class Material : public EngineComponentBase<STUB_CLASS(Material)>
 {
 public:
@@ -353,14 +355,14 @@ public:
         { m_render_attributes.bucket = bucket; }
 
     bool IsAlphaBlended() const
-        { return bool(m_render_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING); }
+        { return m_render_attributes.blend_mode != BlendMode::NONE; }
 
     void SetIsAlphaBlended(bool is_alpha_blended)
     {
         if (is_alpha_blended) {
-            m_render_attributes.flags |= MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING;
+            m_render_attributes.blend_mode = BlendMode::NORMAL;
         } else {
-            m_render_attributes.flags &= ~MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING;
+            m_render_attributes.blend_mode = BlendMode::NONE;
         }
     }
 

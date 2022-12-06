@@ -18,6 +18,7 @@ class BoundingBox
     friend std::ostream &operator<<(std::ostream &out, const BoundingBox &bb);
 public:
     static const BoundingBox empty;
+    static const BoundingBox infinity;
 
     BoundingBox();
     BoundingBox(const Vector3 &min, const Vector3 &max);

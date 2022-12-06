@@ -76,8 +76,8 @@ void ImmediateMode::Create()
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
                 .fill_mode = FillMode::LINE,
-                .cull_faces = FaceCullMode::NONE,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_ALPHA_BLENDING
+                .blend_mode = BlendMode::NORMAL,
+                .cull_faces = FaceCullMode::NONE
             }
         ),
         Array<const DescriptorSet *> {

@@ -71,7 +71,7 @@ Framebuffer::Framebuffer(
     RenderPassStage stage,
     RenderPass::Mode render_pass_mode,
     UInt num_multiview_layers
-) : Framebuffer(Extent3D(extent), stage, render_pass_mode)
+) : Framebuffer(Extent3D(extent), stage, render_pass_mode, num_multiview_layers)
 {
 }
 
@@ -99,10 +99,10 @@ void Framebuffer::Init()
 
     EngineComponentBase::Init();
 
-    RenderCommands::Push<RENDER_COMMAND(CreateRenderPass)>(&m_render_pass);
+    PUSH_RENDER_COMMAND(CreateRenderPass, &m_render_pass);
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        RenderCommands::Push<RENDER_COMMAND(CreateFramebuffer)>(&m_framebuffers[frame_index], &m_render_pass);
+        PUSH_RENDER_COMMAND(CreateFramebuffer, &m_framebuffers[frame_index], &m_render_pass);
     }
 
     SetReady(true);
@@ -111,10 +111,10 @@ void Framebuffer::Init()
         SetReady(false);
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            RenderCommands::Push<RENDER_COMMAND(DestroyFramebuffer)>(&m_framebuffers[frame_index]);
+            PUSH_RENDER_COMMAND(DestroyFramebuffer, &m_framebuffers[frame_index]);
         }
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyRenderPass)>(&m_render_pass);
+        PUSH_RENDER_COMMAND(DestroyRenderPass, &m_render_pass);
 
         HYP_SYNC_RENDER();
     });

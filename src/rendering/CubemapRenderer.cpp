@@ -11,6 +11,8 @@
 
 namespace hyperion::v2 {
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(CreateCubemapImages) : RenderCommand
 {
     CubemapRenderer &cubemap_renderer;
@@ -104,6 +106,8 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommand
     }
 };
 
+#pragma endregion
+
 const FixedArray<std::pair<Vector3, Vector3>, 6> CubemapRenderer::cubemap_directions = {
     std::make_pair(Vector3(-1, 0, 0), Vector3(0, 1, 0)),
     std::make_pair(Vector3(1, 0, 0),  Vector3(0, 1, 0)),
@@ -137,7 +141,6 @@ CubemapRenderer::CubemapRenderer(
 {
 }
 
-
 CubemapRenderer::~CubemapRenderer()
 {
     Teardown();
@@ -159,38 +162,22 @@ void CubemapRenderer::Init()
     m_scene = CreateObject<Scene>(Handle<Camera>());
     InitObject(m_scene);
 
-    // testing global skybox
-    auto tex = CreateObject<Texture>(TextureCube(
-        Engine::Get()->GetAssetManager().LoadMany<Texture>(
-            "textures/chapel/posx.jpg",
-            "textures/chapel/negx.jpg",
-            "textures/chapel/posy.jpg",
-            "textures/chapel/negy.jpg",
-            "textures/chapel/posz.jpg",
-            "textures/chapel/negz.jpg"
-        )
-    ));
-    tex->GetImage().SetIsSRGB(true);
-
     m_env_probe = CreateObject<EnvProbe>(
-
-        // TEMP
-        std::move(tex),
-        
-        // Handle<Texture>(m_cubemaps[0]), // TODO
+        Handle<Texture>(m_cubemaps[0]),
         m_aabb
     );
+
     InitObject(m_env_probe);
 
-    HYP_SYNC_RENDER();
+    //HYP_SYNC_RENDER();
 
     SetReady(true);
 
     OnTeardown([this]() {
-        RenderCommands::Push<RENDER_COMMAND(DestroyCubemapRenderPass)>(*this);
+        PUSH_RENDER_COMMAND(DestroyCubemapRenderPass, *this);
 
-        for (auto &cubemap : m_cubemaps) {
-            Engine::Get()->SafeReleaseHandle<Texture>(std::move(cubemap));
+        for (auto &texture : m_cubemaps) {
+            Engine::Get()->SafeReleaseHandle<Texture>(std::move(texture));
         }
 
         Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
@@ -202,10 +189,7 @@ void CubemapRenderer::Init()
 
         SetReady(false);
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyCubemapUniformBuffers)>(
-            GetComponentIndex(),
-            std::move(m_cubemap_render_uniform_buffers)
-        );
+        PUSH_RENDER_COMMAND(DestroyCubemapUniformBuffers, GetComponentIndex(), std::move(m_cubemap_render_uniform_buffers));
     });
 }
 
@@ -310,7 +294,7 @@ void CubemapRenderer::OnRender(Frame *frame)
 
     m_framebuffer->EndCapture(frame_index, command_buffer);
 
-    auto *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+    Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
 
     framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
     m_cubemaps[frame_index]->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
@@ -339,14 +323,14 @@ void CubemapRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_ind
 
 void CubemapRenderer::CreateImagesAndBuffers()
 {
-    const auto origin = m_aabb.GetCenter();
+    const Vector3 origin = m_aabb.GetCenter();
 
     {
         for (UInt i = 0; i < 6; i++) {
             m_cubemap_uniforms.projection_matrices[i] = Matrix4::Perspective(
                 90.0f,
                 m_cubemap_dimensions.width, m_cubemap_dimensions.height,
-                0.015f, m_aabb.GetExtent().Max()
+                0.015f, 10000.0f//m_aabb.GetExtent().Max()
             );
 
             m_cubemap_uniforms.view_matrices[i] = Matrix4::LookAt(
@@ -370,8 +354,8 @@ void CubemapRenderer::CreateImagesAndBuffers()
             InitObject(m_cubemaps[frame_index]);
         }
     }
-
-    RenderCommands::Push<RENDER_COMMAND(CreateCubemapImages)>(*this);
+    
+    PUSH_RENDER_COMMAND(CreateCubemapImages, *this);
 
     DebugLog(
         LogType::Debug,

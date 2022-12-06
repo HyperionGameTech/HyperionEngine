@@ -106,6 +106,9 @@ struct Handle
     bool operator==(std::nullptr_t) const
         { return !IsValid(); }
 
+    bool operator!=(std::nullptr_t) const
+        { return IsValid(); }
+
     bool operator==(const Handle &other) const
         { return index == other.index; }
 
