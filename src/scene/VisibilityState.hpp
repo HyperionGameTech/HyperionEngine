@@ -65,16 +65,6 @@ struct VisibilityState
     static constexpr UInt max_scenes = sizeof(Bitmask) * CHAR_BIT;
     static constexpr UInt cursor_size = 3u;
 
-    // /* map from scene index (id - 1) -> visibility boolean */
-    // std::atomic<Bitmask> bits { 0u };
-
-    // /* nonce is used to validate that the VisibilityState is still valid relative to
-    //  * some parent VisibilityState. While the parent's nonce may have been set to a new
-    //  * value, if ours has not, the state is considered to be invalid and thus not be
-    //  * used as if it is in a "visible" state.
-    //  */
-    // std::array<std::atomic<Nonce>, cursor_size> nonces { };
-
     FixedArray<VisibilityStateSnapshot, cursor_size> snapshots { };
 
     VisibilityState() = default;
@@ -100,7 +90,7 @@ struct VisibilityState
     {
         for (auto &snapshot : snapshots) {
             snapshot.bits.store(MathUtil::MaxSafeValue<Bitmask>(), std::memory_order_relaxed);
-            snapshot.nonce.store(~0u, std::memory_order_relaxed);
+            snapshot.nonce.store(MathUtil::MaxSafeValue<Nonce>(), std::memory_order_relaxed);
         }
     }
 };

@@ -306,9 +306,6 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
-        ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
-
-    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
         ->SetElementBuffer(0, shader_globals->shadow_maps.GetBuffers()[0].get());
     
@@ -349,9 +346,6 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             .buffer = shader_globals->lights.GetBuffers()[1].get(),
             .range = static_cast<UInt>(sizeof(LightShaderData))
         });
-
-    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
-        ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -517,14 +511,10 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
         auto *shadow_map_descriptor = descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SHADOW_MAPS);
         
         for (UInt i = 0; i < max_shadow_maps; i++) {
-            shadow_map_descriptor->SetSubDescriptor({
-                .element_index = i,
-                .image_view = &GetPlaceholderData().GetImageView2D1x1R8(),
-                .sampler = &GetPlaceholderData().GetSamplerNearest()
-            });
+            shadow_map_descriptor->SetElementSRV(i, &GetPlaceholderData().GetImageView2D1x1R8());
         }
     }
 

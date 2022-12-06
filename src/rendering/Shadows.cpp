@@ -37,12 +37,11 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
             auto *shadow_map_descriptor = descriptor_set
-                ->GetOrAddDescriptor<ImageSamplerDescriptor>(DescriptorKey::SHADOW_MAPS);
+                ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SHADOW_MAPS);
 
-            shadow_map_descriptor->SetElementImageSamplerCombined(
+            shadow_map_descriptor->SetElementSRV(
                 UInt(shadow_map_index),
-                shadow_map_image_view,
-                &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
+                shadow_map_image_view
             );
         }
 
