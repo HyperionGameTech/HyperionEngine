@@ -33,7 +33,13 @@ enum SymbolTypeClass
     TYPE_ARRAY,
     TYPE_GENERIC,
     TYPE_GENERIC_INSTANCE,
-    TYPE_GENERIC_PARAMETER,
+    TYPE_GENERIC_PARAMETER
+};
+
+enum SymbolTypeFlags
+{
+    SYMBOL_TYPE_FLAGS_NONE = 0x0,
+    SYMBOL_TYPE_FLAGS_PROXY = 0x1
 };
 
 struct AliasTypeInfo
@@ -272,6 +278,9 @@ public:
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
     bool IsGeneric() const;
+
+    bool IsProxyClass() const
+        { return m_flags & SYMBOL_TYPE_FLAGS_PROXY; }
 
 private:
     std::string m_name;

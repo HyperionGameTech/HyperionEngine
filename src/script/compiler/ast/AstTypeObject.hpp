@@ -18,6 +18,7 @@ public:
         const SymbolTypePtr_t &symbol_type,
         const std::shared_ptr<AstVariable> &proto,
         const SymbolTypePtr_t &enum_underlying_type,
+        bool is_proxy_class,
         const SourceLocation &location
     );
 
@@ -28,6 +29,9 @@ public:
 
     const SymbolTypePtr_t &GetEnumUnderlyingType() const
         { return m_enum_underlying_type; }
+
+    bool IsProxyClass() const
+        { return m_is_proxy_class; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -46,6 +50,7 @@ private:
     SymbolTypePtr_t m_symbol_type;
     std::shared_ptr<AstVariable> m_proto;
     SymbolTypePtr_t m_enum_underlying_type;
+    bool m_is_proxy_class;
 
     Pointer<AstTypeObject> CloneImpl() const
     {
@@ -53,6 +58,7 @@ private:
             m_symbol_type,
             CloneAstNode(m_proto),
             m_enum_underlying_type,
+            m_is_proxy_class,
             m_location
         ));
     }

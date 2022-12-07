@@ -15,7 +15,7 @@ const std::map<std::string, Keywords> Keyword::keyword_strings = {
     { "ref",       Keyword_ref },
     { "func",      Keyword_func },
     { "class",     Keyword_class },
-    { "alias",     Keyword_alias },
+    { "proxy",     Keyword_proxy },
     { "mixin",     Keyword_mixin },
     { "enum",      Keyword_enum },
     { "as",        Keyword_as },

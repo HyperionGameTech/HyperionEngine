@@ -58,6 +58,12 @@ public:
     Script &operator=(const Script &other) = delete;
     ~Script();
 
+    APIInstance &GetAPIInstance()
+        { return m_api_instance; }
+
+    const APIInstance &GetAPIInstance() const
+        { return m_api_instance; }
+
     void Init();
 
     const ErrorList &GetErrors() const { return m_errors; }
@@ -188,6 +194,41 @@ public:
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
         CallFunctionArgV(handle, arguments.data(), arguments.size());
+    }
+
+    template <class RegisteredType, class T>
+    ValueHandle CreateInternedObject(const T &value)
+    {
+        const auto class_name_it = m_api_instance.class_bindings.class_names.Find<RegisteredType>();
+        AssertThrowMsg(class_name_it != m_api_instance.class_bindings.class_names.End(), "Class not registered!");
+
+        const auto prototype_it = m_api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+        AssertThrowMsg(prototype_it != m_api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
+
+        vm::Value intern_value;
+        {
+            vm::HeapValue *ptr_result = m_vm.GetState().HeapAlloc(m_vm.GetState().GetMainThread());
+            AssertThrow(ptr_result != nullptr);
+
+            ptr_result->Assign(value);
+            ptr_result->Mark();
+            intern_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
+        }
+
+        vm::VMObject boxed_value(prototype_it->second);
+        HYP_SCRIPT_SET_MEMBER(boxed_value, "__intern", intern_value);
+
+        vm::Value final_value;
+        {
+            vm::HeapValue *ptr_result = m_vm.GetState().HeapAlloc(m_vm.GetState().GetMainThread());
+            AssertThrow(ptr_result != nullptr);
+
+            ptr_result->Assign(boxed_value);
+            ptr_result->Mark();
+            final_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
+        }
+
+        return { final_value };
     }
 
 private:

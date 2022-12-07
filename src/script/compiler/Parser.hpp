@@ -16,7 +16,6 @@
 #include <script/compiler/ast/AstTypeExpression.hpp>
 #include <script/compiler/ast/AstEnumExpression.hpp>
 #include <script/compiler/ast/AstTypeAlias.hpp>
-#include <script/compiler/ast/AstAliasDeclaration.hpp>
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstImport.hpp>
@@ -64,7 +63,8 @@
 
 namespace hyperion::compiler {
 
-class Parser {
+class Parser
+{
 public:
     Parser(AstIterator *ast_iterator,
         TokenStream *token_stream,
@@ -172,6 +172,7 @@ private:
     std::shared_ptr<AstTypeExpression> ParseTypeExpression(
         bool require_keyword = true,
         bool allow_identifier = true,
+        bool is_proxy_class = false,
         std::string type_name = "<Anonymous Type>"
     );
     std::shared_ptr<AstStatement> ParseEnumDefinition();
@@ -180,7 +181,6 @@ private:
         bool allow_identifier = true,
         std::string enum_name = "<Anonymous Enum>"
     );
-    std::shared_ptr<AstAliasDeclaration> ParseAliasDeclaration();
     std::shared_ptr<AstImport> ParseImport();
     std::shared_ptr<AstExportStatement> ParseExportStatement();
     std::shared_ptr<AstFileImport> ParseFileImport();

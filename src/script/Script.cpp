@@ -58,7 +58,6 @@ bool Script::Compile()
     // bind all set vars if an api instance has been set
     ScriptBindings::DeclareAll(m_api_instance);
     m_api_instance.BindAll(&m_vm, &m_compilation_unit);
-    ScriptBindings::RegisterBindings(m_api_instance);
 
     SourceStream source_stream(&m_source_file);
 

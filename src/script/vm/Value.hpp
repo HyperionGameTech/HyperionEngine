@@ -303,7 +303,8 @@ struct Value
 
     HYP_FORCE_INLINE static int CompareAsNativeFunctions(
         Value *lhs,
-        Value *rhs)
+        Value *rhs
+    )
     {
         return (lhs->m_value.native_func == rhs->m_value.native_func)
             ? CompareFlags::EQUAL

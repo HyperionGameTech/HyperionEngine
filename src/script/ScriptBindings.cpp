@@ -3,6 +3,8 @@
 
 #include <script/vm/VMMemoryBuffer.hpp>
 
+#include <ui/controllers/UIController.hpp>
+
 #include <script/compiler/ast/AstFloat.hpp>
 
 #include <scene/Node.hpp>
@@ -534,6 +536,22 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     HYP_SCRIPT_RETURN(ptr);
 }
 
+static HYP_SCRIPT_FUNCTION(EntitySetTranslation)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    auto &&entity_ptr = GetArgument<0, Entity *>(params);
+    auto &&translation = GetArgument<1, Vector3>(params);
+
+    if (!entity_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    entity_ptr->SetTranslation(translation);
+
+    HYP_SCRIPT_RETURN_VOID(nullptr);
+}
+
 static HYP_SCRIPT_FUNCTION(LoadModule)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
@@ -693,25 +711,185 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         );
 
     api_instance.Module(Config::global_module_name)
-        .Class<Handle<Entity>>(
-            "Entity",
+        .Function(
+            "EntitySetTranslation",
+            BuiltinTypes::ANY,
+            {
+                { "entity", BuiltinTypes::ANY },
+                { "translation", BuiltinTypes::ANY }
+            },
+            EntitySetTranslation
+        );
+
+    // api_instance.Module(Config::global_module_name)
+    //     .Class<Handle<Entity>>(
+    //         "Entity",
+    //         {
+    //             API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+    //             API::NativeMemberDefine(
+    //                 "$construct",
+    //                 BuiltinTypes::ANY,
+    //                 {
+    //                     { "self", BuiltinTypes::ANY }
+    //                 },
+    //                 CxxCtor< Handle<Entity> > 
+    //             ),
+    //             API::NativeMemberDefine(
+    //                 "GetName",
+    //                 BuiltinTypes::STRING,
+    //                 {
+    //                     { "self", BuiltinTypes::ANY }
+    //                 },
+    //                 EntityGetName
+    //             )
+    //         }
+    //     );
+
+    api_instance.Module(Config::global_module_name)
+        .Class<Vector2>(
+            "Vector2",
             {
                 API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
                 API::NativeMemberDefine(
                     "$construct",
                     BuiltinTypes::ANY,
                     {
-                        { "self", BuiltinTypes::ANY }
+                        { "self", BuiltinTypes::ANY },
+                        { "x", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
+                        { "y", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
                     },
-                    CxxCtor< Handle<Entity> > 
+                    CxxCtor< Vector2, Float, Float > 
                 ),
                 API::NativeMemberDefine(
-                    "GetName",
-                    BuiltinTypes::STRING,
+                    "operator+",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2, Vector2, Vector2, &Vector2::operator+ >
+                ),
+                API::NativeMemberDefine(
+                    "operator+=",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2 &, Vector2, Vector2, &Vector2::operator+= >
+                ),
+                API::NativeMemberDefine(
+                    "operator-",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2, Vector2, Vector2, &Vector2::operator- >
+                ),
+                API::NativeMemberDefine(
+                    "operator-=",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2 &, Vector2, Vector2, &Vector2::operator-= >
+                ),
+                API::NativeMemberDefine(
+                    "operator*",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2, Vector2, Vector2, &Vector2::operator* >
+                ),
+                API::NativeMemberDefine(
+                    "operator*=",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2 &, Vector2, Vector2, &Vector2::operator*= >
+                ),
+                API::NativeMemberDefine(
+                    "operator/",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2, Vector2, Vector2, &Vector2::operator/ >
+                ),
+                API::NativeMemberDefine(
+                    "operator/=",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2 &, Vector2, Vector2, &Vector2::operator/= >
+                ),
+                API::NativeMemberDefine(
+                    "operator==",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< bool, Vector2, Vector2, &Vector2::operator== >
+                ),
+                API::NativeMemberDefine(
+                    "operator!=",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< bool, Vector2, Vector2, &Vector2::operator!= >
+                ),
+                API::NativeMemberDefine(
+                    "Length",
+                    BuiltinTypes::FLOAT,
                     {
                         { "self", BuiltinTypes::ANY }
                     },
-                    EntityGetName
+                    CxxMemberFn< Float, Vector2, &Vector2::Length >
+                ),
+                API::NativeMemberDefine(
+                    "Distance",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "other", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Float, Vector2, Vector2, &Vector2::Distance >
+                ),
+                API::NativeMemberDefine(
+                    "Normalize",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Vector2 &, Vector2, &Vector2::Normalize >
+                ),
+                API::NativeMemberDefine(
+                    "GetX",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Float, Vector2, &Vector2::GetX >
+                ),
+                API::NativeMemberDefine(
+                    "GetY",
+                    BuiltinTypes::FLOAT,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< Float, Vector2, &Vector2::GetY >
                 )
             }
         );
@@ -1067,11 +1245,6 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             },
             Free
         );
-}
-
-void ScriptBindings::RegisterBindings(APIInstance &api_instance)
-{
-    // class_bindings = APIInstance::class_bindings;
 }
 
 } // namespace hyperion

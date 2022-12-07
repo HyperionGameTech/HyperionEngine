@@ -63,10 +63,19 @@ void UIButtonController::OnEvent(const UIEvent &event)
         std::cout << "Mouse down on" << GetOwner()->GetID().value << "\n";
     } else if (event.type == UIEvent::Type::MOUSE_UP) {
         std::cout << "Mouse up on" << GetOwner()->GetID().value << "\n";
+    } else if (event.type == UIEvent::Type::MOUSE_DRAG) {
+        std::cout << "Mouse drag on" << GetOwner()->GetID().value << "\n";
+    } else if (event.type == UIEvent::Type::MOUSE_HOVER) {
+        std::cout << "Mouse hover on" << GetOwner()->GetID().value << "\n";
     }
 
     if (HasScript() && IsScriptValid()) {
-        m_script->CallFunction(m_script_methods[SCRIPT_METHOD_0], m_self_object, Int(event.type));
+        m_script->CallFunction(
+            m_script_methods[SCRIPT_METHOD_0],
+            m_self_object,
+            Int(event.type),
+            m_script->CreateInternedObject<Vector2>(event.GetMousePosition())
+        );
     }
 }
 

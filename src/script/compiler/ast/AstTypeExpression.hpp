@@ -19,6 +19,7 @@ public:
         const std::shared_ptr<AstPrototypeSpecification> &base_specification,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+        bool is_proxy_class,
         const SourceLocation &location
     );
 
@@ -28,6 +29,7 @@ public:
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
         const SymbolTypePtr_t &enum_underlying_type,
+        bool is_proxy_class,
         const SourceLocation &location
     );
 
@@ -45,6 +47,9 @@ public:
 
     bool IsEnum() const
         { return m_enum_underlying_type != nullptr; }
+
+    bool IsProxyClass() const
+        { return m_is_proxy_class; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -67,6 +72,7 @@ protected:
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
     SymbolTypePtr_t m_enum_underlying_type;
+    bool m_is_proxy_class;
     int m_num_members;
 
     SymbolTypePtr_t m_symbol_type;
@@ -82,6 +88,7 @@ protected:
             CloneAllAstNodes(m_members),
             CloneAllAstNodes(m_static_members),
             m_enum_underlying_type,
+            m_is_proxy_class,
             m_location
         ));
     }

@@ -185,9 +185,10 @@ public:
             }
         }
 
-        if (false) {
+        if (true) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(CreateObject<Entity>());
+            btn_node.GetEntity()->SetTranslation(Vector3(0.5f, 0.5f, 0.0f));
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
@@ -363,10 +364,10 @@ public:
             monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);
 
-            monkey[0].GetEntity()->AddController<RigidBodyController>(
-                UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
-                physics::PhysicsMaterial { .mass = 1.0f }
-            );
+            // monkey[0].GetEntity()->AddController<RigidBodyController>(
+            //     UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
+            //     physics::PhysicsMaterial { .mass = 1.0f }
+            // );
         }
 
         if (true) {
@@ -471,7 +472,7 @@ public:
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
         }
 
-        #if 0 // bad performance on large meshes. need bvh
+        #if 1 // bad performance on large meshes. need bvh
         if (GetInputManager()->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
             ray_cast_timer = 0.0f;
             const auto &mouse_position = GetInputManager()->GetMousePosition();
@@ -502,7 +503,7 @@ public:
                     Handle<Entity> entity(ID<Entity> { hit.id });
 
                     if (entity) {
-                        entity->AddController<AABBDebugController>();
+                        // entity->AddController<AABBDebugController>();
 
                         if (auto &mesh = entity->GetMesh()) {
                             ray.TestTriangleList(

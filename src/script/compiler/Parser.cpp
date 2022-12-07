@@ -399,7 +399,7 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             } else {
                 res = ParseFunctionExpression();
             }
-        } else if (MatchKeyword(Keyword_class, false)) {
+        } else if (MatchKeyword(Keyword_class, false) || MatchKeyword(Keyword_proxy, false)) {
             res = ParseTypeDefinition();
         } else if (MatchKeyword(Keyword_enum, false)) {
             res = ParseEnumDefinition();
@@ -2054,6 +2054,12 @@ std::vector<std::shared_ptr<AstParameter>> Parser::ParseGenericParameters()
 
 std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 {
+    bool is_proxy_class = false;
+
+    if (Token proxy_token = MatchKeyword(Keyword_proxy, true)) {
+        is_proxy_class = true;
+    }
+
     if (Token token = ExpectKeyword(Keyword_class, true)) {
         if (Token identifier = ExpectIdentifier(false, true)) {
             IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST;
@@ -2080,7 +2086,7 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
                     return nullptr;
                 }
             } else {
-                assignment = ParseTypeExpression(false, false, identifier.GetValue());
+                assignment = ParseTypeExpression(false, false, is_proxy_class, identifier.GetValue());
             }
 
             if (assignment == nullptr) {
@@ -2114,6 +2120,7 @@ std::shared_ptr<AstStatement> Parser::ParseTypeDefinition()
 std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
     bool require_keyword,
     bool allow_identifier,
+    bool is_proxy_class,
     std::string type_name
 )
 {
@@ -2146,7 +2153,8 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
 
     if (Expect(TK_OPEN_BRACE, true)) {
         while (!Match(TK_CLOSE_BRACE, true)) {
-            auto specifier_token = Token::EMPTY;
+            const SourceLocation location = CurrentLocation();
+            Token specifier_token = Token::EMPTY;
 
             if ((specifier_token = MatchKeyword(Keyword_public, true))
                 || (specifier_token = MatchKeyword(Keyword_private, true))
@@ -2279,7 +2287,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
                     location
                 ));
 
-                if (is_static) {
+                if (is_static || is_proxy_class) { // <--- all methods for proxy classes are static
                     static_functions.push_back(member);
                 } else {
                     member_functions.push_back(member);
@@ -2300,6 +2308,14 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
                     }
                 } else {
                     break;
+                }
+
+                if (is_proxy_class) {
+                    m_compilation_unit->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_proxy_class_may_only_contain_methods,
+                        m_token_stream->Peek().GetLocation()
+                    ));
                 }
             }
 
@@ -2342,6 +2358,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
             base_specification,
             all_members,
             all_statics,
+            is_proxy_class,
             location
         ));
     }
@@ -2440,35 +2457,6 @@ std::shared_ptr<AstEnumExpression> Parser::ParseEnumExpression(
     }
 
     return nullptr;
-}
-
-std::shared_ptr<AstAliasDeclaration> Parser::ParseAliasDeclaration()
-{
-    const Token token = ExpectKeyword(Keyword_alias, true);
-    if (!token) {
-        return nullptr;
-    }
-
-    const Token ident = Expect(TK_IDENT, true);
-    if (!ident) {
-        return nullptr;
-    }
-
-    const Token op = ExpectOperator("=", true);
-    if (!op) {
-        return nullptr;
-    }
-
-    auto aliasee = ParseIdentifier();
-    if (aliasee == nullptr) {
-        return nullptr;
-    }
-
-    return std::shared_ptr<AstAliasDeclaration>(new AstAliasDeclaration(
-        ident.GetValue(),
-        aliasee,
-        token.GetLocation()
-    ));
 }
 
 std::shared_ptr<AstImport> Parser::ParseImport()

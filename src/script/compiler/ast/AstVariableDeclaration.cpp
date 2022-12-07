@@ -129,7 +129,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                             symbol_type->GetGenericInfo().m_num_parameters
                         ));
                     }
-                } else if (!symbol_type->IsGenericParameter()) { // generic parameters will be resolved upon instantiation
+                } else if (!symbol_type->IsGenericParameter() && !symbol_type->IsProxyClass()) { // generic parameters will be resolved upon instantiation
                     // no default assignment for this type
                     no_default_assignment = true;
                 }

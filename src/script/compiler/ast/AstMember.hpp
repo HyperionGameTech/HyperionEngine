@@ -37,6 +37,7 @@ protected:
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_target_type;
+    std::shared_ptr<AstExpression> m_proxy_expr;
     int m_found_index;
 
     Pointer<AstMember> CloneImpl() const

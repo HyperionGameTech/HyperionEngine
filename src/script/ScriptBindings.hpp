@@ -28,8 +28,6 @@ public:
     static HYP_SCRIPT_FUNCTION(Free);
 
     static void DeclareAll(APIInstance &api_instance);
-    static void RegisterBindings(APIInstance &api_instance);
-
 };
 
 } // namespace hyperion

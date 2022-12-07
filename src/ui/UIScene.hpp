@@ -59,8 +59,8 @@ public:
     void Update(GameCounter::TickUnit delta);
 
 private:
-    // Array<Handle<UIObject>> m_ui_objects;
     Handle<Scene> m_scene;
+    FlatMap<ID<Entity>, Float> m_mouse_held_times;
 };
 
 } // namespace hyperion::v2

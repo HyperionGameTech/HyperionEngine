@@ -23,11 +23,24 @@ struct UIEvent
         NONE,
 
         MOUSE_DOWN,
-        MOUSE_UP
+        MOUSE_UP,
+        MOUSE_DRAG,
+        MOUSE_HOVER,
+        CLICK
     };
 
     Type type;
+    Vector2 mouse_position;
     const SystemEvent *original_event = nullptr;
+
+    Type GetType() const
+        { return type; }
+
+    const SystemEvent *GetOriginalEvent() const
+        { return original_event; }
+
+    const Vector2 &GetMousePosition() const
+        { return mouse_position; }
 };
 
 class UIController : public Controller

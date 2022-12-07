@@ -23,13 +23,15 @@ AstTypeExpression::AstTypeExpression(
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
     const SymbolTypePtr_t &enum_underlying_type,
+    bool is_proxy_class,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_name(name),
     m_base_specification(base_specification),
     m_members(members),
     m_static_members(static_members),
-    m_enum_underlying_type(enum_underlying_type)
+    m_enum_underlying_type(enum_underlying_type),
+    m_is_proxy_class(is_proxy_class)
 {
 }
 
@@ -38,6 +40,7 @@ AstTypeExpression::AstTypeExpression(
     const std::shared_ptr<AstPrototypeSpecification> &base_specification,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+    bool is_proxy_class,
     const SourceLocation &location
 ) : AstTypeExpression(
         name,
@@ -45,6 +48,7 @@ AstTypeExpression::AstTypeExpression(
         members,
         static_members,
         nullptr,
+        is_proxy_class,
         location
     )
 {
@@ -77,10 +81,15 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         {}
     );
 
+    if (m_is_proxy_class) {
+        m_symbol_type->GetFlags() |= SymbolTypeFlags::SYMBOL_TYPE_FLAGS_PROXY;
+    }
+
     m_expr.reset(new AstTypeObject(
         m_symbol_type,
         nullptr, // prototype - TODO
         m_enum_underlying_type,
+        m_is_proxy_class,
         m_location
     ));
 

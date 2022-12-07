@@ -3,6 +3,8 @@
 #include <script/compiler/ast/AstFalse.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
+#include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
 #include <script/compiler/Operator.hpp>
@@ -62,7 +64,9 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         const auto operator_string = m_op->LookupStringValue();
         const auto overload_function_name = "operator" + operator_string;
 
-        auto call_operator_overload_expr = std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+        std::shared_ptr<AstExpression> call_operator_overload_expr;
+        
+        call_operator_overload_expr.reset(new AstMemberCallExpression(
             overload_function_name,
             CloneAstNode(m_left),
             std::shared_ptr<AstArgumentList>(new AstArgumentList(
@@ -80,7 +84,32 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
 
-        if (target_type == BuiltinTypes::ANY_TYPE || target_type->HasBase(*BuiltinTypes::ANY_TYPE)) {
+        if (target_type->FindPrototypeMember(overload_function_name)) {
+            m_operator_overload = std::move(call_operator_overload_expr);
+        } else if (target_type->IsProxyClass() && target_type->FindMember(overload_function_name)) {
+            m_operator_overload.reset(new AstCallExpression(
+                std::shared_ptr<AstMember>(new AstMember(
+                    overload_function_name,
+                    CloneAstNode(m_left),
+                    m_location
+                )),
+                {
+                    std::shared_ptr<AstArgument>(new AstArgument(
+                        m_right,
+                        false,
+                        false,
+                        "other",
+                        m_location
+                    ))
+                },
+                true,
+                m_location
+            ));
+        }
+        // for ANY type we conditionally build in a check
+        // also, for proxy class that does not have the operator overloaded,
+        // we build in the condition as well
+        else if ((target_type == BuiltinTypes::ANY_TYPE || target_type->HasBase(*BuiltinTypes::ANY_TYPE)) || target_type->IsProxyClass()) {
             auto sub_bin_expr = std::static_pointer_cast<AstBinaryExpression>(Clone());
             sub_bin_expr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
 
@@ -94,8 +123,6 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 sub_bin_expr,
                 m_location
             ));
-        } else if (target_type->FindPrototypeMember(overload_function_name)) {
-            m_operator_overload = call_operator_overload_expr;
         }
 
         if (m_operator_overload != nullptr) {

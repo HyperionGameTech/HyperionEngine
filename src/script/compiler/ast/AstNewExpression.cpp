@@ -68,6 +68,16 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
+    if (m_instance_type != nullptr && m_instance_type->IsProxyClass()) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_proxy_class_cannot_be_constructed,
+            m_location
+        ));
+
+        return;
+    }
+
     // TODO!!! this currently wont' work with <Any>s, but
     // I wrote code for a ternary operator w/ AstHasExpression
     // we can use to build in the dynamic has $construct check at

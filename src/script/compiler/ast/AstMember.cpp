@@ -40,6 +40,8 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
+    bool is_proxy_class = false;
+
     m_access_options = m_target->GetAccessOptions();
 
     m_target_type = m_target->GetExprType();
@@ -79,6 +81,53 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             break;
         }
 
+        is_proxy_class = m_target_type->IsProxyClass();
+
+        if (is_proxy_class) {
+            if (m_target_type->GetTypeObject() != nullptr) {
+                // m_proxy_expr.reset(new AstMember(
+                //     m_field_name,
+                //     m_target_type->GetTypeObject(),
+                //     m_location
+                // ));
+
+                m_proxy_expr = CloneAstNode(m_target_type->GetTypeObject());
+
+                m_proxy_expr->Visit(visitor, mod);
+
+                // m_symbol_type = m_proxy_expr->GetExprType();
+
+                // return;
+            } else {
+                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                    LEVEL_ERROR,
+                    Msg_internal_error,
+                    m_location
+                ));
+            }
+            
+
+
+            // if it is proxy,
+            // convert thing.DoThing()
+            // to ThingProxy.DoThing(thing)
+            for (SizeType i = 0; i < m_target_type->GetMembers().size(); i++) {
+                const SymbolMember_t &mem = m_target_type->GetMembers()[i];
+
+                if (std::get<0>(mem) == m_field_name) {
+                    m_found_index = i;
+                    field_type = std::get<1>(mem);
+
+                    break;
+                }
+            }
+
+            if (m_found_index != -1) {
+                break;
+            }
+        }
+
+        // for instance members
         if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
             // get member index from name
             for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
@@ -148,14 +197,29 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             original_type->GetName()
         ));
     }
+
+    // TODO! If proxy class, we will have to load the member from the proxy class' statics
+
+    // if (is_proxy_class) {
+    //     m_symbol_type = BuiltinTypes::ANY;
+    // }
 }
 
 std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 {
+    // if (m_proxy_expr != nullptr) {
+    //     m_proxy_expr->SetAccessMode(m_access_mode);
+    //     return m_proxy_expr->Build(visitor, mod);
+    // }
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    AssertThrow(m_target != nullptr);
-    chunk->Append(m_target->Build(visitor, mod));
+    if (m_proxy_expr != nullptr) {
+        chunk->Append(m_proxy_expr->Build(visitor, mod));
+    } else {
+        AssertThrow(m_target != nullptr);
+        chunk->Append(m_target->Build(visitor, mod));
+    }
 
     AssertThrow(m_target_type != nullptr);
 
@@ -212,6 +276,12 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 
 void AstMember::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_proxy_expr != nullptr) {
+        m_proxy_expr->Optimize(visitor, mod);
+
+        // return;
+    }
+
     AssertThrow(m_target != nullptr);
 
     m_target->Optimize(visitor, mod);
@@ -227,11 +297,19 @@ Pointer<AstStatement> AstMember::Clone() const
 
 Tribool AstMember::IsTrue() const
 {
+    // if (m_proxy_expr != nullptr) {
+    //     return m_proxy_expr->IsTrue();
+    // }
+
     return Tribool::Indeterminate();
 }
 
 bool AstMember::MayHaveSideEffects() const
 {
+    if (m_proxy_expr != nullptr && m_proxy_expr->MayHaveSideEffects()) {
+        return true;
+    }
+
     AssertThrow(m_target != nullptr);
 
     return m_target->MayHaveSideEffects() || m_access_mode == ACCESS_MODE_STORE;
@@ -239,6 +317,10 @@ bool AstMember::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstMember::GetExprType() const
 {
+    // if (m_proxy_expr != nullptr) {
+    //     return m_proxy_expr->GetExprType();
+    // }
+
     AssertThrow(m_symbol_type != nullptr);
 
     return m_symbol_type;
@@ -246,8 +328,8 @@ SymbolTypePtr_t AstMember::GetExprType() const
 
 const AstExpression *AstMember::GetValueOf() const
 {
-    // if (m_symbol_type != nullptr && m_symbol_type->GetDefaultValue() != nullptr) {
-    //     return m_symbol_type->GetDefaultValue()->GetValueOf();
+    // if (m_proxy_expr != nullptr) {
+    //     return m_proxy_expr->GetValueOf();
     // }
 
     return AstExpression::GetValueOf();
@@ -255,8 +337,8 @@ const AstExpression *AstMember::GetValueOf() const
 
 const AstExpression *AstMember::GetDeepValueOf() const
 {
-    // if (m_symbol_type != nullptr && m_symbol_type->GetDefaultValue() != nullptr) {
-    //     return m_symbol_type->GetDefaultValue()->GetDeepValueOf();
+    // if (m_proxy_expr != nullptr) {
+    //     return m_proxy_expr->GetDeepValueOf();
     // }
 
     return AstExpression::GetDeepValueOf();
@@ -264,6 +346,10 @@ const AstExpression *AstMember::GetDeepValueOf() const
 
 AstExpression *AstMember::GetTarget() const
 {
+    // if (m_proxy_expr != nullptr) {
+    //     return m_proxy_expr->GetTarget();
+    // }
+
     if (m_target != nullptr) {
         return m_target.get();
     }
@@ -273,6 +359,10 @@ AstExpression *AstMember::GetTarget() const
 
 bool AstMember::IsMutable() const
 {
+    if (m_proxy_expr != nullptr && !m_proxy_expr->IsMutable()) {
+        return false;
+    }
+
     AssertThrow(m_target != nullptr);
     AssertThrow(m_symbol_type != nullptr);
 

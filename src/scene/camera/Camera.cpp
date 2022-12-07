@@ -251,19 +251,22 @@ void Camera::UpdateViewProjectionMatrix()
 
 Vector3 Camera::TransformScreenToNDC(const Vector2 &screen) const
 {
+    // [0, 1] -> [-1, 1]
+
     return {
-        1.0f - (2.0f * screen.x),
-        1.0f - (2.0f * screen.y),
+        screen.x * 2.0f - 1.0f,//1.0f - (2.0f * screen.x),
+        screen.y * 2.0f - 1.0f,//1.0f - (2.0f * screen.y),
         1.0f
     };
 }
 
 Vector4 Camera::TransformNDCToWorld(const Vector3 &ndc) const
 {
-    const Vector4 clip(ndc.x, ndc.y, -1.0f, 1.0f);
+    const Vector4 clip(ndc, 1.0f);
 
     Vector4 eye = m_proj_mat.Inverted() * clip;
-    eye = Vector4(eye.x, eye.y, -1.0f, 0.0f);
+    eye /= eye.w;
+    // eye = Vector4(eye.x, eye.y, -1.0f, 0.0f);
 
     return m_view_mat.Inverted() * eye;
 }

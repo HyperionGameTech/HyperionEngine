@@ -10,7 +10,8 @@
 
 namespace hyperion::compiler {
 
-class AstCallExpression : public AstExpression {
+class AstCallExpression : public AstExpression
+{
 public:
     AstCallExpression(
         const std::shared_ptr<AstExpression> &target,

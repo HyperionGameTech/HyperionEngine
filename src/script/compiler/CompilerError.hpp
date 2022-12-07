@@ -131,6 +131,8 @@ enum ErrorMessage
     Msg_export_duplicate,
     Msg_self_outside_class,
     Msg_else_outside_if,
+    Msg_proxy_class_cannot_be_constructed,
+    Msg_proxy_class_may_only_contain_methods,
     Msg_alias_missing_assignment,
     Msg_alias_must_be_identifier,
     Msg_unrecognized_alias_type,

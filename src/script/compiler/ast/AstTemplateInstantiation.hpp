@@ -13,9 +13,9 @@
 namespace hyperion::compiler {
 
 class AstVariableDeclaration;
-class AstAliasDeclaration;
 
-class AstTemplateInstantiation : public AstExpression {
+class AstTemplateInstantiation : public AstExpression
+{
 public:
     AstTemplateInstantiation(const std::shared_ptr<AstExpression> &expr,
         const std::vector<std::shared_ptr<AstArgument>> &generic_args,
@@ -40,9 +40,6 @@ private:
     std::vector<std::shared_ptr<AstArgument>> m_generic_args;
 
     // set while analyzing
-    //std::shared_ptr<AstExpression> m_inst_expr;
-    //std::vector<std::shared_ptr<AstAliasDeclaration>> m_mixin_overrides;
-    // std::vector<std::shared_ptr<AstVariableDeclaration>> m_param_overrides;
     std::shared_ptr<AstExpression> m_inner_expr;
     std::shared_ptr<AstBlock> m_block;
     SymbolTypePtr_t m_expr_type;

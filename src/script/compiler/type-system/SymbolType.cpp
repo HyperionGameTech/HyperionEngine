@@ -11,30 +11,32 @@
 
 namespace hyperion::compiler {
 
-SymbolType::SymbolType(const std::string &name, 
+SymbolType::SymbolType(
+    const std::string &name, 
     SymbolTypeClass type_class, 
-    const SymbolTypePtr_t &base)
-    : m_name(name),
-      m_type_class(type_class),
-      m_base(base),
-      m_default_value(nullptr),
-      m_id(-1),
-      m_flags(0)
+    const SymbolTypePtr_t &base
+) : m_name(name),
+    m_type_class(type_class),
+    m_base(base),
+    m_default_value(nullptr),
+    m_id(-1),
+    m_flags(0)
 {
 }
 
-SymbolType::SymbolType(const std::string &name, 
+SymbolType::SymbolType(
+    const std::string &name, 
     SymbolTypeClass type_class,
     const SymbolTypePtr_t &base,
     const sp<AstExpression> &default_value,
-    const vec<SymbolMember_t> &members)
-    : m_name(name),
-      m_type_class(type_class),
-      m_base(base),
-      m_default_value(default_value),
-      m_members(members),
-      m_id(0),
-      m_flags(0)
+    const vec<SymbolMember_t> &members
+) : m_name(name),
+    m_type_class(type_class),
+    m_base(base),
+    m_default_value(default_value),
+    m_members(members),
+    m_id(0),
+    m_flags(0)
 {
 }
 
@@ -756,7 +758,8 @@ SymbolTypePtr_t SymbolType::GenericParameter(
 SymbolTypePtr_t SymbolType::Extend(
     const std::string &name,
     const SymbolTypePtr_t &base,
-    const vec<SymbolMember_t> &members)
+    const vec<SymbolMember_t> &members
+)
 {
     SymbolTypePtr_t symbol_type(new SymbolType(
         name,

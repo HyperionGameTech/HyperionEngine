@@ -208,7 +208,7 @@ public:
     /* All controller operations should only be used from the GAME thread */
 
     template <class ControllerClass>
-    void AddController(UniquePtr<ControllerClass> &&controller)
+    ControllerClass *AddController(UniquePtr<ControllerClass> &&controller)
     {
         static_assert(std::is_base_of_v<Controller, ControllerClass>, "Object must be a derived class of Controller");
 
@@ -230,12 +230,15 @@ public:
 
         controller->OnTransformUpdate(m_transform);
 
+        ControllerClass *ptr = controller.Get();
         m_controllers.Set(std::move(controller));
+
+        return ptr;
     }
 
     template <class ControllerClass, class ...Args>
-    void AddController(Args &&... args)
-        { AddController<ControllerClass>(UniquePtr<ControllerClass>::Construct(std::forward<Args>(args)...)); }
+    ControllerClass *AddController(Args &&... args)
+        { return AddController<ControllerClass>(UniquePtr<ControllerClass>::Construct(std::forward<Args>(args)...)); }
 
     template <class ControllerClass>
     bool RemoveController()
