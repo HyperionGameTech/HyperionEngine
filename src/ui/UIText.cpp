@@ -60,7 +60,6 @@ static Handle<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 
     Transform base_transform;
     base_transform.SetTranslation(Vector3(1.0f, -1.0f, 0.0f));
-    base_transform.SetRotation(Quaternion(Vector3::UnitX(), MathUtil::DegToRad(180.0f)));
 
     auto transformed_mesh = MeshBuilder::ApplyTransform(char_meshes[0].quad_mesh.Get(), base_transform * char_meshes[0].transform);
 

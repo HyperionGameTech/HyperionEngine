@@ -54,6 +54,7 @@ void AstHasExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     AssertThrow(target_type != nullptr);
+
     if (target_type != BuiltinTypes::ANY) {
         if (SymbolTypePtr_t member_type = target_type->FindMember(m_field_name)) {
             m_has_member = 1;
@@ -75,9 +76,9 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
         AssertThrowMsg(m_has_member != -1, "m_has_member should only be -1 for expression member checks.");
     }
 
-    if (m_has_member != -1) {
+    if (m_has_member != -1 && !m_has_side_effects) {
         // get active register
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         if (m_has_member == 1) {
             // load value into register
@@ -86,21 +87,10 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
             // load value into register
             chunk->Append(BytecodeUtil::Make<ConstBool>(rp, false));
         }
-
-        // build in the target only if it has side effects.
-        // this is for compatibility with the runtime check,
-        // as the runtime check has to be evaluated
-        if (m_has_side_effects) {
-            if (auto *expr = dynamic_cast<AstExpression*>(m_target.get())) {
-                chunk->Append(m_target->Build(visitor, mod));
-            }
-        }
     } else {
         // indeterminate at compile time.
         // check at runtime.
-        const uint32_t hash = hash_fnv_1(m_field_name.c_str());
-
-        int found_member_reg = -1;
+        const HashFNV1 hash = hash_fnv_1(m_field_name.c_str());
 
         // the label to jump to the very end
         LabelId end_label = chunk->NewLabel();
@@ -110,18 +100,18 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
         chunk->Append(m_target->Build(visitor, mod));
 
         // get active register
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         { // compile in the instruction to check if it has the member
             auto instr_has_mem_hash = BytecodeUtil::Make<RawOperation<>>();
             instr_has_mem_hash->opcode = HAS_MEM_HASH;
-            instr_has_mem_hash->Accept<uint8_t>(rp);
-            instr_has_mem_hash->Accept<uint8_t>(rp);
-            instr_has_mem_hash->Accept<uint32_t>(hash);
+            instr_has_mem_hash->Accept<UInt8>(rp);
+            instr_has_mem_hash->Accept<UInt8>(rp);
+            instr_has_mem_hash->Accept<UInt32>(hash);
             chunk->Append(std::move(instr_has_mem_hash));
         }
 
-        found_member_reg = rp;
+        const UInt8 found_member_reg = rp;
 
         // compare the found member to zero
         chunk->Append(BytecodeUtil::Make<Comparison>(Comparison::CMPZ, found_member_reg));

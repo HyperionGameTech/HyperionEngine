@@ -75,12 +75,15 @@ public:
     // compare by memory address
     bool operator==(const VMObject &other) const { return this == &other; }
 
-    Member *LookupMemberFromHash(uint32_t hash) const
+    Member *LookupMemberFromHash(UInt32 hash) const
         { return m_object_map->Get(hash); }
+
     Member *GetMembers() const
         { return m_members; }
+
     Member &GetMember(int index)
         { return m_members[index]; }
+
     const Member &GetMember(int index) const
         { return m_members[index]; }
 

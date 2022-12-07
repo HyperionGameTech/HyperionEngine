@@ -65,6 +65,13 @@ public:
         m_data[m_sp++] = value;
     }
 
+    // push a value to the stack
+    void Push(Value &&value)
+    {
+        AssertThrowMsg(m_sp < STACK_SIZE, "stack overflow");
+        m_data[m_sp++] = std::move(value);
+    }
+
     // pop top value from the stack
     void Pop()
     {

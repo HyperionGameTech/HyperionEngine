@@ -84,9 +84,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
 
-        if (target_type->FindPrototypeMember(overload_function_name)) {
-            m_operator_overload = std::move(call_operator_overload_expr);
-        } else if (target_type->IsProxyClass() && target_type->FindMember(overload_function_name)) {
+        if (target_type->IsProxyClass() && target_type->FindMember(overload_function_name)) {
             m_operator_overload.reset(new AstCallExpression(
                 std::shared_ptr<AstMember>(new AstMember(
                     overload_function_name,
@@ -123,6 +121,8 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 sub_bin_expr,
                 m_location
             ));
+        } else if (target_type->FindPrototypeMember(overload_function_name)) {
+            m_operator_overload = call_operator_overload_expr;
         }
 
         if (m_operator_overload != nullptr) {

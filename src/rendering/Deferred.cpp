@@ -35,7 +35,7 @@ void DeferredPass::CreateShader()
     ShaderProps props { };
     props.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
     props.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
-    props.Set("ENV_PROBE_ENABLED", true);
+    props.Set("ENV_PROBE_ENABLED", false);
 
     if (m_is_indirect_pass) {
         compiled_shader = Engine::Get()->GetShaderCompiler().GetCompiledShader(
@@ -315,7 +315,7 @@ void DeferredRenderer::CreateCombinePass()
     ShaderProps props(renderer::static_mesh_vertex_attributes);
     props.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
     props.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
-    props.Set("ENV_PROBE_ENABLED", true);
+    props.Set("ENV_PROBE_ENABLED", false);
 
     auto deferred_combine_shader = Engine::Get()->CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(
         "DeferredCombine",

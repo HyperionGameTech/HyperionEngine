@@ -48,9 +48,9 @@ void FollowCameraController::RespondToCommand(const CameraCommand &command, Game
         constexpr float mouse_speed = 80.0f;
 
         m_offset = Vector3(
-            -std::sin(m_mag.x * 4.0f) * mouse_speed,
-            -std::sin(m_mag.y * 4.0f) * mouse_speed,
-            std::cos(m_mag.x  * 4.0f) * mouse_speed
+            -MathUtil::Sin(m_mag.x * 4.0f) * mouse_speed,
+            -MathUtil::Sin(m_mag.y * 4.0f) * mouse_speed,
+            MathUtil::Cos(m_mag.x  * 4.0f) * mouse_speed
         );
     
         break;
@@ -65,7 +65,7 @@ void FollowCameraController::RespondToCommand(const CameraCommand &command, Game
     }
     case CameraCommand::CAMERA_COMMAND_MOVEMENT:
     {
-        constexpr float movement_speed = 500.0f;
+        constexpr float movement_speed = 80.0f;
         const float speed = movement_speed * dt;
 
         const auto dir_cross_y = Vector3(m_camera->m_direction).Cross(m_camera->m_up);

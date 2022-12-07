@@ -84,9 +84,6 @@
 using namespace hyperion;
 using namespace hyperion::v2;
 
-//#define HYP_TEST_VCT
-//#define HYP_TEST_TERRAIN
-
 namespace hyperion::v2 {
     
 class MyGame : public Game
@@ -94,6 +91,7 @@ class MyGame : public Game
 
 public:
     Handle<Light> m_sun;
+    Array<Handle<Light>> m_point_lights;
 
     MyGame(RefCountedPtr<Application> application)
         : Game(application)
@@ -118,7 +116,7 @@ public:
         );
 
         m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
-            Vector3(0.0f), Vector3(0.0f, 150.0f, -35.0f)
+            Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
         ));
 
 #ifdef HYP_TEST_VCT
@@ -149,7 +147,7 @@ public:
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
 
-        test_model.Scale(0.35f);
+        test_model.Scale(0.1f);
 
         if (false) {
             int i = 0;
@@ -188,7 +186,7 @@ public:
         if (true) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(CreateObject<Entity>());
-            btn_node.GetEntity()->SetTranslation(Vector3(0.5f, 0.5f, 0.0f));
+            btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
@@ -246,28 +244,33 @@ public:
         
         { // adding lights to scene
             m_sun = CreateObject<Light>(DirectionalLight(
-                Vector3(-0.5f, 1.0f, 0.1f).Normalize(),
+                Vector3(-0.1f, 0.1f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                50000.0f
+                150000.0f
             ));
 
             m_scene->AddLight(m_sun);
 
-            m_scene->AddLight(CreateObject<Light>(PointLight(
+            m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.5f, 50.0f, 70.1f),
                 Color(0.0f, 0.0f, 1.0f),
                 50000.0f,
                 40.0f
             )));
-            m_scene->AddLight(CreateObject<Light>(PointLight(
+
+            m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.5f, 50.0f, -70.1f),
                 Color(1.0f, 0.0f, 0.0f),
                 10000.0f,
                 40.0f
             )));
+
+            // for (auto &light : m_point_lights) {
+            //     m_scene->AddLight(light);
+            // }
         }
 
-        if (true) { // particles test
+        if (false) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -373,9 +376,9 @@ public:
         if (true) {
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
-            mh.Scale(5.0f);
+            mh.Scale(1.0f);
             for (auto &mh_child : mh.GetChildren()) {
-                //mh_child.SetEntity(Handle<Entity>::empty);
+                mh_child.SetEntity(Handle<Entity>::empty);
 
                 if (auto entity = mh_child.GetEntity()) {
                     // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
@@ -390,7 +393,7 @@ public:
 
             NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
             tree.SetName("tree");
-            tree.Scale(5.0f);
+            tree.Scale(1.0f);
             if (auto needles = tree.Select("Needles")) {
                 if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
                     needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
@@ -412,7 +415,7 @@ public:
         }
 
 
-        if (true) {
+        if (false) {
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
             plane->SetName("Plane entity");
@@ -466,7 +469,15 @@ public:
 
         GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("mh_model").GetWorldTranslation());
 
-        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.002f), MathUtil::Cos(timer * 0.002f), -MathUtil::Sin(timer * 0.002f)).Normalize());
+        for (auto &light : m_point_lights) {
+            light->SetPosition(Vector3(
+                MathUtil::Sin(light->GetID().Value() + timer) * 30.0f,
+                30.0f,
+                MathUtil::Cos(light->GetID().Value() + timer) * 30.0f
+            ));
+        }
+
+        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.05f), MathUtil::Cos(timer * 0.05f), -MathUtil::Sin(timer * 0.05f)).Normalize());
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));
@@ -585,7 +596,7 @@ public:
     }
 
     std::unique_ptr<Node> zombie;
-    GameCounter::TickUnit timer{};
+    GameCounter::TickUnit timer = -18.0f;
     GameCounter::TickUnit ray_cast_timer{};
 
 };

@@ -85,8 +85,6 @@ enum CompareFlags : int
     
 struct Value
 {
-    static constexpr SizeType inline_storage_size = 64;
-
     enum ValueType
     {
         NONE,
@@ -118,8 +116,8 @@ struct Value
         Int64 i64;
         UInt32 u32;
         UInt64 u64;
-        Float32 f;
-        Float64 d;
+        Float f;
+        Double d;
 
         bool b;
 
@@ -149,8 +147,6 @@ struct Value
         {
             BCAddress catch_address;
         } try_catch_info;
-
-        UInt8 inline_storage[inline_storage_size];
     } m_value;
 
     Value() = default;

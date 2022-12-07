@@ -366,6 +366,12 @@ public:
         }
     }
 
+    BlendMode GetBlendMode() const
+        { return m_render_attributes.blend_mode; }
+
+    void SetBlendMode(BlendMode blend_mode)
+        { m_render_attributes.blend_mode = blend_mode; }
+
     bool IsDepthWriteEnabled() const
         { return bool(m_render_attributes.flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE); }
 

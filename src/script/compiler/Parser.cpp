@@ -1866,8 +1866,23 @@ std::shared_ptr<AstFunctionExpression> Parser::ParseFunctionExpression(
             type_spec = ParsePrototypeSpecification();
         }
 
-        // parse function block
-        if (auto block = ParseBlock()) {
+        std::shared_ptr<AstBlock> block;
+
+        if (Match(TK_FAT_ARROW, true)) {
+            std::shared_ptr<AstReturnStatement> return_statement(new AstReturnStatement(
+                ParseExpression(),
+                location
+            ));
+
+            block.reset(new AstBlock(
+                { return_statement },
+                location
+            ));
+        } else {
+            block = ParseBlock();
+        }
+
+        if (block != nullptr) {
             return std::shared_ptr<AstFunctionExpression>(new AstFunctionExpression(
                 params,
                 type_spec,

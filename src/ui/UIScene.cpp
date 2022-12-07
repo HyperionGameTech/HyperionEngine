@@ -119,41 +119,52 @@ bool UIScene::OnInputEvent(
             Float(mouse_y) / Float(extent.height)
         );
 
-        if (TestRay(mouse_screen, hit)) {
-            UIEvent ui_event;
-            ui_event.type = UIEvent::Type::MOUSE_DRAG;
-            ui_event.original_event = &event;
-            ui_event.mouse_position = mouse_screen;
+        bool event_handled = false;
 
-            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
-                auto it = m_mouse_held_times.Find(entity->GetID());
+        {
+            UIEvent drag_event;
+            drag_event.type = UIEvent::Type::MOUSE_DRAG;
+            drag_event.original_event = &event;
+            drag_event.mouse_position = mouse_screen;
 
-                if (it != m_mouse_held_times.End()) {
-                    if (it->second >= 0.25f) {
+            for (auto &it : m_mouse_held_times) {
+                if (it.second >= 0.05f) {
+                    if (const Handle<Entity> &entity = m_scene->FindEntityWithID(it.first)) {
                         // signal mouse drag
-                        for (auto &it : entity->GetControllers()) {
-                            if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
-                                ui_controller->OnEvent(ui_event);
+                        for (auto &controller_it : entity->GetControllers()) {
+                            if (UIController *ui_controller = dynamic_cast<UIController *>(controller_it.second.Get())) {
+                                ui_controller->OnEvent(drag_event);
 
-                                return true;
+                                event_handled = true;
                             }
-                        }
-                    }
-                } else {
-                    ui_event.type = UIEvent::Type::MOUSE_HOVER;
-
-                    for (auto &it : entity->GetControllers()) {
-                        if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
-                            ui_controller->OnEvent(ui_event);
-
-                            return true;
                         }
                     }
                 }
             }
         }
 
-        return false;
+        if (TestRay(mouse_screen, hit)) {
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
+                auto it = m_mouse_held_times.Find(entity->GetID());
+
+                if (it == m_mouse_held_times.End()) {
+                    UIEvent hover_event;
+                    hover_event.type = UIEvent::Type::MOUSE_HOVER;
+                    hover_event.original_event = &event;
+                    hover_event.mouse_position = mouse_screen;
+
+                    for (auto &it : entity->GetControllers()) {
+                        if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                            ui_controller->OnEvent(hover_event);
+
+                            event_handled = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return event_handled;
     }
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN: {
         // project a ray into the scene and test if it hits any objects

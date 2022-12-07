@@ -138,12 +138,10 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     Matrix4 mat = zeros;
     
     float x_orth = 2.0f / (r - l);
-    float y_orth = 2.0f / (b - t);
-    // float z_orth = 1.0f / (f - n);
+    float y_orth = 2.0f / (t - b);
     float z_orth = 1.0f / (n - f);
     float tx = -((r + l) / (r - l));
-    float ty = -((t + b) / (b - t));
-    // float tz = -((f + n) / (f - n));
+    float ty = -((t + b) / (t - b));
     float tz = ((n) / (n - f));
     
     mat[0] = { x_orth, 0.0f, 0.0f, tx };

@@ -124,7 +124,7 @@ ShadowPass::ShadowPass()
       m_shadow_mode(ShadowMode::VSM),
       m_max_distance(100.0f),
       m_shadow_map_index(~0u),
-      m_dimensions { 1024, 1024 }
+      m_dimensions { 2048, 2048 }
 {
 }
 
@@ -566,7 +566,7 @@ void ShadowRenderer::UpdateSceneCamera()
         ? m_shadow_pass.GetLight()->GetPosition().Normalized() * -1.0f
         : Vector3::Zero();
 
-    auto &camera = m_shadow_pass.GetScene()->GetCamera();
+    Handle<Camera> &camera = m_shadow_pass.GetScene()->GetCamera();
 
     if (!camera) {
         return;

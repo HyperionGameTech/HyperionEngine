@@ -19,9 +19,11 @@ public:
 
     VMArray(SizeType size = 0);
     VMArray(const VMArray &other);
+    VMArray &operator=(const VMArray &other);
+    VMArray(VMArray &&other) noexcept;
+    VMArray &operator=(VMArray &&other) noexcept;
     ~VMArray();
 
-    VMArray &operator=(const VMArray &other);
     bool operator==(const VMArray &other) const { return this == &other; }
 
     SizeType GetSize() const { return m_size; }

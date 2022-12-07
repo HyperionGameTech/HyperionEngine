@@ -1061,7 +1061,7 @@ void VM::Invoke(
             }
 
             // assign heap value to our array
-            hv->Assign(arr);
+            hv->Assign(std::move(arr));
 
             Value array_value;
             array_value.m_type = Value::HEAP_POINTER;

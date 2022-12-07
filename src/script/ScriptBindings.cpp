@@ -491,6 +491,77 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
     }
 }
 
+static HYP_SCRIPT_FUNCTION(Reflect_HasMember)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Value *arg0 = params.args[0];
+    VMString *str = GetArgument<1, VMString>(params);
+
+    if (!arg0 || !str) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+    
+    vm::VMObject *object_ptr;
+
+    if (arg0->GetPointer<vm::VMObject>(&object_ptr)) {
+        const HashFNV1 hash = hash_fnv_1(str->GetData());
+        
+        HYP_SCRIPT_RETURN_BOOLEAN(object_ptr->LookupMemberFromHash(hash) != nullptr);
+    } else {
+        HYP_SCRIPT_THROW(vm::Exception("Not an object"));
+    }
+}
+
+static HYP_SCRIPT_FUNCTION(Reflect_GetMembers)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Value *arg0 = params.args[0];
+
+    if (!arg0) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+    
+    vm::VMObject *object_ptr;
+
+    if (arg0->GetPointer<vm::VMObject>(&object_ptr)) {
+        vm::VMArray ary(object_ptr->GetSize());
+
+        for (SizeType index = 0; index < object_ptr->GetSize(); index++) {
+            HYP_SCRIPT_CREATE_PTR(vm::VMString(object_ptr->GetMember(index).name), member_name_value);
+
+            ary.AtIndex(index) = member_name_value;
+        }
+
+        HYP_SCRIPT_CREATE_PTR(ary, ptr);
+        HYP_SCRIPT_RETURN(ptr);
+    } else {
+        HYP_SCRIPT_THROW(vm::Exception("Not an object"));
+    }
+}
+
+static HYP_SCRIPT_FUNCTION(Reflect_GetClass)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Value *arg0 = params.args[0];
+
+    if (!arg0) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+    
+    vm::VMObject *object_ptr;
+
+    if (arg0->GetPointer<vm::VMObject>(&object_ptr)) {
+        vm::Value result_value(vm::Value::HEAP_POINTER, { .ptr = object_ptr->GetPrototype() });
+        
+        HYP_SCRIPT_RETURN(result_value);
+    } else {
+        HYP_SCRIPT_THROW(vm::Exception("Not an object"));
+    }
+}
+
 static HYP_SCRIPT_FUNCTION(EntityGetName)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
@@ -536,7 +607,7 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     HYP_SCRIPT_RETURN(ptr);
 }
 
-static HYP_SCRIPT_FUNCTION(EntitySetTranslation)
+static HYP_SCRIPT_FUNCTION(Entity_SetTranslation)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
@@ -550,6 +621,56 @@ static HYP_SCRIPT_FUNCTION(EntitySetTranslation)
     entity_ptr->SetTranslation(translation);
 
     HYP_SCRIPT_RETURN_VOID(nullptr);
+}
+
+static HYP_SCRIPT_FUNCTION(Entity_GetTranslation)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    auto &&entity_ptr = GetArgument<0, Entity *>(params);
+
+    if (!entity_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    Vector3 translation = entity_ptr->GetTranslation();
+
+    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Vector3>();
+    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
+
+    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
+
+    HYP_SCRIPT_CREATE_PTR(translation, result);
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+    HYP_SCRIPT_RETURN(ptr);
+}
+
+static HYP_SCRIPT_FUNCTION(Entity_GetWorldAABB)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    auto &&entity_ptr = GetArgument<0, Entity *>(params);
+
+    if (!entity_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    BoundingBox aabb = entity_ptr->GetWorldAABB();
+
+    const auto class_name_it = params.api_instance.class_bindings.class_names.Find<BoundingBox>();
+    AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
+
+    const auto prototype_it = params.api_instance.class_bindings.class_prototypes.find(class_name_it->second);
+    AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.end(), "Class not registered!");
+
+    HYP_SCRIPT_CREATE_PTR(aabb, result);
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
+    HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
+    HYP_SCRIPT_CREATE_PTR(result_value, ptr);
+    HYP_SCRIPT_RETURN(ptr);
 }
 
 static HYP_SCRIPT_FUNCTION(LoadModule)
@@ -700,6 +821,33 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             }
         );
 
+    api_instance.Module("reflect")
+        .Function(
+            "GetClass",
+            BuiltinTypes::ANY,
+            {
+                { "object", BuiltinTypes::ANY },
+            },
+            Reflect_GetClass
+        )
+        .Function(
+            "HasMember",
+            BuiltinTypes::BOOLEAN,
+            {
+                { "object", BuiltinTypes::ANY },
+                { "member_name", BuiltinTypes::STRING }
+            },
+            Reflect_HasMember
+        )
+        .Function(
+            "GetMembers",
+            BuiltinTypes::ARRAY,
+            {
+                { "object", BuiltinTypes::ANY }
+            },
+            Reflect_GetMembers
+        );
+
     api_instance.Module(Config::global_module_name)
         .Function(
             "Engine_CreateEntity",
@@ -712,38 +860,30 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 
     api_instance.Module(Config::global_module_name)
         .Function(
-            "EntitySetTranslation",
+            "Entity_SetTranslation",
             BuiltinTypes::ANY,
             {
                 { "entity", BuiltinTypes::ANY },
                 { "translation", BuiltinTypes::ANY }
             },
-            EntitySetTranslation
+            Entity_SetTranslation
+        )
+        .Function(
+            "Entity_GetTranslation",
+            BuiltinTypes::ANY,
+            {
+                { "entity", BuiltinTypes::ANY }
+            },
+            Entity_GetTranslation
+        )
+        .Function(
+            "Entity_GetWorldAABB",
+            BuiltinTypes::ANY,
+            {
+                { "entity", BuiltinTypes::ANY }
+            },
+            Entity_GetWorldAABB
         );
-
-    // api_instance.Module(Config::global_module_name)
-    //     .Class<Handle<Entity>>(
-    //         "Entity",
-    //         {
-    //             API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
-    //             API::NativeMemberDefine(
-    //                 "$construct",
-    //                 BuiltinTypes::ANY,
-    //                 {
-    //                     { "self", BuiltinTypes::ANY }
-    //                 },
-    //                 CxxCtor< Handle<Entity> > 
-    //             ),
-    //             API::NativeMemberDefine(
-    //                 "GetName",
-    //                 BuiltinTypes::STRING,
-    //                 {
-    //                     { "self", BuiltinTypes::ANY }
-    //                 },
-    //                 EntityGetName
-    //             )
-    //         }
-    //     );
 
     api_instance.Module(Config::global_module_name)
         .Class<Vector2>(
@@ -1128,6 +1268,41 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 //     },
                 //     CxxMemberFn< Vector3, Vector3, const Vector3 &, &Vector3::operator- >
                 // }
+            }
+        );
+
+
+    api_instance.Module(Config::global_module_name)
+        .Class<BoundingBox>(
+            "BoundingBox",
+            {
+                API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                API::NativeMemberDefine(
+                    "$construct",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY },
+                        { "min", BuiltinTypes::ANY },
+                        { "max", BuiltinTypes::ANY }
+                    },
+                    CxxCtor< BoundingBox, Vector3, Vector3 > 
+                ),
+                API::NativeMemberDefine(
+                    "GetMin",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< const Vector3 &, BoundingBox, &BoundingBox::GetMin >
+                ),
+                API::NativeMemberDefine(
+                    "GetMax",
+                    BuiltinTypes::ANY,
+                    {
+                        { "self", BuiltinTypes::ANY }
+                    },
+                    CxxMemberFn< const Vector3 &, BoundingBox, &BoundingBox::GetMax >
+                ),
             }
         );
 

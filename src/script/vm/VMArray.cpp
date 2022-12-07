@@ -14,9 +14,9 @@ VMArray::VMArray(SizeType size)
       m_capacity(GetCapacityForSize(size)),
       m_buffer(new Value[m_capacity])
 {
-    for (SizeType i = 0; i < m_capacity; i++) {
-        m_buffer[i].m_type = Value::NONE;
-        m_buffer[i].m_value.user_data = nullptr;
+    for (SizeType index = 0; index < m_capacity; index++) {
+        m_buffer[index].m_type = Value::NONE;
+        m_buffer[index].m_value.user_data = nullptr;
     }
 }
 
@@ -26,14 +26,9 @@ VMArray::VMArray(const VMArray &other)
       m_buffer(new Value[other.m_capacity])
 {
     // copy all members
-    for (SizeType i = 0; i < m_size; i++) {
-        m_buffer[i] = other.m_buffer[i];
+    for (SizeType index = 0; index < m_size; index++) {
+        m_buffer[index] = other.m_buffer[index];
     }
-}
-
-VMArray::~VMArray()
-{
-    delete[] m_buffer;
 }
 
 VMArray &VMArray::operator=(const VMArray &other)
@@ -42,7 +37,7 @@ VMArray &VMArray::operator=(const VMArray &other)
         return *this;
     }
 
-    if (m_buffer) {
+    if (m_buffer != nullptr) {
         delete[] m_buffer;
     }
 
@@ -51,11 +46,49 @@ VMArray &VMArray::operator=(const VMArray &other)
     m_buffer = new Value[other.m_capacity];
 
     // copy all objects
-    for (SizeType i = 0; i < m_size; i++) {
-        m_buffer[i] = other.m_buffer[i];
+    for (SizeType index = 0; index < m_size; index++) {
+        m_buffer[index] = other.m_buffer[index];
     }
 
     return *this;
+}
+
+VMArray::VMArray(VMArray &&other) noexcept
+    : m_size(other.m_size),
+      m_capacity(other.m_capacity),
+      m_buffer(other.m_buffer)
+{
+    other.m_size = 0;
+    other.m_capacity = 0;
+    other.m_buffer = nullptr;
+}
+
+VMArray &VMArray::operator=(VMArray &&other) noexcept
+{
+    if (&other == this) {
+        return *this;
+    }
+
+    if (m_buffer != nullptr) {
+        delete[] m_buffer;
+    }
+
+    m_size = other.m_size;
+    m_capacity = other.m_capacity;
+    m_buffer = other.m_buffer;
+
+    other.m_size = 0;
+    other.m_capacity = 0;
+    other.m_buffer = nullptr;
+
+    return *this;
+}
+
+VMArray::~VMArray()
+{
+    if (m_buffer != nullptr) {
+        delete[] m_buffer;
+    }
 }
 
 void VMArray::Resize(SizeType capacity)
@@ -67,12 +100,12 @@ void VMArray::Resize(SizeType capacity)
     AssertThrow(m_size <= m_capacity);
 
     // copy all objects into new buffer
-    for (SizeType i = 0; i < m_size; i++) {
-        new_buffer[i] = m_buffer[i];
+    for (SizeType index = 0; index < m_size; index++) {
+        new_buffer[index] = m_buffer[index];
     }
 
-    for (SizeType i = m_size; i < m_capacity; i++) {
-        new_buffer[i] = Value(Value::NONE, {.user_data = nullptr});
+    for (SizeType index = m_size; index < m_capacity; index++) {
+        new_buffer[index] = Value(Value::NONE, { .user_data = nullptr });
     }
 
     // delete old buffer

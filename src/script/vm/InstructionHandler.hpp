@@ -955,22 +955,21 @@ public:
         thread->m_regs[dst_reg] = thread->m_regs[src_reg];
     }
 
-    HYP_FORCE_INLINE void HasMemHash(BCRegister dst_reg, BCRegister src_reg, uint32_t hash)
+    HYP_FORCE_INLINE void HasMemHash(BCRegister dst_reg, BCRegister src_reg, UInt32 hash)
     {
         Value &src = thread->m_regs[src_reg];
 
-        Value &dst = thread->m_regs[dst_reg];
-        dst.m_type = Value::BOOLEAN;
+        Value result;
+        result.m_value.b = false;
+        result.m_type = Value::BOOLEAN;
 
-        if (src.m_type == Value::HEAP_POINTER && src.m_value.ptr != nullptr) {
-            if (VMObject *object = src.m_value.ptr->GetPointer<VMObject>()) {
-                dst.m_value.b = (object->LookupMemberFromHash(hash) != nullptr);
-                return;
-            }
+        VMObject *ptr = nullptr;
+
+        if (src.GetPointer<VMObject>(&ptr)) {
+            result.m_value.b = (ptr->LookupMemberFromHash(hash) != nullptr);
         }
 
-        // not found, set it to false
-        dst.m_value.b = false;
+        thread->m_regs[dst_reg] = result;
     }
 
     HYP_FORCE_INLINE void Push(BCRegister reg)
@@ -984,7 +983,7 @@ public:
         thread->m_stack.Pop();
     }
 
-    HYP_FORCE_INLINE void PopN(uint8_t n)
+    HYP_FORCE_INLINE void PopN(UInt8 n)
     {
         thread->m_stack.Pop(n);
     }

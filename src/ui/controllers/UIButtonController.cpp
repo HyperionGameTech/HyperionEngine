@@ -39,13 +39,14 @@ void UIButtonController::OnAdded()
         Extent2D { 32, 32 }
     );
 
-    GetOwner()->SetMesh(UIText::BuildTextMesh(font_map, "hello world"));
+    GetOwner()->SetMesh(UIText::BuildTextMesh(font_map, "HyperionEngine v0.2"));
     GetOwner()->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);
     mat->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>(font_map.GetTexture()));
-    mat->SetFaceCullMode(renderer::FaceCullMode::NONE);
+    mat->SetFaceCullMode(FaceCullMode::NONE);
+    mat->SetBlendMode(BlendMode::ADDITIVE);
     mat->SetIsAlphaBlended(true);
     GetOwner()->SetMaterial(std::move(mat));
 
