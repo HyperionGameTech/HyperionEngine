@@ -257,7 +257,6 @@ public:
                 50000.0f,
                 40.0f
             )));
-
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.5f, 50.0f, -70.1f),
                 Color(1.0f, 0.0f, 0.0f),
@@ -268,19 +267,6 @@ public:
             // for (auto &light : m_point_lights) {
             //     m_scene->AddLight(light);
             // }
-        }
-
-        if (false) { // particles test
-            auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-                .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
-                .max_particles = 1024u,
-                .origin = Vector3(0.0f, 50.0f, -25.0f),
-                .lifespan = 8.0f
-            });
-
-            InitObject(particle_spawner);
-
-            m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
 
         if (true) { // adding cubemap rendering with a bounding box
@@ -440,6 +426,21 @@ public:
             );
             plane->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
         }
+
+        
+
+        if (false) { // particles test
+            auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
+                .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
+                .max_particles = 1024u,
+                .origin = Vector3(0.0f, 50.0f, -25.0f),
+                .lifespan = 8.0f
+            });
+
+            InitObject(particle_spawner);
+
+            m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
+        }
     }
 
     virtual void Teardown() override
@@ -468,7 +469,6 @@ public:
         HandleCameraMovement(delta);
 
         GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("mh_model").GetWorldTranslation());
-
         for (auto &light : m_point_lights) {
             light->SetPosition(Vector3(
                 MathUtil::Sin(light->GetID().Value() + timer) * 30.0f,
@@ -476,8 +476,7 @@ public:
                 MathUtil::Cos(light->GetID().Value() + timer) * 30.0f
             ));
         }
-
-        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.05f), MathUtil::Cos(timer * 0.05f), -MathUtil::Sin(timer * 0.05f)).Normalize());
+        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.002f), MathUtil::Cos(timer * 0.002f), -MathUtil::Sin(timer * 0.002f)).Normalize());
 
         if (auto house = GetScene()->GetRoot().Select("house")) {
             //house.Rotate(Quaternion(Vector3(0, 1, 0), 0.1f * delta));

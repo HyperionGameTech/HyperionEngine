@@ -76,7 +76,7 @@ typedef void *UserData_t;
 namespace hyperion {
 namespace vm {
 
-enum CompareFlags : int
+enum CompareFlags : Int
 {
     NONE = 0x00,
     EQUAL = 0x01,
@@ -153,12 +153,12 @@ struct Value
     Value(const Value &other);
     Value(ValueType value_type, ValueData value_data);
 
-    HYP_DEF_STRUCT_COMPARE_EQL(Value);
-    HYP_DEF_STRUCT_COMPARE_LT(Value);
+    HYP_DEF_STRUCT_COMPARE_EQL(Value)
+    HYP_DEF_STRUCT_COMPARE_LT(Value)
 
-    HYP_FORCE_INLINE Value::ValueType GetType() const { return m_type; }
-    HYP_FORCE_INLINE Value::ValueData &GetValue() { return m_value; }
-    HYP_FORCE_INLINE const Value::ValueData &GetValue() const { return m_value; }
+    HYP_FORCE_INLINE ValueType GetType() const { return m_type; }
+    HYP_FORCE_INLINE ValueData &GetValue() { return m_value; }
+    HYP_FORCE_INLINE const ValueData &GetValue() const { return m_value; }
 
     HYP_FORCE_INLINE void AssignValue(const Value &other, bool assign_ref = true)
     {

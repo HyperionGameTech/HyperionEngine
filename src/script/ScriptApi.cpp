@@ -603,6 +603,11 @@ void API::ModuleDefine::BindType(
     }
 }
 
+APIInstance::APIInstance(const SourceFile &source_file)
+    : m_source_file(source_file)
+{
+}
+
 API::ModuleDefine &APIInstance::Module(const std::string &name)
 {
     // check if created already first

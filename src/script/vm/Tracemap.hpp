@@ -12,7 +12,7 @@ public:
     // read stringmap into memory.
     struct StringmapEntry
     {
-        enum : char
+        enum : UInt8
         {
             ENTRY_TYPE_UNKNOWN,
             ENTRY_TYPE_FILENAME,
@@ -20,7 +20,7 @@ public:
             ENTRY_TYPE_MODULE_NAME
         } entry_type;
 
-        char data[255];
+        SChar data[255];
     };
 
     // a mapping from binary instruction location, to line number as well as optionally, stringmap index (-1 if not set). 

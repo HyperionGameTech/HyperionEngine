@@ -838,7 +838,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
 
             for (UInt32 i = 0; i < stringmap_count; i++) {
                 bs->Read(&stringmap[i].entry_type);
-                bs->ReadZeroTerminatedString((char*)&stringmap[i].data);
+                bs->ReadZeroTerminatedString(stringmap[i].data);
             }
         }
 
@@ -875,7 +875,7 @@ HYP_FORCE_INLINE static void HandleInstruction(
         break;
     }
     default: {
-        Int64 last_pos = static_cast<Int64>(bs->Position()) - sizeof(UByte);
+        Int64 last_pos = Int64(bs->Position()) - sizeof(UByte);
         utf::printf(HYP_UTF8_CSTR("unknown instruction '%d' referenced at location: 0x%" PRIx64 "\n"), code, last_pos);
         // seek to end of bytecode stream
         bs->Seek(bs->Size());

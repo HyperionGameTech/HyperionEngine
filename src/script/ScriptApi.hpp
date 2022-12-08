@@ -617,9 +617,12 @@ public:
         std::unordered_map<std::string, vm::HeapValue *> class_prototypes;
     } class_bindings;
 
-    APIInstance() {}
+    APIInstance(const SourceFile &source_file);
     APIInstance(const APIInstance &other) = delete;
-    ~APIInstance() {}
+    ~APIInstance() = default;
+
+    const SourceFile &GetSourceFile() const
+        { return m_source_file; }
 
     API::ModuleDefine &Module(const std::string &name);
 
@@ -629,6 +632,7 @@ public:
     );
 
 private:
+    SourceFile m_source_file;
     std::list<API::ModuleDefine> m_module_defs;
 };
 

@@ -68,7 +68,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommand
         particle_buffer->Memset(
             Engine::Get()->GetGPUDevice(),
             particle_buffer->size,
-            0u
+            0x00
         );
 
         // copy bytes into noise buffer
@@ -463,7 +463,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         return;
     }
 
-    const auto scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
+    const UInt scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
 
     m_staging_buffer.InsertBarrier(
         frame->GetCommandBuffer(),
@@ -482,7 +482,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             renderer::ResourceState::COPY_DST
         );
 
-        // copy zeros to buffer
+        // copy zeros to buffer (to reset instance count)
         spawner->GetIndirectBuffer()->CopyFrom(
             frame->GetCommandBuffer(),
             &m_staging_buffer,

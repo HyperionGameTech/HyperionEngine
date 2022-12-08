@@ -56,7 +56,7 @@ public:
     bool Eof() const
         { return m_position >= m_size; }
 
-    void ReadZeroTerminatedString(char *ptr);
+    void ReadZeroTerminatedString(SChar *ptr);
 
 private:
     const UByte *m_buffer;

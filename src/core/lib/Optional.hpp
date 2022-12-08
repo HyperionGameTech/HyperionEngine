@@ -123,6 +123,24 @@ public:
         }
     }
 
+    T *TryGet()
+    {
+        if (m_has_value) {
+            return &Get();
+        }
+
+        return nullptr;
+    }
+
+    const T *TryGet() const
+    {
+        if (m_has_value) {
+            return &Get();
+        }
+
+        return nullptr;
+    }
+
     T &Get()
     {
         AssertThrow(m_has_value);

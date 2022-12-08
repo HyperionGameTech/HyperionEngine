@@ -413,8 +413,6 @@ std::shared_ptr<AstStatement> Parser::ParseStatement(
             res = ParseTryCatchStatement();
         } else if (MatchKeyword(Keyword_return, false)) {
             res = ParseReturnStatement();
-        } else if (MatchKeyword(Keyword_meta, false)) {
-            res = ParseMetaBlock();
         } else if (MatchKeyword(Keyword_syntax, false)) {
             res = ParseSyntaxDefinition();
         } else {
@@ -2596,22 +2594,6 @@ std::shared_ptr<AstReturnStatement> Parser::ParseReturnStatement()
             expr,
             location
         ));
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<AstMetaBlock> Parser::ParseMetaBlock()
-{
-    const SourceLocation location = CurrentLocation();
-
-    if (Token token = ExpectKeyword(Keyword_meta, true)) {
-        if (auto block = ParseBlock()) {
-            return std::shared_ptr<AstMetaBlock>(new AstMetaBlock(
-                block->GetChildren(),
-                location
-            ));
-        }
     }
 
     return nullptr;

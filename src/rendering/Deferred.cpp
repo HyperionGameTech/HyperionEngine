@@ -361,11 +361,11 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *primary = frame->GetCommandBuffer();
-    const auto frame_index = frame->GetFrameIndex();
+    CommandBuffer *primary = frame->GetCommandBuffer();
+    const UInt frame_index = frame->GetFrameIndex();
 
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
-    const auto scene_index = scene_binding.id.ToIndex();
+    const UInt scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
 
@@ -390,7 +390,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     if (use_ssr) { // screen space reflection
         DebugMarker marker(primary, "Screen space reflection");
 
-        auto &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
+        Image &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
 
         if (mipmapped_result.GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
             m_ssr.Render(frame);

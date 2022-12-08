@@ -40,16 +40,16 @@ BytecodeStream &BytecodeStream::operator=(const BytecodeStream &other)
     return *this;
 }
 
-void BytecodeStream::ReadZeroTerminatedString(char *ptr)
+void BytecodeStream::ReadZeroTerminatedString(SChar *ptr)
 {
-    char ch = '\0';
+    UByte ch = 0;
     SizeType i = 0;
 
     do {
         AssertThrowMsg(m_position < m_size, "Attempted to read past end of buffer!");
 
-        ptr[i++] = ch = m_buffer[m_position++];
-    } while (ch != '\0');
+        ptr[i++] = SChar(ch = m_buffer[m_position++]);
+    } while (ch);
 }
 
 } // namespace vm

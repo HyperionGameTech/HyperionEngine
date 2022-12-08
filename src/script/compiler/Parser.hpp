@@ -53,7 +53,6 @@
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstTypeOfExpression.hpp>
 #include <script/compiler/ast/AstReturnStatement.hpp>
-#include <script/compiler/ast/AstMetaBlock.hpp>
 #include <script/compiler/ast/AstSymbolQuery.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
@@ -187,7 +186,6 @@ private:
     std::shared_ptr<AstModuleImport> ParseModuleImport();
     std::shared_ptr<AstModuleImportPart> ParseModuleImportPart(bool allow_braces = false);
     std::shared_ptr<AstReturnStatement> ParseReturnStatement();
-    std::shared_ptr<AstMetaBlock> ParseMetaBlock();
     std::shared_ptr<AstExpression> ParseMetaProperty();
     std::shared_ptr<AstSyntaxDefinition> ParseSyntaxDefinition();
 };

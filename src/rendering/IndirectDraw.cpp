@@ -271,15 +271,6 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
     }
 
     const UInt32 draw_command_index = m_num_draw_commands++;
-    
-    ShaderVec4<UInt32> packed_data { 0, 0, 0, 0 };
-
-    // first byte = bucket. we currently use only 7, with
-    // some having the potential to be combined, so it shouldn't be
-    // an issue.
-    // packed_data[0] = (1u << UInt32(draw_call.p.bucket)) & 0xFF;
-
-    // Memory::Copy()
 
     for (UInt index = 0; index < draw_call.entity_id_count; index++) {
         m_object_instances.PushBack(ObjectInstance {
@@ -331,10 +322,25 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType 
         0x00 // fill buffer with zeros
     );
 
+    m_staging_buffers[frame->GetFrameIndex()]->InsertBarrier(
+        frame->GetCommandBuffer(),
+        renderer::ResourceState::COPY_SRC
+    );
+
+    m_indirect_buffers[frame->GetFrameIndex()]->InsertBarrier(
+        frame->GetCommandBuffer(),
+        renderer::ResourceState::COPY_DST
+    );
+
     m_indirect_buffers[frame->GetFrameIndex()]->CopyFrom(
         frame->GetCommandBuffer(),
         m_staging_buffers[frame->GetFrameIndex()].Get(),
         m_staging_buffers[frame->GetFrameIndex()]->size
+    );
+
+    m_indirect_buffers[frame->GetFrameIndex()]->InsertBarrier(
+        frame->GetCommandBuffer(),
+        renderer::ResourceState::INDIRECT_ARG
     );
 
     return true;
@@ -407,7 +413,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 {
     // assume render thread
 
-    const auto frame_index = frame->GetFrameIndex();
+    const UInt frame_index = frame->GetFrameIndex();
 
     if ((*out_was_resized = ResizeIfNeeded(frame))) {
         m_is_dirty[frame_index] = true;
@@ -421,8 +427,6 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
     {
         AssertThrow(m_staging_buffers[frame_index] != nullptr);
         AssertThrow(m_staging_buffers[frame_index]->size >= sizeof(IndirectDrawCommand) * m_draw_commands.Size());
-
-        // TODO: Use same setup as global buffers
         
         m_staging_buffers[frame_index]->Copy(
             Engine::Get()->GetGPUDevice(),
@@ -430,10 +434,25 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
             m_draw_commands.Data()
         );
 
+        m_staging_buffers[frame_index]->InsertBarrier(
+            frame->GetCommandBuffer(),
+            renderer::ResourceState::COPY_SRC
+        );
+
+        m_indirect_buffers[frame_index]->InsertBarrier(
+            frame->GetCommandBuffer(),
+            renderer::ResourceState::COPY_DST
+        );
+
         m_indirect_buffers[frame_index]->CopyFrom(
             frame->GetCommandBuffer(),
             m_staging_buffers[frame_index].Get(),
             m_staging_buffers[frame_index]->size
+        );
+
+        m_indirect_buffers[frame_index]->InsertBarrier(
+            frame->GetCommandBuffer(),
+            renderer::ResourceState::INDIRECT_ARG
         );
     }
 

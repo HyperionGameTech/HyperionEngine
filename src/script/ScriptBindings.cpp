@@ -680,10 +680,16 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
     VMString *str = GetArgument<1, VMString>(params);
 
     if (str == nullptr) {
-        HYP_SCRIPT_RETURN_NULL();
+        HYP_SCRIPT_THROW(vm::Exception("Module name must be a string"));
     }
 
-    FilePath path = FilePath::Current() / str->GetData();
+    FilePath current_file_path(params.api_instance.GetSourceFile().GetFilePath().c_str());
+
+    if (!current_file_path.Length()) {
+        current_file_path = FilePath::Current();
+    }
+    
+    FilePath path = current_file_path.BasePath() / str->GetData();
 
     if (!path.Exists()) {
         path += ".hypscript";
@@ -696,7 +702,7 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
             path.Data()
         );
 
-        HYP_SCRIPT_RETURN_NULL();
+        HYP_SCRIPT_THROW(vm::Exception("Module not found"));
     }
 
     // TODO: Use hash code other than source path.
