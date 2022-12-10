@@ -294,6 +294,11 @@ Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
     return TransformNDCToWorld(TransformScreenToNDC(screen));
 }
 
+Vector2 Camera::GetPixelSize() const
+{
+    return Vector2::one / Vector((float)GetWidth(), (float)GetHeight());
+}
+
 void Camera::Update(GameCounter::TickUnit dt)
 {
     if (m_camera_controller) {

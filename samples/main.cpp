@@ -26,6 +26,7 @@
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
+#include <ui/controllers/UIContainerController.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
@@ -187,6 +188,13 @@ public:
         }
 
         if (true) {
+            auto container_node = GetUI().GetScene()->GetRoot().AddChild();
+            container_node.SetEntity(CreateObject<Entity>());
+            container_node.GetEntity()->SetTranslation(Vector3(0.4f, 0.4f, 0.0f));
+            container_node.GetEntity()->AddController<UIContainerController>();
+
+            container_node.Scale(0.2f);
+
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(CreateObject<Entity>());
             btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));

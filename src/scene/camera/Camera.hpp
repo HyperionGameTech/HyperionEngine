@@ -249,6 +249,8 @@ public:
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into world coordinates */
     Vector4 TransformScreenToWorld(const Vector2 &screen) const;
 
+    Vector2 GetPixelSize() const;
+
     void Update(GameCounter::TickUnit dt);
 
     void UpdateMatrices();
