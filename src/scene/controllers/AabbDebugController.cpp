@@ -11,20 +11,27 @@ AABBDebugController::AABBDebugController()
 {
 }
 
-void AABBDebugController::OnAdded()
+void AABBDebugController::OnAttachedToScene(ID<Scene> id)
 {
-    auto *scene = GetOwner()->GetScene();
-    m_aabb = GetOwner()->GetWorldAABB();
+    if (auto scene = Handle<Scene>(id)) {
+        scene->AddEntity(m_aabb_entity);
+    }
+}
 
-    if (scene == nullptr) {
-        DebugLog(
-            LogType::Error,
-            "Added aabb debug controller but Entity #%u was not in scene\n",
-            GetOwner()->GetID().value
-        );
-
+void AABBDebugController::OnDetachedFromScene(ID<Scene> id)
+{
+    if (!m_aabb_entity) {
         return;
     }
+
+    if (auto scene = Handle<Scene>(id)) {
+        scene->RemoveEntity(m_aabb_entity);
+    }
+}
+
+void AABBDebugController::OnAdded()
+{
+    m_aabb = GetOwner()->GetWorldAABB();
 
     auto mesh = MeshBuilder::Cube();
     auto vertex_attributes = mesh->GetVertexAttributes();
@@ -53,15 +60,15 @@ void AABBDebugController::OnAdded()
             .flags = 0x0 // no flags
         }
     );
-
-    scene->AddEntity(Handle<Entity>(m_aabb_entity));
 }
 
 void AABBDebugController::OnRemoved()
 {
-    if (m_aabb_entity != nullptr) {
-        if (auto *scene = m_aabb_entity->GetScene()) {
-            scene->RemoveEntity(m_aabb_entity);
+    if (m_aabb_entity) {
+        const auto scenes = m_aabb_entity->GetScenes();
+
+        for (const auto &id : scenes) {
+            m_aabb_entity->SetIsInScene(id, false);
         }
 
         m_aabb_entity.Reset();

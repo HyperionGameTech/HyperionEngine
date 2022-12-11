@@ -86,8 +86,8 @@ public:
     virtual void OnDetachedFromNode(Node *node) {}
     virtual void OnAttachedToNode(Node *node) {}
 
-    virtual void OnDetachedFromScene(Scene *scene) {}
-    virtual void OnAttachedToScene(Scene *scene) {}
+    virtual void OnDetachedFromScene(ID<Scene> id) {}
+    virtual void OnAttachedToScene(ID<Scene> id) {}
 
 protected:
     bool CreateScriptedObjects();

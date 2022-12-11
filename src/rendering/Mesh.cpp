@@ -235,10 +235,12 @@ void Mesh::Init()
     SetReady(true);
 
     OnTeardown([this]() {
+        SetReady(false);
+
         DebugLog(
             LogType::Debug,
             "Destroy mesh with id %u\n",
-            GetID().value
+            GetID().Value()
         );
 
         m_indices_count = 0;
@@ -250,7 +252,8 @@ void Mesh::Init()
         
         HYP_SYNC_RENDER();
 
-        SetReady(false);
+        m_vbo.reset();
+        m_ibo.reset();
     });
 }
 

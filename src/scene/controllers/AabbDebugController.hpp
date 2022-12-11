@@ -20,6 +20,9 @@ public:
     virtual void OnRemoved() override;
     virtual void OnTransformUpdate(const Transform &transform) override;
 
+    virtual void OnAttachedToScene(ID<Scene> id) override;
+    virtual void OnDetachedFromScene(ID<Scene> id) override;
+
 protected:
     Handle<Entity> m_aabb_entity;
     BoundingBox m_aabb;

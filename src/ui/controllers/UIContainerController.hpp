@@ -21,8 +21,8 @@ public:
     virtual void OnEvent(const UIEvent &event) override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnTransformUpdate(const Transform &transform) override;
-    virtual void OnDetachedFromScene(Scene *scene) override;
-    virtual void OnAttachedToScene(Scene *scene) override;
+    virtual void OnDetachedFromScene(ID<Scene> id) override;
+    virtual void OnAttachedToScene(ID<Scene> id) override;
 
 private:
     void TransformHandle(Vector4 bounds, bool check_horizonal, bool check_vertical);

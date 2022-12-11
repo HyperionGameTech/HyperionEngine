@@ -20,8 +20,8 @@ public:
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
 
-    virtual void OnDetachedFromScene(Scene *scene) override;
-    virtual void OnAttachedToScene(Scene *scene) override;
+    virtual void OnDetachedFromScene(ID<Scene> id) override;
+    virtual void OnAttachedToScene(ID<Scene> id) override;
 
 protected:
     NodeProxy m_dome;

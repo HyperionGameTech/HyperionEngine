@@ -145,16 +145,20 @@ public:
      */
     bool CreateBLAS();
 
+    /*! @deprecated An entity may be attached to more than one Node. Do not rely on this */
     Node *GetParent() const
         { return m_node; }
 
     void SetParent(Node *node);
 
-    Scene *GetScene() const
-        { return m_scene; }
+    bool IsInScene(ID<Scene> id) const
+        { return m_scenes.Contains(id); }
 
     // only call from Scene. Don't call manually.
-    void SetScene(Scene *scene);
+    void SetIsInScene(ID<Scene> id, bool is_in_scene = true);
+
+    const FlatSet<ID<Scene>> &GetScenes() const
+        { return m_scenes; }
 
     bool IsRenderable() const
         { return m_mesh && m_shader && m_material; }
@@ -224,8 +228,8 @@ public:
             controller->OnAttachedToNode(m_node);
         }
 
-        if (m_scene != nullptr) {
-            controller->OnAttachedToScene(m_scene);
+        for (const ID<Scene> &id : m_scenes) {
+            controller->OnAttachedToScene(id);
         }
 
         controller->OnTransformUpdate(m_transform);
@@ -248,8 +252,8 @@ public:
                 controller->OnDetachedFromNode(m_node);
             }
 
-            if (m_scene != nullptr) {
-                controller->OnDetachedFromScene(m_scene);
+            for (const ID<Scene> &id : m_scenes) {
+                controller->OnDetachedFromScene(id);
             }
 
             controller->OnRemoved();
@@ -302,9 +306,10 @@ private:
 
 public: // temp
     Node *m_node;
-    Scene *m_scene;
 
 private:
+    
+    FlatSet<ID<Scene>> m_scenes;
 
     RenderableAttributeSet m_renderable_attributes;
 

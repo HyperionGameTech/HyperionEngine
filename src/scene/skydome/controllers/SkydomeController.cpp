@@ -39,14 +39,16 @@ void SkydomeController::OnUpdate(GameCounter::TickUnit delta)
 {
 }
 
-void SkydomeController::OnDetachedFromScene(Scene *scene)
+void SkydomeController::OnDetachedFromScene(ID<Scene> id)
 {
     m_dome.Remove();
 }
 
-void SkydomeController::OnAttachedToScene(Scene *scene)
+void SkydomeController::OnAttachedToScene(ID<Scene> id)
 {
-    scene->GetRoot().AddChild(m_dome);
+    if (auto scene = Handle<Scene>(id)) {
+        scene->GetRoot().AddChild(m_dome);
+    }
 }
 
 } // namespace hyperion::v2

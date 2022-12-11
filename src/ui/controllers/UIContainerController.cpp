@@ -50,13 +50,24 @@ void UIContainerController::OnRemoved()
 }
 
 
-void UIContainerController::OnAttachedToScene(Scene *scene)
+void UIContainerController::OnAttachedToScene(ID<Scene> id)
 {
-    m_attached_camera = scene->GetCamera();
+    if (auto scene = Handle<Scene>(id)) {
+        if (scene->IsVirtualScene()) {
+            return;
+        }
+
+        m_attached_camera = scene->GetCamera();
+    }
 }
 
-void UIContainerController::OnDetachedFromScene(Scene *scene)
+void UIContainerController::OnDetachedFromScene(ID<Scene> id)
 {
+    if (auto scene = Handle<Scene>(id)) {
+        if (scene->GetCamera() == m_attached_camera) {
+            m_attached_camera.Reset();
+        }
+    }
 }
 
 void UIContainerController::TransformHandle(const Vector4 bounds, bool check_horizontal, bool check_vertical)

@@ -98,7 +98,8 @@ void InputManager::SetKey(int key, bool pressed)
             key = 'A' + (key - 'a');
         }
 
-        m_input_state.key_states[key].is_pressed.store(pressed, std::memory_order_relaxed);
+        const bool prev_value = m_input_state.key_states[key].is_pressed.exchange(pressed, std::memory_order_relaxed);
+        m_input_state.last_key_states[key].is_pressed.store(prev_value, std::memory_order_relaxed);
     }
 }
 
@@ -113,6 +114,16 @@ bool InputManager::IsKeyDown(int key) const
 {
     if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
         return m_input_state.key_states[key].is_pressed.load(std::memory_order_relaxed);
+    }
+
+    return false;
+}
+
+bool InputManager::IsKeyPress(int key) const
+{
+    if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
+        return m_input_state.key_states[key].is_pressed.load(std::memory_order_relaxed)
+            && !m_input_state.last_key_states[key].is_pressed.load(std::memory_order_relaxed);
     }
 
     return false;

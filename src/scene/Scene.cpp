@@ -179,7 +179,7 @@ void Scene::Init()
         for (auto &it : m_entities) {
             AssertThrow(it.second != nullptr);
 
-            it.second->SetScene(nullptr);
+            it.second->SetIsInScene(GetID(), false);
 
             RemoveFromRenderGroups(it.second);
 
@@ -329,7 +329,7 @@ bool Scene::AddEntityInternal(Handle<Entity> &&entity)
 
     InitObject(entity);
 
-    entity->SetScene(this);
+    entity->SetIsInScene(GetID(), true);
 
     m_entities_pending_addition.Insert(std::move(entity));
 
@@ -357,7 +357,7 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
         return false;
     }
 
-    entity->SetScene(nullptr);
+    entity->SetIsInScene(GetID(), false);
 
     if (m_entities_pending_removal.Contains(entity->GetID())) {
         DebugLog(
@@ -694,7 +694,7 @@ void Scene::RequestRenderGroupUpdate(Handle<Entity> &entity)
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(entity != nullptr);
-    AssertThrow(entity->GetScene() == this);
+    AssertThrow(entity->IsInScene(GetID()));
 
     if (entity->GetPrimaryRenderGroup() != nullptr) {
         RemoveFromRenderGroup(entity, entity->m_primary_renderer_instance.renderer_instance);

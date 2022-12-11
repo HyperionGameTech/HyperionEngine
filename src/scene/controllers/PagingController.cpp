@@ -58,22 +58,31 @@ void PagingController::OnRemoved()
     }
 }
 
+void PagingController::OnAttachedToScene(ID<Scene> id)
+{
+    if (auto scene = Handle<Scene>(id)) {
+        if (scene->IsVirtualScene()) {
+            return;
+        }
+
+        if (const auto &camera = scene->GetCamera()) {
+            m_camera = camera;
+        }
+    }
+}
+
+void PagingController::OnDetachedFromScene(ID<Scene> id)
+{
+    if (auto scene = Handle<Scene>(id)) {
+        if (scene->GetCamera() == m_camera) {
+            m_camera.Reset();
+        }
+    }
+}
+
 void PagingController::OnUpdate(GameCounter::TickUnit delta)
 {
-    Scene *scene = GetOwner()->GetScene();
-
-    if (scene == nullptr) {
-        DebugLog(
-            LogType::Warn,
-            "PagingController on Entity not attached to scene\n"
-        );
-
-        return;
-    }
-
-    auto &camera = scene->GetCamera();
-
-    if (!camera) {
+    if (!m_camera) {
         DebugLog(
             LogType::Warn,
             "PagingController on Scene with no Camera\n"
@@ -82,7 +91,7 @@ void PagingController::OnUpdate(GameCounter::TickUnit delta)
         return;
     }
 
-    const auto camera_coord = WorldSpaceToCoord(camera->GetTranslation());
+    const PatchCoord camera_coord = WorldSpaceToCoord(m_camera->GetTranslation());
 
     // ensure a patch right under the camera exists
     // if all patches are removed we are not able to add any other linked ones otherwise

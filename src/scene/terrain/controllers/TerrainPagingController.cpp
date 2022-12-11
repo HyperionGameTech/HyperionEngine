@@ -132,13 +132,10 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
         (patch->info.coord.y - 0.5f) * (Vector(patch->info.extent).Max() - 1) * m_scale.z
     });
 
-    if (auto *scene = GetOwner()->GetScene()) {
-        scene->AddEntity(Handle<Entity>(patch->entity));
-    } else {
-        DebugLog(
-            LogType::Warn,
-            "Controller attached to Entity that is not attached to a Scene, cannot add terrain chunk node!\n"
-        );
+    for (const ID<Scene> &id : GetOwner()->GetScenes()) {
+        if (auto scene = Handle<Scene>(id)) {
+            scene->AddEntity(Handle<Entity>(patch->entity));
+        }
     }
 
     const auto task_ref = Engine::Get()->task_system.ScheduleTask([this, patch_info = patch->info]() {
@@ -190,24 +187,20 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
         return;
     }
 
-    if (auto *scene = GetOwner()->GetScene()) {
-        DebugLog(LogType::Debug, "Remove terrain Entity with id #%u\n", patch->entity->GetID().value);
+    for (const ID<Scene> &id : GetOwner()->GetScenes()) {
+        if (auto scene = Handle<Scene>(id)) {
+            DebugLog(LogType::Debug, "Remove terrain Entity with id #%u\n", patch->entity->GetID().value);
 
-        if (!scene->RemoveEntity(patch->entity)) {
-            DebugLog(
-                LogType::Warn,
-                "Terrain entity with id #%u not in Scene! Could cause mem leak if cannot from entities from scene.\n",
-                patch->entity->GetID().value
-            );
+            if (!scene->RemoveEntity(patch->entity)) {
+                DebugLog(
+                    LogType::Warn,
+                    "Terrain entity with id #%u not in Scene! Could cause mem leak if cannot from entities from scene.\n",
+                    patch->entity->GetID().value
+                );
+            }
         }
 
         patch->entity.Reset();
-    } else {
-        DebugLog(
-            LogType::Warn,
-            "PatchController on Entity #%u not attached to a Scene!\n",
-            GetOwner()->GetID().value
-        );
     }
 
     patch->entity.Reset();

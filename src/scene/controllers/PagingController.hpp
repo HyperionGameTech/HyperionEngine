@@ -1,10 +1,11 @@
 #ifndef HYPERION_V2_PAGING_CONTROLLER_H
 #define HYPERION_V2_PAGING_CONTROLLER_H
 
-#include "../Controller.hpp"
+#include <scene/Controller.hpp>
 #include <scene/Entity.hpp>
+#include <scene/Node.hpp>
+#include <scene/camera/Camera.hpp>
 
-#include <rendering/backend/RendererStructs.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Queue.hpp>
@@ -76,10 +77,13 @@ public:
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
 
+    virtual void OnAttachedToScene(ID<Scene> id) override;
+    virtual void OnDetachedFromScene(ID<Scene> id) override;
+
 protected:
     virtual void OnPatchAdded(Patch *patch) = 0;
     virtual void OnPatchRemoved(Patch *patch) = 0;
-
+    
     struct PatchUpdate
     {
         PatchCoord coord;
@@ -123,6 +127,8 @@ protected:
     Float m_max_distance;
     GameCounter::TickUnit m_update_timer;
     GameCounter::TickUnit m_queue_timer;
+
+    Handle<Camera> m_camera;
 };
 
 } // namespace hyperion::v2

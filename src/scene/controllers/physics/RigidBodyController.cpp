@@ -29,12 +29,12 @@ void RigidBodyController::OnRemoved()
     m_rigid_body.Reset();
 }
 
-void RigidBodyController::OnAttachedToScene(Scene *scene)
+void RigidBodyController::OnAttachedToScene(ID<Scene> id)
 {
     Engine::Get()->GetWorld()->GetPhysicsWorld().AddRigidBody(Handle<physics::RigidBody>(m_rigid_body));
 }
 
-void RigidBodyController::OnDetachedFromScene(Scene *scene)
+void RigidBodyController::OnDetachedFromScene(ID<Scene> id)
 {
     Engine::Get()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(m_rigid_body);
 }

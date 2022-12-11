@@ -589,17 +589,7 @@ Octree::Result Octree::Rebuild(const BoundingBox &new_aabb)
 
     for (auto &node : new_nodes) {
         if (auto *entity = node.entity) {
-            if (entity->GetScene() == nullptr) {
-                DebugLog(
-                    LogType::Error,
-                    "Entity #%u was not attached to a Scene!\n",
-                    entity->GetID().value
-                );
-
-                continue;
-            }
-
-            auto insert_result = Insert(node.entity);
+            auto insert_result = Insert(entity);
 
             if (!insert_result) {
                 return insert_result;

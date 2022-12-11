@@ -76,7 +76,7 @@ void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, Indir
     draw_call.entity_ids[0] = entity.entity_id;
     draw_call.entity_id_count = 1;
 
-    draw_call.mesh = entity.mesh;
+    draw_call.mesh = Handle<Mesh>(entity.mesh_id);
 
     draw_call.batch_index = batch_index == 0 ? Engine::Get()->shader_globals->NewEntityBatch() : batch_index;
     Engine::Get()->shader_globals->PushEntityToBatch(draw_call.batch_index, entity.entity_id);

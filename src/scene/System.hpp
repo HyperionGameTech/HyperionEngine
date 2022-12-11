@@ -80,8 +80,8 @@ ControllerType *ComponentContainer<ControllerType>::Add(Entity *entity, UniquePt
         controller->OnAttachedToNode(entity->m_node);
     }
 
-    if (entity->m_scene != nullptr) {
-        controller->OnAttachedToScene(entity->m_scene);
+    for (const ID<Scene> &id : entity->GetScenes()) {
+        controller->OnAttachedToScene(id);
     }
 
     controller->OnTransformUpdate(entity->GetTransform());

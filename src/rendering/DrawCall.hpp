@@ -79,7 +79,8 @@ struct DrawCall
 
     UInt packed_data[4];
 
-    Mesh *mesh;
+    Handle<Mesh> mesh;
+    //Mesh *mesh;
 };
 
 struct DrawCallCollection

@@ -1025,8 +1025,6 @@ void Engine::ResetRenderState(RenderStateMask mask)
 
 void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
 {
-    m_safe_deleter.PerformEnqueuedDeletions();
-
     shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->materials.UpdateBuffer(m_instance->GetDevice(), frame_index);
@@ -1036,10 +1034,12 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
-
+    
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().UpdateDescriptorSets(m_instance->GetDevice(), frame_index);
+
+    m_safe_deleter.PerformEnqueuedDeletions();
 }
 
 void Engine::RenderDeferred(Frame *frame)

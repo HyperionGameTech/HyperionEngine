@@ -112,7 +112,7 @@ public:
         m_scene->SetCamera(
             CreateObject<Camera>(
                 70.0f,
-                1024, 768,
+                1920, 1080,
                 0.5f, 30000.0f
             )
         );
@@ -150,6 +150,10 @@ public:
         auto test_model = obj_models["test_model"].Get<Node>();//Engine::Get()->GetAssetManager().Load<Node>("../data/dump2/sponza.fbom");
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
+
+        material_test_obj.Scale(5.0f);
+        material_test_obj.Translate(Vector3(15.0f, 20.0f, 15.0f));
+        GetScene()->GetRoot().AddChild(material_test_obj);
 
         test_model.Scale(0.2f);
 
@@ -220,23 +224,24 @@ public:
         cubemap->GetImage().SetIsSRGB(true);
         InitObject(cubemap);
 
-        if (false) { // hardware skinning
-            zombie.Scale(1.25f);
+        if (true) { // hardware skinning
+            zombie.Scale(3.25f);
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
             zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.0f, 0.0f, 1.0f));
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.0f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
             zombie_entity->RebuildRenderableAttributes();
             InitObject(zombie_entity);
             zombie_entity->CreateBLAS();
+            zombie.SetName("zombie");
             m_scene->GetRoot().AddChild(zombie);
             
             auto zomb2 = CreateObject<Entity>();
             zomb2->SetMesh(zombie_entity->GetMesh());
             zomb2->SetTranslation(Vector3(0, 20, 0));
-            zomb2->SetScale(Vector3(20.0f));
+            zomb2->SetScale(Vector3(2.0f));
             zomb2->SetShader(zombie_entity->GetShader());
             zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
             zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
@@ -274,10 +279,23 @@ public:
                 10000.0f,
                 40.0f
             )));
+            
+            m_point_lights.PushBack(CreateObject<Light>(PointLight(
+                Vector3(40.5f, 50.0f, 40.1f),
+                Color(0.0f, 1.0f, 0.0f),
+                10000.0f,
+                40.0f
+            )));
+            m_point_lights.PushBack(CreateObject<Light>(PointLight(
+                Vector3(-40.5f, 50.0f, -40.1f),
+                Color(0.0f, 1.0f, 1.0f),
+                10000.0f,
+                40.0f
+            )));
 
-            // for (auto &light : m_point_lights) {
-            //     m_scene->AddLight(light);
-            // }
+            for (auto &light : m_point_lights) {
+                m_scene->AddLight(light);
+            }
         }
 
         if (true) { // adding cubemap rendering with a bounding box
@@ -360,8 +378,8 @@ public:
            // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             //monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
             monkey_entity->RebuildRenderableAttributes();
-            monkey.Translate(Vector3(0.0f, 30.5f, -25.0f));
-            monkey.Scale(12.0f);
+            monkey.Translate(Vector3(0.0f, 160.5f, 0.0f));
+            monkey.Scale(6.0f);
             InitObject(monkey_entity);
 
             monkey_entity->AddController<ScriptedController>(
@@ -371,10 +389,10 @@ public:
             monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);
 
-            // monkey[0].GetEntity()->AddController<RigidBodyController>(
-            //     UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
-            //     physics::PhysicsMaterial { .mass = 1.0f }
-            // );
+            monkey[0].GetEntity()->AddController<RigidBodyController>(
+                UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
+                physics::PhysicsMaterial { .mass = 1.0f }
+            );
         }
 
         if (true) {
@@ -382,7 +400,7 @@ public:
             mh.SetName("mh_model");
             mh.Scale(1.0f);
             for (auto &mh_child : mh.GetChildren()) {
-                // mh_child.SetEntity(Handle<Entity>::empty);
+                mh_child.SetEntity(Handle<Entity>::empty);
 
                 if (auto entity = mh_child.GetEntity()) {
                     // entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
@@ -419,11 +437,11 @@ public:
         }
 
 
-        if (false) {
+        if (true) {
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
             plane->SetName("Plane entity");
-            plane->SetTranslation(Vector3(0, 12, 8));
+            plane->SetTranslation(Vector3(0, 0, 0));
             plane->SetMesh(MeshBuilder::Quad());
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(250.0f);
@@ -442,7 +460,7 @@ public:
                 UniquePtr<physics::PlanePhysicsShape>::Construct(Vector4(0, 1, 0, 1)),
                 physics::PhysicsMaterial { .mass = 0.0f }
             );
-            plane->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
+            //plane->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
         }
 
         
@@ -486,7 +504,8 @@ public:
 
         HandleCameraMovement(delta);
 
-        GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("mh_model").GetWorldTranslation());
+        GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie").GetWorldTranslation());
+
         for (auto &light : m_point_lights) {
             light->SetPosition(Vector3(
                 MathUtil::Sin(light->GetID().Value() + timer) * 30.0f,
@@ -503,6 +522,24 @@ public:
             m_sun->SetPosition((m_sun->GetPosition() + Vector3(0.0f, 0.02f, 0.0f)).Normalize());
         } else if (GetInputManager()->IsKeyDown(KEY_ARROW_DOWN)) {
             m_sun->SetPosition((m_sun->GetPosition() + Vector3(0.0f, -0.02f, 0.0f)).Normalize());
+        }
+
+        if (GetInputManager()->IsKeyPress(KEY_C)) {
+            // add a cube
+            /*auto cube_entity = CreateObject<Entity>();
+            cube_entity->SetName("Cube entity");
+            cube_entity->SetMesh(MeshBuilder::Cube());
+            cube_entity->SetMaterial(CreateObject<Material>());
+            cube_entity->SetShader(CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Forward", ShaderProps(renderer::static_mesh_vertex_attributes))));
+            cube_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
+            cube_entity->SetScale(Vector3(2.0f));
+            GetScene()->AddEntity(cube_entity);*/
+
+            auto cube = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
+            cube.Scale(2.0f);
+            cube.SetLocalTranslation(GetScene()->GetCamera()->GetTranslation());
+            GetScene()->GetRoot().AddChild(cube);
+            std::cout << "CUBE MESH ID : " << cube[0].GetEntity()->GetMesh()->GetID().Value() << "\n";
         }
 
         // m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.25f), MathUtil::Cos(timer * 0.25f), -MathUtil::Sin(timer * 0.25f)).Normalize());
@@ -526,7 +563,7 @@ public:
                 )
             );
 
-            auto ray_direction = mouse_world.Normalized() * -1.0f;
+            auto ray_direction = mouse_world.Normalized();// * -1.0f;
 
             // std::cout << "ray direction: " << ray_direction << "\n";
 
@@ -600,25 +637,25 @@ public:
     // not overloading; just creating a method to handle camera movement
     void HandleCameraMovement(GameCounter::TickUnit delta)
     {
-        if (auto mh_model = GetScene()->GetRoot().Select("mh_model")) {
+        if (auto character = GetScene()->GetRoot().Select("zombie")) {
             constexpr Float speed = 0.75f;
 
-            mh_model.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
+            character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
 
             if (m_input_manager->IsKeyDown(KEY_W)) {
-                mh_model.Translate(GetScene()->GetCamera()->GetDirection() * delta * speed);
+                character.Translate(GetScene()->GetCamera()->GetDirection() * delta * speed);
             }
 
             if (m_input_manager->IsKeyDown(KEY_S)) {
-                mh_model.Translate(GetScene()->GetCamera()->GetDirection() * -1.0f * delta * speed);
+                character.Translate(GetScene()->GetCamera()->GetDirection() * -1.0f * delta * speed);
             }
 
             if (m_input_manager->IsKeyDown(KEY_A)) {
-                mh_model.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * -1.0f * delta * speed);
+                character.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * -1.0f * delta * speed);
             }
 
             if (m_input_manager->IsKeyDown(KEY_D)) {
-                mh_model.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * delta * speed);
+                character.Translate((GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector())) * delta * speed);
             }
         }
     }
@@ -637,7 +674,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1024, 768));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
     
     SystemEvent event;
 

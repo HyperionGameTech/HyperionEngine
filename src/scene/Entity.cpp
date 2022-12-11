@@ -92,7 +92,6 @@ Entity::Entity(
     m_shader(std::move(shader)),
     m_material(std::move(material)),
     m_node(nullptr),
-    m_scene(nullptr),
     m_renderable_attributes(renderable_attributes),
     m_octree(nullptr),
     m_needs_octree_update(false),
@@ -179,8 +178,8 @@ void Entity::Init()
                 controller->OnDetachedFromNode(m_node);
             }
 
-            if (m_scene != nullptr) {
-                controller->OnDetachedFromScene(m_scene);
+            for (const ID<Scene> &id : m_scenes) {
+                controller->OnDetachedFromScene(id);
             }
 
             controller->OnRemoved();
@@ -264,8 +263,8 @@ void Entity::EnqueueRenderUpdates()
         ? m_mesh->GetID()
         : Mesh::empty_id;
 
-    const ID<Scene> scene_id = m_scene
-        ? m_scene->GetID()
+    const ID<Scene> scene_id = m_scenes.Any()
+        ? m_scenes.Front() // TODO: Review this.
         : Scene::empty_id;
 
     EntityDrawProxy draw_proxy {
@@ -433,10 +432,28 @@ void Entity::SetParent(Node *node)
     }
 }
 
-void Entity::SetScene(Scene *scene)
+void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
 {
-    if (m_scene != nullptr) {
-        if (auto &scene_tlas = m_scene->GetTLAS()) {
+    if (!id) {
+        return;
+    }
+
+    const bool has_scene = IsInScene(id);
+
+    if (has_scene == is_in_scene) {
+        return;
+    }
+
+    Handle<Scene> scene(id);
+
+    if (!scene) {
+        return;
+    }
+
+    // removing
+
+    if (has_scene) {
+        if (auto &scene_tlas = scene->GetTLAS()) {
             if (m_blas) {
                 //scene_tlas->RemoveBLAS(m_blas);
             }
@@ -445,21 +462,21 @@ void Entity::SetScene(Scene *scene)
         for (auto &controller : m_controllers) {
             AssertThrow(controller.second != nullptr);
 
-            controller.second->OnDetachedFromScene(m_scene);
+            controller.second->OnDetachedFromScene(id);
         }
-    }
 
-    m_scene = scene;
-
-    if (m_scene != nullptr) {
-        if (auto &scene_tlas = m_scene->GetTLAS()) {
+        m_scenes.Erase(id);
+    } else { // adding
+        m_scenes.Insert(id);
+        
+        if (auto &scene_tlas = scene->GetTLAS()) {
             if (m_blas) {
                 scene_tlas->AddBLAS(Handle<BLAS>(m_blas));
             }
         }
 
         for (auto &controller : m_controllers) {
-            controller.second->OnAttachedToScene(m_scene);
+            controller.second->OnAttachedToScene(id);
         }
     }
 
@@ -697,8 +714,12 @@ bool Entity::CreateBLAS()
             // add it to the scene if it exists
             // otherwise, have to add to scene when the Entity is added to a scene
 
-            if (m_scene && m_scene->GetTLAS()) {
-                m_scene->GetTLAS()->AddBLAS(Handle<BLAS>(m_blas));
+            for (const auto &scene_id : m_scenes) {
+                if (auto scene = Handle<Scene>(scene_id)) {
+                    if (auto &tlas = scene->GetTLAS()) {
+                        tlas->AddBLAS(Handle<BLAS>(m_blas));
+                    }
+                }
             }
 
             return true;

@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-template <typename EnumType, typename ValueType, size_t Sz>
+template <typename EnumType, typename ValueType, SizeType Sz>
 class EnumOptions
 {
 public:
@@ -71,16 +71,16 @@ public:
 
     ~EnumOptions() = default;
 
-    constexpr EnumValuePair_t KeyValueAt(size_t index) const
+    constexpr EnumValuePair_t KeyValueAt(SizeType index) const
         { return std::make_pair(EnumOption_t(OrdinalToEnum(index)), m_values[index]); }
 
-    constexpr EnumType KeyAt(size_t index) const
+    constexpr EnumType KeyAt(SizeType index) const
         { return EnumOption_t(OrdinalToEnum(index)); }
 
-    constexpr ValueType &ValueAt(size_t index)
+    constexpr ValueType &ValueAt(SizeType index)
         { return m_values[index]; }
 
-    constexpr const ValueType &ValueAt(size_t index) const
+    constexpr const ValueType &ValueAt(SizeType index) const
         { return m_values[index]; }
 
     constexpr ValueType &Get(EnumOption_t enum_key)

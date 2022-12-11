@@ -77,6 +77,7 @@ struct InputState
     };
 
     KeyState key_states[NUM_KEYBOARD_KEYS];
+    KeyState last_key_states[NUM_KEYBOARD_KEYS];
     MouseButtonState mouse_button_states[NUM_MOUSE_BUTTONS];
 };
 
@@ -116,6 +117,7 @@ public:
 
     bool IsKeyDown(int key) const;
     bool IsKeyUp(int key) const { return !IsKeyDown(key); }
+    bool IsKeyPress(int key) const;
     bool IsButtonDown(int btn) const;  
     bool IsButtonUp(int btn) const { return !IsButtonDown(btn); }
 
