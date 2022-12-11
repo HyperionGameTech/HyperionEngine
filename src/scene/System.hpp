@@ -76,8 +76,8 @@ ControllerType *ComponentContainer<ControllerType>::Add(Entity *entity, UniquePt
     controller->m_owner = entity;
     controller->OnAdded();
 
-    if (entity->m_node != nullptr) {
-        controller->OnAttachedToNode(entity->m_node);
+    for (Node *node : entity->m_nodes) {
+        controller->OnAttachedToNode(node);
     }
 
     for (const ID<Scene> &id : entity->GetScenes()) {

@@ -24,7 +24,7 @@ public:
     virtual void OnAttachedToScene(ID<Scene> id) override;
 
 protected:
-    NodeProxy m_dome;
+    Handle<Entity> m_dome;
 };
 
 } // namespace hyperion::v2

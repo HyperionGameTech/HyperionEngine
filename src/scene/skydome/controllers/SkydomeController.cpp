@@ -11,22 +11,20 @@ SkydomeController::SkydomeController()
 void SkydomeController::OnAdded()
 {
     auto dome_node = Engine::Get()->GetAssetManager().Load<Node>("models/dome.obj");
-    m_dome = dome_node[0];
+    m_dome = dome_node[0].GetEntity();
 
     if (m_dome) {
-        m_dome.Scale(50.0f);
+        m_dome->SetScale(50.0f);
         
-        if (Handle<Entity> &entity = m_dome.Get()->GetEntity()) {
-            Handle<Material> material = CreateObject<Material>();
-            material->SetBucket(Bucket::BUCKET_SKYBOX);
-            // material->SetBlendMode(BlendMode::NORMAL);
-            material->SetFaceCullMode(FaceCullMode::NONE);
-            material->SetIsDepthTestEnabled(false);
-            material->SetIsDepthWriteEnabled(false);
+        Handle<Material> material = CreateObject<Material>();
+        material->SetBucket(Bucket::BUCKET_SKYBOX);
+        // material->SetBlendMode(BlendMode::NORMAL);
+        material->SetFaceCullMode(FaceCullMode::NONE);
+        material->SetIsDepthTestEnabled(false);
+        material->SetIsDepthWriteEnabled(false);
 
-            entity->SetMaterial(std::move(material));
-            entity->SetShader(CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skydome")));
-        }
+        m_dome->SetMaterial(std::move(material));
+        m_dome->SetShader(CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skydome")));
     }
     
 }
@@ -41,17 +39,15 @@ void SkydomeController::OnUpdate(GameCounter::TickUnit delta)
 
 void SkydomeController::OnDetachedFromScene(ID<Scene> id)
 {
-    if (m_dome.Get() && m_dome.Get()->GetScene() && m_dome.Get()->GetScene()->GetID() == id) {
-        m_dome.Remove();
+    if (auto scene = Handle<Scene>(id)) {
+        scene->RemoveEntity(m_dome);
     }
 }
 
 void SkydomeController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        if (scene->IsWorldScene()) {
-            scene->GetRoot().AddChild(m_dome);
-        }
+        scene->AddEntity(m_dome);
     }
 }
 

@@ -22,13 +22,18 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
 static void AddOwnedAttachment(
     InternalFormat format,
     Handle<Framebuffer> &framebuffer,
-    Array<std::unique_ptr<Attachment>> &attachments
+    Array<std::unique_ptr<Attachment>> &attachments,
+    Extent2D extent = Extent2D { 0, 0 }
 )
 {
+    if (!extent.Size()) {
+        extent = Engine::Get()->GetGPUInstance()->swapchain->extent;
+    }
+
     AttachmentRef *attachment_ref;
 
     auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        Engine::Get()->GetGPUInstance()->swapchain->extent,
+        extent,
         format,
         nullptr
     );
@@ -189,7 +194,7 @@ void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipelines()
 
 void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline)
 {
-    pipeline->AddFramebuffer(Handle<Framebuffer>(framebuffer));
+    pipeline->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
 }
 
 void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
@@ -200,8 +205,12 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
 
-    framebuffer = CreateObject<Framebuffer>(
-        Engine::Get()->GetGPUInstance()->swapchain->extent,
+    const Extent2D extent = bucket == BUCKET_SHADOW
+        ? Extent2D { 2048, 2048 }
+        : Engine::Get()->GetGPUInstance()->swapchain->extent;
+
+    m_framebuffer = CreateObject<Framebuffer>(
+        extent,
         RenderPassStage::SHADER,
         mode
     );
@@ -212,16 +221,33 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         // ui only has this attachment.
         AddOwnedAttachment(
             color_format,
-            framebuffer,
-            attachments
+            m_framebuffer,
+            attachments,
+            extent
         );
+    } else if (bucket == BUCKET_SHADOW) {
+        AddOwnedAttachment(
+            InternalFormat::RG32F,
+            m_framebuffer,
+            attachments,
+            extent
+        );
+
+        AddOwnedAttachment(
+            Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+            m_framebuffer,
+            attachments,
+            extent
+        );
+
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets
         AddOwnedAttachment(
             color_format,
-            framebuffer,
-            attachments
+            m_framebuffer,
+            attachments,
+            extent
         );
 
         // opaque creates the main non-color gbuffer attachments,
@@ -232,8 +258,9 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 
                 AddOwnedAttachment(
                     format,
-                    framebuffer,
-                    attachments
+                    m_framebuffer,
+                    attachments,
+                    extent
                 );
             }
         } else {
@@ -241,7 +268,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             for (UInt i = 1; i < GBUFFER_RESOURCE_MAX; i++) {
                 AddSharedAttachment(
                     i,
-                    framebuffer,
+                    m_framebuffer,
                     attachments
                 );
             }
@@ -252,7 +279,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
     }
 
-    InitObject(framebuffer);
+    InitObject(m_framebuffer);
 }
 
 void DeferredSystem::RenderGroupHolder::Destroy()
@@ -265,7 +292,7 @@ void DeferredSystem::RenderGroupHolder::Destroy()
     renderer_instances_pending_addition.Clear();
     renderer_instances_mutex.unlock();
 
-    framebuffer.Reset();
+    m_framebuffer.Reset();
 
     for (const auto &attachment : attachments) {
         HYPERION_PASS_ERRORS(

@@ -388,40 +388,24 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
     AssertReady();
 
-    if (m_enqueued_entities_flag.load()) {
+    /*if (m_enqueued_entities_flag.load()) {
         PerformEnqueuedEntityUpdates(frame->GetFrameIndex());
-    }
+    }*/
     
     m_indirect_renderer.GetDrawState().Reset();
     m_divided_draw_calls.Clear();
 
-    if (m_entities.Empty()) {
-        return;
-    }
-
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    //auto previous_entity_batches = std::move(m_entity_batches);
-    //m_entity_batches.Clear();
-    
-    // for (const auto &it : previous_entity_batches) {
-    //     Engine::Get()->shader_globals->ResetBatch(it.second);
-    // }
-
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
-    const auto scene_id = scene_binding.id;
+    const ID<Scene> scene_id = scene_binding.id;
 
     // check visibility state
     const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
-    const auto visibility_cursor = Engine::Get()->render_state.visibility_cursor;
-    const auto &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
+    const UInt8 visibility_cursor = Engine::Get()->render_state.visibility_cursor;
+    const VisibilityStateSnapshot &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
 
-    for (Handle<Entity> &entity : m_entities) {
-        AssertThrow(entity.IsValid());
-
-        const EntityDrawProxy &draw_proxy = entity->GetDrawProxy();
-
-    //for (auto &draw_proxy : m_draw_proxies) {
+    for (EntityDrawProxy &draw_proxy : m_draw_proxies) {
 
         if (draw_proxy.mesh == nullptr) {
             continue;

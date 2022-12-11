@@ -151,9 +151,9 @@ public:
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
 
-        material_test_obj.Scale(5.0f);
+        /*material_test_obj.Scale(5.0f);
         material_test_obj.Translate(Vector3(15.0f, 20.0f, 15.0f));
-        GetScene()->GetRoot().AddChild(material_test_obj);
+        GetScene()->GetRoot().AddChild(material_test_obj);*/
 
         test_model.Scale(0.2f);
 
@@ -294,7 +294,7 @@ public:
             )));
 
             for (auto &light : m_point_lights) {
-                m_scene->AddLight(light);
+                //m_scene->AddLight(light);
             }
         }
 
@@ -343,10 +343,9 @@ public:
         m_scene->GetFogParams().end_distance = 40000.0f;
         
         if (true) { // paged procedural terrain
-            if (auto terrain_node = m_scene->GetRoot().AddChild()) {
-                terrain_node.SetEntity(CreateObject<Entity>());
-                terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(8.0f, 8.0f, 8.0f), 1.0f);
-            }
+            auto terrain_entity = CreateObject<Entity>();
+            GetScene()->AddEntity(terrain_entity);
+            terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(8.0f, 8.0f, 8.0f), 1.0f);
         }
 
         if (true) { // skydome
@@ -389,10 +388,10 @@ public:
             monkey_entity->CreateBLAS();
             m_scene->GetRoot().AddChild(monkey);
 
-            monkey[0].GetEntity()->AddController<RigidBodyController>(
+            /*monkey[0].GetEntity()->AddController<RigidBodyController>(
                 UniquePtr<physics::BoxPhysicsShape>::Construct(BoundingBox(-1, 1)),
                 physics::PhysicsMaterial { .mass = 1.0f }
-            );
+            );*/
         }
 
         if (true) {
@@ -437,7 +436,7 @@ public:
         }
 
 
-        if (true) {
+        if (false) {
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
             plane->SetName("Plane entity");
@@ -465,7 +464,7 @@ public:
 
         
 
-        if (false) { // particles test
+        if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
@@ -563,7 +562,7 @@ public:
                 )
             );
 
-            auto ray_direction = mouse_world.Normalized();// * -1.0f;
+            auto ray_direction = mouse_world.Normalized() * -1.0f;
 
             // std::cout << "ray direction: " << ray_direction << "\n";
 

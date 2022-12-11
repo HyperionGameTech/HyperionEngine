@@ -91,7 +91,6 @@ Entity::Entity(
     m_mesh(std::move(mesh)),
     m_shader(std::move(shader)),
     m_material(std::move(material)),
-    m_node(nullptr),
     m_renderable_attributes(renderable_attributes),
     m_octree(nullptr),
     m_needs_octree_update(false),
@@ -174,8 +173,8 @@ void Entity::Init()
                 continue;
             }
 
-            if (m_node != nullptr) {
-                controller->OnDetachedFromNode(m_node);
+            for (Node *node : m_nodes) {
+                controller->OnDetachedFromNode(node);
             }
 
             for (const ID<Scene> &id : m_scenes) {
@@ -413,21 +412,35 @@ void Entity::SetMaterial(Handle<Material> &&material)
     SetRenderableAttributes(new_renderable_attributes);
 }
 
-void Entity::SetParent(Node *node)
+void Entity::SetIsAttachedToNode(Node *node, bool is_attached_to_node)
 {
-    if (m_node != nullptr) {
-        for (auto &controller : m_controllers) {
-            AssertThrow(controller.second != nullptr);
+    const bool is_currently_attached_to_node = m_nodes.Contains(node);
 
-            controller.second->OnDetachedFromNode(m_node);
-        }
+    if (is_attached_to_node == is_currently_attached_to_node) {
+        return;
     }
 
-    m_node = node;
-
-    if (m_node != nullptr) {
+    if (is_attached_to_node) {
         for (auto &controller : m_controllers) {
-            controller.second->OnAttachedToNode(m_node);
+            controller.second->OnAttachedToNode(node);
+        }
+
+        m_nodes.PushBack(node);
+    } else {
+        for (auto it = m_nodes.Begin(); it != m_nodes.End();) {
+            if (*it == node) {
+                for (auto &controller : m_controllers) {
+                    AssertThrow(controller.second != nullptr);
+
+                    controller.second->OnDetachedFromNode(node);
+                }
+
+                m_nodes.Erase(it);
+
+                break;
+            } else {
+                ++it;
+            }
         }
     }
 }
@@ -520,9 +533,11 @@ void Entity::SetStencilAttributes(const StencilState &stencil_state)
 
 void Entity::SetTranslation(const Vector3 &translation)
 {
-    if (m_node != nullptr) {
-        // indirectly calls SetTransform() on this
-        m_node->SetWorldTranslation(translation);
+    if (m_nodes.Any()) {
+        for (Node *node : m_nodes) {
+            // indirectly calls SetTransform() on this
+            node->SetWorldTranslation(translation);
+        }
     } else {
         Transform new_transform(m_transform);
         new_transform.SetTranslation(translation);
@@ -533,9 +548,11 @@ void Entity::SetTranslation(const Vector3 &translation)
 
 void Entity::SetScale(const Vector3 &scale)
 {
-    if (m_node != nullptr) {
-        // indirectly calls SetTransform() on this
-        m_node->SetWorldScale(scale);
+    if (m_nodes.Any()) {
+        for (Node *node : m_nodes) {
+            // indirectly calls SetTransform() on this
+            node->SetWorldScale(scale);
+        }
     } else {
         Transform new_transform(m_transform);
         new_transform.SetScale(scale);
@@ -546,9 +563,11 @@ void Entity::SetScale(const Vector3 &scale)
 
 void Entity::SetRotation(const Quaternion &rotation)
 {
-    if (m_node != nullptr) {
-        // indirectly calls SetTransform() on this
-        m_node->SetWorldRotation(rotation);
+    if (m_nodes.Any()) {
+        for (Node *node : m_nodes) {
+            // indirectly calls SetTransform() on this
+            node->SetWorldRotation(rotation);
+        }
     } else {
         Transform new_transform(m_transform);
         new_transform.SetRotation(rotation);

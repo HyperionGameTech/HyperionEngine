@@ -7,8 +7,7 @@
 #include "Octree.hpp"
 #include <core/Base.hpp>
 #include <core/Scheduler.hpp>
-#include <core/lib/FlatSet.hpp>
-#include <core/lib/FlatMap.hpp>
+#include <core/Containers.hpp>
 #include <rendering/rt/TLAS.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
@@ -175,6 +174,25 @@ public:
 
     bool IsWorldScene() const
         { return m_parent_id.Value() == 0; }
+
+    void SetOverrideRenderableAttributes(const RenderableAttributeSet &attributes)
+        { m_override_renderable_attributes.Set(attributes); }
+
+    bool HasOverrideRenderableAttributes() const
+        { return m_override_renderable_attributes.HasValue(); }
+
+    void SetHasOverrideRenderableAttributes(bool has_override_renderable_attributes)
+    {
+        if (m_override_renderable_attributes.HasValue() == has_override_renderable_attributes) {
+            return;
+        }
+
+        if (has_override_renderable_attributes) {
+            m_override_renderable_attributes.Set({ });
+        } else {
+            m_override_renderable_attributes.Unset();
+        }
+    }
     
     void Init();
 
@@ -218,6 +236,7 @@ private:
 
     EntityDrawCollection m_draw_collection;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
+    Optional<RenderableAttributeSet> m_override_renderable_attributes;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

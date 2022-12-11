@@ -145,17 +145,13 @@ public:
      */
     bool CreateBLAS();
 
-    /*! @deprecated An entity may be attached to more than one Node. Do not rely on this */
-    Node *GetParent() const
-        { return m_node; }
-
-    void SetParent(Node *node);
+    void SetIsAttachedToNode(Node *node, bool is_attached_to_node);
 
     bool IsInScene(ID<Scene> id) const
         { return m_scenes.Contains(id); }
 
     // only call from Scene. Don't call manually.
-    void SetIsInScene(ID<Scene> id, bool is_in_scene = true);
+    void SetIsInScene(ID<Scene> id, bool is_in_scene);
 
     const FlatSet<ID<Scene>> &GetScenes() const
         { return m_scenes; }
@@ -224,8 +220,8 @@ public:
         controller->m_owner = this;
         controller->OnAdded();
 
-        if (m_node != nullptr) {
-            controller->OnAttachedToNode(m_node);
+        for (Node *node : m_nodes) {
+            controller->OnAttachedToNode(node);
         }
 
         for (const ID<Scene> &id : m_scenes) {
@@ -248,8 +244,8 @@ public:
     bool RemoveController()
     {
         if (auto *controller = m_controllers.Get<ControllerClass>()) {
-            if (m_node != nullptr) {
-                controller->OnDetachedFromNode(m_node);
+            for (Node *node : m_nodes) {
+                controller->OnDetachedFromNode(node);
             }
 
             for (const ID<Scene> &id : m_scenes) {
@@ -305,7 +301,7 @@ private:
     Handle<BLAS> m_blas;
 
 public: // temp
-    Node *m_node;
+    Array<Node *> m_nodes;
 
 private:
     

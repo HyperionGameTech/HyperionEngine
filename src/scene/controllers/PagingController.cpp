@@ -37,7 +37,7 @@ void PagingController::OnAdded()
 {
     const PatchCoord origin { 0, 0 };
 
-    AddPatch(origin);
+    //AddPatch(origin);
 
     //for (const auto neighbor : GetNeighbors(origin)) {
     //    AddPatch(neighbor.coord);
@@ -95,7 +95,6 @@ void PagingController::OnUpdate(GameCounter::TickUnit delta)
     }
 
     const PatchCoord camera_coord = WorldSpaceToCoord(m_scene->GetCamera()->GetTranslation());
-    std::cout << "camera_coord " << camera_coord << "\n";
     // ensure a patch right under the camera exists
     // if all patches are removed we are not able to add any other linked ones otherwise
     if (GetPatch(camera_coord) == nullptr) {

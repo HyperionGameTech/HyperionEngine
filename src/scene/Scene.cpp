@@ -678,7 +678,7 @@ void Scene::Update(GameCounter::TickUnit delta)
         for (auto &it : m_lights) {
             Handle<Light> &light = it.second;
             
-            const bool in_frustum =  light->GetType() != LightType::DIRECTIONAL
+            const bool in_frustum = light->GetType() != LightType::DIRECTIONAL
                 || (m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(light->GetWorldAABB()));
 
             if (in_frustum != light->IsVisible(GetID())) {
@@ -694,47 +694,61 @@ void Scene::Update(GameCounter::TickUnit delta)
 
             env_probe->Update();
         }
+    }
 
-        m_draw_collection.Reset();
+    m_draw_collection.Reset();
 
-        // update each entity
-        for (auto &it : m_entities) {
-            Handle<Entity> &entity = it.second;
+    RenderableAttributeSet override_attributes;
 
+    const bool has_override_renderable_attributes = HasOverrideRenderableAttributes();
+
+    if (has_override_renderable_attributes) {
+        override_attributes = m_override_renderable_attributes.Get();
+    }
+
+    // update each entity
+    for (auto &it : m_entities) {
+        Handle<Entity> &entity = it.second;
+        
+        if (IsWorldScene()) {
             entity->Update(delta);
-
-            if (entity->GetMesh()) {
-                m_draw_collection.Insert(entity->GetRenderableAttributes(), entity->GetDrawProxy());
-            }
-
-            /*if (entity->m_primary_renderer_instance.changed) {
-                RequestRenderGroupUpdate(entity);
-            }*/
         }
 
-        for (auto &it : m_draw_collection) {
-            const RenderableAttributeSet &attributes = it.first;
-            Array<EntityDrawProxy> &draw_proxies = it.second;
+        RenderableAttributeSet attributes = entity->GetRenderableAttributes();
 
-            auto render_group_it = m_render_groups.Find(attributes);
+        if (has_override_renderable_attributes) {
+            attributes.shader_id = override_attributes.shader_id ? override_attributes.shader_id : attributes.shader_id;
+            attributes.material_attributes = override_attributes.material_attributes;
+            attributes.stencil_state = override_attributes.stencil_state;
+        }
 
-            if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-                Handle<RenderGroup> render_group = Engine::Get()->FindOrCreateRenderGroup(attributes);
+        if (entity->GetMesh()) {
+            m_draw_collection.Insert(attributes, entity->GetDrawProxy());
+        }
+    }
 
-                if (!render_group.IsValid()) {
-                    DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
+    for (auto &it : m_draw_collection) {
+        const RenderableAttributeSet &attributes = it.first;
+        Array<EntityDrawProxy> &draw_proxies = it.second;
 
-                    continue;
-                }
+        auto render_group_it = m_render_groups.Find(attributes);
 
-                auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
-                AssertThrow(insert_result.second);
+        if (render_group_it == m_render_groups.End() || !render_group_it->second) {
+            Handle<RenderGroup> render_group = Engine::Get()->FindOrCreateRenderGroup(attributes);
 
-                render_group_it = insert_result.first;
+            if (!render_group.IsValid()) {
+                DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
+
+                continue;
             }
 
-            PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
+            auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
+            AssertThrow(insert_result.second);
+
+            render_group_it = insert_result.first;
         }
+        
+        PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
     }
 }
 

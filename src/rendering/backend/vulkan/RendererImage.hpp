@@ -535,11 +535,11 @@ public:
         InternalFormat format,
         const UByte *bytes
     ) : FramebufferImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_2D,
-        bytes
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_2D,
+            bytes
+        )
     {
     }
 
@@ -548,11 +548,11 @@ public:
         InternalFormat format,
         FilterMode filter_mode
     ) : FramebufferImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_2D,
-        filter_mode
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_2D,
+            filter_mode
+        )
     {
     }
 };

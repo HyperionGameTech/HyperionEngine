@@ -52,7 +52,7 @@ public:
         friend class DeferredSystem;
 
         Bucket bucket { BUCKET_OPAQUE };
-        Handle<Framebuffer> framebuffer;
+        Handle<Framebuffer> m_framebuffer;
         Array<std::unique_ptr<Attachment>> attachments;
         Array<Handle<RenderGroup>> renderer_instances;
         Array<Handle<RenderGroup>> renderer_instances_pending_addition;
@@ -66,18 +66,18 @@ public:
         Bucket GetBucket() const { return bucket; }
         void SetBucket(Bucket bucket) { this->bucket = bucket; }
         
-        Handle<Framebuffer> &GetFramebuffer() { return framebuffer; }
-        const Handle<Framebuffer> &GetFramebuffer() const { return framebuffer; }
+        Handle<Framebuffer> &GetFramebuffer() { return m_framebuffer; }
+        const Handle<Framebuffer> &GetFramebuffer() const { return m_framebuffer; }
 
         Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
         const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }
 
         AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
-            AssertThrow(framebuffer.IsValid());
+            AssertThrow(m_framebuffer.IsValid());
             AssertThrow(UInt(resource_name) < UInt(GBUFFER_RESOURCE_MAX));
 
-            return framebuffer->GetAttachmentRefs()[UInt(resource_name)];
+            return m_framebuffer->GetAttachmentRefs()[UInt(resource_name)];
         }
 
         void AddRenderGroup(Handle<RenderGroup> &renderer_instance);

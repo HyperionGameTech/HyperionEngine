@@ -65,8 +65,11 @@ Node::Node(Node &&other) noexcept
     other.m_scene = nullptr;
 
     m_entity = std::move(other.m_entity);
-    m_entity->SetParent(this);
-    other.m_entity.Reset();
+
+    if (m_entity) {
+        m_entity->SetIsAttachedToNode(&other, false);
+        m_entity->SetIsAttachedToNode(this, true);
+    }
 
     m_child_nodes = std::move(other.m_child_nodes);
     other.m_child_nodes = {};
@@ -110,8 +113,11 @@ Node &Node::operator=(Node &&other) noexcept
     other.m_scene = nullptr;
 
     m_entity = std::move(other.m_entity);
-    m_entity->SetParent(this);
-    other.m_entity.Reset();
+
+    if (m_entity) {
+        m_entity->SetIsAttachedToNode(&other, false);
+        m_entity->SetIsAttachedToNode(this, true);
+    }
 
     m_name = std::move(other.m_name);
 
@@ -405,7 +411,7 @@ void Node::SetEntity(Handle<Entity> &&entity)
             m_scene->RemoveEntityInternal(m_entity);
         }
 
-        m_entity->SetParent(nullptr);
+        m_entity->SetIsAttachedToNode(this, false);
     }
 
     if (entity != nullptr) {
@@ -415,8 +421,7 @@ void Node::SetEntity(Handle<Entity> &&entity)
             m_scene->AddEntityInternal(Handle<Entity>(m_entity));
         }
 
-        m_entity->SetParent(this);
-        //m_entity.Init();
+        m_entity->SetIsAttachedToNode(this, true);
 
         m_local_aabb = m_entity->GetLocalAABB();
     } else {

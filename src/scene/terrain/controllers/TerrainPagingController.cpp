@@ -199,8 +199,6 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
                 );
             }
         }
-
-        patch->entity.Reset();
     }
 
     patch->entity.Reset();

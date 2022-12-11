@@ -109,6 +109,9 @@ struct DrawProxy<STUB_CLASS(Camera)>
     Float clip_far;
     Float fov;
     Frustum frustum;
+
+    UInt64 visibility_bitmask;
+    UInt16 visibility_nonce;
 };
 
 using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;

@@ -16,8 +16,8 @@ struct VisibilityStateSnapshot
     using Bitmask = UInt64;
     using Nonce = UInt16;
 
-    std::atomic<Bitmask> bits { 0u };
-    std::atomic<Nonce> nonce { 0u };
+    Bitmask bits { 0u };
+    Nonce nonce { 0u };
 
     VisibilityStateSnapshot()
     {
@@ -25,14 +25,14 @@ struct VisibilityStateSnapshot
 
     VisibilityStateSnapshot(const VisibilityStateSnapshot &other)
     {
-        bits.store(other.bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        nonce.store(other.nonce.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        bits = other.bits;
+        nonce = other.nonce;
     }
 
     VisibilityStateSnapshot &operator=(const VisibilityStateSnapshot &other)
     {
-        bits.store(other.bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        nonce.store(other.nonce.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        bits = other.bits;
+        nonce = other.nonce;
 
         return *this;
     }
@@ -42,19 +42,19 @@ struct VisibilityStateSnapshot
     ~VisibilityStateSnapshot() = default;
 
     HYP_FORCE_INLINE Bitmask Get(IDBase scene_id) const
-        { return bits.load(std::memory_order_relaxed) & (1ull << static_cast<Bitmask>(scene_id.value - 1)); }
+        { return bits & (1ull << static_cast<Bitmask>(scene_id.value - 1)); }
 
     HYP_FORCE_INLINE void Set(IDBase scene_id, bool visible)
     {
         if (visible) {
-            bits.fetch_or(1ull << static_cast<Bitmask>(scene_id.value - 1), std::memory_order_relaxed);
+            bits |= (1ull << static_cast<Bitmask>(scene_id.value - 1));
         } else {
-            bits.fetch_and(~(1ull << (scene_id.value - 1)), std::memory_order_relaxed);
+            bits &= (~(1ull << (scene_id.value - 1)));
         }
     }
 
     HYP_FORCE_INLINE bool ValidToParent(const VisibilityStateSnapshot &parent) const
-        { return nonce.load(std::memory_order_relaxed) == parent.nonce.load(std::memory_order_relaxed); }
+        { return nonce == parent.nonce; }
 };
 
 struct VisibilityState
@@ -89,8 +89,8 @@ struct VisibilityState
     void ForceAllVisible()
     {
         for (auto &snapshot : snapshots) {
-            snapshot.bits.store(MathUtil::MaxSafeValue<Bitmask>(), std::memory_order_relaxed);
-            snapshot.nonce.store(MathUtil::MaxSafeValue<Nonce>(), std::memory_order_relaxed);
+            snapshot.bits = MathUtil::MaxSafeValue<Bitmask>();
+            snapshot.nonce = MathUtil::MaxSafeValue<Nonce>();
         }
     }
 };

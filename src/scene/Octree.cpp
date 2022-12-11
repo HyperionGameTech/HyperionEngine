@@ -646,8 +646,8 @@ void Octree::CopyVisibilityState(const VisibilityState &visibility_state)
     for (UInt i = 0; i < UInt(m_visibility_state.snapshots.Size()); i++) {
         // m_visibility_state.snapshots[i] = visibility_state.snapshots[i];
 
-        m_visibility_state.snapshots[i].bits.fetch_or(visibility_state.snapshots[i].bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        m_visibility_state.snapshots[i].nonce.store(visibility_state.snapshots[i].nonce.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        m_visibility_state.snapshots[i].bits |= visibility_state.snapshots[i].bits;
+        m_visibility_state.snapshots[i].nonce = visibility_state.snapshots[i].nonce;
     }
     
     // m_visibility_state.bits.fetch_or(visibility_state.bits.load(std::memory_order_relaxed), std::memory_order_relaxed);
@@ -728,7 +728,7 @@ void Octree::NextVisibilityState()
     cursor = (cursor + 1) % VisibilityState::cursor_size;
 
     // m_visibility_state.snapshots[cursor].bits.store(0u, std::memory_order_relaxed);
-    m_visibility_state.snapshots[cursor].nonce.fetch_add(1u, std::memory_order_relaxed);
+    m_visibility_state.snapshots[cursor].nonce++;
 }
 
 UInt8 Octree::LoadVisibilityCursor() const
@@ -780,7 +780,7 @@ void Octree::UpdateVisibilityState(Scene *scene, UInt8 cursor)
     m_visibility_state.SetVisible(scene->GetID(), cursor);
 
     if (m_is_divided) {
-        const auto nonce = m_visibility_state.snapshots[cursor].nonce.load(std::memory_order_relaxed);
+        const auto nonce = m_visibility_state.snapshots[cursor].nonce;
 
         for (auto &octant : m_octants) {
             if (!frustum.ContainsAABB(octant.aabb)) {
@@ -792,7 +792,7 @@ void Octree::UpdateVisibilityState(Scene *scene, UInt8 cursor)
             //     octant.octree->m_visibility_state.snapshots[cursor].bits.store(0u, std::memory_order_relaxed);
             // }
             
-            octant.octree->m_visibility_state.snapshots[cursor].nonce.store(nonce, std::memory_order_relaxed);
+            octant.octree->m_visibility_state.snapshots[cursor].nonce = nonce;
             octant.octree->UpdateVisibilityState(scene, cursor);
         }
     }
