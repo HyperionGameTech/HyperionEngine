@@ -2,6 +2,7 @@
 #define HYPERION_V2_PAGING_CONTROLLER_H
 
 #include <scene/Controller.hpp>
+#include <scene/Scene.hpp>
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
 #include <scene/camera/Camera.hpp>
@@ -128,7 +129,7 @@ protected:
     GameCounter::TickUnit m_update_timer;
     GameCounter::TickUnit m_queue_timer;
 
-    Handle<Camera> m_camera;
+    WeakHandle<Scene> m_scene;
 };
 
 } // namespace hyperion::v2

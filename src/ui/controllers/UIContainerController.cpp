@@ -53,11 +53,9 @@ void UIContainerController::OnRemoved()
 void UIContainerController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        if (scene->IsVirtualScene()) {
-            return;
+        if (scene->IsWorldScene()) {
+            m_attached_camera = scene->GetCamera();
         }
-
-        m_attached_camera = scene->GetCamera();
     }
 }
 

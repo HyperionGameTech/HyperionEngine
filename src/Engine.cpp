@@ -952,6 +952,36 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     return renderer_instance;
 }
 
+Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
+{
+    if (!renderable_attributes.shader_id) {
+        DebugLog(
+            LogType::Warn,
+            "Shader is empty; Cannot create or find RenderGroup.\n"
+        );
+
+        return Handle<RenderGroup>::empty;
+    }
+
+    std::lock_guard guard(m_render_group_mapping_mutex);
+
+    const auto it = m_render_group_mapping.Find(renderable_attributes);
+
+    if (it != m_render_group_mapping.End()) {
+        return it->second;
+    }
+
+    // create a RenderGroup with the given params
+    auto renderer_instance = CreateObject<RenderGroup>(
+        Handle<Shader>(renderable_attributes.shader_id),
+        renderable_attributes
+    );
+
+    AddRenderGroupInternal(renderer_instance);
+
+    return renderer_instance;
+}
+
 Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
 {
     if (!shader) {
@@ -994,6 +1024,12 @@ void Engine::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
     
 void Engine::AddRenderGroupInternal(Handle<RenderGroup> &renderer_instance)
 {
+    DebugLog(
+        LogType::Debug,
+        "Insert RenderGroup in mapping for renderable attribute set hash %llu\n",
+        renderer_instance->GetRenderableAttributes().GetHashCode().Value()
+    );
+
     m_render_group_mapping.Insert(
         renderer_instance->GetRenderableAttributes(),
         renderer_instance

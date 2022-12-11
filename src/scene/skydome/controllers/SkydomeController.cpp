@@ -41,13 +41,17 @@ void SkydomeController::OnUpdate(GameCounter::TickUnit delta)
 
 void SkydomeController::OnDetachedFromScene(ID<Scene> id)
 {
-    m_dome.Remove();
+    if (m_dome.Get() && m_dome.Get()->GetScene() && m_dome.Get()->GetScene()->GetID() == id) {
+        m_dome.Remove();
+    }
 }
 
 void SkydomeController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        scene->GetRoot().AddChild(m_dome);
+        if (scene->IsWorldScene()) {
+            scene->GetRoot().AddChild(m_dome);
+        }
     }
 }
 

@@ -185,8 +185,9 @@ public:
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
-    /*! \brief Find or create a RenderGroup from cache, or create a descriptor set. If created, the result will always be cached. */
+    /*! \brief Find or create a RenderGroup from cache. If created, the result will always be cached. */
     Handle<RenderGroup> FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
+    Handle<RenderGroup> FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes);
     void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
 
     template <class T>

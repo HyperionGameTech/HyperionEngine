@@ -12,6 +12,25 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
+struct RENDER_COMMAND(UpdateRenderGroupDrawables) : RenderCommand
+{
+    RenderGroup *render_group;
+    Array<EntityDrawProxy> drawables;
+
+    RENDER_COMMAND(UpdateRenderGroupDrawables)(RenderGroup *render_group, Array<EntityDrawProxy> &&drawables)
+        : render_group(render_group),
+          drawables(std::move(drawables))
+    {
+    }
+
+    virtual Result operator()()
+    {
+        render_group->SetDrawProxies(std::move(drawables));
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 struct RENDER_COMMAND(BindLights) : RenderCommand
 {
     SizeType num_lights;
@@ -651,7 +670,7 @@ void Scene::Update(GameCounter::TickUnit delta)
 
     EnqueueRenderUpdates();
 
-    if (!IsVirtualScene()) {
+    if (IsWorldScene()) {
         // update render environment
         m_environment->Update(delta);
 
@@ -676,15 +695,45 @@ void Scene::Update(GameCounter::TickUnit delta)
             env_probe->Update();
         }
 
+        m_draw_collection.Reset();
+
         // update each entity
         for (auto &it : m_entities) {
             Handle<Entity> &entity = it.second;
 
             entity->Update(delta);
 
-            if (entity->m_primary_renderer_instance.changed) {
-                RequestRenderGroupUpdate(entity);
+            if (entity->GetMesh()) {
+                m_draw_collection.Insert(entity->GetRenderableAttributes(), entity->GetDrawProxy());
             }
+
+            /*if (entity->m_primary_renderer_instance.changed) {
+                RequestRenderGroupUpdate(entity);
+            }*/
+        }
+
+        for (auto &it : m_draw_collection) {
+            const RenderableAttributeSet &attributes = it.first;
+            Array<EntityDrawProxy> &draw_proxies = it.second;
+
+            auto render_group_it = m_render_groups.Find(attributes);
+
+            if (render_group_it == m_render_groups.End() || !render_group_it->second) {
+                Handle<RenderGroup> render_group = Engine::Get()->FindOrCreateRenderGroup(attributes);
+
+                if (!render_group.IsValid()) {
+                    DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
+
+                    continue;
+                }
+
+                auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
+                AssertThrow(insert_result.second);
+
+                render_group_it = insert_result.first;
+            }
+
+            PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
         }
     }
 }

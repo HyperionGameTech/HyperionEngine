@@ -97,7 +97,7 @@ struct DrawCallCollection
 
     ~DrawCallCollection();
 
-    void Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity);
+    void PushDrawCall(EntityBatchIndex batch_index, DrawCallID id, const EntityDrawProxy &entity);
     DrawCall *TakeDrawCall(DrawCallID id);
     void Reset();
 };

@@ -192,12 +192,12 @@ public:
         }
 
         if (true) {
-            auto container_node = GetUI().GetScene()->GetRoot().AddChild();
-            container_node.SetEntity(CreateObject<Entity>());
-            container_node.GetEntity()->SetTranslation(Vector3(0.4f, 0.4f, 0.0f));
-            container_node.GetEntity()->AddController<UIContainerController>();
+            //auto container_node = GetUI().GetScene()->GetRoot().AddChild();
+            //container_node.SetEntity(CreateObject<Entity>());
+            //container_node.GetEntity()->SetTranslation(Vector3(0.4f, 0.4f, 0.0f));
+            //container_node.GetEntity()->AddController<UIContainerController>();
 
-            container_node.Scale(0.2f);
+            //container_node.Scale(0.2f);
 
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
             btn_node.SetEntity(CreateObject<Entity>());

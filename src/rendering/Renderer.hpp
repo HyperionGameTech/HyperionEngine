@@ -2,7 +2,6 @@
 #define HYPERION_V2_RENDERER_H
 
 #include <core/Containers.hpp>
-#include <scene/Entity.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/RenderBucket.hpp>
@@ -47,6 +46,7 @@ class Engine;
 class Mesh;
 class Material;
 class Skeleton;
+class Entity;
 
 /*! \brief Represents a handle to a graphics pipeline,
     which can be used for doing standalone drawing without requiring
@@ -70,10 +70,6 @@ public:
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
     void Bind(Frame *frame);
-    
-    /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
-        be bound, with all draw calls recorded elsewhere. */
-    void SetConstants(void *ptr, SizeType size);
 
     /*! \brief For using this RenderGroup as a standalone graphics pipeline that will simply
         be bound, with all draw calls recorded elsewhere. */
@@ -151,6 +147,8 @@ public:
     // render non-indirect (collects draw calls, then renders)
     void Render(Frame *frame);
 
+    void SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies);
+
     RendererProxy GetProxy()
         { return RendererProxy(this); }
 
@@ -201,6 +199,8 @@ private:
     UInt m_command_buffer_index = 0u;
 
     FlatMap<UInt, EntityBatchIndex> m_entity_batches;
+
+    Array<EntityDrawProxy> m_draw_proxies;
 
     DrawCallCollection m_draw_state;
 };

@@ -19,12 +19,10 @@ void BasicCharacterController::OnRemoved()
 void BasicCharacterController::OnDetachedFromScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
-        if (scene->IsVirtualScene()) {
-            return;
-        }
-
-        if (const auto &camera = scene->GetCamera()) {
-            m_camera = camera;
+        if (scene->IsWorldScene()) {
+            if (const auto &camera = scene->GetCamera()) {
+                m_camera = camera;
+            }
         }
     }
 }

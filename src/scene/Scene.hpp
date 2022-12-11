@@ -15,6 +15,7 @@
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/DrawProxy.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <scene/camera/Camera.hpp>
 #include <math/Color.hpp>
 #include <GameCounter.hpp>
@@ -170,7 +171,10 @@ public:
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
     bool IsVirtualScene() const
-        { return m_parent_id != Scene::empty_id; }
+        { return m_parent_id.Value() != 0; }
+
+    bool IsWorldScene() const
+        { return m_parent_id.Value() == 0; }
     
     void Init();
 
@@ -211,6 +215,9 @@ private:
 
     Matrix4 m_last_view_projection_matrix;
     ID<Scene> m_parent_id;
+
+    EntityDrawCollection m_draw_collection;
+    FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

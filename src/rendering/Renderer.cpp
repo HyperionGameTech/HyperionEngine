@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include <scene/Entity.hpp>
 #include <Engine.hpp>
 #include <Constants.hpp>
 
@@ -420,11 +421,13 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
         const EntityDrawProxy &draw_proxy = entity->GetDrawProxy();
 
+    //for (auto &draw_proxy : m_draw_proxies) {
+
         if (draw_proxy.mesh == nullptr) {
             continue;
         }
 
-        if (perform_culling) {
+        /*if (perform_culling) {
             const auto &snapshot = entity->GetVisibilityState().snapshots[visibility_cursor];
 
             if (!snapshot.ValidToParent(octree_visibility_state_snapshot)) {
@@ -434,7 +437,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
             if (!snapshot.Get(scene_id)) {
                 continue;
             }
-        }
+        }*/
 
         DrawCallID draw_call_id;
 
@@ -455,7 +458,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
             draw_call->batch_index = 0;
         }
 
-        m_draw_state.Push(batch_index, draw_call_id, m_indirect_renderer.GetDrawState(), draw_proxy);
+        m_draw_state.PushDrawCall(batch_index, draw_call_id, draw_proxy);
     }
 
     previous_draw_state.Reset();
@@ -759,6 +762,13 @@ void RenderGroup::Render(Frame *frame)
     PerformRendering(frame);
 }
 
+void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    m_draw_proxies = std::move(draw_proxies);
+}
+
+
 // Proxied methods
 
 CommandBuffer *RendererProxy::GetCommandBuffer(UInt frame_index)
@@ -781,15 +791,6 @@ void RendererProxy::Bind(Frame *frame)
     command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
 
     m_render_group->m_pipeline->Bind(command_buffer);
-}
-
-void RendererProxy::SetConstants(void *ptr, SizeType size)
-{
-#ifdef HYP_DEBUG_MODE
-    AssertThrowMsg(size <= 128, "Size of push constants must be <= 128");
-#endif
-
-    m_render_group->m_pipeline->SetPushConstants(ptr, size);
 }
 
 void RendererProxy::DrawMesh(Frame *frame, Mesh *mesh)

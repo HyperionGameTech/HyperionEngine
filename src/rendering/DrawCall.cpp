@@ -12,11 +12,6 @@ DrawCallCollection::DrawCallCollection(DrawCallCollection &&other) noexcept
 
 DrawCallCollection &DrawCallCollection::operator=(DrawCallCollection &&other) noexcept
 {
-    // for (auto &draw_call : draw_calls) {
-    //     if (draw_call.batch_index) {
-    //         Engine::Get()->shader_globals->FreeEntityBatch(draw_call.batch_index);
-    //     }
-    // }
     Reset();
 
     draw_calls = std::move(other.draw_calls);
@@ -30,7 +25,7 @@ DrawCallCollection::~DrawCallCollection()
     Reset();
 }
 
-void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, IndirectDrawState &indirect_draw_state, const EntityDrawProxy &entity)
+void DrawCallCollection::PushDrawCall(EntityBatchIndex batch_index, DrawCallID id, const EntityDrawProxy &entity)
 {
     AssertThrow(entity.mesh != nullptr);
 
@@ -39,10 +34,10 @@ void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, Indir
         AssertThrow(id.HasMaterial());
     }
 
-    auto it = index_map.find(id.Value());
+    const auto it = index_map.find(id.Value());
 
     if (it != index_map.end()) {
-        for (SizeType draw_call_index : it->second) {
+        for (const SizeType draw_call_index : it->second) {
             DrawCall &draw_call = draw_calls[draw_call_index];
             AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
 
@@ -86,7 +81,7 @@ void DrawCallCollection::Push(EntityBatchIndex batch_index, DrawCallID id, Indir
 
 DrawCall *DrawCallCollection::TakeDrawCall(DrawCallID id)
 {
-    auto it = index_map.find(id.Value());
+    const auto it = index_map.find(id.Value());
 
     if (it != index_map.end()) {
         while (it->second.Any()) {

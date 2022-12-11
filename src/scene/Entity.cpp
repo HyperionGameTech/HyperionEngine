@@ -449,10 +449,8 @@ void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
     if (!scene) {
         return;
     }
-
-    // removing
-
-    if (has_scene) {
+    
+    if (has_scene) { // removing
         if (auto &scene_tlas = scene->GetTLAS()) {
             if (m_blas) {
                 //scene_tlas->RemoveBLAS(m_blas);
@@ -476,6 +474,8 @@ void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
         }
 
         for (auto &controller : m_controllers) {
+            AssertThrow(controller.second != nullptr);
+
             controller.second->OnAttachedToScene(id);
         }
     }

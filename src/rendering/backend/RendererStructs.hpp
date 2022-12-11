@@ -5,6 +5,7 @@
 #include <util/Defines.hpp>
 #include <util/EnumOptions.hpp>
 #include <Types.hpp>
+#include <HashCode.hpp>
 
 #include <tuple>
 
@@ -69,6 +70,15 @@ struct StencilState
     bool operator<(const StencilState &other) const
     {
         return std::tie(id, mode) < std::tie(other.id, other.mode);
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(id);
+        hc.Add(mode);
+
+        return hc;
     }
 };
 

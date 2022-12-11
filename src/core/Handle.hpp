@@ -146,6 +146,9 @@ struct Handle
 };
 
 template <class T>
+using WeakHandle = Handle<T>; // TODO: impl
+
+template <class T>
 const Handle<T> Handle<T>::empty = { };
 
 template <class T, class Engine, class ...Args>
