@@ -145,6 +145,8 @@ void Camera::Init()
 
     EngineComponentBase::Init();
 
+    InitObject(m_framebuffer);
+
     SetReady(true);
 
     OnTeardown([this]() {
@@ -152,6 +154,15 @@ void Camera::Init()
 
         HYP_SYNC_RENDER();
     });
+}
+
+void Camera::SetFramebuffer(const Handle<Framebuffer> &framebuffer)
+{
+    m_framebuffer = framebuffer;
+
+    if (IsInitCalled()) {
+        InitObject(m_framebuffer);
+    }
 }
 
 void Camera::SetTranslation(const Vector3 &translation)

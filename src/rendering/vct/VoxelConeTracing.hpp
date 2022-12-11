@@ -70,11 +70,8 @@ public:
     void OnUpdate(GameCounter::TickUnit delta);
     void OnRender(Frame *frame);
 
-    // void RenderVoxels(Frame *frame);
-
 private:
     void CreateImagesAndBuffers();
-    void CreateRenderGroup();
     void CreateComputePipelines();
     void CreateShader();
     void CreateFramebuffer();
@@ -90,7 +87,6 @@ private:
     Handle<Scene> m_scene;
     Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
-    Handle<RenderGroup> m_render_group;
     Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_generate_mipmap;
     Handle<ComputePipeline> m_perform_temporal_blending;

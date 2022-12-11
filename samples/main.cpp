@@ -108,6 +108,14 @@ public:
     virtual void InitGame() override
     {
         Game::InitGame();
+
+        if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
+            m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
+                VoxelConeTracing::Params {
+                    BoundingBox(-128, 128)
+                }
+            );
+        }
         
         m_scene->SetCamera(
             CreateObject<Camera>(
@@ -122,16 +130,8 @@ public:
         ));
 
         // m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
+        
 
-#ifdef HYP_TEST_VCT
-        { // voxel cone tracing for indirect light and reflections
-            m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
-                VoxelConeTracing::Params {
-                    BoundingBox(-128, 128)
-                }
-            );
-        }
-#endif
         Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
 
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
@@ -225,13 +225,13 @@ public:
         InitObject(cubemap);
 
         if (true) { // hardware skinning
-            zombie.Scale(3.25f);
+            zombie.Scale(4.25f);
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
             zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 1.0f));
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
             zombie_entity->RebuildRenderableAttributes();
             InitObject(zombie_entity);
             zombie_entity->CreateBLAS();

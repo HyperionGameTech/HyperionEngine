@@ -145,7 +145,15 @@ DeferredSystem::RenderGroupHolder::~RenderGroupHolder()
 
 void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
 {
-    AddFramebuffersToPipeline(renderer_instance);
+    if (renderer_instance->GetRenderableAttributes().framebuffer_id) {
+        Handle<Framebuffer> framebuffer(renderer_instance->GetRenderableAttributes().framebuffer_id);
+
+        AssertThrowMsg(framebuffer.IsValid(), "Invalid framebuffer ID %u", renderer_instance->GetRenderableAttributes().framebuffer_id.Value());
+
+        renderer_instance->AddFramebuffer(std::move(framebuffer));
+    } else {
+        AddFramebuffersToPipeline(renderer_instance);
+    }
 
     std::lock_guard guard(renderer_instances_mutex);
 
@@ -205,9 +213,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
 
-    const Extent2D extent = bucket == BUCKET_SHADOW
-        ? Extent2D { 2048, 2048 }
-        : Engine::Get()->GetGPUInstance()->swapchain->extent;
+    const Extent2D extent = Engine::Get()->GetGPUInstance()->swapchain->extent;
 
     m_framebuffer = CreateObject<Framebuffer>(
         extent,
@@ -225,21 +231,6 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
             attachments,
             extent
         );
-    } else if (bucket == BUCKET_SHADOW) {
-        AddOwnedAttachment(
-            InternalFormat::RG32F,
-            m_framebuffer,
-            attachments,
-            extent
-        );
-
-        AddOwnedAttachment(
-            Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            m_framebuffer,
-            attachments,
-            extent
-        );
-
     } else if (BucketIsRenderable(bucket)) {
         // add gbuffer attachments
         // color attachment is unique for all buckets

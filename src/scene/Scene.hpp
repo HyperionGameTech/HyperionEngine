@@ -198,6 +198,8 @@ public:
 
     void ForceUpdate();
 
+    void Render(Frame *frame);
+
 private:
     // World only calls
     void Update(GameCounter::TickUnit delta);

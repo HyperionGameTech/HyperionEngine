@@ -65,11 +65,7 @@ using renderer::StorageBuffer;
 
 class Engine;
 class Game;
-
-
-template <class T>
-struct OpaqueHandle;
-
+class Framebuffer;
 
 struct DebugMarker
 {

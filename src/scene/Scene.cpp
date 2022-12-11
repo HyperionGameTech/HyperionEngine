@@ -699,12 +699,15 @@ void Scene::Update(GameCounter::TickUnit delta)
     m_draw_collection.Reset();
 
     RenderableAttributeSet override_attributes;
-
     const bool has_override_renderable_attributes = HasOverrideRenderableAttributes();
 
     if (has_override_renderable_attributes) {
         override_attributes = m_override_renderable_attributes.Get();
     }
+
+    const Handle<Framebuffer> &framebuffer = m_camera
+        ? m_camera->GetFramebuffer()
+        : Handle<Framebuffer>::empty;
 
     // update each entity
     for (auto &it : m_entities) {
@@ -715,6 +718,10 @@ void Scene::Update(GameCounter::TickUnit delta)
         }
 
         RenderableAttributeSet attributes = entity->GetRenderableAttributes();
+
+        if (framebuffer) {
+            attributes.framebuffer_id = framebuffer->GetID();
+        }
 
         if (has_override_renderable_attributes) {
             attributes.shader_id = override_attributes.shader_id ? override_attributes.shader_id : attributes.shader_id;
@@ -750,6 +757,32 @@ void Scene::Update(GameCounter::TickUnit delta)
         
         PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
     }
+}
+
+void Scene::Render(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    AssertThrowMsg(m_camera.IsValid(), "Cannot render scene with no Camera attached");
+    AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Scene has Camera, but no Framebuffer is attached");
+
+    auto *command_buffer = frame->GetCommandBuffer();
+    const UInt frame_index = frame->GetFrameIndex();
+
+    m_camera->GetFramebuffer()->BeginCapture(frame_index, command_buffer);
+
+    Engine::Get()->render_state.BindScene(this);
+
+    // TODO: Thread safe container here
+    for (auto &it : m_render_groups) {
+        AssertThrow(it.first.framebuffer_id == m_camera->GetFramebuffer()->GetID());
+
+        it.second->Render(frame);
+    }
+
+    Engine::Get()->render_state.UnbindScene();
+
+    m_camera->GetFramebuffer()->EndCapture(frame_index, command_buffer);
 }
 
 void Scene::RequestRenderGroupUpdate(Handle<Entity> &entity)

@@ -19,6 +19,7 @@ namespace hyperion {
 namespace v2 {
 
 class Engine;
+class Framebuffer;
 
 enum class CameraType
 {
@@ -76,9 +77,11 @@ public:
     CameraController(CameraType type);
     virtual ~CameraController() = default;
 
-    CameraType GetType() const { return m_type; }
+    CameraType GetType() const
+        { return m_type; }
 
-    virtual void OnAdded(Camera *camera) { m_camera = camera; }
+    virtual void OnAdded(Camera *camera)
+        { m_camera = camera; }
 
     virtual void SetTranslation(const Vector3 &translation) { }
     virtual void SetNextTranslation(const Vector3 &translation) { }
@@ -128,6 +131,14 @@ public:
     Camera(float fov, int width, int height, float _near, float _far);
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
     ~Camera();
+
+    Handle<Framebuffer> &GetFramebuffer()
+        { return m_framebuffer; }
+
+    const Handle<Framebuffer> &GetFramebuffer() const
+        { return m_framebuffer; }
+
+    void SetFramebuffer(const Handle<Framebuffer> &framebuffer);
 
     CameraController *GetCameraController() const
         { return m_camera_controller.Get(); }
@@ -263,6 +274,8 @@ protected:
     void UpdateViewProjectionMatrix();
 
     UniquePtr<CameraController> m_camera_controller;
+
+    Handle<Framebuffer> m_framebuffer;
 
     Vector3 m_translation, m_next_translation, m_direction, m_up;
     Matrix4 m_view_mat, m_proj_mat;

@@ -103,7 +103,6 @@ public:
     }
 
     void CreateShader();
-    void CreateRenderGroup();
     virtual void CreateFramebuffer() override;
     virtual void CreateDescriptors() override;
 

@@ -218,27 +218,6 @@ void ShadowPass::CreateDescriptors()
     );
 }
 
-void ShadowPass::CreateRenderGroup()
-{
-    m_render_group = CreateObject<RenderGroup>(
-        std::move(m_shader),
-        RenderableAttributeSet(
-            MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
-            },
-            MaterialAttributes {
-                .bucket = BUCKET_SHADOW,
-                .cull_faces = FaceCullMode::BACK
-            }
-        )
-    );
-
-    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
-    
-    Engine::Get()->AddRenderGroup(m_render_group);
-    InitObject(m_render_group);
-}
-
 void ShadowPass::CreateShadowMap()
 {
     m_shadow_map_image = std::make_unique<StorageImage2D>(
@@ -306,11 +285,12 @@ void ShadowPass::Create()
     ));
 
     m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
+    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
 
     m_scene->SetParentID(m_parent_scene_id);
     InitObject(m_scene);
 
-    CreateRenderGroup();
+    //CreateRenderGroup();
     CreateCommandBuffers();
 
     HYP_SYNC_RENDER(); // force init stuff
@@ -343,17 +323,8 @@ void ShadowPass::Render(Frame *frame)
     }
 
     auto *command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
 
-    m_framebuffer->BeginCapture(frame_index, command_buffer);
-
-    Engine::Get()->render_state.BindScene(m_scene.Get());
-    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SHADOW).GetRenderGroups()) {
-        renderer_instance->Render(frame);
-    }
-    Engine::Get()->render_state.UnbindScene();
-
-    m_framebuffer->EndCapture(frame_index, command_buffer);
+    m_scene->Render(frame);
 
     if (m_shadow_mode == ShadowMode::VSM) {
         // blur the image using compute shader
@@ -467,16 +438,6 @@ void ShadowRenderer::InitGame()
         }
 
         m_shadow_pass.GetScene()->AddEntity(entity);
-
-
-        const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
-
-        if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
-            && (renderable_attributes.mesh_attributes.vertex_attributes
-                & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-
-            m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(it.second));
-        }
     }
 }
 
@@ -489,15 +450,6 @@ void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
     
     
     //m_shadow_pass.GetScene()->AddEntity(entity);
-
-
-    const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
-
-    if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
-        && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(entity));
-    }
 }
 
 void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
@@ -505,8 +457,6 @@ void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
-
-    m_shadow_pass.GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
 }
 
 void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
@@ -514,16 +464,6 @@ void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertReady();
-    
-    const RenderableAttributeSet &renderable_attributes = entity->GetRenderableAttributes();
-
-    if (BucketRendersShadows(renderable_attributes.material_attributes.bucket)
-        && (renderable_attributes.mesh_attributes.vertex_attributes
-            & m_shadow_pass.GetRenderGroup()->GetRenderableAttributes().mesh_attributes.vertex_attributes)) {
-        m_shadow_pass.GetRenderGroup()->AddEntity(Handle<Entity>(entity));
-    } else {
-        m_shadow_pass.GetRenderGroup()->RemoveEntity(Handle<Entity>(entity));
-    }
 }
 
 void ShadowRenderer::OnUpdate(GameCounter::TickUnit delta)

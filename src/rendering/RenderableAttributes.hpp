@@ -18,6 +18,8 @@ using renderer::StencilState;
 using renderer::VertexAttributeSet;
 using renderer::BlendMode;
 
+class Framebuffer;
+
 struct MaterialAttributes
 {
     using MaterialFlags = UInt;
@@ -110,6 +112,7 @@ struct MeshAttributes
 struct RenderableAttributeSet
 {
     ID<Shader> shader_id;
+    ID<Framebuffer> framebuffer_id; // only used for scenes, not per entity
     MeshAttributes mesh_attributes;
     MaterialAttributes material_attributes;
     StencilState stencil_state { };
@@ -150,6 +153,7 @@ struct RenderableAttributeSet
     {
         return std::make_tuple(
             shader_id,
+            framebuffer_id,
             mesh_attributes,
             material_attributes,
             stencil_state
@@ -174,6 +178,7 @@ struct RenderableAttributeSet
     {
         HashCode hc;
         hc.Add(shader_id.GetHashCode());
+        hc.Add(framebuffer_id.GetHashCode());
         hc.Add(mesh_attributes.GetHashCode());
         hc.Add(material_attributes.GetHashCode());
         hc.Add(stencil_state.GetHashCode());
