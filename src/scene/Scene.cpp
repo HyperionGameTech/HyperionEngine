@@ -759,7 +759,7 @@ void Scene::Update(GameCounter::TickUnit delta)
     }
 }
 
-void Scene::Render(Frame *frame)
+void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant_size)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
@@ -776,6 +776,10 @@ void Scene::Render(Frame *frame)
     // TODO: Thread safe container here
     for (auto &it : m_render_groups) {
         AssertThrow(it.first.framebuffer_id == m_camera->GetFramebuffer()->GetID());
+
+        if (push_constant_ptr && push_constant_size) {
+            it.second->GetPipeline()->SetPushConstants(push_constant_ptr, push_constant_size);
+        }
 
         it.second->Render(frame);
     }

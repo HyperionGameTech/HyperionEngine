@@ -89,6 +89,10 @@ void Pipeline::SetPushConstants(const void *data, SizeType size)
     AssertThrow(size <= sizeof(push_constants));
 
     Memory::Copy(&push_constants, data, size);
+
+    if (size < sizeof(push_constants)) {
+        Memory::Set(&push_constants + size, 0, sizeof(push_constants) - size);
+    }
 }
 
 } // namespace renderer

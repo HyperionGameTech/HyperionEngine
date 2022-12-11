@@ -198,7 +198,7 @@ public:
 
     void ForceUpdate();
 
-    void Render(Frame *frame);
+    void Render(Frame *frame, void *push_constant_ptr = nullptr, SizeType push_constant_size = 0);
 
 private:
     // World only calls

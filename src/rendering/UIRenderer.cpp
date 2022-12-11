@@ -97,10 +97,23 @@ void UIRenderer::Init()
 
     EngineComponentBase::Init();
 
-    InitObject(m_scene);
-
     CreateFramebuffer();
     CreateDescriptors();
+
+    AssertThrow(m_scene.IsValid());
+    AssertThrow(m_scene->GetCamera().IsValid());
+
+    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
+    
+    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
+        MeshAttributes { },
+        MaterialAttributes {
+            .bucket = BUCKET_UI,
+            .cull_faces = FaceCullMode::NONE
+        }
+    ));
+
+    InitObject(m_scene);
 
     SetReady(true);
 }
@@ -130,7 +143,7 @@ void UIRenderer::OnRender(Frame *frame)
 {
     // Threads::AssertOnThread(THREAD_RENDER);
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    /*auto *command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     m_framebuffer->BeginCapture(frame_index, command_buffer);
@@ -141,7 +154,9 @@ void UIRenderer::OnRender(Frame *frame)
     }
 
     Engine::Get()->render_state.UnbindScene();
-    m_framebuffer->EndCapture(frame_index, command_buffer);
+    m_framebuffer->EndCapture(frame_index, command_buffer);*/
+
+    m_scene->Render(frame);
 }
 
 } // namespace hyperion::v2

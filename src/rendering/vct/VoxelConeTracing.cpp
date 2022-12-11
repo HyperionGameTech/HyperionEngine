@@ -43,7 +43,7 @@ void VoxelConeTracing::Init()
         CreateObject<Camera>(voxel_map_extent.width, voxel_map_extent.height)
     );
     
-    m_scene->SetName("Cubemap renderer scene");
+    m_scene->SetName("VCT scene");
     m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
         MeshAttributes { },
         MaterialAttributes {
@@ -454,24 +454,15 @@ void VoxelConeTracing::CreateDescriptors()
 
                 if (mip_level == 0) {
                     // first mip level -- input is the actual image
-                    mip_in->SetSubDescriptor({
-                        .element_index = 0u,
-                        .image_view = &m_voxel_image->GetImageView()
-                    });
+                    mip_in->SetElementSRV(0, &m_voxel_image->GetImageView());
                 } else {
-                    mip_in->SetSubDescriptor({
-                        .element_index = 0u,
-                        .image_view = m_mips[i][mip_level - 1].get()
-                    });
+                    mip_in->SetElementSRV(0, m_mips[i][mip_level - 1].get());
                 }
 
                 auto *mip_out = mip_descriptor_set
                     ->AddDescriptor<renderer::StorageImageDescriptor>(1);
 
-                mip_out->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = m_mips[i][mip_level].get()
-                });
+                mip_out->SetElementUAV(0, m_mips[i][mip_level].get());
 
                 mip_descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(2)

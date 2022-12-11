@@ -32,8 +32,25 @@ void Voxelizer::Init()
     EngineComponentBase::Init();
 
     const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
+    
+    CreateBuffers();
+    CreateShader();
+    CreateFramebuffer();
+    CreateDescriptors();
 
     m_scene = CreateObject<Scene>(CreateObject<Camera>(voxel_map_size, voxel_map_size));
+    
+    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
+        MeshAttributes { },
+        MaterialAttributes {
+            .bucket = BUCKET_INTERNAL,
+            .cull_faces = FaceCullMode::NONE,
+            .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+        },
+        m_shader->GetID()
+    ));
+
+    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
 
     m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
@@ -42,14 +59,15 @@ void Voxelizer::Init()
     ));
 
     InitObject(m_scene);
-    
-    CreateBuffers();
-    CreateShader();
-    CreateFramebuffer();
-    CreateDescriptors();
-    CreatePipeline();
+
+    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
 
     OnTeardown([this]() {
+        if (m_scene) {
+            Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
+            m_scene.Reset();
+        }
+
         m_shader.Reset();
         m_framebuffer.Reset();
 
@@ -90,44 +108,12 @@ void Voxelizer::Init()
         RenderCommands::Push<RENDER_COMMAND(DestroyVoxelizer)>(*this);
 
         HYP_SYNC_RENDER();
-
-        m_render_group.Reset();
+        
         m_attachments.clear();
 
         m_fragment_list_buffer.reset();
         m_counter.reset();
     });
-}
-
-void Voxelizer::CreatePipeline()
-{
-    m_render_group = CreateObject<RenderGroup>(
-        std::move(m_shader),
-        RenderableAttributeSet(
-            MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
-            },
-            MaterialAttributes {
-                .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::NONE,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
-            }
-        )
-    );
-
-    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
-    
-    Engine::Get()->AddRenderGroup(m_render_group);
-    
-    for (auto &item : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-        for (auto &entity : item->GetEntities()) {
-            if (entity != nullptr) {
-                m_render_group->AddEntity(Handle<Entity>(entity));
-            }
-        }
-    }
-
-    InitObject(m_render_group);
 }
 
 void Voxelizer::CreateBuffers()
@@ -164,22 +150,15 @@ void Voxelizer::CreateBuffers()
 
 void Voxelizer::CreateShader()
 {
-    std::vector<SubShader> sub_shaders = {
-        {ShaderModule::Type::VERTEX, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.vert.spv")).Read()}},
-        {ShaderModule::Type::FRAGMENT, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.frag.spv")).Read()}}
-    };
-
-    if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
-        sub_shaders.push_back({ShaderModule::Type::GEOMETRY, {FileByteReader(FileSystem::Join(Engine::Get()->GetAssetManager().GetBasePath().Data(), "/vkshaders/voxel/voxelize.geom.spv")).Read()}});
-    } else {
-        DebugLog(
-            LogType::Debug,
-            "Geometry shaders not supported on device, continuing without adding geometry shader to voxelizer pipeline.\n"
-        );
-    }
     
-    m_shader = CreateObject<Shader>(sub_shaders);
-    InitObject(m_shader);
+    const char *shader_name = "SVOVoxelizeWithGeometryShader";
+
+    if (!Engine::Get()->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
+        shader_name = "SVOVoxelizeWithoutGeometryShader";
+    }
+
+    m_shader = CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(shader_name));
+    AssertThrow(InitObject(m_shader));
 }
 
 void Voxelizer::CreateFramebuffer()
@@ -274,27 +253,20 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
 
 void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
 {
-    m_render_group->GetPipeline()->push_constants.voxelizer_data = {
-        .grid_size = voxel_map_size,
-        .count_mode = count_mode
-    };
-
     auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
     single_time_commands.Push([&](CommandBuffer *command_buffer) {
         auto temp_frame = Frame::TemporaryFrame(command_buffer);
 
-        m_framebuffer->BeginCapture(0, command_buffer);
-        
-        if (!Engine::Get()->render_state.GetScene()) {
-            Engine::Get()->render_state.BindScene(m_scene.Get());
-            m_render_group->Render(&temp_frame);
-            Engine::Get()->render_state.UnbindScene();
-        } else {
-            m_render_group->Render(&temp_frame);
-        }
+        struct alignas(128) {
+            UInt32 grid_size;
+            UInt32 count_mode;
+        } push_constants;
 
-        m_framebuffer->EndCapture(0, command_buffer);
+        push_constants.grid_size = voxel_map_size;
+        push_constants.count_mode = UInt32(count_mode);
+        
+        m_scene->Render(&temp_frame, &push_constants, sizeof(push_constants));
 
         HYPERION_RETURN_OK;
     });
@@ -304,6 +276,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
 
 void Voxelizer::Render(Frame *frame)
 {
+    // TODO: this shouldn't be in render thread
     m_scene->GetCamera()->UpdateMatrices();
 
     m_counter->Reset();

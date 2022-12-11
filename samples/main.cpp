@@ -110,11 +110,7 @@ public:
         Game::InitGame();
 
         if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
-            m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
-                VoxelConeTracing::Params {
-                    BoundingBox(-128, 128)
-                }
-            );
+            m_scene->GetEnvironment()->AddRenderComponent<SparseVoxelOctree>();
         }
         
         m_scene->SetCamera(
