@@ -209,10 +209,6 @@ private:
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    void RequestRenderGroupUpdate(Handle<Entity> &entity);
-    void RemoveFromRenderGroup(Handle<Entity> &entity, RenderGroup *renderer_instance);
-    void RemoveFromRenderGroups(Handle<Entity> &entity);
-
     void PushEntityToRender(const Handle<Entity> &entity, const RenderableAttributeSet *override_attributes);
 
     Handle<Camera> m_camera;

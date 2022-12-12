@@ -157,7 +157,6 @@ void CubemapRenderer::Init()
     CreateShader();
     CreateFramebuffer();
     CreateImagesAndBuffers();
-    //CreateRenderGroup();
 
     m_scene = CreateObject<Scene>(CreateObject<Camera>());
     m_scene->SetName("Cubemap renderer scene");
@@ -333,28 +332,6 @@ void CubemapRenderer::CreateImagesAndBuffers()
         LogType::Debug,
         "Added cubemap uniform buffers\n"
     );
-}
-
-void CubemapRenderer::CreateRenderGroup()
-{
-    m_render_group = CreateObject<RenderGroup>(
-        Handle<Shader>(m_shader),
-        RenderableAttributeSet(
-            MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
-            },
-            MaterialAttributes {
-                .bucket = BUCKET_INTERNAL,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
-                    | MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE
-            }
-        )
-    );
-
-    m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
-
-    Engine::Get()->AddRenderGroup(m_render_group);
-    InitObject(m_render_group);
 }
 
 void CubemapRenderer::CreateShader()

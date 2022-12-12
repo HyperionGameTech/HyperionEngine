@@ -43,13 +43,13 @@ public:
         { bytes[1] = static_cast<UByte>(green * 255.0f); return *this; }
 
     HYP_FORCE_INLINE Float GetBlue() const
-        { return Float(bytes[0]) / 255.0f; }
+        { return Float(bytes[2]) / 255.0f; }
 
     HYP_FORCE_INLINE Color &SetBlue(Float blue)
         { bytes[2] = static_cast<UByte>(blue * 255.0f); return *this; }
 
     HYP_FORCE_INLINE Float GetAlpha() const
-        { return Float(bytes[0]) / 255.0f; }
+        { return Float(bytes[3]) / 255.0f; }
 
     HYP_FORCE_INLINE Color &SetAlpha(Float alpha)
         { bytes[3] = static_cast<UByte>(alpha * 255.0f); return *this; }

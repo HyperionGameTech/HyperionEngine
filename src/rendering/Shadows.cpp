@@ -121,7 +121,7 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
 
 ShadowPass::ShadowPass()
     : FullScreenPass(),
-      m_shadow_mode(ShadowMode::VSM),
+      m_shadow_mode(ShadowMode::CONTACT_HARDENED),
       m_max_distance(100.0f),
       m_shadow_map_index(~0u),
       m_dimensions { 2048, 2048 }
@@ -280,7 +280,6 @@ void ShadowPass::Create()
 
     InitObject(m_scene);
 
-    //CreateRenderGroup();
     CreateCommandBuffers();
 
     HYP_SYNC_RENDER(); // force init stuff

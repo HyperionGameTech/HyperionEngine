@@ -318,22 +318,30 @@ void HBAO::CreateDescriptorSets()
                     .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView()
             });
 
+        // material
+        descriptor_set
+            ->AddDescriptor<ImageDescriptor>(4)
+            ->SetSubDescriptor({
+                .image_view = Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                    .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView()
+            });
+
         // nearest sampler
         descriptor_set
-            ->AddDescriptor<SamplerDescriptor>(4)
+            ->AddDescriptor<SamplerDescriptor>(5)
             ->SetSubDescriptor({
                 .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
             });
 
         // linear sampler
         descriptor_set
-            ->AddDescriptor<SamplerDescriptor>(5)
+            ->AddDescriptor<SamplerDescriptor>(6)
             ->SetSubDescriptor({
                 .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
             });
 
         descriptor_set
-            ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
+            ->AddDescriptor<DynamicStorageBufferDescriptor>(7)
             ->SetSubDescriptor({
                 .buffer = Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
                 .range = UInt32(sizeof(SceneShaderData))

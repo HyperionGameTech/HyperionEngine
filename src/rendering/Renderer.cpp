@@ -128,135 +128,6 @@ void RenderGroup::RemoveFramebuffer(ID<Framebuffer> id)
     m_fbos.Erase(it);
 }
 
-void RenderGroup::AddEntity(Handle<Entity> &&entity)
-{
-    AssertThrow(entity != nullptr);
-
-    // FIXME: thread safety. this could be called from any thread
-    AssertThrowMsg(
-        (m_renderable_attributes.mesh_attributes.vertex_attributes
-            & entity->GetRenderableAttributes().mesh_attributes.vertex_attributes)
-                == entity->GetRenderableAttributes().mesh_attributes.vertex_attributes,
-        "RenderGroup vertex attributes does not satisfy the required vertex attributes of the entity."
-    );
-
-    if (IsInitCalled()) {
-        InitObject(entity);
-    }
-
-    entity->OnAddedToPipeline(this);
-    
-    m_enqueued_entities_sp.Wait();
-
-    // remove from 'pending removal' list
-    auto it = m_entities_pending_removal.Find(entity);
-
-    if (it != m_entities_pending_removal.End()) {
-        m_entities_pending_removal.Erase(it);
-    }
-    
-    m_entities_pending_addition.PushBack(std::move(entity));
-
-    m_enqueued_entities_sp.Signal();
-    
-    UpdateEnqueuedEntitiesFlag();
-}
-
-void RenderGroup::RemoveEntity(Handle<Entity> &&entity, bool call_on_removed)
-{
-    // we cannot touch m_entities from any thread other than the render thread
-    // we'll have to assume it's here, and check later :/ 
-
-    // add it to pending removal list
-    // std::lock_guard guard(m_enqueued_entities_mutex);
-
-    m_enqueued_entities_sp.Wait();
-
-    const auto pending_removal_it = m_entities_pending_removal.Find(entity);
-
-    if (pending_removal_it == m_entities_pending_removal.End()) {
-        if (call_on_removed) {
-            entity->OnRemovedFromPipeline(this);
-        }
-
-        auto pending_addition_it = m_entities_pending_addition.Find(entity);
-
-        if (pending_addition_it != m_entities_pending_addition.End()) {
-            
-            // directly remove from list of ones pending addition
-            m_entities_pending_addition.Erase(pending_addition_it);
-        } else {
-            m_entities_pending_removal.PushBack(std::move(entity));
-        }
-
-        UpdateEnqueuedEntitiesFlag();
-    } else {
-        DebugLog(
-            LogType::Info,
-            "Entity #%u is already pending removal from pipeline #%u\n",
-            entity->GetID().value,
-            m_id.value
-        );
-    }
-
-    m_enqueued_entities_sp.Signal();
-}
-
-void RenderGroup::PerformEnqueuedEntityUpdates(UInt frame_index)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    // std::lock_guard guard(m_enqueued_entities_mutex);
-
-    m_enqueued_entities_sp.Wait();
-
-    if (m_entities_pending_removal.Any()) {
-        for (auto it = m_entities_pending_removal.Begin(); it != m_entities_pending_removal.End();) {
-            const auto entities_it = m_entities.Find(*it); // oof
-            
-            if (entities_it != m_entities.End()) {
-                m_entities.Erase(entities_it);
-            }
-
-            it = m_entities_pending_removal.Erase(it);
-        }
-    }
-
-    if (m_entities_pending_addition.Any()) {
-        // we only add entities that are fully ready,
-        // keeping ones that aren't finished initializing in the vector,
-        // they should be finished on the next pass
-        
-        auto it = m_entities_pending_addition.Begin();
-        
-        while (it != m_entities_pending_addition.End()) {
-            AssertThrow(*it != nullptr);
-            // TODO: Swap with drawproxy Mesh?
-            if ((*it)->GetMesh() == nullptr // TODO: I don't believe it's threadsafe to just check if this is null like this
-                || m_entities.Find(*it) != m_entities.End()) { // :(
-                it = m_entities_pending_addition.Erase(it);
-                
-                continue;
-            }
-            
-            if ((*it)->IsReady() && (*it)->GetMesh()->IsReady()) {
-                InitObject(*it);
-                m_entities.PushBack(std::move(*it));
-                it = m_entities_pending_addition.Erase(it);
-                
-                continue;
-            }
-            
-            // not ready, keep looping.
-            ++it;
-        }
-    }
-
-    m_enqueued_entities_sp.Signal();
-
-    UpdateEnqueuedEntitiesFlag();
-}
-
 void RenderGroup::Init()
 {
     if (IsInitCalled()) {
@@ -278,11 +149,6 @@ void RenderGroup::Init()
 
     AssertThrow(m_shader.IsValid());
     InitObject(m_shader);
-
-    for (auto &&entity : m_entities) {
-        AssertThrow(entity.IsValid());
-        InitObject(entity);
-    }
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (auto &command_buffer : m_command_buffers[i]) {
@@ -338,31 +204,6 @@ void RenderGroup::Init()
                                                  // this, as the indirect renderer has a call back that needs to be exec'd
                                                  // before the destructor is called
 
-            for (auto &&entity : m_entities) {
-                AssertThrow(entity.IsValid());
-
-                entity->OnRemovedFromPipeline(this);
-            }
-
-            m_entities.Clear();
-
-            {
-                m_enqueued_entities_sp.Wait();
-
-                for (auto &&entity : m_entities_pending_addition) {
-                    if (entity == nullptr) {
-                        continue;
-                    }
-
-                    entity->OnRemovedFromPipeline(this);
-                }
-
-                m_entities_pending_addition.Clear();
-                m_entities_pending_removal.Clear();
-
-                m_enqueued_entities_sp.Signal();
-            }
-
             m_shader.Reset();
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -388,10 +229,6 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
     AssertReady();
 
-    /*if (m_enqueued_entities_flag.load()) {
-        PerformEnqueuedEntityUpdates(frame->GetFrameIndex());
-    }*/
-    
     m_indirect_renderer.GetDrawState().Reset();
     m_divided_draw_calls.Clear();
 
@@ -751,7 +588,6 @@ void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
     Threads::AssertOnThread(THREAD_RENDER);
     m_draw_proxies = std::move(draw_proxies);
 }
-
 
 // Proxied methods
 

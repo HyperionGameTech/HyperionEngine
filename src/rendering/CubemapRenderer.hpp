@@ -83,7 +83,6 @@ private:
     }
 
     void CreateImagesAndBuffers();
-    void CreateRenderGroup();
     void CreateShader();
     void CreateFramebuffer();
 

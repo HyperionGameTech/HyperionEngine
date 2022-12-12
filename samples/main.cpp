@@ -227,8 +227,8 @@ public:
             zombie.Translate(Vector3(0, 0, -9));
             auto zombie_entity = zombie[0].GetEntity();
             zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 1.0f));
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.21f);
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
             zombie_entity->RebuildRenderableAttributes();
             InitObject(zombie_entity);
@@ -260,7 +260,7 @@ public:
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.1f, 0.1f, 0.1f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                100000.0f
+                250000.0f
             ));
 
             m_scene->AddLight(m_sun);
@@ -292,7 +292,7 @@ public:
             )));
 
             for (auto &light : m_point_lights) {
-                //m_scene->AddLight(light);
+                m_scene->AddLight(light);
             }
         }
 
@@ -663,8 +663,6 @@ public:
 
 };
 } // namespace hyperion::v2
-
-
 
 int main()
 {
