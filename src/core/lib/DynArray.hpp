@@ -7,6 +7,7 @@
 #include <util/Defines.hpp>
 #include <Types.hpp>
 #include <core/lib/CMemory.hpp>
+#include <core/lib/ValueStorage.hpp>
 #include <system/Debug.hpp>
 #include <HashCode.hpp>
 #include <math/MathUtil.hpp>
@@ -20,53 +21,6 @@ namespace hyperion {
 namespace containers {
 namespace detail {
 
-template <class T>
-struct alignas(T) ValueStorage
-{
-    alignas(T) std::byte data_buffer[sizeof(T)];
-
-    T &Get()
-    {
-        return *reinterpret_cast<T *>(&data_buffer);
-    }
-
-    [[nodiscard]] const T &Get() const
-    {
-        return *reinterpret_cast<const T *>(&data_buffer);
-    }
-};
-
-struct alignas(16) Tmp { int x; float y; void *stuff[16]; };
-static_assert(sizeof(ValueStorage<Tmp>) == sizeof(Tmp));
-static_assert(alignof(ValueStorage<Tmp>) == alignof(Tmp));
-
-template <class T, SizeType Sz>
-struct InlineValueStorage
-{
-    ValueStorage<T> data[Sz];
-
-    ValueStorage<T> &operator[](SizeType index)
-        { return data[index]; }
-
-    const ValueStorage<T> &operator[](SizeType index) const
-        { return data[index]; }
-};
-
-template <class T>
-struct InlineValueStorage<T, 0>
-{
-    ValueStorage<char> data[1];
-
-    /*ValueStorage<T> &operator[](SizeType index)
-        { return data[index]; }
-
-    const ValueStorage<T> &operator[](SizeType index) const
-        { return data[index]; }*/
-};
-
-static_assert(sizeof(InlineValueStorage<void *, 200>) == sizeof(void *) * 200);
-static_assert(sizeof(InlineValueStorage<void *, 0>) == 1);
-
 /*! Vector class with smart front removal and inline storage so small lists
     do not require any heap allocation (and are faster than using a st::vector).
     Otherwise, average speed is about the same as std::vector in most cases.
@@ -75,10 +29,10 @@ static_assert(sizeof(InlineValueStorage<void *, 0>) == 1);
 */
 
 template <class T, SizeType NumInlineBytes = 256u>
-class DynArray : public ContainerBase<DynArray<T, NumInlineBytes>, UInt>
+class DynArray : public ContainerBase<DynArray<T, NumInlineBytes>, SizeType>
 {
 public:
-    using Base = ContainerBase<DynArray<T, NumInlineBytes>, UInt>;
+    using Base = ContainerBase<DynArray<T, NumInlineBytes>, SizeType>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
     using Storage = ValueStorage<ValueType>;
@@ -368,13 +322,13 @@ private:
     union {
         // dynamic memory
         Storage *m_buffer;
-        InlineValueStorage<ValueType, num_inline_elements> m_inline_storage;
+        ValueStorageArray<ValueType, num_inline_elements> m_inline_storage;
     };
 
 protected:
     bool m_is_dynamic;
 
-    typename DynArray::Base::KeyType m_start_offset;
+    SizeType m_start_offset;
 };
 
 template <class T, SizeType NumInlineBytes>
@@ -449,8 +403,8 @@ DynArray<T, NumInlineBytes>::~DynArray()
 {
     auto *buffer = GetStorage();
 
-    for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-        Memory::Destruct(buffer[i].Get());
+    for (SizeType i = m_size; i > m_start_offset;) {
+        Memory::Destruct(buffer[--i].Get());
     }
     
     // only nullptr if it has been move()'d in which case size would be 0
@@ -471,8 +425,8 @@ auto DynArray<T, NumInlineBytes>::operator=(const DynArray &other) -> DynArray&
     auto *other_buffer = other.GetStorage();
 
     if (m_capacity < other.m_capacity) {
-        for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-            Memory::Destruct(buffer[i].Get());
+        for (SizeType i = m_size; i > m_start_offset;) {
+            Memory::Destruct(buffer[--i].Get());
         }
 
         if (m_is_dynamic) {
@@ -529,8 +483,8 @@ auto DynArray<T, NumInlineBytes>::operator=(DynArray &&other) noexcept -> DynArr
     {
         auto *buffer = GetStorage();
 
-        for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-            Memory::Destruct(buffer[i].Get());
+        for (SizeType i = m_size; i > m_start_offset;) {
+            Memory::Destruct(buffer[--i].Get());
         }
 
         if (m_is_dynamic) {
@@ -561,8 +515,8 @@ auto DynArray<T, NumInlineBytes>::operator=(DynArray &&other) noexcept -> DynArr
         
         if constexpr (use_inline_storage) {
             // manually call destructors
-            for (Int64 i = other.m_size - 1; i >= other.m_start_offset; --i) {
-                Memory::Destruct(other.m_inline_storage[i].Get());
+            for (SizeType i = other.m_size; i > other.m_start_offset;) {
+                Memory::Destruct(other.m_inline_storage[--i].Get());
             }
         }
     }
@@ -623,8 +577,8 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
         }
 
         // manually call destructors of old buffer
-        for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-            Memory::Destruct(old_buffer[i].Get());
+        for (SizeType i = m_size; i > m_start_offset;) {
+            Memory::Destruct(old_buffer[--i].Get());
         }
 
         if (m_is_dynamic) {
@@ -647,8 +601,8 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
             }
 
             // call destructors on old buffer
-            for (Int64 i = m_size - 1; i >= m_start_offset; --i) {
-                Memory::Destruct(old_buffer[i].Get());
+            for (SizeType i = m_size; i > m_start_offset;) {
+                Memory::Destruct(old_buffer[--i].Get());
             }
 
             std::free(old_buffer);
@@ -677,7 +631,9 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
                     // shift right
                     const SizeType diff = copy_offset - m_start_offset;
 
-                    for (Int64 index = m_size - 1; index >= m_start_offset; --index) {
+                    for (SizeType index = m_size; index > m_start_offset;) {
+                        --index;
+
                         const auto move_index = index + diff;
 
                         if constexpr (std::is_move_constructible_v<T>) {
@@ -797,7 +753,9 @@ void DynArray<T, NumInlineBytes>::PushFront(const ValueType &value)
             auto *buffer = GetStorage();
 
             // shift over without realloc
-            for (Int64 index = Size() - 1; index >= 0; --index) {
+            for (SizeType index = Size(); index > 0;) {
+                --index;
+
                 const auto move_index = index + push_front_padding;
 
                 if constexpr (std::is_move_constructible_v<T>) {
@@ -835,7 +793,9 @@ void DynArray<T, NumInlineBytes>::PushFront(ValueType &&value)
             auto *buffer = GetStorage();
 
             // shift over without realloc
-            for (Int64 index = Size() - 1; index >= 0; --index) {
+            for (SizeType index = Size(); index > 0;) {
+                --index;
+
                 const auto move_index = index + push_front_padding;
 
                 if constexpr (std::is_move_constructible_v<T>) {

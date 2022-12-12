@@ -3,6 +3,7 @@
 
 #include <system/Debug.hpp>
 #include <Types.hpp>
+#include <core/lib/ValueStorage.hpp>
 #include <HashCode.hpp>
 
 namespace hyperion {
@@ -204,12 +205,7 @@ public:
     }
 
 private:
-    struct Storage
-    {
-        using StorageType = typename std::aligned_storage_t<sizeof(T), alignof(T)>;
-
-        StorageType data_buffer;
-    } m_storage;
+    ValueStoage<T> m_storage;
 
     bool m_has_value;
 };
