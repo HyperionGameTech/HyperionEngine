@@ -122,7 +122,7 @@ public:
             Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
         ));*/
         m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
-        
+
         { // adding lights to scene
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
@@ -144,7 +144,7 @@ public:
                 2.0f,
                 40.0f
             )));
-            
+
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(40.5f, 50.0f, 40.1f),
                 Color(0.0f, 1.0f, 0.0f),
@@ -228,7 +228,7 @@ public:
                 skydome_node.GetEntity()->AddController<SkydomeController>();
             }
         }
-        
+
         if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
             m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
                 HYP_NAME(VCTRenderer0),
@@ -237,13 +237,13 @@ public:
         }
 
         // m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
-        
-        
+
+
         m_scene->GetFogParams().start_distance = 5000.0f;
         m_scene->GetFogParams().end_distance = 40000.0f;
 
         Engine::Get()->GetWorld()->AddScene(m_scene);
-        
+
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("test_model", "models/sponza/sponza.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
@@ -261,7 +261,7 @@ public:
         auto test_model = obj_models["test_model"].Get<Node>();//Engine::Get()->GetAssetManager().Load<Node>("../data/dump2/sponza.fbom");
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
-        
+
         auto monkey_fbx = GetScene()->GetRoot().AddChild(obj_models["monkey_fbx"].Get<Node>());
         monkey_fbx.SetName("monkey_fbx");
         //monkey_fbx.Scale(0.2f);
@@ -270,7 +270,7 @@ public:
         material_test_obj.Scale(2.0f);
         material_test_obj.Translate(Vector3(0.0f, 4.0f, 9.0f));
         GetScene()->GetRoot().AddChild(material_test_obj);
-        
+
         if (auto dude = obj_models["dude3"].Get<Node>()) {
             dude.SetName("dude");
             for (auto &child : dude.GetChildren()) {
@@ -280,7 +280,7 @@ public:
                     }
                 }
             }
-        
+
             GetScene()->GetRoot().AddChild(dude);
         }
 
@@ -300,7 +300,7 @@ public:
                 test_model.GetWorldAABB()
             );
         }
-        
+
         m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
             HYP_NAME(Shadows),
             m_sun, test_model.GetWorldAABB()
@@ -340,6 +340,26 @@ public:
             }
         }
 
+        if (true) {
+            auto container_node = GetUI().GetScene()->GetRoot().AddChild();
+            container_node.SetEntity(CreateObject<Entity>());
+            container_node.GetEntity()->SetTranslation(Vector3(0.4f, 0.4f, 0.0f));
+            container_node.GetEntity()->AddController<UIContainerController>();
+
+            container_node.Scale(0.2f);
+
+            auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
+            btn_node.SetEntity(CreateObject<Entity>());
+            btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));
+            btn_node.GetEntity()->AddController<UIButtonController>();
+
+            if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
+                controller->SetScript(
+                    Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
+            }
+
+            btn_node.Scale(0.01f);
+        }
         auto cubemap = CreateObject<Texture>(TextureCube(
             Engine::Get()->GetAssetManager().LoadMany<Texture>(
                 "textures/chapel/posx.jpg",
@@ -486,7 +506,6 @@ public:
         }
 
         if (true) {
-#if 0
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
             mh.Scale(0.05f);
@@ -516,7 +535,7 @@ public:
 
             GetScene()->GetRoot().AddChild(tree);
         }
-        
+
         if (true) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
@@ -838,12 +857,12 @@ public:
 int main()
 {
     using namespace hyperion::renderer;
-    
+
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
     application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 720));
     
     SystemEvent event;
-    
+
     auto *my_game = new MyGame(application);
 
     Engine::Get()->Initialize(application);

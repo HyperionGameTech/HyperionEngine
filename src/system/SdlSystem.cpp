@@ -28,7 +28,21 @@ ApplicationWindow::ApplicationWindow(const ANSIString &title, UInt width, UInt h
 
 SDLApplicationWindow::SDLApplicationWindow(const ANSIString &title, UInt width, UInt height)
     : ApplicationWindow(title, width, height),
-      window(nullptr)
+      window(nullptr),
+      m_system_cursors {
+        SDLSystemCursor(SYSTEM_CURSOR_DEFAULT),
+        SDLSystemCursor(SYSTEM_CURSOR_IBEAM),
+        SDLSystemCursor(SYSTEM_CURSOR_WAIT),
+        SDLSystemCursor(SYSTEM_CURSOR_CROSSHAIR),
+        SDLSystemCursor(SYSTEM_CURSOR_WAIT_ARROW),
+        SDLSystemCursor(SYSTEM_CURSOR_SIZE_NWSE),
+        SDLSystemCursor(SYSTEM_CURSOR_SIZE_NESW),
+        SDLSystemCursor(SYSTEM_CURSOR_SIZE_HORIZONTAL),
+        SDLSystemCursor(SYSTEM_CURSOR_SIZE_VERTICAL),
+        SDLSystemCursor(SYSTEM_CURSOR_SIZE_ALL),
+        SDLSystemCursor(SYSTEM_CURSOR_NO),
+        SDLSystemCursor(SYSTEM_CURSOR_HAND)
+      }
 {
 }
 
@@ -46,6 +60,8 @@ void SDLApplicationWindow::Initialize()
         Int(m_width), Int(m_height),
         SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
     );
+
+    m_current_cursor = &m_system_cursors[SYSTEM_CURSOR_DEFAULT];
 
     // make sure to use SDL_free on file name strings for these events
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
@@ -68,6 +84,22 @@ VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
 void SDLApplicationWindow::SetMousePosition(Int x, Int y)
 {
     SDL_WarpMouseInWindow(window, x, y);
+}
+
+
+void SDLApplicationWindow::SetCursor(SDLSystemCursor &cursor) const
+{
+    SDL_Cursor *internal_cursor = cursor.GetInternalCursor();
+    if (internal_cursor == nullptr) {
+        return;
+    }
+    SDL_SetCursor(internal_cursor);
+}
+
+void SDLApplicationWindow::SetCursor(SystemCursorType cursor_id) const
+{
+    SDLSystemCursor cursor = m_system_cursors[cursor_id];
+    SetCursor(cursor);
 }
 
 MouseState SDLApplicationWindow::GetMouseState()

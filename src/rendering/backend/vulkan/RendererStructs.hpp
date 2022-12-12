@@ -84,6 +84,10 @@ struct Extent2D
         { 
             UInt32 width, height;
         };
+        struct
+        {
+            UInt32 x, y;
+        };
 
         UInt32 v[2];
     };
@@ -156,6 +160,33 @@ struct Extent2D
 
         return *this;
     }
+
+    Extent2D operator-(const Extent2D &other) const
+    {
+        return { width - other.width, height - other.height };
+    }
+
+    Extent2D &operator-=(const Extent2D &other)
+    {
+        width -= other.width;
+        height -= other.height;
+
+        return *this;
+    }
+
+    Extent2D operator+(const Extent2D &other) const
+    {
+        return { width + other.width, height + other.height };
+    }
+
+    Extent2D &operator+=(const Extent2D &other)
+    {
+        width += other.width;
+        height += other.height;
+
+        return *this;
+    }
+
     
     Extent2D operator/(UInt32 scalar) const
     {

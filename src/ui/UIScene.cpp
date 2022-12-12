@@ -99,6 +99,8 @@ bool UIScene::OnInputEvent(
     const SystemEvent &event
 )
 {
+    const ApplicationWindow *window = input_manager->GetWindow();
+
     switch (event.GetType()) {
     case SystemEventType::EVENT_MOUSEMOTION: {
         // check intersects with objects on mouse movement.
@@ -112,7 +114,7 @@ bool UIScene::OnInputEvent(
         const auto mouse_x = mouse_position.x.load();
         const auto mouse_y = mouse_position.y.load();
 
-        const auto extent = input_manager->GetWindow()->GetExtent();
+        const auto extent = window->GetExtent();
 
         const Vector2 mouse_screen(
             Float(mouse_x) / Float(extent.width),
@@ -126,6 +128,7 @@ bool UIScene::OnInputEvent(
             drag_event.type = UIEvent::Type::MOUSE_DRAG;
             drag_event.original_event = &event;
             drag_event.mouse_position = mouse_screen;
+            drag_event.window = window;
 
             for (auto &it : m_mouse_held_times) {
                 if (it.second >= 0.05f) {
@@ -148,10 +151,14 @@ bool UIScene::OnInputEvent(
                 auto it = m_mouse_held_times.Find(entity->GetID());
 
                 if (it == m_mouse_held_times.End()) {
+                    m_last_hovered_entity = entity->GetID();
+                    m_hovering = true;
+
                     UIEvent hover_event;
                     hover_event.type = UIEvent::Type::MOUSE_HOVER;
                     hover_event.original_event = &event;
                     hover_event.mouse_position = mouse_screen;
+                    hover_event.window = window;
 
                     for (auto &it : entity->GetControllers()) {
                         if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
@@ -162,10 +169,29 @@ bool UIScene::OnInputEvent(
                     }
                 }
             }
+        } else if (m_hovering) {
+            if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(m_last_hovered_entity))) {
+                UIEvent hover_event;
+                hover_event.type = UIEvent::Type::MOUSE_HOVER_LOST;
+                hover_event.original_event = &event;
+                hover_event.mouse_position = mouse_screen;
+                hover_event.window = window;
+
+                for (auto &it: entity->GetControllers()) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                        ui_controller->OnEvent(hover_event);
+
+                        event_handled = true;
+                    }
+                }
+                m_hovering = false;
+            }
         }
 
         return event_handled;
     }
+
+
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN: {
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
@@ -186,6 +212,7 @@ bool UIScene::OnInputEvent(
             ui_event.type = UIEvent::Type::MOUSE_DOWN;
             ui_event.original_event = &event;
             ui_event.mouse_position = mouse_screen;
+            ui_event.window = window;
 
             if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
                 m_mouse_held_times.Insert(entity->GetID(), 0.0f);
