@@ -110,13 +110,15 @@ public:
         Game::InitGame();
 
         if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
-            m_scene->GetEnvironment()->AddRenderComponent<SparseVoxelOctree>();
+            m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(VoxelConeTracing::Params {
+                BoundingBox(-256.0f, 256.0f)
+            });
         }
         
         m_scene->SetCamera(
             CreateObject<Camera>(
                 70.0f,
-                1920, 1080,
+                1280, 768,
                 0.5f, 30000.0f
             )
         );
@@ -669,7 +671,7 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 768));
     
     SystemEvent event;
 

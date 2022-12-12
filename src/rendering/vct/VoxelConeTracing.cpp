@@ -155,36 +155,8 @@ void VoxelConeTracing::InitGame()
     // add all entities from environment scene
     AssertThrow(GetParent()->GetScene() != nullptr);
 
+    m_scene->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
     Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
-
-    for (auto &it : GetParent()->GetScene()->GetEntities()) {
-        auto &entity = it.second;
-
-        if (entity == nullptr) {
-            continue;
-        }
-
-        m_scene->AddEntity(entity);
-    }
-}
-
-void VoxelConeTracing::OnEntityAdded(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void VoxelConeTracing::OnEntityRemoved(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-}
-
-void VoxelConeTracing::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
 }
 
 void VoxelConeTracing::OnUpdate(GameCounter::TickUnit delta)

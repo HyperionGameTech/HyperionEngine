@@ -16,35 +16,6 @@
 namespace hyperion {
 namespace renderer {
 
-enum class ResourceState : UInt
-{
-    UNDEFINED,
-    PRE_INITIALIZED,
-    COMMON,
-    VERTEX_BUFFER,
-    CONSTANT_BUFFER,
-    INDEX_BUFFER,
-    RENDER_TARGET,
-    UNORDERED_ACCESS,
-    DEPTH_STENCIL,
-    SHADER_RESOURCE,
-    STREAM_OUT,
-    INDIRECT_ARG,
-    COPY_DST,
-    COPY_SRC,
-    RESOLVE_DST,
-    RESOLVE_SRC,
-    PRESENT,
-    READ_GENERIC,
-    PREDICATION
-};
-
-} // namespace renderer
-} // namespace hyperion
-
-namespace hyperion {
-namespace renderer {
-
 class Instance;
 class Device;
 class CommandBuffer;
@@ -230,6 +201,9 @@ public:
     GPUBuffer(const GPUBuffer &other) = delete;
     GPUBuffer &operator=(const GPUBuffer &other) = delete;
     ~GPUBuffer();
+
+    bool IsCPUAccessible() const
+        { return vma_usage != VMA_MEMORY_USAGE_GPU_ONLY; }
 
     void InsertBarrier(
         CommandBuffer *command_buffer,

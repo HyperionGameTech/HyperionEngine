@@ -12,6 +12,8 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(UpdateRenderGroupDrawables) : RenderCommand
 {
     RenderGroup *render_group;
@@ -76,6 +78,8 @@ struct RENDER_COMMAND(BindEnvProbes) : RenderCommand
         HYPERION_RETURN_OK;
     }
 };
+
+#pragma endregion
 
 Scene::Scene(Handle<Camera> &&camera)
     : Scene(std::move(camera), { })
@@ -358,7 +362,6 @@ bool Scene::AddEntityInternal(Handle<Entity> &&entity)
 bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
 {
     // Threads::AssertOnThread(THREAD_GAME);
-    // AssertReady();
 
     if (!entity) {
         return false;
@@ -395,7 +398,7 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
 
 bool Scene::HasEntity(ID<Entity> entity_id) const
 {
-    // Threads::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
 
     return m_entities.Find(entity_id) != m_entities.End();
 }
@@ -449,7 +452,6 @@ void Scene::AddPendingEntities()
             }
         }
 
-        m_environment->OnEntityAdded(entity);
         m_entities.Insert(id, std::move(entity));
     }
 
@@ -497,7 +499,6 @@ void Scene::RemovePendingEntities()
             }
         }
 
-        m_environment->OnEntityRemoved(it->second);
         m_entities.Erase(it);
     }
 
@@ -670,40 +671,33 @@ void Scene::Update(GameCounter::TickUnit delta)
 
     EnqueueRenderUpdates();
 
-    if (IsWorldScene()) {
-        // update render environment
-        m_environment->Update(delta);
+    // update render environment
+    m_environment->Update(delta);
 
-        // update each light
-        for (auto &it : m_lights) {
-            Handle<Light> &light = it.second;
-            
-            const bool in_frustum = light->GetType() != LightType::DIRECTIONAL
-                || (m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(light->GetWorldAABB()));
+    // update each light
+    for (auto &it : m_lights) {
+        Handle<Light> &light = it.second;
+        
+        const bool in_frustum = light->GetType() != LightType::DIRECTIONAL
+            || (m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(light->GetWorldAABB()));
 
-            if (in_frustum != light->IsVisible(GetID())) {
-                light->SetIsVisible(GetID(), in_frustum);
-            }
-
-            light->Update();
+        if (in_frustum != light->IsVisible(GetID())) {
+            light->SetIsVisible(GetID(), in_frustum);
         }
 
-        // update each environment probe
-        for (auto &it : m_env_probes) {
-            Handle<EnvProbe> &env_probe = it.second;
+        light->Update();
+    }
 
-            env_probe->Update();
-        }
+    // update each environment probe
+    for (auto &it : m_env_probes) {
+        Handle<EnvProbe> &env_probe = it.second;
+
+        env_probe->Update();
     }
 
     m_draw_collection.Reset();
 
-    RenderableAttributeSet override_attributes;
-    const bool has_override_renderable_attributes = HasOverrideRenderableAttributes();
-
-    if (has_override_renderable_attributes) {
-        override_attributes = m_override_renderable_attributes.Get();
-    }
+    const RenderableAttributeSet *override_attributes = m_override_renderable_attributes.TryGet();
 
     const Handle<Framebuffer> &framebuffer = m_camera
         ? m_camera->GetFramebuffer()
@@ -712,25 +706,21 @@ void Scene::Update(GameCounter::TickUnit delta)
     // update each entity
     for (auto &it : m_entities) {
         Handle<Entity> &entity = it.second;
-        
-        if (IsWorldScene()) {
-            entity->Update(delta);
+
+        entity->Update(delta);
+
+        if (entity->IsRenderable()) {
+            PushEntityToRender(entity, override_attributes);
         }
+    }
 
-        RenderableAttributeSet attributes = entity->GetRenderableAttributes();
-
-        if (framebuffer) {
-            attributes.framebuffer_id = framebuffer->GetID();
-        }
-
-        if (has_override_renderable_attributes) {
-            attributes.shader_id = override_attributes.shader_id ? override_attributes.shader_id : attributes.shader_id;
-            attributes.material_attributes = override_attributes.material_attributes;
-            attributes.stencil_state = override_attributes.stencil_state;
-        }
-
-        if (entity->GetMesh()) {
-            m_draw_collection.Insert(attributes, entity->GetDrawProxy());
+    if (m_parent_scene) {
+        for (auto &it : m_parent_scene->GetEntities()) {
+            Handle<Entity> &entity = it.second;
+            
+            if (entity->IsRenderable()) {
+                PushEntityToRender(entity, override_attributes);
+            }
         }
     }
 
@@ -749,6 +739,8 @@ void Scene::Update(GameCounter::TickUnit delta)
                 continue;
             }
 
+            InitObject(render_group);
+
             auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
             AssertThrow(insert_result.second);
 
@@ -757,6 +749,27 @@ void Scene::Update(GameCounter::TickUnit delta)
         
         PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
     }
+}
+
+void Scene::PushEntityToRender(const Handle<Entity> &entity, const RenderableAttributeSet *override_attributes)
+{
+    const Handle<Framebuffer> &framebuffer = m_camera
+        ? m_camera->GetFramebuffer()
+        : Handle<Framebuffer>::empty;
+
+    RenderableAttributeSet attributes = entity->GetRenderableAttributes();
+
+    if (framebuffer) {
+        attributes.framebuffer_id = framebuffer->GetID();
+    }
+
+    if (override_attributes) {
+        attributes.shader_id = override_attributes->shader_id ? override_attributes->shader_id : attributes.shader_id;
+        attributes.material_attributes = override_attributes->material_attributes;
+        attributes.stencil_state = override_attributes->stencil_state;
+    }
+
+    m_draw_collection.Insert(attributes, entity->GetDrawProxy());
 }
 
 void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant_size)

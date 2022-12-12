@@ -532,7 +532,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     auto *vct_descriptor_set = GetGPUInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
     
-#if 0
+#if 1
     // voxel image
     vct_descriptor_set
         ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(0)
@@ -1073,7 +1073,6 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     
     m_instance->GetDescriptorPool().AddPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
-    GetGPUDevice()->Wait();
     m_instance->GetDescriptorPool().UpdateDescriptorSets(m_instance->GetDevice(), frame_index);
 
     m_safe_deleter.PerformEnqueuedDeletions();

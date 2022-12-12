@@ -87,9 +87,6 @@ private:
     void CreateShader();
     void CreateFramebuffer();
 
-    virtual void OnEntityAdded(Handle<Entity> &entity) override;
-    virtual void OnEntityRemoved(Handle<Entity> &entity) override;
-    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override;
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     Extent2D m_cubemap_dimensions;

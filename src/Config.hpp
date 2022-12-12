@@ -30,6 +30,7 @@ enum OptionName
     CONFIG_HBIL,
 
     CONFIG_VOXEL_GI,
+    CONFIG_VOXEL_GI_SVO,
 
     CONFIG_MAX
 };

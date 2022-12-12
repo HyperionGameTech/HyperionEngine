@@ -159,21 +159,21 @@ public:
 
     void SetWorld(World *world);
 
-    ID<Scene> GetParentID() const
-        { return m_parent_id; }
+    const Handle<Scene> &GetParentScene() const
+        { return m_parent_scene; }
 
-    void SetParentID(ID<Scene> id)
-        { m_parent_id = id; }
+    void SetParentScene(const Handle<Scene> &parent_scene)
+        { m_parent_scene = parent_scene; }
 
     /*! \brief A scene is a "virtual scene" if it exists not as an owner of entities,
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
     bool IsVirtualScene() const
-        { return m_parent_id.Value() != 0; }
+        { return m_parent_scene.IsValid(); }
 
     bool IsWorldScene() const
-        { return m_parent_id.Value() == 0; }
+        { return !m_parent_scene.IsValid(); }
 
     void SetOverrideRenderableAttributes(const RenderableAttributeSet &attributes)
         { m_override_renderable_attributes.Set(attributes); }
@@ -213,6 +213,8 @@ private:
     void RemoveFromRenderGroup(Handle<Entity> &entity, RenderGroup *renderer_instance);
     void RemoveFromRenderGroups(Handle<Entity> &entity);
 
+    void PushEntityToRender(const Handle<Entity> &entity, const RenderableAttributeSet *override_attributes);
+
     Handle<Camera> m_camera;
     NodeProxy m_root_node_proxy;
     UniquePtr<RenderEnvironment> m_environment;
@@ -234,7 +236,7 @@ private:
     Handle<TLAS> m_tlas;
 
     Matrix4 m_last_view_projection_matrix;
-    ID<Scene> m_parent_id;
+    Handle<Scene> m_parent_scene;
 
     EntityDrawCollection m_draw_collection;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;

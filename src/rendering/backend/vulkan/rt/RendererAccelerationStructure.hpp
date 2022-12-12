@@ -3,9 +3,9 @@
 
 #include <math/Matrix4.hpp>
 
-#include "../RendererResult.hpp"
-#include "../RendererBuffer.hpp"
-#include "../RendererStructs.hpp"
+#include <rendering/backend/RendererResult.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererStructs.hpp>
 
 #include <Types.hpp>
 

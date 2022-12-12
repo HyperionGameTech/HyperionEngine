@@ -140,11 +140,6 @@ public:
     UInt32 GetEnabledRenderComponentsMask() const
         { return m_current_enabled_render_components_mask; }
 
-    void OnEntityAdded(Handle<Entity> &entity);
-    void OnEntityRemoved(Handle<Entity> &entity);
-    // only called when meaningful attributes have changed
-    void OnEntityRenderableAttributesChanged(Handle<Entity> &entity);
-
     Float GetGlobalTimer() const
         { return m_global_timer; }
 

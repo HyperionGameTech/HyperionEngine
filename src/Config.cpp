@@ -18,7 +18,8 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_SSR, "ScreenSpaceReflections" },
     { CONFIG_HBAO, "HBAO" },
     { CONFIG_HBIL, "HBIL" },
-    { CONFIG_VOXEL_GI, "VCTGlobalIllumination" }
+    { CONFIG_VOXEL_GI, "VCTGlobalIllumination" },
+    { CONFIG_VOXEL_GI_SVO, "VCTGlobalIlluminationSVO" }
 };
 
 OptionName Configuration::StringToOptionName(const String &str)
@@ -161,6 +162,7 @@ void Configuration::SetToDefaultConfiguration()
     
     m_variables[CONFIG_SSR] = !m_variables[CONFIG_RT_REFLECTIONS];
     m_variables[CONFIG_VOXEL_GI] = !m_variables[CONFIG_RT_GI];
+    m_variables[CONFIG_VOXEL_GI_SVO] = false;
 }
 
 } // namespace hyperion::v2

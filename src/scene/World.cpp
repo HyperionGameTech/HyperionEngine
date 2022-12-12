@@ -29,8 +29,8 @@ void World::Init()
         PerformSceneUpdates();
     }
 
-    for (auto &it : m_scenes) {
-        InitObject(it.second);
+    for (Handle<Scene> &scene : m_scenes) {
+        InitObject(scene);
     }
     
     EngineComponentBase::Init();
@@ -40,12 +40,12 @@ void World::Init()
     SetReady(true);
 
     OnTeardown([this]() {
-        for (auto &it : m_scenes) {
-            if (!it.second) {
+        for (Handle<Scene> &scene : m_scenes) {
+            if (!scene) {
                 continue;
             }
 
-            it.second->SetWorld(nullptr);
+            scene->SetWorld(nullptr);
         }
         
         m_scenes.Clear();
@@ -65,32 +65,40 @@ void World::PerformSceneUpdates()
 {
     std::lock_guard guard(m_scene_update_mutex);
 
-    for (const ID<Scene> &scene_id : m_scenes_pending_removal) {
-        if (!scene_id) {
+    for (Handle<Scene> &scene : m_scenes_pending_removal) {
+        if (!scene) {
             continue;
         }
 
-        const auto it = m_scenes.Find(scene_id);
+        const auto it = m_scenes.Find(scene);
 
         if (it == m_scenes.End()) {
             continue;
         }
 
-        it->second->SetWorld(nullptr);
-
+        scene->SetWorld(nullptr);
         m_scenes.Erase(it);
+
+        // remove scenes with that as parent
+        for (auto other_it = m_scenes.Begin(); other_it != m_scenes.End();) {
+            if ((*other_it)->GetParentScene() == scene) {
+                other_it = m_scenes.Erase(other_it);
+            } else {
+                ++other_it;
+            }
+        }
     }
 
     m_scenes_pending_removal.Clear();
 
-    for (auto &scene : m_scenes_pending_addition) {
+    for (Handle<Scene> &scene : m_scenes_pending_addition) {
         if (!scene) {
             continue;
         }
 
         scene->SetWorld(this);
 
-        m_scenes.Insert(scene->GetID(), std::move(scene));
+        m_scenes.Insert(std::move(scene));
     }
 
     m_scenes_pending_addition.Clear();
@@ -106,8 +114,8 @@ void World::Update(GameCounter::TickUnit delta)
 
     m_octree.NextVisibilityState();
 
-    for (auto &it : m_scenes) {
-        m_octree.CalculateVisibility(it.second.Get());
+    for (Handle<Scene> &scene : m_scenes) {
+        m_octree.CalculateVisibility(scene.Get());
     }
 
     m_physics_world.Tick(static_cast<GameCounter::TickUnitHighPrec>(delta));
@@ -116,8 +124,8 @@ void World::Update(GameCounter::TickUnit delta)
         PerformSceneUpdates();
     }
 
-    for (auto &it : m_scenes) {
-        it.second->Update(delta);
+    for (Handle<Scene> &scene : m_scenes) {
+        scene->Update(delta);
     }
 }
 
@@ -129,6 +137,11 @@ void World::Render(Frame *frame)
 
     // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
     Engine::Get()->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
+}
+
+void World::AddScene(const Handle<Scene> &scene)
+{
+    AddScene(Handle<Scene>(scene));
 }
 
 void World::AddScene(Handle<Scene> &&scene)
@@ -154,7 +167,7 @@ void World::RemoveScene(ID<Scene> id)
 
     std::lock_guard guard(m_scene_update_mutex);
 
-    m_scenes_pending_removal.Insert(id);
+    m_scenes_pending_removal.Insert(Handle<Scene>(id));
 
     m_has_scene_updates.store(true);
 }

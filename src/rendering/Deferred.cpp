@@ -6,7 +6,6 @@
 #include <asset/ByteReader.hpp>
 #include <util/fs/FsUtil.hpp>
 
-
 namespace hyperion::v2 {
 
 using renderer::Image;
@@ -36,6 +35,8 @@ void DeferredPass::CreateShader()
     props.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
     props.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
     props.Set("ENV_PROBE_ENABLED", true);
+    props.Set("VCT_ENABLED_TEXTURE", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI));
+    props.Set("VCT_ENABLED_SVO", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
 
     if (m_is_indirect_pass) {
         compiled_shader = Engine::Get()->GetShaderCompiler().GetCompiledShader(

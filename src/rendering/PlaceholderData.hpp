@@ -84,7 +84,10 @@ public:
 
         auto buffer = std::make_unique<T>();
         HYPERION_ASSERT_RESULT(buffer->Create(device, required_size_pow2));
-        buffer->Memset(device, required_size_pow2, 0x00); // fill with zeros
+
+        if (buffer->IsCPUAccessible()) {
+            buffer->Memset(device, required_size_pow2, 0x00); // fill with zeros
+        }
 
         const auto insert_result = buffer_container.Insert(required_size_pow2, std::move(buffer));
         AssertThrow(insert_result.second); // was inserted

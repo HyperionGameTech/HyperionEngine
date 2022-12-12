@@ -233,18 +233,9 @@ void CubemapRenderer::InitGame()
     AssertThrow(m_env_probe.IsValid());
     GetParent()->GetScene()->AddEnvProbe(m_env_probe);
 
-    m_scene->SetParentID(GetParent()->GetScene()->GetID());
+    m_scene->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
+
     Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
-
-    for (auto &it : GetParent()->GetScene()->GetEntities()) {
-        auto &entity = it.second;
-
-        if (!entity) {
-            continue;
-        }
-
-        m_scene->AddEntity(entity);
-    }
 }
 
 void CubemapRenderer::OnRemoved()
@@ -257,27 +248,6 @@ void CubemapRenderer::OnRemoved()
     GetParent()->GetScene()->RemoveEnvProbe(m_env_probe->GetID());
     
     Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-}
-
-void CubemapRenderer::OnEntityAdded(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void CubemapRenderer::OnEntityRemoved(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void CubemapRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
 }
 
 void CubemapRenderer::OnUpdate(GameCounter::TickUnit delta)

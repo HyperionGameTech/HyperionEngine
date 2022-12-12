@@ -75,13 +75,6 @@ public:
     /*! \brief Called when the component is removed. */
     virtual void ComponentRemoved() = 0;
 
-    /*! \brief Called when an entity is added to the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityAdded(Handle<Entity> &entity) { };
-    /*! \brief Called when an entity is removed from the parent scene. Runs in RENDER thread. */
-    virtual void OnEntityRemoved(Handle<Entity> &entity) { };
-    /*! \brief Called when an entity has meaningful attributes changed. Runs in RENDER thread. */
-    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) { };
-
 protected:
     RenderComponentName m_name;
     const UInt m_render_frame_slicing; // amount of frames to wait between render calls
@@ -159,10 +152,6 @@ public:
             ++m_render_frame_slicing_counter;
         }
     }
-
-    virtual void OnEntityAdded(Handle<Entity> &entity) override { }
-    virtual void OnEntityRemoved(Handle<Entity> &entity) override { }
-    virtual void OnEntityRenderableAttributesChanged(Handle<Entity> &entity) override { }
 
     virtual void ComponentRemoved() override { }
 

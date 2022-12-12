@@ -15,7 +15,7 @@ inline static constexpr UInt32 group_x_64(UInt32 x) { return (x >> 6u) + ((x & 0
 
 SparseVoxelOctree::SparseVoxelOctree()
     : EngineComponentBase(),
-      RenderComponent(550 /* TEMP */)
+      RenderComponent(10)
 {
 }
 
@@ -39,7 +39,7 @@ void SparseVoxelOctree::Init()
         m_voxelizer = std::make_unique<Voxelizer>();
         m_voxelizer->Init();
 
-        m_voxelizer->GetScene()->SetParentID(GetParent()->GetScene()->GetID());
+        m_voxelizer->GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
     }
 
     CreateBuffers();
@@ -143,27 +143,6 @@ void SparseVoxelOctree::InitGame()
 
         m_voxelizer->GetScene()->AddEntity(entity);
     }
-}
-
-void SparseVoxelOctree::OnEntityAdded(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void SparseVoxelOctree::OnEntityRemoved(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void SparseVoxelOctree::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
 }
 
 void SparseVoxelOctree::OnUpdate(GameCounter::TickUnit delta)

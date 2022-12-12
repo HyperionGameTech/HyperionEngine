@@ -140,15 +140,6 @@ void ShadowPass::CreateShader()
     InitObject(m_shader);
 }
 
-void ShadowPass::SetParentScene(ID<Scene> id)
-{
-    m_parent_scene_id = id;
-
-    if (m_scene != nullptr) {
-        m_scene->SetParentID(m_parent_scene_id);
-    }
-}
-
 void ShadowPass::CreateFramebuffer()
 {
     /* Add the filters' renderpass */
@@ -287,7 +278,6 @@ void ShadowPass::Create()
     m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
     m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
 
-    m_scene->SetParentID(m_parent_scene_id);
     InitObject(m_scene);
 
     //CreateRenderGroup();
@@ -423,47 +413,10 @@ void ShadowRenderer::Init()
 void ShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
-
     AssertReady();
 
-    m_shadow_pass.GetScene()->SetParentID(ID<Scene>(1)); // TEMP
-
+    m_shadow_pass.GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
     Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_shadow_pass.GetScene()));
-
-    for (auto &it : GetParent()->GetScene()->GetEntities()) {
-        auto &entity = it.second;
-
-        if (entity == nullptr) {
-            continue;
-        }
-
-        m_shadow_pass.GetScene()->AddEntity(entity);
-    }
-}
-
-void ShadowRenderer::OnEntityAdded(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-
-    
-    
-    //m_shadow_pass.GetScene()->AddEntity(entity);
-}
-
-void ShadowRenderer::OnEntityRemoved(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
-}
-
-void ShadowRenderer::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    AssertReady();
 }
 
 void ShadowRenderer::OnUpdate(GameCounter::TickUnit delta)

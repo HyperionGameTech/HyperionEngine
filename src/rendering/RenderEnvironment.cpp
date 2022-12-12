@@ -150,40 +150,6 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
     }
 }
 
-void RenderEnvironment::OnEntityAdded(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    m_entity_update_sp.Wait();
-    m_entities_pending_addition.Push(Handle<Entity>(entity));
-    m_entity_update_sp.Signal();
-    
-    m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_ENTITIES);
-}
-
-void RenderEnvironment::OnEntityRemoved(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    m_entity_update_sp.Wait();
-    m_entities_pending_removal.Push(Handle<Entity>(entity));
-    m_entity_update_sp.Signal();
-    
-    m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_ENTITIES);
-}
-
-// only called when meaningful attributes have changed
-void RenderEnvironment::OnEntityRenderableAttributesChanged(Handle<Entity> &entity)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    m_entity_update_sp.Wait();
-    m_entity_renderable_attribute_updates.Push(Handle<Entity>(entity));
-    m_entity_update_sp.Signal();
-    
-    m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_ENTITIES);
-}
-
 void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
 {
     Threads::AssertOnThread(THREAD_RENDER);
@@ -230,34 +196,6 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
     if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_ENTITIES) {
         inverse_mask |= RENDER_ENVIRONMENT_UPDATES_ENTITIES;
-
-        m_entity_update_sp.Wait();
-
-        while (m_entities_pending_addition.Any()) {
-            for (auto &it : m_render_components) {
-                it.second->OnEntityAdded(m_entities_pending_addition.Front());
-            }
-
-            m_entities_pending_addition.Pop();
-        }
-
-        while (m_entity_renderable_attribute_updates.Any()) {
-            for (auto &it : m_render_components) {
-                it.second->OnEntityRenderableAttributesChanged(m_entity_renderable_attribute_updates.Front());
-            }
-
-            m_entity_renderable_attribute_updates.Pop();
-        }
-
-        while (m_entities_pending_removal.Any()) {
-            for (auto &it : m_render_components) {
-                it.second->OnEntityRemoved(m_entities_pending_removal.Front());
-            }
-
-            m_entities_pending_removal.Pop();
-        }
-
-        m_entity_update_sp.Signal();
     }
 
     for (const auto &component : m_render_components) {
