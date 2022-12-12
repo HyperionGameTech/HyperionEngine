@@ -16,6 +16,8 @@ using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::FillMode;
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommand
 {
     UniquePtr<renderer::CommandBuffer> *command_buffers;
@@ -60,6 +62,8 @@ struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommand
         return result;
     }
 };
+
+#pragma endregion
 
 FullScreenPass::FullScreenPass(InternalFormat image_format)
     : FullScreenPass(Handle<Shader>(), image_format)

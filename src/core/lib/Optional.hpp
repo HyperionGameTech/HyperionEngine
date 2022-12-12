@@ -205,7 +205,7 @@ public:
     }
 
 private:
-    ValueStoage<T> m_storage;
+    ValueStorage<T> m_storage;
 
     bool m_has_value;
 };
