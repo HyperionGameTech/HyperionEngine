@@ -26,11 +26,14 @@ struct UIEvent
         MOUSE_UP,
         MOUSE_DRAG,
         MOUSE_HOVER,
+        MOUSE_HOVER_LOST,
+
         CLICK
     };
 
     Type type;
     Vector2 mouse_position;
+    const ApplicationWindow *window = nullptr;
     const SystemEvent *original_event = nullptr;
 
     Type GetType() const
@@ -38,6 +41,8 @@ struct UIEvent
 
     const SystemEvent *GetOriginalEvent() const
         { return original_event; }
+    const ApplicationWindow *GetWindow() const
+        { return window; }
 
     const Vector2 &GetMousePosition() const
         { return mouse_position; }

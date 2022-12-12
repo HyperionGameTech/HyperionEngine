@@ -61,6 +61,8 @@ public:
 private:
     Handle<Scene> m_scene;
     FlatMap<ID<Entity>, Float> m_mouse_held_times;
+    ID<Entity> m_last_hovered_entity;
+    bool m_hovering = false;
 };
 
 } // namespace hyperion::v2

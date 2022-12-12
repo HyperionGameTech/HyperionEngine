@@ -108,7 +108,7 @@ public:
     virtual void InitGame() override
     {
         Game::InitGame();
-        
+
         m_scene->SetCamera(
             CreateObject<Camera>(
                 70.0f,
@@ -133,7 +133,7 @@ public:
         }
 #endif
         Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
-
+#if 0
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("house", "models/house.obj");
@@ -186,6 +186,8 @@ public:
                 }
             }
         }
+        #endif
+
 
         if (true) {
             auto container_node = GetUI().GetScene()->GetRoot().AddChild();
@@ -201,12 +203,12 @@ public:
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
-                controller->SetScript(Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
+                controller->SetScript(
+                    Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
             }
 
             btn_node.Scale(0.01f);
         }
-
         auto cubemap = CreateObject<Texture>(TextureCube(
             Engine::Get()->GetAssetManager().LoadMany<Texture>(
                 "textures/chapel/posx.jpg",
@@ -219,7 +221,7 @@ public:
         ));
         cubemap->GetImage().SetIsSRGB(true);
         InitObject(cubemap);
-
+#if 0
         if (false) { // hardware skinning
             zombie.Scale(1.25f);
             zombie.Translate(Vector3(0, 0, -9));
@@ -252,6 +254,8 @@ public:
             InitObject(zomb2);
             m_scene->AddEntity(zomb2);
         }
+#endif
+
         
         { // adding lights to scene
             m_sun = CreateObject<Light>(DirectionalLight(
@@ -283,15 +287,14 @@ public:
         if (true) { // adding cubemap rendering with a bounding box
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
                 Extent2D { 512, 512 },
-                test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
+                BoundingBox(-100, 100),//test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
                 FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
             );
         }
-
         { // allow ui rendering
             m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(Handle<Scene>(GetUI().GetScene()));
         }
-
+#if 0
         cube_obj.Scale(50.0f);
 
         auto skybox_material = CreateObject<Material>();
@@ -307,7 +310,6 @@ public:
         skybox_spatial->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_SKYBOX)));
         skybox_spatial->RebuildRenderableAttributes();
         // m_scene->AddEntity(std::move(skybox_spatial));
-        
         for (auto &child : test_model.GetChildren()) {
             if (const Handle<Entity> &entity = child.GetEntity()) {
                 Handle<Entity> ent = entity;
@@ -330,6 +332,7 @@ public:
                 terrain_node.GetEntity()->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(8.0f, 8.0f, 8.0f), 1.0f);
             }
         }
+    #endif
 
         if (true) { // skydome
             if (auto skydome_node = m_scene->GetRoot().AddChild()) {
@@ -337,6 +340,7 @@ public:
                 skydome_node.GetEntity()->AddController<SkydomeController>();
             }
         }
+    #if 0
 
         if (true) { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
@@ -459,6 +463,8 @@ public:
 
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
+#endif
+
     }
 
     virtual void Teardown() override

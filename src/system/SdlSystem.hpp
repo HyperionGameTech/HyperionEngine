@@ -12,6 +12,7 @@
 #include <util/fs/FsUtil.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
+#include <core/lib/FixedArray.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
 
@@ -52,6 +53,24 @@ enum SystemWindowEventType
 
     EVENT_WINDOW_CLOSE = SDL_WINDOWEVENT_CLOSE,
     EVENT_WINDOW_MINIMIZED = SDL_WINDOWEVENT_MINIMIZED,
+};
+
+enum SystemCursorType
+{
+    SYSTEM_CURSOR_DEFAULT = SDL_SYSTEM_CURSOR_ARROW,     
+    SYSTEM_CURSOR_IBEAM,     
+    SYSTEM_CURSOR_WAIT,      
+    SYSTEM_CURSOR_CROSSHAIR, 
+    SYSTEM_CURSOR_WAIT_ARROW,
+    SYSTEM_CURSOR_SIZE_NWSE,
+    SYSTEM_CURSOR_SIZE_NESW,
+    SYSTEM_CURSOR_SIZE_HORIZONTAL,
+    SYSTEM_CURSOR_SIZE_VERTICAL,
+    SYSTEM_CURSOR_SIZE_ALL,
+    SYSTEM_CURSOR_NO,        
+    SYSTEM_CURSOR_HAND,      
+    
+    SYSTEM_CURSOR_MAX,
 };
 
 enum SystemKey {
@@ -211,6 +230,35 @@ struct MouseState
     Int y;
 };
 
+class SystemCursor
+{
+public:
+    SystemCursor(const SystemCursorType cursor_id);
+};
+
+class SDLSystemCursor
+{
+public:
+    SDLSystemCursor(SystemCursorType cursor_id)
+    {
+        m_cursor = SDL_CreateSystemCursor((SDL_SystemCursor)cursor_id);
+    }
+
+    SDL_Cursor *GetInternalCursor() const
+    {
+        return m_cursor;
+    }
+
+    void Destroy()
+    {
+        SDL_FreeCursor(m_cursor);
+        m_cursor = nullptr;
+    }
+
+private:
+    SDL_Cursor *m_cursor = nullptr;
+};
+
 class ApplicationWindow
 {
 public:
@@ -218,6 +266,8 @@ public:
     ApplicationWindow(const ApplicationWindow &other) = delete;
     ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
     virtual ~ApplicationWindow() = default;
+
+    virtual void SetCursor(SystemCursorType cursor_id) const = 0;
 
     virtual void SetMousePosition(Int x, Int y) = 0;
     virtual MouseState GetMouseState() = 0;
@@ -242,7 +292,8 @@ public:
     SDLApplicationWindow(const ANSIString &title, UInt width, UInt height);
     virtual ~SDLApplicationWindow() override;
 
-    
+    void SetCursor(SDLSystemCursor &cursor) const;
+    virtual void SetCursor(SystemCursorType cursor_id) const override;
 
     virtual void SetMousePosition(Int x, Int y) override;
     virtual MouseState GetMouseState() override;
@@ -265,6 +316,8 @@ public:
     
 private:
     SDL_Window *window = nullptr;
+    SDLSystemCursor *m_current_cursor = nullptr;
+    FixedArray<SDLSystemCursor, SYSTEM_CURSOR_MAX> m_system_cursors;
 };
 
 class Application
@@ -304,7 +357,6 @@ public:
     virtual ~SDLApplication();
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(const ANSIString &title, UInt width, UInt height) override;
-
     virtual Int PollEvent(SystemEvent &event) override;
 
 #ifdef HYP_VULKAN
