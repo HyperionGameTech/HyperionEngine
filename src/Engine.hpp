@@ -182,9 +182,11 @@ public:
     );
 
     /*! \brief Find or create a RenderGroup from cache. If created, the result will always be cached. */
-    Handle<RenderGroup> FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes);
     Handle<RenderGroup> FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes);
-    void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
+    void AddRenderGroup(Handle<RenderGroup> &render_group);
+
+    const auto &GetRenderGroupMapping() const
+        { return m_render_group_mapping; }
 
     template <class T>
     void SafeReleaseHandle(Handle<T> &&resource)

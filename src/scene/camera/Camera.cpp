@@ -94,6 +94,10 @@ Camera::Camera(int width, int height)
       m_height(height),
       m_near(0.01f),
       m_far(1000.0f),
+      m_left(0.0f),
+      m_right(0.0f),
+      m_bottom(0.0f),
+      m_top(0.0f),
       m_translation(Vector3::Zero()),
       m_direction(Vector3::UnitZ()),
       m_up(Vector3::UnitY())
@@ -106,12 +110,11 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_fov(fov),
       m_width(width),
       m_height(height),
-      m_near(_near),
-      m_far(_far),
       m_translation(Vector3::Zero()),
       m_direction(Vector3::UnitZ()),
       m_up(Vector3::UnitY())
 {
+    SetToPerspectiveProjection(fov, _near, _far);
 }
 
 Camera::Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far)
@@ -120,16 +123,11 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_fov(0.0f),
       m_width(width),
       m_height(height),
-      m_left(left),
-      m_right(right),
-      m_bottom(bottom),
-      m_top(top),
-      m_near(_near),
-      m_far(_far),
       m_translation(Vector3::Zero()),
       m_direction(Vector3::UnitZ()),
       m_up(Vector3::UnitY())
 {
+    SetToOrthographicProjection(left, right, bottom, top, _near, _far);
 }
 
 Camera::~Camera()

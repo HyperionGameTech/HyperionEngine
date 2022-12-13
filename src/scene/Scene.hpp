@@ -165,6 +165,9 @@ public:
     void SetParentScene(const Handle<Scene> &parent_scene)
         { m_parent_scene = parent_scene; }
 
+    void SetParentScene(Handle<Scene> &&parent_scene)
+        { m_parent_scene = std::move(parent_scene); }
+
     /*! \brief A scene is a "virtual scene" if it exists not as an owner of entities,
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
@@ -193,6 +196,11 @@ public:
             m_override_renderable_attributes.Unset();
         }
     }
+
+    IDBase GetCustomID() const
+        { return m_custom_id; }
+
+    void SetCustomID(IDBase id);
     
     void Init();
 
@@ -237,6 +245,8 @@ private:
     EntityDrawCollection m_draw_collection;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
     Optional<RenderableAttributeSet> m_override_renderable_attributes;
+
+    IDBase m_custom_id;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

@@ -18,6 +18,7 @@
 #include <rendering/rt/ProbeSystem.hpp>
 #include <rendering/post_fx/FXAA.hpp>
 #include <rendering/post_fx/Tonemap.hpp>
+#include <rendering/EnvGrid.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/AnimationController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
@@ -296,12 +297,14 @@ public:
             }
         }
 
-        if (true) { // adding cubemap rendering with a bounding box
+        if (false) { // adding cubemap rendering with a bounding box
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
-                Extent2D { 512, 512 },
-                test_model.GetWorldAABB(),//BoundingBox(Vector3(-128, -8, -128), Vector3(128, 25, 128)),
-                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
+                test_model.GetWorldAABB()
             );
+        }
+
+        if (true) {
+            m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(BoundingBox(-100.0f, 100.0f));
         }
 
         { // allow ui rendering
@@ -738,6 +741,12 @@ int main()
                 LogType::Debug,
                 "Render FPS: %f\n",
                 1.0f / (delta_time_accum / static_cast<float>(num_frames))
+            );
+
+            DebugLog(
+                LogType::Debug,
+                "Number of RenderGroups: %llu\n",
+                Engine::Get()->GetRenderGroupMapping().Size()
             );
 
             delta_time_accum = 0.0f;

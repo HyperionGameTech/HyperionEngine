@@ -60,7 +60,7 @@ struct ShaderGlobals
     ShaderData<StorageBuffer, MaterialShaderData, max_materials> materials;
     ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons> skeletons;
     ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps> shadow_maps;
-    ShaderData<UniformBuffer, EnvProbeShaderData, max_env_probes> env_probes;
+    ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes> env_probes;
     ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws> immediate_draws;
     ShaderData<StorageBuffer, EntityInstanceBatch, max_entity_instance_batches> entity_instance_batches;
     BindlessStorage textures;

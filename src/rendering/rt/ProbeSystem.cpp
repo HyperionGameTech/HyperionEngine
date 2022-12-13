@@ -240,7 +240,7 @@ void ProbeGrid::Init()
                      + z;
 
                 m_probes[index] = Probe {
-                    .position = (Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z)) - (Vector3(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
+                    .position = (Vector3(Float(x), Float(y), Float(z)) - (Vector3(m_grid_info.probe_border) * 0.5f)) * m_grid_info.probe_distance
                 };
             }
         }

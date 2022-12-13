@@ -43,7 +43,6 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::SSR_BLUR_VERT_TEXTURE, 21},
             {DescriptorKey::SSR_FINAL_TEXTURE,     22},
 
-            {DescriptorKey::CUBEMAP_UNIFORMS,      24},
             {DescriptorKey::ENV_PROBE_TEXTURES,    25},
             {DescriptorKey::ENV_PROBES,            26},
 
@@ -89,7 +88,8 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::SCENE_BUFFER,      0},
             {DescriptorKey::LIGHTS_BUFFER,     1},
             {DescriptorKey::SHADOW_MAPS,      12},
-            {DescriptorKey::SHADOW_MATRICES,  13}
+            {DescriptorKey::SHADOW_MATRICES,  13},
+            {DescriptorKey::CUBEMAP_UNIFORMS, 20}
         }
     },
     {

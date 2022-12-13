@@ -165,7 +165,7 @@ struct alignas(256) SceneShaderData
 
     Float32 global_timer;
     UInt32 frame_counter;
-    UInt32 num_lights;
+    UInt32 custom_index;
     UInt32 enabled_render_components_mask;
 
     ShaderVec4<Float> taa_params;
@@ -184,13 +184,18 @@ struct alignas(256) ShadowShaderData
 
 static_assert(sizeof(ShadowShaderData) == 256);
 
-struct alignas(16) EnvProbeShaderData
+struct alignas(256) EnvProbeShaderData
 {
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     ShaderVec4<Float> world_position;
+
     UInt32 texture_index;
     UInt32 flags;
+    UInt32 _pad0;
+    UInt32 _pad1;
+
+    ShaderMat4 face_view_matrices[6];
 };
 
 struct alignas(256) ImmediateDrawShaderData
@@ -249,10 +254,10 @@ static const SizeType max_scenes_bytes = max_scenes * sizeof(SceneShaderData);
 static const SizeType max_lights = (16ull * 1024ull) / sizeof(LightShaderData);
 static const SizeType max_lights_bytes = max_lights * sizeof(LightShaderData);
 /* max number of shadow maps, based on size in kb */
-static const SizeType max_shadow_maps = (16ull * 1024ull) / sizeof(ShadowShaderData);
+static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowShaderData);
 static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);
-/* max number of env probes, based on size in kb */
-static const SizeType max_env_probes = (16ull * 1024ull) / sizeof(EnvProbeShaderData);
+/* max number of env probes, based on size in mb */
+static const SizeType max_env_probes = (1ull * 1024ull * 1024) / sizeof(EnvProbeShaderData);
 static const SizeType max_env_probes_bytes = max_env_probes * sizeof(EnvProbeShaderData);
 /* max number of immediate drawn objects, based on size in mb */
 static const SizeType max_immediate_draws = (1ull * 1024ull * 1024ull) / sizeof(ImmediateDrawShaderData);

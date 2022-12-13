@@ -340,7 +340,7 @@ static void BindGlobalDescriptorSets(
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
         FixedArray {
-            UInt32(scene_index * sizeof(SceneShaderData)),
+            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
             HYP_RENDER_OBJECT_OFFSET(Light, 0)
         }
     );

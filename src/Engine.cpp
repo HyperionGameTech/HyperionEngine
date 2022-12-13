@@ -35,6 +35,112 @@ using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
 
+class StaticDescriptorTable
+{
+    static constexpr SizeType max_static_descriptor_sets = 8;
+    static constexpr SizeType max_static_descriptor_sets_per_slot = 16;
+
+public:
+    enum Slot
+    {
+        SLOT_NONE,
+        SRV,
+        UAV,
+        CBUFF,
+        SSBO,
+        ACCELERATION_STRUCTURE,
+        SLOT_MAX
+    };
+
+    struct DescriptorDeclaration
+    {
+        Slot slot = SLOT_NONE;
+        UInt slot_index = ~0u;
+        const char *name;
+
+        SizeType GetFlatIndex() const
+        {
+            return ((SizeType(slot) - 1) * max_static_descriptor_sets_per_slot) + slot_index;
+        }
+    };
+
+    struct DescriptorSetDeclaration
+    {
+        UInt set_index = ~0u;
+        const char *name;
+
+        DescriptorDeclaration slots[SLOT_MAX][max_static_descriptor_sets_per_slot] = { };
+    };
+
+private:
+    static DescriptorSetDeclaration declarations[max_static_descriptor_sets];
+
+public:
+
+    struct DeclareSet
+    {
+        DeclareSet(UInt set_index, const char *name)
+        {
+            AssertThrow(set_index < max_static_descriptor_sets);
+
+            DescriptorSetDeclaration decl;
+            decl.set_index = set_index;
+            decl.name = name;
+
+            AssertThrow(declarations[set_index].set_index == ~0u);
+
+            declarations[set_index] = decl;
+        }
+    };
+
+    struct DeclareDescriptor
+    {
+        DeclareDescriptor(UInt set_index, Slot slot_type, UInt slot_index, const char *name)
+        {
+            AssertThrow(set_index < max_static_descriptor_sets);
+
+            AssertThrow(slot_type != SLOT_NONE);
+            AssertThrow(slot_index < max_static_descriptor_sets_per_slot);
+
+            DescriptorSetDeclaration &decl = declarations[set_index];
+        
+            AssertThrow(decl.set_index == set_index);
+            AssertThrow(decl.slots[UInt(slot_type) - 1][slot_index].slot_index == ~0u);
+
+            DescriptorDeclaration descriptor_decl;
+            descriptor_decl.slot_index = slot_index;
+            descriptor_decl.slot = slot_type;
+            descriptor_decl.name = name;
+
+            decl.slots[UInt(slot_type) - 1][slot_index] = descriptor_decl;
+        }
+    };
+};
+
+StaticDescriptorTable::DescriptorSetDeclaration StaticDescriptorTable::declarations[max_static_descriptor_sets] = { };
+
+#define DECLARE_DESCRIPTOR_SET(index, name) \
+    StaticDescriptorTable::DeclareSet desc_##name(index, HYP_STR(name))
+
+#define DECLARE_DESCRIPTOR_SRV(set_index, slot_index, name) \
+    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::SRV, slot_index, HYP_STR(name))
+#define DECLARE_DESCRIPTOR_UAV(set_index, slot_index, name) \
+    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::UAV, slot_index, HYP_STR(name))
+#define DECLARE_DESCRIPTOR_CBUFF(set_index, slot_index, name) \
+    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::CBUFF, slot_index, HYP_STR(name))
+#define DECLARE_DESCRIPTOR_SSBO(set_index, slot_index, name) \
+    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::SSBO, slot_index, HYP_STR(name))
+#define DECLARE_DESCRIPTOR_ACCELERATION_STRUCTURE(set_index, slot_index, name) \
+    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::ACCELERATION_STRUCTURE, slot_index, HYP_STR(name))
+
+DECLARE_DESCRIPTOR_SET(0, Globals);
+DECLARE_DESCRIPTOR_SRV(0, 0, Foo);
+DECLARE_DESCRIPTOR_UAV(0, 0, Foo1);
+
+DECLARE_DESCRIPTOR_SET(1, Scene);
+DECLARE_DESCRIPTOR_SET(2, Object);
+DECLARE_DESCRIPTOR_SET(3, Material);
+
 Engine *Engine::Get()
 {
     static Engine engine;
@@ -300,10 +406,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->lights.GetBuffers()[0].get(),
-            .range = UInt32(sizeof(LightShaderData))
-        });
+        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffers()[0].get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -409,29 +512,16 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(descriptor_set_index);
 
-        descriptor_set
-            ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::CUBEMAP_UNIFORMS)
-            ->SetSubDescriptor({
-                .element_index = 0,
-                .buffer = &shader_globals->cubemap_uniforms
-            });
-
         auto *env_probe_textures_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
 
         for (UInt env_probe_index = 0; env_probe_index < max_bound_env_probes; env_probe_index++) {
-            env_probe_textures_descriptor->SetSubDescriptor({
-                .element_index = env_probe_index,
-                .image_view = &GetPlaceholderData().GetImageViewCube1x1R8()
-            });
+            env_probe_textures_descriptor->SetElementSRV(env_probe_index, &GetPlaceholderData().GetImageViewCube1x1R8());
         }
 
         descriptor_set
-            ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::ENV_PROBES)
-            ->SetSubDescriptor({
-                .element_index = 0,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(EnvProbeShaderData))
-            });
+            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
+            ->SetElementBuffer(0, shader_globals->env_probes.GetBuffers()[frame_index].get());
 
         // ssr result image
         descriptor_set
@@ -688,16 +778,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
                 });
         }
 
-        { // SSR placeholders
-            
-        }
-
         { // POST FX processing placeholders
             
             for (const auto descriptor_key : { DescriptorKey::POST_FX_PRE_STACK, DescriptorKey::POST_FX_POST_STACK }) {
                 auto *descriptor = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
 
-                for (UInt effect_index = 0; effect_index < 8; effect_index++) {
+                for (UInt effect_index = 0; effect_index < 4; effect_index++) {
                     descriptor->SetSubDescriptor({
                         .element_index = effect_index,
                         .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
@@ -972,72 +1058,40 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet
     }
 
     // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
+    auto render_group = CreateObject<RenderGroup>(
         Handle<Shader>(renderable_attributes.shader_id),
         renderable_attributes
     );
 
-    AddRenderGroupInternal(renderer_instance);
+    AddRenderGroupInternal(render_group);
+    InitObject(render_group);
 
-    return renderer_instance;
-}
-
-Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes)
-{
-    if (!shader) {
-        DebugLog(
-            LogType::Warn,
-            "Shader is empty; Cannot create or find RenderGroup.\n"
-        );
-
-        return Handle<RenderGroup>::empty;
-    }
-
-    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.shader_id = shader->GetID();
-
-    std::lock_guard guard(m_render_group_mapping_mutex);
-
-    const auto it = m_render_group_mapping.Find(new_renderable_attributes);
-
-    if (it != m_render_group_mapping.End()) {
-        return it->second;
-    }
-
-    // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
-        Handle<Shader>(shader),
-        new_renderable_attributes
-    );
-
-    AddRenderGroupInternal(renderer_instance);
-
-    return renderer_instance;
+    return render_group;
 }
     
-void Engine::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
+void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 {
     std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRenderGroupInternal(renderer_instance);
+    AddRenderGroupInternal(render_group);
 }
     
-void Engine::AddRenderGroupInternal(Handle<RenderGroup> &renderer_instance)
+void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group)
 {
     DebugLog(
         LogType::Debug,
         "Insert RenderGroup in mapping for renderable attribute set hash %llu\n",
-        renderer_instance->GetRenderableAttributes().GetHashCode().Value()
+        render_group->GetRenderableAttributes().GetHashCode().Value()
     );
 
     m_render_group_mapping.Insert(
-        renderer_instance->GetRenderableAttributes(),
-        renderer_instance
+        render_group->GetRenderableAttributes(),
+        render_group
     );
 
     m_render_list_container
-        .Get(renderer_instance->GetRenderableAttributes().material_attributes.bucket)
-        .AddRenderGroup(renderer_instance);
+        .Get(render_group->GetRenderableAttributes().material_attributes.bucket)
+        .AddRenderGroup(render_group);
 }
 
 void Engine::PreFrameUpdate(Frame *frame)
