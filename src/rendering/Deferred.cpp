@@ -133,7 +133,7 @@ void DeferredPass::Record(UInt frame_index)
             );
 #endif
             // render with each light
-            for (const auto &it : Engine::Get()->render_state.lights) {
+            for (const auto &it : Engine::Get()->GetRenderState().lights) {
                 const LightDrawProxy &light = it.second;
 
                 if (light.visibility_bits & (1ull << SizeType(scene_index))) {
@@ -144,7 +144,8 @@ void DeferredPass::Record(UInt frame_index)
                         DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                         FixedArray {
                             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                            HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex())
+                            HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex()),
+                            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
                         }
                     );
 
@@ -488,7 +489,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                HYP_RENDER_OBJECT_OFFSET(Light, 0)
+                HYP_RENDER_OBJECT_OFFSET(Light, 0),
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
             }
         );
 

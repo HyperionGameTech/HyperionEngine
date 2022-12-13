@@ -883,11 +883,11 @@ void Scene::EnqueueRenderUpdates()
             shader_data.taa_params       = Vector4(jitter, previous_jitter);
             shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
 
-            if (Engine::Get()->render_state.env_probes.Any()) {
+            if (Engine::Get()->GetRenderState().bound_env_probes.Any()) {
                 // TODO: Make to be packed uvec2 containing indices (each are 1 byte)
                 shader_data.environment_texture_index = 0u;
 
-                for (const auto &it : Engine::Get()->render_state.env_probes) {
+                for (const auto &it : Engine::Get()->GetRenderState().bound_env_probes) {
                     if (it.second.Empty()) {
                         continue;
                     }

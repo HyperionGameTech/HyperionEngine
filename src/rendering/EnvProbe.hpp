@@ -11,6 +11,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererImage.hpp>
 
 namespace hyperion::v2 {
 
@@ -22,13 +23,13 @@ class Framebuffer;
 
 using renderer::Attachment;
 using renderer::UniformBuffer;
+using renderer::Image;
 
 class EnvProbe
     : public EngineComponentBase<STUB_CLASS(EnvProbe)>,
       public HasDrawProxy<STUB_CLASS(EnvProbe)>,
       public RenderResource
 {
-
     static const Extent2D cubemap_dimensions;
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
 
@@ -54,6 +55,12 @@ public:
 
     void SetAABB(const BoundingBox &aabb)
         { m_aabb = aabb; SetNeedsUpdate(); }
+
+    Handle<Texture> &GetTexture()
+        { return m_texture; }
+
+    const Handle<Texture> &GetTexture() const
+        { return m_texture; }
 
     void Init();
     void EnqueueBind() const;

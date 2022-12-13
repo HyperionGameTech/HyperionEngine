@@ -174,6 +174,22 @@ struct alignas(256) SceneShaderData
 
 static_assert(sizeof(SceneShaderData) == 512);
 
+struct alignas(16) EnvGridShaderData
+{
+    UInt32 probe_indices[max_bound_env_probes];
+    ShaderVec4<Float> center;
+
+    UInt32 enabled_indices_mask;
+    UInt32 _pad0;
+    UInt32 _pad1;
+    UInt32 _pad2;
+
+    ShaderVec4<Float> _pad3;
+    ShaderVec4<Float> _pad4;
+};
+
+static_assert(sizeof(EnvGridShaderData) == 128);
+
 struct alignas(256) ShadowShaderData
 {
     ShaderMat4 projection;
@@ -186,6 +202,8 @@ static_assert(sizeof(ShadowShaderData) == 256);
 
 struct alignas(256) EnvProbeShaderData
 {
+    ShaderMat4 face_view_matrices[6];
+
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
     ShaderVec4<Float> world_position;
@@ -195,8 +213,13 @@ struct alignas(256) EnvProbeShaderData
     UInt32 _pad0;
     UInt32 _pad1;
 
-    ShaderMat4 face_view_matrices[6];
+    ShaderVec4<UInt32> _pad2;
+    ShaderVec4<UInt32> _pad3;
+    ShaderVec4<UInt32> _pad4;
+    ShaderVec4<UInt32> _pad5;
 };
+
+static_assert(sizeof(EnvProbeShaderData) == 512);
 
 struct alignas(256) ImmediateDrawShaderData
 {
@@ -257,8 +280,11 @@ static const SizeType max_lights_bytes = max_lights * sizeof(LightShaderData);
 static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowShaderData);
 static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowShaderData);
 /* max number of env probes, based on size in mb */
-static const SizeType max_env_probes = (1ull * 1024ull * 1024) / sizeof(EnvProbeShaderData);
+static const SizeType max_env_probes = (1ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
 static const SizeType max_env_probes_bytes = max_env_probes * sizeof(EnvProbeShaderData);
+/* max number of env grids, based on size in kb */
+static const SizeType max_env_grids = (1ull * 1024ull) / sizeof(EnvGridShaderData);
+static const SizeType max_env_grids_bytes = max_env_grids * sizeof(EnvGridShaderData);
 /* max number of immediate drawn objects, based on size in mb */
 static const SizeType max_immediate_draws = (1ull * 1024ull * 1024ull) / sizeof(ImmediateDrawShaderData);
 static const SizeType max_immediate_draws_bytes = max_immediate_draws * sizeof(ImmediateDrawShaderData);
@@ -270,18 +296,18 @@ template <class Buffer, class StructType, SizeType Size>
 class ShaderData
 {
 public:
-    ShaderData(SizeType num_buffers)
+    ShaderData()
     {
-        m_buffers.resize(num_buffers);
+        m_buffers.resize(max_frames_in_flight);
 
-        for (SizeType i = 0; i < num_buffers; i++) {
+        for (SizeType i = 0; i < max_frames_in_flight; i++) {
             m_buffers[i] = std::make_unique<Buffer>();
         }
 
         for (SizeType i = 0; i < m_staging_objects_pool.num_staging_buffers; i++) {
             auto &buffer = m_staging_objects_pool.buffers[i];
 
-            AssertThrow(buffer.dirty.Size() == num_buffers);
+            AssertThrow(buffer.dirty.Size() == max_frames_in_flight);
 
             for (auto &d : buffer.dirty) {
                 d.SetStart(0);

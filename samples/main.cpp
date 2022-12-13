@@ -304,7 +304,7 @@ public:
         }
 
         if (true) {
-            m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(BoundingBox(-100.0f, 100.0f));
+            m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(test_model.GetWorldAABB());
         }
 
         { // allow ui rendering

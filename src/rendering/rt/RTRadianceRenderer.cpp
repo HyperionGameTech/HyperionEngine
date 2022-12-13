@@ -232,7 +232,8 @@ void RTRadianceRenderer::Render(Frame *frame)
         1,
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->render_state.GetScene().id.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(Light, 0)
+            HYP_RENDER_OBJECT_OFFSET(Light, 0),
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
         }
     );
 

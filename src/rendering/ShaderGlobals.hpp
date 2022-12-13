@@ -35,19 +35,7 @@ using EntityBatchIndex = UInt;
 
 struct ShaderGlobals
 {
-    ShaderGlobals(SizeType num_buffers)
-        : scenes(num_buffers),
-          lights(num_buffers),
-          objects(num_buffers),
-          materials(num_buffers),
-          skeletons(num_buffers),
-          shadow_maps(num_buffers),
-          env_probes(num_buffers),
-          immediate_draws(num_buffers),
-          entity_instance_batches(num_buffers)
-    {
-    }
-
+    ShaderGlobals() = default;
     ShaderGlobals(const ShaderGlobals &other) = delete;
     ShaderGlobals &operator=(const ShaderGlobals &other) = delete;
 
@@ -61,6 +49,7 @@ struct ShaderGlobals
     ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons> skeletons;
     ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps> shadow_maps;
     ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes> env_probes;
+    ShaderData<UniformBuffer, EnvGridShaderData, max_env_grids> env_grids;
     ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws> immediate_draws;
     ShaderData<StorageBuffer, EntityInstanceBatch, max_entity_instance_batches> entity_instance_batches;
     BindlessStorage textures;

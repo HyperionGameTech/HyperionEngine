@@ -19,6 +19,7 @@
 namespace hyperion::v2 {
 
 class RenderEnvironment;
+class EnvGrid;
 
 using RenderStateMask = UInt32;
 
@@ -77,7 +78,18 @@ struct RenderState
     std::stack<RenderBinding<Scene>> scene_bindings;
     FlatMap<ID<Light>, LightDrawProxy> lights;
     FlatMap<ID<EnvProbe>, Optional<UInt>> bound_env_probes; // map to texture slot
+    ID<EnvGrid> bound_env_grid;
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
+
+    void BindEnvGrid(ID<EnvGrid> id)
+    {
+        bound_env_grid = id;
+    }
+
+    void UnbindEnvGrid()
+    {
+        bound_env_grid = ID<EnvGrid>();
+    }
 
     void BindLight(ID<Light> id, const LightDrawProxy &light)
     {

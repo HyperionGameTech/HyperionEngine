@@ -80,7 +80,7 @@ public:
             return m_framebuffer->GetAttachmentRefs()[UInt(resource_name)];
         }
 
-        void AddRenderGroup(Handle<RenderGroup> &renderer_instance);
+        void AddRenderGroup(Handle<RenderGroup> &render_group);
         void AddPendingRenderGroups();
         void AddFramebuffersToPipelines();
         void AddFramebuffersToPipeline(Handle<RenderGroup> &pipeline);

@@ -260,8 +260,6 @@ void FullScreenPass::Record(UInt frame_index)
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const UInt scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
-
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
@@ -275,8 +273,9 @@ void FullScreenPass::Record(UInt frame_index)
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
-                    HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                    HYP_RENDER_OBJECT_OFFSET(Light, 0)
+                    HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->render_state.GetScene().id.ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(Light, 0),
+                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
                 }
             );
             

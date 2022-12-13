@@ -87,6 +87,7 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
         {
             {DescriptorKey::SCENE_BUFFER,      0},
             {DescriptorKey::LIGHTS_BUFFER,     1},
+            {DescriptorKey::ENV_GRID_BUFFER,   2},
             {DescriptorKey::SHADOW_MAPS,      12},
             {DescriptorKey::SHADOW_MATRICES,  13},
             {DescriptorKey::CUBEMAP_UNIFORMS, 20}

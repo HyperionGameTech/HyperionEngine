@@ -143,21 +143,23 @@ DeferredSystem::RenderGroupHolder::~RenderGroupHolder()
 {
 }
 
-void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &renderer_instance)
+void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &render_group)
 {
-    if (renderer_instance->GetRenderableAttributes().framebuffer_id) {
-        Handle<Framebuffer> framebuffer(renderer_instance->GetRenderableAttributes().framebuffer_id);
+    if (render_group->GetRenderableAttributes().framebuffer_id) {
+        Handle<Framebuffer> framebuffer(render_group->GetRenderableAttributes().framebuffer_id);
 
-        AssertThrowMsg(framebuffer.IsValid(), "Invalid framebuffer ID %u", renderer_instance->GetRenderableAttributes().framebuffer_id.Value());
+        AssertThrowMsg(framebuffer.IsValid(), "Invalid framebuffer ID %u", render_group->GetRenderableAttributes().framebuffer_id.Value());
 
-        renderer_instance->AddFramebuffer(std::move(framebuffer));
+        render_group->AddFramebuffer(std::move(framebuffer));
     } else {
-        AddFramebuffersToPipeline(renderer_instance);
+        AddFramebuffersToPipeline(render_group);
     }
+
+    InitObject(render_group);
 
     std::lock_guard guard(renderer_instances_mutex);
 
-    renderer_instances_pending_addition.PushBack(renderer_instance);
+    renderer_instances_pending_addition.PushBack(render_group);
     renderer_instances_changed.Set(true);
 
     DebugLog(

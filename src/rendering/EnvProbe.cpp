@@ -199,6 +199,14 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommand
 
 const Extent2D EnvProbe::cubemap_dimensions = Extent2D { 256, 256 };
 
+// const FixedArray<std::pair<Vector3, Vector3>, 6> EnvProbe::cubemap_directions = {
+//     std::make_pair(Vector3(0, -1, 0), Vector3(0, 0, 1)),
+//     std::make_pair(Vector3(0, 0, 1),  Vector3(0, 1, 0)),
+//     std::make_pair(Vector3(0, 0, -1), Vector3(0, 1, 0)),
+//     std::make_pair(Vector3(0, 1, 0),  Vector3(0, 0, -1)),
+//     std::make_pair(Vector3(1, 0, 0),  Vector3(0, 1, 0)),
+//     std::make_pair(Vector3(-1, 0, 0), Vector3(0, 1, 0))
+// };
 const FixedArray<std::pair<Vector3, Vector3>, 6> EnvProbe::cubemap_directions = {
     std::make_pair(Vector3(-1, 0, 0), Vector3(0, 1, 0)),
     std::make_pair(Vector3(1, 0, 0),  Vector3(0, 1, 0)),
@@ -248,44 +256,54 @@ void EnvProbe::Init()
         }
     }
 
-    CreateShader();
-    CreateFramebuffer();
-    CreateImagesAndBuffers();
-
-    m_scene = CreateObject<Scene>(CreateObject<Camera>(
-        90.0f,
-        cubemap_dimensions.width, cubemap_dimensions.height,
-        0.01f, 1000.0f
+    m_texture = CreateObject<Texture>(TextureCube(
+        cubemap_dimensions,
+        InternalFormat::RGBA8_SRGB,
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
     ));
 
-    m_scene->GetCamera()->SetViewMatrix(Matrix4::LookAt(Vector3(0.0f, 0.0f, 1.0f), origin, Vector3(0.0f, 1.0f, 0.0f)));
-    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
+    InitObject(m_texture);
 
-    m_scene->SetName("Cubemap renderer scene");
-    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .bucket = BUCKET_INTERNAL,
-            .cull_faces = FaceCullMode::BACK
-        },
-        m_shader->GetID()
-    ));
+    // CreateShader();
+    // CreateFramebuffer();
+    // CreateImagesAndBuffers();
 
-    // set ID so scene can index into env probes
-    m_scene->SetCustomID(GetID());
-    m_scene->SetParentScene(std::move(m_parent_scene));
+    // m_scene = CreateObject<Scene>(CreateObject<Camera>(
+    //     90.0f,
+    //     cubemap_dimensions.width, cubemap_dimensions.height,
+    //     0.01f, 1000.0f
+    // ));
 
-    InitObject(m_scene);
-    Engine::Get()->GetWorld()->AddScene(m_scene);
+    // m_scene->GetCamera()->SetViewMatrix(Matrix4::LookAt(Vector3(0.0f, 0.0f, 1.0f), origin, Vector3(0.0f, 1.0f, 0.0f)));
+    // m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
+
+    // m_scene->SetName("Cubemap renderer scene");
+    // m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
+    //     MeshAttributes { },
+    //     MaterialAttributes {
+    //         .bucket = BUCKET_INTERNAL,
+    //         .cull_faces = FaceCullMode::BACK
+    //     },
+    //     m_shader->GetID()
+    // ));
+
+    // // set ID so scene can index into env probes
+    // m_scene->SetCustomID(GetID());
+    // m_scene->SetParentScene(std::move(m_parent_scene));
+
+    // InitObject(m_scene);
+    // Engine::Get()->GetWorld()->AddScene(m_scene);
 
 
     SetReady(true);
 
     OnTeardown([this]() {
-        Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-        m_scene.Reset();
+        // Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
+        // m_scene.Reset();
 
-        PUSH_RENDER_COMMAND(DestroyCubemapRenderPass, *this);
+        // PUSH_RENDER_COMMAND(DestroyCubemapRenderPass, *this);
 
         SetReady(false);
 
@@ -303,16 +321,6 @@ void EnvProbe::CreateImagesAndBuffers()
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_cubemap_render_uniform_buffers[frame_index] = UniquePtr<UniformBuffer>::Construct();
     }
-
-    m_texture = CreateObject<Texture>(TextureCube(
-        cubemap_dimensions,
-        InternalFormat::RGBA8_SRGB,
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
-    ));
-
-    InitObject(m_texture);
     
     PUSH_RENDER_COMMAND(CreateCubemapBuffers, *this);
 

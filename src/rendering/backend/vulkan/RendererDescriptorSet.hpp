@@ -314,6 +314,7 @@ enum class DescriptorKey
 
     SCENE_BUFFER,
     LIGHTS_BUFFER,
+    ENV_GRID_BUFFER,
     SHADOW_MAPS,
     SHADOW_MATRICES,
     CUBEMAP_UNIFORMS,

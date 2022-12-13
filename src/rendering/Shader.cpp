@@ -16,6 +16,7 @@ void ShaderGlobals::Create()
     lights.Create(device);
     shadow_maps.Create(device);
     env_probes.Create(device);
+    env_grids.Create(device);
     immediate_draws.Create(device);
     entity_instance_batches.Create(device);
     cubemap_uniforms.Create(device, sizeof(CubemapUniforms));
@@ -28,7 +29,9 @@ void ShaderGlobals::Destroy()
     auto *device = Engine::Get()->GetGPUDevice();
 
     cubemap_uniforms.Destroy(device);
+
     env_probes.Destroy(device);
+    env_grids.Destroy(device);
 
     scenes.Destroy(device);
     objects.Destroy(device);

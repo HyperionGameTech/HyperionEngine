@@ -389,7 +389,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         HYP_BREAKPOINT;
     }
 
-    shader_globals = new ShaderGlobals(max_frames_in_flight);
+    shader_globals = new ShaderGlobals();
     shader_globals->Create();
 
     m_placeholder_data.Create();
@@ -405,8 +405,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
+        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
         ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffers()[0].get());
+
+    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+        ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
+        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffers()[0].get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -444,11 +448,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
-        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->lights.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(LightShaderData))
-        });
+        ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
+        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffers()[1].get());
+    
+    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
+        ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
+        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffers()[1].get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -840,6 +845,9 @@ void Engine::Compile()
         /* Finalize env probes */
         shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
 
+        /* Finalize env grids */
+        shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), i);
+
         /* Finalize shadow maps */
         shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), i);
 
@@ -1064,7 +1072,6 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet
     );
 
     AddRenderGroupInternal(render_group);
-    InitObject(render_group);
 
     return render_group;
 }
@@ -1122,6 +1129,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->entity_instance_batches.UpdateBuffer(m_instance->GetDevice(), frame_index);
     
