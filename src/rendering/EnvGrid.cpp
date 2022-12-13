@@ -1,5 +1,6 @@
 #include <rendering/EnvGrid.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <scene/controllers/PagingController.hpp>
 #include <scene/Scene.hpp>
 #include <Engine.hpp>
 
@@ -8,9 +9,65 @@ namespace hyperion::v2 {
 using renderer::Image;
 using renderer::Result;
 
-const Extent3D EnvGrid::density = Extent3D { 4, 4, 2 };
+class EnvGrid;
 
-const Extent2D EnvGrid::cubemap_dimensions = Extent2D { 256, 256 };
+class EnvGridPagingController : public PagingController
+{
+public:
+    EnvGridPagingController(
+        EnvGrid *env_grid,
+        Extent3D patch_size,
+        const Vector3 &scale,
+        Float max_distance
+    );
+    virtual ~EnvGridPagingController() override = default;
+
+    virtual void OnAdded() override;
+    virtual void OnRemoved() override;
+
+protected:
+    virtual void OnPatchAdded(Patch *patch) override;
+    virtual void OnPatchRemoved(Patch *patch) override;
+
+private:
+    EnvGrid *m_env_grid;
+};
+
+EnvGridPagingController::EnvGridPagingController(
+    EnvGrid *env_grid,
+    Extent3D patch_size,
+    const Vector3 &scale,
+    Float max_distance
+) : PagingController("EnvGridPagingController", patch_size, scale, max_distance),
+    m_env_grid(env_grid)
+{
+}
+
+void EnvGridPagingController::OnAdded()
+{
+    AssertThrow(m_env_grid != nullptr);
+
+    PagingController::OnAdded();
+}
+
+void EnvGridPagingController::OnRemoved()
+{
+    PagingController::OnRemoved();
+}
+
+void EnvGridPagingController::OnPatchAdded(Patch *patch)
+{
+    DebugLog(LogType::Info, "EnvGrid added %f, %f\n", patch->info.coord.x, patch->info.coord.y);
+}
+
+void EnvGridPagingController::OnPatchRemoved(Patch *patch)
+{
+    DebugLog(LogType::Info, "EnvGrid removed %f, %f\n", patch->info.coord.x, patch->info.coord.y);
+}
+
+
+const Extent3D EnvGrid::density = Extent3D { 2, 2, 2 };
+const Extent2D EnvGrid::cubemap_dimensions = Extent2D { 128, 128 };
 
 EnvGrid::EnvGrid(const BoundingBox &aabb)
     : RenderComponent(10),
@@ -49,7 +106,7 @@ void EnvGrid::Init()
                     m_aabb.min + (Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) * (aabb_extent / Vector3(density)))
                 );
 
-                m_env_probes[index] = CreateObject<EnvProbe>(scene, m_aabb);
+                m_env_probes[index] = CreateObject<EnvProbe>(scene, env_probe_aabb);
             }
         }
     }
@@ -60,9 +117,8 @@ void EnvGrid::Init()
     m_scene = CreateObject<Scene>(CreateObject<Camera>(
         90.0f,
         cubemap_dimensions.width, cubemap_dimensions.height,
-        0.01f, (aabb_extent / Vector3(density)).Max()
+        0.01f, (aabb_extent / Vector3(density)).Max() * 0.5f
     ));
-    m_scene->GetCamera()->SetViewMatrix(Matrix4::LookAt(Vector3(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vector3(0.0f, 1.0f, 0.0f)));
     m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
     m_scene->SetName("EnvGrid Scene");
     m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
@@ -79,27 +135,42 @@ void EnvGrid::Init()
     Engine::Get()->GetWorld()->AddScene(m_scene);
 
     for (auto &env_probe : m_env_probes) {
-        std::cout << "Init env probe at " << env_probe->GetAABB() << "\n";
-
         if (InitObject(env_probe)) {
             env_probe->EnqueueBind();
         }
     }
 
-    std::cout << "Total probes: " << total_count << std::endl;
+    DebugLog(LogType::Info, "Created %llu total EnvProbes in grid\n", total_count);
 }
 
 // called from game thread
 void EnvGrid::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
+
+    m_entity = CreateObject<Entity>();
+    m_entity->SetName("EnvGrid Entity");
+    m_entity->AddController<EnvGridPagingController>(
+        this,
+        Extent3D(m_aabb.GetExtent() / Vector3(density)),
+        Vector3::one,
+        1.0f
+    );
+
+    GetParent()->GetScene()->AddEntity(m_entity);
 }
 
 void EnvGrid::OnRemoved()
 {
+    if (m_entity) {
+        m_entity->RemoveController<EnvGridPagingController>();
+
+        GetParent()->GetScene()->RemoveEntity(m_entity);
+        m_entity.Reset();
+    }
+
     for (auto &env_probe : m_env_probes) {
         env_probe->EnqueueUnbind();
-        // GetParent()->GetScene()->RemoveEnvProbe(env_probe->GetID());
     }
 
     Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
@@ -107,7 +178,36 @@ void EnvGrid::OnRemoved()
 
     Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
 
-    // TODO: Destroy attachments
+    struct RENDER_COMMAND(DestroyEnvGridFramebufferAttachments) : RenderCommand
+    {
+        EnvGrid &env_grid;
+
+        RENDER_COMMAND(DestroyEnvGridFramebufferAttachments)(EnvGrid &env_grid)
+            : env_grid(env_grid)
+        {
+        }
+
+        virtual Result operator()()
+        {
+            auto result = Result::OK;
+
+            if (env_grid.m_framebuffer != nullptr) {
+                for (auto &attachment : env_grid.m_attachments) {
+                    env_grid.m_framebuffer->RemoveAttachmentRef(attachment.get());
+                }
+            }
+
+            for (auto &attachment : env_grid.m_attachments) {
+                HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()), result);
+            }
+
+            env_grid.m_attachments.clear();
+
+            return result;
+        }
+    };
+
+    PUSH_RENDER_COMMAND(DestroyEnvGridFramebufferAttachments, *this);
 }
 
 void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
@@ -128,13 +228,36 @@ void EnvGrid::OnRender(Frame *frame)
         return;
     }
 
-    const Vector3 &camera_position = Engine::Get()->GetRenderState().GetScene().camera.position;
+    const UInt num_env_probes = UInt(m_env_probes.Size());
+
+    // TEMP TESTING! remove.
+    const Vector3 &camera_position = Engine::Get()->GetRenderState().GetScene().scene.camera.position;
+
+    {
+        UInt idx = 0;
+        for (auto &it : m_env_probes) {
+            if (it->GetAABB().ContainsPoint(camera_position)) {
+                m_current_probe_index = idx;
+                break;
+            }
+
+            ++idx;
+        }
+    }
+
+
+    Handle<EnvProbe> &current_env_probe = m_env_probes[m_current_probe_index];
+
+    const UInt bound_index = 0; // TEMP: Just for testing.
+    current_env_probe->UpdateRenderData(bound_index);
 
     {
         EnvGridShaderData shader_data;
-        shader_data.probe_indices[0] = m_current_probe_index; // TEMP
+        shader_data.probe_indices[0] = current_env_probe->GetID().ToIndex();//(m_current_probe_index + num_env_probes - 1) % num_env_probes; // TEMP
         shader_data.center = Vector4(m_aabb.GetCenter(), 1.0f);
         shader_data.enabled_indices_mask = 1 << 0;
+
+        DebugLog(LogType::Debug, " probe indices[0] = %u\n", shader_data.probe_indices[0]);
 
         Engine::Get()->GetRenderData()->env_grids.Set(GetComponentIndex(), shader_data);
     }
@@ -144,33 +267,36 @@ void EnvGrid::OnRender(Frame *frame)
 
     auto result = Result::OK;
 
-    // TODO: Use paging controller for env probes to dynamically deallocate them etc.
-    // only render in certain range.
     // Use EnqueueBind() and EnqueueUnbind() when loading in and unloading?
 
     struct alignas(128) { UInt32 env_probe_index; } push_constants;
-    push_constants.env_probe_index = m_env_probes[m_current_probe_index]->GetID().ToIndex();
+    push_constants.env_probe_index = current_env_probe->GetID().ToIndex();
     m_scene->Render(frame, &push_constants, sizeof(push_constants));
 
-    Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+    { // copy current framebuffer image to EnvProbe texture, generate mipmap
+        Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+        Handle<Texture> &current_cubemap_texture = current_env_probe->GetTexture();
 
-    Handle<Texture> &current_cubemap_texture = m_env_probes[m_current_probe_index]->GetTexture();
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        current_cubemap_texture->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    current_cubemap_texture->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-    current_cubemap_texture->GetImage().Blit(command_buffer, framebuffer_image);
+        HYPERION_PASS_ERRORS(
+            current_cubemap_texture->GetImage().Blit(command_buffer, framebuffer_image),
+            result
+        );
 
-    HYPERION_PASS_ERRORS(
-        current_cubemap_texture->GetImage().GenerateMipmaps(Engine::Get()->GetGPUDevice(), command_buffer),
-        result
-    );
+        HYPERION_PASS_ERRORS(
+            current_cubemap_texture->GetImage().GenerateMipmaps(Engine::Get()->GetGPUDevice(), command_buffer),
+            result
+        );
 
-    framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    current_cubemap_texture->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        current_cubemap_texture->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
-    HYPERION_ASSERT_RESULT(result);
+        HYPERION_ASSERT_RESULT(result);
+    }
 
-    m_current_probe_index = (m_current_probe_index + 1) % UInt(m_env_probes.Size());
+    m_current_probe_index = (m_current_probe_index + 1) % num_env_probes;
 }
 
 void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)

@@ -15,7 +15,7 @@
 
 namespace hyperion::v2 {
 
-struct RenderCommand_UpdateEnvProbeRenderData;
+struct RenderCommand_UpdateEnvProbeDrawProxy;
 struct RenderCommand_CreateCubemapBuffers;
 struct RenderCommand_DestroyCubemapRenderPass;
 
@@ -34,7 +34,7 @@ class EnvProbe
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
 
 public:
-    friend struct RenderCommand_UpdateEnvProbeRenderData;
+    friend struct RenderCommand_UpdateEnvProbeDrawProxy;
     friend struct RenderCommand_CreateCubemapBuffers;
     friend struct RenderCommand_DestroyCubemapRenderPass;
 
@@ -67,6 +67,8 @@ public:
     void EnqueueUnbind() const;
     void Update();
     void Render(Frame *frame);
+
+    void UpdateRenderData(UInt probe_index = ~0u);
 
 private:
     void SetNeedsUpdate() { m_needs_update = true; }

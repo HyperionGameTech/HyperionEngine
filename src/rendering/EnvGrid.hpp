@@ -9,6 +9,7 @@
 namespace hyperion::v2 {
 
 class Scene;
+class Entity;
 
 class EnvGrid : public RenderComponent<EnvGrid>
 {
@@ -49,6 +50,8 @@ private:
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     Array<Handle<EnvProbe>> m_env_probes;
     UInt m_current_probe_index;
+
+    Handle<Entity> m_entity;
 };
 
 } // namespace hyperion::v2

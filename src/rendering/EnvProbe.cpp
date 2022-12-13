@@ -46,12 +46,12 @@ struct RENDER_COMMAND(UnbindEnvProbe) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(UpdateEnvProbeRenderData) : RenderCommand
+struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : RenderCommand
 {
     EnvProbe &env_probe;
     EnvProbeDrawProxy draw_proxy;
 
-    RENDER_COMMAND(UpdateEnvProbeRenderData)(EnvProbe &env_probe, EnvProbeDrawProxy &&draw_proxy)
+    RENDER_COMMAND(UpdateEnvProbeDrawProxy)(EnvProbe &env_probe, EnvProbeDrawProxy &&draw_proxy)
         : env_probe(env_probe),
           draw_proxy(std::move(draw_proxy))
     {
@@ -59,54 +59,6 @@ struct RENDER_COMMAND(UpdateEnvProbeRenderData) : RenderCommand
 
     virtual Result operator()()
     {
-        // find the texture slot of this env probe (if it exists)
-        UInt texture_index = ~0u;
-
-        const auto it = Engine::Get()->GetRenderState().bound_env_probes.Find(env_probe.GetID());
-
-        if (it != Engine::Get()->GetRenderState().bound_env_probes.End() && it->second.HasValue()) {
-            texture_index = it->second.Get();
-        }
-
-        EnvProbeShaderData data
-        {
-            .aabb_max = Vector4(draw_proxy.aabb.max, 1.0f),
-            .aabb_min = Vector4(draw_proxy.aabb.min, 1.0f),
-            .world_position = Vector4(draw_proxy.world_position, 1.0f),
-            .texture_index = texture_index,
-            .flags = UInt32(draw_proxy.flags),
-            .face_view_matrices = {
-                ShaderMat4(env_probe.GetViewMatrices()[0]),
-                ShaderMat4(env_probe.GetViewMatrices()[1]),
-                ShaderMat4(env_probe.GetViewMatrices()[2]),
-                ShaderMat4(env_probe.GetViewMatrices()[3]),
-                ShaderMat4(env_probe.GetViewMatrices()[4]),
-                ShaderMat4(env_probe.GetViewMatrices()[5])
-            },
-        };
-
-        Engine::Get()->GetRenderData()->env_probes.Set(env_probe.GetID().ToIndex(), data);
-
-        // update cubemap texture in array of bound env probes
-        if (texture_index != ~0u) {
-            AssertThrow(texture_index < max_bound_env_probes);
-            AssertThrow(env_probe.m_texture.IsValid());
-
-            const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
-
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                auto *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-                auto *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
-
-                descriptor->SetElementSRV(
-                    texture_index,
-                    env_probe.m_texture
-                        ? &env_probe.m_texture->GetImageView()
-                        : &Engine::Get()->GetPlaceholderData().GetImageViewCube1x1R8()
-                );
-            }
-        }
-
         // update m_draw_proxy on render thread.
         env_probe.m_draw_proxy = draw_proxy;
 
@@ -197,7 +149,7 @@ struct RENDER_COMMAND(DestroyCubemapUniformBuffers) : RenderCommand
 
 #pragma endregion
 
-const Extent2D EnvProbe::cubemap_dimensions = Extent2D { 256, 256 };
+const Extent2D EnvProbe::cubemap_dimensions = Extent2D { 128, 128 };
 
 // const FixedArray<std::pair<Vector3, Vector3>, 6> EnvProbe::cubemap_directions = {
 //     std::make_pair(Vector3(0, -1, 0), Vector3(0, 0, 1)),
@@ -298,6 +250,7 @@ void EnvProbe::Init()
 
 
     SetReady(true);
+    Update();
 
     OnTeardown([this]() {
         // Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
@@ -415,7 +368,7 @@ void EnvProbe::Update()
     //     return;
     // }
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateEnvProbeRenderData)>(*this, EnvProbeDrawProxy {
+    RenderCommands::Push<RENDER_COMMAND(UpdateEnvProbeDrawProxy)>(*this, EnvProbeDrawProxy {
         .id = m_id,
         .aabb = m_aabb,
         .world_position = m_aabb.GetCenter(),
@@ -435,6 +388,8 @@ void EnvProbe::Render(Frame *frame)
 
     auto result = renderer::Result::OK;
 
+    UpdateRenderData();
+
     m_scene->Render(frame);
 
     Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
@@ -452,6 +407,61 @@ void EnvProbe::Render(Frame *frame)
     m_texture->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
 
     HYPERION_ASSERT_RESULT(result);
+}
+
+void EnvProbe::UpdateRenderData(UInt probe_index)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+
+    // find the texture slot of this env probe (if it exists)
+    if (probe_index != ~0u) {
+        AssertThrow(probe_index < max_bound_env_probes);
+    } else {
+        const auto it = Engine::Get()->GetRenderState().bound_env_probes.Find(GetID());
+
+        if (it != Engine::Get()->GetRenderState().bound_env_probes.End() && it->second.HasValue()) {
+            probe_index = it->second.Get();
+        }
+    }
+
+    EnvProbeShaderData data {
+        .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
+        .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),
+        .world_position = Vector4(m_draw_proxy.world_position, 1.0f),
+        .texture_index = probe_index,
+        .flags = UInt32(m_draw_proxy.flags),
+        .face_view_matrices = {
+            ShaderMat4(GetViewMatrices()[0]),
+            ShaderMat4(GetViewMatrices()[1]),
+            ShaderMat4(GetViewMatrices()[2]),
+            ShaderMat4(GetViewMatrices()[3]),
+            ShaderMat4(GetViewMatrices()[4]),
+            ShaderMat4(GetViewMatrices()[5])
+        },
+    };
+
+    Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
+
+    // update cubemap texture in array of bound env probes
+    if (probe_index != ~0u) {
+        AssertThrow(probe_index < max_bound_env_probes);
+        AssertThrow(m_texture.IsValid());
+
+        const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
+
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            auto *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            auto *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENV_PROBE_TEXTURES);
+
+            descriptor->SetElementSRV(
+                probe_index,
+                m_texture
+                    ? &m_texture->GetImageView()
+                    : &Engine::Get()->GetPlaceholderData().GetImageViewCube1x1R8()
+            );
+        }
+    }
 }
 
 } // namespace hyperion::v2
