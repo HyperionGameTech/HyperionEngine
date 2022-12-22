@@ -75,10 +75,10 @@ Result RenderPass::Create(Device *device)
     CreateDependencies();
 
     std::vector<VkAttachmentDescription> attachment_descriptions;
-    attachment_descriptions.reserve(m_render_pass_attachment_refs.size());
+    attachment_descriptions.reserve(m_render_pass_attachment_usages.size());
 
-    VkAttachmentReference depth_attachment_ref { };
-    std::vector<VkAttachmentReference> color_attachment_refs;
+    VkAttachmentReference depth_attachment_usage { };
+    std::vector<VkAttachmentReference> color_attachment_usages;
 
     VkSubpassDescription subpass_description { };
     subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -86,24 +86,24 @@ Result RenderPass::Create(Device *device)
 
     UInt next_binding = 0;
 
-    for (auto *attachment_ref : m_render_pass_attachment_refs) {
-        if (!attachment_ref->HasBinding()) { // no binding has manually been set so we make one
-            attachment_ref->SetBinding(next_binding);
+    for (auto *attachment_usage : m_render_pass_attachment_usages) {
+        if (!attachment_usage->HasBinding()) { // no binding has manually been set so we make one
+            attachment_usage->SetBinding(next_binding);
         }
 
-        next_binding = attachment_ref->GetBinding() + 1;
+        next_binding = attachment_usage->GetBinding() + 1;
 
-        attachment_descriptions.push_back(attachment_ref->GetAttachmentDescription());
+        attachment_descriptions.push_back(attachment_usage->GetAttachmentDescription());
 
-        if (attachment_ref->IsDepthAttachment()) {
-            depth_attachment_ref = attachment_ref->GetHandle();
-            subpass_description.pDepthStencilAttachment = &depth_attachment_ref;
+        if (attachment_usage->IsDepthAttachment()) {
+            depth_attachment_usage = attachment_usage->GetHandle();
+            subpass_description.pDepthStencilAttachment = &depth_attachment_usage;
 
             m_clear_values.push_back(VkClearValue {
                 .depthStencil = { 1.0f, 0 }
             });
         } else {
-            color_attachment_refs.push_back(attachment_ref->GetHandle());
+            color_attachment_usages.push_back(attachment_usage->GetHandle());
 
             m_clear_values.push_back(VkClearValue {
                 .color = {
@@ -113,8 +113,8 @@ Result RenderPass::Create(Device *device)
         }
     }
 
-    subpass_description.colorAttachmentCount = static_cast<UInt32>(color_attachment_refs.size());
-    subpass_description.pColorAttachments = color_attachment_refs.data();
+    subpass_description.colorAttachmentCount = static_cast<UInt32>(color_attachment_usages.size());
+    subpass_description.pColorAttachments = color_attachment_usages.data();
 
     // Create the actual renderpass
     VkRenderPassCreateInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
@@ -157,11 +157,11 @@ Result RenderPass::Destroy(Device *device)
     vkDestroyRenderPass(device->GetDevice(), m_handle, nullptr);
     m_handle = nullptr;
 
-    for (const auto *attachment_ref : m_render_pass_attachment_refs) {
-        attachment_ref->DecRef(HYP_ATTACHMENT_REF_INSTANCE);
+    for (const auto *attachment_usage : m_render_pass_attachment_usages) {
+        attachment_usage->DecRef(HYP_attachment_usage_INSTANCE);
     }
 
-    m_render_pass_attachment_refs.clear();
+    m_render_pass_attachment_usages.clear();
 
     return result;
 }

@@ -360,7 +360,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         }
 
         if (!material) {
-            material = CreateObject<Material>();
+            material = Engine::Get()->GetMaterialCache().GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
         }
 
         auto mesh = CreateObject<Mesh>(
@@ -375,7 +375,8 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
 
         mesh->CalculateTangents();
 
-        auto vertex_attributes = mesh->GetVertexAttributes();
+        auto mesh_attributes = mesh->GetRenderAttributes();
+        auto material_attributes = material->GetRenderAttributes();
 
         auto shader = Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD_SKINNED);
 
@@ -384,12 +385,8 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             std::move(shader),
             std::move(material),
             RenderableAttributeSet(
-                MeshAttributes {
-                    .vertex_attributes = vertex_attributes
-                },
-                MaterialAttributes {
-                    .bucket = Bucket::BUCKET_OPAQUE
-                }
+                mesh_attributes,
+                material_attributes
             )
         );
 

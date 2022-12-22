@@ -186,10 +186,10 @@ void DeferredRenderer::Create()
         m_translucent_fbo = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
     }
     
-    const auto *depth_attachment_ref = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentRefs().back();
-    AssertThrow(depth_attachment_ref != nullptr);
+    const auto *depth_attachment_usage = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentUsages().back();
+    AssertThrow(depth_attachment_usage != nullptr);
 
-    m_dpr.Create(depth_attachment_ref);
+    m_dpr.Create(depth_attachment_usage);
 
     m_hbao.Reset(new HBAO(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent));
     m_hbao->Create();
@@ -240,22 +240,22 @@ void DeferredRenderer::CreateDescriptorSets()
 
             // not including depth texture here
             for (UInt attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++) {
-                gbuffer_textures->SetElementSRV(element_index++, m_opaque_fbo->GetAttachmentRefs()[attachment_index]->GetImageView());
+                gbuffer_textures->SetElementSRV(element_index++, m_opaque_fbo->GetAttachmentUsages()[attachment_index]->GetImageView());
             }
 
             // add translucent bucket's albedo
-            gbuffer_textures->SetElementSRV(element_index++, m_translucent_fbo->GetAttachmentRefs()[0]->GetImageView());
+            gbuffer_textures->SetElementSRV(element_index++, m_translucent_fbo->GetAttachmentUsages()[0]->GetImageView());
         }
 
         // depth attachment goes into separate slot
-        auto *depth_attachment_ref = m_opaque_fbo->GetAttachmentRefs()[GBUFFER_RESOURCE_MAX - 1];
+        auto *depth_attachment_usage = m_opaque_fbo->GetAttachmentUsages()[GBUFFER_RESOURCE_MAX - 1];
 
         /* Depth texture */
         descriptor_set_globals
             ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::GBUFFER_DEPTH)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = depth_attachment_ref->GetImageView()
+                .image_view = depth_attachment_usage->GetImageView()
             });
 
         /* Mip chain */
@@ -279,15 +279,15 @@ void DeferredRenderer::CreateDescriptorSets()
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_AMBIENT)
-            ->SetElementSRV(0, m_indirect_pass.GetAttachmentRef(0)->GetImageView());
+            ->SetElementSRV(0, m_indirect_pass.GetAttachmentUsage(0)->GetImageView());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_DIRECT)
-            ->SetElementSRV(0, m_direct_pass.GetAttachmentRef(0)->GetImageView());
+            ->SetElementSRV(0, m_direct_pass.GetAttachmentUsage(0)->GetImageView());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RESULT)
-            ->SetElementSRV(0, m_combine_pass->GetAttachmentRef(0)->GetImageView());
+            ->SetElementSRV(0, m_combine_pass->GetAttachmentUsage(0)->GetImageView());
     }
 }
 
@@ -305,7 +305,7 @@ void DeferredRenderer::CreateCombinePass()
 
     Engine::Get()->InitObject(deferred_combine_shader);
 
-    m_combine_pass.Reset(new FullScreenPass(std::move(deferred_combine_shader)));
+    m_combine_pass.Reset(new FullScreenPass(deferred_combine_shader));
     m_combine_pass->Create();
 }
 
@@ -486,7 +486,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
     }
 
-    Image *src_image = deferred_pass_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+    Image *src_image = deferred_pass_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
 
     GenerateMipChain(frame, src_image);
 

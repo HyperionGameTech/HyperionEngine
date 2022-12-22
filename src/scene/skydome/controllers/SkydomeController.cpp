@@ -27,7 +27,6 @@ void SkydomeController::OnAdded()
         m_dome->SetMaterial(std::move(material));
         m_dome->SetShader(CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("Skydome")));
     }
-    
 }
 
 void SkydomeController::OnRemoved()

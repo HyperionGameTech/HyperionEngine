@@ -46,11 +46,11 @@ public:
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(
-        Handle<Shader> &&shader,
+        const Handle<Shader> &shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
     PostFXPass(
-        Handle<Shader> &&shader,
+        const Handle<Shader> &shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB

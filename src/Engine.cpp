@@ -323,10 +323,10 @@ void Engine::PrepareFinalPass()
             renderer::RenderPass::Mode::RENDER_PASS_INLINE
         );
 
-        renderer::AttachmentRef *color_attachment_ref,
-            *depth_attachment_ref;
+        renderer::AttachmentUsage *color_attachment_usage,
+            *depth_attachment_usage;
 
-        HYPERION_ASSERT_RESULT(m_render_pass_attachments[0]->AddAttachmentRef(
+        HYPERION_ASSERT_RESULT(m_render_pass_attachments[0]->AddAttachmentUsage(
             m_instance->GetDevice(),
             img,
             renderer::helpers::ToVkFormat(m_instance->swapchain->image_format),
@@ -334,23 +334,23 @@ void Engine::PrepareFinalPass()
             1, 1,
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
-            &color_attachment_ref
+            &color_attachment_usage
         ));
 
-        color_attachment_ref->SetBinding(0);
+        color_attachment_usage->SetBinding(0);
 
-        fbo->AddAttachmentRef(color_attachment_ref);
+        fbo->AddAttachmentUsage(color_attachment_usage);
 
-        HYPERION_ASSERT_RESULT(m_render_pass_attachments[1]->AddAttachmentRef(
+        HYPERION_ASSERT_RESULT(m_render_pass_attachments[1]->AddAttachmentUsage(
             m_instance->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
-            &depth_attachment_ref
+            &depth_attachment_usage
         ));
 
-        fbo->AddAttachmentRef(depth_attachment_ref);
+        fbo->AddAttachmentUsage(depth_attachment_usage);
 
-        depth_attachment_ref->SetBinding(1);
+        depth_attachment_usage->SetBinding(1);
 
         if (iteration == 0) {
             m_root_pipeline = CreateObject<RenderGroup>(

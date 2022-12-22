@@ -14,6 +14,7 @@
 #include <HashCode.hpp>
 
 #include <array>
+#include <mutex>
 
 namespace hyperion {
 namespace renderer {
@@ -266,10 +267,18 @@ public:
     using ParameterTable = EnumOptions<MaterialKey, Parameter, max_parameters>;
     using TextureSet = EnumOptions<TextureKey, Handle<Texture>, max_textures>;
 
+    static ParameterTable DefaultParameters();
+
     Material();
     Material(
         const String &name,
         Bucket bucket = Bucket::BUCKET_OPAQUE
+    );
+    Material(
+        const String &name,
+        const MaterialAttributes &attributes,
+        const ParameterTable &parameters,
+        const TextureSet &textures
     );
     Material(const Material &other) = delete;
     Material &operator=(const Material &other) = delete;
@@ -408,13 +417,22 @@ public:
     const MaterialAttributes &GetRenderAttributes() const
         { return m_render_attributes; }
 
+    bool IsStatic() const
+        { return !m_is_dynamic; }
+
+    bool IsDynamic() const
+        { return m_is_dynamic; }
+
     void Init();
     void Update();
 
     HashCode GetHashCode() const
     {
         HashCode hc;
+
         hc.Add(m_parameters.GetHashCode());
+        hc.Add(m_textures.GetHashCode());
+        hc.Add(m_render_attributes.GetHashCode());
 
         return hc;
     }
@@ -428,10 +446,12 @@ private:
     ParameterTable m_parameters;
     TextureSet m_textures;
 
+    MaterialAttributes m_render_attributes;
+
+    bool m_is_dynamic;
+
     MaterialShaderData m_shader_data;
     mutable ShaderDataState m_shader_data_state;
-
-    MaterialAttributes m_render_attributes;
 
     FixedArray<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
 };
@@ -459,6 +479,22 @@ public:
 
 private:
     std::unordered_map<std::string, Handle<Material>> m_materials;
+};
+
+class MaterialCache
+{
+public:
+    void Add(const Handle<Material> &material);
+
+    Handle<Material> GetOrCreate(
+        const MaterialAttributes &attributes = { },
+        const Material::ParameterTable &parameters = Material::DefaultParameters(),
+        const Material::TextureSet &textures = { }
+    );
+
+private:
+    FlatMap<HashCode::ValueType, WeakHandle<Material>> m_map;
+    std::mutex m_mutex;
 };
 
 } // namespace hyperion::v2

@@ -20,7 +20,7 @@ namespace hyperion::v2 {
 class Engine;
 
 using renderer::Image;
-using renderer::AttachmentRef;
+using renderer::AttachmentUsage;
 
 using GBufferFormat = Variant<TextureFormatDefault, InternalFormat, Array<InternalFormat>>;
 
@@ -72,12 +72,12 @@ public:
         Array<Handle<RenderGroup>> &GetRenderGroups() { return renderer_instances; }
         const Array<Handle<RenderGroup>> &GetRenderGroups() const { return renderer_instances; }
 
-        AttachmentRef *GetGBufferAttachment(GBufferResourceName resource_name) const
+        AttachmentUsage *GetGBufferAttachment(GBufferResourceName resource_name) const
         {
             AssertThrow(m_framebuffer.IsValid());
             AssertThrow(UInt(resource_name) < UInt(GBUFFER_RESOURCE_MAX));
 
-            return m_framebuffer->GetAttachmentRefs()[UInt(resource_name)];
+            return m_framebuffer->GetAttachmentUsages()[UInt(resource_name)];
         }
 
         void AddRenderGroup(Handle<RenderGroup> &render_group);

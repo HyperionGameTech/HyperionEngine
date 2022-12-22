@@ -32,10 +32,12 @@ public:
     struct ObjectBytes
     {
         alignas(T) UByte bytes[sizeof(T)];
-        std::atomic<UInt16> ref_count;
+        std::atomic<UInt16> ref_count_strong;
+        std::atomic<UInt16> ref_count_weak;
 
         ObjectBytes()
-            : ref_count(0)
+            : ref_count_strong(0),
+              ref_count_weak(0)
         {
         }
 
@@ -54,21 +56,43 @@ public:
             return new (bytes) T(std::forward<Args>(args)...);
         }
 
-        HYP_FORCE_INLINE void IncRef()
-            { ref_count.fetch_add(1, std::memory_order_relaxed); }
+        HYP_FORCE_INLINE void IncRefStrong()
+        {
+            ref_count_strong.fetch_add(1, std::memory_order_relaxed);
+        }
 
-        UInt DecRef()
+        HYP_FORCE_INLINE void IncRefWeak()
+        {
+            AssertThrow(HasValue());
+
+            ref_count_strong.fetch_add(1, std::memory_order_relaxed);
+        }
+
+        UInt DecRefStrong()
         {
             AssertThrow(HasValue());
 
             UInt16 count;
 
-            if ((count = ref_count.fetch_sub(1)) == 1) {
+            if ((count = ref_count_strong.fetch_sub(1)) == 1) {
                 reinterpret_cast<T *>(bytes)->~T();
             }
 
             return UInt(count) - 1;
         }
+
+        UInt DecRefWeak()
+        {
+            UInt16 count = ref_count_weak.fetch_sub(1);
+
+            return UInt(count) - 1;
+        }
+
+        HYP_FORCE_INLINE UInt GetRefCountStrong() const
+            { return UInt(ref_count_strong.load()); }
+
+        HYP_FORCE_INLINE UInt GetRefCountWeak() const
+            { return UInt(ref_count_weak.load()); }
 
         HYP_FORCE_INLINE T &Get()
         {
@@ -80,7 +104,7 @@ public:
     private:
 
         HYP_FORCE_INLINE bool HasValue() const
-            { return ref_count.load() != 0; }
+            { return ref_count_strong.load() != 0; }
     };
 
     ObjectContainer()
@@ -107,14 +131,26 @@ public:
         return index;
     }
 
-    HYP_FORCE_INLINE void IncRef(UInt index)
+    HYP_FORCE_INLINE void IncRefStrong(UInt index)
     {
-        m_data[index].IncRef();
+        m_data[index].IncRefStrong();
     }
 
-    HYP_FORCE_INLINE void DecRef(UInt index)
+    HYP_FORCE_INLINE void IncRefWeak(UInt index)
     {
-        if (m_data[index].DecRef() == 0) {
+        m_data[index].IncRefWeak();
+    }
+
+    HYP_FORCE_INLINE void DecRefStrong(UInt index)
+    {
+        if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
+            IDCreator::ForType<T>().FreeID(index + 1);
+        }
+    }
+
+    HYP_FORCE_INLINE void DecRefWeak(UInt index)
+    {
+        if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
             IDCreator::ForType<T>().FreeID(index + 1);
         }
     }

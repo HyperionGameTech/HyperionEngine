@@ -107,7 +107,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommand
 
         if (env_probe.m_framebuffer != nullptr) {
             for (auto &attachment : env_probe.m_attachments) {
-                env_probe.m_framebuffer->RemoveAttachmentRef(attachment.get());
+                env_probe.m_framebuffer->RemoveAttachmentUsage(attachment.get());
             }
         }
 
@@ -256,7 +256,7 @@ void EnvProbe::CreateFramebuffer()
         6
     );
 
-    AttachmentRef *attachment_ref;
+    AttachmentUsage *attachment_usage;
 
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
@@ -267,14 +267,14 @@ void EnvProbe::CreateFramebuffer()
         RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    m_framebuffer->AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
@@ -285,14 +285,14 @@ void EnvProbe::CreateFramebuffer()
         RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    m_framebuffer->AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     // attachment should be created in render thread?
     for (auto &attachment : m_attachments) {
@@ -364,7 +364,7 @@ void EnvProbe::Render(Frame *frame)
 
     m_scene->Render(frame);
 
-    Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+    Image *framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
 
     framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
     m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);

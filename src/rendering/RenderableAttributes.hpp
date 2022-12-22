@@ -131,11 +131,9 @@ struct RenderableAttributeSet
     //     );
     // }
 
-    RenderableAttributeSet() = default;
-
     RenderableAttributeSet(
-        const MeshAttributes &mesh_attributes,
-        const MaterialAttributes &material_attributes,
+        const MeshAttributes &mesh_attributes = { },
+        const MaterialAttributes &material_attributes = { },
         ID<Shader> shader_id = Shader::empty_id
     ) : mesh_attributes(mesh_attributes),
         material_attributes(material_attributes),

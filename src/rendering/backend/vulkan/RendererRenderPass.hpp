@@ -39,36 +39,36 @@ public:
     bool IsMultiview() const { return m_num_multiview_layers != 0; }
     UInt NumMultiviewLayers() const { return m_num_multiview_layers; }
 
-    void AddAttachmentRef(AttachmentRef *attachment_ref)
+    void AddAttachmentUsage(AttachmentUsage *attachment_usage)
     {
-        attachment_ref->IncRef(HYP_ATTACHMENT_REF_INSTANCE);
+        attachment_usage->IncRef(HYP_attachment_usage_INSTANCE);
 
-        m_render_pass_attachment_refs.push_back(attachment_ref);
+        m_render_pass_attachment_usages.push_back(attachment_usage);
     }
 
-    bool RemoveAttachmentRef(const Attachment *attachment)
+    bool RemoveAttachmentUsage(const Attachment *attachment)
     {
         const auto it = std::find_if(
-            m_render_pass_attachment_refs.begin(),
-            m_render_pass_attachment_refs.end(),
-            [attachment](const AttachmentRef *item) {
+            m_render_pass_attachment_usages.begin(),
+            m_render_pass_attachment_usages.end(),
+            [attachment](const AttachmentUsage *item) {
                 return item->GetAttachment() == attachment;
             }
         );
 
-        if (it == m_render_pass_attachment_refs.end()) {
+        if (it == m_render_pass_attachment_usages.end()) {
             return false;
         }
 
-        (*it)->DecRef(HYP_ATTACHMENT_REF_INSTANCE);
+        (*it)->DecRef(HYP_attachment_usage_INSTANCE);
 
-        m_render_pass_attachment_refs.erase(it);
+        m_render_pass_attachment_usages.erase(it);
 
         return true;
     }
 
-    auto &GetAttachmentRefs() { return m_render_pass_attachment_refs; }
-    const auto &GetAttachmentRefs() const { return m_render_pass_attachment_refs; }
+    auto &GetAttachmentUsages() { return m_render_pass_attachment_usages; }
+    const auto &GetAttachmentUsages() const { return m_render_pass_attachment_usages; }
 
     VkRenderPass GetHandle() const { return m_handle; }
 
@@ -88,7 +88,7 @@ private:
     Mode m_mode;
     UInt m_num_multiview_layers;
 
-    std::vector<AttachmentRef *> m_render_pass_attachment_refs;
+    std::vector<AttachmentUsage *> m_render_pass_attachment_usages;
 
     std::vector<VkSubpassDependency> m_dependencies;
     std::vector<VkClearValue> m_clear_values;

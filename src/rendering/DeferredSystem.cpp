@@ -30,7 +30,7 @@ static void AddOwnedAttachment(
         extent = Engine::Get()->GetGPUInstance()->swapchain->extent;
     }
 
-    AttachmentRef *attachment_ref;
+    AttachmentUsage *attachment_usage;
 
     auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
         extent,
@@ -43,14 +43,14 @@ static void AddOwnedAttachment(
         RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(attachments.Back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(attachments.Back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    framebuffer->AddAttachmentRef(attachment_ref);
+    framebuffer->AddAttachmentUsage(attachment_usage);
 }
 
 static void AddSharedAttachment(
@@ -62,19 +62,19 @@ static void AddSharedAttachment(
     auto &opaque_fbo = Engine::Get()->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
     AssertThrow(opaque_fbo != nullptr);
 
-    renderer::AttachmentRef *attachment_ref;
+    renderer::AttachmentUsage *attachment_usage;
 
-    AssertThrow(attachment_index < opaque_fbo->GetAttachmentRefs().size());
+    AssertThrow(attachment_index < opaque_fbo->GetAttachmentUsages().size());
 
-    HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentRefs().at(attachment_index)->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentUsages().at(attachment_index)->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    attachment_ref->SetBinding(attachment_index);
+    attachment_usage->SetBinding(attachment_index);
 
-    framebuffer->AddAttachmentRef(attachment_ref);
+    framebuffer->AddAttachmentUsage(attachment_usage);
 }
 
 static InternalFormat GetImageFormat(GBufferResourceName resource)

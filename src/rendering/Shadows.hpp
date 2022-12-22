@@ -90,9 +90,9 @@ public:
     ImageView *GetShadowMap() const
     {
         if (m_framebuffer) {
-            if (!m_framebuffer->GetAttachmentRefs().empty()) {
-                if (auto *attachment_ref = m_framebuffer->GetAttachmentRefs().front()) {
-                    return attachment_ref->GetImageView();
+            if (!m_framebuffer->GetAttachmentUsages().empty()) {
+                if (auto *attachment_usage = m_framebuffer->GetAttachmentUsages().front()) {
+                    return attachment_usage->GetImageView();
                 }
             }
         }

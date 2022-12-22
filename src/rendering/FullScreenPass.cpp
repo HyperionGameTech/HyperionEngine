@@ -71,9 +71,10 @@ FullScreenPass::FullScreenPass(InternalFormat image_format)
 }
 
 FullScreenPass::FullScreenPass(
-    Handle<Shader> &&shader,
+    const Handle<Shader> &shader,
     InternalFormat image_format
-) : FullScreenPass(std::move(shader),
+) : FullScreenPass(
+        shader,
         DescriptorKey::UNUSED,
         ~0u,
         image_format
@@ -82,10 +83,11 @@ FullScreenPass::FullScreenPass(
 }
 
 FullScreenPass::FullScreenPass(
-    Handle<Shader> &&shader,
+    const Handle<Shader> &shader,
     const Array<const DescriptorSet *> &used_descriptor_sets,
     InternalFormat image_format
-) : FullScreenPass(std::move(shader),
+) : FullScreenPass(
+        shader,
         DescriptorKey::UNUSED,
         ~0u,
         image_format
@@ -95,11 +97,11 @@ FullScreenPass::FullScreenPass(
 }
 
 FullScreenPass::FullScreenPass(
-    Handle<Shader> &&shader,
+    const Handle<Shader> &shader,
     DescriptorKey descriptor_key,
     UInt sub_descriptor_index,
     InternalFormat image_format
-) : m_shader(std::move(shader)),
+) : m_shader(shader),
     m_descriptor_key(descriptor_key),
     m_sub_descriptor_index(sub_descriptor_index),
     m_image_format(image_format)
@@ -121,7 +123,7 @@ void FullScreenPass::Create()
     HYP_SYNC_RENDER();
 }
 
-void FullScreenPass::SetShader(Handle<Shader> &&shader)
+void FullScreenPass::SetShader(const Handle<Shader> &shader)
 {
     if (m_shader == shader) {
         return;
@@ -154,7 +156,7 @@ void FullScreenPass::CreateFramebuffer()
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
-    renderer::AttachmentRef *attachment_ref;
+    renderer::AttachmentUsage *attachment_usage;
 
     auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
         Engine::Get()->GetGPUInstance()->swapchain->extent,
@@ -167,14 +169,14 @@ void FullScreenPass::CreateFramebuffer()
         renderer::RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    m_framebuffer->AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     for (auto &attachment : m_attachments) {
         HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
@@ -228,7 +230,7 @@ void FullScreenPass::Destroy()
 
     // TODO: Move all attachment ops into render thread
     for (auto &attachment : m_attachments) {
-        m_framebuffer->RemoveAttachmentRef(attachment.get());
+        m_framebuffer->RemoveAttachmentUsage(attachment.get());
     }
 
     if (m_render_group) {
@@ -332,7 +334,6 @@ void FullScreenPass::Render(Frame *frame)
 
     m_framebuffer->EndCapture(frame_index, frame->GetCommandBuffer());
 }
-
 
 void FullScreenPass::Begin(Frame *frame)
 {

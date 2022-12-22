@@ -125,7 +125,7 @@ void UIRenderer::CreateDescriptors()
     // create descriptors in render thread
     RenderCommands::Push<RENDER_COMMAND(CreateUIDescriptors)>(
         GetComponentIndex(),
-        m_framebuffer->GetAttachmentRefs()[0]->GetImageView()
+        m_framebuffer->GetAttachmentUsages()[0]->GetImageView()
     );
 }
 
@@ -138,21 +138,6 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta) { }
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    // Threads::AssertOnThread(THREAD_RENDER);
-
-    /*auto *command_buffer = frame->GetCommandBuffer();
-    const UInt frame_index = frame->GetFrameIndex();
-
-    m_framebuffer->BeginCapture(frame_index, command_buffer);
-    Engine::Get()->render_state.BindScene(m_scene.Get());
-
-    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
-        renderer_instance->Render(frame);
-    }
-
-    Engine::Get()->render_state.UnbindScene();
-    m_framebuffer->EndCapture(frame_index, command_buffer);*/
-
     m_scene->Render(frame);
 }
 

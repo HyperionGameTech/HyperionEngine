@@ -117,9 +117,19 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 
     virtual Result operator()()
     {
+        auto result = Result::OK;
+
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto parent_index = DescriptorSet::Index(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES);
             const auto index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.ToIndex(), frame_index);
+
+            DebugLog(
+                LogType::Debug,
+                "Adding descriptor set for Material #%u (frame index: %u, descriptor set index: %u)\n",
+                id.Value(),
+                frame_index,
+                UInt(index)
+            );
 
             auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
 
@@ -127,17 +137,14 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
                 Engine::Get()->GetGPUDevice(),
                 std::make_unique<DescriptorSet>(
                     parent_index,
-                    static_cast<UInt>(index),
+                    UInt(index),
                     false
                 )
             );
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
 
-            sampler_descriptor->SetSubDescriptor({
-                .element_index = 0u,
-                .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear() // TODO: get proper sampler based on req's of image
-            });
+            sampler_descriptor->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
             
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
@@ -150,16 +157,36 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
             }
 
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
-                HYPERION_BUBBLE_ERRORS(descriptor_set->Create(
+                result = descriptor_set->Create(
                     Engine::Get()->GetGPUDevice(),
                     &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
-                ));
+                );
+
+                if (result != Result::OK) {
+                    UInt previous_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
+
+                    while (previous_index != frame_index) {
+                        if (descriptor_sets[previous_index]) {
+                            HYPERION_PASS_ERRORS(descriptor_sets[previous_index]->Destroy(Engine::Get()->GetGPUDevice()), result);
+
+                            descriptor_pool.RemoveDescriptorSet(descriptor_sets[previous_index]);
+                            descriptor_sets[previous_index] = nullptr;
+                        }
+
+                        previous_index = (previous_index + 1) % max_frames_in_flight;
+                    }
+
+                    descriptor_pool.RemoveDescriptorSet(descriptor_set);
+                    descriptor_sets[frame_index] = nullptr;
+
+                    return Result::OK;
+                }
             }
 
             descriptor_sets[frame_index] = descriptor_set;
         }
 
-        HYPERION_RETURN_OK;
+        return result;
     }
 };
 
@@ -195,9 +222,34 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
 
 #pragma endregion
 
+Material::ParameterTable Material::DefaultParameters()
+{
+    ParameterTable parameters;
+
+    parameters.Set(MATERIAL_KEY_ALBEDO,          Vector4(1.0f));
+    parameters.Set(MATERIAL_KEY_METALNESS,       0.0f);
+    parameters.Set(MATERIAL_KEY_ROUGHNESS,       0.65f);
+    parameters.Set(MATERIAL_KEY_TRANSMISSION,    0.0f);
+    parameters.Set(MATERIAL_KEY_EMISSIVE,        0.0f);
+    parameters.Set(MATERIAL_KEY_SPECULAR,        0.0f);
+    parameters.Set(MATERIAL_KEY_SPECULAR_TINT,   0.0f);
+    parameters.Set(MATERIAL_KEY_ANISOTROPIC,     0.0f);
+    parameters.Set(MATERIAL_KEY_SHEEN,           0.0f);
+    parameters.Set(MATERIAL_KEY_SHEEN_TINT,      0.0f);
+    parameters.Set(MATERIAL_KEY_CLEARCOAT,       0.0f);
+    parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f);
+    parameters.Set(MATERIAL_KEY_SUBSURFACE,      0.0f);
+    parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f);
+    parameters.Set(MATERIAL_KEY_UV_SCALE,        Vector2(1.0f));
+    parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.005f);
+
+    return parameters;
+}
+
 Material::Material()
     : EngineComponentBase(),
       m_render_attributes { .bucket = Bucket::BUCKET_OPAQUE },
+      m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
     ResetParameters();
@@ -206,9 +258,24 @@ Material::Material()
 Material::Material(const String &name, Bucket bucket)
     : EngineComponentBase(name),
       m_render_attributes { .bucket = bucket },
+      m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
     ResetParameters();
+}
+
+Material::Material(
+    const String &name,
+    const MaterialAttributes &attributes,
+    const ParameterTable &parameters,
+    const TextureSet &textures
+) : EngineComponentBase(name),
+    m_parameters(parameters),
+    m_textures(textures),
+    m_render_attributes(attributes),
+    m_is_dynamic(false),
+    m_shader_data_state(ShaderDataState::DIRTY)
+{
 }
 
 Material::~Material()
@@ -216,7 +283,7 @@ Material::~Material()
     SetReady(false);
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
-        Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_textures.ValueAt(i)));
+        m_textures.ValueAt(i).Reset();
     }
 
     if (IsInitCalled()) {
@@ -349,22 +416,7 @@ void Material::SetParameter(MaterialKey key, const Parameter &value)
 
 void Material::ResetParameters()
 {
-    m_parameters.Set(MATERIAL_KEY_ALBEDO,          Vector4(1.0f));
-    m_parameters.Set(MATERIAL_KEY_METALNESS,       0.0f);
-    m_parameters.Set(MATERIAL_KEY_ROUGHNESS,       0.65f);
-    m_parameters.Set(MATERIAL_KEY_TRANSMISSION,    0.0f);
-    m_parameters.Set(MATERIAL_KEY_EMISSIVE,        0.0f);
-    m_parameters.Set(MATERIAL_KEY_SPECULAR,        0.0f);
-    m_parameters.Set(MATERIAL_KEY_SPECULAR_TINT,   0.0f);
-    m_parameters.Set(MATERIAL_KEY_ANISOTROPIC,     0.0f);
-    m_parameters.Set(MATERIAL_KEY_SHEEN,           0.0f);
-    m_parameters.Set(MATERIAL_KEY_SHEEN_TINT,      0.0f);
-    m_parameters.Set(MATERIAL_KEY_CLEARCOAT,       0.0f);
-    m_parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f);
-    m_parameters.Set(MATERIAL_KEY_SUBSURFACE,      0.0f);
-    m_parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f);
-    m_parameters.Set(MATERIAL_KEY_UV_SCALE,        Vector2(1.0f));
-    m_parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.005f);
+    m_parameters = DefaultParameters();
 
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
@@ -378,7 +430,7 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
     if (IsInitCalled()) {
         // release current texture
         if (m_textures[key] != nullptr) {
-            Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_textures[key]));
+            m_textures[key].Reset();
         }
 
         InitObject(texture);
@@ -452,6 +504,73 @@ bool MaterialGroup::Remove(const std::string &name)
     }
 
     return false;
+}
+
+void MaterialCache::Add(const Handle<Material> &material)
+{
+    if (!material) {
+        return;
+    }
+
+    std::lock_guard guard(m_mutex);
+
+    HashCode hc;
+    hc.Add(material->GetRenderAttributes().GetHashCode());
+    hc.Add(material->GetParameters().GetHashCode());
+    hc.Add(material->GetTextures().GetHashCode());
+
+    DebugLog(
+        LogType::Debug,
+        "Adding material with hash %u to material cache\n",
+        hc.Value()
+    );
+
+    m_map.Set(hc.Value(), material);
+}
+
+Handle<Material> MaterialCache::GetOrCreate(
+    const MaterialAttributes &attributes,
+    const Material::ParameterTable &parameters,
+    const Material::TextureSet &textures
+)
+{
+    HashCode hc;
+    hc.Add(attributes.GetHashCode());
+    hc.Add(parameters.GetHashCode());
+    hc.Add(textures.GetHashCode());
+
+    std::lock_guard guard(m_mutex);
+
+    const auto it = m_map.Find(hc.Value());
+
+    if (it != m_map.End()) {
+        if (Handle<Material> handle = it->second.Lock()) {
+            DebugLog(
+                LogType::Debug,
+                "Reusing material with hash %u from material cache\n",
+                hc.Value()
+            );
+
+            return handle;
+        }
+    }
+
+    auto handle = Engine::Get()->CreateObject<Material>(
+        String("cached_material_") + String::ToString(hc.Value()),
+        attributes,
+        parameters,
+        textures
+    );
+
+    DebugLog(
+        LogType::Debug,
+        "Adding material with hash %u to material cache\n",
+        hc.Value()
+    );
+
+    m_map.Set(hc.Value(), handle);
+
+    return handle;
 }
 
 } // namespace hyperion::v2

@@ -29,11 +29,11 @@ public:
     Result Create(Device *device, RenderPass *render_pass);
     Result Destroy(Device *device);
 
-    void AddAttachmentRef(AttachmentRef *attachment_ref);
-    bool RemoveAttachmentRef(const Attachment *attachment);
+    void AddAttachmentUsage(AttachmentUsage *attachment_usage);
+    bool RemoveAttachmentUsage(const Attachment *attachment);
 
-    auto &GetAttachmentRefs() { return m_attachment_refs; }
-    const auto &GetAttachmentRefs() const { return m_attachment_refs; }
+    auto &GetAttachmentUsages() { return m_attachment_usages; }
+    const auto &GetAttachmentUsages() const { return m_attachment_usages; }
 
     UInt GetWidth() const { return m_extent.width; }
     UInt GetHeight() const { return m_extent.height; }
@@ -41,7 +41,7 @@ public:
 private:
     Extent3D m_extent;
 
-    std::vector<AttachmentRef *> m_attachment_refs;
+    std::vector<AttachmentUsage *> m_attachment_usages;
 
     VkFramebuffer m_handle;
 };

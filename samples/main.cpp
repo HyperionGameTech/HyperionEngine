@@ -118,9 +118,10 @@ public:
             0.5f, 30000.0f
         ));
 
-        m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
-            Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
-        ));
+        // m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
+        //     Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
+        // ));
+        m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
 
 
         
@@ -175,7 +176,7 @@ public:
         if (true) { // adding shadow maps
             m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
                 Handle<Light>(m_sun),
-                BoundingBox(Vector3(-300.0f, -10.0f, -300.0f), Vector3(300.0f, 100.0f, 300.0f))//test_model.GetWorldAABB()
+                BoundingBox(Vector3(-600, -20, -600), Vector3(600, 250, 600))//test_model.GetWorldAABB()
             );
         }
 
@@ -394,7 +395,7 @@ public:
         // add sponza model
         m_scene->GetRoot().AddChild(test_model);
         
-        if (true) { // paged procedural terrain
+        if (false) { // paged procedural terrain
             auto terrain_entity = CreateObject<Entity>();
             GetScene()->AddEntity(terrain_entity);
             terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 } , Vector3(8.0f, 8.0f, 8.0f), 1.0f);
@@ -431,23 +432,20 @@ public:
         }
 
         if (true) {
-            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/sphere_hq.obj")) {
+            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-            //monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.0f, 0.0f, 1.0f));
-            // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-                //monkey_entity->GetMaterial()->SetIsAlphaBlended(true);
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.0f, 0.0f, 1.0f));
                 monkey_entity->RebuildRenderableAttributes();
                 monkey.SetLocalTranslation(Vector3(0.0f, 50.0f, 0.0f));
-                monkey.Scale(12.0f);
+                monkey.Scale(24.0f);
                 monkey.Rotate(Quaternion(Vector3::UnitY(), MathUtil::DegToRad(90.0f)));
                 InitObject(monkey_entity);
 
@@ -518,12 +516,12 @@ public:
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(Vector3(250.0f));
             plane->SetMaterial(CreateObject<Material>());
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.55f, 0.8f, 1.0f));
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 2.75f, 4.0f, 1.0f));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.025f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
             plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.25f);
             // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             plane->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_FORWARD)));
             plane->RebuildRenderableAttributes();
@@ -579,7 +577,7 @@ public:
 
         HandleCameraMovement(delta);
 
-        GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie")[0].GetWorldTranslation());
+        // GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie")[0].GetWorldTranslation());
 
         for (auto &light : m_point_lights) {
             light->SetPosition(Vector3(
@@ -714,31 +712,49 @@ public:
     // not overloading; just creating a method to handle camera movement
     void HandleCameraMovement(GameCounter::TickUnit delta)
     {
+
+        constexpr Float speed = 0.75f;
+
+        Vector3 dir;
+
+        if (m_input_manager->IsKeyDown(KEY_W)) {
+            dir = GetScene()->GetCamera()->GetDirection();
+
+            GetScene()->GetCamera()->GetCameraController()->PushCommand({
+                CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                { .movement_data = { CameraCommand::CAMERA_MOVEMENT_FORWARD } }
+            });
+        }
+
+        if (m_input_manager->IsKeyDown(KEY_S)) {
+            dir = GetScene()->GetCamera()->GetDirection() * -1.0f;
+
+            GetScene()->GetCamera()->GetCameraController()->PushCommand({
+                CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                { .movement_data = { CameraCommand::CAMERA_MOVEMENT_BACKWARD } }
+            });
+        }
+
+        if (m_input_manager->IsKeyDown(KEY_A)) {
+            dir = GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector()) * -1.0f;
+
+            GetScene()->GetCamera()->GetCameraController()->PushCommand({
+                CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                { .movement_data = { CameraCommand::CAMERA_MOVEMENT_LEFT } }
+            });
+        }
+
+        if (m_input_manager->IsKeyDown(KEY_D)) {
+            dir = GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector());
+
+            GetScene()->GetCamera()->GetCameraController()->PushCommand({
+                CameraCommand::CAMERA_COMMAND_MOVEMENT,
+                { .movement_data = { CameraCommand::CAMERA_MOVEMENT_RIGHT } }
+            });
+        }
+
         if (auto character = GetScene()->GetRoot().Select("zombie")) {
-
-            constexpr Float speed = 0.75f;
-
             character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
-
-            Vector3 dir;
-
-            if (m_input_manager->IsKeyDown(KEY_W)) {
-                dir = GetScene()->GetCamera()->GetDirection();
-            }
-
-            if (m_input_manager->IsKeyDown(KEY_S)) {
-                dir = GetScene()->GetCamera()->GetDirection() * -1.0f;
-            }
-
-            if (m_input_manager->IsKeyDown(KEY_A)) {
-                dir = GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector()) * -1.0f;
-            }
-
-            if (m_input_manager->IsKeyDown(KEY_D)) {
-                dir = GetScene()->GetCamera()->GetDirection().Cross(GetScene()->GetCamera()->GetUpVector());
-            }
-
-            dir *= 25.0f;
 
             if (const auto &entity = character[0].GetEntity()) {
                 if (auto *controller = entity->GetController<RigidBodyController>()) {

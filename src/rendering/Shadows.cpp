@@ -153,7 +153,7 @@ void ShadowPass::CreateFramebuffer()
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
-    AttachmentRef *attachment_ref;
+    AttachmentUsage *attachment_usage;
 
     { // depth, depth^2 texture (for variance shadow map)
         m_attachments.PushBack(std::make_unique<Attachment>(
@@ -165,14 +165,14 @@ void ShadowPass::CreateFramebuffer()
             RenderPassStage::SHADER
         ));
 
-        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
+        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
             Engine::Get()->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
-            &attachment_ref
+            &attachment_usage
         ));
 
-        m_framebuffer->AddAttachmentRef(attachment_ref);
+        m_framebuffer->AddAttachmentUsage(attachment_usage);
     }
 
     { // standard depth texture
@@ -185,14 +185,14 @@ void ShadowPass::CreateFramebuffer()
             RenderPassStage::SHADER
         ));
 
-        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentRef(
+        HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
             Engine::Get()->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
-            &attachment_ref
+            &attachment_usage
         ));
 
-        m_framebuffer->AddAttachmentRef(attachment_ref);
+        m_framebuffer->AddAttachmentUsage(attachment_usage);
     }
 
     // should be created in render thread
@@ -233,7 +233,7 @@ void ShadowPass::CreateComputePipelines()
         m_blur_descriptor_sets[i].AddDescriptor<ImageDescriptor>(0)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = m_framebuffer->GetAttachmentRefs().front()->GetImageView()
+                .image_view = m_framebuffer->GetAttachmentUsages().front()->GetImageView()
             });
 
         m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)

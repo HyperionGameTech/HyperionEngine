@@ -128,7 +128,7 @@ protected:
     GameCounter::TickUnit m_update_timer;
     GameCounter::TickUnit m_queue_timer;
 
-    WeakHandle<Scene> m_scene;
+    Handle<Scene> m_scene;
 };
 
 } // namespace hyperion::v2

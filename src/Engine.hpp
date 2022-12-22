@@ -18,6 +18,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderCommands.hpp>
 #include <rendering/debug/ImmediateMode.hpp>
+#include <rendering/Material.hpp>
 #include <scene/World.hpp>
 #include <scene/System.hpp>
 
@@ -158,6 +159,9 @@ public:
 
     ComponentRegistry &GetComponents() { return m_components; }
     const ComponentRegistry &GetComponents() const { return m_components; }
+
+    MaterialCache &GetMaterialCache() { return m_material_cache; }
+    const MaterialCache &GetMaterialCache() const { return m_material_cache; }
 
     ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
     const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
@@ -327,6 +331,8 @@ private:
     std::mutex m_render_group_mapping_mutex;
 
     ComponentRegistry m_components;
+
+    MaterialCache m_material_cache;
 
     PlaceholderData m_placeholder_data;
 

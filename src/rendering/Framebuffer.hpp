@@ -12,7 +12,7 @@ namespace hyperion::v2 {
 using renderer::CommandBuffer;
 using renderer::Extent2D;
 using renderer::Extent3D;
-using renderer::AttachmentRef;
+using renderer::AttachmentUsage;
 using renderer::Attachment;
 using renderer::RenderPass;
 using renderer::RenderPassStage;
@@ -40,11 +40,11 @@ public:
     Framebuffer &operator=(const Framebuffer &other) = delete;
     ~Framebuffer();
 
-    void AddAttachmentRef(AttachmentRef *attachment);
-    void RemoveAttachmentRef(const Attachment *attachment);
+    void AddAttachmentUsage(AttachmentUsage *attachment);
+    void RemoveAttachmentUsage(const Attachment *attachment);
 
-    auto &GetAttachmentRefs() { return m_render_pass.GetAttachmentRefs(); }
-    const auto &GetAttachmentRefs() const { return m_render_pass.GetAttachmentRefs(); }
+    auto &GetAttachmentUsages() { return m_render_pass.GetAttachmentUsages(); }
+    const auto &GetAttachmentUsages() const { return m_render_pass.GetAttachmentUsages(); }
 
     renderer::FramebufferObject &GetFramebuffer(UInt frame_index) { return m_framebuffers[frame_index]; }
     const renderer::FramebufferObject &GetFramebuffer(UInt frame_index) const { return m_framebuffers[frame_index]; }

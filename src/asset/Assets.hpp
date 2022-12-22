@@ -87,7 +87,7 @@ public:
     template <class T>
     auto Load(const String &path, LoaderResult &out_result) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
     {
-        const String extension(StringUtil::GetExtension(path.Data()).c_str());
+        const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
 
         if (extension.Empty()) {
             out_result = { LoaderResult::Status::ERR_NO_LOADER, "File has no extension; cannot determine loader to use" };
@@ -104,7 +104,7 @@ public:
                 loader = it->second.Get();
             } else {
                 for (auto &loader_it : m_loaders) {
-                    if (path.EndsWith(loader_it.first)) {
+                    if (String(StringUtil::ToLower(path.Data()).c_str()).EndsWith(loader_it.first)) {
                         loader = loader_it.second.Get();
                         break;
                     }

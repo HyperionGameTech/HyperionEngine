@@ -168,7 +168,7 @@ void EnvGrid::OnRemoved()
 
             if (env_grid.m_framebuffer != nullptr) {
                 for (auto &attachment : env_grid.m_attachments) {
-                    env_grid.m_framebuffer->RemoveAttachmentRef(attachment.get());
+                    env_grid.m_framebuffer->RemoveAttachmentUsage(attachment.get());
                 }
             }
 
@@ -304,7 +304,7 @@ void EnvGrid::CreateFramebuffer()
         6
     );
 
-    AttachmentRef *attachment_ref;
+    AttachmentUsage *attachment_usage;
 
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
@@ -315,14 +315,14 @@ void EnvGrid::CreateFramebuffer()
         RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    m_framebuffer->AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     m_attachments.push_back(std::make_unique<Attachment>(
         std::make_unique<renderer::FramebufferImageCube>(
@@ -333,14 +333,14 @@ void EnvGrid::CreateFramebuffer()
         RenderPassStage::SHADER
     ));
 
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentRef(
+    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
         Engine::Get()->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    m_framebuffer->AddAttachmentRef(attachment_ref);
+    m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     // attachment should be created in render thread?
     for (auto &attachment : m_attachments) {
@@ -362,7 +362,7 @@ void EnvGrid::RenderEnvProbe(Frame *frame, Handle<Scene> &scene, Handle<EnvProbe
     scene->Render(frame, &push_constants, sizeof(push_constants));
 
     { // copy current framebuffer image to EnvProbe texture, generate mipmap
-        Image *framebuffer_image = m_framebuffer->GetAttachmentRefs()[0]->GetAttachment()->GetImage();
+        Image *framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
         Handle<Texture> &current_cubemap_texture = probe->GetTexture();
 
         framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);

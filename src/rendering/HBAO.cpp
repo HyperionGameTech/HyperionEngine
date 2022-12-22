@@ -99,7 +99,7 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : RenderCommand
                         ? blur_image_views[frame_index]
                         : (temporal_blending
                             ? temporal_blending->GetImageOutput(frame_index).image_view
-                            : pass->GetAttachmentRef(0)->GetImageView())
+                            : pass->GetAttachmentUsage(0)->GetImageView())
                 );
         }
 
@@ -138,12 +138,12 @@ HBAO::HBAO(const Extent2D &extent)
     : m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::RGBA16F,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent.width, extent.height, 1),
-              InternalFormat::RGBA16F,
+              InternalFormat::RGBA8,
               ImageType::TEXTURE_TYPE_2D
           ))
       },
@@ -151,24 +151,24 @@ HBAO::HBAO(const Extent2D &extent)
           FixedArray<ImageOutput, 2> {
               ImageOutput(StorageImage(
                   Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA16F,
+                  InternalFormat::RGBA8,
                   ImageType::TEXTURE_TYPE_2D
               )),
               ImageOutput(StorageImage(
                   Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA16F,
+                  InternalFormat::RGBA8,
                   ImageType::TEXTURE_TYPE_2D
               ))
           },
           FixedArray<ImageOutput, 2> {
               ImageOutput(StorageImage(
                   Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA16F,
+                  InternalFormat::RGBA8,
                   ImageType::TEXTURE_TYPE_2D
               )),
               ImageOutput(StorageImage(
                   Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA16F,
+                  InternalFormat::RGBA8,
                   ImageType::TEXTURE_TYPE_2D
               ))
           }
@@ -402,14 +402,14 @@ void HBAO::CreateBlurComputeShaders()
     }
 
     m_blur_hor = CreateObject<ComputePipeline>(
-        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "HORIZONTAL", "OUTPUT_RGBA16F" }))),
+        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "HORIZONTAL", "OUTPUT_RGBA8" }))),
         Array<const DescriptorSet *> { m_blur_descriptor_sets[0][0].Get() }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
-        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "OUTPUT_RGBA16F" }))),
+        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ImageBlurCompute", ShaderProps({ "OUTPUT_RGBA8" }))),
         Array<const DescriptorSet *> { m_blur_descriptor_sets[1][0].Get() }
     );
 
@@ -422,9 +422,11 @@ void HBAO::CreatePass()
     Engine::Get()->InitObject(hbao_shader);
 
     m_hbao_pass.Reset(new FullScreenPass(
-        std::move(hbao_shader),
-        Array<const DescriptorSet *> { m_descriptor_sets.Front().Get() }
+        hbao_shader,
+        Array<const DescriptorSet *> { m_descriptor_sets.Front().Get() },
+        InternalFormat::RGBA8
     ));
+
     m_hbao_pass->Create();
 }
 
@@ -434,8 +436,8 @@ void HBAO::CreateTemporalBlending()
 
     m_temporal_blending.Reset(new TemporalBlending(
         m_hbao_pass->GetFramebuffer()->GetExtent(),
-        InternalFormat::RGBA16F,
-        TemporalBlendTechnique::TECHNIQUE_3,
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_2,
         m_hbao_pass->GetFramebuffer()
     ));
 
@@ -458,7 +460,7 @@ void HBAO::Render(Frame *frame)
 
     const auto &extent = m_image_outputs[frame_index].image.GetExtent();*/
 
-    const auto &extent = m_hbao_pass->GetAttachmentRef(0)->GetAttachment()->GetImage()->GetExtent();
+    const auto &extent = m_hbao_pass->GetAttachmentUsage(0)->GetAttachment()->GetImage()->GetExtent();
 
     {
         struct alignas(128) {

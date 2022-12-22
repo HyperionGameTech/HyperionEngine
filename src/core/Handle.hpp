@@ -36,7 +36,7 @@ struct Handle
         : index(id.Value())
     {
         if (index != 0) {
-            GetContainer<T>().IncRef(index - 1);
+            GetContainer<T>().IncRefStrong(index - 1);
         }
     }
 
@@ -44,20 +44,20 @@ struct Handle
         : index(other.index)
     {
         if (index != 0) {
-            GetContainer<T>().IncRef(index - 1);
+            GetContainer<T>().IncRefStrong(index - 1);
         }
     }
 
     Handle &operator=(const Handle &other)
     {
         if (index != 0) {
-            GetContainer<T>().DecRef(index - 1);
+            GetContainer<T>().DecRefStrong(index - 1);
         }
 
         index = other.index;
 
         if (index != 0) {
-            GetContainer<T>().IncRef(index - 1);
+            GetContainer<T>().IncRefStrong(index - 1);
         }
 
         return *this;
@@ -72,7 +72,7 @@ struct Handle
     Handle &operator=(Handle &&other) noexcept
     {
         if (index != 0) {
-            GetContainer<T>().DecRef(index - 1);
+            GetContainer<T>().DecRefStrong(index - 1);
         }
 
         index = other.index;
@@ -84,7 +84,7 @@ struct Handle
     ~Handle()
     {
         if (index != 0) {
-            GetContainer<T>().DecRef(index - 1);
+            GetContainer<T>().DecRefStrong(index - 1);
         }
     }
 
@@ -138,15 +138,166 @@ struct Handle
         auto &container = GetContainer<T>();  
 
         if (index != 0) {
-            container.DecRef(index - 1);
+            container.DecRefStrong(index - 1);
         }
 
         index = 0;
     }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(String(HandleDefinition<T>::class_name).GetHashCode());
+        hc.Add(index);
+
+        return hc;
+    }
 };
 
 template <class T>
-using WeakHandle = Handle<T>; // TODO: impl
+struct WeakHandle
+{
+    using ID = ID<T>;
+
+    static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+
+    UInt index;
+
+    WeakHandle()
+        : index(0)
+    {
+    }
+
+    WeakHandle(const Handle<T> &other)
+        : index(other.index)
+    {
+        if (index != 0) {
+            GetContainer<T>().IncRefWeak(index - 1);
+        }
+    }
+
+    WeakHandle &operator=(const Handle<T> &other)
+    {
+        if (index != 0) {
+            GetContainer<T>().DecRefWeak(index - 1);
+        }
+
+        index = other.index;
+
+        if (index != 0) {
+            GetContainer<T>().IncRefWeak(index - 1);
+        }
+
+        return *this;
+    }
+
+    WeakHandle(const WeakHandle &other)
+        : index(other.index)
+    {
+        if (index != 0) {
+            GetContainer<T>().IncRefWeak(index - 1);
+        }
+    }
+
+    WeakHandle &operator=(const WeakHandle &other)
+    {
+        if (index != 0) {
+            GetContainer<T>().DecRefWeak(index - 1);
+        }
+
+        index = other.index;
+
+        if (index != 0) {
+            GetContainer<T>().IncRefWeak(index - 1);
+        }
+
+        return *this;
+    }
+
+    WeakHandle(WeakHandle &&other) noexcept
+        : index(other.index)
+    {
+        other.index = 0;
+    }
+
+    WeakHandle &operator=(WeakHandle &&other) noexcept
+    {
+        if (index != 0) {
+            GetContainer<T>().DecRefWeak(index - 1);
+        }
+
+        index = other.index;
+        other.index = 0;
+
+        return *this;
+    }
+
+    ~WeakHandle()
+    {
+        if (index != 0) {
+            GetContainer<T>().DecRefWeak(index - 1);
+        }
+    }
+
+    Handle<T> Lock() const
+        { return Handle<T>(ID { index }); }
+
+    bool operator!() const
+        { return !IsValid(); }
+
+    explicit operator bool() const
+        { return IsValid(); }
+
+    bool operator==(std::nullptr_t) const
+        { return !IsValid(); }
+
+    bool operator!=(std::nullptr_t) const
+        { return IsValid(); }
+
+    bool operator==(const WeakHandle &other) const
+        { return index == other.index; }
+
+    bool operator!=(const WeakHandle &other) const
+        { return index == other.index; }
+
+    bool operator<(const WeakHandle &other) const
+        { return index < other.index; }
+
+    bool operator==(const Handle<T> &other) const
+        { return index == other.index; }
+
+    bool operator!=(const Handle<T> &other) const
+        { return index == other.index; }
+
+    bool operator<(const Handle<T> &other) const
+        { return index < other.index; }
+
+    bool IsValid() const
+        { return index != 0; }
+
+    ID GetID() const
+        { return { UInt(index) }; }
+
+    void Reset()
+    {
+        auto &container = GetContainer<T>();  
+
+        if (index != 0) {
+            container.DecRefWeak(index - 1);
+        }
+
+        index = 0;
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(String(HandleDefinition<T>::class_name).GetHashCode());
+        hc.Add(index);
+
+        return hc;
+    }
+};
 
 template <class T>
 const Handle<T> Handle<T>::empty = { };

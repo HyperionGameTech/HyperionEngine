@@ -120,22 +120,22 @@ void Framebuffer::Init()
     });
 }
 
-void Framebuffer::AddAttachmentRef(AttachmentRef *attachment_ref)
+void Framebuffer::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_framebuffers[frame_index].AddAttachmentRef(attachment_ref);
+        m_framebuffers[frame_index].AddAttachmentUsage(attachment_usage);
     }
 
-    m_render_pass.AddAttachmentRef(attachment_ref);
+    m_render_pass.AddAttachmentUsage(attachment_usage);
 }
 
-void Framebuffer::RemoveAttachmentRef(const Attachment *attachment)
+void Framebuffer::RemoveAttachmentUsage(const Attachment *attachment)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_framebuffers[frame_index].RemoveAttachmentRef(attachment);
+        m_framebuffers[frame_index].RemoveAttachmentUsage(attachment);
     }
 
-    m_render_pass.RemoveAttachmentRef(attachment);
+    m_render_pass.RemoveAttachmentUsage(attachment);
 }
 
 void Framebuffer::BeginCapture(UInt frame_index, CommandBuffer *command_buffer)

@@ -82,7 +82,7 @@ private:
     };
 
     static constexpr SizeType max_render_command_types = 128;
-    static constexpr SizeType render_command_cache_size = 2048;
+    static constexpr SizeType render_command_cache_size = 4096;
 
     // last item must always evaluate to false, same way null terminated char strings work
     static HeapArray<HolderRef, max_render_command_types> holders;

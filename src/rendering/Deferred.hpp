@@ -28,7 +28,7 @@ using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
 using renderer::DescriptorSet;
-using renderer::AttachmentRef;
+using renderer::AttachmentUsage;
 
 using DeferredFlagBits = UInt;
 
@@ -92,11 +92,11 @@ public:
     const DepthPyramidRenderer &GetDepthPyramidRenderer() const
         { return m_dpr; }
 
-    AttachmentRef *GetCombinedResult(UInt frame_index)
-        { return m_combine_pass->GetAttachmentRef(0); }
+    AttachmentUsage *GetCombinedResult(UInt frame_index)
+        { return m_combine_pass->GetAttachmentUsage(0); }
 
-    const AttachmentRef *GetCombinedResult(UInt frame_index) const
-        { return m_combine_pass->GetAttachmentRef(0); }
+    const AttachmentUsage *GetCombinedResult(UInt frame_index) const
+        { return m_combine_pass->GetAttachmentUsage(0); }
 
     Handle<Texture> &GetMipChain(UInt frame_index)
         { return m_mipmapped_results[frame_index]; }

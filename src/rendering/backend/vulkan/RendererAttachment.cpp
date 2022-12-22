@@ -4,11 +4,11 @@
 namespace hyperion {
 namespace renderer {
 
-AttachmentRef::AttachmentRef(
+AttachmentUsage::AttachmentUsage(
     Attachment *attachment,
     LoadOperation load_operation,
     StoreOperation store_operation
-) : AttachmentRef(
+) : AttachmentUsage(
         attachment,
         std::make_unique<ImageView>(),
         std::make_unique<Sampler>(),
@@ -18,7 +18,7 @@ AttachmentRef::AttachmentRef(
 {
 }
 
-AttachmentRef::AttachmentRef(
+AttachmentUsage::AttachmentUsage(
     Attachment *attachment,
     std::unique_ptr<ImageView> &&image_view,
     std::unique_ptr<Sampler> &&sampler,
@@ -34,7 +34,7 @@ AttachmentRef::AttachmentRef(
 {
 }
 
-AttachmentRef::~AttachmentRef()
+AttachmentUsage::~AttachmentUsage()
 {
     AssertThrowMsg(
         !m_is_created,
@@ -44,7 +44,7 @@ AttachmentRef::~AttachmentRef()
 
 // TODO: move to heleprs
 
-VkAttachmentLoadOp AttachmentRef::ToVkLoadOp(LoadOperation load_operation)
+VkAttachmentLoadOp AttachmentUsage::ToVkLoadOp(LoadOperation load_operation)
 {
     switch (load_operation) {
     case LoadOperation::UNDEFINED:
@@ -60,7 +60,7 @@ VkAttachmentLoadOp AttachmentRef::ToVkLoadOp(LoadOperation load_operation)
     }
 }
 
-VkAttachmentStoreOp AttachmentRef::ToVkStoreOp(StoreOperation store_operation)
+VkAttachmentStoreOp AttachmentUsage::ToVkStoreOp(StoreOperation store_operation)
 {
     switch (store_operation) {
     case StoreOperation::UNDEFINED:
@@ -74,14 +74,14 @@ VkAttachmentStoreOp AttachmentRef::ToVkStoreOp(StoreOperation store_operation)
     }
 }
 
-VkImageLayout AttachmentRef::GetIntermediateLayout() const
+VkImageLayout AttachmentUsage::GetIntermediateLayout() const
 {
     return m_attachment->IsDepthAttachment()
         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-InternalFormat AttachmentRef::GetFormat() const
+InternalFormat AttachmentUsage::GetFormat() const
 {
     if (m_attachment == nullptr) {
         DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
@@ -92,7 +92,7 @@ InternalFormat AttachmentRef::GetFormat() const
     return m_attachment->GetFormat();
 }
 
-bool AttachmentRef::IsDepthAttachment() const
+bool AttachmentUsage::IsDepthAttachment() const
 {
     if (m_attachment == nullptr) {
         DebugLog(LogType::Warn, "No attachment set on attachment ref, cannot check format\n");
@@ -103,7 +103,7 @@ bool AttachmentRef::IsDepthAttachment() const
     return m_attachment->IsDepthAttachment();
 }
 
-VkAttachmentDescription AttachmentRef::GetAttachmentDescription() const
+VkAttachmentDescription AttachmentUsage::GetAttachmentDescription() const
 {
     return VkAttachmentDescription {
         .format = helpers::ToVkFormat(m_attachment->GetFormat()),
@@ -117,7 +117,7 @@ VkAttachmentDescription AttachmentRef::GetAttachmentDescription() const
     };
 }
 
-VkAttachmentReference AttachmentRef::GetHandle() const
+VkAttachmentReference AttachmentUsage::GetHandle() const
 {
     if (!HasBinding()) {
         DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", GetBinding());
@@ -129,7 +129,7 @@ VkAttachmentReference AttachmentRef::GetHandle() const
     };
 }
 
-const AttachmentRef *AttachmentRef::IncRef(AttachmentRefInstance &&ins) const
+const AttachmentUsage *AttachmentUsage::IncRef(AttachmentUsageInstance &&ins) const
 {
     AssertThrow(m_ref_count != nullptr);
 
@@ -138,7 +138,7 @@ const AttachmentRef *AttachmentRef::IncRef(AttachmentRefInstance &&ins) const
     return this;
 }
 
-const AttachmentRef *AttachmentRef::DecRef(AttachmentRefInstance &&ins) const
+const AttachmentUsage *AttachmentUsage::DecRef(AttachmentUsageInstance &&ins) const
 {
     AssertThrow(m_ref_count != nullptr);
     
@@ -147,7 +147,7 @@ const AttachmentRef *AttachmentRef::DecRef(AttachmentRefInstance &&ins) const
     return this;
 }
 
-Result AttachmentRef::Create(Device *device)
+Result AttachmentUsage::Create(Device *device)
 {
     AssertThrow(!m_is_created);
 
@@ -160,7 +160,7 @@ Result AttachmentRef::Create(Device *device)
 }
 
 
-Result AttachmentRef::Create(
+Result AttachmentUsage::Create(
     Device *device,
     VkImage image,
     VkFormat format,
@@ -191,7 +191,7 @@ Result AttachmentRef::Create(
     HYPERION_RETURN_OK;
 }
 
-Result AttachmentRef::Destroy(Device *device)
+Result AttachmentUsage::Destroy(Device *device)
 {
     AssertThrow(m_is_created);
 
@@ -203,11 +203,11 @@ Result AttachmentRef::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result AttachmentRef::AddAttachmentRef(Device *device, StoreOperation store_operation, AttachmentRef **out)
+Result AttachmentUsage::AddAttachmentUsage(Device *device, StoreOperation store_operation, AttachmentUsage **out)
 {
     auto result = Result::OK;
 
-    HYPERION_BUBBLE_ERRORS(result = m_attachment->AddAttachmentRef(device, LoadOperation::LOAD, store_operation, out));
+    HYPERION_BUBBLE_ERRORS(result = m_attachment->AddAttachmentUsage(device, LoadOperation::LOAD, store_operation, out));
 
     (*out)->m_initial_layout = m_final_layout;
     (*out)->m_final_layout = m_final_layout;
@@ -215,9 +215,9 @@ Result AttachmentRef::AddAttachmentRef(Device *device, StoreOperation store_oper
     return result;
 }
 
-Result AttachmentRef::RemoveSelf(Device *device)
+Result AttachmentUsage::RemoveSelf(Device *device)
 {
-    return m_attachment->RemoveAttachmentRef(device, this);
+    return m_attachment->RemoveAttachmentUsage(device, this);
 }
 
 Attachment::Attachment(std::unique_ptr<Image> &&image, RenderPassStage stage)
@@ -241,14 +241,14 @@ Attachment::~Attachment()
     }
 }
 
-Result Attachment::AddAttachmentRef(
+Result Attachment::AddAttachmentUsage(
     Device *device,
     LoadOperation load_operation,
     StoreOperation store_operation,
-    AttachmentRef **out
+    AttachmentUsage **out
 )
 {
-    auto attachment_ref = std::make_unique<AttachmentRef>(
+    auto attachment_usage = std::make_unique<AttachmentUsage>(
         this,
         std::make_unique<ImageView>(),
         std::make_unique<Sampler>(
@@ -265,21 +265,21 @@ Result Attachment::AddAttachmentRef(
     }
 
     if (m_is_created) {
-        HYPERION_BUBBLE_ERRORS(attachment_ref->Create(device));
+        HYPERION_BUBBLE_ERRORS(attachment_usage->Create(device));
     }
     
-    m_ref_counts.push_back(new AttachmentRef::RefCount);
-    attachment_ref->m_ref_count = m_ref_counts.back();
-    m_attachment_refs.push_back(std::move(attachment_ref));
+    m_ref_counts.push_back(new AttachmentUsage::RefCount);
+    attachment_usage->m_ref_count = m_ref_counts.back();
+    m_attachment_usages.push_back(std::move(attachment_usage));
 
     if (out != nullptr) {
-        *out = m_attachment_refs.back().get();
+        *out = m_attachment_usages.back().get();
     }
 
     HYPERION_RETURN_OK;
 }
 
-Result Attachment::AddAttachmentRef(
+Result Attachment::AddAttachmentUsage(
     Device *device,
     VkImage image,
     VkFormat format,
@@ -289,17 +289,17 @@ Result Attachment::AddAttachmentRef(
     UInt num_faces,
     LoadOperation load_operation,
     StoreOperation store_operation,
-    AttachmentRef **out
+    AttachmentUsage **out
 )
 {
-    auto attachment_ref = std::make_unique<AttachmentRef>(this, load_operation, store_operation);
+    auto attachment_usage = std::make_unique<AttachmentUsage>(this, load_operation, store_operation);
 
     if (out != nullptr) {
         *out = nullptr;
     }
 
     if (m_is_created) {
-        HYPERION_BUBBLE_ERRORS(attachment_ref->Create(
+        HYPERION_BUBBLE_ERRORS(attachment_usage->Create(
             device,
             image,
             format,
@@ -310,43 +310,43 @@ Result Attachment::AddAttachmentRef(
         ));
     }
     
-    m_ref_counts.push_back(new AttachmentRef::RefCount);
-    attachment_ref->m_ref_count = m_ref_counts.back();
-    m_attachment_refs.push_back(std::move(attachment_ref));
+    m_ref_counts.push_back(new AttachmentUsage::RefCount);
+    attachment_usage->m_ref_count = m_ref_counts.back();
+    m_attachment_usages.push_back(std::move(attachment_usage));
 
     if (out != nullptr) {
-        *out = m_attachment_refs.back().get();
+        *out = m_attachment_usages.back().get();
     }
 
     HYPERION_RETURN_OK;
 }
 
-Result Attachment::RemoveAttachmentRef(Device *device, AttachmentRef *attachment_ref)
+Result Attachment::RemoveAttachmentUsage(Device *device, AttachmentUsage *attachment_usage)
 {
-    AssertThrowMsg(attachment_ref != nullptr, "Attachment reference cannot be null");
+    AssertThrowMsg(attachment_usage != nullptr, "Attachment reference cannot be null");
 
-    const auto it = std::find_if(m_attachment_refs.begin(), m_attachment_refs.end(), [attachment_ref](const auto &item) {
-        return item.get() == attachment_ref;
+    const auto it = std::find_if(m_attachment_usages.begin(), m_attachment_usages.end(), [attachment_usage](const auto &item) {
+        return item.get() == attachment_usage;
     });
 
-    if (it == m_attachment_refs.end()) {
+    if (it == m_attachment_usages.end()) {
         return {Result::RENDERER_ERR, "Attachment ref not found"};
     }
 
     AssertThrowMsg(
-        attachment_ref->m_ref_count->m_holder_instances.empty(),
+        attachment_usage->m_ref_count->m_holder_instances.empty(),
         "Expected ref count to be empty before explicit removal -- still in use somewhere else."
     );
 
-    const auto ref_count_index = it - m_attachment_refs.begin();
+    const auto ref_count_index = it - m_attachment_usages.begin();
 
-    AssertThrow(attachment_ref->m_ref_count == m_ref_counts[ref_count_index]);
+    AssertThrow(attachment_usage->m_ref_count == m_ref_counts[ref_count_index]);
 
     delete m_ref_counts[ref_count_index];
     m_ref_counts.erase(m_ref_counts.begin() + ref_count_index);
 
     HYPERION_BUBBLE_ERRORS((*it)->Destroy(device));
-    m_attachment_refs.erase(it);
+    m_attachment_usages.erase(it);
 
     HYPERION_RETURN_OK;
 }
@@ -362,8 +362,8 @@ Result Attachment::Create(Device *device)
 
     m_is_created = true;
 
-    for (auto &attachment_ref : m_attachment_refs) {
-        HYPERION_PASS_ERRORS(attachment_ref->Create(device), result);
+    for (auto &attachment_usage : m_attachment_usages) {
+        HYPERION_PASS_ERRORS(attachment_usage->Create(device), result);
     }
 
     return result;
@@ -380,8 +380,8 @@ Result Attachment::Destroy(Device *device)
 
     m_is_created = false;
 
-    for (auto &attachment_ref : m_attachment_refs) {
-        HYPERION_PASS_ERRORS(attachment_ref->Destroy(device), result);
+    for (auto &attachment_usage : m_attachment_usages) {
+        HYPERION_PASS_ERRORS(attachment_usage->Destroy(device), result);
     }
 
     return result;
@@ -397,23 +397,23 @@ AttachmentSet::AttachmentSet(RenderPassStage stage, UInt width, UInt height)
 AttachmentSet::~AttachmentSet()
 {
     AssertThrowMsg(m_attachments.empty(), "Expected all attachments to be cleared at destructor call");
-    AssertThrowMsg(m_attachment_refs.empty(), "Expected all attachment refs to be cleared at destructor call");
+    AssertThrowMsg(m_attachment_usages.empty(), "Expected all attachment refs to be cleared at destructor call");
 }
 
 bool AttachmentSet::Has(UInt binding) const
 {
-    return std::any_of(m_attachment_refs.begin(), m_attachment_refs.end(), [binding](const auto &it) {
+    return std::any_of(m_attachment_usages.begin(), m_attachment_usages.end(), [binding](const auto &it) {
         return it.first == binding;
     });
 }
 
-AttachmentRef *AttachmentSet::Get(UInt binding) const
+AttachmentUsage *AttachmentSet::Get(UInt binding) const
 {
-    const auto it = std::find_if(m_attachment_refs.begin(), m_attachment_refs.end(), [binding](const auto &it) {
+    const auto it = std::find_if(m_attachment_usages.begin(), m_attachment_usages.end(), [binding](const auto &it) {
         return it.first == binding;
     });
 
-    if (it == m_attachment_refs.end()) {
+    if (it == m_attachment_usages.end()) {
         return nullptr;
     }
 
@@ -447,31 +447,31 @@ Result AttachmentSet::Add(Device *device, UInt binding, Attachment *attachment)
         return {Result::RENDERER_ERR, "Cannot set duplicate bindings"};
     }
 
-    AttachmentRef *attachment_ref;
+    AttachmentUsage *attachment_usage;
 
-    HYPERION_BUBBLE_ERRORS(attachment->AddAttachmentRef(
+    HYPERION_BUBBLE_ERRORS(attachment->AddAttachmentUsage(
         device,
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
-        &attachment_ref
+        &attachment_usage
     ));
 
-    attachment_ref->SetBinding(binding);
+    attachment_usage->SetBinding(binding);
 
-    m_attachment_refs.emplace_back(binding, attachment_ref);
+    m_attachment_usages.emplace_back(binding, attachment_usage);
 
-    SortAttachmentRefs();
+    SortAttachmentUsages();
 
     HYPERION_RETURN_OK;
 }
 
 Result AttachmentSet::Remove(Device *device, UInt binding)
 {
-    const auto it = std::find_if(m_attachment_refs.begin(), m_attachment_refs.end(), [binding](const auto &it) {
+    const auto it = std::find_if(m_attachment_usages.begin(), m_attachment_usages.end(), [binding](const auto &it) {
         return it.first == binding;
     });
 
-    if (it == m_attachment_refs.end()) {
+    if (it == m_attachment_usages.end()) {
         return {Result::RENDERER_ERR, "Cannot remove attachment reference -- binding not found"};
     }
 
@@ -479,14 +479,14 @@ Result AttachmentSet::Remove(Device *device, UInt binding)
 
     auto result = it->second->RemoveSelf(device);
 
-    m_attachment_refs.erase(it);
+    m_attachment_usages.erase(it);
 
     return result;
 }
 
-void AttachmentSet::SortAttachmentRefs()
+void AttachmentSet::SortAttachmentUsages()
 {
-    std::sort(m_attachment_refs.begin(), m_attachment_refs.end(), [](const auto &a, const auto &b) {
+    std::sort(m_attachment_usages.begin(), m_attachment_usages.end(), [](const auto &a, const auto &b) {
         return a.first < b.first;
     });
 }
@@ -502,11 +502,11 @@ Result AttachmentSet::Create(Device *device)
 
 Result AttachmentSet::Destroy(Device *device)
 {
-    for (auto &it : m_attachment_refs) {
+    for (auto &it : m_attachment_usages) {
         HYPERION_BUBBLE_ERRORS(it.second->RemoveSelf(device));
     }
 
-    m_attachment_refs.clear();
+    m_attachment_usages.clear();
 
     for (auto &attachment : m_attachments) {
         HYPERION_BUBBLE_ERRORS(attachment->Destroy(device));

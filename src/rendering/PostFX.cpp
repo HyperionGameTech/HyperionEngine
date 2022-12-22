@@ -21,9 +21,10 @@ PostFXPass::PostFXPass(InternalFormat image_format)
 }
 
 PostFXPass::PostFXPass(
-    Handle<Shader> &&shader,
+    const Handle<Shader> &shader,
     InternalFormat image_format
-) : FullScreenPass(std::move(shader),
+) : FullScreenPass(
+        shader,
         DescriptorKey::POST_FX_PRE_STACK,
         ~0u,
         image_format
@@ -32,12 +33,12 @@ PostFXPass::PostFXPass(
 }
 
 PostFXPass::PostFXPass(
-    Handle<Shader> &&shader,
+    const Handle<Shader> &shader,
     DescriptorKey descriptor_key,
     UInt sub_descriptor_index,
     InternalFormat image_format
 ) : FullScreenPass(
-        std::move(shader),
+        shader,
         descriptor_key,
         sub_descriptor_index,
         image_format
@@ -51,17 +52,17 @@ void PostFXPass::CreateDescriptors()
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
-    if (!m_framebuffer->GetAttachmentRefs().empty()) {
+    if (!m_framebuffer->GetAttachmentUsages().empty()) {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(m_descriptor_key);
 
-            AssertThrowMsg(m_framebuffer->GetAttachmentRefs().size() == 1, "> 1 attachments not supported currently for full screen passes");
+            AssertThrowMsg(m_framebuffer->GetAttachmentUsages().size() == 1, "> 1 attachments not supported currently for full screen passes");
 
-            for (const auto *attachment_ref : m_framebuffer->GetAttachmentRefs()) {
+            for (const auto *attachment_usage : m_framebuffer->GetAttachmentUsages()) {
                 m_sub_descriptor_index = descriptor->SetSubDescriptor({
                     .element_index = m_sub_descriptor_index,
-                    .image_view = attachment_ref->GetImageView()
+                    .image_view = attachment_usage->GetImageView()
                 });
             }
         }
@@ -102,7 +103,7 @@ void PostProcessingEffect::Init()
     m_shader = CreateShader();
     InitObject(m_shader);
 
-    m_pass.SetShader(Handle<Shader>(m_shader));
+    m_pass.SetShader(m_shader);
     m_pass.Create();
 
     SetReady(true);
@@ -131,10 +132,7 @@ void PostProcessing::Create()
                 auto *descriptor = descriptor_set->GetOrAddDescriptor<ImageDescriptor>(descriptor_key);
 
                 for (UInt effect_index = 0; effect_index < 8; effect_index++) {
-                    descriptor->SetSubDescriptor({
-                        .element_index = effect_index,
-                        .image_view = &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8()
-                    });
+                    descriptor->SetElementSRV(effect_index, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
                 }
             }
         }
@@ -221,10 +219,7 @@ void PostProcessing::CreateUniformBuffer()
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::POST_FX_UNIFORMS)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = &m_uniform_buffer
-            });
+            ->SetElementBuffer(0, &m_uniform_buffer);
     }
 }
 

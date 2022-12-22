@@ -18,12 +18,12 @@
 namespace hyperion {
 namespace renderer {
 
-struct AttachmentRefInstance
+struct AttachmentUsageInstance
 {
     const char *cls;
     void *ptr;
 
-    bool operator==(const AttachmentRefInstance &other) const
+    bool operator==(const AttachmentUsageInstance &other) const
     {
         return ptr == other.ptr;
     }
@@ -41,13 +41,13 @@ struct AttachmentRefInstance
 } // namespace renderer
 } // namespace hyperion
 
-HYP_DEF_STL_HASH(hyperion::renderer::AttachmentRefInstance);
+HYP_DEF_STL_HASH(hyperion::renderer::AttachmentUsageInstance);
 
 namespace hyperion {
 namespace renderer {
 
 class Attachment;
-class AttachmentRef;
+class AttachmentUsage;
 
 enum class RenderPassStage
 {
@@ -72,24 +72,24 @@ enum class StoreOperation
 };
 
 // for making it easier to track holders
-#define HYP_ATTACHMENT_REF_INSTANCE \
-    ::hyperion::renderer::AttachmentRefInstance { \
+#define HYP_attachment_usage_INSTANCE \
+    ::hyperion::renderer::AttachmentUsageInstance { \
         .cls = typeid(*this).name(),     \
         .ptr = static_cast<void *>(this) \
     }
 
-class AttachmentRef
+class AttachmentUsage
 {
     friend class Attachment;
 public:
 
-    AttachmentRef(
+    AttachmentUsage(
         Attachment *attachment,
         LoadOperation load_operation = LoadOperation::CLEAR,
         StoreOperation store_operation = StoreOperation::STORE
     );
 
-    AttachmentRef(
+    AttachmentUsage(
         Attachment *attachment,
         std::unique_ptr<ImageView> &&image_view,
         std::unique_ptr<Sampler> &&sampler,
@@ -97,9 +97,9 @@ public:
         StoreOperation store_operation = StoreOperation::STORE
     );
 
-    AttachmentRef(const AttachmentRef &other) = delete;
-    AttachmentRef &operator=(const AttachmentRef &other) = delete;
-    ~AttachmentRef();
+    AttachmentUsage(const AttachmentUsage &other) = delete;
+    AttachmentUsage &operator=(const AttachmentUsage &other) = delete;
+    ~AttachmentUsage();
 
     Attachment *GetAttachment() const { return m_attachment; }
 
@@ -119,8 +119,8 @@ public:
     VkAttachmentDescription GetAttachmentDescription() const;
     VkAttachmentReference GetHandle() const;
 
-    const AttachmentRef *IncRef(AttachmentRefInstance &&ins) const;
-    const AttachmentRef *DecRef(AttachmentRefInstance &&ins) const;
+    const AttachmentUsage *IncRef(AttachmentUsageInstance &&ins) const;
+    const AttachmentUsage *DecRef(AttachmentUsageInstance &&ins) const;
     
     Result Create(Device *device);
     Result Create(
@@ -135,10 +135,10 @@ public:
 
     Result Destroy(Device *device);
 
-    Result AddAttachmentRef(
+    Result AddAttachmentUsage(
         Device *device,
         StoreOperation store_operation,
-        AttachmentRef **out = nullptr
+        AttachmentUsage **out = nullptr
     );
 
     Result RemoveSelf(Device *device);
@@ -146,7 +146,7 @@ public:
 private:
     struct RefCount
     {
-        std::unordered_set<AttachmentRefInstance> m_holder_instances;
+        std::unordered_set<AttachmentUsageInstance> m_holder_instances;
     };
 
     static VkAttachmentLoadOp ToVkLoadOp(LoadOperation);
@@ -170,7 +170,7 @@ private:
 
 class Attachment
 {
-    friend class AttachmentRef;
+    friend class AttachmentUsage;
 
 public:
     Attachment(std::unique_ptr<Image> &&image, RenderPassStage stage);
@@ -180,8 +180,8 @@ public:
 
     Image *GetImage() const { return m_image.get(); }
 
-    auto &GetAttachmentRefs() { return m_attachment_refs; }
-    const auto &GetAttachmentRefs() const { return m_attachment_refs; }
+    auto &GetAttachmentUsages() { return m_attachment_usages; }
+    const auto &GetAttachmentUsages() const { return m_attachment_usages; }
 
     InternalFormat GetFormat() const
         { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
@@ -189,14 +189,14 @@ public:
     bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
 
-    Result AddAttachmentRef(
+    Result AddAttachmentUsage(
         Device *device,
         LoadOperation load_operation,
         StoreOperation store_operation,
-        AttachmentRef **out = nullptr
+        AttachmentUsage **out = nullptr
     );
 
-    Result AddAttachmentRef(
+    Result AddAttachmentUsage(
         Device *device,
         VkImage image,
         VkFormat format,
@@ -206,10 +206,10 @@ public:
         UInt num_faces,
         LoadOperation load_operation,
         StoreOperation store_operation,
-        AttachmentRef **out = nullptr
+        AttachmentUsage **out = nullptr
     );
 
-    Result RemoveAttachmentRef(Device *device, AttachmentRef *attachment_ref);
+    Result RemoveAttachmentUsage(Device *device, AttachmentUsage *attachment_usage);
 
     Result Create(Device *device);
     Result Destroy(Device *device);
@@ -239,8 +239,8 @@ private:
     std::unique_ptr<Image> m_image;
     RenderPassStage m_stage;
 
-    std::vector<std::unique_ptr<AttachmentRef>> m_attachment_refs;
-    std::vector<AttachmentRef::RefCount *> m_ref_counts;
+    std::vector<std::unique_ptr<AttachmentUsage>> m_attachment_usages;
+    std::vector<AttachmentUsage::RefCount *> m_ref_counts;
 };
 
 class AttachmentSet
@@ -257,7 +257,7 @@ public:
 
     bool Has(UInt binding) const;
 
-    AttachmentRef *Get(UInt binding) const;
+    AttachmentUsage *Get(UInt binding) const;
 
     /*! \brief Add a new owned attachment, constructed using the width/height provided to this class,
      * along with the given format argument.
@@ -273,7 +273,7 @@ public:
     Result Add(Device *device, UInt binding, std::unique_ptr<Image> &&image);
 
     /*! \brief Add a reference to an existing attachment, not owned.
-     * An AttachmentRef is created and its reference count incremented.
+     * An AttachmentUsage is created and its reference count incremented.
      * @param binding The input attachment binding the attachment will take on
      * @param attachment Pointer to an Attachment that exists elsewhere and will be used
      * as an input for this set of attachments. The operation will be an OP_LOAD.
@@ -287,12 +287,12 @@ public:
     Result Destroy(Device *device);
 
 private:
-    void SortAttachmentRefs();
+    void SortAttachmentUsages();
 
     UInt m_width, m_height;
     RenderPassStage m_stage;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
-    std::vector<std::pair<UInt, AttachmentRef *>> m_attachment_refs;
+    std::vector<std::pair<UInt, AttachmentUsage *>> m_attachment_usages;
 };
 
 } // namespace renderer

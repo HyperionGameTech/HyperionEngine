@@ -94,12 +94,14 @@ public:
         String name;
         in.GetProperty("name").ReadString(name);
 
-        auto material_handle = UniquePtr<Handle<Material>>::Construct(CreateObject<Material>(name));
+        MaterialAttributes attributes;
+        Material::ParameterTable parameters = Material::DefaultParameters();
+        Material::TextureSet textures;
 
-        in.GetProperty("attributes.bucket").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().bucket);
-        in.GetProperty("attributes.flags").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().flags);
-        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().cull_faces);
-        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&(*material_handle)->GetRenderAttributes().fill_mode);
+        in.GetProperty("attributes.bucket").ReadUnsignedInt(&attributes.bucket);
+        in.GetProperty("attributes.flags").ReadUnsignedInt(&attributes.flags);
+        in.GetProperty("attributes.cull_mode").ReadUnsignedInt(&attributes.cull_faces);
+        in.GetProperty("attributes.fill_mode").ReadUnsignedInt(&attributes.fill_mode);
 
         UInt num_parameters;
 
@@ -138,7 +140,7 @@ public:
                 }
             }
 
-            (*material_handle)->SetParameter(key, param);
+            parameters.Set(key, param);
         }
 
         UInt32 texture_keys[Material::max_textures];
@@ -154,8 +156,8 @@ public:
             if (node.GetType().IsOrExtends("Texture")) {
                 if (texture_index < std::size(texture_keys)) {
                     if (auto texture = node.deserialized.Get<Texture>()) {
-                        (*material_handle)->SetTexture(
-                            static_cast<Material::TextureKey>(texture_keys[texture_index]), 
+                        textures.Set(
+                            Material::TextureKey(texture_keys[texture_index]), 
                             std::move(texture)
                         );
 
@@ -165,7 +167,9 @@ public:
             }
         }
 
-        out_object = std::move(material_handle);
+        auto material_handle = Engine::Get()->GetMaterialCache().GetOrCreate(attributes, parameters, textures);
+
+        out_object = std::move(UniquePtr<Handle<Material>>::Construct(material_handle));
 
         return { FBOMResult::FBOM_OK };
     }

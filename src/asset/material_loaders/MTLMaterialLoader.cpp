@@ -219,11 +219,10 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         DebugLog(LogType::Warn, "Obj Mtl loader: Unable to parse mtl material line: %s\n", trimmed.c_str());
     });
 
-    auto material_group_handle = UniquePtr<Handle<MaterialGroup>>::Construct(
-        CreateObject<MaterialGroup>()
-    );
+    auto material_group_handle = UniquePtr<Handle<MaterialGroup>>::Construct(CreateObject<MaterialGroup>());
 
     std::unordered_map<std::string, std::string> texture_names_to_path;
+    FlatSet<String> unique_paths;
 
     for (const auto &item : library.materials) {
         for (const auto &it : item.textures) {
@@ -236,49 +235,92 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             );
 
             texture_names_to_path[it.name] = texture_path;
+            unique_paths.Insert(texture_path.c_str());
         }
     }
 
     std::unordered_map<std::string, Handle<Texture>> texture_refs;
     
     AssetMap loaded_textures;
+    std::vector<std::string> all_filepaths;
 
     {
-        std::vector<std::string> all_filepaths;
-        // Array<Handle<Texture>> loaded_textures;
-
         if (!texture_names_to_path.empty()) {
-            auto textures_batch = state.asset_manager->CreateBatch();
+            UInt num_enqueued = 0;
+            String paths_string;
 
+            AssetBatch textures_batch = state.asset_manager->CreateBatch();
+
+            // for (const String &str : unique_paths) {
+            //     textures_batch.Add<Texture>(str, str);
+
+            //     ++num_enqueued;
+
+            //     if (paths_string.Any()) {
+            //         paths_string += ", ";
+            //     }
+
+            //     paths_string += str;
+            // }
             for (auto &it : texture_names_to_path) {
                 all_filepaths.push_back(it.second);
+                ++num_enqueued;
                 textures_batch.Add<Texture>(
                     String(it.first.c_str()),
                     String(it.second.c_str())
                 );
+                if (paths_string.Any()) {
+                    paths_string += ", ";
+                }
+
+                paths_string += it.second.data();
             }
 
-            textures_batch.LoadAsync();
-            loaded_textures = textures_batch.AwaitResults();
+            if (num_enqueued != 0) {
+                DebugLog(
+                    LogType::Info,
+                    "Loading %u textures async:\n\t%s\n",
+                    num_enqueued,
+                    paths_string.Data()
+                );
+
+                textures_batch.LoadAsync();
+                loaded_textures = textures_batch.AwaitResults();
+            }
         }
     }
 
     for (auto &item : library.materials) {
-        auto material = CreateObject<Material>(item.tag.c_str());
+        MaterialAttributes attributes;
+        Material::ParameterTable parameters = Material::DefaultParameters();
+        Material::TextureSet textures;
 
         for (auto &it : item.parameters) {
-            material->SetParameter(it.first, Material::Parameter(
+            parameters.Set(it.first, Material::Parameter(
                 it.second.values.Data(),
                 it.second.values.Size()
             ));
 
             if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; })) {
-                material->SetIsAlphaBlended(true);
-                material->SetBucket(BUCKET_TRANSLUCENT);
+                attributes.blend_mode = BlendMode::NORMAL;
+                attributes.bucket = BUCKET_TRANSLUCENT;
             }
         }
 
         for (auto &it : item.textures) {
+            // const auto &texture_path = texture_names_to_path[it.name];
+
+            // if (texture_path.empty()) {
+            //     DebugLog(
+            //         LogType::Warn,
+            //         "OBJ MTL loader: Texture %s could not be used because it was in the texture name -> path map!\n",
+            //         it.name.c_str()
+            //     );
+
+            //     continue;
+            // }
+
+            // Handle<Texture> texture = loaded_textures[String(texture_path.c_str())].Get<Texture>();
             auto texture = loaded_textures[String(it.name.c_str())].Get<Texture>();
 
             if (!texture) {
@@ -294,8 +336,14 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             texture->GetImage()->SetIsSRGB(it.mapping.srgb);
             texture->SetName(String(it.name.c_str()));
 
-            material->SetTexture(it.mapping.key, std::move(texture));
+            textures.Set(it.mapping.key, std::move(texture));
         }
+
+        Handle<Material> material = Engine::Get()->GetMaterialCache().GetOrCreate(
+            attributes,
+            parameters,
+            textures
+        );
 
         (*material_group_handle)->Add(item.tag, std::move(material));
     }

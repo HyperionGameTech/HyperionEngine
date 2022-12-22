@@ -11,6 +11,7 @@
 #include <core/Containers.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
+#include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -20,6 +21,7 @@
 
 namespace hyperion::v2 {
 
+using renderer::Attachment;
 using renderer::Frame;
 using renderer::CommandBuffer;
 using renderer::PerFrameData;
@@ -41,18 +43,18 @@ public:
     );
 
     FullScreenPass(
-        Handle<Shader> &&shader,
+        const Handle<Shader> &shader,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
 
     FullScreenPass(
-        Handle<Shader> &&shader,
+        const Handle<Shader> &shader,
         const Array<const DescriptorSet *> &used_descriptor_sets,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
     );
 
     FullScreenPass(
-        Handle<Shader> &&shader,
+        const Handle<Shader> &shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
         InternalFormat image_format = InternalFormat::RGB8_SRGB
@@ -62,8 +64,8 @@ public:
     FullScreenPass &operator=(const FullScreenPass &) = delete;
     virtual ~FullScreenPass();
 
-    AttachmentRef *GetAttachmentRef(UInt attachment_index)
-        { return GetFramebuffer()->GetAttachmentRefs()[attachment_index]; }
+    AttachmentUsage *GetAttachmentUsage(UInt attachment_index)
+        { return GetFramebuffer()->GetAttachmentUsages()[attachment_index]; }
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
 
@@ -73,7 +75,7 @@ public:
     Handle<Shader> &GetShader() { return m_shader; }
     const Handle<Shader> &GetShader() const { return m_shader; }
 
-    void SetShader(Handle<Shader> &&shader);
+    void SetShader(const Handle<Shader> &shader);
 
     Handle<Mesh> &GetQuadMesh() { return m_full_screen_quad; }
     const Handle<Mesh> &GetQuadMesh() const { return m_full_screen_quad; }

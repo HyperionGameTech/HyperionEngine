@@ -416,7 +416,7 @@ public:
     bool IsCreated() const { return m_is_created; }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    bool IsTemplate() const { return GetRealIndex() == static_cast<UInt>(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    bool IsTemplate() const { return GetRealIndex() == UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)

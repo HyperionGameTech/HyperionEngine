@@ -11,7 +11,7 @@ using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
 
 DepthPyramidRenderer::DepthPyramidRenderer()
-    : m_depth_attachment_ref(nullptr),
+    : m_depth_attachment_usage(nullptr),
       m_is_rendered(false)
 {
 }
@@ -19,11 +19,11 @@ DepthPyramidRenderer::DepthPyramidRenderer()
 DepthPyramidRenderer::~DepthPyramidRenderer()
 {
 }
-void DepthPyramidRenderer::Create(const AttachmentRef *depth_attachment_ref)
+void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
 {
-    AssertThrow(m_depth_attachment_ref == nullptr);
-    // AssertThrow(depth_attachment_ref->IsDepthAttachment());
-    m_depth_attachment_ref = depth_attachment_ref->IncRef(HYP_ATTACHMENT_REF_INSTANCE);
+    AssertThrow(m_depth_attachment_usage == nullptr);
+    // AssertThrow(depth_attachment_usage->IsDepthAttachment());
+    m_depth_attachment_usage = depth_attachment_usage->IncRef(HYP_attachment_usage_INSTANCE);
 
     m_depth_pyramid_sampler = std::make_unique<Sampler>(
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
@@ -33,7 +33,7 @@ void DepthPyramidRenderer::Create(const AttachmentRef *depth_attachment_ref)
     HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(Engine::Get()->GetGPUDevice()));
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        const auto *depth_attachment = m_depth_attachment_ref->GetAttachment();
+        const auto *depth_attachment = m_depth_attachment_usage->GetAttachment();
         AssertThrow(depth_attachment != nullptr);
 
         const auto *depth_image = depth_attachment->GetImage();
@@ -84,7 +84,7 @@ void DepthPyramidRenderer::Create(const AttachmentRef *depth_attachment_ref)
                 // first mip level -- input is the actual depth image
                 depth_pyramid_in->SetSubDescriptor({
                     .element_index = 0u,
-                    .image_view = depth_attachment_ref->GetImageView()
+                    .image_view = depth_attachment_usage->GetImageView()
                 });
             } else {
                 depth_pyramid_in->SetSubDescriptor({
@@ -145,9 +145,9 @@ void DepthPyramidRenderer::Destroy()
 
     HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(Engine::Get()->GetGPUDevice()));
 
-    if (m_depth_attachment_ref != nullptr) {
-        m_depth_attachment_ref->DecRef(HYP_ATTACHMENT_REF_INSTANCE);
-        m_depth_attachment_ref = nullptr;
+    if (m_depth_attachment_usage != nullptr) {
+        m_depth_attachment_usage->DecRef(HYP_attachment_usage_INSTANCE);
+        m_depth_attachment_usage = nullptr;
     }
 
     m_is_rendered = false;
@@ -162,7 +162,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips[frame_index].Size();
 
-    const auto &image_extent = m_depth_attachment_ref->GetAttachment()->GetImage()->GetExtent();
+    const auto &image_extent = m_depth_attachment_usage->GetAttachment()->GetImage()->GetExtent();
     const auto &depth_pyramid_extent = m_depth_pyramid[frame_index]->GetExtent();
 
     UInt32 mip_width = image_extent.width,

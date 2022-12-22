@@ -19,7 +19,7 @@ using renderer::ImageView;
 using renderer::Sampler;
 using renderer::Device;
 using renderer::DescriptorSet;
-using renderer::AttachmentRef;
+using renderer::AttachmentUsage;
 using renderer::Extent3D;
 
 class DepthPyramidRenderer
@@ -38,7 +38,7 @@ public:
 
     bool IsRendered() const { return m_is_rendered; }
 
-    void Create(const AttachmentRef *depth_attachment_ref);
+    void Create(const AttachmentUsage *depth_attachment_usage);
     void Destroy();
 
     void Render(
@@ -47,7 +47,7 @@ public:
     );
 
 private:
-    const AttachmentRef *m_depth_attachment_ref;
+    const AttachmentUsage *m_depth_attachment_usage;
 
     FixedArray<std::unique_ptr<Image>, max_frames_in_flight> m_depth_pyramid;
     FixedArray<std::unique_ptr<ImageView>, max_frames_in_flight> m_depth_pyramid_results;
