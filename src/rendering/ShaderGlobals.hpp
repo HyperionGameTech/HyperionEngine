@@ -73,9 +73,7 @@ struct ShaderGlobals
 
     void FreeEntityBatch(EntityBatchIndex batch_index)
     {
-        if (batch_index == 0) {
-            return;
-        }
+        AssertThrow(batch_index != 0);
 
         ResetBatch(batch_index);
 
@@ -84,20 +82,15 @@ struct ShaderGlobals
 
     void ResetBatch(EntityBatchIndex batch_index)
     {
-        if (batch_index == 0) {
-            return;
-        }
-
+        AssertThrow(batch_index != 0);
         AssertThrow(batch_index < max_entity_instance_batches);
 
-        EntityInstanceBatch &batch = entity_instance_batches.Get(batch_index);
-        Memory::Set(&batch, 0, sizeof(EntityInstanceBatch));
-
-        entity_instance_batches.MarkDirty(batch_index);
+        entity_instance_batches.Set(batch_index, { });
     }
 
     bool PushEntityToBatch(EntityBatchIndex batch_index, ID<Entity> entity_id)
     {
+        AssertThrow(batch_index != 0);
         AssertThrow(batch_index < max_entity_instance_batches);
 
         EntityInstanceBatch &batch = entity_instance_batches.Get(batch_index);
@@ -108,6 +101,7 @@ struct ShaderGlobals
 
         const UInt32 id_index = batch.num_entities++;
         batch.indices[id_index] = UInt32(entity_id.ToIndex());
+
         entity_instance_batches.MarkDirty(batch_index);
 
         return true;
@@ -115,6 +109,7 @@ struct ShaderGlobals
 
     void SetEntityInBatch(EntityBatchIndex batch_index, SizeType id_index, ID<Entity> entity_id)
     {
+        AssertThrow(batch_index != 0);
         AssertThrow(batch_index < max_entity_instance_batches);
         AssertThrow(id_index < max_entities_per_instance_batch);
 

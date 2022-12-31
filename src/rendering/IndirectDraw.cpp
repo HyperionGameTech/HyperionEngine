@@ -48,16 +48,11 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
 
             // global scene data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-                ->SetSubDescriptor({
-                    .buffer = Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                    .range = static_cast<UInt>(sizeof(SceneShaderData))
-                });
+                ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
             // params buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::UniformBufferDescriptor>(2)
-                ->SetSubDescriptor({
-                    .buffer = &indirect_renderer.m_indirect_params_buffers[frame_index]
-                });
+                ->SetElementBuffer(0, &indirect_renderer.m_indirect_params_buffers[frame_index]);
 
             // instances buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)

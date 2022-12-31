@@ -68,7 +68,6 @@ void ImmediateMode::Create()
     Engine::Get()->InitObject(m_shader);
 
     m_renderer_instance = Engine::Get()->CreateRenderGroup(
-        m_shader,
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = renderer::static_mesh_vertex_attributes
@@ -78,7 +77,8 @@ void ImmediateMode::Create()
                 .fill_mode = FillMode::LINE,
                 .blend_mode = BlendMode::NORMAL,
                 .cull_faces = FaceCullMode::NONE
-            }
+            },
+            m_shader->GetID()
         ),
         Array<const DescriptorSet *> {
             m_descriptor_sets[0].Get(),

@@ -1007,8 +1007,13 @@ void Engine::RenderNextFrame(Game *game)
     GetGPUInstance()->GetFrameHandler()->NextFrame();
 }
 
-Handle<RenderGroup> Engine::CreateRenderGroup(const Handle<Shader> &shader, const RenderableAttributeSet &renderable_attributes, bool cache)
+Handle<RenderGroup> Engine::CreateRenderGroup(
+    const RenderableAttributeSet &renderable_attributes,
+    bool cache
+)
 {
+    Handle<Shader> shader(renderable_attributes.shader_id);
+
     if (!shader) {
         DebugLog(
             LogType::Warn,
@@ -1018,31 +1023,28 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const Handle<Shader> &shader, cons
         return Handle<RenderGroup>::empty;
     }
 
-    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.shader_id = shader->GetID();
-
     // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
-        Handle<Shader>(shader),
-        new_renderable_attributes
+    auto render_group = CreateObject<RenderGroup>(
+        std::move(shader),
+        renderable_attributes
     );
+    
+    std::lock_guard guard(m_render_group_mapping_mutex);
 
-    if (cache) {
-        std::lock_guard guard(m_render_group_mapping_mutex);
+    AddRenderGroupInternal(render_group, cache);
 
-        AddRenderGroupInternal(renderer_instance);
-    }
-
-    return renderer_instance;
+    return render_group;
 }
 
 
 Handle<RenderGroup> Engine::CreateRenderGroup(
-    const Handle<Shader> &shader,
     const RenderableAttributeSet &renderable_attributes,
-    const Array<const DescriptorSet *> &used_descriptor_sets
+    const Array<const DescriptorSet *> &used_descriptor_sets,
+    bool cache
 )
 {
+    Handle<Shader> shader(renderable_attributes.shader_id);
+
     if (!shader) {
         DebugLog(
             LogType::Warn,
@@ -1051,20 +1053,17 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 
         return Handle<RenderGroup>::empty;
     }
-
-    RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.shader_id = shader->GetID();
-
-    auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
-
+    
     // create a RenderGroup with the given params
-    auto renderer_instance = CreateObject<RenderGroup>(
-        Handle<Shader>(shader),
-        new_renderable_attributes,
+    auto render_group = CreateObject<RenderGroup>(
+        std::move(shader),
+        renderable_attributes,
         used_descriptor_sets
     );
+    
+    AddRenderGroupInternal(render_group, cache);
 
-    return renderer_instance;
+    return render_group;
 }
 
 Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
@@ -1083,7 +1082,9 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet
     const auto it = m_render_group_mapping.Find(renderable_attributes);
 
     if (it != m_render_group_mapping.End()) {
-        return it->second;
+        if (auto render_group = it->second.Lock()) {
+            return render_group;
+        }
     }
 
     // create a RenderGroup with the given params
@@ -1092,7 +1093,7 @@ Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet
         renderable_attributes
     );
 
-    AddRenderGroupInternal(render_group);
+    AddRenderGroupInternal(render_group, true);
 
     return render_group;
 }
@@ -1101,25 +1102,27 @@ void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
 {
     std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRenderGroupInternal(render_group);
+    AddRenderGroupInternal(render_group, true);
 }
     
-void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group)
+void Engine::AddRenderGroupInternal(Handle<RenderGroup> &render_group, bool cache)
 {
-    DebugLog(
-        LogType::Debug,
-        "Insert RenderGroup in mapping for renderable attribute set hash %llu\n",
-        render_group->GetRenderableAttributes().GetHashCode().Value()
-    );
+    if (cache) {
+        DebugLog(
+            LogType::Debug,
+            "Insert RenderGroup in mapping for renderable attribute set hash %llu\n",
+            render_group->GetRenderableAttributes().GetHashCode().Value()
+        );
 
-    m_render_group_mapping.Insert(
-        render_group->GetRenderableAttributes(),
-        render_group
-    );
+        m_render_group_mapping.Insert(
+            render_group->GetRenderableAttributes(),
+            render_group
+        );
+    }
 
     m_render_list_container
         .Get(render_group->GetRenderableAttributes().material_attributes.bucket)
-        .AddRenderGroup(render_group);
+        .PrepareRenderGroup(render_group);
 }
 
 void Engine::PreFrameUpdate(Frame *frame)

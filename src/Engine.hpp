@@ -170,16 +170,15 @@ public:
         { return m_texture_format_defaults.Get(type); }
 
     Handle<RenderGroup> CreateRenderGroup(
-        const Handle<Shader> &shader,
         const RenderableAttributeSet &renderable_attributes,
         bool cache = false
     );
     
     /*! \brief Create a RenderGroup using defined set of DescriptorSets. The result will not be cached. */
     Handle<RenderGroup> CreateRenderGroup(
-        const Handle<Shader> &shader,
         const RenderableAttributeSet &renderable_attributes,
-        const Array<const DescriptorSet *> &used_descriptor_sets
+        const Array<const DescriptorSet *> &used_descriptor_sets,
+        bool cache = false
     );
 
     /*! \brief Find or create a RenderGroup from cache. If created, the result will always be cached. */
@@ -314,7 +313,7 @@ private:
 
     void FindTextureFormatDefaults();
 
-    void AddRenderGroupInternal(Handle<RenderGroup> &);
+    void AddRenderGroupInternal(Handle<RenderGroup> &, bool cache);
     
     UniquePtr<Instance> m_instance;
     Handle<RenderGroup> m_root_pipeline;
@@ -327,7 +326,7 @@ private:
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
 
-    FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_group_mapping;
+    FlatMap<RenderableAttributeSet, WeakHandle<RenderGroup>> m_render_group_mapping;
     std::mutex m_render_group_mapping_mutex;
 
     ComponentRegistry m_components;

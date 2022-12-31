@@ -418,7 +418,7 @@ void Node::SetEntity(Handle<Entity> &&entity)
         const Transform entity_transform = entity->GetTransform();
 
         m_entity = std::move(entity);
-        InitObject(m_entity);
+        //InitObject(m_entity);
 
         if (m_scene != nullptr) {
             m_scene->AddEntityInternal(Handle<Entity>(m_entity));

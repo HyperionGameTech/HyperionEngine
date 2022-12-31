@@ -113,7 +113,7 @@ struct Handle
         { return index == other.index; }
 
     bool operator!=(const Handle &other) const
-        { return index == other.index; }
+        { return index != other.index; }
 
     bool operator<(const Handle &other) const
         { return index < other.index; }
@@ -258,7 +258,7 @@ struct WeakHandle
         { return index == other.index; }
 
     bool operator!=(const WeakHandle &other) const
-        { return index == other.index; }
+        { return index != other.index; }
 
     bool operator<(const WeakHandle &other) const
         { return index < other.index; }
@@ -267,7 +267,7 @@ struct WeakHandle
         { return index == other.index; }
 
     bool operator!=(const Handle<T> &other) const
-        { return index == other.index; }
+        { return index != other.index; }
 
     bool operator<(const Handle<T> &other) const
         { return index < other.index; }

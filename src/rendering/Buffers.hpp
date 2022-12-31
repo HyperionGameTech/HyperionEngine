@@ -79,7 +79,7 @@ static_assert(sizeof(CubemapUniforms) % 256 == 0);
 
 struct SkeletonShaderData
 {
-    static constexpr SizeType max_bones = 256;
+    static constexpr SizeType max_bones = 128;
 
     Matrix4 bones[max_bones];
 };

@@ -39,7 +39,12 @@ void DrawCallCollection::PushDrawCall(EntityBatchIndex batch_index, DrawCallID i
     if (it != index_map.end()) {
         for (const SizeType draw_call_index : it->second) {
             DrawCall &draw_call = draw_calls[draw_call_index];
-            AssertThrow(batch_index == 0 ? draw_call.batch_index != 0 : draw_call.batch_index == batch_index);
+
+            AssertThrow(draw_call.batch_index != 0);
+
+            if (batch_index != 0) {
+                AssertThrow(draw_call.batch_index == batch_index);
+            }
 
             if (!Engine::Get()->shader_globals->PushEntityToBatch(draw_call.batch_index, entity.entity_id)) {
                 // filled up, continue looking in array,

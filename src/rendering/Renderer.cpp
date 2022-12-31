@@ -237,29 +237,11 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const ID<Scene> scene_id = scene_binding.id;
 
-    // check visibility state
-    const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
-    const UInt8 visibility_cursor = Engine::Get()->render_state.visibility_cursor;
-    const VisibilityStateSnapshot &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
-
     for (EntityDrawProxy &draw_proxy : m_draw_proxies) {
-
         if (draw_proxy.mesh == nullptr) {
             continue;
         }
-
-        /*if (perform_culling) {
-            const auto &snapshot = entity->GetVisibilityState().snapshots[visibility_cursor];
-
-            if (!snapshot.ValidToParent(octree_visibility_state_snapshot)) {
-                continue;
-            }
-
-            if (!snapshot.Get(scene_id)) {
-                continue;
-            }
-        }*/
-
+        
         DrawCallID draw_call_id;
 
         if constexpr (DrawCall::unique_per_material) {
@@ -269,7 +251,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
         }
 
         EntityBatchIndex batch_index = 0;
-
+        
         if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
             // take the batch for reuse
             if ((batch_index = draw_call->batch_index)) {
@@ -286,8 +268,9 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
     // register draw calls for indirect rendering
     for (DrawCall &draw_call : m_draw_state.draw_calls) {
-        DrawCommandData draw_command_data;
+        DrawCommandData draw_command_data { };
         m_indirect_renderer.GetDrawState().PushDrawCall(draw_call, draw_command_data);
+
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
 }
@@ -534,7 +517,7 @@ RenderAll(
             ->SubmitSecondary(frame->GetCommandBuffer());
     }
 
-    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
+    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % UInt(command_buffers.Size());
 }
 
 void RenderGroup::PerformRendering(Frame *frame)

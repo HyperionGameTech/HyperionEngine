@@ -143,7 +143,7 @@ DeferredSystem::RenderGroupHolder::~RenderGroupHolder()
 {
 }
 
-void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &render_group)
+void DeferredSystem::RenderGroupHolder::PrepareRenderGroup(Handle<RenderGroup> &render_group)
 {
     if (render_group->GetRenderableAttributes().framebuffer_id) {
         Handle<Framebuffer> framebuffer(render_group->GetRenderableAttributes().framebuffer_id);
@@ -156,7 +156,7 @@ void DeferredSystem::RenderGroupHolder::AddRenderGroup(Handle<RenderGroup> &rend
     }
 
     InitObject(render_group);
-
+    
     std::lock_guard guard(renderer_instances_mutex);
 
     renderer_instances_pending_addition.PushBack(render_group);

@@ -689,7 +689,9 @@ void Scene::Update(GameCounter::TickUnit delta)
     m_draw_collection.Reset();
 
     const RenderableAttributeSet *override_attributes = m_override_renderable_attributes.TryGet();
-    
+
+    SizeType num_entities = 0;
+
     // update each entity
     for (auto &it : m_entities) {
         Handle<Entity> &entity = it.second;
@@ -698,6 +700,8 @@ void Scene::Update(GameCounter::TickUnit delta)
 
         if (entity->IsRenderable() && IsEntityInFrustum(entity)) {
             PushEntityToRender(entity, override_attributes);
+
+            ++num_entities;
         }
     }
 
@@ -707,6 +711,8 @@ void Scene::Update(GameCounter::TickUnit delta)
 
             if (entity->IsRenderable() && IsEntityInFrustum(entity)) {
                 PushEntityToRender(entity, override_attributes);
+
+                ++num_entities;
             }
         }
     }
@@ -718,19 +724,25 @@ void Scene::Update(GameCounter::TickUnit delta)
         auto render_group_it = m_render_groups.Find(attributes);
 
         if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-            Handle<RenderGroup> render_group = Engine::Get()->FindOrCreateRenderGroup(attributes);
+            Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
 
             if (!render_group.IsValid()) {
                 DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
 
+                if (render_group_it != m_render_groups.End()) {
+                    m_render_groups.Erase(render_group_it);
+                }
+
                 continue;
             }
 
-            auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
+            auto insert_result = m_render_groups.Set(attributes, std::move(render_group));
             AssertThrow(insert_result.second);
 
             render_group_it = insert_result.first;
         }
+
+        std::cout << "Scene " << GetID().value << " num render groups: " << m_render_groups.Size() << "\n";
         
         PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
     }
