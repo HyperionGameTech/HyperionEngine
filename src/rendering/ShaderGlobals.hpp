@@ -42,6 +42,8 @@ struct GlobalSphericalHarmonicsGrid
 
     FixedArray<GridTexture, 9> textures;
 
+    FixedArray<GridTexture, 9> clipmaps;
+
     GlobalSphericalHarmonicsGrid();
 
     void Create();

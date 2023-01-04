@@ -688,6 +688,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
             ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_CLIPMAPS)
+            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.clipmaps[0].image_view)
+            ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.clipmaps[1].image_view)
+            ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.clipmaps[2].image_view);
     }
 
     // add placeholder scene data
