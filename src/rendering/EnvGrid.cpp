@@ -13,6 +13,29 @@ const Extent2D EnvGrid::reflection_probe_dimensions = Extent2D { 128, 128 };
 const Extent2D EnvGrid::ambient_probe_dimensions = Extent2D { 16, 16 };
 const Float EnvGrid::overlap_amount = 1.0f;
 
+#pragma region Render commands
+
+struct RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets) : RenderCommand
+{
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets)(const FixedArray<DescriptorSetRef, max_frames_in_flight> &descriptor_sets)
+        : descriptor_sets(descriptor_sets)
+    {
+    }
+
+    virtual Result operator()()
+    {
+        for (auto &descriptor_set : descriptor_sets) {
+            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(Engine::Get()->GetGPUDevice(), &Engine::Get()->GetGPUInstance()->GetDescriptorPool()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion
+
 EnvGrid::EnvGrid(const BoundingBox &aabb, const Extent3D &density)
     : RenderComponent(3),
       m_aabb(aabb),
@@ -74,6 +97,8 @@ void EnvGrid::Init()
 
     CreateShader();
     CreateFramebuffer();
+
+    CreateClipmapComputeShader();
 
     {
         Memory::Set(m_shader_data.probe_indices, 0, sizeof(m_shader_data.probe_indices));
@@ -270,10 +295,11 @@ void EnvGrid::OnRender(Frame *frame)
                 env_probe->SetBoundIndex(EnvProbeIndex());
             }
 
+            ComputeClipmaps(frame);
+
             m_current_probe_index = (m_current_probe_index + 1) % num_ambient_probes;
         }
 
-            
         for (UInt index = 0; index < num_ambient_probes; index++) {
             const auto &env_probe = m_ambient_probes[index];
             const EnvProbeIndex &bound_index = env_probe->GetBoundIndex();
@@ -298,6 +324,113 @@ void EnvGrid::OnRender(Frame *frame)
 void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
 {
     AssertThrowMsg(false, "Not implemented");
+}
+
+void EnvGrid::CreateClipmapComputeShader()
+{
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_compute_clipmaps_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+
+        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
+            ->SetElementSRV(0, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[0].image_view)
+            ->SetElementSRV(1, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[1].image_view)
+            ->SetElementSRV(2, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[2].image_view)
+            ->SetElementSRV(3, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[3].image_view)
+            ->SetElementSRV(4, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[4].image_view)
+            ->SetElementSRV(5, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[5].image_view)
+            ->SetElementSRV(6, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[6].image_view)
+            ->SetElementSRV(7, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[7].image_view)
+            ->SetElementSRV(8, Engine::Get()->shader_globals->spherical_harmonics_grid.textures[8].image_view);
+
+        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+
+        m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(2)
+            ->SetElementUAV(0, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[0].image_view)
+            ->SetElementUAV(1, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[1].image_view)
+            ->SetElementUAV(2, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[2].image_view)
+            ->SetElementUAV(3, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[3].image_view)
+            ->SetElementUAV(4, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[4].image_view)
+            ->SetElementUAV(5, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[5].image_view)
+            ->SetElementUAV(6, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[6].image_view)
+            ->SetElementUAV(7, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[7].image_view)
+            ->SetElementUAV(8, Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps[8].image_view);
+
+        // gbuffer textures
+        m_compute_clipmaps_descriptor_sets[frame_index]
+            ->AddDescriptor<ImageDescriptor>(3)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+
+        // scene buffer - so we can reconstruct world positions
+        m_compute_clipmaps_descriptor_sets[frame_index]
+            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
+            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->shader_globals->scenes.GetBuffer(frame_index).get());
+
+        // env grid buffer (dynamic)
+        m_compute_clipmaps_descriptor_sets[frame_index]
+            ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
+            ->SetElementBuffer<EnvGridShaderData>(0, Engine::Get()->shader_globals->env_grids.GetBuffer(frame_index).get());
+
+        // env probes buffer
+        m_compute_clipmaps_descriptor_sets[frame_index]
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(6)
+            ->SetElementBuffer(0, Engine::Get()->shader_globals->env_probes.GetBuffer(frame_index).get());
+    }
+
+    PUSH_RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets, m_compute_clipmaps_descriptor_sets);
+
+    m_compute_clipmaps = CreateObject<ComputePipeline>(
+        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader("ComputeSHClipmap")),
+        Array<const DescriptorSet *> { m_compute_clipmaps_descriptor_sets[0].Get() }
+    );
+
+    InitObject(m_compute_clipmaps);
+}
+
+void EnvGrid::ComputeClipmaps(Frame *frame)
+{
+    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const UInt scene_index = scene_binding.id.ToIndex();
+    
+    const auto &clipmaps = Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps;
+
+    AssertThrow(clipmaps[0].image.IsValid());
+    const Extent3D &clipmap_extent = clipmaps[0].image->GetExtent();
+
+    struct alignas(128) {
+        ShaderVec4<UInt32> clipmap_dimensions;
+    } push_constants;
+
+    push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
+
+    for (auto &texture : Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps) {
+        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    }
+
+    frame->GetCommandBuffer()->BindDescriptorSet(
+        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        m_compute_clipmaps->GetPipeline(),
+        m_compute_clipmaps_descriptor_sets[frame->GetFrameIndex()],
+        0,
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+        }
+    );
+
+    m_compute_clipmaps->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+    m_compute_clipmaps->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            (clipmap_extent[0] + 7) / 8,
+            (clipmap_extent[1] + 7) / 8,
+            1
+        }
+    );
+
+    for (auto &texture : Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps) {
+        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    }
 }
 
 void EnvGrid::CreateShader()

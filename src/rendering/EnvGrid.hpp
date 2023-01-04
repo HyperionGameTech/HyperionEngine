@@ -38,11 +38,15 @@ public:
     void OnUpdate(GameCounter::TickUnit delta);
     void OnRender(Frame *frame);
 
+
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     void CreateShader();
     void CreateFramebuffer();
+
+    void CreateClipmapComputeShader();
+    void ComputeClipmaps(Frame *frame);
 
     void RenderEnvProbe(
         Frame *frame,
@@ -62,6 +66,9 @@ private:
 
     Handle<EnvProbe> m_reflection_probe;
     Array<Handle<EnvProbe>> m_ambient_probes;
+
+    Handle<ComputePipeline> m_compute_clipmaps;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;
 
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;

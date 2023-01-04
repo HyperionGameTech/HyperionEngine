@@ -635,6 +635,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.textures[6].image_view)
             ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.textures[7].image_view)
             ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.textures[8].image_view);
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_CLIPMAPS)
+            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.clipmaps[0].image_view)
+            ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.clipmaps[1].image_view)
+            ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.clipmaps[2].image_view);
     }
 
     // add placeholder scene data

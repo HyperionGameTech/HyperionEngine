@@ -24,11 +24,11 @@ public:
     UInt GetCurrentAnimationIndex() const
         { return m_animation_index; }
 
-    const Animation &GetCurrentAnimation() const
+    const Animation *GetCurrentAnimation() const
     {
         return m_skeleton && m_animation_index != ~0u
-            ? m_skeleton->GetAnimation(m_animation_index)
-            : Animation();
+            ? &m_skeleton->GetAnimation(m_animation_index)
+            : nullptr;
     }
 
     virtual void OnAdded() override;
