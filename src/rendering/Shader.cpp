@@ -128,7 +128,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
     }
 
     { // clipmaps
-        const Extent3D image_dimensions { 32, 32, 8 };
+        const Extent3D image_dimensions { 32, 32, 32 };
 
         UByte *empty_image_bytes = new UByte[image_dimensions.Size() * sizeof(Float) * 4];
         Memory::Set(empty_image_bytes, 0, image_dimensions.Size() * sizeof(Float) * 4);

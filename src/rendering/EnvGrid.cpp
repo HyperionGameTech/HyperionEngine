@@ -37,7 +37,7 @@ struct RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets) : RenderCommand
 #pragma endregion
 
 EnvGrid::EnvGrid(const BoundingBox &aabb, const Extent3D &density)
-    : RenderComponent(3),
+    : RenderComponent(),
       m_aabb(aabb),
       m_density(density),
       m_current_probe_index(0)
@@ -399,9 +399,11 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
 
     struct alignas(128) {
         ShaderVec4<UInt32> clipmap_dimensions;
+        ShaderVec4<Float> cage_center_world;
     } push_constants;
 
     push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
+    push_constants.cage_center_world = Vector4(scene_binding.scene.camera.position, 1.0f);
 
     for (auto &texture : Engine::Get()->shader_globals->spherical_harmonics_grid.clipmaps) {
         texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -424,7 +426,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
         Extent3D {
             (clipmap_extent[0] + 7) / 8,
             (clipmap_extent[1] + 7) / 8,
-            1
+            (clipmap_extent[2] + 7) / 8,
         }
     );
 
