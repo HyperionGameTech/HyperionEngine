@@ -29,7 +29,8 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_SCENE = 0x1,
     RENDER_STATE_LIGHTS = 0x2,
     RENDER_STATE_ENV_PROBES = 0x4,
-    RENDER_STATE_VISIBILITY = 0x8,
+    RENDER_STATE_ACTIVE_ENV_PROBE = 0x8,
+    RENDER_STATE_VISIBILITY = 0x10,
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
@@ -79,7 +80,18 @@ struct RenderState
     FlatMap<ID<Light>, LightDrawProxy> lights;
     FlatMap<ID<EnvProbe>, Optional<UInt>> bound_env_probes; // map to texture slot
     ID<EnvGrid> bound_env_grid;
+    ID<EnvProbe> current_env_probe; // For rendering to EnvProbe.
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
+
+    void SetActiveEnvProbe(ID<EnvProbe> id)
+    {
+        current_env_probe = id;
+    }
+
+    void UnsetActiveEnvProbe()
+    {
+        current_env_probe = ID<EnvProbe>();
+    }
 
     void BindEnvGrid(ID<EnvGrid> id)
     {
@@ -159,11 +171,15 @@ struct RenderState
         }
 
         if (mask & RENDER_STATE_SCENE) {
-            scene_bindings = {};
+            scene_bindings = { };
         }
 
         if (mask & RENDER_STATE_LIGHTS) {
             lights.Clear();
+        }
+
+        if (mask & RENDER_STATE_ACTIVE_ENV_PROBE) {
+            UnsetActiveEnvProbe();
         }
 
         if (mask & RENDER_STATE_VISIBILITY) {

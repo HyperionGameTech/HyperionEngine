@@ -276,7 +276,7 @@ void BlurRadiance::Render(
             pass->GetPipeline(),
             descriptor_sets[i].Get(),
             0,
-            FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
+            FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
         );
 
         const auto &extent = m_image_outputs[frame->GetFrameIndex()][i].image.GetExtent();

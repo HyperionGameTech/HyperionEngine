@@ -110,7 +110,7 @@ void ImmediateMode::Destroy()
 
 void ImmediateMode::Render(Frame *frame)
 {
-    if (m_num_draw_commands_pending_additon.load(std::memory_order_relaxed) != 0) {
+    if (m_num_draw_commands_pending_addition.load(std::memory_order_relaxed) != 0) {
         UpdateDrawCommands();
     }
 
@@ -153,7 +153,8 @@ void ImmediateMode::Render(Frame *frame)
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
-            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
         }
     );
 
@@ -181,7 +182,7 @@ void ImmediateMode::UpdateDrawCommands()
     std::lock_guard guard(m_draw_commands_mutex);
 
     SizeType size = m_draw_commands_pending_addition.Size();
-    Int64 previous_value = m_num_draw_commands_pending_additon.fetch_sub(Int64(size), std::memory_order_relaxed);
+    Int64 previous_value = m_num_draw_commands_pending_addition.fetch_sub(Int64(size), std::memory_order_relaxed);
     AssertThrow(previous_value - Int64(size) >= 0);
 
     m_draw_commands.Concat(std::move(m_draw_commands_pending_addition));
@@ -191,7 +192,7 @@ void ImmediateMode::CommitCommands(DebugDrawCommandList &&command_list)
 {
     std::lock_guard guard(m_draw_commands_mutex);
     
-    m_num_draw_commands_pending_additon.fetch_add(Int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
+    m_num_draw_commands_pending_addition.fetch_add(Int64(command_list.m_draw_commands.Size()), std::memory_order_relaxed);
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
 

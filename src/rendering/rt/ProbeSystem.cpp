@@ -538,7 +538,8 @@ void ProbeGrid::RenderProbes(Frame *frame)
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->render_state.GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
-            HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0)
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
         }
     );
 

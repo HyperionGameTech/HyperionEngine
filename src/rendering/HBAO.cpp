@@ -425,18 +425,7 @@ void HBAO::Render(Frame *frame)
     const UInt frame_index = frame->GetFrameIndex();
     CommandBuffer *command_buffer = frame->GetCommandBuffer();
 
-    /*auto &prev_image = m_image_outputs[(frame_index + 1) % max_frames_in_flight].image;
-    
-    if (prev_image.GetGPUImage()->GetResourceState() != renderer::ResourceState::SHADER_RESOURCE) {
-        prev_image.GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-    }
-
-    m_image_outputs[frame_index].image.GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
-
-    const auto &extent = m_image_outputs[frame_index].image.GetExtent();*/
-
-    const auto &extent = m_hbao_pass->GetAttachmentUsage(0)->GetAttachment()->GetImage()->GetExtent();
+    const Extent3D &extent = m_hbao_pass->GetAttachmentUsage(0)->GetAttachment()->GetImage()->GetExtent();
 
     {
         struct alignas(128) {
@@ -455,37 +444,15 @@ void HBAO::Render(Frame *frame)
             m_hbao_pass->GetRenderGroup()->GetPipeline(),
             m_descriptor_sets[frame_index].Get(),
             0,
-            FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex())
+            }
         );
         
         m_hbao_pass->GetQuadMesh()->Render(m_hbao_pass->GetCommandBuffer(frame_index));
         m_hbao_pass->End(frame);
-
-
-        /*m_compute_hbao->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
-        m_compute_hbao->GetPipeline()->Bind(command_buffer);
-
-        command_buffer->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-            m_compute_hbao->GetPipeline(),
-            m_descriptor_sets[frame_index].Get(),
-            0,
-            FixedArray { static_cast<UInt32>(Engine::Get()->GetRenderState().GetScene().id.ToIndex() * sizeof(SceneShaderData))}
-        );
-
-        m_compute_hbao->GetPipeline()->Dispatch(
-            command_buffer,
-            Extent3D {
-                (extent.width + 7) / 8,
-                (extent.height + 7) / 8,
-                1
-            }
-        );*/
     }
     
-    /*m_image_outputs[frame_index].image.GetGPUImage()
-        ->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);*/
-
     m_temporal_blending->Render(frame);
 
     if constexpr (blur_result) { // apply blurring

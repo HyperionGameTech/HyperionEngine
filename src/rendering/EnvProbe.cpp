@@ -511,11 +511,14 @@ void EnvProbe::Render(Frame *frame)
     }
 
     UpdateRenderData(probe_index);
-    
-    struct alignas(128) { UInt32 env_probe_index; } push_constants;
-    push_constants.env_probe_index = GetID().ToIndex();
 
-    m_scene->Render(frame, &push_constants, sizeof(push_constants));
+    {
+        Engine::Get()->GetRenderState().SetActiveEnvProbe(GetID());
+
+        m_scene->Render(frame);
+
+        Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
+    }
 
     Image *framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
 

@@ -520,7 +520,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             spawner->GetComputePipeline()->GetPipeline(),
             &spawner->GetDescriptorSets()[frame->GetFrameIndex()],
             0,
-            FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
+            FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
         );
 
         spawner->GetComputePipeline()->GetPipeline()->Dispatch(
@@ -572,7 +572,7 @@ void ParticleSystem::Render(Frame *frame)
                         pipeline,
                         &particle_spawner->GetDescriptorSets()[frame_index],
                         0,
-                        FixedArray { UInt32(scene_index * sizeof(SceneShaderData)) }
+                        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
                     );
 
                     m_quad_mesh->RenderIndirect(

@@ -774,7 +774,7 @@ void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant
 
     m_camera->GetFramebuffer()->BeginCapture(frame_index, command_buffer);
 
-    Engine::Get()->render_state.BindScene(this);
+    Engine::Get()->GetRenderState().BindScene(this);
 
     // TODO: Thread safe container here
     // TODO: If all drawables have been removed, remove the render group?
@@ -788,7 +788,7 @@ void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant
         it.second->Render(frame);
     }
 
-    Engine::Get()->render_state.UnbindScene();
+    Engine::Get()->GetRenderState().UnbindScene();
 
     m_camera->GetFramebuffer()->EndCapture(frame_index, command_buffer);
 }

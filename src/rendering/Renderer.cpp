@@ -342,7 +342,8 @@ static void BindGlobalDescriptorSets(
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
-            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().current_env_probe.ToIndex())
         }
     );
 
@@ -388,7 +389,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
             FixedArray {
-                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
                 UInt32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
@@ -399,8 +400,8 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
             FixedArray {
-                UInt32(material_index * sizeof(MaterialShaderData)),
-                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                HYP_RENDER_OBJECT_OFFSET(Material, material_index),
+                HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
                 UInt32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
@@ -413,7 +414,7 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
             FixedArray {
-                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
                 UInt32(batch_index * sizeof(EntityInstanceBatch))
             }
         );
@@ -424,8 +425,8 @@ static void BindPerObjectDescriptorSets(
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
             FixedArray {
-                UInt32(material_index * sizeof(MaterialShaderData)),
-                UInt32(skeleton_index * sizeof(SkeletonShaderData)),
+                HYP_RENDER_OBJECT_OFFSET(Material, material_index),
+                HYP_RENDER_OBJECT_OFFSET(Skeleton, skeleton_index),
                 UInt32(batch_index * sizeof(EntityInstanceBatch))
             }
         );

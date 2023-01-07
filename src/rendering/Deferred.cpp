@@ -140,7 +140,8 @@ void DeferredPass::Record(UInt frame_index)
                         FixedArray {
                             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                             HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex()),
-                            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
+                            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+                            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
                         }
                     );
 
@@ -233,7 +234,8 @@ void EnvGridPass::Record(UInt frame_index)
                 FixedArray {
                     HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                     HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
+                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
                 }
             );
 
@@ -311,21 +313,45 @@ void ReflectionProbePass::Record(UInt frame_index)
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
             
-            // TODO: Do for each REFLECTION PROBE in view
-            
-            cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
-                m_render_group->GetPipeline(),
-                DescriptorSet::scene_buffer_mapping[frame_index],
-                DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
-                FixedArray {
-                    HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-                    HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0)
-                }
-            );
+            // Render each reflection probe
 
-            m_full_screen_quad->Render(cmd);
+            UInt counter = 0;
+
+            for (const auto &it : Engine::Get()->render_state.bound_env_probes) {
+                if (counter >= max_bound_reflection_probes) {
+                    DebugLog(
+                        LogType::Warn,
+                        "Attempting to render too many reflection probes.\n"
+                    );
+
+                    break;
+                }
+
+                const ID<EnvProbe> &env_probe_id = it.first;
+
+                if (!it.second.HasValue()) {
+                    continue;
+                }
+
+                // TODO: Add visibility check so we skip probes that don't have any impact on the current view
+
+                cmd->BindDescriptorSet(
+                    Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                    m_render_group->GetPipeline(),
+                    DescriptorSet::scene_buffer_mapping[frame_index],
+                    DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
+                    FixedArray {
+                        HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+                        HYP_RENDER_OBJECT_OFFSET(Light, 0),
+                        HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0),
+                        HYP_RENDER_OBJECT_OFFSET(EnvProbe, env_probe_id.ToIndex())
+                    }
+                );
+
+                m_full_screen_quad->Render(cmd);
+
+                ++counter;
+            }
 
             HYPERION_RETURN_OK;
         });
@@ -534,10 +560,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_env_grid_irradiance = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI);// && Engine::Get()->GetRenderState().bound_env_grid.IsValid();
     const bool use_reflection_probes = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && Engine::Get()->GetRenderState().bound_env_probes.Any();
 
-    struct alignas(128) {
-        UInt32 flags;
-        UInt32 probe_index;
-    } deferred_data;
+    struct alignas(128) {  UInt32 flags; } deferred_data;
 
     Memory::Set(&deferred_data, 0, sizeof(deferred_data));
 
@@ -596,9 +619,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     if (use_reflection_probes) { // submit reflection probes command buffer
         DebugMarker marker(primary, "Apply reflection probes");
-
-        // TEMP
-        deferred_data.probe_index = Engine::Get()->GetRenderState().bound_env_probes.Front().first.ToIndex();
 
         m_reflection_probe_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
         m_reflection_probe_pass.Record(frame_index);
@@ -681,7 +701,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                 HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex())
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
             }
         );
 

@@ -380,14 +380,20 @@ void EnvGrid::RenderEnvProbe(
     auto *command_buffer = frame->GetCommandBuffer();
 
     auto result = Result::OK;
-    
-    struct alignas(128) { UInt32 env_probe_index; } push_constants;
-    push_constants.env_probe_index = probe->GetID().ToIndex();
+
+    {
+        struct alignas(128) { UInt32 env_probe_index; } push_constants;
+        push_constants.env_probe_index = probe->GetID().ToIndex();
+
+        Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
+
+        scene->Render(frame, &push_constants, sizeof(push_constants));
+
+        Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
+    }
     
     Image *framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
     ImageView *framebuffer_image_view = m_framebuffer->GetAttachmentUsages()[0]->GetImageView();
-
-    scene->Render(frame, &push_constants, sizeof(push_constants));
     
     if (probe->IsAmbientProbe()) {
         probe->ComputeSH(frame, framebuffer_image, framebuffer_image_view);
