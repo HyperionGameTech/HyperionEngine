@@ -32,6 +32,12 @@ public:
         return std::strcmp(lhs, rhs);
     }
 
+    static constexpr Bool AreStaticStringsEqual(const char *lhs, const char *rhs)
+    {
+        return *lhs == *rhs
+            && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
+    }
+
     static char *CopyString(char *dest, const char *src, SizeType length = 0)
     {
         if (length) {
