@@ -1374,7 +1374,8 @@ bool ShaderCompiler::GetCompiledShader(
     if (it == batch.compiled_shaders.End()) {
         DebugLog(
             LogType::Error,
-            "Hash calculation does not match %llu! Invalid shader property combination.\n\tRequested instance with properties: [%s]\n",
+            "Hash calculation for shader %s does not match %llu! Invalid shader property combination.\n\tRequested instance with properties: [%s]\n",
+            name.LookupString().Data(),
             final_properties_hash.Value(),
             requested_properties_string.Data()
         );

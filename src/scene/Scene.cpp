@@ -837,24 +837,28 @@ void Scene::EnqueueRenderUpdates()
             Vector2 jitter;
             Vector2 previous_jitter;
 
-            // TODO: Is this the main camera in the scene?
-            if (draw_proxy.camera.projection[3][3] < MathUtil::epsilon<Float>) {
-                // perspective if [3][3] is zero
-                static const HaltonSequence halton;
+            if (Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA)) {
+                // TODO: Is this the main camera in the scene?
+                if (draw_proxy.camera.projection[3][3] < MathUtil::epsilon<Float>) {
+                    // perspective if [3][3] is zero
+                    static const HaltonSequence halton;
 
-                const UInt halton_index = frame_counter % HaltonSequence::size;
+                    const UInt halton_index = frame_counter % HaltonSequence::size;
 
-                jitter = halton.sequence[halton_index];
+                    jitter = halton.sequence[halton_index];
 
-                if (frame_counter != 0) {
-                    previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
+                    if (frame_counter != 0) {
+                        previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
+                    }
+
+                    const Vector2 pixel_size = Vector2::one / Vector2(draw_proxy.camera.dimensions);
+
+                    jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
+                    previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
+
+                    offset_matrix[0][3] += jitter.x;
+                    offset_matrix[1][3] += jitter.y;
                 }
-
-                offset_matrix = Matrix4::Jitter(
-                    draw_proxy.camera.dimensions.width,
-                    draw_proxy.camera.dimensions.height,
-                    jitter
-                );
             }
             
             SceneShaderData shader_data { };
@@ -880,7 +884,6 @@ void Scene::EnqueueRenderUpdates()
             shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
 
             if (Engine::Get()->GetRenderState().bound_env_probes.Any()) {
-                // TODO: Make to be packed uvec2 containing indices (each are 1 byte)
                 shader_data.environment_texture_index = 0u;
 
                 for (const auto &it : Engine::Get()->GetRenderState().bound_env_probes) {

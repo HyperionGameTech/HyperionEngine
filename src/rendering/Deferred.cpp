@@ -256,7 +256,7 @@ void EnvGridPass::Record(UInt frame_index)
 // ===== Reflection Probe Pass Begin =====
 
 ReflectionProbePass::ReflectionProbePass()
-    : FullScreenPass(InternalFormat::RGBA8_SRGB)
+    : FullScreenPass(InternalFormat::RGBA16F)
 {
 }
 
@@ -555,8 +555,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_ddgi = Engine::Get()->GetConfig().Get(CONFIG_RT_GI);
     const bool use_hbao = Engine::Get()->GetConfig().Get(CONFIG_HBAO);
     const bool use_hbil = Engine::Get()->GetConfig().Get(CONFIG_HBIL);
-    const bool use_env_grid_irradiance = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI);// && Engine::Get()->GetRenderState().bound_env_grid.IsValid();
+    const bool use_env_grid_irradiance = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI);
     const bool use_reflection_probes = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && Engine::Get()->GetRenderState().bound_env_probes.Any();
+    const bool use_temporal_aa = Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
 
     struct alignas(128) {  UInt32 flags; } deferred_data;
 
@@ -724,7 +725,9 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     m_post_processing.RenderPost(frame);
 
-    m_temporal_aa->Render(frame);
+    if (use_temporal_aa) {
+        m_temporal_aa->Render(frame);
+    }
 }
 
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
@@ -732,7 +735,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     auto *primary = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();
 
-    auto *mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
+    const ImageRef &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
+    AssertThrow(mipmapped_result.IsValid());
 
     DebugMarker marker(primary, "Mip chain generation");
     

@@ -35,6 +35,8 @@ enum OptionName
     CONFIG_VOXEL_GI,
     CONFIG_VOXEL_GI_SVO,
 
+    CONFIG_TEMPORAL_AA,
+
     CONFIG_DEBUG_SSR,
     CONFIG_DEBUG_HBAO,
     CONFIG_DEBUG_HBIL,
@@ -47,6 +49,7 @@ enum OptionName
 class Option : public Variant<bool, Float, Int>
 {
     using Base = Variant<bool, Float, Int>;
+
     bool m_save = true;
 
 public:

@@ -55,14 +55,14 @@ public:
 
     ~Texture();
     
-    Image *GetImage() { return m_image.Get(); }
-    const Image *GetImage() const { return m_image.Get(); }
+    ImageRef &GetImage() { return m_image; }
+    const ImageRef &GetImage() const { return m_image; }
 
-    ImageView *GetImageView() { return m_image_view.Get(); }
-    const ImageView *GetImageView() const { return m_image_view.Get(); }
+    ImageViewRef &GetImageView() { return m_image_view; }
+    const ImageViewRef &GetImageView() const { return m_image_view; }
 
-    Sampler *GetSampler() { return m_sampler.Get(); }
-    const Sampler *GetSampler() const { return m_sampler.Get(); }
+    SamplerRef &GetSampler() { return m_sampler; }
+    const SamplerRef &GetSampler() const { return m_sampler; }
 
     ImageType GetType() const { return m_image->GetType(); }
 

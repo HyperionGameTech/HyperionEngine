@@ -102,15 +102,16 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
 struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 {
     ID<Material> id;
-    Handle<Texture> *textures;
+    // map slot index -> image view
+    FlatMap<UInt, ImageViewRef> textures;
     renderer::DescriptorSet **descriptor_sets;
 
     RENDER_COMMAND(CreateMaterialDescriptors)(
         ID<Material> id,
-        Handle<Texture> *textures,
+        FlatMap<UInt, ImageViewRef>  &&textures,
         renderer::DescriptorSet **descriptor_sets
     ) : id(id),
-        textures(textures),
+        textures(std::move(textures)),
         descriptor_sets(descriptor_sets)
     {
     }
@@ -143,17 +144,32 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
             );
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
-
             sampler_descriptor->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
             
+            // set placeholder for all items, then manually set the actual bound items
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
             for (UInt texture_index = 0; texture_index < Material::max_textures_to_set; texture_index++) {
-                if (auto &texture = textures[texture_index]) {
-                    image_descriptor->SetElementSRV(texture_index, texture->GetImageView());
-                } else {
-                    image_descriptor->SetElementSRV(texture_index, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+                image_descriptor->SetElementSRV(texture_index, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+            }
+
+            for (const auto &it : textures) {
+                const UInt texture_index = it.first;
+                const ImageViewRef &image_view = it.second;
+
+                if (texture_index >= Material::max_textures_to_set) {
+                    DebugLog(LogType::Error, "Invalid texture bound to material texture slot %u! Index out of range.\n", texture_index);
+
+                    continue;
                 }
+
+                if (!image_view.IsValid()) {
+                    DebugLog(LogType::Error, "Invalid texture bound to material texture slot %u ImageView is invalid!\n", texture_index);
+
+                    continue;
+                }
+
+                image_descriptor->SetElementSRV(texture_index, image_view);
             }
 
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
@@ -331,9 +347,22 @@ void Material::Update()
 
 void Material::EnqueueDescriptorSetCreate()
 {
-    RenderCommands::Push<RENDER_COMMAND(CreateMaterialDescriptors)>(
+    FlatMap<UInt, ImageViewRef> texture_bindings;
+
+    const UInt num_bound_textures = max_textures_to_set;
+    
+    for (UInt i = 0; i < num_bound_textures; i++) {
+        if (const auto &texture = m_textures.ValueAt(i)) {
+            if (texture->GetImageView()) {
+                texture_bindings[i] = texture->GetImageView();
+            }
+        }
+    }
+
+    PUSH_RENDER_COMMAND(
+        CreateMaterialDescriptors,
         m_id,
-        m_textures.Data(),
+        std::move(texture_bindings),
         m_descriptor_sets.Data()
     );
 }

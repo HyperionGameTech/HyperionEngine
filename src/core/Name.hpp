@@ -154,7 +154,7 @@ struct NameRegistration
     template <class HashedName>
     static NameRegistration FromHashedName(HashedName &&hashed_name)
     {
-        static constexpr NameID name_id = hashed_name.hash_code.Value();
+        static constexpr NameID name_id = HashedName::hash_code.Value();
 
         Name::GetRegistry()->RegisterName(name_id, hashed_name.data);
 

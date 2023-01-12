@@ -76,7 +76,7 @@ void EnvGrid::Init()
         m_ambient_scene = CreateObject<Scene>(CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.01f, (aabb_extent / Vector3(m_density)).Max() * 0.5f
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f//(Vector3(m_aabb.GetRadius()) / Vector3(m_density)).Max()////
         ));
 
         m_ambient_scene->GetCamera()->SetFramebuffer(m_framebuffer);
@@ -85,8 +85,7 @@ void EnvGrid::Init()
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::NONE,
-                .flags = 0x0
+                .cull_faces = FaceCullMode::BACK
             },
             m_ambient_shader->GetID()
         ));

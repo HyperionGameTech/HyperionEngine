@@ -92,6 +92,25 @@ struct ValueStorageArray<T, 0>
 static_assert(sizeof(ValueStorageArray<int, 200>) == sizeof(int) * 200);
 static_assert(sizeof(ValueStorageArray<int, 0>) == 1);
 
+template <class To, class From>
+static HYP_FORCE_INLINE To BitCast(const From &from)
+{
+    static_assert(std::is_standard_layout_v<From>, "From type must be standard layout");
+    static_assert(std::is_standard_layout_v<To>, "To type must be standard layout");
+    static_assert(sizeof(To) == sizeof(From), "sizeof must match for bit cast");
+
+    ValueStorage<To> to_memory;
+
+    ValueStorage<From> from_memory;
+    Memory::Copy(&from_memory.data_buffer[0], &from, sizeof(From));
+
+    for (SizeType i = 0; i < sizeof(from); i++) {
+        to_memory.data_buffer[i] = from_memory.data_buffer[i];
+    }
+
+    return to_memory.Get();
+}
+
 } // namespace hyperion
 
 #endif

@@ -85,7 +85,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
 
 GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 {
-    const UInt dimension_cube = 32;//UInt(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
+    const UInt dimension_cube = 32;
     const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
 
     UByte *empty_image_bytes = new UByte[image_dimensions.Size() * sizeof(Float) * 4];

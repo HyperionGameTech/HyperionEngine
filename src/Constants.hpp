@@ -37,14 +37,14 @@ constexpr bool implementation_exists = decltype(implementation_exists_impl(std::
 template <class T>
 using RemoveConstPointer = std::add_pointer_t<std::remove_const_t<std::remove_pointer_t<T>>>;
 
-static constexpr HYP_FORCE_INLINE bool IsBigEndian()
+static HYP_FORCE_INLINE bool IsBigEndian()
 {
     constexpr union { UInt32 i; UInt8 ch[sizeof(UInt32)]; } u = { 0x01020304 };
 
     return u.ch[0] == 1;
 }
 
-static constexpr HYP_FORCE_INLINE bool IsLittleEndian() { return !IsBigEndian(); }
+static HYP_FORCE_INLINE bool IsLittleEndian() { return !IsBigEndian(); }
 
 constexpr UInt8 SwapEndianness(UInt8 value)
 {

@@ -88,16 +88,16 @@ public:
     DynString operator+(DynString &&other) const;
     DynString operator+(T ch) const;
     
-    template <typename = std::enable_if_t<IsUtf8, int>>
-    DynString operator+(u32char ch) const
+    template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
+    DynString operator+(U32Char ch) const
         { return DynString(*this) += ch; }
     
     DynString &operator+=(const DynString &other);
     DynString &operator+=(DynString &&other);
     DynString &operator+=(T ch);
     
-    template <typename = std::enable_if_t<IsUtf8, int>>
-    DynString &operator+=(u32char ch)
+    template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
+    DynString &operator+=(U32Char ch)
         { Append(ch); return *this; }
 
     bool operator==(const DynString &other) const;
@@ -161,8 +161,8 @@ public:
     void Append(T &&value);
     void Append(const T &value);
     
-    template <typename = std::enable_if_t<IsUtf8, int>>
-    void Append(u32char ch)
+    template <class U32Char, typename = std::enable_if_t<is_utf8 && std::is_same_v<U32Char, u32char>, int>>
+    void Append(U32Char ch)
     {
         char parts[4] = { '\0' };
         utf::char32to8(ch, parts);
@@ -217,22 +217,6 @@ public:
 
     [[nodiscard]] HashCode GetHashCode() const
         { return Base::GetHashCode(); }
-
-    template <typename = std::enable_if_t<is_utf8 || is_ansi, int>>
-    friend std::ostream &operator<<(std::ostream &os, const DynString &str)
-    {
-        os << str.Data();
-
-        return os;
-    }
-
-    template <typename = std::enable_if_t<is_wide, int>>
-    friend std::wostream &operator<<(std::wostream &os, const DynString &str)
-    {
-        os << str.Data();
-
-        return os;
-    }
 
 protected:
     const T *StrStr(const DynString &other) const;
@@ -880,6 +864,22 @@ inline UTF16String operator+(const utf::u16char *str, const UTF16String &other)
 
 inline UTF32String operator+(const utf::u32char *str, const UTF32String &other)
     { return UTF32String(str) + other; }
+
+template <class CharType, Bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, char>, int>>
+std::ostream &operator<<(std::ostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
+{
+    os << str.Data();
+
+    return os;
+}
+
+template <class CharType, Bool IsUtf8, typename = std::enable_if_t<std::is_same_v<CharType, wchar_t>, int>>
+std::wostream &operator<<(std::wostream &os, const containers::detail::DynString<CharType, IsUtf8> &str)
+{
+    os << str.Data();
+
+    return os;
+}
 
 } // namespace hyperion
 
