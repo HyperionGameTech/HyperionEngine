@@ -58,8 +58,8 @@ public:
     Result Blit(
         CommandBuffer *command_buffer,
         const Image *src,
-        Rect src_rect,
-        Rect dst_rect
+        ImageRect src_rect,
+        ImageRect dst_rect
     );
 
     Result GenerateMipmaps(

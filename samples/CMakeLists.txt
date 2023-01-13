@@ -40,12 +40,15 @@ file(GLOB_RECURSE SOURCES "*.cpp" "*.c")
 file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/modules
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 
@@ -56,6 +59,7 @@ endif()
 
 set(COMMON_LIBRARIES
     hyperion
+    hyperion-font
     ${CMAKE_THREADS_LIBS_INIT}
     ${OPENAL_LIBRARY}
     ${Vulkan_LIBRARIES}

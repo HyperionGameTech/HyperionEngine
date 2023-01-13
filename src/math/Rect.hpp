@@ -14,6 +14,8 @@ struct Rect {
                   top,
                   bottom;
         };
+
+        float values[4];
     };
 
     Vector4 ToVector4() const

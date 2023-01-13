@@ -10,7 +10,7 @@ namespace hyperion::v2 {
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
-using renderer::Rect;
+using renderer::ImageRect;
 using renderer::ShaderVec2;
 using renderer::Result;
 

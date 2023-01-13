@@ -10,6 +10,7 @@
 
 #include <core/lib/Proc.hpp>
 
+
 #include <Engine.hpp>
 #include <scene/Node.hpp>
 #include <rendering/Atomics.hpp>
@@ -26,7 +27,7 @@
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
-#include <ui/controllers/UIContainerController.hpp>
+#include <ui/controllers/UIPaneController.hpp>
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
@@ -36,8 +37,10 @@
 
 #include <rendering/rt/BlurRadiance.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/FontAtlas.hpp>
 
 #include <ui/UIText.hpp>
+#include <font/Font.hpp>
 
 #include <asset/serialization/fbom/FBOM.hpp>
 #include <asset/serialization/fbom/marshals/NodeMarshal.hpp>
@@ -193,21 +196,22 @@ public:
             auto container_node = GetUI().GetScene()->GetRoot().AddChild();
             container_node.SetEntity(CreateObject<Entity>());
             container_node.GetEntity()->SetTranslation(Vector3(0.4f, 0.4f, 0.0f));
-            container_node.GetEntity()->AddController<UIContainerController>();
+            container_node.GetEntity()->AddController<UIPaneController>();
 
             container_node.Scale(0.2f);
 
-            auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
+            auto btn_node = container_node.AddChild();
             btn_node.SetEntity(CreateObject<Entity>());
             btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
-                controller->SetScript(
-                    Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
+                controller->SetGridOffset({ 1, 1 });
+                //controller->SetScript(
+                //    Engine::Get()->GetAssetManager().Load<Script>("scripxts/examples/ui_controller.hypscript"));
             }
 
-            btn_node.Scale(0.01f);
+            btn_node.Scale(0.05f);
         }
         auto cubemap = CreateObject<Texture>(TextureCube(
             Engine::Get()->GetAssetManager().LoadMany<Texture>(
@@ -692,6 +696,16 @@ int main()
     Engine::Get()->Compile();
     
     Engine::Get()->game_thread.Start(my_game);
+
+
+    font::FontEngine font_engine;
+    font::Face face = font_engine.LoadFont("/usr/share/fonts/cantarell/Cantarell-VF.otf");
+
+    face.RequestPixelSizes(0, 32);
+
+    FontAtlas font_atlas(face);
+    font_atlas.Render();
+    //font_atlas.WriteTexture();
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;

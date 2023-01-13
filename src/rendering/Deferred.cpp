@@ -13,7 +13,7 @@ using renderer::Image;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
-using renderer::Rect;
+using renderer::ImageRect;
 using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
@@ -532,8 +532,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     mipmapped_result.Blit(
         primary,
         src_image,
-        Rect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-        Rect { 0, 0, mipmapped_result.GetExtent().width, mipmapped_result.GetExtent().height }
+        ImageRect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
+        ImageRect { 0, 0, mipmapped_result.GetExtent().width, mipmapped_result.GetExtent().height }
     );
 
     HYPERION_ASSERT_RESULT(mipmapped_result.GenerateMipmaps(

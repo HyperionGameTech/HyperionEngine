@@ -13,6 +13,7 @@
 #include <vulkan/vulkan.h>
 
 #include <optional>
+#include <climits>
 #include <unordered_set>
 
 namespace hyperion {

@@ -5,6 +5,8 @@
 #include <core/Containers.hpp>
 #include <core/Handle.hpp>
 
+#include <font/Font.hpp>
+
 #include <ui/UIScene.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
