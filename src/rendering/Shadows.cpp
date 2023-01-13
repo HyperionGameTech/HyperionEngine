@@ -266,7 +266,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().front()->GetImageView());
 
         m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
         m_blur_descriptor_sets[i].AddDescriptor<StorageImageDescriptor>(2)
             ->SetElementUAV(0, m_shadow_map_image_view.get());
@@ -297,7 +297,7 @@ void ShadowPass::Create()
         MeshAttributes { },
         MaterialAttributes {
             .bucket = BUCKET_SHADOW,
-            .cull_faces = FaceCullMode::BACK
+            .cull_faces = FaceCullMode::FRONT
         },
         m_shader->GetID()
     ));
@@ -395,11 +395,11 @@ ShadowRenderer::ShadowRenderer(const Handle<Light> &light)
 }
 
 ShadowRenderer::ShadowRenderer(const Handle<Light> &light, const BoundingBox &aabb)
-    : ShadowRenderer(light, aabb.GetCenter(), aabb.GetExtent().Max() * 0.5f)
+    : ShadowRenderer(light, aabb.GetCenter(), aabb.GetRadius())
 {
 }
 
-ShadowRenderer::ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, float max_distance)
+ShadowRenderer::ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, Float max_distance)
     : EngineComponentBase(),
       RenderComponent()
 {

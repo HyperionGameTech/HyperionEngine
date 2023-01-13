@@ -122,7 +122,7 @@ public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
 
     ShadowRenderer(const Handle<Light> &light);
-    ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, float max_distance);
+    ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, Float max_distance);
     ShadowRenderer(const Handle<Light> &light, const BoundingBox &aabb);
     ShadowRenderer(const ShadowRenderer &other) = delete;
     ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
