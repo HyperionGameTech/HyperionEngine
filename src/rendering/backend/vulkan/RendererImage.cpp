@@ -421,13 +421,13 @@ Result Image::Blit(
     return Blit(
         command_buffer,
         src,
-        Rect {
+        ImageRect {
             .x0 = 0,
             .y0 = 0,
             .x1 = src->GetExtent().width,
             .y1 = src->GetExtent().height
         },
-        Rect {
+        ImageRect {
             .x0 = 0,
             .y0 = 0,
             .x1 = m_extent.width,
@@ -439,8 +439,8 @@ Result Image::Blit(
 Result Image::Blit(
     CommandBuffer *command_buffer,
     const Image *src_image,
-    Rect src_rect,
-    Rect dst_rect
+    ImageRect src_rect,
+    ImageRect dst_rect
 )
 {
     const auto num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());

@@ -54,7 +54,19 @@ public:
     UIController(bool receives_update = true);
     virtual ~UIController() override = default;
 
+    void SetGridOffset(Extent2D offset)
+    {
+        m_grid_offset = offset;
+    }
+
+    Extent2D GetGridOffset()
+    {
+        return m_grid_offset;
+    }
+
     virtual void OnEvent(const UIEvent &event) = 0;
+protected:
+    Extent2D m_grid_offset = { 1, 1 };
 };
 
 } // namespace hyperion::v2

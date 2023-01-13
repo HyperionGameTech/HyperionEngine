@@ -8,7 +8,7 @@
 namespace hyperion::v2 {
 
 UIContainerController::UIContainerController()
-    : UIController(true)
+    : UIGridController(true)
 {
 }
 
@@ -191,7 +191,7 @@ void UIContainerController::OnEvent(const UIEvent &event)
             m_script_methods[SCRIPT_METHOD_0],
             m_self_object,
             Int(event.type),
-            m_script->CreateInternedObject<Vector2>(m_mouse_click_position)
+            m_script->CreateInternedObject<Vector2>(event.GetMousePosition())
         );
     }
 }
@@ -203,6 +203,7 @@ void UIContainerController::OnUpdate(GameCounter::TickUnit delta)
 
 void UIContainerController::OnTransformUpdate(const Transform &transform)
 {
+    UIGridController::OnTransformUpdate(transform);
 }
 
 } // namespace hyperion::v2

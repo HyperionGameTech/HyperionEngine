@@ -21,19 +21,31 @@ struct Pixel
 
     Pixel() = default;
 
-    template <class ValueType, typename = typename std::enable_if_t<std::is_same_v<std::true_type, std::conditional_t<(NumComponents == 1), std::true_type, std::false_type>>>>
+    template <class ValueType, typename = std::enable_if_t<std::is_same_v<std::true_type, std::conditional_t<(NumComponents > 0), std::true_type, std::false_type>>>>
     Pixel(ValueType value)
     {
-        if constexpr (std::is_same_v<ValueType, Float32>) {
-            bytes[0] = static_cast<UByte>(value * 255.0f);
-        } else if constexpr (std::is_same_v<ValueType, UByte>) {
-            bytes[0] = value;
+        if (NumComponents == 1) {
+            if constexpr (std::is_same_v<ValueType, Float32>) {
+                bytes[0] = static_cast<UByte>(value * 255.0f);
+            } else if constexpr (std::is_same_v<ValueType, UByte>) {
+                bytes[0] = value;
+            } else {
+                static_assert(resolution_failure<ValueType>, "Invalid type to pass to Pixel constructor");
+            }
         } else {
-            static_assert(resolution_failure<ValueType>, "Invalid type to pass to Pixel constructor");
+            for (int i = 0; i < NumComponents; i++) {
+                if constexpr (std::is_same_v<ValueType, Float32>) {
+                    bytes[i] = static_cast<UByte>(value * 255.0f);
+                } else if constexpr (std::is_same_v<ValueType, UByte>) {
+                    bytes[i] = value;
+                } else {
+                    static_assert(resolution_failure<ValueType>, "Invalid type to pass to Pixel constructor");
+                }
+            }
         }
     }
 
-    template <class Vector, typename = typename std::enable_if_t<std::is_same_v<std::true_type, std::conditional_t<(NumComponents == Vector::size), std::true_type, std::false_type>>>>
+    template <class Vector, typename = std::enable_if_t<std::is_same_v<std::true_type, std::conditional_t<(NumComponents == Vector::size), std::true_type, std::false_type>>>>
     Pixel(const Vector &color)
     {
         for (UInt i = 0; i < MathUtil::Min(byte_size, Vector::size); i++) {
@@ -148,6 +160,18 @@ public:
             + (((m_height - y) + m_height) % m_height) * m_width;
 
         return m_pixels[index];
+    }
+
+    void SetPixelsFromMemory(UInt stride, UByte *buffer, SizeType pixel_count)
+    {
+        AssertThrowMsg((m_pixels.Size() >= (pixel_count)), "Pixel buffer size not large enough or component mismatch");
+        AssertThrowMsg((pixel_count % stride) == 0, "Pixel buffer size is not divisible by bitmap stride!\n");
+
+        for (SizeType index = 0; index < pixel_count; index++) {
+            for (Int p_index = 0; p_index < stride; p_index++) {
+                m_pixels[index].bytes[p_index] = buffer[index * stride + p_index];
+            }
+        }
     }
 
     const Pixel &GetPixel(UInt x, UInt y) const

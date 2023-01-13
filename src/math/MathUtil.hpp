@@ -20,6 +20,10 @@
 #include <intrin.h>
 #endif
 
+#if !defined(CHAR_BIT) && defined(__CHAR_BIT__)
+#define CHAR_BIT __CHAR_BIT__
+#endif
+
 namespace hyperion {
 
 static inline Vector2 Vector(float x, float y)

@@ -77,6 +77,7 @@ endif()
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/modules
     ${OPENAL_INCLUDE_DIR}
     ${BULLET_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
@@ -95,13 +96,11 @@ set(COMMON_LIBRARIES
     ${SDL2_LIBRARIES}
 )
 
-
-
 target_link_libraries(${BUILD_NAME} ${COMMON_LIBRARIES})
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
-# sample subdir
+add_subdirectory(modules)
 add_subdirectory(samples)
 add_subdirectory(res)
 

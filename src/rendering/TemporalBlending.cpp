@@ -13,7 +13,7 @@ using renderer::StorageImageDescriptor;
 using renderer::DynamicStorageBufferDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::DescriptorKey;
-using renderer::Rect;
+using renderer::ImageRect;
 using renderer::ShaderVec2;
 
 struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommand

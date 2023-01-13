@@ -52,6 +52,7 @@ static Array<UICharMesh> BuildCharMeshes(const FontMap &font_map, const String &
     return char_meshes;
 }
 
+
 static Handle<Mesh> OptimizeCharMeshes(Array<UICharMesh> &&char_meshes)
 {
     if (char_meshes.Empty()) {

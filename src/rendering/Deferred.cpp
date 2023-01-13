@@ -12,7 +12,7 @@ using renderer::Image;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::DescriptorKey;
-using renderer::Rect;
+using renderer::ImageRect;
 using renderer::Result;
 
 const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
@@ -177,12 +177,12 @@ EnvGridPass::~EnvGridPass() = default;
 void EnvGridPass::CreateShader()
 {
     ShaderProps props { };
-    
+
     m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
         HYP_NAME(ApplyEnvGrid),
         props
     );
-    
+
     InitObject(m_shader);
 }
 
@@ -227,9 +227,9 @@ void EnvGridPass::Record(UInt frame_index)
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
-            
+
             // TODO: Do for each env grid in view
-            
+
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
@@ -265,12 +265,12 @@ ReflectionProbePass::~ReflectionProbePass() = default;
 void ReflectionProbePass::CreateShader()
 {
     ShaderProps props { };
-    
+
     m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
         HYP_NAME(ApplyReflectionProbe),
         props
     );
-    
+
     InitObject(m_shader);
 }
 
@@ -315,7 +315,7 @@ void ReflectionProbePass::Record(UInt frame_index)
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
-            
+
             // Render each reflection probe
 
             UInt counter = 0;
@@ -376,7 +376,7 @@ DeferredRenderer::~DeferredRenderer() = default;
 void DeferredRenderer::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
-    
+
     m_env_grid_pass.Create();
     m_reflection_probe_pass.Create();
 
@@ -410,7 +410,7 @@ void DeferredRenderer::Create()
     m_hbao->Create();
 
     m_ssr.Create();
-    
+
     m_indirect_pass.CreateDescriptors(); // no-op
     m_direct_pass.CreateDescriptors();
 
@@ -568,7 +568,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
-    
+
     CollectDrawCalls(frame);
 
     if (do_particles) {
@@ -749,8 +749,8 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     mipmapped_result->Blit(
         primary,
         src_image,
-        Rect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-        Rect { 0, 0, mipmapped_result->GetExtent().width, mipmapped_result->GetExtent().height }
+        ImageRect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
+        ImageRect { 0, 0, mipmapped_result.GetExtent().width, mipmapped_result.GetExtent().height }
     );
 
     HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(

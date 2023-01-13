@@ -402,14 +402,14 @@ struct alignas(16) ShaderMat4
 
 static_assert(sizeof(ShaderMat4) == 64);
 
-struct alignas(8) Rect
+
+struct alignas(8) ImageRect
 {
     UInt32 x0, y0,
         x1, y1;
 };
 
-static_assert(sizeof(Rect) == 16);
-
+static_assert(sizeof(ImageRect) == 16);
 
 template <SizeType N, class T>
 struct PaddedStructValue
