@@ -55,9 +55,10 @@ public:
 
 private:
     void CreateUniformBuffers();
+    void CreateBlueNoiseBuffer();
     void CreateDescriptorSets();
     void CreateComputePipelines();
-    
+
     struct ImageOutput
     {
         ImageRef image;
@@ -78,6 +79,7 @@ private:
     FixedArray<FixedArray<ImageOutput, 4>, max_frames_in_flight> m_image_outputs;
     FixedArray<ImageOutput, max_frames_in_flight> m_radius_output;
     FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
+    GPUBufferRef m_blue_noise_buffer;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     
     Handle<ComputePipeline> m_write_uvs;

@@ -64,11 +64,13 @@ struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommand
 TemporalBlending::TemporalBlending(
     const Extent2D &extent,
     TemporalBlendTechnique technique,
+    TemporalBlendFeedback feedback,
     const FixedArray<ImageViewRef, max_frames_in_flight> &input_image_views
 ) : TemporalBlending(
         extent,
         InternalFormat::RGBA8,
         technique,
+        feedback,
         input_image_views
     )
 {
@@ -78,10 +80,12 @@ TemporalBlending::TemporalBlending(
     const Extent2D &extent,
     InternalFormat image_format,
     TemporalBlendTechnique technique,
+    TemporalBlendFeedback feedback,
     const Handle<Framebuffer> &input_framebuffer
 ) : m_extent(extent),
     m_image_format(image_format),
     m_technique(technique),
+    m_feedback(feedback),
     m_input_framebuffer(input_framebuffer)
 {
 }
@@ -90,10 +94,12 @@ TemporalBlending::TemporalBlending(
     const Extent2D &extent,
     InternalFormat image_format,
     TemporalBlendTechnique technique,
+    TemporalBlendFeedback feedback,
     const FixedArray<ImageViewRef, max_frames_in_flight> &input_image_views
 ) : m_extent(extent),
     m_image_format(image_format),
     m_technique(technique),
+    m_feedback(feedback),
     m_input_image_views(input_image_views)
 {
 }
@@ -216,7 +222,10 @@ void TemporalBlending::CreateComputePipelines()
         break;
     }
 
-    shader_props.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(Int(m_technique)));
+    static const String feedback_strings[] = { "LOW", "MEDIUM", "HIGH" };
+
+    shader_props.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(UInt(m_technique)));
+    shader_props.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(UInt(m_feedback), std::size(feedback_strings) - 1)]);
 
     m_perform_blending = CreateObject<ComputePipeline>(
         Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(TemporalBlending), shader_props),

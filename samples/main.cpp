@@ -127,7 +127,7 @@ public:
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                3.0f
+                10.0f
             ));
 
             m_scene->AddLight(m_sun);
@@ -458,13 +458,13 @@ public:
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.55f);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.2f, 0.0f, 1.0f));
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.55f);
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 0.2f, 0.0f, 1.0f));
                 monkey_entity->RebuildRenderableAttributes();
                 monkey.SetLocalTranslation(Vector3(0.0f, 0.0f, 0.0f));
                 monkey.Scale(1.2f);
@@ -517,22 +517,22 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (false) {
+        if (true) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
-            plane->SetTranslation(Vector3(0, 14, 0));
+            plane->SetTranslation(Vector3(0, 0.1f, 0));
             plane->SetMesh(MeshBuilder::Quad());//Cube());
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
-            plane->SetScale(Vector3(2.0f));
+            plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.75f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.002f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.008f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
             plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.12f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
             // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             plane->SetShader(Handle<Shader>(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProps(plane->GetMesh()->GetVertexAttributes()))));
             plane->RebuildRenderableAttributes();

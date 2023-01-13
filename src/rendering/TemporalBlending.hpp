@@ -41,6 +41,13 @@ enum class TemporalBlendTechnique
     TECHNIQUE_3
 };
 
+enum class TemporalBlendFeedback
+{
+    LOW,
+    MEDIUM,
+    HIGH
+};
+
 class TemporalBlending
 {
 public:
@@ -66,6 +73,7 @@ public:
     TemporalBlending(
         const Extent2D &extent,
         TemporalBlendTechnique technique,
+        TemporalBlendFeedback feedback,
         const FixedArray<ImageViewRef, max_frames_in_flight> &input_image_views
     );
 
@@ -73,6 +81,7 @@ public:
         const Extent2D &extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
+        TemporalBlendFeedback feedback,
         const Handle<Framebuffer> &input_framebuffer
     );
 
@@ -80,6 +89,7 @@ public:
         const Extent2D &extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
+        TemporalBlendFeedback feedback,
         const FixedArray<ImageViewRef, max_frames_in_flight> &input_image_views
     );
 
@@ -106,6 +116,7 @@ private:
     Extent2D m_extent;
     InternalFormat m_image_format;
     TemporalBlendTechnique m_technique;
+    TemporalBlendFeedback m_feedback;
 
     FixedArray<ImageViewRef, max_frames_in_flight> m_input_image_views;
 

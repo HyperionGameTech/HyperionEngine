@@ -3,6 +3,7 @@
 #include <Threads.hpp>
 
 #include <asset/ByteReader.hpp>
+#include <util/BlueNoise.hpp>
 #include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {
@@ -28,6 +29,8 @@ struct alignas(16) SSRParams
         screen_edge_fade_start,
         screen_edge_fade_end;
 };
+
+#pragma region Render commands
 
 struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
 {
@@ -79,7 +82,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
             .ray_step = 0.35f,
             .num_iterations = 128.0f,
             .max_ray_distance = 100.0f,
-            .distance_bias = 0.2f,
+            .distance_bias = 0.05f,
             .offset = 0.01f,
             .eye_fade_start = 0.75f,
             .eye_fade_end = 0.98f,
@@ -165,6 +168,45 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
+{
+    GPUBufferRef buffer;
+
+    RENDER_COMMAND(CreateBlueNoiseBuffer)(const GPUBufferRef &buffer)
+        : buffer(buffer)
+    {
+    }
+
+    virtual Result operator()()
+    {
+        AssertThrow(buffer.IsValid());
+
+        struct alignas(256) AlignedBuffer
+        {
+            ShaderVec4<Int32> sobol_256spp_256d[256 * 256 / 4];
+            ShaderVec4<Int32> scrambling_tile[128 * 128 * 8 / 4];
+            ShaderVec4<Int32> ranking_tile[128 * 128 * 8 / 4];
+        };
+
+        static_assert(sizeof(AlignedBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
+        static_assert(sizeof(AlignedBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
+        static_assert(sizeof(AlignedBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
+
+        UniquePtr<AlignedBuffer> aligned_buffer(new AlignedBuffer);
+        Memory::Copy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
+        Memory::Copy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
+        Memory::Copy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
+
+        HYPERION_BUBBLE_ERRORS(buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(AlignedBuffer)));
+
+        buffer->Copy(Engine::Get()->GetGPUDevice(), sizeof(AlignedBuffer), aligned_buffer.Get());
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion
+
 SSRRenderer::SSRRenderer(const Extent2D &extent)
     : m_extent(extent),
       m_is_rendered(false)
@@ -212,7 +254,8 @@ void SSRRenderer::Create()
         m_temporal_blending.Reset(new TemporalBlending(
             m_extent,
             InternalFormat::RGBA8,
-            TemporalBlendTechnique::TECHNIQUE_2,
+            TemporalBlendTechnique::TECHNIQUE_1,
+            TemporalBlendFeedback::HIGH,
             FixedArray<ImageViewRef, max_frames_in_flight> {
                 m_image_outputs[0][blur_result ? 3 : 1].image_view,
                 m_image_outputs[1][blur_result ? 3 : 1].image_view
@@ -223,6 +266,7 @@ void SSRRenderer::Create()
     }
 
     CreateUniformBuffers();
+    CreateBlueNoiseBuffer();
     CreateDescriptorSets();
     CreateComputePipelines();
 }
@@ -240,8 +284,8 @@ void SSRRenderer::Destroy()
         m_temporal_blending->Destroy();
     }
     
-    SafeRelease(std::move(m_descriptor_sets));
     SafeRelease(std::move(m_uniform_buffers));
+    SafeRelease(std::move(m_blue_noise_buffer));
     
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt j = 0; j < UInt(m_image_outputs[frame_index].Size()); j++) {
@@ -252,6 +296,8 @@ void SSRRenderer::Destroy()
         SafeRelease(std::move(m_radius_output[frame_index].image));
         SafeRelease(std::move(m_radius_output[frame_index].image_view));
     }
+
+    SafeRelease(std::move(m_descriptor_sets));
 
     PUSH_RENDER_COMMAND(RemoveSSRDescriptors);
 
@@ -269,6 +315,13 @@ void SSRRenderer::CreateUniformBuffers()
         m_extent,
         m_uniform_buffers
     );
+}
+
+void SSRRenderer::CreateBlueNoiseBuffer()
+{
+    m_blue_noise_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+
+    PUSH_RENDER_COMMAND(CreateBlueNoiseBuffer, m_blue_noise_buffer);
 }
 
 void SSRRenderer::CreateDescriptorSets()
@@ -354,6 +407,11 @@ void SSRRenderer::CreateDescriptorSets()
         descriptor_set
             ->AddDescriptor<renderer::UniformBufferDescriptor>(17)
             ->SetElementBuffer(0, m_uniform_buffers[frame_index].Get());
+
+        // blue noise buffer
+        descriptor_set
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(18)
+            ->SetElementBuffer(0, m_blue_noise_buffer);
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

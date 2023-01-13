@@ -357,10 +357,11 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending.Reset(new TemporalBlending(
-      m_extent,
-      InternalFormat::RGBA8,
-      TemporalBlendTechnique::TECHNIQUE_2,
-      FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
+        m_extent,
+        InternalFormat::RGBA8,
+        TemporalBlendTechnique::TECHNIQUE_2,
+        TemporalBlendFeedback::MEDIUM,
+        FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
     ));
 
     m_temporal_blending->Create();

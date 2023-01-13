@@ -387,6 +387,7 @@ void HBAO::CreateTemporalBlending()
         m_hbao_pass->GetFramebuffer()->GetExtent(),
         InternalFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_2,
+        TemporalBlendFeedback::HIGH,
         m_hbao_pass->GetFramebuffer()
     ));
 
