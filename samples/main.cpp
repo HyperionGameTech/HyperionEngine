@@ -525,7 +525,6 @@ public:
                 }
             }
             GetScene()->GetRoot().AddChild(mh);
-#endif
 
             NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
             tree.SetName("tree");
@@ -884,8 +883,11 @@ int main()
     face.RequestPixelSizes(0, 32);
 
     FontAtlas font_atlas(face);
+    HYP_SYNC_RENDER();
     font_atlas.Render();
-    //font_atlas.WriteTexture();
+    font_atlas.WriteTexture();
+
+    face.GetFace();
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;

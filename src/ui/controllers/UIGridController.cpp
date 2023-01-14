@@ -10,8 +10,8 @@
 
 namespace hyperion::v2 {
 
-UIGridController::UIGridController(const String &name, bool recieves_update)
-    : UIController(name, recieves_update),
+UIGridController::UIGridController(bool recieves_update)
+    : UIController(recieves_update),
       m_grid_divisions(10, 10),
       m_cell_size(0, 0)
 {
@@ -38,7 +38,8 @@ bool UIGridController::CreateScriptedMethods()
 void UIGridController::OnAdded()
 {
     GetOwner()->SetMesh(MeshBuilder::Quad());
-    GetOwner()->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
+
+    GetOwner()->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(UIObject)));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);
@@ -64,20 +65,25 @@ void UIGridController::OnTransformUpdate(const Transform &transform)
     const auto world_transform = GetOwner()->GetWorldAABB();
     m_cell_size = Vector2(world_transform.GetExtent()) / Vector2((Float)m_grid_divisions.x, (Float)m_grid_divisions.y);
 
-    const auto &children = GetOwner()->GetParent()->GetChildren();
+    for (auto *parent : GetOwner()->m_nodes) {
+        if (parent == nullptr)
+            continue;
 
-    for (auto &child : children) {
-        const ControllerSet &controllers = child.GetEntity()->GetControllers();
+        for (auto &child : parent->GetChildren()) {
+            const ControllerSet &controllers = child.GetEntity()->GetControllers();
 
-        for (const auto &it : controllers) {
-            if (auto *controller = dynamic_cast<UIController *>(it.second.Get())) {
-                const Extent2D &grid = controller->GetGridOffset();
-                Vector3 new_offset = world_transform.GetMin() + (Vector3((Float)grid.x, (Float)grid.y, 0.0f) * Vector3(m_cell_size, 0.0f));
-                std::cout << "Offset: " << new_offset << "\n";
-                child.GetEntity()->SetTranslation(new_offset);
+            for (const auto &it : controllers) {
+                if (auto *controller = dynamic_cast<UIController *>(it.second.Get())) {
+                    const Extent2D &grid = controller->GetGridOffset();
+                    Vector3 new_offset = world_transform.GetMin() + (Vector3((Float)grid.x, (Float)grid.y, 0.0f) * Vector3(m_cell_size, 0.0f));
+                    std::cout << "Offset: " << new_offset << "\n";
+                    child.GetEntity()->SetTranslation(new_offset);
+                }
             }
         }
     }
+
+
     std::cout << "update grid" << m_cell_size << "\n";
 }
 

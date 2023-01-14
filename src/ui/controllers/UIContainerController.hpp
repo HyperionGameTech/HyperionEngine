@@ -18,7 +18,7 @@ public:
 
     UIContainerController();
     virtual ~UIContainerController() override = default;
-    
+
     virtual void OnAdded() override;
     virtual void OnRemoved() override;
     virtual void OnEvent(const UIEvent &event) override;

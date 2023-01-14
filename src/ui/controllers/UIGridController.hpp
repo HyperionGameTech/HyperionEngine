@@ -16,7 +16,7 @@ public:
 public:
     using Cell = Vector2;
 
-    UIGridController(const String &name, bool receives_update = true);
+    UIGridController(bool receives_update = true);
     virtual ~UIGridController() override = default;
 
     virtual void OnAdded() override;

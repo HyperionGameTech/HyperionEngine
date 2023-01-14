@@ -276,7 +276,7 @@ public:
     virtual Extent2D GetExtent() const = 0;
 
     virtual void SetMouseLocked(bool locked) = 0;
-    //virtual bool HasMouseFocus() const = 0;
+    virtual bool HasMouseFocus() const = 0;
 
 #ifdef HYP_VULKAN
     virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) = 0;

@@ -29,8 +29,8 @@ public:
     virtual void OnEvent(const UIEvent &event) override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnTransformUpdate(const Transform &transform) override;
-    virtual void OnDetachedFromScene(Scene *scene) override;
-    virtual void OnAttachedToScene(Scene *scene) override;
+    virtual void OnDetachedFromScene(ID<Scene> scene) override;
+    virtual void OnAttachedToScene(ID<Scene> scene) override;
 
     Vector4 GetHandleRect(const UIContainerHandleType handle_type);
 

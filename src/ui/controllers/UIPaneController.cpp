@@ -8,7 +8,7 @@
 namespace hyperion::v2 {
 
 UIPaneController::UIPaneController()
-    : UIGridController("UIPaneController", true)
+    : UIGridController(true)
 {
 }
 
@@ -33,7 +33,7 @@ bool UIPaneController::CreateScriptedMethods()
 void UIPaneController::OnAdded()
 {
     GetOwner()->SetMesh(MeshBuilder::Quad());
-    GetOwner()->SetShader(Handle<Shader>(Engine::Get()->shader_manager.GetShader(ShaderManager::Key::BASIC_UI)));
+    GetOwner()->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(UIObject)));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);
@@ -50,12 +50,16 @@ void UIPaneController::OnRemoved()
 }
 
 
-void UIPaneController::OnAttachedToScene(Scene *scene)
+void UIPaneController::OnAttachedToScene(ID<Scene> scene_id)
 {
-    m_attached_camera = scene->GetCamera();
+    if (auto scene = Handle<Scene>(scene_id)) {
+        if (scene->IsWorldScene()) {
+            m_attached_camera = scene->GetCamera();
+        }
+    }
 }
 
-void UIPaneController::OnDetachedFromScene(Scene *scene)
+void UIPaneController::OnDetachedFromScene(ID<Scene> scene_id)
 {
 }
 

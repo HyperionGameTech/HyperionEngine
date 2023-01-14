@@ -63,7 +63,7 @@ Extent2D Glyph::GetMin()
     return { (UInt32)box.xMin, (UInt32)box.yMin };
 }
 
-Handle<Texture> Glyph::GetTexture()
+const Handle<Texture> &Glyph::GetTexture()
 {
     return m_texture;
 }

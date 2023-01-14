@@ -750,7 +750,7 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
         primary,
         src_image,
         ImageRect { 0, 0, src_image->GetExtent().width, src_image->GetExtent().height },
-        ImageRect { 0, 0, mipmapped_result.GetExtent().width, mipmapped_result.GetExtent().height }
+        ImageRect { 0, 0, mipmapped_result->GetExtent().width, mipmapped_result->GetExtent().height }
     );
 
     HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(

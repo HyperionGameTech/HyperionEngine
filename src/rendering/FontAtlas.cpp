@@ -25,23 +25,23 @@ struct RENDER_COMMAND(RenderFontAtlas) : RenderCommand {
 
         auto &image = glyph->GetImage();
 
-        ImageRect src_rect = { 0, 0, image.GetExtent()[0], image.GetExtent()[1] };
+        ImageRect src_rect = { 0, 0, image->GetExtent()[0], image->GetExtent()[1] };
         ImageRect dest_rect = { location.x, location.y, location.x + src_rect.x1, location.y + src_rect.y1 };
 
-        //commands.Push([&](CommandBuffer *command_buffer) {
+        commands.Push([&](CommandBuffer *command_buffer) {
             // put src image in state for copying from
-            //image.GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+            image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
             // put dst image in state for copying to
-            //atlas->GetImage().GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+            atlas->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
             //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
-            //atlas->GetImage().Blit(command_buffer, &image, src_rect, dest_rect);
+            atlas->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
 
 
-        //    HYPERION_RETURN_OK;
-        //});
-        HYPERION_RETURN_OK;
-        //return commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice());
+            HYPERION_RETURN_OK;
+        });
+        //HYPERION_RETURN_OK;
+        return commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice());
     }
 
     Handle<Texture> atlas;
@@ -78,14 +78,20 @@ renderer::Result FontAtlas::WriteTexture()
 
     auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
+    AssertThrow(m_atlas);
+    AssertThrow(m_atlas->GetImage());
+    AssertThrow(m_atlas->GetImage()->GetGPUImage());
+
+
+
     commands.Push([&](CommandBuffer *cmd) {
 
         // put src image in state for copying from
-        m_atlas->GetImage().GetGPUImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
+        m_atlas->GetImage()->GetGPUImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_SRC);
         // put dst image in state for copying to
         //m_atlas->GetImage().GetGPUImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);
 
-        m_atlas->GetImage().GetGPUImage()->Read(gpu_device, buffer_size, image_data.Data());
+        m_atlas->GetImage()->GetGPUImage()->Read(gpu_device, buffer_size, image_data.Data());
 
         //m_atlas->GetImage().CopyToBuffer(cmd, &texture_staging_buffer);
 

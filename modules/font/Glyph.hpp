@@ -21,7 +21,7 @@ public:
     void Render();
     Extent2D GetMax();
     Extent2D GetMin();
-    Handle<Texture> GetTexture();
+    const Handle<Texture> &GetTexture();
 
 private:
     Face m_face;
