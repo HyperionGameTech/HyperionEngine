@@ -38,15 +38,17 @@ class SSRRenderer
 {
     static constexpr bool use_temporal_blending = true;
     static constexpr bool blur_result = false;
+    static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
 
 public:
     friend struct RenderCommand_CreateSSRImageOutputs;
     friend struct RenderCommand_DestroySSRInstance;
 
-    SSRRenderer(const Extent2D &extent);
+    SSRRenderer(const Extent2D &extent, bool should_perform_cone_tracing);
     ~SSRRenderer();
 
-    bool IsRendered() const { return m_is_rendered; }
+    bool IsRendered() const
+        { return m_is_rendered; }
 
     void Create();
     void Destroy();
@@ -88,6 +90,8 @@ private:
     Handle<ComputePipeline> m_blur_vert;
 
     UniquePtr<TemporalBlending> m_temporal_blending;
+
+    bool m_should_perform_cone_tracing;
 
     bool m_is_rendered;
 };

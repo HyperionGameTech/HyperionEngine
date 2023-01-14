@@ -5,6 +5,7 @@
 #include <core/Handle.hpp>
 #include <core/Thread.hpp>
 #include <core/lib/DynArray.hpp>
+#include <core/lib/TypeMap.hpp>
 
 #include <Threads.hpp>
 

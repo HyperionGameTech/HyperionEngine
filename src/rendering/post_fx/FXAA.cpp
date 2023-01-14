@@ -12,6 +12,14 @@ FXAAEffect::FXAAEffect()
 
 FXAAEffect::~FXAAEffect() = default;
 
+void FXAAEffect::OnAdded()
+{
+}
+
+void FXAAEffect::OnRemoved()
+{
+}
+
 Handle<Shader> FXAAEffect::CreateShader()
 {
     return Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(FXAA));

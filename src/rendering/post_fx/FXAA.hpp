@@ -14,6 +14,9 @@ public:
     FXAAEffect();
     virtual ~FXAAEffect();
 
+    virtual void OnAdded() override;
+    virtual void OnRemoved() override;
+
 protected:
     virtual Handle<Shader> CreateShader() override;
 };

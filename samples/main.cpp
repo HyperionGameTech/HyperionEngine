@@ -105,12 +105,13 @@ public:
 
     virtual void InitRender() override
     {
-        //Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
     }
 
     virtual void InitGame() override
     {
         Game::InitGame();
+    
+        Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
 
         m_scene->SetCamera(CreateObject<Camera>(
             70.0f,
@@ -130,15 +131,15 @@ public:
                 5.0f
             ));
 
-            m_scene->AddLight(m_sun);
+            //m_scene->AddLight(m_sun);
 
-            /*m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.5f, 50.0f, 70.1f),
-                Color(1.0f, 1.0f, 1.0f),
-                1.0f,
-                1.0f
-            )));
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
+                Vector3(0.0f, 1.0f, 0.0f),
+                Color(1.0f, 1.0f, 1.0f),
+                15.0f,
+                0.35f
+            )));
+            /*m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.5f, 50.0f, -70.1f),
                 Color(1.0f, 0.0f, 0.0f),
                 2.0f,
@@ -246,7 +247,7 @@ public:
         
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -284,12 +285,12 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        test_model.Scale(0.025f);
+        test_model.Scale(6.025f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
                 HYP_NAME(AmbientGrid0),
-                test_model.GetWorldAABB(),//BoundingBox(Vector3(-100.0f, -10.0f, -100.0f), Vector3(100.0f, 100.0f, 100.0f)),
+                test_model.GetWorldAABB() * 1.15f,//BoundingBox(Vector3(-100.0f, -10.0f, -100.0f), Vector3(100.0f, 100.0f, 100.0f)),
                 Extent3D { 17, 2, 17 }
             );
         }
@@ -301,10 +302,10 @@ public:
             );
         }
         
-        m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
+        /*m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
             HYP_NAME(Shadows),
             m_sun, test_model.GetWorldAABB()
-        );
+        );*/
 
         if (false) {
             int i = 0;
@@ -353,29 +354,21 @@ public:
         cubemap->GetImage()->SetIsSRGB(true);
         InitObject(cubemap);
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
-            zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
-            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
-            zombie_entity->RebuildRenderableAttributes();
-            zombie_entity->SetTranslation(Vector3(0, 45, 0));
-            zombie_entity->SetScale(Vector3(4.5f));
+            // zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
+            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
+            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
+            // zombie_entity->RebuildRenderableAttributes();
+            // zombie_entity->SetTranslation(Vector3(0, 1, 0));
+            // zombie_entity->SetScale(Vector3(0.25f));
 
-            // zombie_entity->AddController<AABBDebugController>();
+            // InitObject(zombie_entity);
+            // zombie_entity->CreateBLAS();
+            // zombie.SetName("zombie");
 
-            // auto *rigid_body_controller = zombie_entity->AddController<RigidBodyController>(
-            //     UniquePtr<physics::BoxPhysicsShape>::Construct(zombie_entity->GetWorldAABB()),
-            //     physics::PhysicsMaterial { .mass = 250.0f }
-            // );
-            //rigid_body_controller->GetRigidBody()->SetIsKinematic(false);
-
-            InitObject(zombie_entity);
-            zombie_entity->CreateBLAS();
-            zombie.SetName("zombie");
-
-            m_scene->GetRoot().AddChild(zombie);
+            // m_scene->GetRoot().AddChild(zombie);
             
             auto zomb2 = CreateObject<Entity>();
             zomb2->SetMesh(zombie_entity->GetMesh());
@@ -517,7 +510,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (true) {
+        if (false) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
@@ -527,12 +520,18 @@ public:
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.75f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.008f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(2.0f));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
+            // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_albedo.png"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Normal-ogl.png"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Metallic.psd"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/grimy/grimy-metal-roughness.png"));
+            // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
             // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             plane->SetShader(Handle<Shader>(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProps(plane->GetMesh()->GetVertexAttributes()))));
             plane->RebuildRenderableAttributes();
@@ -611,7 +610,7 @@ public:
         }*/
 
         if (!m_point_lights.Empty()) {
-        //    m_point_lights.Front()->SetPosition(GetScene()->GetCamera()->GetTranslation() + GetScene()->GetCamera()->GetDirection() * 15.0f);
+            m_point_lights.Front()->SetPosition(GetScene()->GetCamera()->GetTranslation() + GetScene()->GetCamera()->GetDirection() * 0.4f);
         }
 
         bool sun_position_changed = false;

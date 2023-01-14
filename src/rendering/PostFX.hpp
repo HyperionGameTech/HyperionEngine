@@ -8,6 +8,8 @@
 #include "FullScreenPass.hpp"
 
 #include <core/lib/TypeMap.hpp>
+#include <core/ThreadSafeContainer.hpp>
+#include <Threads.hpp>
 #include <Types.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
@@ -95,6 +97,9 @@ public:
 
     void Init();
 
+    virtual void OnAdded() = 0;
+    virtual void OnRemoved() = 0;
+
 protected:
     virtual Handle<Shader> CreateShader() = 0;
 
@@ -111,7 +116,8 @@ class PostProcessing
 public:
     static constexpr UInt max_effects_per_stage = sizeof(UInt32) * CHAR_BIT;
 
-    enum DefaultEffectIndices {
+    enum DefaultEffectIndices
+    {
         DEFAULT_EFFECT_INDEX_SSAO,
         DEFAULT_EFFECT_INDEX_FXAA
     };
@@ -123,18 +129,14 @@ public:
 
     /*! \brief Add an effect to the stack to be processed BEFORE deferred rendering happens.
     * Note, cannot add new filters after pipeline construction, currently
-     * @param effect A unique_ptr to the class, derived from PostProcessingEffect.
+     * @param effect A UniquePtr to the class, derived from PostProcessingEffect.
      */
     template <class EffectClass>
-    void AddEffect(std::unique_ptr<EffectClass> &&effect)
+    void AddEffect(UniquePtr<EffectClass> &&effect)
     {
         const PostProcessingEffect::Stage stage = EffectClass::stage;
 
-        if constexpr (stage == PostProcessingEffect::Stage::PRE_SHADING) {
-            AddEffectInternal(std::move(effect), m_pre_effects);
-        } else {
-            AddEffectInternal(std::move(effect), m_post_effects);
-        }
+        AddEffectInternal(stage, std::move(effect));
     }
 
     /*! \brief Add an effect to the stack to be processed BEFORE deferred rendering happens, constructed by the given arguments.
@@ -145,11 +147,7 @@ public:
     {
         const PostProcessingEffect::Stage stage = EffectClass::stage;
 
-        if constexpr (stage == PostProcessingEffect::Stage::PRE_SHADING) {
-            AddEffectInternal(std::make_unique<EffectClass>(std::forward<Args>(args)...), m_pre_effects);
-        } else {
-            AddEffectInternal(std::make_unique<EffectClass>(std::forward<Args>(args)...), m_post_effects);
-        }
+        AddEffectInternal(stage, UniquePtr<EffectClass>::Construct(std::forward<Args>(args)...));
     }
 
     /*! \brief Get an effect added to the list of effects to be applied BEFORE deferred rendering happens */
@@ -158,37 +156,45 @@ public:
     {
         const PostProcessingEffect::Stage stage = EffectClass::stage;
 
-        if constexpr (stage == PostProcessingEffect::Stage::PRE_SHADING) {
-            return GetEffectInternal<EffectClass>(m_pre_effects);
-        } else {
-            return GetEffectInternal<EffectClass>(m_post_effects);
-        }
+        return GetEffectInternal<EffectClass>(stage);
     }
 
     void Create();
     void Destroy();
+    void PerformUpdates();
     void RenderPre(Frame *frame) const;
     void RenderPost(Frame *frame) const;
 
 private:
+    PostProcessingUniforms GetUniforms() const;
     void CreateUniformBuffer();
 
     template <class EffectClass>
-    void AddEffectInternal(std::unique_ptr<EffectClass> &&effect, TypeMap<std::unique_ptr<PostProcessingEffect>> &effects)
+    void AddEffectInternal(PostProcessingEffect::Stage stage, UniquePtr<EffectClass> &&effect)
     {
         static_assert(std::is_base_of_v<PostProcessingEffect, EffectClass>, "Type must be a derived class of PostProcessingEffect.");
 
-        if (!effects.Contains<EffectClass>()) {
-            AssertThrowMsg(effects.Size() < max_effects_per_stage, "Maximum number of effects in stage");
-        }
+        std::lock_guard guard(m_effects_mutex);
 
-        effects.Set<EffectClass>(std::move(effect));
+        const auto it = m_effects_pending_addition[UInt(stage)].Find<EffectClass>();
+
+        if (it != m_effects_pending_addition[UInt(stage)].End()) {
+            it->second = std::move(effect);
+        } else {
+            m_effects_pending_addition[UInt(stage)].Set<EffectClass>(std::move(effect));
+        }
+        
+        m_effects_updated.store(true);
     }
 
     template <class EffectClass>
-    EffectClass *GetEffectInternal(TypeMap<std::unique_ptr<PostProcessingEffect>> &effects) const
+    EffectClass *GetEffectInternal(PostProcessingEffect::Stage stage) const
     {
         static_assert(std::is_base_of_v<PostProcessingEffect, EffectClass>, "Type must be a derived class of PostProcessingEffect.");
+
+        Threads::AssertOnThread(THREAD_RENDER);
+
+        auto &effects = m_effects[UInt(stage)];
 
         auto it = effects.Find<EffectClass>();
 
@@ -196,12 +202,16 @@ private:
             return nullptr;
         }
 
-        return static_cast<EffectClass *>(it->second.get());
+        return static_cast<EffectClass *>(it->second.Get());
     }
 
-    TypeMap<std::unique_ptr<PostProcessingEffect>> m_pre_effects;
-    TypeMap<std::unique_ptr<PostProcessingEffect>> m_post_effects;
-    UniformBuffer m_uniform_buffer;
+    FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects; // only touch from render thread
+    FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects_pending_addition;
+    FixedArray<FlatSet<TypeID>, 2> m_effects_pending_removal;
+    std::mutex m_effects_mutex;
+    std::atomic_bool m_effects_updated { false };
+
+    GPUBufferRef m_uniform_buffer;
 };
 
 } // namespace hyperion::v2

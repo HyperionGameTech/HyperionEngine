@@ -95,7 +95,9 @@ public:
 
 class DeferredRenderer
 {
-    static const Extent2D mipmap_chain_extent;
+    static const Extent2D mip_chain_extent;
+    static const InternalFormat mip_chain_format;
+
     static const Extent2D hbao_extent;
     static const Extent2D ssr_extent;
 
@@ -117,17 +119,14 @@ public:
     const DepthPyramidRenderer &GetDepthPyramidRenderer() const
         { return m_dpr; }
 
-    AttachmentUsage *GetCombinedResult(UInt frame_index)
+    AttachmentUsage *GetCombinedResult()
         { return m_combine_pass->GetAttachmentUsage(0); }
 
-    const AttachmentUsage *GetCombinedResult(UInt frame_index) const
+    const AttachmentUsage *GetCombinedResult() const
         { return m_combine_pass->GetAttachmentUsage(0); }
 
-    Handle<Texture> &GetMipChain(UInt frame_index)
-        { return m_mipmapped_results[frame_index]; }
-
-    const Handle<Texture> &GetMipChain(UInt frame_index) const
-        { return m_mipmapped_results[frame_index]; }
+    const Handle<Texture> &GetMipChain() const
+        { return m_mip_chain; }
 
     void Create();
     void Destroy();
@@ -163,11 +162,11 @@ private:
 
     UniquePtr<FullScreenPass> m_combine_pass;
 
-    SSRRenderer m_ssr;
+    UniquePtr<SSRRenderer> m_ssr;
     DepthPyramidRenderer m_dpr;
 
     FixedArray<Handle<Texture>, max_frames_in_flight> m_results;
-    FixedArray<Handle<Texture>, max_frames_in_flight> m_mipmapped_results;
+    Handle<Texture> m_mip_chain;
     
     CullData m_cull_data;
 };

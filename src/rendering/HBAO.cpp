@@ -83,24 +83,7 @@ Result HBAO::ImageOutput::Create(Device *device)
 }
 
 HBAO::HBAO(const Extent2D &extent)
-    : m_image_outputs {
-          ImageOutput {
-              RenderObjects::Make<Image>(StorageImage(
-                  Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA8,
-                  ImageType::TEXTURE_TYPE_2D
-              )),
-              RenderObjects::Make<ImageView>()
-          },
-          ImageOutput {
-              RenderObjects::Make<Image>(StorageImage(
-                  Extent3D(extent.width, extent.height, 1),
-                  InternalFormat::RGBA8,
-                  ImageType::TEXTURE_TYPE_2D
-              )),
-              RenderObjects::Make<ImageView>()
-          }
-      },
+    : m_extent(extent),
       m_blur_image_outputs {
           FixedArray<ImageOutput, 2> {
               ImageOutput {
@@ -182,13 +165,13 @@ void HBAO::Destroy()
 
     SafeRelease(std::move(m_descriptor_sets));
 
-    for (UInt blur_pass_index = 0; blur_pass_index < m_blur_descriptor_sets.Size(); blur_pass_index++) {
+    for (UInt blur_pass_index = 0; blur_pass_index < UInt(m_blur_descriptor_sets.Size()); blur_pass_index++) {
         SafeRelease(std::move(m_blur_descriptor_sets[blur_pass_index]));
-    }
 
-    for (auto &image_output : m_image_outputs) {
-        SafeRelease(std::move(image_output.image));
-        SafeRelease(std::move(image_output.image_view));
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            SafeRelease(std::move(m_blur_image_outputs[frame_index][blur_pass_index].image));
+            SafeRelease(std::move(m_blur_image_outputs[frame_index][blur_pass_index].image_view));
+        }
     }
 
     struct RENDER_COMMAND(RemoveHBAODescriptors) : RenderCommand
@@ -222,23 +205,18 @@ void HBAO::CreateImages()
 {
     struct RENDER_COMMAND(CreateHBAOImageOutputs) : RenderCommand
     {
-        FixedArray<HBAO::ImageOutput, max_frames_in_flight> image_outputs;
         FixedArray<FixedArray<HBAO::ImageOutput, 2>, max_frames_in_flight> blur_image_outputs;
 
         RENDER_COMMAND(CreateHBAOImageOutputs)(
-            const FixedArray<HBAO::ImageOutput, max_frames_in_flight> &image_outputs,
             const FixedArray<FixedArray<HBAO::ImageOutput, 2>, max_frames_in_flight> &blur_image_outputs
-        ) : image_outputs(image_outputs),
-            blur_image_outputs(blur_image_outputs)
+        ) : blur_image_outputs(blur_image_outputs)
         {
         }
 
         virtual Result operator()()
         {
-            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetGPUDevice()));
-
-                if constexpr (blur_result) {
+            if constexpr (blur_result) {
+                for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                     for (UInt i = 0; i < 2; i++) {
                         HYPERION_BUBBLE_ERRORS(blur_image_outputs[frame_index][i].Create(Engine::Get()->GetGPUDevice()));
                     }
@@ -251,7 +229,6 @@ void HBAO::CreateImages()
 
     PUSH_RENDER_COMMAND(
         CreateHBAOImageOutputs,
-        m_image_outputs,
         m_blur_image_outputs
     );
 }
@@ -373,7 +350,8 @@ void HBAO::CreatePass()
     m_hbao_pass.Reset(new FullScreenPass(
         hbao_shader,
         Array<const DescriptorSet *> { m_descriptor_sets.Front().Get() },
-        InternalFormat::RGBA8
+        InternalFormat::RGBA8,
+        m_extent
     ));
 
     m_hbao_pass->Create();
@@ -399,16 +377,13 @@ void HBAO::Render(Frame *frame)
     const UInt frame_index = frame->GetFrameIndex();
     CommandBuffer *command_buffer = frame->GetCommandBuffer();
 
-    const Extent3D &extent = m_hbao_pass->GetAttachmentUsage(0)->GetAttachment()->GetImage()->GetExtent();
-
     {
         struct alignas(128) {
             ShaderVec2<UInt32> dimension;
             Float32 temporal_blending_factor;
         } push_constants;
 
-        push_constants.dimension = Extent2D(extent);
-        push_constants.temporal_blending_factor = 0.05f;
+        push_constants.dimension = m_extent;
 
         m_hbao_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
         m_hbao_pass->Begin(frame);

@@ -54,7 +54,8 @@ private:
         Result Create(Device *device);
     };
 
-    FixedArray<ImageOutput, max_frames_in_flight> m_image_outputs;
+    Extent2D m_extent;
+
     FixedArray<FixedArray<ImageOutput, 2>, max_frames_in_flight> m_blur_image_outputs;
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;

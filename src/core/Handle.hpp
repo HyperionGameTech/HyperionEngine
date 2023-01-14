@@ -50,6 +50,10 @@ struct Handle
 
     Handle &operator=(const Handle &other)
     {
+        if (other.index == index) {
+            return *this;
+        }
+
         if (index != 0) {
             GetContainer<T>().DecRefStrong(index - 1);
         }
@@ -71,6 +75,10 @@ struct Handle
 
     Handle &operator=(Handle &&other) noexcept
     {
+        if (other.index == index) {
+            return *this;
+        }
+
         if (index != 0) {
             GetContainer<T>().DecRefStrong(index - 1);
         }

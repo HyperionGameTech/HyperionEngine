@@ -15,7 +15,9 @@ using renderer::DescriptorKey;
 using renderer::Rect;
 using renderer::Result;
 
-const Extent2D DeferredRenderer::mipmap_chain_extent(512, 512);
+const Extent2D DeferredRenderer::mip_chain_extent(512, 512);
+const InternalFormat DeferredRenderer::mip_chain_format = InternalFormat::RGBA16F;//R10G10B10A2;
+
 const Extent2D DeferredRenderer::hbao_extent(512, 512);
 const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
@@ -365,8 +367,7 @@ void ReflectionProbePass::Record(UInt frame_index)
 // ===== Reflection Probe Pass End =====
 
 DeferredRenderer::DeferredRenderer()
-    : m_ssr(ssr_extent),
-      m_indirect_pass(true),
+    : m_indirect_pass(true),
       m_direct_pass(false)
 {
 }
@@ -394,22 +395,21 @@ void DeferredRenderer::Create()
 
     m_dpr.Create(depth_attachment_usage);
 
-    for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_mipmapped_results[i] = CreateObject<Texture>(Texture2D(
-            mipmap_chain_extent,
-            InternalFormat::RGBA8_SRGB,
-            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        ));
+    m_mip_chain = CreateObject<Texture>(Texture2D(
+        mip_chain_extent,
+        mip_chain_format,
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
 
-        InitObject(m_mipmapped_results[i]);
-    }
+    InitObject(m_mip_chain);
 
     m_hbao.Reset(new HBAO(hbao_extent));
     m_hbao->Create();
 
-    m_ssr.Create();
+    m_ssr.Reset(new SSRRenderer(ssr_extent, true));
+    m_ssr->Create();
     
     m_indirect_pass.CreateDescriptors(); // no-op
     m_direct_pass.CreateDescriptors();
@@ -458,7 +458,7 @@ void DeferredRenderer::CreateDescriptorSets()
         /* Mip chain */
         descriptor_set_globals
             ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::GBUFFER_MIP_CHAIN)
-            ->SetElementSRV(0, m_mipmapped_results[frame_index]->GetImageView());
+            ->SetElementSRV(0, m_mip_chain->GetImageView());
 
         /* Gbuffer depth sampler */
         descriptor_set_globals
@@ -505,7 +505,7 @@ void DeferredRenderer::CreateCombinePass()
 
     Engine::Get()->InitObject(shader);
 
-    m_combine_pass.Reset(new FullScreenPass(shader));
+    m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA16F));
     m_combine_pass->Create();
 }
 
@@ -515,7 +515,7 @@ void DeferredRenderer::Destroy()
 
     //! TODO: remove all descriptors
 
-    m_ssr.Destroy();
+    m_ssr->Destroy();
     m_dpr.Destroy();
     m_hbao->Destroy();
     m_temporal_aa->Destroy();
@@ -527,9 +527,7 @@ void DeferredRenderer::Destroy()
     m_env_grid_pass.Destroy();
     m_reflection_probe_pass.Destroy();
 
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_mipmapped_results[frame_index]));
-    }
+    m_mip_chain.Reset();
 
     m_opaque_fbo.Reset();
     m_translucent_fbo.Reset();
@@ -563,7 +561,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     Memory::Set(&deferred_data, 0, sizeof(deferred_data));
 
-    deferred_data.flags |= use_ssr && m_ssr.IsRendered() ? DEFERRED_FLAGS_SSR_ENABLED : 0;
+    deferred_data.flags |= use_ssr && m_ssr->IsRendered() ? DEFERRED_FLAGS_SSR_ENABLED : 0;
     deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
     deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
@@ -578,10 +576,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     if (use_ssr) { // screen space reflection
         DebugMarker marker(primary, "Screen space reflection");
 
-        Image *mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
+        Image *mipmapped_result = m_mip_chain->GetImage();
 
         if (mipmapped_result->GetGPUImage()->GetResourceState() != renderer::ResourceState::UNDEFINED) {
-            m_ssr.Render(frame);
+            m_ssr->Render(frame);
         }
     }
 
@@ -732,10 +730,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
 void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 {
-    auto *primary = frame->GetCommandBuffer();
-    const auto frame_index = frame->GetFrameIndex();
+    CommandBuffer *primary = frame->GetCommandBuffer();
+    const UInt frame_index = frame->GetFrameIndex();
 
-    const ImageRef &mipmapped_result = m_mipmapped_results[frame_index]->GetImage();
+    const ImageRef &mipmapped_result = m_mip_chain->GetImage();
     AssertThrow(mipmapped_result.IsValid());
 
     DebugMarker marker(primary, "Mip chain generation");
@@ -753,10 +751,10 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
         Rect { 0, 0, mipmapped_result->GetExtent().width, mipmapped_result->GetExtent().height }
     );
 
-    HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
-        Engine::Get()->GetGPUDevice(),
-        primary
-    ));
+    // HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
+    //     Engine::Get()->GetGPUDevice(),
+    //     primary
+    // ));
 }
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)

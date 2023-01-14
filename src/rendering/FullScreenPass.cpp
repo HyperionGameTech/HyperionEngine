@@ -65,19 +65,21 @@ struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommand
 
 #pragma endregion
 
-FullScreenPass::FullScreenPass(InternalFormat image_format)
-    : FullScreenPass(Handle<Shader>(), image_format)
+FullScreenPass::FullScreenPass(InternalFormat image_format, Extent2D extent)
+    : FullScreenPass(Handle<Shader>(), image_format, extent)
 {
 }
 
 FullScreenPass::FullScreenPass(
     const Handle<Shader> &shader,
-    InternalFormat image_format
+    InternalFormat image_format,
+    Extent2D extent
 ) : FullScreenPass(
         shader,
         DescriptorKey::UNUSED,
         ~0u,
-        image_format
+        image_format,
+        extent
     )
 {
 }
@@ -85,12 +87,14 @@ FullScreenPass::FullScreenPass(
 FullScreenPass::FullScreenPass(
     const Handle<Shader> &shader,
     const Array<const DescriptorSet *> &used_descriptor_sets,
-    InternalFormat image_format
+    InternalFormat image_format,
+    Extent2D extent
 ) : FullScreenPass(
         shader,
         DescriptorKey::UNUSED,
         ~0u,
-        image_format
+        image_format,
+        extent
     )
 {
     m_used_descriptor_sets.Set(used_descriptor_sets);
@@ -100,11 +104,13 @@ FullScreenPass::FullScreenPass(
     const Handle<Shader> &shader,
     DescriptorKey descriptor_key,
     UInt sub_descriptor_index,
-    InternalFormat image_format
+    InternalFormat image_format,
+    Extent2D extent
 ) : m_shader(shader),
     m_descriptor_key(descriptor_key),
     m_sub_descriptor_index(sub_descriptor_index),
-    m_image_format(image_format)
+    m_image_format(image_format),
+    m_extent(extent)
 {
 }
 
@@ -150,8 +156,13 @@ void FullScreenPass::CreateCommandBuffers()
 
 void FullScreenPass::CreateFramebuffer()
 {
+    if (m_extent.Size() == 0) {
+        // TODO: Make non render-thread
+        m_extent = Engine::Get()->GetGPUInstance()->GetSwapchain()->extent;
+    }
+
     m_framebuffer = CreateObject<Framebuffer>(
-        Engine::Get()->GetGPUInstance()->swapchain->extent,
+        m_extent,
         renderer::RenderPassStage::SHADER,
         renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
@@ -159,7 +170,7 @@ void FullScreenPass::CreateFramebuffer()
     renderer::AttachmentUsage *attachment_usage;
 
     auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        Engine::Get()->GetGPUInstance()->swapchain->extent,
+        m_extent,
         m_image_format,
         nullptr
     );

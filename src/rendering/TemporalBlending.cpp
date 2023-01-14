@@ -208,27 +208,27 @@ void TemporalBlending::CreateDescriptorSets()
 
 void TemporalBlending::CreateComputePipelines()
 {
-    ShaderProps shader_props;
+    ShaderProps shader_properties;
 
     switch (m_image_format) {
     case InternalFormat::RGBA8:
-        shader_props.Set("OUTPUT_RGBA8");
+        shader_properties.Set("OUTPUT_RGBA8");
         break;
     case InternalFormat::RGBA16F:
-        shader_props.Set("OUTPUT_RGBA16F");
+        shader_properties.Set("OUTPUT_RGBA16F");
         break;
     case InternalFormat::RGBA32F:
-        shader_props.Set("OUTPUT_RGBA32F");
+        shader_properties.Set("OUTPUT_RGBA32F");
         break;
     }
 
     static const String feedback_strings[] = { "LOW", "MEDIUM", "HIGH" };
 
-    shader_props.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(UInt(m_technique)));
-    shader_props.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(UInt(m_feedback), std::size(feedback_strings) - 1)]);
+    shader_properties.Set("TEMPORAL_BLEND_TECHNIQUE_" + String::ToString(UInt(m_technique)));
+    shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(UInt(m_feedback), std::size(feedback_strings) - 1)]);
 
     m_perform_blending = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(TemporalBlending), shader_props),
+        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(TemporalBlending), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

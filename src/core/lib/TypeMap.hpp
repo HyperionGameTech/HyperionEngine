@@ -117,6 +117,12 @@ public:
     }
 
     template <class T>
+    bool Erase()
+    {
+        return m_map.Erase(TypeID::ForType<T>());
+    }
+
+    template <class T>
     Value &At()
     {
         const auto it = Find<T>();

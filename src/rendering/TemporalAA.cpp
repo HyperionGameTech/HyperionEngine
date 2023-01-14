@@ -191,15 +191,13 @@ void TemporalAA::CreateDescriptorSets()
 
         // input 0 - current frame being rendered
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(0)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetCombinedResult(frame_index)->GetImageView());
+            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetCombinedResult()->GetImageView());
 
         // input 1 - previous frame
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(1)
             ->SetSubDescriptor({
                 .element_index = 0u,
-                .image_view = &m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view,
-               // &Engine::Get()->GetDeferredRenderer()
-               //     .GetCombinedResult((frame_index + 1) % max_frames_in_flight)->GetImageView()
+                .image_view = &m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view
             });
 
         // input 2 - velocity

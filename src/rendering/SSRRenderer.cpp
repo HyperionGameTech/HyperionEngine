@@ -18,7 +18,7 @@ using renderer::GPUBufferType;
 
 struct alignas(16) SSRParams
 {
-    ShaderVec2<Int32> dimensions;
+    ShaderVec4<UInt32> dimensions;
     Float32 ray_step,
         num_iterations,
         max_ray_distance,
@@ -78,11 +78,11 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
     virtual Result operator()()
     {
         SSRParams ssr_params {
-            .dimensions = Vector2(extent),
+            .dimensions = { extent.width, extent.height, 0, 0 },
             .ray_step = 0.35f,
             .num_iterations = 128.0f,
             .max_ray_distance = 100.0f,
-            .distance_bias = 0.05f,
+            .distance_bias = 0.25f,
             .offset = 0.01f,
             .eye_fade_start = 0.75f,
             .eye_fade_end = 0.98f,
@@ -207,8 +207,9 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
 
 #pragma endregion
 
-SSRRenderer::SSRRenderer(const Extent2D &extent)
+SSRRenderer::SSRRenderer(const Extent2D &extent, bool should_perform_cone_tracing)
     : m_extent(extent),
+      m_should_perform_cone_tracing(should_perform_cone_tracing),
       m_is_rendered(false)
 {
 }
@@ -220,27 +221,57 @@ SSRRenderer::~SSRRenderer()
 void SSRRenderer::Create()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        for (auto &image_output : m_image_outputs[frame_index]) {
-            image_output = ImageOutput {
-                RenderObjects::Make<Image>(StorageImage(
-                    Extent3D(m_extent),
-                    InternalFormat::RGBA8,
-                    ImageType::TEXTURE_TYPE_2D,
-                    nullptr
-                )),
-                RenderObjects::Make<ImageView>()
-            };
-        }
-
-        m_radius_output[frame_index] = ImageOutput {
+        m_image_outputs[frame_index][0] = ImageOutput {
             RenderObjects::Make<Image>(StorageImage(
                 Extent3D(m_extent),
-                InternalFormat::R8,
+                InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_2D,
                 nullptr
             )),
             RenderObjects::Make<ImageView>()
         };
+
+        m_image_outputs[frame_index][1] = ImageOutput {
+            RenderObjects::Make<Image>(StorageImage(
+                Extent3D(m_extent),
+                ssr_format,
+                ImageType::TEXTURE_TYPE_2D,
+                nullptr
+            )),
+            RenderObjects::Make<ImageView>()
+        };
+
+        // if constexpr (blur_result) {
+            m_image_outputs[frame_index][2] = ImageOutput {
+                RenderObjects::Make<Image>(StorageImage(
+                    Extent3D(m_extent),
+                    ssr_format,
+                    ImageType::TEXTURE_TYPE_2D,
+                    nullptr
+                )),
+                RenderObjects::Make<ImageView>()
+            };
+
+            m_image_outputs[frame_index][3] = ImageOutput {
+                RenderObjects::Make<Image>(StorageImage(
+                    Extent3D(m_extent),
+                    ssr_format,
+                    ImageType::TEXTURE_TYPE_2D,
+                    nullptr
+                )),
+                RenderObjects::Make<ImageView>()
+            };
+
+            m_radius_output[frame_index] = ImageOutput {
+                RenderObjects::Make<Image>(StorageImage(
+                    Extent3D(m_extent),
+                    InternalFormat::R8,
+                    ImageType::TEXTURE_TYPE_2D,
+                    nullptr
+                )),
+                RenderObjects::Make<ImageView>()
+            };
+        // }
     }
     
     PUSH_RENDER_COMMAND(
@@ -253,7 +284,7 @@ void SSRRenderer::Create()
     if (use_temporal_blending) {
         m_temporal_blending.Reset(new TemporalBlending(
             m_extent,
-            InternalFormat::RGBA8,
+            ssr_format,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             FixedArray<ImageViewRef, max_frames_in_flight> {
@@ -371,7 +402,7 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // gbuffer mip chain texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetMipChain(frame_index)->GetImageView());
+            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetMipChain()->GetImageView());
 
         descriptor_set // gbuffer normals texture
             ->AddDescriptor<renderer::ImageDescriptor>(11)
@@ -428,29 +459,44 @@ void SSRRenderer::CreateDescriptorSets()
 
 void SSRRenderer::CreateComputePipelines()
 {
+    ShaderProps shader_properties;
+    shader_properties.Set("CONE_TRACING", m_should_perform_cone_tracing);
+
+    switch (ssr_format) {
+    case InternalFormat::RGBA8:
+        shader_properties.Set("OUTPUT_RGBA8");
+        break;
+    case InternalFormat::RGBA16F:
+        shader_properties.Set("OUTPUT_RGBA16F");
+        break;
+    case InternalFormat::RGBA32F:
+        shader_properties.Set("OUTPUT_RGBA32F");
+        break;
+    }
+
     m_write_uvs = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRWriteUVs)),
+        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_write_uvs);
 
     m_sample = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRSample)),
+        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRSample), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_sample);
 
     m_blur_hor = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurHor)),
+        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurHor), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurVert)),
+        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurVert), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

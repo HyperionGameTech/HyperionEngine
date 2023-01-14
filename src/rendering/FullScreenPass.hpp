@@ -39,25 +39,29 @@ class FullScreenPass
 
 public:
     FullScreenPass(
-        InternalFormat image_format = InternalFormat::RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        Extent2D extent = Extent2D { 0, 0 }
     );
 
     FullScreenPass(
         const Handle<Shader> &shader,
-        InternalFormat image_format = InternalFormat::RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        Extent2D extent = Extent2D { 0, 0 }
     );
 
     FullScreenPass(
         const Handle<Shader> &shader,
         const Array<const DescriptorSet *> &used_descriptor_sets,
-        InternalFormat image_format = InternalFormat::RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        Extent2D extent = Extent2D { 0, 0 }
     );
 
     FullScreenPass(
         const Handle<Shader> &shader,
         DescriptorKey descriptor_key,
         UInt sub_descriptor_index,
-        InternalFormat image_format = InternalFormat::RGB8_SRGB
+        InternalFormat image_format = InternalFormat::RGB8_SRGB,
+        Extent2D extent = Extent2D { 0, 0 }
     );
 
     FullScreenPass(const FullScreenPass &) = delete;
@@ -128,6 +132,7 @@ protected:
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
     Handle<Mesh> m_full_screen_quad;
+    Extent2D m_extent;
 
     Array<std::unique_ptr<Attachment>> m_attachments;
 

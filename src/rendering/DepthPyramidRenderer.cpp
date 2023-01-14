@@ -162,8 +162,8 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
     const auto num_depth_pyramid_mip_levels = m_depth_pyramid_mips[frame_index].Size();
 
-    const auto &image_extent = m_depth_attachment_usage->GetAttachment()->GetImage()->GetExtent();
-    const auto &depth_pyramid_extent = m_depth_pyramid[frame_index]->GetExtent();
+    const Extent3D &image_extent = m_depth_attachment_usage->GetAttachment()->GetImage()->GetExtent();
+    const Extent3D &depth_pyramid_extent = m_depth_pyramid[frame_index]->GetExtent();
 
     UInt32 mip_width = image_extent.width,
         mip_height = image_extent.height;
@@ -178,7 +178,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
             renderer::ResourceState::UNORDERED_ACCESS
         );
         
-        const auto prev_mip_width = mip_width,
+        const UInt32 prev_mip_width = mip_width,
             prev_mip_height = mip_height;
 
         mip_width = MathUtil::Max(1u, depth_pyramid_extent.width >> (mip_level));
@@ -189,7 +189,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
             Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
             m_generate_depth_pyramid->GetPipeline(),
             m_depth_pyramid_descriptor_sets[frame_index][mip_level].get(),
-            static_cast<DescriptorSet::Index>(0)
+            DescriptorSet::Index(0)
         );
 
         // set push constant data for the current mip level
