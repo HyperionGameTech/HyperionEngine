@@ -8,6 +8,16 @@ using renderer::Result;
 
 class Texture;
 
+
+const FixedArray<std::pair<Vector3, Vector3>, 6> Texture::cubemap_directions = {
+    std::make_pair(Vector3(1, 0, 0), Vector3(0, 1, 0)),
+    std::make_pair(Vector3(-1, 0, 0),  Vector3(0, 1, 0)),
+    std::make_pair(Vector3(0, 1, 0),  Vector3(0, 0, -1)),
+    std::make_pair(Vector3(0, -1, 0), Vector3(0, 0, 1)),
+    std::make_pair(Vector3(0, 0, 1), Vector3(0, 1, 0)),
+    std::make_pair(Vector3(0, 0, -1),  Vector3(0, 1, 0)),
+};
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateTexture) : RenderCommand

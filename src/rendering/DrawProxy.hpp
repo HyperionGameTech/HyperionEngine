@@ -125,10 +125,13 @@ struct DrawProxy<STUB_CLASS(Scene)>
 
 using SceneDrawProxy = DrawProxy<STUB_CLASS(Scene)>;
 
-enum EnvProbeFlags : UInt32
+using EnvProbeFlags = UInt32;
+
+enum EnvProbeFlagBits : EnvProbeFlags
 {
-    ENV_PROBE_NONE = 0x0,
-    ENV_PROBE_PARALLAX_CORRECTED = 0x1
+    ENV_PROBE_FLAGS_NONE = 0x0,
+    ENV_PROBE_FLAGS_PARALLAX_CORRECTED = 0x1,
+    ENV_PROBE_FLAGS_SHADOW = 0x2
 };
 
 template <>
@@ -138,6 +141,8 @@ struct DrawProxy<STUB_CLASS(EnvProbe)>
     BoundingBox aabb;
     Vector3 world_position;
     UInt32 texture_index;
+    Float camera_near;
+    Float camera_far;
     EnvProbeFlags flags;
 };
 

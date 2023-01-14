@@ -58,21 +58,17 @@ struct RENDER_COMMAND(BindLights) : RenderCommand
 
 struct RENDER_COMMAND(BindEnvProbes) : RenderCommand
 {
-    Array<Pair<ID<EnvProbe>, bool>> items;
+    Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
 
-    RENDER_COMMAND(BindEnvProbes)(Array<Pair<ID<EnvProbe>, bool>> &&items)
+    RENDER_COMMAND(BindEnvProbes)(Array<Pair<ID<EnvProbe>, EnvProbeType>> &&items)
         : items(std::move(items))
     {
     }
 
     virtual Result operator()()
     {
-        for (const auto &item : items) {
-            if (item.second) {
-                Engine::Get()->GetRenderState().BindAmbientProbe(item.first);
-            } else {
-                Engine::Get()->GetRenderState().BindReflectionProbe(item.first);
-            }
+        for (const auto &it : items) {
+            Engine::Get()->GetRenderState().BindEnvProbe(it.second, it.first);
         }
 
         HYPERION_RETURN_OK;
@@ -174,13 +170,15 @@ void Scene::Init()
 
     if (m_env_probes.Any()) {
         // enqueue bind for all in bulk
-        Array<Pair<ID<EnvProbe>, bool>> items;
+        Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
             
         ID<EnvProbe> *env_probe_ids = new ID<EnvProbe>[m_env_probes.Size()];
         SizeType index = 0;
 
         for (auto &it : m_env_probes) {
-            items.PushBack({ it.first, it.second->IsAmbientProbe() });
+            if (!it.second->IsAmbientProbe()) {
+                items.PushBack({ it.first, it.second->GetEnvProbeType() });
+            }
         }
 
         PUSH_RENDER_COMMAND(
@@ -883,10 +881,10 @@ void Scene::EnqueueRenderUpdates()
             shader_data.taa_params       = Vector4(jitter, previous_jitter);
             shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
 
-            if (Engine::Get()->GetRenderState().bound_env_probes.Any()) {
+            if (Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
                 shader_data.environment_texture_index = 0u;
 
-                for (const auto &it : Engine::Get()->GetRenderState().bound_env_probes) {
+                for (const auto &it : Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
                     if (it.second.Empty()) {
                         continue;
                     }

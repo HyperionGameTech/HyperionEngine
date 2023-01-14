@@ -78,7 +78,7 @@ struct RenderState
 {
     std::stack<RenderBinding<Scene>> scene_bindings;
     FlatMap<ID<Light>, LightDrawProxy> lights;
-    FlatMap<ID<EnvProbe>, Optional<UInt>> bound_env_probes; // map to texture slot
+    FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX> bound_env_probes; // map to texture slot
     ID<EnvGrid> bound_env_grid;
     ID<EnvProbe> current_env_probe; // For rendering to EnvProbe.
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
@@ -138,36 +138,54 @@ struct RenderState
             : scene_bindings.top();
     }
 
-    void BindReflectionProbe(ID<EnvProbe> env_probe)
+    void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
     {
-        if (m_env_probe_texture_slot_counter >= max_bound_reflection_probes) {
-            DebugLog(
-                LogType::Warn,
-                "Maximum bound reflection probes (%u) exceeded!\n",
-                max_bound_reflection_probes
-            );
+        AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
-            return;
+        constexpr UInt max_counts[ENV_PROBE_TYPE_MAX] = {
+            max_bound_reflection_probes,
+            max_bound_ambient_probes,
+            max_bound_point_shadow_maps
+        };
+
+       const bool has_texture_slot = type != ENV_PROBE_TYPE_AMBIENT;
+
+        if (has_texture_slot) {
+            if (m_env_probe_texture_slot_counters[type] >= max_counts[type]) {
+                DebugLog(
+                    LogType::Warn,
+                    "Maximum bound probes of type %u exceeded! (%u)\n",
+                    type,
+                    max_counts[type]
+                );
+
+                return;
+            }
         }
 
-        bound_env_probes.Insert(env_probe, Optional<UInt>(m_env_probe_texture_slot_counter++));
+        bound_env_probes[type].Insert(
+            probe_id,
+            has_texture_slot
+                ? Optional<UInt>(m_env_probe_texture_slot_counters[type]++)
+                : Optional<UInt>()
+            );
     }
 
-    void UnbindEnvProbe(ID<EnvProbe> env_probe)
+    void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
     {
-        bound_env_probes.Erase(env_probe);
-    }
+        AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
-    void BindAmbientProbe(ID<EnvProbe> env_probe)
-    {
-        bound_env_probes.Insert(env_probe, Optional<UInt>());
+        bound_env_probes[type].Erase(probe_id);
     }
 
     void Reset(RenderStateMask mask)
     {
         if (mask & RENDER_STATE_ENV_PROBES) {
-            bound_env_probes.Clear();
-            m_env_probe_texture_slot_counter = 0u;
+            for (auto &probes : bound_env_probes) {
+                probes.Clear();
+            }
+
+            m_env_probe_texture_slot_counters = { };
         }
 
         if (mask & RENDER_STATE_SCENE) {
@@ -188,7 +206,7 @@ struct RenderState
     }
 
 private:
-    UInt m_env_probe_texture_slot_counter = 0u;
+    FixedArray<UInt, ENV_PROBE_TYPE_MAX> m_env_probe_texture_slot_counters { };
 };
 
 } // namespace hyperion::v2

@@ -11,7 +11,7 @@ BoundingSphere::BoundingSphere()
 {
 }
 
-BoundingSphere::BoundingSphere(const Vector3 &center, float radius)
+BoundingSphere::BoundingSphere(const Vector3 &center, Float radius)
     : center(center),
       radius(radius)
 {
@@ -40,7 +40,7 @@ BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
 
     Vector3 direction_vector;
 
-    for (auto &corner : box.GetCorners()) {
+    for (Vector3 &corner : box.GetCorners()) {
         direction_vector = (corner - center).Normalized();
         direction_vector *= -radius;
         direction_vector += center;

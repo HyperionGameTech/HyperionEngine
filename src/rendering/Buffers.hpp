@@ -212,8 +212,8 @@ struct alignas(256) EnvProbeShaderData
 
     UInt32 texture_index;
     UInt32 flags;
-    UInt32 _pad0;
-    UInt32 _pad1;
+    Float camera_near;
+    Float camera_far;
 
     ShaderVec4<UInt32> _pad2;
     ShaderVec4<UInt32> _pad3;

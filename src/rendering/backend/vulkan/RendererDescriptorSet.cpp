@@ -45,6 +45,7 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
 
             {DescriptorKey::ENV_PROBE_TEXTURES,    25},
             {DescriptorKey::ENV_PROBES,            26},
+            {DescriptorKey::POINT_SHADOW_MAPS,     27},
 
             {DescriptorKey::VOXEL_IMAGE,           30},
 

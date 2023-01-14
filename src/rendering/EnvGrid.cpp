@@ -52,7 +52,7 @@ void EnvGrid::Init()
                         scene,
                         env_probe_aabb,
                         ambient_probe_dimensions,
-                        true
+                        ENV_PROBE_TYPE_AMBIENT
                     );
 
                     InitObject(m_ambient_probes[index]);
@@ -233,7 +233,7 @@ void EnvGrid::CreateShader()
 {
     m_ambient_shader = Engine::Get()->GetShaderManager().GetOrCreate(
         HYP_NAME(CubemapRenderer),
-        ShaderProps()
+        ShaderProps({ "MODE_AMBIENT" })
     );
 
     InitObject(m_ambient_shader);

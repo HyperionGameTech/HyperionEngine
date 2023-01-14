@@ -8,26 +8,36 @@
 #include "Ray.hpp"
 #include "../HashCode.hpp"
 
+#include <Types.hpp>
+
 #include <array>
 #include <limits>
 
 namespace hyperion {
 
-class BoundingSphere {
+struct BoundingSphere
+{
 public:
     BoundingSphere();
-    BoundingSphere(const Vector3 &center, float radius);
+    BoundingSphere(const Vector3 &center, Float radius);
     BoundingSphere(const BoundingSphere &other);
     BoundingSphere(const BoundingBox &box);
 
-    const Vector3 &GetCenter() const      { return center; }
-    void SetCenter(const Vector3 &center) { this->center = center; }
+    const Vector3 &GetCenter() const
+        { return center; }
 
-    float GetRadius() const               { return radius; }
-    void SetRadius(float radius)          { this->radius = radius; }
+    void SetCenter(const Vector3 &center)
+        { this->center = center; }
+
+    Float GetRadius() const
+        { return radius; }
+
+    void SetRadius(Float radius)
+        { this->radius = radius; }
 
     bool operator==(const BoundingSphere &other) const
         { return center == other.center && radius == other.radius; }
+
     bool operator!=(const BoundingSphere &other) const
         { return !operator==(other); }
 
@@ -49,7 +59,7 @@ public:
     }
 
     Vector3 center;
-    float   radius;
+    Float radius;
 };
 
 } // namespace hyperion

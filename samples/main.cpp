@@ -73,6 +73,7 @@
 
 #include "rendering/RenderEnvironment.hpp"
 #include "rendering/CubemapRenderer.hpp"
+#include "rendering/PointShadowRenderer.hpp"
 #include "rendering/UIRenderer.hpp"
 
 #include <rendering/ParticleSystem.hpp>
@@ -137,7 +138,7 @@ public:
                 Vector3(0.0f, 1.0f, 0.0f),
                 Color(1.0f, 1.0f, 1.0f),
                 15.0f,
-                0.35f
+                24.35f
             )));
             /*m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.5f, 50.0f, -70.1f),
@@ -287,6 +288,7 @@ public:
 
         test_model.Scale(6.025f);
 
+#if 0
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
                 HYP_NAME(AmbientGrid0),
@@ -299,6 +301,16 @@ public:
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
                 HYP_NAME(EnvProbe0),
                 test_model.GetWorldAABB()
+            );
+        }
+
+#endif
+
+        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
+            m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+                HYP_NAME(PointShadowRenderer0),
+                m_point_lights.Front(),
+                Extent2D { 256, 256 }
             );
         }
         
@@ -478,7 +490,7 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
 #if 0
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
@@ -610,7 +622,7 @@ public:
         }*/
 
         if (!m_point_lights.Empty()) {
-            m_point_lights.Front()->SetPosition(GetScene()->GetCamera()->GetTranslation() + GetScene()->GetCamera()->GetDirection() * 0.4f);
+            // m_point_lights.Front()->SetPosition(GetScene()->GetCamera()->GetTranslation() + GetScene()->GetCamera()->GetDirection() * 2.4f);
         }
 
         bool sun_position_changed = false;

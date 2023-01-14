@@ -4,12 +4,14 @@
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
 #include <core/lib/UniquePtr.hpp>
+#include <core/lib/FixedArray.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
-
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
+
+#include <math/Vector3.hpp>
 
 #include <Types.hpp>
 
@@ -32,6 +34,8 @@ class Texture
       public RenderResource
 {
 public:
+    static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
+
     Texture(
         Extent3D extent,
         InternalFormat format,

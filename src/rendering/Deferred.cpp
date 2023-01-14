@@ -322,7 +322,7 @@ void ReflectionProbePass::Record(UInt frame_index)
 
             UInt counter = 0;
 
-            for (const auto &it : Engine::Get()->render_state.bound_env_probes) {
+            for (const auto &it : Engine::Get()->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
                 if (counter >= max_bound_reflection_probes) {
                     DebugLog(
                         LogType::Warn,
@@ -554,7 +554,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_hbao = Engine::Get()->GetConfig().Get(CONFIG_HBAO);
     const bool use_hbil = Engine::Get()->GetConfig().Get(CONFIG_HBIL);
     const bool use_env_grid_irradiance = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI);
-    const bool use_reflection_probes = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && Engine::Get()->GetRenderState().bound_env_probes.Any();
+    const bool use_reflection_probes = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
     const bool use_temporal_aa = Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
 
     struct alignas(128) {  UInt32 flags; } deferred_data;

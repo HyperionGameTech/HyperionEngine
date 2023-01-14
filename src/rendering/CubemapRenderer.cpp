@@ -1,10 +1,7 @@
-#include "CubemapRenderer.hpp"
-
-#include <util/fs/FsUtil.hpp>
+#include <rendering/CubemapRenderer.hpp>
 
 #include <Engine.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
-
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -44,7 +41,7 @@ void CubemapRenderer::Init()
         Handle<Scene>(GetParent()->GetScene()->GetID()),
         m_aabb,
         Extent2D { 128, 128 },
-        false
+        ENV_PROBE_TYPE_REFLECTION
     );
 
     InitObject(m_env_probe);

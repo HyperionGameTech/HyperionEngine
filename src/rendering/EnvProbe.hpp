@@ -26,6 +26,16 @@ using renderer::Attachment;
 using renderer::UniformBuffer;
 using renderer::Image;
 
+enum EnvProbeType : UInt
+{
+    ENV_PROBE_TYPE_INVALID = UInt(-1),
+    ENV_PROBE_TYPE_REFLECTION = 0,
+    ENV_PROBE_TYPE_AMBIENT,
+    ENV_PROBE_TYPE_SHADOW,
+
+    ENV_PROBE_TYPE_MAX
+};
+
 struct EnvProbeIndex
 {
     Extent3D position;
@@ -82,8 +92,6 @@ class EnvProbe
       public HasDrawProxy<STUB_CLASS(EnvProbe)>,
       public RenderResource
 {
-    static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
-
 public:
     friend struct RenderCommand_UpdateEnvProbeDrawProxy;
     friend struct RenderCommand_CreateCubemapBuffers;
@@ -93,15 +101,24 @@ public:
         const Handle<Scene> &parent_scene,
         const BoundingBox &aabb,
         const Extent2D &dimensions,
-        bool is_ambient_probe
+        EnvProbeType env_probe_type
     );
 
     EnvProbe(const EnvProbe &other) = delete;
     EnvProbe &operator=(const EnvProbe &other) = delete;
     ~EnvProbe();
 
+    EnvProbeType GetEnvProbeType() const
+        { return m_env_probe_type; }
+
+    bool IsReflectionProbe() const
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION; }
+
     bool IsAmbientProbe() const
-        { return m_is_ambient_probe; }
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
+
+    bool IsShadowProbe() const
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW; }
 
     const EnvProbeIndex &GetBoundIndex() const
         { return m_bound_index; }
@@ -150,7 +167,10 @@ private:
     Handle<Scene> m_parent_scene;
     BoundingBox m_aabb;
     Extent2D m_dimensions;
-    bool m_is_ambient_probe;
+    EnvProbeType m_env_probe_type;
+
+    Float m_camera_near;
+    Float m_camera_far;
 
     Handle<Texture> m_texture;
     Handle<Framebuffer> m_framebuffer;

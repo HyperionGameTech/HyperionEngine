@@ -573,6 +573,13 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
             ->SetElementBuffer(0, shader_globals->env_probes.GetBuffers()[frame_index].get());
 
+        auto *point_shadow_maps_descriptor = descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
+
+        for (UInt shadow_map_index = 0; shadow_map_index < max_bound_point_shadow_maps; shadow_map_index++) {
+            point_shadow_maps_descriptor->SetElementSRV(shadow_map_index, &GetPlaceholderData().GetImageViewCube1x1R8());
+        }
+
         // ssr result image
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SSR_RESULT)

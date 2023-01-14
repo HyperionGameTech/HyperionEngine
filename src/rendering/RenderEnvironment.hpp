@@ -62,6 +62,8 @@ public:
     Scene *GetScene() const
         { return m_scene; }
 
+    ID<Scene> GetSceneID() const;
+
     Handle<ParticleSystem> &GetParticleSystem()
         { return m_particle_system; }
 

@@ -356,4 +356,13 @@ void RenderEnvironment::RenderComponents(Frame *frame)
     ++m_frame_counter;
 }
 
+ID<Scene> RenderEnvironment::GetSceneID() const
+{
+    if (!m_scene) {
+        return ID<Scene>();
+    }
+
+    return m_scene->GetID();
+}
+
 } // namespace hyperion::v2
