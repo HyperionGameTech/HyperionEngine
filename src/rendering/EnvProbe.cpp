@@ -11,7 +11,7 @@ struct RenderCommand_DestroyCubemapRenderPass;
 using renderer::Result;
 
 static const Extent2D num_tiles = { 4, 4 };
-static const InternalFormat shadow_map_format = InternalFormat::R32F;
+static const InternalFormat shadow_map_format = InternalFormat::RG32F;
 
 struct alignas(16) SHTile
 {
@@ -527,7 +527,7 @@ void EnvProbe::Render(Frame *frame)
 
     AssertThrow(m_texture.IsValid());
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    CommandBuffer *command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     auto result = renderer::Result::OK;

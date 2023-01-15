@@ -653,8 +653,8 @@ void Scene::Update(GameCounter::TickUnit delta)
     for (auto &it : m_lights) {
         Handle<Light> &light = it.second;
         
-        const bool in_frustum = light->GetType() != LightType::DIRECTIONAL
-            || (m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(light->GetWorldAABB()));
+        const bool in_frustum = light->GetType() == LightType::DIRECTIONAL
+            || (m_camera.IsValid() && m_camera->GetFrustum().ContainsBoundingSphere(BoundingSphere(light->GetPosition(), light->GetRadius())));
 
         if (in_frustum != light->IsVisible(GetID())) {
             light->SetIsVisible(GetID(), in_frustum);

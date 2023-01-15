@@ -7,8 +7,12 @@
 #include <asset/serialization/fbom/FBOMResult.hpp>
 #include <asset/serialization/fbom/FBOMBaseTypes.hpp>
 #include <math/MathUtil.hpp>
-#include <math/Matrix4.hpp>
+#include <math/Vector2.hpp>
+#include <math/Vector3.hpp>
+#include <math/Vector4.hpp>
 #include <math/Matrix3.hpp>
+#include <math/Matrix4.hpp>
+#include <math/Quaternion.hpp>
 #include <system/Debug.hpp>
 
 #include <Types.hpp>
@@ -113,6 +117,7 @@ struct FBOMData
     FBOM_TYPE_FUNCTIONS(Vec2f, Vector2)
     FBOM_TYPE_FUNCTIONS(Vec3f, Vector3)
     FBOM_TYPE_FUNCTIONS(Vec4f, Vector4)
+    FBOM_TYPE_FUNCTIONS(Quaternion, Quaternion)
 
 #undef FBOM_TYPE_FUNCTIONS
 
@@ -184,6 +189,8 @@ struct FBOMData
     template <class T>
     FBOMResult ReadStruct(T *out) const
     {
+        static_assert(std::is_standard_layout_v<T>, "T must be standard layout to use ReadStruct()");
+
         return ReadStruct(sizeof(T), out);
     }
 

@@ -55,6 +55,7 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommand
                 .light_type         = UInt32(draw_proxy.type),
                 .color_packed       = UInt32(draw_proxy.color),
                 .radius             = draw_proxy.radius,
+                .falloff            = draw_proxy.falloff,
                 .shadow_map_index   = draw_proxy.shadow_map_index,
                 .position_intensity = draw_proxy.position_intensity
             }
@@ -78,6 +79,7 @@ Light::Light(
     m_color(color),
     m_intensity(intensity),
     m_radius(radius),
+    m_falloff(1.0f),
     m_shadow_map_index(~0u),
     m_visibility_bits(0ull),
     m_shader_data_state(ShaderDataState::DIRTY)
@@ -91,6 +93,7 @@ Light::Light(Light &&other) noexcept
       m_color(other.m_color),
       m_intensity(other.m_intensity),
       m_radius(other.m_radius),
+      m_falloff(other.m_falloff),
       m_shadow_map_index(other.m_shadow_map_index),
       m_visibility_bits(0ull),
       m_shader_data_state(ShaderDataState::DIRTY)
@@ -156,6 +159,7 @@ void Light::EnqueueRenderUpdates()
         .type = m_type,
         .color = m_color,
         .radius = m_radius,
+        .falloff = m_falloff,
         .shadow_map_index = m_shadow_map_index,
         .position_intensity = Vector4(m_position, m_intensity),
         .visibility_bits = m_visibility_bits.to_ullong()

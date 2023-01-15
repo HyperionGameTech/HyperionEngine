@@ -30,14 +30,14 @@ class Node
 public:
     using NodeList = Array<NodeProxy>;
 
-    enum class Type : UInt
+    enum class Type : UInt32
     {
         NODE,
         BONE,
         UI_NODE
     };
 
-    enum Flags
+    enum Flags : UInt32
     {
         NODE_FLAGS_NONE = 0
     };

@@ -22,17 +22,17 @@ public:
 
     virtual FBOMResult Serialize(const Node &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("type", FBOMUnsignedInt(), in_object.GetType());
-
-        out.SetProperty("name", FBOMString(), in_object.GetName().Size(), in_object.GetName().Data());
+        out.SetProperty("type", FBOMData::FromUInt32(UInt32(in_object.GetType())));
+        
+        out.SetProperty("name", FBOMData::FromString(in_object.GetName()));
     
-        out.SetProperty("local_transform.translation", FBOMVec3f(), &in_object.GetLocalTransform().GetTranslation());
-        out.SetProperty("local_transform.rotation", FBOMQuaternion(), &in_object.GetLocalTransform().GetRotation());
-        out.SetProperty("local_transform.scale", FBOMVec3f(), &in_object.GetLocalTransform().GetScale());
+        out.SetProperty("local_transform.translation", FBOMData::FromVector3(in_object.GetLocalTransform().GetTranslation()));
+        out.SetProperty("local_transform.rotation", FBOMData::FromQuaternion(in_object.GetLocalTransform().GetRotation()));
+        out.SetProperty("local_transform.scale", FBOMData::FromVector3(in_object.GetLocalTransform().GetScale()));
     
-        out.SetProperty("world_transform.translation", FBOMVec3f(), &in_object.GetWorldTransform().GetTranslation());
-        out.SetProperty("world_transform.rotation", FBOMQuaternion(), &in_object.GetWorldTransform().GetRotation());
-        out.SetProperty("world_transform.scale", FBOMVec3f(), &in_object.GetWorldTransform().GetScale());
+        out.SetProperty("world_transform.translation", FBOMData::FromVector3(in_object.GetWorldTransform().GetTranslation()));
+        out.SetProperty("world_transform.rotation", FBOMData::FromQuaternion(in_object.GetWorldTransform().GetRotation()));
+        out.SetProperty("world_transform.scale", FBOMData::FromVector3(in_object.GetWorldTransform().GetScale()));
 
         out.SetProperty("local_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetLocalAABB());
         out.SetProperty("world_aabb", FBOMStruct(sizeof(BoundingBox)), &in_object.GetWorldAABB());
@@ -95,15 +95,15 @@ public:
         { // local transform
             Transform transform = Transform::identity;
 
-            if (auto err = in.GetProperty("local_transform.translation").ReadArrayElements(FBOMFloat(), 3, &transform.GetTranslation())) {
+            if (auto err = in.GetProperty("local_transform.translation").ReadVector3(&transform.GetTranslation())) {
                 return err;
             }
         
-            if (auto err = in.GetProperty("local_transform.rotation").ReadArrayElements(FBOMFloat(), 4, &transform.GetRotation())) {
+            if (auto err = in.GetProperty("local_transform.rotation").ReadQuaternion(&transform.GetRotation())) {
                 return err;
             }
 
-            if (auto err = in.GetProperty("local_transform.scale").ReadArrayElements(FBOMFloat(), 3, &transform.GetScale())) {
+            if (auto err = in.GetProperty("local_transform.scale").ReadVector3(&transform.GetScale())) {
                 return err;
             }
 

@@ -254,9 +254,10 @@ struct LightShaderData
     UInt32 light_type;
     UInt32 color_packed;
     Float radius;
+    Float falloff;
     UInt32 shadow_map_index;
 
-    HYP_PAD_STRUCT_HERE(UInt32, 7);
+    HYP_PAD_STRUCT_HERE(UInt32, 6);
 
     ShaderVec4<Float> position_intensity;
 };

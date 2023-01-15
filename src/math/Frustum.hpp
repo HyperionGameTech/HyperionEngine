@@ -1,9 +1,10 @@
 #ifndef FRUSTUM_H
 #define FRUSTUM_H
 
-#include "Matrix4.hpp"
-#include "Vector4.hpp"
-#include "BoundingBox.hpp"
+#include <math/Matrix4.hpp>
+#include <math/Vector4.hpp>
+#include <math/BoundingBox.hpp>
+#include <math/BoundingSphere.hpp>
 
 #include <core/lib/FixedArray.hpp>
 
@@ -27,6 +28,7 @@ public:
     const FixedArray<Vector3, 8> &GetCorners() const { return m_corners; }
 
     bool ContainsAABB(const BoundingBox &aabb) const;
+    bool ContainsBoundingSphere(const BoundingSphere &sphere) const;
 
     Frustum &SetFromViewProjectionMatrix(const Matrix4 &view_proj);
     Vector3 GetIntersectionPoint(UInt plane_index_0, UInt plane_index_1, UInt plane_index_2) const;

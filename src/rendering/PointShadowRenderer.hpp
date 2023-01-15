@@ -48,6 +48,8 @@ private:
     Extent2D m_extent;
     BoundingBox m_aabb;
     Handle<EnvProbe> m_env_probe;
+
+    bool m_last_visibility_state = true;
 };
 
 

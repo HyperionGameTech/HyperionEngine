@@ -27,7 +27,7 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
         bool pass = false;
 
         for (const auto &corner : corners) {
-            if (corner.ToVector4().Dot(plane) > 0.0f) {
+            if (plane.Dot(Vector4(corner, 1.0f)) > 0.0f) {
                 pass = true;
                 break;
             }
@@ -43,6 +43,17 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
     return true;
 }
 
+bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
+{
+    for (const auto &plane : m_planes) {
+        if (plane.Dot(Vector4(sphere.center, 1.0f)) <= -sphere.radius) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
 {
     const Matrix4 mat = view_proj.Transposed();
@@ -51,37 +62,37 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
     m_planes[0][1] = mat[1][3] - mat[1][0];
     m_planes[0][2] = mat[2][3] - mat[2][0];
     m_planes[0][3] = mat[3][3] - mat[3][0];
-    m_planes[0].Normalize();
+    // m_planes[0].Normalize();
 
     m_planes[1][0] = mat[0][3] + mat[0][0];
     m_planes[1][1] = mat[1][3] + mat[1][0];
     m_planes[1][2] = mat[2][3] + mat[2][0];
     m_planes[1][3] = mat[3][3] + mat[3][0];
-    m_planes[1].Normalize();
+    // m_planes[1].Normalize();
 
     m_planes[2][0] = mat[0][3] + mat[0][1];
     m_planes[2][1] = mat[1][3] + mat[1][1];
     m_planes[2][2] = mat[2][3] + mat[2][1];
     m_planes[2][3] = mat[3][3] + mat[3][1];
-    m_planes[2].Normalize();
+    // m_planes[2].Normalize();
 
     m_planes[3][0] = mat[0][3] - mat[0][1];
     m_planes[3][1] = mat[1][3] - mat[1][1];
     m_planes[3][2] = mat[2][3] - mat[2][1];
     m_planes[3][3] = mat[3][3] - mat[3][1];
-    m_planes[3].Normalize();
+    // m_planes[3].Normalize();
 
     m_planes[4][0] = mat[0][3] - mat[0][2];
     m_planes[4][1] = mat[1][3] - mat[1][2];
     m_planes[4][2] = mat[2][3] - mat[2][2];
     m_planes[4][3] = mat[3][3] - mat[3][2];
-    m_planes[4].Normalize();
+    // m_planes[4].Normalize();
 
     m_planes[5][0] = mat[0][3] + mat[0][2];
     m_planes[5][1] = mat[1][3] + mat[1][2];
     m_planes[5][2] = mat[2][3] + mat[2][2];
     m_planes[5][3] = mat[3][3] + mat[3][2];
-    m_planes[5].Normalize();
+    // m_planes[5].Normalize();
 
     const Matrix4 clip_to_world = view_proj.Inverted();
 

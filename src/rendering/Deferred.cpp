@@ -139,6 +139,15 @@ void DeferredPass::Record(UInt frame_index)
                 const LightDrawProxy &light = it.second;
 
                 if (light.visibility_bits & (1ull << SizeType(scene_index))) {
+                    // We'll use the EnvProbe slot to bind whatever EnvProbe
+                    // is used for the light's shadow map (if applicable)
+
+                    UInt shadow_probe_index = 0;
+
+                    if (light.type == LightType::POINT) {
+                        shadow_probe_index = light.shadow_map_index;
+                    }
+
                     cmd->BindDescriptorSet(
                         Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
                         m_render_group->GetPipeline(),
@@ -148,7 +157,7 @@ void DeferredPass::Record(UInt frame_index)
                             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                             HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex()),
                             HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
+                            HYP_RENDER_OBJECT_OFFSET(EnvProbe, shadow_probe_index)
                         }
                     );
 

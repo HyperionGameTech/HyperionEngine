@@ -132,33 +132,20 @@ public:
                 5.0f
             ));
 
-            //m_scene->AddLight(m_sun);
+            // m_scene->AddLight(m_sun);
 
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.0f, 1.0f, 0.0f),
-                Color(1.0f, 1.0f, 1.0f),
-                15.0f,
-                24.35f
-            )));
-            /*m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.5f, 50.0f, -70.1f),
                 Color(1.0f, 0.0f, 0.0f),
-                2.0f,
-                40.0f
-            )));
-            
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(40.5f, 50.0f, 40.1f),
-                Color(0.0f, 1.0f, 0.0f),
-                2.0f,
-                40.0f
+                15.0f,
+                20.35f
             )));
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(-40.5f, 50.0f, -40.1f),
-                Color(0.0f, 1.0f, 1.0f),
-                1.0f,
-                40.0f
-            )));*/
+                Vector3(-2.0f, 0.75f, 0.0f),
+                Color(0.0f, 0.0f, 1.0f),
+                15.0f,
+                20.0f
+            )));
 
             for (auto &light : m_point_lights) {
                 m_scene->AddLight(light);
@@ -288,7 +275,6 @@ public:
 
         test_model.Scale(6.025f);
 
-#if 0
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
                 HYP_NAME(AmbientGrid0),
@@ -304,20 +290,16 @@ public:
             );
         }
 
-#endif
-
-        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
-            m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
-                HYP_NAME(PointShadowRenderer0),
-                m_point_lights.Front(),
-                Extent2D { 256, 256 }
-            );
-        }
+        m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+            HYP_NAME(PointShadowRenderer0),
+            m_point_lights.Front(),
+            Extent2D { 256, 256 }
+        );
         
-        /*m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
-            HYP_NAME(Shadows),
-            m_sun, test_model.GetWorldAABB()
-        );*/
+        // m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
+        //     HYP_NAME(Shadows),
+        //     m_sun, test_model.GetWorldAABB()
+        // );
 
         if (false) {
             int i = 0;
@@ -352,19 +334,6 @@ public:
                 }
             }
         }
-
-        auto cubemap = CreateObject<Texture>(TextureCube(
-            Engine::Get()->GetAssetManager().LoadMany<Texture>(
-                "textures/chapel/posx.jpg",
-                "textures/chapel/negx.jpg",
-                "textures/chapel/posy.jpg",
-                "textures/chapel/negy.jpg",
-                "textures/chapel/posz.jpg",
-                "textures/chapel/negz.jpg"
-            )
-        ));
-        cubemap->GetImage()->SetIsSRGB(true);
-        InitObject(cubemap);
 
         if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();

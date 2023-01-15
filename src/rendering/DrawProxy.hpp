@@ -155,6 +155,7 @@ struct DrawProxy<STUB_CLASS(Light)>
     LightType type;
     Color color;
     Float radius;
+    Float falloff;
     UInt32 shadow_map_index;
     Vector4 position_intensity;
     UInt64 visibility_bits;

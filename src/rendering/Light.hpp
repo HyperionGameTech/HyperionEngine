@@ -71,6 +71,24 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
+    Float GetRadius() const
+        { return m_radius; }
+
+    void SetRadius(Float radius)
+    {
+        m_radius = radius;
+        m_shader_data_state |= ShaderDataState::DIRTY;
+    }
+
+    Float GetFalloff() const
+        { return m_falloff; }
+
+    void SetFalloff(Float falloff)
+    {
+        m_falloff = falloff;
+        m_shader_data_state |= ShaderDataState::DIRTY;
+    }
+
     UInt GetShadowMapIndex() const
         { return m_shadow_map_index; }
 
@@ -97,6 +115,7 @@ protected:
     Float m_intensity;
     /* Point, spot lights */
     Float m_radius;
+    Float m_falloff;
     UInt m_shadow_map_index;
 
 private:
