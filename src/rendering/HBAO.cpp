@@ -343,7 +343,13 @@ void HBAO::CreateBlurComputeShaders()
 
 void HBAO::CreatePass()
 {
-    auto hbao_shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(HBAO));
+    ShaderProps shader_properties;
+    shader_properties.Set("HBIL_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBIL));
+
+    Handle<Shader> hbao_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+        HYP_NAME(HBAO),
+        shader_properties
+    );
 
     Engine::Get()->InitObject(hbao_shader);
 

@@ -8,15 +8,15 @@ namespace hyperion::v2 {
 using TextureData = TextureLoader::TextureData;
 
 static const stbi_io_callbacks callbacks {
-    .read = [](void *user, char *data, int size) -> int {
-        auto *state = static_cast<LoaderState *>(user);
+    .read = [](void *user, char *data, Int size) -> Int {
+        LoaderState *state = static_cast<LoaderState *>(user);
 
-        return static_cast<int>(state->stream.Read(data, static_cast<size_t>(size), [](void *ptr, const unsigned char *buffer, size_t chunk_size) {
+        return Int(state->stream.Read(data, SizeType(size), [](void *ptr, const unsigned char *buffer, SizeType chunk_size) {
             Memory::Copy(ptr, buffer, chunk_size);
         }));
     },
-    .skip = [](void *user, int n) {
-        auto *state = static_cast<LoaderState *>(user);
+    .skip = [](void *user, Int n) {
+        LoaderState *state = static_cast<LoaderState *>(user);
 
         if (n < 0) {
             state->stream.Rewind(-n);
@@ -24,10 +24,10 @@ static const stbi_io_callbacks callbacks {
             state->stream.Skip(n);
         }
     },
-    .eof = [](void *user) -> int {
-        const auto *state = static_cast<LoaderState *>(user);
+    .eof = [](void *user) -> Int {
+        const LoaderState *state = static_cast<LoaderState *>(user);
 
-        return static_cast<int>(state->stream.Eof());
+        return Int(state->stream.Eof());
     }
 };
 
@@ -61,9 +61,9 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         return { { LoaderResult::Status::ERR, "Invalid format -- invalid number of components returned" }, UniquePtr<void>() };
     }
 
-    const SizeType image_bytes_count = static_cast<SizeType>(data.width)
-        * static_cast<SizeType>(data.height)
-        * static_cast<SizeType>(data.num_components);
+    const SizeType image_bytes_count = SizeType(data.width)
+        * SizeType(data.height)
+        * SizeType(data.num_components);
 
     data.data.resize(image_bytes_count);
     Memory::Copy(&data.data[0], image_bytes, image_bytes_count);
@@ -72,8 +72,8 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     UniquePtr<Handle<Texture>> texture(new Handle<Texture>(CreateObject<Texture>(Texture2D(
         Extent2D {
-            static_cast<UInt>(data.width),
-            static_cast<UInt>(data.height)
+            UInt(data.width),
+            UInt(data.height)
         },
         data.format,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,

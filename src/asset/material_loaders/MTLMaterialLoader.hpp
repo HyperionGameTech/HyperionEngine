@@ -11,6 +11,7 @@
 
 namespace hyperion::v2 {
 
+
 class MTLMaterialLoader : public AssetLoader
 {
 public:
@@ -20,6 +21,7 @@ public:
         {
             Material::TextureKey key;
             bool srgb = false;
+            FilterMode filter_mode = FilterMode::TEXTURE_FILTER_LINEAR;
         };
         
         struct TextureDef

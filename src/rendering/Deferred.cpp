@@ -16,9 +16,9 @@ using renderer::Rect;
 using renderer::Result;
 
 const Extent2D DeferredRenderer::mip_chain_extent(512, 512);
-const InternalFormat DeferredRenderer::mip_chain_format = InternalFormat::RGBA16F;//R10G10B10A2;
+const InternalFormat DeferredRenderer::mip_chain_format = InternalFormat::R10G10B10A2;
 
-const Extent2D DeferredRenderer::hbao_extent(512, 512);
+const Extent2D DeferredRenderer::hbao_extent(1024, 1024);
 const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 static ShaderProps GetDeferredShaderProps()
@@ -32,6 +32,8 @@ static ShaderProps GetDeferredShaderProps()
     props.Set("VCT_ENABLED_SVO", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
     props.Set("DEBUG_REFLECTIONS", Engine::Get()->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS));
     props.Set("DEBUG_IRRADIANCE", Engine::Get()->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE));
+    props.Set("HBIL_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBIL));
+    props.Set("HBAO_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBAO));
 
     return props;
 }

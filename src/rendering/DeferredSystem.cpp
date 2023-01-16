@@ -79,7 +79,7 @@ static void AddSharedAttachment(
 
 static InternalFormat GetImageFormat(GBufferResourceName resource)
 {
-    InternalFormat color_format;
+    InternalFormat color_format = InternalFormat::NONE;
 
     if (const InternalFormat *format = DeferredSystem::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
         color_format = *format;
@@ -93,9 +93,9 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
                 break;
             }
         }
-    } else {
-        AssertThrowMsg(false, "Invalid value set for gbuffer image format");
     }
+
+    AssertThrowMsg(color_format != InternalFormat::NONE, "Invalid value set for gbuffer image format");
 
     return color_format;
 }

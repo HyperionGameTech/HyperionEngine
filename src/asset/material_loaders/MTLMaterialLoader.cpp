@@ -41,7 +41,7 @@ static Vector ReadVector(const Tokens &tokens, SizeType offset = 1)
             continue;
         }
 
-        result.values[value_index++] = static_cast<Float>(std::atof(token.c_str()));
+        result.values[value_index++] = Float(std::atof(token.c_str()));
 
         if (value_index == std::size(result.values)) {
             break;
@@ -94,14 +94,14 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     library.filepath = state.filepath;
 
     const std::unordered_map<std::string, TextureMapping> texture_keys {
-        std::make_pair("map_kd", TextureMapping { .key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true }),
-        std::make_pair("map_bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP }),
-        std::make_pair("bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP }),
-        std::make_pair("map_ka", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP }),
-        std::make_pair("map_ks", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP }),
-        std::make_pair("map_ns", TextureMapping { .key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP }),
-        std::make_pair("map_height", TextureMapping { .key = Material::MATERIAL_TEXTURE_PARALLAX_MAP }) /* custom */,
-        std::make_pair("map_ao", TextureMapping { .key = Material::MATERIAL_TEXTURE_AO_MAP })       /* custom */
+        std::make_pair("map_kd", TextureMapping { .key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
+        std::make_pair("map_bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }),
+        std::make_pair("bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }),
+        std::make_pair("map_ka", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }),
+        std::make_pair("map_ks", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }),
+        std::make_pair("map_ns", TextureMapping { .key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }),
+        std::make_pair("map_height", TextureMapping { .key = Material::MATERIAL_TEXTURE_PARALLAX_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR }) /* custom */,
+        std::make_pair("map_ao", TextureMapping { .key = Material::MATERIAL_TEXTURE_AO_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR })       /* custom */
     };
 
     Tokens tokens;
@@ -334,6 +334,8 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             }
 
             texture->GetImage()->SetIsSRGB(it.mapping.srgb);
+            texture->GetImage()->SetFilterMode(it.mapping.filter_mode);
+
             texture->SetName(CreateNameFromDynamicString(it.name.c_str()));
 
             textures.Set(it.mapping.key, std::move(texture));

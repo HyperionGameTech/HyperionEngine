@@ -247,7 +247,7 @@ void Engine::FindTextureFormatDefaults()
     m_texture_format_defaults.Set(
         TextureFormatDefault::TEXTURE_FORMAT_DEFAULT_GBUFFER,
         device->GetFeatures().FindSupportedFormat(
-            std::array{ //InternalFormat::R10G10B10A2,
+            std::array{ InternalFormat::R10G10B10A2,
                         InternalFormat::RGBA16F,
                         InternalFormat::RGBA32F },
             renderer::ImageSupportType::SRV

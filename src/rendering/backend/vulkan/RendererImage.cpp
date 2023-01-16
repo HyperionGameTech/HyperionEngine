@@ -189,20 +189,22 @@ Result Image::CreateImage(
 
         std::vector<std::pair<const char *, std::function<Result()>>> potential_fixes;
 
-        // convert to 32bpp image
-        if (m_bpp != 4) {
-            potential_fixes.emplace_back(std::make_pair(
-                "Convert to 32-bpp image",
-                [&]() -> Result {
-                    return ConvertTo32BPP(
-                        device,
-                        image_type,
-                        image_create_flags,
-                        &image_format_properties,
-                        &format
-                    );
-                }
-            ));
+        if (!IsDepthFormat(m_format)) {
+            // convert to 32bpp image
+            if (m_bpp != 4) {
+                potential_fixes.emplace_back(std::make_pair(
+                    "Convert to 32-bpp image",
+                    [&]() -> Result {
+                        return ConvertTo32BPP(
+                            device,
+                            image_type,
+                            image_create_flags,
+                            &image_format_properties,
+                            &format
+                        );
+                    }
+                ));
+            }
         }
 
         for (auto &fix : potential_fixes) {
@@ -729,7 +731,7 @@ Result Image::ConvertTo32BPP(
     constexpr UInt8 new_bpp = 4;
 
     const UInt num_faces = NumFaces();
-    const UInt face_offset_step = static_cast<UInt>(m_size) / num_faces;
+    const UInt face_offset_step = UInt(m_size) / num_faces;
 
     const UInt new_size = num_faces * new_bpp * m_extent.width * m_extent.height * m_extent.depth;
     const UInt new_face_offset_step = new_size / num_faces;

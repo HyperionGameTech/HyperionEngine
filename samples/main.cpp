@@ -298,7 +298,7 @@ public:
         
         // m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
         //     HYP_NAME(Shadows),
-        //     m_sun, test_model.GetWorldAABB()
+        //     m_sun, test_model.GetWorldAABB() * 3.0f
         // );
 
         if (false) {
@@ -335,7 +335,7 @@ public:
             }
         }
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
             // zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
             // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
