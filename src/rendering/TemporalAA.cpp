@@ -259,6 +259,7 @@ void TemporalAA::CreateComputePipelines()
 void TemporalAA::Render(Frame *frame)
 {
     const auto &scene = Engine::Get()->GetRenderState().GetScene().scene;
+    const auto &camera = Engine::Get()->GetRenderState().GetCamera().camera;
 
     m_image_outputs[frame->GetFrameIndex()].image.GetGPUImage()
         ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -276,7 +277,7 @@ void TemporalAA::Render(Frame *frame)
         Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
     );
-    push_constants.camera_near_far = Vector2(scene.camera.clip_near, scene.camera.clip_far);
+    push_constants.camera_near_far = Vector2(camera.clip_near, camera.clip_far);
 
     m_compute_taa->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
     m_compute_taa->GetPipeline()->Bind(frame->GetCommandBuffer());

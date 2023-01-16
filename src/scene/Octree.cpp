@@ -1,6 +1,7 @@
 #include "Octree.hpp"
 #include "Entity.hpp"
-#include "../Engine.hpp"
+#include <Engine.hpp>
+#include <scene/camera/Camera.hpp>
 #include <Threads.hpp>
 
 namespace hyperion::v2 {
@@ -745,39 +746,39 @@ UInt8 Octree::LoadPreviousVisibilityCursor() const
     return (m_root->visibility_cursor.load(std::memory_order_relaxed) + VisibilityState::cursor_size - 1) % VisibilityState::cursor_size;
 }
 
-void Octree::CalculateVisibility(Scene *scene)
+void Octree::CalculateVisibility(Camera *camera)
 {
     AssertThrow(m_root != nullptr);
 
-    if (scene == nullptr) {
+    if (camera == nullptr) {
         return;
     }
 
-    if (scene->GetID().value - 1 >= VisibilityState::max_scenes) {
+    if (camera->GetID().value - 1 >= VisibilityState::max_visibility_states) {
         DebugLog(
             LogType::Error,
-            "Scene #%lu out of bounds of octree scene visibility bitset. Cannot update visibility state.\n",
-            scene->GetID().value
+            "Camera ID #%lu out of bounds of octree visibility bitset. Cannot update visibility state.\n",
+            camera->GetID().value
         );
 
         return;
     }
 
-    const Frustum &frustum = scene->GetCamera()->GetFrustum();
+    const Frustum &frustum = camera->GetFrustum();
 
     if (frustum.ContainsAABB(m_aabb)) {
         const auto cursor = LoadVisibilityCursor();
 
-        UpdateVisibilityState(scene, cursor);
+        UpdateVisibilityState(camera, cursor);
     }
 }
 
-void Octree::UpdateVisibilityState(Scene *scene, UInt8 cursor)
+void Octree::UpdateVisibilityState(Camera *camera, UInt8 cursor)
 {
     /* assume we are already visible from CalculateVisibility() check */
-    const Frustum &frustum = scene->GetCamera()->GetFrustum();
+    const Frustum &frustum = camera->GetFrustum();
 
-    m_visibility_state.SetVisible(scene->GetID(), cursor);
+    m_visibility_state.SetVisible(camera->GetID(), cursor);
 
     if (m_is_divided) {
         const auto nonce = m_visibility_state.snapshots[cursor].nonce;
@@ -793,7 +794,7 @@ void Octree::UpdateVisibilityState(Scene *scene, UInt8 cursor)
             // }
             
             octant.octree->m_visibility_state.snapshots[cursor].nonce = nonce;
-            octant.octree->UpdateVisibilityState(scene, cursor);
+            octant.octree->UpdateVisibilityState(camera, cursor);
         }
     }
 }

@@ -25,6 +25,7 @@ namespace hyperion::v2 {
 
 class RenderEnvironment;
 class World;
+class Scene;
 
 struct FogParams
 {
@@ -163,65 +164,31 @@ public:
 
     void SetWorld(World *world);
 
-    const Handle<Scene> &GetParentScene() const
-        { return m_parent_scene; }
-
-    void SetParentScene(const Handle<Scene> &parent_scene)
-        { m_parent_scene = parent_scene; }
-
-    void SetParentScene(Handle<Scene> &&parent_scene)
-        { m_parent_scene = std::move(parent_scene); }
-
     /*! \brief A scene is a non-world scene if it exists not as an owner of entities,
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
     bool IsWorldScene() const
         { return !m_parent_scene.IsValid() && !m_is_non_world_scene; }
-
-    void SetIsWorldScene(bool is_world_scene)
-    {
-        if (is_world_scene == IsWorldScene()) {
-            return;
-        }
-
-        if (is_world_scene) {
-            m_parent_scene.Reset();
-            m_is_non_world_scene = false;
-        } else {
-            m_is_non_world_scene = true;
-        }
-    }
-
-    void SetOverrideRenderableAttributes(const RenderableAttributeSet &attributes)
-        { m_override_renderable_attributes.Set(attributes); }
-
-    bool HasOverrideRenderableAttributes() const
-        { return m_override_renderable_attributes.HasValue(); }
-
-    void SetHasOverrideRenderableAttributes(bool has_override_renderable_attributes)
-    {
-        if (m_override_renderable_attributes.HasValue() == has_override_renderable_attributes) {
-            return;
-        }
-
-        if (has_override_renderable_attributes) {
-            m_override_renderable_attributes.Set({ });
-        } else {
-            m_override_renderable_attributes.Unset();
-        }
-    }
-
-    IDBase GetCustomID() const
-        { return m_custom_id; }
-
-    void SetCustomID(IDBase id);
     
     void Init();
 
     void ForceUpdate();
 
-    void Render(Frame *frame, void *push_constant_ptr = nullptr, SizeType push_constant_size = 0);
+    void CollectEntities(
+        RenderList &render_list, 
+        const Handle<Camera> &camera,
+        Optional<RenderableAttributeSet> override_attributes = { },
+        bool skip_frustum_culling = false
+    );
+
+    void Render(
+        Frame *frame,
+        const Handle<Camera> &camera,
+        const RenderList &render_list,
+        const void *push_constant_ptr = nullptr,
+        SizeType push_constant_size = 0
+    );
 
 private:
     // World only calls
@@ -232,9 +199,7 @@ private:
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    void PushEntityToRender(const Handle<Entity> &entity, const RenderableAttributeSet *override_attributes);
-
-    bool IsEntityInFrustum(const Handle<Entity> &entity) const;
+    bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id) const;
 
     Handle<Camera> m_camera;
     NodeProxy m_root_node_proxy;
@@ -260,12 +225,6 @@ private:
 
     Handle<Scene> m_parent_scene;
     bool m_is_non_world_scene;
-
-    EntityDrawCollection m_draw_collection;
-    FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
-    Optional<RenderableAttributeSet> m_override_renderable_attributes;
-
-    IDBase m_custom_id;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

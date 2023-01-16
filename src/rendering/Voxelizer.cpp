@@ -2,6 +2,10 @@
 #include "../Engine.hpp"
 
 #include <rendering/backend/RendererFeatures.hpp>
+#include <rendering/Shader.hpp>
+#include <rendering/Atomics.hpp>
+#include <rendering/Framebuffer.hpp>
+#include <scene/camera/Camera.hpp>
 
 #include <math/MathUtil.hpp>
 #include <asset/ByteReader.hpp>
@@ -38,35 +42,20 @@ void Voxelizer::Init()
     CreateFramebuffer();
     CreateDescriptors();
 
-    m_scene = CreateObject<Scene>(CreateObject<Camera>(voxel_map_size, voxel_map_size));
-    
-    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .bucket = BUCKET_INTERNAL,
-            .cull_faces = FaceCullMode::NONE,
-            .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
-        },
-        m_shader->GetID()
-    ));
+    m_camera = CreateObject<Camera>(voxel_map_size, voxel_map_size);
+    m_camera->SetFramebuffer(m_framebuffer);
 
-    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-
-    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+    m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2
     ));
 
-    InitObject(m_scene);
-
-    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
+    InitObject(m_camera);
 
     OnTeardown([this]() {
-        if (m_scene) {
-            Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-            m_scene.Reset();
-        }
+        m_camera.Reset();
+        m_render_list.Reset();
 
         m_shader.Reset();
         m_framebuffer.Reset();
@@ -250,8 +239,10 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
     descriptor_set->ApplyUpdates(Engine::Get()->GetGPUInstance()->GetDevice());
 }
 
-void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
+void Voxelizer::RenderFragmentList(Frame *frame, Scene *scene, bool count_mode)
 {
+    AssertThrow(scene != nullptr);
+
     auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
     single_time_commands.Push([&](CommandBuffer *command_buffer) {
@@ -265,7 +256,7 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
         push_constants.grid_size = voxel_map_size;
         push_constants.count_mode = UInt32(count_mode);
         
-        m_scene->Render(&temp_frame, &push_constants, sizeof(push_constants));
+        scene->Render(&temp_frame, m_camera, m_render_list, &push_constants, sizeof(push_constants));
 
         HYPERION_RETURN_OK;
     });
@@ -273,14 +264,48 @@ void Voxelizer::RenderFragmentList(Frame *, bool count_mode)
     HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetGPUDevice()));
 }
 
-void Voxelizer::Render(Frame *frame)
+void Voxelizer::CollectEntities(Scene *scene)
 {
-    // TODO: this shouldn't be in render thread
-    m_scene->GetCamera()->UpdateMatrices();
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(scene != nullptr);
+    AssertThrow(m_camera.IsValid());
+    AssertThrow(m_shader.IsValid());
+
+    scene->CollectEntities(
+        m_render_list,
+        m_camera,
+        RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .bucket = BUCKET_INTERNAL,
+                .cull_faces = FaceCullMode::NONE,
+                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            },
+            m_shader->GetID()
+        ),
+        true // skip culling
+    );
+
+    m_render_list.UpdateRenderGroups();
+}
+
+void Voxelizer::Update(GameCounter::TickUnit delta)
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(m_camera.IsValid());
+
+    m_camera->Update(delta);
+}
+
+void Voxelizer::Render(Frame *frame, Scene *scene)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
 
     m_counter->Reset();
 
-    RenderFragmentList(frame, true);
+    RenderFragmentList(frame, scene, true);
 
     m_num_fragments = m_counter->Read();
     DebugLog(LogType::Debug, "Render %lu fragments (%llu MiB)\n", m_num_fragments, (m_num_fragments * sizeof(Fragment)) / 1000000ull);
@@ -291,7 +316,7 @@ void Voxelizer::Render(Frame *frame)
 
     /* now we render the scene again, this time storing color values into the
      * fragment list buffer.  */
-    RenderFragmentList(frame, false);
+    RenderFragmentList(frame, scene, false);
 }
 
 } // namespace hyperion::v2

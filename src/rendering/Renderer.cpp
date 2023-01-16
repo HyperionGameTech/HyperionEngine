@@ -328,8 +328,7 @@ static void GetDividedDrawCalls(
 static void BindGlobalDescriptorSets(
     Frame *frame,
     renderer::GraphicsPipeline *pipeline,
-    CommandBuffer *command_buffer,
-    UInt scene_index
+    CommandBuffer *command_buffer
 )
 {
     const UInt frame_index = frame->GetFrameIndex();
@@ -340,10 +339,11 @@ static void BindGlobalDescriptorSets(
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
         FixedArray {
-            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
             HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().current_env_probe.ToIndex())
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().current_env_probe.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
         }
     );
 
@@ -476,7 +476,7 @@ RenderAll(
         TaskPriority::HIGH,
         num_batches,
         divided_draw_calls,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index, scene_id](const Array<DrawCall> &draw_calls, UInt index, UInt) {
+        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index](const Array<DrawCall> &draw_calls, UInt index, UInt) {
             if (draw_calls.Empty()) {
                 return;
             }
@@ -490,8 +490,7 @@ RenderAll(
                     BindGlobalDescriptorSets(
                         frame,
                         pipeline,
-                        secondary,
-                        scene_id.ToIndex()
+                        secondary
                     );
 
                     for (const DrawCall &draw_call : draw_calls) {

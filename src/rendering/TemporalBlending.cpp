@@ -11,6 +11,7 @@ using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
 using renderer::StorageImageDescriptor;
 using renderer::DynamicStorageBufferDescriptor;
+using renderer::DynamicUniformBufferDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::DescriptorKey;
 using renderer::Rect;
@@ -136,7 +137,7 @@ void TemporalBlending::CreateImageOutputs()
 
         image_output.image = RenderObjects::Make<Image>(StorageImage(
             Extent3D(m_extent),
-            InternalFormat::RGBA8,
+            m_image_format,
             ImageType::TEXTURE_TYPE_2D,
             FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
             nullptr
@@ -190,15 +191,21 @@ void TemporalBlending::CreateDescriptorSets()
             ->AddDescriptor<StorageImageDescriptor>(5)
             ->SetElementUAV(0, m_image_outputs[frame_index].image_view);
 
-        // scene buffer - so we can reconstruct world positions
+        // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
-            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->shader_globals->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+
+        // camera
+        descriptor_set
+            ->AddDescriptor<DynamicUniformBufferDescriptor>(7)
+            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
         // depth texture
         descriptor_set
-            ->AddDescriptor<ImageDescriptor>(7)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+            ->AddDescriptor<ImageDescriptor>(8)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -220,6 +227,10 @@ void TemporalBlending::CreateComputePipelines()
     case InternalFormat::RGBA32F:
         shader_properties.Set("OUTPUT_RGBA32F");
         break;
+    default:
+        AssertThrowMsg(false, "Unsupported format for temporal blending: %u\n", UInt(m_image_format));
+
+        break;
     }
 
     static const String feedback_strings[] = { "LOW", "MEDIUM", "HIGH" };
@@ -236,14 +247,11 @@ void TemporalBlending::CreateComputePipelines()
 }
 
 void TemporalBlending::Render(Frame *frame)
-{
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
-    const UInt scene_index = scene_binding.id.ToIndex();
-    
+{   
     m_image_outputs[frame->GetFrameIndex()].image->GetGPUImage()
         ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    const auto &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
+    const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image->GetExtent();
 
     struct alignas(128) {
         ShaderVec2<UInt32> output_dimensions;
@@ -264,7 +272,10 @@ void TemporalBlending::Render(Frame *frame)
         m_perform_blending->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex()),
+        }
     );
 
     m_perform_blending->GetPipeline()->Dispatch(

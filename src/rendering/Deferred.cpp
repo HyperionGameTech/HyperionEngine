@@ -112,8 +112,9 @@ void DeferredPass::Record(UInt frame_index)
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = Engine::Get()->render_state.GetScene();
-            const auto scene_index = scene_binding.id.ToIndex();
+            const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
+            const UInt scene_index = scene_binding.id.ToIndex();
+            const UInt camera_index = Engine::Get()->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
@@ -140,7 +141,7 @@ void DeferredPass::Record(UInt frame_index)
             for (const auto &it : Engine::Get()->GetRenderState().lights) {
                 const LightDrawProxy &light = it.second;
 
-                if (light.visibility_bits & (1ull << SizeType(scene_index))) {
+                if (light.visibility_bits & (1ull << SizeType(camera_index))) {
                     // We'll use the EnvProbe slot to bind whatever EnvProbe
                     // is used for the light's shadow map (if applicable)
 
@@ -159,7 +160,8 @@ void DeferredPass::Record(UInt frame_index)
                             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                             HYP_RENDER_OBJECT_OFFSET(Light, it.first.ToIndex()),
                             HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                            HYP_RENDER_OBJECT_OFFSET(EnvProbe, shadow_probe_index)
+                            HYP_RENDER_OBJECT_OFFSET(EnvProbe, shadow_probe_index),
+                            HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
                         }
                     );
 
@@ -252,7 +254,8 @@ void EnvGridPass::Record(UInt frame_index)
                     HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                     HYP_RENDER_OBJECT_OFFSET(Light, 0),
                     HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                    HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
+                    HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+                    HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
                 }
             );
 
@@ -319,8 +322,9 @@ void ReflectionProbePass::Record(UInt frame_index)
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = Engine::Get()->render_state.GetScene();
-            const auto scene_index = scene_binding.id.ToIndex();
+            const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
+            const UInt scene_index = scene_binding.id.ToIndex();
+            const UInt camera_index = Engine::Get()->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
@@ -360,7 +364,8 @@ void ReflectionProbePass::Record(UInt frame_index)
                         HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                         HYP_RENDER_OBJECT_OFFSET(Light, 0),
                         HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0),
-                        HYP_RENDER_OBJECT_OFFSET(EnvProbe, env_probe_id.ToIndex())
+                        HYP_RENDER_OBJECT_OFFSET(EnvProbe, env_probe_id.ToIndex()),
+                        HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
                     }
                 );
 
@@ -710,7 +715,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                 HYP_RENDER_OBJECT_OFFSET(Light, 0),
                 HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
+                HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+                HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
             }
         );
 

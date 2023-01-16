@@ -14,6 +14,7 @@
 namespace hyperion::v2 {
 
 class Engine;
+class Camera;
 
 struct RenderCommand_UpdateLightShaderData;
 
@@ -98,8 +99,8 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    bool IsVisible(ID<Scene> scene_id) const;
-    void SetIsVisible(ID<Scene> scene_id, bool is_visible);
+    bool IsVisible(ID<Camera> camera_id) const;
+    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
     BoundingBox GetWorldAABB() const;
 

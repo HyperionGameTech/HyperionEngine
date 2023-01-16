@@ -39,38 +39,20 @@ void VoxelConeTracing::Init()
     CreateDescriptors();
     CreateComputePipelines();
 
-    m_scene = CreateObject<Scene>(
-        CreateObject<Camera>(voxel_map_extent.width, voxel_map_extent.height)
-    );
-    
-    m_scene->SetName(HYP_NAME(VCTScene));
-    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .bucket = BUCKET_INTERNAL,
-            .cull_faces = FaceCullMode::NONE,
-            .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
-        },
-        m_shader->GetID()
-    ));
-
-    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-
-    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+    m_camera = CreateObject<Camera>(voxel_map_extent.width, voxel_map_extent.height);
+    m_camera->SetFramebuffer(m_framebuffer);
+    m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
         -Float(voxel_map_extent[0]) * 0.5f, Float(voxel_map_extent[0]) * 0.5f,
         -Float(voxel_map_extent[1]) * 0.5f, Float(voxel_map_extent[1]) * 0.5f,
         -Float(voxel_map_extent[2]) * 0.5f, Float(voxel_map_extent[2]) * 0.5f
     ));
 
-    InitObject(m_scene);
+    InitObject(m_camera);
     
     SetReady(true);
 
     OnTeardown([this]() {
-        if (m_scene) {
-            Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-            m_scene.Reset();
-        }
+        m_camera.Reset();
 
         m_framebuffer.Reset();
         m_clear_voxels.Reset();
@@ -105,8 +87,8 @@ void VoxelConeTracing::Init()
                         .buffer = Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(Engine::Get()->GetGPUDevice(), sizeof(VoxelUniforms))
                     });
 
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
-                    auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+                for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                    auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
                     descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
                         ->SetSubDescriptor({
                             .element_index = 0u,
@@ -116,17 +98,17 @@ void VoxelConeTracing::Init()
 
                     // destroy owned descriptor sets, as well as individual mip imageviews
                     if constexpr (VoxelConeTracing::manual_mipmap_generation) {
-                        for (auto &descriptor_set : vct.m_generate_mipmap_descriptor_sets[i]) {
+                        for (auto &descriptor_set : vct.m_generate_mipmap_descriptor_sets[frame_index]) {
                             HYPERION_ASSERT_RESULT(descriptor_set->Destroy(Engine::Get()->GetGPUDevice()));
                         }
 
-                        vct.m_generate_mipmap_descriptor_sets[i].Clear();
+                        vct.m_generate_mipmap_descriptor_sets[frame_index].Clear();
 
-                        for (auto &mip_image_view : vct.m_mips[i]) {
+                        for (auto &mip_image_view : vct.m_mips[frame_index]) {
                             HYPERION_ASSERT_RESULT(mip_image_view->Destroy(Engine::Get()->GetGPUDevice()));
                         }
 
-                        vct.m_mips[i].Clear();
+                        vct.m_mips[frame_index].Clear();
                     }
                 }
 
@@ -138,8 +120,8 @@ void VoxelConeTracing::Init()
         
         HYP_SYNC_RENDER();
 
-        Engine::Get()->SafeReleaseHandle<Texture>(std::move(m_voxel_image));
-        Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
+        m_voxel_image.Reset();
+        m_shader.Reset();
         
         SetReady(false);
     });
@@ -154,24 +136,40 @@ void VoxelConeTracing::InitGame()
 
     // add all entities from environment scene
     AssertThrow(GetParent()->GetScene() != nullptr);
-
-    m_scene->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
-    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_scene));
 }
 
 void VoxelConeTracing::OnUpdate(GameCounter::TickUnit delta)
 {
-    // Threads::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
+
+    GetParent()->GetScene()->CollectEntities(
+        m_render_list,
+        m_camera,
+        RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .bucket = BUCKET_INTERNAL,
+                .cull_faces = FaceCullMode::NONE,
+                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            },
+            m_shader->GetID()
+        ),
+        true // skip culling
+    );
+
+    m_render_list.UpdateRenderGroups();
 }
 
 void VoxelConeTracing::OnRender(Frame *frame)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     if (!Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) {
         return;
     }
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    CommandBuffer *command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
     auto result = renderer::Result::OK;
@@ -193,7 +191,11 @@ void VoxelConeTracing::OnRender(Frame *frame)
 
     m_clear_voxels->GetPipeline()->Dispatch(command_buffer, m_voxel_image->GetExtent() / Extent3D { 8, 8, 8 });
 
-    m_scene->Render(frame);
+    GetParent()->GetScene()->Render(
+        frame,
+        m_camera,
+        m_render_list
+    );
     
     if constexpr (manual_mipmap_generation) {
         const auto num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();
@@ -307,12 +309,12 @@ void VoxelConeTracing::CreateImagesAndBuffers()
     if constexpr (manual_mipmap_generation) {
         const auto num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();
 
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            m_mips[i].Reserve(num_mip_levels);
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            m_mips[frame_index].Reserve(num_mip_levels);
 
             for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
                 // do not Create() it yet. Do that in render thread
-                m_mips[i].PushBack(std::make_unique<ImageView>());
+                m_mips[frame_index].PushBack(std::make_unique<ImageView>());
             }
         }
     }
@@ -348,9 +350,9 @@ void VoxelConeTracing::CreateImagesAndBuffers()
             if constexpr (VoxelConeTracing::manual_mipmap_generation) {
                 const auto num_mip_levels = vct.m_voxel_image->GetImage()->NumMipmaps();
 
-                for (UInt i = 0; i < max_frames_in_flight; i++) {
+                for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                     for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-                        HYPERION_ASSERT_RESULT(vct.m_mips[i][mip_level]->Create(
+                        HYPERION_ASSERT_RESULT(vct.m_mips[frame_index][mip_level]->Create(
                             Engine::Get()->GetGPUDevice(),
                             vct.m_voxel_image->GetImage(),
                             mip_level, 1,
@@ -414,8 +416,8 @@ void VoxelConeTracing::CreateDescriptors()
     if constexpr (manual_mipmap_generation) {
         const auto num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();
 
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            m_mips[i].Reserve(num_mip_levels);
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            m_mips[frame_index].Reserve(num_mip_levels);
 
             for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
                 // create descriptor sets for mip generation.
@@ -428,19 +430,19 @@ void VoxelConeTracing::CreateDescriptors()
                     // first mip level -- input is the actual image
                     mip_in->SetElementSRV(0, m_voxel_image->GetImageView());
                 } else {
-                    mip_in->SetElementSRV(0, m_mips[i][mip_level - 1].get());
+                    mip_in->SetElementSRV(0, m_mips[frame_index][mip_level - 1].get());
                 }
 
                 auto *mip_out = mip_descriptor_set
                     ->AddDescriptor<renderer::StorageImageDescriptor>(1);
 
-                mip_out->SetElementUAV(0, m_mips[i][mip_level].get());
+                mip_out->SetElementUAV(0, m_mips[frame_index][mip_level].get());
 
                 mip_descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(2)
                     ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
-                m_generate_mipmap_descriptor_sets[i].PushBack(std::move(mip_descriptor_set));
+                m_generate_mipmap_descriptor_sets[frame_index].PushBack(std::move(mip_descriptor_set));
             }
         }
     }
@@ -477,14 +479,14 @@ void VoxelConeTracing::CreateDescriptors()
                 ->GetOrAddDescriptor<renderer::SamplerDescriptor>(8)
                 ->SetElementSampler(0, vct.m_voxel_image->GetSampler());
             
-            for (UInt i = 0; i < max_frames_in_flight; i++) {
-                auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+            for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+                auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
                 descriptor_set_globals->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
                     ->SetElementImageSamplerCombined(0, vct.m_voxel_image->GetImageView(), vct.m_voxel_image->GetSampler());
 
                 // initialize our own descriptor sets
                 if constexpr (VoxelConeTracing::manual_mipmap_generation) {
-                    for (auto &mip_descriptor_set : vct.m_generate_mipmap_descriptor_sets[i]) {
+                    for (auto &mip_descriptor_set : vct.m_generate_mipmap_descriptor_sets[frame_index]) {
                         AssertThrow(mip_descriptor_set != nullptr);
 
                         HYPERION_ASSERT_RESULT(mip_descriptor_set->Create(

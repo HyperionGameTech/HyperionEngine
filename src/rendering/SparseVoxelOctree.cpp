@@ -1,5 +1,6 @@
 #include "SparseVoxelOctree.hpp"
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/Atomics.hpp>
 #include <Engine.hpp>
 
 #include <util/fs/FsUtil.hpp>
@@ -38,8 +39,6 @@ void SparseVoxelOctree::Init()
     if (m_voxelizer == nullptr) {
         m_voxelizer = std::make_unique<Voxelizer>();
         m_voxelizer->Init();
-
-        m_voxelizer->GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
     }
 
     CreateBuffers();
@@ -130,25 +129,15 @@ void SparseVoxelOctree::InitGame()
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertReady();
-
-    // add all entities from environment scene
-    AssertThrow(GetParent()->GetScene() != nullptr);
-
-    for (auto &it : GetParent()->GetScene()->GetEntities()) {
-        auto &entity = it.second;
-
-        if (entity == nullptr) {
-            continue;
-        }
-
-        m_voxelizer->GetScene()->AddEntity(entity);
-    }
 }
 
 void SparseVoxelOctree::OnUpdate(GameCounter::TickUnit delta)
 {
-    // Threads::AssertOnThread(THREAD_GAME);
+    Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
+
+    m_voxelizer->Update(delta);
+    m_voxelizer->CollectEntities(GetParent()->GetScene());
 }
 
 void SparseVoxelOctree::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
@@ -371,7 +360,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertThrow(m_voxelizer != nullptr);
-    m_voxelizer->Render(frame);
+    m_voxelizer->Render(frame, GetParent()->GetScene());
     
     // temp
     m_descriptor_sets[0]

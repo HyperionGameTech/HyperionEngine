@@ -1,7 +1,8 @@
 #ifndef HYPERION_V2_GAME_H
 #define HYPERION_V2_GAME_H
 
-#include "GameCounter.hpp"
+#include <GameCounter.hpp>
+#include <core/lib/UniquePtr.hpp>
 #include <input/InputManager.hpp>
 #include <scene/Scene.hpp>
 #include <ui/UIScene.hpp>
@@ -39,11 +40,10 @@ public:
     virtual void Update(GameCounter::TickUnit delta) final;
     virtual void Teardown();
 
-    virtual void InitRender();
     virtual void InitGame();
 
-    virtual void OnFrameBegin(Frame *frame) = 0;
-    virtual void OnFrameEnd(Frame *frame) = 0;
+    virtual void OnFrameBegin(Frame *frame);
+    virtual void OnFrameEnd(Frame *frame);
 
     virtual void HandleEvent(SystemEvent &&event) final;
     virtual void OnInputEvent(const SystemEvent &event);
@@ -57,12 +57,12 @@ protected:
     const UIScene &GetUI() const
         { return m_ui; }
 
-    InputManager *GetInputManager() const
+    const UniquePtr<InputManager> &GetInputManager() const
         { return m_input_manager; }
 
     RefCountedPtr<Application> m_application;
 
-    InputManager *m_input_manager;
+    UniquePtr<InputManager> m_input_manager;
     Handle<Scene> m_scene;
 
     UIScene m_ui;

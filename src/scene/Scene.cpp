@@ -14,25 +14,6 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateRenderGroupDrawables) : RenderCommand
-{
-    RenderGroup *render_group;
-    Array<EntityDrawProxy> drawables;
-
-    RENDER_COMMAND(UpdateRenderGroupDrawables)(RenderGroup *render_group, Array<EntityDrawProxy> &&drawables)
-        : render_group(render_group),
-          drawables(std::move(drawables))
-    {
-    }
-
-    virtual Result operator()()
-    {
-        render_group->SetDrawProxies(std::move(drawables));
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(BindLights) : RenderCommand
 {
     SizeType num_lights;
@@ -223,12 +204,6 @@ void Scene::SetCamera(Handle<Camera> &&camera)
     m_camera = std::move(camera);
 
     InitObject(m_camera);
-}
-
-void Scene::SetCustomID(IDBase id)
-{
-    m_custom_id = id;
-    m_shader_data_state = ShaderDataState::DIRTY;
 }
 
 void Scene::SetWorld(World *world)
@@ -638,7 +613,11 @@ void Scene::Update(GameCounter::TickUnit delta)
         AddPendingEntities();
     }
 
+    ID<Camera> camera_id;
+
     if (m_camera) {
+        camera_id = m_camera->GetID();
+
         m_camera->Update(delta);
 
         if (m_camera->GetViewProjectionMatrix() != m_last_view_projection_matrix) {
@@ -653,12 +632,10 @@ void Scene::Update(GameCounter::TickUnit delta)
     for (auto &it : m_lights) {
         Handle<Light> &light = it.second;
         
-        const bool in_frustum = light->GetType() == LightType::DIRECTIONAL
+        const bool is_light_in_frustum = light->GetType() == LightType::DIRECTIONAL
             || (m_camera.IsValid() && m_camera->GetFrustum().ContainsBoundingSphere(BoundingSphere(light->GetPosition(), light->GetRadius())));
 
-        if (in_frustum != light->IsVisible(GetID())) {
-            light->SetIsVisible(GetID(), in_frustum);
-        }
+        light->SetIsVisible(camera_id, is_light_in_frustum);
     }
 
     if (IsWorldScene()) {
@@ -676,105 +653,86 @@ void Scene::Update(GameCounter::TickUnit delta)
         for (auto &it : m_env_probes) {
             Handle<EnvProbe> &env_probe = it.second;
 
-            env_probe->Update();
+            env_probe->Update(delta);
         }
     }
 
-    m_draw_collection.Reset();
-
-    const RenderableAttributeSet *override_attributes = m_override_renderable_attributes.TryGet();
-    
     // update each entity
     for (auto &it : m_entities) {
         Handle<Entity> &entity = it.second;
 
         entity->Update(delta);
-
-        if (entity->IsRenderable() && IsEntityInFrustum(entity)) {
-            PushEntityToRender(entity, override_attributes);
-        }
-    }
-
-    if (m_parent_scene) {
-        for (auto &it : m_parent_scene->GetEntities()) {
-            Handle<Entity> &entity = it.second;
-
-            if (entity->IsRenderable() && IsEntityInFrustum(entity)) {
-                PushEntityToRender(entity, override_attributes);
-            }
-        }
-    }
-
-    for (auto &it : m_draw_collection) {
-        const RenderableAttributeSet &attributes = it.first;
-        Array<EntityDrawProxy> &draw_proxies = it.second;
-
-        auto render_group_it = m_render_groups.Find(attributes);
-
-        if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-            Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
-
-            if (!render_group.IsValid()) {
-                DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
-
-                continue;
-            }
-
-            auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
-            AssertThrow(insert_result.second);
-
-            render_group_it = insert_result.first;
-        }
-        
-        PUSH_RENDER_COMMAND(UpdateRenderGroupDrawables, render_group_it->second.Get(), std::move(draw_proxies));
     }
 }
 
-void Scene::PushEntityToRender(const Handle<Entity> &entity, const RenderableAttributeSet *override_attributes)
+void Scene::CollectEntities(
+    RenderList &render_list,
+    const Handle<Camera> &camera,
+    Optional<RenderableAttributeSet> override_attributes,
+    bool skip_frustum_culling
+)
 {
-    const Handle<Framebuffer> &framebuffer = m_camera
-        ? m_camera->GetFramebuffer()
-        : Handle<Framebuffer>::empty;
+    Threads::AssertOnThread(THREAD_GAME);
 
-    RenderableAttributeSet attributes = entity->GetRenderableAttributes();
+    render_list.m_draw_collection.Reset();
 
-    if (framebuffer) {
-        attributes.framebuffer_id = framebuffer->GetID();
+    if (!camera) {
+        return;
     }
 
-    if (override_attributes) {
-        attributes.shader_id = override_attributes->shader_id ? override_attributes->shader_id : attributes.shader_id;
-        attributes.material_attributes = override_attributes->material_attributes;
-        attributes.stencil_state = override_attributes->stencil_state;
-    }
+    const ID<Camera> camera_id = camera->GetID();
 
-    m_draw_collection.Insert(attributes, entity->GetDrawProxy());
+    RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
+    
+    // push all entities to render if they are visible to the given camera
+    for (auto &it : m_entities) {
+        Handle<Entity> &entity = it.second;
+
+        if (entity->IsRenderable() && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id))) {
+            render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
+        }
+    }
 }
 
-bool Scene::IsEntityInFrustum(const Handle<Entity> &entity) const
+bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id) const
 {
+    if (!camera_id) {
+        return false;
+    }
+
     return entity->GetRenderableAttributes().material_attributes.bucket == BUCKET_UI
-        || entity->IsVisibleInScene(GetID());
+        || entity->IsVisibleToCamera(camera_id);
 }
 
-void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant_size)
+void Scene::Render(
+    Frame *frame,
+    const Handle<Camera> &camera,
+    const RenderList &render_list,
+    const void *push_constant_ptr,
+    SizeType push_constant_size
+)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    AssertThrowMsg(m_camera.IsValid(), "Cannot render scene with no Camera attached");
-    AssertThrowMsg(m_camera->GetFramebuffer().IsValid(), "Scene has Camera, but no Framebuffer is attached");
+    AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
+    AssertThrowMsg(camera->GetFramebuffer().IsValid(), "Camera has no Framebuffer is attached");
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    CommandBuffer *command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
-    m_camera->GetFramebuffer()->BeginCapture(frame_index, command_buffer);
+    camera->GetFramebuffer()->BeginCapture(frame_index, command_buffer);
 
     Engine::Get()->GetRenderState().BindScene(this);
+    Engine::Get()->GetRenderState().BindCamera(camera.Get());
 
-    // TODO: Thread safe container here
+    // TODO: Thread safe container here. This is written from game thread, read from render thread...
     // TODO: If all drawables have been removed, remove the render group?
-    for (auto &it : m_render_groups) {
-        AssertThrow(it.first.framebuffer_id == m_camera->GetFramebuffer()->GetID());
+
+    for (const auto &it : render_list.m_render_groups) {
+        AssertThrowMsg(
+            it.first.framebuffer_id == camera->GetFramebuffer()->GetID(),
+            "Given Camera's Framebuffer ID does not match RenderList item framebuffer ID -- invalid data passed?"
+        );
 
         if (push_constant_ptr && push_constant_size) {
             it.second->GetPipeline()->SetPushConstants(push_constant_ptr, push_constant_size);
@@ -783,9 +741,10 @@ void Scene::Render(Frame *frame, void *push_constant_ptr, SizeType push_constant
         it.second->Render(frame);
     }
 
+    Engine::Get()->GetRenderState().UnbindCamera();
     Engine::Get()->GetRenderState().UnbindScene();
 
-    m_camera->GetFramebuffer()->EndCapture(frame_index, command_buffer);
+    camera->GetFramebuffer()->EndCapture(frame_index, command_buffer);
 }
 
 void Scene::EnqueueRenderUpdates()
@@ -798,9 +757,7 @@ void Scene::EnqueueRenderUpdates()
         SizeType num_lights;
         FogParams fog_params;
         RenderEnvironment *render_environment;
-        CameraDrawProxy camera_draw_proxy;
         SceneDrawProxy &draw_proxy;
-        IDBase custom_id;
 
         RENDER_COMMAND(UpdateSceneRenderData)(
             ID<Scene> id,
@@ -809,18 +766,14 @@ void Scene::EnqueueRenderUpdates()
             SizeType num_lights,
             const FogParams &fog_params,
             RenderEnvironment *render_environment,
-            const CameraDrawProxy &camera_draw_proxy,
-            SceneDrawProxy &draw_proxy,
-            IDBase custom_id
+            SceneDrawProxy &draw_proxy
         ) : id(id),
             aabb(aabb),
             global_timer(global_timer),
             num_lights(num_lights),
             fog_params(fog_params),
             render_environment(render_environment),
-            camera_draw_proxy(camera_draw_proxy),
-            draw_proxy(draw_proxy),
-            custom_id(custom_id)
+            draw_proxy(draw_proxy)
         {
         }
 
@@ -829,69 +782,14 @@ void Scene::EnqueueRenderUpdates()
             const UInt frame_counter = render_environment->GetFrameCounter();
 
             draw_proxy.frame_counter = frame_counter;
-            draw_proxy.camera = camera_draw_proxy;
 
-            Matrix4 offset_matrix;
-            Vector2 jitter;
-            Vector2 previous_jitter;
-
-            if (Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA)) {
-                // TODO: Is this the main camera in the scene?
-                if (draw_proxy.camera.projection[3][3] < MathUtil::epsilon<Float>) {
-                    // perspective if [3][3] is zero
-                    static const HaltonSequence halton;
-
-                    const UInt halton_index = frame_counter % HaltonSequence::size;
-
-                    jitter = halton.sequence[halton_index];
-
-                    if (frame_counter != 0) {
-                        previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
-                    }
-
-                    const Vector2 pixel_size = Vector2::one / Vector2(draw_proxy.camera.dimensions);
-
-                    jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
-                    previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
-
-                    offset_matrix[0][3] += jitter.x;
-                    offset_matrix[1][3] += jitter.y;
-                }
-            }
-            
             SceneShaderData shader_data { };
-            shader_data.view             = draw_proxy.camera.view;
-            shader_data.projection       = offset_matrix * draw_proxy.camera.projection;
-            shader_data.previous_view    = draw_proxy.camera.previous_view;
-            shader_data.camera_position  = draw_proxy.camera.position.ToVector4();
-            shader_data.camera_direction = draw_proxy.camera.direction.ToVector4();
-            shader_data.camera_up        = draw_proxy.camera.up.ToVector4();
-            shader_data.camera_near      = draw_proxy.camera.clip_near;
-            shader_data.camera_fov       = draw_proxy.camera.fov;
-            shader_data.camera_far       = draw_proxy.camera.clip_far;
-            shader_data.resolution_x     = draw_proxy.camera.dimensions.width;
-            shader_data.resolution_y     = draw_proxy.camera.dimensions.height;
-            shader_data.environment_texture_usage = 0u;
             shader_data.aabb_max         = aabb.max.ToVector4();
             shader_data.aabb_min         = aabb.min.ToVector4();
+            shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
             shader_data.global_timer     = global_timer;
             shader_data.frame_counter    = frame_counter;
-            shader_data.custom_index     = custom_id.ToIndex();
             shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();
-            shader_data.taa_params       = Vector4(jitter, previous_jitter);
-            shader_data.fog_params       = Vector4(UInt32(fog_params.color), fog_params.start_distance, fog_params.end_distance, 0.0f);
-
-            if (Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
-                shader_data.environment_texture_index = 0u;
-
-                for (const auto &it : Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
-                    if (it.second.Empty()) {
-                        continue;
-                    }
-
-                    shader_data.environment_texture_usage |= 1u << it.second.Get();
-                }
-            }
             
             Engine::Get()->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
 
@@ -906,9 +804,7 @@ void Scene::EnqueueRenderUpdates()
         m_lights.Size(),
         m_fog_params,
         m_environment.Get(),
-        m_camera ? m_camera->GetDrawProxy() : CameraDrawProxy { },
-        m_draw_proxy,
-        m_custom_id
+        m_draw_proxy
     );
 
     m_shader_data_state = ShaderDataState::CLEAN;

@@ -119,7 +119,6 @@ using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
 template <>
 struct DrawProxy<STUB_CLASS(Scene)>
 {
-    CameraDrawProxy camera;
     UInt32 frame_counter;
 };
 
@@ -158,7 +157,7 @@ struct DrawProxy<STUB_CLASS(Light)>
     Float falloff;
     UInt32 shadow_map_index;
     Vector4 position_intensity;
-    UInt64 visibility_bits;
+    UInt64 visibility_bits; // bitmask indicating if light is visible to cameras by camera ID
 };
 
 using LightDrawProxy = DrawProxy<STUB_CLASS(Light)>;

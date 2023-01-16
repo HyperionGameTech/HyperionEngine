@@ -4,11 +4,8 @@
 #include <core/Base.hpp>
 #include <scene/Scene.hpp>
 #include <core/Containers.hpp>
-#include "Framebuffer.hpp"
-#include "Shader.hpp"
-#include "Renderer.hpp"
-#include "Atomics.hpp"
-#include "Buffers.hpp"
+#include <rendering/EntityDrawCollection.hpp>
+#include <rendering/Buffers.hpp>
 #include <Types.hpp>
 
 #include <rendering/backend/RendererCommandBuffer.hpp>
@@ -21,6 +18,9 @@ namespace hyperion::v2 {
 using renderer::Frame;
 
 class Engine;
+class Scene;
+class Camera;
+class AtomicCounter;
 
 class Voxelizer : public EngineComponentBase<STUB_CLASS(Voxelizer)>
 {
@@ -36,12 +36,6 @@ public:
     Voxelizer &operator=(const Voxelizer &other) = delete;
     ~Voxelizer();
 
-    Handle<Scene> &GetScene()
-        { return m_scene; }
-
-    const Handle<Scene> &GetScene() const
-        { return m_scene; }
-
     StorageBuffer *GetFragmentListBuffer() const
         { return m_fragment_list_buffer.get(); }
 
@@ -52,7 +46,9 @@ public:
         { return m_num_fragments; }
 
     void Init();
-    void Render(Frame *frame);
+    void Update(GameCounter::TickUnit delta);
+    void CollectEntities(Scene *scene);
+    void Render(Frame *frame, Scene *scene);
 
 private:
     void CreateBuffers();
@@ -62,9 +58,10 @@ private:
 
     void ResizeFragmentListBuffer(Frame *frame);
 
-    void RenderFragmentList(Frame *frame, bool count_mode);
+    void RenderFragmentList(Frame *frame, Scene *scene, bool count_mode);
 
-    Handle<Scene> m_scene;
+    Handle<Camera> m_camera;
+    RenderList m_render_list;
 
     std::unique_ptr<AtomicCounter> m_counter;
     std::unique_ptr<StorageBuffer> m_fragment_list_buffer;

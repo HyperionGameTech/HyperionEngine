@@ -2,13 +2,13 @@
 #define HYPERION_V2_ENV_GRID_HPP
 
 #include <core/Base.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <core/Containers.hpp>
 
 namespace hyperion::v2 {
 
-class Scene;
 class Entity;
 
 class EnvGrid : public RenderComponent<EnvGrid>
@@ -42,14 +42,15 @@ private:
 
     void RenderEnvProbe(
         Frame *frame,
-        Handle<Scene> &scene,
         Handle<EnvProbe> &probe
     );
 
     BoundingBox m_aabb;
     Extent3D m_density;
     
-    Handle<Scene> m_ambient_scene;
+    Handle<Camera> m_camera;
+    RenderList m_render_list;
+
     Handle<Shader> m_ambient_shader;
     Handle<Framebuffer> m_framebuffer;
     std::vector<std::unique_ptr<Attachment>> m_attachments;

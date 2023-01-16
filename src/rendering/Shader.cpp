@@ -129,6 +129,7 @@ void ShaderGlobals::Create()
     auto *device = Engine::Get()->GetGPUDevice();
 
     scenes.Create(device);
+    cameras.Create(device);
     materials.Create(device);
     objects.Create(device);
     skeletons.Create(device);

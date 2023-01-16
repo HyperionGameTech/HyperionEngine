@@ -19,8 +19,6 @@ Game::~Game()
         !m_is_init,
         "Expected Game to have called Teardown() before destructor call"
     );
-
-    delete m_input_manager;
 }
 
 void Game::Init()
@@ -30,7 +28,7 @@ void Game::Init()
     AssertThrowMsg(m_application != nullptr, "No valid Application instance was provided to Game constructor!");
     AssertThrowMsg(m_application->GetCurrentWindow() != nullptr, "The Application instance has no current window!");
 
-    m_input_manager = new InputManager();
+    m_input_manager.Reset(new InputManager());
     m_input_manager->SetWindow(m_application->GetCurrentWindow());
 
     m_scene = CreateObject<Scene>(
@@ -43,11 +41,6 @@ void Game::Init()
     InitObject(m_scene);
 
     m_is_init = true;
-
-    static_assert(THREAD_MAIN == THREAD_RENDER,
-        "InitRender must be enqueued instead of directly called if main thread != render thread!");
-
-    InitRender();
 }
 
 void Game::Update(GameCounter::TickUnit delta)
@@ -56,11 +49,6 @@ void Game::Update(GameCounter::TickUnit delta)
     Engine::Get()->GetWorld()->Update(delta);
 
     Logic(delta);
-}
-
-void Game::InitRender()
-{
-    Threads::AssertOnThread(THREAD_RENDER);
 }
 
 void Game::InitGame()
@@ -113,7 +101,7 @@ void Game::OnInputEvent(const SystemEvent &event)
     Threads::AssertOnThread(THREAD_GAME);
 
     // forward to UI
-    if (m_ui.OnInputEvent(m_input_manager, event)) {
+    if (m_ui.OnInputEvent(m_input_manager.Get(), event)) {
         // ui handled the event
         return;
     }
@@ -178,6 +166,28 @@ void Game::OnInputEvent(const SystemEvent &event)
     default:
         break;
     }
+}
+
+void Game::OnFrameBegin(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    Engine::Get()->render_state.BindScene(m_scene.Get());
+
+    if (m_scene->GetCamera()) {
+        Engine::Get()->render_state.BindCamera(m_scene->GetCamera().Get());
+    }
+}
+
+void Game::OnFrameEnd(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    if (m_scene->GetCamera()) {
+        Engine::Get()->render_state.UnbindCamera();
+    }
+
+    Engine::Get()->render_state.UnbindScene();
 }
 
 } // namespace hyperion::v2

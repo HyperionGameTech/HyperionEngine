@@ -155,8 +155,9 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : RenderCommand
 
 #pragma endregion
 
-ShadowPass::ShadowPass()
+ShadowPass::ShadowPass(const Handle<Scene> &parent_scene)
     : FullScreenPass(),
+      m_parent_scene(parent_scene),
       m_shadow_mode(ShadowMode::VSM),
       m_max_distance(100.0f),
       m_shadow_map_index(~0u),
@@ -290,22 +291,14 @@ void ShadowPass::Create()
     CreateDescriptors();
     CreateComputePipelines();
 
-    m_scene = CreateObject<Scene>(CreateObject<Camera>(m_dimensions.width, m_dimensions.height));
+    {
+        m_camera = CreateObject<Camera>(m_dimensions.width, m_dimensions.height);
 
-    m_scene->SetName(HYP_NAME(ShadowScene));
-    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .bucket = BUCKET_SHADOW,
-            .cull_faces = FaceCullMode::FRONT
-        },
-        m_shader->GetID()
-    ));
+        m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
+        m_camera->SetFramebuffer(m_framebuffer);
 
-    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
-    m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-
-    InitObject(m_scene);
+        InitObject(m_camera);
+    }
 
     CreateCommandBuffers();
 
@@ -314,10 +307,9 @@ void ShadowPass::Create()
 
 void ShadowPass::Destroy()
 {
-    if (m_scene) {
-        Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-        m_scene.Reset();
-    }
+    m_camera.Reset();
+    m_render_list.Reset();
+    m_parent_scene.Reset();
 
     RenderCommands::Push<RENDER_COMMAND(DestroyShadowPassData)>(
         m_shadow_map_image.get(),
@@ -338,9 +330,15 @@ void ShadowPass::Render(Frame *frame)
         return;
     }
 
-    auto *command_buffer = frame->GetCommandBuffer();
+    CommandBuffer *command_buffer = frame->GetCommandBuffer();
 
-    m_scene->Render(frame);
+    AssertThrow(m_parent_scene.IsValid());
+
+    m_parent_scene->Render(
+        frame,
+        m_camera,
+        m_render_list
+    );
 
     if (m_shadow_mode == ShadowMode::VSM) {
         // blur the image using compute shader
@@ -389,134 +387,6 @@ void ShadowPass::Render(Frame *frame)
     }
 }
 
-ShadowRenderer::ShadowRenderer(const Handle<Light> &light)
-    : ShadowRenderer(light, Vector3::Zero(), 25.0f)
-{
-}
-
-ShadowRenderer::ShadowRenderer(const Handle<Light> &light, const BoundingBox &aabb)
-    : ShadowRenderer(light, aabb.GetCenter(), aabb.GetRadius())
-{
-}
-
-ShadowRenderer::ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, Float max_distance)
-    : EngineComponentBase(),
-      RenderComponent()
-{
-    m_shadow_pass.SetLight(light);
-    m_shadow_pass.SetOrigin(origin);
-    m_shadow_pass.SetMaxDistance(max_distance);
-}
-
-ShadowRenderer::~ShadowRenderer()
-{
-    if (IsInitCalled()) {
-        SetReady(false);
-
-        m_shadow_pass.Destroy(); // flushes render queue
-    }
-}
-
-// called from render thread
-void ShadowRenderer::Init()
-{
-    if (IsInitCalled()) {
-        return;
-    }
-
-    EngineComponentBase::Init();
-
-    AssertThrow(IsValidComponent());
-    m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
-    m_shadow_pass.Create();
-
-    SetReady(true);
-}
-
-// called from game thread
-void ShadowRenderer::InitGame()
-{
-    Threads::AssertOnThread(THREAD_GAME);
-    AssertReady();
-
-    m_shadow_pass.GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
-    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_shadow_pass.GetScene()));
-}
-
-void ShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    AssertReady();
-    
-    UpdateSceneCamera();
-}
-
-void ShadowRenderer::OnRender(Frame *frame)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-    
-    m_shadow_pass.Render(frame);
-}
-
-void ShadowRenderer::UpdateSceneCamera()
-{
-    // runs in game thread
-
-    const BoundingBox aabb = m_shadow_pass.GetAABB();
-    const Vector3 center = aabb.GetCenter();
-
-    const Vector3 light_direction = m_shadow_pass.GetLight()
-        ? m_shadow_pass.GetLight()->GetPosition().Normalized() * -1.0f
-        : Vector3::Zero();
-
-    Handle<Camera> &camera = m_shadow_pass.GetScene()->GetCamera();
-
-    if (!camera) {
-        return;
-    }
-
-    camera->SetTranslation(center + light_direction);
-    camera->SetTarget(center);
-    
-    auto corners = aabb.GetCorners();
-
-    auto maxes = MathUtil::MinSafeValue<Vector3>(),
-        mins = MathUtil::MaxSafeValue<Vector3>();
-
-    for (auto &corner : corners) {
-        corner = camera->GetViewMatrix() * corner;
-
-        maxes = MathUtil::Max(maxes, corner);
-        mins = MathUtil::Min(mins, corner);
-    }
-
-    camera->SetToOrthographicProjection(
-        mins.x, maxes.x,
-        mins.y, maxes.y,
-        mins.z, maxes.z
-    );
-
-    PUSH_RENDER_COMMAND(
-        UpdateShadowMapRenderData,
-        GetPass().GetShadowMapIndex(),
-        camera->GetViewMatrix(),
-        camera->GetProjectionMatrix(),
-        BoundingBox(mins, maxes)
-    );
-}
-
-void ShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
-{
-    //m_shadow_pass.SetShadowMapIndex(new_index);
-    AssertThrowMsg(false, "Not implemented");
-
-    // TODO: Remove descriptor, set new descriptor
-}
-
-
-
-
 ShadowMapRenderer::ShadowMapRenderer()
     : RenderComponent()
 {
@@ -524,43 +394,70 @@ ShadowMapRenderer::ShadowMapRenderer()
 
 ShadowMapRenderer::~ShadowMapRenderer()
 {
-    m_shadow_pass.Destroy(); // flushes render queue
+    if (m_shadow_pass) {
+        m_shadow_pass->Destroy(); // flushes render queue
+        m_shadow_pass.Reset();
+    }
 }
 
 // called from render thread
 void ShadowMapRenderer::Init()
 {
     AssertThrow(IsValidComponent());
-    m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
-    m_shadow_pass.Create();
+
+    m_shadow_pass.Reset(new ShadowPass(Handle<Scene>(GetParent()->GetScene()->GetID())));
+
+    m_shadow_pass->SetShadowMapIndex(GetComponentIndex());
+    m_shadow_pass->Create();
 }
 
 // called from game thread
 void ShadowMapRenderer::InitGame()
 {
     Threads::AssertOnThread(THREAD_GAME);
-
-    m_shadow_pass.GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
-    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_shadow_pass.GetScene()));
 }
 
 void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
-    // do nothing
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(m_shadow_pass != nullptr);
+
+    m_shadow_pass->GetCamera()->Update(delta);
+
+    GetParent()->GetScene()->CollectEntities(
+        m_shadow_pass->GetRenderList(),
+        m_shadow_pass->GetCamera(),
+        RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .bucket = BUCKET_SHADOW,
+                .cull_faces = FaceCullMode::FRONT
+            },
+            m_shadow_pass->GetShader()->GetID()
+        ),
+        true // temp
+    );
+    
+    m_shadow_pass->GetRenderList().UpdateRenderGroups();
 }
 
 void ShadowMapRenderer::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
+
+    AssertThrow(m_shadow_pass != nullptr);
     
-    m_shadow_pass.Render(frame);
+    m_shadow_pass->Render(frame);
 }
 
 void ShadowMapRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
 {
+    AssertThrow(m_shadow_pass != nullptr);
+
     PUSH_RENDER_COMMAND(
         UpdateShadowMapRenderData,
-        GetPass().GetShadowMapIndex(),
+        m_shadow_pass->GetShadowMapIndex(),
         camera_data.view,
         camera_data.projection,
         camera_data.aabb

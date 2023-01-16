@@ -4,6 +4,7 @@
 #include <core/Base.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/RenderComponent.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
@@ -47,6 +48,7 @@ private:
     Handle<Scene> m_scene;
     Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
+    RenderList m_render_list;
 };
 
 

@@ -53,6 +53,8 @@ private:
     FlatSet<Handle<Scene>> m_scenes_pending_addition;
     FlatSet<Handle<Scene>> m_scenes_pending_removal;
 
+    FlatMap<ID<Scene>, RenderList> m_render_lists;
+
     std::atomic_bool m_has_scene_updates { false };
     BinarySemaphore m_scene_update_sp;
     std::mutex m_scene_update_mutex;

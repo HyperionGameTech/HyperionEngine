@@ -95,7 +95,7 @@ class MyGame : public Game
 {
 
 public:
-    Handle<Light> m_sun;
+    Handle<Entity> m_sun;
     Array<Handle<Light>> m_point_lights;
 
     FilePath scene_export_filepath;
@@ -103,10 +103,6 @@ public:
     MyGame(RefCountedPtr<Application> application)
         : Game(application),
           scene_export_filepath(Engine::Get()->GetAssetManager().GetBasePath() / "export.hypnode")
-    {
-    }
-
-    virtual void InitRender() override
     {
     }
 
@@ -128,19 +124,14 @@ public:
         m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
         
         { // adding lights to scene
-            m_sun = CreateObject<Light>(DirectionalLight(
-                Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
-                Color(1.0f, 1.0f, 1.0f),
-                5.0f
-            ));
 
             // m_scene->AddLight(m_sun);
 
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.0f, 1.0f, 0.0f),
-                Color(1.0f, 1.0f, 1.0f),
+                Color(0.0f, 1.0f, 0.0f),
                 15.0f,
-                200.35f
+                20.35f
             )));
             // m_point_lights.PushBack(CreateObject<Light>(PointLight(
             //     Vector3(-2.0f, 0.75f, 0.0f),
@@ -150,14 +141,24 @@ public:
             // )));
 
             for (auto &light : m_point_lights) {
-                // m_scene->AddLight(light);
-
                 auto point_light_entity = CreateObject<Entity>();
                 point_light_entity->AddController<LightController>(light);
                 GetScene()->AddEntity(std::move(point_light_entity));
             }
         }
 
+        {
+            m_sun = CreateObject<Entity>();
+            m_sun->SetName(HYP_NAME(Sun));
+            m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
+                Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
+                Color(1.0f, 1.0f, 1.0f),
+                5.0f
+            )));
+            m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
+            m_sun->AddController<ShadowMapController>();
+            GetScene()->AddEntity(m_sun);
+        }
 
         if (true) {
             auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
@@ -233,7 +234,6 @@ public:
 
         // m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
         
-        
         m_scene->GetFogParams().start_distance = 5000.0f;
         m_scene->GetFogParams().end_distance = 40000.0f;
 
@@ -241,7 +241,7 @@ public:
         
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -279,7 +279,7 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        test_model.Scale(6.025f);
+        test_model.Scale(0.025f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
@@ -301,11 +301,6 @@ public:
             m_point_lights.Front(),
             Extent2D { 256, 256 }
         );
-        
-        // m_scene->GetEnvironment()->AddRenderComponent<ShadowRenderer>(
-        //     HYP_NAME(Shadows),
-        //     m_sun, test_model.GetWorldAABB() * 3.0f
-        // );
 
         if (false) {
             int i = 0;
@@ -497,7 +492,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (false) {
+        if (true) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
@@ -508,14 +503,14 @@ public:
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
-            // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_albedo.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Normal-ogl.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Metallic.psd"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_albedo.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Normal-ogl.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Metallic.psd"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/grimy/grimy-metal-roughness.png"));
             // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
@@ -535,11 +530,11 @@ public:
             }
         }
 
-        if (false) { // particles test
+        if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,
-                .origin = Vector3(0.0f, 50.0f, -25.0f),
+                .origin = Vector3(0.0f, 0.1f, 0.0f),
                 .lifespan = 8.0f
             });
 
@@ -555,16 +550,6 @@ public:
     }
 
     bool svo_ready_to_build = false;
-
-    virtual void OnFrameBegin(Frame *) override
-    {
-        Engine::Get()->render_state.BindScene(m_scene.Get());
-    }
-
-    virtual void OnFrameEnd(Frame *) override
-    {
-        Engine::Get()->render_state.UnbindScene();
-    }
 
     virtual void Logic(GameCounter::TickUnit delta) override
     {
@@ -603,22 +588,17 @@ public:
         bool sun_position_changed = false;
 
         if (GetInputManager()->IsKeyDown(KEY_ARROW_LEFT)) {
-            m_sun->SetPosition((m_sun->GetPosition() + Vector3(0.02f, 0.0f, 0.0f)).Normalize());
+            m_sun->SetTranslation((m_sun->GetTranslation() + Vector3(0.02f, 0.0f, 0.0f)).Normalize());
             sun_position_changed = true;
         } else if (GetInputManager()->IsKeyDown(KEY_ARROW_RIGHT)) {
-            m_sun->SetPosition((m_sun->GetPosition() + Vector3(-0.02f, 0.0f, 0.0f)).Normalize());
+            m_sun->SetTranslation((m_sun->GetTranslation() + Vector3(-0.02f, 0.0f, 0.0f)).Normalize());
             sun_position_changed = true;
         } else if (GetInputManager()->IsKeyDown(KEY_ARROW_UP)) {
-            m_sun->SetPosition((m_sun->GetPosition() + Vector3(0.0f, 0.02f, 0.0f)).Normalize());
+            m_sun->SetTranslation((m_sun->GetTranslation() + Vector3(0.0f, 0.02f, 0.0f)).Normalize());
             sun_position_changed = true;
         } else if (GetInputManager()->IsKeyDown(KEY_ARROW_DOWN)) {
-            m_sun->SetPosition((m_sun->GetPosition() + Vector3(0.0f, -0.02f, 0.0f)).Normalize());
+            m_sun->SetTranslation((m_sun->GetTranslation()+ Vector3(0.0f, -0.02f, 0.0f)).Normalize());
             sun_position_changed = true;
-        }
-
-        if (sun_position_changed) {
-            std::cout << "Sun position: " << m_sun->GetPosition() << "\n";
-            std::cout << "Camera position " << GetScene()->GetCamera()->GetTranslation() << "\n";
         }
 
         if (m_export_task == nullptr || m_export_task->IsCompleted()) {

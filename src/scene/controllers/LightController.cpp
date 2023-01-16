@@ -17,6 +17,11 @@ void LightController::OnAttachedToScene(ID<Scene> id)
     Threads::AssertOnThread(THREAD_GAME);
 
     if (!m_light) {
+        DebugLog(
+            LogType::Warn,
+            "LightController has no Light attached\n"
+        );
+
         return;
     }
 
@@ -32,6 +37,11 @@ void LightController::OnDetachedFromScene(ID<Scene> id)
     Threads::AssertOnThread(THREAD_GAME);
 
     if (!m_light) {
+        DebugLog(
+            LogType::Warn,
+            "LightController has no Light attached\n"
+        );
+
         return;
     }
 
@@ -55,6 +65,10 @@ void LightController::OnUpdate(GameCounter::TickUnit delta)
     // light already gets updated by scene (This should change,
     // because a light could possibly be updated twice per tick
     // if attached to more than one world scene)
+
+    if (!m_light) {
+        return;
+    }
 }
 
 void LightController::OnTransformUpdate(const Transform &transform)
@@ -65,7 +79,11 @@ void LightController::OnTransformUpdate(const Transform &transform)
         return;
     }
 
-    m_light->SetPosition(transform.GetTranslation());
+    if (m_light->GetType() == LightType::DIRECTIONAL) {
+        m_light->SetPosition((transform.GetTranslation()).Normalized());
+    } else {
+        m_light->SetPosition(transform.GetTranslation());
+    }
 }
 
 } // namespace hyperion::v2

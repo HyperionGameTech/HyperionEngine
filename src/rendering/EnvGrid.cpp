@@ -73,26 +73,15 @@ void EnvGrid::Init()
     }
 
     {
-        m_ambient_scene = CreateObject<Scene>(CreateObject<Camera>(
+        m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
             0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f//(Vector3(m_aabb.GetRadius()) / Vector3(m_density)).Max()////
-        ));
+        );
 
-        m_ambient_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-        m_ambient_scene->SetName(HYP_NAME(EnvGridScene));
-        m_ambient_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::BACK
-            },
-            m_ambient_shader->GetID()
-        ));
-        m_ambient_scene->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
+        m_camera->SetFramebuffer(m_framebuffer);
 
-        InitObject(m_ambient_scene);
-        Engine::Get()->GetWorld()->AddScene(m_ambient_scene);
+        InitObject(m_camera);
     }
 
     DebugLog(LogType::Info, "Created %llu total ambient EnvProbes in grid\n", num_ambient_probes);
@@ -106,9 +95,8 @@ void EnvGrid::InitGame()
 
 void EnvGrid::OnRemoved()
 {
-    Engine::Get()->GetWorld()->RemoveScene(m_ambient_scene->GetID());
-    m_ambient_scene.Reset();
-    
+    m_camera.Reset();
+    m_render_list.Reset();
     m_ambient_shader.Reset();
 
     struct RENDER_COMMAND(DestroyEnvGridFramebufferAttachments) : RenderCommand
@@ -147,9 +135,29 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
+    AssertThrow(m_camera.IsValid());
+
+    m_camera->Update(delta);
+
+    GetParent()->GetScene()->CollectEntities(
+        m_render_list,
+        m_camera,
+        RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .bucket = BUCKET_INTERNAL,
+                .cull_faces = FaceCullMode::BACK
+            },
+            m_ambient_shader.GetID()
+        ),
+        true // skip frustum culling
+    );
+
+    m_render_list.UpdateRenderGroups();
+
     for (auto &env_probe : m_ambient_probes) {
         // TODO: Just update render data in Render()
-        env_probe->Update();
+        env_probe->Update(delta);
     }
 }
 
@@ -187,7 +195,7 @@ void EnvGrid::OnRender(Frame *frame)
 
                 env_probe->UpdateRenderData(bound_index);
 
-                RenderEnvProbe(frame, m_ambient_scene, env_probe);
+                RenderEnvProbe(frame, env_probe);
                 
                 m_shader_data.probe_indices[probe_index_at_point] = env_probe->GetID().ToIndex();
             } else {
@@ -296,7 +304,6 @@ void EnvGrid::CreateFramebuffer()
 
 void EnvGrid::RenderEnvProbe(
     Frame *frame,
-    Handle<Scene> &scene,
     Handle<EnvProbe> &probe
 )
 {
@@ -310,7 +317,7 @@ void EnvGrid::RenderEnvProbe(
 
         Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
 
-        scene->Render(frame, &push_constants, sizeof(push_constants));
+        GetParent()->GetScene()->Render(frame, m_camera, m_render_list, &push_constants, sizeof(push_constants));
 
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
     }

@@ -9,6 +9,7 @@ using renderer::ImageDescriptor;
 using renderer::StorageImageDescriptor;
 using renderer::SamplerDescriptor;
 using renderer::DynamicStorageBufferDescriptor;
+using renderer::DynamicUniformBufferDescriptor;
 using renderer::CommandBuffer;
 
 #pragma region Render commands
@@ -271,9 +272,15 @@ void HBAO::CreateDescriptorSets()
             ->AddDescriptor<SamplerDescriptor>(6)
             ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
+        // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(7)
             ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffer(frame_index).get());
+
+        // camera
+        descriptor_set
+            ->AddDescriptor<DynamicUniformBufferDescriptor>(8)
+            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffer(frame_index).get());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -386,7 +393,6 @@ void HBAO::Render(Frame *frame)
     {
         struct alignas(128) {
             ShaderVec2<UInt32> dimension;
-            Float32 temporal_blending_factor;
         } push_constants;
 
         push_constants.dimension = m_extent;
@@ -400,7 +406,8 @@ void HBAO::Render(Frame *frame)
             m_descriptor_sets[frame_index].Get(),
             0,
             FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex())
+                HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
             }
         );
         

@@ -79,9 +79,8 @@ void PlaceholderData::Destroy()
     for (auto &it : m_buffers) {
         DebugLog(
             LogType::Debug,
-            "Destroy %llu placeholder GPUBuffer objects of type id: %u\n",
-            it.second.Size(),
-            it.first.value
+            "Destroy %llu placeholder GPUBuffer: %u\n",
+            it.second.Size()
         );
 
         for (auto &buffer_map_it : it.second) {

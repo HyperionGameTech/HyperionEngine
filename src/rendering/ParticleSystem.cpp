@@ -324,10 +324,15 @@ void ParticleSpawner::CreateDescriptorSets()
             .AddDescriptor<renderer::StorageBufferDescriptor>(2)
             ->SetElementBuffer(0, m_noise_buffer.Get());
 
-        // scene data (for camera matrices)
+        // scene
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
             ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+    
+        // camera
+        m_descriptor_sets[frame_index]
+            .AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
+            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
         m_descriptor_sets[frame_index]
             .AddDescriptor<renderer::ImageDescriptor>(6)
@@ -463,16 +468,14 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         return;
     }
 
-    const UInt scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
-
     m_staging_buffer.InsertBarrier(
         frame->GetCommandBuffer(),
         renderer::ResourceState::COPY_SRC
     );
 
     for (auto &spawner : m_particle_spawners) {
-        const auto aabb = spawner->GetEstimatedAABB();
-        const auto max_particles = spawner->GetParams().max_particles;
+        const BoundingBox aabb = spawner->GetEstimatedAABB();
+        const SizeType max_particles = spawner->GetParams().max_particles;
 
         AssertThrow(spawner->GetIndirectBuffer()->size == sizeof(IndirectDrawCommand));
         AssertThrow(spawner->GetParticleBuffer()->size >= sizeof(ParticleShaderData) * max_particles);
@@ -494,7 +497,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             renderer::ResourceState::INDIRECT_ARG
         );
 
-        if (!Engine::Get()->render_state.GetScene().scene.camera.frustum.ContainsAABB(aabb)) {
+        if (!Engine::Get()->GetRenderState().GetCamera().camera.frustum.ContainsAABB(aabb)) {
             continue;
         }
 
@@ -520,7 +523,10 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             spawner->GetComputePipeline()->GetPipeline(),
             &spawner->GetDescriptorSets()[frame->GetFrameIndex()],
             0,
-            FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+            }
         );
 
         spawner->GetComputePipeline()->GetPipeline()->Dispatch(
@@ -548,7 +554,6 @@ void ParticleSystem::Render(Frame *frame)
     AssertReady();
 
     const auto frame_index = frame->GetFrameIndex();
-    const auto scene_index = Engine::Get()->render_state.GetScene().id.ToIndex();
 
     FixedArray<UInt, num_async_rendering_command_buffers> command_buffers_recorded_states { };
     
@@ -558,7 +563,7 @@ void ParticleSystem::Render(Frame *frame)
     Engine::Get()->task_system.ParallelForEach(
         TaskPriority::HIGH,
         m_particle_spawners.GetItems(),
-        [this, &command_buffers_recorded_states, frame_index, scene_index](const Handle<ParticleSpawner> &particle_spawner, UInt index, UInt batch_index) {
+        [this, &command_buffers_recorded_states, frame_index](const Handle<ParticleSpawner> &particle_spawner, UInt index, UInt batch_index) {
             auto *pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
 
             m_command_buffers[frame_index][batch_index]->Record(
@@ -572,7 +577,10 @@ void ParticleSystem::Render(Frame *frame)
                         pipeline,
                         &particle_spawner->GetDescriptorSets()[frame_index],
                         0,
-                        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+                        FixedArray {
+                            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+                            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+                        }
                     );
 
                     m_quad_mesh->RenderIndirect(

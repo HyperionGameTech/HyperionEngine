@@ -436,10 +436,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->scenes.GetBuffers()[0].get(),
-            .range = UInt32(sizeof(SceneShaderData))
-        });
+        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffers()[0].get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
@@ -452,6 +449,10 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
         ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer(0).get());
+
+    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+        ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
+        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer(0).get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -483,10 +484,7 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetSubDescriptor({
-            .buffer = shader_globals->scenes.GetBuffers()[1].get(),
-            .range = static_cast<UInt>(sizeof(SceneShaderData))
-        });
+        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffers()[1].get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
@@ -499,6 +497,10 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
         ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer(1).get());
+
+    m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
+        ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
+        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer(1).get());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
@@ -912,6 +914,9 @@ void Engine::Compile()
         /* Finalize scene data */
         shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), i);
 
+        /* Finalize camera data */
+        shader_globals->cameras.UpdateBuffer(m_instance->GetDevice(), i);
+
         /* Finalize immediate draw data */
         shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), i);
 
@@ -1028,7 +1033,7 @@ void Engine::RenderNextFrame(Game *game)
     GetGPUInstance()->GetFrameHandler()->NextFrame();
 }
 
-Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &renderable_attributes, bool cache)
+Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
 {
     Handle<Shader> shader(renderable_attributes.shader_id);
 
@@ -1049,11 +1054,10 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 
     std::lock_guard guard(m_render_group_mapping_mutex);
 
-    AddRenderGroupInternal(renderer_instance, cache);
+    AddRenderGroupInternal(renderer_instance, false);
 
     return renderer_instance;
 }
-
 
 Handle<RenderGroup> Engine::CreateRenderGroup(
     const Handle<Shader> &shader,
@@ -1083,36 +1087,6 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     );
 
     return renderer_instance;
-}
-
-Handle<RenderGroup> Engine::FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
-{
-    if (!renderable_attributes.shader_id) {
-        DebugLog(
-            LogType::Warn,
-            "Shader is empty; Cannot create or find RenderGroup.\n"
-        );
-
-        return Handle<RenderGroup>::empty;
-    }
-
-    std::lock_guard guard(m_render_group_mapping_mutex);
-
-    const auto it = m_render_group_mapping.Find(renderable_attributes);
-
-    if (it != m_render_group_mapping.End()) {
-        return it->second;
-    }
-
-    // create a RenderGroup with the given params
-    auto render_group = CreateObject<RenderGroup>(
-        Handle<Shader>(renderable_attributes.shader_id),
-        renderable_attributes
-    );
-
-    AddRenderGroupInternal(render_group, true);
-
-    return render_group;
 }
     
 void Engine::AddRenderGroup(Handle<RenderGroup> &render_group)
@@ -1154,7 +1128,7 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
 
-    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE);
+    ResetRenderState(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_VISIBILITY | RENDER_STATE_SCENE | RENDER_STATE_CAMERA);
 }
 
 void Engine::ResetRenderState(RenderStateMask mask)
@@ -1165,6 +1139,7 @@ void Engine::ResetRenderState(RenderStateMask mask)
 void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
 {
     shader_globals->scenes.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->cameras.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->objects.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->materials.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->skeletons.UpdateBuffer(m_instance->GetDevice(), frame_index);

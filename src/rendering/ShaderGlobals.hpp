@@ -58,6 +58,7 @@ struct ShaderGlobals
     void Destroy();
 
     ShaderData<StorageBuffer, SceneShaderData, max_scenes> scenes;
+    ShaderData<UniformBuffer, CameraShaderData, max_cameras> cameras;
     ShaderData<StorageBuffer, LightShaderData, max_lights> lights;
     ShaderData<StorageBuffer, ObjectShaderData, max_entities> objects;
     ShaderData<StorageBuffer, MaterialShaderData, max_materials> materials;

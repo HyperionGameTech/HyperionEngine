@@ -6,6 +6,7 @@
 #include <math/BoundingBox.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/DrawProxy.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/Compute.hpp>
 
@@ -147,7 +148,7 @@ public:
     void Init();
     void EnqueueBind() const;
     void EnqueueUnbind() const;
-    void Update();
+    void Update(GameCounter::TickUnit delta);
 
     void Render(Frame *frame);
 
@@ -176,7 +177,8 @@ private:
     Handle<Framebuffer> m_framebuffer;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     Handle<Shader> m_shader;
-    Handle<Scene> m_scene;
+    Handle<Camera> m_camera;
+    RenderList m_render_list;
 
     CubemapUniforms m_cubemap_uniforms;
     FixedArray<GPUBufferRef, max_frames_in_flight> m_cubemap_render_uniform_buffers;

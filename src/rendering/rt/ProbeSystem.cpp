@@ -536,10 +536,11 @@ void ProbeGrid::RenderProbes(Frame *frame)
         DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE, frame->GetFrameIndex()),
         1,
         FixedArray {
-            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->render_state.GetScene().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
             HYP_RENDER_OBJECT_OFFSET(EnvGrid, 0),
-            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0)
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
         }
     );
 

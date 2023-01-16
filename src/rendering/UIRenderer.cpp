@@ -101,14 +101,6 @@ void UIRenderer::Init()
     AssertThrow(m_scene->GetCamera().IsValid());
 
     m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-    
-    m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .bucket = BUCKET_UI,
-            .cull_faces = FaceCullMode::NONE
-        }
-    ));
 
     InitObject(m_scene);
 
@@ -134,11 +126,26 @@ void UIRenderer::InitGame() { }
 
 void UIRenderer::OnRemoved() { }
 
-void UIRenderer::OnUpdate(GameCounter::TickUnit delta) { }
+void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
+{
+    m_scene->CollectEntities(
+        m_render_list,
+        m_scene->GetCamera(),
+        RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .bucket = BUCKET_UI,
+                .cull_faces = FaceCullMode::NONE
+            }
+        )
+    );
+
+    m_render_list.UpdateRenderGroups();
+}
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    m_scene->Render(frame);
+    m_scene->Render(frame, m_scene->GetCamera(), m_render_list);
 }
 
 } // namespace hyperion::v2

@@ -35,6 +35,7 @@ using renderer::FaceCullMode;
 class RenderGroup;
 class Octree;
 class Scene;
+class Camera;
 class Entity;
 class Mesh;
 
@@ -200,7 +201,7 @@ public:
     void SetWorldAABB(const BoundingBox &aabb)
         { m_world_aabb = aabb; }
 
-    bool IsVisibleInScene(ID<Scene> id) const;
+    bool IsVisibleToCamera(ID<Camera> camera_id) const;
     
     bool IsReady() const;
 

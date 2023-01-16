@@ -9,6 +9,7 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Compute.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
@@ -49,16 +50,17 @@ class ShadowPass : public FullScreenPass
     friend struct RenderCommand_CreateShadowMapDescriptors;
 
 public:
-    ShadowPass();
+    ShadowPass(const Handle<Scene> &parent_scene);
     ShadowPass(const ShadowPass &other) = delete;
     ShadowPass &operator=(const ShadowPass &other) = delete;
     virtual ~ShadowPass();
 
-    Handle<Scene> &GetScene() { return m_scene; }
-    const Handle<Scene> &GetScene() const { return m_scene; }
+    const Handle<Camera> &GetCamera() const { return m_camera; }
 
-    Handle<Light> &GetLight() { return m_light; }
     const Handle<Light> &GetLight() const { return m_light; }
+
+    RenderList &GetRenderList() { return m_render_list; }
+    const RenderList &GetRenderList() const { return m_render_list; }
 
     void SetLight(const Handle<Light> &light)
     {
@@ -110,10 +112,11 @@ private:
     void CreateShadowMap();
     void CreateComputePipelines();
 
-    ShadowMode m_shadow_mode;
-    Handle<Scene> m_scene;
+    Handle<Scene> m_parent_scene;
     Handle<Light> m_light;
-    ID<Scene> m_parent_scene_id;
+    ShadowMode m_shadow_mode;
+    Handle<Camera> m_camera;
+    RenderList m_render_list;
     Vector3 m_origin;
     Float m_max_distance;
     UInt m_shadow_map_index;
@@ -135,8 +138,7 @@ public:
     ShadowMapRenderer &operator=(const ShadowMapRenderer &other) = delete;
     virtual ~ShadowMapRenderer();
 
-    ShadowPass &GetPass() { return m_shadow_pass; }
-    const ShadowPass &GetPass() const { return m_shadow_pass; }
+    ShadowPass *GetPass() const { return m_shadow_pass.Get(); }
 
     void SetCameraData(const ShadowMapCameraData &camera_data);
 
@@ -147,50 +149,10 @@ public:
     void OnRender(Frame *frame);
 
 private:
-    void UpdateSceneCamera();
-
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    ShadowPass m_shadow_pass;
+    UniquePtr<ShadowPass> m_shadow_pass;
 };
-
-class ShadowRenderer
-    : public EngineComponentBase<STUB_CLASS(ShadowRenderer)>,
-      public RenderComponent<ShadowRenderer>
-{
-public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
-
-    ShadowRenderer(const Handle<Light> &light);
-    ShadowRenderer(const Handle<Light> &light, const Vector3 &origin, Float max_distance);
-    ShadowRenderer(const Handle<Light> &light, const BoundingBox &aabb);
-    ShadowRenderer(const ShadowRenderer &other) = delete;
-    ShadowRenderer &operator=(const ShadowRenderer &other) = delete;
-    virtual ~ShadowRenderer();
-
-    ShadowPass &GetPass() { return m_shadow_pass; }
-    const ShadowPass &GetPass() const { return m_shadow_pass; }
-
-    ShadowMode GetShadowMode() const { return m_shadow_pass.GetShadowMode(); }
-    void SetShadowMode(ShadowMode shadow_mode) { m_shadow_pass.SetShadowMode(shadow_mode); }
-
-    const Vector3 &GetOrigin() const { return m_shadow_pass.GetOrigin(); }
-    void SetOrigin(const Vector3 &origin) { m_shadow_pass.SetOrigin(origin); }
-
-    void Init();     // init on render thread
-    void InitGame(); // init on game thread
-
-    void OnUpdate(GameCounter::TickUnit delta);
-    void OnRender(Frame *frame);
-
-private:
-    void UpdateSceneCamera();
-
-    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
-
-    ShadowPass m_shadow_pass;
-};
-
 
 } // namespace hyperion::v2
 

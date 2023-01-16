@@ -140,39 +140,36 @@ struct MaterialShaderData
 
 static_assert(sizeof(MaterialShaderData) == 128);
 
-struct alignas(256) SceneShaderData
+struct alignas(16) SceneShaderData
 {
-    Matrix4 view;
-    Matrix4 projection;
-    Matrix4 previous_view;
-
-    ShaderVec4<Float> camera_position;
-    ShaderVec4<Float> camera_direction;
-    ShaderVec4<Float> camera_up;
-
-    float camera_near;
-    float camera_far;
-    float camera_fov;
-    float _pad0;
-
-    UInt32 environment_texture_index;
-    UInt32 environment_texture_usage;
-    UInt32 resolution_x;
-    UInt32 resolution_y;
-    
     ShaderVec4<Float> aabb_max;
     ShaderVec4<Float> aabb_min;
-
-    Float32 global_timer;
-    UInt32 frame_counter;
-    UInt32 custom_index;
-    UInt32 enabled_render_components_mask;
-
-    ShaderVec4<Float> taa_params;
     ShaderVec4<Float> fog_params;
+
+    Float global_timer;
+    UInt32 frame_counter;
+    UInt32 enabled_render_components_mask;
 };
 
-static_assert(sizeof(SceneShaderData) == 512);
+static_assert(sizeof(SceneShaderData) == 64);
+
+struct alignas(16) CameraShaderData
+{
+    ShaderMat4 view;
+    ShaderMat4 projection;
+    ShaderMat4 previous_view;
+
+    ShaderVec4<UInt32> dimensions;
+    ShaderVec4<Float> camera_position;
+    ShaderVec4<Float> camera_direction;
+    
+    Float camera_near;
+    Float camera_far;
+    Float camera_fov;
+    Float _pad0;
+};
+
+static_assert(sizeof(CameraShaderData) == 256);
 
 struct alignas(256) EnvGridShaderData
 {
@@ -280,9 +277,12 @@ static const SizeType max_materials_bytes = max_materials * sizeof(MaterialShade
 /* max number of entities, based on size in mb */
 static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(ObjectShaderData);
 static const SizeType max_entities_bytes = max_entities * sizeof(ObjectShaderData);
-/* max number of scenes (cameras, essentially), based on size in kb */
+/* max number of scenes, based on size in kb */
 static const SizeType max_scenes = (32ull * 1024ull) / sizeof(SceneShaderData);
 static const SizeType max_scenes_bytes = max_scenes * sizeof(SceneShaderData);
+/* max number of cameras, based on size in kb */
+static const SizeType max_cameras = (16ull * 1024ull) / sizeof(CameraShaderData);
+static const SizeType max_cameras_bytes = max_cameras * sizeof(CameraShaderData);
 /* max number of lights, based on size in kb */
 static const SizeType max_lights = (16ull * 1024ull) / sizeof(LightShaderData);
 static const SizeType max_lights_bytes = max_lights * sizeof(LightShaderData);
@@ -385,9 +385,6 @@ public:
     }
 
     
-
-
-
     BufferTicket<StructType> current_index = 1; // reserve first index (0)
     Queue<BufferTicket<StructType>> free_indices;
 

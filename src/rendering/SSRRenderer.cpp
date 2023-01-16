@@ -79,10 +79,10 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
     {
         SSRParams ssr_params {
             .dimensions = { extent.width, extent.height, 0, 0 },
-            .ray_step = 0.35f,
+            .ray_step = 0.33f,
             .num_iterations = 128.0f,
             .max_ray_distance = 100.0f,
-            .distance_bias = 0.25f,
+            .distance_bias = 0.1f,
             .offset = 0.01f,
             .eye_fade_start = 0.75f,
             .eye_fade_end = 0.98f,
@@ -434,14 +434,19 @@ void SSRRenderer::CreateDescriptorSets()
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(16)
             ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
+        // camera
+        descriptor_set
+            ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(17)
+            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+
         // uniforms
         descriptor_set
-            ->AddDescriptor<renderer::UniformBufferDescriptor>(17)
+            ->AddDescriptor<renderer::UniformBufferDescriptor>(18)
             ->SetElementBuffer(0, m_uniform_buffers[frame_index].Get());
 
         // blue noise buffer
         descriptor_set
-            ->AddDescriptor<renderer::StorageBufferDescriptor>(18)
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(19)
             ->SetElementBuffer(0, m_blue_noise_buffer);
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
@@ -506,7 +511,10 @@ void SSRRenderer::CreateComputePipelines()
 void SSRRenderer::Render(Frame *frame)
 {
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
-    const auto scene_index = scene_binding ? scene_binding.id.value - 1 : 0;
+    const UInt scene_index = scene_binding ? scene_binding.id.ToIndex() : 0;
+
+    const auto &camera_binding = Engine::Get()->render_state.GetCamera();
+    const UInt camera_index = camera_binding ? camera_binding.id.ToIndex() : 0;
 
     auto *command_buffer = frame->GetCommandBuffer();
     const auto frame_index = frame->GetFrameIndex();
@@ -526,7 +534,10 @@ void SSRRenderer::Render(Frame *frame)
         m_write_uvs->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+            HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
+        }
     );
 
     m_write_uvs->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -551,7 +562,10 @@ void SSRRenderer::Render(Frame *frame)
         m_sample->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
-        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+            HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
+        }
     );
 
     m_sample->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -577,7 +591,10 @@ void SSRRenderer::Render(Frame *frame)
             m_blur_hor->GetPipeline(),
             m_descriptor_sets[frame->GetFrameIndex()].Get(),
             0,
-            FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+                HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
+            }
         );
 
         m_blur_hor->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });
@@ -600,7 +617,10 @@ void SSRRenderer::Render(Frame *frame)
             m_blur_vert->GetPipeline(),
             m_descriptor_sets[frame->GetFrameIndex()].Get(),
             0,
-            FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+                HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
+            }
         );
 
         m_blur_vert->GetPipeline()->Dispatch(command_buffer, Extent3D(m_extent) / Extent3D { 8, 8, 1 });

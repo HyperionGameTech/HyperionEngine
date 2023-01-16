@@ -13,6 +13,13 @@ struct TypeID
     using Value = UInt;
 
 private:
+
+    /*! \brief The underlying value of the TypeID object.
+        Note, do not rely on using this directly! This could easily
+        change between implementations, or depending on the order of which
+        TypeIDs are instantiated. */
+    Value value;
+
     struct TypeIDGeneratorBase
     {
         static inline std::atomic<Value> counter { 0u };
@@ -46,12 +53,6 @@ public:
     {
         return TypeIDGenerator<T>::GetID();
     }
-
-    /*! \brief The underlying value of the TypeID object.
-        Note, do not rely on using this directly! This could easily
-        change between implementations, or depending on the order of which
-        TypeIDs are instantiated. */
-    Value value;
 
     constexpr TypeID() : value { } { }
     constexpr TypeID(const Value &id) : value(id) {}

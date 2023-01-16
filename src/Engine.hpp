@@ -173,8 +173,7 @@ public:
         { return m_texture_format_defaults.Get(type); }
 
     Handle<RenderGroup> CreateRenderGroup(
-        const RenderableAttributeSet &renderable_attributes,
-        bool cache = false
+        const RenderableAttributeSet &renderable_attributes
     );
     
     /*! \brief Create a RenderGroup using defined set of DescriptorSets. The result will not be cached. */
@@ -184,8 +183,7 @@ public:
         const Array<const DescriptorSet *> &used_descriptor_sets
     );
 
-    /*! \brief Find or create a RenderGroup from cache. If created, the result will always be cached. */
-    Handle<RenderGroup> FindOrCreateRenderGroup(const RenderableAttributeSet &renderable_attributes);
+
     void AddRenderGroup(Handle<RenderGroup> &render_group);
 
     const auto &GetRenderGroupMapping() const

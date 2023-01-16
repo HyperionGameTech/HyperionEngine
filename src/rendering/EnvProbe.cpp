@@ -265,44 +265,25 @@ void EnvProbe::Init()
 
         AssertThrow(m_parent_scene.IsValid());
 
-        m_scene = CreateObject<Scene>(CreateObject<Camera>(
-            90.0f,
-            -Int(m_dimensions.width), Int(m_dimensions.height),
-            m_camera_near, m_camera_far
-        ));
+        {
+            m_camera = CreateObject<Camera>(
+                90.0f,
+                -Int(m_dimensions.width), Int(m_dimensions.height),
+                m_camera_near, m_camera_far
+            );
 
-        m_scene->GetCamera()->SetViewMatrix(Matrix4::LookAt(Vector3(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vector3(0.0f, 1.0f, 0.0f)));
-        m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
+            m_camera->SetViewMatrix(Matrix4::LookAt(Vector3(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vector3(0.0f, 1.0f, 0.0f)));
+            m_camera->SetFramebuffer(m_framebuffer);
 
-        m_scene->SetName(HYP_NAME(CubemapRendererScene));
-
-        m_scene->SetOverrideRenderableAttributes(RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .bucket = BUCKET_INTERNAL,
-                .cull_faces = IsShadowProbe()
-                    ? FaceCullMode::FRONT
-                    : FaceCullMode::BACK
-            },
-            m_shader->GetID()
-        ));
-
-        // set ID so scene can index into env probes
-        m_scene->SetCustomID(GetID());
-        m_scene->SetParentScene(m_parent_scene);
-
-        InitObject(m_scene);
-
-        Engine::Get()->GetWorld()->AddScene(m_scene);
+            InitObject(m_camera);
+        }
     }
 
     SetReady(true);
 
     OnTeardown([this]() {
-        if (m_scene) {
-            Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
-            m_scene.Reset();
-        }
+        m_render_list.Reset();
+        m_camera.Reset();
 
         if (m_framebuffer) {
             PUSH_RENDER_COMMAND(DestroyCubemapRenderPass, *this);
@@ -494,10 +475,37 @@ void EnvProbe::EnqueueUnbind() const
     }
 }
 
-void EnvProbe::Update()
+void EnvProbe::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
+
+    // Ambient probes do not use their own
+    // render list
+    if (!IsAmbientProbe()) {
+        AssertThrow(m_camera.IsValid());
+        AssertThrow(m_shader.IsValid());
+
+        m_camera->Update(delta);
+
+        m_parent_scene->CollectEntities(
+            m_render_list,
+            m_camera,
+            RenderableAttributeSet(
+                MeshAttributes { },
+                MaterialAttributes {
+                    .bucket = BUCKET_INTERNAL,
+                    .cull_faces = IsShadowProbe()
+                        ? FaceCullMode::FRONT
+                        : FaceCullMode::BACK
+                },
+                m_shader->GetID()
+            ),
+            true // skip frustum culling
+        );
+
+        m_render_list.UpdateRenderGroups();
+    }
 
     if (!m_needs_update) {
         return;
@@ -534,9 +542,9 @@ void EnvProbe::Render(Frame *frame)
 
     EnvProbeIndex probe_index;
 
-    if (!IsAmbientProbe()) {
-        const auto &env_probes = Engine::Get()->GetRenderState().bound_env_probes[GetEnvProbeType()];
+    const auto &env_probes = Engine::Get()->GetRenderState().bound_env_probes[GetEnvProbeType()];
 
+    {
         const auto it = env_probes.Find(GetID());
 
         if (it != env_probes.End()) {
@@ -577,7 +585,7 @@ void EnvProbe::Render(Frame *frame)
     {
         Engine::Get()->GetRenderState().SetActiveEnvProbe(GetID());
 
-        m_scene->Render(frame);
+        m_parent_scene->Render(frame, m_camera, m_render_list);
 
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
     }

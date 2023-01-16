@@ -172,24 +172,24 @@ void Light::EnqueueRenderUpdates()
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-bool Light::IsVisible(ID<Scene> scene_id) const
+bool Light::IsVisible(ID<Camera> camera_id) const
 {
-    if (scene_id.ToIndex() >= m_visibility_bits.size()) {
+    if (camera_id.ToIndex() >= m_visibility_bits.size()) {
         return false;
     }
 
-    return m_visibility_bits.test(scene_id.ToIndex());
+    return m_visibility_bits.test(camera_id.ToIndex());
 }
 
-void Light::SetIsVisible(ID<Scene> scene_id, bool is_visible)
+void Light::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 {
-    if (scene_id.ToIndex() >= m_visibility_bits.size()) {
+    if (camera_id.ToIndex() >= m_visibility_bits.size()) {
         return;
     }
 
-    const bool previous_value = m_visibility_bits.test(scene_id.ToIndex());
+    const bool previous_value = m_visibility_bits.test(camera_id.ToIndex());
 
-    m_visibility_bits.set(scene_id.ToIndex(), is_visible);
+    m_visibility_bits.set(camera_id.ToIndex(), is_visible);
 
     if (is_visible != previous_value) {
         m_shader_data_state |= ShaderDataState::DIRTY;

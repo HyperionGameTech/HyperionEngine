@@ -8,8 +8,10 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Shader.hpp>
 #include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
@@ -81,7 +83,7 @@ private:
 
     Params m_params;
 
-    Handle<Scene> m_scene;
+    Handle<Camera> m_camera;
     Handle<Framebuffer> m_framebuffer;
     Handle<Shader> m_shader;
     Handle<ComputePipeline> m_clear_voxels;
@@ -89,7 +91,9 @@ private:
     Handle<ComputePipeline> m_perform_temporal_blending;
     FixedArray<Array<std::unique_ptr<ImageView>>, max_frames_in_flight> m_mips;
     FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_generate_mipmap_descriptor_sets;
-                                                       
+
+    RenderList m_render_list;
+
     Handle<Texture> m_voxel_image;
     Handle<Texture> m_temporal_blending_image;
     UniformBuffer m_uniform_buffer;

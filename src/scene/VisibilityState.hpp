@@ -2,6 +2,7 @@
 #define HYPERION_V2_VISIBILITY_STATE_H
 
 #include <core/Containers.hpp>
+#include <core/ID.hpp>
 #include <math/MathUtil.hpp>
 #include <Util.hpp>
 #include <Types.hpp>
@@ -10,6 +11,8 @@
 #include <cstdint>
 
 namespace hyperion::v2 {
+
+class Camera;
 
 struct VisibilityStateSnapshot
 {
@@ -41,15 +44,15 @@ struct VisibilityStateSnapshot
     VisibilityStateSnapshot &operator=(VisibilityStateSnapshot &&other) noexcept = delete;
     ~VisibilityStateSnapshot() = default;
 
-    HYP_FORCE_INLINE Bitmask Get(IDBase scene_id) const
-        { return bits & (1ull << static_cast<Bitmask>(scene_id.value - 1)); }
+    HYP_FORCE_INLINE Bitmask Get(ID<Camera> id) const
+        { return bits & (1ull << Bitmask(id.ToIndex())); }
 
-    HYP_FORCE_INLINE void Set(IDBase scene_id, bool visible)
+    HYP_FORCE_INLINE void Set(ID<Camera> id, bool visible)
     {
         if (visible) {
-            bits |= (1ull << static_cast<Bitmask>(scene_id.value - 1));
+            bits |= (1ull << Bitmask(id.ToIndex()));
         } else {
-            bits &= (~(1ull << (scene_id.value - 1)));
+            bits &= (~(1ull << id.ToIndex()));
         }
     }
 
@@ -62,7 +65,7 @@ struct VisibilityState
     using Bitmask = VisibilityStateSnapshot::Bitmask;
     using Nonce = VisibilityStateSnapshot::Nonce;
 
-    static constexpr UInt max_scenes = sizeof(Bitmask) * CHAR_BIT;
+    static constexpr UInt max_visibility_states = sizeof(Bitmask) * CHAR_BIT;
     static constexpr UInt cursor_size = 3u;
 
     FixedArray<VisibilityStateSnapshot, cursor_size> snapshots { };
@@ -74,14 +77,14 @@ struct VisibilityState
     VisibilityState &operator=(VisibilityState &&other) noexcept = delete;
     ~VisibilityState() = default;
 
-    HYP_FORCE_INLINE bool Get(IDBase scene_id, UInt8 cursor) const
-        { return snapshots[cursor].Get(scene_id); }
+    HYP_FORCE_INLINE bool Get(ID<Camera> id, UInt8 cursor) const
+        { return snapshots[cursor].Get(id); }
 
-    HYP_FORCE_INLINE void SetVisible(IDBase scene_id, UInt8 cursor)
-        { snapshots[cursor].Set(scene_id, true); }
+    HYP_FORCE_INLINE void SetVisible(ID<Camera> id, UInt8 cursor)
+        { snapshots[cursor].Set(id, true); }
 
-    HYP_FORCE_INLINE void SetHidden(IDBase scene_id, UInt8 cursor)
-        { snapshots[cursor].Set(scene_id, false); }
+    HYP_FORCE_INLINE void SetHidden(ID<Camera> id, UInt8 cursor)
+        { snapshots[cursor].Set(id, false); }
 
     HYP_FORCE_INLINE bool ValidToParent(const VisibilityState &parent, UInt8 cursor) const
         { return snapshots[cursor].ValidToParent(parent.snapshots[cursor]); }

@@ -127,7 +127,7 @@ public:
     bool GetNearestOctants(const Vector3 &position, std::array<Octree *, 8> &out) const;
 
     void NextVisibilityState();
-    void CalculateVisibility(Scene *scene);
+    void CalculateVisibility(Camera *camera);
     UInt8 LoadVisibilityCursor() const;
     UInt8 LoadPreviousVisibilityCursor() const;
 
@@ -169,7 +169,7 @@ private:
     Result UpdateInternal(Entity *entity);
     Result RemoveInternal(Entity *entity);
     Result RebuildExtendInternal(const BoundingBox &extend_include_aabb);
-    void UpdateVisibilityState(Scene *scene, UInt8 cursor);
+    void UpdateVisibilityState(Camera *camera, UInt8 cursor);
 
     /* Called from entity - remove the pointer */
     void OnEntityRemoved(Entity *entity);

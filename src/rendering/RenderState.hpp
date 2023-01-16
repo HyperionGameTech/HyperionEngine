@@ -9,6 +9,7 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/DrawProxy.hpp>
 #include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
 #include <math/MathUtil.hpp>
 
 #include <util/Defines.hpp>
@@ -31,6 +32,7 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_ENV_PROBES = 0x4,
     RENDER_STATE_ACTIVE_ENV_PROBE = 0x8,
     RENDER_STATE_VISIBILITY = 0x10,
+    RENDER_STATE_CAMERA = 0x20,
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
@@ -74,9 +76,21 @@ struct RenderBinding<Scene>
     explicit operator bool() const { return bool(id); }
 };
 
+template <>
+struct RenderBinding<Camera>
+{
+    static const RenderBinding empty;
+
+    ID<Camera> id;
+    CameraDrawProxy camera;
+
+    explicit operator bool() const { return bool(id); }
+};
+
 struct RenderState
 {
     std::stack<RenderBinding<Scene>> scene_bindings;
+    std::stack<RenderBinding<Camera>> camera_bindings;
     FlatMap<ID<Light>, LightDrawProxy> lights;
     FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX> bound_env_probes; // map to texture slot
     ID<EnvGrid> bound_env_grid;
@@ -138,6 +152,30 @@ struct RenderState
             : scene_bindings.top();
     }
 
+    void BindCamera(const Camera *camera)
+    {
+        if (camera == nullptr) {
+            camera_bindings.push(RenderBinding<Camera>::empty);
+        } else {
+            camera_bindings.push(RenderBinding<Camera> {
+                camera->GetID(),
+                camera->GetDrawProxy()
+            });
+        }
+    }
+
+    void UnbindCamera()
+    {
+        camera_bindings.pop();
+    }
+
+    const RenderBinding<Camera> &GetCamera() const
+    {
+        return camera_bindings.empty()
+            ? RenderBinding<Camera>::empty
+            : camera_bindings.top();
+    }
+
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
     {
         AssertThrow(type < ENV_PROBE_TYPE_MAX);
@@ -190,6 +228,10 @@ struct RenderState
 
         if (mask & RENDER_STATE_SCENE) {
             scene_bindings = { };
+        }
+
+        if (mask & RENDER_STATE_CAMERA) {
+            camera_bindings = { };
         }
 
         if (mask & RENDER_STATE_LIGHTS) {

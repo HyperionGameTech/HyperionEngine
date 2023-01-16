@@ -78,7 +78,7 @@ void PointShadowRenderer::OnRender(Frame *frame)
     AssertThrow(m_env_probe.IsValid());
     AssertThrow(m_light.IsValid());
 
-    if (m_light->GetDrawProxy().visibility_bits & (1ull << SizeType(GetParent()->GetSceneID().ToIndex()))) {
+    if (m_light->GetDrawProxy().visibility_bits & (1ull << SizeType(GetParent()->GetScene()->GetCamera().GetID().ToIndex()))) {
         if (!m_last_visibility_state) {
             Engine::Get()->GetRenderState().BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
 

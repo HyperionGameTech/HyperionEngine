@@ -77,16 +77,9 @@ void World::PerformSceneUpdates()
         }
 
         scene->SetWorld(nullptr);
-        m_scenes.Erase(it);
 
-        // remove scenes with that as parent
-        for (auto other_it = m_scenes.Begin(); other_it != m_scenes.End();) {
-            if ((*other_it)->GetParentScene() == scene) {
-                other_it = m_scenes.Erase(other_it);
-            } else {
-                ++other_it;
-            }
-        }
+        m_scenes.Erase(it);
+        m_render_lists.Erase(it->GetID());
     }
 
     m_scenes_pending_removal.Clear();
@@ -98,6 +91,7 @@ void World::PerformSceneUpdates()
 
         scene->SetWorld(this);
 
+        m_render_lists.Insert({ scene.GetID(), RenderList { } });
         m_scenes.Insert(std::move(scene));
     }
 
@@ -114,10 +108,6 @@ void World::Update(GameCounter::TickUnit delta)
 
     m_octree.NextVisibilityState();
 
-    for (Handle<Scene> &scene : m_scenes) {
-        m_octree.CalculateVisibility(scene.Get());
-    }
-
     m_physics_world.Tick(delta);
 
     if (m_has_scene_updates.load()) {
@@ -125,7 +115,12 @@ void World::Update(GameCounter::TickUnit delta)
     }
 
     for (Handle<Scene> &scene : m_scenes) {
+        RenderList &render_list = m_render_lists[scene->GetID()];
+
         scene->Update(delta);
+
+        scene->CollectEntities(render_list, scene->GetCamera());
+        render_list.UpdateRenderGroups();
     }
 }
 

@@ -35,10 +35,11 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
 
             // global scene data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-                ->SetSubDescriptor({
-                    .buffer = Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get(),
-                    .range = static_cast<UInt>(sizeof(SceneShaderData))
-                });
+                ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+
+            // current camera
+            indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(2)
+                ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
             // instances buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
@@ -458,7 +459,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         m_object_visibility->GetPipeline(),
         m_descriptor_sets[frame_index].Get(),
         static_cast<DescriptorSet::Index>(0),
-        FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
+            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+        }
     );
     
     m_indirect_draw_state.GetIndirectBuffer(frame_index)->InsertBarrier(

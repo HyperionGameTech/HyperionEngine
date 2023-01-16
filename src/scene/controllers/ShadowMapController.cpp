@@ -24,6 +24,8 @@ void ShadowMapController::AddShadowMapRenderer(const Handle<Scene> &scene)
 
         m_shadow_map_renderer = scene->GetEnvironment()->AddRenderComponent<ShadowMapRenderer>(m_shadow_map_renderer_name);
     }
+
+    UpdateShadowCamera(GetOwner()->GetTransform());
 }
 
 void ShadowMapController::RemoveShadowMapRenderer()
@@ -39,6 +41,47 @@ void ShadowMapController::RemoveShadowMapRenderer()
         m_shadow_map_renderer_name = Name::invalid;
         m_shadow_map_renderer_scene.Reset();
     }
+}
+
+void ShadowMapController::UpdateShadowCamera(const Transform &transform)
+{
+    if (!m_light || !m_shadow_map_renderer) {
+        return;
+    }
+
+    // For directional lights
+
+    const Vector3 &center = transform.GetTranslation();
+
+    BoundingBox aabb = BoundingBox(center - 40.0f, center + 40.0f);
+
+    const Vector3 light_direction = m_light->GetPosition().Normalized() * -1.0f;
+
+    AssertThrow(m_shadow_map_renderer->GetPass() != nullptr);
+
+    const Handle<Camera> &camera = m_shadow_map_renderer->GetPass()->GetCamera();
+
+    if (!camera) {
+        return;
+    }
+
+    camera->SetTranslation(center + light_direction);
+    camera->SetTarget(center);
+    
+    auto corners = aabb.GetCorners();
+
+    for (auto &corner : corners) {
+        corner = camera->GetViewMatrix() * corner;
+
+        aabb.max = MathUtil::Max(aabb.max, corner);
+        aabb.min = MathUtil::Min(aabb.min, corner);
+    }
+
+    m_shadow_map_renderer->SetCameraData(ShadowMapCameraData {
+        camera->GetViewMatrix(),
+        camera->GetProjectionMatrix(),
+        aabb
+    });
 }
 
 void ShadowMapController::OnAttachedToScene(ID<Scene> id)
@@ -85,7 +128,11 @@ void ShadowMapController::OnRemoved()
 
     // OnDetachedFromScene() already handles removing the renderer
 
-    m_light.Reset();
+
+    if (m_light) {
+        m_light->SetShadowMapIndex(~0u);
+        m_light.Reset();
+    }
 }
 
 void ShadowMapController::OnUpdate(GameCounter::TickUnit delta)
@@ -99,40 +146,7 @@ void ShadowMapController::OnTransformUpdate(const Transform &transform)
 
     // Update camera data on transform change
 
-    if (!m_light || !m_shadow_map_renderer) {
-        return;
-    }
-
-    // For directional lights
-
-    BoundingBox aabb = m_light->GetWorldAABB();
-    const Vector3 center = aabb.GetCenter();
-
-    const Vector3 light_direction = m_light->GetPosition().Normalized() * -1.0f;
-
-    Handle<Camera> &camera = m_shadow_map_renderer->GetPass().GetScene()->GetCamera();
-
-    if (!camera) {
-        return;
-    }
-
-    camera->SetTranslation(center + light_direction);
-    camera->SetTarget(center);
-    
-    auto corners = aabb.GetCorners();
-
-    for (auto &corner : corners) {
-        corner = camera->GetViewMatrix() * corner;
-
-        aabb.max = MathUtil::Max(aabb.max, corner);
-        aabb.min = MathUtil::Min(aabb.min, corner);
-    }
-
-    m_shadow_map_renderer->SetCameraData(ShadowMapCameraData {
-        camera->GetViewMatrix(),
-        camera->GetProjectionMatrix(),
-        aabb
-    });
+    UpdateShadowCamera(transform);
 }
 
 } // namespace hyperion::v2
