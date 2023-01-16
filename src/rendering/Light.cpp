@@ -154,16 +154,20 @@ void Light::Update()
 
 void Light::EnqueueRenderUpdates()
 {
-    RenderCommands::Push<RENDER_COMMAND(UpdateLightShaderData)>(*this, LightDrawProxy {
-        .id = m_id,
-        .type = m_type,
-        .color = m_color,
-        .radius = m_radius,
-        .falloff = m_falloff,
-        .shadow_map_index = m_shadow_map_index,
-        .position_intensity = Vector4(m_position, m_intensity),
-        .visibility_bits = m_visibility_bits.to_ullong()
-    });
+    PUSH_RENDER_COMMAND(
+        UpdateLightShaderData,
+        *this,
+        LightDrawProxy {
+            .id = m_id,
+            .type = m_type,
+            .color = m_color,
+            .radius = m_radius,
+            .falloff = m_falloff,
+            .shadow_map_index = m_shadow_map_index,
+            .position_intensity = Vector4(m_position, m_intensity),
+            .visibility_bits = m_visibility_bits.to_ullong()
+        }
+    );
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }

@@ -239,7 +239,7 @@ void EnvProbe::Init()
     if (IsAmbientProbe()) {
         CreateSHData();
     } else {
-        if (GetEnvProbeType() == ENV_PROBE_TYPE_REFLECTION) {
+        if (IsReflectionProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
                 InternalFormat::RGBA8_SRGB,
@@ -247,7 +247,7 @@ void EnvProbe::Init()
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 nullptr
             ));
-        } else if (GetEnvProbeType() == ENV_PROBE_FLAGS_SHADOW) {
+        } else if (IsShadowProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
                 shadow_map_format,

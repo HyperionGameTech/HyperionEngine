@@ -25,6 +25,8 @@
 #include <scene/controllers/paging/BasicPagingController.hpp>
 #include <scene/controllers/ScriptedController.hpp>
 #include <scene/controllers/physics/RigidBodyController.hpp>
+#include <scene/controllers/LightController.hpp>
+#include <scene/controllers/ShadowMapController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
 #include <core/lib/FlatSet.hpp>
@@ -112,7 +114,7 @@ public:
     {
         Game::InitGame();
     
-        Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
+        // Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
 
         m_scene->SetCamera(CreateObject<Camera>(
             70.0f,
@@ -136,19 +138,23 @@ public:
 
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(0.0f, 1.0f, 0.0f),
-                Color(1.0f, 0.0f, 0.0f),
+                Color(1.0f, 1.0f, 1.0f),
                 15.0f,
-                20.35f
+                200.35f
             )));
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(-2.0f, 0.75f, 0.0f),
-                Color(0.0f, 0.0f, 1.0f),
-                15.0f,
-                20.0f
-            )));
+            // m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //     Vector3(-2.0f, 0.75f, 0.0f),
+            //     Color(0.0f, 0.0f, 1.0f),
+            //     15.0f,
+            //     20.0f
+            // )));
 
             for (auto &light : m_point_lights) {
-                m_scene->AddLight(light);
+                // m_scene->AddLight(light);
+
+                auto point_light_entity = CreateObject<Entity>();
+                point_light_entity->AddController<LightController>(light);
+                GetScene()->AddEntity(std::move(point_light_entity));
             }
         }
 

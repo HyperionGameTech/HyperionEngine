@@ -71,7 +71,7 @@ public:
         { return m_particle_system; }
 
     template <class T>
-    void AddRenderComponent(Name name, UniquePtr<T> &&component)
+    T *AddRenderComponent(Name name, UniquePtr<T> &&component)
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -85,26 +85,36 @@ public:
             component->ComponentInit();
         }
 
+        T *ptr = component.Get();
+
         std::lock_guard guard(m_render_component_mutex);
 
         const auto it = m_render_components_pending_addition.Find<T>();
 
         if (it != m_render_components_pending_addition.End()) {
-            it->second.Set(name, std::move(component));
+            auto insert_result = it->second.Set(name, std::move(component));
+
+            AssertThrow(insert_result.second);
         } else {
             FlatMap<Name, UniquePtr<RenderComponentBase>> component_map;
             component_map.Set(name, std::move(component));
 
-            m_render_components_pending_addition.Set<T>(std::move(component_map));
+            auto insert_result = m_render_components_pending_addition.Set<T>(std::move(component_map));
+
+            AssertThrow(insert_result.second);
         }
         
         m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS);
+
+        AssertThrow(ptr != nullptr);
+
+        return ptr;
     }
 
     template <class T, class ...Args>
-    void AddRenderComponent(Name name, Args &&... args)
+    T *AddRenderComponent(Name name, Args &&... args)
     {
-        AddRenderComponent(name, UniquePtr<T>::Construct(std::forward<Args>(args)...));
+        return AddRenderComponent(name, UniquePtr<T>::Construct(std::forward<Args>(args)...));
     }
 
     /*! CALL FROM RENDER THREAD ONLY */

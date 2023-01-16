@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_SHADOWS_H
 #define HYPERION_V2_SHADOWS_H
 
+#include <scene/Controller.hpp>
+
 #include <rendering/FullScreenPass.hpp>
 #include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
@@ -16,6 +18,8 @@
 #include <scene/camera/Camera.hpp>
 #include <Types.hpp>
 
+#include <mutex>
+
 namespace hyperion::v2 {
 
 using renderer::Frame;
@@ -29,6 +33,13 @@ enum class ShadowMode
     PCF,
     CONTACT_HARDENED,
     VSM
+};
+
+struct ShadowMapCameraData
+{
+    Matrix4 view;
+    Matrix4 projection;
+    BoundingBox aabb;
 };
 
 struct RenderCommand_CreateShadowMapDescriptors;
@@ -112,6 +123,35 @@ private:
     std::unique_ptr<ImageView> m_shadow_map_image_view;
     Handle<ComputePipeline> m_blur_shadow_map;
     FixedArray<DescriptorSet, 2> m_blur_descriptor_sets;
+};
+
+class ShadowMapRenderer : public RenderComponent<ShadowMapRenderer>
+{
+public:
+    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SHADOWS;
+
+    ShadowMapRenderer();
+    ShadowMapRenderer(const ShadowMapRenderer &other) = delete;
+    ShadowMapRenderer &operator=(const ShadowMapRenderer &other) = delete;
+    virtual ~ShadowMapRenderer();
+
+    ShadowPass &GetPass() { return m_shadow_pass; }
+    const ShadowPass &GetPass() const { return m_shadow_pass; }
+
+    void SetCameraData(const ShadowMapCameraData &camera_data);
+
+    void Init();     // init on render thread
+    void InitGame(); // init on game thread
+
+    void OnUpdate(GameCounter::TickUnit delta);
+    void OnRender(Frame *frame);
+
+private:
+    void UpdateSceneCamera();
+
+    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
+
+    ShadowPass m_shadow_pass;
 };
 
 class ShadowRenderer

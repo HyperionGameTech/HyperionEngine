@@ -514,4 +514,62 @@ void ShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_inde
     // TODO: Remove descriptor, set new descriptor
 }
 
+
+
+
+ShadowMapRenderer::ShadowMapRenderer()
+    : RenderComponent()
+{
+}
+
+ShadowMapRenderer::~ShadowMapRenderer()
+{
+    m_shadow_pass.Destroy(); // flushes render queue
+}
+
+// called from render thread
+void ShadowMapRenderer::Init()
+{
+    AssertThrow(IsValidComponent());
+    m_shadow_pass.SetShadowMapIndex(GetComponentIndex());
+    m_shadow_pass.Create();
+}
+
+// called from game thread
+void ShadowMapRenderer::InitGame()
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    m_shadow_pass.GetScene()->SetParentScene(Handle<Scene>(GetParent()->GetScene()->GetID()));
+    Engine::Get()->GetWorld()->AddScene(Handle<Scene>(m_shadow_pass.GetScene()));
+}
+
+void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
+{
+    // do nothing
+}
+
+void ShadowMapRenderer::OnRender(Frame *frame)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    
+    m_shadow_pass.Render(frame);
+}
+
+void ShadowMapRenderer::SetCameraData(const ShadowMapCameraData &camera_data)
+{
+    PUSH_RENDER_COMMAND(
+        UpdateShadowMapRenderData,
+        GetPass().GetShadowMapIndex(),
+        camera_data.view,
+        camera_data.projection,
+        camera_data.aabb
+    );
+}
+
+void ShadowMapRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
+{
+    AssertThrowMsg(false, "Not implemented");
+}
+
 } // namespace hyperion::v2
