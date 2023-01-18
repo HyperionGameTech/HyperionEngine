@@ -145,7 +145,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    m_scene->Render(frame, m_scene->GetCamera(), m_render_list);
+    m_render_list.Render(frame, m_scene.Get(), m_scene->GetCamera());
 }
 
 } // namespace hyperion::v2

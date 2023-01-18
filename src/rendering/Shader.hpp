@@ -102,8 +102,7 @@ public:
 
     Handle<Shader> GetOrCreate(
         Name name,
-        const ShaderProps &props = { },
-        VertexAttributeSet vertex_attributes = VertexAttributeSet()
+        const ShaderProps &props = { }
     );
 
 private:

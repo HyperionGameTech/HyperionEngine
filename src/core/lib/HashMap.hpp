@@ -289,7 +289,7 @@ public:
 
     bool Contains(const KeyType &key) const;
     
-    Iterator Erase(ConstIterator iter);
+    Iterator Erase(Iterator iter);
     bool Erase(const KeyType &key);
 
     void Set(const KeyType &key, const ValueType &value);
@@ -456,7 +456,7 @@ bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
 }
 
 template <class KeyType, class ValueType>
-auto HashMap<KeyType, ValueType>::Erase(ConstIterator iter) -> Iterator
+auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
 {
     if (iter == End()) {
         return End();
@@ -468,7 +468,7 @@ auto HashMap<KeyType, ValueType>::Erase(ConstIterator iter) -> Iterator
     AssertThrow(iter.bucket_iter.index < iter.bucket_iter.bucket->elements.Size());
 #endif
 
-    const typename HashBucket<KeyType, ValueType>::ElementList::ConstIterator element_list_it { iter.bucket_iter.bucket->elements.Data() + iter.bucket_iter.index };
+    const typename HashBucket<KeyType, ValueType>::ElementList::Iterator element_list_it { iter.bucket_iter.bucket->elements.Data() + iter.bucket_iter.index };
 
     const auto erase_it = iter.bucket_iter.bucket->elements.Erase(element_list_it);
     const SizeType erase_index = std::distance(iter.bucket_iter.bucket->elements.Begin(), erase_it);

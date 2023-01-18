@@ -360,6 +360,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     AssertThrow(m_voxelizer != nullptr);
+
     m_voxelizer->Render(frame, GetParent()->GetScene());
     
     // temp

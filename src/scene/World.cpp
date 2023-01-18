@@ -132,6 +132,15 @@ void World::PreRender(Frame *frame)
 
     // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
     Engine::Get()->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
+
+    /// TEMP ///
+
+    for (auto &render_list : m_render_lists) {
+        for (auto &it : render_list.second.m_draw_collection->GetEntityList()) {
+            if (it.second.render_group)
+                it.second.render_group->SetDrawProxies(it.second.drawables);
+        }
+    }
 }
 
 void World::Render(Frame *frame)

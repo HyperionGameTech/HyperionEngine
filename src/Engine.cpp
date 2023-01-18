@@ -290,11 +290,19 @@ void Engine::PrepareFinalPass()
 
     ShaderProps final_output_props;
     final_output_props.Set("TEMPORAL_AA", GetConfig().Get(CONFIG_TEMPORAL_AA));
-    final_output_props.Set("DEBUG_SSR", GetConfig().Get(CONFIG_DEBUG_SSR));
-    final_output_props.Set("DEBUG_HBAO", GetConfig().Get(CONFIG_DEBUG_HBAO));
-    final_output_props.Set("DEBUG_HBIL", GetConfig().Get(CONFIG_DEBUG_HBIL));
-    final_output_props.Set("DEBUG_REFLECTIONS", GetConfig().Get(CONFIG_DEBUG_REFLECTIONS));
-    final_output_props.Set("DEBUG_IRRADIANCE", GetConfig().Get(CONFIG_DEBUG_IRRADIANCE));
+
+    if (GetConfig().Get(CONFIG_DEBUG_SSR)) {
+        final_output_props.Set("DEBUG_SSR");
+    } else if (GetConfig().Get(CONFIG_DEBUG_HBAO)) {
+        final_output_props.Set("DEBUG_HBAO");
+    } else if (GetConfig().Get(CONFIG_DEBUG_HBIL)) {
+        final_output_props.Set("DEBUG_HBIL");
+    } else if (GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
+        final_output_props.Set("DEBUG_REFLECTIONS");
+    } else if (GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
+        final_output_props.Set("DEBUG_IRRADIANCE");
+    }
+
     final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(m_instance->swapchain->image_format));
 
     auto shader = GetShaderManager().GetOrCreate(

@@ -457,25 +457,19 @@ auto DynArray<T, NumInlineBytes>::operator=(const DynArray &other) -> DynArray&
             Memory::Construct<T>(&buffer[i].data_buffer, other_buffer[i].Get());
         }
     } else {
-        // have to destroy excess items
-        if (other.Size() < Size()) {
-            for (auto i = other.Size(); i < Size(); ++i) {
-                Memory::Destruct(buffer[m_start_offset + i].Get());
-            }
+        const SizeType current_size = Size();
+        const SizeType other_size = other.Size();
+
+        for (SizeType i = m_start_offset; i < m_size; i++) {
+            Memory::Destruct<T>(&buffer[i].data_buffer);
         }
 
-        // capacity already fits, no need to reallocate memory.
-        for (SizeType i = m_start_offset, j = other.m_start_offset; i < m_size && j < other.m_size; ++i, ++j) {
-            buffer[i].Get() = other_buffer[j].Get();
+        for (SizeType i = 0; i < other_size; i++) {
+            Memory::Construct<T>(&buffer[i].data_buffer, other_buffer[other.m_start_offset + i].Get());
         }
 
-        // have to construct new items.
-        for (SizeType i = m_size, j = other.m_start_offset + Size(); j < other.m_size; ++i, ++j) {
-            Memory::Construct<T>(&buffer[i].data_buffer, other_buffer[j].Get());
-        }
-
-        m_size = other.Size() + m_start_offset;
-        // keep start index, buffer, capacity
+        m_start_offset = 0;
+        m_size = other_size;
     }
 
     return *this;

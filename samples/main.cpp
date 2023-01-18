@@ -289,7 +289,7 @@ public:
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
                 HYP_NAME(AmbientGrid0),
                 test_model.GetWorldAABB() * 1.15f,//BoundingBox(Vector3(-100.0f, -10.0f, -100.0f), Vector3(100.0f, 100.0f, 100.0f)),
-                Extent3D { 17, 2, 17 }
+                Extent3D { 12, 2, 12 }
             );
         }
 
@@ -534,7 +534,7 @@ public:
             }
         }
 
-        if (true) { // particles test
+        if (false) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/smoke.png"),
                 .max_particles = 1024u,

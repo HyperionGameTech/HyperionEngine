@@ -57,7 +57,7 @@ using KeyCode = UInt16;
 
 enum SystemKey : KeyCode
 {
-    KEY_UNKNOWN = -1,
+    KEY_UNKNOWN = KeyCode(-1),
 
     KEY_A = 'A',
     KEY_B,

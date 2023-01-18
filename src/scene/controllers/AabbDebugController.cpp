@@ -36,8 +36,10 @@ void AABBDebugController::OnAdded()
     Handle<Mesh> mesh = MeshBuilder::Cube();
     VertexAttributeSet vertex_attributes = mesh->GetVertexAttributes();
 
+    const ShaderProps shader_properties(vertex_attributes);
+
     Handle<Material> material = CreateObject<Material>(HYP_NAME(aabb_material));
-    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(DebugAABB), ShaderProps(vertex_attributes));
+    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(DebugAABB), shader_properties);
 
     m_aabb_entity = CreateObject<Entity>(
         std::move(mesh),

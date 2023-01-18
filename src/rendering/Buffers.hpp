@@ -103,7 +103,7 @@ struct ObjectShaderData
     ShaderVec4<Float> world_aabb_min;
 
     UInt32 entity_index;
-    UInt32 scene_index;
+    UInt32 _unused;
     UInt32 material_index;
     UInt32 skeleton_index;
 

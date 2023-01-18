@@ -142,6 +142,7 @@ public:
     // render non-indirect (collects draw calls, then renders)
     void Render(Frame *frame);
 
+    void SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies);
     void SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies);
 
     RendererProxy GetProxy()

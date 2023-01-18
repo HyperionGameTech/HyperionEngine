@@ -71,16 +71,7 @@ using MaterialDrawProxy = DrawProxy<STUB_CLASS(Material)>;
 template <>
 struct DrawProxy<STUB_CLASS(Entity)>
 {
-    // rendering objects (sent from game thread to
-    // rendering thread when updates are enqueued)
-    // engine will hold onto RenderResources like Mesh and Material
-    // for at least {max_frames_in_flight} frames, so we will have
-    // rendered the DrawProxy before the ptr is invalidated.
-    Mesh *mesh = nullptr;
-    Material *material = nullptr;
-
     ID<Entity> entity_id;
-    ID<Scene> scene_id;
     ID<Mesh> mesh_id;
     ID<Material> material_id;
     ID<Skeleton> skeleton_id;

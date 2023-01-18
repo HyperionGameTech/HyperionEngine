@@ -47,8 +47,8 @@ public:
 
     void Init();
     void Update(GameCounter::TickUnit delta);
-    void CollectEntities(Scene *scene);
-    void Render(Frame *frame, Scene *scene);
+    void CollectEntities(const Scene *scene);
+    void Render(Frame *frame, const Scene *scene);
 
 private:
     void CreateBuffers();
@@ -58,7 +58,7 @@ private:
 
     void ResizeFragmentListBuffer(Frame *frame);
 
-    void RenderFragmentList(Frame *frame, Scene *scene, bool count_mode);
+    void RenderFragmentList(Frame *frame, const Scene *scene, bool count_mode);
 
     Handle<Camera> m_camera;
     RenderList m_render_list;

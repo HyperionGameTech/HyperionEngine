@@ -23,7 +23,7 @@ public:
     {
         out.SetProperty("name", FBOMName(), in_object.GetCompiledShader().name);
 
-        auto properties_array = in_object.GetCompiledShader().properties.ToArray();
+        Array<ShaderProperty> properties_array = in_object.GetCompiledShader().properties.ToArray();
 
         out.SetProperty("properties.size", FBOMUnsignedInt(), UInt(properties_array.Size()));
 

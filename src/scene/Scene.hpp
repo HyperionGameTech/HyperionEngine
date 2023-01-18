@@ -180,15 +180,7 @@ public:
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
         bool skip_frustum_culling = false
-    );
-
-    void Render(
-        Frame *frame,
-        const Handle<Camera> &camera,
-        const RenderList &render_list,
-        const void *push_constant_ptr = nullptr,
-        SizeType push_constant_size = 0
-    );
+    ) const;
 
 private:
     // World only calls
@@ -212,6 +204,8 @@ private:
     FlatMap<ID<Entity>, Handle<Entity>> m_entities;
     FlatMap<ID<Light>, Handle<Light>> m_lights;
     FlatMap<ID<EnvProbe>, Handle<EnvProbe>> m_env_probes;
+
+
 
     // NOTE: not for thread safety, it's to defer updates so we don't
     // remove in the update loop.

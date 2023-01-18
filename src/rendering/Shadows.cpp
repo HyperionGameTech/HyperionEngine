@@ -334,11 +334,7 @@ void ShadowPass::Render(Frame *frame)
 
     AssertThrow(m_parent_scene.IsValid());
 
-    m_parent_scene->Render(
-        frame,
-        m_camera,
-        m_render_list
-    );
+    m_render_list.Render(frame, m_parent_scene.Get(), m_camera);
 
     if (m_shadow_mode == ShadowMode::VSM) {
         // blur the image using compute shader

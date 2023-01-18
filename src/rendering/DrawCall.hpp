@@ -71,7 +71,6 @@ struct DrawCall
     BufferTicket<EntityInstanceBatch> batch_index;
     SizeType draw_command_index;
 
-    ID<Material> material_id;
     ID<Skeleton> skeleton_id;
 
     UInt entity_id_count;
@@ -80,6 +79,7 @@ struct DrawCall
     UInt packed_data[4];
 
     Handle<Mesh> mesh;
+    Handle<Material> material;
     //Mesh *mesh;
 };
 

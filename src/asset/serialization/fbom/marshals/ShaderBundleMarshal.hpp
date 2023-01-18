@@ -35,10 +35,37 @@ public:
 
             out.SetProperty(
                 String("properties.") + String::ToString(index) + ".name",
-                FBOMString(),
-                item.name.Size(),
-                item.name.Data()
+                FBOMData::FromString(item.name)
             );
+
+            out.SetProperty(
+                String("properties.") + String::ToString(index) + ".is_permutation",
+                FBOMData::FromBool(item.is_permutation)
+            );
+
+            out.SetProperty(
+                String("properties.") + String::ToString(index) + ".is_global",
+                FBOMData::FromBool(item.is_global)
+            );
+
+            out.SetProperty(
+                String("properties.") + String::ToString(index) + ".is_value_group",
+                FBOMData::FromBool(item.IsValueGroup())
+            );
+
+            if (item.IsValueGroup()) {
+                out.SetProperty(
+                    String("properties.") + String::ToString(index) + ".num_possible_values",
+                    FBOMData::FromUInt32(UInt32(item.possible_values.Size()))
+                );
+
+                for (SizeType i = 0; i < item.possible_values.Size(); i++) {
+                    out.SetProperty(
+                        String("properties.") + String::ToString(index) + ".possible_values[" + String::ToString(i) + "]",
+                        FBOMData::FromString(item.possible_values[i])
+                    );
+                }
+            }
         }
 
         for (SizeType index = 0; index < in_object.modules.Size(); index++) {
@@ -74,13 +101,37 @@ public:
         for (UInt i = 0; i < num_properties; i++) {
             const auto param_string = String("properties.") + String::ToString(i);
 
-            String property_name;
+            ShaderProperty property;
 
-            if (auto err = in.GetProperty(param_string + ".name").ReadString(property_name)) {
+            if (auto err = in.GetProperty(param_string + ".name").ReadString(property.name)) {
                 continue;
             }
 
-            compiled_shader->properties.Set(property_name);
+            bool is_value_group = false;
+
+            in.GetProperty(param_string + ".is_permutation").ReadBool(&property.is_permutation);
+            in.GetProperty(param_string + ".is_global").ReadBool(&property.is_global);
+            in.GetProperty(param_string + ".is_value_group").ReadBool(&is_value_group);
+
+            if (is_value_group) {
+                UInt32 num_possible_values = 0;
+
+                if (auto err = in.GetProperty(param_string + ".num_possible_values").ReadUInt32(&num_possible_values)) {
+                    continue;
+                }
+
+                for (UInt32 i = 0; i < num_possible_values; i++) {
+                    String possible_value;
+
+                    if (auto err = in.GetProperty(param_string + ".possible_values[" + String::ToString(i) + "]").ReadString(possible_value)) {
+                        continue;
+                    }
+
+                    property.possible_values.PushBack(std::move(possible_value));
+                }
+            }
+
+            compiled_shader->properties.Set(property);
         }
 
         for (SizeType index = 0; index < ShaderModule::Type::MAX; index++) {

@@ -30,10 +30,15 @@ static ShaderProps GetDeferredShaderProps()
     props.Set("ENV_GRID_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI));
     props.Set("VCT_ENABLED_TEXTURE", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI));
     props.Set("VCT_ENABLED_SVO", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
-    props.Set("DEBUG_REFLECTIONS", Engine::Get()->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS));
-    props.Set("DEBUG_IRRADIANCE", Engine::Get()->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE));
     props.Set("HBIL_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBIL));
     props.Set("HBAO_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBAO));
+
+
+    if (Engine::Get()->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
+        props.Set("DEBUG_REFLECTIONS");
+    } else if (Engine::Get()->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
+        props.Set("DEBUG_IRRADIANCE");
+    }
 
     return props;
 }
@@ -806,20 +811,20 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-            renderer_instance->PerformRenderingIndirect(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
+            render_group->PerformRenderingIndirect(frame);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-            renderer_instance->PerformRenderingIndirect(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
+            render_group->PerformRenderingIndirect(frame);
         }
     } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-            renderer_instance->PerformRendering(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
+            render_group->PerformRendering(frame);
         }
         
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-            renderer_instance->PerformRendering(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
+            render_group->PerformRendering(frame);
         }
     }
 }
@@ -827,20 +832,20 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
     if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-            renderer_instance->PerformRenderingIndirect(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
+            render_group->PerformRenderingIndirect(frame);
         }
     } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-            renderer_instance->PerformRendering(frame);
+        for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
+            render_group->PerformRendering(frame);
         }
     }
 }
 
 void DeferredRenderer::RenderUI(Frame *frame)
 {
-    for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
-        renderer_instance->Render(frame);
+    for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
+        render_group->Render(frame);
     }
 }
 

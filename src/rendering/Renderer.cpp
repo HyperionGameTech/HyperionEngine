@@ -243,22 +243,7 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
     const VisibilityStateSnapshot &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
 
     for (EntityDrawProxy &draw_proxy : m_draw_proxies) {
-
-        if (draw_proxy.mesh == nullptr) {
-            continue;
-        }
-
-        /*if (perform_culling) {
-            const auto &snapshot = entity->GetVisibilityState().snapshots[visibility_cursor];
-
-            if (!snapshot.ValidToParent(octree_visibility_state_snapshot)) {
-                continue;
-            }
-
-            if (!snapshot.Get(scene_id)) {
-                continue;
-            }
-        }*/
+        AssertThrow(draw_proxy.mesh_id.IsValid());
 
         DrawCallID draw_call_id;
 
@@ -290,6 +275,8 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
         m_indirect_renderer.GetDrawState().PushDrawCall(draw_call, draw_command_data);
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
+
+    m_draw_proxies.Clear();
 }
 
 void RenderGroup::CollectDrawCalls(Frame *frame, const CullData &cull_data)
@@ -504,7 +491,7 @@ RenderAll(
                             secondary,
                             draw_call.batch_index,
                             draw_call.skeleton_id.ToIndex(),
-                            draw_call.material_id.ToIndex()
+                            draw_call.material.GetID().ToIndex()
                         );
 
                         if constexpr (IsIndirect) {
@@ -586,6 +573,12 @@ void RenderGroup::Render(Frame *frame)
     // perform all ops in one batch
     CollectDrawCalls(frame);
     PerformRendering(frame);
+}
+
+void RenderGroup::SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    m_draw_proxies = draw_proxies;
 }
 
 void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)

@@ -84,8 +84,14 @@ struct ShaderProperty
     bool operator==(const ShaderProperty &other) const
         { return name == other.name; }
 
+    bool operator!=(const ShaderProperty &other) const
+        { return name != other.name; }
+
     bool operator==(const String &str) const
         { return name == str; }
+
+    bool operator!=(const String &str) const
+        { return name != str; }
 
     bool operator<(const ShaderProperty &other) const
         { return name < other.name; }
@@ -162,6 +168,12 @@ public:
     ShaderProps &operator=(ShaderProps &&other) = default;
     ~ShaderProps() = default;
 
+    bool operator==(const ShaderProps &other) const
+        { return m_props == other.m_props; }
+
+    bool operator!=(const ShaderProps &other) const
+        { return m_props == other.m_props; }
+
     bool Any() const
         { return m_props.Any(); }
 
@@ -222,19 +234,6 @@ public:
         for (const ShaderProperty &property : other) {
             Set(property);
         }
-    }
-
-    SizeType NumPermutations() const
-    {
-        SizeType num_permutable_properties = 0;
-
-        for (const ShaderProperty &property : m_props) {
-            if (property.is_permutation) {
-                ++num_permutable_properties;
-            }
-        }
-
-        return 1ull << num_permutable_properties;
     }
 
     SizeType Size() const
@@ -524,12 +523,10 @@ public:
 
     CompiledShader GetCompiledShader(Name name);
     CompiledShader GetCompiledShader(Name name, const ShaderProps &properties);
-    CompiledShader GetCompiledShader(Name name, const ShaderProps &properties, const VertexAttributeSet &vertex_attributes);
 
     bool GetCompiledShader(
         Name name,
         const ShaderProps &versions,
-        const VertexAttributeSet &vertex_attributes,
         CompiledShader &out
     );
 
@@ -548,13 +545,13 @@ private:
     );
 
     bool CompileBundle(
-        const Bundle &bundle,
+        Bundle &bundle,
         const ShaderProps &additional_versions,
         CompiledShaderBatch &out
     );
 
     bool HandleCompiledShaderBatch(
-        const Bundle &bundle,
+        Bundle &bundle,
         const ShaderProps &additional_versions,
         const FilePath &output_file_path,
         CompiledShaderBatch &batch

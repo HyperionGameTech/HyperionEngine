@@ -191,10 +191,10 @@ void VoxelConeTracing::OnRender(Frame *frame)
 
     m_clear_voxels->GetPipeline()->Dispatch(command_buffer, m_voxel_image->GetExtent() / Extent3D { 8, 8, 8 });
 
-    GetParent()->GetScene()->Render(
+    m_render_list.Render(
         frame,
-        m_camera,
-        m_render_list
+        GetParent()->GetScene(),
+        m_camera
     );
     
     if constexpr (manual_mipmap_generation) {

@@ -335,7 +335,7 @@ void EnvGrid::RenderEnvProbe(
 
         Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
 
-        GetParent()->GetScene()->Render(frame, m_camera, m_render_list, &push_constants, sizeof(push_constants));
+        m_render_list.Render(frame, GetParent()->GetScene(), m_camera, &push_constants, sizeof(push_constants));
 
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
     }

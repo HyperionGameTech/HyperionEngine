@@ -45,7 +45,6 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
                 .world_aabb_max = Vector4(draw_proxy.bounding_box.max, 1.0f),
                 .world_aabb_min = Vector4(draw_proxy.bounding_box.min, 1.0f),
                 .entity_index = draw_proxy.entity_id.ToIndex(),
-                .scene_index = draw_proxy.scene_id.ToIndex(),
                 .material_index = draw_proxy.material_id.ToIndex(),
                 .skeleton_index = draw_proxy.skeleton_id.ToIndex(),
                 .bucket = UInt32(draw_proxy.bucket),
@@ -120,9 +119,9 @@ void Entity::Init()
 
     EngineComponentBase::Init();
 
-    if (!m_shader) {
-        SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward)));
-    }
+    // if (!m_shader) {
+    //     SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward)));
+    // }
 
     m_draw_proxy.entity_id = m_id;
     m_previous_transform_matrix = m_transform.GetMatrix();
@@ -264,15 +263,8 @@ void Entity::EnqueueRenderUpdates()
         ? m_mesh->GetID()
         : Mesh::empty_id;
 
-    const ID<Scene> scene_id = m_scenes.Any()
-        ? m_scenes.Front() // TODO: Review this.
-        : Scene::empty_id;
-
     EntityDrawProxy draw_proxy {
-        .mesh = m_mesh.Get(),
-        .material = m_material.Get(),
         .entity_id = m_id,
-        .scene_id = scene_id,
         .mesh_id = mesh_id,
         .material_id = material_id,
         .skeleton_id = skeleton_id,

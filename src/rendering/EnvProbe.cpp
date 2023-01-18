@@ -92,7 +92,6 @@ struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : RenderCommand
     {
         // update m_draw_proxy on render thread.
         env_probe.m_draw_proxy = draw_proxy;
-
         env_probe.m_view_matrices = CreateCubemapMatrices(env_probe.GetAABB());
 
         HYPERION_RETURN_OK;
@@ -250,6 +249,8 @@ void EnvProbe::Init()
             InitObject(m_camera);
         }
     }
+
+    SetNeedsUpdate(false);
 
     SetReady(true);
 
@@ -450,6 +451,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     if (!m_is_rendered.load(std::memory_order_acquire)) {
         if (!needs_update) {
             SetNeedsUpdate(true);
+
+            needs_update = true;
         }
     } else if (Engine::Get()->GetWorld()->GetOctree().GetNearestOctant(m_aabb.GetCenter(), octree)) {
         AssertThrow(octree != nullptr);
@@ -469,8 +472,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         return;
     }
 
-    // Ambient probes do not use their own
-    // render list
+    // Ambient probes do not use their own render list,
+    // instead they are attached to a grid which shares one
     if (!IsAmbientProbe()) {
         AssertThrow(m_camera.IsValid());
         AssertThrow(m_shader.IsValid());
@@ -568,7 +571,7 @@ void EnvProbe::Render(Frame *frame)
     {
         Engine::Get()->GetRenderState().SetActiveEnvProbe(GetID());
 
-        m_parent_scene->Render(frame, m_camera, m_render_list);
+        m_render_list.Render(frame, m_parent_scene.Get(), m_camera);
 
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
     }
