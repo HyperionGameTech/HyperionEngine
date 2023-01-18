@@ -11,8 +11,6 @@
 
 #include <rendering/ShaderGlobals.hpp>
 
-#include <unordered_map>
-
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
@@ -25,6 +23,151 @@ class Skeleton;
 
 struct DrawCommandData;
 class IndirectDrawState;
+
+
+enum ResourceUsageType : UInt
+{
+    RESOURCE_USAGE_TYPE_INVALID = UInt(-1),
+    RESOURCE_USAGE_TYPE_MESH = 0,
+    RESOURCE_USAGE_TYPE_MATERIAL,
+    RESOURCE_USAGE_TYPE_SKELETON,
+    RESOURCE_USAGE_TYPE_MAX
+};
+
+template <class T>
+struct ResourceUsageTypeMap { };
+
+template <>
+struct ResourceUsageTypeMap<Mesh>
+    { enum { Value = RESOURCE_USAGE_TYPE_MESH }; };
+
+template <>
+struct ResourceUsageTypeMap<Material>
+    { enum { Value = RESOURCE_USAGE_TYPE_MATERIAL }; };
+
+template <>
+struct ResourceUsageTypeMap<Skeleton>
+    { enum { Value = RESOURCE_USAGE_TYPE_SKELETON }; };
+
+// holds a handle for any resource needed in
+// rendering, so that objects like meshes and materials
+// do not get destroyed while being rendered.
+// rather than passing a Handle<T> around,
+// you only need to use the ID.
+class RenderResourceManager
+{
+private:
+    // struct ResourceUsageMapBase
+    // {
+    //     virtual ~ResourceUsageMapBase() = default;
+
+    //     bool IsUsed(IDBase id) const
+    //     {
+    //         return usage_bits.test(id.Value());
+    //     }
+
+    //     void SetIsUsed(IDBase id, bool is_used)
+    //     {
+    //         const bool is_currently_used = usage_bits.test(id.Value());
+
+    //         if (is_used != is_currently_used) {
+    //             if (is_used) {
+    //                 AddHandleForID(id);
+    //             } else {
+    //                 RemoveHandleForID(id);
+    //             }
+
+    //             usage_bits.set(id.Value(), is_used);
+    //         }
+    //     }
+
+    // protected:
+    //     virtual void AddHandleForID(IDBase) = 0;
+    //     virtual void RemoveHandleForID(IDBase) = 0;
+    // };
+
+    struct ResourceUsageMapBase { };
+
+    template <class T>
+    struct ResourceUsageMap : ResourceUsageMapBase
+    {
+        HashMap<ID<T>, Handle<T>> handles;
+        std::bitset<512> usage_bits; // TODO! Make Dynamic sized bitset
+
+        Handle<T> TakeUsage(ID<T> id)
+        {
+            auto it = handles.Find(id);
+
+            if (it != handles.End()) {
+                usage_bits.set(id.Value(), false);
+
+                return std::move(it->value);
+            }
+
+            return Handle<T>::empty;
+        }
+    };
+
+    FixedArray<UniquePtr<ResourceUsageMapBase>, RESOURCE_USAGE_TYPE_MAX> resource_usage_maps;
+
+public:
+
+    RenderResourceManager() = default;
+    RenderResourceManager(const RenderResourceManager &other) = delete;
+    RenderResourceManager &operator=(const RenderResourceManager &other) = delete;
+    RenderResourceManager(RenderResourceManager &&other) noexcept = default;
+    RenderResourceManager &operator=(RenderResourceManager &&other) = default;
+    ~RenderResourceManager() = default;
+
+    template <class T>
+    ResourceUsageMap<T> *GetResourceUsageMap()
+    {
+        ResourceUsageMapBase *ptr = resource_usage_maps[ResourceUsageTypeMap<T>::Value].Get();
+
+        if (ptr == nullptr) {
+            // UniquePtr of derived class
+            resource_usage_maps[ResourceUsageTypeMap<T>::Value] = UniquePtr<ResourceUsageMap<T>>::Construct();
+
+            ptr = resource_usage_maps[ResourceUsageTypeMap<T>::Value].Get();
+        }
+
+        return static_cast<ResourceUsageMap<T> *>(ptr);
+    }
+
+    template <class T>
+    Handle<T> TakeResourceUsage(ID<T> id)
+    {
+        ResourceUsageMap<T> *ptr = GetResourceUsageMap<T>();
+
+        return ptr->TakeUsage(id);
+    }
+
+    template <class T>
+    void SetIsUsed(ID<T> id, Handle<T> &&handle, bool is_used)
+    {
+        ResourceUsageMap<T> *ptr = GetResourceUsageMap<T>();
+
+        if (is_used != ptr->usage_bits.test(id.Value())) {
+            ptr->usage_bits.set(id.Value(), is_used);
+
+            if (is_used) {
+                if (!handle) {
+                    handle = Handle<T>(id);
+                }
+
+                ptr->handles.Set(id, std::move(handle));
+            } else {
+                ptr->handles.Set(id, Handle<T>::empty);
+            }
+        }
+    }
+
+    template <class T>
+    void SetIsUsed(ID<T> id, bool is_used)
+    {
+        SetIsUsed<T>(id, Handle<T>::empty, is_used);
+    }
+};
 
 struct DrawCallID
 {
@@ -71,16 +214,16 @@ struct DrawCall
     BufferTicket<EntityInstanceBatch> batch_index;
     SizeType draw_command_index;
 
+    ID<Mesh> mesh_id;
+    ID<Material> material_id;
     ID<Skeleton> skeleton_id;
 
     UInt entity_id_count;
     ID<Entity> entity_ids[max_entities_per_instance_batch];
 
-    UInt packed_data[4];
+    Mesh *mesh;
 
-    Handle<Mesh> mesh;
-    Handle<Material> material;
-    //Mesh *mesh;
+    UInt packed_data[4];
 };
 
 struct DrawCallCollection

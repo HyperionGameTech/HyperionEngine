@@ -285,26 +285,26 @@ public:
 
         test_model.Scale(0.025f);
 
-        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
-            m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
-                HYP_NAME(AmbientGrid0),
-                test_model.GetWorldAABB() * 1.15f,//BoundingBox(Vector3(-100.0f, -10.0f, -100.0f), Vector3(100.0f, 100.0f, 100.0f)),
-                Extent3D { 12, 2, 12 }
-            );
-        }
+        // if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
+        //     m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
+        //         HYP_NAME(AmbientGrid0),
+        //         test_model.GetWorldAABB() * 1.15f,//BoundingBox(Vector3(-100.0f, -10.0f, -100.0f), Vector3(100.0f, 100.0f, 100.0f)),
+        //         Extent3D { 12, 2, 12 }
+        //     );
+        // }
 
-        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
-            m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
-                HYP_NAME(EnvProbe0),
-                test_model.GetWorldAABB()
-            );
-        }
+        // if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
+        //     m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
+        //         HYP_NAME(EnvProbe0),
+        //         test_model.GetWorldAABB()
+        //     );
+        // }
 
-        m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
-            HYP_NAME(PointShadowRenderer0),
-            m_point_lights.Front(),
-            Extent2D { 256, 256 }
-        );
+        // m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+        //     HYP_NAME(PointShadowRenderer0),
+        //     m_point_lights.Front(),
+        //     Extent2D { 256, 256 }
+        // );
 
         if (false) {
             int i = 0;

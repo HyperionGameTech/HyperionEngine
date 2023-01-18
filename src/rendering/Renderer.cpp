@@ -234,14 +234,6 @@ void RenderGroup::CollectDrawCalls(Frame *frame)
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
-    const ID<Scene> scene_id = scene_binding.id;
-
-    // check visibility state
-    const bool perform_culling = scene_id != Scene::empty_id && BucketFrustumCullingEnabled(m_renderable_attributes.material_attributes.bucket);
-    const UInt8 visibility_cursor = Engine::Get()->render_state.visibility_cursor;
-    const VisibilityStateSnapshot &octree_visibility_state_snapshot = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState().snapshots[visibility_cursor];
-
     for (EntityDrawProxy &draw_proxy : m_draw_proxies) {
         AssertThrow(draw_proxy.mesh_id.IsValid());
 
@@ -491,7 +483,7 @@ RenderAll(
                             secondary,
                             draw_call.batch_index,
                             draw_call.skeleton_id.ToIndex(),
-                            draw_call.material.GetID().ToIndex()
+                            draw_call.material_id.ToIndex()
                         );
 
                         if constexpr (IsIndirect) {
@@ -578,13 +570,46 @@ void RenderGroup::Render(Frame *frame)
 void RenderGroup::SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies)
 {
     Threads::AssertOnThread(THREAD_RENDER);
+
     m_draw_proxies = draw_proxies;
+
+    UpdateDrawableLifetimes();
 }
 
 void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
 {
     Threads::AssertOnThread(THREAD_RENDER);
+
     m_draw_proxies = std::move(draw_proxies);
+
+    UpdateDrawableLifetimes();
+}
+
+void RenderGroup::UpdateDrawableLifetimes()
+{
+    RenderResourceManager previous_resources = std::move(m_render_resources);
+
+    // prevent these objects from going out of scope while rendering is happening
+    // register any used objects from the drawable / draw call here
+    for (const auto &draw_proxy : m_draw_proxies) {
+        m_render_resources.SetIsUsed(
+            draw_proxy.mesh_id,
+            previous_resources.TakeResourceUsage(draw_proxy.mesh_id),
+            true
+        );
+
+        m_render_resources.SetIsUsed(
+            draw_proxy.material_id,
+            previous_resources.TakeResourceUsage(draw_proxy.material_id),
+            true
+        );
+
+        m_render_resources.SetIsUsed(
+            draw_proxy.skeleton_id,
+            previous_resources.TakeResourceUsage(draw_proxy.skeleton_id),
+            true
+        );
+    }
 }
 
 // Proxied methods

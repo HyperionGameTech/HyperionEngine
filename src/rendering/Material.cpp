@@ -224,9 +224,9 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
                 continue;
             }
 
-            if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
-                HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Destroy(Engine::Get()->GetGPUDevice()));
-            }
+            // if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
+            //     HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Destroy(Engine::Get()->GetGPUDevice()));
+            // }
 
             descriptor_pool.RemoveDescriptorSet(descriptor_sets[frame_index]);
             descriptor_sets[frame_index] = nullptr;

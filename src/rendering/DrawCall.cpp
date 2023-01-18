@@ -82,13 +82,14 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     draw_call.id = id;
     draw_call.draw_command_index = ~0u;
 
+    draw_call.mesh_id = entity.mesh_id;
+    draw_call.material_id = entity.material_id;
     draw_call.skeleton_id = entity.skeleton_id;
 
     draw_call.entity_ids[0] = entity.entity_id;
     draw_call.entity_id_count = 1;
 
-    draw_call.mesh = Handle<Mesh>(entity.mesh_id);
-    draw_call.material = Handle<Material>(entity.material_id);
+    draw_call.mesh = entity.mesh;
 
     draw_call.batch_index = batch_index == 0 ? Engine::Get()->shader_globals->entity_instance_batches.AcquireTicket() : batch_index;
 

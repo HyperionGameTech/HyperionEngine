@@ -173,9 +173,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 {
     out = { };
 
-    if (draw_call.mesh == nullptr) {
-        return;
-    }
+    AssertThrow(draw_call.mesh != nullptr);
 
     const UInt32 draw_command_index = m_num_draw_commands++;
 

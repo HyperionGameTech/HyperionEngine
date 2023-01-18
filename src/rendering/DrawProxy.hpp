@@ -81,6 +81,8 @@ struct DrawProxy<STUB_CLASS(Entity)>
     // object instance in GPU
     UInt32 draw_command_index = 0;
 
+    Mesh *mesh = nullptr;
+
     Bucket bucket = Bucket::BUCKET_OPAQUE;
 };
 
