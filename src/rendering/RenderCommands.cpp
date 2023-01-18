@@ -2,7 +2,7 @@
 
 namespace hyperion::v2 {
 
-HeapArray<RenderCommands::HolderRef, RenderCommands::max_render_command_types> RenderCommands::holders = { };
+FixedArray<RenderCommands::HolderRef *, RenderCommands::max_render_command_types> RenderCommands::holders = { };
 std::atomic<SizeType> RenderCommands::render_command_type_index = { 0 };
 RenderScheduler RenderCommands::scheduler = { };
 
@@ -62,16 +62,19 @@ void RenderCommands::Rewind()
 {
     // all items in the cache must have had destructor called on them already.
 
-    HolderRef *p = &holders[0];
+    HolderRef **p = holders.Data();
 
     while (*p) {
-        const SizeType counter_value = p->counter_ptr->load();
+        // const SizeType counter_value = p->counter_ptr->load();
 
-        if (counter_value) {
-            Memory::Set(p->memory_ptr, 0, p->object_size * counter_value);
+        // if (counter_value) {
+        //     Memory::Set(p->memory_ptr, 0, p->object_size * counter_value);
+            
+        //     p->counter_ptr->store(0);
+        // }
 
-            p->counter_ptr->store(0);
-        }
+        (*p)->Clear();
+
         ++p;
     }
 }

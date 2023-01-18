@@ -74,15 +74,16 @@ private:
         SizeType object_size = 0;
         SizeType object_alignment = 0;
 
-        explicit operator bool() const
-            { return counter_ptr != nullptr; }
+        virtual ~HolderRef() = default;
+
+        virtual void Clear() = 0;
     };
 
     static constexpr SizeType max_render_command_types = 128;
     static constexpr SizeType render_command_cache_size = 4096;
 
     // last item must always evaluate to false, same way null terminated char strings work
-    static HeapArray<HolderRef, max_render_command_types> holders;
+    static FixedArray<HolderRef *, max_render_command_types> holders;
     static std::atomic<SizeType> render_command_type_index;
 
     static std::mutex mtx;
@@ -158,29 +159,52 @@ private:
     template <class T>
     static void *Alloc()
     {
+        using RenderCommandStorageArray = Array<ValueStorage<T>, render_command_cache_size * sizeof(T)>;
+
+        struct Data;
+
+        struct HolderRefT : HolderRef
+        {
+            virtual ~HolderRefT() override = default;
+
+            virtual void Clear() override
+            {
+                (static_cast<RenderCommandStorageArray *>(memory_ptr))->Clear();
+            }
+        };
+
         static struct Data
         {
-            ValueStorageArray<T, render_command_cache_size> cache;
+            HolderRefT holder;
+            RenderCommandStorageArray commands;
             std::atomic<SizeType> counter { 0 };
 
             Data()
             {
-                // zero out cache memory
-                Memory::Set(cache.GetRawPointer(), 0, cache.TotalSize());
+                // holder = { &counter, &commands, sizeof(T), alignof(T) };
+                holder.memory_ptr = &commands;
 
-                const SizeType index = RenderCommands::render_command_type_index.fetch_add(1);
-                AssertThrow(index < max_render_command_types - 1);
+                const SizeType command_type_index = RenderCommands::render_command_type_index.fetch_add(1);
+                AssertThrow(command_type_index < max_render_command_types - 1);
 
-                RenderCommands::holders[index] = HolderRef { &counter, cache.GetRawPointer(), sizeof(T), alignof(T) };
+                RenderCommands::holders[command_type_index] = &holder;
             }
         } data;
 
-        const SizeType cache_index = data.counter.fetch_add(1);
+        const SizeType command_index = data.commands.Size();//data.counter.fetch_add(1);
+        data.commands.PushBack({ });
 
-        AssertThrowMsg(cache_index < render_command_cache_size,
-            "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
+        if (command_index > render_command_cache_size) {
+            DebugLog(
+                LogType::Warn,
+                "Render command count greater than budgeted size\n"
+            );
+        }
 
-        return data.cache.data + cache_index;
+        // AssertThrowMsg(cache_index < render_command_cache_size,
+        //     "Render command cache size exceeded! Too many render threads are being submitted before the requests can be fulfilled.");
+
+        return data.commands.Data() + command_index;
     }
 
     static void Rewind();
