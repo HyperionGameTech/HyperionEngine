@@ -314,16 +314,16 @@ public:
         return f;
     }
 
-    static Int BitCount(UInt64 value)
+    static UInt64 BitCount(UInt64 value)
     {
 #if HYP_WINDOWS
-        return static_cast<Int>(__popcnt64(value));
+        return __popcnt64(value);
 #else
         // https://graphics.stanford.edu/~seander/bithacks.html
         value = value - ((value >> 1) & (UInt64)~(UInt64)0/3); 
         value = (value & (UInt64)~(UInt64)0/15*3) + ((value >> 2) & (UInt64)~(UInt64)0/15*3);
         value = (value + (value >> 4)) & (UInt64)~(UInt64)0/255*15;
-        return Int((UInt64)(value * ((UInt64)~(UInt64)0/255)) >> (sizeof(UInt64) - 1) * CHAR_BIT);
+        return (UInt64)(value * ((UInt64)~(UInt64)0/255)) >> (sizeof(UInt64) - 1) * CHAR_BIT;
 #endif
     }
 

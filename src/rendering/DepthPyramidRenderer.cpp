@@ -23,7 +23,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
 {
     AssertThrow(m_depth_attachment_usage == nullptr);
     // AssertThrow(depth_attachment_usage->IsDepthAttachment());
-    m_depth_attachment_usage = depth_attachment_usage->IncRef(HYP_attachment_usage_INSTANCE);
+    m_depth_attachment_usage = depth_attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
     m_depth_pyramid_sampler = std::make_unique<Sampler>(
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
@@ -36,8 +36,8 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
         const auto *depth_attachment = m_depth_attachment_usage->GetAttachment();
         AssertThrow(depth_attachment != nullptr);
 
-        const auto *depth_image = depth_attachment->GetImage();
-        AssertThrow(depth_image != nullptr);
+        const ImageRef &depth_image = depth_attachment->GetImage();
+        AssertThrow(depth_image.IsValid());
 
         // create depth pyramid image
         m_depth_pyramid[i] = std::make_unique<StorageImage>(
@@ -146,7 +146,7 @@ void DepthPyramidRenderer::Destroy()
     HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(Engine::Get()->GetGPUDevice()));
 
     if (m_depth_attachment_usage != nullptr) {
-        m_depth_attachment_usage->DecRef(HYP_attachment_usage_INSTANCE);
+        m_depth_attachment_usage->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
         m_depth_attachment_usage = nullptr;
     }
 

@@ -92,11 +92,9 @@ void EntityDrawCollection::SetEntityList(const RenderableAttributeSet &attribute
 
 void EntityDrawCollection::ClearEntities()
 {
-    Threads::AssertOnThread(THREAD_GAME);
-
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    for (auto &it : GetEntityList(THREAD_TYPE_GAME)) {
+    for (auto &it : GetEntityList()) {
         it.second.drawables.Clear();
     }
 }
@@ -151,31 +149,6 @@ void RenderList::UpdateRenderGroups()
 
             entity_list.render_group = render_group_it->second;
         }
-
-        // auto render_group_it = m_render_groups.Find(attributes);
-
-        // if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-        //     Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
-
-        //     if (!render_group.IsValid()) {
-        //         DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
-
-        //         continue;
-        //     }
-
-        //     InitObject(render_group);
-
-        //     auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
-        //     AssertThrow(insert_result.second);
-
-        //     render_group_it = insert_result.first;
-        // }
-        
-        // PUSH_RENDER_COMMAND(
-        //     UpdateRenderGroupDrawables,
-        //     render_group_it->second.Get(),
-        //     std::move(draw_proxies)
-        // );
 
         PUSH_RENDER_COMMAND(
             UpdateDrawCollectionRenderSide,
@@ -250,38 +223,6 @@ void RenderList::Render(
         const RenderableAttributeSet &attributes = it.first;
         auto &entity_list = it.second;
 
-        // TODO: must be thread safe
-        // auto render_group_it = m_render_groups.Find(attributes);
-
-        // if (render_group_it == m_render_groups.End()) {
-        //     continue;
-        // }
-
-        // if (draw_proxies.Empty() && render_group_it != m_render_groups.End()) {
-        //     m_render_groups.Erase(render_group_it);
-
-        //     continue;
-        // }
-
-        // if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-        //     Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
-
-        //     if (!render_group.IsValid()) {
-        //         DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
-
-        //         continue;
-        //     }
-
-        //     InitObject(render_group);
-
-        //     auto insert_result = m_render_groups.Insert(attributes, std::move(render_group));
-        //     AssertThrow(insert_result.second);
-
-        //     render_group_it = insert_result.first;
-        // }
-
-        // render_group_it->second->SetDrawProxies(draw_proxies);
-
         AssertThrow(entity_list.render_group.IsValid());
 
         entity_list.render_group->SetDrawProxies(entity_list.drawables);
@@ -297,33 +238,6 @@ void RenderList::Render(
 
         entity_list.render_group->Render(frame);
     }
-
-    // // TODO: Thread safe container here. This is written from game thread, read from render thread...
-    // // TODO: If all drawables have been removed, remove the render group?
-
-    // const auto &entity_list =  m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER);
-
-    // for (const auto &it : m_render_groups) {
-    //     const RenderableAttributeSet &attributes = it.first;
-    //     const Handle<RenderGroup> &render_group = it.second;
-
-    //     {
-    //         auto entity_list_it = entity_list.Find(attributes);
-    
-    //         render_group->SetDrawProxies(entity_list_it != entity_list.End() ? entity_list_it->second : Array<EntityDrawProxy> { });
-    //     }
-
-    //     AssertThrowMsg(
-    //         attributes.framebuffer_id == camera->GetFramebuffer()->GetID(),
-    //         "Given Camera's Framebuffer ID does not match RenderList item framebuffer ID -- invalid data passed?"
-    //     );
-
-    //     if (push_constant_ptr && push_constant_size) {
-    //         render_group->GetPipeline()->SetPushConstants(push_constant_ptr, push_constant_size);
-    //     }
-
-    //     render_group->Render(frame);
-    // }
 
     Engine::Get()->GetRenderState().UnbindCamera();
     Engine::Get()->GetRenderState().UnbindScene();

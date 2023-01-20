@@ -311,49 +311,29 @@ void EnvProbe::CreateFramebuffer()
         color_attachment_format = shadow_map_format;
     }
 
-    AttachmentUsage *attachment_usage;
-
-    // shadows only use depth texture
-    m_attachments.push_back(std::make_unique<Attachment>(
-        std::make_unique<renderer::FramebufferImageCube>(
+    m_framebuffer->AddAttachment(
+        0,
+        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
             m_dimensions,
             color_attachment_format,
             nullptr
-        ),
-        RenderPassStage::SHADER
-    ));
-
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        )),
+        RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE,
-        &attachment_usage
-    ));
+        renderer::StoreOperation::STORE
+    );
 
-    m_framebuffer->AddAttachmentUsage(attachment_usage);
-
-    m_attachments.push_back(std::make_unique<Attachment>(
-        std::make_unique<renderer::FramebufferImageCube>(
+    m_framebuffer->AddAttachment(
+        1,
+        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
             m_dimensions,
             Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
-        ),
-        RenderPassStage::SHADER
-    ));
-
-    HYPERION_ASSERT_RESULT(m_attachments.back()->AddAttachmentUsage(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        )),
+        RenderPassStage::SHADER,
         renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE,
-        &attachment_usage
-    ));
-
-    m_framebuffer->AddAttachmentUsage(attachment_usage);
-
-    // attachment should be created in render thread?
-    for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
-    }
+        renderer::StoreOperation::STORE
+    );
 
     InitObject(m_framebuffer);
 }

@@ -217,8 +217,6 @@ protected:
                     }
                 }
             } else {
-                // TODO: will there be a std::is_atomic ?
-                
                 if (m_ref->strong_count.fetch_sub(1) == 1) {
                     m_ref->Destruct();
 

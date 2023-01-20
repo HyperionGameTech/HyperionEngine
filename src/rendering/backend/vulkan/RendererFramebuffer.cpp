@@ -61,7 +61,7 @@ Result FramebufferObject::Destroy(Device *device)
     m_handle = VK_NULL_HANDLE;
     
     for (auto *attachment_usage : m_attachment_usages) {
-        attachment_usage->DecRef(HYP_attachment_usage_INSTANCE);
+        attachment_usage->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
     }
 
     m_attachment_usages.clear();
@@ -71,7 +71,7 @@ Result FramebufferObject::Destroy(Device *device)
 
 void FramebufferObject::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 {
-    attachment_usage->IncRef(HYP_attachment_usage_INSTANCE);
+    attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
     m_attachment_usages.push_back(attachment_usage);
 }
@@ -90,7 +90,7 @@ bool FramebufferObject::RemoveAttachmentUsage(const Attachment *attachment)
         return false;
     }
 
-    (*it)->DecRef(HYP_attachment_usage_INSTANCE);
+    (*it)->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
     m_attachment_usages.erase(it);
 

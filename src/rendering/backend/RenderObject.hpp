@@ -375,6 +375,8 @@ DEF_RENDER_OBJECT(Sampler,             16384);
 DEF_RENDER_OBJECT(RaytracingPipeline,  128);
 DEF_RENDER_OBJECT(DescriptorSet,       4096);
 DEF_RENDER_OBJECT(ComputePipeline,     4096);
+DEF_RENDER_OBJECT(Attachment,          4096);
+DEF_RENDER_OBJECT(AttachmentUsage,     8192);
 
 #undef DEF_RENDER_OBJECT
 

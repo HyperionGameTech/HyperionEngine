@@ -1,8 +1,11 @@
 #ifndef HYPERION_RENDERER_SWAPCHAIN_H
 #define HYPERION_RENDERER_SWAPCHAIN_H
 
+#include <core/lib/DynArray.hpp>
+
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
@@ -32,13 +35,13 @@ public:
     Result Create(Device *device, const VkSurfaceKHR &surface);
     Result Destroy(Device *device);
 
-    SizeType NumImages() const { return images.size(); }
+    SizeType NumImages() const { return images.Size(); }
 
     VkSwapchainKHR swapchain;
     Extent2D extent;
     VkSurfaceFormatKHR surface_format;
     InternalFormat image_format;
-    std::vector<VkImage> images;
+    Array<PlatformImage> images;
 
 private:
     SwapchainSupportDetails support_details;

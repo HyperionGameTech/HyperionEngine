@@ -158,7 +158,7 @@ Result RenderPass::Destroy(Device *device)
     m_handle = nullptr;
 
     for (const auto *attachment_usage : m_render_pass_attachment_usages) {
-        attachment_usage->DecRef(HYP_attachment_usage_INSTANCE);
+        attachment_usage->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
     }
 
     m_render_pass_attachment_usages.clear();

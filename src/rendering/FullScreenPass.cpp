@@ -169,14 +169,12 @@ void FullScreenPass::CreateFramebuffer()
 
     renderer::AttachmentUsage *attachment_usage;
 
-    auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        m_extent,
-        m_image_format,
-        nullptr
-    );
-
     m_attachments.PushBack(std::make_unique<Attachment>(
-        std::move(framebuffer_image),
+        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+            m_extent,
+            m_image_format,
+            nullptr
+        )),
         renderer::RenderPassStage::SHADER
     ));
 

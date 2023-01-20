@@ -992,13 +992,14 @@ ScratchBuffer::ScratchBuffer()
 
 GPUImageMemory::GPUImageMemory()
     : GPUMemory(),
-      image(nullptr)
+      image(VK_NULL_HANDLE),
+      is_image_owned(false)
 {
 }
 
 GPUImageMemory::~GPUImageMemory()
 {
-    AssertThrowMsg(image == nullptr, "image should have been destroyed!");
+    AssertThrowMsg(image == VK_NULL_HANDLE, "image should have been destroyed!");
 }
 
 void GPUImageMemory::SetResourceState(ResourceState new_state)
@@ -1154,9 +1155,35 @@ void GPUImageMemory::SetSubResourceState(const ImageSubResource &sub_resource, R
     sub_resources[sub_resource] = new_state;
 }
 
+Result GPUImageMemory::Create(Device *device, PlatformImage new_image)
+{
+    if (image != VK_NULL_HANDLE) {
+        DebugLog(
+            LogType::Warn,
+            "Create() called on an image (memory #%u) that has not been destroyed!\n"
+            "\tYou should explicitly call Destroy() on the object before reallocating it.\n"
+            "\tTo prevent memory leaks, calling Destroy() before allocating the memory...\n",
+            m_id
+        );
+
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif
+
+        HYPERION_BUBBLE_ERRORS(Destroy(device));
+    }
+
+    image = new_image;
+    is_image_owned = false;
+
+    allocation = VK_NULL_HANDLE;
+
+    HYPERION_RETURN_OK;
+}
+
 Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *image_info)
 {
-    if (image != nullptr) {
+    if (image != VK_NULL_HANDLE) {
         DebugLog(
             LogType::Warn,
             "Create() called on an image (memory #%u) that has not been destroyed!\n"
@@ -1192,21 +1219,29 @@ Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *
         "Failed to create gpu image!"
     );
 
+    is_image_owned = true;
+
     HYPERION_RETURN_OK;
 }
 
 Result GPUImageMemory::Destroy(Device *device)
 {
-    GPUMemory::Destroy();
+    if (is_image_owned) {
+        GPUMemory::Destroy();
+    }
 
     if (map != nullptr) {
         Unmap(device);
     }
 
-    vmaDestroyImage(device->GetAllocator(), image, allocation);
+    if (is_image_owned) {
+        vmaDestroyImage(device->GetAllocator(), image, allocation);
+    }
 
-    image = nullptr;
-    allocation = nullptr;
+    image = VK_NULL_HANDLE;
+    allocation = VK_NULL_HANDLE;
+
+    is_image_owned = false;
 
     HYPERION_RETURN_OK;
 }

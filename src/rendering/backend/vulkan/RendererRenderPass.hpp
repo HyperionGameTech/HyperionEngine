@@ -41,7 +41,7 @@ public:
 
     void AddAttachmentUsage(AttachmentUsage *attachment_usage)
     {
-        attachment_usage->IncRef(HYP_attachment_usage_INSTANCE);
+        attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
         m_render_pass_attachment_usages.push_back(attachment_usage);
     }
@@ -60,7 +60,7 @@ public:
             return false;
         }
 
-        (*it)->DecRef(HYP_attachment_usage_INSTANCE);
+        (*it)->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
         m_render_pass_attachment_usages.erase(it);
 

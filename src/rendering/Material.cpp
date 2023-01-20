@@ -397,19 +397,16 @@ void Material::EnqueueRenderUpdates()
                 GetParameter<Float>(MATERIAL_KEY_TRANSMISSION),
                 GetParameter<Float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
             )),
-            0, 0,
-            ByteUtil::PackColorU32(Vector4(
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f
-            ))
+            ByteUtil::PackColorU32(Vector4()),
+            ByteUtil::PackColorU32(Vector4()),
+            ByteUtil::PackColorU32(Vector4())
         ),
         .uv_scale = GetParameter<Vector2>(MATERIAL_KEY_UV_SCALE),
         .parallax_height = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT)
     };
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateMaterialRenderData)>(
+    PUSH_RENDER_COMMAND(
+        UpdateMaterialRenderData,
         m_id,
         shader_data,
         num_bound_textures,

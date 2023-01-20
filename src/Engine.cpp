@@ -315,20 +315,20 @@ void Engine::PrepareFinalPass()
     UInt iteration = 0;
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
-        std::make_unique<renderer::FramebufferImage2D>(
+        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
             m_instance->swapchain->extent,
             m_instance->swapchain->image_format,
             nullptr
-        ),
+        )),
         renderer::RenderPassStage::PRESENT
     ));
 
     m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
-        std::make_unique<renderer::FramebufferImage2D>(
+        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
             m_instance->swapchain->extent,
             m_texture_format_defaults.Get(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
-        ),
+        )),
         renderer::RenderPassStage::PRESENT
     ));
     
@@ -336,7 +336,7 @@ void Engine::PrepareFinalPass()
         HYPERION_ASSERT_RESULT(attachment->Create(m_instance->GetDevice()));
     }
 
-    for (VkImage img : m_instance->swapchain->images) {
+    for (renderer::PlatformImage img : m_instance->swapchain->images) {
         auto fbo = CreateObject<Framebuffer>(
             m_instance->swapchain->extent,
             renderer::RenderPassStage::PRESENT,

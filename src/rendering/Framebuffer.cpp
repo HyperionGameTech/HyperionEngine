@@ -3,17 +3,30 @@
 
 namespace hyperion::v2 {
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
 {
     RenderPass *render_pass;
+    AttachmentMap *attachment_map;
 
-    RENDER_COMMAND(CreateRenderPass)(RenderPass *render_pass)
-        : render_pass(render_pass)
+    RENDER_COMMAND(CreateRenderPass)(RenderPass *render_pass, AttachmentMap *attachment_map)
+        : render_pass(render_pass),
+          attachment_map(attachment_map)
     {
+        AssertThrow(render_pass != nullptr);
+        AssertThrow(attachment_map != nullptr);
     }
 
     virtual Result operator()()
     {
+        for (const auto &it : attachment_map->attachments) {
+            const AttachmentDef &def = it.second;
+
+            AssertThrow(def.attachment_usage.IsValid());
+            render_pass->AddAttachmentUsage(def.attachment_usage.Get());
+        }
+
         return render_pass->Create(Engine::Get()->GetGPUDevice());
     }
 };
@@ -37,15 +50,27 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
 {
     renderer::FramebufferObject *framebuffer;
     RenderPass *render_pass;
+    AttachmentMap *attachment_map;
 
-    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, RenderPass *render_pass)
+    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, RenderPass *render_pass, AttachmentMap *attachment_map)
         : framebuffer(framebuffer),
-          render_pass(render_pass)
+          render_pass(render_pass),
+          attachment_map(attachment_map)
     {
+        AssertThrow(render_pass != nullptr);
+        AssertThrow(framebuffer != nullptr);
+        AssertThrow(attachment_map != nullptr);
     }
 
     virtual Result operator()()
     {
+        for (const auto &it : attachment_map->attachments) {
+            const AttachmentDef &def = it.second;
+
+            AssertThrow(def.attachment_usage.IsValid());
+            framebuffer->AddAttachmentUsage(def.attachment_usage.Get());
+        }
+
         return framebuffer->Create(Engine::Get()->GetGPUDevice(), render_pass);
     }
 };
@@ -65,6 +90,49 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateAttachmentMap) : RenderCommand
+{
+    AttachmentMap *attachment_map;
+
+    RENDER_COMMAND(CreateAttachmentMap)(AttachmentMap *attachment_map)
+        : attachment_map(attachment_map)
+    {
+        AssertThrow(attachment_map != nullptr);
+    }
+
+    virtual Result operator()()
+    {
+        for (auto &it : attachment_map->attachments) {
+            const UInt binding = it.first;
+            AttachmentDef &def = it.second;
+
+            AssertThrow(def.attachment.IsValid());
+            HYPERION_BUBBLE_ERRORS(def.attachment->Create(Engine::Get()->GetGPUDevice()));
+
+            def.attachment_usage = RenderObjects::Make<AttachmentUsage>(
+                def.attachment.Get(),
+                def.load_op,
+                def.store_op
+            );
+
+            def.attachment->AddAttachmentUsage(def.attachment_usage);
+
+            HYPERION_BUBBLE_ERRORS(def.attachment_usage->Create(Engine::Get()->GetGPUDevice()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion
+
+AttachmentMap::~AttachmentMap()
+{
+    for (auto &it : attachments) {
+        SafeRelease(std::move(it.second.attachment));
+        SafeRelease(std::move(it.second.attachment_usage));
+    }
+}
 
 Framebuffer::Framebuffer(
     Extent2D extent,
@@ -98,11 +166,13 @@ void Framebuffer::Init()
     }
 
     EngineComponentBase::Init();
+    
+    PUSH_RENDER_COMMAND(CreateAttachmentMap, &m_attachment_map);
 
-    PUSH_RENDER_COMMAND(CreateRenderPass, &m_render_pass);
+    PUSH_RENDER_COMMAND(CreateRenderPass, &m_render_pass, &m_attachment_map);
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        PUSH_RENDER_COMMAND(CreateFramebuffer, &m_framebuffers[frame_index], &m_render_pass);
+        PUSH_RENDER_COMMAND(CreateFramebuffer, &m_framebuffers[frame_index], &m_render_pass, &m_attachment_map);
     }
 
     SetReady(true);

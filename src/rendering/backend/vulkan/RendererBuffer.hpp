@@ -16,6 +16,8 @@
 namespace hyperion {
 namespace renderer {
 
+using PlatformImage = VkImage;
+
 class Instance;
 class Device;
 class CommandBuffer;
@@ -434,13 +436,16 @@ public:
         ResourceState new_state
     );
 
+    [[nodiscard]] Result Create(Device *device, PlatformImage image);
+
     [[nodiscard]] Result Create(Device *device, SizeType size, VkImageCreateInfo *image_info);
     [[nodiscard]] Result Destroy(Device *device);
 
-    VkImage image;
+    PlatformImage image;
 
 private:
     std::unordered_map<ImageSubResource, ResourceState> sub_resources;
+    bool is_image_owned;
 };
 
 } // namespace renderer

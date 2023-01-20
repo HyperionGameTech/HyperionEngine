@@ -59,14 +59,6 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
     AssertThrowMsg(this->image_format != InternalFormat::NONE, "Failed to find a surface format!");
 
     return this->surface_format;
-
-    /*for (const auto &format : this->support_details.formats) {
-        if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            return format;
-        }
-    }
-    DebugLog(LogType::Warn, "Swapchain format sRGB is not supported, going with defaults...\n");
-    return this->support_details.formats[0];*/
 }
 
 VkPresentModeKHR Swapchain::GetPresentMode()
@@ -81,29 +73,30 @@ void Swapchain::RetrieveSupportDetails(Device *device)
 
 void Swapchain::RetrieveImageHandles(Device *device)
 {
-    uint32_t image_count = 0;
+    UInt32 image_count = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
     vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &image_count, nullptr);
     DebugLog(LogType::Warn, "image count %d\n", image_count);
 
-    this->images.resize(image_count);
-    vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &image_count, this->images.data());
+    images.Resize(image_count);
+
+    vkGetSwapchainImagesKHR(device->GetDevice(), this->swapchain, &image_count, images.Data());
     DebugLog(LogType::Info, "Retrieved Swapchain images\n");
 }
 
 Result Swapchain::Create(Device *device, const VkSurfaceKHR &surface)
 {
-    this->RetrieveSupportDetails(device);
+    RetrieveSupportDetails(device);
 
-    this->surface_format = this->ChooseSurfaceFormat(device);
-    this->present_mode = this->GetPresentMode();
+    this->surface_format = ChooseSurfaceFormat(device);
+    this->present_mode = GetPresentMode();
     this->extent = {
         support_details.capabilities.currentExtent.width,
         support_details.capabilities.currentExtent.height
     };
 
-    uint32_t image_count = support_details.capabilities.minImageCount + 1;
+    UInt32 image_count = support_details.capabilities.minImageCount + 1;
 
     if (support_details.capabilities.maxImageCount > 0 && image_count > support_details.capabilities.maxImageCount) {
         image_count = support_details.capabilities.maxImageCount;
@@ -122,7 +115,7 @@ Result Swapchain::Create(Device *device, const VkSurfaceKHR &surface)
 
     /* Graphics computations and presentation are done on separate hardware */
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const uint32_t concurrent_families[] = {
+    const UInt32 concurrent_families[] = {
         qf_indices.graphics_family.value(),
         qf_indices.present_family.value()
     };
@@ -130,7 +123,7 @@ Result Swapchain::Create(Device *device, const VkSurfaceKHR &surface)
     if (qf_indices.graphics_family != qf_indices.present_family) {
         DebugLog(LogType::Debug, "Swapchain sharing mode set to Concurrent\n");
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        create_info.queueFamilyIndexCount = uint32_t(std::size(concurrent_families)); /* Two family indices(one for each process) */
+        create_info.queueFamilyIndexCount = UInt32(std::size(concurrent_families)); /* Two family indices(one for each process) */
         create_info.pQueueFamilyIndices = concurrent_families;
     } else {
         /* Computations and presentation are done on same hardware(most scenarios) */

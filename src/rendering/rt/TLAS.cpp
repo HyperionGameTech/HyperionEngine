@@ -141,7 +141,6 @@ void TLAS::PerformBLASUpdates()
 }
 
 void TLAS::UpdateRender(
-    
     Frame *frame,
     RTUpdateStateFlags &out_update_state_flags
 )

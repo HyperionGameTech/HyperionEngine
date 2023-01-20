@@ -8,7 +8,7 @@ static bool PushEntityToBatch(BufferTicket<EntityInstanceBatch> batch_index, ID<
 {
     AssertThrow(batch_index < max_entity_instance_batches);
 
-    EntityInstanceBatch &batch = Engine::Get()->shader_globals->entity_instance_batches.Get(batch_index);
+    EntityInstanceBatch &batch = Engine::Get()->GetRenderData()->entity_instance_batches.Get(batch_index);
 
     if (batch.num_entities >= max_entities_per_instance_batch) {
         return false;
@@ -89,6 +89,7 @@ void DrawCallCollection::PushDrawCall(BufferTicket<EntityInstanceBatch> batch_in
     draw_call.entity_ids[0] = entity.entity_id;
     draw_call.entity_id_count = 1;
 
+    // Lifetime is extended in RenderGroup.
     draw_call.mesh = entity.mesh;
 
     draw_call.batch_index = batch_index == 0 ? Engine::Get()->shader_globals->entity_instance_batches.AcquireTicket() : batch_index;

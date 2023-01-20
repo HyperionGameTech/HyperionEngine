@@ -220,7 +220,7 @@ Result AttachmentUsage::RemoveSelf(Device *device)
     return m_attachment->RemoveAttachmentUsage(device, this);
 }
 
-Attachment::Attachment(std::unique_ptr<Image> &&image, RenderPassStage stage)
+Attachment::Attachment(ImageRef &&image, RenderPassStage stage)
     : m_is_created(false),
       m_image(std::move(image)),
       m_stage(stage)
@@ -231,7 +231,7 @@ Attachment::~Attachment()
 {
     AssertThrowMsg(!m_is_created, "Attachment must not be in `created` state on destructor call");
 
-    for (SizeType i = 0; i < m_ref_counts.size(); i++) {
+    for (SizeType i = 0; i < m_ref_counts.Size(); i++) {
         AssertThrowMsg(
             m_ref_counts[i]->m_holder_instances.empty(),
             "Expected ref count at %llu to be zero after decrement but was %llu -- object still in use somewhere else.",
@@ -241,6 +241,18 @@ Attachment::~Attachment()
     }
 }
 
+void Attachment::AddAttachmentUsage(AttachmentUsageRef &attachment_usage_ref)
+{
+    AssertThrow(attachment_usage_ref.IsValid());
+    AssertThrow(attachment_usage_ref->m_attachment == this);
+    AssertThrow(attachment_usage_ref->m_ref_count == nullptr);
+
+    m_ref_counts.PushBack(new AttachmentUsage::RefCount);
+    attachment_usage_ref->m_ref_count = m_ref_counts.Back();
+
+    m_attachment_usages.PushBack(attachment_usage_ref);
+}
+
 Result Attachment::AddAttachmentUsage(
     Device *device,
     LoadOperation load_operation,
@@ -248,7 +260,7 @@ Result Attachment::AddAttachmentUsage(
     AttachmentUsage **out
 )
 {
-    auto attachment_usage = std::make_unique<AttachmentUsage>(
+    auto attachment_usage = RenderObjects::Make<AttachmentUsage>(
         this,
         RenderObjects::Make<ImageView>(),
         RenderObjects::Make<Sampler>(
@@ -268,12 +280,12 @@ Result Attachment::AddAttachmentUsage(
         HYPERION_BUBBLE_ERRORS(attachment_usage->Create(device));
     }
     
-    m_ref_counts.push_back(new AttachmentUsage::RefCount);
-    attachment_usage->m_ref_count = m_ref_counts.back();
-    m_attachment_usages.push_back(std::move(attachment_usage));
+    m_ref_counts.PushBack(new AttachmentUsage::RefCount);
+    attachment_usage->m_ref_count = m_ref_counts.Back();
+    m_attachment_usages.PushBack(std::move(attachment_usage));
 
     if (out != nullptr) {
-        *out = m_attachment_usages.back().get();
+        *out = m_attachment_usages.Back().Get();
     }
 
     HYPERION_RETURN_OK;
@@ -292,7 +304,7 @@ Result Attachment::AddAttachmentUsage(
     AttachmentUsage **out
 )
 {
-    auto attachment_usage = std::make_unique<AttachmentUsage>(this, load_operation, store_operation);
+    auto attachment_usage = RenderObjects::Make<AttachmentUsage>(this, load_operation, store_operation);
 
     if (out != nullptr) {
         *out = nullptr;
@@ -310,12 +322,12 @@ Result Attachment::AddAttachmentUsage(
         ));
     }
     
-    m_ref_counts.push_back(new AttachmentUsage::RefCount);
-    attachment_usage->m_ref_count = m_ref_counts.back();
-    m_attachment_usages.push_back(std::move(attachment_usage));
+    m_ref_counts.PushBack(new AttachmentUsage::RefCount);
+    attachment_usage->m_ref_count = m_ref_counts.Back();
+    m_attachment_usages.PushBack(std::move(attachment_usage));
 
     if (out != nullptr) {
-        *out = m_attachment_usages.back().get();
+        *out = m_attachment_usages.Back().Get();
     }
 
     HYPERION_RETURN_OK;
@@ -325,12 +337,12 @@ Result Attachment::RemoveAttachmentUsage(Device *device, AttachmentUsage *attach
 {
     AssertThrowMsg(attachment_usage != nullptr, "Attachment reference cannot be null");
 
-    const auto it = std::find_if(m_attachment_usages.begin(), m_attachment_usages.end(), [attachment_usage](const auto &item) {
-        return item.get() == attachment_usage;
+    const auto it = m_attachment_usages.FindIf([attachment_usage](const auto &item) {
+        return item.Get() == attachment_usage;
     });
 
-    if (it == m_attachment_usages.end()) {
-        return {Result::RENDERER_ERR, "Attachment ref not found"};
+    if (it == m_attachment_usages.End()) {
+        return { Result::RENDERER_ERR, "Attachment ref not found" };
     }
 
     AssertThrowMsg(
@@ -338,15 +350,15 @@ Result Attachment::RemoveAttachmentUsage(Device *device, AttachmentUsage *attach
         "Expected ref count to be empty before explicit removal -- still in use somewhere else."
     );
 
-    const auto ref_count_index = it - m_attachment_usages.begin();
+    const auto ref_count_index = it - m_attachment_usages.Begin();
 
     AssertThrow(attachment_usage->m_ref_count == m_ref_counts[ref_count_index]);
 
     delete m_ref_counts[ref_count_index];
-    m_ref_counts.erase(m_ref_counts.begin() + ref_count_index);
+    m_ref_counts.Erase(m_ref_counts.Begin() + ref_count_index);
 
     HYPERION_BUBBLE_ERRORS((*it)->Destroy(device));
-    m_attachment_usages.erase(it);
+    m_attachment_usages.Erase(it);
 
     HYPERION_RETURN_OK;
 }
@@ -376,7 +388,7 @@ Result Attachment::Destroy(Device *device)
 
     auto result = Result::OK;
 
-    HYPERION_PASS_ERRORS(m_image->Destroy(device), result);
+    SafeRelease(std::move(m_image));
 
     m_is_created = false;
 
@@ -422,13 +434,15 @@ AttachmentUsage *AttachmentSet::Get(UInt binding) const
 
 Result AttachmentSet::Add(Device *device, UInt binding, InternalFormat format)
 {
-    return Add(device, binding, std::make_unique<FramebufferImage2D>(Extent2D { m_width, m_height }, format, nullptr));
+    return Add(device, binding, RenderObjects::Make<Image>(FramebufferImage2D(Extent2D { m_width, m_height }, format, nullptr)));
 }
 
-Result AttachmentSet::Add(Device *device, UInt binding, std::unique_ptr<Image> &&image)
+Result AttachmentSet::Add(Device *device, UInt binding, ImageRef &&image)
 {
+    AssertThrow(image.IsValid());
+
     if (Has(binding)) {
-        return {Result::RENDERER_ERR, "Cannot set duplicate bindings"};
+        return { Result::RENDERER_ERR, "Cannot set duplicate bindings" };
     }
 
     m_attachments.push_back(std::make_unique<Attachment>(
@@ -444,7 +458,7 @@ Result AttachmentSet::Add(Device *device, UInt binding, Attachment *attachment)
     AssertThrow(attachment != nullptr);
 
     if (Has(binding)) {
-        return {Result::RENDERER_ERR, "Cannot set duplicate bindings"};
+        return { Result::RENDERER_ERR, "Cannot set duplicate bindings" };
     }
 
     AttachmentUsage *attachment_usage;
@@ -472,7 +486,7 @@ Result AttachmentSet::Remove(Device *device, UInt binding)
     });
 
     if (it == m_attachment_usages.end()) {
-        return {Result::RENDERER_ERR, "Cannot remove attachment reference -- binding not found"};
+        return { Result::RENDERER_ERR, "Cannot remove attachment reference -- binding not found" };
     }
 
     AssertThrow(it->second != nullptr);

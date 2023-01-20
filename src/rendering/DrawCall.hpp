@@ -24,7 +24,6 @@ class Skeleton;
 struct DrawCommandData;
 class IndirectDrawState;
 
-
 enum ResourceUsageType : UInt
 {
     RESOURCE_USAGE_TYPE_INVALID = UInt(-1),
@@ -57,49 +56,20 @@ struct ResourceUsageTypeMap<Skeleton>
 class RenderResourceManager
 {
 private:
-    // struct ResourceUsageMapBase
-    // {
-    //     virtual ~ResourceUsageMapBase() = default;
-
-    //     bool IsUsed(IDBase id) const
-    //     {
-    //         return usage_bits.test(id.Value());
-    //     }
-
-    //     void SetIsUsed(IDBase id, bool is_used)
-    //     {
-    //         const bool is_currently_used = usage_bits.test(id.Value());
-
-    //         if (is_used != is_currently_used) {
-    //             if (is_used) {
-    //                 AddHandleForID(id);
-    //             } else {
-    //                 RemoveHandleForID(id);
-    //             }
-
-    //             usage_bits.set(id.Value(), is_used);
-    //         }
-    //     }
-
-    // protected:
-    //     virtual void AddHandleForID(IDBase) = 0;
-    //     virtual void RemoveHandleForID(IDBase) = 0;
-    // };
-
     struct ResourceUsageMapBase { };
 
     template <class T>
     struct ResourceUsageMap : ResourceUsageMapBase
     {
         HashMap<ID<T>, Handle<T>> handles;
-        std::bitset<512> usage_bits; // TODO! Make Dynamic sized bitset
+        Bitset usage_bits;
 
         Handle<T> TakeUsage(ID<T> id)
         {
             auto it = handles.Find(id);
 
             if (it != handles.End()) {
-                usage_bits.set(id.Value(), false);
+                usage_bits.Set(id.Value(), false);
 
                 return std::move(it->value);
             }
@@ -147,8 +117,8 @@ public:
     {
         ResourceUsageMap<T> *ptr = GetResourceUsageMap<T>();
 
-        if (is_used != ptr->usage_bits.test(id.Value())) {
-            ptr->usage_bits.set(id.Value(), is_used);
+        if (is_used != ptr->usage_bits.Test(id.Value())) {
+            ptr->usage_bits.Set(id.Value(), is_used);
 
             if (is_used) {
                 if (!handle) {

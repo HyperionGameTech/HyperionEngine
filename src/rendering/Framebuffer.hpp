@@ -3,6 +3,7 @@
 
 #include <core/Base.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
@@ -16,6 +17,45 @@ using renderer::AttachmentUsage;
 using renderer::Attachment;
 using renderer::RenderPass;
 using renderer::RenderPassStage;
+using renderer::LoadOperation;
+using renderer::StoreOperation;
+
+struct AttachmentDef
+{
+    AttachmentRef attachment;
+    AttachmentUsageRef attachment_usage;
+    LoadOperation load_op;
+    StoreOperation store_op;
+};
+
+struct AttachmentMap
+{
+    FlatMap<UInt, AttachmentDef> attachments;
+
+    void AddAttachment(
+        UInt binding,
+        ImageRef &&image,
+        RenderPassStage stage,
+        LoadOperation load_op,
+        StoreOperation store_op
+    )
+    {
+        attachments.Set(
+            binding,
+            AttachmentDef {
+                RenderObjects::Make<Attachment>(
+                    std::move(image),
+                    stage
+                ),
+                AttachmentUsageRef(),
+                load_op,
+                store_op
+            }
+        );
+    }
+
+    ~AttachmentMap();
+};
 
 class Framebuffer
     : public EngineComponentBase<STUB_CLASS(Framebuffer)>,
@@ -40,6 +80,23 @@ public:
     Framebuffer &operator=(const Framebuffer &other) = delete;
     ~Framebuffer();
 
+    void AddAttachment(
+        UInt binding,
+        ImageRef &&image,
+        RenderPassStage stage,
+        LoadOperation load_op,
+        StoreOperation store_op
+    )
+    {
+        m_attachment_map.AddAttachment(
+            binding,
+            std::move(image),
+            stage,
+            load_op,
+            store_op
+        );
+    }
+
     void AddAttachmentUsage(AttachmentUsage *attachment);
     void RemoveAttachmentUsage(const Attachment *attachment);
 
@@ -61,6 +118,7 @@ public:
     void EndCapture(UInt frame_index, CommandBuffer *command_buffer);
 
 private:
+    AttachmentMap m_attachment_map;
     FixedArray<renderer::FramebufferObject, max_frames_in_flight> m_framebuffers;
     RenderPass m_render_pass;
 };

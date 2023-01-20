@@ -1,6 +1,8 @@
 #ifndef HYPERION_RENDERER_ATTACHMENT_H
 #define HYPERION_RENDERER_ATTACHMENT_H
 
+#include <core/Containers.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -73,7 +75,7 @@ enum class StoreOperation
 };
 
 // for making it easier to track holders
-#define HYP_attachment_usage_INSTANCE \
+#define HYP_ATTACHMENT_USAGE_INSTANCE \
     ::hyperion::renderer::AttachmentUsageInstance { \
         .cls = typeid(*this).name(),     \
         .ptr = static_cast<void *>(this) \
@@ -174,12 +176,12 @@ class Attachment
     friend class AttachmentUsage;
 
 public:
-    Attachment(std::unique_ptr<Image> &&image, RenderPassStage stage);
+    Attachment(ImageRef &&image, RenderPassStage stage);
     Attachment(const Attachment &other) = delete;
     Attachment &operator=(const Attachment &other) = delete;
     ~Attachment();
 
-    Image *GetImage() const { return m_image.get(); }
+    const ImageRef &GetImage() const { return m_image; }
 
     auto &GetAttachmentUsages() { return m_attachment_usages; }
     const auto &GetAttachmentUsages() const { return m_attachment_usages; }
@@ -189,6 +191,8 @@ public:
 
     bool IsDepthAttachment() const
         { return m_image ? m_image->IsDepthStencil() : false; }
+
+    void AddAttachmentUsage(AttachmentUsageRef &attachment_usage_ref);
 
     Result AddAttachmentUsage(
         Device *device,
@@ -237,11 +241,11 @@ private:
     }
 
     bool m_is_created;
-    std::unique_ptr<Image> m_image;
+    ImageRef m_image;
     RenderPassStage m_stage;
 
-    std::vector<std::unique_ptr<AttachmentUsage>> m_attachment_usages;
-    std::vector<AttachmentUsage::RefCount *> m_ref_counts;
+    Array<AttachmentUsageRef> m_attachment_usages;
+    Array<AttachmentUsage::RefCount *> m_ref_counts;
 };
 
 class AttachmentSet
@@ -271,7 +275,7 @@ public:
      * @param image The unique pointer to a non-initialized (but constructed)
      * Image which will be used to render to for this attachment.
      */
-    Result Add(Device *device, UInt binding, std::unique_ptr<Image> &&image);
+    Result Add(Device *device, UInt binding, ImageRef &&image);
 
     /*! \brief Add a reference to an existing attachment, not owned.
      * An AttachmentUsage is created and its reference count incremented.

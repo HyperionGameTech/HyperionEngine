@@ -32,14 +32,12 @@ static void AddOwnedAttachment(
 
     AttachmentUsage *attachment_usage;
 
-    auto framebuffer_image = std::make_unique<renderer::FramebufferImage2D>(
-        extent,
-        format,
-        nullptr
-    );
-
     attachments.PushBack(std::make_unique<renderer::Attachment>(
-        std::move(framebuffer_image),
+        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+            extent,
+            format,
+            nullptr
+        )),
         RenderPassStage::SHADER
     ));
 

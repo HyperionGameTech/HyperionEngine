@@ -18,6 +18,7 @@
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/Variant.hpp>
 #include <core/lib/Optional.hpp>
+#include <core/lib/Bitset.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>
 

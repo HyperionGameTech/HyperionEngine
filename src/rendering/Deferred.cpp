@@ -773,10 +773,10 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
         Rect { 0, 0, mipmapped_result->GetExtent().width, mipmapped_result->GetExtent().height }
     );
 
-    // HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
-    //     Engine::Get()->GetGPUDevice(),
-    //     primary
-    // ));
+    HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
+        Engine::Get()->GetGPUDevice(),
+        primary
+    ));
 }
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
