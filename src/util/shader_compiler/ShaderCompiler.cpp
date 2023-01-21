@@ -257,7 +257,7 @@ static ByteBuffer CompileToSPIRV(
         .target_language = GLSLANG_TARGET_SPV,
         .target_language_version = static_cast<glslang_target_language_version_t>(spirv_api_version),
         .code = source,
-        .default_version = int(spirv_version),
+        .default_version = Int(spirv_version),
         .default_profile = GLSLANG_CORE_PROFILE,
         .force_default_version_and_profile = false,
         .forward_compatible = false,
@@ -269,7 +269,14 @@ static ByteBuffer CompileToSPIRV(
 
     String preamble;
     
-    for (const ShaderProperty &property : properties) {
+    for (const VertexAttribute &attribute : properties.GetRequiredVertexAttributes().BuildAttributes()) {
+        preamble += String("#define HYP_ATTRIBUTE_") + attribute.name + "\n";
+    }
+
+    // We do not do the same for Optional attributes, as they have not been instantiated at this point in time.
+    // before compiling the shader, they should have all been made Required.
+    
+    for (const ShaderProperty &property : properties.GetPropertySet()) {
         if (property.name.Empty()) {
             continue;
         }
@@ -367,7 +374,7 @@ static const FlatMap<String, ShaderModule::Type> shader_type_names = {
 };
 
 static void ForEachPermutation(
-    const Array<ShaderProperty> &versions,
+    const ShaderProps &versions,
     Proc<void, const ShaderProps &> callback
 )
 {
@@ -375,7 +382,31 @@ static void ForEachPermutation(
     Array<ShaderProperty> static_properties;
     Array<ShaderProperty> value_groups;
 
-    for (auto &property : versions) {
+    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+        const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
+
+        if (!kv.second.name) {
+            continue;
+        }
+
+        // bool is_required = false;
+        
+        // if (FindVertexAttributePropertyByName(versions, kv.second.name, is_required)) {
+        //     if (is_required) {
+        //         static_properties.PushBack(ShaderProperty(kv.first));
+        //     } else {
+        //         variable_properties.PushBack(ShaderProperty(kv.first));
+        //     }
+        // }
+
+        if (versions.HasRequiredVertexAttribute(kv.first)) {
+            static_properties.PushBack(ShaderProperty(kv.first));
+        } else if (versions.HasOptionalVertexAttribute(kv.first)) {
+            variable_properties.PushBack(ShaderProperty(kv.first));
+        }
+    }
+
+    for (auto &property : versions.GetPropertySet()) {
         if (property.IsValueGroup()) {
             value_groups.PushBack(property);
         } else if (property.is_permutation) {
@@ -451,24 +482,6 @@ static void ForEachPermutation(
 
         callback(combination_properties);
     }
-}
-
-static String GetPropertiesString(const ShaderProps &properties)
-{
-    String properties_string;
-    SizeType index = 0;
-
-    for (auto &property : properties) {
-        properties_string += property.name;
-
-        if (index != properties.Size() - 1) {
-            properties_string += ", ";
-        }
-
-        index++;
-    }
-
-    return properties_string;
 }
 
 ShaderCompiler::ShaderCompiler()
@@ -596,7 +609,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     {
         // grab each defined property, and iterate over each combination
         // now check that each combination is already in the bundle
-        ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProps &properties) {
+        ForEachPermutation(bundle.versions, [&](const ShaderProps &properties) {
             // get hashcode of this set of properties
             const HashCode properties_hash = properties.GetHashCode();
 
@@ -825,35 +838,35 @@ bool ShaderCompiler::LoadShaderDefinitions()
 
     FlatMap<Bundle *, bool> results;
 
-    for (auto &bundle : bundles) {
-        if (bundle.HasRTShaders() && !supports_rt_shaders) {
-            DebugLog(
-                LogType::Warn,
-                "Not compiling shader bundle %s because it contains raytracing shaders and raytracing is not supported on this device.\n",
-                bundle.name.LookupString().Data()
-            );
+    // for (auto &bundle : bundles) {
+    //     if (bundle.HasRTShaders() && !supports_rt_shaders) {
+    //         DebugLog(
+    //             LogType::Warn,
+    //             "Not compiling shader bundle %s because it contains raytracing shaders and raytracing is not supported on this device.\n",
+    //             bundle.name.LookupString().Data()
+    //         );
 
-            continue;
-        }
+    //         continue;
+    //     }
 
-        VertexAttributeSet default_vertex_attributes;
+    //     VertexAttributeSet default_vertex_attributes;
 
-        if (bundle.HasVertexShader()) {
-            // TODO: what to do with vertex attributes here?
-            default_vertex_attributes = renderer::static_mesh_vertex_attributes;
-        }
+    //     if (bundle.HasVertexShader()) {
+    //         // TODO: what to do with vertex attributes here?
+    //         default_vertex_attributes = renderer::static_mesh_vertex_attributes;
+    //     }
 
-        if (default_vertex_attributes) {
-            bundle.versions.Merge(ShaderProps(default_vertex_attributes));
-        }
+    //     if (default_vertex_attributes) {
+    //         bundle.versions.Merge(ShaderProps(default_vertex_attributes));
+    //     }
 
-        // TODO: Maybe don't need to cache these?
-        // ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProps &properties) {
-        //     CompiledShader compiled_shader;
+    //     // TODO: Maybe don't need to cache these?
+    //     ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProps &properties) {
+    //         CompiledShader compiled_shader;
 
-        //     results[&bundle] = GetCompiledShader(bundle.name, properties, compiled_shader);
-        // });
-    }
+    //         results[&bundle] = GetCompiledShader(bundle.name, properties, compiled_shader);
+    //     });
+    // }
 
     return results.Every([](const KeyValuePair<Bundle *, bool> &it) {
         if (!it.second) {
@@ -1114,28 +1127,63 @@ bool ShaderCompiler::CompileBundle(
 
     // grab each defined property, and iterate over each combination
     ShaderProps final_versions;
-    {
-        for (const ShaderProperty &property : bundle.versions) {
-            final_versions.Set(property);
+    final_versions.Merge(bundle.versions);
+
+    // for (const auto &required_attribute : required_vertex_attributes) {
+    //     String attribute_prop_name = String("HYP_ATTRIBUTE_") + required_attribute.name;
+
+    //     final_versions.Set(ShaderProperty(attribute_prop_name, false, SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE));
+    // }
+
+    // for (const VertexAttributeDefinition &optional_attribute : optional_vertex_attributes) {
+    //     String attribute_prop_name = String("HYP_ATTRIBUTE_") + optional_attribute.name;
+
+    //     final_versions.Set(ShaderProperty(attribute_prop_name, true));
+    // }
+
+    { // Lookup vertex attribute names
+
+        VertexAttributeSet required_vertex_attribute_set;
+        VertexAttributeSet optional_vertex_attribute_set;
+
+        for (const VertexAttributeDefinition &definition : required_vertex_attributes) {
+            VertexAttribute::Type type;
+
+            if (!FindVertexAttributeForDefinition(definition.name, type)) {
+                DebugLog(
+                    LogType::Error,
+                    "Invalid vertex attribute definition, %s\n",
+                    definition.name.Data()
+                );
+
+                continue;
+            }
+
+            required_vertex_attribute_set |= type;
         }
-    }
 
-    for (const auto &required_attribute : required_vertex_attributes) {
-        String attribute_prop_name = String("HYP_ATTRIBUTE_") + required_attribute.name;
+        for (const VertexAttributeDefinition &definition : optional_vertex_attributes) {
+            VertexAttribute::Type type;
 
-        final_versions.Set(ShaderProperty(attribute_prop_name, false, SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE));
-    }
+            if (!FindVertexAttributeForDefinition(definition.name, type)) {
+                DebugLog(
+                    LogType::Error,
+                    "Invalid vertex attribute definition, %s\n",
+                    definition.name.Data()
+                );
 
-    for (const VertexAttributeDefinition &optional_attribute : optional_vertex_attributes) {
-        String attribute_prop_name = String("HYP_ATTRIBUTE_") + optional_attribute.name;
+                continue;
+            }
 
-        final_versions.Set(ShaderProperty(attribute_prop_name, true));
+            optional_vertex_attribute_set |= type;
+        }
+
+        final_versions.SetRequiredVertexAttributes(required_vertex_attribute_set);
+        final_versions.SetOptionalVertexAttributes(optional_vertex_attribute_set);
     }
 
     // copy passed properties
-    for (const ShaderProperty &item : additional_versions) {
-        final_versions.Set(item);
-    }
+    final_versions.Merge(additional_versions);
 
     DebugLog(
         LogType::Info,
@@ -1147,7 +1195,7 @@ bool ShaderCompiler::CompileBundle(
     bundle.versions = final_versions;
 
     // compile shader with each permutation of properties
-    ForEachPermutation(final_versions.ToArray(), [&](const ShaderProps &properties) {
+    ForEachPermutation(final_versions, [&](const ShaderProps &properties) {
         CompiledShader compiled_shader(bundle.name, properties);
 
         bool any_files_compiled = false;
@@ -1171,7 +1219,7 @@ bool ShaderCompiler::CompileBundle(
                             "Shader source (%s) has not been modified since binary was generated. Reusing shader binary at path: %s\n\tProperties: [%s]\n",
                             item.file.path.Data(),
                             output_filepath.Data(),
-                            GetPropertiesString(properties).Data()
+                            properties.ToString().Data()
                         );
 
                         compiled_shader.modules[item.type] = reader.ReadBytes();
@@ -1183,7 +1231,7 @@ bool ShaderCompiler::CompileBundle(
                         LogType::Warn,
                         "File %s seems valid for reuse but could not be opened. Attempting to rebuild...\n\tProperties: [%s]\n",
                         output_filepath.Data(),
-                        GetPropertiesString(properties).Data()
+                        properties.ToString().Data()
                     );
                 }
             }
@@ -1191,7 +1239,7 @@ bool ShaderCompiler::CompileBundle(
             String variable_properties_string;
             String static_properties_string;
 
-            for (auto &property : properties) {
+            for (const ShaderProperty &property : properties.ToArray()) {
                 if (property.is_permutation) {
                     if (!variable_properties_string.Empty()) {
                         variable_properties_string += ", ";

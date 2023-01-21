@@ -111,7 +111,6 @@ struct MeshAttributes
 
 struct RenderableAttributeSet
 {
-    //ID<Shader> shader_id;
     ShaderDefinition shader_def;
     ID<Framebuffer> framebuffer_id; // only used for scenes, not per entity
     MeshAttributes mesh_attributes;

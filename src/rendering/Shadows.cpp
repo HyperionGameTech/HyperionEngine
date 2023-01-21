@@ -171,7 +171,7 @@ void ShadowPass::CreateShader()
 {
     m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
         HYP_NAME(Shadows),
-        ShaderProps(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes)
+        ShaderProps(renderer::static_mesh_vertex_attributes)
     );
 
     InitObject(m_shader);

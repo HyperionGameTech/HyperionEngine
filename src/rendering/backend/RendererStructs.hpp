@@ -84,17 +84,17 @@ struct StencilState
 
 struct VertexAttribute
 {
-    enum Type
+    enum Type : UInt32
     {
-        MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0,
-        MESH_INPUT_ATTRIBUTE_POSITION     = 1,
-        MESH_INPUT_ATTRIBUTE_NORMAL       = 2,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD0    = 4,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD1    = 8,
-        MESH_INPUT_ATTRIBUTE_TANGENT      = 16,
-        MESH_INPUT_ATTRIBUTE_BITANGENT    = 32,
-        MESH_INPUT_ATTRIBUTE_BONE_INDICES = 64,
-        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 128,
+        MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0x0,
+        MESH_INPUT_ATTRIBUTE_POSITION     = 0x1,
+        MESH_INPUT_ATTRIBUTE_NORMAL       = 0x2,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD0    = 0x4,
+        MESH_INPUT_ATTRIBUTE_TEXCOORD1    = 0x8,
+        MESH_INPUT_ATTRIBUTE_TANGENT      = 0x10,
+        MESH_INPUT_ATTRIBUTE_BITANGENT    = 0x20,
+        MESH_INPUT_ATTRIBUTE_BONE_INDICES = 0x40,
+        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80,
     };
 
     static const EnumOptions<Type, VertexAttribute, 16> mapping;
@@ -162,13 +162,13 @@ struct VertexAttributeSet
         { return ~flag_mask; }
 
     VertexAttributeSet operator&(const VertexAttributeSet &other) const
-        { return {flag_mask & other.flag_mask}; }
+        { return { flag_mask & other.flag_mask }; }
 
     VertexAttributeSet &operator&=(const VertexAttributeSet &other)
         { flag_mask &= other.flag_mask; return *this; }
 
     VertexAttributeSet operator&(UInt64 flags) const
-        { return {flag_mask & flags}; }
+        { return { flag_mask & flags }; }
 
     VertexAttributeSet &operator&=(UInt64 flags)
         { flag_mask &= flags; return *this; }

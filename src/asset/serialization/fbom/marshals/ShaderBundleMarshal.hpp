@@ -26,7 +26,13 @@ public:
 
         out.SetProperty("name", FBOMName(), in_object.GetDefinition().name);
 
-        auto properties_array = in_object.GetDefinition().properties.ToArray();
+        const VertexAttributeSet required_vertex_attributes = in_object.GetDefinition().GetProperties().GetRequiredVertexAttributes();
+        out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
+
+        const VertexAttributeSet optional_vertex_attributes = in_object.GetDefinition().GetProperties().GetOptionalVertexAttributes();
+        out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
+
+        auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
 
         out.SetProperty("properties.size", FBOMData::FromUInt32(UInt32(properties_array.Size())));
 
@@ -91,6 +97,15 @@ public:
         if (auto err = in.GetProperty("name").ReadName(&name)) {
             return err;
         }
+
+        VertexAttributeSet required_vertex_attributes;
+        in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask);
+
+        VertexAttributeSet optional_vertex_attributes;
+        in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask);
+
+        compiled_shader->GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
+        compiled_shader->GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
 
         UInt num_properties;
 

@@ -23,7 +23,7 @@ const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 static ShaderProps GetDeferredShaderProps()
 {
-    ShaderProps props(renderer::static_mesh_vertex_attributes);
+    ShaderProps props;
     props.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
     props.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
     props.Set("REFLECTION_PROBE_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));

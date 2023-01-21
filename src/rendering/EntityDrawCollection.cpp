@@ -195,8 +195,8 @@ void RenderList::PushEntityToRender(
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
         // TODO: Do not calculate at render time; pre-calculate
-        if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes != attributes.shader_def.properties.CalculateVertexAttributes()) {
-            attributes.shader_def.properties.SetVertexAttributes(entity->GetRenderableAttributes().mesh_attributes.vertex_attributes);
+        if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes != attributes.shader_def.GetProperties().GetRequiredVertexAttributes()) {
+            attributes.shader_def.properties.SetRequiredVertexAttributes(entity->GetRenderableAttributes().mesh_attributes.vertex_attributes);
         }
 
         attributes.material_attributes = override_attributes->material_attributes;

@@ -211,8 +211,12 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 {
     const auto EnsureContainsProperties = [](const ShaderProps &expected, const ShaderProps &received) -> bool
     {
-        for (const ShaderProperty &property : expected) {
-            if (!received.Get(property)) {
+        if (!received.HasRequiredVertexAttributes(expected.GetRequiredVertexAttributes())) {
+            return false;
+        }
+
+        for (const ShaderProperty &property : expected.GetPropertySet()) {
+            if (!received.Has(property)) {
                 return false;
             }
         }
@@ -224,7 +228,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     DebugLog(
         LogType::Debug,
-        "Lock ShaderManager for definition %llu\n",
+        "Lock ShaderManager for ShaderDefinition with hash %llu\n",
         definition.GetHashCode().Value()
     );
 

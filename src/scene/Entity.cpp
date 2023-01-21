@@ -525,11 +525,11 @@ void Entity::RebuildRenderableAttributes()
     }
 
     if (m_shader) {
-        const VertexAttributeSet shader_vertex_attributes = m_shader->GetCompiledShader().GetProperties().CalculateVertexAttributes();
+        const VertexAttributeSet shader_vertex_attributes = m_shader->GetCompiledShader().GetProperties().GetRequiredVertexAttributes();
 
         if (shader_vertex_attributes != new_renderable_attributes.mesh_attributes.vertex_attributes) {
             ShaderProps modified_shader_properties(m_shader->GetCompiledShader().GetProperties());
-            modified_shader_properties.SetVertexAttributes(new_renderable_attributes.mesh_attributes.vertex_attributes);
+            modified_shader_properties.SetRequiredVertexAttributes(new_renderable_attributes.mesh_attributes.vertex_attributes);
 
             DebugLog(
                 LogType::Debug,
