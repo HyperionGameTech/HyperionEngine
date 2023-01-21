@@ -883,7 +883,7 @@ int main()
 
     my_game->Init();
 
-    Engine::Get()->Compile();
+    // Engine::Get()->Compile();
     
     Engine::Get()->game_thread.Start(my_game);
 
@@ -905,7 +905,7 @@ int main()
             DebugLog(
                 LogType::Debug,
                 "Render FPS: %f\n",
-                1.0f / (delta_time_accum / static_cast<float>(num_frames))
+                1.0f / (delta_time_accum / Float(num_frames))
             );
 
             DebugLog(

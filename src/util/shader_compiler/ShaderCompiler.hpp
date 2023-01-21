@@ -8,6 +8,7 @@
 #include <util/definitions/DefinitionsFile.hpp>
 #include <util/Defines.hpp>
 #include <HashCode.hpp>
+#include <Types.hpp>
 
 #include <set>
 #include <mutex>
@@ -17,29 +18,48 @@ namespace hyperion::v2 {
 class Engine;
 
 using renderer::ShaderModule;
+using renderer::VertexAttribute;
 using renderer::VertexAttributeSet;
+
+using ShaderPropertyFlags = UInt32;
+
+enum ShaderPropertyFlagBits : ShaderPropertyFlags
+{
+    SHADER_PROPERTY_FLAG_NONE = 0x0,
+    SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE = 0x1
+};
 
 struct ShaderProperty
 {
+    using Value = Variant<String, Int, Float>;
+
     String name;
     bool is_permutation = false;
-    bool is_global = false;
-    String value;
+    ShaderPropertyFlags flags;
+    Value value;
     Array<String> possible_values;
 
     ShaderProperty() = default;
 
-    ShaderProperty(const String &name, bool is_permutation, bool is_global = false)
+    ShaderProperty(const String &name, bool is_permutation, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
         : name(name),
           is_permutation(is_permutation),
-          is_global(is_global)
+          flags(flags)
+    {
+    }
+
+    ShaderProperty(const String &name, bool is_permutation, const Value &value, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
+        : name(name),
+          is_permutation(is_permutation),
+          flags(flags),
+          value(value)
     {
     }
 
     ShaderProperty(const ShaderProperty &other)
         : name(other.name),
           is_permutation(other.is_permutation),
-          is_global(other.is_global),
+          flags(other.flags),
           value(other.value),
           possible_values(other.possible_values)
     {
@@ -49,7 +69,7 @@ struct ShaderProperty
     {
         name = other.name;
         is_permutation = other.is_permutation;
-        is_global = other.is_global;
+        flags = other.flags;
         value = other.value;
         possible_values = other.possible_values;
 
@@ -59,24 +79,23 @@ struct ShaderProperty
     ShaderProperty(ShaderProperty &&other) noexcept
         : name(std::move(other.name)),
           is_permutation(other.is_permutation),
-          is_global(other.is_global),
+          flags(other.flags),
           value(std::move(other.value)),
           possible_values(std::move(other.possible_values))
     {
         other.is_permutation = false;
-        other.is_global = false;
+        other.flags = SHADER_PROPERTY_FLAG_NONE;
     }
 
     ShaderProperty &operator=(ShaderProperty &&other) noexcept
     {
         name = std::move(other.name);
-        is_permutation = other.is_permutation;
-        is_global = other.is_global;
+        flags = other.flags;
         value = std::move(other.value);
         possible_values = std::move(other.possible_values);
 
         other.is_permutation = false;
-        other.is_global = false;
+        other.flags = SHADER_PROPERTY_FLAG_NONE;
 
         return *this;
     }
@@ -100,7 +119,18 @@ struct ShaderProperty
         { return possible_values.Any(); }
 
     bool HasValue() const
-        { return value.Any(); }
+        { return value.IsValid(); }
+
+    String GetValueString() const
+    {
+        if (const String *str = value.TryGet<String>()) {
+            return *str;
+        } else if (const Int *i = value.TryGet<Int>()) {
+            return String::ToString(*i);
+        } else {
+            return String::empty;
+        }
+    }
 
     HashCode GetHashCode() const
     {
@@ -149,7 +179,12 @@ public:
     ShaderProps(const VertexAttributeSet &vertex_attributes, const Array<String> &props)
     {
         for (const auto &attribute : vertex_attributes.BuildAttributes()) {
-            m_props.Insert(ShaderProperty(String("HYP_ATTRIBUTE_") + attribute.name, false));
+            m_props.Insert(ShaderProperty(
+                String("HYP_ATTRIBUTE_") + attribute.name,
+                false,
+                ShaderProperty::Value(String(attribute.name)),
+                SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE
+            ));
         }
 
         for (const String &prop_key : props) {
@@ -235,6 +270,46 @@ public:
             Set(property);
         }
     }
+    
+    VertexAttributeSet CalculateVertexAttributes() const
+    {
+        const auto FindVertexAttributePropertyByName = [this](const char *name) {
+            return m_props.FindIf([name](const ShaderProperty &property) {
+                return (property.flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE)
+                    && property.name == name;
+            }) != m_props.End();
+        };
+
+        VertexAttributeSet vertex_attributes;
+
+        for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
+            const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
+
+            if (!kv.second.name) {
+                continue;
+            }
+            
+            if (FindVertexAttributePropertyByName(kv.second.name)) {
+                vertex_attributes |= kv.first;
+            }
+        }
+
+        return vertex_attributes;
+    }
+
+    /*! \brief Replaces all vertex attribute properties with the given set */
+    void SetVertexAttributes(VertexAttributeSet vertex_attributes)
+    {
+        for (auto it = m_props.Begin(); it != m_props.End();) {
+            if (it->flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE) {
+                it = m_props.Erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        Merge(ShaderProps(vertex_attributes));
+    }
 
     SizeType Size() const
         { return m_props.Size(); }
@@ -318,22 +393,46 @@ private:
     FlatSet<ShaderProperty> m_props;
 };
 
-struct CompiledShader
+struct ShaderDefinition
 {
     Name name;
     ShaderProps properties;
+
+    Name GetName() const
+        { return name; }
+
+    ShaderProps &GetProperties()
+        { return properties; }
+
+    const ShaderProps &GetProperties() const
+        { return properties; }
+
+    explicit operator bool() const
+        { return name.IsValid(); }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name.GetHashCode());
+        hc.Add(properties.GetHashCode());
+
+        return hc;
+    }
+};
+
+struct CompiledShader
+{
+    ShaderDefinition definition;
     HeapArray<ByteBuffer, ShaderModule::Type::MAX> modules;
 
     CompiledShader() = default;
     CompiledShader(Name name, const ShaderProps &properties)
-        : name(name),
-          properties(properties)
+        : definition { name, properties }
     {
     }
 
     CompiledShader(const CompiledShader &other) = default;
     CompiledShader &operator=(const CompiledShader &other) = default;
-
     CompiledShader(CompiledShader &&other) noexcept = default;
     CompiledShader &operator=(CompiledShader &&other) noexcept = default;
 
@@ -343,13 +442,27 @@ struct CompiledShader
         { return IsValid(); }
 
     bool IsValid() const
-    {
-        return modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); });
-    }
+        { return modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); }); }
+
+    ShaderDefinition &GetDefinition()
+        { return definition; }
+
+    const ShaderDefinition &GetDefinition() const
+        { return definition; }
+
+    Name GetName() const
+        { return definition.name; }
+
+    const ShaderProps &GetProperties() const
+        { return definition.properties; }
+
+    const HeapArray<ByteBuffer, ShaderModule::Type::MAX> &GetModules() const
+        { return modules; }
 
     HashCode GetHashCode() const
     {
         HashCode hc;
+        hc.Add(definition.GetHashCode());
         hc.Add(modules.GetHashCode());
 
         return hc;
@@ -407,7 +520,7 @@ public:
         }
 
         const auto version_it = it->value.compiled_shaders.FindIf([version_hash](const CompiledShader &item) {
-            return item.properties.GetHashCode().Value() == version_hash;
+            return item.definition.properties.GetHashCode().Value() == version_hash;
         });
 
         if (version_it == it->value.compiled_shaders.End()) {

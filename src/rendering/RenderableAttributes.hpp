@@ -111,7 +111,8 @@ struct MeshAttributes
 
 struct RenderableAttributeSet
 {
-    ID<Shader> shader_id;
+    //ID<Shader> shader_id;
+    ShaderDefinition shader_def;
     ID<Framebuffer> framebuffer_id; // only used for scenes, not per entity
     MeshAttributes mesh_attributes;
     MaterialAttributes material_attributes;
@@ -121,11 +122,11 @@ struct RenderableAttributeSet
     RenderableAttributeSet(
         const MeshAttributes &mesh_attributes = { },
         const MaterialAttributes &material_attributes = { },
-        ID<Shader> shader_id = Shader::empty_id,
+        const ShaderDefinition &shader_def = { },
         UInt32 override_flags = 0
     ) : mesh_attributes(mesh_attributes),
         material_attributes(material_attributes),
-        shader_id(shader_id),
+        shader_def(shader_def),
         override_flags(override_flags)
     {
     }
@@ -149,7 +150,7 @@ struct RenderableAttributeSet
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(shader_id.GetHashCode());
+        hc.Add(shader_def.GetHashCode());
         hc.Add(framebuffer_id.GetHashCode());
         hc.Add(mesh_attributes.GetHashCode());
         hc.Add(material_attributes.GetHashCode());

@@ -119,9 +119,9 @@ void RenderList::UpdateRenderGroups()
 
     for (auto &it : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_GAME)) {
         const RenderableAttributeSet &attributes = it.first;
-        auto &entity_list = it.second;
+        EntityDrawCollection::EntityList &entity_list = it.second;
 
-        if (!entity_list.render_group) {
+        if (!entity_list.render_group.IsValid()) {
             auto render_group_it = m_render_groups.Find(attributes);
 
             if (render_group_it == m_render_groups.End() || !render_group_it->second) {
@@ -189,7 +189,16 @@ void RenderList::PushEntityToRender(
     }
 
     if (override_attributes) {
-        attributes.shader_id = override_attributes->shader_id ? override_attributes->shader_id : attributes.shader_id;
+        attributes.shader_def = override_attributes->shader_def ? override_attributes->shader_def : attributes.shader_def;
+        
+        // Check for varying vertex attributes on the override shader compared to the entity's vertex
+        // attributes. If there is not a match, we should switch to a version of the override shader that
+        // has matching vertex attribs.
+        // TODO: Do not calculate at render time; pre-calculate
+        if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes != attributes.shader_def.properties.CalculateVertexAttributes()) {
+            attributes.shader_def.properties.SetVertexAttributes(entity->GetRenderableAttributes().mesh_attributes.vertex_attributes);
+        }
+
         attributes.material_attributes = override_attributes->material_attributes;
         attributes.stencil_state = override_attributes->stencil_state;
     }

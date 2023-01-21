@@ -891,12 +891,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
     m_running.store(true);
 
     PrepareFinalPass();
+
+    Compile();
 }
 
 void Engine::Compile()
 {
-    Threads::AssertOnThread(THREAD_MAIN);
-
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         /* Finalize env probes */
         shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), i);
@@ -1043,11 +1043,11 @@ void Engine::RenderNextFrame(Game *game)
 
 Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
 {
-    Handle<Shader> shader(renderable_attributes.shader_id);
+    Handle<Shader> shader = GetShaderManager().GetOrCreate(renderable_attributes.shader_def);
 
     if (!shader) {
         DebugLog(
-            LogType::Warn,
+            LogType::Error,
             "Shader is empty; Cannot create RenderGroup.\n"
         );
 
@@ -1056,7 +1056,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 
     // create a RenderGroup with the given params
     auto renderer_instance = CreateObject<RenderGroup>(
-        Handle<Shader>(shader),
+        std::move(shader),
         renderable_attributes
     );
 
@@ -1075,7 +1075,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
 {
     if (!shader) {
         DebugLog(
-            LogType::Warn,
+            LogType::Error,
             "Shader is empty; Cannot create RenderGroup.\n"
         );
 
@@ -1083,7 +1083,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(
     }
 
     RenderableAttributeSet new_renderable_attributes(renderable_attributes);
-    new_renderable_attributes.shader_id = shader->GetID();
+    new_renderable_attributes.shader_def = shader->GetCompiledShader().GetDefinition();
 
     auto &render_list_bucket = m_render_list_container.Get(new_renderable_attributes.material_attributes.bucket);
 

@@ -222,20 +222,25 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     std::lock_guard guard(m_mutex);
 
+    DebugLog(
+        LogType::Debug,
+        "Lock ShaderManager for definition %llu\n",
+        definition.GetHashCode().Value()
+    );
+
     const auto it = m_map.Find(definition);
 
     if (it != m_map.End()) {
         if (Handle<Shader> handle = it->value.Lock()) {
-
-            if (EnsureContainsProperties(definition.props, handle->GetCompiledShader().properties)) {
+            if (EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetProperties())) {
                 return handle;
             } else {
                 DebugLog(
                     LogType::Error,
                     "Loaded shader from cache (Name: %s, Properties: %s) does not contain the requested properties!\n\tRequested: %s\n",
-                    definition.name.LookupString().Data(),
-                    handle->GetCompiledShader().properties.ToString().Data(),
-                    definition.props.ToString().Data()
+                    definition.GetName().LookupString().Data(),
+                    handle->GetCompiledShader().GetProperties().ToString().Data(),
+                    definition.GetProperties().ToString().Data()
                 );
 
                 // remove bad value from cache
@@ -247,23 +252,25 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
     CompiledShader compiled_shader;
 
     const bool is_valid_compiled_shader = Engine::Get()->GetShaderCompiler().GetCompiledShader(
-        definition.name,
-        definition.props,
+        definition.GetName(),
+        definition.GetProperties(),
         compiled_shader
     );
     
     AssertThrowMsg(
         is_valid_compiled_shader,
         "Failed to get compiled shader with name %s and props hash %llu!\n",
-        definition.name.LookupString().Data(),
-        definition.props.GetHashCode().Value()
+        definition.GetName().LookupString().Data(),
+        definition.GetProperties().GetHashCode().Value()
     );
 
     Handle<Shader> handle = CreateObject<Shader>();
-    handle->SetName(definition.name);
+    handle->SetName(definition.GetName());
     handle->SetCompiledShader(std::move(compiled_shader));
 
-    AssertThrow(EnsureContainsProperties(definition.props, handle->GetCompiledShader().properties));
+#ifdef HYP_DEBUG_MODE
+    AssertThrow(EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetDefinition().GetProperties()));
+#endif
 
     m_map.Set(definition, handle);
 

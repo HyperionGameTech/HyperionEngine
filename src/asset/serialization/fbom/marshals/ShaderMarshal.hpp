@@ -21,9 +21,9 @@ public:
 
     virtual FBOMResult Serialize(const Shader &in_object, FBOMObject &out) const override
     {
-        out.SetProperty("name", FBOMName(), in_object.GetCompiledShader().name);
+        out.SetProperty("name", FBOMName(), in_object.GetCompiledShader().GetDefinition().name);
 
-        Array<ShaderProperty> properties_array = in_object.GetCompiledShader().properties.ToArray();
+        Array<ShaderProperty> properties_array = in_object.GetCompiledShader().GetDefinition().properties.ToArray();
 
         out.SetProperty("properties.size", FBOMUnsignedInt(), UInt(properties_array.Size()));
 

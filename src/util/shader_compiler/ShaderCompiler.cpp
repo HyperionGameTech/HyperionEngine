@@ -590,7 +590,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     }
 
     Array<ShaderProps> missing_variants;
-    Array<ShaderProps> found_variants; // temp
+    Array<ShaderProps> found_variants;
     bool requested_found = false;
 
     {
@@ -601,7 +601,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
             const HashCode properties_hash = properties.GetHashCode();
 
             const auto it = batch.compiled_shaders.FindIf([properties_hash](const CompiledShader &item) {
-                return item.properties.GetHashCode() == properties_hash;
+                return item.GetDefinition().GetProperties().GetHashCode() == properties_hash;
             });
 
             if (it == batch.compiled_shaders.End()) {
@@ -612,7 +612,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
         });
         
         const auto it = batch.compiled_shaders.FindIf([properties_hash = additional_versions.GetHashCode()](const CompiledShader &item) {
-            return item.properties.GetHashCode() == properties_hash;
+            return item.GetDefinition().GetProperties().GetHashCode() == properties_hash;
         });
 
         requested_found = it != batch.compiled_shaders.End();
@@ -1123,7 +1123,7 @@ bool ShaderCompiler::CompileBundle(
     for (const auto &required_attribute : required_vertex_attributes) {
         String attribute_prop_name = String("HYP_ATTRIBUTE_") + required_attribute.name;
 
-        final_versions.Set(ShaderProperty(attribute_prop_name, false, true));
+        final_versions.Set(ShaderProperty(attribute_prop_name, false, SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE));
     }
 
     for (const VertexAttributeDefinition &optional_attribute : optional_vertex_attributes) {
@@ -1349,20 +1349,8 @@ bool ShaderCompiler::GetCompiledShader(
     // make sure we properly created it
 
     auto it = batch.compiled_shaders.FindIf([final_properties_hash](const CompiledShader &compiled_shader) {
-        return compiled_shader.properties.GetHashCode() == final_properties_hash;
+        return compiled_shader.GetDefinition().GetProperties().GetHashCode() == final_properties_hash;
     });
-
-    String requested_properties_string;
-
-    {
-        for (const ShaderProperty &property : final_properties) {
-            if (!requested_properties_string.Empty()) {
-                requested_properties_string += ", ";
-            }
-
-            requested_properties_string += property.name;
-        }
-    }
 
     if (it == batch.compiled_shaders.End()) {
         DebugLog(
@@ -1370,7 +1358,7 @@ bool ShaderCompiler::GetCompiledShader(
             "Hash calculation for shader %s does not match %llu! Invalid shader property combination.\n\tRequested instance with properties: [%s]\n",
             name.LookupString().Data(),
             final_properties_hash.Value(),
-            requested_properties_string.Data()
+            final_properties.ToString().Data()
         );
 
         return false;
@@ -1383,7 +1371,7 @@ bool ShaderCompiler::GetCompiledShader(
         "Selected shader %s for hash %llu.\n\tRequested instance with properties: [%s]\n",
         name.LookupString().Data(),
         final_properties_hash.Value(),
-        requested_properties_string.Data()
+        final_properties.ToString().Data()
     );
 
     return true;

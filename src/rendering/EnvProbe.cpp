@@ -277,14 +277,14 @@ void EnvProbe::CreateShader()
     case EnvProbeType::ENV_PROBE_TYPE_REFLECTION:
         m_shader = Engine::Get()->GetShaderManager().GetOrCreate({
             HYP_NAME(CubemapRenderer),
-            ShaderProps({ "MODE_REFLECTION" })
+            ShaderProps(renderer::static_mesh_vertex_attributes, { "MODE_REFLECTION" })
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SHADOW:
         m_shader = Engine::Get()->GetShaderManager().GetOrCreate({
             HYP_NAME(CubemapRenderer),
-            ShaderProps({ "MODE_SHADOWS" })
+            ShaderProps(renderer::static_mesh_vertex_attributes, { "MODE_SHADOWS" })
         });
 
         break;
@@ -471,7 +471,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                         ? FaceCullMode::FRONT
                         : FaceCullMode::BACK
                 },
-                m_shader->GetID()
+                m_shader->GetCompiledShader().GetDefinition()
             ),
             true // skip frustum culling
         );

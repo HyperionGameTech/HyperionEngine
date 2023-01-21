@@ -282,7 +282,7 @@ void Voxelizer::CollectEntities(const Scene *scene)
                 .cull_faces = FaceCullMode::NONE,
                 .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
-            m_shader->GetID()
+            m_shader->GetCompiledShader().GetDefinition()
         ),
         true // skip culling
     );

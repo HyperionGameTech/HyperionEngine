@@ -378,7 +378,7 @@ void Entity::SetShader(Handle<Shader> &&shader)
         }
 
         RenderableAttributeSet new_renderable_attributes(m_renderable_attributes);
-        new_renderable_attributes.shader_id = m_shader->GetID();
+        new_renderable_attributes.shader_def = m_shader->GetCompiledShader().GetDefinition();
         SetRenderableAttributes(new_renderable_attributes);
     } else {
         RebuildRenderableAttributes();
@@ -524,9 +524,37 @@ void Entity::RebuildRenderableAttributes()
         new_renderable_attributes.mesh_attributes.vertex_attributes |= renderer::skeleton_vertex_attributes;
     }
 
-    new_renderable_attributes.shader_id = m_shader
-        ? m_shader->GetID()
-        : Shader::empty_id;
+    if (m_shader) {
+        const VertexAttributeSet shader_vertex_attributes = m_shader->GetCompiledShader().GetProperties().CalculateVertexAttributes();
+
+        if (shader_vertex_attributes != new_renderable_attributes.mesh_attributes.vertex_attributes) {
+            ShaderProps modified_shader_properties(m_shader->GetCompiledShader().GetProperties());
+            modified_shader_properties.SetVertexAttributes(new_renderable_attributes.mesh_attributes.vertex_attributes);
+
+            DebugLog(
+                LogType::Debug,
+                "Entity #%u vertex attributes do not match shader #%u vertex attributes, grabbing new shader\n",
+                GetID().Value(),
+                m_shader->GetID().Value()
+            );
+
+            m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+                m_shader->GetName(),
+                modified_shader_properties
+            );
+
+            InitObject(m_shader);
+
+            AssertThrowMsg(
+                m_shader.IsValid(),
+                "Invalid shader after grabbing new one because vertex attributes did not match requirements!"
+            );
+        }
+
+        new_renderable_attributes.shader_def = m_shader->GetCompiledShader().GetDefinition();
+    } else {
+        new_renderable_attributes.shader_def = { };
+    }
 
     SetRenderableAttributes(new_renderable_attributes);
 }

@@ -125,10 +125,13 @@ struct VertexAttributeSet
 
     constexpr VertexAttributeSet()
         : flag_mask(0) {}
+
     constexpr VertexAttributeSet(UInt64 flag_mask)
         : flag_mask(flag_mask) {}
+
     constexpr VertexAttributeSet(VertexAttribute::Type flags)
-        : flag_mask(static_cast<UInt64>(flags)) {}
+        : flag_mask(UInt64(flags)) {}
+
     constexpr VertexAttributeSet(const VertexAttributeSet &other)
         : flag_mask(other.flag_mask) {}
 
@@ -197,7 +200,7 @@ struct VertexAttributeSet
 
     void Set(VertexAttribute::Type type, bool enable = true)
     {
-        Set(static_cast<UInt64>(type), enable);
+        Set(UInt64(type), enable);
     }
 
     void Merge(const VertexAttributeSet &other)

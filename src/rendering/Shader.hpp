@@ -78,23 +78,6 @@ private:
     ShaderProgramRef m_shader_program;
 };
 
-struct ShaderDefinition
-{
-    Name name;
-    ShaderProps props;
-    VertexAttributeSet vertex_attributes;
-
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name.GetHashCode());
-        hc.Add(props.GetHashCode());
-        hc.Add(vertex_attributes.GetHashCode());
-
-        return hc;
-    }
-};
-
 class ShaderManagerSystem
 {
 public:
@@ -110,24 +93,7 @@ private:
     std::mutex m_mutex;
 };
 
-enum class ShaderKey
-{
-    BASIC_FORWARD,
-    BASIC_FORWARD_SKINNED,
-    BASIC_VEGETATION,
-    BASIC_SKYBOX,
-    BASIC_UI,
-    STENCIL_OUTLINE,
-    DEBUG_AABB,
-    TERRAIN,
-    CUSTOM
-};
-
-using ShaderMapKey = KeyValuePair<ShaderKey, String>;
-
 } // namespace hyperion::v2
-
-HYP_DEF_STL_HASH(hyperion::v2::ShaderMapKey);
 
 #endif // !HYPERION_V2_SHADER_H
 

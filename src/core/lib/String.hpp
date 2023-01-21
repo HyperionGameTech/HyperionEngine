@@ -429,6 +429,10 @@ bool DynString<T, IsUtf8>::operator==(const DynString &other) const
 template <class T, bool IsUtf8>
 bool DynString<T, IsUtf8>::operator==(const T *str) const
 {
+    if (!str) {
+        return *this == empty;
+    }
+
     const auto len = utf::utf_strlen<T, IsUtf8>(str);
 
     if (len == -1) {

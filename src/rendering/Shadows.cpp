@@ -430,7 +430,7 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
                 .bucket = BUCKET_SHADOW,
                 .cull_faces = FaceCullMode::FRONT
             },
-            m_shadow_pass->GetShader()->GetID()
+            m_shadow_pass->GetShader()->GetCompiledShader().GetDefinition()
         ),
         true // temp
     );

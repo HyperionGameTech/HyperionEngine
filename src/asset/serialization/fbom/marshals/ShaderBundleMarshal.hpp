@@ -24,9 +24,9 @@ public:
             return { FBOMResult::FBOM_ERR, "Cannot serialize invalid compiled shader instance" };
         }
 
-        out.SetProperty("name", FBOMName(), in_object.name);
+        out.SetProperty("name", FBOMName(), in_object.GetDefinition().name);
 
-        auto properties_array = in_object.properties.ToArray();
+        auto properties_array = in_object.GetDefinition().properties.ToArray();
 
         out.SetProperty("properties.size", FBOMData::FromUInt32(UInt32(properties_array.Size())));
 
@@ -44,8 +44,8 @@ public:
             );
 
             out.SetProperty(
-                String("properties.") + String::ToString(index) + ".is_global",
-                FBOMData::FromBool(item.is_global)
+                String("properties.") + String::ToString(index) + ".flags",
+                FBOMData::FromUInt32(item.flags)
             );
 
             out.SetProperty(
@@ -110,7 +110,7 @@ public:
             bool is_value_group = false;
 
             in.GetProperty(param_string + ".is_permutation").ReadBool(&property.is_permutation);
-            in.GetProperty(param_string + ".is_global").ReadBool(&property.is_global);
+            in.GetProperty(param_string + ".flags").ReadUInt32(&property.flags);
             in.GetProperty(param_string + ".is_value_group").ReadBool(&is_value_group);
 
             if (is_value_group) {
@@ -131,7 +131,7 @@ public:
                 }
             }
 
-            compiled_shader->properties.Set(property);
+            compiled_shader->GetDefinition().properties.Set(property);
         }
 
         for (SizeType index = 0; index < ShaderModule::Type::MAX; index++) {

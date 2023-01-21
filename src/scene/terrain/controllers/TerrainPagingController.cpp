@@ -125,7 +125,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_OPAQUE
             },
-            shader->GetID()
+            shader->GetCompiledShader().GetDefinition()
         )
     );
 

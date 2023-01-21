@@ -148,7 +148,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
                 .bucket = BUCKET_INTERNAL,
                 .cull_faces = FaceCullMode::BACK
             },
-            m_ambient_shader.GetID(),
+            m_ambient_shader->GetCompiledShader().GetDefinition(),
             Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set
         ),
         true // skip frustum culling
@@ -259,7 +259,7 @@ void EnvGrid::CreateShader()
 {
     m_ambient_shader = Engine::Get()->GetShaderManager().GetOrCreate(
         HYP_NAME(CubemapRenderer),
-        ShaderProps({ "MODE_AMBIENT" })
+        ShaderProps(renderer::static_mesh_vertex_attributes, { "MODE_AMBIENT" })
     );
 
     InitObject(m_ambient_shader);
