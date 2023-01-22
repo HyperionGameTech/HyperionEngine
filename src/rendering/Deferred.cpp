@@ -18,7 +18,7 @@ using renderer::Result;
 const Extent2D DeferredRenderer::mip_chain_extent(512, 512);
 const InternalFormat DeferredRenderer::mip_chain_format = InternalFormat::R10G10B10A2;
 
-const Extent2D DeferredRenderer::hbao_extent(1024, 1024);
+const Extent2D DeferredRenderer::hbao_extent(512, 512);
 const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 static ShaderProps GetDeferredShaderProps()

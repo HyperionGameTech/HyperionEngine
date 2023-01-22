@@ -264,7 +264,7 @@ void TemporalAA::Render(Frame *frame)
     m_image_outputs[frame->GetFrameIndex()].image.GetGPUImage()
         ->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    const auto &extent = m_image_outputs[frame->GetFrameIndex()].image.GetExtent();
+    const Extent3D &extent = m_image_outputs[frame->GetFrameIndex()].image.GetExtent();
 
     struct alignas(128) {
         ShaderVec2<UInt32> dimensions;

@@ -24,43 +24,10 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommand
     {
         camera->m_draw_proxy = draw_proxy;
 
-        Matrix4 offset_matrix;
-        Vector2 jitter;
-        Vector2 previous_jitter;
-
-        // TODO: This probably won't work -- possibly,
-        // we should set the jitter right at render time...
-
-        const UInt frame_counter = Engine::Get()->GetRenderState().GetScene().scene.frame_counter;
-
-        if (Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA)) {
-            // TODO: Is this the main camera in the scene?
-            if (draw_proxy.projection[3][3] < MathUtil::epsilon<Float>) {
-                // perspective if [3][3] is zero
-                static const HaltonSequence halton;
-
-                const UInt halton_index = frame_counter % HaltonSequence::size;
-
-                jitter = halton.sequence[halton_index];
-
-                if (frame_counter != 0) {
-                    previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
-                }
-
-                const Vector2 pixel_size = Vector2::one / Vector2(draw_proxy.dimensions);
-
-                jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
-                previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
-
-                offset_matrix[0][3] += jitter.x;
-                offset_matrix[1][3] += jitter.y;
-            }
-        }
-
-        CameraShaderData shader_data { };
+        CameraShaderData &shader_data = Engine::Get()->GetRenderData()->cameras.Get(camera->GetID().ToIndex());
 
         shader_data.view             = draw_proxy.view;
-        shader_data.projection       = offset_matrix * draw_proxy.projection;
+        shader_data.projection       = draw_proxy.projection;
         shader_data.previous_view    = draw_proxy.previous_view;
         shader_data.dimensions       = { draw_proxy.dimensions.width, draw_proxy.dimensions.height, 0, 0 };
         shader_data.camera_position  = draw_proxy.position.ToVector4();
@@ -69,7 +36,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommand
         shader_data.camera_fov       = draw_proxy.fov;
         shader_data.camera_far       = draw_proxy.clip_far;
 
-        Engine::Get()->GetRenderData()->cameras.Set(camera->GetID().ToIndex(), shader_data);
+        Engine::Get()->GetRenderData()->cameras.MarkDirty(camera->GetID().ToIndex());
         
         HYPERION_RETURN_OK;
     }

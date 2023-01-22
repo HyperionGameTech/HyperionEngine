@@ -172,10 +172,11 @@ void Game::OnFrameBegin(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    Engine::Get()->render_state.BindScene(m_scene.Get());
+    Engine::Get()->GetRenderState().AdvanceFrameCounter();
+    Engine::Get()->GetRenderState().BindScene(m_scene.Get());
 
     if (m_scene->GetCamera()) {
-        Engine::Get()->render_state.BindCamera(m_scene->GetCamera().Get());
+        Engine::Get()->GetRenderState().BindCamera(m_scene->GetCamera().Get());
     }
 }
 
@@ -184,10 +185,10 @@ void Game::OnFrameEnd(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     if (m_scene->GetCamera()) {
-        Engine::Get()->render_state.UnbindCamera();
+        Engine::Get()->GetRenderState().UnbindCamera();
     }
 
-    Engine::Get()->render_state.UnbindScene();
+    Engine::Get()->GetRenderState().UnbindScene();
 }
 
 } // namespace hyperion::v2

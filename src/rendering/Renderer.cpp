@@ -517,7 +517,7 @@ RenderAll(
             ->SubmitSecondary(frame->GetCommandBuffer());
     }
 
-    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % static_cast<UInt>(command_buffers.Size());
+    command_buffer_index = (command_buffer_index + num_recorded_command_buffers) % UInt(command_buffers.Size());
 }
 
 void RenderGroup::PerformRendering(Frame *frame)
@@ -591,7 +591,7 @@ void RenderGroup::UpdateDrawableLifetimes()
 
     // prevent these objects from going out of scope while rendering is happening
     // register any used objects from the drawable / draw call here
-    for (const auto &draw_proxy : m_draw_proxies) {
+    for (const EntityDrawProxy &draw_proxy : m_draw_proxies) {
         m_render_resources.SetIsUsed(
             draw_proxy.mesh_id,
             previous_resources.TakeResourceUsage(draw_proxy.mesh_id),

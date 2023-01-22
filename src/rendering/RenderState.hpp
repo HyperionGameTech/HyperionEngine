@@ -33,6 +33,7 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_ACTIVE_ENV_PROBE = 0x8,
     RENDER_STATE_VISIBILITY = 0x10,
     RENDER_STATE_CAMERA = 0x20,
+    RENDER_STATE_FRAME_COUNTER = 0x40,
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
@@ -96,6 +97,10 @@ struct RenderState
     ID<EnvGrid> bound_env_grid;
     ID<EnvProbe> current_env_probe; // For rendering to EnvProbe.
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
+    UInt32 frame_counter = ~0u;
+
+    void AdvanceFrameCounter()
+        { ++frame_counter; }
 
     void SetActiveEnvProbe(ID<EnvProbe> id)
     {
@@ -244,6 +249,10 @@ struct RenderState
 
         if (mask & RENDER_STATE_VISIBILITY) {
             visibility_cursor = 0u;
+        }
+
+        if (mask & RENDER_STATE_FRAME_COUNTER) {
+            frame_counter = ~0u;
         }
     }
 

@@ -315,9 +315,11 @@ void EnvGrid::RenderEnvProbe(
         push_constants.env_probe_index = probe->GetID().ToIndex();
 
         Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
+        Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
 
-        m_render_list.Render(frame, GetParent()->GetScene(), m_camera, &push_constants, sizeof(push_constants));
+        m_render_list.Render(frame, m_camera, &push_constants);
 
+        Engine::Get()->GetRenderState().UnbindScene();
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
     }
     

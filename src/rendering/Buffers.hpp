@@ -162,6 +162,7 @@ struct alignas(16) CameraShaderData
     ShaderVec4<UInt32> dimensions;
     ShaderVec4<Float> camera_position;
     ShaderVec4<Float> camera_direction;
+    ShaderVec4<Float> jitter;
     
     Float camera_near;
     Float camera_far;
@@ -169,7 +170,7 @@ struct alignas(16) CameraShaderData
     Float _pad0;
 };
 
-static_assert(sizeof(CameraShaderData) == 256);
+static_assert(sizeof(CameraShaderData) == 272);
 
 struct alignas(256) EnvGridShaderData
 {

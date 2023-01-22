@@ -158,7 +158,7 @@ public:
             m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                5.0f
+                10.0f
             )));
             m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
             m_sun->AddController<ShadowMapController>();
@@ -246,7 +246,7 @@ public:
         
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/testbed/testbed.obj");//sponza/sponza.obj");//mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -284,7 +284,7 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        test_model.Scale(0.025f);
+        test_model.Scale(2.025f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
@@ -341,39 +341,43 @@ public:
             }
         }
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
-            // zombie_entity->GetController<AnimationController>()->Play(1.0f, LoopMode::REPEAT);
-            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
-            // zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 1.0f);
-            // zombie_entity->RebuildRenderableAttributes();
-            // zombie_entity->SetTranslation(Vector3(0, 1, 0));
-            // zombie_entity->SetScale(Vector3(0.25f));
 
-            // InitObject(zombie_entity);
-            // zombie_entity->CreateBLAS();
-            // zombie.SetName("zombie");
+            if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
+                animation_controller->Play(1.0f, LoopMode::REPEAT);
+            }
 
-            // m_scene->GetRoot().AddChild(zombie);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+            zombie_entity->RebuildRenderableAttributes();
+            zombie_entity->SetTranslation(Vector3(0, 1, 0));
+            zombie_entity->SetScale(Vector3(0.25f));
+
+            InitObject(zombie_entity);
+            zombie_entity->CreateBLAS();
+            zombie.SetName("zombie");
+
+            m_scene->GetRoot().AddChild(zombie);
             
-            auto zomb2 = CreateObject<Entity>();
-            zomb2->SetMesh(zombie_entity->GetMesh());
-            zomb2->SetTranslation(Vector3(0, 20, 0));
-            zomb2->SetScale(Vector3(2.0f));
-            zomb2->SetShader(zombie_entity->GetShader());
-            zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
-            zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
-            //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
-            //zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            //zomb2->GetMaterial()->SetIsAlphaBlended(true);
-            // zomb2->SetSkeleton(zombie_entity->GetSkeleton());
-            zomb2->SetSkeleton(CreateObject<Skeleton>());
-            zomb2->RebuildRenderableAttributes();
+            // auto zomb2 = CreateObject<Entity>();
+            // zomb2->SetMesh(zombie_entity->GetMesh());
+            // zomb2->SetTranslation(Vector3(0, 20, 0));
+            // zomb2->SetScale(Vector3(2.0f));
+            // zomb2->SetShader(zombie_entity->GetShader());
+            // zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
+            // zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
+            // //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
+            // //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
+            // //zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            // //zomb2->GetMaterial()->SetIsAlphaBlended(true);
+            // // zomb2->SetSkeleton(zombie_entity->GetSkeleton());
+            // zomb2->SetSkeleton(CreateObject<Skeleton>());
+            // zomb2->RebuildRenderableAttributes();
 
-            InitObject(zomb2);
-            m_scene->AddEntity(zomb2);
+            // InitObject(zomb2);
+            // m_scene->AddEntity(zomb2);
         }
 
         cube_obj.Scale(50.0f);
@@ -497,7 +501,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (true) {
+        if (false) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape

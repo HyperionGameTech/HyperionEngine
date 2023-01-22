@@ -27,6 +27,9 @@ public:
     PhysicsWorld &GetPhysicsWorld() { return m_physics_world; }
     const PhysicsWorld &GetPhysicsWorld() const { return m_physics_world; }
 
+    const FlatMap<ID<Scene>, RenderList> &GetRenderLists() const
+        { return m_render_lists; }
+
     void AddScene(const Handle<Scene> &scene);
     void AddScene(Handle<Scene> &&scene);
     void RemoveScene(ID<Scene> id);

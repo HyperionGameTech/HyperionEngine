@@ -389,16 +389,6 @@ static void ForEachPermutation(
             continue;
         }
 
-        // bool is_required = false;
-        
-        // if (FindVertexAttributePropertyByName(versions, kv.second.name, is_required)) {
-        //     if (is_required) {
-        //         static_properties.PushBack(ShaderProperty(kv.first));
-        //     } else {
-        //         variable_properties.PushBack(ShaderProperty(kv.first));
-        //     }
-        // }
-
         if (versions.HasRequiredVertexAttribute(kv.first)) {
             static_properties.PushBack(ShaderProperty(kv.first));
         } else if (versions.HasOptionalVertexAttribute(kv.first)) {

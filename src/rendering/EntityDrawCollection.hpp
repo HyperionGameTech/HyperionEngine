@@ -55,6 +55,44 @@ private:
     FixedArray<FlatMap<RenderableAttributeSet, EntityList>, THREAD_TYPE_MAX> m_entities;
 };
 
+struct PushConstantData
+{
+    const void *ptr = nullptr;
+    SizeType size = 0;
+
+    PushConstantData()
+        : ptr(nullptr),
+          size(0)
+    {
+    }
+
+    template <class T>
+    PushConstantData(const T *value)
+    {
+        static_assert(sizeof(T) <= 128, "sizeof(T) must be <= 128");
+
+        ptr = value;
+        size = sizeof(T);
+    }
+
+    PushConstantData(const PushConstantData &other) = default;
+    PushConstantData &operator=(const PushConstantData &other) = default;
+    PushConstantData(PushConstantData &&other) noexcept = default;
+    PushConstantData &operator=(PushConstantData &&other) noexcept = default;
+    ~PushConstantData() = default;
+
+    explicit operator bool() const
+        { return ptr && size; }
+};
+
+struct RenderListQuery
+{
+    Bucket bucket = BUCKET_INVALID;
+
+    explicit operator bool() const
+        { return bucket != BUCKET_INVALID; }
+};
+
 class RenderList
 {
 public:
@@ -81,10 +119,8 @@ public:
 
     void Render(
         Frame *frame,
-        const Scene *scene,
         const Handle<Camera> &camera,
-        const void *push_constant_ptr = nullptr,
-        SizeType push_constant_size = 0
+        PushConstantData push_constant = { }
     );
 
     /*! \brief Perform a full reset, when this is not needed anymore. */

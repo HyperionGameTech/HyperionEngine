@@ -11,25 +11,6 @@ namespace hyperion::v2 {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateRenderGroupDrawables) : RenderCommand
-{
-    RenderGroup *render_group;
-    Array<EntityDrawProxy> drawables;
-
-    RENDER_COMMAND(UpdateRenderGroupDrawables)(RenderGroup *render_group, Array<EntityDrawProxy> &&drawables)
-        : render_group(render_group),
-          drawables(std::move(drawables))
-    {
-    }
-
-    virtual Result operator()()
-    {
-        render_group->SetDrawProxies(std::move(drawables));
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 {
     RC<EntityDrawCollection> collection;
@@ -125,12 +106,6 @@ void RenderList::UpdateRenderGroups()
             auto render_group_it = m_render_groups.Find(attributes);
 
             if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-                DebugLog(
-                    LogType::Debug,
-                    "Creating RenderGroup for attributes hash %llu\n",
-                    attributes.GetHashCode()
-                );
-
                 Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
 
                 if (!render_group.IsValid()) {
@@ -194,9 +169,8 @@ void RenderList::PushEntityToRender(
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
-        // TODO: Do not calculate at render time; pre-calculate
-        if (entity->GetRenderableAttributes().mesh_attributes.vertex_attributes != attributes.shader_def.GetProperties().GetRequiredVertexAttributes()) {
-            attributes.shader_def.properties.SetRequiredVertexAttributes(entity->GetRenderableAttributes().mesh_attributes.vertex_attributes);
+        if (attributes.mesh_attributes.vertex_attributes != attributes.shader_def.GetProperties().GetRequiredVertexAttributes()) {
+            attributes.shader_def.properties.SetRequiredVertexAttributes(attributes.mesh_attributes.vertex_attributes);
         }
 
         attributes.material_attributes = override_attributes->material_attributes;
@@ -208,10 +182,8 @@ void RenderList::PushEntityToRender(
 
 void RenderList::Render(
     Frame *frame,
-    const Scene *scene,
     const Handle<Camera> &camera,
-    const void *push_constant_ptr,
-    SizeType push_constant_size
+    PushConstantData push_constant
 )
 {
     Threads::AssertOnThread(THREAD_RENDER);
@@ -223,14 +195,33 @@ void RenderList::Render(
     CommandBuffer *command_buffer = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
+    { // calculate camera jitter
+        if (Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA)) {
+            Matrix4 offset_matrix;
+            Vector4 jitter;
+
+            const UInt frame_counter = Engine::Get()->GetRenderState().frame_counter + 1;
+
+            if (camera->GetDrawProxy().projection[3][3] < MathUtil::epsilon<Float>) {
+                offset_matrix = Matrix4::Jitter(frame_counter, camera->GetDrawProxy().dimensions.width, camera->GetDrawProxy().dimensions.height, jitter);
+
+                Engine::Get()->GetRenderData()->cameras.Get(camera->GetID().ToIndex()).jitter = jitter;
+                Engine::Get()->GetRenderData()->cameras.MarkDirty(camera->GetID().ToIndex());
+            }
+        }
+    }
+
     camera->GetFramebuffer()->BeginCapture(frame_index, command_buffer);
 
-    Engine::Get()->GetRenderState().BindScene(scene);
     Engine::Get()->GetRenderState().BindCamera(camera.Get());
 
     for (auto &it : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
         const RenderableAttributeSet &attributes = it.first;
-        auto &entity_list = it.second;
+        EntityDrawCollection::EntityList &entity_list = it.second;
+
+        // if (query && (query.bucket != attributes.material_attributes.bucket)) {
+        //     continue;
+        // }
 
         AssertThrow(entity_list.render_group.IsValid());
 
@@ -241,15 +232,14 @@ void RenderList::Render(
             "Given Camera's Framebuffer ID does not match RenderList item framebuffer ID -- invalid data passed?"
         );
 
-        if (push_constant_ptr && push_constant_size) {
-            entity_list.render_group->GetPipeline()->SetPushConstants(push_constant_ptr, push_constant_size);
+        if (push_constant) {
+            entity_list.render_group->GetPipeline()->SetPushConstants(push_constant.ptr, push_constant.size);
         }
 
         entity_list.render_group->Render(frame);
     }
 
     Engine::Get()->GetRenderState().UnbindCamera();
-    Engine::Get()->GetRenderState().UnbindScene();
 
     camera->GetFramebuffer()->EndCapture(frame_index, command_buffer);
 }

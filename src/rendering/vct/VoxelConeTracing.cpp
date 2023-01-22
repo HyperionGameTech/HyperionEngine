@@ -191,11 +191,11 @@ void VoxelConeTracing::OnRender(Frame *frame)
 
     m_clear_voxels->GetPipeline()->Dispatch(command_buffer, m_voxel_image->GetExtent() / Extent3D { 8, 8, 8 });
 
-    m_render_list.Render(
-        frame,
-        GetParent()->GetScene(),
-        m_camera
-    );
+    Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
+
+    m_render_list.Render(frame, m_camera);
+
+    Engine::Get()->GetRenderState().UnbindScene();
     
     if constexpr (manual_mipmap_generation) {
         const auto num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();

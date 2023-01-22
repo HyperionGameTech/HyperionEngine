@@ -145,7 +145,11 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    m_render_list.Render(frame, m_scene.Get(), m_scene->GetCamera());
+    Engine::Get()->GetRenderState().BindScene(m_scene.Get());
+
+    m_render_list.Render(frame, m_scene->GetCamera());
+
+    Engine::Get()->GetRenderState().UnbindScene();
 }
 
 } // namespace hyperion::v2

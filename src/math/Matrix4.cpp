@@ -2,6 +2,7 @@
 #include "Vector3.hpp"
 #include "Quaternion.hpp"
 #include "Rect.hpp"
+#include <math/Halton.hpp>
 
 #include <core/Core.hpp>
 
@@ -152,16 +153,33 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     return mat;
 }
 
-Matrix4 Matrix4::Jitter(UInt width, UInt height, const Vector2 &jitter)
+Matrix4 Matrix4::Jitter(UInt index, UInt width, UInt height, Vector4 &out_jitter)
 {
-    const Vector2 pixel_size = Vector2::one / Vector2(width, height);
+    static const HaltonSequence halton;
 
-    Matrix4 mat = identity;
+    Matrix4 offset_matrix;
 
-    mat[0][3] += (jitter.x * 2.0f - 1.0f) * pixel_size.x * 0.5f;
-    mat[1][3] += (jitter.y * 2.0f - 1.0f) * pixel_size.y * 0.5f;
+    const UInt frame_counter = index;
+    const UInt halton_index = frame_counter % HaltonSequence::size;
 
-    return mat;
+    Vector2 jitter = halton.sequence[halton_index];
+    Vector2 previous_jitter;
+
+    if (frame_counter != 0) {
+        previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
+    }
+
+    const Vector2 pixel_size = Vector2::one / Vector2(Float(width), Float(height));
+
+    jitter = (jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
+    previous_jitter = (previous_jitter * 2.0f - 1.0f) * pixel_size * 0.5f;
+
+    offset_matrix[0][3] += jitter.x;
+    offset_matrix[1][3] += jitter.y;
+
+    out_jitter = Vector4(jitter, previous_jitter);
+
+    return offset_matrix;
 }
 
 Matrix4 Matrix4::LookAt(const Vector3 &direction, const Vector3 &up)

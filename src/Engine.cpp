@@ -1060,6 +1060,12 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
         renderable_attributes
     );
 
+    DebugLog(
+        LogType::Debug,
+        "Created RenderGroup for RenderableAttributeSet with hash %llu\n",
+        renderable_attributes.GetHashCode().Value()
+    );
+
     std::lock_guard guard(m_render_group_mapping_mutex);
 
     AddRenderGroupInternal(renderer_instance, false);

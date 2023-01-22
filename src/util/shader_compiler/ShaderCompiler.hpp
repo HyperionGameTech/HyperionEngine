@@ -39,21 +39,6 @@ struct VertexAttributeDefinition
 
 struct ShaderProperty;
 
-template <class Container>
-static bool FindVertexAttributePropertyByName(const Container &container, const char *name, bool &out_is_required) {
-    auto it = container.FindIf([name](const auto &property) {
-        return (property.flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE)
-            && property.name == name;
-    });
-
-    if (it != container.End()) {
-        out_is_required = !it->is_permutation;
-        return true;
-    }
-
-    return false;
-}
-
 static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
 {
     for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
@@ -73,37 +58,6 @@ static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute
     return false;
 };
 
-template <class Container>
-static void CalculateVertexAttributes(
-    const Container &container,
-    VertexAttributeSet &out_required_vertex_attributes,
-    VertexAttributeSet &out_optional_vertex_attributes
-)
-{
-    VertexAttributeSet required_vertex_attributes;
-    VertexAttributeSet optional_vertex_attributes;
-
-    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
-        const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
-
-        if (!kv.second.name) {
-            continue;
-        }
-
-        bool is_required = false;
-        
-        if (FindVertexAttributePropertyByName<Container>(container, kv.second.name, is_required)) {
-            if (is_required) {
-                required_vertex_attributes |= kv.first;
-            } else {
-                optional_vertex_attributes |= kv.first;
-            }
-        }
-    }
-
-    out_required_vertex_attributes = required_vertex_attributes;
-    out_optional_vertex_attributes = optional_vertex_attributes;
-}
 struct ShaderProperty
 {
     using Value = Variant<String, Int, Float>;
@@ -204,8 +158,20 @@ struct ShaderProperty
     bool HasValue() const
         { return value.IsValid(); }
 
+    const String &GetName() const
+        { return name; }
+
+    ShaderPropertyFlags GetFlags() const
+        { return flags; }
+
+    bool IsPermutable() const
+        { return is_permutation; }
+
     bool IsVertexAttribute() const
         { return flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE; }
+
+    bool IsOptionalVertexAttribute() const
+        { return IsVertexAttribute() && IsPermutable(); }
 
     String GetValueString() const
     {
@@ -235,18 +201,6 @@ class ShaderProps
 public:
     ShaderProps() = default;
 
-    // ShaderProps(const FlatSet<ShaderProperty> &props)
-    //     : m_props(props)
-    // {
-    //     // CalculateVertexAttributes(m_props, m_required_vertex_attributes, m_optional_vertex_attributes);
-    // }
-
-    // ShaderProps(FlatSet<ShaderProperty> &&props)
-    //     : m_props(std::move(props))
-    // {
-    //     // CalculateVertexAttributes(m_props, m_required_vertex_attributes, m_optional_vertex_attributes);
-    // }
-
     ShaderProps(const Array<String> &props)
     {
         for (const String &prop_key : props) {
@@ -257,44 +211,13 @@ public:
     ShaderProps(const Array<ShaderProperty> &props)
     {
         for (const ShaderProperty &property : props) {
-            if (property.IsVertexAttribute()) {
-                VertexAttribute::Type type;
-
-                if (!FindVertexAttributeForDefinition(property.GetValueString(), type)) {
-                    DebugLog(
-                        LogType::Warn,
-                        "Invalid vertex attribute name for shader: %s\n",
-                        property.GetValueString().Data()
-                    );
-
-                    continue;
-                }
-
-                if (property.is_permutation) {
-                    m_optional_vertex_attributes |= type;
-                } else {
-                    m_required_vertex_attributes |= type;
-                }
-            } else {
-                m_props.Insert(property);
-            }
+            Set(property);
         }
-
-        // CalculateVertexAttributes(m_props, m_required_vertex_attributes, m_optional_vertex_attributes);
     }
 
     ShaderProps(const VertexAttributeSet &vertex_attributes, const Array<String> &props)
         : m_required_vertex_attributes(vertex_attributes)
     {
-        // for (const auto &attribute : vertex_attributes.BuildAttributes()) {
-        //     m_props.Insert(ShaderProperty(
-        //         String("HYP_ATTRIBUTE_") + attribute.name,
-        //         false,
-        //         ShaderProperty::Value(String(attribute.name)),
-        //         SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE
-        //     ));
-        // }
-
         for (const String &prop_key : props) {
             m_props.Insert(ShaderProperty(prop_key, true)); // default to permutable
         }
@@ -346,24 +269,50 @@ public:
         return true;
     }
 
-    ShaderProps &Set(const ShaderProperty &shader_property, bool enabled = true)
+    ShaderProps &Set(const ShaderProperty &property, bool enabled = true)
     {
-        const auto it = m_props.Find(shader_property);
+        if (property.IsVertexAttribute()) {
+            VertexAttribute::Type type;
 
-        if (enabled) {
-            if (it == m_props.End()) {
-                m_props.Insert(shader_property);
+            if (!FindVertexAttributeForDefinition(property.GetValueString(), type)) {
+                DebugLog(
+                    LogType::Error,
+                    "Invalid vertex attribute name for shader: %s\n",
+                    property.GetValueString().Data()
+                );
+
+                return *this;
+            }
+
+            if (property.IsOptionalVertexAttribute()) {
+                if (enabled) {
+                    m_optional_vertex_attributes |= type;
+                    m_optional_vertex_attributes &= ~m_required_vertex_attributes;
+                } else {
+                    m_optional_vertex_attributes &= ~type;
+                }
             } else {
-                *it = shader_property;
+                if (enabled) {
+                    m_required_vertex_attributes |= type;
+                    m_optional_vertex_attributes &= ~type;
+                } else {
+                    m_required_vertex_attributes &= ~type;
+                }
             }
         } else {
-            if (it != m_props.End()) {
-                m_props.Erase(it);
-            }
-        }
+            const auto it = m_props.Find(property);
 
-        if (shader_property.IsVertexAttribute()) {
-            // CalculateVertexAttributes(m_props, m_required_vertex_attributes, m_optional_vertex_attributes);
+            if (enabled) {
+                if (it == m_props.End()) {
+                    m_props.Insert(property);
+                } else {
+                    *it = property;
+                }
+            } else {
+                if (it != m_props.End()) {
+                    m_props.Erase(it);
+                }
+            }
         }
 
         return *this;
@@ -396,20 +345,7 @@ public:
 
     void SetRequiredVertexAttributes(VertexAttributeSet vertex_attributes)
     {
-        // temp
-        // for (auto it = m_props.Begin(); it != m_props.End();) {
-        //     if (it->IsVertexAttribute()) {
-        //         it = m_props.Erase(it);
-        //     } else {
-        //         ++it;
-        //     }
-        // }
-
-        // m_required_vertex_attributes = VertexAttributeSet { };
-        // Merge(ShaderProps(vertex_attributes));
-
         m_required_vertex_attributes = vertex_attributes;
-
         m_optional_vertex_attributes = m_optional_vertex_attributes & ~m_required_vertex_attributes;
     }
 
@@ -426,11 +362,7 @@ public:
         HashCode hc;
 
         hc.Add(m_required_vertex_attributes.GetHashCode());
-        // hc.Add(m_optional_vertex_attributes.GetHashCode());
-
-        for (const auto &it : m_props) {
-            hc.Add(it);
-        }
+        hc.Add(m_props.GetHashCode());
 
         return hc;
     }
@@ -511,6 +443,23 @@ private:
     VertexAttributeSet m_optional_vertex_attributes;
 };
 
+struct HashedShaderDefinition
+{
+    Name name;
+    HashCode property_set_hash;
+    VertexAttributeSet required_vertex_attributes;
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name.GetHashCode());
+        hc.Add(required_vertex_attributes.GetHashCode());
+        hc.Add(property_set_hash);
+
+        return hc;
+    }
+};
+
 struct ShaderDefinition
 {
     Name name;
@@ -528,13 +477,12 @@ struct ShaderDefinition
     explicit operator bool() const
         { return name.IsValid(); }
 
+    explicit operator HashedShaderDefinition() const
+        { return HashedShaderDefinition { name, properties.GetPropertySet().GetHashCode(), properties.GetRequiredVertexAttributes() }; }
+
     HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(name.GetHashCode());
-        hc.Add(properties.GetHashCode());
-
-        return hc;
+        return (operator HashedShaderDefinition()).GetHashCode();
     }
 };
 

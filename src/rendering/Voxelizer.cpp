@@ -256,7 +256,11 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
         push_constants.grid_size = voxel_map_size;
         push_constants.count_mode = UInt32(count_mode);
         
-        m_render_list.Render(&temp_frame, scene, m_camera, &push_constants, sizeof(push_constants));
+        Engine::Get()->GetRenderState().BindScene(scene);
+
+        m_render_list.Render(&temp_frame, m_camera, &push_constants);
+
+        Engine::Get()->GetRenderState().UnbindScene();
 
         HYPERION_RETURN_OK;
     });
