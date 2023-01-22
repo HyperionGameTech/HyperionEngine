@@ -92,6 +92,7 @@ void Scene::Init()
     EngineComponentBase::Init();
 
     InitObject(m_camera);
+    m_render_list.SetCamera(m_camera);
 
     if (IsWorldScene()) {
         if (!m_tlas) {
@@ -202,8 +203,9 @@ void Scene::Init()
 void Scene::SetCamera(Handle<Camera> &&camera)
 {
     m_camera = std::move(camera);
-
     InitObject(m_camera);
+
+    m_render_list.SetCamera(m_camera);
 }
 
 void Scene::SetWorld(World *world)

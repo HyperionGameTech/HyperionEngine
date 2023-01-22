@@ -247,6 +247,8 @@ void EnvProbe::Init()
             m_camera->SetFramebuffer(m_framebuffer);
 
             InitObject(m_camera);
+
+            m_render_list.SetCamera(m_camera);
         }
     }
 
@@ -552,7 +554,10 @@ void EnvProbe::Render(Frame *frame)
         Engine::Get()->GetRenderState().SetActiveEnvProbe(GetID());
         Engine::Get()->GetRenderState().BindScene(m_parent_scene.Get());
 
-        m_render_list.Render(frame, m_camera);
+        m_render_list.Render(
+            frame,
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
+        );
 
         Engine::Get()->GetRenderState().UnbindScene();
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();

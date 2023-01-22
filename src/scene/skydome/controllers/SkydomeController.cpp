@@ -16,7 +16,7 @@ void SkydomeController::OnAdded()
 
     if (m_dome) {
         m_dome->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);
-        m_dome->SetScale(500.0f);
+        m_dome->SetScale(150.0f);
         
         Handle<Material> material = CreateObject<Material>();
         material->SetBucket(Bucket::BUCKET_SKYBOX);
@@ -26,7 +26,10 @@ void SkydomeController::OnAdded()
         material->SetIsDepthWriteEnabled(false);
 
         m_dome->SetMaterial(std::move(material));
-        m_dome->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Skydome)));
+        m_dome->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(
+            HYP_NAME(Skydome),
+            ShaderProps(renderer::static_mesh_vertex_attributes)
+        ));
     }
 }
 

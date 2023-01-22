@@ -48,6 +48,8 @@ void VoxelConeTracing::Init()
     ));
 
     InitObject(m_camera);
+
+    m_render_list.SetCamera(m_camera);
     
     SetReady(true);
 
@@ -193,7 +195,10 @@ void VoxelConeTracing::OnRender(Frame *frame)
 
     Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
 
-    m_render_list.Render(frame, m_camera);
+    m_render_list.Render(
+        frame,
+        Bitset((1 << BUCKET_OPAQUE))
+    );
 
     Engine::Get()->GetRenderState().UnbindScene();
     

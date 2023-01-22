@@ -72,6 +72,7 @@ struct RenderBinding<Scene>
 
     ID<Scene> id;
     RenderEnvironment *render_environment = nullptr;
+    const RenderList *render_list = nullptr;
     SceneDrawProxy scene;
 
     explicit operator bool() const { return bool(id); }
@@ -140,6 +141,7 @@ struct RenderState
             scene_bindings.push(RenderBinding<Scene> {
                 scene->GetID(),
                 scene->GetEnvironment(),
+                &scene->GetRenderList(),
                 scene->GetDrawProxy()
             });
         }

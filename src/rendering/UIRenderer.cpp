@@ -101,8 +101,9 @@ void UIRenderer::Init()
     AssertThrow(m_scene->GetCamera().IsValid());
 
     m_scene->GetCamera()->SetFramebuffer(m_framebuffer);
-
     InitObject(m_scene);
+
+    m_render_list.SetCamera(m_scene->GetCamera());
 
     SetReady(true);
 }
@@ -147,7 +148,10 @@ void UIRenderer::OnRender(Frame *frame)
 {
     Engine::Get()->GetRenderState().BindScene(m_scene.Get());
 
-    m_render_list.Render(frame, m_scene->GetCamera());
+    m_render_list.Render(
+        frame,
+        Bitset((1 << BUCKET_UI))
+    );
 
     Engine::Get()->GetRenderState().UnbindScene();
 }

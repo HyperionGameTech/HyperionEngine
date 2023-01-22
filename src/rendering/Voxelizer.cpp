@@ -53,6 +53,8 @@ void Voxelizer::Init()
 
     InitObject(m_camera);
 
+    m_render_list.SetCamera(m_camera);
+
     OnTeardown([this]() {
         m_camera.Reset();
         m_render_list.Reset();
@@ -258,7 +260,11 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
         
         Engine::Get()->GetRenderState().BindScene(scene);
 
-        m_render_list.Render(&temp_frame, m_camera, &push_constants);
+        m_render_list.Render(
+            &temp_frame,
+            Bitset(1 << BUCKET_OPAQUE),
+            &push_constants
+        );
 
         Engine::Get()->GetRenderState().UnbindScene();
 

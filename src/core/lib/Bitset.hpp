@@ -99,7 +99,7 @@ private:
     SizeType TotalBitCount() const
         { return m_blocks.Size() * num_bits_per_block; }
 
-    Array<BlockType> m_blocks;
+    Array<BlockType, 64> m_blocks;
 };
 
 } // namespace detail

@@ -80,8 +80,9 @@ void EnvGrid::Init()
         );
 
         m_camera->SetFramebuffer(m_framebuffer);
-
         InitObject(m_camera);
+
+        m_render_list.SetCamera(m_camera);
     }
 
     DebugLog(LogType::Info, "Created %llu total ambient EnvProbes in grid\n", num_ambient_probes);
@@ -317,7 +318,11 @@ void EnvGrid::RenderEnvProbe(
         Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
         Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
 
-        m_render_list.Render(frame, m_camera, &push_constants);
+        m_render_list.Render(
+            frame,
+            Bitset(1 << BUCKET_OPAQUE),
+            &push_constants
+        );
 
         Engine::Get()->GetRenderState().UnbindScene();
         Engine::Get()->GetRenderState().UnsetActiveEnvProbe();

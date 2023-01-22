@@ -58,7 +58,7 @@ static void AddSharedAttachment(
 )
 {
     auto &opaque_fbo = Engine::Get()->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
-    AssertThrow(opaque_fbo != nullptr);
+    AssertThrowMsg(opaque_fbo != nullptr, "Bucket framebuffers added in wrong order");
 
     renderer::AttachmentUsage *attachment_usage;
 

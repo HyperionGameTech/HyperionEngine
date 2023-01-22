@@ -127,8 +127,21 @@ public:
        //     Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
         //));
         m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
+
+        {
+            m_sun = CreateObject<Entity>();
+            m_sun->SetName(HYP_NAME(Sun));
+            m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
+                Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
+                Color(1.0f, 1.0f, 1.0f),
+                10.0f
+            )));
+            m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
+            m_sun->AddController<ShadowMapController>();
+            GetScene()->AddEntity(m_sun);
+        }
         
-        { // adding lights to scene
+        if (false) { // adding lights to scene
 
             // m_scene->AddLight(m_sun);
 
@@ -150,19 +163,6 @@ public:
                 point_light_entity->AddController<LightController>(light);
                 GetScene()->AddEntity(std::move(point_light_entity));
             }
-        }
-
-        {
-            m_sun = CreateObject<Entity>();
-            m_sun->SetName(HYP_NAME(Sun));
-            m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
-                Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
-                Color(1.0f, 1.0f, 1.0f),
-                10.0f
-            )));
-            m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
-            m_sun->AddController<ShadowMapController>();
-            GetScene()->AddEntity(m_sun);
         }
 
         if (true) {
@@ -223,7 +223,7 @@ public:
             }
         }
 
-        if (false) { // skydome
+        if (true) { // skydome
             if (auto skydome_node = m_scene->GetRoot().AddChild()) {
                 skydome_node.SetEntity(CreateObject<Entity>());
                 skydome_node.GetEntity()->AddController<SkydomeController>();
@@ -301,11 +301,11 @@ public:
             );
         }
 
-        m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
-            HYP_NAME(PointShadowRenderer0),
-            m_point_lights.Front(),
-            Extent2D { 256, 256 }
-        );
+        // m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+        //     HYP_NAME(PointShadowRenderer0),
+        //     m_point_lights.Front(),
+        //     Extent2D { 256, 256 }
+        // );
 
         if (false) {
             int i = 0;
