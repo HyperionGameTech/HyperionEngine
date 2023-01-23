@@ -422,7 +422,8 @@ RenderAll(
     renderer::GraphicsPipeline *pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Array<DrawCall>> &divided_draw_calls,
-    const DrawCallCollection &draw_state
+    const DrawCallCollection &draw_state,
+    const RenderResourceManager &render_resources
 )
 {
     if (draw_state.draw_calls.Empty()) {
@@ -455,7 +456,7 @@ RenderAll(
         TASK_PRIORITY_HIGH,
         num_batches,
         divided_draw_calls,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index](const Array<DrawCall> &draw_calls, UInt index, UInt) {
+        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index, &render_resources](const Array<DrawCall> &draw_calls, UInt index, UInt) {
             if (draw_calls.Empty()) {
                 return;
             }
@@ -485,6 +486,11 @@ RenderAll(
                             draw_call.skeleton_id.ToIndex(),
                             draw_call.material_id.ToIndex()
                         );
+
+#ifdef HYP_DEBUG_MODE
+                        AssertThrowMsg(render_resources.IsUsed(draw_call.mesh_id), "Mesh ID not in used resource map; dangling pointer is possible!");
+                        AssertThrowMsg(render_resources.IsUsed(draw_call.material_id), "Material ID not in used resource map; dangling pointer is possible!");
+#endif
 
                         if constexpr (IsIndirect) {
 #ifdef HYP_DEBUG_MODE
@@ -536,7 +542,8 @@ void RenderGroup::PerformRendering(Frame *frame)
         m_pipeline.get(),
         &m_indirect_renderer,
         m_divided_draw_calls,
-        m_draw_state
+        m_draw_state,
+        m_render_resources
     );
 }
 
@@ -556,7 +563,8 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
         m_pipeline.get(),
         &m_indirect_renderer,
         m_divided_draw_calls,
-        m_draw_state
+        m_draw_state,
+        m_render_resources
     );
 }
 

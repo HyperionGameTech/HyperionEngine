@@ -149,13 +149,6 @@ void World::Render(Frame *frame)
         }
  
         scene->GetEnvironment()->RenderComponents(frame);
-
-        // // TEMP:
-        // for (auto &it : scene->GetRenderList().GetEntityCollection()->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
-        //     if (it.second.render_group) {
-        //         it.second.render_group->SetDrawProxies(it.second.drawables);
-        //     }
-        // }
     }
 }
 

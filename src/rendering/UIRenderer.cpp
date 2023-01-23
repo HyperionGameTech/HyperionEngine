@@ -148,9 +148,16 @@ void UIRenderer::OnRender(Frame *frame)
 {
     Engine::Get()->GetRenderState().BindScene(m_scene.Get());
 
-    m_render_list.Render(
+    m_render_list.CollectDrawCalls(
         frame,
-        Bitset((1 << BUCKET_UI))
+        Bitset((1 << BUCKET_UI)),
+        nullptr
+    );
+
+    m_render_list.ExecuteDrawCalls(
+        frame,
+        Bitset((1 << BUCKET_UI)),
+        nullptr
     );
 
     Engine::Get()->GetRenderState().UnbindScene();

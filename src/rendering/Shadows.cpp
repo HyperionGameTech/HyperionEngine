@@ -338,9 +338,16 @@ void ShadowPass::Render(Frame *frame)
 
     Engine::Get()->GetRenderState().BindScene(m_parent_scene.Get());
 
-    m_render_list.Render(
+    m_render_list.CollectDrawCalls(
         frame,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
+        Bitset(1 << BUCKET_SHADOW),
+        nullptr
+    );
+
+    m_render_list.ExecuteDrawCalls(
+        frame,
+        Bitset(1 << BUCKET_SHADOW),
+        nullptr
     );
 
     Engine::Get()->GetRenderState().UnbindScene();
@@ -433,6 +440,7 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
     GetParent()->GetScene()->CollectEntities(
         m_shadow_pass->GetRenderList(),
         m_shadow_pass->GetCamera(),
+        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {

@@ -465,6 +465,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         m_parent_scene->CollectEntities(
             m_render_list,
             m_camera,
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             RenderableAttributeSet(
                 MeshAttributes { },
                 MaterialAttributes {
@@ -554,9 +555,15 @@ void EnvProbe::Render(Frame *frame)
         Engine::Get()->GetRenderState().SetActiveEnvProbe(GetID());
         Engine::Get()->GetRenderState().BindScene(m_parent_scene.Get());
 
-        m_render_list.Render(
+        m_render_list.CollectDrawCalls(
             frame,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
+            Bitset(1 << BUCKET_INTERNAL),
+            nullptr
+        );
+
+        m_render_list.ExecuteDrawCalls(
+            frame,
+            Bitset(1 << BUCKET_INTERNAL)
         );
 
         Engine::Get()->GetRenderState().UnbindScene();

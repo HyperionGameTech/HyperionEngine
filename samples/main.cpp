@@ -301,11 +301,11 @@ public:
             );
         }
 
-        // m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
-        //     HYP_NAME(PointShadowRenderer0),
-        //     m_point_lights.Front(),
-        //     Extent2D { 256, 256 }
-        // );
+        m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+            HYP_NAME(PointShadowRenderer0),
+            m_point_lights.Front(),
+            Extent2D { 256, 256 }
+        );
 
         if (false) {
             int i = 0;

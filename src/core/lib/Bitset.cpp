@@ -8,7 +8,7 @@ namespace containers {
 namespace detail {
 
 DynBitset::DynBitset(UInt64 value)
-    : m_blocks { BlockType(value & 0xFFFFFFFF), BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32) }
+    : m_blocks { BlockType(value & 0xFFFFFFFF), BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) }
 {
     RemoveLeadingZeros();
 }

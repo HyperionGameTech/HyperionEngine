@@ -27,6 +27,9 @@ constexpr bool resolution_failure = false;
 template <class T>
 using NormalizedType = std::remove_cv_t<std::decay_t<T>>;
 
+template <class T>
+constexpr bool IsPODType = std::is_standard_layout_v<T> && std::is_trivial_v<T>;
+
 template <class T, SizeType = sizeof(T)>
 std::true_type implementation_exists_impl(T *);
 

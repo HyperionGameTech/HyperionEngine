@@ -21,6 +21,32 @@ class Camera;
 class Entity;
 class RenderGroup;
 class World;
+class CullData;
+
+enum PassType : UInt
+{
+    PASS_TYPE_INVALID = UInt(-1),
+    PASS_TYPE_SKYBOX = 0,
+    PASS_TYPE_OPAQUE,
+    PASS_TYPE_TRANSLUCENT,
+    PASS_TYPE_UI,
+    PASS_TYPE_MAX
+};
+
+constexpr PassType BucketToPassType(Bucket bucket)
+{
+    constexpr const PassType pass_type_per_bucket[UInt(BUCKET_MAX)] = {
+        PASS_TYPE_INVALID,     // BUCKET_SWAPCHAIN
+        PASS_TYPE_INVALID,     // BUCKET_INTERNAL
+        PASS_TYPE_INVALID,     // BUCKET_SHADOW
+        PASS_TYPE_OPAQUE,      // BUCKET_OPAQUE
+        PASS_TYPE_TRANSLUCENT, // BUCKET_TRANSLUCENT
+        PASS_TYPE_SKYBOX,      // BUCKET_SKYBOX
+        PASS_TYPE_UI           // BUCKET_UI
+    };
+
+    return pass_type_per_bucket[UInt(bucket)];
+}
 
 class EntityDrawCollection
 {
@@ -52,7 +78,7 @@ public:
 private:
     static ThreadType GetThreadType();
 
-    FixedArray<FlatMap<RenderableAttributeSet, EntityList>, THREAD_TYPE_MAX> m_entities;
+    FixedArray<FlatMap<RenderableAttributeSet, EntityList>, THREAD_TYPE_MAX> m_lists;
 };
 
 struct PushConstantData
@@ -99,11 +125,21 @@ public:
     friend class World;
 
     RenderList();
+    RenderList(const Handle<Camera> &camera);
     RenderList(const RenderList &other) = default;
     RenderList &operator=(const RenderList &other) = default;
     RenderList(RenderList &&other) noexcept = default;
     RenderList &operator=(RenderList &&other) noexcept = default;
     ~RenderList() = default;
+
+    const Handle<Camera> &GetCamera() const
+        { return m_camera; }
+
+    void SetCamera(const Handle<Camera> &camera)
+        { m_camera = camera; }
+
+    const RC<EntityDrawCollection> &GetEntityCollection() const
+        { return m_draw_collection; }
 
     void ClearEntities();
 
@@ -117,16 +153,49 @@ public:
         Call after calling CollectEntities() on Scene. */
     void UpdateRenderGroups();
 
-    void Render(
+    void CollectDrawCalls(
+        Frame *frame,
+        const Bitset &bucket_bits,
+        const CullData *cull_data
+    );
+
+    void ExecuteDrawCalls(
+        Frame *frame,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCalls(
+        Frame *frame,
+        const Handle<Framebuffer> &framebuffer,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
+
+    void ExecuteDrawCalls(
         Frame *frame,
         const Handle<Camera> &camera,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
-    );
+    ) const;
+
+    void ExecuteDrawCalls(
+        Frame *frame,
+        const Handle<Camera> &camera,
+        const Handle<Framebuffer> &framebuffer,
+        const Bitset &bucket_bits,
+        const CullData *cull_data = nullptr,
+        PushConstantData push_constant = { }
+    ) const;
 
     /*! \brief Perform a full reset, when this is not needed anymore. */
     void Reset();
 
 private:
+    Handle<Camera> m_camera;
     RC<EntityDrawCollection> m_draw_collection;
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
 };

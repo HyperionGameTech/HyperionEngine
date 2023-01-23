@@ -137,6 +137,18 @@ public:
     {
         SetIsUsed<T>(id, Handle<T>::empty, is_used);
     }
+
+    template <class T>
+    bool IsUsed(ID<T> id) const
+    {
+        const ResourceUsageMap<T> *ptr = static_cast<const ResourceUsageMap<T> *>(resource_usage_maps[ResourceUsageTypeMap<T>::Value].Get());
+
+        if (ptr == nullptr) {
+            return false;
+        }
+
+        return ptr->usage_bits.Test(id.Value());
+    }
 };
 
 struct DrawCallID

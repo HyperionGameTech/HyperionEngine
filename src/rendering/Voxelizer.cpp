@@ -260,9 +260,16 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
         
         Engine::Get()->GetRenderState().BindScene(scene);
 
-        m_render_list.Render(
+        m_render_list.CollectDrawCalls(
+            frame,
+            Bitset((1 << BUCKET_UI)),
+            nullptr
+        );
+
+        m_render_list.ExecuteDrawCalls(
             &temp_frame,
             Bitset(1 << BUCKET_OPAQUE),
+            nullptr,
             &push_constants
         );
 

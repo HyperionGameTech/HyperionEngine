@@ -195,20 +195,27 @@ void VoxelConeTracing::OnRender(Frame *frame)
 
     Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
 
-    m_render_list.Render(
+    m_render_list.CollectDrawCalls(
         frame,
-        Bitset((1 << BUCKET_OPAQUE))
+        Bitset((1 << BUCKET_OPAQUE)),
+        nullptr
+    );
+
+    m_render_list.ExecuteDrawCalls(
+        frame,
+        Bitset((1 << BUCKET_OPAQUE)),
+        nullptr
     );
 
     Engine::Get()->GetRenderState().UnbindScene();
     
     if constexpr (manual_mipmap_generation) {
-        const auto num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();
-        const auto voxel_image_extent = m_voxel_image->GetImage()->GetExtent();
-        auto mip_extent = voxel_image_extent;
+        const UInt num_mip_levels = m_voxel_image->GetImage()->NumMipmaps();
+        const Extent3D &voxel_image_extent = m_voxel_image->GetImage()->GetExtent();
+        Extent3D mip_extent = voxel_image_extent;
 
         for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-            const auto prev_mip_extent = mip_extent;
+            const Extent3D prev_mip_extent = mip_extent;
 
             mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
             mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);

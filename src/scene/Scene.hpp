@@ -184,6 +184,14 @@ public:
     void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
+        const Bitset &bucket_bits,
+        Optional<RenderableAttributeSet> override_attributes = { },
+        bool skip_frustum_culling = false
+    ) const;
+
+    void CollectEntities(
+        RenderList &render_list, 
+        const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
         bool skip_frustum_culling = false
     ) const;

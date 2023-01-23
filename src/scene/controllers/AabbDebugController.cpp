@@ -38,29 +38,32 @@ void AABBDebugController::OnAdded()
 
     const ShaderProps shader_properties(vertex_attributes);
 
-    Handle<Material> material = CreateObject<Material>(HYP_NAME(aabb_material));
-    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(DebugAABB), shader_properties);
+    Material::ParameterTable material_parameters = Material::DefaultParameters();
+    material_parameters.Set(Material::MATERIAL_KEY_ALBEDO, Material::Parameter(Color(1.0f, 0.0f, 0.0f, 1.0f)));
+
+    Handle<Material> material = Engine::Get()->GetMaterialCache().GetOrCreate(
+        MaterialAttributes {
+            .bucket = Bucket::BUCKET_TRANSLUCENT,
+            .fill_mode = FillMode::LINE,
+            .cull_faces = FaceCullMode::NONE,
+            .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
+        },
+        material_parameters
+    );
+
+    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), shader_properties);
 
     m_aabb_entity = CreateObject<Entity>(
         std::move(mesh),
         std::move(shader),
-        std::move(material),
-        RenderableAttributeSet(
-            MeshAttributes {
-                .vertex_attributes = vertex_attributes
-            },
-            MaterialAttributes {
-                .bucket = Bucket::BUCKET_OPAQUE,
-                .fill_mode = FillMode::LINE,
-                .blend_mode = BlendMode::NORMAL,
-                .cull_faces = FaceCullMode::NONE,
-                .flags = 0x0
-            }
-        ),
-        Entity::InitInfo {
-            .flags = 0x0 // no flags
-        }
+        std::move(material)
     );
+
+    m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
+    m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING, false);
+    m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);
+
+    InitObject(m_aabb_entity);
 }
 
 void AABBDebugController::OnRemoved()

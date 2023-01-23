@@ -782,31 +782,41 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
-    if constexpr (use_draw_indirect) {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame, m_cull_data);
-        }
-        
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame, m_cull_data);
-        }
+    const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
 
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame, m_cull_data);
-        }
-    } else {
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame);
-        }
-        
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame);
-        }
-
-        for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-            renderer_instance->CollectDrawCalls(frame);
-        }
+    for (UInt index = 0; index < num_render_lists; index++) {
+        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->CollectDrawCalls(
+            frame,
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
+            &m_cull_data
+        );
     }
+
+    // if constexpr (use_draw_indirect) {
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
+    //     }
+        
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
+    //     }
+
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
+    //     }
+    // } else {
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame);
+    //     }
+        
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame);
+    //     }
+
+    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
+    //         renderer_instance->CollectDrawCalls(frame);
+    //     }
+    // }
 }
 
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
@@ -814,10 +824,11 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
     const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (UInt index = 0; index < num_render_lists; index++) {
-        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->Render(
+        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,
-            Bitset((1 << BUCKET_OPAQUE))// | (1 << BUCKET_SKYBOX))
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX)),
+            &m_cull_data
         );
     }
 
@@ -845,10 +856,11 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
     const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (UInt index = 0; index < num_render_lists; index++) {
-        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->Render(
+        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,
-            Bitset((1 << BUCKET_TRANSLUCENT))
+            Bitset((1 << BUCKET_TRANSLUCENT)),
+            &m_cull_data
         );
     }
 

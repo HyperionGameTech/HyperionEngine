@@ -143,6 +143,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     GetParent()->GetScene()->CollectEntities(
         m_render_list,
         m_camera,
+        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
@@ -318,9 +319,16 @@ void EnvGrid::RenderEnvProbe(
         Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
         Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
 
-        m_render_list.Render(
+        m_render_list.CollectDrawCalls(
             frame,
-            Bitset(1 << BUCKET_OPAQUE),
+            Bitset(1 << BUCKET_INTERNAL),
+            nullptr
+        );
+
+        m_render_list.ExecuteDrawCalls(
+            frame,
+            Bitset(1 << BUCKET_INTERNAL),
+            nullptr,
             &push_constants
         );
 
