@@ -13,7 +13,7 @@ namespace hyperion::v2 {
 PointShadowRenderer::PointShadowRenderer(
     const Handle<Light> &light,
     const Extent2D &extent
-) : RenderComponent(5),
+) : RenderComponent(),
     m_light(light),
     m_extent(extent)
 {
@@ -68,7 +68,12 @@ void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     AssertThrow(m_env_probe.IsValid());
     AssertThrow(m_light.IsValid());
 
-    m_env_probe->SetAABB(m_light->GetWorldAABB());
+    const BoundingBox &env_probe_aabb = m_env_probe->GetAABB();
+    const BoundingBox light_aabb = m_light->GetWorldAABB();
+
+    if (env_probe_aabb != light_aabb) {
+        m_env_probe->SetAABB(light_aabb);
+    }
 }
 
 void PointShadowRenderer::OnRender(Frame *frame)
@@ -85,9 +90,11 @@ void PointShadowRenderer::OnRender(Frame *frame)
             m_last_visibility_state = true;
         }
 
-        // TODO: Add Octree hash check, only re-render if something has changed.
-
-        m_env_probe->Render(frame);
+        if (m_env_probe->NeedsUpdate()) {
+            m_env_probe->Render(frame);
+        } else {
+            std::cout << "Skip render point light shadows because it doesnt need update\n";
+        }
     } else {
         // No point in keeping it bound if the light is not visible on the screen.
         if (m_last_visibility_state) {

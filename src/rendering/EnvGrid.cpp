@@ -76,7 +76,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f//(Vector3(m_aabb.GetRadius()) / Vector3(m_density)).Max()////
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
 
         m_camera->SetFramebuffer(m_framebuffer);
@@ -143,12 +143,12 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     GetParent()->GetScene()->CollectEntities(
         m_render_list,
         m_camera,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
+        Bitset((1 << BUCKET_OPAQUE)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::BACK
+                .cull_faces = FaceCullMode::NONE
             },
             m_ambient_shader->GetCompiledShader().GetDefinition(),
             Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set

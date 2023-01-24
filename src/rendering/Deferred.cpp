@@ -240,7 +240,7 @@ void EnvGridPass::Record(UInt frame_index)
             m_render_group->GetPipeline()->Bind(cmd);
 
             const auto &scene_binding = Engine::Get()->render_state.GetScene();
-            const auto scene_index = scene_binding.id.ToIndex();
+            const UInt scene_index = scene_binding.id.ToIndex();
 
             cmd->BindDescriptorSet(
                 Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
@@ -721,7 +721,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                 HYP_RENDER_OBJECT_OFFSET(Light, 0),
                 HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+                HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().current_env_probe.ToIndex()),
                 HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
             }
         );

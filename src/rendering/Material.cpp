@@ -255,7 +255,7 @@ Material::ParameterTable Material::DefaultParameters()
     parameters.Set(MATERIAL_KEY_CLEARCOAT,       0.0f);
     parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f);
     parameters.Set(MATERIAL_KEY_SUBSURFACE,      0.0f);
-    parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 1.0f);
+    parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 8.0f);
     parameters.Set(MATERIAL_KEY_UV_SCALE,        Vector2(1.0f));
     parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.05f);
 

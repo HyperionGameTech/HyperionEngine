@@ -21,9 +21,13 @@ Features::Features(VkPhysicalDevice physical_device)
 void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
 {
     if ((m_physical_device = physical_device)) {
+        m_features.samplerAnisotropy = VK_TRUE;
+
         vkGetPhysicalDeviceProperties(physical_device, &m_properties);
         vkGetPhysicalDeviceFeatures(physical_device, &m_features);
         vkGetPhysicalDeviceMemoryProperties(physical_device, &m_memory_properties);
+
+        AssertThrow(m_features.samplerAnisotropy);
 
 #if HYP_FEATURES_ENABLE_RAYTRACING
         m_buffer_device_address_features = {

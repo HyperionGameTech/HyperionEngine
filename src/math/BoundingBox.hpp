@@ -47,8 +47,10 @@ public:
     BoundingBox &operator*=(const Vector3 &scale);
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
+
     bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
+
     bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
