@@ -557,13 +557,13 @@ void EnvProbe::Render(Frame *frame)
 
         m_render_list.CollectDrawCalls(
             frame,
-            Bitset(1 << BUCKET_INTERNAL),
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             nullptr
         );
 
         m_render_list.ExecuteDrawCalls(
             frame,
-            Bitset(1 << BUCKET_INTERNAL)
+            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
         Engine::Get()->GetRenderState().UnbindScene();

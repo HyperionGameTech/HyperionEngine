@@ -147,7 +147,23 @@ public:
             return false;
         }
 
-        return ptr->usage_bits.Test(id.Value());
+#ifndef HYP_DEBUG_MODE
+        return ptr->usage_bits.Test(id.Value())
+
+#else
+        auto it = ptr->handles.Find(id);
+
+        if (!ptr->usage_bits.Test(id.Value())) {
+            AssertThrow(it == ptr->handles.End() || !it->value.IsValid());
+
+            return false;
+        }
+
+        AssertThrow(it != ptr->handles.End());
+        AssertThrow(it->value.IsValid());
+
+        return true;
+#endif
     }
 };
 

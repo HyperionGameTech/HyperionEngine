@@ -321,13 +321,13 @@ void EnvGrid::RenderEnvProbe(
 
         m_render_list.CollectDrawCalls(
             frame,
-            Bitset(1 << BUCKET_INTERNAL),
+            Bitset((1 << BUCKET_OPAQUE)),
             nullptr
         );
 
         m_render_list.ExecuteDrawCalls(
             frame,
-            Bitset(1 << BUCKET_INTERNAL),
+            Bitset((1 << BUCKET_OPAQUE)),
             nullptr,
             &push_constants
         );

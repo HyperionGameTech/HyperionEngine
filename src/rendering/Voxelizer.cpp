@@ -262,7 +262,7 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
 
         m_render_list.CollectDrawCalls(
             frame,
-            Bitset((1 << BUCKET_UI)),
+            Bitset((1 << BUCKET_OPAQUE)),
             nullptr
         );
 

@@ -791,32 +791,6 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
             &m_cull_data
         );
     }
-
-    // if constexpr (use_draw_indirect) {
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
-    //     }
-        
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
-    //     }
-
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame, m_cull_data);
-    //     }
-    // } else {
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame);
-    //     }
-        
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame);
-    //     }
-
-    //     for (auto &renderer_instance : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-    //         renderer_instance->CollectDrawCalls(frame);
-    //     }
-    // }
 }
 
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
@@ -831,24 +805,6 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
             &m_cull_data
         );
     }
-
-    // if constexpr (use_draw_indirect) {
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-    //         render_group->PerformRenderingIndirect(frame);
-    //     }
-        
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-    //         render_group->PerformRenderingIndirect(frame);
-    //     }
-    // } else {
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_SKYBOX).GetRenderGroups()) {
-    //         render_group->PerformRendering(frame);
-    //     }
-        
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_OPAQUE).GetRenderGroups()) {
-    //         render_group->PerformRendering(frame);
-    //     }
-    // }
 }
 
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
@@ -863,16 +819,6 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
             &m_cull_data
         );
     }
-
-    // if constexpr (use_draw_indirect) {
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-    //         render_group->PerformRenderingIndirect(frame);
-    //     }
-    // } else {
-    //     for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_TRANSLUCENT).GetRenderGroups()) {
-    //         render_group->PerformRendering(frame);
-    //     }
-    // }
 }
 
 void DeferredRenderer::RenderUI(Frame *frame)

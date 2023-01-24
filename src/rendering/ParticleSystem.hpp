@@ -47,7 +47,7 @@ struct ParticleSpawnerParams
     Handle<Texture> texture;
     SizeType max_particles = 256u;
     Vector3 origin = Vector3::zero;
-    Float start_size = 0.005f;
+    Float start_size = 0.035f;
     Float radius = 1.0f;
     Float randomness = 0.5f;
     Float lifespan = 1.0f;

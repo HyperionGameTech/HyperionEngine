@@ -45,7 +45,7 @@ EntityDrawCollection::ThreadType EntityDrawCollection::GetThreadType()
         : (thread_id == THREAD_RENDER ? THREAD_TYPE_RENDER : THREAD_TYPE_INVALID);
 }
 
-FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList> &EntityDrawCollection::GetEntityList()
+FixedArray<FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList()
 {
     const ThreadType thread_type = GetThreadType();
 
@@ -54,7 +54,7 @@ FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList> &EntityDrawCol
     return m_lists[UInt(thread_type)];
 }
 
-FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList> &EntityDrawCollection::GetEntityList(ThreadType thread_type)
+FixedArray<FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList(ThreadType thread_type)
 {
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
@@ -63,23 +63,23 @@ FlatMap<RenderableAttributeSet, EntityDrawCollection::EntityList> &EntityDrawCol
 
 void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, const EntityDrawProxy &entity)
 {
-    GetEntityList(THREAD_TYPE_GAME)[attributes].drawables.PushBack(entity);
+    GetEntityList(THREAD_TYPE_GAME)[BucketToPassType(attributes.material_attributes.bucket)][attributes].drawables.PushBack(entity);
 }
 
 void EntityDrawCollection::SetEntityList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
 {
-    GetEntityList().Set(attributes, std::move(entity_list));
+    GetEntityList()[BucketToPassType(attributes.material_attributes.bucket)].Set(attributes, std::move(entity_list));
 }
 
 void EntityDrawCollection::ClearEntities()
 {
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    // for (auto &collection_per_bucket : GetEntityList()) {
-        for (auto &it : GetEntityList()) {
+    for (auto &collection_per_pass_type : GetEntityList()) {
+        for (auto &it : collection_per_pass_type) {
             it.second.drawables.Clear();
         }
-    // }
+    }
 }
 
 
@@ -106,8 +106,8 @@ void RenderList::UpdateRenderGroups()
     Threads::AssertOnThread(THREAD_GAME);
     AssertThrow(m_draw_collection != nullptr);
 
-    // for (auto &collection_per_bucket : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_GAME)) {
-        for (auto &it : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_GAME)) {
+    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_GAME)) {
+        for (auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
             EntityDrawCollection::EntityList &entity_list = it.second;
 
@@ -141,7 +141,7 @@ void RenderList::UpdateRenderGroups()
                 std::move(entity_list)
             );
         }
-    // }
+    }
 }
 
 void RenderList::PushEntityToRender(
@@ -183,7 +183,11 @@ void RenderList::PushEntityToRender(
             attributes.shader_def.properties.SetRequiredVertexAttributes(attributes.mesh_attributes.vertex_attributes);
         }
 
+        // do not override bucket!
+        const Bucket previous_bucket = attributes.material_attributes.bucket;
         attributes.material_attributes = override_attributes->material_attributes;
+        attributes.material_attributes.bucket = previous_bucket;
+
         attributes.stencil_state = override_attributes->stencil_state;
     }
 
@@ -198,25 +202,34 @@ void RenderList::CollectDrawCalls(
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    for (auto &it : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {//collection_per_bucket[UInt(bucket)]) {
-        const RenderableAttributeSet &attributes = it.first;
-        EntityDrawCollection::EntityList &entity_list = it.second;
+    FixedArray<UInt, PASS_TYPE_MAX> pass_indices { UInt(-1) };
 
-        const Bucket bucket = bucket_bits.Test(UInt(attributes.material_attributes.bucket)) ? attributes.material_attributes.bucket : BUCKET_INVALID;
-
-        if (bucket == BUCKET_INVALID) {
-            // std::cout << "Skip bucket " << UInt(attributes.material_attributes.bucket) << "\n";
-            continue;
+    for (UInt bucket_index = 0, pass_index = 0; bucket_index < BUCKET_MAX; bucket_index++) {
+        if (bucket_bits.Test(bucket_index)) {
+            pass_indices[pass_index++] = UInt(BucketToPassType(Bucket(bucket_index)));
         }
+    }
 
-        AssertThrow(entity_list.render_group.IsValid());
+    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
+        for (auto &it : collection_per_pass_type) {
+            const RenderableAttributeSet &attributes = it.first;
+            EntityDrawCollection::EntityList &entity_list = it.second;
 
-        entity_list.render_group->SetDrawProxies(entity_list.drawables);
+            const Bucket bucket = bucket_bits.Test(UInt(attributes.material_attributes.bucket)) ? attributes.material_attributes.bucket : BUCKET_INVALID;
 
-        if (use_draw_indirect && cull_data != nullptr) {
-            entity_list.render_group->CollectDrawCalls(frame, *cull_data);
-        } else {
-            entity_list.render_group->CollectDrawCalls(frame);
+            if (bucket == BUCKET_INVALID) {
+                continue;
+            }
+
+            AssertThrow(entity_list.render_group.IsValid());
+
+            entity_list.render_group->SetDrawProxies(entity_list.drawables);
+
+            if (use_draw_indirect && cull_data != nullptr) {
+                entity_list.render_group->CollectDrawCalls(frame, *cull_data);
+            } else {
+                entity_list.render_group->CollectDrawCalls(frame);
+            }
         }
     }
 }
@@ -302,16 +315,8 @@ void RenderList::ExecuteDrawCalls(
 
     Engine::Get()->GetRenderState().BindCamera(camera.Get());
 
-    auto &collection_per_bucket = m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER);
-
-    // for (UInt bucket_index = 0; bucket_index < BUCKET_MAX; bucket_index++) {
-    //     const Bucket bucket = bucket_bits.Test(bucket_index) ? Bucket(bucket_index) : BUCKET_INVALID;
-
-    //     if (bucket == BUCKET_INVALID) {
-    //         continue;
-    //     }
-
-        for (auto &it : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {//collection_per_bucket[UInt(bucket)]) {
+    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
+        for (auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
             EntityDrawCollection::EntityList &entity_list = it.second;
 
@@ -340,7 +345,7 @@ void RenderList::ExecuteDrawCalls(
                 entity_list.render_group->PerformRendering(frame);
             }
         }
-    // }
+    }
 
     Engine::Get()->GetRenderState().UnbindCamera();
 

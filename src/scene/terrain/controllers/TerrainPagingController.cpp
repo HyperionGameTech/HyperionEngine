@@ -44,9 +44,12 @@ void TerrainPagingController::OnAdded()
     m_material = CreateObject<Material>(HYP_NAME(terrain_material));
 
     // m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.2f, 0.99f, 0.5f, 1.0f));
+    m_material->SetBucket(BUCKET_OPAQUE);
+    m_material->SetIsDepthTestEnabled(true);
+    m_material->SetIsDepthWriteEnabled(true);
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-    // m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 50.0f);
+    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 0.25f);
 
     if (auto albedo_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         albedo_texture->GetImage()->SetIsSRGB(true);
@@ -109,7 +112,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
     DebugLog(LogType::Info, "Terrain patch added at [%f, %f], enqueuing terrain generation\n", patch->info.coord.x, patch->info.coord.y);
 
-    const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes;
+    const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
     
     Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Terrain), ShaderProps(vertex_attributes));
     AssertThrow(shader.IsValid());
@@ -123,7 +126,9 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
                 .vertex_attributes = vertex_attributes
             },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_OPAQUE
+                .bucket = Bucket::BUCKET_OPAQUE,
+                .blend_mode = BlendMode::NONE,
+                .cull_faces = FaceCullMode::NONE
             },
             shader->GetCompiledShader().GetDefinition()
         )

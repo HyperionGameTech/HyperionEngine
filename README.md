@@ -47,9 +47,14 @@ Feel free to contribute anything - We'd love to have some more eyes on this proj
 [Scripting Language](doc/ScriptingLanguage.md)
 
 ## Screenshots
-![screenshot](/screenshots/hbao-ssr-ssgi-3.jpg)\
-![screenshot](/screenshots/living-room-ssgi-2.jpg)\
-*HBAO (horizon-based ambient occlusion), SSR (screen-space reflections), SSGI (screen-space global illumination), and TAA (temporal anti-aliasing). No hardware raytracing used in these images (although it is supported) *
+![Particle physics demo](/screenshots/particle_phys2.gif)\
+*GPU particles with basic physics simulation*\
+![screenshot](/screenshots/ssr.jpg)\
+*Screen space reflections*\
+![screenshot](/screenshots/point-shadows.jpg)\
+*Point light shadows*\
+![screenshot](/screenshots/procedural_terrain.jpg)\
+*Procedural terrain generation*
 
 
 ## Building

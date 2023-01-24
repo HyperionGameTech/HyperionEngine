@@ -524,7 +524,7 @@ void Entity::RebuildRenderableAttributes()
         new_renderable_attributes.mesh_attributes.vertex_attributes |= renderer::skeleton_vertex_attributes;
     }
 
-    if (m_shader) {
+    if (m_shader && m_mesh) {
         const VertexAttributeSet shader_vertex_attributes = m_shader->GetCompiledShader().GetProperties().GetRequiredVertexAttributes();
 
         if (shader_vertex_attributes != new_renderable_attributes.mesh_attributes.vertex_attributes) {

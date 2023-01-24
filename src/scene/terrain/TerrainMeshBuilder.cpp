@@ -54,7 +54,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
         vertices,
         indices,
         Topology::TRIANGLES,
-        renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes // for now
+        renderer::static_mesh_vertex_attributes
     );
 
     mesh->CalculateNormals();

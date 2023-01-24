@@ -72,13 +72,13 @@ public:
 
     void SetEntityList(const RenderableAttributeSet &attributes, EntityList &&entities);
 
-    FlatMap<RenderableAttributeSet, EntityList> &GetEntityList();
-    FlatMap<RenderableAttributeSet, EntityList> &GetEntityList(ThreadType);
+    FixedArray<FlatMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList();
+    FixedArray<FlatMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList(ThreadType);
 
 private:
     static ThreadType GetThreadType();
 
-    FixedArray<FlatMap<RenderableAttributeSet, EntityList>, THREAD_TYPE_MAX> m_lists;
+    FixedArray<FixedArray<FlatMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, THREAD_TYPE_MAX> m_lists;
 };
 
 struct PushConstantData

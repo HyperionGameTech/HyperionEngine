@@ -380,7 +380,7 @@ void ParticleSpawner::CreateRenderGroup()
                 .vertex_attributes = renderer::static_mesh_vertex_attributes
             },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_PARTICLE,
+                .bucket = Bucket::BUCKET_TRANSLUCENT,
                 .blend_mode = BlendMode::ADDITIVE,
                 .cull_faces = FaceCullMode::FRONT,
                 .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
@@ -611,7 +611,7 @@ void ParticleSystem::Render(Frame *frame)
         }
     );
 
-    const auto num_recorded_command_buffers = command_buffers_recorded_states.Sum();
+    const UInt num_recorded_command_buffers = command_buffers_recorded_states.Sum();
 
     // submit all command buffers
     for (UInt i = 0; i < num_recorded_command_buffers; i++) {
