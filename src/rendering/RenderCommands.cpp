@@ -21,9 +21,9 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
 
     FlushResult result { Result::OK, 0 };
 
-    SizeType index;
+    SizeType index = 0;
 
-    for (index = 0; index < m_commands.Size();) {
+    while (index < m_commands.Size()) {
         RenderCommand *front = m_commands[index++];
 
         ++result.num_executed;

@@ -263,6 +263,8 @@ void ParticleSpawner::Init()
     CreateRenderGroup();
     CreateComputePipelines();
 
+    HYP_SYNC_RENDER();
+
     OnTeardown([this](...) {
         m_render_group.Reset();
         m_update_particles.Reset();
@@ -345,6 +347,20 @@ void ParticleSpawner::CreateDescriptorSets()
             ->SetElementSampler(0, m_params.texture
                 ? m_params.texture->GetSampler()
                 : &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+
+        m_descriptor_sets[frame_index]
+            .AddDescriptor<renderer::SamplerDescriptor>(8)
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+
+        // gbuffer normals texture
+        m_descriptor_sets[frame_index]
+            .AddDescriptor<ImageDescriptor>(9)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
+
+        // gbuffer depth texture
+        m_descriptor_sets[frame_index]
+            .AddDescriptor<ImageDescriptor>(10)
+            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateParticleDescriptors)>(
@@ -364,9 +380,9 @@ void ParticleSpawner::CreateRenderGroup()
                 .vertex_attributes = renderer::static_mesh_vertex_attributes
             },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_TRANSLUCENT,
+                .bucket = Bucket::BUCKET_PARTICLE,
                 .blend_mode = BlendMode::ADDITIVE,
-                .cull_faces = FaceCullMode::NONE,
+                .cull_faces = FaceCullMode::FRONT,
                 .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
             }
         )
@@ -474,7 +490,6 @@ void ParticleSystem::UpdateParticles(Frame *frame)
     );
 
     for (auto &spawner : m_particle_spawners) {
-        const BoundingBox aabb = spawner->GetEstimatedAABB();
         const SizeType max_particles = spawner->GetParams().max_particles;
 
         AssertThrow(spawner->GetIndirectBuffer()->size == sizeof(IndirectDrawCommand));
@@ -497,7 +512,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
             renderer::ResourceState::INDIRECT_ARG
         );
 
-        if (!Engine::Get()->GetRenderState().GetCamera().camera.frustum.ContainsAABB(aabb)) {
+        if (!Engine::Get()->GetRenderState().GetCamera().camera.frustum.ContainsBoundingSphere(spawner->GetBoundingSphere())) {
             continue;
         }
 
@@ -505,7 +520,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
 
         spawner->GetComputePipeline()->GetPipeline()->SetPushConstants(Pipeline::PushConstantData {
             .particle_spawner_data = {
-                .origin             = ShaderVec4<Float32>(Vector4(spawner->GetParams().origin, 1.0f)),
+                .origin             = ShaderVec4<Float32>(Vector4(spawner->GetParams().origin, spawner->GetParams().start_size)),
                 .spawn_radius       = spawner->GetParams().radius,
                 .randomness         = spawner->GetParams().randomness,
                 .avg_lifespan       = spawner->GetParams().lifespan,

@@ -47,7 +47,8 @@ struct ParticleSpawnerParams
     Handle<Texture> texture;
     SizeType max_particles = 256u;
     Vector3 origin = Vector3::zero;
-    Float radius = 5.0f;
+    Float start_size = 0.005f;
+    Float radius = 1.0f;
     Float randomness = 0.5f;
     Float lifespan = 1.0f;
 };
@@ -92,13 +93,8 @@ public:
     const Handle<ComputePipeline> &GetComputePipeline() const
         { return m_update_particles; }
 
-    BoundingBox GetEstimatedAABB() const
-    {
-        return BoundingBox(
-            m_params.origin - m_params.radius,
-            m_params.origin + m_params.radius
-        );
-    }
+    BoundingSphere GetBoundingSphere() const
+        { return BoundingSphere(m_params.origin, m_params.radius); }
 
     void Init();
     void Record(CommandBuffer *command_buffer);
