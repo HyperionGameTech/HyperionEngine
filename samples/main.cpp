@@ -160,8 +160,8 @@ public:
 
             for (auto &light : m_point_lights) {
                 auto point_light_entity = CreateObject<Entity>();
-                point_light_entity->AddController<LightController>(light);
-                GetScene()->AddEntity(std::move(point_light_entity));
+                // point_light_entity->AddController<LightController>(light);
+                // GetScene()->AddEntity(std::move(point_light_entity));
             }
         }
 
@@ -233,8 +233,10 @@ public:
         if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
             m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
                 HYP_NAME(VCTRenderer0),
-                VoxelConeTracing::Params { BoundingBox(-256.0f, 256.0f) }
+                VoxelConeTracing::Params { BoundingBox(-22.0f, 22.0f) }
             );
+        } else if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO)) {
+            m_scene->GetEnvironment()->AddRenderComponent<SparseVoxelOctree>(HYP_NAME(VCT_SVO));
         }
 
         // m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
@@ -341,7 +343,7 @@ public:
             }
         }
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -503,7 +505,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (false) {
+        if (true) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
@@ -514,15 +516,15 @@ public:
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.2f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
             // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
             // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);

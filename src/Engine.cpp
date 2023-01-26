@@ -672,6 +672,22 @@ void Engine::Initialize(RefCountedPtr<Application> application)
             ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.textures[6].image_view)
             ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.textures[7].image_view)
             ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.textures[8].image_view);
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::VCT_VOXEL_UAV)
+            ->SetElementUAV(0, &GetPlaceholderData().GetImageView3D1x1x1R8Storage());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::VCT_VOXEL_UNIFORMS)
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(VoxelUniforms)));
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_BUFFER)
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(GetGPUDevice(), sizeof(UInt32)));
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
     }
 
     // add placeholder scene data

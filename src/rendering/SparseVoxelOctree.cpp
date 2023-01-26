@@ -72,6 +72,27 @@ void SparseVoxelOctree::Init()
                         svo.m_descriptor_sets[frame_index]->Destroy(Engine::Get()->GetGPUDevice()),
                         result
                     );
+
+                    { // Remove our elements from global descriptor set, setting back to placeholder data
+                        auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                            .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+                        
+                        descriptor_set_globals
+                            ->GetDescriptor(DescriptorKey::SVO_BUFFER)
+                            ->SetElementBuffer(0, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(Engine::Get()->GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
+
+                        descriptor_set_globals
+                            ->GetDescriptor(DescriptorKey::VCT_SVO_BUFFER)
+                            ->SetElementBuffer(0, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(Engine::Get()->GetGPUDevice(), sizeof(UInt32)));
+
+                        descriptor_set_globals
+                            ->GetDescriptor(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
+                            ->SetElementBuffer(0, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(Engine::Get()->GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
+
+                        descriptor_set_globals
+                            ->GetDescriptor(DescriptorKey::VCT_VOXEL_UNIFORMS)
+                            ->SetElementBuffer(0, Engine::Get()->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(Engine::Get()->GetGPUDevice(), sizeof(VoxelUniforms)));
+                    }
                 }
 
                 if (svo.m_counter != nullptr) {
@@ -106,6 +127,8 @@ void SparseVoxelOctree::Init()
         RenderCommands::Push<RENDER_COMMAND(DestroySVO)>(*this);
 
         HYP_SYNC_RENDER();
+
+        SafeRelease(std::move(m_voxel_uniforms));
 
         m_voxelizer.reset(nullptr);
 
@@ -172,6 +195,8 @@ UInt32 SparseVoxelOctree::CalculateNumNodes() const
 
 void SparseVoxelOctree::CreateBuffers()
 {
+    m_voxel_uniforms = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
+
     m_build_info_buffer = std::make_unique<StorageBuffer>();
     m_indirect_buffer = std::make_unique<IndirectBuffer>();
     m_counter = std::make_unique<AtomicCounter>();
@@ -179,15 +204,20 @@ void SparseVoxelOctree::CreateBuffers()
     struct RENDER_COMMAND(CreateSVOBuffers) : RenderCommand
     {
         SparseVoxelOctree &svo;
+        GPUBufferRef voxel_uniforms;
 
-        RENDER_COMMAND(CreateSVOBuffers)(SparseVoxelOctree &svo)
-            : svo(svo)
+        RENDER_COMMAND(CreateSVOBuffers)(SparseVoxelOctree &svo, GPUBufferRef voxel_uniforms)
+            : svo(svo),
+              voxel_uniforms(std::move(voxel_uniforms))
         {
         }
 
         virtual Result operator()()
         {
             auto result = Result::OK;
+
+            HYPERION_BUBBLE_ERRORS(voxel_uniforms->Create(Engine::Get()->GetGPUDevice(), sizeof(VoxelUniforms)));
+            voxel_uniforms->Memset(Engine::Get()->GetGPUDevice(), sizeof(VoxelUniforms), 0x00);
 
             svo.m_counter->Create();
 
@@ -203,7 +233,7 @@ void SparseVoxelOctree::CreateBuffers()
 
             svo.m_octree_buffer = std::make_unique<StorageBuffer>();
 
-            const auto num_nodes = svo.CalculateNumNodes();
+            const UInt32 num_nodes = svo.CalculateNumNodes();
 
             DebugLog(
                 LogType::Debug,
@@ -240,7 +270,7 @@ void SparseVoxelOctree::CreateBuffers()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(CreateSVOBuffers)>(*this);
+    RenderCommands::Push<RENDER_COMMAND(CreateSVOBuffers)>(*this, m_voxel_uniforms);
 }
 
 void SparseVoxelOctree::CreateDescriptors()
@@ -300,14 +330,17 @@ void SparseVoxelOctree::CreateDescriptors()
                     &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 ));
 
-                // set octree buffer in global descriptor set
+                // set octree buffer and uniforms in global descriptor set
                 auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                     .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
                 
-                descriptor_set_globals->GetDescriptor(DescriptorKey::SVO_BUFFER)->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = svo.m_octree_buffer.get()
-                });
+                descriptor_set_globals
+                    ->GetDescriptor(DescriptorKey::SVO_BUFFER)
+                    ->SetElementBuffer(0, svo.m_octree_buffer.get());
+
+                descriptor_set_globals
+                    ->GetDescriptor(DescriptorKey::VCT_VOXEL_UNIFORMS)
+                    ->SetElementBuffer(0, svo.m_voxel_uniforms.Get());
             }
 
             HYPERION_RETURN_OK;
@@ -361,6 +394,22 @@ void SparseVoxelOctree::OnRender(Frame *frame)
 
     AssertThrow(m_voxelizer != nullptr);
 
+    {
+        const BoundingBox aabb(-25.0f, 25.0f);
+
+        VoxelUniforms uniforms { };
+        uniforms.extent = Vector4(aabb.GetExtent(), 0.0f);
+        uniforms.aabb_max = Vector4(aabb.max, 0.0f);
+        uniforms.aabb_min = Vector4(aabb.min, 0.0f);
+        uniforms.dimensions = { 0, 0, 0, 0 };
+
+        m_voxel_uniforms->Copy(
+            Engine::Get()->GetGPUDevice(),
+            sizeof(VoxelUniforms),
+            &uniforms
+        );
+    }
+
     m_voxelizer->Render(frame, GetParent()->GetScene());
     
     // temp
@@ -404,16 +453,14 @@ void SparseVoxelOctree::OnRender(Frame *frame)
             auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             
-            descriptor_set_globals->GetDescriptor(DescriptorKey::SVO_BUFFER)->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_octree_buffer.get()
-            });
+            descriptor_set_globals
+                ->GetDescriptor(DescriptorKey::SVO_BUFFER)
+                ->SetElementBuffer(0, m_octree_buffer.get());
 
             // apply to own descriptor sets too
-            m_descriptor_sets[frame_index]->GetDescriptor(2)->SetSubDescriptor({
-                .element_index = 0u,
-                .buffer = m_octree_buffer.get()
-            });
+            m_descriptor_sets[frame_index]
+                ->GetDescriptor(2)
+                ->SetElementBuffer(0, m_octree_buffer.get());
 
             m_descriptor_sets[frame_index]->ApplyUpdates(Engine::Get()->GetGPUDevice());
         }

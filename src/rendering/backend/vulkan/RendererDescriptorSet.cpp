@@ -84,7 +84,12 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::DEFERRED_IRRADIANCE_ACCUM, 57},
             {DescriptorKey::DEFERRED_REFLECTION_PROBE, 58},
             
-            {DescriptorKey::SH_VOLUMES, 61}
+            {DescriptorKey::SH_VOLUMES, 61},
+
+            {DescriptorKey::VCT_VOXEL_UAV, 70},
+            {DescriptorKey::VCT_VOXEL_UNIFORMS, 71},
+            {DescriptorKey::VCT_SVO_BUFFER, 72},
+            {DescriptorKey::VCT_SVO_FRAGMENT_LIST, 73}
         }
     },
     {

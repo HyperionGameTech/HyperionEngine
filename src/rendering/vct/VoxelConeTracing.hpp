@@ -5,6 +5,7 @@
 
 #include <rendering/RenderComponent.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Buffers.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
@@ -31,23 +32,15 @@ using renderer::DescriptorSet;
 
 class Engine;
 
-struct alignas(16) VoxelUniforms
-{
-    Extent3D extent;
-    Vector4 aabb_max;
-    Vector4 aabb_min;
-    UInt32 num_mipmaps;
-};
-
-static_assert(MathUtil::IsPowerOfTwo(sizeof(VoxelUniforms)));
+struct RenderCommand_DestroyVCT;
 
 class VoxelConeTracing
     : public EngineComponentBase<STUB_CLASS(VoxelConeTracing)>,
       public RenderComponent<VoxelConeTracing>
 {
-    static constexpr bool manual_mipmap_generation = true;
-
 public:
+    friend struct RenderCommand_DestroyVCT;
+
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_VCT;
 
     static const Extent3D voxel_map_extent;

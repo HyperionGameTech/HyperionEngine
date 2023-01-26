@@ -4,6 +4,7 @@
 #include <core/Base.hpp>
 #include <rendering/Voxelizer.hpp>
 #include <rendering/Compute.hpp>
+#include <rendering/Buffers.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
@@ -58,6 +59,7 @@ private:
     ) const;
 
     FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
+    GPUBufferRef m_voxel_uniforms;
 
     std::unique_ptr<Voxelizer> m_voxelizer;
     std::unique_ptr<AtomicCounter> m_counter;

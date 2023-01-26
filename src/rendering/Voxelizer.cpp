@@ -35,7 +35,7 @@ void Voxelizer::Init()
 
     EngineComponentBase::Init();
 
-    const auto voxel_map_size_signed = static_cast<Int64>(voxel_map_size);
+    const auto voxel_map_size_signed = Int64(voxel_map_size);
     
     CreateBuffers();
     CreateShader();
@@ -141,13 +141,17 @@ void Voxelizer::CreateBuffers()
 
 void Voxelizer::CreateShader()
 {
-    Name shader_name = HYP_NAME(SVOVoxelizeWithGeometryShader);
+    Name shader_name = HYP_NAME(VCTVoxelizeWithGeometryShader);
 
     if (!Engine::Get()->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
-        shader_name = HYP_NAME(SVOVoxelizeWithoutGeometryShader);
+        shader_name = HYP_NAME(VCTVoxelizeWithoutGeometryShader);
     }
 
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(shader_name);
+    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+        shader_name,
+        ShaderProps(renderer::static_mesh_vertex_attributes, { "MODE_SVO" })
+    );
+
     AssertThrow(InitObject(m_shader));
 }
 
@@ -176,21 +180,15 @@ void Voxelizer::CreateDescriptors()
         virtual Result operator()()
         {
             auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
-                .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
+                .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
 
             descriptor_set
-                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = voxelizer.m_counter->GetBuffer()
-                });
+                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_BUFFER)
+                ->SetElementBuffer(0, voxelizer.m_counter->GetBuffer());
 
             descriptor_set
-                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
-                ->SetSubDescriptor({
-                    .element_index = 0u,
-                    .buffer = voxelizer.m_fragment_list_buffer.get()
-                });
+                ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
+                ->SetElementBuffer(0, voxelizer.m_fragment_list_buffer.get());
 
             HYPERION_RETURN_OK;
         }
@@ -202,7 +200,7 @@ void Voxelizer::CreateDescriptors()
 /* We only reconstruct the buffer if the number of rendered fragments is
  * greater than what our buffer can hold (or the buffer has not yet been created).
  * We round up to the nearest power of two. */
-void Voxelizer::ResizeFragmentListBuffer(Frame *)
+void Voxelizer::ResizeFragmentListBuffer(Frame *frame)
 {
     const SizeType new_size = m_num_fragments * sizeof(Fragment);
 
@@ -228,17 +226,18 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *)
         new_size
     ));
 
-    // TODO! frame index
-    auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
-        .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
-    descriptor_set->GetDescriptor(1)->RemoveSubDescriptor(0);
-    descriptor_set->GetDescriptor(1)->SetSubDescriptor({
-        .element_index = 0u,
-        .buffer = m_fragment_list_buffer.get()
-    });
+        descriptor_set
+            ->GetDescriptor(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
+            ->SetElementBuffer(0, m_fragment_list_buffer.get());
 
-    descriptor_set->ApplyUpdates(Engine::Get()->GetGPUInstance()->GetDevice());
+        if (frame_index == frame->GetFrameIndex()) {
+            descriptor_set->ApplyUpdates(Engine::Get()->GetGPUInstance()->GetDevice());
+        }
+    }
 }
 
 void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_mode)
@@ -259,9 +258,10 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
         push_constants.count_mode = UInt32(count_mode);
         
         Engine::Get()->GetRenderState().BindScene(scene);
+        Engine::Get()->GetRenderState().BindCamera(m_camera.Get());
 
         m_render_list.CollectDrawCalls(
-            frame,
+            &temp_frame,
             Bitset((1 << BUCKET_OPAQUE)),
             nullptr
         );
@@ -273,6 +273,7 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
             &push_constants
         );
 
+        Engine::Get()->GetRenderState().UnbindCamera();
         Engine::Get()->GetRenderState().UnbindScene();
 
         HYPERION_RETURN_OK;
@@ -292,6 +293,7 @@ void Voxelizer::CollectEntities(const Scene *scene)
     scene->CollectEntities(
         m_render_list,
         m_camera,
+        Bitset((1 << BUCKET_OPAQUE)),
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {

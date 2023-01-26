@@ -63,13 +63,13 @@ bool AnimationController::FindSkeleton(Node *node)
         }
     }
 
-    return std::any_of(
-        node->GetChildren().begin(),
-        node->GetChildren().end(),
-        [this](auto &child) {
-            return FindSkeleton(child.Get());
+    for (auto &it : node->GetChildren()) {
+        if (FindSkeleton(it.Get())) {
+            return true;
         }
-    );
+    }
+
+    return false;
 }
 
 bool AnimationController::FindSkeletonDirect(Entity *entity)

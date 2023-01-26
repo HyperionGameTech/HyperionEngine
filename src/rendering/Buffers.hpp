@@ -269,6 +269,16 @@ struct alignas(256) SH9Buffer
 
 static_assert(sizeof(SH9Buffer) == 256);
 
+struct alignas(16) VoxelUniforms
+{
+    ShaderVec4<Float> extent;
+    ShaderVec4<Float> aabb_max;
+    ShaderVec4<Float> aabb_min;
+    ShaderVec4<UInt32> dimensions; // num mipmaps stored in w component
+};
+
+static_assert(sizeof(VoxelUniforms) == 64);
+
 /* max number of skeletons, based on size in mb */
 static const SizeType max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);
 static const SizeType max_skeletons_bytes = max_skeletons * sizeof(SkeletonShaderData);
