@@ -36,7 +36,7 @@ void FontAtlas::RenderCharacter(Extent2D location, Extent2D dimensions, font::Gl
 
     HYP_SYNC_RENDER();
 
-    ImageRect src_rect = { 10, 10, image->GetExtent().width+10, image->GetExtent().height+10 };
+    ImageRect src_rect = { 0, 0, image->GetExtent().width, image->GetExtent().height };
     ImageRect dest_rect = { location.x, location.y, location.x + image->GetExtent()[0], location.y + image->GetExtent()[1] };
 
     commands.Push([&](CommandBuffer *command_buffer) {
@@ -67,7 +67,7 @@ renderer::Result FontAtlas::WriteToBuffer(RC<ByteBuffer> &buffer)
 
     StagingBuffer texture_staging_buffer;
     HYPERION_BUBBLE_ERRORS(texture_staging_buffer.Create(gpu_device, buffer_size));
-    texture_staging_buffer.Memset(gpu_device, buffer_size, 0xaa);
+    texture_staging_buffer.Memset(gpu_device, buffer_size, 0xAA);
 
     if (!result) {
         HYPERION_IGNORE_ERRORS(texture_staging_buffer.Destroy(gpu_device));
@@ -90,15 +90,15 @@ renderer::Result FontAtlas::WriteToBuffer(RC<ByteBuffer> &buffer)
         // put dst image in state for copying to
         //m_atlas->GetImage().GetGPUImage()->InsertBarrier(cmd, renderer::ResourceState::COPY_DST);
 
-        m_atlas->GetImage()->GetGPUImage()->Read(gpu_device, buffer_size, image_data.Data());
+        //m_atlas->GetImage()->GetGPUImage()->Read(gpu_device, buffer_size, image_data.Data());
 
-        //m_atlas->GetImage().CopyToBuffer(cmd, &texture_staging_buffer);
+        m_atlas->GetImage()->CopyToBuffer(cmd, &texture_staging_buffer);
 
         HYPERION_RETURN_OK;
     });
 
     HYPERION_PASS_ERRORS(commands.Execute(gpu_device), result);
-    //texture_staging_buffer.Read(Engine::Get()->GetGPUInstance()->GetDevice(), buffer_size, image_data.Data());
+    texture_staging_buffer.Read(Engine::Get()->GetGPUInstance()->GetDevice(), buffer_size, image_data.Data());
     HYPERION_PASS_ERRORS(texture_staging_buffer.Destroy(gpu_device), result);
 
     buffer.Set(image_data);
