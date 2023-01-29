@@ -9,8 +9,6 @@
 #include <math/Vector3.hpp>
 #include <math/BoundingBox.hpp>
 
-#include <util/img/Bitmap.hpp>
-
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Renderer.hpp>
 #include <rendering/Compute.hpp>
@@ -119,7 +117,6 @@ private:
     Handle<ComputePipeline> m_update_particles;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
-    Bitmap<1> m_noise_map;
 };
 
 class ParticleSystem

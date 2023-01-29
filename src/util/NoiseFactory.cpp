@@ -2,6 +2,7 @@
 
 #include "random/Simplex.hpp"
 #include "../Util.hpp"
+#include <util/img/Bitmap.hpp>
 
 #include <cmath>
 #include <iostream>

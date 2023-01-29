@@ -125,7 +125,7 @@ public:
             Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
         ));*/
         m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
-
+        /*
         { // adding lights to scene
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
@@ -135,31 +135,31 @@ public:
 
             m_scene->AddLight(m_sun);
 
-            /*m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.5f, 50.0f, 70.1f),
-                Color(1.0f, 1.0f, 1.0f),
-                1.0f,
-                1.0f
-            )));
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.5f, 50.0f, -70.1f),
-                Color(1.0f, 0.0f, 0.0f),
-                2.0f,
-                40.0f
-            )));
+            //m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //    Vector3(0.5f, 50.0f, 70.1f),
+            //    Color(1.0f, 1.0f, 1.0f),
+            //    1.0f,
+            //    1.0f
+            //)));
+            //m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //    Vector3(0.5f, 50.0f, -70.1f),
+            //    Color(1.0f, 0.0f, 0.0f),
+            //    2.0f,
+            //    40.0f
+            //)));
 
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(40.5f, 50.0f, 40.1f),
-                Color(0.0f, 1.0f, 0.0f),
-                2.0f,
-                40.0f
-            )));
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(-40.5f, 50.0f, -40.1f),
-                Color(0.0f, 1.0f, 1.0f),
-                1.0f,
-                40.0f
-            )));*/
+            //m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //    Vector3(40.5f, 50.0f, 40.1f),
+            //    Color(0.0f, 1.0f, 0.0f),
+            //    2.0f,
+            //    40.0f
+            //)));
+            //m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //    Vector3(-40.5f, 50.0f, -40.1f),
+            //    Color(0.0f, 1.0f, 1.0f),
+            //    1.0f,
+            //    40.0f
+            //)));
 
             for (auto &light : m_point_lights) {
                 m_scene->AddLight(light);
@@ -583,6 +583,7 @@ public:
 
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
+        */
     }
 
     virtual void Teardown() override
@@ -604,6 +605,7 @@ public:
 
     virtual void Logic(GameCounter::TickUnit delta) override
     {
+        /*
         timer += delta;
 
         m_ui.Update(delta);
@@ -624,13 +626,13 @@ public:
 
         //GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie")[0].GetWorldTranslation());
 
-        /*for (auto &light : m_point_lights) {
-            light->SetPosition(Vector3(
-                MathUtil::Sin(light->GetID().Value() + timer) * 30.0f,
-                30.0f,
-                MathUtil::Cos(light->GetID().Value() + timer) * 30.0f
-            ));
-        }*/
+        //for (auto &light : m_point_lights) {
+        //    light->SetPosition(Vector3(
+        //        MathUtil::Sin(light->GetID().Value() + timer) * 30.0f,
+        //        30.0f,
+        //        MathUtil::Cos(light->GetID().Value() + timer) * 30.0f
+        //    ));
+        //}
 
         if (!m_point_lights.Empty()) {
         //    m_point_lights.Front()->SetPosition(GetScene()->GetCamera()->GetTranslation() + GetScene()->GetCamera()->GetDirection() * 15.0f);
@@ -679,11 +681,11 @@ public:
 
                 Engine::Get()->task_system.EnqueueBatch(m_export_task.Get());
             }
-        }
+        }*/
 
         // m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.25f), MathUtil::Cos(timer * 0.25f), -MathUtil::Sin(timer * 0.25f)).Normalize());
 
-        #if 1 // bad performance on large meshes. need bvh
+        #if 1 && 0 // bad performance on large meshes. need bvh
         if (GetInputManager()->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
             ray_cast_timer = 0.0f;
             const auto &mouse_position = GetInputManager()->GetMousePosition();
@@ -820,6 +822,7 @@ public:
             });
         }
 
+        /*
         if (auto character = GetScene()->GetRoot().Select("zombie")) {
             character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
 
@@ -828,7 +831,7 @@ public:
                     controller->GetRigidBody()->ApplyForce(dir);
                 }
             }
-        }
+        }*/
 
 #if 0
         if (auto character = GetScene()->GetRoot().Select("dude")) {
@@ -883,9 +886,9 @@ int main()
     face.RequestPixelSizes(0, 32);
 
     FontAtlas font_atlas(face);
-    HYP_SYNC_RENDER();
-    font_atlas.Render();
-    font_atlas.WriteTexture();
+
+    FontRenderer fr;
+    fr.RenderAtlas(font_atlas);
 
     face.GetFace();
 

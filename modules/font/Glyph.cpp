@@ -48,6 +48,12 @@ void Glyph::Render()
         )
     );
 
+    Bitmap<1> bitmap(ft_bitmap->width, ft_bitmap->rows);
+    auto color_table = bitmap.GenerateColorRamp();
+    bitmap.SetColourTable(color_table);
+    bitmap.SetPixelsFromMemory(ft_bitmap->width, ft_bitmap->buffer, ft_bitmap->width * ft_bitmap->rows);
+    bitmap.Write("glyph.bmp");
+
     InitObject(m_texture);
 }
 

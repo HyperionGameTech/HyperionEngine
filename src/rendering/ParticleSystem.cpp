@@ -12,6 +12,8 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <util/img/Bitmap.hpp>
+
 #include <util/fs/FsUtil.hpp>
 
 namespace hyperion::v2 {

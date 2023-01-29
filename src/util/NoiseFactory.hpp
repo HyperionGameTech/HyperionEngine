@@ -3,7 +3,6 @@
 
 #include "random/Simplex.hpp"
 #include "random/WorleyNoise.hpp"
-#include <util/img/Bitmap.hpp>
 
 #include <math/Vector2.hpp>
 #include <math/Vector3.hpp>
@@ -14,6 +13,8 @@
 #include <core/lib/Range.hpp>
 
 #include <Types.hpp>
+
+#include <util/img/Bitmap.hpp>
 
 #include <map>
 #include <utility>

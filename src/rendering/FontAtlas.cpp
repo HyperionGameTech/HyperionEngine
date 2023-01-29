@@ -19,31 +19,6 @@ struct RENDER_COMMAND(RenderFontAtlas) : RenderCommand {
           location(location)
     {}
 
-    virtual Result operator()()
-    {
-        auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
-
-        auto &image = glyph->GetImage();
-
-        ImageRect src_rect = { 0, 0, image->GetExtent()[0], image->GetExtent()[1] };
-        ImageRect dest_rect = { location.x, location.y, location.x + src_rect.x1, location.y + src_rect.y1 };
-
-        commands.Push([&](CommandBuffer *command_buffer) {
-            // put src image in state for copying from
-            image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            // put dst image in state for copying to
-            atlas->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-            //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
-            atlas->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
-
-
-            HYPERION_RETURN_OK;
-        });
-        //HYPERION_RETURN_OK;
-        return commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice());
-    }
-
     Handle<Texture> atlas;
     Handle<Texture> glyph;
 
@@ -54,13 +29,37 @@ struct RENDER_COMMAND(RenderFontAtlas) : RenderCommand {
 
 void FontAtlas::RenderCharacter(Extent2D location, Extent2D dimensions, font::Glyph &glyph)
 {
-    PUSH_RENDER_COMMAND(RenderFontAtlas, m_atlas, glyph.GetTexture(), location);
+    Threads::AssertOnThread(THREAD_RENDER);
+    auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+
+    auto &image = glyph.GetTexture()->GetImage();
+
+    HYP_SYNC_RENDER();
+
+    ImageRect src_rect = { 10, 10, image->GetExtent().width+10, image->GetExtent().height+10 };
+    ImageRect dest_rect = { location.x, location.y, location.x + image->GetExtent()[0], location.y + image->GetExtent()[1] };
+
+    commands.Push([&](CommandBuffer *command_buffer) {
+        // put src image in state for copying from
+        image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        // put dst image in state for copying to
+        m_atlas->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+
+        //m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
+        m_atlas->GetImage()->Blit(command_buffer, image, src_rect, dest_rect);
+
+
+        HYPERION_RETURN_OK;
+    });
+
+    HYPERION_ASSERT_RESULT(commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice()));
+
+    //PUSH_RENDER_COMMAND(RenderFontAtlas, m_atlas, glyph.GetTexture(), location);
 }
 
-renderer::Result FontAtlas::WriteTexture()
+renderer::Result FontAtlas::WriteToBuffer(RC<ByteBuffer> &buffer)
 {
     const SizeType buffer_size = m_atlas_dimensions.x * m_atlas_dimensions.y;
-    DebugLog(LogType::RenDebug, "buffer_size: %llu\n\ncell %u %u\n", buffer_size, m_cell_dimensions.x, m_cell_dimensions.y);
     renderer::Result result = renderer::Result::OK;
 
     const auto gpu_device = Engine::Get()->GetGPUDevice();
@@ -102,19 +101,9 @@ renderer::Result FontAtlas::WriteTexture()
     //texture_staging_buffer.Read(Engine::Get()->GetGPUInstance()->GetDevice(), buffer_size, image_data.Data());
     HYPERION_PASS_ERRORS(texture_staging_buffer.Destroy(gpu_device), result);
 
-    ByteBuffer bitmap_data(buffer_size * 3);
-    for (SizeType i = 0; i < buffer_size; i++) {
-        UByte pixel = image_data[i];
-        bitmap_data.Data()[i * 3] = 255 - pixel;
-        bitmap_data.Data()[i * 3 + 1] = 255 - pixel;
-        bitmap_data.Data()[i * 3 + 2] = 255 - pixel;
-    }
+    buffer.Set(image_data);
 
-    Bitmap<3> bitmap(m_atlas_dimensions.width, m_atlas_dimensions.height);
-    bitmap.SetPixelsFromMemory(3, bitmap_data.Data(), (buffer_size));
-    bitmap.Write("font.bmp");
-
-    return result;
+    HYPERION_RETURN_OK;
 }
 
 

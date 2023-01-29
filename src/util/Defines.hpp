@@ -79,8 +79,8 @@
 #endif
 
 #if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-    #define HYP_PACK_BEGIN __attribute__((__packed__))
-    #define HYP_PACK_END
+    #define HYP_PACK_BEGIN
+    #define HYP_PACK_END   __attribute__((__packed__))
     #define HYP_FORCE_INLINE __attribute__((always_inline))
     #define HYP_USED __attribute__((used))
 #endif
