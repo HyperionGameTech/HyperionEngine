@@ -214,7 +214,7 @@ private:
                 HYP_DEBUG_FUNC
             );
 
-            HYP_BREAKPOINT;
+            // HYP_BREAKPOINT;
         }
 
         return data.commands.Data() + command_index;

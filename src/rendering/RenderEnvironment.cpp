@@ -249,7 +249,17 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
             if (components_it != m_render_components.End()) {
                 for (auto &items_pending_addition_it : items_map) {
-                    components_it->second.Set(items_pending_addition_it.first, std::move(items_pending_addition_it.second));
+                    const Name name = items_pending_addition_it.first;
+
+                    const auto name_it = components_it->second.Find(name);
+
+                    AssertThrowMsg(
+                        name_it == components_it->second.End(),
+                        "Render component with name %s already exists! Name must be unique.\n",
+                        name.LookupString().Data()
+                    );
+
+                    components_it->second.Set(name, std::move(items_pending_addition_it.second));
                 }
             } else {
                 m_render_components.Set(it.first, std::move(it.second));

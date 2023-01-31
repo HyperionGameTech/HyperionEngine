@@ -92,16 +92,20 @@ public:
         const auto it = m_render_components_pending_addition.Find<T>();
 
         if (it != m_render_components_pending_addition.End()) {
-            auto insert_result = it->second.Set(name, std::move(component));
+            const auto name_it = it->second.Find(name);
 
-            AssertThrow(insert_result.second);
+            AssertThrowMsg(
+                name_it == it->second.End(),
+                "Render component with name %s already exists! Name must be unique.\n",
+                name.LookupString().Data()
+            );
+
+            it->second.Insert(name, std::move(component));
         } else {
             FlatMap<Name, UniquePtr<RenderComponentBase>> component_map;
             component_map.Set(name, std::move(component));
 
-            auto insert_result = m_render_components_pending_addition.Set<T>(std::move(component_map));
-
-            AssertThrow(insert_result.second);
+            m_render_components_pending_addition.Set<T>(std::move(component_map));
         }
         
         m_update_marker.fetch_or(RENDER_ENVIRONMENT_UPDATES_RENDER_COMPONENTS);

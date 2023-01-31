@@ -181,18 +181,17 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const auto illum_model = StringUtil::Parse<Int>(tokens[1]);
+            const IlluminationModel illum_model = IlluminationModel(StringUtil::Parse<Int>(tokens[1]));
 
-            if (IsTransparencyModel(static_cast<IlluminationModel>(illum_model))) {
+            if (IsTransparencyModel(illum_model)) {
                 LastMaterial(library).parameters[Material::MATERIAL_KEY_TRANSMISSION] = ParameterDef {
                     .values = FixedArray<Float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
                 };
-                // TODO: Bucket, alpha blend
             }
 
-            LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
-                .values = { Float(illum_model) / 9.0f } /* rough approx */
-            };
+            // LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
+            //     .values = { Float(illum_model) / 9.0f } /* rough approx */
+            // };
 
             return;
         }

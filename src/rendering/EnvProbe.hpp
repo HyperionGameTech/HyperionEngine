@@ -171,23 +171,30 @@ public:
         }
     }
 
-    void SetNeedsUpdate(bool needs_update, bool needs_render)
-    {
-        if (needs_update) {
-            m_needs_update.store(0x1 | (needs_render ? 0x2 : 0x0), std::memory_order_release);
-        } else {
-            m_needs_update.store(needs_render ? 0x2 : 0x0, std::memory_order_release);
-        }
-    }
+    // void SetNeedsUpdate(bool needs_update, bool needs_render)
+    // {
+    //     if (needs_update) {
+    //         m_needs_update.store(0x1 | (needs_render ? 0x2 : 0x0), std::memory_order_release);
+    //     } else {
+    //         m_needs_update.store(needs_render ? 0x2 : 0x0, std::memory_order_release);
+    //     }
+    // }
 
     void SetNeedsRender(bool needs_render)
     {
-        
         if (needs_render) {
-            m_needs_update.fetch_or(0x2, std::memory_order_acq_rel);
+            // TEMP: Works when having multiple frames between states
+            
+            m_needs_render_counter.fetch_add(3, std::memory_order_relaxed);
         } else {
-            m_needs_update.fetch_and(~0x2, std::memory_order_acq_rel);
+            m_needs_render_counter.fetch_sub(1, std::memory_order_relaxed);
         }
+
+        // if (needs_render) {
+        //     m_needs_update.fetch_or(0x2, std::memory_order_acq_rel);
+        // } else {
+        //     m_needs_update.fetch_and(~0x2, std::memory_order_acq_rel);
+        // }
     }
 
     bool NeedsUpdateOrRender() const
@@ -197,7 +204,13 @@ public:
         { return m_needs_update.load(std::memory_order_acquire) & 0x1; }
 
     bool NeedsRender() const
-        { return m_needs_update.load(std::memory_order_acquire) & 0x2; }
+    {
+        const UInt16 counter = m_needs_render_counter.load(std::memory_order_relaxed);
+
+        return counter != 0;
+
+        // return m_needs_update.load(std::memory_order_acquire) & 0x2;
+    }
 
     void Init();
     void EnqueueBind() const;
@@ -245,6 +258,7 @@ private:
 
     std::atomic<UInt8> m_needs_update;
     std::atomic_bool m_is_rendered;
+    std::atomic<UInt16> m_needs_render_counter;
     HashCode m_octant_hash_code;
 };
 

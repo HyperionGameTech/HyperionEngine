@@ -143,6 +143,7 @@ void DeferredPass::Record(UInt frame_index)
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
+
             // render with each light
             for (const auto &it : Engine::Get()->GetRenderState().lights) {
                 const ID<Light> light_id = it.first;
@@ -795,7 +796,6 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
 
 void DeferredRenderer::ApplyCameraJitter()
 {
-    Matrix4 offset_matrix;
     Vector4 jitter;
 
     const ID<Camera> camera_id = Engine::Get()->GetRenderState().GetCamera().id;
@@ -803,10 +803,12 @@ void DeferredRenderer::ApplyCameraJitter()
 
     const UInt frame_counter = Engine::Get()->GetRenderState().frame_counter + 1;
 
-    if (camera.projection[3][3] < MathUtil::epsilon<Float>) {
-        offset_matrix = Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);
+    static const Float jitter_scale = 1.0f;
 
-        Engine::Get()->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter;
+    if (camera.projection[3][3] < MathUtil::epsilon<Float>) {
+        Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);
+
+        Engine::Get()->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
         Engine::Get()->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());
     }
 }

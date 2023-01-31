@@ -196,10 +196,10 @@ public:
 
         DynString result;
 
-        if constexpr (is_ansi) { // can write into memory direct without allocating any more
-            result.Resize(result_size - 1); // String class automatically adds 1 for null character
-            utf::utf_to_str<Integral, T>(value, result_size, result.Data());
-        } else {
+        // if constexpr (is_ansi) { // can write into memory direct without allocating any more
+        //     result.Resize(result_size - 1); // String class automatically adds 1 for null character
+        //     utf::utf_to_str<Integral, T>(value, result_size, result.Data());
+        // } else {
             result.Reserve(result_size - 1);  // String class automatically adds 1 for null character
 
             T *data = new T[result_size];
@@ -210,7 +210,7 @@ public:
             }
 
             delete[] data;
-        }
+        // }
 
         return result;
     }

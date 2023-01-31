@@ -222,7 +222,7 @@ void Entity::Update(GameCounter::TickUnit delta)
 
     if (m_octree) {
         if (m_needs_octree_update) {
-            UpdateOctree();
+            // UpdateOctree();
         }
 
         const VisibilityState &octree_visibility_state = m_octree->GetVisibilityState();
@@ -289,7 +289,7 @@ void Entity::EnqueueRenderUpdates()
 
 void Entity::UpdateOctree()
 {
-    AssertReady();
+    // AssertReady();
 
     if (Octree *octree = m_octree) {
         const Octree::Result update_result = octree->Update(this);
@@ -645,7 +645,9 @@ void Entity::SetTransform(const Transform &transform)
             m_blas->SetTransform(m_transform);
         }
     } else {
-        m_needs_octree_update = true;
+        // m_needs_octree_update = true;
+
+        UpdateOctree();
     }
 }
 
@@ -662,7 +664,9 @@ void Entity::OnAddedToOctree(Octree *octree)
     if (IsInitCalled()) {
         UpdateOctree();
     } else {
-        m_needs_octree_update = true;
+        // m_needs_octree_update = true;
+
+        UpdateOctree();
     }
 }
 
@@ -690,7 +694,8 @@ void Entity::OnMovedToOctant(Octree *octree)
     if (IsInitCalled()) {
         UpdateOctree();
     } else {
-        m_needs_octree_update = true;
+        // m_needs_octree_update = true;
+        UpdateOctree();
     }
 }
 

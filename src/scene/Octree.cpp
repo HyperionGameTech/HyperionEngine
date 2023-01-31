@@ -132,6 +132,7 @@ void Octree::Divide()
     }
 
     m_is_divided = true;
+    RebuildNodesHash();
 }
 
 void Octree::Undivide()
@@ -268,7 +269,11 @@ Octree::Result Octree::Insert(Entity *entity)
 
                 AssertThrow(octant.octree != nullptr);
 
-                return octant.octree->Insert(entity);
+                const Octree::Result result = octant.octree->Insert(entity);
+
+                RebuildNodesHash();
+
+                return result;
             }
         }
     }
@@ -307,8 +312,6 @@ Octree::Result Octree::Remove(Entity *entity)
         }
 
         if (auto *octree = it->second) {
-            m_root->node_to_octree.erase(it);
-
             return octree->RemoveInternal(entity);
         }
 
@@ -432,7 +435,6 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
                     }
 
                     m_nodes.Erase(*it);
-
                     RebuildNodesHash();
                 }
 
@@ -488,8 +490,6 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
                     }
 
                     m_nodes.Erase(*it);
-
-                    RebuildNodesHash();
                 }
                 
                 if (!m_is_divided) {
@@ -500,6 +500,8 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
 
                 const auto octant_move_result = octant.octree->Move(entity, nullptr);
                 AssertThrow(octant_move_result);
+
+                RebuildNodesHash();
 
                 return octant_move_result;
             }
@@ -750,6 +752,27 @@ bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
     return true;
 }
 
+bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
+{
+    if (!m_aabb.Contains(aabb)) {
+        return false;
+    }
+
+    if (m_is_divided) {
+        for (auto &octant : m_octants) {
+            AssertThrow(octant.octree != nullptr);
+
+            if (octant.octree->GetFittingOctant(aabb, out)) {
+                return true;
+            }
+        }
+    }
+
+    out = this;
+
+    return true;
+}
+
 void Octree::NextVisibilityState()
 {
     AssertThrow(m_root != nullptr);
@@ -844,13 +867,16 @@ void Octree::ResetNodesHash()
     m_nodes_hash = { 0 };
 }
 
-void Octree::RebuildNodesHash()
+void Octree::RebuildNodesHash(UInt level)
 {
     ResetNodesHash();
 
-    if (m_parent) {
-        m_nodes_hash.Add(m_parent->GetNodesHash());
-    }
+    // m_nodes_hash.Add(m_index);
+    // m_nodes_hash.Add(level);
+
+    // if (m_parent) {
+    //     m_nodes_hash.Add(m_parent->GetNodesHash());
+    // }
 
     for (const Node &item : m_nodes) {
         m_nodes_hash.Add(item.GetHashCode());
@@ -860,7 +886,9 @@ void Octree::RebuildNodesHash()
         for (const Octant &octant : m_octants) {
             AssertThrow(octant.octree != nullptr);
 
-            octant.octree->RebuildNodesHash();
+            octant.octree->RebuildNodesHash(level + 1);
+
+            m_nodes_hash.Add(octant.octree->GetNodesHash());
         }
     }
 }

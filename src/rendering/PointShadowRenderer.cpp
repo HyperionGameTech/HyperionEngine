@@ -44,6 +44,8 @@ void PointShadowRenderer::Init()
     InitObject(m_env_probe);
 
     m_light->SetShadowMapIndex(m_env_probe->GetID().ToIndex());
+    m_env_probe->EnqueueBind();
+    m_last_visibility_state = true;
 }
 
 // called from game thread
@@ -52,13 +54,17 @@ void PointShadowRenderer::InitGame()
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_env_probe.IsValid());
-    GetParent()->GetScene()->AddEnvProbe(m_env_probe);
+    // GetParent()->GetScene()->AddEnvProbe(m_env_probe);
 }
 
 void PointShadowRenderer::OnRemoved()
 {
     AssertThrow(m_env_probe.IsValid());
-    GetParent()->GetScene()->RemoveEnvProbe(m_env_probe->GetID());
+    // GetParent()->GetScene()->RemoveEnvProbe(m_env_probe->GetID());
+
+    if (m_env_probe) {
+        m_env_probe->EnqueueUnbind();
+    }
 }
 
 void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -74,6 +80,8 @@ void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     if (env_probe_aabb != light_aabb) {
         m_env_probe->SetAABB(light_aabb);
     }
+
+    m_env_probe->Update(delta);
 }
 
 void PointShadowRenderer::OnRender(Frame *frame)
@@ -83,24 +91,22 @@ void PointShadowRenderer::OnRender(Frame *frame)
     AssertThrow(m_env_probe.IsValid());
     AssertThrow(m_light.IsValid());
 
-    if (m_light->GetDrawProxy().visibility_bits & (1ull << SizeType(GetParent()->GetScene()->GetCamera().GetID().ToIndex()))) {
-        if (!m_last_visibility_state) {
-            Engine::Get()->GetRenderState().BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
+    // if (m_light->GetDrawProxy().visibility_bits & (1ull << SizeType(GetParent()->GetScene()->GetCamera().GetID().ToIndex()))) {
+    //     if (!m_last_visibility_state) {
+    //         Engine::Get()->GetRenderState().BindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
 
-            m_last_visibility_state = true;
-        }
+    //         m_last_visibility_state = true;
+    //     }
 
-        if (m_env_probe->NeedsRender()) {
-            m_env_probe->Render(frame);
-        }
-    } else {
-        // No point in keeping it bound if the light is not visible on the screen.
-        if (m_last_visibility_state) {
-            Engine::Get()->GetRenderState().UnbindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
+        m_env_probe->Render(frame);
+    // } else {
+    //     // No point in keeping it bound if the light is not visible on the screen.
+    //     if (m_last_visibility_state) {
+    //         Engine::Get()->GetRenderState().UnbindEnvProbe(m_env_probe->GetEnvProbeType(), m_env_probe->GetID());
 
-            m_last_visibility_state = false;
-        }
-    }
+    //         m_last_visibility_state = false;
+    //     }
+    // }
 }
 
 void PointShadowRenderer::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)

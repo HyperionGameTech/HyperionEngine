@@ -201,7 +201,20 @@ struct RenderState
             max_bound_point_shadow_maps
         };
 
-       const bool has_texture_slot = type != ENV_PROBE_TYPE_AMBIENT;
+        const bool has_texture_slot = type != ENV_PROBE_TYPE_AMBIENT;
+
+        const auto it = bound_env_probes[type].Find(probe_id);
+
+        if (it != bound_env_probes[type].End()) {
+            DebugLog(
+                LogType::Info,
+                "Probe #%u (type: %u) already bound, skipping.\n",
+                probe_id.Value(),
+                UInt(type)
+            );
+
+            return;
+        }
 
         if (has_texture_slot) {
             if (m_env_probe_texture_slot_counters[type] >= max_counts[type]) {
@@ -221,7 +234,7 @@ struct RenderState
             has_texture_slot
                 ? Optional<UInt>(m_env_probe_texture_slot_counters[type]++)
                 : Optional<UInt>()
-            );
+        );
     }
 
     void UnbindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)

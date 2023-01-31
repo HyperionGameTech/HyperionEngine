@@ -51,6 +51,8 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
 
         const SizeType erase_to_index = index;
 
+        DebugLog(LogType::Debug, "Erasing render commands to index: %llu\n", erase_to_index);
+
         for (SizeType i = 0; i < erase_to_index; i++) {
             m_commands.PopFront();
         }
