@@ -18,14 +18,24 @@ struct Result{
 
     const char *message;
     int error_code = 0;
+
+    Result()
+        : result(RENDERER_OK), message(""), error_code(0)
+    {
+    }
     
     Result(decltype(result) result, const char *message = "", int error_code = 0)
-        : result(result), message(message), error_code(error_code) {}
-    Result(const Result &other)
-        : result(other.result), message(other.message), error_code(other.error_code) {}
+        : result(result), message(message), error_code(error_code)
+    {
+    }
 
-    HYP_FORCE_INLINE
-    operator bool() const { return result == RENDERER_OK; }
+    Result(const Result &other)
+        : result(other.result), message(other.message), error_code(other.error_code)
+    {
+    }
+
+    HYP_FORCE_INLINE operator bool() const
+        { return result == RENDERER_OK; }
 };
 
 #define HYPERION_RETURN_OK \

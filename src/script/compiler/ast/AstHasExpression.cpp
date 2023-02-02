@@ -21,13 +21,13 @@ namespace hyperion::compiler {
 AstHasExpression::AstHasExpression(
     const std::shared_ptr<AstStatement> &target,
     const std::string &field_name,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_target(target),
-      m_field_name(field_name),
-      m_has_member(-1),
-      m_is_expr(false),
-      m_has_side_effects(false)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_target(target),
+    m_field_name(field_name),
+    m_has_member(-1),
+    m_is_expr(false),
+    m_has_side_effects(false)
 {
 }
 
@@ -109,6 +109,8 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
             instr_has_mem_hash->Accept<UInt8>(rp);
             instr_has_mem_hash->Accept<UInt32>(hash);
             chunk->Append(std::move(instr_has_mem_hash));
+
+            chunk->Append(BytecodeUtil::Make<Comment>("Check if object has member " + m_field_name));
         }
 
         const UInt8 found_member_reg = rp;

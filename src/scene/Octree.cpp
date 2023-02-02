@@ -873,6 +873,7 @@ void Octree::RebuildNodesHash(UInt level)
 
     // m_nodes_hash.Add(m_index);
     // m_nodes_hash.Add(level);
+    
 
     // if (m_parent) {
     //     m_nodes_hash.Add(m_parent->GetNodesHash());
@@ -882,15 +883,23 @@ void Octree::RebuildNodesHash(UInt level)
         m_nodes_hash.Add(item.GetHashCode());
     }
 
-    if (m_is_divided) {
-        for (const Octant &octant : m_octants) {
-            AssertThrow(octant.octree != nullptr);
+    // if (m_is_divided) {
+    //     for (const Octant &octant : m_octants) {
+    //         AssertThrow(octant.octree != nullptr);
 
-            octant.octree->RebuildNodesHash(level + 1);
+    //         octant.octree->RebuildNodesHash(level + 1);
+    //     }
+    // }
 
-            m_nodes_hash.Add(octant.octree->GetNodesHash());
-        }
-    }
+    // if (m_is_divided) {
+    //     for (const Octant &octant : m_octants) {
+    //         AssertThrow(octant.octree != nullptr);
+
+    //         octant.octree->RebuildNodesHash(level + 1);
+
+    //         m_nodes_hash.Add(octant.octree->GetNodesHash());
+    //     }
+    // }
 }
 
 bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const

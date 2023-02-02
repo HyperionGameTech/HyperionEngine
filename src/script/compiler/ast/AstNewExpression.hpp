@@ -2,6 +2,7 @@
 #define AST_NEW_EXPRESSION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
+#include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
 #include <script/compiler/ast/AstMemberCallExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
@@ -41,9 +42,8 @@ private:
     std::shared_ptr<AstExpression> m_object_value;
     SymbolTypePtr_t m_instance_type;
     SymbolTypePtr_t m_prototype_type;
-    std::shared_ptr<AstMemberCallExpression> m_constructor_call;
-    // std::shared_ptr<AstStatement> m_dynamic_check;
-    // bool m_is_dynamic_type;
+    std::shared_ptr<AstBlock> m_constructor_block; // create a block to store temporary vars
+    std::shared_ptr<AstExpression> m_constructor_call;
 
     Pointer<AstNewExpression> CloneImpl() const
     {

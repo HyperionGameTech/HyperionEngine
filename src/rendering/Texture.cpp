@@ -26,30 +26,25 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommand
     renderer::ResourceState initial_state;
     ImageRef image;
     ImageViewRef image_view;
-    SamplerRef sampler;
 
     RENDER_COMMAND(CreateTexture)(
         Texture *texture,
         renderer::ResourceState initial_state,
         const ImageRef &image,
-        const ImageViewRef &image_view,
-        const SamplerRef &sampler
+        const ImageViewRef &image_view
     ) : texture(texture),
         initial_state(initial_state),
         image(image),
-        image_view(image_view),
-        sampler(sampler)
+        image_view(image_view)
     {
         AssertThrow(image.IsValid());
         AssertThrow(image_view.IsValid());
-        AssertThrow(sampler.IsValid());
     }
 
     virtual Result operator()()
     {
         HYPERION_BUBBLE_ERRORS(image->Create(Engine::Get()->GetGPUDevice(), Engine::Get()->GetGPUInstance(), initial_state));
         HYPERION_BUBBLE_ERRORS(image_view->Create(Engine::Get()->GetGPUInstance()->GetDevice(), image.Get()));
-        HYPERION_BUBBLE_ERRORS(sampler->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
         
         if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
             Engine::Get()->GetRenderData()->textures.AddResource(texture);
@@ -64,17 +59,14 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommand
     ID<Texture> id;
     ImageRef image;
     ImageViewRef image_view;
-    SamplerRef sampler;
 
     RENDER_COMMAND(DestroyTexture)(
         ID<Texture> id,
         ImageRef &&image,
-        ImageViewRef &&image_view,
-        SamplerRef &&sampler
+        ImageViewRef &&image_view
     ) : id(id),
         image(std::move(image)),
-        image_view(std::move(image_view)),
-        sampler(std::move(sampler))
+        image_view(std::move(image_view))
     {
     }
 
@@ -86,7 +78,6 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommand
 
         SafeRelease(std::move(image));
         SafeRelease(std::move(image_view));
-        SafeRelease(std::move(sampler));
 
         HYPERION_RETURN_OK;
     }
@@ -122,7 +113,8 @@ Texture::Texture(
 ) : EngineComponentBase(),
     m_image(RenderObjects::Make<Image>(std::move(image))),
     m_image_view(RenderObjects::Make<ImageView>()),
-    m_sampler(RenderObjects::Make<Sampler>(filter_mode, wrap_mode))
+    m_filter_mode(filter_mode),
+    m_wrap_mode(wrap_mode)
 {
     AssertThrow(m_image.GetRefCount() != 0);
 }
@@ -131,20 +123,10 @@ Texture::Texture(Texture &&other) noexcept
     : EngineComponentBase(std::move(other)),
       m_image(std::move(other.m_image)),
       m_image_view(std::move(other.m_image_view)),
-      m_sampler(std::move(other.m_sampler))
+      m_filter_mode(other.m_filter_mode),
+      m_wrap_mode(other.m_wrap_mode)
 {
 }
-
-// Texture &Texture::operator=(Texture &&other) noexcept
-// {
-//     EngineComponentBase::operator=(std::move(other));
-
-//     m_image = std::move(other.m_image),
-//     m_image_view = std::move(other.m_image_view),
-//     m_sampler = std::move(other.m_sampler);
-
-//     return *this;
-// }
 
 Texture::~Texture()
 {
@@ -155,8 +137,7 @@ Texture::~Texture()
             DestroyTexture,
             m_id,
             std::move(m_image),
-            std::move(m_image_view),
-            std::move(m_sampler)
+            std::move(m_image_view)
         );
     }
 }
@@ -174,8 +155,7 @@ void Texture::Init()
         this,
         renderer::ResourceState::SHADER_RESOURCE,
         m_image,
-        m_image_view,
-        m_sampler
+        m_image_view
     );
 
     SetReady(true);

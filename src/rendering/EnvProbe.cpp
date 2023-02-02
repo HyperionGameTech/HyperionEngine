@@ -166,7 +166,7 @@ EnvProbe::EnvProbe(
     m_env_probe_type(env_probe_type),
     m_camera_near(0.001f),
     m_camera_far(aabb.GetRadius()),
-    m_needs_update { 0x1 | 0x2 },
+    m_needs_update(true),
     m_needs_render_counter { UInt16(0) },
     m_is_rendered { false }
 {
@@ -415,19 +415,9 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     
     // Check if octree has changes, and we need to re-render.
 
-    const UInt8 update_bits = m_needs_update.load(std::memory_order_acquire);
-    bool needs_update = update_bits & 0x1;
-    // bool needs_render = update_bits & 0x2;
-
     const bool is_rendered = m_is_rendered.load(std::memory_order_acquire);
 
     Octree const *octree = nullptr;
-
-    // if (!is_rendered) {
-    //     SetNeedsRender(true);
-
-    //     needs_render = true;
-    // }
 
     HashCode octant_hash;
     
@@ -440,17 +430,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     if (m_octant_hash_code != octant_hash || !is_rendered) {
         SetNeedsUpdate(true);
 
-        needs_update = true;
-        // needs_render = true;
-
-        if (IsShadowProbe()) {
-            DebugLog(LogType::Debug, "OCtant hash changed from %llu to %llu\n", m_octant_hash_code.Value(), octant_hash.Value());
-        }
-
         m_octant_hash_code = octant_hash;
     }
     
-    if (!needs_update) {
+    if (!NeedsUpdate()) {
         return;
     }
 

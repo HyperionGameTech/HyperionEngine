@@ -556,12 +556,56 @@ static HYP_SCRIPT_FUNCTION(Reflect_GetClass)
     vm::VMObject *object_ptr;
 
     if (arg0->GetPointer<vm::VMObject>(&object_ptr)) {
-        vm::Value result_value(vm::Value::HEAP_POINTER, { .ptr = object_ptr->GetPrototype() });
+        vm::Value result_value(vm::Value::HEAP_POINTER, { .ptr = object_ptr->GetBaseObject() });
         
         HYP_SCRIPT_RETURN(result_value);
     } else {
         HYP_SCRIPT_THROW(vm::Exception("Not an object"));
     }
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_GetMemoryAddress)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::Value *arg0 = params.args[0];
+
+    if (!arg0) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+
+    void *vp = nullptr;
+
+    if (arg0) {
+        switch (arg0->m_type) {
+        case vm::Value::HEAP_POINTER:
+            if (arg0->m_value.ptr != nullptr) {
+                vp = arg0->m_value.ptr->GetRawPointer();
+            }
+
+            break;
+        case vm::Value::USER_DATA:
+            vp = arg0->m_value.user_data;
+
+            break;
+        default:
+            vp = arg0;
+
+            break;
+        }
+    }
+
+    char buffer[256] = { '\0' };
+    std::snprintf(buffer, sizeof(buffer), "%p", vp);
+
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(VMString(buffer));
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
 static HYP_SCRIPT_FUNCTION(EntityGetName)
@@ -907,12 +951,22 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             }
         );
 
+    api_instance.Module(Config::global_module_name)
+        .Function(
+            "GetMemoryAddress",
+            BuiltinTypes::STRING,
+            {
+                { "value", BuiltinTypes::ANY }
+            },
+            Runtime_GetMemoryAddress
+        );
+
     api_instance.Module("reflect")
         .Function(
             "GetClass",
             BuiltinTypes::ANY,
             {
-                { "object", BuiltinTypes::ANY },
+                { "object", BuiltinTypes::ANY }
             },
             Reflect_GetClass
         )

@@ -65,9 +65,6 @@ public:
     ImageViewRef &GetImageView() { return m_image_view; }
     const ImageViewRef &GetImageView() const { return m_image_view; }
 
-    SamplerRef &GetSampler() { return m_sampler; }
-    const SamplerRef &GetSampler() const { return m_sampler; }
-
     ImageType GetType() const { return m_image->GetType(); }
 
     UInt NumFaces() const { return m_image->NumFaces(); }
@@ -78,15 +75,17 @@ public:
     const Extent3D &GetExtent() const { return m_image->GetExtent(); }
 
     InternalFormat GetFormat() const { return m_image->GetTextureFormat(); }
-    FilterMode GetFilterMode() const { return m_sampler->GetFilterMode(); }
-    WrapMode GetWrapMode() const { return m_sampler->GetWrapMode(); }
+    FilterMode GetFilterMode() const { return m_filter_mode; }
+    WrapMode GetWrapMode() const { return m_wrap_mode; }
     
     void Init();
 
 protected:
+    FilterMode m_filter_mode;
+    WrapMode m_wrap_mode;
+
     ImageRef m_image;
     ImageViewRef m_image_view;
-    SamplerRef m_sampler;
 };
 
 class Texture2D : public Texture

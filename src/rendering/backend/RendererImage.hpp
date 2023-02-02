@@ -102,6 +102,12 @@ enum class WrapMode : UInt32
     TEXTURE_WRAP_REPEAT
 };
 
+enum class TextureMode : UInt32
+{
+    SAMPLED,
+    STORAGE
+};
+
 static inline BaseFormat GetBaseFormat(InternalFormat fmt)
 {
     switch (fmt) {
@@ -218,6 +224,7 @@ using renderer::BaseFormat;
 using renderer::InternalFormat;
 using renderer::FilterMode;
 using renderer::WrapMode;
+using renderer::TextureMode;
 
 } // namespace hyperion
 

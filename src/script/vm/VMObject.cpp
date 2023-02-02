@@ -11,6 +11,7 @@ namespace hyperion {
 namespace vm {
 
 const UInt32 VMObject::PROTO_MEMBER_HASH = hash_fnv_1("$proto");
+const UInt32 VMObject::BASE_MEMBER_HASH = hash_fnv_1("base");
 
 ObjectMap::ObjectBucket::ObjectBucket()
     : m_data(new Member*[DEFAULT_BUCKET_CAPACITY]),
@@ -221,6 +222,21 @@ VMObject::~VMObject()
 
     delete[] m_members;
     m_members = nullptr;
+}
+
+Member *VMObject::LookupMemberFromHash(UInt32 hash, bool deep) const
+{
+    if (Member *member = m_object_map->Get(hash)) {
+        return member;
+    }
+
+    if (deep && m_proto != nullptr) {
+        if (VMObject *base_object = m_proto->GetPointer<VMObject>()) {
+            return base_object->LookupMemberFromHash(hash);
+        }
+    }
+
+    return nullptr;
 }
 
 void VMObject::GetRepresentation(

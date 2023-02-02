@@ -111,7 +111,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     } else {
         // m_symbol_type = constructor_type;
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
+            LEVEL_WARN,
             Msg_not_a_constant_type,
             m_location,
             expr_type->GetName()
@@ -136,6 +136,13 @@ void AstPrototypeSpecification::Optimize(AstVisitor *visitor, Module *mod)
 
 bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_type)
 {
+    if (symbol_type->GetTypeClass() == TYPE_BUILTIN) {
+        m_prototype_type = symbol_type;
+        m_default_value = symbol_type->GetDefaultValue();
+
+        return true;
+    }
+
     SymbolMember_t proto_member;
 
     if (symbol_type->FindMember("$proto", proto_member)) {

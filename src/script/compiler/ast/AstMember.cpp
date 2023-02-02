@@ -62,7 +62,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
     // iterate through base type
     SymbolTypePtr_t field_type = nullptr;
 
-    while (field_type == nullptr && m_target_type != nullptr) {
+    for (UInt depth = 0; field_type == nullptr && m_target_type != nullptr; depth++) {
         // allow boxing/unboxing
         if (m_target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
             if (m_target_type->IsBoxedType()) {
@@ -103,7 +103,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
                 ));
             }
 
-            // if it is proxy,
+            // if it is a proxy class,
             // convert thing.DoThing()
             // to ThingProxy.DoThing(thing)
             for (SizeType i = 0; i < m_target_type->GetMembers().size(); i++) {
@@ -122,25 +122,67 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        // for instance members
+        bool found = false;
+
+        // for instance members (do it last, so it can be overridden by instances)
         if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
             // get member index from name
             for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
 
                 if (std::get<0>(mem) == m_field_name) {
-                    m_found_index = i;
+                    // only set m_found_index if found in first level.
+                    // for members from base objects,
+                    // we load based on hash.
+                    if (depth == 0) {
+                        m_found_index = i;
+                    }
+
                     field_type = std::get<1>(mem);
+                    found = true;
+
                     break;
                 }
             }
 
-            if (m_found_index != -1) {
+            if (found) {
                 break;
             }
         }
 
-        // for statics
+        // if (m_found_index == -1) {
+        //     // lookup in bases, checking all prototypes
+        //     SymbolTypePtr_t base_type = m_target_type;
+
+        //     while ((base_type = base_type->GetBaseType())) {
+        //         if (SymbolTypePtr_t proto_type = base_type->FindMember("$proto")) {
+        //             bool found = false;
+
+        //             // get member index from name
+        //             for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
+        //                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
+
+        //                 if (std::get<0>(mem) == m_field_name) {
+        //                     // do not set m_found_index,
+        //                     // because we grab members from the base types
+        //                     // based on hash code.
+        //                     field_type = std::get<1>(mem);
+        //                     found = true;
+
+        //                     break;
+        //                 }
+        //             }
+
+        //             if (found) {
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+
+
+        // TEMP:
+
         const AstExpression *value_of = m_target->GetValueOf();
         AssertThrow(value_of != nullptr);
 
@@ -170,13 +212,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         } else {
             break;
         }
-
-        // if (field_type == nullptr) {
-        //     // look for members in base class
-        //     m_target_type = m_target_type->GetBaseType();
-        // } else {
-        //     break;
-        // }
     }
 
     AssertThrow(m_target_type != nullptr);
@@ -192,12 +227,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             original_type->GetName()
         ));
     }
-
-    // TODO! If proxy class, we will have to load the member from the proxy class' statics
-
-    // if (is_proxy_class) {
-    //     m_symbol_type = BuiltinTypes::ANY;
-    // }
 }
 
 std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
@@ -218,8 +247,8 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_target_type != nullptr);
 
-    if (m_target_type == BuiltinTypes::ANY) {
-        // for Any type we will have to load from hash
+    if (m_found_index == -1) {
+        // no exact index of member found, have to load from hash.
         const UInt32 hash = hash_fnv_1(m_field_name.c_str());
 
         switch (m_access_mode) {
@@ -233,8 +262,6 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
                 AssertThrowMsg(false, "unknown access mode");
         }
     } else {
-        AssertThrow(m_found_index != -1);
-
         switch (m_access_mode) {
             case ACCESS_MODE_LOAD:
                 // just load the data member.

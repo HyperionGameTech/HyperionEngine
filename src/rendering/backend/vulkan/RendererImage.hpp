@@ -234,7 +234,7 @@ public:
         filter_mode,
         Image::InternalInfo {
             .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /*i guess?*/
+            .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
                 | VK_IMAGE_USAGE_STORAGE_BIT
                 | VK_IMAGE_USAGE_SAMPLED_BIT
         },

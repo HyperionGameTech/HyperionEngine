@@ -1,9 +1,11 @@
 #include <script/compiler/ast/AstNewExpression.hpp>
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstHasExpression.hpp>
+#include <script/compiler/ast/AstTernaryExpression.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstMember.hpp>
+#include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Compiler.hpp>
@@ -78,27 +80,83 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
         return;
     }
 
-    // TODO!!! this currently wont' work with <Any>s, but
-    // I wrote code for a ternary operator w/ AstHasExpression
-    // we can use to build in the dynamic has $construct check at
-    // runtime, and call it if it exists.
-
     if (m_enable_constructor_call) {
-        if (m_prototype_type->FindMember("$construct")) {
-            m_constructor_call.reset(new AstMemberCallExpression(
-                "$construct",
-                std::shared_ptr<AstNewExpression>(new AstNewExpression(
-                    CloneAstNode(m_proto),
-                    nullptr, // no args
-                    false, // do not enable constructor call
+        static constexpr const char *construct_method_name = "$construct";
+        static constexpr const char *temp_var_name = "__$temp_new_target";
+
+        const bool is_any = m_prototype_type->IsAnyType();
+        const bool has_construct_member = m_prototype_type->FindMember(construct_method_name) != nullptr;
+
+        if (is_any || has_construct_member) {
+            m_constructor_block.reset(new AstBlock(m_location));
+
+            if (has_construct_member) {
+                 m_constructor_call.reset(new AstMemberCallExpression(
+                    construct_method_name,
+                    std::shared_ptr<AstNewExpression>(new AstNewExpression(
+                        CloneAstNode(m_proto),
+                        nullptr, // no args
+                        false, // do not enable constructor call
+                        m_location
+                    )),
+                    m_arg_list,
                     m_location
-                )),
-                m_arg_list,
-                m_location
-            ));
+                ));
+            } else {
+                // conditionally lookup member with the name $construct and call if it exists.
+                // to do this, we need to store a temporary variable holding the left hand side
+                // expression
 
-            m_constructor_call->Visit(visitor, mod);
+                std::shared_ptr<AstVariableDeclaration> lhs_decl(new AstVariableDeclaration(
+                    temp_var_name,
+                    nullptr,
+                    CloneAstNode(m_proto),
+                    {},
+                    IdentifierFlags::FLAG_CONST,
+                    m_location
+                ));
 
+                m_constructor_block->AddChild(lhs_decl);
+
+                m_constructor_call.reset(new AstTernaryExpression(
+                    std::shared_ptr<AstHasExpression>(new AstHasExpression(
+                        std::shared_ptr<AstVariable>(new AstVariable(
+                            temp_var_name,
+                            m_location
+                        )),
+                        construct_method_name,
+                        m_location
+                    )),
+                    std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+                        construct_method_name,
+                        std::shared_ptr<AstNewExpression>(new AstNewExpression(
+                            std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                                std::shared_ptr<AstVariable>(new AstVariable(
+                                    temp_var_name,
+                                    m_location
+                                )),
+                                m_location
+                            )),
+                            nullptr, // no args
+                            false, // do not enable constructor call
+                            m_location
+                        )),
+                        m_arg_list,
+                        m_location
+                    )),
+                    std::shared_ptr<AstVariable>(new AstVariable(
+                        temp_var_name,
+                        m_location
+                    )),
+                    m_location
+                ));
+            }
+
+            m_constructor_block->AddChild(m_constructor_call);
+
+            m_constructor_block->Visit(visitor, mod);
+
+            // Do not continue analyzing from here, as m_constructor_call contains the new AstNewExpression.
             return;
         }
     }
@@ -234,8 +292,8 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    if (m_constructor_call != nullptr) {
-        return m_constructor_call->Build(visitor, mod);
+    if (m_constructor_block != nullptr) {
+        return m_constructor_block->Build(visitor, mod);
     }
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
@@ -297,34 +355,18 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
 
 void AstNewExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    if (m_constructor_call != nullptr) {
-        m_constructor_call->Optimize(visitor, mod);
+    if (m_constructor_block != nullptr) {
+        m_constructor_block->Optimize(visitor, mod);
 
         return;
     }
 
-    // AssertThrow(m_type_expr != nullptr);
-    // m_type_expr->Optimize(visitor, mod);
     AssertThrow(m_proto != nullptr);
     m_proto->Optimize(visitor, mod);
 
     if (m_object_value != nullptr) {
         m_object_value->Optimize(visitor, mod);
     }
-
-    if (m_constructor_call != nullptr) {
-        m_constructor_call->Optimize(visitor, mod);
-    }
-
-    /*if (!m_is_dynamic_type) {
-        if (m_constructor_call != nullptr) {
-            m_constructor_call->Optimize(visitor, mod);
-        } else {
-            // build in the value
-            AssertThrow(m_object_value != nullptr);
-            m_object_value->Optimize(visitor, mod);
-        }
-    }*/
 }
 
 Pointer<AstStatement> AstNewExpression::Clone() const

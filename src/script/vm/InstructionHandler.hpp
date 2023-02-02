@@ -1,6 +1,8 @@
 #ifndef INSTRUCTION_HANDLER_HPP
 #define INSTRUCTION_HANDLER_HPP
 
+#include <core/Containers.hpp>
+
 #include <script/vm/BytecodeStream.hpp>
 #include <script/vm/VM.hpp>
 #include <script/vm/Value.hpp>
@@ -1105,69 +1107,101 @@ public:
     HYP_FORCE_INLINE void New(BCRegister dst, BCRegister src)
     {
         // read value from register
-        Value &proto_sv = thread->m_regs[src];
-        AssertThrowMsg(proto_sv.m_type == Value::HEAP_POINTER, "NEW operand must be a pointer type (%d), got %d", Value::HEAP_POINTER, proto_sv.m_type);
+        Value &class_sv = thread->m_regs[src];
+        AssertThrowMsg(class_sv.m_type == Value::HEAP_POINTER, "NEW operand must be a pointer type (%d), got %d", Value::HEAP_POINTER, class_sv.m_type);
 
-        AssertThrow(proto_sv.m_value.ptr != nullptr);
+        HeapValue *class_ptr = class_sv.m_value.ptr;
+        AssertThrow(class_ptr != nullptr);
 
-        // the NEW instruction makes a copy of the $proto data member
-        // of the prototype object.
-        VMObject *proto_obj = proto_sv.m_value.ptr->GetPointer<VMObject>();
-        AssertThrowMsg(proto_obj != nullptr, "NEW operand should be an VMObject");
+        Array<Span<Member>> member_spans;
 
-        Member *proto_mem = proto_obj->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH);
-        AssertThrow(proto_mem != nullptr);
-
-        if (proto_mem->value.m_value.ptr == nullptr) {
-            state->ThrowException(
-                thread,
-                Exception::NullReferenceException()
-            );
-
-            return;
-        }
+        HeapValue *base_ptr = class_ptr;
+        HeapValue *topmost_proto_member_ptr = nullptr;
+        UInt depth = 0;
 
         Value &res = thread->m_regs[dst];
 
-        if (proto_mem->value.m_type == Value::HEAP_POINTER) {
-            if (VMObject *proto_mem_obj = proto_mem->value.m_value.ptr->GetPointer<VMObject>()) {
-                // allocate heap value for new object
-                HeapValue *hv = state->HeapAlloc(thread);
-                AssertThrow(hv != nullptr);
+        while (base_ptr != nullptr) {
+            // the NEW instruction makes a copy of the $proto data member
+            // of the prototype object.
+            VMObject *proto_obj = base_ptr->GetPointer<VMObject>();
+            AssertThrowMsg(proto_obj != nullptr, "NEW operand should be a VMObject");
 
-                hv->Assign(VMObject(proto_mem_obj->GetMembers(), proto_mem_obj->GetSize(), proto_mem->value.m_value.ptr));
+            Member *proto_mem = proto_obj->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
+            AssertThrow(proto_mem != nullptr);
 
-                res.m_type = Value::HEAP_POINTER;
-                res.m_value.ptr = hv;
+            if (proto_mem->value.m_type != Value::HEAP_POINTER) {
+                if (depth == 0) {
+                    // simply copy the value into the new value as it is not a heap pointer.
+                    res.m_type = proto_mem->value.m_type;
+                    res.m_value = proto_mem->value.m_value;
 
-                hv->Mark();
-            } else {
+                    break;
+                } else {
+                    state->ThrowException(
+                        thread,
+                        Exception::InvalidConstructorException()
+                    );
+
+                    return;
+                }
+            }
+
+            if (proto_mem->value.m_value.ptr == nullptr) {
+                break;
+            }
+
+            VMObject *proto_member_object = nullptr;
+
+            if (!(proto_member_object = proto_mem->value.m_value.ptr->GetPointer<VMObject>())) {
                 state->ThrowException(
                     thread,
                     Exception::InvalidConstructorException()
                 );
+
+                return;
             }
-        } else {
-            // simply copy the value into the new value as it is not a heap pointer.
-            res.m_type = proto_mem->value.m_type;
-            res.m_value = proto_mem->value.m_value;
+
+            if (depth == 0) {
+                topmost_proto_member_ptr = proto_mem->value.m_value.ptr;
+            }
+
+            member_spans.PushBack({ proto_member_object->GetMembers(), proto_member_object->GetSize() });
+
+            Member *base_member = proto_obj->LookupMemberFromHash(VMObject::BASE_MEMBER_HASH, false);
+
+            if (base_member) {
+                AssertThrowMsg(base_member->value.m_type == Value::HEAP_POINTER, "Base class must be pointer type (%d), got %d", Value::HEAP_POINTER, base_member->value.m_type);
+
+                base_ptr = base_member->value.m_value.ptr;
+            } else {
+                base_ptr = nullptr;
+            }
+
+            depth++;
         }
 
-        // assign destination to cloned value
-        //state->CloneValue(proto_mem->value, thread, thread->m_regs[dst]);
-
-        /*
-        // allocate heap object
+        // allocate heap value for new object
         HeapValue *hv = state->HeapAlloc(thread);
         AssertThrow(hv != nullptr);
-        
-        // create the VMObject from the proto
-        hv->Assign(VMObject(proto_mem->value.m_value.ptr));
 
-        // assign register value to the allocated object
-        Value &sv = thread->m_regs[dst];
-        sv.m_type = Value::HEAP_POINTER;
-        sv.m_value.ptr = hv;*/
+        // Combine all proto members
+        // The topmost type (first in the chain)
+        // MUST be first so that loads/stores using member index match up!
+        Array<Member> all_members;
+
+        for (auto &it : member_spans) {
+            for (SizeType index = 0; index < it.size; index++) {
+                all_members.PushBack(it.ptr[index]);
+            }
+        }
+
+        hv->Assign(VMObject(all_members.Data(), all_members.Size(), class_ptr));
+
+        res.m_type = Value::HEAP_POINTER;
+        res.m_value.ptr = hv;
+
+        hv->Mark();
     }
 
     HYP_FORCE_INLINE void NewArray(BCRegister dst, uint32_t size)

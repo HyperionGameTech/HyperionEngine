@@ -29,8 +29,179 @@ using renderer::Result;
         RENDER_COMMAND(name) _command(__VA_ARGS__)(); \
     }
 
+
+constexpr SizeType max_render_command_types = 128;
+constexpr SizeType render_command_cache_size = 4096;
+
+template <class T>
+using RenderCommandStorageArray = Array<ValueStorage<T>, render_command_cache_size * sizeof(T)>;
+
+
+struct RenderCommandHolder
+{
+    void *memory_ptr = nullptr;
+
+    virtual ~RenderCommandHolder() = default;
+
+    virtual void Clear() = 0;
+};
+
+template <class T>
+struct RenderCommandHolderDerived : RenderCommandHolder
+{
+    virtual ~RenderCommandHolderDerived() override = default;
+
+    virtual void Clear() override
+    {
+        (static_cast<RenderCommandStorageArray<T> *>(memory_ptr))->Clear();
+    }
+};
+
+#if 0
+template <class T>
+struct RenderCommandList
+{
+    struct RenderCommandStorage
+    {
+        FixedArray<ValueStorage<T>, render_command_cache_size> items;
+        std::atomic<UInt> index { 0 };
+    };
+
+
+    struct RenderCommandHolderDerived : RenderCommandHolder
+    {
+        virtual ~RenderCommandHolderDerived() override = default;
+
+        virtual void Clear() override
+        {
+            (static_cast<RenderCommandLinkedList *>(memory_ptr))->Clear();
+        }
+    };
+
+
+    struct Node
+    {
+        std::atomic<Node *> next;
+        RenderCommandStorage storage;
+
+        Node()
+            : next { nullptr }
+        {
+        }
+
+        ~Node()
+        {
+            if (Node *_next = next.load()) {
+                delete _next;
+            }
+        }
+
+        bool IsFull() const
+            { return storage.index.load(std::memory_order_acquire) >= render_command_cache_size; }
+    };
+
+    Node *head;
+    RenderCommandHolderDerived holder;
+
+    RenderCommandList()
+        : head(new Node),
+          tail { head }
+    {
+
+        holder.memory_ptr = this;
+
+        const SizeType command_type_index = RenderCommands::render_command_type_index.fetch_add(1);
+        AssertThrow(command_type_index < max_render_command_types - 1);
+
+        RenderCommands::holders[command_type_index] = &holder;
+    }
+
+    ~RenderCommandList()
+    {
+        Rewind();
+        delete head;
+    }
+
+    Node *Head()
+        { return head; }
+
+    const Node *Head() const
+        { return head; }
+
+    Node *Tail()
+    {
+        UInt index_counter = 0;
+
+        Node *_head = head;
+        Node *_next = nullptr;
+
+        do {
+            Node *next_before = _next;
+            _next = _head->next.load();
+            _head = next_before;
+        } while (_next != nullptr);
+
+        return _head;
+    }
+
+    void EmplaceRenderCommand()
+    {
+        Node *tail = Tail();
+    }
+
+    Node *Insert()
+    {
+        Node *_head = head;
+        Node *new_node = new Node;
+
+        while (!_head.next.compare_exchange_strong(nullptr, new_node));
+
+        return new_node;
+    }
+
+    Node *AtIndex(UInt index)
+    {
+        UInt index_counter = 0;
+
+        Node *_head = head;
+
+        for (UInt i = 0; i <= index; i++) {
+            _head = _head->next.load();
+
+            if (_head == nullptr) {
+                return nullptr;
+            }
+        }
+
+        return _head;
+    }
+
+    void Rewind()
+    {
+        Node *_head = head;
+
+        while (_head != nullptr) {
+            Node *previous_head = _head;
+            _head = _head->next.exchange(nullptr);
+
+            if (previous_head != head) {
+                delete previous_head;
+            }
+
+            // all items must have had destructor called!
+            previous_head->storage.index.store(0, std::memory_order_release);
+        }
+    }
+};
+
+#endif
+
 struct RenderCommand
 {
+#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
+    const char *_debug_name = "";
+#endif
+
     virtual ~RenderCommand() = default;
 
     HYP_FORCE_INLINE Result Call()
@@ -73,17 +244,6 @@ struct RenderScheduler
 class RenderCommands
 {
 private:
-    struct RenderCommandHolder
-    {
-        void *memory_ptr = nullptr;
-
-        virtual ~RenderCommandHolder() = default;
-
-        virtual void Clear() = 0;
-    };
-
-    static constexpr SizeType max_render_command_types = 128;
-    static constexpr SizeType render_command_cache_size = 4096;
 
     // last item must always evaluate to false, same way null terminated char strings work
     static FixedArray<RenderCommandHolder *, max_render_command_types> holders;
@@ -102,6 +262,10 @@ public:
         
         void *mem = Alloc<T>();
         T *ptr = new (mem) T(std::forward<Args>(args)...);
+
+#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
+        ptr->_debug_name = typeid(T).name();
+#endif
 
         scheduler.Commit(ptr);
 
@@ -129,6 +293,8 @@ public:
         auto flush_result = scheduler.Flush();
         if (flush_result.num_executed) {
             Rewind();
+
+            scheduler.m_num_enqueued.fetch_sub(flush_result.num_executed);
         }
 
         lock.unlock();
@@ -162,22 +328,10 @@ private:
     template <class T>
     static void *Alloc()
     {
-        using RenderCommandStorageArray = Array<ValueStorage<T>, render_command_cache_size * sizeof(T)>;
-
-        struct RenderCommandHolderDerived : RenderCommandHolder
-        {
-            virtual ~RenderCommandHolderDerived() override = default;
-
-            virtual void Clear() override
-            {
-                (static_cast<RenderCommandStorageArray *>(memory_ptr))->Clear();
-            }
-        };
-
         struct Data
         {
-            RenderCommandHolderDerived holder;
-            RenderCommandStorageArray commands;
+            RenderCommandHolderDerived<T> holder;
+            RenderCommandStorageArray<T> commands;
 
             Data()
             {
@@ -191,16 +345,6 @@ private:
         };
 
         static Data data;
-
-#ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        DebugLog(
-            LogType::Warn,
-            "Alloc render command (size: %llu/%llu, in function: %s)\n",
-            data.commands.Size() + 1,
-            render_command_cache_size,
-            HYP_DEBUG_FUNC
-        );
-#endif
 
         const SizeType command_index = data.commands.Size();
         data.commands.PushBack({ });

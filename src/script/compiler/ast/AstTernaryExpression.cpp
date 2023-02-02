@@ -34,6 +34,16 @@ void AstTernaryExpression::Visit(AstVisitor *visitor, Module *mod)
     m_conditional->Visit(visitor, mod);
     m_left->Visit(visitor, mod);
     m_right->Visit(visitor, mod);
+
+    if (GetExprType() == BuiltinTypes::UNDEFINED) {
+        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+            LEVEL_ERROR,
+            Msg_mismatched_types,
+            m_location,
+            m_left->GetExprType()->GetName(),
+            m_right->GetExprType()->GetName()
+        ));
+    }
 }
 
 std::unique_ptr<Buildable> AstTernaryExpression::Build(AstVisitor *visitor, Module *mod)

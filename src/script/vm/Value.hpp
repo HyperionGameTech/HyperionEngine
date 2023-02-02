@@ -165,7 +165,7 @@ struct Value
     HYP_FORCE_INLINE ValueData &GetValue() { return m_value; }
     HYP_FORCE_INLINE const ValueData &GetValue() const { return m_value; }
 
-    HYP_FORCE_INLINE void AssignValue(const Value &other, bool assign_ref = true)
+    HYP_FORCE_INLINE void AssignValue(const Value &other, bool assign_ref)
     {
         if (assign_ref && m_type == VALUE_REF) {
             *m_value.value_ref = other;

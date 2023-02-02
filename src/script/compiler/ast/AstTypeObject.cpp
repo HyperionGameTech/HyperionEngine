@@ -52,6 +52,8 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 {
     AssertThrow(m_symbol_type != nullptr);
 
+    std::cout << "Begin build class " << m_symbol_type->GetName() << "\n";
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName() + (m_is_proxy_class ? " <Proxy>" : "")));
 
@@ -92,6 +94,8 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         int member_index = 0;
 
         for (const auto &mem : m_symbol_type->GetMembers()) {
+            // TODO: Do some for all base classes' members.
+
             const SymbolTypePtr_t &mem_type = std::get<1>(mem);
             AssertThrow(mem_type != nullptr);
 

@@ -7,6 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <processthreadsapi.h>
+#elif defined(HYP_UNIX)
+#include <pthread.h>
 #endif
 
 namespace hyperion::v2 {
@@ -30,6 +32,10 @@ void SetCurrentThreadID(const ThreadID &thread_id)
             thread_id.name.Data()
         );
     }
+#elif defined(HYP_MACOS)
+    pthread_setname_np(thread_id.name.Data());
+#elif defined(HYP_LINUX)
+    pthread_setname_np(pthread_self(), thread_id.name.Data());
 #endif
 }
 

@@ -47,11 +47,30 @@ void BindlessStorage::AddResource(Texture *texture)
     for (SizeType i = 0; i < m_descriptor_sets.Size(); i++) {
         auto *descriptor_set = m_descriptor_sets[i];
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
+
+        // TODO: More generic factory
+        Sampler *sampler = nullptr;
+
+        switch (texture->GetFilterMode()) {
+        case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
+            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinearMipmap();
+
+            break;
+        case FilterMode::TEXTURE_FILTER_LINEAR:
+            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear();
+
+            break;
+        case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
+        default:
+            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest();
+
+            break;
+        }
         
         descriptor->SetElementImageSamplerCombined(
             texture->GetID().ToIndex(),
             texture->GetImageView(),
-            texture->GetSampler()
+            sampler
         );
     }
     

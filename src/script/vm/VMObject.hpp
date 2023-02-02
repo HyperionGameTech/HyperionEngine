@@ -62,6 +62,7 @@ class VMObject
 {
 public:
     static const UInt32 PROTO_MEMBER_HASH;
+    static const UInt32 BASE_MEMBER_HASH;
 
     // construct from prototype (holds pointer)
     VMObject(HeapValue *proto);
@@ -75,8 +76,7 @@ public:
     // compare by memory address
     bool operator==(const VMObject &other) const { return this == &other; }
 
-    Member *LookupMemberFromHash(UInt32 hash) const
-        { return m_object_map->Get(hash); }
+    Member *LookupMemberFromHash(UInt32 hash, bool deep = true) const;
 
     Member *GetMembers() const
         { return m_members; }
@@ -90,7 +90,7 @@ public:
     ObjectMap *GetObjectMap() const { return m_object_map; }
 
     SizeType GetSize() const { return m_object_map->GetSize(); }
-    HeapValue *GetPrototype() const { return m_proto; }
+    HeapValue *GetBaseObject() const { return m_proto; }
     
     void GetRepresentation(
         std::stringstream &ss,

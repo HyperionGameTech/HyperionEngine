@@ -64,7 +64,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         BuiltinTypes::OBJECT
     );
 
-    // TODO: allow custom bases (which would have to extend Type somewhere)
+    // TODO: allow custom bases (which would have to extend Class somewhere)
     SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
 
     if (m_base_specification != nullptr) {

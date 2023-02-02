@@ -2,7 +2,7 @@
 
 namespace hyperion::v2 {
 
-FixedArray<RenderCommands::RenderCommandHolder *, RenderCommands::max_render_command_types> RenderCommands::holders = { };
+FixedArray<RenderCommandHolder *, max_render_command_types> RenderCommands::holders = { };
 std::atomic<SizeType> RenderCommands::render_command_type_index = { 0 };
 RenderScheduler RenderCommands::scheduler = { };
 
@@ -27,40 +27,19 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
     while (index < num_commands) {
         RenderCommand *front = m_commands[index++];
 
-        ++result.num_executed;
-
 #ifdef HYP_DEBUG_LOG_RENDER_COMMANDS
-        DebugLog(LogType::RenDebug, "Executing render command %s\n", typeid(*front).name());
+        DebugLog(LogType::RenDebug, "Executing render command %s\n", front->_debug_name);
 #endif
 
-        result.result = (*front)();
+        result.result = front->Call();
         front->~RenderCommand();
 
-        // check if an error occurred
-        if (!result.result) {
-            DebugLog(LogType::Error, "Render command error! %s\n", result.result.message);
+        ++result.num_executed;
 
-            break;
-        }
+        AssertThrowMsg(result.result, "Render command error! %s\n", result.result.message);
     }
 
-    if (HYP_LIKELY(index == num_commands)) {
-        m_commands.Clear();
-    } else {
-        AssertThrowMsg(index < num_commands, "index is > than m_commands.Size() -- incorrect bookkeeping here");
-
-        const SizeType erase_to_index = index;
-
-        DebugLog(LogType::Debug, "Erasing render commands to index: %llu\n", erase_to_index);
-
-        for (SizeType i = 0; i < erase_to_index; i++) {
-            m_commands.PopFront();
-        }
-
-        m_commands.Refit();
-    }
-
-    m_num_enqueued.fetch_sub(index, std::memory_order_relaxed);
+    m_commands.Clear();
 
     return result;
 }

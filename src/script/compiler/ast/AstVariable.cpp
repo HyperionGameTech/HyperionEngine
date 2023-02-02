@@ -242,72 +242,84 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
     } else if (m_self_member_access != nullptr) {
         m_self_member_access->SetAccessMode(m_access_mode);
         return m_self_member_access->Build(visitor, mod);
-    } {
-        AssertThrow(m_properties.GetIdentifier() != nullptr);
-
-#if ACE_ENABLE_VARIABLE_INLINING
-        if (m_should_inline) {
-            // if alias, accept the current value instead
-            const AccessMode current_access_mode = m_inline_value->GetAccessMode();
-            m_inline_value->SetAccessMode(m_access_mode);
-            chunk->Append(m_inline_value->Build(visitor, mod));
-            // reset access mode
-            m_inline_value->SetAccessMode(current_access_mode);
-        } else {
-#endif
-            int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-            int stack_location = m_properties.GetIdentifier()->GetStackLocation();
-
-            AssertThrow(stack_location != -1);
-
-            int offset = stack_size - stack_location;
-
-            // get active register
-            UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-            // if we are a reference, we deference it before doing anything
-            const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
-
-            if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
-                if (m_access_mode == ACCESS_MODE_LOAD) {
-                    // load stack value at offset value into register
-                    auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
-                    instr_load_offset->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByOffset(offset);
-                    chunk->Append(std::move(instr_load_offset));
-
-                    if (is_ref && !m_is_in_ref_assignment) {
-                        chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
-                    }
-                } else if (m_access_mode == ACCESS_MODE_STORE) {
-                    // store the value at (rp - 1) into this local variable
-                    auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
-                    instr_mov_index->GetBuilder().Store(rp - 1).Local().ByOffset(offset);
-                    chunk->Append(std::move(instr_mov_index));
-                }
-            } else {
-                // load globally, rather than from offset.
-                if (m_access_mode == ACCESS_MODE_LOAD) {
-                    // load stack value at index into register
-                    auto instr_load_index = BytecodeUtil::Make<StorageOperation>();
-                    instr_load_index->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByIndex(stack_location);
-                    chunk->Append(std::move(instr_load_index));
-
-                    if (is_ref && !m_is_in_ref_assignment) {
-                        chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
-                    }
-                } else if (m_access_mode == ACCESS_MODE_STORE) {
-                    // store the value at the index into this local variable
-                    auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
-                    instr_mov_index->GetBuilder().Store(rp - 1).Local().ByIndex(stack_location);
-                    chunk->Append(std::move(instr_mov_index));
-                }
-            }
-
-
-#if ACE_ENABLE_VARIABLE_INLINING
-        }
-#endif
     }
+    
+    AssertThrow(m_properties.GetIdentifier() != nullptr);
+
+#if ACE_ENABLE_VARIABLE_INLINING
+    if (m_should_inline) {
+        // if alias, accept the current value instead
+        const AccessMode current_access_mode = m_inline_value->GetAccessMode();
+        m_inline_value->SetAccessMode(m_access_mode);
+        chunk->Append(m_inline_value->Build(visitor, mod));
+        // reset access mode
+        m_inline_value->SetAccessMode(current_access_mode);
+    } else {
+#endif
+        int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        int stack_location = m_properties.GetIdentifier()->GetStackLocation();
+
+        AssertThrow(stack_location != -1);
+
+        int offset = stack_size - stack_location;
+
+        // get active register
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+        // if we are a reference, we deference it before doing anything
+        const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
+
+        if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
+            if (m_access_mode == ACCESS_MODE_LOAD) {
+                // load stack value at offset value into register
+                auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
+                instr_load_offset->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByOffset(offset);
+                chunk->Append(std::move(instr_load_offset));
+
+                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
+
+                if (is_ref && !m_is_in_ref_assignment) {
+                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
+
+                    chunk->Append(BytecodeUtil::Make<Comment>("Dereference variable " + m_name));
+                }
+            } else if (m_access_mode == ACCESS_MODE_STORE) {
+                // store the value at (rp - 1) into this local variable
+                auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
+                instr_mov_index->GetBuilder().Store(rp - 1).Local().ByOffset(offset);
+                chunk->Append(std::move(instr_mov_index));
+
+                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+            }
+        } else {
+            // load globally, rather than from offset.
+            if (m_access_mode == ACCESS_MODE_LOAD) {
+                // load stack value at index into register
+                auto instr_load_index = BytecodeUtil::Make<StorageOperation>();
+                instr_load_index->GetBuilder().Load(rp, m_is_in_ref_assignment && !is_ref).Local().ByIndex(stack_location);
+                chunk->Append(std::move(instr_load_index));
+
+                chunk->Append(BytecodeUtil::Make<Comment>("Load variable " + m_name));
+
+                if (is_ref && !m_is_in_ref_assignment) {
+                    chunk->Append(BytecodeUtil::Make<LoadDeref>(rp, rp));
+
+                    chunk->Append(BytecodeUtil::Make<Comment>("Dereference variable " + m_name));
+                }
+            } else if (m_access_mode == ACCESS_MODE_STORE) {
+                // store the value at the index into this local variable
+                auto instr_mov_index = BytecodeUtil::Make<StorageOperation>();
+                instr_mov_index->GetBuilder().Store(rp - 1).Local().ByIndex(stack_location);
+                chunk->Append(std::move(instr_mov_index));
+
+                chunk->Append(BytecodeUtil::Make<Comment>("Store variable " + m_name));
+            }
+        }
+
+
+#if ACE_ENABLE_VARIABLE_INLINING
+    }
+#endif
 
     return std::move(chunk);
 }

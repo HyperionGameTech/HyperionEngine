@@ -70,7 +70,6 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t unaliased;
 
     if ((expr_type = m_expr->GetExprType()) && (unaliased = expr_type->GetUnaliased())) {
-
         m_string_expr.reset(new AstString(
             unaliased->GetName(),
             m_location

@@ -17,9 +17,11 @@
 
 #include <Constants.hpp>
 #include <Types.hpp>
+#include <Threads.hpp>
 
 #include <memory>
 #include <atomic>
+#include <mutex>
 #include <climits>
 
 
@@ -44,7 +46,7 @@ using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
-static constexpr SizeType max_entities_per_instance_batch = 60;
+static constexpr SizeType max_entities_per_instance_batch = 28;
 
 struct alignas(256) EntityInstanceBatch
 {
@@ -52,7 +54,6 @@ struct alignas(256) EntityInstanceBatch
     UInt32 _pad0;
     UInt32 _pad1;
     UInt32 _pad2;
-    //ShaderVec4<UInt32> indices[max_entities_per_instance_batch / 4];
     UInt32 indices[max_entities_per_instance_batch];
 };
 
@@ -182,11 +183,7 @@ struct alignas(256) EnvGridShaderData
     ShaderVec4<Float> center;
     ShaderVec4<Float> extent;
     ShaderVec4<UInt32> density;
-
-    UInt32 enabled_indices_mask;
-    UInt32 _pad0;
-    UInt32 _pad1;
-    UInt32 _pad2;
+    ShaderVec4<UInt32> enabled_indices_mask;
 
     ShaderMat4 _pad3;
 };
@@ -324,7 +321,7 @@ static const SizeType max_env_grids_bytes = max_env_grids * sizeof(EnvGridShader
 static const SizeType max_immediate_draws = (1ull * 1024ull * 1024ull) / sizeof(ImmediateDrawShaderData);
 static const SizeType max_immediate_draws_bytes = max_immediate_draws * sizeof(ImmediateDrawShaderData);
 /* max number of instance batches, based on size in mb */
-static const SizeType max_entity_instance_batches = (4ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
+static const SizeType max_entity_instance_batches = (16ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
 static const SizeType max_entity_instance_batches_bytes = max_entity_instance_batches * sizeof(EntityInstanceBatch);
 
 template <class T>
@@ -412,9 +409,13 @@ public:
     
     BufferTicket<StructType> current_index = 1; // reserve first index (0)
     Queue<BufferTicket<StructType>> free_indices;
+    std::mutex m_mutex;
 
     BufferTicket<StructType> AcquireTicket()
     {
+        std::lock_guard guard(m_mutex);
+        // Threads::AssertOnThread(THREAD_RENDER);
+
         if (free_indices.Any()) {
             return free_indices.Pop();
         }
@@ -424,17 +425,23 @@ public:
 
     void ReleaseTicket(BufferTicket<StructType> batch_index)
     {
+        // Threads::AssertOnThread(THREAD_RENDER);
+
         if (batch_index == 0) {
             return;
         }
 
         ResetBatch(batch_index);
 
+        std::lock_guard guard(m_mutex);
+
         free_indices.Push(batch_index);
     }
 
     void ResetBatch(BufferTicket<StructType> batch_index)
     {
+        // Threads::AssertOnThread(THREAD_RENDER | THREAD_TASK);
+
         if (batch_index == 0) {
             return;
         }

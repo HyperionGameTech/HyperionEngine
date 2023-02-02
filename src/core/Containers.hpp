@@ -20,6 +20,7 @@
 #include <core/lib/Variant.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/Bitset.hpp>
+#include <core/lib/Span.hpp>
 #include <math/MathUtil.hpp>
 #include <Types.hpp>
 

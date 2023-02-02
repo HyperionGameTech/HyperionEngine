@@ -478,7 +478,7 @@ void VoxelConeTracing::CreateDescriptors()
 
                 descriptor_set_globals
                     ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
-                    ->SetElementImageSamplerCombined(0, vct.m_voxel_image->GetImageView(), vct.m_voxel_image->GetSampler());
+                    ->SetElementImageSamplerCombined(0, vct.m_voxel_image->GetImageView(), &Engine::Get()->GetPlaceholderData().GetSamplerLinearMipmap());
 
                 descriptor_set_globals
                     ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::VCT_VOXEL_UAV)

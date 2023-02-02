@@ -103,14 +103,6 @@ public:
     template <class T>
     T *GetPointer()
     {
-        DebugLog(LogType::Debug, "VMObject Type: %u\n", TypeID::ForType<VMObject>().GetHashCode().Value());
-        DebugLog(LogType::Debug, "VMString Type: %u\n", TypeID::ForType<VMString>().GetHashCode().Value());
-        DebugLog(LogType::Debug, "VMArray Type: %u\n", TypeID::ForType<VMArray>().GetHashCode().Value());
-        DebugLog(LogType::Debug, "Any Type: %u\n", TypeID::ForType<Any>().GetHashCode().Value());
-        DebugLog(LogType::Debug, "void Type: %u\n", TypeID::ForType<void>().GetHashCode().Value());
-        DebugLog(LogType::Debug, "Current Type: %u\n", GetTypeID().GetHashCode().Value());
-        DebugLog(LogType::Debug, "Current (Variant) Type: %u\n", m_variant.GetTypeID().GetHashCode().Value());
-
         if constexpr (IS_INLINE_TYPE(T)) {
             return m_variant.TryGet<T>();
         } else {

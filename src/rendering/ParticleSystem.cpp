@@ -319,9 +319,7 @@ void ParticleSpawner::CreateDescriptorSets()
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::SamplerDescriptor>(7)
-            ->SetElementSampler(0, m_params.texture
-                ? m_params.texture->GetSampler()
-                : &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::SamplerDescriptor>(8)

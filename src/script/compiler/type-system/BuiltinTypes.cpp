@@ -108,132 +108,35 @@ const SymbolTypePtr_t BuiltinTypes::ENUM_TYPE = SymbolType::Generic(
     BuiltinTypes::CLASS_TYPE
 );*/
 
-const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Extend(
+const SymbolTypePtr_t BuiltinTypes::INT = SymbolType::Primitive(
     "Int",
-    BuiltinTypes::CLASS_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__Int", nullptr
-            ),
-            sp<AstInteger>(new AstInteger(0, SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
+    sp<AstInteger>(new AstInteger(0, SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::UNSIGNED_INT = SymbolType::Extend(
+const SymbolTypePtr_t BuiltinTypes::UNSIGNED_INT = SymbolType::Primitive(
     "UInt",
-    BuiltinTypes::CLASS_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__UInt", nullptr
-            ),
-            sp<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
+    sp<AstUnsignedInteger>(new AstUnsignedInteger(0, SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Extend(
+const SymbolTypePtr_t BuiltinTypes::FLOAT = SymbolType::Primitive(
     "Float",
-    BuiltinTypes::CLASS_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__Float", nullptr
-            ),
-            sp<AstFloat>(new AstFloat(0.0, SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
+    sp<AstFloat>(new AstFloat(0.0, SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
 );
 
-const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Extend(
+const SymbolTypePtr_t BuiltinTypes::NUMBER = SymbolType::Primitive(
     "Number",
-    BuiltinTypes::CLASS_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__Number", nullptr
-            ),
-            sp<AstFloat>(new AstFloat(0.0, SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
+    sp<AstFloat>(new AstFloat(0.0, SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
 );
 
-
-// const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Primitive(
-//     "Boolean",
-//     sp<AstFalse>(new AstFalse(SourceLocation::eof))
-// );
-
-const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Extend(
+const SymbolTypePtr_t BuiltinTypes::BOOLEAN = SymbolType::Primitive(
     "Bool",
-    BuiltinTypes::CLASS_TYPE,
-    std::vector<SymbolMember_t> {
-        SymbolMember_t {
-            "$proto",
-            SymbolType::Primitive(
-                "__Bool", nullptr
-            ),
-            sp<AstFalse>(new AstFalse(SourceLocation::eof))
-        },
-        SymbolMember_t {
-            "base",
-            BuiltinTypes::CLASS_TYPE,
-            sp<AstTypeObject>(new AstTypeObject(
-                BuiltinTypes::CLASS_TYPE,
-                nullptr,
-                SourceLocation::eof
-            )),
-        }
-    }
+    sp<AstFalse>(new AstFalse(SourceLocation::eof)),
+    BuiltinTypes::PRIMITIVE_TYPE
 );
-
-// const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Primitive(
-//     "String",
-//     sp<AstString>(new AstString("", SourceLocation::eof))
-// );
-
 
 const SymbolTypePtr_t BuiltinTypes::STRING = SymbolType::Extend(
     "String",

@@ -23,29 +23,15 @@ void HeapValue::Mark()
     m_flags |= GC_MARKED;
 
     if (VMObject *object = GetPointer<VMObject>()) {
-        HeapValue *proto = nullptr;
+        const auto size = object->GetSize();
 
-        do {
-            const auto size = object->GetSize();
+        for (SizeType i = 0; i < size; i++) {
+            object->GetMember(i).value.Mark();
+        }
 
-            for (SizeType i = 0; i < size; i++) {
-                object->GetMember(i).value.Mark();
-            }
-
-            if ((proto = object->GetPrototype()) != nullptr) {
-                proto->Mark();
-
-                object = proto->GetPointer<VMObject>();
-
-                // get object value of prototype
-                // if ((object = proto->GetPointer<VMObject>()) == nullptr) {
-                //     // if prototype is not an object (has been modified to another value), we're done.
-                //     return;
-                // }
-            } else {
-                object = nullptr;
-            }
-        } while (object != nullptr);
+        if (HeapValue *base_object = object->GetBaseObject()) {
+            base_object->Mark();
+        }
     } else if (VMArray *array = GetPointer<VMArray>()) {
         const auto size = array->GetSize();
 

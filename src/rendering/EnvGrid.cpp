@@ -65,11 +65,11 @@ void EnvGrid::Init()
     CreateFramebuffer();
 
     {
-        Memory::Set(m_shader_data.probe_indices, 0, sizeof(m_shader_data.probe_indices));
+        Memory::Set(m_shader_data.probe_indices, ~0u, sizeof(m_shader_data.probe_indices));
         m_shader_data.center = Vector4(m_aabb.GetCenter(), 1.0f);
         m_shader_data.extent = Vector4(m_aabb.GetExtent(), 1.0f);
         m_shader_data.density = { m_density.width, m_density.height, m_density.depth, 0 };
-        m_shader_data.enabled_indices_mask = 0u;
+        m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
     }
 
     {
@@ -168,7 +168,7 @@ void EnvGrid::OnRender(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     const UInt num_ambient_probes = UInt(m_ambient_probes.Size());
 
-    m_shader_data.enabled_indices_mask = 0u;
+    m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
     
     if (num_ambient_probes != 0) {
         AssertThrow(m_current_probe_index < m_ambient_probes.Size());
@@ -176,11 +176,11 @@ void EnvGrid::OnRender(Frame *frame)
         // Find a probe that needs to be updated
         UInt found_index = UInt(-1);
 
-        for (UInt offset = 0; offset < m_ambient_probes.Size(); ++offset) {
+        for (UInt offset = 0; offset < m_ambient_probes.Size(); offset++) {
             const UInt index = (offset + m_current_probe_index) % m_ambient_probes.Size();
 
             if (const Handle<EnvProbe> &env_probe = m_ambient_probes[index]) {
-                if (env_probe->NeedsUpdateOrRender()) {
+                if (env_probe->NeedsRender()) {
                     found_index = index;
 
                     break;
@@ -213,8 +213,6 @@ void EnvGrid::OnRender(Frame *frame)
                 env_probe->UpdateRenderData(bound_index);
 
                 RenderEnvProbe(frame, env_probe);
-    
-                env_probe->SetNeedsRender(false);
                 
                 m_shader_data.probe_indices[probe_index_at_point] = env_probe->GetID().ToIndex();
             } else {
@@ -232,16 +230,22 @@ void EnvGrid::OnRender(Frame *frame)
             }
 
             m_current_probe_index = (found_index + 1) % num_ambient_probes;
+        } else {
+            m_current_probe_index = (m_current_probe_index + 1) % num_ambient_probes;
         }
             
-        for (UInt index = 0; index < num_ambient_probes; index++) {
-            const auto &env_probe = m_ambient_probes[index];
-            const EnvProbeIndex &bound_index = env_probe->GetBoundIndex();
+        // for (UInt index = 0; index < num_ambient_probes; index++) {
+        //     const Handle<EnvProbe> &env_probe = m_ambient_probes[index];
+        //     const EnvProbeIndex &bound_index = env_probe->GetBoundIndex();
 
-            if (bound_index.GetProbeIndex() < max_bound_ambient_probes) {
-                m_shader_data.enabled_indices_mask |= (1u << bound_index.GetProbeIndex());
-            }
-        }
+        //     const UInt probe_index = bound_index.GetProbeIndex();
+
+        //     if (probe_index < max_bound_ambient_probes) {
+        //         const UInt component_index = probe_index / 32;
+
+        //         m_shader_data.enabled_indices_mask[component_index] |= (1u << (probe_index & 31));
+        //     }
+        // }
     }
     
     m_shader_data.extent = Vector4(m_aabb.GetExtent(), 1.0f);
@@ -308,7 +312,6 @@ void EnvGrid::RenderEnvProbe(
 )
 {
     auto *command_buffer = frame->GetCommandBuffer();
-
     auto result = Result::OK;
 
     {
@@ -364,6 +367,8 @@ void EnvGrid::RenderEnvProbe(
 
         HYPERION_ASSERT_RESULT(result);
     }
+
+    probe->SetNeedsRender(false);
 }
 
 } // namespace hyperion::v2

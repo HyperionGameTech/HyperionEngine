@@ -803,7 +803,7 @@ void DeferredRenderer::ApplyCameraJitter()
 
     const UInt frame_counter = Engine::Get()->GetRenderState().frame_counter + 1;
 
-    static const Float jitter_scale = 1.0f;
+    static const Float jitter_scale = 0.25f;
 
     if (camera.projection[3][3] < MathUtil::epsilon<Float>) {
         Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);

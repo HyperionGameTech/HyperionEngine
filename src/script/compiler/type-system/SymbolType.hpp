@@ -273,6 +273,7 @@ public:
     /** Find the root aliasee. If not an alias, just returns itself */
     SymbolTypePtr_t GetUnaliased();
     
+    bool IsClass() const;
     bool IsAnyType() const;
     bool IsNullType() const;
     bool IsNullableType() const;

@@ -411,10 +411,14 @@ SymbolTypePtr_t SymbolType::GetUnaliased()
     return shared_from_this();
 }
 
+bool SymbolType::IsClass() const
+{
+    return IsOrHasBase(*BuiltinTypes::CLASS_TYPE);
+}
+
 bool SymbolType::IsAnyType() const
 {
-    AssertThrow(BuiltinTypes::ANY->IsOrHasBase(*BuiltinTypes::ANY_TYPE));
-    return IsOrHasBase(*BuiltinTypes::ANY_TYPE);
+    return IsOrHasBase(*BuiltinTypes::ANY) || IsOrHasBase(*BuiltinTypes::ANY_TYPE);
 }
 
 bool SymbolType::IsNullType() const

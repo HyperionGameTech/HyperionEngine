@@ -139,8 +139,48 @@ public:
         { return m_aabb; }
 
     /*! \brief Get a hashcode of all entities currently in this Octant (child octants affect this too) */
+    // HashCode GetNodesHash() const
+    //     { return m_nodes_hash; }
+
+    // HashCode GetNodesHash() const
+    // {
+    //     HashCode hc;
+
+    //     // if (m_parent) {
+    //     //     hc.Add(m_parent->GetNodesHash());
+    //     // }
+
+    //     for (const Node &item : m_nodes) {
+    //         hc.Add(item.GetHashCode());
+    //     }
+
+    //     if (m_is_divided) {
+    //         for (const Octant &octant : m_octants) {
+    //             AssertThrow(octant.octree != nullptr);
+
+    //             hc.Add(octant.octree->GetNodesHash());
+    //         }
+    //     }
+
+    //     return hc;
+    // }
+
     HashCode GetNodesHash() const
-        { return m_nodes_hash; }
+    {
+        HashCode hc;
+
+        hc.Add(m_nodes_hash);
+
+        if (m_is_divided) {
+            for (const Octant &octant : m_octants) {
+                AssertThrow(octant.octree != nullptr);
+
+                hc.Add(octant.octree->GetNodesHash());
+            }
+        }
+
+        return hc;
+    }
         
     void Clear();
     Result Insert(Entity *entity);

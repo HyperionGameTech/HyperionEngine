@@ -107,7 +107,10 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         // for ANY type we conditionally build in a check
         // also, for proxy class that does not have the operator overloaded,
         // we build in the condition as well
-        else if (target_type->IsAnyType() || target_type->IsProxyClass()) {
+        else if (
+            target_type != BuiltinTypes::STRING // Special case for String class
+            && (target_type->IsAnyType() || target_type->IsClass())
+        ) {
             auto sub_bin_expr = std::static_pointer_cast<AstBinaryExpression>(Clone());
             sub_bin_expr->SetIsOperatorOverloadingEnabled(false); // don't look for overload again
 
@@ -122,6 +125,9 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 m_location
             ));
         } else if (target_type->FindPrototypeMember(overload_function_name)) {
+            // @TODO: This check currently won't hit for a class type,
+            // unless we add something like "final classes".
+
             m_operator_overload = call_operator_overload_expr;
         }
 
