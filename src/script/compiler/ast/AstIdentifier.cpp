@@ -111,6 +111,44 @@ const AstExpression *AstIdentifier::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
+#if 0
+
+const AstExpression *AstIdentifier::GetValueOf() const
+{
+    if (IsLiteral()) {
+        if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+            if (const auto current_value = ident->GetCurrentValue()) {
+                if (current_value.get() == this) {
+                    return this;
+                }
+
+                return current_value->GetValueOf();
+            }
+        }
+    }
+
+    return AstExpression::GetValueOf();
+}
+
+const AstExpression *AstIdentifier::GetDeepValueOf() const
+{
+    if (IsLiteral()) {
+        if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+            if (const auto current_value = ident->GetCurrentValue()) {
+                if (current_value.get() == this) {
+                    return this;
+                }
+
+                return current_value->GetDeepValueOf();
+            }
+        }
+    }
+
+    return AstExpression::GetDeepValueOf();
+}
+
+#endif
+
 const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 {
     if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {

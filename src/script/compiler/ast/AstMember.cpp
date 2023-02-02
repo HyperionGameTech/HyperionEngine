@@ -122,33 +122,50 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        bool found = false;
+        {
+            UInt field_index = UInt(-1);
+            SymbolMember_t member;
 
-        // for instance members (do it last, so it can be overridden by instances)
-        if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
-            // get member index from name
-            for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
-                const SymbolMember_t &mem = proto_type->GetMembers()[i];
-
-                if (std::get<0>(mem) == m_field_name) {
-                    // only set m_found_index if found in first level.
-                    // for members from base objects,
-                    // we load based on hash.
-                    if (depth == 0) {
-                        m_found_index = i;
-                    }
-
-                    field_type = std::get<1>(mem);
-                    found = true;
-
-                    break;
+            if (m_target_type->FindPrototypeMember(m_field_name, member, field_index)) {
+                // only set m_found_index if found in first level.
+                // for members from base objects,
+                // we load based on hash.
+                if (depth == 0) {
+                    m_found_index = field_index;
                 }
-            }
 
-            if (found) {
+                field_type = std::move(std::get<1>(member));
+
                 break;
             }
         }
+
+
+        // // for instance members (do it last, so it can be overridden by instances)
+        // if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
+        //     // get member index from name
+        //     for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
+        //         const SymbolMember_t &mem = proto_type->GetMembers()[i];
+
+        //         if (std::get<0>(mem) == m_field_name) {
+        //             // only set m_found_index if found in first level.
+        //             // for members from base objects,
+        //             // we load based on hash.
+        //             if (depth == 0) {
+        //                 m_found_index = i;
+        //             }
+
+        //             field_type = std::get<1>(mem);
+        //             found = true;
+
+        //             break;
+        //         }
+        //     }
+
+        //     if (found) {
+        //         break;
+        //     }
+        // }
 
         // if (m_found_index == -1) {
         //     // lookup in bases, checking all prototypes

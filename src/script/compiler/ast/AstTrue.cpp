@@ -18,7 +18,8 @@ AstTrue::AstTrue(const SourceLocation &location)
 std::unique_ptr<Buildable> AstTrue::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
     return BytecodeUtil::Make<ConstBool>(rp, true);
 }
 
@@ -57,11 +58,11 @@ std::shared_ptr<AstConstant> AstTrue::HandleOperator(Operators op_type, const As
     switch (op_type) {
         case OP_logical_and:
             switch (right->IsTrue()) {
-                case Tribool::TriboolValue::TRI_TRUE:
+                case TRI_TRUE:
                     return std::shared_ptr<AstTrue>(new AstTrue(m_location));
-                case Tribool::TriboolValue::TRI_FALSE:
+                case TRI_FALSE:
                     return std::shared_ptr<AstFalse>(new AstFalse(m_location));
-                case Tribool::TriboolValue::TRI_INDETERMINATE:
+                case TRI_INDETERMINATE:
                     return nullptr;
             }
 
@@ -72,6 +73,7 @@ std::shared_ptr<AstConstant> AstTrue::HandleOperator(Operators op_type, const As
             if (dynamic_cast<const AstTrue*>(right) != nullptr) {
                 return std::shared_ptr<AstTrue>(new AstTrue(m_location));
             }
+
             return std::shared_ptr<AstFalse>(new AstFalse(m_location));
 
         case OP_logical_not:

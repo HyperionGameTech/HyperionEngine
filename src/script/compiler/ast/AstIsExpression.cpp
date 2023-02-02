@@ -25,7 +25,7 @@ AstIsExpression::AstIsExpression(
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_target(target),
     m_type_specification(type_specification),
-    m_is_type(-1)
+    m_is_type(TRI_INDETERMINATE)
 {
 }
 
@@ -40,14 +40,14 @@ void AstIsExpression::Visit(AstVisitor *visitor, Module *mod)
     if (const auto target_type = m_target->GetExprType()) {
         if (const auto held_type = m_type_specification->GetHeldType()) {
             if (target_type->TypeCompatible(*held_type, true)) {
-                m_is_type = 1;
+                m_is_type = TRI_TRUE;
             } else {
-                m_is_type = 0;
+                m_is_type = TRI_FALSE;
             }
         }
     }
 
-    if (m_is_type == -1) {
+    if (m_is_type == TRI_INDETERMINATE) {
         // TODO: Run time check
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -63,12 +63,12 @@ std::unique_ptr<Buildable> AstIsExpression::Build(AstVisitor *visitor, Module *m
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    if (m_is_type == -1) {
+    if (m_is_type == TRI_INDETERMINATE) {
         // TODO: runtime check
     } else {
         UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        chunk->Append(BytecodeUtil::Make<ConstBool>(rp, bool(m_is_type)));
+        chunk->Append(BytecodeUtil::Make<ConstBool>(rp, bool(m_is_type.Value())));
     }
 
     return std::move(chunk);
@@ -95,7 +95,7 @@ SymbolTypePtr_t AstIsExpression::GetExprType() const
 
 Tribool AstIsExpression::IsTrue() const
 {
-    return Tribool((Tribool::TriboolValue)m_is_type);
+    return m_is_type;
 }
 
 bool AstIsExpression::MayHaveSideEffects() const

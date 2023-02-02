@@ -4,6 +4,7 @@
 #include <script/compiler/emit/Instruction.hpp>
 
 #include <system/Debug.hpp>
+#include <Types.hpp>
 
 #include <vector>
 #include <memory>
@@ -52,17 +53,17 @@ struct StorageOperation : public Buildable
 
         union
         {
-            uint16_t index;
-            uint16_t offset;
-            uint32_t hash;
+            UInt16 index;
+            UInt16 offset;
+            UInt32 hash;
 
             struct {
                 RegIndex reg;
 
                 union {
                     RegIndex reg;
-                    uint8_t index;
-                    uint32_t hash;
+                    UInt8 index;
+                    UInt32 hash;
                 } member;
             } object_data;
         } b;

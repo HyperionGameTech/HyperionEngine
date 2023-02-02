@@ -12,7 +12,8 @@
 
 namespace hyperion::compiler {
 
-class AstVariableDeclaration : public AstDeclaration {
+class AstVariableDeclaration : public AstDeclaration
+{
 public:
     AstVariableDeclaration(
         const std::string &name,
@@ -26,6 +27,7 @@ public:
 
     const std::shared_ptr<AstExpression> &GetAssignment() const
         { return m_assignment; }
+
     const std::shared_ptr<AstExpression> &GetRealAssignment() const
         { return m_real_assignment; }
 

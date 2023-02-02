@@ -42,14 +42,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
     AstDeclaration::Visit(visitor, mod);
 
     if (m_identifier != nullptr) {
-        // if (m_is_const || m_is_generic) {
-        //     m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_CONST);
-        // }
-
-        // if (m_is_generic) {
-        //     m_identifier->SetFlags(m_identifier->GetFlags() | IdentifierFlags::FLAG_GENERIC);
-        // }
-
         m_identifier->GetFlags() |= m_flags;
     }
 
@@ -286,12 +278,12 @@ std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Mo
         chunk->Append(m_real_assignment->Build(visitor, mod));
 
         // get active register
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         { // add instruction to store on stack
             auto instr_push = BytecodeUtil::Make<RawOperation<>>();
             instr_push->opcode = PUSH;
-            instr_push->Accept<uint8_t>(rp);
+            instr_push->Accept<UInt8>(rp);
             chunk->Append(std::move(instr_push));
         }
 

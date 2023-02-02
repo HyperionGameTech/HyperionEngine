@@ -25,7 +25,7 @@ AstHasExpression::AstHasExpression(
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_target(target),
     m_field_name(field_name),
-    m_has_member(-1),
+    m_has_member(TRI_INDETERMINATE),
     m_is_expr(false),
     m_has_side_effects(false)
 {
@@ -55,14 +55,24 @@ void AstHasExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(target_type != nullptr);
 
-    if (target_type != BuiltinTypes::ANY) {
-        if (SymbolTypePtr_t member_type = target_type->FindMember(m_field_name)) {
-            m_has_member = 1;
+    if (target_type->IsAnyType()) {
+        m_has_member = TRI_INDETERMINATE;
+    } else if (target_type->IsClass()) {
+        SymbolMember_t member;
+
+        if (target_type->FindMemberDeep(m_field_name, member)) {
+            m_has_member = TRI_TRUE;
         } else {
-            m_has_member = 0;
+            // @TODO: If we have 'final' classes,
+            // we could make this return false.
+            // we have to do a run-time check as there could always be a deriving class
+            // which has this member.
+            m_has_member = TRI_INDETERMINATE;
         }
+    } else if (target_type->IsPrimitive()) {
+        m_has_member = TRI_FALSE;
     } else {
-        m_has_member = -1;
+        m_has_member = TRI_INDETERMINATE;
     }
 }
 
@@ -73,17 +83,17 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (!m_is_expr) {
-        AssertThrowMsg(m_has_member != -1, "m_has_member should only be -1 for expression member checks.");
+        AssertThrowMsg(m_has_member != TRI_INDETERMINATE, "m_has_member should only be -1 for expression member checks.");
     }
 
-    if (m_has_member != -1 && !m_has_side_effects) {
+    if (m_has_member != TRI_INDETERMINATE && !m_has_side_effects) {
         // get active register
         UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        if (m_has_member == 1) {
+        if (m_has_member == TRI_TRUE) {
             // load value into register
             chunk->Append(BytecodeUtil::Make<ConstBool>(rp, true));
-        } else if (m_has_member == 0) {
+        } else if (m_has_member == TRI_FALSE) {
             // load value into register
             chunk->Append(BytecodeUtil::Make<ConstBool>(rp, false));
         }
@@ -152,7 +162,7 @@ SymbolTypePtr_t AstHasExpression::GetExprType() const
 
 Tribool AstHasExpression::IsTrue() const
 {
-    return Tribool((Tribool::TriboolValue)m_has_member);
+    return m_has_member;
 }
 
 bool AstHasExpression::MayHaveSideEffects() const

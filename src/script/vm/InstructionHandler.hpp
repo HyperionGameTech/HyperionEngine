@@ -1235,19 +1235,19 @@ public:
         Number a, b;
 
         if (lhs->GetSignedOrUnsigned(&a) && rhs->GetSignedOrUnsigned(&b)) {
-            if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_SIGNED) {
+            if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_SIGNED)) {
                 thread->m_regs.m_flags = (a.i == b.i)
                     ? EQUAL : ((a.i > b.i)
                     ? GREATER : NONE);
-            } else if ((a.flags & Number::FLAG_SIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+            } else if ((a.flags & Number::FLAG_SIGNED) && (b.flags & Number::FLAG_UNSIGNED)) {
                 thread->m_regs.m_flags = (a.i == b.u)
                     ? EQUAL : ((a.i > b.u)
                     ? GREATER : NONE);
-            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_SIGNED) {
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_SIGNED)) {
                 thread->m_regs.m_flags = (a.u == b.i)
                     ? EQUAL : ((a.u > b.i)
                     ? GREATER : NONE);
-            } else if ((a.flags & Number::FLAG_UNSIGNED) && b.flags & Number::FLAG_UNSIGNED) {
+            } else if ((a.flags & Number::FLAG_UNSIGNED) && (b.flags & Number::FLAG_UNSIGNED)) {
                 thread->m_regs.m_flags = (a.u == b.u)
                     ? EQUAL : ((a.u > b.u)
                     ? GREATER : NONE);
@@ -1308,9 +1308,10 @@ public:
             // functions are never null
             thread->m_regs.m_flags = NONE;
         } else {
-            char buffer[256];
-            std::sprintf(
+            char buffer[512];
+            std::snprintf(
                 buffer,
+                512,
                 "Cannot determine if type '%s' is non-zero",
                 lhs->GetTypeString()
             );

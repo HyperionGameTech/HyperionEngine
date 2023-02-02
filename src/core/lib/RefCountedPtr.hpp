@@ -737,6 +737,18 @@ public:
 
         return rc;
     }
+
+    RefCountedPtr<const T, CountType> Lock() const
+    {
+        RefCountedPtr<const T, CountType> rc;
+        rc.m_ref = Base::m_ref;
+
+        if (Base::m_ref) {
+            ++Base::m_ref->strong_count;
+        }
+
+        return rc;
+    }
 };
 
 template <class T, class CountType = UInt>
@@ -904,6 +916,40 @@ using RC = detail::RefCountedPtr<T, CountType>;
 
 template <class T, class CountType = std::atomic<UInt>>
 using Ref = detail::RefCountedRef<T, CountType>;
+
+// template <class T, class CountType = std::atomic<UInt>>
+// class EnableRefCountedPtrFromThis
+// {
+// public:
+//     EnableRefCountedPtrFromThis() = default;
+
+//     EnableRefCountedPtrFromThis(const EnableRefCountedPtrFromThis &)
+//     {
+//         // Do not modify weak ptr
+//     }
+
+//     EnableRefCountedPtrFromThis &operator=(const EnableRefCountedPtrFromThis &)
+//     {
+//         // Do not modify weak ptr
+
+//         return *this;
+//     }
+
+//     ~EnableRefCountedPtrFromThis() = default;
+
+// protected:
+//     RC<T, CountType> RefCountedPtrFromThis()
+//         { return weak.Lock(); }
+
+//     RC<const T, CountType> RefCountedPtrFromThis() const
+//         { return weak.Lock(); }
+
+//     Weak<T, CountType> WeakFromThis()
+//         { return weak; }
+
+// private:
+//     Weak<T, CountType> weak;
+// };
 
 } // namespace hyperion
 

@@ -3,6 +3,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
+#include <script/Tribool.hpp>
 
 #include <string>
 
@@ -33,7 +34,7 @@ protected:
     std::shared_ptr<AstExpression> m_target;
     std::shared_ptr<AstPrototypeSpecification> m_type_specification;
 
-    int m_is_type;
+    Tribool m_is_type;
 
 private:
     Pointer<AstIsExpression> CloneImpl() const

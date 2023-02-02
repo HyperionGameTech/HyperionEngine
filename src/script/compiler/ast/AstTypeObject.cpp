@@ -52,8 +52,6 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 {
     AssertThrow(m_symbol_type != nullptr);
 
-    std::cout << "Begin build class " << m_symbol_type->GetName() << "\n";
-
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
     chunk->Append(BytecodeUtil::Make<Comment>("Begin class " + m_symbol_type->GetName() + (m_is_proxy_class ? " <Proxy>" : "")));
 
@@ -84,7 +82,7 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         { // add instruction to store on stack
             auto instr_push = BytecodeUtil::Make<RawOperation<>>();
             instr_push->opcode = PUSH;
-            instr_push->Accept<uint8_t>(rp);
+            instr_push->Accept<UInt8>(rp);
             chunk->Append(std::move(instr_push));
         }
 
@@ -123,9 +121,9 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
             { // store data member
                 auto instr_mov_mem = BytecodeUtil::Make<RawOperation<>>();
                 instr_mov_mem->opcode = MOV_MEM;
-                instr_mov_mem->Accept<uint8_t>(rp);
-                instr_mov_mem->Accept<uint8_t>(member_index);
-                instr_mov_mem->Accept<uint8_t>(obj_reg);
+                instr_mov_mem->Accept<UInt8>(rp);
+                instr_mov_mem->Accept<UInt8>(member_index);
+                instr_mov_mem->Accept<UInt8>(obj_reg);
                 chunk->Append(std::move(instr_mov_mem));
             }
 

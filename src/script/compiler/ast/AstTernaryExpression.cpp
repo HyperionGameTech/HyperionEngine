@@ -112,11 +112,11 @@ Tribool AstTernaryExpression::IsTrue() const
     AssertThrow(m_right != nullptr);
 
     switch (int(m_conditional->IsTrue())) {
-    case Tribool::TRI_INDETERMINATE:
+    case TRI_INDETERMINATE:
         return Tribool::Indeterminate();
-    case Tribool::TRI_FALSE:
+    case TRI_FALSE:
         return m_right->IsTrue();
-    case Tribool::TRI_TRUE:
+    case TRI_TRUE:
         return m_left->IsTrue();
     }
 
@@ -134,11 +134,11 @@ bool AstTernaryExpression::MayHaveSideEffects() const
     }
 
     switch (int(m_conditional->IsTrue())) {
-    case Tribool::TRI_INDETERMINATE:
+    case TRI_INDETERMINATE:
         return m_left->MayHaveSideEffects() || m_right->MayHaveSideEffects();
-    case Tribool::TRI_TRUE:
+    case TRI_TRUE:
         return m_left->MayHaveSideEffects();
-    case Tribool::TRI_FALSE:
+    case TRI_FALSE:
         return m_right->MayHaveSideEffects();
     }
 
@@ -152,7 +152,7 @@ SymbolTypePtr_t AstTernaryExpression::GetExprType() const
     AssertThrow(m_right != nullptr);
 
     switch (int(m_conditional->IsTrue())) {
-    case Tribool::TRI_INDETERMINATE: {
+    case TRI_INDETERMINATE: {
         AssertThrow(m_left != nullptr);
 
         SymbolTypePtr_t l_type_ptr = m_left->GetExprType();
@@ -171,9 +171,9 @@ SymbolTypePtr_t AstTernaryExpression::GetExprType() const
             return l_type_ptr;
         }
     }
-    case Tribool::TRI_TRUE:
+    case TRI_TRUE:
         return m_left->GetExprType();
-    case Tribool::TRI_FALSE:
+    case TRI_FALSE:
         return m_right->GetExprType();
     }
 

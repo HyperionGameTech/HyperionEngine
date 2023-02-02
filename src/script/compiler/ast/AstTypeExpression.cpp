@@ -82,7 +82,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     );
 
     if (m_is_proxy_class) {
-        m_symbol_type->GetFlags() |= SymbolTypeFlags::SYMBOL_TYPE_FLAGS_PROXY;
+        m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
     }
 
     m_expr.reset(new AstTypeObject(

@@ -41,21 +41,21 @@ std::shared_ptr<AstExpression> Optimizer::OptimizeExpr(
     AssertThrow(expr != nullptr);
     expr->Optimize(visitor, mod);
 
-    if (const AstVariable *expr_as_var = dynamic_cast<AstVariable*>(expr.get())) {
+    if (const AstIdentifier *expr_as_identifier = dynamic_cast<AstIdentifier *>(expr.get())) {
         // the side is a variable, so we can further optimize by inlining,
-        // only if it is const, and a literal.
-        if (const std::shared_ptr<Identifier> &ident = expr_as_var->GetProperties().GetIdentifier()) {
-            if (const auto current_value = ident->GetCurrentValue()) {
-                if (ident->GetFlags() & FLAG_CONST) {
+        // only if it is literal.
+        if (expr_as_identifier->IsLiteral()) {
+            if (const std::shared_ptr<Identifier> &ident = expr_as_identifier->GetProperties().GetIdentifier()) {
+                if (const std::shared_ptr<AstExpression> &current_value = ident->GetCurrentValue()) {
                     // decrement use count because it would have been incremented by Visit()
                     ident->DecUseCount();
                     return Optimizer::OptimizeExpr(current_value, visitor, mod);
                 }
             }
         }
-    } else if (AstBinaryExpression *expr_as_binop = dynamic_cast<AstBinaryExpression*>(expr.get())) {
+    } else if (const AstBinaryExpression *expr_as_binop = dynamic_cast<AstBinaryExpression *>(expr.get())) {
         if (expr_as_binop->GetRight() == nullptr) {
-            // right side has been optimized away, to just left side
+            // right side has been optimized away
             return Optimizer::OptimizeExpr(expr_as_binop->GetLeft(), visitor, mod);
         }
     }

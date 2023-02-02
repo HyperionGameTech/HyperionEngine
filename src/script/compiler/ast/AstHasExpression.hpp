@@ -32,7 +32,7 @@ protected:
     std::string m_field_name;
 
     // set while analyzing
-    int m_has_member;
+    Tribool m_has_member;
     // is it a check if an expression has the member,
     // or is it a check if a type has a member?
     bool m_is_expr;

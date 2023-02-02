@@ -2,6 +2,7 @@
 #define INTERNAL_BYTE_STREAM_HPP
 
 #include <script/compiler/emit/Buildable.hpp>
+#include <Types.hpp>
 
 #include <map>
 #include <sstream>
@@ -12,37 +13,34 @@ namespace hyperion::compiler {
 
 class InternalByteStream {
 public:
-    struct Fixup {
+    struct Fixup
+    {
         LabelId label_id;
-        size_t position;
-        size_t offset;
+        SizeType position;
+        SizeType offset;
     };
 
-    size_t GetSize() const
-    {
-        return m_stream.size();
-    }
+    SizeType GetSize() const
+        { return m_stream.size();  }
 
-    void Put(std::uint8_t byte)
-    {
-        m_stream.push_back(byte);
-    }
+    void Put(UByte byte)
+        { m_stream.push_back(byte); }
 
-    void Put(const std::uint8_t *bytes, size_t size)
+    void Put(const UByte *bytes, SizeType size)
     {
-        for (size_t i = 0; i < size; i++) {
+        for (SizeType i = 0; i < size; i++) {
             m_stream.push_back(bytes[i]);
         }
     }
 
     void MarkLabel(LabelId label_id);
-    void AddFixup(LabelId label_id, size_t offset = 0);
+    void AddFixup(LabelId label_id, SizeType offset = 0);
 
-    std::vector<std::uint8_t> &Bake();
+    std::vector<UByte> &Bake();
 
 private:
     std::map<LabelId, LabelInfo> m_labels;
-    std::vector<std::uint8_t> m_stream;
+    std::vector<UByte> m_stream;
     std::vector<Fixup> m_fixups;
 };
 

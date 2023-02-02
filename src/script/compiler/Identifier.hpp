@@ -14,19 +14,19 @@ using IdentifierFlagBits = UInt;
 
 enum IdentifierFlags : IdentifierFlagBits
 {
-   FLAG_CONST                = 0b0000000000001,
-   FLAG_ALIAS                = 0b0000000000010,
-   FLAG_MIXIN                = 0b0000000000100,
-   FLAG_GENERIC              = 0b0000000001000,
-   FLAG_DECLARED_IN_FUNCTION = 0b0000000010000,
-   FLAG_PLACEHOLDER          = 0b0000000100000,
-   FLAG_ACCESS_PRIVATE       = 0b0000001000000,
-   FLAG_ACCESS_PUBLIC        = 0b0000010000000,
-   FLAG_ACCESS_PROTECTED     = 0b0000100000000,
-   FLAG_ARGUMENT             = 0b0001000000000,
-   FLAG_REF                  = 0b0010000000000,
-   FLAG_ENUM                 = 0b0100000000000,
-   FLAG_MEMBER               = 0b0100000000000
+   FLAG_CONST                = 0x1,
+   FLAG_ALIAS                = 0x2,
+   FLAG_MIXIN                = 0x4,
+   FLAG_GENERIC              = 0x8,
+   FLAG_DECLARED_IN_FUNCTION = 0x10,
+   FLAG_PLACEHOLDER          = 0x20,
+   FLAG_ACCESS_PRIVATE       = 0x40,
+   FLAG_ACCESS_PUBLIC        = 0x80,
+   FLAG_ACCESS_PROTECTED     = 0x100,
+   FLAG_ARGUMENT             = 0x200,
+   FLAG_REF                  = 0x400,
+   FLAG_ENUM                 = 0x800,
+   FLAG_MEMBER               = 0x1000
 };
 
 class Identifier
@@ -52,7 +52,7 @@ public:
     bool IsReassigned() const { return m_is_reassigned; }
     void SetIsReassigned(bool is_reassigned) { m_is_reassigned = is_reassigned; }
 
-    std::shared_ptr<AstExpression> GetCurrentValue() const { return Unalias()->m_current_value; }
+    const std::shared_ptr<AstExpression> &GetCurrentValue() const { return Unalias()->m_current_value; }
     void SetCurrentValue(const std::shared_ptr<AstExpression> &expr) { Unalias()->m_current_value = expr; }
     const SymbolTypePtr_t &GetSymbolType() const { return Unalias()->m_symbol_type; }
     void SetSymbolType(const SymbolTypePtr_t &symbol_type) { Unalias()->m_symbol_type = symbol_type; }

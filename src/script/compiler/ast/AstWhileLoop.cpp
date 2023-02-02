@@ -49,10 +49,11 @@ std::unique_ptr<Buildable> AstWhileLoop::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    int condition_is_true = m_conditional->IsTrue();
-    if (condition_is_true == -1) {
+    const Tribool condition_is_true = m_conditional->IsTrue();
+
+    if (condition_is_true == TRI_INDETERMINATE) {
         // the condition cannot be determined at compile time
-        uint8_t rp;
+        UInt8 rp;
 
         LabelId top_label = chunk->NewLabel();
 
@@ -90,7 +91,7 @@ std::unique_ptr<Buildable> AstWhileLoop::Build(AstVisitor *visitor, Module *mod)
         // set the label's position to after the block,
         // so we can skip it if the condition is false
         chunk->Append(BytecodeUtil::Make<LabelMarker>(break_label));
-    } else if (condition_is_true) {
+    } else if (condition_is_true == TRI_TRUE) {
         LabelId top_label = chunk->NewLabel();
         chunk->Append(BytecodeUtil::Make<LabelMarker>(top_label));
 
@@ -113,7 +114,7 @@ std::unique_ptr<Buildable> AstWhileLoop::Build(AstVisitor *visitor, Module *mod)
 
         // jump back to top here
         chunk->Append(BytecodeUtil::Make<Jump>(Jump::JMP, top_label));
-    } else {
+    } else { // false
         // the condition has been determined to be false
         if (m_conditional->MayHaveSideEffects()) {
             // if there is a possibility of side effects,

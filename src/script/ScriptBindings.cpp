@@ -608,6 +608,53 @@ static HYP_SCRIPT_FUNCTION(Runtime_GetMemoryAddress)
     HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
+static HYP_SCRIPT_FUNCTION(Runtime_IsInstance)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::Value *arg0 = params.args[0];
+    vm::Value *arg1 = params.args[1];
+
+    if (!arg0) {
+        HYP_SCRIPT_RETURN_BOOLEAN(false);
+    }
+
+    if (!arg1) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+    }
+    
+    vm::VMObject *class_object_ptr = nullptr;
+
+    if (!arg1->GetPointer<vm::VMObject>(&class_object_ptr)) {
+        HYP_SCRIPT_THROW(vm::Exception("Parameter 'cls' is not an object"));
+    }
+
+    vm::VMObject *target_ptr = nullptr;
+    bool is_instance = false;
+
+    if (arg0->GetPointer<vm::VMObject>(&target_ptr)) {
+        // target is an object, we compare the base class of target
+        // to the value we have in class_object_ptr.
+
+        HeapValue *target_base = target_ptr->GetBaseObject();
+        vm::VMObject *target_base_object = nullptr;
+
+        if (target_base != nullptr && (target_base_object = target_base->GetPointer<vm::VMObject>())) {
+            is_instance = (*target_base_object == *class_object_ptr);
+        }
+    } else {
+        Member *proto_mem = class_object_ptr->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
+
+        if (proto_mem != nullptr) {
+            // check target's type is equal to the type of $proto value,
+            // since it is not an object pointer
+            is_instance = (arg0->m_type == proto_mem->value.m_type);
+        }
+    }
+
+    HYP_SCRIPT_RETURN_BOOLEAN(is_instance);
+}
+
 static HYP_SCRIPT_FUNCTION(EntityGetName)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
@@ -959,6 +1006,15 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 { "value", BuiltinTypes::ANY }
             },
             Runtime_GetMemoryAddress
+        )
+        .Function(
+            "IsInstance",
+            BuiltinTypes::BOOLEAN,
+            {
+                { "target", BuiltinTypes::ANY },
+                { "cls", BuiltinTypes::ANY },
+            },
+            Runtime_IsInstance
         );
 
     api_instance.Module("reflect")

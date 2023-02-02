@@ -134,14 +134,14 @@ public:
             m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
                 Color(1.0f, 0.7f, 0.4f),
-                15.0f
+                8.0f
             )));
             m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
             m_sun->AddController<ShadowMapController>();
             GetScene()->AddEntity(m_sun);
         }
         
-        if (true) { // adding lights to scene
+        if (false) { // adding lights to scene
 
             // m_scene->AddLight(m_sun);
 
@@ -271,7 +271,7 @@ public:
         
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/victorian-salon/victorian-salon.obj");////"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//"victorian-salon/victorian-salon.obj");////"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -309,7 +309,7 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        test_model.Scale(0.625f);
+        test_model.Scale(0.0225f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(

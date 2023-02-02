@@ -17,10 +17,10 @@ SymbolType::SymbolType(
     const SymbolTypePtr_t &base
 ) : m_name(name),
     m_type_class(type_class),
-    m_base(base),
     m_default_value(nullptr),
+    m_base(base),
     m_id(-1),
-    m_flags(0)
+    m_flags(SYMBOL_TYPE_FLAGS_NONE)
 {
 }
 
@@ -32,20 +32,20 @@ SymbolType::SymbolType(
     const vec<SymbolMember_t> &members
 ) : m_name(name),
     m_type_class(type_class),
-    m_base(base),
     m_default_value(default_value),
     m_members(members),
+    m_base(base),
     m_id(0),
-    m_flags(0)
+    m_flags(SYMBOL_TYPE_FLAGS_NONE)
 {
 }
 
 SymbolType::SymbolType(const SymbolType &other)
     : m_name(other.m_name),
       m_type_class(other.m_type_class),
-      m_base(other.m_base),
       m_default_value(other.m_default_value),
       m_members(other.m_members),
+      m_base(other.m_base),
       m_id(other.m_id),
       m_flags(other.m_flags)
 {
@@ -70,7 +70,7 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
             return true;
         case TYPE_ALIAS:
             if (SymbolTypePtr_t sp = m_alias_info.m_aliasee.lock()) {
-                return (*sp) == other;
+                return *sp == other;
             }
 
             return false;
@@ -90,7 +90,7 @@ bool SymbolType::TypeEqual(const SymbolType &other) const
                 }
 
                 for (const SymbolTypePtr_t &j : other.m_function_info.m_param_types) {
-                    if (j == nullptr || !((*i) == (*j))) {
+                    if (j == nullptr || !(*i == *j)) {
                         return false;
                     }
                 }
@@ -182,13 +182,9 @@ bool SymbolType::TypeCompatible(
         return true;
     }
 
-    if (TypeEqual(*BuiltinTypes::ANY) || right.TypeEqual(*BuiltinTypes::ANY)) {
+    if (IsAnyType() || right.IsAnyType()) {
         return true;
     }
-
-    // if (IsAnyType() || IsAnyType()) {
-    //     return true;
-    // }
 
     if (IsProxyClass()) {
         // TODO:
@@ -355,6 +351,25 @@ bool SymbolType::FindMember(const std::string &name, SymbolMember_t &out) const
     return false;
 }
 
+bool SymbolType::FindMemberDeep(const std::string &name, SymbolMember_t &out) const
+{
+    if (FindMember(name, out)) {
+        return true;
+    }
+
+    SymbolTypePtr_t base_ptr = GetBaseType();
+
+    while (base_ptr != nullptr) {
+        if (base_ptr->FindMember(name, out)) {
+            return true;
+        }
+
+        base_ptr = base_ptr->GetBaseType();
+    }
+
+    return false;
+}
+
 const SymbolTypePtr_t SymbolType::FindPrototypeMember(const std::string &name) const
 {
     if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
@@ -376,6 +391,52 @@ bool SymbolType::FindPrototypeMember(const std::string &name, SymbolMember_t &ou
     }
 
     return false;
+}
+
+bool SymbolType::FindPrototypeMemberDeep(const std::string &name, SymbolMember_t &out) const
+{
+    if (FindPrototypeMember(name, out)) {
+        return true;
+    }
+
+    SymbolTypePtr_t base_ptr = GetBaseType();
+
+    while (base_ptr != nullptr) {
+        if (base_ptr->FindPrototypeMember(name, out)) {
+            return true;
+        }
+
+        base_ptr = base_ptr->GetBaseType();
+    }
+
+    return false;
+}
+
+bool SymbolType::FindPrototypeMember(const std::string &name, SymbolMember_t &out, UInt &out_index) const
+{
+    bool found = false;
+
+    // for instance members (do it last, so it can be overridden by instances)
+    if (SymbolTypePtr_t proto_type = FindMember("$proto")) {
+        // get member index from name
+        for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
+            const SymbolMember_t &member = proto_type->GetMembers()[i];
+
+            if (std::get<0>(member) == name) {
+                // only set m_found_index if found in first level.
+                // for members from base objects,
+                // we load based on hash.
+                out_index = UInt(i);
+                out = member;
+
+                found = true;
+
+                break;
+            }
+        }
+    }
+
+    return found;
 }
 
 bool SymbolType::IsOrHasBase(const SymbolType &base_type) const
@@ -414,6 +475,11 @@ SymbolTypePtr_t SymbolType::GetUnaliased()
 bool SymbolType::IsClass() const
 {
     return IsOrHasBase(*BuiltinTypes::CLASS_TYPE);
+}
+
+bool SymbolType::IsObject() const
+{
+    return IsOrHasBase(*BuiltinTypes::OBJECT);
 }
 
 bool SymbolType::IsAnyType() const
@@ -495,6 +561,11 @@ bool SymbolType::IsGeneric() const
     return false;
 }
 
+bool SymbolType::IsPrimitive() const
+{
+    return IsOrHasBase(*BuiltinTypes::PRIMITIVE_TYPE);
+}
+
 SymbolTypePtr_t SymbolType::Alias(
     const std::string &name,
     const AliasTypeInfo &info
@@ -522,7 +593,7 @@ SymbolTypePtr_t SymbolType::Primitive(const std::string &name,
     return SymbolTypePtr_t(new SymbolType(
         name,
         TYPE_BUILTIN,
-        BuiltinTypes::CLASS_TYPE,
+        BuiltinTypes::PRIMITIVE_TYPE,
         default_value,
         {}
     ));

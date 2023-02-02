@@ -25,7 +25,7 @@ AstUnsignedInteger::AstUnsignedInteger(hyperion::UInt32 value, const SourceLocat
 std::unique_ptr<Buildable> AstUnsignedInteger::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     return BytecodeUtil::Make<ConstU32>(rp, m_value);
 }
 

@@ -8,6 +8,10 @@
 #include <cstring>
 #include <cstdlib>
 
+#ifdef HYP_WINDOWS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 namespace hyperion
 {
 
@@ -18,10 +22,6 @@ public:
     {
         return std::memcmp(lhs, rhs, size);
     }
-
-#ifdef HYP_WINDOWS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 
     static Int StringCompare(const char *lhs, const char *rhs, SizeType length = 0)
     {
@@ -55,10 +55,6 @@ public:
 
         return std::strlen(str);
     }
-
-#ifdef HYP_WINDOWS
-#undef _CRT_SECURE_NO_WARNINGS
-#endif
 
     static inline void *Set(void *dest, int ch, SizeType size)
     {

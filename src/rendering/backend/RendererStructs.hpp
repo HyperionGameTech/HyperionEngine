@@ -84,7 +84,7 @@ struct StencilState
 
 struct VertexAttribute
 {
-    enum Type : UInt32
+    enum Type : UInt64
     {
         MESH_INPUT_ATTRIBUTE_UNDEFINED    = 0x0,
         MESH_INPUT_ATTRIBUTE_POSITION     = 0x1,

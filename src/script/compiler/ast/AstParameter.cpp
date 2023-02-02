@@ -114,7 +114,7 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
     if (m_default_param != nullptr) {
         chunk->Append(m_default_param->Build(visitor, mod));
 
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         chunk->Append(BytecodeUtil::Make<StoreLocal>(rp));
     }
 

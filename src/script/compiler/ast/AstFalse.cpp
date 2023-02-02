@@ -62,11 +62,11 @@ std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, const A
 
         case OP_logical_or:
             switch (right->IsTrue()) {
-                case Tribool::TriboolValue::TRI_TRUE:
+                case TRI_TRUE:
                     return std::shared_ptr<AstTrue>(new AstTrue(m_location));
-                case Tribool::TriboolValue::TRI_FALSE:
+                case TRI_FALSE:
                     return std::shared_ptr<AstFalse>(new AstFalse(m_location));
-                case Tribool::TriboolValue::TRI_INDETERMINATE:
+                case TRI_INDETERMINATE:
                     return nullptr;
             }
 

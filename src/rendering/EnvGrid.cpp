@@ -233,19 +233,6 @@ void EnvGrid::OnRender(Frame *frame)
         } else {
             m_current_probe_index = (m_current_probe_index + 1) % num_ambient_probes;
         }
-            
-        // for (UInt index = 0; index < num_ambient_probes; index++) {
-        //     const Handle<EnvProbe> &env_probe = m_ambient_probes[index];
-        //     const EnvProbeIndex &bound_index = env_probe->GetBoundIndex();
-
-        //     const UInt probe_index = bound_index.GetProbeIndex();
-
-        //     if (probe_index < max_bound_ambient_probes) {
-        //         const UInt component_index = probe_index / 32;
-
-        //         m_shader_data.enabled_indices_mask[component_index] |= (1u << (probe_index & 31));
-        //     }
-        // }
     }
     
     m_shader_data.extent = Vector4(m_aabb.GetExtent(), 1.0f);

@@ -50,7 +50,7 @@ static Matrix4 BuildJitterMatrix(const Camera &camera, UInt frame_counter)
 
     static const HaltonSequence halton;
 
-    const Vector2 pixel_size = Vector2::one / Vector2(camera.GetWidth(), camera.GetHeight());
+    const Vector2 pixel_size = Vector2::one / Vector2(Float(MathUtil::Abs(camera.GetWidth())), Float(MathUtil::Abs(camera.GetHeight())));
     const UInt index = frame_counter % HaltonSequence::size;
 
     const Vector2 jitter = halton.sequence[index] * 2.0f - 1.0f;

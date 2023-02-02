@@ -1,23 +1,24 @@
 #ifndef OPERATOR_HPP
 #define OPERATOR_HPP
 
+#include <Types.hpp>
+
 #include <map>
 #include <string>
 
 namespace hyperion::compiler {
 
-using OperatorTypeBits = uint32_t;
+using OperatorTypeBits = UInt32;
 
 enum OperatorType : OperatorTypeBits
 {
-    ARITHMETIC = 1,
-    BITWISE    = 2,
-    LOGICAL    = 4,
-    COMPARISON = 8,
-    ASSIGNMENT = 16,
-
-    PREFIX     = 32,
-    POSTFIX    = 64
+    ARITHMETIC = 0x1,
+    BITWISE    = 0x2,
+    LOGICAL    = 0x4,
+    COMPARISON = 0x8,
+    ASSIGNMENT = 0x10,
+    PREFIX     = 0x20,
+    POSTFIX    = 0x40
 };
 
 enum Operators

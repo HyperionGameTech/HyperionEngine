@@ -39,11 +39,11 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
     AssertThrow(static_id != -1);
 
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     // store object's register location
-    uint8_t obj_reg = rp;
+    UInt8 obj_reg = rp;
     // store the original register location of the object
-    const uint8_t original_obj_reg = obj_reg;
+    const UInt8 original_obj_reg = obj_reg;
 
     {
         auto instr_type = BytecodeUtil::Make<BuildableType>();
@@ -60,15 +60,15 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
     { // store newly allocated object in same register
         auto instr_new = BytecodeUtil::Make<RawOperation<>>();
         instr_new->opcode = NEW;
-        instr_new->Accept<uint8_t>(obj_reg); // dst
-        instr_new->Accept<uint8_t>(obj_reg); // src (holds type)
+        instr_new->Accept<UInt8>(obj_reg); // dst
+        instr_new->Accept<UInt8>(obj_reg); // src (holds type)
         chunk->Append(std::move(instr_new));
     }
 
     { // store the type on the stack
         auto instr_push = BytecodeUtil::Make<RawOperation<>>();
         instr_push->opcode = PUSH;
-        instr_push->Accept<uint8_t>(obj_reg); // src
+        instr_push->Accept<UInt8>(obj_reg); // src
         chunk->Append(std::move(instr_push));
     }
 
@@ -108,17 +108,17 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         { // load type from stack
             auto instr_load_offset = BytecodeUtil::Make<RawOperation<>>();
             instr_load_offset->opcode = LOAD_OFFSET;
-            instr_load_offset->Accept<uint8_t>(obj_reg);
-            instr_load_offset->Accept<uint16_t>(diff);
+            instr_load_offset->Accept<UInt8>(obj_reg);
+            instr_load_offset->Accept<UInt16>(diff);
             chunk->Append(std::move(instr_load_offset));
         }
 
         { // store data member
             auto instr_mov_mem = BytecodeUtil::Make<RawOperation<>>();
             instr_mov_mem->opcode = MOV_MEM;
-            instr_mov_mem->Accept<uint8_t>(obj_reg);
-            instr_mov_mem->Accept<uint8_t>(i);
-            instr_mov_mem->Accept<uint8_t>(rp - 1);
+            instr_mov_mem->Accept<UInt8>(obj_reg);
+            instr_mov_mem->Accept<UInt8>(i);
+            instr_mov_mem->Accept<UInt8>(rp - 1);
             chunk->Append(std::move(instr_mov_mem));
         }
 
@@ -135,8 +135,8 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         if (obj_reg != rp) {
             auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();
             instr_mov_reg->opcode = MOV_REG;
-            instr_mov_reg->Accept<uint8_t>(rp);
-            instr_mov_reg->Accept<uint8_t>(obj_reg);
+            instr_mov_reg->Accept<UInt8>(rp);
+            instr_mov_reg->Accept<UInt8>(obj_reg);
             chunk->Append(std::move(instr_mov_reg));
             
             obj_reg = rp;
@@ -159,8 +159,8 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         // move the value in obj_reg into the original location
         auto instr_mov_reg = BytecodeUtil::Make<RawOperation<>>();
         instr_mov_reg->opcode = MOV_REG;
-        instr_mov_reg->Accept<uint8_t>(original_obj_reg);
-        instr_mov_reg->Accept<uint8_t>(obj_reg);
+        instr_mov_reg->Accept<UInt8>(original_obj_reg);
+        instr_mov_reg->Accept<UInt8>(obj_reg);
         chunk->Append(std::move(instr_mov_reg));
     }
 

@@ -316,7 +316,6 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
             }
         }
 
-
 #if ACE_ENABLE_VARIABLE_INLINING
     }
 #endif
@@ -375,8 +374,28 @@ bool AstVariable::MayHaveSideEffects() const
 
 bool AstVariable::IsLiteral() const
 {
+    if (SymbolTypePtr_t expr_type = GetExprType()) {
+        expr_type = expr_type->GetUnaliased();
+
+        if (expr_type->IsObject() || expr_type->IsClass()) {
+            return false;
+        }
+
+        if (expr_type->IsAnyType()) {
+            return false;
+        }
+
+        if (expr_type->GetTypeClass() != TYPE_BUILTIN) {
+            return false;
+        }
+    } else {
+        // undefined
+        return false;
+    }
+
     if (m_should_inline) {
         AssertThrow(m_inline_value != nullptr);
+
         return m_inline_value->IsLiteral();
     }
 
@@ -394,8 +413,9 @@ bool AstVariable::IsLiteral() const
 
         const bool is_const = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_CONST;
         const bool is_generic = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_GENERIC;
+        const bool is_argument = ident_unaliased->GetFlags() & IdentifierFlags::FLAG_ARGUMENT;
 
-        return is_const || is_generic;
+        return !is_argument && (is_const || is_generic);
     }
 
     return false;
@@ -405,6 +425,7 @@ SymbolTypePtr_t AstVariable::GetExprType() const
 {
     if (m_should_inline) {
         AssertThrow(m_inline_value != nullptr);
+
         return m_inline_value->GetExprType();
     }
 

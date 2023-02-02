@@ -281,7 +281,8 @@ std::unique_ptr<Buildable> Compiler::LoadRightThenLeft(AstVisitor *visitor, Modu
 std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
     AstVisitor *visitor,
     Module *mod,
-    Compiler::ExprInfo info)
+    Compiler::ExprInfo info
+)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
@@ -338,10 +339,12 @@ std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
     return std::move(chunk);
 }
 
-std::unique_ptr<Buildable> Compiler::BuildBinOp(UInt8 opcode,
+std::unique_ptr<Buildable> Compiler::BuildBinOp(
+    UInt8 opcode,
     AstVisitor *visitor,
     Module *mod,
-    Compiler::ExprInfo info)
+    Compiler::ExprInfo info
+)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 

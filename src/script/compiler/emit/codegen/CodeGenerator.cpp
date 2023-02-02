@@ -20,7 +20,7 @@ void CodeGenerator::Visit(BytecodeChunk *chunk)
     }
 
     // bake the chunk's byte stream
-    const std::vector<std::uint8_t> &chunk_bytes = chunk_generator.GetInternalByteStream().Bake();
+    const std::vector<UByte> &chunk_bytes = chunk_generator.GetInternalByteStream().Bake();
 
     // append bytes to this chunk's InternalByteStream
     m_ibs.Put(chunk_bytes.data(), chunk_bytes.size());

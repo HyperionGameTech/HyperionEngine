@@ -1,6 +1,8 @@
 #ifndef SYMBOL_TYPE_HPP
 #define SYMBOL_TYPE_HPP
 
+#include <Types.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,8 +21,18 @@ class AstExpression;
 class AstTypeObject;
 class AstArgument;
 
+
 using SymbolTypePtr_t = sp<SymbolType>;
 using SymbolTypeWeakPtr_t = wp<SymbolType>;
+
+
+// struct SymbolMember
+// {
+//     String name;
+//     SymbolTypePtr_t type;
+//     std::shared_ptr<AstExpression> expr;
+// };
+
 using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, sp<AstExpression>>;
 using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<std::shared_ptr<AstArgument>>>;
 
@@ -36,7 +48,9 @@ enum SymbolTypeClass
     TYPE_GENERIC_PARAMETER
 };
 
-enum SymbolTypeFlags
+using SymbolTypeFlags = UInt32;
+
+enum SymbolTypeFlagsBits : SymbolTypeFlags
 {
     SYMBOL_TYPE_FLAGS_NONE = 0x0,
     SYMBOL_TYPE_FLAGS_PROXY = 0x1
@@ -239,8 +253,8 @@ public:
     int GetId() const { return m_id; }
     void SetId(int id) { m_id = id; }
 
-    int GetFlags() const { return m_flags; }
-    int &GetFlags() { return m_flags; }
+    SymbolTypeFlags GetFlags() const { return m_flags; }
+    SymbolTypeFlags &GetFlags() { return m_flags; }
 
     bool IsAlias() const { return m_type_class == TYPE_ALIAS; }
 
@@ -256,9 +270,12 @@ public:
 
     const SymbolTypePtr_t FindMember(const std::string &name) const;
     bool FindMember(const std::string &name, SymbolMember_t &out) const;
+    bool FindMemberDeep(const std::string &name, SymbolMember_t &out) const;
 
     const SymbolTypePtr_t FindPrototypeMember(const std::string &name) const;
     bool FindPrototypeMember(const std::string &name, SymbolMember_t &out) const;
+    bool FindPrototypeMember(const std::string &name, SymbolMember_t &out, UInt &out_index) const;
+    bool FindPrototypeMemberDeep(const std::string &name, SymbolMember_t &out) const;
 
     const sp<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }
@@ -274,6 +291,7 @@ public:
     SymbolTypePtr_t GetUnaliased();
     
     bool IsClass() const;
+    bool IsObject() const;
     bool IsAnyType() const;
     bool IsNullType() const;
     bool IsNullableType() const;
@@ -282,6 +300,7 @@ public:
     /** Is is an uninstantiated generic parameter? (e.g T) */
     bool IsGenericParameter() const;
     bool IsGeneric() const;
+    bool IsPrimitive() const;
 
     bool IsProxyClass() const
         { return m_flags & SYMBOL_TYPE_FLAGS_PROXY; }
@@ -309,7 +328,7 @@ private:
     GenericParameterTypeInfo m_generic_param_info;
 
     int m_id;
-    int m_flags;
+    SymbolTypeFlags m_flags;
 };
 
 } // namespace hyperion::compiler

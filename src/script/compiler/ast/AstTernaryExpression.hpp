@@ -9,7 +9,8 @@
 namespace hyperion {
 namespace compiler {
 
-class AstTernaryExpression : public AstExpression {
+class AstTernaryExpression : public AstExpression
+{
 public:
     AstTernaryExpression(
         const std::shared_ptr<AstExpression> &conditional,

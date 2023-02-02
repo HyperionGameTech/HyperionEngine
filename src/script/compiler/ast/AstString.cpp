@@ -20,7 +20,7 @@ AstString::AstString(const std::string &value, const SourceLocation &location)
 std::unique_ptr<Buildable> AstString::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     auto instr_string = BytecodeUtil::Make<BuildableString>();
     instr_string->reg = rp;
@@ -68,11 +68,11 @@ std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, const 
         case OP_logical_and:
             // literal strings evaluate to true.
             switch (right->IsTrue()) {
-                case Tribool::TriboolValue::TRI_TRUE:
+                case TRI_TRUE:
                     return std::shared_ptr<AstTrue>(new AstTrue(m_location));
-                case Tribool::TriboolValue::TRI_FALSE:
+                case TRI_FALSE:
                     return std::shared_ptr<AstFalse>(new AstFalse(m_location));
-                case Tribool::TriboolValue::TRI_INDETERMINATE:
+                case TRI_INDETERMINATE:
                     return nullptr;
             }
 
