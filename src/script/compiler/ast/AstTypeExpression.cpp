@@ -21,9 +21,9 @@ namespace hyperion::compiler {
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
     const RC<AstPrototypeSpecification> &base_specification,
-    const std::vector<RC<AstVariableDeclaration>> &data_members,
-    const std::vector<RC<AstVariableDeclaration>> &function_members,
-    const std::vector<RC<AstVariableDeclaration>> &static_members,
+    const Array<RC<AstVariableDeclaration>> &data_members,
+    const Array<RC<AstVariableDeclaration>> &function_members,
+    const Array<RC<AstVariableDeclaration>> &static_members,
     const SymbolTypePtr_t &enum_underlying_type,
     bool is_proxy_class,
     const SourceLocation &location
@@ -41,9 +41,9 @@ AstTypeExpression::AstTypeExpression(
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
     const RC<AstPrototypeSpecification> &base_specification,
-    const std::vector<RC<AstVariableDeclaration>> &data_members,
-    const std::vector<RC<AstVariableDeclaration>> &function_members,
-    const std::vector<RC<AstVariableDeclaration>> &static_members,
+    const Array<RC<AstVariableDeclaration>> &data_members,
+    const Array<RC<AstVariableDeclaration>> &function_members,
+    const Array<RC<AstVariableDeclaration>> &static_members,
     bool is_proxy_class,
     const SourceLocation &location
 ) : AstTypeExpression(
@@ -189,7 +189,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // ===== INSTANCE DATA MEMBERS =====
 
-    m_combined_members.reserve(m_data_members.size() + m_function_members.size());
+    m_combined_members.Reserve(m_data_members.Size() + m_function_members.Size());
 
     // open the scope for data members
     {
@@ -209,7 +209,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     mem->GetRealAssignment()
                 ));
 
-                m_combined_members.push_back(mem);
+                m_combined_members.PushBack(mem);
             }
         }
 
@@ -235,7 +235,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     mem->GetRealAssignment()
                 ));
 
-                m_combined_members.push_back(mem);
+                m_combined_members.PushBack(mem);
             }
         }
     }

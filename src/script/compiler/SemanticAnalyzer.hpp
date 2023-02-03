@@ -25,15 +25,15 @@ public:
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &identifier_type, 
-            const std::vector<RC<AstArgument>> &args,
+            const Array<RC<AstArgument>> &args,
             const SourceLocation &location
         );
 
-        // static std::vector<RC<AstArgument>> SubstituteGenericArgs(
+        // static Array<RC<AstArgument>> SubstituteGenericArgs(
         //     AstVisitor *visitor,
         //     Module *mod,
-        //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-        //     const std::vector<RC<AstArgument>> &args,
+        //     const Array<GenericInstanceTypeInfo::Arg> &generic_args,
+        //     const Array<RC<AstArgument>> &args,
         //     const SourceLocation &location
         // );
 
@@ -41,15 +41,15 @@ public:
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &identifier_type, 
-            const std::vector<RC<AstArgument>> &args,
+            const Array<RC<AstArgument>> &args,
             const SourceLocation &location
         );
 
         // static void EnsureFunctionArgCompatibility(
         //     AstVisitor *visitor,
         //     Module *mod,
-        //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-        //     const std::vector<RC<AstArgument>> &args,
+        //     const Array<GenericInstanceTypeInfo::Arg> &generic_args,
+        //     const Array<RC<AstArgument>> &args,
         //     const SourceLocation &location
         // );
 

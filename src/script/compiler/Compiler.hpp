@@ -33,7 +33,7 @@ public:
     static std::unique_ptr<Buildable> BuildArgumentsStart(
         AstVisitor *visitor,
         Module *mod,
-        const std::vector<RC<AstArgument>> &args
+        const Array<RC<AstArgument>> &args
     );
 
     static std::unique_ptr<Buildable> BuildArgumentsEnd(

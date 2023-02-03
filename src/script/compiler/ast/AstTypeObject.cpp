@@ -66,13 +66,13 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         instr_type->name = m_symbol_type->GetName();
 
         for (const SymbolMember_t &mem : m_symbol_type->GetMembers()) {
-            instr_type->members.push_back(std::get<0>(mem));
+            instr_type->members.PushBack(std::get<0>(mem));
         }
 
         chunk->Append(std::move(instr_type));
     }
 
-    if (!m_symbol_type->GetMembers().empty()) {
+    if (m_symbol_type->GetMembers().Any()) {
         // push the class to the stack
         const auto class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 

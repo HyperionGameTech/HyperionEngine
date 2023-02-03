@@ -19,10 +19,10 @@ public:
 
     int CountUsedVariables() const;
     
-    std::vector<RC<Identifier>> &GetIdentifiers()
+    Array<RC<Identifier>> &GetIdentifiers()
         { return m_identifiers; }
 
-    const std::vector<RC<Identifier>> &GetIdentifiers() const
+    const Array<RC<Identifier>> &GetIdentifiers() const
         { return m_identifiers; }
 
     /** Constructs an identifier with the given name, as an alias to the given identifier. */
@@ -48,7 +48,7 @@ public:
     /** Look up an instance of a generic type, with the given parameters*/
     SymbolTypePtr_t LookupGenericInstance(
         const SymbolTypePtr_t &base, 
-        const std::vector<GenericInstanceTypeInfo::Arg> &params
+        const Array<GenericInstanceTypeInfo::Arg> &params
     ) const;
         
     void AddSymbolType(const SymbolTypePtr_t &type);
@@ -57,10 +57,10 @@ private:
     /** To be incremented every time a new identifier is added */
     int m_identifier_index;
     /** List of all identifiers in the table */
-    std::vector<RC<Identifier>> m_identifiers;
+    Array<RC<Identifier>> m_identifiers;
 
     /** All types that are defined in this identifier table */
-    std::vector<SymbolTypePtr_t> m_symbol_types;
+    Array<SymbolTypePtr_t> m_symbol_types;
 };
 
 } // namespace hyperion::compiler

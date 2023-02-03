@@ -19,7 +19,7 @@ class AstTemplateInstantiation : public AstExpression
 public:
     AstTemplateInstantiation(
         const RC<AstIdentifier> &expr,
-        const std::vector<RC<AstArgument>> &generic_args,
+        const Array<RC<AstArgument>> &generic_args,
         const SourceLocation &location
     );
     virtual ~AstTemplateInstantiation() = default;
@@ -39,7 +39,7 @@ public:
 
 private:
     RC<AstIdentifier> m_expr;
-    std::vector<RC<AstArgument>> m_generic_args;
+    Array<RC<AstArgument>> m_generic_args;
 
     // set while analyzing
     RC<AstExpression> m_inner_expr;

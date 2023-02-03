@@ -50,11 +50,11 @@ public:
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
     */
-    std::map<std::string, std::vector<RC<Module>>> m_imported_modules;
+    std::map<std::string, Array<RC<Module>>> m_imported_modules;
     Tree<Module*> m_module_tree;
 
     /** all modules contained in the compilation unit */
-    //std::vector<std::unique_ptr<Module>> m_modules;
+    //Array<std::unique_ptr<Module>> m_modules;
     /** the index of the current, active module in m_modules */
     int m_module_index;
 

@@ -12,7 +12,7 @@
 namespace hyperion::compiler {
 
 AstArgumentList::AstArgumentList(
-    const std::vector<RC<AstArgument>> &args,
+    const Array<RC<AstArgument>> &args,
     const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_args(args)

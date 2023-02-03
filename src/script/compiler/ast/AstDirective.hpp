@@ -12,7 +12,7 @@ namespace hyperion::compiler {
 class AstDirective : public AstStatement {
 public:
     AstDirective(const std::string &key,
-        const std::vector<std::string> &args,
+        const Array<std::string> &args,
         const SourceLocation &location);
     virtual ~AstDirective() = default;
 
@@ -24,7 +24,7 @@ public:
 
 private:
     std::string m_key;
-    std::vector<std::string> m_args;
+    Array<std::string> m_args;
 
     RC<AstDirective> CloneImpl() const
     {

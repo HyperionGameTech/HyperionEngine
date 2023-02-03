@@ -11,6 +11,7 @@
 #include <script/vm/VM.hpp>
 
 #include <core/Base.hpp>
+#include <core/lib/FixedArray.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -20,7 +21,6 @@
 #include <Types.hpp>
 
 #include <memory>
-#include <array>
 
 namespace hyperion {
 
@@ -34,10 +34,10 @@ class Engine;
 class Script : public EngineComponentBase<STUB_CLASS(Script)>
 {
 public:
-    using Bytes = std::vector<UByte>;
+    using Bytes = Array<UByte>;
 
     using ArgCount = UInt16;
-    
+
     struct ValueHandle
     {
         Value _inner = Value(
@@ -75,8 +75,8 @@ public:
     VM &GetVM() { return m_vm; }
     const VM &GetVM() const { return m_vm; }
 
-    bool IsBaked() const { return !m_baked_bytes.empty(); }
-    bool IsCompiled() const { return !m_bytecode_chunk.buildables.empty(); }
+    bool IsBaked() const { return m_baked_bytes.Any(); }
+    bool IsCompiled() const { return m_bytecode_chunk.buildables.Any(); }
 
     bool Compile();
 
@@ -131,9 +131,9 @@ public:
     }
 
     template <class ...Args>
-    constexpr auto CreateArguments(Args &&... args) -> std::array<Value, sizeof...(Args)>
+    auto CreateArguments(Args &&... args) -> FixedArray<Value, sizeof...(Args)>
     {
-        return std::array<Value, sizeof...(Args)>{
+        return FixedArray<Value, sizeof...(Args)> {
             CreateArgument(args)...
         };
     }
@@ -194,7 +194,7 @@ public:
     {
         auto arguments = CreateArguments(std::forward<Args>(args)...);
 
-        CallFunctionArgV(handle, arguments.data(), arguments.size());
+        CallFunctionArgV(handle, arguments.Data(), arguments.Size());
     }
 
     template <class RegisteredType, class T>

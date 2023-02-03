@@ -66,7 +66,7 @@ public:
     /** Look up a child module of this module */
     Module *LookupNestedModule(const std::string &name);
 
-    std::vector<Module *> CollectNestedModules() const;
+    Array<Module *> CollectNestedModules() const;
 
     /** Check to see if the identifier exists in multiple scopes, starting
         from the currently opened scope.
@@ -85,7 +85,7 @@ public:
     SymbolTypePtr_t LookupSymbolType(const std::string &name); 
     /** Look up an instance of a generic type with the given parameters */
     SymbolTypePtr_t LookupGenericInstance(const SymbolTypePtr_t &base, 
-        const std::vector<GenericInstanceTypeInfo::Arg> &params);
+        const Array<GenericInstanceTypeInfo::Arg> &params);
 
     Tree<Scope> m_scopes;
 

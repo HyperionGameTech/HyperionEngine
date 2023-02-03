@@ -34,7 +34,7 @@ protected:
     RC<AstArgumentList> m_arguments;
 
     // set while analyzing
-    std::vector<RC<AstArgument>> m_substituted_args;
+    Array<RC<AstArgument>> m_substituted_args;
     SymbolTypePtr_t m_return_type;
 
     RC<AstMemberCallExpression> CloneImpl() const

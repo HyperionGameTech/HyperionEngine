@@ -21,7 +21,7 @@ namespace hyperion::compiler {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
     const RC<AstIdentifier> &expr,
-    const std::vector<RC<AstArgument>> &generic_args,
+    const Array<RC<AstArgument>> &generic_args,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_expr(expr),
@@ -135,8 +135,8 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
         m_inner_expr = CloneAstNode(generic_expr);
 
     // there can be more because of varargs
-    // if (args_substituted.size() + 1 >= expr_type->GetGenericInstanceInfo().m_generic_args.size()) {
-        for (SizeType i = 0; i < expr_type->GetGenericInstanceInfo().m_generic_args.size() - 1; i++) {
+    // if (args_substituted.Size() + 1 >= expr_type->GetGenericInstanceInfo().m_generic_args.Size()) {
+        for (SizeType i = 0; i < expr_type->GetGenericInstanceInfo().m_generic_args.Size() - 1; i++) {
             AssertThrow(args_substituted[i]->GetExpr() != nullptr);
 
             if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {

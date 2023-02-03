@@ -12,13 +12,13 @@ namespace hyperion::compiler {
 class AstModuleDeclaration : public AstDeclaration {
 public:
     AstModuleDeclaration(const std::string &name, 
-        const std::vector<RC<AstStatement>> &children,
+        const Array<RC<AstStatement>> &children,
         const SourceLocation &location);
     AstModuleDeclaration(const std::string &name, const SourceLocation &location);
 
-    void AddChild(const RC<AstStatement> &child) { m_children.push_back(child); }
-    std::vector<RC<AstStatement>> &GetChildren() { return m_children; }
-    const std::vector<RC<AstStatement>> &GetChildren() const { return m_children; }
+    void AddChild(const RC<AstStatement> &child) { m_children.PushBack(child); }
+    Array<RC<AstStatement>> &GetChildren() { return m_children; }
+    const Array<RC<AstStatement>> &GetChildren() const { return m_children; }
 
     const RC<Module> &GetModule() const { return m_module; }
 
@@ -31,7 +31,7 @@ public:
     virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::vector<RC<AstStatement>> m_children;
+    Array<RC<AstStatement>> m_children;
     RC<Module> m_module;
 
     void AddBuiltinHeader();

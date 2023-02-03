@@ -473,12 +473,12 @@ RC<AstDirective> Parser::ParseDirective()
 {
     if (Token token = Expect(TK_DIRECTIVE, true)) {
         // the arguments will be held in an array expression
-        std::vector<std::string> args;
+        Array<std::string> args;
 
         while (m_token_stream->HasNext() && !(Match(TK_SEMICOLON, true) || Match(TK_NEWLINE, true))) {
             Token token = m_token_stream->Peek();
 
-            args.push_back(token.GetValue());
+            args.PushBack(token.GetValue());
             m_token_stream->Next();
         }
 
@@ -657,7 +657,7 @@ RC<AstExpression> Parser::ParseParentheses()
             // allow ParseFunctionParameters() to handle parentheses
             m_token_stream->SetPosition(before_pos);
 
-            std::vector<RC<AstParameter>> params;
+            Array<RC<AstParameter>> params;
             
             if (Match(TK_OPEN_PARENTH, true)) {
                 params = ParseFunctionParameters();
@@ -697,7 +697,7 @@ RC<AstExpression> Parser::ParseParentheses()
                 // to allow ParseFunctionParameters() to handle it
                 m_token_stream->SetPosition(before_pos);
 
-                std::vector<RC<AstParameter>> params;
+                Array<RC<AstParameter>> params;
                 
                 if (Match(TK_OPEN_PARENTH, true)) {
                     params = ParseFunctionParameters();
@@ -713,7 +713,7 @@ RC<AstExpression> Parser::ParseParentheses()
                     // if '{' found after ')', it is a function
                     m_token_stream->SetPosition(before_pos);
 
-                    std::vector<RC<AstParameter>> params;
+                    Array<RC<AstParameter>> params;
                     
                     if (Match(TK_OPEN_PARENTH, true)) {
                         params = ParseFunctionParameters();
@@ -734,7 +734,7 @@ RC<AstExpression> Parser::ParseAngleBrackets(RC<AstIdentifier> target)
     SourceLocation location = CurrentLocation();
     int before_pos = m_token_stream->GetPosition();
 
-    std::vector<RC<AstArgument>> args;
+    Array<RC<AstArgument>> args;
 
     if (Token token = ExpectOperator("<", true)) {
         if (MatchOperator(">", true)) {
@@ -771,7 +771,7 @@ RC<AstExpression> Parser::ParseAngleBrackets(RC<AstIdentifier> target)
             }
 
             if (auto term = ParseExpression(true, false, false)) { // override commas
-                args.push_back(RC<AstArgument>(new AstArgument(
+                args.PushBack(RC<AstArgument>(new AstArgument(
                     term,
                     is_splat_arg,
                     is_named_arg,
@@ -942,7 +942,7 @@ RC<AstArgumentList> Parser::ParseArguments(bool require_parentheses)
 {
     const SourceLocation location = CurrentLocation();
 
-    std::vector<RC<AstArgument>> args;
+    Array<RC<AstArgument>> args;
 
     if (require_parentheses) {
         Expect(TK_OPEN_PARENTH, true);
@@ -950,7 +950,7 @@ RC<AstArgumentList> Parser::ParseArguments(bool require_parentheses)
 
     while (!require_parentheses || !Match(TK_CLOSE_PARENTH, false)) {
         if (auto arg = ParseArgument(nullptr)) {
-            args.push_back(arg);
+            args.PushBack(arg);
 
             if (!Match(TK_COMMA, true)) {
                 break;
@@ -1738,7 +1738,7 @@ RC<AstVariableDeclaration> Parser::ParseVariableDeclaration(
     if (!identifier.Empty()) {
         SourceLocation template_expr_location = CurrentLocation();
 
-        std::vector<RC<AstParameter>> template_expr_params;
+        Array<RC<AstParameter>> template_expr_params;
 
         if (Token lt = MatchOperator("<", false)) {
             flags |= IdentifierFlags::FLAG_GENERIC;
@@ -1796,7 +1796,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool require_keyword)
 
     if (Token identifier = Expect(TK_IDENT, true)) {
         bool is_generic = false;
-        std::vector<RC<AstParameter>> generic_parameters;
+        Array<RC<AstParameter>> generic_parameters;
 
         // check for generic
         if (MatchOperator("<", false)) {
@@ -1806,7 +1806,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool require_keyword)
         }
 
         RC<AstExpression> assignment;
-        std::vector<RC<AstParameter>> params;
+        Array<RC<AstParameter>> params;
         
         if (Match(TK_OPEN_PARENTH, true)) {
             params = ParseFunctionParameters();
@@ -1843,7 +1843,7 @@ RC<AstStatement> Parser::ParseFunctionDefinition(bool require_keyword)
 
 RC<AstFunctionExpression> Parser::ParseFunctionExpression(
     bool require_keyword,
-    std::vector<RC<AstParameter>> params
+    Array<RC<AstParameter>> params
 )
 {
     const Token token = require_keyword
@@ -1902,7 +1902,7 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
 RC<AstArrayExpression> Parser::ParseArrayExpression()
 {
     if (Token token = Expect(TK_OPEN_BRACKET, true)) {
-        std::vector<RC<AstExpression>> members;
+        Array<RC<AstExpression>> members;
 
         do {
             if (Match(TK_CLOSE_BRACKET, false)) {
@@ -1910,7 +1910,7 @@ RC<AstArrayExpression> Parser::ParseArrayExpression()
             }
 
             if (auto expr = ParseExpression(true)) {
-                members.push_back(expr);
+                members.PushBack(expr);
             }
         } while (Match(TK_COMMA, true));
 
@@ -1976,9 +1976,9 @@ RC<AstTypeOfExpression> Parser::ParseTypeOfExpression()
     return nullptr;
 }
 
-std::vector<RC<AstParameter>> Parser::ParseFunctionParameters()
+Array<RC<AstParameter>> Parser::ParseFunctionParameters()
 {
-    std::vector<RC<AstParameter>> parameters;
+    Array<RC<AstParameter>> parameters;
 
     bool found_variadic = false;
     bool keep_reading = true;
@@ -2033,7 +2033,7 @@ std::vector<RC<AstParameter>> Parser::ParseFunctionParameters()
                 default_param = ParseExpression(true);
             }
 
-            parameters.push_back(RC<AstParameter>(new AstParameter(
+            parameters.PushBack(RC<AstParameter>(new AstParameter(
                 token.GetValue(),
                 type_spec,
                 default_param,
@@ -2054,9 +2054,9 @@ std::vector<RC<AstParameter>> Parser::ParseFunctionParameters()
     return parameters;
 }
 
-std::vector<RC<AstParameter>> Parser::ParseGenericParameters()
+Array<RC<AstParameter>> Parser::ParseGenericParameters()
 {
-    std::vector<RC<AstParameter>> template_expr_params;
+    Array<RC<AstParameter>> template_expr_params;
 
     if (Token lt = ExpectOperator("<", true)) {
         m_template_argument_depth++;
@@ -2083,7 +2083,7 @@ RC<AstStatement> Parser::ParseTypeDefinition()
         if (Token identifier = ExpectIdentifier(false, true)) {
             IdentifierFlagBits flags = IdentifierFlags::FLAG_CONST;
 
-            std::vector<RC<AstParameter>> generic_parameters;
+            Array<RC<AstParameter>> generic_parameters;
             RC<AstExpression> assignment;
 
             // check for generic
@@ -2162,11 +2162,11 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
     }
 
     // for hoisting, so functions can use later declared members
-    std::vector<RC<AstVariableDeclaration>> member_functions;
-    std::vector<RC<AstVariableDeclaration>> member_variables;
+    Array<RC<AstVariableDeclaration>> member_functions;
+    Array<RC<AstVariableDeclaration>> member_variables;
 
-    std::vector<RC<AstVariableDeclaration>> static_functions;
-    std::vector<RC<AstVariableDeclaration>> static_variables;
+    Array<RC<AstVariableDeclaration>> static_functions;
+    Array<RC<AstVariableDeclaration>> static_variables;
 
     auto current_access_specifier = Keyword::ToString(Keyword_private);
 
@@ -2247,7 +2247,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
             // read generic params after identifier
 
             RC<AstExpression> assignment;
-            std::vector<RC<AstParameter>> generic_parameters;
+            Array<RC<AstParameter>> generic_parameters;
 
             // check for generic
             if (MatchOperator("<", false)) {
@@ -2275,7 +2275,7 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
                 }
             } */
             if (!is_variable && (is_function || Match(TK_OPEN_PARENTH))) { // it is a member function
-                std::vector<RC<AstParameter>> params;
+                Array<RC<AstParameter>> params;
                 
                 if (Match(TK_OPEN_PARENTH, true)) {
                     params = ParseFunctionParameters();
@@ -2307,9 +2307,9 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
                 ));
 
                 if (is_static || is_proxy_class) { // <--- all methods for proxy classes are static
-                    static_functions.push_back(member);
+                    static_functions.PushBack(member);
                 } else {
-                    member_functions.push_back(member);
+                    member_functions.PushBack(member);
                 }
             } else {
                 // rollback
@@ -2321,9 +2321,9 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
                     flags
                 )) {
                     if (is_static) {
-                        static_variables.push_back(member);
+                        static_variables.PushBack(member);
                     } else {
-                        member_variables.push_back(member);
+                        member_variables.PushBack(member);
                     }
                 } else {
                     break;
@@ -2342,20 +2342,10 @@ RC<AstTypeExpression> Parser::ParseTypeExpression(
             SkipStatementTerminators();
         }
 
-        std::vector<RC<AstVariableDeclaration>> all_statics;
-        all_statics.reserve(static_variables.size() + static_functions.size());
-
-        all_statics.insert(
-            all_statics.end(),
-            std::make_move_iterator(static_variables.begin()),
-            std::make_move_iterator(static_variables.end())
-        );
-
-        all_statics.insert(
-            all_statics.end(),
-            std::make_move_iterator(static_functions.begin()),
-            std::make_move_iterator(static_functions.end())
-        );
+        Array<RC<AstVariableDeclaration>> all_statics;
+        all_statics.Reserve(static_variables.Size() + static_functions.Size());
+        all_statics.Concat(std::move(static_variables));
+        all_statics.Concat(std::move(static_functions));
 
         return RC<AstTypeExpression>(new AstTypeExpression(
             type_name,
@@ -2425,7 +2415,7 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
         underlying_type = ParsePrototypeSpecification();
     }
     
-    std::vector<EnumEntry> entries;
+    Array<EnumEntry> entries;
 
     if (Expect(TK_OPEN_BRACE, true)) {
         while (!Match(TK_CLOSE_BRACE, false)) {
@@ -2442,7 +2432,7 @@ RC<AstEnumExpression> Parser::ParseEnumExpression(
                 entry.assignment = ParseExpression(true);
             }
 
-            entries.push_back(entry);
+            entries.PushBack(entry);
 
             while (Match(TK_NEWLINE, true));
 
@@ -2511,7 +2501,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allow_braces)
 {
     const SourceLocation location = CurrentLocation();
 
-    std::vector<RC<AstModuleImportPart>> parts;
+    Array<RC<AstModuleImportPart>> parts;
 
     if (Token ident = Expect(TK_IDENT, true)) {
         if (Match(TK_DOUBLE_COLON, true)) {
@@ -2523,7 +2513,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allow_braces)
                         return nullptr;
                     }
 
-                    parts.push_back(part);
+                    parts.PushBack(part);
 
                     if (!Match(TK_COMMA, true)) {
                         break;
@@ -2539,7 +2529,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allow_braces)
                     return nullptr;
                 }
 
-                parts.push_back(part);
+                parts.PushBack(part);
             }
         }
 
@@ -2556,10 +2546,10 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allow_braces)
 RC<AstModuleImport> Parser::ParseModuleImport()
 {
     if (Token token = ExpectKeyword(Keyword_import, true)) {
-        std::vector<RC<AstModuleImportPart>> parts;
+        Array<RC<AstModuleImportPart>> parts;
 
         if (auto part = ParseModuleImportPart(false)) {
-            parts.push_back(part);
+            parts.PushBack(part);
 
             return RC<AstModuleImport>(new AstModuleImport(
                 parts,

@@ -75,7 +75,7 @@ SourceFile &SourceFile::operator>>(const std::string &str)
 {
     AssertThrowMsg(m_buffer != nullptr, "Not allocated");
 
-    const auto length = str.size();
+    const auto length = str.length();
     // make sure we have enough space in the buffer
     if (m_position + length >= m_size) {
         throw std::out_of_range("not enough space in buffer");

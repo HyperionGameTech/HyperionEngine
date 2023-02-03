@@ -36,16 +36,16 @@ FunctionBuilder ModuleBuilder::Function(const std::string &name)
     return FunctionBuilder(name, this);
 }
 
-sp<AstModuleAccess> ModuleBuilder::Build(const sp<AstExpression> &expr)
+RC<AstModuleAccess> ModuleBuilder::Build(const RC<AstExpression> &expr)
 {
     if (m_parent != nullptr) {
-        return sp<AstModuleAccess>(new AstModuleAccess(
+        return RC<AstModuleAccess>(new AstModuleAccess(
             m_name,
             m_parent->Build(expr),
             SourceLocation::eof
         ));
     } else {
-        return sp<AstModuleAccess>(new AstModuleAccess(
+        return RC<AstModuleAccess>(new AstModuleAccess(
             m_name,
             expr,
             SourceLocation::eof
@@ -69,10 +69,10 @@ FunctionBuilder::FunctionBuilder(
 {
 }
 
-sp<AstExpression> FunctionBuilder::Call(const std::vector<sp<AstArgument>> &args)
+RC<AstExpression> FunctionBuilder::Call(const Array<RC<AstArgument>> &args)
 {
-    sp<AstCallExpression> call(new AstCallExpression(
-        sp<AstVariable>(new AstVariable(
+    RC<AstCallExpression> call(new AstCallExpression(
+        RC<AstVariable>(new AstVariable(
             m_name,
             SourceLocation::eof
         )),

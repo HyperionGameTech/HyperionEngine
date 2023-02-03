@@ -61,11 +61,11 @@ Builtins::Builtins()
     ));
 
     m_vars["Array"].Reset(new AstTemplateExpression(
-        sp<AstTypeObject>(new AstTypeObject(
+        RC<AstTypeObject>(new AstTypeObject(
             BuiltinTypes::ARRAY, nullptr, SourceLocation::eof
         )),
         {
-            sp<AstParameter>(new AstParameter(
+            RC<AstParameter>(new AstParameter(
                 "of", nullptr, nullptr, false, false, false, SourceLocation::eof
             ))
         },

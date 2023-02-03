@@ -18,11 +18,12 @@
 
 namespace hyperion::compiler {
 
-AstArrayExpression::AstArrayExpression(const std::vector<RC<AstExpression>> &members,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_members(members),
-      m_held_type(BuiltinTypes::ANY)
+AstArrayExpression::AstArrayExpression(
+    const Array<RC<AstExpression>> &members,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_members(members),
+    m_held_type(BuiltinTypes::ANY)
 {
 }
 
@@ -67,7 +68,7 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     const bool has_side_effects = MayHaveSideEffects();
-    const UInt32 array_size = UInt32(m_members.size());
+    const UInt32 array_size = UInt32(m_members.Size());
     
     // get active register
     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();

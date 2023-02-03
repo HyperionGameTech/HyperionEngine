@@ -432,7 +432,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Print)
 
             std::printf("%s", result_string.c_str());
             
-            HYP_SCRIPT_RETURN_INT32(result_string.size());
+            HYP_SCRIPT_RETURN_INT32(result_string.length());
         } else {
             params.handler->state->ThrowException(params.handler->thread, e);
         }

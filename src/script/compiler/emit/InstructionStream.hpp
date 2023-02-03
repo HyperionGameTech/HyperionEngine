@@ -25,7 +25,7 @@ public:
     size_t GetPosition() const { return m_position; }
     size_t &GetPosition() { return m_position; }
 
-    const std::vector<Instruction<>> &GetData() const { return m_data; }*/
+    const Array<Instruction<>> &GetData() const { return m_data; }*/
 
     UInt8 GetCurrentRegister() const { return m_register_counter; }
     UInt8 IncRegisterUsage() { return ++m_register_counter; }
@@ -39,7 +39,7 @@ public:
     int NewStaticId() { return m_static_id++; }
 
     void AddStaticObject(const StaticObject &static_object)
-        { m_static_objects.push_back(static_object); }
+        { m_static_objects.PushBack(static_object); }
 
     int FindStaticObject(const StaticObject &static_object) const;
 
@@ -47,7 +47,7 @@ public:
 
 private:
     //size_t m_position;
-    //std::vector<Instruction<>> m_data;
+    //Array<Instruction<>> m_data;
     // incremented and decremented each time a register
     // is used/unused
     UInt8 m_register_counter;
@@ -57,7 +57,7 @@ private:
     // the current static object id
     int m_static_id;
 
-    std::vector<StaticObject> m_static_objects;
+    Array<StaticObject> m_static_objects;
 };
 
 } // namespace hyperion::compiler

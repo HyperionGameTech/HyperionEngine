@@ -42,9 +42,9 @@ int InstructionStream::FindStaticObject(const StaticObject &static_object) const
 
 /*InstructionStream &InstructionStream::operator<<(const Instruction<> &instruction)
 {
-    m_data.push_back(instruction);
-    for (const std::vector<char> &operand : instruction.m_data) {
-        m_position += operand.size();
+    m_data.PushBack(instruction);
+    for (const Array<char> &operand : instruction.m_data) {
+        m_position += operand.Size();
     }
     return *this;
 }*/

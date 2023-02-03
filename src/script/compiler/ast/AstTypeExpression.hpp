@@ -17,9 +17,9 @@ public:
     AstTypeExpression(
         const std::string &name,
         const RC<AstPrototypeSpecification> &base_specification,
-        const std::vector<RC<AstVariableDeclaration>> &data_members,
-        const std::vector<RC<AstVariableDeclaration>> &function_members,
-        const std::vector<RC<AstVariableDeclaration>> &static_members,
+        const Array<RC<AstVariableDeclaration>> &data_members,
+        const Array<RC<AstVariableDeclaration>> &function_members,
+        const Array<RC<AstVariableDeclaration>> &static_members,
         bool is_proxy_class,
         const SourceLocation &location
     );
@@ -27,9 +27,9 @@ public:
     AstTypeExpression(
         const std::string &name,
         const RC<AstPrototypeSpecification> &base_specification,
-        const std::vector<RC<AstVariableDeclaration>> &data_members,
-        const std::vector<RC<AstVariableDeclaration>> &function_members,
-        const std::vector<RC<AstVariableDeclaration>> &static_members,
+        const Array<RC<AstVariableDeclaration>> &data_members,
+        const Array<RC<AstVariableDeclaration>> &function_members,
+        const Array<RC<AstVariableDeclaration>> &static_members,
         const SymbolTypePtr_t &enum_underlying_type,
         bool is_proxy_class,
         const SourceLocation &location
@@ -41,7 +41,7 @@ public:
     void SetName(const std::string &name)
         { m_name = name; }
 
-    const std::vector<RC<AstVariableDeclaration>> &GetMembers() const
+    const Array<RC<AstVariableDeclaration>> &GetMembers() const
         { return m_combined_members; }
 
     bool IsEnum() const
@@ -68,17 +68,17 @@ public:
 protected:
     std::string m_name;
     RC<AstPrototypeSpecification> m_base_specification;
-    std::vector<RC<AstVariableDeclaration>> m_data_members;
-    std::vector<RC<AstVariableDeclaration>> m_function_members;
-    std::vector<RC<AstVariableDeclaration>> m_static_members;
+    Array<RC<AstVariableDeclaration>> m_data_members;
+    Array<RC<AstVariableDeclaration>> m_function_members;
+    Array<RC<AstVariableDeclaration>> m_static_members;
     SymbolTypePtr_t m_enum_underlying_type;
     bool m_is_proxy_class;
 
     SymbolTypePtr_t m_symbol_type;
 
     RC<AstTypeObject> m_expr;
-    std::vector<RC<AstVariableDeclaration>> m_outside_members;
-    std::vector<RC<AstVariableDeclaration>> m_combined_members;
+    Array<RC<AstVariableDeclaration>> m_outside_members;
+    Array<RC<AstVariableDeclaration>> m_combined_members;
 
     RC<AstTypeExpression> CloneImpl() const
     {

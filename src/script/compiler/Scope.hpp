@@ -57,9 +57,9 @@ public:
         { return m_scope_flags; }
 
     void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
-        { m_return_types.push_back({type, location}); }
+        { m_return_types.PushBack({type, location}); }
 
-    const std::vector<ReturnType_t> &GetReturnTypes() const
+    const Array<ReturnType_t> &GetReturnTypes() const
         { return m_return_types; }
 
     RC<Identifier> FindClosureCapture(const std::string &name) 
@@ -68,6 +68,7 @@ public:
 
         return it != m_closure_captures.end() ? it->second : nullptr;
     }
+
     void AddClosureCapture(const std::string &name, const RC<Identifier> &ident) 
         { m_closure_captures.insert({ name, ident }); }
 
@@ -78,7 +79,7 @@ private:
     IdentifierTable m_identifier_table;
     ScopeType m_scope_type;
     int m_scope_flags;
-    std::vector<ReturnType_t> m_return_types;
+    Array<ReturnType_t> m_return_types;
     std::map<std::string, RC<Identifier>> m_closure_captures;
 };
 

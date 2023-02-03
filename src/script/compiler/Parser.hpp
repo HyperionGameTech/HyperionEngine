@@ -160,13 +160,13 @@ private:
     RC<AstStatement> ParseFunctionDefinition(bool require_keyword = true);
     RC<AstFunctionExpression> ParseFunctionExpression(
         bool require_keyword = true,
-        std::vector<RC<AstParameter>> params = {}
+        Array<RC<AstParameter>> params = {}
     );
     RC<AstArrayExpression> ParseArrayExpression();
     RC<AstExpression> ParseValueOfExpression();
     RC<AstTypeOfExpression> ParseTypeOfExpression();
-    std::vector<RC<AstParameter>> ParseFunctionParameters();
-    std::vector<RC<AstParameter>> ParseGenericParameters();
+    Array<RC<AstParameter>> ParseFunctionParameters();
+    Array<RC<AstParameter>> ParseGenericParameters();
     RC<AstStatement> ParseTypeDefinition();
     RC<AstTypeExpression> ParseTypeExpression(
         bool require_keyword = true,

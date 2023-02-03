@@ -19,7 +19,7 @@ ErrorList::ErrorList(const ErrorList &other)
 
 bool ErrorList::HasFatalErrors() const
 {
-    if (!m_errors.empty()) {
+    if (m_errors.Any()) {
         for (const CompilerError &error : m_errors) {
             if (error.GetLevel() == LEVEL_ERROR) {
                 return true;
@@ -33,20 +33,20 @@ bool ErrorList::HasFatalErrors() const
 std::ostream &ErrorList::WriteOutput(std::ostream &os) const
 {
     std::unordered_set<std::string> error_filenames;
-    std::vector<std::string> current_file_lines;
+    Array<std::string> current_file_lines;
 
     for (const CompilerError &error : m_errors) {
         const std::string &path = error.GetLocation().GetFileName();
 
         if (error_filenames.insert(path).second) {
-            current_file_lines.clear();
+            current_file_lines.Clear();
             // read lines into current_lines vector
             // this is used so that we can print out the line that an error occured on
             std::ifstream is(path);
             if (is.is_open()) {
                 std::string line;
                 while (std::getline(is, line)) {
-                    current_file_lines.push_back(line);
+                    current_file_lines.PushBack(line);
                 }
             }
 
@@ -80,7 +80,7 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
 
         os << ": " << error_text << '\n';
 
-        if (current_file_lines.size() > error.GetLocation().GetLine()) {
+        if (current_file_lines.Size() > error.GetLocation().GetLine()) {
             // render the line in question
             os << "\n\t" << current_file_lines[error.GetLocation().GetLine()];
             os << "\n\t";

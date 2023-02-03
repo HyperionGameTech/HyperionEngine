@@ -15,6 +15,8 @@
 
 #include <core/lib/Variant.hpp>
 #include <core/lib/TypeMap.hpp>
+#include <core/lib/DynArray.hpp>
+#include <core/lib/LinkedList.hpp>
 
 #include <Types.hpp>
 
@@ -351,7 +353,7 @@ public:
     {
         std::string function_name;
         SymbolTypePtr_t return_type;
-        std::vector<GenericInstanceTypeInfo::Arg> param_types;
+        Array<GenericInstanceTypeInfo::Arg> param_types;
         NativeFunctionPtr_t ptr;
 
         NativeFunctionDefine() = default;
@@ -359,7 +361,7 @@ public:
         NativeFunctionDefine(
             const std::string &function_name,
             const SymbolTypePtr_t &return_type,
-            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
             NativeFunctionPtr_t ptr
         ) : function_name(function_name),
             return_type(return_type),
@@ -409,7 +411,7 @@ public:
         NativeMemberDefine(
             const std::string &name,
             const SymbolTypePtr_t &return_type,
-            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
             NativeFunctionPtr_t ptr
         ) : NativeMemberDefine(
                 name,
@@ -437,8 +439,8 @@ public:
     {
         std::string name;
         SymbolTypePtr_t base_class;
-        std::vector<NativeMemberDefine> members;
-        std::vector<NativeMemberDefine> static_members;
+        Array<NativeMemberDefine> members;
+        Array<NativeMemberDefine> static_members;
 
         TypeDefine() = default;
         TypeDefine(const TypeDefine &other) = default;
@@ -446,7 +448,7 @@ public:
         TypeDefine(
             const std::string &name,
             const SymbolTypePtr_t &base_class,
-            const std::vector<NativeMemberDefine> &members
+            const Array<NativeMemberDefine> &members
         ) : name(name),
             base_class(base_class),
             members(members)
@@ -456,8 +458,8 @@ public:
         TypeDefine(
             const std::string &name,
             const SymbolTypePtr_t &base_class,
-            const std::vector<NativeMemberDefine> &members,
-            const std::vector<NativeMemberDefine> &static_members
+            const Array<NativeMemberDefine> &members,
+            const Array<NativeMemberDefine> &static_members
         ) : name(name),
             base_class(base_class),
             members(members),
@@ -467,8 +469,8 @@ public:
 
         TypeDefine(
             const std::string &name,
-            const std::vector<NativeMemberDefine> &members,
-            const std::vector<NativeMemberDefine> &static_members
+            const Array<NativeMemberDefine> &members,
+            const Array<NativeMemberDefine> &static_members
         ) : TypeDefine(
                 name,
                 nullptr,
@@ -480,7 +482,7 @@ public:
 
         TypeDefine(
             const std::string &name,
-            const std::vector<NativeMemberDefine> &members
+            const Array<NativeMemberDefine> &members
         ) : name(name),
             base_class(nullptr),
             members(members)
@@ -488,7 +490,8 @@ public:
         }
     };
 
-    struct ModuleDefine {
+    struct ModuleDefine
+    {
     public:
         ModuleDefine(
             APIInstance &api_instance,
@@ -499,37 +502,37 @@ public:
         }
 
         std::string m_name;
-        std::vector<TypeDefine> m_type_defs;
-        std::vector<NativeFunctionDefine> m_function_defs;
-        std::vector<NativeVariableDefine> m_variable_defs;
+        Array<TypeDefine> m_type_defs;
+        Array<NativeFunctionDefine> m_function_defs;
+        Array<NativeVariableDefine> m_variable_defs;
         RC<Module> m_mod;
 
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
             const SymbolTypePtr_t &base_class,
-            const std::vector<NativeMemberDefine> &members
+            const Array<NativeMemberDefine> &members
         );
 
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
             const SymbolTypePtr_t &base_class,
-            const std::vector<NativeMemberDefine> &members,
-            const std::vector<NativeMemberDefine> &static_members
+            const Array<NativeMemberDefine> &members,
+            const Array<NativeMemberDefine> &static_members
         );
 
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
-            const std::vector<NativeMemberDefine> &members
+            const Array<NativeMemberDefine> &members
         );
 
         template <class T>
         ModuleDefine &Class(
             const std::string &class_name,
-            const std::vector<NativeMemberDefine> &members,
-            const std::vector<NativeMemberDefine> &static_members
+            const Array<NativeMemberDefine> &members,
+            const Array<NativeMemberDefine> &static_members
         );
 
         ModuleDefine &Variable(
@@ -583,7 +586,7 @@ public:
         ModuleDefine &Function(
             const std::string &function_name,
             const SymbolTypePtr_t &return_type,
-            const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+            const Array<GenericInstanceTypeInfo::Arg> &param_types,
             NativeFunctionPtr_t ptr
         );
 
@@ -647,19 +650,19 @@ public:
 
 private:
     SourceFile m_source_file;
-    std::list<API::ModuleDefine> m_module_defs;
+    LinkedList<API::ModuleDefine> m_module_defs;
 };
 
 template <class T>
 API::ModuleDefine &API::ModuleDefine::Class(
     const std::string &class_name,
     const SymbolTypePtr_t &base_class,
-    const std::vector<NativeMemberDefine> &members
+    const Array<NativeMemberDefine> &members
 )
 {
     m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
-    m_type_defs.push_back(TypeDefine(
+    m_type_defs.PushBack(TypeDefine(
         class_name,
         base_class,
         members
@@ -672,13 +675,13 @@ template <class T>
 API::ModuleDefine &API::ModuleDefine::Class(
     const std::string &class_name,
     const SymbolTypePtr_t &base_class,
-    const std::vector<NativeMemberDefine> &members,
-    const std::vector<NativeMemberDefine> &static_members
+    const Array<NativeMemberDefine> &members,
+    const Array<NativeMemberDefine> &static_members
 )
 {
     m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
-    m_type_defs.push_back(TypeDefine(
+    m_type_defs.PushBack(TypeDefine(
         class_name,
         base_class,
         members,
@@ -691,12 +694,12 @@ API::ModuleDefine &API::ModuleDefine::Class(
 template <class T>
 API::ModuleDefine &API::ModuleDefine::Class(
     const std::string &class_name,
-    const std::vector<NativeMemberDefine> &members
+    const Array<NativeMemberDefine> &members
 )
 {
     m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
-    m_type_defs.push_back(TypeDefine(
+    m_type_defs.PushBack(TypeDefine(
         class_name,
         members
     ));
@@ -707,13 +710,13 @@ API::ModuleDefine &API::ModuleDefine::Class(
 template <class T>
 API::ModuleDefine &API::ModuleDefine::Class(
     const std::string &class_name,
-    const std::vector<NativeMemberDefine> &members,
-    const std::vector<NativeMemberDefine> &static_members
+    const Array<NativeMemberDefine> &members,
+    const Array<NativeMemberDefine> &static_members
 )
 {
     m_api_instance.class_bindings.class_names.Set<T>(class_name);
 
-    m_type_defs.push_back(TypeDefine(
+    m_type_defs.PushBack(TypeDefine(
         class_name,
         members,
         static_members

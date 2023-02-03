@@ -16,7 +16,7 @@ namespace hyperion::compiler {
 class AstFunctionExpression : public AstExpression {
 public:
     AstFunctionExpression(
-        const std::vector<RC<AstParameter>> &parameters,
+        const Array<RC<AstParameter>> &parameters,
         const RC<AstPrototypeSpecification> &return_type_specification,
         const RC<AstBlock> &block,
         const SourceLocation &location
@@ -44,7 +44,7 @@ public:
     void SetReturnType(const SymbolTypePtr_t &return_type) { m_return_type = return_type; }
 
 protected:
-    std::vector<RC<AstParameter>> m_parameters;
+    Array<RC<AstParameter>> m_parameters;
     RC<AstPrototypeSpecification> m_return_type_specification;
     RC<AstBlock> m_block;
     bool m_is_closure;

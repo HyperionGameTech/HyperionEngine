@@ -11,11 +11,11 @@ namespace hyperion::compiler {
 
 class AstArgumentList : public AstExpression {
 public:
-    AstArgumentList(const std::vector<RC<AstArgument>> &args,
+    AstArgumentList(const Array<RC<AstArgument>> &args,
       const SourceLocation &location);
     virtual ~AstArgumentList() = default;
 
-    const std::vector<RC<AstArgument>> &GetArguments() const
+    const Array<RC<AstArgument>> &GetArguments() const
       { return m_args; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -29,7 +29,7 @@ public:
     virtual SymbolTypePtr_t GetExprType() const override;
     
 private:
-    std::vector<RC<AstArgument>> m_args;
+    Array<RC<AstArgument>> m_args;
 
     RC<AstArgumentList> CloneImpl() const
     {

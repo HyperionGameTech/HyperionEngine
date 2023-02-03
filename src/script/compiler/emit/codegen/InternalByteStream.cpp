@@ -8,7 +8,7 @@ namespace hyperion::compiler {
 void InternalByteStream::MarkLabel(LabelId label_id)
 {
     m_labels[label_id] = LabelInfo {
-        (LabelPosition)m_stream.size()
+        LabelPosition(m_stream.Size())
     };
 }
 
@@ -16,18 +16,18 @@ void InternalByteStream::AddFixup(LabelId label_id, SizeType offset)
 {
     Fixup fixup;
     fixup.label_id = label_id;
-    fixup.position = m_stream.size();
+    fixup.position = m_stream.Size();
     fixup.offset = offset;
 
-    m_fixups.push_back(fixup);
+    m_fixups.PushBack(fixup);
 
     // advance position by adding placeholder bytes
     for (SizeType i = 0; i < sizeof(LabelPosition); i++) {
-        m_stream.push_back(UByte(-1));
+        m_stream.PushBack(UByte(-1));
     }
 }
 
-std::vector<UByte> &InternalByteStream::Bake()
+Array<UByte> &InternalByteStream::Bake()
 {
     for (const Fixup &fixup : m_fixups) {
         auto it = m_labels.find(fixup.label_id);
@@ -39,7 +39,7 @@ std::vector<UByte> &InternalByteStream::Bake()
         const SizeType fixup_position = fixup.position;
         
         // first, make sure there is enough space in the stream at that position
-        AssertThrowMsg(m_stream.size() >= fixup_position + sizeof(LabelPosition), "Not enough space allotted for the LabelPosition");
+        AssertThrowMsg(m_stream.Size() >= fixup_position + sizeof(LabelPosition), "Not enough space allotted for the LabelPosition");
         
         // now, make sure that each item in the buffer has been set to -1
         // if this is not the case, it is likely the wrong position
@@ -50,7 +50,7 @@ std::vector<UByte> &InternalByteStream::Bake()
     }
 
     // clear fixups vector, no more work to do
-    m_fixups.clear();
+    m_fixups.Clear();
 
     // return the modified stream
     return m_stream;

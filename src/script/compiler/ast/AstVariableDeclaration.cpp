@@ -26,7 +26,7 @@ AstVariableDeclaration::AstVariableDeclaration(
     const std::string &name,
     const RC<AstPrototypeSpecification> &proto,
     const RC<AstExpression> &assignment,
-    const std::vector<RC<AstParameter>> &template_params,
+    const Array<RC<AstParameter>> &template_params,
     IdentifierFlagBits flags,
     const SourceLocation &location
 ) : AstDeclaration(name, location),

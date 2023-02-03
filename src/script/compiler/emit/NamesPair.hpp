@@ -1,13 +1,15 @@
 #ifndef NAMES_PAIR_HPP
 #define NAMES_PAIR_HPP
 
+#include <core/lib/DynArray.hpp>
+#include <Types.hpp>
+
 #include <cstdint>
-#include <vector>
 #include <utility>
 
 namespace hyperion::compiler {
 
-typedef std::pair<uint16_t, std::vector<uint8_t>> NamesPair_t;
+typedef std::pair<UInt16, Array<UInt8>> NamesPair_t;
 
 } // namespace hyperion::compiler
 

@@ -130,7 +130,7 @@ InstructionStream Script::Decompile(utf::utf8_ostream *os) const
 {
     AssertThrow(IsCompiled() && IsBaked());
 
-    BytecodeStream bytecode_stream(m_baked_bytes.data(), m_baked_bytes.size());
+    BytecodeStream bytecode_stream(m_baked_bytes.Data(), m_baked_bytes.Size());
 
     return DecompilationUnit().Decompile(bytecode_stream, os);
 }
@@ -152,7 +152,7 @@ void Script::Bake(BuildParams &build_params)
     code_generator.Visit(&m_bytecode_chunk);
 
     m_baked_bytes = code_generator.GetInternalByteStream().Bake();
-    m_bs = BytecodeStream(m_baked_bytes.data(), m_baked_bytes.size());
+    m_bs = BytecodeStream(m_baked_bytes.Data(), m_baked_bytes.Size());
 }
 
 void Script::Run()

@@ -1,6 +1,7 @@
 #include <script/compiler/dis/DecompilationUnit.hpp>
-
 #include <script/Instructions.hpp>
+#include <core/lib/DynArray.hpp>
+#include <Types.hpp>
 
 #include <sstream>
 #include <cstring>
@@ -13,7 +14,7 @@ DecompilationUnit::DecompilationUnit()
 }
 
 void DecompilationUnit::DecodeNext(
-    uint8_t code,
+    UInt8 code,
     hyperion::vm::BytecodeStream &bs,
     InstructionStream &is,
     utf::utf8_ostream *os)
@@ -32,7 +33,7 @@ void DecompilationUnit::DecodeNext(
     }
     case STORE_STATIC_STRING:
     {
-        uint32_t len;
+        UInt32 len;
         bs.Read(&len);
 
         char *str = new char[len + 1];
@@ -54,7 +55,7 @@ void DecompilationUnit::DecodeNext(
     }
     case STORE_STATIC_ADDRESS:
     {
-        uint32_t val;
+        UInt32 val;
         bs.Read(&val);
 
         if (os != nullptr) {
@@ -65,13 +66,13 @@ void DecompilationUnit::DecodeNext(
     }
     case STORE_STATIC_FUNCTION:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
-        uint8_t nargs;
+        UInt8 nargs;
         bs.Read(&nargs);
 
-        uint8_t flags;
+        UInt8 flags;
         bs.Read(&flags);
 
         if (os != nullptr) {
@@ -85,25 +86,25 @@ void DecompilationUnit::DecodeNext(
     }
     case STORE_STATIC_TYPE:
     {
-        uint16_t type_name_len;
+        UInt16 type_name_len;
         bs.Read(&type_name_len);
 
-        std::vector<uint8_t> type_name;
-        type_name.resize(type_name_len + 1);
+        Array<UInt8> type_name;
+        type_name.Resize(type_name_len + 1);
         type_name[type_name_len] = '\0';
         bs.Read(&type_name[0], type_name_len);
 
-        uint16_t size;
+        UInt16 size;
         bs.Read(&size);
 
-        std::vector<std::vector<uint8_t>> names;
-        names.resize(size);
+        Array<Array<UInt8>> names;
+        names.Resize(size);
         
         for (int i = 0; i < size; i++) {
-            uint16_t len;
+            UInt16 len;
             bs.Read(&len);
 
-            names[i].resize(len + 1);
+            names[i].Resize(len + 1);
             names[i][len] = '\0';
             bs.Read(&names[i][0], len);
         }
@@ -111,11 +112,11 @@ void DecompilationUnit::DecodeNext(
         if (os != nullptr) {
             (*os)
                 << "type ["
-                    << "str(" << type_name.data() << "), "
+                    << "str(" << type_name.Data() << "), "
                     << "u16(" << (int)size << "), ";
 
             for (int i = 0; i < size; i++) {
-                (*os) << "str(" << names[i].data() << ")";
+                (*os) << "str(" << names[i].Data() << ")";
                 if (i != size - 1) {
                     (*os) << ", ";
                 }
@@ -130,7 +131,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_I32:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         int32_t val;
@@ -149,7 +150,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_I64:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         int64_t val;
@@ -168,10 +169,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_U32:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t val;
+        UInt32 val;
         bs.Read(&val);
 
         if (os != nullptr) {
@@ -187,10 +188,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_U64:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint64_t val;
+        UInt64 val;
         bs.Read(&val);
 
         if (os != nullptr) {
@@ -206,7 +207,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_F32:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         float val;
@@ -225,7 +226,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_F64:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         double val;
@@ -244,10 +245,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_OFFSET:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t offset;
+        UInt16 offset;
         bs.Read(&offset);
 
         if (os != nullptr) {
@@ -263,10 +264,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_INDEX:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t idx;
+        UInt16 idx;
         bs.Read(&idx);
 
         if (os != nullptr) {
@@ -282,10 +283,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_STATIC:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t index;
+        UInt16 index;
         bs.Read(&index);
 
         if (os != nullptr) {
@@ -301,11 +302,11 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_STRING:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         // get string length
-        uint32_t len;
+        UInt32 len;
         bs.Read(&len);
 
         // read string based on length
@@ -329,10 +330,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_ADDR:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t val;
+        UInt32 val;
         bs.Read(&val);
 
         if (os != nullptr) {
@@ -343,16 +344,16 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_FUNC:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
-        uint8_t nargs;
+        UInt8 nargs;
         bs.Read(&nargs);
 
-        uint8_t flags;
+        UInt8 flags;
         bs.Read(&flags);
 
         if (os != nullptr) {
@@ -367,28 +368,28 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_TYPE:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t type_name_len;
+        UInt16 type_name_len;
         bs.Read(&type_name_len);
 
-        std::vector<uint8_t> type_name;
-        type_name.resize(type_name_len + 1);
+        Array<UInt8> type_name;
+        type_name.Resize(type_name_len + 1);
         type_name[type_name_len] = '\0';
         bs.Read(&type_name[0], type_name_len);
 
-        uint16_t size;
+        UInt16 size;
         bs.Read(&size);
 
-        std::vector<std::vector<uint8_t>> names;
-        names.resize(size);
+        Array<Array<UInt8>> names;
+        names.Resize(size);
         
         for (int i = 0; i < size; i++) {
-            uint16_t len;
+            UInt16 len;
             bs.Read(&len);
 
-            names[i].resize(len + 1);
+            names[i].Resize(len + 1);
             names[i][len] = '\0';
             bs.Read(&names[i][0], len);
         }
@@ -397,11 +398,11 @@ void DecompilationUnit::DecodeNext(
             (*os)
                 << "load_type ["
                     << "%" << (int)reg << ", "
-                    << "str(" << type_name.data() << "), "
+                    << "str(" << type_name.Data() << "), "
                     << "u16(" << (int)size << ")";
 
             for (int i = 0; i < size; i++) {
-                (*os) << ", str(" << names[i].data() << ")";
+                (*os) << ", str(" << names[i].Data() << ")";
             }
                     
             (*os)
@@ -413,13 +414,13 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_MEM:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
-        uint8_t idx;
+        UInt8 idx;
         bs.Read(&idx);
 
         if (os != nullptr) {
@@ -436,13 +437,13 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_MEM_HASH:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
-        uint32_t hash;
+        UInt32 hash;
         bs.Read(&hash);
 
         if (os != nullptr) {
@@ -459,13 +460,13 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_ARRAYIDX:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
-        uint8_t idx;
+        UInt8 idx;
         bs.Read(&idx);
 
         if (os != nullptr) {
@@ -482,10 +483,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_OFFSET_REF:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t offset;
+        UInt16 offset;
         bs.Read(&offset);
 
         if (os != nullptr) {
@@ -501,10 +502,10 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_INDEX_REF:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint16_t idx;
+        UInt16 idx;
         bs.Read(&idx);
 
         if (os != nullptr) {
@@ -520,8 +521,8 @@ void DecompilationUnit::DecodeNext(
     }
     case REF:
     {
-        uint8_t src_reg;
-        uint8_t dst_reg;
+        UInt8 src_reg;
+        UInt8 dst_reg;
 
         bs.Read(&src_reg);
         bs.Read(&dst_reg);
@@ -539,8 +540,8 @@ void DecompilationUnit::DecodeNext(
     }
     case DEREF:
     {
-        uint8_t src_reg;
-        uint8_t dst_reg;
+        UInt8 src_reg;
+        UInt8 dst_reg;
 
         bs.Read(&src_reg);
         bs.Read(&dst_reg);
@@ -558,7 +559,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_NULL:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         if (os != nullptr) {
@@ -573,7 +574,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_TRUE:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         if (os != nullptr) {
@@ -588,7 +589,7 @@ void DecompilationUnit::DecodeNext(
     }
     case LOAD_FALSE:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         if (os != nullptr) {
@@ -603,10 +604,10 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_OFFSET:
     {
-        uint16_t dst;
+        UInt16 dst;
         bs.Read(&dst);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -622,10 +623,10 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_INDEX:
     {
-        uint16_t dst;
+        UInt16 dst;
         bs.Read(&dst);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -641,13 +642,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_MEM:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t idx;
+        UInt8 idx;
         bs.Read(&idx);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -664,13 +665,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_MEM_HASH:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t hash;
+        UInt32 hash;
         bs.Read(&hash);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -687,13 +688,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_ARRAYIDX:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t idx;
+        UInt32 idx;
         bs.Read(&idx);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -710,13 +711,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_ARRAYIDX_REG:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t idx;
+        UInt8 idx;
         bs.Read(&idx);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -733,10 +734,10 @@ void DecompilationUnit::DecodeNext(
     }
     case MOV_REG:
     {
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -752,13 +753,13 @@ void DecompilationUnit::DecodeNext(
     }
     case HAS_MEM_HASH:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
-        uint32_t hash;
+        UInt32 hash;
         bs.Read(&hash);
 
         if (os != nullptr) {
@@ -775,7 +776,7 @@ void DecompilationUnit::DecodeNext(
     }
     case PUSH:
     {
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -800,7 +801,7 @@ void DecompilationUnit::DecodeNext(
     }
     case POP_N:
     {
-        uint8_t n;
+        UInt8 n;
         bs.Read(&n);
 
         if (os != nullptr) {
@@ -815,10 +816,10 @@ void DecompilationUnit::DecodeNext(
     }
     case PUSH_ARRAY:
     {
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
-        uint8_t src;
+        UInt8 src;
         bs.Read(&src);
 
         if (os != nullptr) {
@@ -833,7 +834,7 @@ void DecompilationUnit::DecodeNext(
     }
     case JMP:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -849,7 +850,7 @@ void DecompilationUnit::DecodeNext(
     }
     case JE:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -864,7 +865,7 @@ void DecompilationUnit::DecodeNext(
     }
     case JNE:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -879,7 +880,7 @@ void DecompilationUnit::DecodeNext(
     }
     case JG:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -894,7 +895,7 @@ void DecompilationUnit::DecodeNext(
     }
     case JGE:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -909,10 +910,10 @@ void DecompilationUnit::DecodeNext(
     }
     case CALL:
     {
-        uint8_t func;
+        UInt8 func;
         bs.Read(&func);
 
-        uint8_t argc;
+        UInt8 argc;
         bs.Read(&argc);
 
         if (os != nullptr) {
@@ -938,7 +939,7 @@ void DecompilationUnit::DecodeNext(
     }
     case BEGIN_TRY:
     {
-        uint32_t addr;
+        UInt32 addr;
         bs.Read(&addr);
 
         if (os != nullptr) {
@@ -961,10 +962,10 @@ void DecompilationUnit::DecodeNext(
     }
     case NEW:
     {
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
-        uint8_t type;
+        UInt8 type;
         bs.Read(&type);
 
         if (os != nullptr) {
@@ -980,10 +981,10 @@ void DecompilationUnit::DecodeNext(
     }
     case NEW_ARRAY:
     {
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
-        uint32_t size;
+        UInt32 size;
         bs.Read(&size);
 
         if (os != nullptr) {
@@ -999,10 +1000,10 @@ void DecompilationUnit::DecodeNext(
     }
     case CMP:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
         if (os != nullptr) {
@@ -1018,7 +1019,7 @@ void DecompilationUnit::DecodeNext(
     }
     case CMPZ:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
         if (os != nullptr) {
@@ -1033,13 +1034,13 @@ void DecompilationUnit::DecodeNext(
     }
     case ADD:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1056,13 +1057,13 @@ void DecompilationUnit::DecodeNext(
     }
     case SUB:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1079,13 +1080,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MUL:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1102,13 +1103,13 @@ void DecompilationUnit::DecodeNext(
     }
     case DIV:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1125,13 +1126,13 @@ void DecompilationUnit::DecodeNext(
     }
     case MOD:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1148,13 +1149,13 @@ void DecompilationUnit::DecodeNext(
     }
     case AND:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1171,13 +1172,13 @@ void DecompilationUnit::DecodeNext(
     }
     case OR:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1194,13 +1195,13 @@ void DecompilationUnit::DecodeNext(
     }
     case XOR:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1217,13 +1218,13 @@ void DecompilationUnit::DecodeNext(
     }
     case SHL:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1241,13 +1242,13 @@ void DecompilationUnit::DecodeNext(
 
     case SHR:
     {
-        uint8_t lhs;
+        UInt8 lhs;
         bs.Read(&lhs);
 
-        uint8_t rhs;
+        UInt8 rhs;
         bs.Read(&rhs);
 
-        uint8_t dst;
+        UInt8 dst;
         bs.Read(&dst);
 
         if (os != nullptr) {
@@ -1264,7 +1265,7 @@ void DecompilationUnit::DecodeNext(
     }
     case NEG:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         if (os != nullptr) {
@@ -1279,7 +1280,7 @@ void DecompilationUnit::DecodeNext(
     }
     case THROW:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
         if (os != nullptr) {
@@ -1294,7 +1295,7 @@ void DecompilationUnit::DecodeNext(
     }
     case TRACEMAP:
     {
-        uint32_t len;
+        UInt32 len;
         bs.Read(&len);
 
         if (os != nullptr) {
@@ -1309,7 +1310,7 @@ void DecompilationUnit::DecodeNext(
     }
     case REM:
     {
-        uint32_t len;
+        UInt32 len;
         bs.Read(&len);
 
         // read string based on length
@@ -1330,10 +1331,10 @@ void DecompilationUnit::DecodeNext(
     }
     case EXPORT:
     {
-        uint8_t reg;
+        UInt8 reg;
         bs.Read(&reg);
 
-        uint32_t hash;
+        UInt32 hash;
         bs.Read(&hash);
 
         if (os != nullptr) {
@@ -1380,7 +1381,7 @@ InstructionStream DecompilationUnit::Decompile(hyperion::vm::BytecodeStream &bs,
             (*os) << std::hex << pos << std::dec << "\t";
         }
 
-        uint8_t code;
+        UInt8 code;
         bs.Read(&code);
 
         DecodeNext(code, bs, is, os);

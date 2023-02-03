@@ -19,7 +19,7 @@ public:
         const std::string &name,
         const RC<AstPrototypeSpecification> &proto,
         const RC<AstExpression> &assignment,
-        const std::vector<RC<AstParameter>> &template_params,
+        const Array<RC<AstParameter>> &template_params,
         IdentifierFlagBits flags,
         const SourceLocation &location
     );
@@ -50,7 +50,7 @@ public:
 protected:
     RC<AstPrototypeSpecification> m_proto;
     RC<AstExpression> m_assignment;
-    std::vector<RC<AstParameter>> m_template_params;
+    Array<RC<AstParameter>> m_template_params;
     IdentifierFlagBits m_flags;
 
     // set while analyzing

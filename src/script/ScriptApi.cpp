@@ -52,7 +52,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
     NativeInitializerPtr_t ptr
 )
 {
-    m_variable_defs.push_back(NativeVariableDefine(
+    m_variable_defs.PushBack(NativeVariableDefine(
         variable_name,
         variable_type,
         ptr
@@ -67,7 +67,7 @@ API::ModuleDefine &API::ModuleDefine::Variable(
     const vm::Value &value
 )
 {
-    m_variable_defs.push_back(NativeVariableDefine(
+    m_variable_defs.PushBack(NativeVariableDefine(
         variable_name,
         variable_type,
         value
@@ -168,16 +168,16 @@ API::ModuleDefine &API::ModuleDefine::Variable(
 API::ModuleDefine &API::ModuleDefine::Function(
     const std::string &function_name,
     const SymbolTypePtr_t &return_type,
-    const std::vector<GenericInstanceTypeInfo::Arg> &param_types,
+    const Array<GenericInstanceTypeInfo::Arg> &param_types,
     NativeFunctionPtr_t ptr
 )
 {
-    m_function_defs.emplace_back(
+    m_function_defs.PushBack(NativeFunctionDefine {
         function_name,
         return_type,
         param_types,
         ptr
-    );
+    });
 
     return *this;
 }
@@ -308,7 +308,7 @@ void API::ModuleDefine::BindNativeFunction(
     AssertThrow(ident != nullptr);
 
     // create value
-    // std::vector<RC<AstParameter>> parameters; // TODO
+    // Array<RC<AstParameter>> parameters; // TODO
     // RC<AstBlock> block(new AstBlock(SourceLocation::eof));
     // RC<AstFunctionExpression> value(new AstFunctionExpression(
     //     parameters, nullptr, block, false, false, false, SourceLocation::eof
@@ -316,14 +316,14 @@ void API::ModuleDefine::BindNativeFunction(
 
     // value->SetReturnType(def.return_type);
 
-    //std::vector<GenericInstanceTypeInfo::Arg> generic_param_types;
+    //Array<GenericInstanceTypeInfo::Arg> generic_param_types;
 
-    // generic_param_types.push_back({
+    // generic_param_types.PushBack({
     //     "@return", def.return_type
     // });
 
     // for (auto &it : def.param_types) {
-    //     generic_param_types.push_back(it);
+    //     generic_param_types.PushBack(it);
     // }
 
     auto function_type = SymbolType::Function(
@@ -370,14 +370,14 @@ void API::ModuleDefine::BindType(
 
     SymbolTypePtr_t class_symbol_type;
 
-    std::vector<SymbolMember_t> prototype_member_types;
-    prototype_member_types.reserve(def.members.size());
+    Array<SymbolMember_t> prototype_member_types;
+    prototype_member_types.Reserve(def.members.Size());
 
-    std::vector<SymbolMember_t> class_instance_member_types;
-    class_instance_member_types.reserve(2 + def.static_members.size());
+    Array<SymbolMember_t> class_instance_member_types;
+    class_instance_member_types.Reserve(2 + def.static_members.Size());
 
-    std::vector<NativeMemberDefine> class_instance_members;
-    class_instance_members.reserve(2 + def.static_members.size());
+    Array<NativeMemberDefine> class_instance_members;
+    class_instance_members.Reserve(2 + def.static_members.Size());
 
     // add static members
 
@@ -394,13 +394,13 @@ void API::ModuleDefine::BindType(
 
         AssertThrow(member.value_type != nullptr);
 
-        class_instance_member_types.push_back(SymbolMember_t {
+        class_instance_member_types.PushBack(SymbolMember_t {
             member.name,
             member.value_type,
             member.value_type->GetDefaultValue()
         });
 
-        class_instance_members.push_back(NativeMemberDefine(
+        class_instance_members.PushBack(NativeMemberDefine(
             member.name,
             member.value_type,
             member.value
@@ -420,7 +420,7 @@ void API::ModuleDefine::BindType(
 
         AssertThrow(member.value_type != nullptr);
 
-        prototype_member_types.push_back(SymbolMember_t {
+        prototype_member_types.PushBack(SymbolMember_t {
             member.name,
             member.value_type,
             member.value_type->GetDefaultValue()
@@ -428,26 +428,24 @@ void API::ModuleDefine::BindType(
     }
 
     // look for $proto, if not there, add it
-    if (std::find_if(
-        def.members.begin(),
-        def.members.end(),
-        [](const NativeMemberDefine &item) {
-            return item.name == "$proto";
-        }
-    ) == def.members.end()) {
+    auto proto_it = def.members.FindIf([](const NativeMemberDefine &item) {
+        return item.name == "$proto";
+    });
+
+    if (proto_it == def.members.End()) {
         auto proto_type = SymbolType::Object(
             def.name + "Instance",
             prototype_member_types,
             BuiltinTypes::OBJECT
         );
 
-        class_instance_members.push_back(NativeMemberDefine(
+        class_instance_members.PushBack(NativeMemberDefine(
             "$proto",
             proto_type,
             vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr})
         ));
 
-        class_instance_member_types.push_back(SymbolMember_t {
+        class_instance_member_types.PushBack(SymbolMember_t {
             "$proto",
             proto_type,
             RC<AstTypeObject>(new AstTypeObject(
@@ -457,21 +455,6 @@ void API::ModuleDefine::BindType(
             ))
         });
     }
-
-    // look for base, if not there, add it
-    /*if (std::find_if(
-        def.members.begin(),
-        def.members.end(),
-        [](const NativeMemberDefine &item) {
-            return item.name == "base";
-        }
-    ) == def.members.end()) {
-        def.members.push_back(NativeMemberDefine(
-            "base",
-            def.base_class,
-            vm::Value(vm::Value::HEAP_POINTER, {.ptr = nullptr})
-        ));
-    }*/
 
     if (def.base_class != nullptr) {
         class_symbol_type = SymbolType::Extend(
@@ -531,20 +514,20 @@ void API::ModuleDefine::BindType(
     AssertThrow(class_value.m_value.ptr == nullptr && class_value.m_type == vm::Value::HEAP_POINTER);
 
     { // create prototype object in vm memory
-        std::vector<vm::Member> member_data;
-        member_data.reserve(def.members.size());
+        Array<vm::Member> member_data;
+        member_data.Reserve(def.members.Size());
 
         for (auto &member : def.members) {
             vm::Member member_data_instance;
             std::strncpy(member_data_instance.name, member.name.c_str(), 255);
             member_data_instance.hash = hash_fnv_1(member.name.c_str());
             member_data_instance.value = member.value;
-            member_data.push_back(member_data_instance);
+            member_data.PushBack(member_data_instance);
         }
 
         vm::VMObject prototype_object(
-            member_data.data(),
-            member_data.size()
+            member_data.Data(),
+            member_data.Size()
         );
 
         // create heap value for object
@@ -557,36 +540,32 @@ void API::ModuleDefine::BindType(
         prototype_ptr->GetFlags() |= vm::GC_ALWAYS_ALIVE;
         // prototype_ptr->Mark();
 
-        auto it = std::find_if(
-            class_instance_members.begin(),
-            class_instance_members.end(),
-            [prototype_ptr](const NativeMemberDefine &item) {
-                return item.name == "$proto";
-            }
-        );
+        auto it = class_instance_members.FindIf([prototype_ptr](const NativeMemberDefine &item) {
+            return item.name == "$proto";
+        });
 
-        AssertThrow(it != class_instance_members.end());
+        AssertThrow(it != class_instance_members.End());
         AssertThrow(it->value.m_value.ptr == nullptr && it->value.m_type == vm::Value::HEAP_POINTER);
 
         it->value.m_value.ptr = prototype_ptr;
     }
 
     { // create class object in vm memory
-        std::vector<vm::Member> member_data;
-        member_data.reserve(class_instance_members.size());
+        Array<vm::Member> member_data;
+        member_data.Reserve(class_instance_members.Size());
 
         for (auto &member : class_instance_members) {
             vm::Member member_data_instance;
             std::strncpy(member_data_instance.name, member.name.c_str(), 255);
             member_data_instance.hash = hash_fnv_1(member.name.c_str());
             member_data_instance.value = member.value;
-            member_data.push_back(member_data_instance);
+            member_data.PushBack(member_data_instance);
         }
 
 
         vm::VMObject class_object(
-            member_data.data(),
-            member_data.size(),
+            member_data.Data(),
+            member_data.Size(),
             prototype_ptr
         );
 
@@ -618,11 +597,9 @@ API::ModuleDefine &APIInstance::Module(const std::string &name)
     }
 
     // not found, add module
-    API::ModuleDefine def(*this, name);
+    m_module_defs.PushBack(API::ModuleDefine(*this, name));
 
-    // return the new instance
-    m_module_defs.push_back(def);
-    return m_module_defs.back();
+    return m_module_defs.Back();
 }
 
 void APIInstance::BindAll(VM *vm, CompilationUnit *compilation_unit)

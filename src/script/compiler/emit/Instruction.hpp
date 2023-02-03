@@ -8,6 +8,8 @@
 
 #include <script/compiler/emit/Buildable.hpp>
 
+#include <core/lib/CMemory.hpp>
+
 #include <vector>
 #include <ostream>
 #include <cstring>
@@ -294,7 +296,7 @@ struct BuildableType final : public Buildable
 {
     RegIndex reg;
     std::string name;
-    std::vector<std::string> members;
+    Array<std::string> members;
 
     virtual ~BuildableType() = default;
 };
@@ -340,7 +342,7 @@ struct SymbolExport final : public Instruction
 template <class...Args>
 struct RawOperation final : public Instruction
 {
-    std::vector<char> data;
+    Array<char> data;
 
     RawOperation() = default;
     RawOperation(const RawOperation &other)
@@ -351,12 +353,15 @@ struct RawOperation final : public Instruction
     void Accept(const char *str)
     {
         // do not copy NUL byte
-        size_t length = std::strlen(str);
-        data.insert(data.end(), str, str + length);
+        SizeType length = std::strlen(str);
+
+        const SizeType previous_size = data.Size();
+        data.Resize(previous_size + length);
+        Memory::Copy(data.Data() + previous_size, str, length);
     }
 
     template <typename T>
-    void Accept(const std::vector<T> &ts)
+    void Accept(const Array<T> &ts)
     {
         for (const T &t : ts) {
             this->Accept(t);
@@ -366,14 +371,15 @@ struct RawOperation final : public Instruction
     template <typename T>
     void Accept(const T &t)
     {
-        char bytes[sizeof(t)];
-        std::memcpy(&bytes[0], &t, sizeof(t));
-        data.insert(data.end(), &bytes[0], &bytes[0] + sizeof(t));
+        const SizeType previous_size = data.Size();
+        data.Resize(previous_size + sizeof(T));
+        Memory::Copy(data.Data() + previous_size, &t, sizeof(T));
     }
 };
 
 template <class T, class... Ts>
-struct RawOperation<T, Ts...> : RawOperation<Ts...> {
+struct RawOperation<T, Ts...> : RawOperation<Ts...>
+{
     RawOperation(T t, Ts...ts) : RawOperation<Ts...>(ts...)
         { this->Accept(t); }
 };
