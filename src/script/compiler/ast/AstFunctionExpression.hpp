@@ -21,7 +21,14 @@ public:
         const std::shared_ptr<AstBlock> &block,
         const SourceLocation &location
     );
+
     virtual ~AstFunctionExpression() = default;
+
+    bool IsConstructorDefinition() const
+        { return m_is_constructor_definition; }
+
+    void SetIsConstructorDefinition(bool is_constructor_definition)
+        { m_is_constructor_definition = is_constructor_definition; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;

@@ -20,12 +20,12 @@
 namespace hyperion::compiler {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
-    const std::shared_ptr<AstExpression> &expr,
+    const std::shared_ptr<AstIdentifier> &expr,
     const std::vector<std::shared_ptr<AstArgument>> &generic_args,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_expr(expr),
-      m_generic_args(generic_args)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_expr(expr),
+    m_generic_args(generic_args)
 {
 }
 
@@ -34,13 +34,17 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
+    // TODO: Declare a variable with some mangled name,
+    // use it to look up to see if it is already instantiated.
+    // it will be declared in the same scope as the original generic.
+
     m_block.reset(new AstBlock({}, m_location));
 
     ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
 
     for (auto &arg : m_generic_args) {
         AssertThrow(arg != nullptr);
-        arg->Visit(visitor, mod);
+        arg->Visit(visitor, visitor->GetCompilationUnit()->GetCurrentModule());
     }
 
     // visit the expression
@@ -49,17 +53,6 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     const auto &expr_type = m_expr->GetExprType();
     AssertThrow(expr_type != nullptr);
-
-    if (expr_type == BuiltinTypes::ANY) { // 'Any' is not usable for generic inst
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_expression_not_generic,
-            m_expr->GetLocation(),
-            expr_type->GetName()
-        ));
-
-        return;
-    }
 
     // temporarily define all generic parameters so there are no undefined reference errors.
     const AstExpression *value_of = m_expr->GetValueOf();
@@ -93,14 +86,61 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     m_expr_type = substituted.first;
     const auto args_substituted = substituted.second;
 
+    if (m_expr_type == nullptr) {
+        // error should occur
+        return;
+    }
+
+    // Create mangled name
+
+    // std::string mangled_name = "__$" + m_expr->GetName();
+
+    // for (const auto &arg : args_substituted) {
+    //     AssertThrow(arg != nullptr);
+
+    //     const std::string &name = arg->GetName();
+
+    //     if (name.empty()) {
+    //         mangled_name += ";invalid";
+
+    //         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+    //             LEVEL_ERROR,
+    //             Msg_generic_argument_must_be_literal,
+    //             arg->GetLocation()
+    //         ));
+    //     } else {
+    //         mangled_name += ";" + name;
+    //     }
+    // }
+    
+    // Scope *original_scope = m_expr->GetProperties().m_function_scope;
+    // AssertThrow(original_scope != nullptr);
+
+    // lookup identifier by mangled name to see if it exists already
+
+    // if (auto identifier = mod->LookUpIdentifier(mangled_name, false, true)) {
+    //     // we can use it by adding a variable node with the name of the mangled name
+
+    //     // @TODO: Reopen existing scope to use?
+
+    //     m_inner_expr.reset(new AstVariable(
+    //         mangled_name,
+    //         m_location
+    //     ));
+
+    // } else {
+
+
+        // first instantiation, have to visit
+        m_inner_expr = CloneAstNode(generic_expr);
+
     // there can be more because of varargs
-    if (args_substituted.size() + 1 >= expr_type->GetGenericInstanceInfo().m_generic_args.size()) {
+    // if (args_substituted.size() + 1 >= expr_type->GetGenericInstanceInfo().m_generic_args.size()) {
         for (SizeType i = 0; i < expr_type->GetGenericInstanceInfo().m_generic_args.size() - 1; i++) {
             AssertThrow(args_substituted[i]->GetExpr() != nullptr);
 
             if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
                 std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
-                    // template_expr->GetGenericParameters()[i]->GetName(),
                     expr_type->GetGenericInstanceInfo().m_generic_args[i + 1].m_name,
                     nullptr,
                     CloneAstNode(args_substituted[i]->GetExpr()),
@@ -113,13 +153,14 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             }
         }
 
-        m_inner_expr = CloneAstNode(generic_expr);
-
-        m_block->AddChild(m_inner_expr);
-        m_block->Visit(visitor, mod);
-
         // TODO: Cache instantiations so we don't create a new one for every set of arguments
-    }
+    // }
+    // }
+
+    AssertThrow(m_inner_expr != nullptr);
+
+    m_block->AddChild(m_inner_expr);
+    m_block->Visit(visitor, mod);
 }
 
 std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, Module *mod)

@@ -91,6 +91,15 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         m_return_type = substituted.first;
         // change args to be newly ordered vector
         m_substituted_args = substituted.second;
+
+        // should never be empty; self is needed
+        if (m_substituted_args.empty()) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_internal_error,
+                m_location
+            ));
+        }
     } else {
         m_return_type = BuiltinTypes::UNDEFINED;
 

@@ -23,12 +23,14 @@ class Module;
 class ModuleBuilder;
 class FunctionBuilder;
 
-class AstNodeBuilder {
+class AstNodeBuilder
+{
 public:
     ModuleBuilder Module(const std::string &name);
 };
 
-class ModuleBuilder {
+class ModuleBuilder
+{
 public:
     ModuleBuilder(
         const std::string &name
@@ -51,7 +53,8 @@ private:
     ModuleBuilder *m_parent;
 };
 
-class FunctionBuilder {
+class FunctionBuilder
+{
 public:
     FunctionBuilder(
         const std::string &name

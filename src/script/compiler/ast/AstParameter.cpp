@@ -111,7 +111,9 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
     // set identifier stack location
     m_identifier->SetStackLocation(stack_location);
 
-    if (m_default_param != nullptr) {
+    if (IsGenericParam()) {
+        AssertThrowMsg(m_default_param != nullptr, "Generic params must be set to a default value");
+    
         chunk->Append(m_default_param->Build(visitor, mod));
 
         UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();

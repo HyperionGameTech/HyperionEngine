@@ -22,7 +22,8 @@
 
 namespace hyperion::compiler {
 
-AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
+AstVariableDeclaration::AstVariableDeclaration(
+    const std::string &name,
     const std::shared_ptr<AstPrototypeSpecification> &proto,
     const std::shared_ptr<AstExpression> &assignment,
     const std::vector<std::shared_ptr<AstParameter>> &template_params,
@@ -32,8 +33,7 @@ AstVariableDeclaration::AstVariableDeclaration(const std::string &name,
     m_proto(proto),
     m_assignment(assignment),
     m_template_params(template_params),
-    m_flags(flags),
-    m_assignment_already_visited(false)
+    m_flags(flags)
 {
 }
 
@@ -131,6 +131,13 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         if (m_real_assignment == nullptr) {
             // no assignment found - set to undefined (instead of a null pointer)
             m_real_assignment.reset(new AstUndefined(m_location));
+        }
+
+        // Set identifier currentl value in advance,
+        // so from type declarations we can use the current type.
+        // Note: m_identifier will only be nullptr if declaration has failed.
+        if (m_identifier != nullptr) {
+            m_identifier->SetCurrentValue(m_real_assignment);
         }
 
         // if the variable has been assigned to an anonymous type,
@@ -256,7 +263,6 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_identifier != nullptr) {
         m_identifier->SetSymbolType(symbol_type);
-        m_identifier->SetCurrentValue(m_real_assignment);
     }
 }
 

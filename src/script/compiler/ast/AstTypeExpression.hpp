@@ -17,7 +17,8 @@ public:
     AstTypeExpression(
         const std::string &name,
         const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
         bool is_proxy_class,
         const SourceLocation &location
@@ -26,7 +27,8 @@ public:
     AstTypeExpression(
         const std::string &name,
         const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
+        const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
         const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
         const SymbolTypePtr_t &enum_underlying_type,
         bool is_proxy_class,
@@ -40,10 +42,7 @@ public:
         { m_name = name; }
 
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &GetMembers() const
-        { return m_members; }
-
-    int GetNumMembers() const
-        { return m_num_members; }
+        { return m_combined_members; }
 
     bool IsEnum() const
         { return m_enum_underlying_type != nullptr; }
@@ -69,23 +68,25 @@ public:
 protected:
     std::string m_name;
     std::shared_ptr<AstPrototypeSpecification> m_base_specification;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_members;
+    std::vector<std::shared_ptr<AstVariableDeclaration>> m_data_members;
+    std::vector<std::shared_ptr<AstVariableDeclaration>> m_function_members;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
     SymbolTypePtr_t m_enum_underlying_type;
     bool m_is_proxy_class;
-    int m_num_members;
 
     SymbolTypePtr_t m_symbol_type;
 
     std::shared_ptr<AstTypeObject> m_expr;
     std::vector<std::shared_ptr<AstVariableDeclaration>> m_outside_members;
+    std::vector<std::shared_ptr<AstVariableDeclaration>> m_combined_members;
 
     Pointer<AstTypeExpression> CloneImpl() const
     {
         return Pointer<AstTypeExpression>(new AstTypeExpression(
             m_name,
             CloneAstNode(m_base_specification),
-            CloneAllAstNodes(m_members),
+            CloneAllAstNodes(m_data_members),
+            CloneAllAstNodes(m_function_members),
             CloneAllAstNodes(m_static_members),
             m_enum_underlying_type,
             m_is_proxy_class,

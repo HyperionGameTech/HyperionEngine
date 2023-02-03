@@ -38,10 +38,12 @@ static std::shared_ptr<AstConstant> ConstantFold(
 AstUnaryExpression::AstUnaryExpression(
     const std::shared_ptr<AstExpression> &target,
     const Operator *op,
+    bool is_postfix_version,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_target(target),
     m_op(op),
+    m_is_postfix_version(is_postfix_version),
     m_folded(false)
 {
 }
@@ -155,17 +157,39 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    if (m_bin_expr != nullptr) {
-        return m_bin_expr->Build(visitor, mod);
-    }
-
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    UInt8 rp;
+
+    if (m_bin_expr != nullptr) {
+        if (m_is_postfix_version) {
+            // for postfix version:
+            //  - load var into register
+            //  - do binary op
+            //  - return value from original register
+
+            AssertThrow(m_target != nullptr);
+            chunk->Append(m_target->Build(visitor, mod));
+
+            visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
+            rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+            chunk->Append(m_bin_expr->Build(visitor, mod));
+
+            visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
+            rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+            return chunk;
+        } else {
+            return m_bin_expr->Build(visitor, mod);
+        }
+    }
 
     AssertThrow(m_target != nullptr);
     chunk->Append(m_target->Build(visitor, mod));
 
     if (!m_folded) {
-        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         if (m_op->GetType() & ARITHMETIC) {
             UInt8 opcode = 0;
@@ -215,7 +239,7 @@ std::unique_ptr<Buildable> AstUnaryExpression::Build(AstVisitor *visitor, Module
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstUnaryExpression::Optimize(AstVisitor *visitor, Module *mod)

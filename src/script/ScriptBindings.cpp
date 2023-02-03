@@ -493,7 +493,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
     }
 }
 
-static HYP_SCRIPT_FUNCTION(Reflect_HasMember)
+static HYP_SCRIPT_FUNCTION(Runtime_HasMember)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
@@ -515,7 +515,7 @@ static HYP_SCRIPT_FUNCTION(Reflect_HasMember)
     }
 }
 
-static HYP_SCRIPT_FUNCTION(Reflect_GetMembers)
+static HYP_SCRIPT_FUNCTION(Runtime_GetMembers)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -543,7 +543,7 @@ static HYP_SCRIPT_FUNCTION(Reflect_GetMembers)
     }
 }
 
-static HYP_SCRIPT_FUNCTION(Reflect_GetClass)
+static HYP_SCRIPT_FUNCTION(Runtime_GetClass)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
@@ -1015,16 +1015,14 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 { "cls", BuiltinTypes::ANY },
             },
             Runtime_IsInstance
-        );
-
-    api_instance.Module("reflect")
+        )
         .Function(
             "GetClass",
             BuiltinTypes::ANY,
             {
                 { "object", BuiltinTypes::ANY }
             },
-            Reflect_GetClass
+            Runtime_GetClass
         )
         .Function(
             "HasMember",
@@ -1033,7 +1031,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                 { "object", BuiltinTypes::ANY },
                 { "member_name", BuiltinTypes::STRING }
             },
-            Reflect_HasMember
+            Runtime_HasMember
         )
         .Function(
             "GetMembers",
@@ -1041,7 +1039,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
             {
                 { "object", BuiltinTypes::ANY }
             },
-            Reflect_GetMembers
+            Runtime_GetMembers
         );
 
     api_instance.Module(Config::global_module_name)
@@ -1510,7 +1508,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 #else
         .Variable("DEBUG_MODE", false)
 #endif
-        .Variable("NAN", MathUtil::NaN<Float>())
+        .Variable("NaN", MathUtil::NaN<Float>())
         .Function(
             "ArraySize",
             BuiltinTypes::INT,

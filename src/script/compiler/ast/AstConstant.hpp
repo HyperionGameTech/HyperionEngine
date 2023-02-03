@@ -8,7 +8,8 @@
 
 namespace hyperion::compiler {
 
-class AstConstant : public AstExpression {
+class AstConstant : public AstExpression
+{
 public:
     AstConstant(const SourceLocation &location);
     virtual ~AstConstant() = default;

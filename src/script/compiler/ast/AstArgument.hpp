@@ -8,7 +8,8 @@
 
 namespace hyperion::compiler {
 
-class AstArgument : public AstExpression {
+class AstArgument : public AstExpression
+{
 public:
     AstArgument(
         const std::shared_ptr<AstExpression> &expr,
@@ -41,6 +42,7 @@ public:
 
     //virtual const AstExpression *GetValueOf() const override { return m_expr.get(); }
 
+    virtual bool IsLiteral() const override;
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;

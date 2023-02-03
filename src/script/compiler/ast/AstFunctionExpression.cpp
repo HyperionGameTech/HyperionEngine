@@ -89,6 +89,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // set m_is_closure to be true if we are already
     // located within a function
+    // @TODO Revisit
     m_is_closure = true;//mod->IsInFunction();
 
     m_is_constructor_definition = mod->IsInScopeOfType(SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);

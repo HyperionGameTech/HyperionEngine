@@ -9,9 +9,9 @@ class AstMember : public AstExpression
 {
 public:
     AstMember(
-      const std::string &field_name,
-      const std::shared_ptr<AstExpression> &target,
-      const SourceLocation &location
+        const std::string &field_name,
+        const std::shared_ptr<AstExpression> &target,
+        const SourceLocation &location
     );
     virtual ~AstMember() = default;
     
@@ -38,6 +38,7 @@ protected:
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_target_type;
     std::shared_ptr<AstExpression> m_proxy_expr;
+    std::shared_ptr<AstExpression> m_override_expr;
     int m_found_index;
 
     Pointer<AstMember> CloneImpl() const

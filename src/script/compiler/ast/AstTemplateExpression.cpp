@@ -57,9 +57,9 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         // gross, but we gotta do this our else on first pass,
         // these will just refer to the wrong memory
         if (generic_param->GetDefaultValue() == nullptr) {
-            generic_param->SetDefaultValue(std::shared_ptr<AstNil>(
-                new AstNil(generic_param->GetLocation())
-            ));
+            generic_param->SetDefaultValue(std::shared_ptr<AstNil>(new AstNil(
+                m_location
+            )));
         }
 
         generic_param->Visit(visitor, mod);
@@ -187,9 +187,14 @@ const AstExpression *AstTemplateExpression::GetDeepValueOf() const
     return AstExpression::GetDeepValueOf();
 }
 
-AstExpression *AstTemplateExpression::GetHeldGenericExpr() const
+const AstExpression *AstTemplateExpression::GetHeldGenericExpr() const
 {
     return m_expr.get();
+    // if (m_expr == nullptr) {
+    //     return nullptr;
+    // }
+
+    // return m_expr->GetDeepValueOf();
 }
 
 } // namespace hyperion::compiler

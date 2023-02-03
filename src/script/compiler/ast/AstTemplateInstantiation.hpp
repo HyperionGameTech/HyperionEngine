@@ -17,9 +17,11 @@ class AstVariableDeclaration;
 class AstTemplateInstantiation : public AstExpression
 {
 public:
-    AstTemplateInstantiation(const std::shared_ptr<AstExpression> &expr,
+    AstTemplateInstantiation(
+        const std::shared_ptr<AstIdentifier> &expr,
         const std::vector<std::shared_ptr<AstArgument>> &generic_args,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstTemplateInstantiation() = default;
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -36,7 +38,7 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_expr;
+    std::shared_ptr<AstIdentifier> m_expr;
     std::vector<std::shared_ptr<AstArgument>> m_generic_args;
 
     // set while analyzing

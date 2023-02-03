@@ -102,6 +102,12 @@ Pointer<AstStatement> AstArgument::Clone() const
     return CloneImpl();
 }
 
+bool AstArgument::IsLiteral() const
+{
+    AssertThrow(m_expr != nullptr);
+    return m_expr->IsLiteral();
+}
+
 Tribool AstArgument::IsTrue() const
 {
     AssertThrow(m_expr != nullptr);

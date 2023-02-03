@@ -54,7 +54,6 @@ protected:
     IdentifierFlagBits m_flags;
 
     // set while analyzing
-    bool m_assignment_already_visited;
     std::shared_ptr<AstExpression> m_real_assignment;
 
     SymbolTypeWeakPtr_t m_symbol_type;
@@ -64,7 +63,6 @@ protected:
         return Pointer<AstVariableDeclaration>(new AstVariableDeclaration(
             m_name,
             CloneAstNode(m_proto),
-            //CloneAstNode(m_type_specification),
             CloneAstNode(m_assignment),
             CloneAllAstNodes(m_template_params),
             m_flags,

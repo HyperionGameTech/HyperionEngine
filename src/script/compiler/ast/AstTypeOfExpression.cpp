@@ -24,6 +24,7 @@ AstTypeOfExpression::AstTypeOfExpression(
 
 void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+
     AssertThrow(m_expr != nullptr);
     m_expr->Visit(visitor, mod);
 

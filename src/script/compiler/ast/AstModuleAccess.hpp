@@ -9,11 +9,14 @@
 
 namespace hyperion::compiler {
 
-class AstModuleAccess : public AstExpression {
+class AstModuleAccess : public AstExpression
+{
 public:
-    AstModuleAccess(const std::string &target,
+    AstModuleAccess(
+        const std::string &target,
         const std::shared_ptr<AstExpression> &expr,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstModuleAccess() = default;
 
     Module *GetModule() { return m_mod_access; }

@@ -17,12 +17,10 @@
 
 namespace hyperion::compiler {
 
-struct Config {
+struct Config
+{
     static const SizeType max_data_members;
     static const char *global_module_name;
-    /** Store strings, functions, etc.... at
-        the top of the program, or load them at the point they're needed */
-    static bool use_static_objects;
     /** Optimize by removing unused variables */
     static bool cull_unused_objects;
 };

@@ -286,9 +286,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
                     ArgInfo arg_info;
                     arg_info.is_named = args[i]->IsNamed();
-                    // arg_info.is_ref = args[i]->IsRef();
                     arg_info.name = args[i]->GetName();
-                    // arg_info.type = args[i]->GetExprType();
 
                     ArgDataPair arg_data_pair = {
                         arg_info,
@@ -441,19 +439,19 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                 }
             
                 // handle arguments that weren't passed in, but have default assignments.
-                std::set<SizeType> unused_indices;
+                Array<SizeType> unused_indices;
 
                 for (SizeType index = 0; index < num_generic_args; ++index) {
-                    const auto it = used_indices.find(int(index));
-
-                    if (it == used_indices.end()) {
-                        unused_indices.insert(index);
+                    if (!unused_indices.Contains(index) && !used_indices.contains(index)) {
+                        unused_indices.PushBack(index);
                     }
                 }
 
                 Int unused_index_counter = 0;
 
-                for (SizeType unused_index : unused_indices) {
+                for (auto it = unused_indices.Begin(); it != unused_indices.End();) {
+                    const SizeType unused_index = *it;
+
                     AssertThrow(unused_index < generic_args.size());
             
                     const bool has_default_value = generic_args[unused_index].m_default_value != nullptr;
@@ -473,6 +471,9 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     // push the default value as argument
                     // use named argument, same name as in definition
 
+                    substituted_arg->SetIsPassByRef(is_ref);
+                    substituted_arg->SetIsPassConst(is_const);
+
                     substituted_arg->Visit(visitor, mod);
 
                     ArgInfo arg_info;
@@ -489,14 +490,10 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
                     if (found_index == -1) {
                         res_args.push_back(std::move(substituted_arg));
-                        res_args.back()->SetIsPassByRef(is_ref);
-                        res_args.back()->SetIsPassConst(is_const);
                     } else {
                         AssertThrow(found_index < res_args.size());
 
                         res_args[found_index] = std::move(substituted_arg);
-                        res_args[found_index]->SetIsPassByRef(is_ref);
-                        res_args[found_index]->SetIsPassConst(is_const);
                     }
                 
                     if (!has_default_value) {
@@ -510,6 +507,18 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     }
 
                     ++unused_index_counter;
+
+                    it = unused_indices.Erase(it);
+                }
+
+                if (unused_indices.Any()) {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_incorrect_number_of_arguments,
+                        location,
+                        num_generic_args_without_default_assigned,
+                        args.size()
+                    ));
                 }
             } else {
                 // wrong number of args given

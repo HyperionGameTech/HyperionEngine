@@ -56,7 +56,8 @@ enum Keywords
     Keyword_syntax
 };
 
-class Keyword {
+class Keyword
+{
 /* Static class members */
 public:
     static bool IsKeyword(const std::string &str);

@@ -4,11 +4,13 @@
 #include <script/compiler/ast/AstTypeObject.hpp>
 #include <script/compiler/ast/AstIdentifier.hpp>
 #include <script/compiler/ast/AstCallExpression.hpp>
+#include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Compiler.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/Configuration.hpp>
+#include <script/compiler/Keywords.hpp>
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
@@ -26,17 +28,30 @@ namespace hyperion::compiler {
 AstMember::AstMember(
     const std::string &field_name,
     const std::shared_ptr<AstExpression> &target,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
-      m_field_name(field_name),
-      m_target(target),
-      m_symbol_type(BuiltinTypes::UNDEFINED),
-      m_found_index(-1)
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
+    m_field_name(field_name),
+    m_target(target),
+    m_symbol_type(BuiltinTypes::UNDEFINED),
+    m_found_index(-1)
 {
 }
 
 void AstMember::Visit(AstVisitor *visitor, Module *mod)
 {
+    if (m_field_name == Keyword::ToString(Keyword_class)) {
+        // transform x.class into GetClass(x)
+
+        m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
+            .Module(Config::global_module_name)
+            .Function("GetClass")
+            .Call({ std::shared_ptr<AstArgument>(new AstArgument(m_target, false, false, "", m_location)) });
+
+        m_override_expr->Visit(visitor, mod);
+
+        return;
+    }
+
     AssertThrow(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
@@ -248,6 +263,11 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 {
+    if (m_override_expr != nullptr) {
+        m_override_expr->SetAccessMode(m_access_mode);
+        return m_override_expr->Build(visitor, mod);
+    }
+
     // if (m_proxy_expr != nullptr) {
     //     m_proxy_expr->SetAccessMode(m_access_mode);
     //     return m_proxy_expr->Build(visitor, mod);
@@ -315,6 +335,12 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
 
 void AstMember::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_override_expr != nullptr) {
+        m_override_expr->Optimize(visitor, mod);
+
+        return;
+    }
+
     if (m_proxy_expr != nullptr) {
         m_proxy_expr->Optimize(visitor, mod);
 
@@ -336,6 +362,10 @@ Pointer<AstStatement> AstMember::Clone() const
 
 Tribool AstMember::IsTrue() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->IsTrue();
+    }
+
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->IsTrue();
     // }
@@ -345,6 +375,10 @@ Tribool AstMember::IsTrue() const
 
 bool AstMember::MayHaveSideEffects() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->MayHaveSideEffects();
+    }
+
     if (m_proxy_expr != nullptr && m_proxy_expr->MayHaveSideEffects()) {
         return true;
     }
@@ -356,6 +390,9 @@ bool AstMember::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstMember::GetExprType() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetExprType();
+    }
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetExprType();
     // }
@@ -367,6 +404,10 @@ SymbolTypePtr_t AstMember::GetExprType() const
 
 const AstExpression *AstMember::GetValueOf() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetValueOf();
+    }
+
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetValueOf();
     // }
@@ -376,6 +417,10 @@ const AstExpression *AstMember::GetValueOf() const
 
 const AstExpression *AstMember::GetDeepValueOf() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetDeepValueOf();
+    }
+
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetDeepValueOf();
     // }
@@ -385,6 +430,10 @@ const AstExpression *AstMember::GetDeepValueOf() const
 
 AstExpression *AstMember::GetTarget() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->GetTarget();
+    }
+
     // if (m_proxy_expr != nullptr) {
     //     return m_proxy_expr->GetTarget();
     // }
@@ -398,6 +447,10 @@ AstExpression *AstMember::GetTarget() const
 
 bool AstMember::IsMutable() const
 {
+    if (m_override_expr != nullptr) {
+        return m_override_expr->IsMutable();
+    }
+
     if (m_proxy_expr != nullptr && !m_proxy_expr->IsMutable()) {
         return false;
     }

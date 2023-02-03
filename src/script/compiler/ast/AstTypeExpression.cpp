@@ -2,6 +2,7 @@
 #include <script/compiler/ast/AstNil.hpp>
 #include <script/compiler/ast/AstArrayExpression.hpp>
 #include <script/compiler/ast/AstTypeName.hpp>
+#include <script/compiler/ast/AstString.hpp>
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Keywords.hpp>
 #include <script/compiler/Module.hpp>
@@ -20,7 +21,8 @@ namespace hyperion::compiler {
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
     const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
     const SymbolTypePtr_t &enum_underlying_type,
     bool is_proxy_class,
@@ -28,7 +30,8 @@ AstTypeExpression::AstTypeExpression(
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_name(name),
     m_base_specification(base_specification),
-    m_members(members),
+    m_data_members(data_members),
+    m_function_members(function_members),
     m_static_members(static_members),
     m_enum_underlying_type(enum_underlying_type),
     m_is_proxy_class(is_proxy_class)
@@ -38,14 +41,16 @@ AstTypeExpression::AstTypeExpression(
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
     const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &members,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
+    const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
     const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
     bool is_proxy_class,
     const SourceLocation &location
 ) : AstTypeExpression(
         name,
         base_specification,
-        members,
+        data_members,
+        function_members,
         static_members,
         nullptr,
         is_proxy_class,
@@ -64,7 +69,6 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         BuiltinTypes::OBJECT
     );
 
-    // TODO: allow custom bases (which would have to extend Class somewhere)
     SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
 
     if (m_base_specification != nullptr) {
@@ -111,6 +115,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     // check if one with the name $proto already exists.
     bool proto_found = false;
     bool base_found = false;
+    bool name_found = false;
 
     for (const auto &mem : m_static_members) {
         AssertThrow(mem != nullptr);
@@ -119,6 +124,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             proto_found = true;
         } else if (mem->GetName() == "base") {
             base_found = true;
+        } else if (mem->GetName() == "name") {
+            name_found = true;
         }
     }
 
@@ -141,6 +148,17 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
             std::shared_ptr<AstTypeObject>(new AstTypeObject(
                 base_type,
                 nullptr,
+                m_location
+            ))
+        });
+    }
+
+    if (!name_found) { // no custom 'name' member, add default
+        m_symbol_type->AddMember(SymbolMember_t {
+            "name",
+            BuiltinTypes::STRING,
+            std::shared_ptr<AstString>(new AstString(
+                m_name,
                 m_location
             ))
         });
@@ -171,11 +189,31 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // ===== INSTANCE DATA MEMBERS =====
 
+    m_combined_members.reserve(m_data_members.size() + m_function_members.size());
+
     // open the scope for data members
     {
         ScopeGuard instance_data_members(mod, SCOPE_TYPE_TYPE_DEFINITION, 0);
 
-        for (const auto &mem : m_members) {
+        // Do data members first so we can use them all in functions.
+
+        for (const auto &mem : m_data_members) {
+            if (mem != nullptr) {
+                mem->Visit(visitor, mod);
+
+                AssertThrow(mem->GetIdentifier() != nullptr);
+                
+                prototype_type->AddMember(SymbolMember_t(
+                    mem->GetName(),
+                    mem->GetIdentifier()->GetSymbolType(),
+                    mem->GetRealAssignment()
+                ));
+
+                m_combined_members.push_back(mem);
+            }
+        }
+
+        for (const auto &mem : m_function_members) {
             if (mem != nullptr) {
                 // if name of the method matches that of the class, it is the constructor.
                 const bool is_constructor_definition = mem->GetName() == m_name;
@@ -196,6 +234,8 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                     mem->GetIdentifier()->GetSymbolType(),
                     mem->GetRealAssignment()
                 ));
+
+                m_combined_members.push_back(mem);
             }
         }
     }

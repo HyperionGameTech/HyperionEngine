@@ -110,7 +110,7 @@ private:
         bool override_question_mark = false
     );
     std::shared_ptr<AstExpression> ParseParentheses();
-    std::shared_ptr<AstExpression> ParseAngleBrackets(std::shared_ptr<AstExpression> target);
+    std::shared_ptr<AstExpression> ParseAngleBrackets(std::shared_ptr<AstIdentifier> target);
     std::shared_ptr<AstConstant> ParseIntegerLiteral();
     std::shared_ptr<AstFloat> ParseFloatLiteral();
     std::shared_ptr<AstString> ParseStringLiteral();

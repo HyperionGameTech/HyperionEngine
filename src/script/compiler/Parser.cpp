@@ -533,11 +533,13 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         if (MatchAhead(TK_DOUBLE_COLON, 1)) {
             expr = ParseModuleAccess();
         } else {
-            expr = ParseIdentifier();
-        }
+            auto identifier = ParseIdentifier();
 
-        if (!override_angle_brackets && MatchOperator("<")) {
-            expr = ParseAngleBrackets(expr);
+            if (!override_angle_brackets && MatchOperator("<")) {
+                expr = ParseAngleBrackets(identifier);
+            } else {
+                expr = std::move(identifier);
+            }
         }
     } else if (Match(TK_DOUBLE_COLON)) {
         expr = ParseModuleAccess();
@@ -599,7 +601,7 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
         (!override_parentheses && Match(TK_OPEN_PARENTH)) ||
         (!override_fat_arrows && Match(TK_FAT_ARROW)) ||
         (!override_square_brackets && Match(TK_OPEN_BRACKET)) ||
-        (!override_angle_brackets && MatchOperator("<")) ||
+        // (!override_angle_brackets && MatchOperator("<")) ||
         MatchKeyword(Keyword_has) ||
         MatchKeyword(Keyword_is) ||
         ((operator_token = Match(TK_OPERATOR)) && Operator::IsUnaryOperator(operator_token.GetValue(), OperatorType::POSTFIX))
@@ -618,9 +620,9 @@ std::shared_ptr<AstExpression> Parser::ParseTerm(
             expr = ParseArrayAccess(expr);
         }
 
-        if (!override_angle_brackets && MatchOperator("<")) {
-            expr = ParseAngleBrackets(expr);
-        }
+        // if (!override_angle_brackets && MatchOperator("<")) {
+        //     expr = ParseAngleBrackets(expr);
+        // }
 
         if (!override_parentheses && Match(TK_OPEN_PARENTH)) {
             expr = ParseCallExpression(expr);
@@ -727,7 +729,7 @@ std::shared_ptr<AstExpression> Parser::ParseParentheses()
     return expr;
 }
 
-std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstExpression> target)
+std::shared_ptr<AstExpression> Parser::ParseAngleBrackets(std::shared_ptr<AstIdentifier> target)
 {
     SourceLocation location = CurrentLocation();
     int before_pos = m_token_stream->GetPosition();
@@ -1005,10 +1007,12 @@ std::shared_ptr<AstModuleAccess> Parser::ParseModuleAccess()
         if (MatchAhead(TK_DOUBLE_COLON, 1)) {
             expr = ParseModuleAccess();
         } else {
-            expr = ParseIdentifier(true);
+            auto identifier = ParseIdentifier(true);
 
             if (MatchOperator("<")) {
-                expr = ParseAngleBrackets(expr);
+                expr = ParseAngleBrackets(identifier);
+            } else {
+                expr = std::move(identifier);
             }
         }
 
@@ -1472,6 +1476,7 @@ std::shared_ptr<AstExpression> Parser::ParseUnaryExpressionPrefix()
                 return std::shared_ptr<AstUnaryExpression>(new AstUnaryExpression(
                     term,
                     op,
+                    false, // postfix version
                     token.GetLocation()
                 ));
             }
@@ -1500,6 +1505,7 @@ std::shared_ptr<AstExpression> Parser::ParseUnaryExpressionPostfix(const std::sh
             return std::shared_ptr<AstUnaryExpression>(new AstUnaryExpression(
                 expr,
                 op,
+                true, // postfix version
                 token.GetLocation()
             ));
         } else {
@@ -2193,7 +2199,7 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
             // place rollback position here because ParseVariableDeclaration()
             // will handle everything. put keywords that ParseVariableDeclaration()
             // does /not/ handle, above.
-            const auto position_before = m_token_stream->GetPosition();
+            const SizeType position_before = m_token_stream->GetPosition();
 
             if (MatchKeyword(Keyword_let, true)) {
                 is_variable = true;
@@ -2336,21 +2342,6 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
             SkipStatementTerminators();
         }
 
-        std::vector<std::shared_ptr<AstVariableDeclaration>> all_members;
-        all_members.reserve(member_variables.size() + member_functions.size());
-
-        all_members.insert(
-            all_members.end(),
-            std::make_move_iterator(member_variables.begin()),
-            std::make_move_iterator(member_variables.end())
-        );
-
-        all_members.insert(
-            all_members.end(),
-            std::make_move_iterator(member_functions.begin()),
-            std::make_move_iterator(member_functions.end())
-        );
-
         std::vector<std::shared_ptr<AstVariableDeclaration>> all_statics;
         all_statics.reserve(static_variables.size() + static_functions.size());
 
@@ -2369,7 +2360,8 @@ std::shared_ptr<AstTypeExpression> Parser::ParseTypeExpression(
         return std::shared_ptr<AstTypeExpression>(new AstTypeExpression(
             type_name,
             base_specification,
-            all_members,
+            member_variables,
+            member_functions,
             all_statics,
             is_proxy_class,
             location

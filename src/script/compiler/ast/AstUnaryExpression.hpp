@@ -10,9 +10,12 @@ class AstBinaryExpression;
 
 class AstUnaryExpression : public AstExpression {
 public:
-    AstUnaryExpression(const std::shared_ptr<AstExpression> &target,
+    AstUnaryExpression(
+        const std::shared_ptr<AstExpression> &target,
         const Operator *op,
-        const SourceLocation &location);
+        bool is_postfix_version,
+        const SourceLocation &location
+    );
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -27,6 +30,7 @@ public:
 private:
     std::shared_ptr<AstExpression> m_target;
     const Operator *m_op;
+    bool m_is_postfix_version;
     bool m_folded;
 
     std::shared_ptr<AstBinaryExpression> m_bin_expr; // internally use a binary expr for somethings (like ++ and -- operators)
@@ -36,6 +40,7 @@ private:
         return Pointer<AstUnaryExpression>(new AstUnaryExpression(
             CloneAstNode(m_target),
             m_op,
+            m_is_postfix_version,
             m_location
         ));
     }

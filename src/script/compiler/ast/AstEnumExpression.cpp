@@ -91,14 +91,8 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_expr.reset(new AstTypeExpression(
         m_name,
-        // std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-        //     std::shared_ptr<AstVariable>(new AstVariable(
-        //         "Enum",
-        //         m_location
-        //     )),
-        //     m_location
-        // )),
         nullptr,
+        {},
         {},
         enum_members,
         m_underlying_type->GetExprType() ? m_underlying_type->GetExprType() : BuiltinTypes::INT,

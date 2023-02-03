@@ -39,7 +39,7 @@ const SymbolTypePtr_t BuiltinTypes::ANY_TYPE = SymbolType::Primitive(
 );
 
 const SymbolTypePtr_t BuiltinTypes::ANY = SymbolType::Primitive(
-    "any",
+    "Any",
     sp<AstNil>(new AstNil(SourceLocation::eof)),
     BuiltinTypes::ANY_TYPE
 );
