@@ -12,7 +12,7 @@
 
 namespace hyperion::compiler {
 
-AstBlock::AstBlock(const std::vector<std::shared_ptr<AstStatement>> &children, 
+AstBlock::AstBlock(const std::vector<RC<AstStatement>> &children, 
     const SourceLocation &location)
     : AstStatement(location),
       m_children(children),
@@ -41,7 +41,7 @@ void AstBlock::Visit(AstVisitor *visitor, Module *mod)
     }
 
     m_last_is_return = !(m_children.empty()) &&
-        (dynamic_cast<AstReturnStatement*>(m_children.back().get()) != nullptr);
+        (dynamic_cast<AstReturnStatement *>(m_children.back().Get()) != nullptr);
 
     // store number of locals, so we can pop them from the stack later
     Scope &this_scope = mod->m_scopes.Top();
@@ -55,7 +55,7 @@ std::unique_ptr<Buildable> AstBlock::Build(AstVisitor *visitor, Module *mod)
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    for (std::shared_ptr<AstStatement> &stmt : m_children) {
+    for (RC<AstStatement> &stmt : m_children) {
         AssertThrow(stmt != nullptr);
         chunk->Append(stmt->Build(visitor, mod));
     }
@@ -86,7 +86,7 @@ void AstBlock::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstBlock::Clone() const
+RC<AstStatement> AstBlock::Clone() const
 {
     return CloneImpl();
 }

@@ -25,15 +25,15 @@ public:
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &identifier_type, 
-            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const std::vector<RC<AstArgument>> &args,
             const SourceLocation &location
         );
 
-        // static std::vector<std::shared_ptr<AstArgument>> SubstituteGenericArgs(
+        // static std::vector<RC<AstArgument>> SubstituteGenericArgs(
         //     AstVisitor *visitor,
         //     Module *mod,
         //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-        //     const std::vector<std::shared_ptr<AstArgument>> &args,
+        //     const std::vector<RC<AstArgument>> &args,
         //     const SourceLocation &location
         // );
 
@@ -41,7 +41,7 @@ public:
             AstVisitor *visitor,
             Module *mod,
             const SymbolTypePtr_t &identifier_type, 
-            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const std::vector<RC<AstArgument>> &args,
             const SourceLocation &location
         );
 
@@ -49,7 +49,7 @@ public:
         //     AstVisitor *visitor,
         //     Module *mod,
         //     const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-        //     const std::vector<std::shared_ptr<AstArgument>> &args,
+        //     const std::vector<RC<AstArgument>> &args,
         //     const SourceLocation &location
         // );
 

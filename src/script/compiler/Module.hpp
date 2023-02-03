@@ -73,13 +73,13 @@ public:
         If this_scope_only is set to true, only the current scope will be
         searched.
     */
-    std::shared_ptr<Identifier> LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules=ACE_ALLOW_IDENTIFIERS_OTHER_MODULES);
+    RC<Identifier> LookUpIdentifier(const std::string &name, bool this_scope_only, bool outside_modules=ACE_ALLOW_IDENTIFIERS_OTHER_MODULES);
     
     /** Check to see if the identifier exists in this scope or above this one.
         Will only search the number of depth levels it is given.
         Pass `1` for this scope only.
     */
-    std::shared_ptr<Identifier> LookUpIdentifierDepth(const std::string &name, int depth_level);
+    RC<Identifier> LookUpIdentifierDepth(const std::string &name, int depth_level);
 
     /** Look up a symbol in this module by name */
     SymbolTypePtr_t LookupSymbolType(const std::string &name); 

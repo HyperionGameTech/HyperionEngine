@@ -15,10 +15,10 @@ namespace hyperion::compiler {
 class AstForLoop : public AstStatement {
 public:
     AstForLoop(
-        const std::shared_ptr<AstStatement> &decl_part,
-        const std::shared_ptr<AstExpression> &condition_part,
-        const std::shared_ptr<AstExpression> &increment_part,
-        const std::shared_ptr<AstBlock> &block,
+        const RC<AstStatement> &decl_part,
+        const RC<AstExpression> &condition_part,
+        const RC<AstExpression> &increment_part,
+        const RC<AstBlock> &block,
         const SourceLocation &location
     );
     virtual ~AstForLoop() = default;
@@ -27,21 +27,21 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstStatement> m_decl_part;
-    std::shared_ptr<AstExpression> m_condition_part;
-    std::shared_ptr<AstExpression> m_increment_part;
-    std::shared_ptr<AstBlock> m_block;
+    RC<AstStatement> m_decl_part;
+    RC<AstExpression> m_condition_part;
+    RC<AstExpression> m_increment_part;
+    RC<AstBlock> m_block;
     int m_num_locals;
     int m_num_used_initializers;
 
-    std::shared_ptr<AstExpression> m_expr;
+    RC<AstExpression> m_expr;
 
-    Pointer<AstForLoop> CloneImpl() const
+    RC<AstForLoop> CloneImpl() const
     {
-        return Pointer<AstForLoop>(new AstForLoop(
+        return RC<AstForLoop>(new AstForLoop(
             CloneAstNode(m_decl_part),
             CloneAstNode(m_condition_part),
             CloneAstNode(m_increment_part),

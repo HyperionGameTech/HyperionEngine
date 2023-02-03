@@ -11,7 +11,7 @@
 namespace hyperion::compiler {
 
 AstArgument::AstArgument(
-    const std::shared_ptr<AstExpression> &expr,
+    const RC<AstExpression> &expr,
     bool is_splat,
     bool is_named,
     const std::string &name,
@@ -97,7 +97,7 @@ void AstArgument::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstArgument::Clone() const
+RC<AstStatement> AstArgument::Clone() const
 {
     return CloneImpl();
 }

@@ -12,8 +12,8 @@
 namespace hyperion::compiler {
 
 AstSyntaxDefinition::AstSyntaxDefinition(
-    const std::shared_ptr<AstString> &syntax_string,
-    const std::shared_ptr<AstString> &transform_string,
+    const RC<AstString> &syntax_string,
+    const RC<AstString> &transform_string,
     const SourceLocation &location)
     : AstStatement(location),
       m_syntax_string(syntax_string),
@@ -36,7 +36,7 @@ void AstSyntaxDefinition::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstSyntaxDefinition::Clone() const
+RC<AstStatement> AstSyntaxDefinition::Clone() const
 {
     return CloneImpl();
 }

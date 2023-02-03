@@ -11,7 +11,7 @@ class AstHasExpression : public AstExpression
 {
 public:
     AstHasExpression(
-        const std::shared_ptr<AstStatement> &target,
+        const RC<AstStatement> &target,
         const std::string &field_name,
         const SourceLocation &location
     );
@@ -21,14 +21,14 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
     virtual SymbolTypePtr_t GetExprType() const override;
 
 protected:
-    std::shared_ptr<AstStatement> m_target;
+    RC<AstStatement> m_target;
     std::string m_field_name;
 
     // set while analyzing
@@ -39,9 +39,9 @@ protected:
     bool m_has_side_effects;
 
 private:
-    Pointer<AstHasExpression> CloneImpl() const
+    RC<AstHasExpression> CloneImpl() const
     {
-        return Pointer<AstHasExpression>(new AstHasExpression(
+        return RC<AstHasExpression>(new AstHasExpression(
             CloneAstNode(m_target),
             m_field_name,
             m_location

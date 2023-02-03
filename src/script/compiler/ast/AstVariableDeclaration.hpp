@@ -17,24 +17,24 @@ class AstVariableDeclaration : public AstDeclaration
 public:
     AstVariableDeclaration(
         const std::string &name,
-        const std::shared_ptr<AstPrototypeSpecification> &proto,
-        const std::shared_ptr<AstExpression> &assignment,
-        const std::vector<std::shared_ptr<AstParameter>> &template_params,
+        const RC<AstPrototypeSpecification> &proto,
+        const RC<AstExpression> &assignment,
+        const std::vector<RC<AstParameter>> &template_params,
         IdentifierFlagBits flags,
         const SourceLocation &location
     );
     virtual ~AstVariableDeclaration() = default;
 
-    const std::shared_ptr<AstExpression> &GetAssignment() const
+    const RC<AstExpression> &GetAssignment() const
         { return m_assignment; }
 
-    const std::shared_ptr<AstExpression> &GetRealAssignment() const
+    const RC<AstExpression> &GetRealAssignment() const
         { return m_real_assignment; }
 
-    const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
+    const RC<AstPrototypeSpecification> &GetPrototypeSpecification() const
         { return m_proto; }
 
-    void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &proto)
+    void SetPrototypeSpecification(const RC<AstPrototypeSpecification> &proto)
         { m_proto = proto; }
 
     bool IsConst() const { return m_flags & IdentifierFlags::FLAG_CONST; }
@@ -45,22 +45,22 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 protected:
-    std::shared_ptr<AstPrototypeSpecification> m_proto;
-    std::shared_ptr<AstExpression> m_assignment;
-    std::vector<std::shared_ptr<AstParameter>> m_template_params;
+    RC<AstPrototypeSpecification> m_proto;
+    RC<AstExpression> m_assignment;
+    std::vector<RC<AstParameter>> m_template_params;
     IdentifierFlagBits m_flags;
 
     // set while analyzing
-    std::shared_ptr<AstExpression> m_real_assignment;
+    RC<AstExpression> m_real_assignment;
 
     SymbolTypeWeakPtr_t m_symbol_type;
 
-    Pointer<AstVariableDeclaration> CloneImpl() const
+    RC<AstVariableDeclaration> CloneImpl() const
     {
-        return Pointer<AstVariableDeclaration>(new AstVariableDeclaration(
+        return RC<AstVariableDeclaration>(new AstVariableDeclaration(
             m_name,
             CloneAstNode(m_proto),
             CloneAstNode(m_assignment),

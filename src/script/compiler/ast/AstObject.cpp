@@ -204,7 +204,7 @@ void AstObject::Optimize(AstVisitor *visitor, Module *mod)
     }
 }*/
 
-Pointer<AstStatement> AstObject::Clone() const
+RC<AstStatement> AstObject::Clone() const
 {
     return CloneImpl();
 }

@@ -27,8 +27,8 @@ namespace hyperion::compiler {
 
 AstMemberCallExpression::AstMemberCallExpression(
     const std::string &field_name,
-    const std::shared_ptr<AstExpression> &target,
-    const std::shared_ptr<AstArgumentList> &arguments,
+    const RC<AstExpression> &target,
+    const RC<AstArgumentList> &arguments,
     const SourceLocation &location
 ) : AstMember(
         field_name,
@@ -45,7 +45,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
     auto self_target = CloneAstNode(m_target);
 
-    std::shared_ptr<AstArgument> self_arg(new AstArgument(
+    RC<AstArgument> self_arg(new AstArgument(
         self_target,
         false,
         true,
@@ -210,7 +210,7 @@ void AstMemberCallExpression::Optimize(AstVisitor *visitor, Module *mod)
     // be optimized
 }
 
-Pointer<AstStatement> AstMemberCallExpression::Clone() const
+RC<AstStatement> AstMemberCallExpression::Clone() const
 {
     return CloneImpl();
 }
@@ -256,7 +256,7 @@ AstExpression *AstMemberCallExpression::GetTarget() const
         //     return nested_target;
         // }
 
-        return m_target.get();
+        return m_target.Get();
     }
 
     return AstExpression::GetTarget();

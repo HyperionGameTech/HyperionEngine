@@ -16,7 +16,7 @@ namespace hyperion::compiler {
 
 AstModuleImportPart::AstModuleImportPart(
     const std::string &left,
-    const std::vector<std::shared_ptr<AstModuleImportPart>> &right_parts,
+    const std::vector<RC<AstModuleImportPart>> &right_parts,
     const SourceLocation &location
 ) : AstStatement(location),
     m_left(left),
@@ -30,7 +30,7 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
-    std::shared_ptr<Identifier> left_identifier;
+    RC<Identifier> left_identifier;
 
     if (Module *this_module = mod->LookupNestedModule(m_left)) {
         if (m_pull_in_modules && m_right_parts.empty()) {
@@ -42,7 +42,7 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
             );
         } else {
             // get nested items
-            for (const std::shared_ptr<AstModuleImportPart> &part : m_right_parts) {
+            for (const RC<AstModuleImportPart> &part : m_right_parts) {
                 AssertThrow(part != nullptr);
                 part->Visit(visitor, this_module);
 
@@ -76,14 +76,14 @@ void AstModuleImportPart::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstModuleImportPart::Clone() const
+RC<AstStatement> AstModuleImportPart::Clone() const
 {
     return CloneImpl();
 }
 
 
 AstModuleImport::AstModuleImport(
-    const std::vector<std::shared_ptr<AstModuleImportPart>> &parts,
+    const std::vector<RC<AstModuleImportPart>> &parts,
     const SourceLocation &location
 ) : AstImport(location),
     m_parts(parts)
@@ -94,7 +94,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(!m_parts.empty());
 
-    const std::shared_ptr<AstModuleImportPart> &first = m_parts[0];
+    const RC<AstModuleImportPart> &first = m_parts[0];
     AssertThrow(first != nullptr);
 
     bool opened = false;
@@ -180,13 +180,13 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (opened) {
-        std::vector<std::shared_ptr<Identifier>> pulled_in_identifiers;
+        std::vector<RC<Identifier>> pulled_in_identifiers;
 
-        for (const std::shared_ptr<AstModuleImportPart> &part : m_parts) {
+        for (const RC<AstModuleImportPart> &part : m_parts) {
             AssertThrow(part != nullptr);
             part->Visit(visitor, mod);
 
-            for (const std::shared_ptr<Identifier> &identifier : part->GetIdentifiers()) {
+            for (const RC<Identifier> &identifier : part->GetIdentifiers()) {
                 pulled_in_identifiers.push_back(identifier);
             }
         }
@@ -225,7 +225,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstModuleImport::Clone() const
+RC<AstStatement> AstModuleImport::Clone() const
 {
     return CloneImpl();
 }

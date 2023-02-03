@@ -16,7 +16,7 @@
 namespace hyperion::compiler {
 
 AstThrowExpression::AstThrowExpression(
-    const std::shared_ptr<AstExpression> &expr,
+    const RC<AstExpression> &expr,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_expr(expr)
@@ -58,7 +58,7 @@ void AstThrowExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstThrowExpression::Clone() const
+RC<AstStatement> AstThrowExpression::Clone() const
 {
     return CloneImpl();
 }

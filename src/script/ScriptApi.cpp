@@ -22,7 +22,7 @@ static Module *GetModule(CompilationUnit *compilation_unit, const std::string &m
     return nullptr;
 }
 
-static std::shared_ptr<Identifier> CreateIdentifier(
+static RC<Identifier> CreateIdentifier(
     CompilationUnit *compilation_unit,
     Module *mod,
     const std::string &name
@@ -37,7 +37,7 @@ static std::shared_ptr<Identifier> CreateIdentifier(
     // look up variable to make sure it doesn't already exist
     // only this scope matters, variables with the same name outside
     // of this scope are fine
-    std::shared_ptr<Identifier> ident = mod->LookUpIdentifier(name, true);
+    RC<Identifier> ident = mod->LookUpIdentifier(name, true);
     AssertThrowMsg(ident == nullptr, "Cannot create multiple objects with the same name");
 
     // add identifier
@@ -197,8 +197,8 @@ void API::ModuleDefine::BindAll(
     if (mod == nullptr) {
         close_mod = true;
 
-        m_mod.reset(new Module(m_name, SourceLocation::eof));
-        mod = m_mod.get();
+        m_mod.Reset(new Module(m_name, SourceLocation::eof));
+        mod = m_mod.Get();
 
         // add this module to the compilation unit
         compilation_unit->m_module_tree.Open(mod);
@@ -255,7 +255,7 @@ void API::ModuleDefine::BindNativeVariable(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.name);
+    RC<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.name);
 
     AssertThrow(ident != nullptr);
 
@@ -304,13 +304,13 @@ void API::ModuleDefine::BindNativeFunction(
 {
     AssertThrow(mod != nullptr && vm != nullptr && compilation_unit != nullptr);
 
-    std::shared_ptr<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.function_name);
+    RC<Identifier> ident = CreateIdentifier(compilation_unit, mod, def.function_name);
     AssertThrow(ident != nullptr);
 
     // create value
-    // std::vector<std::shared_ptr<AstParameter>> parameters; // TODO
-    // std::shared_ptr<AstBlock> block(new AstBlock(SourceLocation::eof));
-    // std::shared_ptr<AstFunctionExpression> value(new AstFunctionExpression(
+    // std::vector<RC<AstParameter>> parameters; // TODO
+    // RC<AstBlock> block(new AstBlock(SourceLocation::eof));
+    // RC<AstFunctionExpression> value(new AstFunctionExpression(
     //     parameters, nullptr, block, false, false, false, SourceLocation::eof
     // ));
 
@@ -450,7 +450,7 @@ void API::ModuleDefine::BindType(
         class_instance_member_types.push_back(SymbolMember_t {
             "$proto",
             proto_type,
-            std::shared_ptr<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeObject>(new AstTypeObject(
                 proto_type,
                 nullptr,
                 SourceLocation::eof
@@ -508,7 +508,7 @@ void API::ModuleDefine::BindType(
         );
 
         // set the value of the constant so that code can use it
-        native_variable_define.current_value.reset(new AstTypeObject(
+        native_variable_define.current_value.Reset(new AstTypeObject(
             class_symbol_type,
             nullptr,
             SourceLocation::eof

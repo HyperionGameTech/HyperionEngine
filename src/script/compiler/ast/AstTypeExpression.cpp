@@ -20,10 +20,10 @@ namespace hyperion::compiler {
 
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
-    const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+    const RC<AstPrototypeSpecification> &base_specification,
+    const std::vector<RC<AstVariableDeclaration>> &data_members,
+    const std::vector<RC<AstVariableDeclaration>> &function_members,
+    const std::vector<RC<AstVariableDeclaration>> &static_members,
     const SymbolTypePtr_t &enum_underlying_type,
     bool is_proxy_class,
     const SourceLocation &location
@@ -40,10 +40,10 @@ AstTypeExpression::AstTypeExpression(
 
 AstTypeExpression::AstTypeExpression(
     const std::string &name,
-    const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+    const RC<AstPrototypeSpecification> &base_specification,
+    const std::vector<RC<AstVariableDeclaration>> &data_members,
+    const std::vector<RC<AstVariableDeclaration>> &function_members,
+    const std::vector<RC<AstVariableDeclaration>> &static_members,
     bool is_proxy_class,
     const SourceLocation &location
 ) : AstTypeExpression(
@@ -89,7 +89,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_symbol_type->GetFlags() |= SYMBOL_TYPE_FLAGS_PROXY;
     }
 
-    m_expr.reset(new AstTypeObject(
+    m_expr.Reset(new AstTypeObject(
         m_symbol_type,
         nullptr, // prototype - TODO
         m_enum_underlying_type,
@@ -133,7 +133,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_symbol_type->AddMember(SymbolMember_t {
             "$proto",
             prototype_type,
-            std::shared_ptr<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeObject>(new AstTypeObject(
                 prototype_type,
                 nullptr,
                 m_location
@@ -145,7 +145,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_symbol_type->AddMember(SymbolMember_t {
             "base",
             base_type,
-            std::shared_ptr<AstTypeObject>(new AstTypeObject(
+            RC<AstTypeObject>(new AstTypeObject(
                 base_type,
                 nullptr,
                 m_location
@@ -157,7 +157,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_symbol_type->AddMember(SymbolMember_t {
             "name",
             BuiltinTypes::STRING,
-            std::shared_ptr<AstString>(new AstString(
+            RC<AstString>(new AstString(
                 m_name,
                 m_location
             ))
@@ -259,7 +259,7 @@ void AstTypeExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstTypeExpression::Clone() const
+RC<AstStatement> AstTypeExpression::Clone() const
 {
     return CloneImpl();
 }

@@ -10,13 +10,13 @@ class AstTypeObject : public AstExpression {
 public:
     AstTypeObject(
         const SymbolTypePtr_t &symbol_type,
-        const std::shared_ptr<AstVariable> &proto,
+        const RC<AstVariable> &proto,
         const SourceLocation &location
     );
 
     AstTypeObject(
         const SymbolTypePtr_t &symbol_type,
-        const std::shared_ptr<AstVariable> &proto,
+        const RC<AstVariable> &proto,
         const SymbolTypePtr_t &enum_underlying_type,
         bool is_proxy_class,
         const SourceLocation &location
@@ -37,7 +37,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -48,13 +48,13 @@ public:
 
 private:
     SymbolTypePtr_t m_symbol_type;
-    std::shared_ptr<AstVariable> m_proto;
+    RC<AstVariable> m_proto;
     SymbolTypePtr_t m_enum_underlying_type;
     bool m_is_proxy_class;
 
-    Pointer<AstTypeObject> CloneImpl() const
+    RC<AstTypeObject> CloneImpl() const
     {
-        return Pointer<AstTypeObject>(new AstTypeObject(
+        return RC<AstTypeObject>(new AstTypeObject(
             m_symbol_type,
             CloneAstNode(m_proto),
             m_enum_underlying_type,

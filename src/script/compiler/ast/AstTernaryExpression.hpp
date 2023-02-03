@@ -13,9 +13,9 @@ class AstTernaryExpression : public AstExpression
 {
 public:
     AstTernaryExpression(
-        const std::shared_ptr<AstExpression> &conditional,
-        const std::shared_ptr<AstExpression> &left,
-        const std::shared_ptr<AstExpression> &right,
+        const RC<AstExpression> &conditional,
+        const RC<AstExpression> &left,
+        const RC<AstExpression> &right,
         const SourceLocation &location
     );
     virtual ~AstTernaryExpression() = default;
@@ -24,7 +24,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -35,13 +35,13 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_conditional;
-    std::shared_ptr<AstExpression> m_left;
-    std::shared_ptr<AstExpression> m_right;
+    RC<AstExpression> m_conditional;
+    RC<AstExpression> m_left;
+    RC<AstExpression> m_right;
 
-    std::shared_ptr<AstTernaryExpression> CloneImpl() const
+    RC<AstTernaryExpression> CloneImpl() const
     {
-        return std::shared_ptr<AstTernaryExpression>(
+        return RC<AstTernaryExpression>(
             new AstTernaryExpression(
                 CloneAstNode(m_conditional),
                 CloneAstNode(m_left),

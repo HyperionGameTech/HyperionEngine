@@ -12,7 +12,7 @@
 namespace hyperion::compiler {
 
 AstModuleAccess::AstModuleAccess(const std::string &target,
-    const std::shared_ptr<AstExpression> &expr,
+    const RC<AstExpression> &expr,
     const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
       m_target(target),
@@ -41,7 +41,7 @@ void AstModuleAccess::Visit(AstVisitor *visitor, Module *mod)
         PerformLookup(visitor, mod);
     }
 
-    if (AstModuleAccess *expr_mod_access = dynamic_cast<AstModuleAccess*>(m_expr.get())) {
+    if (AstModuleAccess *expr_mod_access = dynamic_cast<AstModuleAccess *>(m_expr.Get())) {
         // set expr to be chained
         expr_mod_access->m_is_chained = true;
     }
@@ -71,7 +71,7 @@ void AstModuleAccess::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, m_mod_access);
 }
 
-Pointer<AstStatement> AstModuleAccess::Clone() const
+RC<AstStatement> AstModuleAccess::Clone() const
 {
     return CloneImpl();
 }
@@ -102,7 +102,7 @@ const AstExpression *AstModuleAccess::GetValueOf() const
 
 const AstExpression *AstModuleAccess::GetDeepValueOf() const
 {
-    AssertThrow(m_expr != nullptr && m_expr.get() != this);
+    AssertThrow(m_expr != nullptr && m_expr.Get() != this);
     return m_expr->GetDeepValueOf();
 }
 
@@ -113,13 +113,13 @@ AstExpression *AstModuleAccess::GetTarget() const
 
 bool AstModuleAccess::IsMutable() const
 {
-    AssertThrow(m_expr != nullptr && m_expr.get() != this);
+    AssertThrow(m_expr != nullptr && m_expr.Get() != this);
     return m_expr->IsMutable();
 }
 
 bool AstModuleAccess::IsLiteral() const
 {
-    AssertThrow(m_expr != nullptr && m_expr.get() != this);
+    AssertThrow(m_expr != nullptr && m_expr.Get() != this);
     return m_expr->IsLiteral();
 }
 

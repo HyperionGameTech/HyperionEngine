@@ -24,7 +24,7 @@ std::unique_ptr<Buildable> AstFalse::Build(AstVisitor *visitor, Module *mod)
     return BytecodeUtil::Make<ConstBool>(rp, false);
 }
 
-Pointer<AstStatement> AstFalse::Clone() const
+RC<AstStatement> AstFalse::Clone() const
 {
     return CloneImpl();
 }
@@ -54,30 +54,30 @@ SymbolTypePtr_t AstFalse::GetExprType() const
     return BuiltinTypes::BOOLEAN;
 }
 
-std::shared_ptr<AstConstant> AstFalse::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstFalse::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
-            return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+            return RC<AstFalse>(new AstFalse(m_location));
 
         case OP_logical_or:
             switch (right->IsTrue()) {
                 case TRI_TRUE:
-                    return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                    return RC<AstTrue>(new AstTrue(m_location));
                 case TRI_FALSE:
-                    return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                    return RC<AstFalse>(new AstFalse(m_location));
                 case TRI_INDETERMINATE:
                     return nullptr;
             }
 
         case OP_equals:
             if (dynamic_cast<const AstFalse*>(right) != nullptr) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             }
-            return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+            return RC<AstFalse>(new AstFalse(m_location));
 
         case OP_logical_not:
-            return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+            return RC<AstTrue>(new AstTrue(m_location));
 
         default:
             return nullptr;

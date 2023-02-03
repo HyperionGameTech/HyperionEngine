@@ -16,7 +16,7 @@
 namespace hyperion::compiler {
 
 template <typename T>
-using sp = std::shared_ptr<T>;
+using sp = RC<T>;
 
 class AstVisitor;
 class Module;

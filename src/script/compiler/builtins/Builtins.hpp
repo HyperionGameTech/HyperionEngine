@@ -30,7 +30,7 @@ public:
 private:
     static const SourceLocation BUILTIN_SOURCE_LOCATION;
 
-    std::map<std::string, std::shared_ptr<AstExpression>> m_vars;
+    std::map<std::string, RC<AstExpression>> m_vars;
     AstIterator m_ast;
 };
 

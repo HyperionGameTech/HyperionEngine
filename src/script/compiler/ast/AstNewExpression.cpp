@@ -22,8 +22,8 @@
 namespace hyperion::compiler {
 
 AstNewExpression::AstNewExpression(
-    const std::shared_ptr<AstPrototypeSpecification> &proto,
-    const std::shared_ptr<AstArgumentList> &arg_list,
+    const RC<AstPrototypeSpecification> &proto,
+    const RC<AstArgumentList> &arg_list,
     bool enable_constructor_call,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
@@ -88,12 +88,12 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
         const bool has_construct_member = m_prototype_type->FindMember(construct_method_name) != nullptr;
 
         if (is_any || has_construct_member) {
-            m_constructor_block.reset(new AstBlock(m_location));
+            m_constructor_block.Reset(new AstBlock(m_location));
 
             if (has_construct_member) {
-                 m_constructor_call.reset(new AstMemberCallExpression(
+                 m_constructor_call.Reset(new AstMemberCallExpression(
                     construct_method_name,
-                    std::shared_ptr<AstNewExpression>(new AstNewExpression(
+                    RC<AstNewExpression>(new AstNewExpression(
                         CloneAstNode(m_proto),
                         nullptr, // no args
                         false, // do not enable constructor call
@@ -107,7 +107,7 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
                 // to do this, we need to store a temporary variable holding the left hand side
                 // expression
 
-                std::shared_ptr<AstVariableDeclaration> lhs_decl(new AstVariableDeclaration(
+                RC<AstVariableDeclaration> lhs_decl(new AstVariableDeclaration(
                     temp_var_name,
                     nullptr,
                     CloneAstNode(m_proto),
@@ -118,20 +118,20 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
 
                 m_constructor_block->AddChild(lhs_decl);
 
-                m_constructor_call.reset(new AstTernaryExpression(
-                    std::shared_ptr<AstHasExpression>(new AstHasExpression(
-                        std::shared_ptr<AstVariable>(new AstVariable(
+                m_constructor_call.Reset(new AstTernaryExpression(
+                    RC<AstHasExpression>(new AstHasExpression(
+                        RC<AstVariable>(new AstVariable(
                             temp_var_name,
                             m_location
                         )),
                         construct_method_name,
                         m_location
                     )),
-                    std::shared_ptr<AstMemberCallExpression>(new AstMemberCallExpression(
+                    RC<AstMemberCallExpression>(new AstMemberCallExpression(
                         construct_method_name,
-                        std::shared_ptr<AstNewExpression>(new AstNewExpression(
-                            std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                                std::shared_ptr<AstVariable>(new AstVariable(
+                        RC<AstNewExpression>(new AstNewExpression(
+                            RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                                RC<AstVariable>(new AstVariable(
                                     temp_var_name,
                                     m_location
                                 )),
@@ -144,7 +144,7 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
                         m_arg_list,
                         m_location
                     )),
-                    std::shared_ptr<AstVariable>(new AstVariable(
+                    RC<AstVariable>(new AstVariable(
                         temp_var_name,
                         m_location
                     )),
@@ -160,134 +160,6 @@ void AstNewExpression::Visit(AstVisitor *visitor, Module *mod)
             return;
         }
     }
-
-    // AssertThrow(m_prototype_type != nullptr);
-
-    // // look for '$construct' member
-    // SymbolMember_t construct_member;
-
-    // if (m_prototype_type->FindMember("$construct", construct_member)) {
-    //     std::vector<std::shared_ptr<AstArgument>> constructor_arguments;
-    //     constructor_arguments.reserve(1 + (m_arg_list != nullptr ? m_arg_list->GetArguments().size() : static_cast<size_t>(0)));
-        
-    //     // add 'self'
-    //     // if target for the call expr is not a member expr it will not add 'self', so
-    //     // we add it manually
-    //     constructor_arguments.push_back(std::shared_ptr<AstArgument>(new AstArgument(
-    //         CloneAstNode(m_proto->GetExpr()),
-    //         false,
-    //         true,
-    //         "self",
-    //         m_arg_list != nullptr
-    //             ? m_arg_list->GetLocation()
-    //             : m_location
-    //     )));
-        
-    //     if (m_arg_list != nullptr) {
-    //         for (auto &arg : m_arg_list->GetArguments()) {
-    //             constructor_arguments.push_back(arg);
-    //         }
-    //     }
-
-    //     if (auto &construct_member_value = std::get<2>(construct_member)) {
-    //         //m_object_value = std::get<2>(proto_member); // NOTE: may be null causing NEW operand to be emitted
-    //         m_constructor_call.reset(new AstCallExpression(
-    //             //std::shared_ptr<AstMember>(new AstMember(
-    //             //    "$construct",
-    //                 construct_member_value,
-    //             //    m_location
-    //             //)),
-    //             constructor_arguments,
-    //             true,
-    //             m_location
-    //         ));
-
-    //         m_constructor_call->Visit(visitor, mod);
-    //     } else {
-    //         AssertThrowMsg(false, "Cannot extract $construct member value");
-    //     }
-    // }
-
-
-    /*BuiltinTypes::ANY;
-
-    if (m_constructor_type != BuiltinTypes::ANY) {
-        if (const AstIdentifier *as_ident = dynamic_cast<AstIdentifier*>(m_proto.get())) {
-            if (const auto current_value = as_ident->GetProperties().GetIdentifier()->GetCurrentValue()) {
-                if (AstTypeObject *type_object = dynamic_cast<AstTypeObject*>(current_value.get())) {
-                    AssertThrow(type_object->GetHeldType() != nullptr);
-                    m_instance_type = type_object->GetHeldType();
-
-                    SymbolMember_t proto_member;
-                    if (type_object->GetHeldType()->FindMember("$proto", proto_member)) {
-                        m_object_value = std::get<2>(proto_member); // NOTE: may be null causing NEW operand to be emitted
-                    }
-                } else if (!is_type) {
-                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                        LEVEL_ERROR,
-                        Msg_not_a_type,
-                        m_location
-                    ));
-                }
-            }
-        } else if (!is_type) {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_not_a_type,
-                m_location
-            ));
-        }
-    }*/
-
-    // get default value
-    /*if (m_object_type != nullptr) {
-        if (auto object_value = m_object_type->GetDefaultValue()) {
-            bool should_call_constructor = false;
-
-            //if (object_type != BuiltinTypes::ANY) {
-                const bool has_written_constructor = m_object_type->FindMember("new") != nullptr;
-                const bool has_args = m_arg_list != nullptr && !m_arg_list->GetArguments().empty();
-
-                if (has_written_constructor || has_args) {
-                    should_call_constructor = true;
-                }
-            //}
-
-            if (should_call_constructor) {
-                std::vector<std::shared_ptr<AstArgument>> args;
-
-                if (m_arg_list != nullptr) {
-                    args = m_arg_list->GetArguments();
-                }
-
-                m_constructor_call.reset(new AstCallExpression(
-                    std::shared_ptr<AstMember>(new AstMember(
-                        "new",
-                        object_value,
-                        m_location
-                    )),
-                    args,
-                    true,
-                    m_location
-                ));
-
-                m_constructor_call->Visit(visitor, mod);
-            }
-
-            m_object_value = object_value;
-        } else {
-            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                LEVEL_ERROR,
-                Msg_type_no_default_assignment,
-                m_location,
-                m_object_type->GetName()
-            ));
-        }
-    } else {
-        // TODO: runtime constructor check?
-        // part of the upcoming runtime-typechecking feature
-        m_is_dynamic_type = true;
-    }*/
 }
 
 std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *mod)
@@ -369,7 +241,7 @@ void AstNewExpression::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstNewExpression::Clone() const
+RC<AstStatement> AstNewExpression::Clone() const
 {
     return CloneImpl();
 }
@@ -416,7 +288,7 @@ AstExpression *AstNewExpression::GetTarget() const
         return m_constructor_call->GetTarget();
     }
 
-    return m_object_value.get();
+    return m_object_value.Get();
 }
 
 } // namespace hyperion::compiler

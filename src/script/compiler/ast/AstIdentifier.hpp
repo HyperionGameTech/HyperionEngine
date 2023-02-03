@@ -15,7 +15,7 @@ class AstTypeObject;
 
 struct AstIdentifierProperties
 {
-    std::shared_ptr<Identifier> m_identifier = nullptr;
+    RC<Identifier> m_identifier = nullptr;
 
     IdentifierType m_identifier_type = IDENTIFIER_TYPE_UNKNOWN;
 
@@ -29,9 +29,9 @@ struct AstIdentifierProperties
     SymbolTypePtr_t m_found_type = nullptr;
 
     // getters & setters
-    std::shared_ptr<Identifier> &GetIdentifier() { return m_identifier; }
-    const std::shared_ptr<Identifier> &GetIdentifier() const { return m_identifier; }
-    void SetIdentifier(const std::shared_ptr<Identifier> &identifier) { m_identifier = identifier; }
+    RC<Identifier> &GetIdentifier() { return m_identifier; }
+    const RC<Identifier> &GetIdentifier() const { return m_identifier; }
+    void SetIdentifier(const RC<Identifier> &identifier) { m_identifier = identifier; }
 
     IdentifierType GetIdentifierType() const { return m_identifier_type; }
     void SetIdentifierType(IdentifierType identifier_type) { m_identifier_type = identifier_type; }
@@ -61,7 +61,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override = 0;
     
-    virtual Pointer<AstStatement> Clone() const override = 0;
+    virtual RC<AstStatement> Clone() const override = 0;
 
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override = 0;

@@ -19,14 +19,14 @@
 namespace hyperion::compiler {
 
 AstTemplateExpression::AstTemplateExpression(
-    const std::shared_ptr<AstExpression> &expr,
-    const std::vector<std::shared_ptr<AstParameter>> &generic_params,
-    const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
-    const SourceLocation &location)
-    : AstExpression(location, ACCESS_MODE_LOAD),
-      m_expr(expr),
-      m_generic_params(generic_params),
-      m_return_type_specification(return_type_specification)
+    const RC<AstExpression> &expr,
+    const std::vector<RC<AstParameter>> &generic_params,
+    const RC<AstPrototypeSpecification> &return_type_specification,
+    const SourceLocation &location
+) : AstExpression(location, ACCESS_MODE_LOAD),
+    m_expr(expr),
+    m_generic_params(generic_params),
+    m_return_type_specification(return_type_specification)
 {
 }
 
@@ -45,8 +45,8 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         generic_param->SetIsGenericParam(true);
 
         if (generic_param->GetPrototypeSpecification() == nullptr) {
-            generic_param->SetPrototypeSpecification(std::shared_ptr<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                std::shared_ptr<AstVariable>(new AstVariable(
+            generic_param->SetPrototypeSpecification(RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                RC<AstVariable>(new AstVariable(
                     BuiltinTypes::ANY->GetName(),
                     m_location
                 )),
@@ -57,7 +57,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         // gross, but we gotta do this our else on first pass,
         // these will just refer to the wrong memory
         if (generic_param->GetDefaultValue() == nullptr) {
-            generic_param->SetDefaultValue(std::shared_ptr<AstNil>(new AstNil(
+            generic_param->SetDefaultValue(RC<AstNil>(new AstNil(
                 m_location
             )));
         }
@@ -102,7 +102,7 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
     });
 
     for (size_t i = 0; i < m_generic_params.size(); i++) {
-        const std::shared_ptr<AstParameter> &param = m_generic_params[i];
+        const RC<AstParameter> &param = m_generic_params[i];
         AssertThrow(param != nullptr);
 
         generic_param_types.push_back(GenericInstanceTypeInfo::Arg {
@@ -144,7 +144,7 @@ void AstTemplateExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstTemplateExpression::Clone() const
+RC<AstStatement> AstTemplateExpression::Clone() const
 {
     return CloneImpl();
 }
@@ -170,7 +170,7 @@ SymbolTypePtr_t AstTemplateExpression::GetExprType() const
 const AstExpression *AstTemplateExpression::GetValueOf() const
 {
     // if (m_expr != nullptr) {
-    //     return m_expr.get();
+    //     return m_expr.Get();
     // }
 
     return AstExpression::GetValueOf();
@@ -179,7 +179,7 @@ const AstExpression *AstTemplateExpression::GetValueOf() const
 const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 {
     if (m_expr != nullptr) {
-        AssertThrow(m_expr.get() != this);
+        AssertThrow(m_expr.Get() != this);
 
         return m_expr->GetDeepValueOf();
     }
@@ -189,12 +189,7 @@ const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 
 const AstExpression *AstTemplateExpression::GetHeldGenericExpr() const
 {
-    return m_expr.get();
-    // if (m_expr == nullptr) {
-    //     return nullptr;
-    // }
-
-    // return m_expr->GetDeepValueOf();
+    return m_expr.Get();
 }
 
 } // namespace hyperion::compiler

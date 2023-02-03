@@ -31,7 +31,7 @@ CompilationUnit::CompilationUnit()
     top.GetIdentifierTable().BindTypeToIdentifier("Block", BuiltinTypes::BLOCK_TYPE);
     top.GetIdentifierTable().BindTypeToIdentifier("Closure", BuiltinTypes::CLOSURE_TYPE);
 
-    m_module_tree.TopNode()->m_value = m_global_module.get();
+    m_module_tree.TopNode()->m_value = m_global_module.Get();
 }
 
 CompilationUnit::~CompilationUnit()

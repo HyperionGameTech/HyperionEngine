@@ -12,7 +12,7 @@ class AstArgument : public AstExpression
 {
 public:
     AstArgument(
-        const std::shared_ptr<AstExpression> &expr,
+        const RC<AstExpression> &expr,
         bool is_splat,
         bool is_named,
         const std::string &name,
@@ -20,7 +20,7 @@ public:
     );
     virtual ~AstArgument() = default;
 
-    const std::shared_ptr<AstExpression> &GetExpr() const
+    const RC<AstExpression> &GetExpr() const
       { return m_expr; }
 
     bool IsSplat() const { return m_is_splat; }
@@ -38,9 +38,9 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
-    //virtual const AstExpression *GetValueOf() const override { return m_expr.get(); }
+    //virtual const AstExpression *GetValueOf() const override { return m_expr.Get(); }
 
     virtual bool IsLiteral() const override;
     virtual Tribool IsTrue() const override;
@@ -49,16 +49,16 @@ public:
     virtual const std::string &GetName() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_expr;
+    RC<AstExpression> m_expr;
     bool m_is_splat;
     bool m_is_named;
     bool m_is_pass_by_ref;
     bool m_is_pass_const;
     std::string m_name;
 
-    Pointer<AstArgument> CloneImpl() const
+    RC<AstArgument> CloneImpl() const
     {
-        return Pointer<AstArgument>(new AstArgument(
+        return RC<AstArgument>(new AstArgument(
             CloneAstNode(m_expr),
             m_is_splat,
             m_is_named,

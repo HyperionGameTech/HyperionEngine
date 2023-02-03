@@ -21,8 +21,8 @@ public:
     CompilationUnit(const CompilationUnit &other) = delete;
     ~CompilationUnit();
 
-    Module *GetGlobalModule() { return m_global_module.get(); }
-    const Module *GetGlobalModule() const { return m_global_module.get(); }
+    Module *GetGlobalModule() { return m_global_module.Get(); }
+    const Module *GetGlobalModule() const { return m_global_module.Get(); }
 
     Module *GetCurrentModule() { return m_module_tree.Top(); }
     const Module *GetCurrentModule() const { return m_module_tree.Top(); }
@@ -50,7 +50,7 @@ public:
     /** Maps filepath to a vector of modules, so that no module has to be parsed
         and analyze more than once.
     */
-    std::map<std::string, std::vector<std::shared_ptr<Module>>> m_imported_modules;
+    std::map<std::string, std::vector<RC<Module>>> m_imported_modules;
     Tree<Module*> m_module_tree;
 
     /** all modules contained in the compilation unit */
@@ -65,7 +65,7 @@ private:
     InstructionStream m_instruction_stream;
     AstNodeBuilder m_ast_node_builder;
     // the global module
-    std::shared_ptr<Module> m_global_module;
+    RC<Module> m_global_module;
 };
 
 } // namespace hyperion::compiler

@@ -12,8 +12,8 @@ namespace hyperion::compiler {
 
 AstParameter::AstParameter(
     const std::string &name, 
-    const std::shared_ptr<AstPrototypeSpecification> &type_spec, 
-    const std::shared_ptr<AstExpression> &default_param, 
+    const RC<AstPrototypeSpecification> &type_spec, 
+    const RC<AstExpression> &default_param, 
     bool is_variadic,
     bool is_const,
     bool is_ref,
@@ -130,7 +130,7 @@ void AstParameter::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstParameter::Clone() const
+RC<AstStatement> AstParameter::Clone() const
 {
     return CloneImpl();
 }

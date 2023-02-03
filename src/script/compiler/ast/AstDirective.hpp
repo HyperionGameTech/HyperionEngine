@@ -20,15 +20,15 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
     std::string m_key;
     std::vector<std::string> m_args;
 
-    Pointer<AstDirective> CloneImpl() const
+    RC<AstDirective> CloneImpl() const
     {
-        return Pointer<AstDirective>(new AstDirective(
+        return RC<AstDirective>(new AstDirective(
             m_key,
             m_args,
             m_location

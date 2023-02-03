@@ -19,7 +19,7 @@ namespace hyperion::compiler {
 AstEnumExpression::AstEnumExpression(
     const std::string &name,
     const std::vector<EnumEntry> &entries,
-    const std::shared_ptr<AstPrototypeSpecification> &underlying_type,
+    const RC<AstPrototypeSpecification> &underlying_type,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_name(name),
@@ -30,11 +30,11 @@ AstEnumExpression::AstEnumExpression(
 
 void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 {
-    int64_t enum_counter = 0;
+    Int64 enum_counter = 0;
 
     if (m_underlying_type == nullptr) {
-        m_underlying_type.reset(new AstPrototypeSpecification(
-            std::shared_ptr<AstVariable>(new AstVariable(
+        m_underlying_type.Reset(new AstPrototypeSpecification(
+            RC<AstVariable>(new AstVariable(
                 BuiltinTypes::INT->GetName(), // m_name
                 m_location
             )),
@@ -44,7 +44,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_underlying_type->Visit(visitor, mod);
 
-    std::vector<std::shared_ptr<AstVariableDeclaration>> enum_members;
+    std::vector<RC<AstVariableDeclaration>> enum_members;
     enum_members.reserve(m_entries.size());
 
     for (auto &entry : m_entries) {
@@ -60,7 +60,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
                 }
             }
         } else {
-            entry.assignment.reset(new AstInteger(
+            entry.assignment.Reset(new AstInteger(
                 enum_counter,
                 entry.location
             ));
@@ -89,7 +89,7 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
         ++enum_counter;
     }
 
-    m_expr.reset(new AstTypeExpression(
+    m_expr.Reset(new AstTypeExpression(
         m_name,
         nullptr,
         {},
@@ -115,7 +115,7 @@ void AstEnumExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstEnumExpression::Clone() const
+RC<AstStatement> AstEnumExpression::Clone() const
 {
     return CloneImpl();
 }

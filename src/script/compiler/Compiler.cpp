@@ -18,7 +18,7 @@ namespace hyperion::compiler {
 std::unique_ptr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor *visitor,
     Module *mod,
-    const std::vector<std::shared_ptr<AstArgument>> &args
+    const std::vector<RC<AstArgument>> &args
 )
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
@@ -69,7 +69,7 @@ std::unique_ptr<Buildable> Compiler::BuildArgumentsEnd(
 std::unique_ptr<Buildable> Compiler::BuildCall(
     AstVisitor *visitor,
     Module *mod,
-    const std::shared_ptr<AstExpression> &target,
+    const RC<AstExpression> &target,
     UInt8 nargs
 )
 {

@@ -10,15 +10,15 @@ namespace hyperion::compiler {
 
 class AstBlock : public AstStatement {
 public:
-    AstBlock(const std::vector<std::shared_ptr<AstStatement>> &children,
+    AstBlock(const std::vector<RC<AstStatement>> &children,
         const SourceLocation &location);
     AstBlock(const SourceLocation &location);
 
-    void AddChild(const std::shared_ptr<AstStatement> &stmt)
+    void AddChild(const RC<AstStatement> &stmt)
         { m_children.push_back(stmt); }
-    std::vector<std::shared_ptr<AstStatement>> &GetChildren()
+    std::vector<RC<AstStatement>> &GetChildren()
         { return m_children; }
-    const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const
+    const std::vector<RC<AstStatement>> &GetChildren() const
         { return m_children; }
     int NumLocals() const
         { return m_num_locals; }
@@ -29,16 +29,16 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 protected:
-    std::vector<std::shared_ptr<AstStatement>> m_children;
+    std::vector<RC<AstStatement>> m_children;
     int m_num_locals;
     bool m_last_is_return;
 
-    Pointer<AstBlock> CloneImpl() const
+    RC<AstBlock> CloneImpl() const
     {
-        return std::shared_ptr<AstBlock>(new AstBlock(
+        return RC<AstBlock>(new AstBlock(
             CloneAllAstNodes(m_children),
             m_location
         ));

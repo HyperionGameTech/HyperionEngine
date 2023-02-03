@@ -18,7 +18,7 @@
 
 namespace hyperion::compiler {
 
-AstArrayExpression::AstArrayExpression(const std::vector<std::shared_ptr<AstExpression>> &members,
+AstArrayExpression::AstArrayExpression(const std::vector<RC<AstExpression>> &members,
     const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_members(members),
@@ -190,7 +190,7 @@ void AstArrayExpression::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-std::shared_ptr<AstStatement> AstArrayExpression::Clone() const
+RC<AstStatement> AstArrayExpression::Clone() const
 {
     return CloneImpl();
 }

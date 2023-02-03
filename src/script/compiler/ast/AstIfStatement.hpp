@@ -11,9 +11,9 @@ namespace hyperion::compiler {
 
 class AstIfStatement : public AstStatement {
 public:
-    AstIfStatement(const std::shared_ptr<AstExpression> &conditional,
-        const std::shared_ptr<AstBlock> &block,
-        const std::shared_ptr<AstBlock> &else_block,
+    AstIfStatement(const RC<AstExpression> &conditional,
+        const RC<AstBlock> &block,
+        const RC<AstBlock> &else_block,
         const SourceLocation &location);
     virtual ~AstIfStatement() = default;
 
@@ -21,16 +21,16 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_conditional;
-    std::shared_ptr<AstBlock> m_block;
-    std::shared_ptr<AstBlock> m_else_block;
+    RC<AstExpression> m_conditional;
+    RC<AstBlock> m_block;
+    RC<AstBlock> m_else_block;
 
-    Pointer<AstIfStatement> CloneImpl() const
+    RC<AstIfStatement> CloneImpl() const
     {
-        return Pointer<AstIfStatement>(new AstIfStatement(
+        return RC<AstIfStatement>(new AstIfStatement(
             CloneAstNode(m_conditional),
             CloneAstNode(m_block),
             CloneAstNode(m_else_block),

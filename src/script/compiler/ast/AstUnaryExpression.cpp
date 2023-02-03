@@ -20,15 +20,15 @@
 namespace hyperion::compiler {
 
 /** Attempts to evaluate the optimized expression at compile-time. */
-static std::shared_ptr<AstConstant> ConstantFold(
-    std::shared_ptr<AstExpression> &target, 
+static RC<AstConstant> ConstantFold(
+    RC<AstExpression> &target, 
     Operators op_type,
     AstVisitor *visitor
 )
 {
-    std::shared_ptr<AstConstant> result;
+    RC<AstConstant> result;
 
-    if (const AstConstant *target_as_constant = dynamic_cast<const AstConstant*>(target.get())) {
+    if (const AstConstant *target_as_constant = dynamic_cast<const AstConstant *>(target.Get())) {
         result = target_as_constant->HandleOperator(op_type, nullptr);
     }
 
@@ -36,7 +36,7 @@ static std::shared_ptr<AstConstant> ConstantFold(
 }
 
 AstUnaryExpression::AstUnaryExpression(
-    const std::shared_ptr<AstExpression> &target,
+    const RC<AstExpression> &target,
     const Operator *op,
     bool is_postfix_version,
     const SourceLocation &location
@@ -54,17 +54,17 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
     // use a bin op for operators that modify their argument
     if (m_op->ModifiesValue()) {
-        std::shared_ptr<AstExpression> expr;
+        RC<AstExpression> expr;
         const Operator *bin_op = nullptr;
 
         switch (m_op->GetOperatorType()) {
         case OP_increment:
-            expr.reset(new AstInteger(1, m_location));
+            expr.Reset(new AstInteger(1, m_location));
             bin_op = Operator::FindBinaryOperator(Operators::OP_add_assign);
 
             break;
         case OP_decrement:
-            expr.reset(new AstInteger(1, m_location));
+            expr.Reset(new AstInteger(1, m_location));
             bin_op = Operator::FindBinaryOperator(Operators::OP_subtract_assign);
 
             break;
@@ -72,7 +72,7 @@ void AstUnaryExpression::Visit(AstVisitor *visitor, Module *mod)
             AssertThrowMsg(false, "Unhandled operator type");
         }
 
-        m_bin_expr.reset(new AstBinaryExpression(
+        m_bin_expr.Reset(new AstBinaryExpression(
             m_target,
             expr,
             bin_op,
@@ -264,7 +264,7 @@ void AstUnaryExpression::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstUnaryExpression::Clone() const
+RC<AstStatement> AstUnaryExpression::Clone() const
 {
     return CloneImpl();
 }

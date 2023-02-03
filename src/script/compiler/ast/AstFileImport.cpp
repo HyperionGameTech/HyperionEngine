@@ -42,7 +42,7 @@ void AstFileImport::Visit(AstVisitor *visitor, Module *mod)
     );
 }
 
-Pointer<AstStatement> AstFileImport::Clone() const
+RC<AstStatement> AstFileImport::Clone() const
 {
     return CloneImpl();
 }

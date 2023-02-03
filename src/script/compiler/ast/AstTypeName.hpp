@@ -16,7 +16,7 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
     virtual bool IsLiteral() const override;
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -25,9 +25,9 @@ public:
 private:
     SymbolTypePtr_t m_symbol_type;
 
-    Pointer<AstTypeName> CloneImpl() const
+    RC<AstTypeName> CloneImpl() const
     {
-        return Pointer<AstTypeName>(new AstTypeName(
+        return RC<AstTypeName>(new AstTypeName(
             m_name,
             m_location
         ));

@@ -12,15 +12,15 @@ namespace hyperion::compiler {
 class AstModuleDeclaration : public AstDeclaration {
 public:
     AstModuleDeclaration(const std::string &name, 
-        const std::vector<std::shared_ptr<AstStatement>> &children,
+        const std::vector<RC<AstStatement>> &children,
         const SourceLocation &location);
     AstModuleDeclaration(const std::string &name, const SourceLocation &location);
 
-    void AddChild(const std::shared_ptr<AstStatement> &child) { m_children.push_back(child); }
-    std::vector<std::shared_ptr<AstStatement>> &GetChildren() { return m_children; }
-    const std::vector<std::shared_ptr<AstStatement>> &GetChildren() const { return m_children; }
+    void AddChild(const RC<AstStatement> &child) { m_children.push_back(child); }
+    std::vector<RC<AstStatement>> &GetChildren() { return m_children; }
+    const std::vector<RC<AstStatement>> &GetChildren() const { return m_children; }
 
-    const std::shared_ptr<Module> &GetModule() const { return m_module; }
+    const RC<Module> &GetModule() const { return m_module; }
 
     void PerformLookup(AstVisitor *visitor);
 
@@ -28,17 +28,17 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::vector<std::shared_ptr<AstStatement>> m_children;
-    std::shared_ptr<Module> m_module;
+    std::vector<RC<AstStatement>> m_children;
+    RC<Module> m_module;
 
     void AddBuiltinHeader();
 
-    Pointer<AstModuleDeclaration> CloneImpl() const
+    RC<AstModuleDeclaration> CloneImpl() const
     {
-        return Pointer<AstModuleDeclaration>(new AstModuleDeclaration(
+        return RC<AstModuleDeclaration>(new AstModuleDeclaration(
             m_name, 
             CloneAllAstNodes(m_children), 
             m_location

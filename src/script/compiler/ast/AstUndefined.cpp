@@ -14,7 +14,7 @@ std::unique_ptr<Buildable> AstUndefined::Build(AstVisitor *visitor, Module *mod)
     return nullptr;
 }
 
-Pointer<AstStatement> AstUndefined::Clone() const
+RC<AstStatement> AstUndefined::Clone() const
 {
     return CloneImpl();
 }
@@ -44,7 +44,7 @@ SymbolTypePtr_t AstUndefined::GetExprType() const
     return BuiltinTypes::UNDEFINED;
 }
 
-std::shared_ptr<AstConstant> AstUndefined::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstUndefined::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     return nullptr;
 }

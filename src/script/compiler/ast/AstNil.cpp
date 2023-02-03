@@ -29,7 +29,7 @@ std::unique_ptr<Buildable> AstNil::Build(AstVisitor *visitor, Module *mod)
     return BytecodeUtil::Make<ConstNull>(rp);
 }
 
-Pointer<AstStatement> AstNil::Clone() const
+RC<AstStatement> AstNil::Clone() const
 {
     return CloneImpl();
 }
@@ -59,24 +59,24 @@ SymbolTypePtr_t AstNil::GetExprType() const
     return BuiltinTypes::NULL_TYPE;
 }
 
-std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstNil::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
             // logical operations still work, so that we can do
             // things like testing for null in an if statement.
-            return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+            return RC<AstFalse>(new AstFalse(m_location));
 
         case OP_logical_or:
             if (!right->IsNumber()) {
                 // this operator is valid to compare against null
                 if (dynamic_cast<const AstNil*>(right) != nullptr) {
-                    return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                    return RC<AstFalse>(new AstFalse(m_location));
                 }
                 return nullptr;
             }
 
-            return std::shared_ptr<AstInteger>(new AstInteger(
+            return RC<AstInteger>(new AstInteger(
                 right->IntValue(),
                 m_location
             ));
@@ -84,13 +84,13 @@ std::shared_ptr<AstConstant> AstNil::HandleOperator(Operators op_type, const Ast
         case OP_equals:
             if (dynamic_cast<const AstNil*>(right) != nullptr) {
                 // only another null value should be equal
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             }
             // other values never equal to null
-            return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+            return RC<AstFalse>(new AstFalse(m_location));
 
         case OP_logical_not:
-            return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+            return RC<AstTrue>(new AstTrue(m_location));
 
         default:
             return nullptr;

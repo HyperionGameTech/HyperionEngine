@@ -16,14 +16,14 @@ public:
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 protected:
     std::string m_path;
 
-    Pointer<AstFileImport> CloneImpl() const
+    RC<AstFileImport> CloneImpl() const
     {
-        return Pointer<AstFileImport>(new AstFileImport(
+        return RC<AstFileImport>(new AstFileImport(
             m_path,
             m_location
         ));

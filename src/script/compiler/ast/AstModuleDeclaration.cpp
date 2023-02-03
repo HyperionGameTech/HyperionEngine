@@ -16,7 +16,7 @@ namespace hyperion::compiler {
 
 AstModuleDeclaration::AstModuleDeclaration(
     const std::string &name,
-    const std::vector<std::shared_ptr<AstStatement>> &children,
+    const std::vector<RC<AstStatement>> &children,
     const SourceLocation &location)
     : AstDeclaration(name, location),
       m_children(children)
@@ -39,7 +39,7 @@ void AstModuleDeclaration::PerformLookup(AstVisitor *visitor)
             m_name
         ));
     } else {
-        m_module.reset(new Module(m_name, m_location));
+        m_module.Reset(new Module(m_name, m_location));
     }
 }
 
@@ -53,7 +53,7 @@ void AstModuleDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_module != nullptr) {
         // add this module to the compilation unit
-        visitor->GetCompilationUnit()->m_module_tree.Open(m_module.get());
+        visitor->GetCompilationUnit()->m_module_tree.Open(m_module.Get());
         // set the link to the module in the tree
         m_module->SetImportTreeLink(visitor->GetCompilationUnit()->m_module_tree.TopNode());
 
@@ -76,7 +76,7 @@ void AstModuleDeclaration::Visit(AstVisitor *visitor, Module *mod)
         }
 
         // update current module
-        mod = m_module.get();
+        mod = m_module.Get();
         AssertThrow(mod == visitor->GetCompilationUnit()->GetCurrentModule());
 
         // visit all children
@@ -100,7 +100,7 @@ std::unique_ptr<Buildable> AstModuleDeclaration::Build(AstVisitor *visitor, Modu
     // build all children
     for (auto &child : m_children) {
         if (child != nullptr) {
-            chunk->Append(child->Build(visitor, m_module.get()));
+            chunk->Append(child->Build(visitor, m_module.Get()));
         }
     }
 
@@ -114,12 +114,12 @@ void AstModuleDeclaration::Optimize(AstVisitor *visitor, Module *mod)
     // optimize all children
     for (auto &child : m_children) {
         if (child) {
-            child->Optimize(visitor, m_module.get());
+            child->Optimize(visitor, m_module.Get());
         }
     }
 }
 
-Pointer<AstStatement> AstModuleDeclaration::Clone() const
+RC<AstStatement> AstModuleDeclaration::Clone() const
 {
     return CloneImpl();
 }

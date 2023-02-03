@@ -14,9 +14,9 @@ namespace hyperion {
 namespace compiler {
 
 AstTernaryExpression::AstTernaryExpression(
-    const std::shared_ptr<AstExpression> &conditional,
-    const std::shared_ptr<AstExpression> &left,
-    const std::shared_ptr<AstExpression> &right,
+    const RC<AstExpression> &conditional,
+    const RC<AstExpression> &left,
+    const RC<AstExpression> &right,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_conditional(conditional),
@@ -61,9 +61,9 @@ std::unique_ptr<Buildable> AstTernaryExpression::Build(AstVisitor *visitor, Modu
         chunk->Append(Compiler::CreateConditional(
             visitor,
             mod,
-            m_conditional.get(),
-            m_left.get(),
-            m_right.get()
+            m_conditional.Get(),
+            m_left.Get(),
+            m_right.Get()
         ));
     } else if (condition_is_true) {
         // the condition has been determined to be true
@@ -100,7 +100,7 @@ void AstTernaryExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_right->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstTernaryExpression::Clone() const
+RC<AstStatement> AstTernaryExpression::Clone() const
 {
     return CloneImpl();
 }

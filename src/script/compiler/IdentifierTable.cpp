@@ -35,11 +35,11 @@ int IdentifierTable::CountUsedVariables() const
     return used_variables.size();
 }
 
-std::shared_ptr<Identifier> IdentifierTable::AddAlias(const std::string &name, Identifier *aliasee)
+RC<Identifier> IdentifierTable::AddAlias(const std::string &name, Identifier *aliasee)
 {
     AssertThrow(aliasee != nullptr);
 
-    m_identifiers.push_back(std::shared_ptr<Identifier>(new Identifier(
+    m_identifiers.push_back(RC<Identifier>(new Identifier(
         name,
         aliasee->GetIndex(),
         aliasee->GetFlags() | FLAG_ALIAS,
@@ -49,14 +49,14 @@ std::shared_ptr<Identifier> IdentifierTable::AddAlias(const std::string &name, I
     return m_identifiers.back();
 }
 
-std::shared_ptr<Identifier> IdentifierTable::AddIdentifier(
+RC<Identifier> IdentifierTable::AddIdentifier(
     const std::string &name,
     int flags,
-    std::shared_ptr<AstExpression> current_value,
+    RC<AstExpression> current_value,
     SymbolTypePtr_t symbol_type
 )
 {
-    std::shared_ptr<Identifier> ident(new Identifier(
+    RC<Identifier> ident(new Identifier(
         name,
         m_identifier_index++,
         flags
@@ -79,7 +79,7 @@ std::shared_ptr<Identifier> IdentifierTable::AddIdentifier(
     return m_identifiers.back();
 }
 
-bool IdentifierTable::AddIdentifier(const std::shared_ptr<Identifier> &identifier)
+bool IdentifierTable::AddIdentifier(const RC<Identifier> &identifier)
 {
     if (identifier == nullptr) {
         return false;
@@ -94,7 +94,7 @@ bool IdentifierTable::AddIdentifier(const std::shared_ptr<Identifier> &identifie
     return true;
 }
 
-std::shared_ptr<Identifier> IdentifierTable::LookUpIdentifier(const std::string &name)
+RC<Identifier> IdentifierTable::LookUpIdentifier(const std::string &name)
 {
     for (auto &ident : m_identifiers) {
         if (ident != nullptr) {
@@ -112,7 +112,7 @@ void IdentifierTable::BindTypeToIdentifier(const std::string &name, SymbolTypePt
     AddIdentifier(
         name,
         0,
-        std::shared_ptr<AstTypeObject>(new AstTypeObject(symbol_type, nullptr, SourceLocation::eof)),
+        RC<AstTypeObject>(new AstTypeObject(symbol_type, nullptr, SourceLocation::eof)),
         symbol_type->GetBaseType()
     );
 }

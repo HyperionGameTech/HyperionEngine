@@ -20,8 +20,8 @@
 namespace hyperion::compiler {
 
 AstTemplateInstantiation::AstTemplateInstantiation(
-    const std::shared_ptr<AstIdentifier> &expr,
-    const std::vector<std::shared_ptr<AstArgument>> &generic_args,
+    const RC<AstIdentifier> &expr,
+    const std::vector<RC<AstArgument>> &generic_args,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_expr(expr),
@@ -38,7 +38,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
     // use it to look up to see if it is already instantiated.
     // it will be declared in the same scope as the original generic.
 
-    m_block.reset(new AstBlock({}, m_location));
+    m_block.Reset(new AstBlock({}, m_location));
 
     ScopeGuard scope(mod, SCOPE_TYPE_GENERIC_INSTANTIATION, 0);
 
@@ -123,7 +123,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
     //     // @TODO: Reopen existing scope to use?
 
-    //     m_inner_expr.reset(new AstVariable(
+    //     m_inner_expr.Reset(new AstVariable(
     //         mangled_name,
     //         m_location
     //     ));
@@ -140,7 +140,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
             AssertThrow(args_substituted[i]->GetExpr() != nullptr);
 
             if (args_substituted[i]->GetExpr()->GetExprType() != BuiltinTypes::UNDEFINED) {
-                std::shared_ptr<AstVariableDeclaration> param_override(new AstVariableDeclaration(
+                RC<AstVariableDeclaration> param_override(new AstVariableDeclaration(
                     expr_type->GetGenericInstanceInfo().m_generic_args[i + 1].m_name,
                     nullptr,
                     CloneAstNode(args_substituted[i]->GetExpr()),
@@ -181,7 +181,7 @@ void AstTemplateInstantiation::Optimize(AstVisitor *visitor, Module *mod)
     m_block->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstTemplateInstantiation::Clone() const
+RC<AstStatement> AstTemplateInstantiation::Clone() const
 {
     return CloneImpl();
 }
@@ -224,7 +224,7 @@ SymbolTypePtr_t AstTemplateInstantiation::GetExprType() const
 const AstExpression *AstTemplateInstantiation::GetValueOf() const
 {
     if (m_inner_expr != nullptr) {
-        AssertThrow(m_inner_expr.get() != this);
+        AssertThrow(m_inner_expr.Get() != this);
 
         return m_inner_expr->GetValueOf();
     }
@@ -235,7 +235,7 @@ const AstExpression *AstTemplateInstantiation::GetValueOf() const
 const AstExpression *AstTemplateInstantiation::GetDeepValueOf() const
 {
     if (m_inner_expr != nullptr) {
-        AssertThrow(m_inner_expr.get() != this);
+        AssertThrow(m_inner_expr.Get() != this);
 
         return m_inner_expr->GetDeepValueOf();
     }

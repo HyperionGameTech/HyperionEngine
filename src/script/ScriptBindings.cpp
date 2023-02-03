@@ -962,7 +962,7 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY },
-                        { "str", BuiltinTypes::STRING, std::shared_ptr<AstString>(new AstString("", SourceLocation::eof)) }
+                        { "str", BuiltinTypes::STRING, RC<AstString>(new AstString("", SourceLocation::eof)) }
                     },
                     NameCreateFromString
                 )
@@ -1089,8 +1089,8 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY },
-                        { "x", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
-                        { "y", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
+                        { "x", BuiltinTypes::FLOAT, RC<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
+                        { "y", BuiltinTypes::FLOAT, RC<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
                     },
                     CxxCtor< Vector2, Float, Float > 
                 ),
@@ -1238,9 +1238,9 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     BuiltinTypes::ANY,
                     {
                         { "self", BuiltinTypes::ANY },
-                        { "x", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
-                        { "y", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
-                        { "z", BuiltinTypes::FLOAT, std::shared_ptr<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
+                        { "x", BuiltinTypes::FLOAT, RC<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
+                        { "y", BuiltinTypes::FLOAT, RC<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) },
+                        { "z", BuiltinTypes::FLOAT, RC<AstFloat>(new AstFloat(0.0f, SourceLocation::eof)) }
                     },
                     CxxCtor< Vector3, Float, Float, Float > 
                 ),

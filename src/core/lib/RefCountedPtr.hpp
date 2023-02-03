@@ -267,6 +267,11 @@ public:
     {
     }
 
+    RefCountedPtr(std::nullptr_t)
+        : Base()
+    {
+    }
+
     /*! \brief Takes ownership of ptr. Do not delete the pointer passed to this,
         as it will be automatically deleted when this object's ref count reaches zero. */
     explicit RefCountedPtr(T *ptr)
@@ -274,7 +279,7 @@ public:
     {
         Reset(ptr);
     }
-
+    
     // delete parent constructors
     RefCountedPtr(const Base &) = delete;
     RefCountedPtr &operator=(const Base &) = delete;
@@ -306,28 +311,34 @@ public:
     }
 
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    RefCountedPtr(const RefCountedPtr<Ty> &other)
+    RefCountedPtr(const RefCountedPtr<Ty, CountType> &other)
         : Base(static_cast<const Base &>(other))
     {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
     }
     
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    RefCountedPtr &operator=(const RefCountedPtr<Ty> &other)
+    RefCountedPtr &operator=(const RefCountedPtr<Ty, CountType> &other)
     {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
+
         Base::operator=(static_cast<const Base &>(other));
 
         return *this;
     }
 
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    RefCountedPtr(RefCountedPtr<Ty> &&other) noexcept
+    RefCountedPtr(RefCountedPtr<Ty, CountType> &&other) noexcept
         : Base(static_cast<Base &&>(std::move(other)))
     {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
     }
     
     template <class Ty, std::enable_if_t<std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    RefCountedPtr &operator=(RefCountedPtr<Ty> &&other) noexcept
+    RefCountedPtr &operator=(RefCountedPtr<Ty, CountType> &&other) noexcept
     {
+        static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Types not compatible for upcast!");
+
         Base::operator=(static_cast<Base &&>(std::move(other)));
 
         return *this;
@@ -416,6 +427,11 @@ protected:
 
 public:
     RefCountedPtr()
+        : Base()
+    {
+    }
+
+    RefCountedPtr(std::nullptr_t)
         : Base()
     {
     }

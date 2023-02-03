@@ -18,8 +18,8 @@ class AstTemplateInstantiation : public AstExpression
 {
 public:
     AstTemplateInstantiation(
-        const std::shared_ptr<AstIdentifier> &expr,
-        const std::vector<std::shared_ptr<AstArgument>> &generic_args,
+        const RC<AstIdentifier> &expr,
+        const std::vector<RC<AstArgument>> &generic_args,
         const SourceLocation &location
     );
     virtual ~AstTemplateInstantiation() = default;
@@ -28,7 +28,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -38,17 +38,17 @@ public:
     virtual const AstExpression *GetDeepValueOf() const override;
 
 private:
-    std::shared_ptr<AstIdentifier> m_expr;
-    std::vector<std::shared_ptr<AstArgument>> m_generic_args;
+    RC<AstIdentifier> m_expr;
+    std::vector<RC<AstArgument>> m_generic_args;
 
     // set while analyzing
-    std::shared_ptr<AstExpression> m_inner_expr;
-    std::shared_ptr<AstBlock> m_block;
+    RC<AstExpression> m_inner_expr;
+    RC<AstBlock> m_block;
     SymbolTypePtr_t m_expr_type;
 
-    Pointer<AstTemplateInstantiation> CloneImpl() const
+    RC<AstTemplateInstantiation> CloneImpl() const
     {
-        return Pointer<AstTemplateInstantiation>(new AstTemplateInstantiation(
+        return RC<AstTemplateInstantiation>(new AstTemplateInstantiation(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_generic_args),
             m_location

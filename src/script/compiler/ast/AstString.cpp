@@ -29,7 +29,7 @@ std::unique_ptr<Buildable> AstString::Build(AstVisitor *visitor, Module *mod)
     return std::move(instr_string);
 }
 
-Pointer<AstStatement> AstString::Clone() const
+RC<AstStatement> AstString::Clone() const
 {
     return CloneImpl();
 }
@@ -62,29 +62,29 @@ SymbolTypePtr_t AstString::GetExprType() const
     return BuiltinTypes::STRING;
 }
 
-std::shared_ptr<AstConstant> AstString::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstString::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_logical_and:
             // literal strings evaluate to true.
             switch (right->IsTrue()) {
                 case TRI_TRUE:
-                    return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                    return RC<AstTrue>(new AstTrue(m_location));
                 case TRI_FALSE:
-                    return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                    return RC<AstFalse>(new AstFalse(m_location));
                 case TRI_INDETERMINATE:
                     return nullptr;
             }
 
         case OP_logical_or:
-            return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+            return RC<AstTrue>(new AstTrue(m_location));
 
         case OP_equals:
             if (const AstString *right_string = dynamic_cast<const AstString*>(right)) {
                 if (m_value == right_string->GetValue()) {
-                    return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                    return RC<AstTrue>(new AstTrue(m_location));
                 } else {
-                    return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                    return RC<AstFalse>(new AstFalse(m_location));
                 }
             }
 

@@ -13,9 +13,9 @@
 namespace hyperion::compiler {
 
 AstIfStatement::AstIfStatement(
-    const std::shared_ptr<AstExpression> &conditional,
-    const std::shared_ptr<AstBlock> &block,
-    const std::shared_ptr<AstBlock> &else_block,
+    const RC<AstExpression> &conditional,
+    const RC<AstBlock> &block,
+    const RC<AstBlock> &else_block,
     const SourceLocation &location
 ) : AstStatement(location),
     m_conditional(conditional),
@@ -50,9 +50,9 @@ std::unique_ptr<Buildable> AstIfStatement::Build(AstVisitor *visitor, Module *mo
         chunk->Append(Compiler::CreateConditional(
             visitor,
             mod,
-            m_conditional.get(),
-            m_block.get(),
-            m_else_block.get()
+            m_conditional.Get(),
+            m_block.Get(),
+            m_else_block.Get()
         ));
     } else if (condition_is_true) {
         // the condition has been determined to be true
@@ -92,7 +92,7 @@ void AstIfStatement::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstIfStatement::Clone() const
+RC<AstStatement> AstIfStatement::Clone() const
 {
     return CloneImpl();
 }

@@ -28,9 +28,9 @@
 namespace hyperion::compiler {
 
 AstFunctionExpression::AstFunctionExpression(
-    const std::vector<std::shared_ptr<AstParameter>> &parameters,
-    const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
-    const std::shared_ptr<AstBlock> &block,
+    const std::vector<RC<AstParameter>> &parameters,
+    const RC<AstPrototypeSpecification> &return_type_specification,
+    const RC<AstBlock> &block,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_parameters(parameters),
@@ -101,7 +101,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
         // closures are objects with a method named '$invoke',
         // so we pass the 'self' argument when it is called.
-        m_closure_self_param.reset(new AstParameter(
+        m_closure_self_param.Reset(new AstParameter(
             "__closure_self",
             nullptr,
             nullptr,
@@ -154,8 +154,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_block != nullptr) {
         if (m_is_constructor_definition) {
             // add implicit 'return self' at the end
-            m_block->AddChild(std::shared_ptr<AstReturnStatement>(new AstReturnStatement(
-                std::shared_ptr<AstVariable>(new AstVariable(
+            m_block->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
+                RC<AstVariable>(new AstVariable(
                     Keyword::ToString(Keywords::Keyword_self),
                     m_block->GetLocation()
                 )),
@@ -228,12 +228,12 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     for (const auto &it : function_scope.GetClosureCaptures()) {
         const std::string &name = it.first;
-        const std::shared_ptr<Identifier> &identifier = it.second;
+        const RC<Identifier> &identifier = it.second;
 
         AssertThrow(identifier != nullptr);
         AssertThrow(identifier->GetSymbolType() != nullptr);
 
-        std::shared_ptr<AstExpression> current_value(new AstVariable(
+        RC<AstExpression> current_value(new AstVariable(
             name,
             m_location
         ));
@@ -290,7 +290,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         closure_obj_members.push_back(SymbolMember_t {
             "$invoke",
             m_symbol_type,
-            std::shared_ptr<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
+            RC<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
         });
 
         // visit each member
@@ -316,7 +316,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             BuiltinTypes::OBJECT
         );
 
-        auto prototype_value = std::shared_ptr<AstTypeObject>(new AstTypeObject(
+        auto prototype_value = RC<AstTypeObject>(new AstTypeObject(
             prototype_type,
             nullptr,
             m_location
@@ -376,7 +376,7 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
 
     UInt8 flags = FunctionFlags::NONE;
     if (!m_parameters.empty()) {
-        const std::shared_ptr<AstParameter> &last = m_parameters.back();
+        const RC<AstParameter> &last = m_parameters.back();
         AssertThrow(last != nullptr);
 
         if (last->IsVariadic()) {
@@ -461,7 +461,7 @@ void AstFunctionExpression::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstFunctionExpression::Clone() const
+RC<AstStatement> AstFunctionExpression::Clone() const
 {
     return CloneImpl();
 }

@@ -15,6 +15,7 @@ void CodeGenerator::Visit(BytecodeChunk *chunk)
     new_params.block_offset = build_params.block_offset + m_ibs.GetSize();
 
     CodeGenerator chunk_generator(new_params);
+
     for (auto &buildable : chunk->buildables) {
         chunk_generator.BuildableVisitor::Visit(buildable.get());
     }

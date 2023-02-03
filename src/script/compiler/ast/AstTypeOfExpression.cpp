@@ -15,7 +15,7 @@
 namespace hyperion::compiler {
 
 AstTypeOfExpression::AstTypeOfExpression(
-    const std::shared_ptr<AstExpression> &expr,
+    const RC<AstExpression> &expr,
     const SourceLocation &location
 ) : AstPrototypeSpecification(nullptr, location),
     m_expr(expr)
@@ -41,7 +41,7 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
 
         mod->m_scopes.Top().GetIdentifierTable().AddSymbolType(internal_type);
 
-        AstPrototypeSpecification::m_proto.reset(new AstVariable(
+        AstPrototypeSpecification::m_proto.Reset(new AstVariable(
             "__typeof",
             m_location
         ));
@@ -53,7 +53,7 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
         // m_type_object = CloneAstNode(expr_type->GetTypeObject());
         AssertThrow(m_type_object != nullptr);
 
-        // m_type_object.reset(new AstTypeObject(
+        // m_type_object.Reset(new AstTypeObject(
         //     expr_type,
         //     nullptr,
         //     m_location
@@ -61,7 +61,7 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
 
         // m_type_object->Visit(visitor, mod);
     } else {
-        m_type_object.reset();
+        m_type_object.Reset();
     }
 
 #else
@@ -71,12 +71,12 @@ void AstTypeOfExpression::Visit(AstVisitor *visitor, Module *mod)
     SymbolTypePtr_t unaliased;
 
     if ((expr_type = m_expr->GetExprType()) && (unaliased = expr_type->GetUnaliased())) {
-        m_string_expr.reset(new AstString(
+        m_string_expr.Reset(new AstString(
             unaliased->GetName(),
             m_location
         ));
     } else {
-        m_string_expr.reset(new AstString(
+        m_string_expr.Reset(new AstString(
             BuiltinTypes::UNDEFINED->GetName(),
             m_location
         ));
@@ -110,7 +110,7 @@ void AstTypeOfExpression::Optimize(AstVisitor *visitor, Module *mod)
 #endif
 }
 
-Pointer<AstStatement> AstTypeOfExpression::Clone() const
+RC<AstStatement> AstTypeOfExpression::Clone() const
 {
     return CloneImpl();
 }

@@ -30,7 +30,7 @@ std::unique_ptr<Buildable> AstInteger::Build(AstVisitor *visitor, Module *mod)
     return BytecodeUtil::Make<ConstI32>(rp, m_value);
 }
 
-Pointer<AstStatement> AstInteger::Clone() const
+RC<AstStatement> AstInteger::Clone() const
 {
     return CloneImpl();
 }
@@ -66,7 +66,7 @@ SymbolTypePtr_t AstInteger::GetExprType() const
     return BuiltinTypes::INT;
 }
 
-std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstInteger::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_add:
@@ -76,13 +76,13 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
 
             // we have to determine weather or not to promote this to a float
             if (dynamic_cast<const AstFloat *>(right)) {
-                return std::shared_ptr<AstFloat>(
+                return RC<AstFloat>(
                     new AstFloat(FloatValue() + right->FloatValue(), m_location));
             } else if (dynamic_cast<const AstUnsignedInteger *>(right)) {
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() + right->UnsignedValue(), m_location));
             } else {
-                return std::shared_ptr<AstInteger>(
+                return RC<AstInteger>(
                     new AstInteger(IntValue() + right->IntValue(), m_location));
             }
 
@@ -93,13 +93,13 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
 
             // we have to determine weather or not to promote this to a float
             if (dynamic_cast<const AstFloat*>(right)) {
-                return std::shared_ptr<AstFloat>(
+                return RC<AstFloat>(
                     new AstFloat(FloatValue() - right->FloatValue(), m_location));
             } else if (dynamic_cast<const AstUnsignedInteger *>(right)) {
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() - right->UnsignedValue(), m_location));
             } else {
-                return std::shared_ptr<AstInteger>(
+                return RC<AstInteger>(
                     new AstInteger(IntValue() - right->IntValue(), m_location));
             }
 
@@ -110,13 +110,13 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
 
             // we have to determine weather or not to promote this to a float
             if (dynamic_cast<const AstFloat*>(right)) {
-                return std::shared_ptr<AstFloat>(
+                return RC<AstFloat>(
                     new AstFloat(FloatValue() * right->FloatValue(), m_location));
             } else if (dynamic_cast<const AstUnsignedInteger *>(right)) {
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() * right->UnsignedValue(), m_location));
             } else {
-                return std::shared_ptr<AstInteger>(
+                return RC<AstInteger>(
                     new AstInteger(IntValue() * right->IntValue(), m_location));
             }
 
@@ -135,7 +135,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                 } else {
                     result = FloatValue() / right_float;
                 }
-                return std::shared_ptr<AstFloat>(
+                return RC<AstFloat>(
                     new AstFloat(result, m_location));
             } else if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
@@ -143,7 +143,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                     // division by zero, return Undefined
                     return nullptr;
                 } else {
-                    return std::shared_ptr<AstUnsignedInteger>(
+                    return RC<AstUnsignedInteger>(
                         new AstUnsignedInteger(UnsignedValue() / right_uint, m_location));
                 }
             } else {
@@ -152,7 +152,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                     // division by zero, return Undefined
                     return nullptr;
                 } else {
-                    return std::shared_ptr<AstInteger>(
+                    return RC<AstInteger>(
                         new AstInteger(IntValue() / right_int, m_location));
                 }
             }
@@ -171,7 +171,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                 } else {
                     result = std::fmod(FloatValue(), right_float);
                 }
-                return std::shared_ptr<AstFloat>(
+                return RC<AstFloat>(
                     new AstFloat(result, m_location));
             } else if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
@@ -179,7 +179,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                     // division by zero, return Undefined
                     return nullptr;
                 } else {
-                    return std::shared_ptr<AstUnsignedInteger>(
+                    return RC<AstUnsignedInteger>(
                         new AstUnsignedInteger(UnsignedValue() % right_uint, m_location));
                 }
             } else {
@@ -188,7 +188,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                     // division by zero, return Undefined
                     return nullptr;
                 } else {
-                    return std::shared_ptr<AstInteger>(
+                    return RC<AstInteger>(
                         new AstInteger(IntValue() % right_int, m_location));
                 }
             }
@@ -204,11 +204,11 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
 
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() ^ right_uint, m_location));
             }
 
-            return std::shared_ptr<AstInteger>(
+            return RC<AstInteger>(
                 new AstInteger(IntValue() ^ right->IntValue(), m_location));
 
         case OP_bitwise_and:
@@ -222,11 +222,11 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
 
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() & right_uint, m_location));
             }
 
-            return std::shared_ptr<AstInteger>(
+            return RC<AstInteger>(
                 new AstInteger(IntValue() & right->IntValue(), m_location));
 
         case OP_bitwise_or:
@@ -239,11 +239,11 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
 
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() | right_uint, m_location));
             }
 
-            return std::shared_ptr<AstInteger>(
+            return RC<AstInteger>(
                 new AstInteger(IntValue() | right->IntValue(), m_location));
 
         case OP_bitshift_left:
@@ -257,11 +257,11 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
 
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() << right_uint, m_location));
             }
 
-            return std::shared_ptr<AstInteger>(
+            return RC<AstInteger>(
                 new AstInteger(IntValue() << right->IntValue(), m_location));
 
         case OP_bitshift_right:
@@ -275,11 +275,11 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             if (dynamic_cast<const AstUnsignedInteger *>(right)) {
                 auto right_uint = right->UnsignedValue();
 
-                return std::shared_ptr<AstUnsignedInteger>(
+                return RC<AstUnsignedInteger>(
                     new AstUnsignedInteger(UnsignedValue() >> right_uint, m_location));
             }
 
-            return std::shared_ptr<AstInteger>(
+            return RC<AstInteger>(
                 new AstInteger(IntValue() >> right->IntValue(), m_location));
 
         case OP_logical_and: {
@@ -290,7 +290,7 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                 // this operator is valid to compare against null
                 if (dynamic_cast<const AstNil *>(right)) {
                     // rhs is null, return false
-                    return std::shared_ptr<AstFalse>(
+                    return RC<AstFalse>(
                         new AstFalse(m_location));
                 }
 
@@ -298,9 +298,9 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (this_true == 1 && right_true == 1) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else if (this_true == 0 && right_true == 0) {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             } else {
                 // indeterminate
                 return nullptr;
@@ -315,18 +315,18 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
                 // this operator is valid to compare against null
                 if (dynamic_cast<const AstNil*>(right)) {
                     if (this_true == 1) {
-                        return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                        return RC<AstTrue>(new AstTrue(m_location));
                     } else if (this_true == 0) {
-                        return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                        return RC<AstFalse>(new AstFalse(m_location));
                     }
                 }
                 return nullptr;
             }
 
             if (this_true == 1 || right_true == 1) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else if (this_true == 0 || right_true == 0) {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             } else {
                 // indeterminate
                 return nullptr;
@@ -339,9 +339,9 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (IntValue() < right->IntValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_greater:
@@ -350,9 +350,9 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (IntValue() > right->IntValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_less_eql:
@@ -361,9 +361,9 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (IntValue() <= right->IntValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_greater_eql:
@@ -372,9 +372,9 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (IntValue() >= right->IntValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_equals:
@@ -383,22 +383,22 @@ std::shared_ptr<AstConstant> AstInteger::HandleOperator(Operators op_type, const
             }
 
             if (IntValue() == right->IntValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_negative:
-            return std::shared_ptr<AstInteger>(new AstInteger(-IntValue(), m_location));
+            return RC<AstInteger>(new AstInteger(-IntValue(), m_location));
 
         case OP_bitwise_complement:
-            return std::shared_ptr<AstInteger>(new AstInteger(~IntValue(), m_location));
+            return RC<AstInteger>(new AstInteger(~IntValue(), m_location));
 
         case OP_logical_not:
             if (IntValue() == 0) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         default:

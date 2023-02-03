@@ -691,9 +691,9 @@ SymbolTypePtr_t SymbolType::Function(
     const std::vector<GenericInstanceTypeInfo::Arg> &params
 )
 {
-    std::vector<std::shared_ptr<AstParameter>> parameters; // TODO
-    std::shared_ptr<AstBlock> block(new AstBlock(SourceLocation::eof));
-    std::shared_ptr<AstFunctionExpression> value(new AstFunctionExpression(
+    std::vector<RC<AstParameter>> parameters; // TODO
+    RC<AstBlock> block(new AstBlock(SourceLocation::eof));
+    RC<AstFunctionExpression> value(new AstFunctionExpression(
         parameters, nullptr, block, SourceLocation::eof
     ));
 
@@ -849,9 +849,6 @@ SymbolTypePtr_t SymbolType::GenericInstance(
     ));
 
     auto default_value = base->GetDefaultValue();
-    // if (default_value == nullptr) {
-    //     default_value.reset(new AstObject(res, SourceLocation::eof));
-    // }
 
     res->SetId(base->GetId());
     res->SetDefaultValue(default_value);

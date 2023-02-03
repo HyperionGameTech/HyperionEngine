@@ -16,9 +16,9 @@ namespace hyperion::compiler {
 class AstFunctionExpression : public AstExpression {
 public:
     AstFunctionExpression(
-        const std::vector<std::shared_ptr<AstParameter>> &parameters,
-        const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
-        const std::shared_ptr<AstBlock> &block,
+        const std::vector<RC<AstParameter>> &parameters,
+        const RC<AstPrototypeSpecification> &return_type_specification,
+        const RC<AstBlock> &block,
         const SourceLocation &location
     );
 
@@ -34,7 +34,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -44,13 +44,13 @@ public:
     void SetReturnType(const SymbolTypePtr_t &return_type) { m_return_type = return_type; }
 
 protected:
-    std::vector<std::shared_ptr<AstParameter>> m_parameters;
-    std::shared_ptr<AstPrototypeSpecification> m_return_type_specification;
-    std::shared_ptr<AstBlock> m_block;
+    std::vector<RC<AstParameter>> m_parameters;
+    RC<AstPrototypeSpecification> m_return_type_specification;
+    RC<AstBlock> m_block;
     bool m_is_closure;
 
-    std::shared_ptr<AstExpression> m_closure_object;
-    std::shared_ptr<AstParameter> m_closure_self_param;
+    RC<AstExpression> m_closure_object;
+    RC<AstParameter> m_closure_self_param;
 
     bool m_is_constructor_definition;
 
@@ -63,9 +63,9 @@ protected:
     int m_static_id;
 
     std::unique_ptr<Buildable> BuildFunctionBody(AstVisitor *visitor, Module *mod);
-    Pointer<AstFunctionExpression> CloneImpl() const
+    RC<AstFunctionExpression> CloneImpl() const
     {
-        return Pointer<AstFunctionExpression>(new AstFunctionExpression(
+        return RC<AstFunctionExpression>(new AstFunctionExpression(
             CloneAllAstNodes(m_parameters),
             CloneAstNode(m_return_type_specification),
             CloneAstNode(m_block),

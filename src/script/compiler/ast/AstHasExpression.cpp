@@ -19,7 +19,7 @@
 namespace hyperion::compiler {
 
 AstHasExpression::AstHasExpression(
-    const std::shared_ptr<AstStatement> &target,
+    const RC<AstStatement> &target,
     const std::string &field_name,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
@@ -38,16 +38,16 @@ void AstHasExpression::Visit(AstVisitor *visitor, Module *mod)
 
     SymbolTypePtr_t target_type;
 
-    if (auto *ident = dynamic_cast<AstIdentifier*>(m_target.get())) {
+    if (auto *ident = dynamic_cast<AstIdentifier *>(m_target.Get())) {
         if (ident->GetProperties().GetIdentifierType() == IDENTIFIER_TYPE_VARIABLE) {
             m_is_expr = true;
         }
 
         target_type = ident->GetExprType();
         m_has_side_effects = ident->MayHaveSideEffects();
-    } else if (auto *type_spec = dynamic_cast<AstPrototypeSpecification*>(m_target.get())) {
+    } else if (auto *type_spec = dynamic_cast<AstPrototypeSpecification *>(m_target.Get())) {
         target_type = type_spec->GetHeldType();
-    } else if (auto *expr = dynamic_cast<AstExpression*>(m_target.get())) {
+    } else if (auto *expr = dynamic_cast<AstExpression *>(m_target.Get())) {
         target_type = expr->GetExprType();
         m_is_expr = true;
         m_has_side_effects = expr->MayHaveSideEffects();
@@ -150,7 +150,7 @@ void AstHasExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_target->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstHasExpression::Clone() const
+RC<AstStatement> AstHasExpression::Clone() const
 {
     return CloneImpl();
 }

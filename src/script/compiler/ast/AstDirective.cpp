@@ -68,7 +68,7 @@ void AstDirective::Optimize(AstVisitor *visitor, Module *mod)
 
 }
 
-Pointer<AstStatement> AstDirective::Clone() const
+RC<AstStatement> AstDirective::Clone() const
 {
     return CloneImpl();
 }

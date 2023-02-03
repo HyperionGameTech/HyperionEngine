@@ -12,7 +12,7 @@
 namespace hyperion::compiler {
 
 AstFunctionDefinition::AstFunctionDefinition(const std::string &name,
-    const std::shared_ptr<AstFunctionExpression> &expr,
+    const RC<AstFunctionExpression> &expr,
     const SourceLocation &location)
     : AstDeclaration(name, location),
       m_expr(expr)
@@ -68,7 +68,7 @@ void AstFunctionDefinition::Optimize(AstVisitor *visitor, Module *mod)
     m_expr->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstFunctionDefinition::Clone() const
+RC<AstStatement> AstFunctionDefinition::Clone() const
 {
     return CloneImpl();
 }

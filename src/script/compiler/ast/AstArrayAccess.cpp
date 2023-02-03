@@ -14,8 +14,8 @@
 namespace hyperion::compiler {
 
 AstArrayAccess::AstArrayAccess(
-    const std::shared_ptr<AstExpression> &target,
-    const std::shared_ptr<AstExpression> &index,
+    const RC<AstExpression> &target,
+    const RC<AstExpression> &index,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
     m_target(target),
@@ -64,15 +64,16 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    bool target_side_effects = m_target->MayHaveSideEffects();
-    bool index_side_effects = m_index->MayHaveSideEffects();
+    const bool target_side_effects = m_target->MayHaveSideEffects();
+    const bool index_side_effects = m_index->MayHaveSideEffects();
     
     UInt8 rp_before = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     UInt8 rp;
     UInt8 r0, r1;
 
     Compiler::ExprInfo info {
-        m_target.get(), m_index.get()
+        m_target.Get(),
+        m_index.Get()
     };
 
     if (!index_side_effects) {
@@ -132,7 +133,7 @@ void AstArrayAccess::Optimize(AstVisitor *visitor, Module *mod)
     m_index->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstArrayAccess::Clone() const
+RC<AstStatement> AstArrayAccess::Clone() const
 {
     return CloneImpl();
 }
@@ -177,7 +178,7 @@ AstExpression *AstArrayAccess::GetTarget() const
             return nested_target;
         }
 
-        return m_target.get();
+        return m_target.Get();
     }
 
     return AstExpression::GetTarget();

@@ -14,7 +14,7 @@ class AstModuleAccess : public AstExpression
 public:
     AstModuleAccess(
         const std::string &target,
-        const std::shared_ptr<AstExpression> &expr,
+        const RC<AstExpression> &expr,
         const SourceLocation &location
     );
     virtual ~AstModuleAccess() = default;
@@ -22,8 +22,8 @@ public:
     Module *GetModule() { return m_mod_access; }
     const Module *GetModule() const { return m_mod_access; }
     const std::string &GetTargetName() const { return m_target; }
-    const std::shared_ptr<AstExpression> &GetExpression() const { return m_expr; }
-    void SetExpression(const std::shared_ptr<AstExpression> &expr) { m_expr = expr; }
+    const RC<AstExpression> &GetExpression() const { return m_expr; }
+    void SetExpression(const RC<AstExpression> &expr) { m_expr = expr; }
     void SetChained(bool is_chained) { m_is_chained = is_chained; }
 
     void PerformLookup(AstVisitor *visitor, Module *mod);
@@ -32,7 +32,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -46,15 +46,15 @@ public:
 
 private:
     std::string m_target;
-    std::shared_ptr<AstExpression> m_expr;
+    RC<AstExpression> m_expr;
     Module *m_mod_access;
     // is this module access chained to another before it?
     bool m_is_chained;
     bool m_looked_up;
 
-    Pointer<AstModuleAccess> CloneImpl() const
+    RC<AstModuleAccess> CloneImpl() const
     {
-        return Pointer<AstModuleAccess>(new AstModuleAccess(
+        return RC<AstModuleAccess>(new AstModuleAccess(
             m_target,
             CloneAstNode(m_expr),
             m_location

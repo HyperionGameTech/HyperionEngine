@@ -14,7 +14,7 @@ namespace hyperion::compiler {
 
 AstSymbolQuery::AstSymbolQuery(
     const std::string &command_name,
-    const std::shared_ptr<AstExpression> &expr,
+    const RC<AstExpression> &expr,
     const SourceLocation &location)
     : AstExpression(location, ACCESS_MODE_LOAD),
       m_command_name(command_name),
@@ -33,7 +33,7 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
         SymbolTypePtr_t expr_type = m_expr->GetExprType();
         AssertThrow(expr_type != nullptr);
 
-        m_string_result_value = std::shared_ptr<AstString>(new AstString(
+        m_string_result_value = RC<AstString>(new AstString(
             expr_type->GetName(),
             m_location
         ));
@@ -43,16 +43,16 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
 
         //if (AstTypeObject *as_type_object = dynamic_cast<AstTypeObject*>(m_expr.get())) {
            // if (const SymbolTypePtr_t &held_type = as_type_object->GetHeldType()) {
-                std::vector<std::shared_ptr<AstExpression>> field_names;
+                std::vector<RC<AstExpression>> field_names;
 
                 for (const auto &member : expr_type->GetMembers()) {
-                    field_names.push_back(std::shared_ptr<AstString>(new AstString(
+                    field_names.push_back(RC<AstString>(new AstString(
                         std::get<0>(member),
                         m_location
                     )));
                 }
 
-                m_array_result_value = std::shared_ptr<AstArrayExpression>(new AstArrayExpression(
+                m_array_result_value = RC<AstArrayExpression>(new AstArrayExpression(
                     field_names,
                     m_location
                 ));
@@ -84,7 +84,7 @@ void AstSymbolQuery::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstSymbolQuery::Clone() const
+RC<AstStatement> AstSymbolQuery::Clone() const
 {
     return CloneImpl();
 }
@@ -113,9 +113,9 @@ SymbolTypePtr_t AstSymbolQuery::GetExprType() const
 const AstExpression *AstSymbolQuery::GetValueOf() const
 {
     if (m_string_result_value != nullptr) {
-        return m_string_result_value.get();
+        return m_string_result_value.Get();
     } else if (m_array_result_value != nullptr) {
-        return m_array_result_value.get();
+        return m_array_result_value.Get();
     }
 
     return this;

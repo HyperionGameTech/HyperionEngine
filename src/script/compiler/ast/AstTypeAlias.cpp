@@ -9,7 +9,7 @@ namespace hyperion::compiler {
 
 AstTypeAlias::AstTypeAlias(
     const std::string &name,
-    const std::shared_ptr<AstPrototypeSpecification> &aliasee,
+    const RC<AstPrototypeSpecification> &aliasee,
     const SourceLocation &location)
     : AstStatement(location),
       m_name(name),
@@ -57,7 +57,7 @@ void AstTypeAlias::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstTypeAlias::Clone() const
+RC<AstStatement> AstTypeAlias::Clone() const
 {
     return CloneImpl();
 }

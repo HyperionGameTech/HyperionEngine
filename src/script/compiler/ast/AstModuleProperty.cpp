@@ -35,22 +35,22 @@ void AstModuleProperty::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(mod != nullptr);
 
     if (m_field_name == "name") {
-        m_expr_value = std::shared_ptr<AstString>(new AstString(
+        m_expr_value = RC<AstString>(new AstString(
             mod->GetName(),
             m_location
         ));
     } else if (m_field_name == "path") {
-        m_expr_value = std::shared_ptr<AstString>(new AstString(
+        m_expr_value = RC<AstString>(new AstString(
             mod->GetLocation().GetFileName(),
             m_location
         ));
     } else if (m_field_name == "directory") {
-        m_expr_value = std::shared_ptr<AstString>(new AstString(
+        m_expr_value = RC<AstString>(new AstString(
             FilePath(mod->GetLocation().GetFileName().c_str()).BasePath().Data(),
             m_location
         ));
     } else if (m_field_name == "basename") {
-        m_expr_value = std::shared_ptr<AstString>(new AstString(
+        m_expr_value = RC<AstString>(new AstString(
             FilePath(mod->GetLocation().GetFileName().c_str()).Basename().Data(),
             m_location
         ));
@@ -87,7 +87,7 @@ void AstModuleProperty::Optimize(AstVisitor *visitor, Module *mod)
     m_expr_value->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstModuleProperty::Clone() const
+RC<AstStatement> AstModuleProperty::Clone() const
 {
     return CloneImpl();
 }

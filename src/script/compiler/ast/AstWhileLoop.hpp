@@ -11,8 +11,8 @@ namespace hyperion::compiler {
 
 class AstWhileLoop : public AstStatement {
 public:
-    AstWhileLoop(const std::shared_ptr<AstExpression> &conditional,
-        const std::shared_ptr<AstBlock> &block,
+    AstWhileLoop(const RC<AstExpression> &conditional,
+        const RC<AstBlock> &block,
         const SourceLocation &location);
     virtual ~AstWhileLoop() = default;
 
@@ -20,16 +20,16 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_conditional;
-    std::shared_ptr<AstBlock> m_block;
+    RC<AstExpression> m_conditional;
+    RC<AstBlock> m_block;
     int m_num_locals;
 
-    Pointer<AstWhileLoop> CloneImpl() const
+    RC<AstWhileLoop> CloneImpl() const
     {
-        return Pointer<AstWhileLoop>(new AstWhileLoop(
+        return RC<AstWhileLoop>(new AstWhileLoop(
             CloneAstNode(m_conditional),
             CloneAstNode(m_block),
             m_location

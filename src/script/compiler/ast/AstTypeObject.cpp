@@ -19,7 +19,7 @@ namespace hyperion::compiler {
 
 AstTypeObject::AstTypeObject(
     const SymbolTypePtr_t &symbol_type,
-    const std::shared_ptr<AstVariable> &proto,
+    const RC<AstVariable> &proto,
     const SourceLocation &location
 ) : AstTypeObject(symbol_type, proto, nullptr, false, location)
 {
@@ -27,7 +27,7 @@ AstTypeObject::AstTypeObject(
 
 AstTypeObject::AstTypeObject(
     const SymbolTypePtr_t &symbol_type,
-    const std::shared_ptr<AstVariable> &proto,
+    const RC<AstVariable> &proto,
     const SymbolTypePtr_t &enum_underlying_type,
     bool is_proxy_class,
     const SourceLocation &location
@@ -164,7 +164,7 @@ void AstTypeObject::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstTypeObject::Clone() const
+RC<AstStatement> AstTypeObject::Clone() const
 {
     return CloneImpl();
 }

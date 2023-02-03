@@ -14,7 +14,7 @@ class AstSymbolQuery : public AstExpression {
 public:
     AstSymbolQuery(
       const std::string &command_name,
-      const std::shared_ptr<AstExpression> &expr,
+      const RC<AstExpression> &expr,
       const SourceLocation &location);
     virtual ~AstSymbolQuery() = default;
 
@@ -22,7 +22,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -31,16 +31,16 @@ public:
 
 private:
     std::string m_command_name;
-    std::shared_ptr<AstExpression> m_expr;
+    RC<AstExpression> m_expr;
 
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
-    std::shared_ptr<AstString> m_string_result_value;
-    std::shared_ptr<AstArrayExpression> m_array_result_value;
+    RC<AstString> m_string_result_value;
+    RC<AstArrayExpression> m_array_result_value;
 
-    Pointer<AstSymbolQuery> CloneImpl() const
+    RC<AstSymbolQuery> CloneImpl() const
     {
-        return Pointer<AstSymbolQuery>(new AstSymbolQuery(
+        return RC<AstSymbolQuery>(new AstSymbolQuery(
             m_command_name,
             CloneAstNode(m_expr),
             m_location

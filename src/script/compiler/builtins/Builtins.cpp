@@ -16,51 +16,51 @@ const SourceLocation Builtins::BUILTIN_SOURCE_LOCATION(-1, -1, "<builtin>");
 
 Builtins::Builtins()
 {
-    m_vars["Class"].reset(new AstTypeObject(
+    m_vars["Class"].Reset(new AstTypeObject(
         BuiltinTypes::CLASS_TYPE, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Null"].reset(new AstTypeObject(
+    m_vars["Null"].Reset(new AstTypeObject(
         BuiltinTypes::NULL_TYPE, nullptr, SourceLocation::eof
     ));
 
-    m_vars["void"].reset(new AstTypeObject(
+    m_vars["void"].Reset(new AstTypeObject(
         BuiltinTypes::VOID_TYPE, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Int"].reset(new AstTypeObject(
+    m_vars["Int"].Reset(new AstTypeObject(
         BuiltinTypes::INT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["UInt"].reset(new AstTypeObject(
+    m_vars["UInt"].Reset(new AstTypeObject(
         BuiltinTypes::UNSIGNED_INT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Float"].reset(new AstTypeObject(
+    m_vars["Float"].Reset(new AstTypeObject(
         BuiltinTypes::FLOAT, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Number"].reset(new AstTypeObject(
+    m_vars["Number"].Reset(new AstTypeObject(
         BuiltinTypes::NUMBER, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Bool"].reset(new AstTypeObject(
+    m_vars["Bool"].Reset(new AstTypeObject(
         BuiltinTypes::BOOLEAN, nullptr, SourceLocation::eof
     ));
 
-    m_vars["String"].reset(new AstTypeObject(
+    m_vars["String"].Reset(new AstTypeObject(
         BuiltinTypes::STRING, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Function"].reset(new AstTypeObject(
+    m_vars["Function"].Reset(new AstTypeObject(
         BuiltinTypes::FUNCTION, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Enum"].reset(new AstTypeObject(
+    m_vars["Enum"].Reset(new AstTypeObject(
         BuiltinTypes::ENUM_TYPE, nullptr, SourceLocation::eof
     ));
 
-    m_vars["Array"].reset(new AstTemplateExpression(
+    m_vars["Array"].Reset(new AstTemplateExpression(
         sp<AstTypeObject>(new AstTypeObject(
             BuiltinTypes::ARRAY, nullptr, SourceLocation::eof
         )),
@@ -74,7 +74,7 @@ Builtins::Builtins()
     ));
 
     for (const auto &it : m_vars) {
-        m_ast.Push(std::shared_ptr<AstVariableDeclaration>(new AstVariableDeclaration(
+        m_ast.Push(RC<AstVariableDeclaration>(new AstVariableDeclaration(
             it.first,
             nullptr,
             it.second,

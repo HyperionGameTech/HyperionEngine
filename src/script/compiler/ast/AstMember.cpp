@@ -27,7 +27,7 @@ namespace hyperion::compiler {
 
 AstMember::AstMember(
     const std::string &field_name,
-    const std::shared_ptr<AstExpression> &target,
+    const RC<AstExpression> &target,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD | ACCESS_MODE_STORE),
     m_field_name(field_name),
@@ -45,7 +45,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
             .Module(Config::global_module_name)
             .Function("GetClass")
-            .Call({ std::shared_ptr<AstArgument>(new AstArgument(m_target, false, false, "", m_location)) });
+            .Call({ RC<AstArgument>(new AstArgument(m_target, false, false, "", m_location)) });
 
         m_override_expr->Visit(visitor, mod);
 
@@ -101,8 +101,8 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         if (is_proxy_class) {
             if (m_target_type->GetTypeObject() != nullptr) {
                 // load the type by name
-                m_proxy_expr.reset(new AstPrototypeSpecification(
-                    std::shared_ptr<AstVariable>(new AstVariable(
+                m_proxy_expr.Reset(new AstPrototypeSpecification(
+                    RC<AstVariable>(new AstVariable(
                         m_target_type->GetName(),
                         m_location
                     )),
@@ -355,7 +355,7 @@ void AstMember::Optimize(AstVisitor *visitor, Module *mod)
     // be optimized
 }
 
-Pointer<AstStatement> AstMember::Clone() const
+RC<AstStatement> AstMember::Clone() const
 {
     return CloneImpl();
 }
@@ -439,7 +439,7 @@ AstExpression *AstMember::GetTarget() const
     // }
 
     if (m_target != nullptr) {
-        return m_target.get();
+        return m_target.Get();
     }
 
     return AstExpression::GetTarget();

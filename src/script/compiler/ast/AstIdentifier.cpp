@@ -77,11 +77,11 @@ int AstIdentifier::GetStackOffset(int stack_size) const
 
 const AstExpression *AstIdentifier::GetValueOf() const
 {
-    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
         if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
-                if (current_value.get() == this) {
+                if (current_value.Get() == this) {
                     return this;
                 }
 
@@ -95,11 +95,11 @@ const AstExpression *AstIdentifier::GetValueOf() const
 
 const AstExpression *AstIdentifier::GetDeepValueOf() const
 {
-    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
         if ((ident->GetFlags() & IdentifierFlags::FLAG_CONST || ident->GetFlags() & IdentifierFlags::FLAG_GENERIC)
             && !(ident->GetFlags() & IdentifierFlags::FLAG_ARGUMENT)) {
             if (const auto current_value = ident->GetCurrentValue()) {
-                if (current_value.get() == this) {
+                if (current_value.Get() == this) {
                     return this;
                 }
 
@@ -110,56 +110,18 @@ const AstExpression *AstIdentifier::GetDeepValueOf() const
 
     return AstExpression::GetDeepValueOf();
 }
-
-#if 0
-
-const AstExpression *AstIdentifier::GetValueOf() const
-{
-    if (IsLiteral()) {
-        if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
-            if (const auto current_value = ident->GetCurrentValue()) {
-                if (current_value.get() == this) {
-                    return this;
-                }
-
-                return current_value->GetValueOf();
-            }
-        }
-    }
-
-    return AstExpression::GetValueOf();
-}
-
-const AstExpression *AstIdentifier::GetDeepValueOf() const
-{
-    if (IsLiteral()) {
-        if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
-            if (const auto current_value = ident->GetCurrentValue()) {
-                if (current_value.get() == this) {
-                    return this;
-                }
-
-                return current_value->GetDeepValueOf();
-            }
-        }
-    }
-
-    return AstExpression::GetDeepValueOf();
-}
-
-#endif
 
 const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 {
-    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
         if (const auto current_value = ident->GetCurrentValue()) {
-            if (auto *nested_identifier = dynamic_cast<const AstIdentifier *>(current_value.get())) {
+            if (auto *nested_identifier = dynamic_cast<const AstIdentifier *>(current_value.Get())) {
                 if (nested_identifier == this) {
                     return nullptr;
                 }
 
                 return nested_identifier->ExtractTypeObject();
-            } else if (auto *type_object = dynamic_cast<const AstTypeObject *>(current_value.get())) {
+            } else if (auto *type_object = dynamic_cast<const AstTypeObject *>(current_value.Get())) {
                 return type_object;
             }
         }
@@ -170,7 +132,7 @@ const AstTypeObject *AstIdentifier::ExtractTypeObject() const
 
 ExprAccessBits AstIdentifier::GetExprAccess() const
 {
-    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
         ExprAccessBits expr_access_bits = 0;
 
         if (ident->GetFlags() & IdentifierFlags::FLAG_ACCESS_PUBLIC) {

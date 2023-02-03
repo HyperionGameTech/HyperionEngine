@@ -18,10 +18,10 @@
 namespace hyperion::compiler {
 
 AstForLoop::AstForLoop(
-    const std::shared_ptr<AstStatement> &decl_part,
-    const std::shared_ptr<AstExpression> &condition_part,
-    const std::shared_ptr<AstExpression> &increment_part,
-    const std::shared_ptr<AstBlock> &block,
+    const RC<AstStatement> &decl_part,
+    const RC<AstExpression> &condition_part,
+    const RC<AstExpression> &increment_part,
+    const RC<AstBlock> &block,
     const SourceLocation &location)
     : AstStatement(location),
       m_decl_part(decl_part),
@@ -35,7 +35,7 @@ void AstForLoop::Visit(AstVisitor *visitor, Module *mod)
 {
     // if no condition has been provided, replace it with AstTrue
     if (m_condition_part == nullptr) {
-        m_increment_part.reset(new AstTrue(m_location));
+        m_increment_part.Reset(new AstTrue(m_location));
     }
 
     // open scope for variable decl
@@ -223,7 +223,7 @@ void AstForLoop::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstForLoop::Clone() const
+RC<AstStatement> AstForLoop::Clone() const
 {
     return CloneImpl();
 }

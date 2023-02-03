@@ -1,6 +1,7 @@
 #ifndef SYMBOL_TYPE_HPP
 #define SYMBOL_TYPE_HPP
 
+#include <core/lib/RefCountedPtr.hpp>
 #include <Types.hpp>
 
 #include <memory>
@@ -11,8 +12,8 @@
 
 namespace hyperion::compiler {
 
-template <typename T> using sp = std::shared_ptr<T>;
-template <typename T> using wp = std::weak_ptr<T>;
+template <typename T> using sp = RC<T>;
+template <typename T> using wp = Weak<T>;
 template <typename T> using vec = std::vector<T>;
 
 // forward declaration
@@ -21,20 +22,19 @@ class AstExpression;
 class AstTypeObject;
 class AstArgument;
 
-
-using SymbolTypePtr_t = sp<SymbolType>;
-using SymbolTypeWeakPtr_t = wp<SymbolType>;
+using SymbolTypePtr_t = std::shared_ptr<SymbolType>;
+using SymbolTypeWeakPtr_t = std::weak_ptr<SymbolType>;
 
 
 // struct SymbolMember
 // {
 //     String name;
 //     SymbolTypePtr_t type;
-//     std::shared_ptr<AstExpression> expr;
+//     RC<AstExpression> expr;
 // };
 
-using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, sp<AstExpression>>;
-using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<std::shared_ptr<AstArgument>>>;
+using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, RC<AstExpression>>;
+using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<RC<AstArgument>>>;
 
 enum SymbolTypeClass
 {

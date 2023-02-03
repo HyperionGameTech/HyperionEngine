@@ -42,7 +42,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override = 0;
     
-    virtual Pointer<AstStatement> Clone() const override = 0;
+    virtual RC<AstStatement> Clone() const override = 0;
 
     /**
      * Overridden by derived classes to allow "constexpr"-type functionality.

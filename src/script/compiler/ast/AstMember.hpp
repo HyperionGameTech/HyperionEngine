@@ -10,7 +10,7 @@ class AstMember : public AstExpression
 public:
     AstMember(
         const std::string &field_name,
-        const std::shared_ptr<AstExpression> &target,
+        const RC<AstExpression> &target,
         const SourceLocation &location
     );
     virtual ~AstMember() = default;
@@ -19,7 +19,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -32,18 +32,18 @@ public:
 
 protected:
     std::string m_field_name;
-    std::shared_ptr<AstExpression> m_target;
+    RC<AstExpression> m_target;
 
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_target_type;
-    std::shared_ptr<AstExpression> m_proxy_expr;
-    std::shared_ptr<AstExpression> m_override_expr;
+    RC<AstExpression> m_proxy_expr;
+    RC<AstExpression> m_override_expr;
     int m_found_index;
 
-    Pointer<AstMember> CloneImpl() const
+    RC<AstMember> CloneImpl() const
     {
-        return Pointer<AstMember>(new AstMember(
+        return RC<AstMember>(new AstMember(
             m_field_name,
             CloneAstNode(m_target),
             m_location

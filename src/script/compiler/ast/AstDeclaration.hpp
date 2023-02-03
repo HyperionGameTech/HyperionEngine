@@ -17,20 +17,20 @@ public:
 
     void SetName(const std::string &name) { m_name = name; }
 
-    std::shared_ptr<Identifier> &GetIdentifier() { return m_identifier; }
-    const std::shared_ptr<Identifier> &GetIdentifier() const { return m_identifier; }
+    RC<Identifier> &GetIdentifier() { return m_identifier; }
+    const RC<Identifier> &GetIdentifier() const { return m_identifier; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override = 0;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override = 0;
     
-    virtual Pointer<AstStatement> Clone() const override = 0;
+    virtual RC<AstStatement> Clone() const override = 0;
 
     virtual const std::string &GetName() const override;
 
 protected:
     std::string m_name;
-    std::shared_ptr<Identifier> m_identifier;
+    RC<Identifier> m_identifier;
 };
 
 } // namespace hyperion::compiler

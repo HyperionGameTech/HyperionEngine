@@ -52,8 +52,8 @@ public:
     bool IsReassigned() const { return m_is_reassigned; }
     void SetIsReassigned(bool is_reassigned) { m_is_reassigned = is_reassigned; }
 
-    const std::shared_ptr<AstExpression> &GetCurrentValue() const { return Unalias()->m_current_value; }
-    void SetCurrentValue(const std::shared_ptr<AstExpression> &expr) { Unalias()->m_current_value = expr; }
+    const RC<AstExpression> &GetCurrentValue() const { return Unalias()->m_current_value; }
+    void SetCurrentValue(const RC<AstExpression> &expr) { Unalias()->m_current_value = expr; }
     const SymbolTypePtr_t &GetSymbolType() const { return Unalias()->m_symbol_type; }
     void SetSymbolType(const SymbolTypePtr_t &symbol_type) { Unalias()->m_symbol_type = symbol_type; }
 
@@ -73,7 +73,7 @@ private:
     mutable int m_usecount;
     IdentifierFlagBits m_flags;
     Identifier *m_aliasee;
-    std::shared_ptr<AstExpression> m_current_value;
+    RC<AstExpression> m_current_value;
     SymbolTypePtr_t m_symbol_type;
     bool m_is_reassigned;
 

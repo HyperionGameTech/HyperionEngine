@@ -17,7 +17,7 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
     virtual bool IsLiteral() const override;
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -27,16 +27,16 @@ public:
 private:
     // set while analyzing
     // used to get locals from outer function in a closure
-    std::shared_ptr<AstMember> m_closure_member_access;
-    std::shared_ptr<AstMember> m_self_member_access;
-    std::shared_ptr<AstExpression> m_inline_value;
+    RC<AstMember> m_closure_member_access;
+    RC<AstMember> m_self_member_access;
+    RC<AstExpression> m_inline_value;
     bool m_should_inline;
     bool m_is_in_ref_assignment;
     bool m_is_in_const_assignment;
 
-    Pointer<AstVariable> CloneImpl() const
+    RC<AstVariable> CloneImpl() const
     {
-        return Pointer<AstVariable>(new AstVariable(
+        return RC<AstVariable>(new AstVariable(
             m_name,
             m_location
         ));

@@ -19,7 +19,7 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
 
     virtual bool IsLiteral() const override { return true; }
-    virtual Pointer<AstStatement> Clone() const override = 0;
+    virtual RC<AstStatement> Clone() const override = 0;
 
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override;
@@ -28,7 +28,7 @@ public:
     virtual hyperion::UInt32 UnsignedValue() const;
     virtual hyperion::Float32 FloatValue() const = 0;
 
-    virtual std::shared_ptr<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
+    virtual RC<AstConstant> HandleOperator(Operators op_type, const AstConstant *right) const = 0;
 };
 
 } // namespace hyperion::compiler

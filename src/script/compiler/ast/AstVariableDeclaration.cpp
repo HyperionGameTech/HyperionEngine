@@ -24,9 +24,9 @@ namespace hyperion::compiler {
 
 AstVariableDeclaration::AstVariableDeclaration(
     const std::string &name,
-    const std::shared_ptr<AstPrototypeSpecification> &proto,
-    const std::shared_ptr<AstExpression> &assignment,
-    const std::vector<std::shared_ptr<AstParameter>> &template_params,
+    const RC<AstPrototypeSpecification> &proto,
+    const RC<AstExpression> &assignment,
+    const std::vector<RC<AstParameter>> &template_params,
     IdentifierFlagBits flags,
     const SourceLocation &location
 ) : AstDeclaration(name, location),
@@ -100,7 +100,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
                 // generic/non-concrete types that have default values
                 // will get assigned to their default value without causing
                 // an error
-                if (const std::shared_ptr<AstExpression> default_value = m_proto->GetDefaultValue()) {
+                if (const RC<AstExpression> default_value = m_proto->GetDefaultValue()) {
                     // Assign variable to the default value for the specified type.
                     m_real_assignment = CloneAstNode(default_value);
                     // built-in assignment, turn off strict mode
@@ -130,7 +130,7 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
         if (m_real_assignment == nullptr) {
             // no assignment found - set to undefined (instead of a null pointer)
-            m_real_assignment.reset(new AstUndefined(m_location));
+            m_real_assignment.Reset(new AstUndefined(m_location));
         }
 
         // Set identifier currentl value in advance,
@@ -142,9 +142,9 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
 
         // if the variable has been assigned to an anonymous type,
         // rename the type to be the name of this variable
-        if (AstTypeExpression *as_type_expr = dynamic_cast<AstTypeExpression *>(m_real_assignment.get())) {
+        if (AstTypeExpression *as_type_expr = dynamic_cast<AstTypeExpression *>(m_real_assignment.Get())) {
             as_type_expr->SetName(m_name);
-        } else if (AstEnumExpression *as_enum_expr = dynamic_cast<AstEnumExpression *>(m_real_assignment.get())) {
+        } else if (AstEnumExpression *as_enum_expr = dynamic_cast<AstEnumExpression *>(m_real_assignment.Get())) {
             as_enum_expr->SetName(m_name);
         } // @TODO more polymorphic way of doing this..
 
@@ -318,7 +318,7 @@ void AstVariableDeclaration::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstVariableDeclaration::Clone() const
+RC<AstStatement> AstVariableDeclaration::Clone() const
 {
     return CloneImpl();
 }

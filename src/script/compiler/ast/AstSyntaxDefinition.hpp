@@ -12,8 +12,8 @@ namespace hyperion::compiler {
 class AstSyntaxDefinition : public AstStatement {
 public:
     AstSyntaxDefinition(
-        const std::shared_ptr<AstString> &syntax_string,
-        const std::shared_ptr<AstString> &transform_string,
+        const RC<AstString> &syntax_string,
+        const RC<AstString> &transform_string,
         const SourceLocation &location);
     virtual ~AstSyntaxDefinition() = default;
 
@@ -21,15 +21,15 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 protected:
-    std::shared_ptr<AstString> m_syntax_string;
-    std::shared_ptr<AstString> m_transform_string;
+    RC<AstString> m_syntax_string;
+    RC<AstString> m_transform_string;
 
-    Pointer<AstSyntaxDefinition> CloneImpl() const
+    RC<AstSyntaxDefinition> CloneImpl() const
     {
-        return Pointer<AstSyntaxDefinition>(new AstSyntaxDefinition(
+        return RC<AstSyntaxDefinition>(new AstSyntaxDefinition(
             CloneAstNode(m_syntax_string),
             CloneAstNode(m_transform_string),
             m_location

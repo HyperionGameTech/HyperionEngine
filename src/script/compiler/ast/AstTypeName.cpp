@@ -65,7 +65,7 @@ void AstTypeName::Optimize(AstVisitor *visitor, Module *mod)
 {
 }
 
-Pointer<AstStatement> AstTypeName::Clone() const
+RC<AstStatement> AstTypeName::Clone() const
 {
     return CloneImpl();
 }

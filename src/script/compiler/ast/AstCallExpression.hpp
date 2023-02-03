@@ -14,18 +14,18 @@ class AstCallExpression : public AstExpression
 {
 public:
     AstCallExpression(
-        const std::shared_ptr<AstExpression> &target,
-        const std::vector<std::shared_ptr<AstArgument>> &args,
+        const RC<AstExpression> &target,
+        const std::vector<RC<AstArgument>> &args,
         bool insert_self,
         const SourceLocation &location
     );
     virtual ~AstCallExpression() = default;
 
-    void AddArgumentToFront(const std::shared_ptr<AstArgument> &arg)
+    void AddArgumentToFront(const RC<AstArgument> &arg)
         { m_args.insert(m_args.begin(), arg); }
-    void AddArgument(const std::shared_ptr<AstArgument> &arg)
+    void AddArgument(const RC<AstArgument> &arg)
         { m_args.push_back(arg); }
-    const std::vector<std::shared_ptr<AstArgument>> &GetArguments() const
+    const std::vector<RC<AstArgument>> &GetArguments() const
         { return m_args; }
     
     const SymbolTypePtr_t &GetReturnType() const
@@ -38,7 +38,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -46,18 +46,18 @@ public:
     virtual AstExpression *GetTarget() const override;
 
 protected:
-    std::shared_ptr<AstExpression> m_target;
-    std::vector<std::shared_ptr<AstArgument>> m_args;
+    RC<AstExpression> m_target;
+    std::vector<RC<AstArgument>> m_args;
     bool m_insert_self;
 
     // set while analyzing
-    std::vector<std::shared_ptr<AstArgument>> m_substituted_args;
+    std::vector<RC<AstArgument>> m_substituted_args;
     SymbolTypePtr_t m_return_type;
     bool m_is_method_call;
 
-    Pointer<AstCallExpression> CloneImpl() const
+    RC<AstCallExpression> CloneImpl() const
     {
-        return Pointer<AstCallExpression>(new AstCallExpression(
+        return RC<AstCallExpression>(new AstCallExpression(
             CloneAstNode(m_target),
             CloneAllAstNodes(m_args),
             m_insert_self,

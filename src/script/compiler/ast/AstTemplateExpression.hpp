@@ -12,20 +12,20 @@ namespace hyperion::compiler {
 
 class AstTemplateExpression : public AstExpression {
 public:
-    AstTemplateExpression(const std::shared_ptr<AstExpression> &expr,
-        const std::vector<std::shared_ptr<AstParameter>> &generic_params,
-        const std::shared_ptr<AstPrototypeSpecification> &return_type_specification,
+    AstTemplateExpression(const RC<AstExpression> &expr,
+        const std::vector<RC<AstParameter>> &generic_params,
+        const RC<AstPrototypeSpecification> &return_type_specification,
         const SourceLocation &location);
     virtual ~AstTemplateExpression() = default;
 
-    const std::vector<std::shared_ptr<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
-    const std::shared_ptr<AstExpression> &GetInnerExpression() const { return m_expr; }
+    const std::vector<RC<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
+    const RC<AstExpression> &GetInnerExpression() const { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -35,16 +35,16 @@ public:
     virtual const AstExpression *GetHeldGenericExpr() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_expr;
-    std::vector<std::shared_ptr<AstParameter>> m_generic_params;
-    std::shared_ptr<AstPrototypeSpecification> m_return_type_specification;
+    RC<AstExpression> m_expr;
+    std::vector<RC<AstParameter>> m_generic_params;
+    RC<AstPrototypeSpecification> m_return_type_specification;
 
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
 
-    Pointer<AstTemplateExpression> CloneImpl() const
+    RC<AstTemplateExpression> CloneImpl() const
     {
-        return Pointer<AstTemplateExpression>(new AstTemplateExpression(
+        return RC<AstTemplateExpression>(new AstTemplateExpression(
             CloneAstNode(m_expr),
             CloneAllAstNodes(m_generic_params),
             CloneAstNode(m_return_type_specification),

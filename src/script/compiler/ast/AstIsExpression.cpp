@@ -19,8 +19,8 @@
 namespace hyperion::compiler {
 
 AstIsExpression::AstIsExpression(
-    const std::shared_ptr<AstExpression> &target,
-    const std::shared_ptr<AstPrototypeSpecification> &type_specification,
+    const RC<AstExpression> &target,
+    const RC<AstPrototypeSpecification> &type_specification,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_target(target),
@@ -83,7 +83,7 @@ void AstIsExpression::Optimize(AstVisitor *visitor, Module *mod)
     m_type_specification->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstIsExpression::Clone() const
+RC<AstStatement> AstIsExpression::Clone() const
 {
     return CloneImpl();
 }

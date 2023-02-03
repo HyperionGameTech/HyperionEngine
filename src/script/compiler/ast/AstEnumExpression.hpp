@@ -14,7 +14,7 @@ namespace hyperion::compiler {
 struct EnumEntry
 {
     std::string name;
-    std::shared_ptr<AstExpression> assignment;
+    RC<AstExpression> assignment;
     SourceLocation location;
 };
 
@@ -24,7 +24,7 @@ public:
     AstEnumExpression(
         const std::string &name,
         const std::vector<EnumEntry> &entries,
-        const std::shared_ptr<AstPrototypeSpecification> &underlying_type,
+        const RC<AstPrototypeSpecification> &underlying_type,
         const SourceLocation &location
     );
     virtual ~AstEnumExpression() = default;
@@ -38,7 +38,7 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
 
     virtual bool IsLiteral() const override;
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -50,13 +50,13 @@ public:
 protected:
     std::string                                m_name;
     std::vector<EnumEntry>                     m_entries;
-    std::shared_ptr<AstPrototypeSpecification> m_underlying_type;
+    RC<AstPrototypeSpecification> m_underlying_type;
 
-    std::shared_ptr<AstTypeExpression>         m_expr;
+    RC<AstTypeExpression>         m_expr;
 
-    Pointer<AstEnumExpression> CloneImpl() const
+    RC<AstEnumExpression> CloneImpl() const
     {
-        return Pointer<AstEnumExpression>(new AstEnumExpression(
+        return RC<AstEnumExpression>(new AstEnumExpression(
             m_name,
             m_entries,
             CloneAstNode(m_underlying_type),

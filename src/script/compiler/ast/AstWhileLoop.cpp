@@ -17,8 +17,8 @@
 
 namespace hyperion::compiler {
 
-AstWhileLoop::AstWhileLoop(const std::shared_ptr<AstExpression> &conditional,
-    const std::shared_ptr<AstBlock> &block,
+AstWhileLoop::AstWhileLoop(const RC<AstExpression> &conditional,
+    const RC<AstBlock> &block,
     const SourceLocation &location)
     : AstStatement(location),
       m_conditional(conditional),
@@ -141,7 +141,7 @@ void AstWhileLoop::Optimize(AstVisitor *visitor, Module *mod)
     m_block->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstWhileLoop::Clone() const
+RC<AstStatement> AstWhileLoop::Clone() const
 {
     return CloneImpl();
 }

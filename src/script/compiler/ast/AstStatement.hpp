@@ -1,6 +1,8 @@
 #ifndef AST_STATEMENT_HPP
 #define AST_STATEMENT_HPP
 
+#include <core/lib/RefCountedPtr.hpp>
+
 #include <script/SourceLocation.hpp>
 #include <script/compiler/emit/Buildable.hpp>
 
@@ -10,14 +12,10 @@
 
 namespace hyperion::compiler {
 
-template <typename T> using Pointer = std::shared_ptr<T>;
-
 // Forward declarations
 class AstVisitor;
 class Module;
 class SymbolType;
-
-typedef std::shared_ptr<SymbolType> SymbolTypePtr_t;
 
 class AstStatement {
     friend class AstIterator;
@@ -38,35 +36,35 @@ public:
 
     virtual const std::string &GetName() const { return unnamed; }
     
-    virtual Pointer<AstStatement> Clone() const = 0;
+    virtual RC<AstStatement> Clone() const = 0;
 
 protected:
     SourceLocation m_location;
 };
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::shared_ptr<T>>::type
-CloneAstNode(const std::shared_ptr<T> &stmt) 
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, RC<T>>::type
+CloneAstNode(const RC<T> &stmt) 
 { 
     return (stmt != nullptr) 
-        ? std::static_pointer_cast<T>(stmt->Clone()) 
+        ? stmt->Clone().template CastUnsafe<T>()
         : nullptr; 
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::shared_ptr<T>>::type
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, RC<T>>::type
 CloneAstNode(const T *stmt) 
 { 
     return (stmt != nullptr) 
-        ? std::static_pointer_cast<T>(stmt->Clone()) 
+        ? stmt->Clone().template CastUnsafe<T>()
         : nullptr; 
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<std::shared_ptr<T>>>::type
-CloneAllAstNodes(const std::vector<std::shared_ptr<T>> &stmts) 
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<RC<T>>>::type
+CloneAllAstNodes(const std::vector<RC<T>> &stmts) 
 {
-    std::vector<std::shared_ptr<T>> res;
+    std::vector<RC<T>> res;
     res.reserve(stmts.size());
     for (auto &stmt : stmts) {
         res.push_back(CloneAstNode(stmt));
@@ -75,10 +73,10 @@ CloneAllAstNodes(const std::vector<std::shared_ptr<T>> &stmts)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<std::shared_ptr<T>>>::type
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<RC<T>>>::type
 CloneAllAstNodes(const std::vector<T *> &stmts) 
 {
-    std::vector<std::shared_ptr<T>> res;
+    std::vector<RC<T>> res;
     res.reserve(stmts.size());
     for (auto &stmt : stmts) {
         res.push_back(CloneAstNode(stmt));

@@ -11,29 +11,29 @@ namespace hyperion::compiler {
 class AstExportStatement : public AstStatement {
 public:
     AstExportStatement(
-        const std::shared_ptr<AstStatement> &stmt,
+        const RC<AstStatement> &stmt,
         const SourceLocation &location
     );
     virtual ~AstExportStatement() = default;
 
-    const std::shared_ptr<AstStatement> &GetStatement() const
+    const RC<AstStatement> &GetStatement() const
         { return m_stmt; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstStatement> m_stmt;
+    RC<AstStatement> m_stmt;
 
     // set while analyzing
     std::string m_exported_symbol_name;
 
-    Pointer<AstExportStatement> CloneImpl() const
+    RC<AstExportStatement> CloneImpl() const
     {
-        return Pointer<AstExportStatement>(new AstExportStatement(
+        return RC<AstExportStatement>(new AstExportStatement(
             CloneAstNode(m_stmt),
             m_location
         ));

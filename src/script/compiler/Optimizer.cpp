@@ -8,9 +8,9 @@
 
 namespace hyperion::compiler {
 
-std::shared_ptr<AstConstant> Optimizer::ConstantFold(
-    std::shared_ptr<AstExpression> &left,
-    std::shared_ptr<AstExpression> &right,
+RC<AstConstant> Optimizer::ConstantFold(
+    RC<AstExpression> &left,
+    RC<AstExpression> &right,
     Operators op_type,
     AstVisitor *visitor
 )
@@ -21,7 +21,7 @@ std::shared_ptr<AstConstant> Optimizer::ConstantFold(
     const AstConstant *left_as_constant  = dynamic_cast<const AstConstant*>(left->GetValueOf());
     const AstConstant *right_as_constant = dynamic_cast<const AstConstant*>(right->GetValueOf());
 
-    std::shared_ptr<AstConstant> result;
+    RC<AstConstant> result;
 
     if (left_as_constant != nullptr && right_as_constant != nullptr) {
         result = left_as_constant->HandleOperator(op_type, right_as_constant);
@@ -33,27 +33,27 @@ std::shared_ptr<AstConstant> Optimizer::ConstantFold(
     return result;
 }
 
-std::shared_ptr<AstExpression> Optimizer::OptimizeExpr(
-    const std::shared_ptr<AstExpression> &expr,
+RC<AstExpression> Optimizer::OptimizeExpr(
+    const RC<AstExpression> &expr,
     AstVisitor *visitor,
     Module *mod)
 {
     AssertThrow(expr != nullptr);
     expr->Optimize(visitor, mod);
 
-    if (const AstIdentifier *expr_as_identifier = dynamic_cast<AstIdentifier *>(expr.get())) {
+    if (const AstIdentifier *expr_as_identifier = dynamic_cast<AstIdentifier *>(expr.Get())) {
         // the side is a variable, so we can further optimize by inlining,
         // only if it is literal.
         if (expr_as_identifier->IsLiteral()) {
-            if (const std::shared_ptr<Identifier> &ident = expr_as_identifier->GetProperties().GetIdentifier()) {
-                if (const std::shared_ptr<AstExpression> &current_value = ident->GetCurrentValue()) {
+            if (const RC<Identifier> &ident = expr_as_identifier->GetProperties().GetIdentifier()) {
+                if (const RC<AstExpression> &current_value = ident->GetCurrentValue()) {
                     // decrement use count because it would have been incremented by Visit()
                     ident->DecUseCount();
                     return Optimizer::OptimizeExpr(current_value, visitor, mod);
                 }
             }
         }
-    } else if (const AstBinaryExpression *expr_as_binop = dynamic_cast<AstBinaryExpression *>(expr.get())) {
+    } else if (const AstBinaryExpression *expr_as_binop = dynamic_cast<AstBinaryExpression *>(expr.Get())) {
         if (expr_as_binop->GetRight() == nullptr) {
             // right side has been optimized away
             return Optimizer::OptimizeExpr(expr_as_binop->GetLeft(), visitor, mod);
@@ -77,9 +77,9 @@ void Optimizer::Optimize(bool expect_module_decl)
 {
     /*if (expect_module_decl) {
         if (m_ast_iterator->HasNext()) {
-            std::shared_ptr<AstStatement> first_stmt = m_ast_iterator->Next();
+            RC<AstStatement> first_stmt = m_ast_iterator->Next();
 
-            if (AstModuleDeclaration *mod_decl = dynamic_cast<AstModuleDeclaration*>(first_stmt.get())) {
+            if (AstModuleDeclaration *mod_decl = dynamic_cast<AstModuleDeclaration*>(first_stmt.Get())) {
                 // all files must begin with a module declaration
                 mod_decl->Optimize(this, nullptr);
                 OptimizeInner();

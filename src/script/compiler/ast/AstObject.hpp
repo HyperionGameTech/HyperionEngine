@@ -14,7 +14,7 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -23,9 +23,9 @@ public:
 private:
     SymbolTypeWeakPtr_t m_symbol_type;
 
-    Pointer<AstObject> CloneImpl() const
+    RC<AstObject> CloneImpl() const
     {
-        return Pointer<AstObject>(new AstObject(
+        return RC<AstObject>(new AstObject(
             m_symbol_type,
             m_location
         ));

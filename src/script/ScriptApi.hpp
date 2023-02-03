@@ -307,7 +307,7 @@ public:
         NativeInitializerPtr_t initializer_ptr;
         vm::Value value;
         bool is_const;
-        std::shared_ptr<AstExpression> current_value; // defaults to DefaultValue() of type
+        RC<AstExpression> current_value; // defaults to DefaultValue() of type
 
         NativeVariableDefine(
             const std::string &name,
@@ -502,7 +502,7 @@ public:
         std::vector<TypeDefine> m_type_defs;
         std::vector<NativeFunctionDefine> m_function_defs;
         std::vector<NativeVariableDefine> m_variable_defs;
-        std::shared_ptr<Module> m_mod;
+        RC<Module> m_mod;
 
         template <class T>
         ModuleDefine &Class(

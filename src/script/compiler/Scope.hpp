@@ -62,16 +62,16 @@ public:
     const std::vector<ReturnType_t> &GetReturnTypes() const
         { return m_return_types; }
 
-    std::shared_ptr<Identifier> FindClosureCapture(const std::string &name) 
+    RC<Identifier> FindClosureCapture(const std::string &name) 
     {
         auto it = m_closure_captures.find(name);
 
         return it != m_closure_captures.end() ? it->second : nullptr;
     }
-    void AddClosureCapture(const std::string &name, const std::shared_ptr<Identifier> &ident) 
+    void AddClosureCapture(const std::string &name, const RC<Identifier> &ident) 
         { m_closure_captures.insert({ name, ident }); }
 
-    const std::map<std::string, std::shared_ptr<Identifier>> &GetClosureCaptures() const
+    const std::map<std::string, RC<Identifier>> &GetClosureCaptures() const
         { return m_closure_captures; }
 
 private:
@@ -79,7 +79,7 @@ private:
     ScopeType m_scope_type;
     int m_scope_flags;
     std::vector<ReturnType_t> m_return_types;
-    std::map<std::string, std::shared_ptr<Identifier>> m_closure_captures;
+    std::map<std::string, RC<Identifier>> m_closure_captures;
 };
 
 } // namespace hyperion::compiler

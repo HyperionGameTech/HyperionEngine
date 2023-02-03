@@ -33,7 +33,7 @@ public:
     static std::unique_ptr<Buildable> BuildArgumentsStart(
         AstVisitor *visitor,
         Module *mod,
-        const std::vector<std::shared_ptr<AstArgument>> &args
+        const std::vector<RC<AstArgument>> &args
     );
 
     static std::unique_ptr<Buildable> BuildArgumentsEnd(
@@ -45,7 +45,7 @@ public:
     static std::unique_ptr<Buildable> BuildCall(
         AstVisitor *visitor,
         Module *mod,
-        const std::shared_ptr<AstExpression> &target,
+        const RC<AstExpression> &target,
         UInt8 nargs
     );
 

@@ -23,8 +23,8 @@
 namespace hyperion::compiler {
 
 AstCallExpression::AstCallExpression(
-    const std::shared_ptr<AstExpression> &target,
-    const std::vector<std::shared_ptr<AstArgument>> &args,
+    const RC<AstExpression> &target,
+    const std::vector<RC<AstArgument>> &args,
     bool insert_self,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
@@ -56,7 +56,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             const auto self_target = CloneAstNode(left_target);
             AssertThrow(self_target != nullptr);
 
-            std::shared_ptr<AstArgument> self_arg(new AstArgument(
+            RC<AstArgument> self_arg(new AstArgument(
                 self_target,
                 false,
                 true,
@@ -94,7 +94,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
         // if (call_member_name == "$invoke") {
             // closure objects have a self parameter for the '$invoke' call.
-            std::shared_ptr<AstArgument> self_arg(new AstArgument(
+            RC<AstArgument> self_arg(new AstArgument(
                 m_target,
                 false,
                 false,
@@ -106,7 +106,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             m_substituted_args.insert(m_substituted_args.begin(), self_arg);
         // }
 
-        m_target.reset(new AstMember(
+        m_target.Reset(new AstMember(
             call_member_name,
             CloneAstNode(m_target),
             m_location
@@ -211,7 +211,7 @@ void AstCallExpression::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstCallExpression::Clone() const
+RC<AstStatement> AstCallExpression::Clone() const
 {
     return CloneImpl();
 }

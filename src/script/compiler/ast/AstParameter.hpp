@@ -11,8 +11,8 @@ class AstParameter : public AstDeclaration {
 public:
     AstParameter(
         const std::string &name,
-        const std::shared_ptr<AstPrototypeSpecification> &type_spec,
-        const std::shared_ptr<AstExpression> &default_param,
+        const RC<AstPrototypeSpecification> &type_spec,
+        const RC<AstExpression> &default_param,
         bool is_variadic,
         bool is_const,
         bool is_ref,
@@ -21,16 +21,16 @@ public:
 
     virtual ~AstParameter() = default;
 
-    const std::shared_ptr<AstExpression> &GetDefaultValue() const
+    const RC<AstExpression> &GetDefaultValue() const
         { return m_default_param; }
-    void SetDefaultValue(const std::shared_ptr<AstExpression> &default_param)
+    void SetDefaultValue(const RC<AstExpression> &default_param)
         { m_default_param = default_param; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     bool IsVariadic() const { return m_is_variadic; }
     bool IsConst() const { return m_is_const; }
@@ -40,23 +40,23 @@ public:
     void SetIsGenericParam(bool is_generic_param) { m_is_generic_param = is_generic_param; }
 
     // used by AstTemplateExpression
-    const std::shared_ptr<AstPrototypeSpecification> &GetPrototypeSpecification() const
+    const RC<AstPrototypeSpecification> &GetPrototypeSpecification() const
         { return m_type_spec; } 
 
-    void SetPrototypeSpecification(const std::shared_ptr<AstPrototypeSpecification> &type_spec)
+    void SetPrototypeSpecification(const RC<AstPrototypeSpecification> &type_spec)
         { m_type_spec = type_spec; }
 
 private:
-    std::shared_ptr<AstPrototypeSpecification> m_type_spec;
-    std::shared_ptr<AstExpression> m_default_param;
+    RC<AstPrototypeSpecification> m_type_spec;
+    RC<AstExpression> m_default_param;
     bool m_is_variadic;
     bool m_is_const;
     bool m_is_ref;
     bool m_is_generic_param;
 
-    Pointer<AstParameter> CloneImpl() const
+    RC<AstParameter> CloneImpl() const
     {
-        return Pointer<AstParameter>(new AstParameter(
+        return RC<AstParameter>(new AstParameter(
             m_name,
             CloneAstNode(m_type_spec),
             CloneAstNode(m_default_param),

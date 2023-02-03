@@ -27,7 +27,7 @@ std::unique_ptr<Buildable> AstFloat::Build(AstVisitor *visitor, Module *mod)
     return BytecodeUtil::Make<ConstF32>(rp, m_value);
 }
 
-Pointer<AstStatement> AstFloat::Clone() const
+RC<AstStatement> AstFloat::Clone() const
 {
     return CloneImpl();
 }
@@ -63,28 +63,28 @@ SymbolTypePtr_t AstFloat::GetExprType() const
     return BuiltinTypes::FLOAT;
 }
 
-std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const AstConstant *right) const
+RC<AstConstant> AstFloat::HandleOperator(Operators op_type, const AstConstant *right) const
 {
     switch (op_type) {
         case OP_add:
             if (!right->IsNumber()) {
                 return nullptr;
             }
-            return std::shared_ptr<AstFloat>(
+            return RC<AstFloat>(
                 new AstFloat(FloatValue() + right->FloatValue(), m_location));
 
         case OP_subtract:
             if (!right->IsNumber()) {
                 return nullptr;
             }
-            return std::shared_ptr<AstFloat>(
+            return RC<AstFloat>(
                 new AstFloat(FloatValue() - right->FloatValue(), m_location));
 
         case OP_multiply:
             if (!right->IsNumber()) {
                 return nullptr;
             }
-            return std::shared_ptr<AstFloat>(
+            return RC<AstFloat>(
                 new AstFloat(FloatValue() * right->FloatValue(), m_location));
 
         case OP_divide: {
@@ -97,7 +97,7 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 // division by zero
                 return nullptr;
             }
-            return std::shared_ptr<AstFloat>(new AstFloat(FloatValue() / right_float, m_location));
+            return RC<AstFloat>(new AstFloat(FloatValue() / right_float, m_location));
         }
 
         case OP_modulus: {
@@ -111,7 +111,7 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
 
-            return std::shared_ptr<AstFloat>(new AstFloat(std::fmod(FloatValue(), right_float), m_location));
+            return RC<AstFloat>(new AstFloat(std::fmod(FloatValue(), right_float), m_location));
         }
 
         case OP_logical_and: {
@@ -122,15 +122,15 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 // this operator is valid to compare against null
                 if (dynamic_cast<const AstNil*>(right)) {
                     // rhs is null, return false
-                    return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                    return RC<AstFalse>(new AstFalse(m_location));
                 }
                 return nullptr;
             }
 
             if (this_true == 1 && right_true == 1) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else if (this_true == 0 && right_true == 0) {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             } else {
                 // indeterminate
                 return nullptr;
@@ -145,18 +145,18 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 // this operator is valid to compare against null
                 if (dynamic_cast<const AstNil*>(right)) {
                     if (this_true == 1) {
-                        return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                        return RC<AstTrue>(new AstTrue(m_location));
                     } else if (this_true == 0) {
-                        return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                        return RC<AstFalse>(new AstFalse(m_location));
                     }
                 }
                 return nullptr;
             }
 
             if (this_true == 1 || right_true == 1) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else if (this_true == 0 || right_true == 0) {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             } else {
                 // indeterminate
                 return nullptr;
@@ -168,9 +168,9 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
             if (FloatValue() < right->FloatValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_greater:
@@ -178,9 +178,9 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
             if (FloatValue() > right->FloatValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_less_eql:
@@ -188,9 +188,9 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
             if (FloatValue() <= right->FloatValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_greater_eql:
@@ -198,9 +198,9 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
             if (FloatValue() >= right->FloatValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_equals:
@@ -208,19 +208,19 @@ std::shared_ptr<AstConstant> AstFloat::HandleOperator(Operators op_type, const A
                 return nullptr;
             }
             if (FloatValue() == right->FloatValue()) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         case OP_negative:
-            return std::shared_ptr<AstFloat>(new AstFloat(-FloatValue(), m_location));
+            return RC<AstFloat>(new AstFloat(-FloatValue(), m_location));
 
         case OP_logical_not:
             if (FloatValue() == 0.0) {
-                return std::shared_ptr<AstTrue>(new AstTrue(m_location));
+                return RC<AstTrue>(new AstTrue(m_location));
             } else {
-                return std::shared_ptr<AstFalse>(new AstFalse(m_location));
+                return RC<AstFalse>(new AstFalse(m_location));
             }
 
         default:

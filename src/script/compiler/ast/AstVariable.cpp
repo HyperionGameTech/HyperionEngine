@@ -57,9 +57,9 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
 
             if (false) {//is_member) {
-                m_self_member_access.reset(new AstMember(
+                m_self_member_access.Reset(new AstMember(
                     m_name,
-                    std::shared_ptr<AstVariable>(new AstVariable(
+                    RC<AstVariable>(new AstVariable(
                         Keyword::ToString(Keywords::Keyword_self),
                         m_location
                     )),
@@ -184,9 +184,9 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                                 // closures are objects with a method named '$invoke',
                                 // because we are in the '$invoke' method currently,
                                 // we use the variable as 'self.<variable name>'
-                                m_closure_member_access.reset(new AstMember(
+                                m_closure_member_access.Reset(new AstMember(
                                     m_name,
-                                    std::shared_ptr<AstVariable>(new AstVariable(
+                                    RC<AstVariable>(new AstVariable(
                                         "__closure_self",
                                         m_location
                                     )),
@@ -334,7 +334,7 @@ void AstVariable::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstVariable::Clone() const
+RC<AstStatement> AstVariable::Clone() const
 {
     return CloneImpl();
 }
@@ -342,7 +342,7 @@ Pointer<AstStatement> AstVariable::Clone() const
 Tribool AstVariable::IsTrue() const
 {
     if (m_should_inline && m_inline_value != nullptr) {
-        if (auto *constant = dynamic_cast<AstConstant *>(m_inline_value.get())) {
+        if (const AstConstant *constant = dynamic_cast<const AstConstant *>(m_inline_value.Get())) {
             return constant->IsTrue();
         }
     }
@@ -407,7 +407,7 @@ bool AstVariable::IsLiteral() const
         return m_self_member_access->IsLiteral();
     }
 
-    if (const std::shared_ptr<Identifier> &ident = m_properties.GetIdentifier()) {
+    if (const RC<Identifier> &ident = m_properties.GetIdentifier()) {
         const Identifier *ident_unaliased = ident->Unalias();
         AssertThrow(ident_unaliased != nullptr);
 

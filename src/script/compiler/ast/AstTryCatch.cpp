@@ -12,8 +12,8 @@
 
 namespace hyperion::compiler {
 
-AstTryCatch::AstTryCatch(const std::shared_ptr<AstBlock> &try_block,
-    const std::shared_ptr<AstBlock> &catch_block,
+AstTryCatch::AstTryCatch(const RC<AstBlock> &try_block,
+    const RC<AstBlock> &catch_block,
     const SourceLocation &location)
     : AstStatement(location),
       m_try_block(try_block),
@@ -85,7 +85,7 @@ void AstTryCatch::Optimize(AstVisitor *visitor, Module *mod)
     m_catch_block->Optimize(visitor, mod);
 }
 
-Pointer<AstStatement> AstTryCatch::Clone() const
+RC<AstStatement> AstTryCatch::Clone() const
 {
     return CloneImpl();
 }

@@ -13,7 +13,7 @@ namespace hyperion::compiler {
 class AstPrototypeSpecification: public AstExpression {
 public:
     AstPrototypeSpecification(
-        const std::shared_ptr<AstExpression> &proto,
+        const RC<AstExpression> &proto,
         const SourceLocation &location
     );
     virtual ~AstPrototypeSpecification() = default;
@@ -24,10 +24,10 @@ public:
     
     const SymbolTypePtr_t &GetHeldType() const { return m_symbol_type; }
     const SymbolTypePtr_t &GetPrototypeType() const { return m_prototype_type; }
-    const std::shared_ptr<AstExpression> &GetDefaultValue() const { return m_default_value; }//m_symbol_type->GetDefaultValue(); }
-    const std::shared_ptr<AstExpression> &GetExpr() const { return m_proto; }
+    const RC<AstExpression> &GetDefaultValue() const { return m_default_value; }//m_symbol_type->GetDefaultValue(); }
+    const RC<AstExpression> &GetExpr() const { return m_proto; }
 
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -39,17 +39,17 @@ public:
 protected:
     bool FindPrototypeType(const SymbolTypePtr_t &symbol_type);
 
-    std::shared_ptr<AstExpression> m_proto;
+    RC<AstExpression> m_proto;
 
     /** Set while analyzing */
     SymbolTypePtr_t m_symbol_type;
     SymbolTypePtr_t m_prototype_type;
-    std::shared_ptr<AstExpression> m_default_value;
+    RC<AstExpression> m_default_value;
 
 private:
-    Pointer<AstPrototypeSpecification> CloneImpl() const
+    RC<AstPrototypeSpecification> CloneImpl() const
     {
-        return Pointer<AstPrototypeSpecification>(new AstPrototypeSpecification(
+        return RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
             CloneAstNode(m_proto),
             m_location
         ));

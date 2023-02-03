@@ -13,7 +13,7 @@
 
 namespace hyperion::compiler {
 
-AstReturnStatement::AstReturnStatement(const std::shared_ptr<AstExpression> &expr,
+AstReturnStatement::AstReturnStatement(const RC<AstExpression> &expr,
     const SourceLocation &location)
     : AstStatement(location),
       m_expr(expr),
@@ -98,7 +98,7 @@ void AstReturnStatement::Optimize(AstVisitor *visitor, Module *mod)
     }
 }
 
-Pointer<AstStatement> AstReturnStatement::Clone() const
+RC<AstStatement> AstReturnStatement::Clone() const
 {
     return CloneImpl();
 }

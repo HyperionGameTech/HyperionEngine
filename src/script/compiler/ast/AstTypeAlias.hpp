@@ -14,7 +14,7 @@ class AstTypeAlias: public AstStatement {
 public:
     AstTypeAlias(
         const std::string &name,
-        const std::shared_ptr<AstPrototypeSpecification> &aliasee,
+        const RC<AstPrototypeSpecification> &aliasee,
         const SourceLocation &location);
     virtual ~AstTypeAlias() = default;
 
@@ -22,15 +22,15 @@ public:
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
     std::string m_name;
-    std::shared_ptr<AstPrototypeSpecification> m_aliasee;
+    RC<AstPrototypeSpecification> m_aliasee;
 
-    Pointer<AstTypeAlias> CloneImpl() const
+    RC<AstTypeAlias> CloneImpl() const
     {
-        return Pointer<AstTypeAlias>(new AstTypeAlias(
+        return RC<AstTypeAlias>(new AstTypeAlias(
             m_name,
             CloneAstNode(m_aliasee),
             m_location

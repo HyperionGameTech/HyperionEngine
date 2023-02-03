@@ -16,20 +16,20 @@ class AstTypeExpression : public AstExpression {
 public:
     AstTypeExpression(
         const std::string &name,
-        const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+        const RC<AstPrototypeSpecification> &base_specification,
+        const std::vector<RC<AstVariableDeclaration>> &data_members,
+        const std::vector<RC<AstVariableDeclaration>> &function_members,
+        const std::vector<RC<AstVariableDeclaration>> &static_members,
         bool is_proxy_class,
         const SourceLocation &location
     );
 
     AstTypeExpression(
         const std::string &name,
-        const std::shared_ptr<AstPrototypeSpecification> &base_specification,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &data_members,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &function_members,
-        const std::vector<std::shared_ptr<AstVariableDeclaration>> &static_members,
+        const RC<AstPrototypeSpecification> &base_specification,
+        const std::vector<RC<AstVariableDeclaration>> &data_members,
+        const std::vector<RC<AstVariableDeclaration>> &function_members,
+        const std::vector<RC<AstVariableDeclaration>> &static_members,
         const SymbolTypePtr_t &enum_underlying_type,
         bool is_proxy_class,
         const SourceLocation &location
@@ -41,7 +41,7 @@ public:
     void SetName(const std::string &name)
         { m_name = name; }
 
-    const std::vector<std::shared_ptr<AstVariableDeclaration>> &GetMembers() const
+    const std::vector<RC<AstVariableDeclaration>> &GetMembers() const
         { return m_combined_members; }
 
     bool IsEnum() const
@@ -55,7 +55,7 @@ public:
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
 
     virtual bool IsLiteral() const override;
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
     virtual Tribool IsTrue() const override;
     virtual bool MayHaveSideEffects() const override;
@@ -67,22 +67,22 @@ public:
 
 protected:
     std::string m_name;
-    std::shared_ptr<AstPrototypeSpecification> m_base_specification;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_data_members;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_function_members;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_static_members;
+    RC<AstPrototypeSpecification> m_base_specification;
+    std::vector<RC<AstVariableDeclaration>> m_data_members;
+    std::vector<RC<AstVariableDeclaration>> m_function_members;
+    std::vector<RC<AstVariableDeclaration>> m_static_members;
     SymbolTypePtr_t m_enum_underlying_type;
     bool m_is_proxy_class;
 
     SymbolTypePtr_t m_symbol_type;
 
-    std::shared_ptr<AstTypeObject> m_expr;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_outside_members;
-    std::vector<std::shared_ptr<AstVariableDeclaration>> m_combined_members;
+    RC<AstTypeObject> m_expr;
+    std::vector<RC<AstVariableDeclaration>> m_outside_members;
+    std::vector<RC<AstVariableDeclaration>> m_combined_members;
 
-    Pointer<AstTypeExpression> CloneImpl() const
+    RC<AstTypeExpression> CloneImpl() const
     {
-        return Pointer<AstTypeExpression>(new AstTypeExpression(
+        return RC<AstTypeExpression>(new AstTypeExpression(
             m_name,
             CloneAstNode(m_base_specification),
             CloneAllAstNodes(m_data_members),

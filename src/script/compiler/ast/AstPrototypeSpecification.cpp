@@ -19,7 +19,7 @@
 namespace hyperion::compiler {
 
 AstPrototypeSpecification::AstPrototypeSpecification(
-    const std::shared_ptr<AstExpression> &proto,
+    const RC<AstExpression> &proto,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_proto(proto)
@@ -38,7 +38,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     const AstTypeObject *type_obj = nullptr;
     const AstIdentifier *identifier = nullptr;
 
-    const auto expr_type = value_of->GetExprType();
+    const SymbolTypePtr_t expr_type = value_of->GetExprType();
     AssertThrow(expr_type != nullptr);
 
     SymbolTypePtr_t unaliased;
@@ -56,7 +56,7 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (!type_obj) {
-        type_obj = unaliased->GetTypeObject().get();
+        type_obj = unaliased->GetTypeObject().Get();
     }
 
     m_symbol_type = BuiltinTypes::UNDEFINED;
@@ -158,7 +158,7 @@ bool AstPrototypeSpecification::FindPrototypeType(const SymbolTypePtr_t &symbol_
     return false;
 }
 
-Pointer<AstStatement> AstPrototypeSpecification::Clone() const
+RC<AstStatement> AstPrototypeSpecification::Clone() const
 {
     return CloneImpl();
 }

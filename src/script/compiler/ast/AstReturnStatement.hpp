@@ -8,26 +8,26 @@ namespace hyperion::compiler {
 
 class AstReturnStatement : public AstStatement {
 public:
-    AstReturnStatement(const std::shared_ptr<AstExpression> &expr,
+    AstReturnStatement(const RC<AstExpression> &expr,
         const SourceLocation &location);
     virtual ~AstReturnStatement() = default;
 
-    const std::shared_ptr<AstExpression> &GetExpression() const
+    const RC<AstExpression> &GetExpression() const
         { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;
     
-    virtual Pointer<AstStatement> Clone() const override;
+    virtual RC<AstStatement> Clone() const override;
 
 private:
-    std::shared_ptr<AstExpression> m_expr;
+    RC<AstExpression> m_expr;
     int m_num_pops;
 
-    Pointer<AstReturnStatement> CloneImpl() const
+    RC<AstReturnStatement> CloneImpl() const
     {
-        return Pointer<AstReturnStatement>(new AstReturnStatement(
+        return RC<AstReturnStatement>(new AstReturnStatement(
             CloneAstNode(m_expr),
             m_location
         ));

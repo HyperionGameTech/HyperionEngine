@@ -108,13 +108,13 @@ static FunctionTypeSignature_t ExtractGenericArgs(
     AstVisitor *visitor,
     Module *mod,
     const SymbolTypePtr_t &identifier_type, 
-    const std::vector<std::shared_ptr<AstArgument>> &args,
+    const std::vector<RC<AstArgument>> &args,
     const SourceLocation &location,
-    std::vector<std::shared_ptr<AstArgument>>(*fn) (
+    std::vector<RC<AstArgument>>(*fn) (
         AstVisitor *visitor,
         Module *mod,
         const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-        const std::vector<std::shared_ptr<AstArgument>> &args,
+        const std::vector<RC<AstArgument>> &args,
         const SourceLocation &location
     )
 )
@@ -181,7 +181,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
     AstVisitor *visitor,
     Module *mod,
     const SymbolTypePtr_t &identifier_type, 
-    const std::vector<std::shared_ptr<AstArgument>> &args,
+    const std::vector<RC<AstArgument>> &args,
     const SourceLocation &location
 )
 {
@@ -194,7 +194,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
         [](
             AstVisitor *visitor, Module *mod,
             const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const std::vector<RC<AstArgument>> &args,
             const SourceLocation &location
         )
         {
@@ -238,7 +238,7 @@ void SemanticAnalyzer::Helpers::EnsureFunctionArgCompatibility(
 FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
     AstVisitor *visitor, Module *mod, 
     const SymbolTypePtr_t &identifier_type, 
-    const std::vector<std::shared_ptr<AstArgument>> &args,
+    const std::vector<RC<AstArgument>> &args,
     const SourceLocation &location
 )
 {
@@ -251,7 +251,7 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
         [](
             AstVisitor *visitor, Module *mod,
             const std::vector<GenericInstanceTypeInfo::Arg> &generic_args,
-            const std::vector<std::shared_ptr<AstArgument>> &args,
+            const std::vector<RC<AstArgument>> &args,
             const SourceLocation &location
         )
         {
@@ -271,11 +271,11 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
 
             std::set<int> used_indices;
 
-            std::vector<std::shared_ptr<AstArgument>> res_args;
+            std::vector<RC<AstArgument>> res_args;
             res_args.resize(num_generic_args);
 
             if (num_generic_args_without_default_assigned <= args.size()) {
-                using ArgDataPair = std::pair<ArgInfo, std::shared_ptr<AstArgument>>;
+                using ArgDataPair = std::pair<ArgInfo, RC<AstArgument>>;
 
                 std::vector<ArgDataPair> named_args;
                 std::vector<ArgDataPair> unnamed_args;
@@ -458,10 +458,10 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     const bool is_ref = generic_args[unused_index].m_is_ref;
                     const bool is_const = generic_args[unused_index].m_is_const;
 
-                    std::shared_ptr<AstArgument> substituted_arg(new AstArgument(
+                    RC<AstArgument> substituted_arg(new AstArgument(
                         has_default_value
                             ? CloneAstNode(generic_args[unused_index].m_default_value)
-                            : std::shared_ptr<AstUndefined>(new AstUndefined(location)),
+                            : RC<AstUndefined>(new AstUndefined(location)),
                         false,
                         true,
                         generic_args[unused_index].m_name,
