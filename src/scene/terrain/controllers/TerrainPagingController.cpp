@@ -47,9 +47,9 @@ void TerrainPagingController::OnAdded()
     m_material->SetBucket(BUCKET_OPAQUE);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
-    m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.5f);
+    m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.85f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 0.25f);
+    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 3.0f);
 
     if (auto albedo_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         albedo_texture->GetImage()->SetIsSRGB(true);

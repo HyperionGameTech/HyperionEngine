@@ -196,6 +196,24 @@ struct RenderCommandList
 
 #endif
 
+template <class T>
+struct RenderCommandList
+{
+    using Block = FixedArray<ValueStorage<T>, render_command_cache_size>;
+
+    LinkedList<Block> blocks;
+
+    RenderCommandList()
+    {
+        blocks.PushBack({ });
+    }
+
+    void Push()
+    {
+
+    }
+};
+
 struct RenderCommand
 {
 #ifdef HYP_DEBUG_LOG_RENDER_COMMANDS

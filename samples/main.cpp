@@ -138,40 +138,37 @@ public:
             )));
             m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
             m_sun->AddController<ShadowMapController>();
-            GetScene()->AddEntity(m_sun);
+            // GetScene()->AddEntity(m_sun);
         }
         
-        if (false) { // adding lights to scene
-
-            // m_scene->AddLight(m_sun);
-
+        if (true) { // adding lights to scene
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(2.54433f, 15.0301f, -4.92542f),
+                Vector3(2.54433f, 2.0301f, -4.92542f),
                 Color(1.0f, 0.7f, 0.3f),
                 40.0f,
                 50.35f
             )));
 
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(-11.8747f, 16.3726f, 0.060108f),
-                Color(1.0f, 0.7f, 0.3f),
-                40.0f,
-                12.35f
-            )));
+            // m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //     Vector3(-11.8747f, 16.3726f, 0.060108f),
+            //     Color(1.0f, 0.7f, 0.3f),
+            //     40.0f,
+            //     12.35f
+            // )));
 
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.264152f, 11.3534f, 12.513f),
-                Color(1.0f, 0.7f, 0.3f),
-                40.0f,
-                12.35f
-            )));
+            // m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //     Vector3(0.264152f, 11.3534f, 12.513f),
+            //     Color(1.0f, 0.7f, 0.3f),
+            //     40.0f,
+            //     12.35f
+            // )));
 
-            m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.077546f, 11.6024f, -12.5289f),
-                Color(1.0f, 0.7f, 0.3f),
-                40.0f,
-                12.35f
-            )));
+            // m_point_lights.PushBack(CreateObject<Light>(PointLight(
+            //     Vector3(0.077546f, 11.6024f, -12.5289f),
+            //     Color(1.0f, 0.7f, 0.3f),
+            //     40.0f,
+            //     12.35f
+            // )));
 
             // m_point_lights.PushBack(CreateObject<Light>(PointLight(
             //     Vector3(-2.0f, 0.75f, 0.0f),
@@ -271,7 +268,7 @@ public:
         
         auto batch = Engine::Get()->GetAssetManager().CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//"victorian-salon/victorian-salon.obj");////"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/victorian-salon/victorian-salon.obj");////"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -309,7 +306,7 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        test_model.Scale(0.0225f);
+        test_model.Scale(0.625f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
@@ -328,11 +325,11 @@ public:
 
         UInt point_light_index = 0;
         for (auto &point_light : m_point_lights) {
-            m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
-                CreateNameFromDynamicString(ANSIString("PointShadowRenderer_") + ANSIString::ToString(point_light_index++)),
-                point_light,
-                Extent2D { 256, 256 }
-            );
+            // m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+            //     CreateNameFromDynamicString(ANSIString("PointShadowRenderer_") + ANSIString::ToString(point_light_index++)),
+            //     point_light,
+            //     Extent2D { 256, 256 }
+            // );
         }
 
         if (false) {
@@ -369,7 +366,7 @@ public:
             }
         }
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -432,7 +429,7 @@ public:
         if (false) { // paged procedural terrain
             auto terrain_entity = CreateObject<Entity>();
             GetScene()->AddEntity(terrain_entity);
-            terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 }, Vector3(0.5f), 1.0f);
+            terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 128 }, Vector3(4.0f), 1.0f);
         }
 
         if (false) { // physics
@@ -441,8 +438,8 @@ public:
                     cube.SetName("cube " + String::ToString(i));
                     auto cube_entity = cube[0].GetEntity();
                     cube_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-                    cube_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.3f);
-                    cube_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+                    cube_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.03f);
+                    cube_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
                     cube_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
                     cube_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
                     cube_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
@@ -466,12 +463,17 @@ public:
         }
 
         if (true) {
-            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/sphere_hq.obj")) {
+            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.25f);
                 monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
+                monkey_entity->GetMaterial()->SetBucket(BUCKET_TRANSLUCENT);
+                monkey_entity->GetMaterial()->SetBlendMode(BlendMode::NORMAL);
+
                 // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
                 // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
                 // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());

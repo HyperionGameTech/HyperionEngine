@@ -46,7 +46,7 @@ using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
-static constexpr SizeType max_entities_per_instance_batch = 28;
+static constexpr SizeType max_entities_per_instance_batch = 60;
 
 struct alignas(256) EntityInstanceBatch
 {

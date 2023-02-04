@@ -11,7 +11,8 @@ struct RenderCommand_DestroyCubemapRenderPass;
 using renderer::Result;
 
 static const Extent2D num_tiles = { 4, 4 };
-static const InternalFormat shadow_map_format = InternalFormat::RG32F;
+static const InternalFormat reflection_probe_format = InternalFormat::R11G11B10F;
+static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 struct alignas(16) SHTile
 {
@@ -203,7 +204,7 @@ void EnvProbe::Init()
         if (IsReflectionProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
-                InternalFormat::RGBA8_SRGB,
+                reflection_probe_format,
                 FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 nullptr
@@ -211,7 +212,7 @@ void EnvProbe::Init()
         } else if (IsShadowProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
-                shadow_map_format,
+                shadow_probe_format,
                 FilterMode::TEXTURE_FILTER_NEAREST,
                 WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
                 nullptr
@@ -296,17 +297,17 @@ void EnvProbe::CreateFramebuffer()
         6
     );
 
-    InternalFormat color_attachment_format = InternalFormat::RGBA8_SRGB;
+    InternalFormat format = reflection_probe_format;
 
     if (IsShadowProbe()) {
-        color_attachment_format = shadow_map_format;
+        format = shadow_probe_format;
     }
 
     m_framebuffer->AddAttachment(
         0,
         RenderObjects::Make<Image>(renderer::FramebufferImageCube(
             m_dimensions,
-            color_attachment_format,
+            format,
             nullptr
         )),
         RenderPassStage::SHADER,

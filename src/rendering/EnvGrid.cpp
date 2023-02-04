@@ -76,7 +76,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 2.15f
         );
 
         m_camera->SetFramebuffer(m_framebuffer);
