@@ -2,14 +2,11 @@
 #define UTIL_H
 
 #include <util/Defines.hpp>
+#include <system/Debug.hpp>
+#include <Types.hpp>
 
-#include "util/StringUtil.hpp"
-
-#include <string>
 #include <sstream>
 #include <cctype>
-
-#include "system/Debug.hpp"
 
 namespace hyperion {
 

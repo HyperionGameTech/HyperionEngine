@@ -111,9 +111,10 @@ struct alignas(256) ObjectShaderData
     UInt32 bucket;
     UInt32 flags;
     UInt32 _pad3;
+    UInt32 _pad4;
 
-    ShaderVec4<Float> _pad4;
     ShaderVec4<Float> _pad5;
+    ShaderVec4<Float> _pad6;
 };
 
 static_assert(sizeof(ObjectShaderData) == 256);

@@ -9,8 +9,8 @@ struct ShaderDataState
 {
     enum State
     {
-        CLEAN,
-        DIRTY
+        CLEAN = 0x0,
+        DIRTY = 0x1
     };
 
     ShaderDataState(State value = CLEAN) : state(value) {}
@@ -44,7 +44,7 @@ struct ShaderDataState
     }
 
     bool IsClean() const { return state == CLEAN; }
-    bool IsDirty() const { return state == DIRTY; }
+    bool IsDirty() const { return state & DIRTY; }
 
 private:
     UInt32 state;

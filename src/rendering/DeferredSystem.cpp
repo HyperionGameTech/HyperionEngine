@@ -12,8 +12,7 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
     GBufferResource { GBufferFormat(InternalFormat::RG16F) }, // velocity
     GBufferResource {  // objects mask
         GBufferFormat(Array<InternalFormat> {
-            //InternalFormat::R32,
-            InternalFormat::R16
+            InternalFormat::RGBA8
         })
     },
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_DEPTH) } // depth
@@ -48,6 +47,9 @@ static void AddOwnedAttachment(
         &attachment_usage
     ));
 
+    // ALLOW alpha blending if a pipeline uses it, not neccessarily enabling it.
+    attachment_usage->SetAllowBlending(true);
+
     framebuffer->AddAttachmentUsage(attachment_usage);
 }
 
@@ -71,6 +73,7 @@ static void AddSharedAttachment(
     ));
 
     attachment_usage->SetBinding(attachment_index);
+    attachment_usage->SetAllowBlending(false);
 
     framebuffer->AddAttachmentUsage(attachment_usage);
 }

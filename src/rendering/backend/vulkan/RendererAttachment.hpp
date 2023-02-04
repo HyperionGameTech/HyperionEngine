@@ -119,6 +119,12 @@ public:
     InternalFormat GetFormat() const;
     bool IsDepthAttachment() const;
 
+    bool AllowBlending() const
+        { return m_allow_blending; }
+
+    void SetAllowBlending(bool allow_blending)
+        { m_allow_blending = allow_blending; }
+
     VkAttachmentDescription GetAttachmentDescription() const;
     VkAttachmentReference GetHandle() const;
 
@@ -169,6 +175,8 @@ private:
 
     RefCount *m_ref_count = nullptr;
     bool m_is_created = false;
+
+    bool m_allow_blending = true;
 };
 
 class Attachment

@@ -692,14 +692,14 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(
     return m_descriptor_sets_pending_addition[descriptor_set_frame_index].Back().get();
 }
 
-void DescriptorPool::RemoveDescriptorSet(DescriptorSet *descriptor_set)
+void DescriptorPool::RemoveDescriptorSet(Device *device, DescriptorSet *descriptor_set)
 {
     AssertThrow(descriptor_set != nullptr);
 
-    RemoveDescriptorSet(descriptor_set->GetRealIndex());
+    RemoveDescriptorSet(device, descriptor_set->GetRealIndex());
 }
 
-void DescriptorPool::RemoveDescriptorSet(UInt index)
+void DescriptorPool::RemoveDescriptorSet(Device *device, UInt index)
 {
     const UInt queue_index = DescriptorSet::GetFrameIndex(index);
 
@@ -719,9 +719,9 @@ void DescriptorPool::RemoveDescriptorSet(UInt index)
                 return;
             }
 
-            // if (descriptor_set->IsCreated()) {
-            //     HYPERION_ASSERT_RESULT(descriptor_set->Destroy(device));
-            // }
+            if (descriptor_set->IsCreated()) {
+                HYPERION_ASSERT_RESULT(descriptor_set->Destroy(device));
+            }
 
             it = m_descriptor_sets_pending_addition[queue_index].Erase(it);
 

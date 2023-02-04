@@ -240,7 +240,6 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-    /* TODO: enable multisampling and the GPU feature required for it.  */
     std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments;
     color_blend_attachments.reserve(m_construction_info.render_pass->GetAttachmentUsages().size());
 
@@ -249,7 +248,8 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
             continue;
         }
 
-        const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE;
+        const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE
+            && attachment_usage->AllowBlending();
 
         static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
         static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };

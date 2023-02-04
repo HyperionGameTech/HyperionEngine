@@ -332,7 +332,7 @@ public:
 
     /*! \brief Sets the texture with the given key on this Material.
      * If the Material has already been initialized, the Texture is initialized.
-     * Otherwise, it will be initialized when the Material's init callback is fired off.
+     * Otherwise, it will be initialized when the Material is initialized.
      * @param key The texture slot to set the texture on
      * @param texture A Texture resource
      */
@@ -349,14 +349,14 @@ public:
      * @param key The key of the texture to find
      * @returns Pointer to the found Texture, or nullptr.
      */
-    Texture *GetTexture(TextureKey key);
+    Handle<Texture> GetTexture(TextureKey key);
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
      * texture key. If no Texture was set, nullptr is returned.
      * @param key The key of the texture to find
      * @returns Pointer to the found Texture, or nullptr.
      */
-    const Texture *GetTexture(TextureKey key) const;
+    const Handle<Texture> GetTexture(TextureKey key) const;
 
     Bucket GetBucket() const
         { return m_render_attributes.bucket; }
@@ -426,6 +426,8 @@ public:
 
     void Init();
     void Update();
+
+    Handle<Material> Clone() const;
 
     HashCode GetHashCode() const
     {

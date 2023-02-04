@@ -61,7 +61,7 @@ void AstModuleDeclaration::Visit(AstVisitor *visitor, Module *mod)
         // but only if mod == nullptr, that way we don't add nested modules
         if (mod == nullptr) {
             // parse filename
-            std::vector<std::string> path = StringUtil::SplitPath(m_location.GetFileName());
+            Array<std::string> path = StringUtil::SplitPath(m_location.GetFileName());
             path = StringUtil::CanonicalizePath(path);
             // change it back to string
             std::string canon_path = StringUtil::PathToString(path);

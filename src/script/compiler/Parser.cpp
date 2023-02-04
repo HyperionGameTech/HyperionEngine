@@ -296,10 +296,10 @@ void Parser::Parse(bool expect_module_decl)
     if (expect_module_decl) {
         // create a module based upon the filename
         const std::string filepath = m_token_stream->GetInfo().filepath;
-        const std::vector<std::string> split = StringUtil::SplitPath(filepath);
+        const Array<std::string> split = StringUtil::SplitPath(filepath);
 
-        std::string real_filename = !split.empty()
-            ? split.back()
+        std::string real_filename = split.Any()
+            ? split.Back()
             : filepath;
 
         real_filename = StringUtil::StripExtension(real_filename);
