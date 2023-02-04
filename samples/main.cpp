@@ -120,7 +120,7 @@ public:
         m_scene->SetCamera(CreateObject<Camera>(
             70.0f,
             1280, 720,
-            0.01f, 3000.0f
+            0.01f, 30000.0f
         ));
 
         //m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
@@ -466,22 +466,34 @@ public:
         }
 
         if (true) {
-            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
+            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/sphere_hq.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.9f);
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
                 monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
                 // monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.95f);
                 // monkey_entity->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
-                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(0.0f, 0.0f, 1.0f, 1.0f));
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_METALNESS_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/grimy/grimy-metal-roughness.png"));
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Handle<Texture>());
+                // monkey_entity->GetMaterial()->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, Handle<Texture>());
+
+                auto albedo_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png");
+                albedo_texture->GetImage()->SetIsSRGB(true);
+
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
+                // monkey_entity->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
+                
+
+                monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 1.0f));
                 monkey_entity->RebuildRenderableAttributes();
                 monkey.SetLocalTranslation(Vector3(0.0f, 0.0f, 0.0f));
-                monkey.Scale(1.2f);
+                monkey.Scale(0.65f);
                 monkey.Rotate(Quaternion(Vector3::UnitY(), MathUtil::DegToRad(90.0f)));
                 InitObject(monkey_entity);
 
@@ -499,7 +511,7 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
 #if 0
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
@@ -538,7 +550,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (true) {
+        if (false) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
@@ -548,7 +560,7 @@ public:
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(0.0f, 0.65f, 1.0f, 0.75f));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.02f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
@@ -560,7 +572,7 @@ public:
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.28f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.3f);
             plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             plane->GetMaterial()->SetBlendMode(BlendMode::NORMAL);
             plane->SetShader(Handle<Shader>(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes()))));

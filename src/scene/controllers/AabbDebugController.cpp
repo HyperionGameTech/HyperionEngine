@@ -59,6 +59,9 @@ void AABBDebugController::OnAdded()
         std::move(material)
     );
 
+    // TEMP
+    m_aabb_entity->SetScale(Vector3(0.1f));
+
     m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
     m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING, false);
     m_aabb_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_HAS_BLAS, false);

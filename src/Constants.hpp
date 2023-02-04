@@ -18,7 +18,7 @@ constexpr UInt max_bound_point_shadow_maps = 16;
 constexpr UInt num_gbuffer_textures = 5;
 constexpr bool use_indexed_array_for_object_data = true;
 // perform occlusion culling using indirect draw
-constexpr bool use_draw_indirect = false;
+constexpr bool use_draw_indirect = true;
 constexpr bool use_parallel_rendering = HYP_FEATURES_PARALLEL_RENDERING;
 
 template <class ...T>

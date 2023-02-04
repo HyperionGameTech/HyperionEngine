@@ -168,7 +168,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
         m_terrain_generation_sp.Signal();
 
         m_terrain_generation_flag.store(true);
-    });
+    }, THREAD_POOL_BACKGROUND);
 
     m_enqueued_patches.Insert(patch->info.coord, task_ref);
 }

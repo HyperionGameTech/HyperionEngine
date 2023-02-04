@@ -10,6 +10,8 @@
 
 namespace hyperion::v2 {
 
+static constexpr bool do_parallel_collection = false;//use_parallel_rendering;
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
@@ -31,8 +33,6 @@ struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
     virtual Result operator()()
     {
         collection.Get().SetRenderSideList(attributes, std::move(entity_list));
-
-        // once previous_resources goes out of scope, non-used handles are discarded
 
         HYPERION_RETURN_OK;
     }
@@ -204,7 +204,7 @@ void RenderList::UpdateRenderGroups()
 
     added_render_groups.Resize(iterators.Size());
 
-    Engine::Get()->task_system.ParallelForEach(THREAD_POOL_GENERIC, iterators, [this, &added_render_groups](IteratorType it, UInt index, UInt) {
+    const auto UpdateRenderGroupForAttributeSet = [this, &added_render_groups](IteratorType it, UInt index, UInt) {
         const RenderableAttributeSet &attributes = it->first;
         EntityDrawCollection::EntityList &entity_list = it->second;
 
@@ -244,7 +244,15 @@ void RenderList::UpdateRenderGroups()
             attributes,
             std::move(entity_list)
         );
-    });
+    };
+
+    if constexpr (do_parallel_collection) {
+        Engine::Get()->task_system.ParallelForEach(THREAD_POOL_RENDER_COLLECT, iterators, UpdateRenderGroupForAttributeSet);
+    } else {
+        for (UInt index = 0; index < iterators.Size(); index++) {
+            UpdateRenderGroupForAttributeSet(iterators[index], index, 0);
+        }
+    }
 
     for (auto &it : added_render_groups) {
         const RenderableAttributeSet &attributes = it.first;
@@ -332,15 +340,42 @@ void RenderList::CollectDrawCalls(
         }
     }
 
-    Engine::Get()->task_system.ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt) {
-        EntityDrawCollection::EntityList &entity_list = it->second;
-        Handle<RenderGroup> &render_group = entity_list.render_group;
+    // Begin sanity check
+    // FlatSet<ID<RenderGroup>> render_group_ids;
 
-        AssertThrow(render_group.IsValid());
+    // for (IteratorType it : iterators) {
+    //     AssertThrow(it->second.render_group.IsValid());
 
-        render_group->SetDrawProxies(entity_list.drawables);
-        render_group->CollectDrawCalls();
-    });
+    //     AssertThrow(!render_group_ids.Contains(it->second.render_group->GetID()));
+    //     render_group_ids.Insert(it->second.render_group->GetID());
+    // }
+    // End sanity check
+
+    if constexpr (do_parallel_collection) {
+        Engine::Get()->task_system.ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt) {
+            EntityDrawCollection::EntityList &entity_list = it->second;
+            Handle<RenderGroup> &render_group = entity_list.render_group;
+
+            AssertThrow(render_group.IsValid());
+
+            render_group->SetDrawProxies(entity_list.drawables);
+            render_group->CollectDrawCalls();
+        });
+    } else {
+        for (IteratorType it : iterators) {
+            EntityDrawCollection::EntityList &entity_list = it->second;
+            Handle<RenderGroup> &render_group = entity_list.render_group;
+
+            AssertThrow(render_group.IsValid());
+
+            render_group->SetDrawProxies(entity_list.drawables);
+            render_group->CollectDrawCalls();
+        }
+    }
+
+    // for (SizeType index = 0; index < iterators.Size(); index++) {
+    //     (*iterators[index]).second.render_group->CollectDrawCalls();
+    // }
 
     if (use_draw_indirect && cull_data != nullptr) {
         for (SizeType index = 0; index < iterators.Size(); index++) {

@@ -23,8 +23,10 @@ struct TaskRef
 
 enum TaskThreadPoolName : UInt
 {
-    THREAD_POOL_GENERIC = 0,
-    THREAD_POOL_RENDER = 1,
+    THREAD_POOL_GENERIC        = 0,
+    THREAD_POOL_RENDER_COLLECT = 1,
+    THREAD_POOL_RENDER         = 2,
+    THREAD_POOL_BACKGROUND     = 3,
 
     THREAD_POOL_MAX
 };
@@ -80,7 +82,7 @@ struct TaskBatch
 
 class TaskSystem
 {
-    static constexpr UInt num_threads_per_pool = 4;
+    static constexpr UInt num_threads_per_pool = 2;
     
     struct TaskThreadPool
     {
@@ -136,13 +138,13 @@ public:
         }
     }
 
-    TaskThreadPool &GetPool(TaskThreadPoolName priority)
-        { return m_pools[UInt(priority)]; }
+    TaskThreadPool &GetPool(TaskThreadPoolName pool_name)
+        { return m_pools[UInt(pool_name)]; }
 
     template <class Task>
-    TaskRef ScheduleTask(Task &&task, TaskThreadPoolName priority = THREAD_POOL_GENERIC)
+    TaskRef ScheduleTask(Task &&task, TaskThreadPoolName pool_name = THREAD_POOL_GENERIC)
     {
-        TaskThreadPool &pool = GetPool(priority);
+        TaskThreadPool &pool = GetPool(pool_name);
 
         const UInt cycle = pool.cycle.load(std::memory_order_relaxed);
 
@@ -291,20 +293,19 @@ public:
             return;
         }
 
-        num_batches = MathUtil::Max(num_batches, 1u);
-        num_batches = MathUtil::Min(num_batches, num_items);
+        num_batches = MathUtil::Clamp(num_batches, 1u, num_items);
 
         TaskBatch batch;
         batch.pool = pool;
 
-        const UInt items_per_batch = num_items / num_batches;
+        const UInt items_per_batch = (num_items + num_batches - 1) / num_batches;
 
         for (UInt batch_index = 0; batch_index < num_batches; batch_index++) {
             batch.AddTask([&items, batch_index, items_per_batch, num_items, lambda](...) {
                 const UInt offset_index = batch_index * items_per_batch;
                 const UInt max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
-                for (UInt i = offset_index; i < max_index; ++i) {
+                for (UInt i = offset_index; i < max_index; i++) {
                     lambda(items[i], i, batch_index);
                 }
             });
