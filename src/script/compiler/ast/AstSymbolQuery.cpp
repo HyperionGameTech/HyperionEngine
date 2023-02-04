@@ -33,23 +33,17 @@ void AstSymbolQuery::Visit(AstVisitor *visitor, Module *mod)
         SymbolTypePtr_t expr_type = m_expr->GetExprType();
         AssertThrow(expr_type != nullptr);
 
-        m_string_result_value = RC<AstString>(new AstString(
-            expr_type->GetName(),
-            m_location
-        ));
+        m_string_result_value = RC<AstString>::Construct(expr_type->GetName(), m_location);
     } else if (m_command_name == "fields") {
         SymbolTypePtr_t expr_type = m_expr->GetExprType();
         AssertThrow(expr_type != nullptr);
 
         //if (AstTypeObject *as_type_object = dynamic_cast<AstTypeObject*>(m_expr.get())) {
            // if (const SymbolTypePtr_t &held_type = as_type_object->GetHeldType()) {
-                std::vector<RC<AstExpression>> field_names;
+                Array<RC<AstExpression>> field_names;
 
                 for (const auto &member : expr_type->GetMembers()) {
-                    field_names.push_back(RC<AstString>(new AstString(
-                        std::get<0>(member),
-                        m_location
-                    )));
+                    field_names.PushBack(RC<AstString>::Construct(std::get<0>(member), m_location));
                 }
 
                 m_array_result_value = RC<AstArrayExpression>(new AstArrayExpression(

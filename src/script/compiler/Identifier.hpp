@@ -57,10 +57,10 @@ public:
     const SymbolTypePtr_t &GetSymbolType() const { return Unalias()->m_symbol_type; }
     void SetSymbolType(const SymbolTypePtr_t &symbol_type) { Unalias()->m_symbol_type = symbol_type; }
 
-    const std::vector<GenericInstanceTypeInfo::Arg> &GetTemplateParams() const
+    const Array<GenericInstanceTypeInfo::Arg> &GetTemplateParams() const
         { return Unalias()->m_template_params; }
 
-    void SetTemplateParams(const std::vector<GenericInstanceTypeInfo::Arg> &template_params)
+    void SetTemplateParams(const Array<GenericInstanceTypeInfo::Arg> &template_params)
         { Unalias()->m_template_params = template_params; }
 
     Identifier *Unalias() { return (m_aliasee != nullptr) ? m_aliasee : this; }
@@ -77,7 +77,7 @@ private:
     SymbolTypePtr_t m_symbol_type;
     bool m_is_reassigned;
 
-    std::vector<GenericInstanceTypeInfo::Arg> m_template_params;
+    Array<GenericInstanceTypeInfo::Arg> m_template_params;
 };
 
 } // namespace hyperion::compiler

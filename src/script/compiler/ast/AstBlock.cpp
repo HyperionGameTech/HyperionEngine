@@ -12,7 +12,7 @@
 
 namespace hyperion::compiler {
 
-AstBlock::AstBlock(const std::vector<RC<AstStatement>> &children, 
+AstBlock::AstBlock(const Array<RC<AstStatement>> &children, 
     const SourceLocation &location)
     : AstStatement(location),
       m_children(children),
@@ -40,8 +40,8 @@ void AstBlock::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
-    m_last_is_return = !(m_children.empty()) &&
-        (dynamic_cast<AstReturnStatement *>(m_children.back().Get()) != nullptr);
+    m_last_is_return = m_children.Any() &&
+        (dynamic_cast<AstReturnStatement *>(m_children.Back().Get()) != nullptr);
 
     // store number of locals, so we can pop them from the stack later
     Scope &this_scope = mod->m_scopes.Top();

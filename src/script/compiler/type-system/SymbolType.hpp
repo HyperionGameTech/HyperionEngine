@@ -2,6 +2,7 @@
 #define SYMBOL_TYPE_HPP
 
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/DynArray.hpp>
 #include <Types.hpp>
 
 #include <memory>
@@ -11,10 +12,6 @@
 #include <utility>
 
 namespace hyperion::compiler {
-
-template <typename T> using sp = RC<T>;
-template <typename T> using wp = Weak<T>;
-template <typename T> using vec = std::vector<T>;
 
 // forward declaration
 class SymbolType;
@@ -34,7 +31,7 @@ using SymbolTypeWeakPtr_t = std::weak_ptr<SymbolType>;
 // };
 
 using SymbolMember_t = std::tuple<std::string, SymbolTypePtr_t, RC<AstExpression>>;
-using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, std::vector<RC<AstArgument>>>;
+using FunctionTypeSignature_t = std::pair<SymbolTypePtr_t, Array<RC<AstArgument>>>;
 
 enum SymbolTypeClass
 {
@@ -63,14 +60,14 @@ struct AliasTypeInfo
 
 struct FunctionTypeInfo
 {
-    vec<SymbolTypePtr_t> m_param_types;
+    Array<SymbolTypePtr_t> m_param_types;
     SymbolTypePtr_t m_return_type;
 };
 
 struct GenericTypeInfo
 {
     int m_num_parameters; // -1 for variadic
-    vec<SymbolTypePtr_t> m_params;
+    Array<SymbolTypePtr_t> m_params;
 };
 
 struct GenericInstanceTypeInfo
@@ -79,12 +76,12 @@ struct GenericInstanceTypeInfo
     {
         std::string m_name;
         SymbolTypePtr_t m_type;
-        sp<AstExpression> m_default_value;
+        RC<AstExpression> m_default_value;
         bool m_is_ref;
         bool m_is_const;
     };
 
-    vec<Arg> m_generic_args;
+    Array<Arg> m_generic_args;
 };
 
 struct GenericParameterTypeInfo
@@ -102,23 +99,23 @@ public:
 
     static SymbolTypePtr_t Primitive(
         const std::string &name, 
-        const sp<AstExpression> &default_value
+        const RC<AstExpression> &default_value
     );
 
     static SymbolTypePtr_t Primitive(
         const std::string &name,
-        const sp<AstExpression> &default_value,
+        const RC<AstExpression> &default_value,
         const SymbolTypePtr_t &base
     );
 
     static SymbolTypePtr_t Object(
         const std::string &name,
-        const vec<SymbolMember_t> &members
+        const Array<SymbolMember_t> &members
     );
 
     static SymbolTypePtr_t Object(
         const std::string &name,
-        const vec<SymbolMember_t> &members,
+        const Array<SymbolMember_t> &members,
         const SymbolTypePtr_t &base
     );
 
@@ -127,22 +124,22 @@ public:
     */
     static SymbolTypePtr_t Generic(
         const std::string &name,
-        const vec<SymbolMember_t> &members, 
+        const Array<SymbolMember_t> &members, 
         const GenericTypeInfo &info,
         const SymbolTypePtr_t &base
     );
     
     static SymbolTypePtr_t Generic(
         const std::string &name, 
-        const sp<AstExpression> &default_value, 
-        const vec<SymbolMember_t> &members, 
+        const RC<AstExpression> &default_value, 
+        const Array<SymbolMember_t> &members, 
         const GenericTypeInfo &info,
         const SymbolTypePtr_t &base
     );
 
     static SymbolTypePtr_t Function(
         const SymbolTypePtr_t &return_type,
-        const std::vector<GenericInstanceTypeInfo::Arg> &params
+        const Array<GenericInstanceTypeInfo::Arg> &params
     );
 
     static SymbolTypePtr_t GenericInstance(
@@ -158,18 +155,18 @@ public:
     static SymbolTypePtr_t Extend(
         const std::string &name,
         const SymbolTypePtr_t &base,
-        const vec<SymbolMember_t> &members
+        const Array<SymbolMember_t> &members
     );
     
     static SymbolTypePtr_t Extend(
         const SymbolTypePtr_t &base,
-        const vec<SymbolMember_t> &members
+        const Array<SymbolMember_t> &members
     );
     
     static SymbolTypePtr_t PrototypedObject(
         const std::string &name,
         const SymbolTypePtr_t &base,
-        const vec<SymbolMember_t> &prototype_members
+        const Array<SymbolMember_t> &prototype_members
     );
 
     static SymbolTypePtr_t TypePromotion(
@@ -202,8 +199,8 @@ public:
         const std::string &name, 
         SymbolTypeClass type_class, 
         const SymbolTypePtr_t &base,
-        const sp<AstExpression> &default_value,
-        const vec<SymbolMember_t> &members
+        const RC<AstExpression> &default_value,
+        const Array<SymbolMember_t> &members
     );
         
     SymbolType(const SymbolType &other);
@@ -212,18 +209,18 @@ public:
     SymbolTypeClass GetTypeClass() const { return m_type_class; }
     SymbolTypePtr_t GetBaseType() const { return m_base.lock(); }
 
-    const sp<AstExpression> &GetDefaultValue() const
+    const RC<AstExpression> &GetDefaultValue() const
         { return m_default_value; }
-    void SetDefaultValue(const sp<AstExpression> &default_value)
+    void SetDefaultValue(const RC<AstExpression> &default_value)
         { m_default_value = default_value; }
     
-    vec<SymbolMember_t> &GetMembers()
+    Array<SymbolMember_t> &GetMembers()
         { return m_members; }
-    const vec<SymbolMember_t> &GetMembers() const
+    const Array<SymbolMember_t> &GetMembers() const
         { return m_members; }
 
     void AddMember(const SymbolMember_t &member)
-        { m_members.push_back(member); }
+        { m_members.PushBack(member); }
 
     AliasTypeInfo &GetAliasInfo()
         { return m_alias_info; }
@@ -277,10 +274,10 @@ public:
     bool FindPrototypeMember(const std::string &name, SymbolMember_t &out, UInt &out_index) const;
     bool FindPrototypeMemberDeep(const std::string &name, SymbolMember_t &out) const;
 
-    const sp<AstTypeObject> &GetTypeObject() const
+    const RC<AstTypeObject> &GetTypeObject() const
         { return m_type_object; }
 
-    void SetTypeObject(const sp<AstTypeObject> &type_object)
+    void SetTypeObject(const RC<AstTypeObject> &type_object)
         { m_type_object = type_object; }
 
     bool IsOrHasBase(const SymbolType &base_type) const;
@@ -308,13 +305,13 @@ public:
 private:
     std::string m_name;
     SymbolTypeClass m_type_class;
-    sp<AstExpression> m_default_value;
-    vec<SymbolMember_t> m_members;
+    RC<AstExpression> m_default_value;
+    Array<SymbolMember_t> m_members;
 
     // type that this type is based off of
     SymbolTypeWeakPtr_t m_base;
 
-    sp<AstTypeObject> m_type_object;
+    RC<AstTypeObject> m_type_object;
 
     // if this is an alias of another type
     AliasTypeInfo m_alias_info;

@@ -34,31 +34,30 @@ CompilationUnit::CompilationUnit()
     m_module_tree.TopNode()->m_value = m_global_module.Get();
 }
 
-CompilationUnit::~CompilationUnit()
-{
-}
+CompilationUnit::~CompilationUnit() = default;
 
 void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
 {
-    std::vector<NamesPair_t> names;
+    Array<NamesPair_t> names;
 
     for (auto &mem : type_ptr->GetMembers()) {
         std::string mem_name = std::get<0>(mem);
 
-        names.push_back({
+        Array<UInt8> array_elements;
+        array_elements.Resize(mem_name.size());
+        Memory::Copy(array_elements.Data(), mem_name.data(), mem_name.size());
+
+        names.PushBack(NamesPair_t {
             mem_name.size(),
-            std::vector<uint8_t>(mem_name.begin(), mem_name.end())
+            std::move(array_elements)
         });
     }
 
-    // mangle the type name
-    const SizeType len = type_ptr->GetName().length();
-
-    AssertThrow(type_ptr->GetMembers().size() < hyperion::compiler::Config::max_data_members);
+    AssertThrow(type_ptr->GetMembers().Size() < hyperion::compiler::Config::max_data_members);
 
     // create static object
     StaticTypeInfo st;
-    st.m_size = type_ptr->GetMembers().size();
+    st.m_size = type_ptr->GetMembers().Size();
     st.m_names = names;
     st.m_name = type_ptr->GetName().c_str();
 
@@ -79,7 +78,7 @@ void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
 
 Module *CompilationUnit::LookupModule(const std::string &name)
 {
-    TreeNode<Module*> *top = m_module_tree.TopNode();
+    TreeNode<Module *> *top = m_module_tree.TopNode();
 
     while (top != nullptr) {
         if (top->m_value != nullptr && top->m_value->GetName() == name) {

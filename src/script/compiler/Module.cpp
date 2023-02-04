@@ -42,22 +42,22 @@ std::string Module::GenerateFullModuleName() const
     TreeNode<Module*> *top = m_tree_link;
     
     if (top != nullptr) {
-        std::vector<std::string> parts;
-        size_t length = 0;
+        Array<std::string> parts;
+        SizeType length = 0;
 
         do {
             AssertThrow(top->m_value != nullptr);
 
-            parts.push_back(top->m_value->GetName());
+            parts.PushBack(top->m_value->GetName());
             length += top->m_value->GetName().length();
 
             top = top->m_parent;
         } while (top != nullptr);
 
         std::string res;
-        res.reserve(length + (2 * parts.size()));
+        res.reserve(length + (2 * parts.Size()));
 
-        for (int i = parts.size() - 1; i >= 0; i--) {
+        for (Int i = Int(parts.Size()) - 1; i >= 0; i--) {
             res.append(parts[i]);
             if (i != 0) {
                 res.append("::");
@@ -123,11 +123,11 @@ Module *Module::LookupNestedModule(const std::string &name)
     return nullptr;
 }
 
-std::vector<Module *> Module::CollectNestedModules() const
+Array<Module *> Module::CollectNestedModules() const
 {
     AssertThrow(m_tree_link != nullptr);
 
-    std::vector<Module *> nested_modules;
+    Array<Module *> nested_modules;
 
     // search siblings of the current module,
     // rather than global lookup.
@@ -135,7 +135,7 @@ std::vector<Module *> Module::CollectNestedModules() const
         AssertThrow(sibling != nullptr);
         AssertThrow(sibling->m_value != nullptr);
 
-        nested_modules.push_back(sibling->m_value);
+        nested_modules.PushBack(sibling->m_value);
     }
 
     return nested_modules;
@@ -212,7 +212,7 @@ SymbolTypePtr_t Module::LookupSymbolType(const std::string &name)
 
 SymbolTypePtr_t Module::LookupGenericInstance(
     const SymbolTypePtr_t &base,
-    const std::vector<GenericInstanceTypeInfo::Arg> &params)
+    const Array<GenericInstanceTypeInfo::Arg> &params)
 {
     return PerformLookup(
         [&base, &params](TreeNode<Scope> *top) {

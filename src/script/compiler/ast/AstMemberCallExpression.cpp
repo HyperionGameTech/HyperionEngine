@@ -53,11 +53,11 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         self_target->GetLocation()
     ));
 
-    m_substituted_args.push_back(self_arg);
+    m_substituted_args.PushBack(self_arg);
 
     if (m_arguments != nullptr) {
         for (auto &arg : m_arguments->GetArguments()) {
-            m_substituted_args.push_back(arg);
+            m_substituted_args.PushBack(arg);
         }
     }
 
@@ -93,7 +93,7 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         m_substituted_args = substituted.second;
 
         // should never be empty; self is needed
-        if (m_substituted_args.empty()) {
+        if (m_substituted_args.Empty()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_internal_error,
@@ -124,7 +124,7 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
 
     // now we have to call the function. we pop the first arg from
     // m_substituted args because we have already pushed self to stack
-    m_substituted_args.erase(m_substituted_args.begin());
+    m_substituted_args.PopFront();
 
     // location of 'self' var
     const auto target_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
@@ -142,7 +142,7 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
     // increment stack size for 'self' var
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
-    if (!m_substituted_args.empty()) {
+    if (m_substituted_args.Any()) {
         // build arguments
         chunk->Append(Compiler::BuildArgumentsStart(
             visitor,
@@ -184,13 +184,13 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
         visitor,
         mod,
         nullptr, // no target -- handled above
-        static_cast<uint8_t>(m_substituted_args.size() + 1) // call w/ self as first arg
+        static_cast<uint8_t>(m_substituted_args.Size() + 1) // call w/ self as first arg
     ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
-        m_substituted_args.size() + 1 // pops self off stack as well
+        m_substituted_args.Size() + 1 // pops self off stack as well
     ));
 
     return std::move(chunk);

@@ -13,12 +13,12 @@ namespace hyperion::compiler {
 class AstTemplateExpression : public AstExpression {
 public:
     AstTemplateExpression(const RC<AstExpression> &expr,
-        const std::vector<RC<AstParameter>> &generic_params,
+        const Array<RC<AstParameter>> &generic_params,
         const RC<AstPrototypeSpecification> &return_type_specification,
         const SourceLocation &location);
     virtual ~AstTemplateExpression() = default;
 
-    const std::vector<RC<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
+    const Array<RC<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
     const RC<AstExpression> &GetInnerExpression() const { return m_expr; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
@@ -36,7 +36,7 @@ public:
 
 private:
     RC<AstExpression> m_expr;
-    std::vector<RC<AstParameter>> m_generic_params;
+    Array<RC<AstParameter>> m_generic_params;
     RC<AstPrototypeSpecification> m_return_type_specification;
 
     // set while analyzing

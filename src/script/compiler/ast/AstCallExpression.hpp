@@ -15,24 +15,17 @@ class AstCallExpression : public AstExpression
 public:
     AstCallExpression(
         const RC<AstExpression> &target,
-        const std::vector<RC<AstArgument>> &args,
+        const Array<RC<AstArgument>> &args,
         bool insert_self,
         const SourceLocation &location
     );
     virtual ~AstCallExpression() = default;
 
-    void AddArgumentToFront(const RC<AstArgument> &arg)
-        { m_args.insert(m_args.begin(), arg); }
-    void AddArgument(const RC<AstArgument> &arg)
-        { m_args.push_back(arg); }
-    const std::vector<RC<AstArgument>> &GetArguments() const
+    const Array<RC<AstArgument>> &GetArguments() const
         { return m_args; }
     
     const SymbolTypePtr_t &GetReturnType() const
         { return m_return_type; }
-
-    bool IsMethodCall() const
-        { return m_is_method_call; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -47,13 +40,12 @@ public:
 
 protected:
     RC<AstExpression> m_target;
-    std::vector<RC<AstArgument>> m_args;
+    Array<RC<AstArgument>> m_args;
     bool m_insert_self;
 
     // set while analyzing
-    std::vector<RC<AstArgument>> m_substituted_args;
+    Array<RC<AstArgument>> m_substituted_args;
     SymbolTypePtr_t m_return_type;
-    bool m_is_method_call;
 
     RC<AstCallExpression> CloneImpl() const
     {

@@ -28,7 +28,7 @@
 namespace hyperion::compiler {
 
 AstFunctionExpression::AstFunctionExpression(
-    const std::vector<RC<AstParameter>> &parameters,
+    const Array<RC<AstParameter>> &parameters,
     const RC<AstPrototypeSpecification> &return_type_specification,
     const RC<AstBlock> &block,
     const SourceLocation &location
@@ -55,7 +55,7 @@ std::unique_ptr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor *
         param_stack_size++;
     }
 
-    for (int i = 0; i < m_parameters.size(); i++) {
+    for (int i = 0; i < m_parameters.Size(); i++) {
         AssertThrow(m_parameters[i] != nullptr);
         chunk->Append(m_parameters[i]->Build(visitor, mod));
         param_stack_size++;
@@ -119,7 +119,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     ));
 
     // first item will be set to return type
-    std::vector<GenericInstanceTypeInfo::Arg> param_symbol_types;
+    Array<GenericInstanceTypeInfo::Arg> param_symbol_types;
 
     if (m_is_closure) {
         AssertThrow(m_closure_self_param != nullptr);
@@ -133,7 +133,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             
             AssertThrow(param->GetIdentifier() != nullptr);
             // add to list of param types
-            param_symbol_types.push_back(GenericInstanceTypeInfo::Arg {
+            param_symbol_types.PushBack(GenericInstanceTypeInfo::Arg {
                 .m_name = param->GetName(),
                 .m_type = param->GetIdentifier()->GetSymbolType(),
                 .m_default_value = param->GetDefaultValue(),
@@ -184,7 +184,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
     const Scope &function_scope = mod->m_scopes.Top();
     
-    if (!function_scope.GetReturnTypes().empty()) {
+    if (function_scope.GetReturnTypes().Any()) {
         // search through return types for ambiguities
         for (const auto &it : function_scope.GetReturnTypes()) {
             AssertThrow(it.first != nullptr);
@@ -224,7 +224,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     }
     
     // create data members to copy closure parameters
-    std::vector<SymbolMember_t> closure_obj_members;
+    Array<SymbolMember_t> closure_obj_members;
 
     for (const auto &it : function_scope.GetClosureCaptures()) {
         const std::string &name = it.first;
@@ -238,7 +238,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
         
-        closure_obj_members.push_back(SymbolMember_t {
+        closure_obj_members.PushBack(SymbolMember_t {
             identifier->GetName(),
             identifier->GetSymbolType(),
             current_value
@@ -249,9 +249,9 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     mod->m_scopes.Close();
 
     // set object type to be an instance of function
-    std::vector<GenericInstanceTypeInfo::Arg> generic_param_types;
-    generic_param_types.reserve(param_symbol_types.size() + 1);
-    generic_param_types.push_back({
+    Array<GenericInstanceTypeInfo::Arg> generic_param_types;
+    generic_param_types.Reserve(param_symbol_types.Size() + 1);
+    generic_param_types.PushBack({
         "@return",
         m_return_type
     });
@@ -261,8 +261,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         AssertThrow(m_closure_self_param != nullptr);
         AssertThrow(m_closure_self_param->GetIdentifier() != nullptr);
 
-        if (!closure_obj_members.empty() || m_closure_self_param->GetIdentifier()->GetUseCount() > 0) {
-            generic_param_types.push_back(GenericInstanceTypeInfo::Arg {
+        if (closure_obj_members.Any() || m_closure_self_param->GetIdentifier()->GetUseCount() > 0) {
+            generic_param_types.PushBack(GenericInstanceTypeInfo::Arg {
                 m_closure_self_param->GetName(),
                 BuiltinTypes::ANY,
                 nullptr
@@ -274,7 +274,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     }
         
     for (auto &it : param_symbol_types) {
-        generic_param_types.push_back(it);
+        generic_param_types.PushBack(it);
     }
 
     m_symbol_type = SymbolType::GenericInstance(
@@ -287,7 +287,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     if (m_is_closure) {
         // add $invoke to call this object
 
-        closure_obj_members.push_back(SymbolMember_t {
+        closure_obj_members.PushBack(SymbolMember_t {
             "$invoke",
             m_symbol_type,
             RC<AstUndefined>(new AstUndefined(m_location)) // should never actually be compiled -- just a placeholder
@@ -347,7 +347,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     // we do +1 to account for closure self var.
-    if (m_parameters.size() + (m_is_closure ? 1 : 0) > MathUtil::MaxSafeValue<UInt8>()) {
+    if (m_parameters.Size() + (m_is_closure ? 1 : 0) > MathUtil::MaxSafeValue<UInt8>()) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_maximum_number_of_arguments,
@@ -365,18 +365,19 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
     // the register index variable we will reuse
     UInt8 rp;
 
-    AssertThrow(m_parameters.size() + (m_is_closure ? 1 : 0) <= MathUtil::MaxSafeValue<UInt8>());
+    AssertThrow(m_parameters.Size() + (m_is_closure ? 1 : 0) <= MathUtil::MaxSafeValue<UInt8>());
 
     // the properties of this function
-    UInt8 nargs = UInt8(m_parameters.size());
+    UInt8 nargs = UInt8(m_parameters.Size());
 
     if (m_is_closure) {
         nargs++; // make room for the closure self object
     }
 
     UInt8 flags = FunctionFlags::NONE;
-    if (!m_parameters.empty()) {
-        const RC<AstParameter> &last = m_parameters.back();
+
+    if (m_parameters.Any()) {
+        const RC<AstParameter> &last = m_parameters.Back();
         AssertThrow(last != nullptr);
 
         if (last->IsVariadic()) {

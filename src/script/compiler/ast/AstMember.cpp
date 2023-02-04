@@ -81,7 +81,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         // allow boxing/unboxing
         if (m_target_type->GetTypeClass() == TYPE_GENERIC_INSTANCE) {
             if (m_target_type->IsBoxedType()) {
-                AssertThrow(!m_target_type->GetGenericInstanceInfo().m_generic_args.empty());
+                AssertThrow(!m_target_type->GetGenericInstanceInfo().m_generic_args.Empty());
 
                 m_target_type = m_target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
             }
@@ -121,7 +121,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             // if it is a proxy class,
             // convert thing.DoThing()
             // to ThingProxy.DoThing(thing)
-            for (SizeType i = 0; i < m_target_type->GetMembers().size(); i++) {
+            for (SizeType i = 0; i < m_target_type->GetMembers().Size(); i++) {
                 const SymbolMember_t &mem = m_target_type->GetMembers()[i];
 
                 if (std::get<0>(mem) == m_field_name) {
@@ -159,7 +159,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         // // for instance members (do it last, so it can be overridden by instances)
         // if (SymbolTypePtr_t proto_type = m_target_type->FindMember("$proto")) {
         //     // get member index from name
-        //     for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
+        //     for (SizeType i = 0; i < proto_type->GetMembers().Size(); i++) {
         //         const SymbolMember_t &mem = proto_type->GetMembers()[i];
 
         //         if (std::get<0>(mem) == m_field_name) {
@@ -191,7 +191,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
         //             bool found = false;
 
         //             // get member index from name
-        //             for (SizeType i = 0; i < proto_type->GetMembers().size(); i++) {
+        //             for (SizeType i = 0; i < proto_type->GetMembers().Size(); i++) {
         //                 const SymbolMember_t &mem = proto_type->GetMembers()[i];
 
         //                 if (std::get<0>(mem) == m_field_name) {
@@ -223,7 +223,7 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
             SymbolTypePtr_t instance_type = as_type_object->GetHeldType()->GetUnaliased();
 
             // get member index from name
-            for (SizeType i = 0; i < instance_type->GetMembers().size(); i++) {
+            for (SizeType i = 0; i < instance_type->GetMembers().Size(); i++) {
                 const SymbolMember_t &mem = instance_type->GetMembers()[i];
 
                 if (std::get<0>(mem) == m_field_name) {

@@ -1,6 +1,7 @@
 #ifndef TOKEN_STREAM_HPP
 #define TOKEN_STREAM_HPP
 
+#include <core/lib/DynArray.hpp>
 #include <script/compiler/Token.hpp>
 #include <system/Debug.hpp>
 #include <Types.hpp>
@@ -34,24 +35,24 @@ public:
     {
         SizeType pos = m_position + n;
 
-        if (pos >= m_tokens.size()) {
+        if (pos >= m_tokens.Size()) {
             return Token::EMPTY;
         }
 
         return m_tokens[pos];
     }
 
-    void Push(const Token &token) { m_tokens.push_back(token); }
-    bool HasNext() const { return m_position < m_tokens.size(); }
-    Token Next() { AssertThrow(m_position < m_tokens.size()); return m_tokens[m_position++]; }
-    Token Last() const { AssertThrow(!m_tokens.empty()); return m_tokens.back(); }
-    SizeType GetSize() const { return m_tokens.size(); }
+    void Push(const Token &token) { m_tokens.PushBack(token); }
+    bool HasNext() const { return m_position < m_tokens.Size(); }
+    Token Next() { AssertThrow(m_position < m_tokens.Size()); return m_tokens[m_position++]; }
+    Token Last() const { AssertThrow(!m_tokens.Empty()); return m_tokens.Back(); }
+    SizeType GetSize() const { return m_tokens.Size(); }
     SizeType GetPosition() const { return m_position; }
     const TokenStreamInfo &GetInfo() const { return m_info; }
     void SetPosition(SizeType position) { m_position = position; }
-    bool Eof() const { return m_position >= m_tokens.size(); }
+    bool Eof() const { return m_position >= m_tokens.Size(); }
 
-    std::vector<Token> m_tokens;
+    Array<Token> m_tokens;
     SizeType m_position;
 
 private:

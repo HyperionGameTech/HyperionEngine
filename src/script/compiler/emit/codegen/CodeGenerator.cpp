@@ -21,10 +21,10 @@ void CodeGenerator::Visit(BytecodeChunk *chunk)
     }
 
     // bake the chunk's byte stream
-    const std::vector<UByte> &chunk_bytes = chunk_generator.GetInternalByteStream().Bake();
+    const Array<UByte> &chunk_bytes = chunk_generator.GetInternalByteStream().Bake();
 
     // append bytes to this chunk's InternalByteStream
-    m_ibs.Put(chunk_bytes.data(), chunk_bytes.size());
+    m_ibs.Put(chunk_bytes.Data(), chunk_bytes.Size());
 }
 
 void CodeGenerator::Visit(LabelMarker *node)
@@ -201,7 +201,7 @@ void CodeGenerator::Visit(BuildableType *node)
     m_ibs.Put((byte*)&name_len, sizeof(name_len));
     m_ibs.Put((byte*)&node->name[0], node->name.length());
 
-    uint16_t size = (uint16_t)node->members.size();
+    uint16_t size = (uint16_t)node->members.Size();
     m_ibs.Put((byte*)&size, sizeof(size));
 
     for (const std::string &member_name : node->members) {
@@ -391,16 +391,17 @@ void CodeGenerator::Visit(StorageOperation *node)
 
 void CodeGenerator::Visit(Comment *node)
 {
-    uint32_t len = node->value.length();
+    const SizeType size = node->value.length();
+    UInt32 len = UInt32(size);
 
     m_ibs.Put(Instructions::REM);
     m_ibs.Put((byte*)&len, sizeof(len));
-    m_ibs.Put((byte*)&node->value[0], node->value.length());
+    m_ibs.Put((byte*)&node->value[0], size);
 }
 
 void CodeGenerator::Visit(SymbolExport *node)
 {
-    uint32_t hash = hash_fnv_1(node->name.c_str());
+    const UInt32 hash = hash_fnv_1(node->name.c_str());
 
     m_ibs.Put(Instructions::EXPORT);
     m_ibs.Put((byte*)&node->reg, sizeof(node->reg));
@@ -411,8 +412,8 @@ void CodeGenerator::Visit(RawOperation<> *node)
 {
     m_ibs.Put(node->opcode);
 
-    if (!node->data.empty()) {
-        m_ibs.Put((byte*)&node->data[0], node->data.size());
+    if (node->data.Any()) {
+        m_ibs.Put((byte*)&node->data[0], node->data.Size());
     }
 }
 

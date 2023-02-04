@@ -39,14 +39,14 @@ RC<Identifier> IdentifierTable::AddAlias(const std::string &name, Identifier *al
 {
     AssertThrow(aliasee != nullptr);
 
-    m_identifiers.push_back(RC<Identifier>(new Identifier(
+    m_identifiers.PushBack(RC<Identifier>(new Identifier(
         name,
         aliasee->GetIndex(),
         aliasee->GetFlags() | FLAG_ALIAS,
         aliasee
     )));
     
-    return m_identifiers.back();
+    return m_identifiers.Back();
 }
 
 RC<Identifier> IdentifierTable::AddIdentifier(
@@ -74,9 +74,9 @@ RC<Identifier> IdentifierTable::AddIdentifier(
         ident->SetSymbolType(symbol_type);
     }
 
-    m_identifiers.push_back(ident);
+    m_identifiers.PushBack(ident);
 
-    return m_identifiers.back();
+    return m_identifiers.Back();
 }
 
 bool IdentifierTable::AddIdentifier(const RC<Identifier> &identifier)
@@ -89,7 +89,7 @@ bool IdentifierTable::AddIdentifier(const RC<Identifier> &identifier)
         return false;
     }
 
-    m_identifiers.push_back(identifier);
+    m_identifiers.PushBack(identifier);
 
     return true;
 }
@@ -130,7 +130,7 @@ SymbolTypePtr_t IdentifierTable::LookupSymbolType(const std::string &name) const
 
 SymbolTypePtr_t IdentifierTable::LookupGenericInstance(
     const SymbolTypePtr_t &base,
-    const std::vector<GenericInstanceTypeInfo::Arg> &params) const
+    const Array<GenericInstanceTypeInfo::Arg> &params) const
 {
     AssertThrow(base != nullptr);
     AssertThrow(base->GetTypeClass() == TYPE_GENERIC);
@@ -142,13 +142,13 @@ SymbolTypePtr_t IdentifierTable::LookupGenericInstance(
                 // check params
                 const auto &other_params = type->GetGenericInstanceInfo().m_generic_args;
 
-                if (other_params.size() != params.size()) {
+                if (other_params.Size() != params.Size()) {
                     continue;
                 }
 
                 bool found = true;
 
-                for (size_t i = 0; i < params.size(); i++) {
+                for (size_t i = 0; i < params.Size(); i++) {
                     const SymbolTypePtr_t &param_type = params[i].m_type;
                     const SymbolTypePtr_t &arg_type = type->GetGenericInstanceInfo().m_generic_args[i].m_type;
 
@@ -173,7 +173,7 @@ SymbolTypePtr_t IdentifierTable::LookupGenericInstance(
 
 void IdentifierTable::AddSymbolType(const SymbolTypePtr_t &type)
 {
-    m_symbol_types.push_back(type);
+    m_symbol_types.PushBack(type);
 }
 
 } // namespace hyperion::compiler

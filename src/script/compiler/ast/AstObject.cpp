@@ -51,7 +51,7 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         instr_type->name = sp->GetName();
 
         for (const SymbolMember_t &mem : sp->GetMembers()) {
-            instr_type->members.push_back(std::get<0>(mem));
+            instr_type->members.PushBack(std::get<0>(mem));
         }
 
         chunk->Append(std::move(instr_type));
@@ -180,8 +180,8 @@ void AstObject::Optimize(AstVisitor *visitor, Module *mod)
             auto base = instance->GetBaseType();
             AssertThrow(base != nullptr);
             AssertThrow(base->GetTypeClass() == TYPE_GENERIC);
-            AssertThrow(base->GetGenericInfo().m_params.size() == 
-                sp->GetGenericInstanceInfo().m_param_types.size());
+            AssertThrow(base->GetGenericInfo().m_params.Size() == 
+                sp->GetGenericInstanceInfo().m_param_types.Size());
 
             size_t index = 0;
             bool type_found = false;

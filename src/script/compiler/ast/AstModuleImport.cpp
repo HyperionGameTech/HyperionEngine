@@ -16,7 +16,7 @@ namespace hyperion::compiler {
 
 AstModuleImportPart::AstModuleImportPart(
     const std::string &left,
-    const std::vector<RC<AstModuleImportPart>> &right_parts,
+    const Array<RC<AstModuleImportPart>> &right_parts,
     const SourceLocation &location
 ) : AstStatement(location),
     m_left(left),
@@ -33,7 +33,7 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
     RC<Identifier> left_identifier;
 
     if (Module *this_module = mod->LookupNestedModule(m_left)) {
-        if (m_pull_in_modules && m_right_parts.empty()) {
+        if (m_pull_in_modules && m_right_parts.Empty()) {
             // pull this module into scope
             AstImport::CopyModules(
                 visitor,
@@ -46,16 +46,16 @@ void AstModuleImportPart::Visit(AstVisitor *visitor, Module *mod)
                 AssertThrow(part != nullptr);
                 part->Visit(visitor, this_module);
 
-                if (!part->GetIdentifiers().empty()) {
+                if (part->GetIdentifiers().Any()) {
                     for (const auto &identifier : part->GetIdentifiers()) {
-                        m_identifiers.push_back(identifier);
+                        m_identifiers.PushBack(identifier);
                     }
                 }
             }
         }
-    } else if (m_right_parts.empty() && (left_identifier = mod->LookUpIdentifier(m_left, false))) {
+    } else if (m_right_parts.Empty() && (left_identifier = mod->LookUpIdentifier(m_left, false))) {
         // pull the identifier into local scope
-        m_identifiers.push_back(std::move(left_identifier));
+        m_identifiers.PushBack(std::move(left_identifier));
     } else {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -83,7 +83,7 @@ RC<AstStatement> AstModuleImportPart::Clone() const
 
 
 AstModuleImport::AstModuleImport(
-    const std::vector<RC<AstModuleImportPart>> &parts,
+    const Array<RC<AstModuleImportPart>> &parts,
     const SourceLocation &location
 ) : AstImport(location),
     m_parts(parts)
@@ -92,7 +92,7 @@ AstModuleImport::AstModuleImport(
 
 void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(!m_parts.empty());
+    AssertThrow(!m_parts.Empty());
 
     const RC<AstModuleImportPart> &first = m_parts[0];
     AssertThrow(first != nullptr);
@@ -106,16 +106,16 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
 
     // do not pull module into scope for single imports
     // i.e `import range` will just import the file
-    if (first->GetParts().empty()) {
+    if (first->GetParts().Empty()) {
         first->SetPullInModules(false);
     }
 
-    std::vector<std::string> tried_paths;
+    Array<std::string> tried_paths;
 
     // if this is not a direct import (i.e `import range`),
     // we will allow duplicates in imports like `import range::{_Detail_}`
     // and we won't import the 'range' module again
-    if (first->GetParts().empty() || !opened) {
+    if (first->GetParts().Empty() || !opened) {
         // find the folder which the current file is in
         const SizeType index = m_location.GetFileName().find_last_of("/\\");
 
@@ -153,7 +153,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
             const std::string ext = ".hypscript";
 
             found_path = FileSystem::Join(scan_path, filename + ext);
-            tried_paths.push_back(found_path);
+            tried_paths.PushBack(found_path);
 
             if (AstImport::TryOpenFile(found_path, file)) {
                 opened = true;
@@ -162,7 +162,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
 
             // try it without extension
             found_path = FileSystem::Join(scan_path, filename);
-            tried_paths.push_back(found_path);
+            tried_paths.PushBack(found_path);
 
             if (AstImport::TryOpenFile(found_path, file)) {
                 opened = true;
@@ -180,14 +180,14 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (opened) {
-        std::vector<RC<Identifier>> pulled_in_identifiers;
+        Array<RC<Identifier>> pulled_in_identifiers;
 
         for (const RC<AstModuleImportPart> &part : m_parts) {
             AssertThrow(part != nullptr);
             part->Visit(visitor, mod);
 
             for (const RC<Identifier> &identifier : part->GetIdentifiers()) {
-                pulled_in_identifiers.push_back(identifier);
+                pulled_in_identifiers.PushBack(identifier);
             }
         }
 
@@ -205,10 +205,10 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
         std::stringstream tried_paths_string;
         tried_paths_string << "[";
 
-        for (size_t i = 0; i < tried_paths.size(); i++) {
+        for (size_t i = 0; i < tried_paths.Size(); i++) {
             tried_paths_string << '"' << tried_paths[i] << '"';
 
-            if (i != tried_paths.size() - 1) {
+            if (i != tried_paths.Size() - 1) {
                 tried_paths_string << ", ";
             }
         }

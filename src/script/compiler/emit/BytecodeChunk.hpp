@@ -2,6 +2,7 @@
 #define BYTECODE_CHUNK_HPP
 
 #include <script/compiler/emit/Instruction.hpp>
+#include <core/lib/DynArray.hpp>
 
 #include <system/Debug.hpp>
 
@@ -10,8 +11,9 @@
 
 namespace hyperion::compiler {
 
-struct BytecodeChunk final : public Buildable {
-    std::vector<LabelInfo> labels;
+struct BytecodeChunk final : public Buildable
+{
+    Array<LabelInfo> labels;
 
     BytecodeChunk();
     BytecodeChunk(const BytecodeChunk &other) = delete;
@@ -20,24 +22,24 @@ struct BytecodeChunk final : public Buildable {
     void Append(std::unique_ptr<Buildable> buildable)
     {
         if (buildable != nullptr) {
-            buildables.push_back(std::move(buildable));
+            buildables.PushBack(std::move(buildable));
         }
     }
 
     LabelId NewLabel()
     {
-        LabelId index = labels.size();
-        labels.emplace_back();
+        LabelId index = labels.Size();
+        labels.PushBack(LabelInfo { });
         return index;
     }
 
     /*inline void MarkLabel(LabelId label_id)
     {
-        AssertThrow(label_id < labels.size());
+        AssertThrow(label_id < labels.Size());
         labels[label_id].position = chunk_size;
     }*/
     
-    std::vector<std::unique_ptr<Buildable>> buildables;
+    Array<std::unique_ptr<Buildable>> buildables;
 };
 
 } // namespace hyperion::compiler

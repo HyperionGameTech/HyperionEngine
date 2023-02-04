@@ -21,27 +21,27 @@ public:
     };
 
     SizeType GetSize() const
-        { return m_stream.size();  }
+        { return m_stream.Size();  }
 
     void Put(UByte byte)
-        { m_stream.push_back(byte); }
+        { m_stream.PushBack(byte); }
 
     void Put(const UByte *bytes, SizeType size)
     {
         for (SizeType i = 0; i < size; i++) {
-            m_stream.push_back(bytes[i]);
+            m_stream.PushBack(bytes[i]);
         }
     }
 
     void MarkLabel(LabelId label_id);
     void AddFixup(LabelId label_id, SizeType offset = 0);
 
-    std::vector<UByte> &Bake();
+    Array<UByte> &Bake();
 
 private:
     std::map<LabelId, LabelInfo> m_labels;
-    std::vector<UByte> m_stream;
-    std::vector<Fixup> m_fixups;
+    Array<UByte> m_stream;
+    Array<Fixup> m_fixups;
 };
 
 } // namespace hyperion::compiler

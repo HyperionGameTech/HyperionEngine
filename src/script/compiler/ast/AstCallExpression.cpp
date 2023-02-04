@@ -24,15 +24,14 @@ namespace hyperion::compiler {
 
 AstCallExpression::AstCallExpression(
     const RC<AstExpression> &target,
-    const std::vector<RC<AstArgument>> &args,
+    const Array<RC<AstArgument>> &args,
     bool insert_self,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
     m_target(target),
     m_args(args),
     m_insert_self(insert_self),
-    m_return_type(BuiltinTypes::UNDEFINED),
-    m_is_method_call(false)
+    m_return_type(BuiltinTypes::UNDEFINED)
 {
     for (auto &arg : m_args) {
         AssertThrow(arg != nullptr);
@@ -51,8 +50,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
     if (m_insert_self) {
         if (const auto *left_target = m_target->GetTarget()) {
-            m_is_method_call = true;
-
             const auto self_target = CloneAstNode(left_target);
             AssertThrow(self_target != nullptr);
 
@@ -64,8 +61,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
                 self_target->GetLocation()
             ));
             
-            // insert at front
-            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+            m_substituted_args.PushFront(std::move(self_arg));
         }
     }
 
@@ -90,8 +86,6 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (call_member_type != nullptr) {
-        m_is_method_call = true;
-
         // if (call_member_name == "$invoke") {
             // closure objects have a self parameter for the '$invoke' call.
             RC<AstArgument> self_arg(new AstArgument(
@@ -103,7 +97,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
             ));
             
             // insert at front
-            m_substituted_args.insert(m_substituted_args.begin(), self_arg);
+            m_substituted_args.PushFront(std::move(self_arg));
         // }
 
         m_target.Reset(new AstMember(
@@ -159,7 +153,7 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         ));
     }
 
-    if (m_substituted_args.size() > MathUtil::MaxSafeValue<UInt8>()) {
+    if (m_substituted_args.Size() > MathUtil::MaxSafeValue<UInt8>()) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
             Msg_maximum_number_of_arguments,
@@ -185,13 +179,13 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
         visitor,
         mod,
         m_target,
-        UInt8(m_substituted_args.size())
+        UInt8(m_substituted_args.Size())
     ));
 
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
-        m_substituted_args.size()
+        m_substituted_args.Size()
     ));
 
     return std::move(chunk);

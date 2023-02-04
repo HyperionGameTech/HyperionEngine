@@ -18,7 +18,7 @@ namespace hyperion::compiler {
 std::unique_ptr<Buildable> Compiler::BuildArgumentsStart(
     AstVisitor *visitor,
     Module *mod,
-    const std::vector<RC<AstArgument>> &args
+    const Array<RC<AstArgument>> &args
 )
 {
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();

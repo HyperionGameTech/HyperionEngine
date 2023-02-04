@@ -18,7 +18,7 @@ namespace hyperion::compiler {
 
 AstEnumExpression::AstEnumExpression(
     const std::string &name,
-    const std::vector<EnumEntry> &entries,
+    const Array<EnumEntry> &entries,
     const RC<AstPrototypeSpecification> &underlying_type,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
@@ -44,8 +44,8 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_underlying_type->Visit(visitor, mod);
 
-    std::vector<RC<AstVariableDeclaration>> enum_members;
-    enum_members.reserve(m_entries.size());
+    Array<RC<AstVariableDeclaration>> enum_members;
+    enum_members.Reserve(m_entries.Size());
 
     for (auto &entry : m_entries) {
         bool assignment_ok = false;
@@ -69,14 +69,14 @@ void AstEnumExpression::Visit(AstVisitor *visitor, Module *mod)
         }
 
         if (assignment_ok) {
-            enum_members.emplace_back(new AstVariableDeclaration(
+            enum_members.PushBack(RC<AstVariableDeclaration>(new AstVariableDeclaration(
                 entry.name,
                 CloneAstNode(m_underlying_type),
                 entry.assignment,
                 {},
                 IdentifierFlags::FLAG_CONST,
                 entry.location
-            ));
+            )));
         } else {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,

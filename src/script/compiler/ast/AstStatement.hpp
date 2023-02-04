@@ -61,25 +61,25 @@ CloneAstNode(const T *stmt)
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<RC<T>>>::type
-CloneAllAstNodes(const std::vector<RC<T>> &stmts) 
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, Array<RC<T>>>::type
+CloneAllAstNodes(const Array<RC<T>> &stmts) 
 {
-    std::vector<RC<T>> res;
-    res.reserve(stmts.size());
+    Array<RC<T>> res;
+    res.Reserve(stmts.Size());
     for (auto &stmt : stmts) {
-        res.push_back(CloneAstNode(stmt));
+        res.PushBack(CloneAstNode(stmt));
     }
     return res;
 }
 
 template <typename T>
-typename std::enable_if<std::is_base_of<AstStatement, T>::value, std::vector<RC<T>>>::type
-CloneAllAstNodes(const std::vector<T *> &stmts) 
+typename std::enable_if<std::is_base_of<AstStatement, T>::value, Array<RC<T>>>::type
+CloneAllAstNodes(const Array<T *> &stmts) 
 {
-    std::vector<RC<T>> res;
-    res.reserve(stmts.size());
+    Array<RC<T>> res;
+    res.Reserve(stmts.Size());
     for (auto &stmt : stmts) {
-        res.push_back(CloneAstNode(stmt));
+        res.PushBack(CloneAstNode(stmt));
     }
     return res;
 }

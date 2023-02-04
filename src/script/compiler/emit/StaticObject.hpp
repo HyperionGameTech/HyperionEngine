@@ -23,7 +23,7 @@ struct StaticTypeInfo
 {
     UInt8 m_size;
     ANSIString m_name;
-    std::vector<NamesPair_t> m_names;
+    Array<NamesPair_t> m_names;
 };
 
 struct StaticObject

@@ -9,7 +9,7 @@ namespace hyperion::compiler {
 
 AstDirective::AstDirective(
     const std::string &key,
-    const std::vector<std::string> &args,
+    const Array<std::string> &args,
     const SourceLocation &location
 ) : AstStatement(location),
     m_key(key),
@@ -21,7 +21,7 @@ void AstDirective::Visit(AstVisitor *visitor, Module *mod)
 {
     if (m_key == "importpath") {
         // library names should be supplied in arguments as all strings
-        if (m_args.empty()) {
+        if (m_args.Empty()) {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,
                 Msg_custom_error,

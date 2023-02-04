@@ -23,7 +23,7 @@ class AstEnumExpression : public AstExpression
 public:
     AstEnumExpression(
         const std::string &name,
-        const std::vector<EnumEntry> &entries,
+        const Array<EnumEntry> &entries,
         const RC<AstPrototypeSpecification> &underlying_type,
         const SourceLocation &location
     );
@@ -31,7 +31,7 @@ public:
 
     void SetName(const std::string &name) { m_name = name; }
 
-    const std::vector<EnumEntry> &GetEntries() const { return m_entries; }
+    const Array<EnumEntry> &GetEntries() const { return m_entries; }
 
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
@@ -48,11 +48,11 @@ public:
     virtual const std::string &GetName() const override;
 
 protected:
-    std::string                                m_name;
-    std::vector<EnumEntry>                     m_entries;
+    std::string m_name;
+    Array<EnumEntry> m_entries;
     RC<AstPrototypeSpecification> m_underlying_type;
 
-    RC<AstTypeExpression>         m_expr;
+    RC<AstTypeExpression> m_expr;
 
     RC<AstEnumExpression> CloneImpl() const
     {

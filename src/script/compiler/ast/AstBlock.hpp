@@ -10,15 +10,15 @@ namespace hyperion::compiler {
 
 class AstBlock : public AstStatement {
 public:
-    AstBlock(const std::vector<RC<AstStatement>> &children,
+    AstBlock(const Array<RC<AstStatement>> &children,
         const SourceLocation &location);
     AstBlock(const SourceLocation &location);
 
     void AddChild(const RC<AstStatement> &stmt)
-        { m_children.push_back(stmt); }
-    std::vector<RC<AstStatement>> &GetChildren()
+        { m_children.PushBack(stmt); }
+    Array<RC<AstStatement>> &GetChildren()
         { return m_children; }
-    const std::vector<RC<AstStatement>> &GetChildren() const
+    const Array<RC<AstStatement>> &GetChildren() const
         { return m_children; }
     int NumLocals() const
         { return m_num_locals; }
@@ -32,7 +32,7 @@ public:
     virtual RC<AstStatement> Clone() const override;
 
 protected:
-    std::vector<RC<AstStatement>> m_children;
+    Array<RC<AstStatement>> m_children;
     int m_num_locals;
     bool m_last_is_return;
 

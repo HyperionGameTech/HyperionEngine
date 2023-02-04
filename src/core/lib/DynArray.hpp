@@ -130,6 +130,17 @@ public:
         }
     }
 
+    DynArray(ConstIterator first, ConstIterator last)
+        : DynArray()
+    {
+        const SizeType dist = last - first;
+        Reserve(dist);
+
+        for (auto it = first; it != last; ++it) {
+            PushBack(*it);
+        }
+    }
+
     DynArray(const DynArray &other);
     DynArray(DynArray &&other) noexcept;
     ~DynArray();

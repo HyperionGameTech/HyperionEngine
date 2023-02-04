@@ -15,9 +15,6 @@
 
 namespace hyperion::compiler {
 
-template <typename T>
-using sp = RC<T>;
-
 class AstVisitor;
 class Module;
 class ModuleBuilder;
@@ -46,7 +43,7 @@ public:
     ModuleBuilder Module(const std::string &name);
     FunctionBuilder Function(const std::string &name);
 
-    sp<AstModuleAccess> Build(const sp<AstExpression> &expr);
+    RC<AstModuleAccess> Build(const RC<AstExpression> &expr);
 
 private:
     std::string m_name;
@@ -68,7 +65,7 @@ public:
    // FunctionBuilder *Returns(const SymbolTypePtr_t &type);
    // FunctionBuilder *Param(const std::string &name, const SymbolTypePtr_t &type);
 
-    sp<AstExpression> Call(const std::vector<sp<AstArgument>> &args);
+    RC<AstExpression> Call(const Array<RC<AstArgument>> &args);
 
     const std::string &GetName() const { return m_name; }
 

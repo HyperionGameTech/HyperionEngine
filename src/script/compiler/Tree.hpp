@@ -22,7 +22,7 @@ struct TreeNode
 
     ~TreeNode()
     {
-        for (size_t i = 0; i < m_siblings.size(); i++) {
+        for (size_t i = 0; i < m_siblings.Size(); i++) {
             if (m_siblings[i]) {
                 delete m_siblings[i];
                 m_siblings[i] = nullptr;
@@ -38,14 +38,14 @@ struct TreeNode
         ss << m_value << "\n";
 
         indent_level++;
-        for (int i = 0; i < m_siblings.size(); i++) {
+        for (int i = 0; i < m_siblings.Size(); i++) {
             m_siblings[i]->PrintToStream(ss, indent_level);
         }
         indent_level--;
     }
 
     TreeNode<T> *m_parent = nullptr;
-    std::vector<TreeNode<T>*> m_siblings;
+    Array<TreeNode<T>*> m_siblings;
     T m_value;
 };
 
@@ -58,7 +58,7 @@ public:
         std::stringstream ss;
         int indent_level = 0;
 
-        for (int i = 0; i < m_nodes.size(); i++) {
+        for (int i = 0; i < m_nodes.Size(); i++) {
             m_nodes[i]->PrintToStream(ss, indent_level);
         }
 
@@ -88,15 +88,15 @@ public:
         Close();
 
         // first in, first out
-        for (int i = m_nodes.size() - 1; i >= 0; i--) {
+        for (int i = m_nodes.Size() - 1; i >= 0; i--) {
             if (m_nodes[i]) {
                 delete m_nodes[i];
             }
         }
     }
 
-    std::vector<TreeNode<T>*> &GetNodes() { return m_nodes; }
-    const std::vector<TreeNode<T>*> &GetNodes() const { return m_nodes; }
+    Array<TreeNode<T>*> &GetNodes() { return m_nodes; }
+    const Array<TreeNode<T>*> &GetNodes() const { return m_nodes; }
 
     TreeNode<T> *TopNode() { return m_top; }
     const TreeNode<T> *TopNode() const { return m_top; }
@@ -117,16 +117,16 @@ public:
 
     T &Root()
     {
-        AssertThrow(!m_nodes.empty());
+        AssertThrow(!m_nodes.Empty());
 
-        return m_nodes.front()->m_value;
+        return m_nodes.Front()->m_value;
     }
 
     const T &Root() const
     {
-        AssertThrow(!m_nodes.empty());
+        AssertThrow(!m_nodes.Empty());
 
-        return m_nodes.front()->m_value;
+        return m_nodes.Front()->m_value;
     }
 
     void Open(const T &value)
@@ -135,9 +135,9 @@ public:
         node->m_parent = m_top;
 
         if (m_top) {
-            m_top->m_siblings.push_back(node);
+            m_top->m_siblings.PushBack(node);
         } else {
-            m_nodes.push_back(node);
+            m_nodes.PushBack(node);
         }
 
         m_top = node;
@@ -151,7 +151,7 @@ public:
     }
 
 private:
-    std::vector<TreeNode<T>*> m_nodes;
+    Array<TreeNode<T>*> m_nodes;
     TreeNode<T> *m_top;
 };
 

@@ -1,6 +1,7 @@
 #ifndef BUILDABLE_HPP
 #define BUILDABLE_HPP
 
+#include <core/lib/DynArray.hpp>
 #include <Types.hpp>
 
 #include <streambuf>
@@ -23,9 +24,9 @@ struct LabelInfo
 
 struct BuildParams
 {
-    size_t block_offset = 0;
-    size_t local_offset = 0;
-    std::vector<LabelInfo> labels;
+    SizeType block_offset = 0;
+    SizeType local_offset = 0;
+    Array<LabelInfo> labels;
 };
 
 struct Buildable

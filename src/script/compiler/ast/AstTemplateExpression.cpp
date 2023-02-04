@@ -20,7 +20,7 @@ namespace hyperion::compiler {
 
 AstTemplateExpression::AstTemplateExpression(
     const RC<AstExpression> &expr,
-    const std::vector<RC<AstParameter>> &generic_params,
+    const Array<RC<AstParameter>> &generic_params,
     const RC<AstPrototypeSpecification> &return_type_specification,
     const SourceLocation &location
 ) : AstExpression(location, ACCESS_MODE_LOAD),
@@ -71,8 +71,8 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(m_expr->GetExprType() != nullptr);
 
-    std::vector<GenericInstanceTypeInfo::Arg> generic_param_types;
-    generic_param_types.reserve(m_generic_params.size() + 1); // anotha one
+    Array<GenericInstanceTypeInfo::Arg> generic_param_types;
+    generic_param_types.Reserve(m_generic_params.Size() + 1); // anotha one
     
     SymbolTypePtr_t expr_return_type;
 
@@ -96,16 +96,16 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         expr_return_type = m_expr->GetExprType();
     }
 
-    generic_param_types.push_back({
+    generic_param_types.PushBack({
         "@return",
         expr_return_type
     });
 
-    for (size_t i = 0; i < m_generic_params.size(); i++) {
+    for (size_t i = 0; i < m_generic_params.Size(); i++) {
         const RC<AstParameter> &param = m_generic_params[i];
         AssertThrow(param != nullptr);
 
-        generic_param_types.push_back(GenericInstanceTypeInfo::Arg {
+        generic_param_types.PushBack(GenericInstanceTypeInfo::Arg {
             param->GetName(),
             param->GetIdentifier()->GetSymbolType(),
             param->GetDefaultValue()

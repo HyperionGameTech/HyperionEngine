@@ -38,7 +38,7 @@ StaticObject::StaticObject(const StaticTypeInfo &type_info)
       m_type(TYPE_TYPE_INFO)
 {
     AssertThrowMsg(
-        type_info.m_names.size() == type_info.m_size,
+        type_info.m_names.Size() == type_info.m_size,
         "number of names must be equal to the number of members"
     );
     
@@ -117,7 +117,7 @@ bool StaticObject::operator==(const StaticObject &other) const
                 return false;
             }
             
-            if (std::memcmp(a.second.data(), b.second.data(), a.first) != 0) {
+            if (std::memcmp(a.second.Data(), b.second.Data(), a.first) != 0) {
                 return false;
             }
         }
