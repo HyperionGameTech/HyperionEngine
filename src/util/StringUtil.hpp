@@ -1,6 +1,8 @@
 #ifndef STRING_UTIL_H
 #define STRING_UTIL_H
 
+#include <core/lib/DynArray.hpp>
+
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -82,15 +84,16 @@ public:
         }
     }
 
-    static inline std::vector<std::string> Split(const std::string &text, char sep)
+    static inline Array<std::string> Split(const std::string &text, char sep)
     {
-        std::vector<std::string> tokens;
+        Array<std::string> tokens;
+
         std::string working_string;
         working_string.reserve(text.length());
 
         for (char ch : text) {
             if (ch == sep) {
-                tokens.push_back(working_string);
+                tokens.PushBack(working_string);
                 working_string.clear();
                 continue;
             }
@@ -99,20 +102,20 @@ public:
         }
 
         if (!working_string.empty()) {
-            tokens.push_back(working_string);
+            tokens.PushBack(working_string);
         }
 
         return tokens;
     }
 
-    static inline std::vector<std::string> RemoveEmpty(const std::vector<std::string> &strings)
+    static inline Array<std::string> RemoveEmpty(const Array<std::string> &strings)
     {
-        std::vector<std::string> res;
-        res.reserve(strings.size());
+        Array<std::string> res;
+        res.Reserve(strings.Size());
 
-        for (auto &&str : strings) {
+        for (const auto &str : strings) {
             if (!str.empty()) {
-                res.push_back(str);
+                res.PushBack(str);
             }
         }
 
@@ -194,15 +197,15 @@ public:
         return filepath.substr(0, filepath.find_last_of("\\/"));
     }
 
-    static inline std::vector<std::string> SplitPath(const std::string &str)
+    static inline Array<std::string> SplitPath(const std::string &str)
     {
-        std::vector<std::string> res;
+        Array<std::string> res;
         
         std::string tmp;
         for (char ch : str) {
             if (ch == '\\' || ch == '/') {
                 if (!tmp.empty()) {
-                    res.emplace_back(tmp);
+                    res.PushBack(tmp);
                     tmp.clear();
                 }
                 continue;
@@ -213,34 +216,35 @@ public:
 
         // add last
         if (!tmp.empty()) {
-            res.emplace_back(tmp);
+            res.PushBack(tmp);
         }
 
         return res;
     }
 
-    static inline std::vector<std::string> CanonicalizePath(const std::vector<std::string> &original)
+    static inline Array<std::string> CanonicalizePath(const Array<std::string> &original)
     {
-        std::vector<std::string> res;
+        Array<std::string> res;
 
         for (const auto &str : original) {
-            if (str == ".." && !res.empty()) {
-                res.pop_back();
+            if (str == ".." && !res.Empty()) {
+                res.PopBack();
             } else if (str != ".") {
-                res.emplace_back(str);
+                res.PushBack(str);
             }
         }
 
         return res;
     }
 
-    static inline std::string PathToString(const std::vector<std::string> &path)
+    static inline std::string PathToString(const Array<std::string> &path)
     {
         std::string res;
         
-        for (size_t i = 0; i < path.size(); i++) {
+        for (SizeType i = 0; i < path.Size(); i++) {
             res += path[i];
-            if (i != path.size() - 1) {
+
+            if (i != path.Size() - 1) {
                 res += "/";
             }
         }
@@ -261,8 +265,8 @@ public:
 
     static inline std::string GetExtension(const std::string &path)
     {
-        std::vector<std::string> split_path = SplitPath(path);
-        const std::string &filename = split_path.back();
+        Array<std::string> split_path = SplitPath(path);
+        const std::string &filename = split_path.Back();
 
         auto pos = filename.find_last_of('.');
 

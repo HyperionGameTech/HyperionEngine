@@ -185,14 +185,14 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
                         if (descriptor_sets[previous_index]) {
                             HYPERION_PASS_ERRORS(descriptor_sets[previous_index]->Destroy(Engine::Get()->GetGPUDevice()), result);
 
-                            descriptor_pool.RemoveDescriptorSet(descriptor_sets[previous_index]);
+                            descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_sets[previous_index]);
                             descriptor_sets[previous_index] = nullptr;
                         }
 
                         previous_index = (previous_index + 1) % max_frames_in_flight;
                     }
 
-                    descriptor_pool.RemoveDescriptorSet(descriptor_set);
+                    descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_set);
                     descriptor_sets[frame_index] = nullptr;
 
                     return Result::OK;
@@ -228,7 +228,7 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
             //     HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Destroy(Engine::Get()->GetGPUDevice()));
             // }
 
-            descriptor_pool.RemoveDescriptorSet(descriptor_sets[frame_index]);
+            descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_sets[frame_index]);
             descriptor_sets[frame_index] = nullptr;
         }
 
@@ -473,14 +473,26 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
-Texture *Material::GetTexture(TextureKey key)
+Handle<Texture> Material::GetTexture(TextureKey key)
 {
-    return m_textures.Get(key).Get();
+    return m_textures.Get(key);
 }
 
-const Texture *Material::GetTexture(TextureKey key) const
+const Handle<Texture> Material::GetTexture(TextureKey key) const
 {
-    return m_textures.Get(key).Get();
+    return m_textures.Get(key);
+}
+
+Handle<Material> Material::Clone() const
+{
+    auto handle = Engine::Get()->CreateObject<Material>(
+        m_name,
+        m_render_attributes,
+        m_parameters,
+        m_textures
+    );
+
+    return handle;
 }
 
 MaterialGroup::MaterialGroup()

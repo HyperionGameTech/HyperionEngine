@@ -50,9 +50,10 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
                 }
             }
 
-            auto split = StringUtil::SplitPath(path);
-            std::string real_filename = !split.empty()
-                ? split.back()
+            Array<std::string> split = StringUtil::SplitPath(path);
+
+            std::string real_filename = split.Any()
+                ? split.Back()
                 : path;
 
             real_filename = StringUtil::StripExtension(real_filename);

@@ -594,8 +594,8 @@ public:
     DescriptorSet *GetDescriptorSet(DescriptorSet::Index index) const
         { return m_descriptor_sets[index].get(); }
 
-    void RemoveDescriptorSet(DescriptorSet *descriptor_set);
-    void RemoveDescriptorSet(UInt index);
+    void RemoveDescriptorSet(Device *device, DescriptorSet *descriptor_set);
+    void RemoveDescriptorSet(Device *device, UInt index);
 
     Result Create(Device *device);
     Result Destroy(Device *device);

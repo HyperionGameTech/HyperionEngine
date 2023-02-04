@@ -369,7 +369,7 @@ public:
             }
         }
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -499,11 +499,11 @@ public:
             }
         }
 
-        if (false) {
+        if (true) {
 #if 0
             auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
-            mh.Scale(0.05f);
+            mh.Scale(1.0f);
             for (auto &mh_child : mh.GetChildren()) {
                 mh_child.SetEntity(Handle<Entity>::empty);
 
@@ -520,18 +520,25 @@ public:
 
             NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
             tree.SetName("tree");
-            tree.Scale(0.05f);
+            tree.Scale(0.2f);
             if (auto needles = tree.Select("Needles")) {
                 if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
-                    needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
-                    //needles.GetEntity()->GetMaterial()->SetBucket(BUCKET_TRANSLUCENT);
+                    Handle<Material> prev_material = needles.GetEntity()->GetMaterial();
+                    // AssertThrow(prev_material->GetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP).IsValid());
+                    auto new_material = prev_material->Clone();
+                    new_material->SetFaceCullMode(FaceCullMode::NONE);
+                    // new_material->SetBucket(BUCKET_TRANSLUCENT);
+                    // new_material->SetBlendMode(BlendMode::NORMAL);
+                    // new_material->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.6f);
+                    InitObject(new_material);
+                    needles.GetEntity()->SetMaterial(new_material);
                 }
             }
 
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (false) {
+        if (true) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape
@@ -541,19 +548,21 @@ public:
             plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.2f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.02f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
-            // plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.08f);
-            // plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.28f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
+            plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            plane->GetMaterial()->SetBlendMode(BlendMode::NORMAL);
             plane->SetShader(Handle<Shader>(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes()))));
             plane->RebuildRenderableAttributes();
             plane->CreateBLAS();
@@ -569,7 +578,7 @@ public:
             }
         }
 
-        if (false) { // particles test
+        if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/spark.png"),
                 .max_particles = 1024u,

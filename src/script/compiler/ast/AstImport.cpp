@@ -119,11 +119,11 @@ void AstImport::PerformImport(
     }
 
     // parse path into vector
-    auto path_vec = StringUtil::SplitPath(filepath);
+    Array<std::string> path_parts = StringUtil::SplitPath(filepath);
     // canonicalize the vector
-    path_vec = StringUtil::CanonicalizePath(path_vec);
+    path_parts = StringUtil::CanonicalizePath(path_parts);
     // put it back into a string
-    const std::string canon_path = StringUtil::PathToString(path_vec);
+    const std::string canon_path = StringUtil::PathToString(path_parts);
 
     // first, check if the file has already been imported somewhere in this compilation unit
     const auto it = visitor->GetCompilationUnit()->m_imported_modules.find(canon_path);
