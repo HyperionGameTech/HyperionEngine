@@ -86,7 +86,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
             .offset = 0.01f,
             .eye_fade_start = 0.75f,
             .eye_fade_end = 0.98f,
-            .screen_edge_fade_start = 0.975f,
+            .screen_edge_fade_start = 0.985f,
             .screen_edge_fade_end = 0.995f
         };
 
@@ -286,7 +286,7 @@ void SSRRenderer::Create()
             m_extent,
             ssr_format,
             TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::HIGH,
+            TemporalBlendFeedback::MEDIUM,
             FixedArray<ImageViewRef, max_frames_in_flight> {
                 m_image_outputs[0][blur_result ? 3 : 1].image_view,
                 m_image_outputs[1][blur_result ? 3 : 1].image_view

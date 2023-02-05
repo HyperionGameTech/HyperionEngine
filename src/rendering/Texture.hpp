@@ -80,6 +80,8 @@ public:
     
     void Init();
 
+    void GenerateMipmaps();
+
 protected:
     FilterMode m_filter_mode;
     WrapMode m_wrap_mode;

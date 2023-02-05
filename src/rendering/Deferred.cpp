@@ -438,7 +438,8 @@ void DeferredRenderer::Create()
     m_hbao.Reset(new HBAO(hbao_extent));
     m_hbao->Create();
 
-    m_ssr.Reset(new SSRRenderer(ssr_extent, true));
+    // render half-res
+    m_ssr.Reset(new SSRRenderer(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent / 2, true));
     m_ssr->Create();
     
     m_indirect_pass.CreateDescriptors(); // no-op

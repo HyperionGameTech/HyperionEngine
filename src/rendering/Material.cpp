@@ -242,22 +242,22 @@ Material::ParameterTable Material::DefaultParameters()
 {
     ParameterTable parameters;
 
-    parameters.Set(MATERIAL_KEY_ALBEDO,          Vector4(1.0f));
-    parameters.Set(MATERIAL_KEY_METALNESS,       0.0f);
-    parameters.Set(MATERIAL_KEY_ROUGHNESS,       0.65f);
-    parameters.Set(MATERIAL_KEY_TRANSMISSION,    0.0f);
-    parameters.Set(MATERIAL_KEY_EMISSIVE,        0.0f);
-    parameters.Set(MATERIAL_KEY_SPECULAR,        0.0f);
-    parameters.Set(MATERIAL_KEY_SPECULAR_TINT,   0.0f);
-    parameters.Set(MATERIAL_KEY_ANISOTROPIC,     0.0f);
-    parameters.Set(MATERIAL_KEY_SHEEN,           0.0f);
-    parameters.Set(MATERIAL_KEY_SHEEN_TINT,      0.0f);
-    parameters.Set(MATERIAL_KEY_CLEARCOAT,       0.0f);
-    parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS, 0.0f);
-    parameters.Set(MATERIAL_KEY_SUBSURFACE,      0.0f);
+    parameters.Set(MATERIAL_KEY_ALBEDO,               Vector4(1.0f));
+    parameters.Set(MATERIAL_KEY_METALNESS,            0.0f);
+    parameters.Set(MATERIAL_KEY_ROUGHNESS,            0.65f);
+    parameters.Set(MATERIAL_KEY_TRANSMISSION,         0.0f);
+    parameters.Set(MATERIAL_KEY_EMISSIVE,             0.0f);
+    parameters.Set(MATERIAL_KEY_SPECULAR,             0.0f);
+    parameters.Set(MATERIAL_KEY_SPECULAR_TINT,        0.0f);
+    parameters.Set(MATERIAL_KEY_ANISOTROPIC,          0.0f);
+    parameters.Set(MATERIAL_KEY_SHEEN,                0.0f);
+    parameters.Set(MATERIAL_KEY_SHEEN_TINT,           0.0f);
+    parameters.Set(MATERIAL_KEY_CLEARCOAT,            0.0f);
+    parameters.Set(MATERIAL_KEY_CLEARCOAT_GLOSS,      0.0f);
+    parameters.Set(MATERIAL_KEY_SUBSURFACE,           0.0f);
     parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 8.0f);
-    parameters.Set(MATERIAL_KEY_UV_SCALE,        Vector2(1.0f));
-    parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT, 0.05f);
+    parameters.Set(MATERIAL_KEY_UV_SCALE,             Vector2(1.0f));
+    parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT,      0.05f);
 
     return parameters;
 }

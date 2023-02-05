@@ -40,7 +40,7 @@ void AtomicCounter::Reset(CountType value)
    
             auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
-            commands.Push([&](CommandBuffer *command_buffer) {
+            commands.Push([&](const CommandBufferRef &command_buffer) {
                 m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
 
                 HYPERION_RETURN_OK;
@@ -62,7 +62,7 @@ auto AtomicCounter::Read() const -> CountType
             
             auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
-            commands.Push([&](CommandBuffer *command_buffer) {
+            commands.Push([&](const CommandBufferRef &command_buffer) {
                 staging_buffer->CopyFrom(command_buffer, m_buffer.get(), sizeof(result));
 
                 HYPERION_RETURN_OK;

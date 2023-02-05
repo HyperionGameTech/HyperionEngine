@@ -20,15 +20,15 @@ Image::Image(
     ImageType type,
     FilterMode filter_mode,
     const InternalInfo &internal_info,
-    const UByte *bytes)
-    : m_extent(extent),
-      m_format(format),
-      m_type(type),
-      m_filter_mode(filter_mode),
-      m_internal_info(internal_info),
-      m_image(nullptr),
-      m_is_blended(false),
-      m_bpp(NumComponents(GetBaseFormat(format)))
+    const UByte *bytes
+) : m_extent(extent),
+    m_format(format),
+    m_type(type),
+    m_filter_mode(filter_mode),
+    m_internal_info(internal_info),
+    m_image(nullptr),
+    m_is_blended(false),
+    m_bpp(NumComponents(GetBaseFormat(format)))
 {
     m_size = m_extent.width * m_extent.height * m_extent.depth * m_bpp * NumFaces();
 
@@ -314,7 +314,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
         staging_buffer.Copy(device, m_size, m_bytes);
         // safe to delete m_bytes here?
 
-        commands.Push([&](CommandBuffer *command_buffer) {
+        commands.Push([&](const CommandBufferRef &command_buffer) {
             m_image->InsertBarrier(
                 command_buffer,
                 sub_resource,
@@ -330,7 +330,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
         UInt buffer_offset_step = static_cast<UInt>(m_size) / num_faces;
 
         for (UInt i = 0; i < num_faces; i++) {
-            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](CommandBuffer *command_buffer) {
+            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef &command_buffer) {
                 VkBufferImageCopy region { };
                 region.bufferOffset = i * buffer_offset_step;
                 region.bufferRowLength = 0;
@@ -361,14 +361,14 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
 
             /* Generate our mipmaps
             */
-            commands.Push([this, device](CommandBuffer *command_buffer) {
+            commands.Push([this, device](const CommandBufferRef &command_buffer) {
                 return GenerateMipmaps(device, command_buffer);
             });
         }
     }
 
     /* Transition from whatever the previous layout state was to our destination state */
-    commands.Push([&](CommandBuffer *command_buffer) {
+    commands.Push([&](const CommandBufferRef &command_buffer) {
         m_image->InsertBarrier(
             command_buffer,
             sub_resource,
@@ -445,8 +445,7 @@ Result Image::Blit(
     Rect dst_rect
 )
 {
-    const auto num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
-    const auto num_mipmaps = MathUtil::Min(NumMipmaps(), src_image->NumMipmaps());
+    const UInt num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
 
     for (UInt face = 0; face < num_faces; face++) {
         const ImageSubResource src {
@@ -494,6 +493,80 @@ Result Image::Blit(
             .dstOffsets = {
                 { (int32_t) dst_rect.x0, (int32_t) dst_rect.y0, 0 },
                 { (int32_t) dst_rect.x1, (int32_t) dst_rect.y1, 1 }
+            }
+        };
+
+        vkCmdBlitImage(
+            command_buffer->GetCommandBuffer(),
+            src_image->GetGPUImage()->image,
+            GPUMemory::GetImageLayout(src_image->GetGPUImage()->GetResourceState()),
+            this->GetGPUImage()->image,
+            GPUMemory::GetImageLayout(this->GetGPUImage()->GetResourceState()),
+            1, &blit,
+            helpers::ToVkFilter(src_image->GetFilterMode())
+        );
+    }
+
+    HYPERION_RETURN_OK;
+}
+
+Result Image::Blit(
+    CommandBuffer *command_buffer,
+    const Image *src_image,
+    Rect src_rect,
+    Rect dst_rect,
+    UInt src_mip,
+    UInt dst_mip
+)
+{
+    const auto num_faces = MathUtil::Min(NumFaces(), src_image->NumFaces());
+
+    for (UInt face = 0; face < num_faces; face++) {
+        const ImageSubResource src {
+            .flags = src_image->IsDepthStencil()
+                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
+                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+            .base_array_layer = face,
+            .base_mip_level = src_mip
+        };
+
+        const ImageSubResource dst {
+            .flags = IsDepthStencil()
+                ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
+                : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
+            .base_array_layer = face,
+            .base_mip_level   = dst_mip
+        };
+
+        const VkImageAspectFlags aspect_flag_bits = 
+            (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
+            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
+            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
+            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+        
+        /* Blit src -> dst */
+        const VkImageBlit blit {
+            .srcSubresource = {
+                .aspectMask     = aspect_flag_bits,
+                .mipLevel       = src_mip,
+                .baseArrayLayer = src.base_array_layer,
+                .layerCount     = src.num_layers
+            },
+            .srcOffsets = {
+                { Int32(src_rect.x0), Int32(src_rect.y0), 0 },
+                { Int32(src_rect.x1), Int32(src_rect.y1), 1 }
+            },
+            .dstSubresource = {
+                .aspectMask     = aspect_flag_bits,
+                .mipLevel       = dst_mip,
+                .baseArrayLayer = dst.base_array_layer,
+                .layerCount     = dst.num_layers
+            },
+            .dstOffsets = {
+                { Int32(dst_rect.x0), Int32(dst_rect.y0), 0 },
+                { Int32(dst_rect.x1), Int32(dst_rect.y1), 1 }
             }
         };
 

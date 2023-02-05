@@ -62,6 +62,15 @@ public:
         Rect dst_rect
     );
 
+    Result Blit(
+        CommandBuffer *command_buffer,
+        const Image *src,
+        Rect src_rect,
+        Rect dst_rect,
+        UInt src_mip,
+        UInt dst_mip
+    );
+
     Result GenerateMipmaps(
         Device *device,
         CommandBuffer *command_buffer

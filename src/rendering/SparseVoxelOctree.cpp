@@ -480,7 +480,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
             auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
             /* Copy our data from staging buffers */
-            commands.Push([&](CommandBuffer *command_buffer) {
+            commands.Push([&](const CommandBufferRef &command_buffer) {
                 m_build_info_buffer->CopyFrom(command_buffer, build_info_staging_buffer, std::size(build_info) * sizeof(UInt32));
                 m_build_info_buffer->InsertBarrier(command_buffer, ResourceState::UNORDERED_ACCESS);
 
@@ -493,7 +493,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
 	        UInt32 fragment_group_x = group_x_64(m_voxelizer->NumFragments());
 
             for (UInt i = 1; i <= m_voxelizer->octree_depth; i++) {
-                commands.Push([&, index = i](CommandBuffer *command_buffer) {
+                commands.Push([&, index = i](const CommandBufferRef &command_buffer) {
                     m_init_nodes->GetPipeline()->Bind(command_buffer, push_constants);
                     BindDescriptorSets(command_buffer, 0, m_init_nodes.Get());
                     m_init_nodes->GetPipeline()->DispatchIndirect(command_buffer, m_indirect_buffer.get());
@@ -547,7 +547,7 @@ void SparseVoxelOctree::WriteMipmaps()
 
     auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
-    commands.Push([&](CommandBuffer *command_buffer) {
+    commands.Push([&](const CommandBufferRef &command_buffer) {
         for (UInt32 i = 2; i <= m_voxelizer->octree_depth; i++) {
             push_constants.octree_data.mipmap_level = i;
 

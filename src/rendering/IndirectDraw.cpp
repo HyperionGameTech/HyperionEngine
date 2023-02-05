@@ -94,7 +94,7 @@ Result IndirectDrawState::Create()
 {
     auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
-    single_time_commands.Push([this](CommandBuffer *command_buffer) -> Result {
+    single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             auto frame = Frame::TemporaryFrame(command_buffer, frame_index);
 

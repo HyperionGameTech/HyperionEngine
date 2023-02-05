@@ -3,6 +3,8 @@
 
 #include <core/lib/Proc.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFence.hpp>
@@ -35,7 +37,7 @@ class SingleTimeCommands
 public:
     SingleTimeCommands() : command_buffer{}, pool{}, family_indices{} {}
 
-    void Push(const std::function<Result(CommandBuffer *)> &fn)
+    void Push(const std::function<Result(const CommandBufferRef &)> &fn)
     {
         m_functions.push_back(fn);
     }
@@ -47,7 +49,7 @@ public:
         auto result = Result::OK;
 
         for (auto &fn : m_functions) {
-            HYPERION_PASS_ERRORS(fn(command_buffer.get()), result);
+            HYPERION_PASS_ERRORS(fn(command_buffer), result);
 
             if (!result) {
                 break;
@@ -61,17 +63,17 @@ public:
         return result;
     }
 
-    std::unique_ptr<CommandBuffer> command_buffer;
+    CommandBufferRef command_buffer;
     VkCommandPool pool;
     QueueFamilyIndices family_indices;
 
 private:
-    std::vector<std::function<Result(CommandBuffer *)>> m_functions;
+    std::vector<std::function<Result(const CommandBufferRef &)>> m_functions;
     std::unique_ptr<Fence> m_fence;
 
     Result Begin(Device *device)
     {
-        command_buffer = std::make_unique<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_PRIMARY);
+        command_buffer = RenderObjects::Make<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_PRIMARY);
         m_fence = std::make_unique<Fence>();
 
         HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, pool));

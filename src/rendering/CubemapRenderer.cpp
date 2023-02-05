@@ -40,7 +40,7 @@ void CubemapRenderer::Init()
     m_env_probe = CreateObject<EnvProbe>(
         Handle<Scene>(GetParent()->GetScene()->GetID()),
         m_aabb,
-        Extent2D { 256, 256 },
+        Extent2D { 512, 512 },
         ENV_PROBE_TYPE_REFLECTION
     );
 

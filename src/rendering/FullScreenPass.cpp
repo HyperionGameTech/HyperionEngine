@@ -235,8 +235,6 @@ void FullScreenPass::CreateDescriptors()
 
 void FullScreenPass::Destroy()
 {
-    Engine::Get()->SafeReleaseHandle<Mesh>(std::move(m_full_screen_quad));
-
     // TODO: Move all attachment ops into render thread
     for (auto &attachment : m_attachments) {
         m_framebuffer->RemoveAttachmentUsage(attachment.get());
@@ -248,6 +246,7 @@ void FullScreenPass::Destroy()
 
     m_framebuffer.Reset();
     m_render_group.Reset();
+    m_full_screen_quad.Reset();
 
     SafeRelease(std::move(m_command_buffers));
 

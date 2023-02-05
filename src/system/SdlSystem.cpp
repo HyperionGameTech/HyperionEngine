@@ -44,7 +44,7 @@ void SDLApplicationWindow::Initialize()
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         Int(m_width), Int(m_height),
-        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
+        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     // make sure to use SDL_free on file name strings for these events

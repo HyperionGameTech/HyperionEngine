@@ -57,7 +57,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
         m_depth_pyramid_results[i] = std::make_unique<ImageView>();
         m_depth_pyramid_results[i]->Create(Engine::Get()->GetGPUDevice(), m_depth_pyramid[i].get());
 
-        const auto num_mip_levels = m_depth_pyramid[i]->NumMipmaps();
+        const UInt num_mip_levels = m_depth_pyramid[i]->NumMipmaps();
 
         m_depth_pyramid_mips[i].Reserve(num_mip_levels);
 

@@ -38,7 +38,7 @@ PlaceholderData::PlaceholderData()
       ),
       m_sampler_nearest(
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+          renderer::WrapMode::TEXTURE_WRAP_REPEAT
       )
 {
 }

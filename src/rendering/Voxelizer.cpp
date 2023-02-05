@@ -246,7 +246,7 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
 
     auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
 
-    single_time_commands.Push([&](CommandBuffer *command_buffer) {
+    single_time_commands.Push([&](const CommandBufferRef &command_buffer) {
         auto temp_frame = Frame::TemporaryFrame(command_buffer);
 
         struct alignas(128) {

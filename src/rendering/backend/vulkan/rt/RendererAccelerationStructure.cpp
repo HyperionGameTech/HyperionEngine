@@ -406,7 +406,7 @@ Result AccelerationStructure::CreateAccelerationStructure(
 
     auto commands = instance->GetSingleTimeCommands();
 
-    commands.Push([&](CommandBuffer *command_buffer) {
+    commands.Push([&](const CommandBufferRef &command_buffer) {
         device->GetFeatures().dyn_functions.vkCmdBuildAccelerationStructuresKHR(
             command_buffer->GetCommandBuffer(),
             UInt32(range_info_ptrs.size()),
