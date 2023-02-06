@@ -54,7 +54,7 @@ Result Sampler::Create(Device *device)
 
     if (device->GetFeatures().GetPhysicalDeviceFeatures().samplerAnisotropy) {
         sampler_info.anisotropyEnable = VK_TRUE;
-        sampler_info.maxAnisotropy = device->GetFeatures().GetPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
+        sampler_info.maxAnisotropy = 1.0f;//device->GetFeatures().GetPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
     } else {
         sampler_info.anisotropyEnable = VK_FALSE;
         sampler_info.maxAnisotropy = 1.0f;
@@ -82,7 +82,7 @@ Result Sampler::Create(Device *device)
 
     sampler_info.mipLodBias = 0.0f;
     sampler_info.minLod = 0.0f;
-    sampler_info.maxLod = 16.0f;//65535.0f;
+    sampler_info.maxLod = 12.0f;//65535.0f;
 
     VkSamplerReductionModeCreateInfoEXT reduction_info { VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT };
 
