@@ -11,7 +11,7 @@ struct RenderCommand_DestroyCubemapRenderPass;
 using renderer::Result;
 
 static const Extent2D num_tiles = { 4, 4 };
-static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;//R11G11B10F;
+static const InternalFormat reflection_probe_format = InternalFormat::RGBA8_SRGB; //RGBA16F;//R11G11B10F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 struct alignas(16) SHTile

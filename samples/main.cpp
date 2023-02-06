@@ -134,14 +134,14 @@ public:
             m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
                 Color(1.0f, 0.7f, 0.4f),
-                5.0f
+                15.0f
             )));
             m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
             m_sun->AddController<ShadowMapController>();
             GetScene()->AddEntity(m_sun);
         }
         
-        if (true) { // adding lights to scene
+        if (false) { // adding lights to scene
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
                 Vector3(2.54433f, 2.0301f, -4.92542f),
                 Color(1.0f, 0.7f, 0.3f),

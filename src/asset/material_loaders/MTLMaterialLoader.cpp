@@ -95,8 +95,8 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
     const std::unordered_map<std::string, TextureMapping> texture_keys {
         std::make_pair("map_kd", TextureMapping { .key = Material::MATERIAL_TEXTURE_ALBEDO_MAP, .srgb = true, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
-        std::make_pair("map_bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP }),
-        std::make_pair("bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP }),
+        std::make_pair("map_bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
+        std::make_pair("bump", TextureMapping { .key = Material::MATERIAL_TEXTURE_NORMAL_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
         std::make_pair("map_ka", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
         std::make_pair("map_ks", TextureMapping { .key = Material::MATERIAL_TEXTURE_METALNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
         std::make_pair("map_ns", TextureMapping { .key = Material::MATERIAL_TEXTURE_ROUGHNESS_MAP, .srgb = false, .filter_mode = FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP }),
@@ -181,17 +181,18 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
                 return;
             }
 
-            const IlluminationModel illum_model = IlluminationModel(StringUtil::Parse<Int>(tokens[1]));
+            const auto illum_model = StringUtil::Parse<Int>(tokens[1]);
 
-            if (IsTransparencyModel(illum_model)) {
+            if (IsTransparencyModel(static_cast<IlluminationModel>(illum_model))) {
                 LastMaterial(library).parameters[Material::MATERIAL_KEY_TRANSMISSION] = ParameterDef {
                     .values = FixedArray<Float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
                 };
+                // TODO: Bucket, alpha blend
             }
 
-            // LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
-            //     .values = { Float(illum_model) / 9.0f } /* rough approx */
-            // };
+            LastMaterial(library).parameters[Material::MATERIAL_KEY_METALNESS] = ParameterDef {
+                .values = { Float(illum_model) / 9.0f } /* rough approx */
+            };
 
             return;
         }
