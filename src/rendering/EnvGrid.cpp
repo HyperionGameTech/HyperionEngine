@@ -23,6 +23,55 @@ EnvGrid::~EnvGrid()
 {
 }
 
+void EnvGrid::SetCameraData(const BoundingBox &aabb)
+{
+    // TODO: Ensure thread safety.
+    m_aabb = aabb;
+
+    const Vector3 aabb_extent = m_aabb.GetExtent();
+    
+    if (m_camera) {
+        m_camera->SetTranslation(aabb.GetCenter());
+        m_camera->SetFar(aabb.GetRadius());
+    }
+
+    // for (SizeType index = 0; index < m_ambient_probes.Size(); index++) {
+    //     const UInt x = UInt(index) % m_density.width;
+    //     const UInt y = UInt(index) % (m_density.width * m_density.height) / m_density.width;
+    //     const UInt z = UInt(index) / (m_density.width * m_density.height);
+
+    //     const BoundingBox env_probe_aabb(
+    //         m_aabb.min + (Vector3(Float(x), Float(y), Float(z)) * (aabb_extent / Vector3(m_density))),
+    //         m_aabb.min + (Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) * (aabb_extent / Vector3(m_density)))
+    //     );
+
+    //     m_ambient_probes[index]->SetAABB(env_probe_aabb);
+    //     m_ambient_probes[index]->SetNeedsRender(true);
+    // }
+
+    if (m_ambient_probes.Any()) {
+        for (SizeType x = 0; x < m_density.width; x++) {
+            for (SizeType y = 0; y < m_density.height; y++) {
+                for (SizeType z = 0; z < m_density.depth; z++) {
+                    const SizeType index = x * m_density.height * m_density.depth
+                        + y * m_density.depth
+                        + z;
+
+                    AssertThrow(m_ambient_probes[index].IsValid());
+
+                    const BoundingBox env_probe_aabb(
+                        m_aabb.min + (Vector3(Float(x), Float(y), Float(z)) * (aabb_extent / Vector3(m_density))),
+                        m_aabb.min + (Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) * (aabb_extent / Vector3(m_density)))
+                    );
+
+                    m_ambient_probes[index]->SetAABB(env_probe_aabb);
+                    m_ambient_probes[index]->SetNeedsRender(true);
+                }
+            }
+        }
+    }
+}
+
 void EnvGrid::Init()
 {
     Handle<Scene> scene(GetParent()->GetScene()->GetID());
@@ -76,8 +125,10 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, m_aabb.GetRadius() ///(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
+
+        m_camera->SetTranslation(m_aabb.GetCenter());
 
         m_camera->SetFramebuffer(m_framebuffer);
         InitObject(m_camera);
@@ -140,6 +191,9 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     m_camera->Update(delta);
 
+    // @TODO: Only collect entities in next probe to render range.
+    // Idea: Used fixed size array of atomic indices for next probes to render?
+
     GetParent()->GetScene()->CollectEntities(
         m_render_list,
         m_camera,
@@ -169,6 +223,15 @@ void EnvGrid::OnRender(Frame *frame)
     const UInt num_ambient_probes = UInt(m_ambient_probes.Size());
 
     m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
+
+    // Debug draw
+    for (const Handle<EnvProbe> &probe : m_ambient_probes) {
+        Engine::Get()->GetImmediateMode().Sphere(
+            probe->GetDrawProxy().world_position,
+            0.15f,
+            probe->NeedsUpdate() ? Color(1.0f, 0.0f, 0.0f) : Color(1.0f, 1.0f, 1.0f)
+        );
+    }
     
     if (num_ambient_probes != 0) {
         AssertThrow(m_current_probe_index < m_ambient_probes.Size());
@@ -190,14 +253,12 @@ void EnvGrid::OnRender(Frame *frame)
 
         if (found_index != UInt(-1)) {
             auto &env_probe = m_ambient_probes[found_index];
-
-            const BoundingBox &probe_aabb = env_probe->GetAABB();
+            
+            const BoundingBox &probe_aabb = env_probe->GetAABB();//env_probe->GetDrawProxy().aabb;
             const Vector3 probe_center = probe_aabb.GetCenter();
 
-            const Vector3 diff = probe_center - m_aabb.GetCenter();//probe_center - camera_position;
-
+            const Vector3 diff = probe_center - m_aabb.GetCenter();
             const Vector3 probe_position_clamped = ((diff + (m_aabb.GetExtent() * 0.5f)) / m_aabb.GetExtent());
-
             const Vector3 probe_diff_units = probe_position_clamped * Vector3(m_density);
 
             const Int probe_index_at_point = (Int(probe_diff_units.x) * Int(m_density.height) * Int(m_density.depth))

@@ -70,16 +70,38 @@ class Entity :
 public:
     Entity();
 
+    Entity(Name);
+
     Entity(
-        Handle<Mesh> &&mesh,
-        Handle<Shader> &&shader,
-        Handle<Material> &&material
+        Name,
+        Handle<Mesh> mesh,
+        Handle<Shader> shader,
+        Handle<Material> material
     );
 
     Entity(
-        Handle<Mesh> &&mesh,
-        Handle<Shader> &&shader,
-        Handle<Material> &&material,
+        Handle<Mesh> mesh,
+        Handle<Shader> shader,
+        Handle<Material> material
+    );
+
+    Entity(
+        Name,
+        Handle<Mesh> mesh,
+        Handle<Shader> shader,
+        Handle<Material> material,
+        const RenderableAttributeSet &renderable_attributes,
+        const InitInfo &init_info = {
+            InitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED
+            | InitInfo::Flags::ENTITY_FLAGS_HAS_BLAS
+            | InitInfo::Flags::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING
+        }
+    );
+
+    Entity(
+        Handle<Mesh> mesh,
+        Handle<Shader> shader,
+        Handle<Material> material,
         const RenderableAttributeSet &renderable_attributes,
         const InitInfo &init_info = {
             InitInfo::Flags::ENTITY_FLAGS_RAY_TESTS_ENABLED
@@ -200,7 +222,7 @@ public:
         { return m_local_aabb; }
 
     void SetLocalAABB(const BoundingBox &aabb)
-        { m_local_aabb = aabb; }
+        { m_local_aabb = aabb; UpdateWorldAABB(); }
 
     const BoundingBox &GetWorldAABB() const
         { return m_world_aabb; }
@@ -336,6 +358,8 @@ public:
     void AddToOctree(Octree &octree);
 
 private:
+    void UpdateWorldAABB(bool propagate_to_controllers = true);
+
     void UpdateControllers(GameCounter::TickUnit delta);
     
     void EnqueueRenderUpdates();

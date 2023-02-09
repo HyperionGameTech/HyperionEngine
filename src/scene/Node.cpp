@@ -527,11 +527,36 @@ const Handle<Entity> &Node::FindEntityWithID(ID<Entity> entity_id) const
         const Node *parent = queue.Pop();
 
         for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child) {
+            if (!child || !child.Get()->GetEntity()) {
                 continue;
             }
 
             if (child.GetEntity()->GetID() == entity_id) {
+                return child.GetEntity();
+            }
+
+            queue.Push(child.Get());
+        }
+    }
+
+    return Handle<Entity>::empty;
+}
+
+const Handle<Entity> &Node::FindEntityByName(Name name) const
+{
+    // breadth-first search
+    Queue<const Node *> queue;
+    queue.Push(this);
+
+    while (queue.Any()) {
+        const Node *parent = queue.Pop();
+
+        for (const NodeProxy &child : parent->GetChildren()) {
+            if (!child || !child.Get()->GetEntity()) {
+                continue;
+            }
+
+            if (child.GetEntity()->GetName() == name) {
                 return child.GetEntity();
             }
 

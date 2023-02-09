@@ -708,12 +708,12 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
 
     EnvProbeShaderData data {
         .face_view_matrices = {
-            ShaderMat4(GetViewMatrices()[0]),
-            ShaderMat4(GetViewMatrices()[1]),
-            ShaderMat4(GetViewMatrices()[2]),
-            ShaderMat4(GetViewMatrices()[3]),
-            ShaderMat4(GetViewMatrices()[4]),
-            ShaderMat4(GetViewMatrices()[5])
+            ShaderMat4(m_view_matrices[0]),
+            ShaderMat4(m_view_matrices[1]),
+            ShaderMat4(m_view_matrices[2]),
+            ShaderMat4(m_view_matrices[3]),
+            ShaderMat4(m_view_matrices[4]),
+            ShaderMat4(m_view_matrices[5])
         },
         .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
         .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),

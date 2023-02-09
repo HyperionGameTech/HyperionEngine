@@ -17,7 +17,6 @@
 #include <rendering/rt/AccelerationStructureBuilder.hpp>
 #include <rendering/rt/ProbeSystem.hpp>
 #include <rendering/post_fx/FXAA.hpp>
-#include <rendering/EnvGrid.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/AnimationController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
@@ -27,6 +26,7 @@
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/ShadowMapController.hpp>
+#include <scene/controllers/EnvGridController.hpp>
 #include <ui/controllers/UIButtonController.hpp>
 #include <ui/controllers/UIContainerController.hpp>
 #include <core/lib/FlatSet.hpp>
@@ -292,11 +292,17 @@ public:
         test_model.Scale(0.0125f);
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
-            m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
-                HYP_NAME(AmbientGrid0),
-                test_model.GetWorldAABB() * 1.01f,
-                Extent3D { 12, 3, 12 }
-            );
+            // m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
+            //     HYP_NAME(AmbientGrid0),
+            //     test_model.GetWorldAABB() * 1.01f,
+            //     Extent3D { 12, 3, 12 }
+            // );
+
+            auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
+            // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-10.0f, -3.0f, -10.0f), Vector3(10.0f, 10.0f, 10.0f)));
+            env_grid_entity->AddController<EnvGridController>();
+            GetScene()->AddEntity(std::move(env_grid_entity));
         }
 
         if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
@@ -605,6 +611,10 @@ public:
         m_ui.Update(delta);
 
         HandleCameraMovement(delta);
+
+        if (const Handle<Entity> &env_grid_entity = GetScene()->FindEntityByName(HYP_NAME(EnvGridEntity))) {
+            env_grid_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
+        }
 
         if (auto fbx_node = GetScene()->GetRoot().Select("monkey_fbx")) {
             if (auto body = fbx_node.Select("Models:Body")) {

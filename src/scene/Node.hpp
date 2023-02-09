@@ -2,6 +2,7 @@
 #define HYPERION_V2_NODE_H
 
 #include <core/Containers.hpp>
+#include <core/Name.hpp>
 #include <core/lib/String.hpp>
 #include <GameCounter.hpp>
 #include "Entity.hpp"
@@ -304,8 +305,10 @@ public:
 
     bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
-    /*! \brief Recursively search child nodes until a node with an Entity with the given ID is found. */
-    const Handle<Entity> &FindEntityWithID(ID<Entity> entity_id) const;
+    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
+    const Handle<Entity> &FindEntityWithID(ID<Entity>) const;
+    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given name is found. */
+    const Handle<Entity> &FindEntityByName(Name) const;
 
     HashCode GetHashCode() const
     {

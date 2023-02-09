@@ -57,43 +57,43 @@ void ImmediateMode::Create()
 
     RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
 
-    // m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
-    //     HYP_NAME(DebugAABB),
-    //     ShaderProperties(
-    //         renderer::static_mesh_vertex_attributes,
-    //         Array<String> { "IMMEDIATE_MODE" }
-    //     )
-    // );
+    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+        HYP_NAME(DebugAABB),
+        ShaderProperties(
+            renderer::static_mesh_vertex_attributes,
+            Array<String> { "IMMEDIATE_MODE" }
+        )
+    );
 
-    // Engine::Get()->InitObject(m_shader);
+    Engine::Get()->InitObject(m_shader);
 
-    // m_renderer_instance = Engine::Get()->CreateRenderGroup(
-    //     m_shader,
-    //     RenderableAttributeSet(
-    //         MeshAttributes {
-    //             .vertex_attributes = renderer::static_mesh_vertex_attributes
-    //         },
-    //         MaterialAttributes {
-    //             .bucket = Bucket::BUCKET_TRANSLUCENT,
-    //             .fill_mode = FillMode::LINE,
-    //             .blend_mode = BlendMode::NORMAL,
-    //             .cull_faces = FaceCullMode::NONE
-    //         }
-    //     ),
-    //     Array<const DescriptorSet *> {
-    //         m_descriptor_sets[0].Get(),
-    //         Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
-    //         Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
-    //     }
-    // );
+    m_renderer_instance = Engine::Get()->CreateRenderGroup(
+        m_shader,
+        RenderableAttributeSet(
+            MeshAttributes {
+                .vertex_attributes = renderer::static_mesh_vertex_attributes
+            },
+            MaterialAttributes {
+                .bucket = Bucket::BUCKET_TRANSLUCENT,
+                .fill_mode = FillMode::LINE,
+                .blend_mode = BlendMode::NORMAL,
+                .cull_faces = FaceCullMode::NONE
+            }
+        ),
+        Array<const DescriptorSet *> {
+            m_descriptor_sets[0].Get(),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
+            Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
+        }
+    );
     
-    // if (m_renderer_instance) {
-    //     Engine::Get()->GetDeferredSystem()
-    //         .Get(m_renderer_instance->GetRenderableAttributes().material_attributes.bucket)
-    //         .AddFramebuffersToPipeline(m_renderer_instance);
+    if (m_renderer_instance) {
+        Engine::Get()->GetDeferredSystem()
+            .Get(m_renderer_instance->GetRenderableAttributes().GetMaterialAttributes().bucket)
+            .AddFramebuffersToPipeline(m_renderer_instance);
 
-    //     Engine::Get()->InitObject(m_renderer_instance);
-    // }
+        Engine::Get()->InitObject(m_renderer_instance);
+    }
 }
 
 void ImmediateMode::Destroy()
@@ -110,6 +110,8 @@ void ImmediateMode::Destroy()
 
 void ImmediateMode::Render(Frame *frame)
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     if (m_num_draw_commands_pending_addition.load(std::memory_order_relaxed) != 0) {
         UpdateDrawCommands();
     }

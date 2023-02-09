@@ -21,11 +21,7 @@ public:
     EnvGrid &operator=(const EnvGrid &other) = delete;
     virtual ~EnvGrid();
 
-    const BoundingBox &GetAABB() const
-        { return m_aabb; }
-
-    void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; }
+    void SetCameraData(const BoundingBox &aabb);
 
     void Init();
     void InitGame(); // init on game thread
