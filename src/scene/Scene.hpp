@@ -8,6 +8,7 @@
 #include <core/Base.hpp>
 #include <core/Scheduler.hpp>
 #include <core/Containers.hpp>
+#include <core/Name.hpp>
 #include <rendering/rt/TLAS.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Shader.hpp>
@@ -102,7 +103,8 @@ public:
     /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
     bool RemoveEntityInternal(const Handle<Entity> &entity);
 
-    const Handle<Entity> &FindEntityWithID(ID<Entity> entity_id) const;
+    const Handle<Entity> &FindEntityWithID(ID<Entity>) const;
+    const Handle<Entity> &FindEntityByName(Name) const;
 
     bool AddLight(Handle<Light> &&light);
     bool AddLight(const Handle<Light> &light);

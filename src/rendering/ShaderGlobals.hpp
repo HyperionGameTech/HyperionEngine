@@ -15,9 +15,7 @@
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
-#include <memory>
 #include <utility>
-#include <string>
 
 namespace hyperion::v2 {
 
@@ -41,6 +39,9 @@ struct GlobalSphericalHarmonicsGrid
     };
 
     FixedArray<GridTexture, 9> textures;
+
+    GPUBufferRef sh_grid_buffer;
+    FixedArray<GridTexture, 9> clipmaps;
 
     GlobalSphericalHarmonicsGrid();
 

@@ -240,8 +240,8 @@ void VoxelConeTracing::OnRender(Frame *frame)
                 command_buffer,
                 Pipeline::PushConstantData {
                     .voxel_mip_data = {
-                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vector(mip_extent, 1.0f)),
-                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vector(prev_mip_extent, 1.0f)),
+                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(mip_extent), 0),
+                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(prev_mip_extent), 0),
                         .mip_level = mip_level
                     }
                 }

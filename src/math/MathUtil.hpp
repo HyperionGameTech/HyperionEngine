@@ -22,7 +22,7 @@
 
 namespace hyperion {
 
-static inline Vector2 Vector(float x, float y)
+static inline Vector2 Vector(Float x, Float y)
 {
     return { x, y };
 }
@@ -32,7 +32,7 @@ static inline Vector2 Vector(const Vector2 &vec)
     return Vector2(vec);
 }
 
-static inline Vector3 Vector(float x, float y, float z)
+static inline Vector3 Vector(Float x, Float y, Float z)
 {
     return { x, y, z };
 }
@@ -42,12 +42,12 @@ static inline Vector3 Vector(const Vector3 &vec)
     return Vector3(vec);
 }
 
-static inline Vector3 Vector(const Vector2 &xy, float z)
+static inline Vector3 Vector(const Vector2 &xy, Float z)
 {
     return Vector3(xy.x, xy.y, z);
 }
 
-static inline Vector4 Vector(float x, float y, float z, float w)
+static inline Vector4 Vector(Float x, Float y, Float z, Float w)
 {
     return { x, y, z, w };
 }
@@ -62,20 +62,18 @@ static inline Vector4 Vector(const Vector2 &xy, const Vector2 &zw)
     return Vector4(xy.x, xy.y, zw.x, zw.y);
 }
 
-static inline Vector4 Vector(const Vector2 &xy, float z, float w)
+static inline Vector4 Vector(const Vector2 &xy, Float z, Float w)
 {
     return Vector4(xy.x, xy.y, z, w);
 }
 
-static inline Vector4 Vector(const Vector3 &xyz, float w)
+static inline Vector4 Vector(const Vector3 &xyz, Float w)
 {
     return Vector4(xyz.x, xyz.y, xyz.z, w);
 }
 
 template <class T>
-constexpr bool is_math_vector_v = std::is_base_of_v<T, Vector2>
-   || std::is_base_of_v<T, Vector3>
-   || std::is_base_of_v<T, Vector4>;
+constexpr bool is_math_vector_v = is_vec2<T> || is_vec3<T> || is_vec4<T>;
 
 class MathUtil
 {
@@ -272,12 +270,28 @@ public:
 
     template <class T>
     static T Exp(T a) { return T(std::exp(a)); }
+
+    template <class T>
+    static constexpr T Mod(T a, T b)
+        { return (a % b + b) % b; }
     
     template <class T>
-    static constexpr HYP_ENABLE_IF(!std::is_floating_point_v<T>, T) Abs(T a) { return std::abs(a); }
+    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, T) Abs(T a)
+        { return a > T(0) ? a : -a; }
     
     template <class T>
-    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Abs(T a) { return std::fabs(a); }
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, T) Abs(const T &a)
+    {
+        using VectorScalarType = NormalizedType<decltype(T::values[0])>;
+
+        T result { }; /* doesn't need initialization but gets rid of annoying warnings */
+
+        for (SizeType i = 0; i < std::size(result.values); i++) {
+            result.values[i] = VectorScalarType(Abs<VectorScalarType>(a.values[i]));
+        }
+
+        return result;
+    }
 
     template <class T, class U = T>
     static HYP_ENABLE_IF(!is_math_vector_v<T>, U) Round(T a) { return U(std::round(a)); }

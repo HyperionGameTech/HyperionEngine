@@ -86,6 +86,18 @@ public:
     HYP_FORCE_INLINE
     T Decrement(T amount, MemoryOrder order)
         { return m_value.fetch_sub(amount, containers::detail::ToCxxMemoryOrder(order)); }
+
+    HYP_FORCE_INLINE
+    T BitOr(T value, MemoryOrder order)
+        { return m_value.fetch_or(value, containers::detail::ToCxxMemoryOrder(order)); }
+
+    HYP_FORCE_INLINE
+    T BitAnd(T value, MemoryOrder order)
+        { return m_value.fetch_and(value, containers::detail::ToCxxMemoryOrder(order)); }
+
+    HYP_FORCE_INLINE
+    T BitXor(T value, MemoryOrder order)
+        { return m_value.fetch_xor(value, containers::detail::ToCxxMemoryOrder(order)); }
 };
 
 } // namespace hyperion

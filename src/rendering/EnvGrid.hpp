@@ -2,6 +2,7 @@
 #define HYPERION_V2_ENV_GRID_HPP
 
 #include <core/Base.hpp>
+#include <core/lib/AtomicVar.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
@@ -11,9 +12,21 @@ namespace hyperion::v2 {
 
 class Entity;
 
+using EnvGridFlags = UInt32;
+
+enum EnvGridFlagBits : EnvGridFlags
+{
+    ENV_GRID_FLAGS_NONE            = 0x0,
+    ENV_GRID_FLAGS_RESET_REQUESTED = 0x1
+};
+
+struct RenderCommand_UpdateEnvProbeAABBsInGrid;
+
 class EnvGrid : public RenderComponent<EnvGrid>
 {
 public:
+    friend struct RenderCommand_UpdateEnvProbeAABBsInGrid;
+
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_ENV_GRID;
 
     EnvGrid(const BoundingBox &aabb, const Extent3D &density);
@@ -21,11 +34,7 @@ public:
     EnvGrid &operator=(const EnvGrid &other) = delete;
     virtual ~EnvGrid();
 
-    const BoundingBox &GetAABB() const
-        { return m_aabb; }
-
-    void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; }
+    void SetCameraData(const Vector3 &camera_position);
 
     void Init();
     void InitGame(); // init on game thread
@@ -40,9 +49,20 @@ private:
     void CreateShader();
     void CreateFramebuffer();
 
+    void CreateSHData();
+    void CreateSHClipmapData();
+    void ComputeClipmaps(Frame *frame);
+
     void RenderEnvProbe(
         Frame *frame,
-        Handle<EnvProbe> &probe
+        UInt32 probe_index
+    );
+
+    void ComputeSH(
+        Frame *frame,
+        const Image *image,
+        const ImageView *image_view,
+        UInt32 probe_index
     );
 
     BoundingBox m_aabb;
@@ -56,9 +76,23 @@ private:
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     
     Array<Handle<EnvProbe>> m_ambient_probes;
+    Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
+
+    Handle<ComputePipeline> m_compute_clipmaps;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;
 
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;
+
+    AtomicVar<EnvGridFlags> m_flags;
+
+    Handle<ComputePipeline> m_compute_sh;
+    Handle<ComputePipeline> m_clear_sh;
+    Handle<ComputePipeline> m_finalize_sh;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_sh_descriptor_sets;
+    GPUBufferRef m_sh_tiles_buffer;
+
+    Queue<UInt> m_next_render_indices;
 };
 
 } // namespace hyperion::v2

@@ -20,7 +20,7 @@ using renderer::StorageImage;
 using renderer::Image;
 using renderer::ImageView;
 using renderer::Frame;
-using renderer::Extent2D;
+;
 using renderer::Result;
 
 class Engine;

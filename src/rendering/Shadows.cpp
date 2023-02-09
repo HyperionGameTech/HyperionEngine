@@ -464,6 +464,8 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
     Threads::AssertOnThread(THREAD_GAME);
 
     AssertThrow(m_shadow_pass != nullptr);
+    AssertThrow(m_shadow_pass->GetCamera().IsValid());
+    AssertThrow(m_shadow_pass->GetShader().IsValid());
 
     m_shadow_pass->GetCamera()->Update(delta);
 
@@ -474,7 +476,7 @@ void ShadowMapRenderer::OnUpdate(GameCounter::TickUnit delta)
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
-                .bucket = BUCKET_SHADOW,
+                .bucket = BUCKET_INTERNAL,
                 .cull_faces = m_shadow_pass->GetShadowMode() == ShadowMode::VSM
                     ? FaceCullMode::BACK
                     : FaceCullMode::FRONT

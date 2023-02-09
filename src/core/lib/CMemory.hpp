@@ -56,7 +56,9 @@ public:
         return std::strlen(str);
     }
 
-    static inline void *Set(void *dest, int ch, SizeType size)
+    /*! \brief Alias for memset. Takes in a UByte (unsigned char) as value,
+        To signify that only the lowest byte is copied over. */
+    static inline void *Set(void *dest, UByte ch, SizeType size)
     {
         return std::memset(dest, ch, size);
     }

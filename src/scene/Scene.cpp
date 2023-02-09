@@ -468,6 +468,14 @@ const Handle<Entity> &Scene::FindEntityWithID(ID<Entity> entity_id) const
     return m_root_node_proxy.Get()->FindEntityWithID(entity_id);
 }
 
+const Handle<Entity> &Scene::FindEntityByName(Name name) const
+{
+    Threads::AssertOnThread(THREAD_GAME);
+
+    AssertThrow(m_root_node_proxy);
+    return m_root_node_proxy.Get()->FindEntityByName(name);
+}
+
 bool Scene::AddLight(Handle<Light> &&light)
 {
     Threads::AssertOnThread(THREAD_GAME);

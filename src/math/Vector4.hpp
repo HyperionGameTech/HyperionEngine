@@ -119,6 +119,12 @@ public:
 
 static_assert(sizeof(Vector4) == sizeof(float) * 4, "sizeof(Vector4) must be equal to sizeof(float) * 4");
 
+template <class T>
+inline constexpr bool is_vec4 = false;
+
+template <>
+inline constexpr bool is_vec4<Vector4> = true;
+
 } // namespace hyperion
 
 HYP_DEF_STL_HASH(hyperion::Vector4);

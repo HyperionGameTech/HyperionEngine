@@ -115,6 +115,19 @@ BoundingBox &BoundingBox::operator/=(Float scalar)
     return *this;
 }
 
+BoundingBox BoundingBox::operator+(const Vector3 &scale) const
+{
+    return BoundingBox(min + scale, max + scale);
+}
+
+BoundingBox &BoundingBox::operator+=(const Vector3 &scale)
+{
+    min += scale;
+    max += scale;
+
+    return *this;
+}
+
 BoundingBox BoundingBox::operator/(const Vector3 &scale) const
 {
     return BoundingBox(min / scale, max / scale);

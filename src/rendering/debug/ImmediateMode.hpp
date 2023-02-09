@@ -68,7 +68,7 @@ class DebugDrawCommandList
     DebugDrawCommandList &operator=(const DebugDrawCommandList &other) = delete;
 
 public:
-    void Sphere(const Vector3 &position, Float radius = 1.0f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
+    void Sphere(const Vector3 &position, Float radius = 0.15f, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Box(const Vector3 &position, const Vector3 &size = Vector3::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
     void Plane(const Vector3 &position, const Vector2 &size = Vector2::one, Color color = Color(0.0f, 1.0f, 0.0f, 1.0f));
 

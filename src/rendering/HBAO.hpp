@@ -15,7 +15,7 @@ namespace hyperion::v2 {
 using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Frame;
-using renderer::Extent2D;
+;
 using renderer::Result;
 
 class Engine;

@@ -211,7 +211,7 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
     AssertThrow(remaining_bytes < 64);
 
     void *zeros = alloca(remaining_bytes);
-    Memory::Set(zeros, 0x00, remaining_bytes);
+    Memory::Set(zeros, 0, remaining_bytes);
 
     out->Write(zeros, remaining_bytes);
     

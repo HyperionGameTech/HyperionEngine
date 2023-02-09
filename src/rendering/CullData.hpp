@@ -12,7 +12,6 @@
 namespace hyperion::v2 {
 
 using renderer::ImageView;
-using renderer::Extent3D;
 
 struct CullData
 {

@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_ENV_PROBE_HPP
 #define HYPERION_V2_ENV_PROBE_HPP
 
+#include <HashCode.hpp>
 #include <core/Base.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/AtomicVar.hpp>
@@ -40,6 +41,8 @@ enum EnvProbeType : UInt
 };
 
 class EnvProbe;
+
+#define ENV_PROBE_STATIC_INDEX
 
 struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : RenderCommand
 {
@@ -104,6 +107,14 @@ struct EnvProbeIndex
 
     bool operator!=(const EnvProbeIndex &other) const
         { return GetProbeIndex() != other.GetProbeIndex(); }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(GetProbeIndex());
+
+        return hc;
+    }
 };
 
 class EnvProbe
@@ -114,6 +125,14 @@ class EnvProbe
 public:
     friend struct RenderCommand_UpdateEnvProbeDrawProxy;
     friend struct RenderCommand_DestroyCubemapRenderPass;
+
+    static void UpdateEnvProbeShaderData(
+        ID<EnvProbe> id,
+        const EnvProbeDrawProxy &proxy,
+        UInt32 texture_slot = ~0u,
+        UInt32 grid_slot = ~0u,
+        Extent3D grid_size = Extent3D { 0, 0, 0 }
+    );
     
     EnvProbe(
         const Handle<Scene> &parent_scene,
@@ -154,7 +173,13 @@ public:
         { return m_aabb; }
 
     void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; SetNeedsUpdate(true); }
+    {
+        if (m_aabb != aabb) {
+            m_aabb = aabb;
+
+            SetNeedsUpdate(true);
+        }
+    }
 
     Handle<Texture> &GetTexture()
         { return m_texture; }
@@ -171,15 +196,15 @@ public:
     void SetNeedsRender(bool needs_render)
     {
         if (needs_render) {
-            m_needs_render_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_needs_render_counter.Set(1, MemoryOrder::ACQUIRE_RELEASE);
         } else {
-            m_needs_render_counter.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_needs_render_counter.Set(0, MemoryOrder::ACQUIRE_RELEASE);
         }
     }
 
     bool NeedsRender() const
     {
-        const UInt16 counter = m_needs_render_counter.Get(MemoryOrder::ACQUIRE);
+        const UInt8 counter = m_needs_render_counter.Get(MemoryOrder::ACQUIRE);
 
         return counter != 0;
     }
@@ -193,7 +218,11 @@ public:
 
     void ComputeSH(Frame *frame, const Image *image, const ImageView *image_view);
 
+    void UpdateRenderData(bool set_texture = false);
     void UpdateRenderData(const EnvProbeIndex &probe_index);
+
+    UInt32 m_temp_render_frame_id = 0;
+    UInt32 m_grid_slot = ~0u; // temp
     
 private:
     void CreateShader();
@@ -227,11 +256,13 @@ private:
     FixedArray<Matrix4, 6> m_view_matrices;
 
     EnvProbeIndex m_bound_index;
+    // EnvProbeIndex m_last_rendered_index;
 
     bool m_needs_update;
     AtomicVar<Bool> m_is_rendered;
-    AtomicVar<UInt16> m_needs_render_counter;
+    AtomicVar<UInt8> m_needs_render_counter;
     HashCode m_octant_hash_code;
+
 };
 
 } // namespace hyperion::v2

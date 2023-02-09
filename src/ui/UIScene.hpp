@@ -29,7 +29,7 @@ class InputManager;
 
 namespace hyperion::v2 {
 
-using renderer::Extent2D;
+;
 
 class UIScene : public EngineComponentBase<STUB_CLASS(UIScene)>
 {

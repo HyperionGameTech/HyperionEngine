@@ -105,7 +105,7 @@ public:
         Memory::Copy(&m_push_constant_data, ptr, size);
 
         if (size < sizeof(m_push_constant_data)) {
-            Memory::Set(&m_push_constant_data + size, 0x00, sizeof(m_push_constant_data) - size);
+            Memory::Set(&m_push_constant_data + size, 0, sizeof(m_push_constant_data) - size);
         }
     }
 

@@ -5,25 +5,25 @@
 namespace hyperion::v2 {
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(
-          renderer::Extent2D(1, 1),
+          Extent2D(1, 1),
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
       ),
       m_image_3d_1x1x1_r8(
-          renderer::Extent3D(1, 1, 1),
+          Extent3D(1, 1, 1),
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr
       ),
       m_image_3d_1x1x1_r8_storage(
-          renderer::Extent3D(1, 1, 1),
+          Extent3D(1, 1, 1),
           InternalFormat::R8,
           ImageType::TEXTURE_TYPE_3D,
           FilterMode::TEXTURE_FILTER_NEAREST
       ),
       m_image_cube_1x1_r8(
-          renderer::Extent2D(1, 1),
+          Extent2D(1, 1),
           renderer::InternalFormat::R8,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           nullptr

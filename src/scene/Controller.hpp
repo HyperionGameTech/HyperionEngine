@@ -107,8 +107,21 @@ public:
     virtual void OnDetachedFromScene(ID<Scene> id) {}
     virtual void OnAttachedToScene(ID<Scene> id) {}
 
-    virtual void Serialize(fbom::FBOMObject &out) const { }// = 0;
-    virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in) { return fbom::FBOMResult::FBOM_OK; }//= 0;
+    virtual void Serialize(fbom::FBOMObject &out) const
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(false, "Serialize() not implemented for controller!");
+#endif
+    }
+
+    virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in)
+    {
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(false, "Deserialize() not implemented for controller!");
+#endif
+
+        return fbom::FBOMResult::FBOM_OK;
+    }
 
 protected:
     bool CreateScriptedObjects();

@@ -47,6 +47,7 @@ using renderer::ShaderVec4;
 using renderer::ShaderMat4;
 
 static constexpr SizeType max_entities_per_instance_batch = 60;
+static constexpr SizeType max_probes_in_sh_grid_buffer = max_bound_ambient_probes;
 
 struct alignas(256) EntityInstanceBatch
 {
@@ -182,10 +183,14 @@ struct alignas(256) EnvGridShaderData
 
     ShaderVec4<Float> center;
     ShaderVec4<Float> extent;
+    ShaderVec4<Float> aabb_max;
+    ShaderVec4<Float> aabb_min;
+
     ShaderVec4<UInt32> density;
     ShaderVec4<UInt32> enabled_indices_mask;
 
-    ShaderMat4 _pad3;
+    ShaderVec4<Float> _pad0;
+    ShaderVec4<Float> _pad1;
 };
 
 static_assert(sizeof(EnvGridShaderData) == 4352);
@@ -220,8 +225,8 @@ struct alignas(256) EnvProbeShaderData
     ShaderVec2<UInt32> dimensions;
     ShaderVec2<UInt32> _pad2;
 
-    ShaderVec4<UInt32> _pad3;
-    ShaderVec4<UInt32> _pad4;
+    ShaderVec4<Int32> position_in_grid;
+    ShaderVec4<Int32> position_offset;
     ShaderVec4<UInt32> _pad5;
 };
 
@@ -279,6 +284,20 @@ struct alignas(256) SH9Buffer
 };
 
 static_assert(sizeof(SH9Buffer) == 256);
+
+struct alignas(256) SHGridBuffer
+{
+    ShaderVec4<Float> values[max_probes_in_sh_grid_buffer * ((9 + 4 - 1) / 4)];
+};
+
+static_assert(sizeof(SHGridBuffer) == 49152);
+
+struct alignas(16) SHTile
+{
+    ShaderVec4<Float> coeffs_weights[9];
+};
+
+static_assert(sizeof(SHTile) == 144);
 
 struct alignas(16) VoxelUniforms
 {
@@ -533,6 +552,15 @@ private:
             
             staging_object.objects[index] = value;
             staging_object.MarkDirty(index);
+        }
+
+        const StructType &Get(SizeType index)
+        {
+            AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
+
+            auto &staging_object = buffers[0];
+            
+            return staging_object.objects[index];
         }
 
         void MarkDirty(SizeType index)

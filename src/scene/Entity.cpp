@@ -14,6 +14,8 @@ namespace hyperion::v2 {
 
 class Entity;
 
+#pragma region Render commands
+
 struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
 {
     Entity *entity;
@@ -56,6 +58,8 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
     }
 };
 
+#pragma endregion
+
 Entity::Entity()
   : Entity(
         Handle<Mesh>(),
@@ -65,10 +69,20 @@ Entity::Entity()
 {
 }
 
+Entity::Entity(Name name)
+  : Entity(
+        name,
+        Handle<Mesh>(),
+        Handle<Shader>(),
+        Handle<Material>()
+    )
+{
+}
+
 Entity::Entity(
-    Handle<Mesh> &&mesh,
-    Handle<Shader> &&shader,
-    Handle<Material> &&material
+    Handle<Mesh> mesh,
+    Handle<Shader> shader,
+    Handle<Material> material
 ) : Entity(
         std::move(mesh),
         std::move(shader),
@@ -80,12 +94,46 @@ Entity::Entity(
 }
 
 Entity::Entity(
-    Handle<Mesh> &&mesh,
-    Handle<Shader> &&shader,
-    Handle<Material> &&material,
+    Name name,
+    Handle<Mesh> mesh,
+    Handle<Shader> shader,
+    Handle<Material> material
+) : Entity(
+        name,
+        std::move(mesh),
+        std::move(shader),
+        std::move(material),
+        {},
+        {}
+    )
+{
+}
+
+Entity::Entity(
+    Handle<Mesh> mesh,
+    Handle<Shader> shader,
+    Handle<Material> material,
     const RenderableAttributeSet &renderable_attributes,
     const InitInfo &init_info
-) : EngineComponentBase(init_info),
+) : Entity(
+        Name::invalid,
+        std::move(mesh),
+        std::move(shader),
+        std::move(material),
+        renderable_attributes,
+        init_info
+    )
+{
+}
+
+Entity::Entity(
+    Name name,
+    Handle<Mesh> mesh,
+    Handle<Shader> shader,
+    Handle<Material> material,
+    const RenderableAttributeSet &renderable_attributes,
+    const InitInfo &init_info
+) : EngineComponentBase(name, init_info),
     HasDrawProxy(),
     m_mesh(std::move(mesh)),
     m_shader(std::move(shader)),
@@ -141,15 +189,8 @@ void Entity::Init()
     // set our aabb to be the mesh aabb now that it is init
     if (InitObject(m_mesh)) {
         m_local_aabb = m_mesh->CalculateAABB();
-        m_world_aabb = BoundingBox::empty;
         
-        if (!m_local_aabb.Empty()) {
-            for (const auto &corner : m_local_aabb.GetCorners()) {
-                m_world_aabb.Extend(m_transform.GetMatrix() * corner);
-            }
-        }
-
-        m_needs_octree_update = true;
+        UpdateWorldAABB(false);
     }
 
     RebuildRenderableAttributes();
@@ -627,6 +668,15 @@ void Entity::SetTransform(const Transform &transform)
     m_transform = transform;
     m_shader_data_state |= ShaderDataState::DIRTY;
     
+    UpdateWorldAABB();
+
+    if (IsInitCalled() && m_blas.IsValid()) {
+        m_blas->SetTransform(m_transform);
+    } 
+}
+
+void Entity::UpdateWorldAABB(bool propagate_to_controllers)
+{
     m_world_aabb = BoundingBox::empty;
     
     if (!m_local_aabb.Empty()) {
@@ -635,19 +685,13 @@ void Entity::SetTransform(const Transform &transform)
         }
     }
 
-    for (auto &it : m_controllers) {
-        it.second->OnTransformUpdate(m_transform);
+    if (propagate_to_controllers) {
+        for (auto &it : m_controllers) {
+            it.second->OnTransformUpdate(m_transform);
+        }
     }
 
-    //for (Node *node : m_nodes) {
-    //     node->SetWorldTransform(transform, false)
-   // }
-
     UpdateOctree();
-
-    if (IsInitCalled() && m_blas.IsValid()) {
-        m_blas->SetTransform(m_transform);
-    } 
 }
 
 void Entity::OnAddedToOctree(Octree *octree)

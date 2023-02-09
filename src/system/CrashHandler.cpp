@@ -181,6 +181,8 @@ void CrashHandler::HandleGPUCrash(Result result)
         return;
     }
 
+    DebugLog(LogType::Error, "GPU Crash Detected!\n");
+
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
     GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
     AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);

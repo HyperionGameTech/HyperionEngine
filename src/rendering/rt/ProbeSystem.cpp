@@ -324,16 +324,38 @@ void ProbeGrid::CreateUniformBuffer()
 {
     m_uniform_buffer = RenderObjects::Make<GPUBuffer>(UniformBuffer());
 
+    const Extent2D grid_image_dimensions = m_grid_info.GetImageDimensions();
+    const Extent3D num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
+
     PUSH_RENDER_COMMAND(
         CreateProbeGridUniformBuffer,
         m_uniform_buffer,
         ProbeSystemUniforms {
             .aabb_max = Vector4(m_grid_info.aabb.max, 1.0f),
             .aabb_min = Vector4(m_grid_info.aabb.min, 1.0f),
-            .probe_border = Vector4(m_grid_info.probe_border, 0.0f),
-            .probe_counts = Vector4(m_grid_info.NumProbesPerDimension(), 0.0f),
-            .grid_dimensions = Vector4(m_grid_info.GetImageDimensions(), 0.0f, 0.0f),
-            .image_dimensions = Vector4(Extent2D(m_irradiance_image->GetExtent()), Extent2D(m_depth_image->GetExtent())),
+            .probe_border = {
+                m_grid_info.probe_border.width,
+                m_grid_info.probe_border.height,
+                m_grid_info.probe_border.depth,
+                0
+            },
+            .probe_counts = {
+                num_probes_per_dimension.width,
+                num_probes_per_dimension.height,
+                num_probes_per_dimension.depth,
+                0
+            },
+            .grid_dimensions = {
+                grid_image_dimensions.width,
+                grid_image_dimensions.height,
+                0, 0
+            },
+            .image_dimensions = {
+                m_irradiance_image->GetExtent().width,
+                m_irradiance_image->GetExtent().height,
+                m_depth_image->GetExtent().width,
+                m_depth_image->GetExtent().height
+            },
             .params = Vector4(m_grid_info.probe_distance, static_cast<Float>(m_grid_info.num_rays_per_probe), 0.0f, 0.0f)
         }
     );

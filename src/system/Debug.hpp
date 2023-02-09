@@ -64,7 +64,7 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
 
 
 #define AssertThrow(cond)                      AssertOrElse(LogType::Error, cond, HYP_THROW("Assertion failed"))
-#define AssertSoft(cond)                       AssertOrElse(LogType::Warn, cond, return)
+#define AssertSoft(cond)                       AssertOrElse(LogType::Warn, cond, (void)0)
 #define AssertReturn(cond, value)              AssertOrElse(LogType::Warn, cond, return (value))
 #define AssertBreak(cond)                      AssertOrElse(LogType::Warn, cond, break)
 #define AssertContinue(cond)                   AssertOrElse(LogType::Warn, cond, continue)
@@ -86,7 +86,7 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     } while (0)
 
 #define AssertThrowMsg(cond, msg, ...)         AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg, __VA_ARGS__)
-#define AssertSoftMsg(cond, msg, ...)          AssertOrElseMsg(LogType::Warn, cond, return, msg, __VA_ARGS__)
+#define AssertSoftMsg(cond, msg, ...)          AssertOrElseMsg(LogType::Warn, cond, (void)0, msg, __VA_ARGS__)
 #define AssertReturnMsg(cond, value, msg, ...) AssertOrElseMsg(LogType::Warn, cond, return value, msg, __VA_ARGS__)
 #define AssertBreakMsg(cond, msg, ...)         AssertOrElseMsg(LogType::Warn, cond, break, msg, __VA_ARGS__)
 #define AssertContinueMsg(cond, msg, ...)      AssertOrElseMsg(LogType::Warn, cond, continue, msg, __VA_ARGS__)
@@ -107,7 +107,7 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     } while (0)
 
 #define AssertThrowMsg(cond, msg, ...)              AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg __VA_OPT__(,) __VA_ARGS__)
-#define AssertSoftMsg(cond, msg, ...)               AssertOrElseMsg(LogType::Warn, cond, return, msg __VA_OPT__(,) __VA_ARGS__)
+#define AssertSoftMsg(cond, msg, ...)               AssertOrElseMsg(LogType::Warn, cond, (void)0, msg __VA_OPT__(,) __VA_ARGS__)
 #define AssertReturnMsg(cond, value, msg, ...)      AssertOrElseMsg(LogType::Warn, cond, return value, msg __VA_OPT__(,) __VA_ARGS__)
 #define AssertBreakMsg(cond, msg, ...)              AssertOrElseMsg(LogType::Warn, cond, break, msg __VA_OPT__(,) __VA_ARGS__)
 #define AssertContinueMsg(cond, msg, ...)           AssertOrElseMsg(LogType::Warn, cond, continue, msg __VA_OPT__(,) __VA_ARGS__)

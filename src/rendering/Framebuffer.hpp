@@ -11,8 +11,7 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::Extent2D;
-using renderer::Extent3D;
+;
 using renderer::AttachmentUsage;
 using renderer::Attachment;
 using renderer::RenderPass;

@@ -25,8 +25,7 @@ using renderer::TextureImage;
 using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;
-using renderer::Extent2D;
-using renderer::Extent3D;
+;
 using renderer::CommandBuffer;
 
 class Texture

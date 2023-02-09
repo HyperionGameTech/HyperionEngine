@@ -20,7 +20,6 @@ using renderer::Sampler;
 using renderer::Device;
 using renderer::DescriptorSet;
 using renderer::AttachmentUsage;
-using renderer::Extent3D;
 
 class DepthPyramidRenderer
 {

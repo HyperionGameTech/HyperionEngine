@@ -16,6 +16,114 @@ namespace hyperion {
 
 class Vector4;
 
+template <class T>
+struct alignas(alignof(T) * 2) Vec2
+{
+    static constexpr UInt size = 2;
+
+    using Type = T;
+
+    union {
+        struct { T x, y; };
+        T values[2];
+    };
+
+    constexpr Vec2() : x(0), y(0) { }
+    constexpr Vec2(T x, T y) : x(x), y(y) { }
+    constexpr Vec2(const Vec2 &other) = default;
+    constexpr Vec2 &operator=(const Vec2 &other) = default;
+    constexpr Vec2(Vec2 &&other) noexcept = default;
+    constexpr Vec2 &operator=(Vec2 &&other) noexcept = default;
+    ~Vec2() = default;
+
+    constexpr T &operator[](SizeType index)
+        { return values[index]; }
+
+    constexpr T operator[](SizeType index) const
+        { return values[index]; }
+
+    constexpr Vec2 operator+(const Vec2 &other) const
+        { return { x + other.x, y + other.y }; }
+
+    Vec2 &operator+=(const Vec2 &other)
+        { x += other.x; y += other.y; return *this; }
+
+    constexpr Vec2 operator-(const Vec2 &other) const
+        { return { x - other.x, y - other.y }; }
+
+    Vec2 &operator-=(const Vec2 &other)
+        { x -= other.x; y -= other.y; return *this; }
+
+    constexpr Vec2 operator*(const Vec2 &other) const
+        { return { x * other.x, y * other.y }; }
+
+    Vec2 &operator*=(const Vec2 &other)
+        { x *= other.x; y *= other.y; return *this; }
+
+    constexpr Vec2 operator/(const Vec2 &other) const
+        { return { x / other.x, y / other.y }; }
+
+    Vec2 &operator/=(const Vec2 &other)
+        { x /= other.x; y /= other.y; return *this; }
+
+    constexpr Vec2 operator%(const Vec2 &other) const
+        { return { x % other.x, y % other.y }; }
+
+    Vec2 &operator%=(const Vec2 &other)
+        { x %= other.x; y %= other.y; return *this; }
+
+    constexpr Vec2 operator&(const Vec2 &other) const
+        { return { x & other.x, y & other.y }; }
+
+    Vec2 &operator&=(const Vec2 &other)
+        { x &= other.x; y &= other.y; return *this; }
+
+    constexpr Vec2 operator|(const Vec2 &other) const
+        { return { x | other.x, y | other.y }; }
+
+    Vec2 &operator|=(const Vec2 &other)
+        { x |= other.x; y |= other.y; return *this; }
+
+    constexpr Vec2 operator^(const Vec2 &other) const
+        { return { x ^ other.x, y ^ other.y }; }
+
+    Vec2 &operator^=(const Vec2 &other)
+        { x ^= other.x; y ^= other.y; return *this; }
+
+    constexpr bool operator==(const Vec2 &other) const
+        { return x == other.x && y == other.y; }
+
+    constexpr bool operator!=(const Vec2 &other) const
+        { return x != other.x || y != other.y; }
+
+    constexpr Vec2 operator-() const
+        { return operator*(T(-1)); }
+
+    template <class Ty>
+    constexpr explicit operator Vec2<Ty>() const
+    {
+        return {
+            static_cast<Ty>(x),
+            static_cast<Ty>(y)
+        };
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(x);
+
+        return hc;
+    }
+};
+
+using Vec2i = Vec2<Int32>;
+using Vec2u = Vec2<UInt32>;
+
+static_assert(sizeof(Vec2i) == 8);
+static_assert(sizeof(Vec2u) == 8);
+
 class Vector2
 {
     friend std::ostream &operator<<(std::ostream &out, const Vector2 &vec);
@@ -110,6 +218,18 @@ public:
 };
 
 static_assert(sizeof(Vector2) == sizeof(float) * 2, "sizeof(Vector2) must be equal to sizeof(float) * 2");
+
+template <class T>
+inline constexpr bool is_vec2 = false;
+
+template <>
+inline constexpr bool is_vec2<Vector2> = true;
+
+template <>
+inline constexpr bool is_vec2<Vec2i> = true;
+
+template <>
+inline constexpr bool is_vec2<Vec2u> = true;
 
 } // namespace hyperion
 

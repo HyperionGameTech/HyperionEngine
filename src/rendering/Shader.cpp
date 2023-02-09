@@ -61,6 +61,26 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
+{
+    GPUBufferRef sh_grid_buffer;
+    
+    RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer)(GPUBufferRef sh_grid_buffer)
+        : sh_grid_buffer(std::move(sh_grid_buffer))
+    {
+        AssertThrow(this->sh_grid_buffer.IsValid());
+    }
+
+    virtual Result operator()()
+    {
+        // @TODO: Make GPU only
+        sh_grid_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer));
+        sh_grid_buffer->Memset(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer), 0);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
 {
     FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
@@ -81,39 +101,95 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : RenderCommand
+{
+    FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
+    
+    RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps)(const FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> &grid_textures)
+        : grid_textures(grid_textures)
+    {
+    }
+
+    virtual Result operator()()
+    {
+        for (auto &item : grid_textures) {
+            HYPERION_BUBBLE_ERRORS(item.image->Create(Engine::Get()->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(item.image_view->Create(Engine::Get()->GetGPUDevice(), item.image));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion
 
 GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 {
-    const UInt dimension_cube = 32;
-    const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
-
-    UByte *empty_image_bytes = new UByte[image_dimensions.Size() * sizeof(Float) * 4];
-    Memory::Set(empty_image_bytes, 0, image_dimensions.Size() * sizeof(Float) * 4);
-
-    for (auto &item : textures) {
-        item.image = RenderObjects::Make<Image>(StorageImage(
-            image_dimensions,
-            InternalFormat::RGBA16F,
-            ImageType::TEXTURE_TYPE_3D,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            empty_image_bytes
-        ));
-
-        item.image_view = RenderObjects::Make<ImageView>();
+    {
+        sh_grid_buffer = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
     }
 
-    delete[] empty_image_bytes;
+    {
+        const UInt dimension_cube = 32;//UInt(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
+        const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
+
+        UByte *empty_image_bytes = new UByte[image_dimensions.Size() * sizeof(Float) * 4];
+        Memory::Set(empty_image_bytes, 0, image_dimensions.Size() * sizeof(Float) * 4);
+
+        for (auto &item : textures) {
+            item.image = RenderObjects::Make<Image>(StorageImage(
+                image_dimensions,
+                InternalFormat::RGBA16F,
+                ImageType::TEXTURE_TYPE_3D,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                empty_image_bytes
+            ));
+
+            item.image_view = RenderObjects::Make<ImageView>();
+        }
+
+        delete[] empty_image_bytes;
+    }
+
+    { // clipmaps
+        const Extent3D image_dimensions { 32, 32, 32 };
+
+        UByte *empty_image_bytes = new UByte[image_dimensions.Size() * sizeof(Float) * 4];
+        Memory::Set(empty_image_bytes, 0, image_dimensions.Size() * sizeof(Float) * 4);
+
+        for (auto &item : clipmaps) {
+            item.image = RenderObjects::Make<Image>(StorageImage(
+                image_dimensions,
+                InternalFormat::RGBA16F,
+                ImageType::TEXTURE_TYPE_3D,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                empty_image_bytes
+            ));
+
+            item.image_view = RenderObjects::Make<ImageView>();
+        }
+
+        delete[] empty_image_bytes;
+    }
 }
 
 void GlobalSphericalHarmonicsGrid::Create()
 {
+    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer, sh_grid_buffer);
     PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages, textures);
+    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps, clipmaps);
 }
 
 void GlobalSphericalHarmonicsGrid::Destroy()
 {
+    SafeRelease(std::move(sh_grid_buffer));
+
     for (auto &item : textures) {
+        SafeRelease(std::move(item.image));
+        SafeRelease(std::move(item.image_view));
+    }
+
+    for (auto &item : clipmaps) {
         SafeRelease(std::move(item.image));
         SafeRelease(std::move(item.image_view));
     }

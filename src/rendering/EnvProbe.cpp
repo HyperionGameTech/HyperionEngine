@@ -9,34 +9,14 @@ struct RenderCommand_CreateCubemapImages;
 struct RenderCommand_DestroyCubemapRenderPass;
 
 using renderer::Result;
+using renderer::DescriptorSet;
+using renderer::Descriptor;
 
 static const Extent2D num_tiles = { 4, 4 };
 static const InternalFormat reflection_probe_format = InternalFormat::R11G11B10F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
-struct alignas(16) SHTile
-{
-    ShaderVec4<Float> coeffs_weights[9];
-};
-
-static_assert(sizeof(SHTile) == 144);
-
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
-{
-    FixedArray<Matrix4, 6> view_matrices;
-
-    const Vector3 origin = aabb.GetCenter();
-
-    for (UInt i = 0; i < 6; i++) {
-        view_matrices[i] = Matrix4::LookAt(
-            origin,
-            origin + Texture::cubemap_directions[i].first,
-            Texture::cubemap_directions[i].second
-        );
-    }
-
-    return view_matrices;
-}
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb);
 
 #pragma region Render commands
 
@@ -44,7 +24,7 @@ Result RENDER_COMMAND(UpdateEnvProbeDrawProxy)::operator()()
 {
     // update m_draw_proxy on render thread.
     env_probe.m_draw_proxy = draw_proxy;
-    env_probe.m_view_matrices = CreateCubemapMatrices(env_probe.GetAABB());
+    env_probe.m_view_matrices = CreateCubemapMatrices(draw_proxy.aabb);
 
     HYPERION_RETURN_OK;
 }
@@ -155,6 +135,63 @@ struct RENDER_COMMAND(CreateComputeSHDescriptorSets) : RenderCommand
 
 #pragma endregion
 
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
+{
+    FixedArray<Matrix4, 6> view_matrices;
+
+    const Vector3 origin = aabb.GetCenter();
+
+    for (UInt i = 0; i < 6; i++) {
+        view_matrices[i] = Matrix4::LookAt(
+            origin,
+            origin + Texture::cubemap_directions[i].first,
+            Texture::cubemap_directions[i].second
+        );
+    }
+
+    return view_matrices;
+}
+
+void EnvProbe::UpdateEnvProbeShaderData(
+    ID<EnvProbe> id,
+    const EnvProbeDrawProxy &proxy,
+    UInt32 texture_slot,
+    UInt32 grid_slot,
+    Extent3D grid_size
+)
+{
+    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(proxy.aabb);
+
+    EnvProbeShaderData data {
+        .face_view_matrices = {
+            ShaderMat4(view_matrices[0]),
+            ShaderMat4(view_matrices[1]),
+            ShaderMat4(view_matrices[2]),
+            ShaderMat4(view_matrices[3]),
+            ShaderMat4(view_matrices[4]),
+            ShaderMat4(view_matrices[5])
+        },
+        .aabb_max = Vector4(proxy.aabb.max, 1.0f),
+        .aabb_min = Vector4(proxy.aabb.min, 1.0f),
+        .world_position = Vector4(proxy.world_position, 1.0f),
+        .texture_index = texture_slot,
+        .flags = proxy.flags,
+        .camera_near = proxy.camera_near,
+        .camera_far = proxy.camera_far,
+        .position_in_grid = grid_slot != ~0u
+            ? ShaderVec4<Int32> {
+                  Int32(grid_slot % grid_size.width),
+                  Int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
+                  Int32(grid_slot / (grid_size.width * grid_size.height)),
+                  0
+              }
+            : ShaderVec4<Int32> { 0, 0, 0, 0 },
+        .position_offset = { 0, 0, 0, 0 }
+    };
+
+    Engine::Get()->GetRenderData()->env_probes.Set(id.ToIndex(), data);
+}
+
 EnvProbe::EnvProbe(
     const Handle<Scene> &parent_scene,
     const BoundingBox &aabb,
@@ -168,7 +205,7 @@ EnvProbe::EnvProbe(
     m_camera_near(0.001f),
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
-    m_needs_render_counter { UInt16(0) },
+    m_needs_render_counter(0),
     m_is_rendered { false }
 {
 }
@@ -194,6 +231,7 @@ void EnvProbe::Init()
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+            | (NeedsRender() ? ENV_PROBE_FLAGS_DIRTY : ENV_PROBE_FLAGS_NONE)
     };
 
     m_view_matrices = CreateCubemapMatrices(m_aabb);
@@ -428,8 +466,10 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         octant_hash = octree->GetNodesHash();
     }
 
-    if (m_octant_hash_code != octant_hash || !is_rendered) {
+    if (m_octant_hash_code != octant_hash) {
         SetNeedsUpdate(true);
+
+        DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu)\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value());
 
         m_octant_hash_code = octant_hash;
     }
@@ -472,8 +512,9 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+            | ENV_PROBE_FLAGS_DIRTY
     });
-    
+
     SetNeedsUpdate(false);
     SetNeedsRender(true);
 }
@@ -592,31 +633,35 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
     EnvProbeIndex bound_index = m_bound_index;
 
     AssertThrowMsg(bound_index != ~0u, "Probe not bound to an index!");
+    AssertThrow(m_grid_slot != ~0u);
 
     // ambient probes have +1 for their bound index, so we subtract that to get the actual index
     bound_index.position[2] -= 1;
 
-    const UInt probe_index = bound_index.GetProbeIndex();
     const Extent3D &grid_image_extent = Engine::Get()->shader_globals->spherical_harmonics_grid.textures[0].image->GetExtent();
 
-    AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
-
-    Extent3D position_in_grid {
-        probe_index % grid_image_extent.depth,
-        (probe_index / grid_image_extent.depth) % grid_image_extent.height,
-        probe_index / (grid_image_extent.height * grid_image_extent.depth)
-    };
+    // AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
 
     AssertThrow(image != nullptr);
     AssertThrow(image_view != nullptr);
 
     struct alignas(128) {
         ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec2<UInt32> cubemap_dimensions;
+        ShaderVec4<UInt32> cubemap_dimensions;
     } push_constants;
     
-    push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };//{ position_in_grid[0], position_in_grid[1], position_in_grid[2], 0 };
-    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height };
+#ifdef ENV_PROBE_STATIC_INDEX
+    push_constants.probe_grid_position = {
+        m_grid_slot % bound_index.grid_size.width,
+        (m_grid_slot % (bound_index.grid_size.width * bound_index.grid_size.height)) / bound_index.grid_size.width,
+        m_grid_slot / (bound_index.grid_size.width * bound_index.grid_size.height),
+        0
+    };
+#else
+    push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };
+#endif
+
+    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
     
     m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
         ->GetDescriptor(0)
@@ -675,64 +720,40 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
     m_is_rendered.Set(true, MemoryOrder::RELEASE);
 }
 
-void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
+void EnvProbe::UpdateRenderData(bool set_texture)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
+    AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
+
     if (IsAmbientProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
-    } else if (IsReflectionProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound reflection probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
-    } else if (IsShadowProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound shadow map probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
+        AssertThrow(m_grid_slot != ~0u);
     }
 
-    m_bound_index = probe_index;
-    
     const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
 
-    const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
+    {
+        const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
 
-    EnvProbeShaderData data {
-        .face_view_matrices = {
-            ShaderMat4(GetViewMatrices()[0]),
-            ShaderMat4(GetViewMatrices()[1]),
-            ShaderMat4(GetViewMatrices()[2]),
-            ShaderMat4(GetViewMatrices()[3]),
-            ShaderMat4(GetViewMatrices()[4]),
-            ShaderMat4(GetViewMatrices()[5])
-        },
-        .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
-        .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),
-        .world_position = Vector4(m_draw_proxy.world_position, 1.0f),
-        .texture_index = texture_slot,
-        .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
-        .camera_near = m_draw_proxy.camera_near,
-        .camera_far = m_draw_proxy.camera_far
-    };
+        if (NeedsRender()) {
+            m_draw_proxy.flags |= ENV_PROBE_FLAGS_DIRTY;
+        } 
 
-    Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
-
-    // ambient probes have no need to update texture at the binding slot.
-    if (IsAmbientProbe()) {
-        return;
+        m_draw_proxy.flags |= shadow_flags << 3;
     }
 
+    UpdateEnvProbeShaderData(
+        GetID(),
+        m_draw_proxy,
+        texture_slot,
+        IsAmbientProbe() ? m_grid_slot : ~0u,
+        IsAmbientProbe() ? m_bound_index.grid_size : Extent3D { }
+    );
+
     // update cubemap texture in array of bound env probes
-    if (texture_slot != ~0u) {
+    if (set_texture) {
+        AssertThrow(texture_slot != ~0u);
         AssertThrow(m_texture.IsValid());
 
         const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
@@ -756,8 +777,8 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
 
             AssertThrow(descriptor_key != DescriptorKey::UNUSED);
 
-            auto *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-            auto *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
+            DescriptorSet *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            Descriptor *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
 
             descriptor->SetElementSRV(
                 texture_slot,
@@ -765,6 +786,38 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
             );
         }
     }
+}
+
+void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+
+    bool set_texture = true;
+
+    if (IsAmbientProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
+        }
+
+        set_texture = false;
+    } else if (IsReflectionProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound reflection probes\n", probe_index.GetProbeIndex());
+
+            set_texture = false;
+        }
+    } else if (IsShadowProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound shadow map probes\n", probe_index.GetProbeIndex());
+
+            set_texture = false;
+        }
+    }
+
+    m_bound_index = probe_index;
+
+    UpdateRenderData(set_texture);
 }
 
 } // namespace hyperion::v2

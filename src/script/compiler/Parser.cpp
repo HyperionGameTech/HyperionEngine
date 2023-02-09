@@ -293,6 +293,17 @@ void Parser::Parse(bool expect_module_decl)
 {
     SkipStatementTerminators();
 
+    // // pre-parse stage
+    // while (m_token_stream->HasNext()) {
+    //     if (MatchKeyword(Keyword_template, true)) {
+    //         DebugLog(LogType::Debug, "Found template keyword!\n");
+    //     } else {
+    //         m_token_stream->Next();
+    //     }
+    // }
+
+    // m_token_stream->SetPosition(0);
+
     if (expect_module_decl) {
         // create a module based upon the filename
         const std::string filepath = m_token_stream->GetInfo().filepath;
@@ -413,8 +424,6 @@ RC<AstStatement> Parser::ParseStatement(
             res = ParseTryCatchStatement();
         } else if (MatchKeyword(Keyword_return, false)) {
             res = ParseReturnStatement();
-        } else if (MatchKeyword(Keyword_syntax, false)) {
-            res = ParseSyntaxDefinition();
         } else {
             res = ParseExpression();
         }
@@ -2616,39 +2625,6 @@ RC<AstExpression> Parser::ParseMetaProperty()
                 location
             ));
         }
-    }
-
-    return nullptr;
-}
-
-RC<AstSyntaxDefinition> Parser::ParseSyntaxDefinition()
-{
-    const SourceLocation location = CurrentLocation();
-
-    if (Token token = ExpectKeyword(Keyword_syntax, true)) {
-        const RC<AstString> syntax_string = ParseStringLiteral();
-        
-        if (!syntax_string) {
-            return nullptr;
-        }
-        
-        const Token op = ExpectOperator("=", true);
-        
-        if (!op) {
-            return nullptr;
-        }
-        
-        const RC<AstString> transform_string = ParseStringLiteral();
-
-        if (!transform_string) {
-            return nullptr;
-        }
-
-        return RC<AstSyntaxDefinition>(new AstSyntaxDefinition(
-            syntax_string,
-            transform_string,
-            location
-        ));
     }
 
     return nullptr;
