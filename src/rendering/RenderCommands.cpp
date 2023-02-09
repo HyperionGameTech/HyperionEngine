@@ -2,7 +2,7 @@
 
 namespace hyperion::v2 {
 
-FixedArray<RenderCommandHolder *, max_render_command_types> RenderCommands::holders = { };
+FixedArray<RenderCommandHolder, max_render_command_types> RenderCommands::holders = { };
 AtomicVar<SizeType> RenderCommands::render_command_type_index = { 0 };
 RenderScheduler RenderCommands::scheduler = { };
 
@@ -44,16 +44,58 @@ RenderScheduler::FlushResult RenderScheduler::Flush()
     return result;
 }
 
+Result RenderCommands::Flush()
+{
+    if (Count() == 0) {
+        HYPERION_RETURN_OK;
+    }
+
+    std::unique_lock lock(mtx);
+
+    auto flush_result = scheduler.Flush();
+    if (flush_result.num_executed) {
+        Rewind();
+
+        scheduler.m_num_enqueued.Decrement(flush_result.num_executed, MemoryOrder::ACQUIRE_RELEASE);
+    }
+
+    lock.unlock();
+    flushed_cv.notify_all();
+
+    return flush_result.result;
+}
+
+Result RenderCommands::FlushOrWait()
+{
+    if (Count() == 0) {
+        HYPERION_RETURN_OK;
+    }
+
+    if (Threads::CurrentThreadID() == scheduler.m_owner_thread) {
+        return Flush();
+    }
+
+    Wait();
+
+    HYPERION_RETURN_OK;
+}
+
+void RenderCommands::Wait()
+{
+    std::unique_lock lock(mtx);
+    flushed_cv.wait(lock, [] { return RenderCommands::Count() == 0; });
+}
+
 void RenderCommands::Rewind()
 {
     // all items in the cache must have had destructor called on them already.
 
-    RenderCommandHolder **pp = holders.Data();
+    RenderCommandHolder *p = holders.Data();
 
-    while (*pp) {
-        (*pp)->Clear();
+    while (p->render_command_list_ptr) {
+        p->rewind_func(p->render_command_list_ptr);
 
-        ++pp;
+        ++p;
     }
 }
 

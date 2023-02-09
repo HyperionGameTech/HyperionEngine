@@ -255,7 +255,7 @@ public:
         MATERIAL_KEY_NORMAL_MAP_INTENSITY   = 1 << 13,
         MATERIAL_KEY_UV_SCALE               = 1 << 14,
         MATERIAL_KEY_PARALLAX_HEIGHT        = 1 << 15,
-        MATERIAL_KEY_RESERVED1              = 1 << 16,
+        MATERIAL_KEY_ALPHA_THRESHOLD        = 1 << 16,
         MATERIAL_KEY_RESERVED2              = 1 << 17,
 
         // terrain
@@ -367,10 +367,10 @@ public:
     bool IsAlphaBlended() const
         { return m_render_attributes.blend_mode != BlendMode::NONE; }
 
-    void SetIsAlphaBlended(bool is_alpha_blended)
+    void SetIsAlphaBlended(bool is_alpha_blended, BlendMode blend_mode = BlendMode::NORMAL)
     {
         if (is_alpha_blended) {
-            m_render_attributes.blend_mode = BlendMode::NORMAL;
+            m_render_attributes.blend_mode = blend_mode;
         } else {
             m_render_attributes.blend_mode = BlendMode::NONE;
         }

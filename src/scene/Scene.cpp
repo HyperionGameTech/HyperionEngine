@@ -659,6 +659,15 @@ void Scene::Update(GameCounter::TickUnit delta)
         }
     }
 
+    // TEMP
+    if (m_camera) {
+        const Vector3 &camera_position = m_camera->GetTranslation();
+
+        std::sort(m_entities.Begin(), m_entities.End(), [&camera_position](const auto &lhs, const auto &rhs) {
+            return camera_position.Distance(lhs.second->GetTranslation()) > camera_position.Distance(rhs.second->GetTranslation());
+        });
+    }
+
     // update each entity
     for (auto &it : m_entities) {
         Handle<Entity> &entity = it.second;

@@ -4,6 +4,7 @@
 #include <core/lib/FlatSet.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Optional.hpp>
+#include <core/lib/Stack.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/IndirectDraw.hpp>
@@ -37,7 +38,6 @@ enum RenderStateMaskBits : RenderStateMask
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
-
 
 // Basic render side binding, by default holding only ID of an object.
 template <class T>
@@ -91,12 +91,12 @@ struct RenderBinding<Camera>
 
 struct RenderState
 {
-    std::stack<RenderBinding<Scene>> scene_bindings;
-    std::stack<RenderBinding<Camera>> camera_bindings;
+    Stack<RenderBinding<Scene>> scene_bindings;
+    Stack<RenderBinding<Camera>> camera_bindings;
     FlatMap<ID<Light>, LightDrawProxy> lights;
     FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX> bound_env_probes; // map to texture slot
     ID<EnvGrid> bound_env_grid;
-    ID<EnvProbe> current_env_probe; // For rendering to EnvProbe.
+    Stack<ID<EnvProbe>> env_probe_bindings;
     UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
     UInt32 frame_counter = ~0u;
 
@@ -104,14 +104,17 @@ struct RenderState
         { ++frame_counter; }
 
     void SetActiveEnvProbe(ID<EnvProbe> id)
-    {
-        current_env_probe = id;
-    }
+        { env_probe_bindings.Push(id); }
 
     void UnsetActiveEnvProbe()
     {
-        current_env_probe = ID<EnvProbe>();
+        if (env_probe_bindings.Any()) {
+            env_probe_bindings.Pop();
+        }
     }
+
+    ID<EnvProbe> GetActiveEnvProbe() const
+        { return env_probe_bindings.Any() ? env_probe_bindings.Top() : ID<EnvProbe>(); }
 
     void BindEnvGrid(ID<EnvGrid> id)
     {
@@ -136,11 +139,11 @@ struct RenderState
     void BindScene(const Scene *scene)
     {
         if (scene == nullptr) {
-            scene_bindings.push(RenderBinding<Scene>::empty);
+            scene_bindings.Push(RenderBinding<Scene>::empty);
         } else {
             AssertThrow(scene->GetID().ToIndex() < max_scenes);
 
-            scene_bindings.push(RenderBinding<Scene> {
+            scene_bindings.Push(RenderBinding<Scene> {
                 scene->GetID(),
                 scene->GetEnvironment(),
                 &scene->GetRenderList(),
@@ -151,26 +154,26 @@ struct RenderState
 
     void UnbindScene()
     {
-        if (!scene_bindings.empty()) {
-            scene_bindings.pop();
+        if (scene_bindings.Any()) {
+            scene_bindings.Pop();
         }
     }
 
     const RenderBinding<Scene> &GetScene() const
     {
-        return scene_bindings.empty()
+        return scene_bindings.Empty()
             ? RenderBinding<Scene>::empty
-            : scene_bindings.top();
+            : scene_bindings.Top();
     }
 
     void BindCamera(const Camera *camera)
     {
         if (camera == nullptr) {
-            camera_bindings.push(RenderBinding<Camera>::empty);
+            camera_bindings.Push(RenderBinding<Camera>::empty);
         } else {
             AssertThrow(camera->GetID().ToIndex() < max_cameras);
 
-            camera_bindings.push(RenderBinding<Camera> {
+            camera_bindings.Push(RenderBinding<Camera> {
                 camera->GetID(),
                 camera->GetDrawProxy()
             });
@@ -179,16 +182,16 @@ struct RenderState
 
     void UnbindCamera()
     {
-        if (!camera_bindings.empty()) {
-            camera_bindings.pop();
+        if (camera_bindings.Any()) {
+            camera_bindings.Pop();
         }
     }
 
     const RenderBinding<Camera> &GetCamera() const
     {
-        return camera_bindings.empty()
+        return camera_bindings.Empty()
             ? RenderBinding<Camera>::empty
-            : camera_bindings.top();
+            : camera_bindings.Top();
     }
 
     void BindEnvProbe(EnvProbeType type, ID<EnvProbe> probe_id)
@@ -267,7 +270,7 @@ struct RenderState
         }
 
         if (mask & RENDER_STATE_ACTIVE_ENV_PROBE) {
-            UnsetActiveEnvProbe();
+            env_probe_bindings = { };
         }
 
         if (mask & RENDER_STATE_VISIBILITY) {

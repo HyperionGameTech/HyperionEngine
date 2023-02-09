@@ -30,33 +30,11 @@ using renderer::Result;
         RENDER_COMMAND(name) _command(__VA_ARGS__)(); \
     }
 
-
 constexpr SizeType max_render_command_types = 128;
-constexpr SizeType render_command_cache_size = 8192;
-
-template <class T>
-using RenderCommandStorageArray = Array<ValueStorage<T>, render_command_cache_size * sizeof(T)>;
+constexpr SizeType render_command_cache_size = 2048;
 
 
-struct RenderCommandHolder
-{
-    void *memory_ptr = nullptr;
-
-    virtual ~RenderCommandHolder() = default;
-
-    virtual void Clear() = 0;
-};
-
-template <class T>
-struct RenderCommandHolderDerived : RenderCommandHolder
-{
-    virtual ~RenderCommandHolderDerived() override = default;
-
-    virtual void Clear() override
-    {
-        (static_cast<RenderCommandStorageArray<T> *>(memory_ptr))->Clear();
-    }
-};
+using RenderCommandRewindFunc = void(*)(void *);
 
 template <class T>
 struct RenderCommandList
@@ -71,21 +49,46 @@ struct RenderCommandList
             { return index >= render_command_cache_size; }
     };
 
+    // Use a linked list so we can grow the container without invalidating pointers.
+    // It's not frequent we'll be using more than just the first node, anyway.
     LinkedList<Block> blocks;
 
     RenderCommandList()
     {
-        blocks.PushBack({ });
+        blocks.EmplaceBack();
     }
 
-    void Push()
+    HYP_FORCE_INLINE
+    void *AllocCommand()
     {
-        // always gaurenteed to have at least 1 block
-        Block &last_block = blocks.Back();
+        // always guaranteed to have at least 1 block
+        Block *last_block = &blocks.Back();
 
-        if (!last_block.IsFull()) {
-            //last_block.storage[last_block.index++].Construct
+        if (last_block->IsFull()) {
+            DebugLog(
+                LogType::Debug,
+                "Allocating new block node for render commands.\n"
+            );
+
+            blocks.EmplaceBack();
+            last_block = &blocks.Back();
         }
+
+        const SizeType command_index = last_block->index++;
+
+        return last_block->storage.Data() + command_index;
+    }
+
+    HYP_FORCE_INLINE
+    void Rewind()
+    {
+        // Note: all items must have been destructed,
+        // or undefined behavior will occur as the items are not properly destructed
+        while (blocks.Size() != 1) {
+            blocks.PopBack();
+        }
+
+        blocks.Front().index = 0;
     }
 };
 
@@ -134,12 +137,19 @@ struct RenderScheduler
     FlushResult Flush();
 };
 
+
+struct RenderCommandHolder
+{
+    void *render_command_list_ptr = nullptr;
+    RenderCommandRewindFunc rewind_func = nullptr;
+};
+
 class RenderCommands
 {
 private:
 
-    // last item must always evaluate to false, same way null terminated char strings work
-    static FixedArray<RenderCommandHolder *, max_render_command_types> holders;
+    // last item must always have render_command_list_ptr be nullptr
+    static FixedArray<RenderCommandHolder, max_render_command_types> holders;
     static AtomicVar<SizeType> render_command_type_index;
 
     static std::mutex mtx;
@@ -166,56 +176,14 @@ public:
     }
 
     static void SetOwnerThreadID(ThreadID id)
-    {
-        scheduler.SetOwnerThreadID(id);
-    }
+        { scheduler.SetOwnerThreadID(id); }
 
     HYP_FORCE_INLINE static SizeType Count()
-    {
-        return scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE);
-    }
+        { return scheduler.m_num_enqueued.Get(MemoryOrder::ACQUIRE); }
 
-    HYP_FORCE_INLINE static Result Flush()
-    {
-        if (Count() == 0) {
-            HYPERION_RETURN_OK;
-        }
-
-        std::unique_lock lock(mtx);
-
-        auto flush_result = scheduler.Flush();
-        if (flush_result.num_executed) {
-            Rewind();
-
-            scheduler.m_num_enqueued.Decrement(flush_result.num_executed, MemoryOrder::ACQUIRE_RELEASE);
-        }
-
-        lock.unlock();
-        flushed_cv.notify_all();
-
-        return flush_result.result;
-    }
-
-    HYP_FORCE_INLINE static Result FlushOrWait()
-    {
-        if (Count() == 0) {
-            HYPERION_RETURN_OK;
-        }
-
-        if (Threads::CurrentThreadID() == scheduler.m_owner_thread) {
-            return Flush();
-        }
-
-        Wait();
-
-        HYPERION_RETURN_OK;
-    }
-
-    HYP_FORCE_INLINE static void Wait()
-    {
-        std::unique_lock lock(mtx);
-        flushed_cv.wait(lock, [] { return RenderCommands::Count() == 0; });
-    }
+    static Result Flush();
+    static Result FlushOrWait();
+    static void Wait();
 
 private:
     template <class T>
@@ -223,38 +191,33 @@ private:
     {
         struct Data
         {
-            RenderCommandHolderDerived<T> holder;
-            RenderCommandStorageArray<T> commands;
+            RenderCommandList<T> command_list;
+            RenderCommandRewindFunc rewind_func;
 
             Data()
             {
-                holder.memory_ptr = &commands;
+                rewind_func = [](void *ptr) -> void {
+                    static_cast<RenderCommandList<T> *>(ptr)->Rewind();
+                };
 
                 const SizeType command_type_index = RenderCommands::render_command_type_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
-                AssertThrow(command_type_index < max_render_command_types - 1);
 
-                RenderCommands::holders[command_type_index] = &holder;
+                AssertThrowMsg(
+                    command_type_index < max_render_command_types - 1,
+                    "Maximum number of render command types initialized (%llu). Increase the buffer size?",
+                    max_render_command_types - 1
+                );
+
+                RenderCommands::holders[command_type_index] = RenderCommandHolder {
+                    &command_list,
+                    rewind_func
+                };
             }
         };
 
         static Data data;
 
-        const SizeType command_index = data.commands.Size();
-        data.commands.PushBack({ });
-
-        if (command_index >= render_command_cache_size) {
-            DebugLog(
-                LogType::Warn,
-                "Render command count greater than budgeted size! (size: %llu/%llu, in function: %s)\n",
-                data.commands.Size(),
-                render_command_cache_size,
-                HYP_DEBUG_FUNC
-            );
-
-            // HYP_BREAKPOINT;
-        }
-
-        return data.commands.Data() + command_index;
+        return data.command_list.AllocCommand();
     }
 
     static void Rewind();

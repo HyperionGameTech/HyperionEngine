@@ -828,6 +828,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
 
     FlatMap<Bundle *, bool> results;
 
+    // // Compile all shaders ahead of time
     // for (auto &bundle : bundles) {
     //     if (bundle.HasRTShaders() && !supports_rt_shaders) {
     //         DebugLog(

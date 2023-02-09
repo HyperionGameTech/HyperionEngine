@@ -78,6 +78,8 @@ struct DrawProxy<STUB_CLASS(Entity)>
 
     BoundingBox bounding_box;
 
+    Transform transform;
+
     Mesh *mesh = nullptr;
 
     Bucket bucket = Bucket::BUCKET_OPAQUE;

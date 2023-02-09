@@ -22,19 +22,19 @@ struct alignas(T) ValueStorage
     }
 
     void Destruct()
-    {
-        Memory::Destruct<T>(static_cast<void *>(data_buffer));
-    }
+        { Memory::Destruct<T>(static_cast<void *>(data_buffer)); }
 
     T &Get()
-    {
-        return *reinterpret_cast<T *>(&data_buffer);
-    }
+        { return *reinterpret_cast<T *>(&data_buffer); }
 
     [[nodiscard]] const T &Get() const
-    {
-        return *reinterpret_cast<const T *>(&data_buffer);
-    }
+        { return *reinterpret_cast<const T *>(&data_buffer); }
+
+    void *GetPointer()
+        { return &data_buffer[0]; }
+
+    const void *GetPointer() const
+        { return &data_buffer[0]; }
 };
 
 struct alignas(16) Tmp { int x; float y; void *stuff[16]; };

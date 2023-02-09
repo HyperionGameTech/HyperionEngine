@@ -269,6 +269,7 @@ void Entity::EnqueueRenderUpdates()
         .material_id = material_id,
         .skeleton_id = skeleton_id,
         .bounding_box = m_world_aabb,
+        .transform = m_transform,
         .mesh = m_mesh.Get(),
         .bucket = m_renderable_attributes.GetMaterialAttributes().bucket
     };

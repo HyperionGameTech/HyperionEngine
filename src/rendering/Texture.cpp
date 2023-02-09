@@ -370,7 +370,7 @@ public:
         SafeRelease(std::move(m_descriptor_sets));
     }
 
-    Result Render()
+    void Render()
     {
         PUSH_RENDER_COMMAND(
             RenderTextureMipmapLevels,
@@ -475,10 +475,7 @@ void Texture::GenerateMipmaps()
 
     TextureMipmapRenderer mipmap_renderer(m_image, m_image_view);
     mipmap_renderer.Create();
-
     mipmap_renderer.Render();
-    HYP_SYNC_RENDER();
-
     mipmap_renderer.Destroy();
 }
 

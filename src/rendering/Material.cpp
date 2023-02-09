@@ -258,6 +258,7 @@ Material::ParameterTable Material::DefaultParameters()
     parameters.Set(MATERIAL_KEY_NORMAL_MAP_INTENSITY, 8.0f);
     parameters.Set(MATERIAL_KEY_UV_SCALE,             Vector2(1.0f));
     parameters.Set(MATERIAL_KEY_PARALLAX_HEIGHT,      0.05f);
+    parameters.Set(MATERIAL_KEY_ALPHA_THRESHOLD,      0.2f);
 
     return parameters;
 }
@@ -397,7 +398,9 @@ void Material::EnqueueRenderUpdates()
                 GetParameter<Float>(MATERIAL_KEY_TRANSMISSION),
                 GetParameter<Float>(MATERIAL_KEY_NORMAL_MAP_INTENSITY)
             )),
-            ByteUtil::PackColorU32(Vector4()),
+            ByteUtil::PackColorU32(Vector4(
+                GetParameter<Float>(MATERIAL_KEY_ALPHA_THRESHOLD)
+            )),
             ByteUtil::PackColorU32(Vector4()),
             ByteUtil::PackColorU32(Vector4())
         ),

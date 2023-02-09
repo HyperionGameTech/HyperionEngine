@@ -138,7 +138,7 @@ public:
     LinkedList();
     //LinkedList(const LinkedList &other);
     //LinkedList(LinkedList &&other) noexcept;
-    ~LinkedList() = default;
+    ~LinkedList();
 
     //LinkedList &operator=(const LinkedList &other);
     //LinkedList &operator=(LinkedList &&other) noexcept;
@@ -158,9 +158,11 @@ public:
     [[nodiscard]] const ValueType &Back() const
         { AssertThrow(m_size != 0); return m_tail->value.Get(); }
 
-    [[nodiscard]] bool Empty() const { return Size() == 0; }
-    [[nodiscard]] bool Any() const { return Size() != 0; }
+    [[nodiscard]] bool Empty() const
+        { return Size() == 0; }
 
+    [[nodiscard]] bool Any() const
+        { return Size() != 0; }
     
     template <class ...Args>
     void EmplaceBack(Args &&... args)
@@ -215,6 +217,8 @@ public:
         Some padding is added so that successive calls to PushFront() do not incur an allocation
         each time. */
     void PushFront(ValueType &&value);
+
+    ValueType PopBack();
 
 #if 0
     //! \brief Erase an element by iterator.
@@ -282,6 +286,21 @@ LinkedList<T>::LinkedList()
 }
 
 template <class T>
+LinkedList<T>::~LinkedList()
+{
+    Node *node = m_head;
+
+    while (node != nullptr) {
+        Node *next = node->next;
+
+        node->value.Destruct();
+        delete node;
+
+        node = next;
+    }
+}
+
+template <class T>
 void LinkedList<T>::PushBack(const ValueType &value)
 {
     Node *new_node = new Node;
@@ -332,6 +351,7 @@ void LinkedList<T>::PushFront(const ValueType &value)
     }
 
     m_head = new_node;
+
     ++m_size;
 }
 
@@ -350,7 +370,33 @@ void LinkedList<T>::PushFront(ValueType &&value)
     }
 
     m_head = new_node;
+
     ++m_size;
+}
+
+template <class T>
+auto LinkedList<T>::PopBack() -> ValueType
+{
+    AssertThrow(m_size != 0);
+
+    Node *prev = m_tail->previous;
+
+    ValueType value = std::move(m_tail->value.Get());
+
+    m_tail->value.Destruct();
+    delete m_tail;
+
+    if (prev) {
+        prev->next = nullptr;
+    }
+
+    m_tail = prev;
+
+    if (!--m_size) {
+        m_head = nullptr;
+    }
+
+    return value;
 }
 
 } // namespace hyperion

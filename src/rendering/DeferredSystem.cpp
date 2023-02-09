@@ -73,7 +73,10 @@ static void AddSharedAttachment(
     ));
 
     attachment_usage->SetBinding(attachment_index);
-    attachment_usage->SetAllowBlending(false);
+
+    // if (attachment_index == 5) {//opaque_fbo->GetAttachmentUsages().at(attachment_index)->IsDepthAttachment()) {
+        attachment_usage->SetAllowBlending(false);
+    // }
 
     framebuffer->AddAttachmentUsage(attachment_usage);
 }

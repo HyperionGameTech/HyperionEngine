@@ -251,19 +251,21 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE
             && attachment_usage->AllowBlending();
 
-        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
-        static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
         static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
+        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
         static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
+        static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         color_blend_attachments.push_back(VkPipelineColorBlendAttachmentState {
             .blendEnable = blend_enabled,
-            .srcColorBlendFactor = src_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
-            .dstColorBlendFactor = dst_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
-            .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = src_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
-            .dstAlphaBlendFactor = dst_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
-            .alphaBlendOp = VK_BLEND_OP_ADD,
+            .srcColorBlendFactor = src_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
+            .dstColorBlendFactor = dst_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
+            .colorBlendOp = color_blend_ops[UInt(m_construction_info.blend_mode)],
+            .srcAlphaBlendFactor = src_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
+            .dstAlphaBlendFactor = dst_blend_factors_alpha[UInt(m_construction_info.blend_mode)],
+            .alphaBlendOp = alpha_blend_ops[UInt(m_construction_info.blend_mode)],
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
                 | VK_COLOR_COMPONENT_G_BIT
                 | VK_COLOR_COMPONENT_B_BIT

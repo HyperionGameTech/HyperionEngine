@@ -14,6 +14,7 @@
 #include <core/lib/FixedString.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/Queue.hpp>
+#include <core/lib/Stack.hpp>
 #include <core/lib/Proc.hpp>
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/UniquePtr.hpp>
@@ -27,15 +28,11 @@
 #include <Types.hpp>
 
 #include <vector>
-#include <memory>
-#include <algorithm>
-#include <queue>
 #include <unordered_map>
+#include <algorithm>
 #include <functional>
 #include <tuple>
-#include <atomic>
 #include <mutex>
-#include <thread>
 
 namespace hyperion::v2 {
 

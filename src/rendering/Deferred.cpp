@@ -742,16 +742,33 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         deferred_pass_framebuffer->EndCapture(frame_index, primary);
     }
 
+    { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
+        Image *src_image = deferred_pass_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+        GenerateMipChain(frame, src_image);
+    }
+
     { // translucent objects
         DebugMarker marker(primary, "Render translucent objects");
 
         m_translucent_fbo->BeginCapture(frame_index, primary);
+
+        bool has_set_active_env_probe = false;
+
+        if (Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
+            Engine::Get()->GetRenderState().SetActiveEnvProbe(Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
+
+            has_set_active_env_probe = true;
+        }
 
         // begin translucent with forward rendering
         RenderTranslucentObjects(frame);
 
         if (do_particles) {
             RenderParticles(frame, environment);
+        }
+
+        if (has_set_active_env_probe) {
+            Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
         }
 
         Engine::Get()->GetImmediateMode().Render(frame);
@@ -785,7 +802,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                 HYP_RENDER_OBJECT_OFFSET(Light, 0),
                 HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().current_env_probe.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().GetActiveEnvProbe().ToIndex()),
                 HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
             }
         );
@@ -794,17 +811,12 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_combine_pass->End(frame);
     }
 
-
     { // render depth pyramid
         m_dpr.Render(frame);
         // update culling info now that depth pyramid has been rendered
         m_cull_data.depth_pyramid_image_views[frame_index] = m_dpr.GetResults()[frame_index].get();
         m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
     }
-
-    Image *src_image = deferred_pass_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
-
-    GenerateMipChain(frame, src_image);
 
     m_post_processing.RenderPost(frame);
 
