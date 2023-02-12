@@ -142,7 +142,9 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
                     );
 
                     probe_ids[index] = m_ambient_probes[index]->GetID();
+
                     m_ambient_probes[index]->SetAABB(env_probe_aabb);
+                    // m_ambient_probes[index]->SetNeedsRender(true);
                 }
             }
         }
