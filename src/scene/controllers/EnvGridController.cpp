@@ -24,7 +24,7 @@ void EnvGridController::AddEnvGridRenderer(const Handle<Scene> &scene)
         m_env_grid_renderer = scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
             m_env_grid_renderer_name,
             GetOwner()->GetWorldAABB(),
-            Extent3D { 12, 3, 12 }
+            Extent3D { 15, 3, 15 }
         );
     }
 
@@ -52,7 +52,7 @@ void EnvGridController::UpdateGridTransform(const Transform &transform)
         return;
     }
 
-    m_env_grid_renderer->SetCameraData(GetOwner()->GetWorldAABB());
+    m_env_grid_renderer->SetCameraData(transform.GetTranslation());
 }
 
 void EnvGridController::OnAttachedToScene(ID<Scene> id)

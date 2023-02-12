@@ -182,10 +182,14 @@ struct alignas(256) EnvGridShaderData
 
     ShaderVec4<Float> center;
     ShaderVec4<Float> extent;
+    ShaderVec4<Float> aabb_max;
+    ShaderVec4<Float> aabb_min;
+
     ShaderVec4<UInt32> density;
     ShaderVec4<UInt32> enabled_indices_mask;
 
-    ShaderMat4 _pad3;
+    ShaderVec4<Float> _pad0;
+    ShaderVec4<Float> _pad1;
 };
 
 static_assert(sizeof(EnvGridShaderData) == 4352);
@@ -220,7 +224,7 @@ struct alignas(256) EnvProbeShaderData
     ShaderVec2<UInt32> dimensions;
     ShaderVec2<UInt32> _pad2;
 
-    ShaderVec4<UInt32> _pad3;
+    ShaderVec4<Int32> position_in_grid;
     ShaderVec4<UInt32> _pad4;
     ShaderVec4<UInt32> _pad5;
 };
@@ -533,6 +537,15 @@ private:
             
             staging_object.objects[index] = value;
             staging_object.MarkDirty(index);
+        }
+
+        const StructType &Get(SizeType index)
+        {
+            AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
+
+            auto &staging_object = buffers[0];
+            
+            return staging_object.objects[index];
         }
 
         void MarkDirty(SizeType index)

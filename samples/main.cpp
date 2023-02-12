@@ -300,7 +300,7 @@ public:
 
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-10.0f, -3.0f, -10.0f), Vector3(10.0f, 10.0f, 10.0f)));
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-18.0f, -10.0f, -18.0f), Vector3(18.0f, 10.0f, 18.0f)));
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(std::move(env_grid_entity));
         }
@@ -318,7 +318,7 @@ public:
             Extent2D { 256, 256 }
         );
 
-        if (false) {
+        if (true) {
             int i = 0;
 
             for (auto &child : test_model.GetChildren()) {
@@ -418,7 +418,7 @@ public:
             terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 }, Vector3(0.5f), 1.0f);
         }
 
-        if (false) { // physics
+        if (true) { // physics
             for (int i = 0; i < 6; i++) {
                 if (auto cube = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj")) {
                     cube.SetName("cube " + String::ToString(i));
@@ -539,7 +539,7 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (true) {
+        if (false) {
             auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
 
             // add a plane physics shape

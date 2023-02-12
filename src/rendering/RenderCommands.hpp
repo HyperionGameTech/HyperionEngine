@@ -58,6 +58,14 @@ struct RenderCommandList
         blocks.EmplaceBack();
     }
 
+    RenderCommandList(const RenderCommandList &other) = delete;
+    RenderCommandList &operator=(const RenderCommandList &other) = delete;
+
+    RenderCommandList(RenderCommandList &&other) noexcept = delete;
+    RenderCommandList &operator=(RenderCommandList &&other) noexcept = delete;
+
+    ~RenderCommandList() = default;
+
     HYP_FORCE_INLINE
     void *AllocCommand()
     {
@@ -89,6 +97,11 @@ struct RenderCommandList
         }
 
         blocks.Front().index = 0;
+    }
+
+    static void RewindFunc(void *ptr)
+    {
+        static_cast<RenderCommandList *>(ptr)->Rewind();
     }
 };
 
@@ -193,14 +206,11 @@ private:
         {
             RenderCommandList<T> command_list;
             RenderCommandRewindFunc rewind_func;
+            SizeType command_type_index;
 
             Data()
             {
-                rewind_func = [](void *ptr) -> void {
-                    static_cast<RenderCommandList<T> *>(ptr)->Rewind();
-                };
-
-                const SizeType command_type_index = RenderCommands::render_command_type_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+                command_type_index = RenderCommands::render_command_type_index.Increment(1, MemoryOrder::SEQUENTIAL);
 
                 AssertThrowMsg(
                     command_type_index < max_render_command_types - 1,
@@ -208,9 +218,25 @@ private:
                     max_render_command_types - 1
                 );
 
+                rewind_func = &command_list.RewindFunc;
+
                 RenderCommands::holders[command_type_index] = RenderCommandHolder {
                     &command_list,
                     rewind_func
+                };
+            }
+
+            Data(const Data &other) = delete;
+            Data &operator=(const Data &other) = delete;
+
+            Data(Data &&other) noexcept = delete;
+            Data &operator=(Data &&other) noexcept = delete;
+
+            ~Data()
+            {
+                RenderCommands::holders[command_type_index] = RenderCommandHolder {
+                    nullptr,
+                    nullptr
                 };
             }
         };

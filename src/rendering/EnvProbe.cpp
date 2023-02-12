@@ -464,16 +464,16 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         m_render_list.UpdateRenderGroups();
     }
 
-    PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
-        .id = m_id,
-        .aabb = m_aabb,
-        .world_position = m_aabb.GetCenter(),
-        .camera_near = m_camera_near,
-        .camera_far = m_camera_far,
-        .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
-            | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-    });
-    
+    // PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
+    //     .id = m_id,
+    //     .aabb = m_aabb,
+    //     .world_position = m_aabb.GetCenter(),
+    //     .camera_near = m_camera_near,
+    //     .camera_far = m_camera_far,
+    //     .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
+    //         | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+    // });
+
     SetNeedsUpdate(false);
     SetNeedsRender(true);
 }
@@ -680,6 +680,17 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
+    // TEMP!!!
+    m_draw_proxy = EnvProbeDrawProxy {
+        .id = m_id,
+        .aabb = m_aabb,
+        .world_position = m_aabb.GetCenter(),
+        .camera_near = m_camera_near,
+        .camera_far = m_camera_far,
+        .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
+            | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+    };
+
     if (IsAmbientProbe()) {
         if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
             DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
@@ -706,22 +717,26 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
 
     const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
 
+    // TEMP
+    auto view_matrices = CreateCubemapMatrices(m_aabb);
+
     EnvProbeShaderData data {
         .face_view_matrices = {
-            ShaderMat4(m_view_matrices[0]),
-            ShaderMat4(m_view_matrices[1]),
-            ShaderMat4(m_view_matrices[2]),
-            ShaderMat4(m_view_matrices[3]),
-            ShaderMat4(m_view_matrices[4]),
-            ShaderMat4(m_view_matrices[5])
+            ShaderMat4(view_matrices[0]),
+            ShaderMat4(view_matrices[1]),
+            ShaderMat4(view_matrices[2]),
+            ShaderMat4(view_matrices[3]),
+            ShaderMat4(view_matrices[4]),
+            ShaderMat4(view_matrices[5])
         },
-        .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
-        .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),
-        .world_position = Vector4(m_draw_proxy.world_position, 1.0f),
+        .aabb_max = Vector4(m_aabb.max, 1.0f),
+        .aabb_min = Vector4(m_aabb.min, 1.0f),
+        .world_position = Vector4(m_aabb.GetCenter(), 1.0f),
         .texture_index = texture_slot,
         .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
         .camera_near = m_draw_proxy.camera_near,
-        .camera_far = m_draw_proxy.camera_far
+        .camera_far = m_draw_proxy.camera_far,
+        .position_in_grid = { Int32(probe_index.position[0]), Int32(probe_index.position[1]), Int32(probe_index.position[2]), 0 }
     };
 
     Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);

@@ -227,11 +227,13 @@ private:
     FixedArray<Matrix4, 6> m_view_matrices;
 
     EnvProbeIndex m_bound_index;
+    // EnvProbeIndex m_last_rendered_index;
 
     bool m_needs_update;
     AtomicVar<Bool> m_is_rendered;
     AtomicVar<UInt16> m_needs_render_counter;
     HashCode m_octant_hash_code;
+
 };
 
 } // namespace hyperion::v2
