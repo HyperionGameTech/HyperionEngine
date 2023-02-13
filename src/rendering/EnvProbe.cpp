@@ -464,15 +464,15 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         m_render_list.UpdateRenderGroups();
     }
 
-    // PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
-    //     .id = m_id,
-    //     .aabb = m_aabb,
-    //     .world_position = m_aabb.GetCenter(),
-    //     .camera_near = m_camera_near,
-    //     .camera_far = m_camera_far,
-    //     .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
-    //         | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-    // });
+    PUSH_RENDER_COMMAND(UpdateEnvProbeDrawProxy, *this, EnvProbeDrawProxy {
+        .id = m_id,
+        .aabb = m_aabb,
+        .world_position = m_aabb.GetCenter(),
+        .camera_near = m_camera_near,
+        .camera_far = m_camera_far,
+        .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
+            | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+    });
 
     SetNeedsUpdate(false);
     SetNeedsRender(true);
@@ -601,12 +601,6 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
 
     AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
 
-    Extent3D position_in_grid {
-        probe_index % grid_image_extent.depth,
-        (probe_index / grid_image_extent.depth) % grid_image_extent.height,
-        probe_index / (grid_image_extent.height * grid_image_extent.depth)
-    };
-
     AssertThrow(image != nullptr);
     AssertThrow(image_view != nullptr);
 
@@ -615,7 +609,7 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
         ShaderVec2<UInt32> cubemap_dimensions;
     } push_constants;
     
-    push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };//{ position_in_grid[0], position_in_grid[1], position_in_grid[2], 0 };
+    push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };
     push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height };
     
     m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
@@ -683,18 +677,17 @@ void EnvProbe::UpdateRenderData(bool set_texture)
     AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
 
     // TEMP!!!
-    m_draw_proxy = EnvProbeDrawProxy {
-        .id = m_id,
-        .aabb = m_aabb,
-        .world_position = m_aabb.GetCenter(),
-        .camera_near = m_camera_near,
-        .camera_far = m_camera_far,
-        .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
-            | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-    };
+    // m_draw_proxy = EnvProbeDrawProxy {
+    //     .id = m_id,
+    //     .aabb = m_aabb,
+    //     .world_position = m_aabb.GetCenter(),
+    //     .camera_near = m_camera_near,
+    //     .camera_far = m_camera_far,
+    //     .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
+    //         | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+    // };
 
     const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
-
     const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
 
     // TEMP
@@ -709,9 +702,9 @@ void EnvProbe::UpdateRenderData(bool set_texture)
             ShaderMat4(view_matrices[4]),
             ShaderMat4(view_matrices[5])
         },
-        .aabb_max = Vector4(m_aabb.max, 1.0f),
-        .aabb_min = Vector4(m_aabb.min, 1.0f),
-        .world_position = Vector4(m_aabb.GetCenter(), 1.0f),
+        .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
+        .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),
+        .world_position = Vector4(m_draw_proxy.world_position, 1.0f),
         .texture_index = texture_slot,
         .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
         .camera_near = m_draw_proxy.camera_near,

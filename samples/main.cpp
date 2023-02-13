@@ -613,7 +613,7 @@ public:
         HandleCameraMovement(delta);
 
         if (const Handle<Entity> &env_grid_entity = GetScene()->FindEntityByName(HYP_NAME(EnvGridEntity))) {
-            // env_grid_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
+            env_grid_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
         }
 
         if (auto fbx_node = GetScene()->GetRoot().Select("monkey_fbx")) {
