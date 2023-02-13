@@ -675,10 +675,12 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
     m_is_rendered.Set(true, MemoryOrder::RELEASE);
 }
 
-void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
+void EnvProbe::UpdateRenderData(bool set_texture)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
+
+    AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
 
     // TEMP!!!
     m_draw_proxy = EnvProbeDrawProxy {
@@ -691,28 +693,6 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
     };
 
-    if (IsAmbientProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
-    } else if (IsReflectionProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound reflection probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
-    } else if (IsShadowProbe()) {
-        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
-            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound shadow map probes\n", probe_index.GetProbeIndex());
-
-            return;
-        }
-    }
-
-    m_bound_index = probe_index;
-    
     const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
 
     const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
@@ -736,18 +716,14 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
         .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
         .camera_near = m_draw_proxy.camera_near,
         .camera_far = m_draw_proxy.camera_far,
-        .position_in_grid = { Int32(probe_index.position[0]), Int32(probe_index.position[1]), Int32(probe_index.position[2]), 0 }
+        .position_in_grid = { Int32(m_bound_index.position[0]), Int32(m_bound_index.position[1]), Int32(m_bound_index.position[2]), 0 }
     };
 
     Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
 
-    // ambient probes have no need to update texture at the binding slot.
-    if (IsAmbientProbe()) {
-        return;
-    }
-
     // update cubemap texture in array of bound env probes
-    if (texture_slot != ~0u) {
+    if (set_texture) {
+        AssertThrow(texture_slot != ~0u);
         AssertThrow(m_texture.IsValid());
 
         const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
@@ -780,6 +756,38 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
             );
         }
     }
+}
+
+void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+    AssertReady();
+
+    bool set_texture = true;
+
+    if (IsAmbientProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
+        }
+
+        set_texture = false;
+    } else if (IsReflectionProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_reflection_probes) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound reflection probes\n", probe_index.GetProbeIndex());
+
+            set_texture = false;
+        }
+    } else if (IsShadowProbe()) {
+        if (probe_index.GetProbeIndex() >= max_bound_point_shadow_maps) {
+            DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound shadow map probes\n", probe_index.GetProbeIndex());
+
+            set_texture = false;
+        }
+    }
+
+    m_bound_index = probe_index;
+
+    UpdateRenderData(set_texture);
 }
 
 } // namespace hyperion::v2

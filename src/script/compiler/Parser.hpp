@@ -56,7 +56,6 @@
 #include <script/compiler/ast/AstSymbolQuery.hpp>
 #include <script/compiler/ast/AstTemplateExpression.hpp>
 #include <script/compiler/ast/AstTemplateInstantiation.hpp>
-#include <script/compiler/ast/AstSyntaxDefinition.hpp>
 
 #include <string>
 
@@ -187,7 +186,6 @@ private:
     RC<AstModuleImportPart> ParseModuleImportPart(bool allow_braces = false);
     RC<AstReturnStatement> ParseReturnStatement();
     RC<AstExpression> ParseMetaProperty();
-    RC<AstSyntaxDefinition> ParseSyntaxDefinition();
 };
 
 } // namespace hyperion::compiler

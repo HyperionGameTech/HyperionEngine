@@ -2,7 +2,6 @@
 #define AST_PROTOTYPE_SPECIFICATION_HPP
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <script/compiler/ast/AstTypeHolder.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
 #include <string>
@@ -10,7 +9,8 @@
 
 namespace hyperion::compiler {
 
-class AstPrototypeSpecification: public AstExpression {
+class AstPrototypeSpecification: public AstExpression
+{
 public:
     AstPrototypeSpecification(
         const RC<AstExpression> &proto,

@@ -174,7 +174,6 @@ VMObject::VMObject(HeapValue *proto)
         m_object_map->Push(m_members[i].hash, &m_members[i]);
     }
 
-
     /*// compute hash for member name
     uint32_t hash = hash_fnv_1(names[i]);
     m_members[i].hash = hash;

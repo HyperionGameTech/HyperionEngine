@@ -53,7 +53,7 @@ enum Keywords
     Keyword_valueof,
     Keyword_typeof,
     Keyword_meta,
-    Keyword_syntax
+    Keyword_template
 };
 
 class Keyword

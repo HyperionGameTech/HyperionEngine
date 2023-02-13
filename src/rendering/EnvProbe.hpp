@@ -193,6 +193,7 @@ public:
 
     void ComputeSH(Frame *frame, const Image *image, const ImageView *image_view);
 
+    void UpdateRenderData(bool set_texture = false);
     void UpdateRenderData(const EnvProbeIndex &probe_index);
     
 private:

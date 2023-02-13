@@ -300,7 +300,7 @@ public:
 
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-18.0f, -10.0f, -18.0f), Vector3(18.0f, 10.0f, 18.0f)));
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-25.0f, -10.0f, -25.0f), Vector3(25.0f, 30.0f, 25.0f)));
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(std::move(env_grid_entity));
         }
@@ -613,7 +613,7 @@ public:
         HandleCameraMovement(delta);
 
         if (const Handle<Entity> &env_grid_entity = GetScene()->FindEntityByName(HYP_NAME(EnvGridEntity))) {
-            env_grid_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
+            // env_grid_entity->SetTranslation(GetScene()->GetCamera()->GetTranslation());
         }
 
         if (auto fbx_node = GetScene()->GetRoot().Select("monkey_fbx")) {
