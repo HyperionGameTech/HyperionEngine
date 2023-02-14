@@ -44,7 +44,7 @@ Result RENDER_COMMAND(UpdateEnvProbeDrawProxy)::operator()()
 {
     // update m_draw_proxy on render thread.
     env_probe.m_draw_proxy = draw_proxy;
-    env_probe.m_view_matrices = CreateCubemapMatrices(env_probe.GetAABB());
+    env_probe.m_view_matrices = CreateCubemapMatrices(draw_proxy.aabb);
 
     HYPERION_RETURN_OK;
 }

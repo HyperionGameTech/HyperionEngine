@@ -274,10 +274,24 @@ public:
     static T Exp(T a) { return T(std::exp(a)); }
     
     template <class T>
-    static constexpr HYP_ENABLE_IF(!std::is_floating_point_v<T>, T) Abs(T a) { return std::abs(a); }
+    static constexpr HYP_ENABLE_IF(!std::is_floating_point_v<T> && !is_math_vector_v<T>, T) Abs(T a) { return std::abs(a); }
     
     template <class T>
-    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Abs(T a) { return std::fabs(a); }
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T> && !is_math_vector_v<T>, T) Abs(T a) { return std::fabs(a); }
+    
+    template <class T>
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, T) Abs(const T &a)
+    {
+        using VectorScalarType = NormalizedType<decltype(T::values[0])>;
+
+        T result { }; /* doesn't need initialization but gets rid of annoying warnings */
+
+        for (SizeType i = 0; i < std::size(result.values); i++) {
+            result.values[i] = VectorScalarType(Abs<VectorScalarType>(a.values[i]));
+        }
+
+        return result;
+    }
 
     template <class T, class U = T>
     static HYP_ENABLE_IF(!is_math_vector_v<T>, U) Round(T a) { return U(std::round(a)); }

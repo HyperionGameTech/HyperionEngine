@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_ENV_PROBE_HPP
 #define HYPERION_V2_ENV_PROBE_HPP
 
+#include <HashCode.hpp>
 #include <core/Base.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/AtomicVar.hpp>
@@ -104,6 +105,14 @@ struct EnvProbeIndex
 
     bool operator!=(const EnvProbeIndex &other) const
         { return GetProbeIndex() != other.GetProbeIndex(); }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(GetProbeIndex());
+
+        return hc;
+    }
 };
 
 class EnvProbe
@@ -195,6 +204,8 @@ public:
 
     void UpdateRenderData(bool set_texture = false);
     void UpdateRenderData(const EnvProbeIndex &probe_index);
+
+    UInt32 m_temp_render_frame_id = 0;
     
 private:
     void CreateShader();
