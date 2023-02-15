@@ -41,6 +41,10 @@ public:
     BoundingBox &operator*=(Float scalar);
     BoundingBox operator/(Float scalar) const;
     BoundingBox &operator/=(Float scalar);
+    BoundingBox operator+(const Vector3 &offset) const;
+    BoundingBox &operator+=(const Vector3 &offset);
+    BoundingBox operator-(const Vector3 &offset) const;
+    BoundingBox &operator-=(const Vector3 &offset);
     BoundingBox operator/(const Vector3 &scale) const;
     BoundingBox &operator/=(const Vector3 &scale);
     BoundingBox operator*(const Vector3 &scale) const;

@@ -19,6 +19,121 @@ class Vector2;
 class Matrix3;
 class Matrix4;
 
+template <class T>
+struct Vec3
+{
+    static constexpr UInt size = 3;
+
+    union {
+        struct { T x, y, z; };
+        T values[3];
+    };
+
+    constexpr Vec3() : x(0), y(0), z(0) { }
+    constexpr Vec3(T x, T y, T z) : x(x), y(y), z(z) { }
+    constexpr Vec3(const Vec3 &other) = default;
+    constexpr Vec3 &operator=(const Vec3 &other) = default;
+    constexpr Vec3(Vec3 &&other) noexcept = default;
+    constexpr Vec3 &operator=(Vec3 &&other) noexcept = default;
+    ~Vec3() = default;
+
+    constexpr T &operator[](SizeType index)
+        { return values[index]; }
+
+    constexpr T operator[](SizeType index) const
+        { return values[index]; }
+
+    constexpr Vec3 operator+(const Vec3 &other) const
+        { return { x + other.x, y + other.y, z + other.z }; }
+
+    Vec3 &operator+=(const Vec3 &other)
+        { x += other.x; y += other.y; z += other.z; return *this; }
+
+    constexpr Vec3 operator-(const Vec3 &other) const
+        { return { x - other.x, y - other.y, z - other.z }; }
+
+    Vec3 &operator-=(const Vec3 &other)
+        { x -= other.x; y -= other.y; z -= other.z; return *this; }
+
+    constexpr Vec3 operator*(const Vec3 &other) const
+        { return { x * other.x, y * other.y, z * other.z }; }
+
+    Vec3 &operator*=(const Vec3 &other)
+        { x *= other.x; y *= other.y; z *= other.z; return *this; }
+
+    constexpr Vec3 operator/(const Vec3 &other) const
+        { return { x / other.x, y / other.y, z / other.z }; }
+
+    Vec3 &operator/=(const Vec3 &other)
+        { x /= other.x; y /= other.y; z /= other.z; return *this; }
+
+    constexpr Vec3 operator%(const Vec3 &other) const
+        { return { x % other.x, y % other.y, z % other.z }; }
+
+    Vec3 &operator%=(const Vec3 &other)
+        { x %= other.x; y %= other.y; z %= other.z; return *this; }
+
+    constexpr Vec3 operator&(const Vec3 &other) const
+        { return { x & other.x, y & other.y, z & other.z }; }
+
+    Vec3 &operator&=(const Vec3 &other)
+        { x &= other.x; y &= other.y; z &= other.z; return *this; }
+
+    constexpr Vec3 operator|(const Vec3 &other) const
+        { return { x | other.x, y | other.y, z | other.z }; }
+
+    Vec3 &operator|=(const Vec3 &other)
+        { x |= other.x; y |= other.y; z |= other.z; return *this; }
+
+    constexpr Vec3 operator^(const Vec3 &other) const
+        { return { x ^ other.x, y ^ other.y, z ^ other.z }; }
+
+    Vec3 &operator^=(const Vec3 &other)
+        { x ^= other.x; y ^= other.y; z ^= other.z; return *this; }
+
+    constexpr bool operator==(const Vec3 &other) const
+        { return x == other.x && y == other.y && z == other.z; }
+
+    constexpr bool operator!=(const Vec3 &other) const
+        { return x != other.x || y != other.y || z == other.z; }
+
+    constexpr Vec3 operator-() const
+        { return operator*(T(-1)); }
+
+    template <class Ty>
+    constexpr explicit operator Vec3<Ty>() const
+    {
+        return {
+            static_cast<Ty>(x),
+            static_cast<Ty>(y),
+            static_cast<Ty>(z)
+        };
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(x);
+        hc.Add(y);
+        hc.Add(z);
+
+        return hc;
+    }
+};
+
+using Vec3i = Vec3<Int32>;
+using Vec3u = Vec3<UInt32>;
+
+template <class T>
+inline constexpr bool is_vec3 = false;
+
+template <>
+inline constexpr bool is_vec3<Vec3i> = true;
+
+template <>
+inline constexpr bool is_vec3<Vec3u> = true;
+
 class Vector3
 {
     friend std::ostream &operator<<(std::ostream &out, const Vector3 &vec);
@@ -129,6 +244,9 @@ public:
         return hc;
     }
 };
+
+template <>
+inline constexpr bool is_vec3<Vector3> = true;
 
 static_assert(sizeof(Vector3) == sizeof(float) * 3, "sizeof(Vector3) must be equal to sizeof(float) * 3");
 

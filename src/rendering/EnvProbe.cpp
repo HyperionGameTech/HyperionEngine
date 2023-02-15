@@ -9,34 +9,14 @@ struct RenderCommand_CreateCubemapImages;
 struct RenderCommand_DestroyCubemapRenderPass;
 
 using renderer::Result;
+using renderer::DescriptorSet;
+using renderer::Descriptor;
 
 static const Extent2D num_tiles = { 4, 4 };
 static const InternalFormat reflection_probe_format = InternalFormat::R11G11B10F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
-struct alignas(16) SHTile
-{
-    ShaderVec4<Float> coeffs_weights[9];
-};
-
-static_assert(sizeof(SHTile) == 144);
-
-static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
-{
-    FixedArray<Matrix4, 6> view_matrices;
-
-    const Vector3 origin = aabb.GetCenter();
-
-    for (UInt i = 0; i < 6; i++) {
-        view_matrices[i] = Matrix4::LookAt(
-            origin,
-            origin + Texture::cubemap_directions[i].first,
-            Texture::cubemap_directions[i].second
-        );
-    }
-
-    return view_matrices;
-}
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb);
 
 #pragma region Render commands
 
@@ -155,6 +135,63 @@ struct RENDER_COMMAND(CreateComputeSHDescriptorSets) : RenderCommand
 
 #pragma endregion
 
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb)
+{
+    FixedArray<Matrix4, 6> view_matrices;
+
+    const Vector3 origin = aabb.GetCenter();
+
+    for (UInt i = 0; i < 6; i++) {
+        view_matrices[i] = Matrix4::LookAt(
+            origin,
+            origin + Texture::cubemap_directions[i].first,
+            Texture::cubemap_directions[i].second
+        );
+    }
+
+    return view_matrices;
+}
+
+void EnvProbe::UpdateEnvProbeShaderData(
+    ID<EnvProbe> id,
+    const EnvProbeDrawProxy &proxy,
+    UInt32 texture_slot,
+    UInt32 grid_slot,
+    Extent3D grid_size
+)
+{
+    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(proxy.aabb);
+
+    EnvProbeShaderData data {
+        .face_view_matrices = {
+            ShaderMat4(view_matrices[0]),
+            ShaderMat4(view_matrices[1]),
+            ShaderMat4(view_matrices[2]),
+            ShaderMat4(view_matrices[3]),
+            ShaderMat4(view_matrices[4]),
+            ShaderMat4(view_matrices[5])
+        },
+        .aabb_max = Vector4(proxy.aabb.max, 1.0f),
+        .aabb_min = Vector4(proxy.aabb.min, 1.0f),
+        .world_position = Vector4(proxy.world_position, 1.0f),
+        .texture_index = texture_slot,
+        .flags = proxy.flags,
+        .camera_near = proxy.camera_near,
+        .camera_far = proxy.camera_far,
+        .position_in_grid = grid_slot != ~0u
+            ? ShaderVec4<Int32> {
+                  Int32(grid_slot % grid_size.width),
+                  Int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
+                  Int32(grid_slot / (grid_size.width * grid_size.height)),
+                  0
+              }
+            : ShaderVec4<Int32> { 0, 0, 0, 0 },
+        .position_offset = { 0, 0, 0, 0 }
+    };
+
+    Engine::Get()->GetRenderData()->env_probes.Set(id.ToIndex(), data);
+}
+
 EnvProbe::EnvProbe(
     const Handle<Scene> &parent_scene,
     const BoundingBox &aabb,
@@ -194,6 +231,7 @@ void EnvProbe::Init()
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+            | (NeedsRender() ? ENV_PROBE_FLAGS_DIRTY : ENV_PROBE_FLAGS_NONE)
     };
 
     m_view_matrices = CreateCubemapMatrices(m_aabb);
@@ -428,13 +466,13 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         octant_hash = octree->GetNodesHash();
     }
 
-    // if (m_octant_hash_code != octant_hash || !is_rendered) {
-    //     SetNeedsUpdate(true);
+    if (m_octant_hash_code != octant_hash || !is_rendered) {
+        SetNeedsUpdate(true);
 
-    //     DebugLog(LogType::Debug, "Probe #%u octree hash changed\n", GetID().Value());
+        // DebugLog(LogType::Debug, "Probe #%u octree hash changed\n", GetID().Value());
 
-    //     m_octant_hash_code = octant_hash;
-    // }
+        m_octant_hash_code = octant_hash;
+    }
     
     if (!NeedsUpdate()) {
         return;
@@ -474,6 +512,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
+            | ENV_PROBE_FLAGS_DIRTY
     });
 
     SetNeedsUpdate(false);
@@ -693,43 +732,24 @@ void EnvProbe::UpdateRenderData(bool set_texture)
     }
 
     const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
-    const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
 
-    // TEMP
-    auto view_matrices = CreateCubemapMatrices(m_aabb);
+    {
+        const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
 
-    EnvProbeShaderData data {
-        .face_view_matrices = {
-            ShaderMat4(view_matrices[0]),
-            ShaderMat4(view_matrices[1]),
-            ShaderMat4(view_matrices[2]),
-            ShaderMat4(view_matrices[3]),
-            ShaderMat4(view_matrices[4]),
-            ShaderMat4(view_matrices[5])
-        },
-        .aabb_max = Vector4(m_draw_proxy.aabb.max, 1.0f),
-        .aabb_min = Vector4(m_draw_proxy.aabb.min, 1.0f),
-        .world_position = Vector4(m_draw_proxy.world_position, 1.0f),
-        .texture_index = texture_slot,
-        .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
-        .camera_near = m_draw_proxy.camera_near,
-        .camera_far = m_draw_proxy.camera_far,
-        .position_in_grid = 
-#ifdef ENV_PROBE_STATIC_INDEX
-        IsAmbientProbe()
-            ? ShaderVec4<Int32> {
-                  Int32(m_grid_slot % m_bound_index.grid_size.width),
-                  Int32((m_grid_slot % (m_bound_index.grid_size.width * m_bound_index.grid_size.height)) / m_bound_index.grid_size.width),
-                  Int32(m_grid_slot / (m_bound_index.grid_size.width * m_bound_index.grid_size.height)),
-                  0
-              }
-            :
-#endif
-            ShaderVec4<Int32> { Int32(m_bound_index.position[0]), Int32(m_bound_index.position[1]), Int32(m_bound_index.position[2]), 0 },
-        .position_offset = { 0, 0, 0, 0 }
-    };
+        if (NeedsRender()) {
+            m_draw_proxy.flags |= ENV_PROBE_FLAGS_DIRTY;
+        } 
 
-    Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);
+        m_draw_proxy.flags |= shadow_flags << 3;
+    }
+
+    UpdateEnvProbeShaderData(
+        GetID(),
+        m_draw_proxy,
+        texture_slot,
+        IsAmbientProbe() ? m_grid_slot : ~0u,
+        IsAmbientProbe() ? m_bound_index.grid_size : Extent3D { }
+    );
 
     // update cubemap texture in array of bound env probes
     if (set_texture) {
@@ -757,8 +777,8 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
             AssertThrow(descriptor_key != DescriptorKey::UNUSED);
 
-            auto *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
-            auto *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
+            DescriptorSet *descriptor_set = descriptor_pool.GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            Descriptor *descriptor = descriptor_set->GetOrAddDescriptor<renderer::ImageDescriptor>(descriptor_key);
 
             descriptor->SetElementSRV(
                 texture_slot,

@@ -111,6 +111,12 @@ public:
 
 static_assert(sizeof(Vector2) == sizeof(float) * 2, "sizeof(Vector2) must be equal to sizeof(float) * 2");
 
+template <class T>
+inline constexpr bool is_vec2 = false;
+
+template <>
+inline constexpr bool is_vec2<Vector2> = true;
+
 } // namespace hyperion
 
 HYP_DEF_STL_HASH(hyperion::Vector2);

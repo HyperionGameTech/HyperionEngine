@@ -20,10 +20,12 @@ enum EnvGridFlagBits : EnvGridFlags
     ENV_GRID_FLAGS_RESET_REQUESTED = 0x1
 };
 
+struct RenderCommand_UpdateEnvProbeAABBsInGrid;
+
 class EnvGrid : public RenderComponent<EnvGrid>
 {
 public:
-    friend class RenderCommand_UpdateProbeOffsets;
+    friend struct RenderCommand_UpdateEnvProbeAABBsInGrid;
 
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_ENV_GRID;
 
@@ -41,19 +43,26 @@ public:
     void OnUpdate(GameCounter::TickUnit delta);
     void OnRender(Frame *frame);
 
-
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     void CreateShader();
     void CreateFramebuffer();
 
-    void CreateClipmapComputeShader();
+    void CreateSHData();
+    void CreateSHClipmapData();
     void ComputeClipmaps(Frame *frame);
 
     void RenderEnvProbe(
         Frame *frame,
-        Handle<EnvProbe> &probe
+        UInt32 probe_index
+    );
+
+    void ComputeSH(
+        Frame *frame,
+        const Image *image,
+        const ImageView *image_view,
+        UInt32 probe_index
     );
 
     BoundingBox m_aabb;
@@ -67,7 +76,7 @@ private:
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     
     Array<Handle<EnvProbe>> m_ambient_probes;
-    Array<EnvProbeDrawProxy> m_env_probe_proxies;
+    Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
 
     Handle<ComputePipeline> m_compute_clipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;
@@ -78,6 +87,12 @@ private:
     Vector3 m_grid_offset;
 
     AtomicVar<EnvGridFlags> m_flags;
+
+    Handle<ComputePipeline> m_compute_sh;
+    Handle<ComputePipeline> m_clear_sh;
+    Handle<ComputePipeline> m_finalize_sh;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_sh_descriptor_sets;
+    GPUBufferRef m_sh_tiles_buffer;
 
     Queue<UInt> m_next_render_indices;
 };

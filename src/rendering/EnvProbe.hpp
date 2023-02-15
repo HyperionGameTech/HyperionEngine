@@ -125,6 +125,14 @@ class EnvProbe
 public:
     friend struct RenderCommand_UpdateEnvProbeDrawProxy;
     friend struct RenderCommand_DestroyCubemapRenderPass;
+
+    static void UpdateEnvProbeShaderData(
+        ID<EnvProbe> id,
+        const EnvProbeDrawProxy &proxy,
+        UInt32 texture_slot = ~0u,
+        UInt32 grid_slot = ~0u,
+        Extent3D grid_size = Extent3D { 0, 0, 0 }
+    );
     
     EnvProbe(
         const Handle<Scene> &parent_scene,
@@ -165,7 +173,7 @@ public:
         { return m_aabb; }
 
     void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; }
+        { m_aabb = aabb; SetNeedsUpdate(true); }
 
     Handle<Texture> &GetTexture()
         { return m_texture; }

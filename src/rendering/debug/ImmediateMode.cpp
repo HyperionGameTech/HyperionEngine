@@ -75,8 +75,8 @@ void ImmediateMode::Create()
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
-                .fill_mode = FillMode::LINE,
-                .blend_mode = BlendMode::NORMAL,
+                .fill_mode = FillMode::FILL,
+                .blend_mode = BlendMode::NONE,
                 .cull_faces = FaceCullMode::NONE
             }
         ),
@@ -156,7 +156,7 @@ void ImmediateMode::Render(Frame *frame)
             HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
             HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().GetActiveEnvProbe().ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
         }
     );

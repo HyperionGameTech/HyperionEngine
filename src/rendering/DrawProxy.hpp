@@ -122,7 +122,9 @@ enum EnvProbeFlagBits : EnvProbeFlags
 {
     ENV_PROBE_FLAGS_NONE = 0x0,
     ENV_PROBE_FLAGS_PARALLAX_CORRECTED = 0x1,
-    ENV_PROBE_FLAGS_SHADOW = 0x2
+    ENV_PROBE_FLAGS_SHADOW = 0x2,
+    ENV_PROBE_FLAGS_DIRTY = 0x4,
+    ENV_PROBE_FLAGS_MAX = 0x7 // 3 bits after are used for shadow
 };
 
 using ShadowFlags = UInt32;

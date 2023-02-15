@@ -73,9 +73,7 @@ static inline Vector4 Vector(const Vector3 &xyz, float w)
 }
 
 template <class T>
-constexpr bool is_math_vector_v = std::is_base_of_v<T, Vector2>
-   || std::is_base_of_v<T, Vector3>
-   || std::is_base_of_v<T, Vector4>;
+constexpr bool is_math_vector_v = is_vec2<T> || is_vec3<T> || is_vec4<T>;
 
 class MathUtil
 {
@@ -272,6 +270,10 @@ public:
 
     template <class T>
     static T Exp(T a) { return T(std::exp(a)); }
+
+    template <class T>
+    static T Mod(T a, T b)
+        { return (a % b + b) % b; }
     
     template <class T>
     static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, T) Abs(T a)

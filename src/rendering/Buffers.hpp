@@ -284,6 +284,13 @@ struct alignas(256) SH9Buffer
 
 static_assert(sizeof(SH9Buffer) == 256);
 
+struct alignas(16) SHTile
+{
+    ShaderVec4<Float> coeffs_weights[9];
+};
+
+static_assert(sizeof(SHTile) == 144);
+
 struct alignas(16) VoxelUniforms
 {
     ShaderVec4<Float> extent;
