@@ -274,10 +274,8 @@ public:
     static T Exp(T a) { return T(std::exp(a)); }
     
     template <class T>
-    static constexpr HYP_ENABLE_IF(!std::is_floating_point_v<T> && !is_math_vector_v<T>, T) Abs(T a) { return std::abs(a); }
-    
-    template <class T>
-    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T> && !is_math_vector_v<T>, T) Abs(T a) { return std::fabs(a); }
+    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, T) Abs(T a)
+        { return a > T(0) ? a : -a; }
     
     template <class T>
     static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, T) Abs(const T &a)

@@ -67,12 +67,15 @@ private:
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     
     Array<Handle<EnvProbe>> m_ambient_probes;
+    Array<EnvProbeDrawProxy> m_env_probe_proxies;
 
     Handle<ComputePipeline> m_compute_clipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;
 
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;
+
+    Vector3 m_grid_offset;
 
     AtomicVar<EnvGridFlags> m_flags;
 

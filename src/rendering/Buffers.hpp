@@ -225,7 +225,7 @@ struct alignas(256) EnvProbeShaderData
     ShaderVec2<UInt32> _pad2;
 
     ShaderVec4<Int32> position_in_grid;
-    ShaderVec4<UInt32> _pad4;
+    ShaderVec4<Int32> position_offset;
     ShaderVec4<UInt32> _pad5;
 };
 

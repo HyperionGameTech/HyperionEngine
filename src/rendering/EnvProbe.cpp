@@ -168,7 +168,7 @@ EnvProbe::EnvProbe(
     m_camera_near(0.001f),
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
-    m_needs_render_counter { UInt16(0) },
+    m_needs_render_counter(0),
     m_is_rendered { false }
 {
 }
@@ -428,11 +428,13 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         octant_hash = octree->GetNodesHash();
     }
 
-    if (m_octant_hash_code != octant_hash || !is_rendered) {
-        SetNeedsUpdate(true);
+    // if (m_octant_hash_code != octant_hash || !is_rendered) {
+    //     SetNeedsUpdate(true);
 
-        m_octant_hash_code = octant_hash;
-    }
+    //     DebugLog(LogType::Debug, "Probe #%u octree hash changed\n", GetID().Value());
+
+    //     m_octant_hash_code = octant_hash;
+    // }
     
     if (!NeedsUpdate()) {
         return;
@@ -592,25 +594,35 @@ void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *imag
     EnvProbeIndex bound_index = m_bound_index;
 
     AssertThrowMsg(bound_index != ~0u, "Probe not bound to an index!");
+    AssertThrow(m_grid_slot != ~0u);
 
     // ambient probes have +1 for their bound index, so we subtract that to get the actual index
     bound_index.position[2] -= 1;
 
-    const UInt probe_index = bound_index.GetProbeIndex();
     const Extent3D &grid_image_extent = Engine::Get()->shader_globals->spherical_harmonics_grid.textures[0].image->GetExtent();
 
-    AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
+    // AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
 
     AssertThrow(image != nullptr);
     AssertThrow(image_view != nullptr);
 
     struct alignas(128) {
         ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec2<UInt32> cubemap_dimensions;
+        ShaderVec4<UInt32> cubemap_dimensions;
     } push_constants;
     
+#ifdef ENV_PROBE_STATIC_INDEX
+    push_constants.probe_grid_position = {
+        m_grid_slot % bound_index.grid_size.width,
+        (m_grid_slot % (bound_index.grid_size.width * bound_index.grid_size.height)) / bound_index.grid_size.width,
+        m_grid_slot / (bound_index.grid_size.width * bound_index.grid_size.height),
+        0
+    };
+#else
     push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };
-    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height };
+#endif
+
+    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
     
     m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
         ->GetDescriptor(0)
@@ -676,16 +688,9 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
     AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
 
-    // TEMP!!!
-    // m_draw_proxy = EnvProbeDrawProxy {
-    //     .id = m_id,
-    //     .aabb = m_aabb,
-    //     .world_position = m_aabb.GetCenter(),
-    //     .camera_near = m_camera_near,
-    //     .camera_far = m_camera_far,
-    //     .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
-    //         | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-    // };
+    if (IsAmbientProbe()) {
+        AssertThrow(m_grid_slot != ~0u);
+    }
 
     const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
     const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
@@ -709,7 +714,19 @@ void EnvProbe::UpdateRenderData(bool set_texture)
         .flags = UInt32(m_draw_proxy.flags) | (shadow_flags << 3),
         .camera_near = m_draw_proxy.camera_near,
         .camera_far = m_draw_proxy.camera_far,
-        .position_in_grid = { Int32(m_bound_index.position[0]), Int32(m_bound_index.position[1]), Int32(m_bound_index.position[2]), 0 }
+        .position_in_grid = 
+#ifdef ENV_PROBE_STATIC_INDEX
+        IsAmbientProbe()
+            ? ShaderVec4<Int32> {
+                  Int32(m_grid_slot % m_bound_index.grid_size.width),
+                  Int32((m_grid_slot % (m_bound_index.grid_size.width * m_bound_index.grid_size.height)) / m_bound_index.grid_size.width),
+                  Int32(m_grid_slot / (m_bound_index.grid_size.width * m_bound_index.grid_size.height)),
+                  0
+              }
+            :
+#endif
+            ShaderVec4<Int32> { Int32(m_bound_index.position[0]), Int32(m_bound_index.position[1]), Int32(m_bound_index.position[2]), 0 },
+        .position_offset = { 0, 0, 0, 0 }
     };
 
     Engine::Get()->GetRenderData()->env_probes.Set(GetID().ToIndex(), data);

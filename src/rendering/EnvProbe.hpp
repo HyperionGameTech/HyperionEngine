@@ -42,6 +42,8 @@ enum EnvProbeType : UInt
 
 class EnvProbe;
 
+#define ENV_PROBE_STATIC_INDEX
+
 struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : RenderCommand
 {
     EnvProbe &env_probe;
@@ -163,7 +165,7 @@ public:
         { return m_aabb; }
 
     void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; SetNeedsUpdate(true); }
+        { m_aabb = aabb; }
 
     Handle<Texture> &GetTexture()
         { return m_texture; }
@@ -188,7 +190,7 @@ public:
 
     bool NeedsRender() const
     {
-        const UInt16 counter = m_needs_render_counter.Get(MemoryOrder::ACQUIRE);
+        const UInt8 counter = m_needs_render_counter.Get(MemoryOrder::ACQUIRE);
 
         return counter != 0;
     }
@@ -206,6 +208,7 @@ public:
     void UpdateRenderData(const EnvProbeIndex &probe_index);
 
     UInt32 m_temp_render_frame_id = 0;
+    UInt32 m_grid_slot = ~0u; // temp
     
 private:
     void CreateShader();
@@ -243,7 +246,7 @@ private:
 
     bool m_needs_update;
     AtomicVar<Bool> m_is_rendered;
-    AtomicVar<UInt16> m_needs_render_counter;
+    AtomicVar<UInt8> m_needs_render_counter;
     HashCode m_octant_hash_code;
 
 };
