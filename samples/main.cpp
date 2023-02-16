@@ -300,7 +300,7 @@ public:
 
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -20.0f, -15.0f), Vector3(15.0f, 20.0f, 15.0f)));
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-25.0f, -20.0f, -25.0f), Vector3(25.0f, 20.0f, 25.0f)));
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(std::move(env_grid_entity));
         }

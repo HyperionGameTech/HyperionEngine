@@ -61,6 +61,26 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
+{
+    GPUBufferRef sh_grid_buffer;
+    
+    RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer)(GPUBufferRef sh_grid_buffer)
+        : sh_grid_buffer(std::move(sh_grid_buffer))
+    {
+        AssertThrow(this->sh_grid_buffer.IsValid());
+    }
+
+    virtual Result operator()()
+    {
+        // @TODO: Make GPU only
+        sh_grid_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer));
+        sh_grid_buffer->Memset(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer), 0);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
 {
     FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
@@ -105,6 +125,10 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : RenderCommand
 
 GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 {
+    {
+        sh_grid_buffer = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
+    }
+
     {
         const UInt dimension_cube = 32;//UInt(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
         const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
@@ -151,12 +175,15 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 
 void GlobalSphericalHarmonicsGrid::Create()
 {
+    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer, sh_grid_buffer);
     PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages, textures);
     PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps, clipmaps);
 }
 
 void GlobalSphericalHarmonicsGrid::Destroy()
 {
+    SafeRelease(std::move(sh_grid_buffer));
+
     for (auto &item : textures) {
         SafeRelease(std::move(item.image));
         SafeRelease(std::move(item.image_view));
