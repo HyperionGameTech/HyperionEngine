@@ -28,11 +28,11 @@ struct EnvProbeAABBUpdate
 struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : RenderCommand
 {
     EnvGrid *grid;
-    Array<EnvProbeAABBUpdate> updates;
+    Array<const EnvProbeDrawProxy *> updates;
 
     RENDER_COMMAND(UpdateEnvProbeAABBsInGrid)(
         EnvGrid *grid,
-        Array<EnvProbeAABBUpdate> &&updates
+        Array<const EnvProbeDrawProxy *> &&updates
     ) : grid(grid),
         updates(std::move(updates))
     {
@@ -42,17 +42,18 @@ struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : RenderCommand
 
     virtual Result operator()() override
     {
-        for (EnvProbeAABBUpdate &update : updates) {
-            std::swap(grid->m_env_probe_draw_proxies[update.current_index], grid->m_env_probe_draw_proxies[update.new_index]);
+        // for (EnvProbeAABBUpdate &update : updates) {
+        //     std::swap(grid->m_env_probe_draw_proxies[update.current_index], grid->m_env_probe_draw_proxies[update.new_index]);
 
-            // AssertThrow(update.index < grid->m_env_probe_draw_proxies.Size());
+        //     // AssertThrow(update.index < grid->m_env_probe_draw_proxies.Size());
 
-            // EnvProbeDrawProxy *proxy = grid->m_env_probe_draw_proxies[update.index];
-            // proxy.id = update.id;
-            // proxy.aabb = update.new_aabb;
-            // proxy.world_position = update.new_aabb.GetCenter();
-            // proxy.flags |= ENV_PROBE_FLAGS_DIRTY;
-        }
+        //     // EnvProbeDrawProxy *proxy = grid->m_env_probe_draw_proxies[update.index];
+        //     // proxy.id = update.id;
+        //     // proxy.aabb = update.new_aabb;
+        //     // proxy.world_position = update.new_aabb.GetCenter();
+        //     // proxy.flags |= ENV_PROBE_FLAGS_DIRTY;
+        // }
+        grid->m_env_probe_draw_proxies = std::move(updates);
 
         HYPERION_RETURN_OK;
     }
@@ -130,34 +131,36 @@ EnvGrid::~EnvGrid()
 {
 }
 
-#define USE_ROW_SWAP
-
-void EnvGrid::SetCameraData(const Vector3 &camera_position)
+void EnvGrid::SetCameraData(const Vector3 &position)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
-    Vector3 size_of_probe = (m_aabb.GetExtent() / Vector3(m_density));
+    const Vector3 aabb_extent = m_aabb.GetExtent();
+    const Vector3 size_of_probe = (aabb_extent / Vector3(m_density));
+
     Vector3 position_snapped = Vector3(
-        MathUtil::Floor<Float, Float>(camera_position.x / size_of_probe.x),
-        MathUtil::Floor<Float, Float>(camera_position.y / size_of_probe.y),
-        MathUtil::Floor<Float, Float>(camera_position.z / size_of_probe.z)
+        MathUtil::Floor<Float, Float>(position.x / size_of_probe.x),
+        MathUtil::Floor<Float, Float>(position.y / size_of_probe.y),
+        MathUtil::Floor<Float, Float>(position.z / size_of_probe.z)
     );
 
-    const Vector3 dir = m_grid_offset - position_snapped;
-    m_grid_offset = position_snapped;
+    Vector3 camera_position;
 
-    // DebugLog(LogType::Debug, "dir: %f, %f, %f\n", dir.x, dir.y, dir.z);
+    if (m_camera) {
+        camera_position = m_camera->GetTranslation() / size_of_probe;
+        m_camera->SetTranslation(position_snapped * size_of_probe);
+    }
 
-    const Vector3 aabb_extent = m_aabb.GetExtent();
+    const Vector3 delta = camera_position - position_snapped;
+    camera_position = position_snapped;
 
     Array<Pair<ID<EnvProbe>, BoundingBox>> probe_data;
     probe_data.Resize(m_ambient_probes.Size());
 
-
     Vec3i movement_values = {
-        MathUtil::Floor<Float, Int32>(dir.x),
-        MathUtil::Floor<Float, Int32>(dir.y),
-        MathUtil::Floor<Float, Int32>(dir.z)
+        MathUtil::Floor<Float, Vec3i::Type>(delta.x),
+        MathUtil::Floor<Float, Vec3i::Type>(delta.y),
+        MathUtil::Floor<Float, Vec3i::Type>(delta.z)
     };
 
     if (movement_values.x == 0 && movement_values.y == 0 && movement_values.z == 0) {
@@ -170,50 +173,13 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
         movement_values.x, movement_values.y, movement_values.z
     );
 
-    SizeType num_set = 0;
+    // Put probes into a 3-dimensional array to scroll the probes
 
-
-    union IndicesValue {
-        Int32 values[3];
-        
-        struct { Int32 x, y, z; };
-    };
-
-    struct Index3D
-    {
-        UInt values[3];
-
-        UInt &operator[](UInt index)
-            { return values[index]; }
-
-        UInt operator[](UInt index) const
-            { return values[index]; }
-    };
-
-    const auto GetCounts = [&movement_values, density = m_density](UInt axis_index) -> Index3D {
-        Index3D counts;
-
-        counts[0] = density.width;
-        counts[1] = density.height;
-        counts[2] = density.depth;
-        counts[axis_index] = MathUtil::Abs(movement_values[axis_index]);
-
-        return counts;
-    };
-
-    // take farthest probes on opposite side of movement direction,
-    // and flip them so they are at the new row
-
-    Array<EnvProbeAABBUpdate> updates;
-
-    // NEED TO:
-    // Cycle indices
-    // so 0, 1, 2, 3   scrolled 1 -> this way 
-    // becomes 1, 2, 3, 0
-    // YET: The AABBs need to continue being added onto!
-    // we keep the AABBs the same for probes not on the edge in the direction we scroll.
+    Array<const EnvProbeDrawProxy *> updates;
+    updates.Resize(m_ambient_probes.Size());
 
     Array<Array<Array<Handle<EnvProbe>>>> new_probes;
+
     new_probes.Resize(m_density.width);
 
     for (UInt x = 0; x < m_density.width; x++) {
@@ -223,11 +189,7 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
             new_probes[x][y].Resize(m_density.depth);
 
             for (UInt z = 0; z < m_density.depth; z++) {
-                const Vec3i scrolled_indices = {
-                    Int32(x) - movement_values.x,
-                    Int32(y) - movement_values.y,
-                    Int32(z) - movement_values.z
-                };
+                const Vec3i scrolled_indices = Vec3i { Int32(x), Int32(y), Int32(z) } - movement_values;
 
                 const Vec3i density_i = Vec3i(m_density);
                 const Vec3i clamped_indices = MathUtil::Mod(scrolled_indices, density_i);
@@ -236,38 +198,17 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
                     + clamped_indices.y * density_i.x
                     + clamped_indices.x;
 
-                const BoundingBox current_aabb = m_ambient_probes[index]->GetAABB();
-
-                // This is wrong
-                const BoundingBox new_aabb = BoundingBox(
-                    m_aabb.min + ((Vector3(Float(x), Float(y), Float(z)) + m_grid_offset) * size_of_probe),
-                    m_aabb.min + ((Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) + m_grid_offset) * size_of_probe)
-                );
-
-                const Float dist = current_aabb.GetCenter().Distance(new_aabb.GetCenter());
-
-                m_ambient_probes[index]->SetAABB(new_aabb);
+                m_ambient_probes[index]->SetAABB(BoundingBox(
+                    m_aabb.min + ((Vector3(Float(x), Float(y), Float(z)) + camera_position) * size_of_probe),
+                    m_aabb.min + ((Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) + camera_position) * size_of_probe)
+                ));
 
                 new_probes[x][y][z] = m_ambient_probes[index];
-
-                const Vector3 current_center = current_aabb.min / size_of_probe;
-                const Vector3 new_center = new_aabb.min / size_of_probe;
-
-                DebugLog(
-                    LogType::Debug,
-                    "Grid Offset: (%f %f %f), Dist: %f, Shift (%u %u %u) -> (%d %d %d)   (%f %f %f) -> (%f %f %f)\n",
-                    m_grid_offset.x, m_grid_offset.y, m_grid_offset.z,
-                    dist,
-                    x, y, z,
-                    clamped_indices.x, clamped_indices.y, clamped_indices.z,
-                    current_center.x, current_center.y, current_center.z,
-                    new_center.x, new_center.y, new_center.z
-                );
             }
         }
     }
 
-    // update the probes
+    // update the probes indices
     for (UInt32 index = 0; index < UInt32(m_ambient_probes.Size()); index++) {
         const Vec3u v = {
             index % m_density.width,
@@ -275,76 +216,8 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
             index / (m_density.width * m_density.height)
         };
 
-        m_ambient_probes[index] = new_probes[v.x][v.y][v.z];
-
-        // TEMP
-        m_env_probe_draw_proxies[index] = &m_ambient_probes[index]->GetDrawProxy();
-    }
-
-#if 0
-
-    for (UInt axis_index = 0; axis_index < 3; axis_index++) {
-        const Int32 movement_sign = MathUtil::Sign(movement_values[axis_index]);
-
-        if (movement_sign == 0) {
-            continue;
-        }
-
-        AssertThrow(movement_sign == -1 || movement_sign == 1);
-
-        Index3D counts = GetCounts(axis_index);
-
-        updates.Reserve(updates.Size() + counts[axis_index]);
-
-        for (UInt x = 0; x < counts[0]; x++) {
-            for (UInt y = 0; y < counts[1]; y++) {
-                for (UInt z = 0; z < counts[2]; z++) {
-                    IndicesValue current = { Int32(x), Int32(y), Int32(z) };
-                    IndicesValue next = { Int32(x), Int32(y), Int32(z) };
-
-                    AssertThrow(m_density[axis_index] >= counts[axis_index] + current.values[axis_index]);
-                    next.values[axis_index] = m_density[axis_index] - counts[axis_index] + current.values[axis_index];
-
-                    if (movement_sign == -1) {
-                        std::swap(current, next);
-                    }
-
-                    // const BoundingBox current_aabb(
-                    //     m_aabb.min + (Vector3(Float(current.x), Float(current.y), Float(current.z)) * (aabb_extent / Vector3(m_density))),
-                    //     m_aabb.min + (Vector3(Float(current.x + 1), Float(current.y + 1), Float(current.z + 1)) * (aabb_extent / Vector3(m_density)))
-                    // );
-
-                    const SizeType current_index = current.x * m_density.height * m_density.depth
-                        + current.y * m_density.depth
-                        + current.z;
-                    
-                    const SizeType next_index = next.x * m_density.height * m_density.depth
-                        + next.y * m_density.depth
-                        + next.z;
-
-                    const BoundingBox current_aabb = m_ambient_probes[current_index]->GetAABB();
-
-                    BoundingBox next_aabb = m_ambient_probes[next_index]->GetAABB();
-                    next_aabb += (aabb_extent / Vector3(m_density));
-
-
-                    // const BoundingBox next_aabb(
-                    //     m_aabb.min + (Vector3(Float(next.x), Float(next.y), Float(next.z)) * (aabb_extent / Vector3(m_density))),
-                    //     m_aabb.min + (Vector3(Float(next.x + 1), Float(next.y + 1), Float(next.z + 1)) * (aabb_extent / Vector3(m_density)))
-                    // );
-                    
-
-                    updates.PushBack({ UInt32(current_index), current_aabb, UInt32(next_index), next_aabb });
-
-                    m_ambient_probes[next_index]->SetAABB(current_aabb);
-                    m_ambient_probes[current_index]->SetAABB(next_aabb);
-
-                    std::swap(m_ambient_probes[current_index], m_ambient_probes[next_index]);
-
-                    num_set++;
-                }
-            }
-        }
+        m_ambient_probes[index] = std::move(new_probes[v.x][v.y][v.z]);
+        updates[index] = &m_ambient_probes[index]->GetDrawProxy(); 
     }
 
     if (updates.Any()) {
@@ -354,16 +227,6 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
             std::move(updates)
         );
     }
-
-#endif
-
-    // PUSH_RENDER_COMMAND(
-    //     UpdateProbeOffsets,
-    //     this,
-    //     m_aabb,
-    //     dir_snapped,
-    //     probe_data
-    // );
 }
 
 void EnvGrid::Init()
@@ -432,7 +295,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.15f, m_aabb.GetRadius()//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -520,6 +383,9 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
 
     for (Handle<EnvProbe> &env_probe : m_ambient_probes) {
         env_probe->Update(delta);
+
+        // will manually handle this.
+        env_probe->SetNeedsRender(false);
     }
 }
 
@@ -593,28 +459,17 @@ void EnvGrid::OnRender(Frame *frame)
 
         EnvProbeShaderData &data = Engine::Get()->GetRenderData()->env_probes.Get(probe_id.ToIndex());
 
+        const Vec3u v = {
+            UInt32(index) % m_density.width,
+            (UInt32(index) % (m_density.width * m_density.height)) / m_density.width,
+            UInt32(index) / (m_density.width * m_density.height)
+        };
+
         Engine::Get()->GetImmediateMode().Sphere(
-            m_ambient_probes[index]->GetAABB().GetCenter(),//Vector3(data.world_position),//m_env_probe_draw_proxies[index]->world_position,
+            m_env_probe_draw_proxies[index]->world_position,
             0.15f,
-            Color(m_ambient_probes[index]->GetID().Value())
+            Color(probe_id.Value())//Color(Float(v.x) / Float(m_density.width), Float(v.y) / Float(m_density.height), Float(v.z) / Float(m_density.depth))
         );
-
-        // const Vec3u v = {
-        //     UInt32(index) % m_density.width,
-        //     (UInt32(index) % (m_density.width * m_density.height)) / m_density.width,
-        //     UInt32(index) / (m_density.width * m_density.height)
-        // };
-
-        // const Vector3 size_of_probe = (m_aabb.GetExtent() / Vector3(m_density));
-
-        // Engine::Get()->GetImmediateMode().Sphere(
-        //     BoundingBox(
-        //         m_aabb.min + (m_grid_offset * size_of_probe) + (Vector3(Float(v.x), Float(v.y), Float(v.z)) * size_of_probe),
-        //         m_aabb.min + (m_grid_offset * size_of_probe) + (Vector3(Float(v.x + 1), Float(v.y + 1), Float(v.z + 1)) * size_of_probe)
-        //     ).GetCenter(),
-        //     0.15f,
-        //     Color(m_ambient_probes[index].GetID().Value())
-        // );
     }
     
     if (num_ambient_probes != 0) {
@@ -692,7 +547,7 @@ void EnvGrid::OnRender(Frame *frame)
     }
     
     m_shader_data.extent = Vector4(grid_aabb.GetExtent(), 1.0f);
-    m_shader_data.center = Vector4(m_grid_offset, 1.0f);//Vector4(grid_aabb.GetCenter(), 1.0f);
+    m_shader_data.center = Vector4(m_camera->GetDrawProxy().position, 1.0f);
     m_shader_data.aabb_max = Vector4(grid_aabb.max, 1.0f);
     m_shader_data.aabb_min = Vector4(grid_aabb.min, 1.0f);
     m_shader_data.density = { m_density.width, m_density.height, m_density.depth, 0 };

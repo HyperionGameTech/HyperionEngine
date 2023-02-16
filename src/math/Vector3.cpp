@@ -184,8 +184,6 @@ bool Vector3::operator==(const Vector3 &other) const
     return MathUtil::ApproxEqual(x, other.x)
         && MathUtil::ApproxEqual(y, other.y)
         && MathUtil::ApproxEqual(z, other.z);
-
-    // return x == other.x && y == other.y && z == other.z;
 }
 
 bool Vector3::operator!=(const Vector3 &other) const

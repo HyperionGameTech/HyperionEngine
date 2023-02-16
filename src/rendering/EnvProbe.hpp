@@ -196,9 +196,9 @@ public:
     void SetNeedsRender(bool needs_render)
     {
         if (needs_render) {
-            m_needs_render_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_needs_render_counter.Set(1, MemoryOrder::ACQUIRE_RELEASE);
         } else {
-            m_needs_render_counter.Decrement(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_needs_render_counter.Set(0, MemoryOrder::ACQUIRE_RELEASE);
         }
     }
 

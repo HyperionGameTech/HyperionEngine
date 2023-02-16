@@ -318,7 +318,7 @@ public:
             Extent2D { 256, 256 }
         );
 
-        if (true) {
+        if (false) {
             int i = 0;
 
             for (auto &child : test_model.GetChildren()) {
@@ -352,7 +352,7 @@ public:
             }
         }
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -418,7 +418,7 @@ public:
             terrain_entity->AddController<TerrainPagingController>(0xBEEF, Extent3D { 256 }, Vector3(0.5f), 1.0f);
         }
 
-        if (true) { // physics
+        if (false) { // physics
             for (int i = 0; i < 6; i++) {
                 if (auto cube = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj")) {
                     cube.SetName("cube " + String::ToString(i));

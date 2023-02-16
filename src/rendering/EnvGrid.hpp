@@ -84,8 +84,6 @@ private:
     EnvGridShaderData m_shader_data;
     UInt m_current_probe_index;
 
-    Vector3 m_grid_offset;
-
     AtomicVar<EnvGridFlags> m_flags;
 
     Handle<ComputePipeline> m_compute_sh;
