@@ -466,13 +466,13 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         octant_hash = octree->GetNodesHash();
     }
 
-    if (m_octant_hash_code != octant_hash || !is_rendered) {
-        SetNeedsUpdate(true);
+    // if (m_octant_hash_code != octant_hash || !is_rendered) {
+    //     SetNeedsUpdate(true);
 
-        // DebugLog(LogType::Debug, "Probe #%u octree hash changed\n", GetID().Value());
+    //     // DebugLog(LogType::Debug, "Probe #%u octree hash changed\n", GetID().Value());
 
-        m_octant_hash_code = octant_hash;
-    }
+    //     m_octant_hash_code = octant_hash;
+    // }
     
     if (!NeedsUpdate()) {
         return;

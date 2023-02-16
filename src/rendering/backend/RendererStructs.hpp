@@ -4,6 +4,7 @@
 #include <core/lib/String.hpp>
 #include <util/Defines.hpp>
 #include <util/EnumOptions.hpp>
+#include <math/Extent.hpp>
 #include <Types.hpp>
 #include <HashCode.hpp>
 
@@ -302,6 +303,12 @@ struct alignas(8) ShaderVec2
     {
     }
 
+    ShaderVec2(const Vec2<T> &xy)
+        : x(xy.x),
+          y(xy.y)
+    {
+    }
+
     constexpr T &operator[](UInt index) { return values[index]; }
     constexpr const T &operator[](UInt index) const { return values[index]; }
 
@@ -336,6 +343,13 @@ struct alignas(16) ShaderVec3
     {
     }
 
+    ShaderVec3(const Vec3<T> &xyz)
+        : x(xyz.x),
+          y(xyz.y),
+          z(xyz.z)
+    {
+    }
+
     constexpr T &operator[](UInt index) { return values[index]; }
     constexpr const T &operator[](UInt index) const { return values[index]; }
 
@@ -364,13 +378,21 @@ struct alignas(16) ShaderVec4
     {
     }
 
+    ShaderVec4(const Vec3<T> &xyz, T w)
+        : x(xyz.x),
+          y(xyz.y),
+          z(xyz.z),
+          w(w)
+    {
+    }
+
     constexpr T &operator[](UInt index) { return values[index]; }
     constexpr const T &operator[](UInt index) const { return values[index]; }
 
     operator Vector4() const { return Vector4(x, y, z, w); }
 };
 
-static_assert(sizeof(ShaderVec4<Float>)  == 16);
+static_assert(sizeof(ShaderVec4<Float>) == 16);
 static_assert(sizeof(ShaderVec4<UInt32>) == 16);
 
 struct alignas(16) ShaderMat4

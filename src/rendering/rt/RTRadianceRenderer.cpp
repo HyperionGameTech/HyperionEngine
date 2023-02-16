@@ -4,7 +4,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::Extent3D;
 using renderer::ImageDescriptor;
 using renderer::StorageImageDescriptor;
 using renderer::StorageBufferDescriptor;

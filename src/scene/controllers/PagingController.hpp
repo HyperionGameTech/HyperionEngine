@@ -20,7 +20,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::Extent3D;
 
 using PatchCoord = Vector2;
 

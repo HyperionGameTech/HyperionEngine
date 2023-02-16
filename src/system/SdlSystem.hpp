@@ -24,7 +24,7 @@ namespace renderer {
 class Instance;
 } // namespace renderer
 
-using renderer::Extent2D;
+;
 
 enum SystemEventType
 {

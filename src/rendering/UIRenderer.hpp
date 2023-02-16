@@ -17,7 +17,7 @@ namespace hyperion::v2 {
 using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
-using renderer::Extent2D;
+;
 
 class UIRenderer
     : public EngineComponentBase<STUB_CLASS(UIRenderer)>,

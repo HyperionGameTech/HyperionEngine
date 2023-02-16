@@ -141,9 +141,9 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
     ));
 
     patch->entity->SetTranslation({
-        (patch->info.coord.x - 0.5f) * (Vector(patch->info.extent).Max() - 1) * m_scale.x,
+        (patch->info.coord.x - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.x,
         GetOwner()->GetTranslation().y,
-        (patch->info.coord.y - 0.5f) * (Vector(patch->info.extent).Max() - 1) * m_scale.z
+        (patch->info.coord.y - 0.5f) * (Vector3(patch->info.extent).Max() - 1) * m_scale.z
     });
 
     for (const ID<Scene> &id : GetOwner()->GetScenes()) {

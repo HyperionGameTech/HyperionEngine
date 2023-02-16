@@ -25,7 +25,6 @@ namespace hyperion::v2 {
 using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
-using renderer::Extent2D;
 
 class CubemapRenderer
     : public EngineComponentBase<STUB_CLASS(CubemapRenderer)>,

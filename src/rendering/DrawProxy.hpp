@@ -29,7 +29,7 @@ using renderer::StorageBuffer;
 using renderer::StagingBuffer;
 using renderer::Frame;
 using renderer::Result;
-using renderer::Extent2D;
+;
 using renderer::ShaderVec2;
 using renderer::ShaderVec4;
 using renderer::ShaderValue;

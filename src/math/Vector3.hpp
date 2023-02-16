@@ -20,9 +20,11 @@ class Matrix3;
 class Matrix4;
 
 template <class T>
-struct Vec3
+struct alignas(alignof(T) * 4) Vec3
 {
     static constexpr UInt size = 3;
+
+    using Type = T;
 
     union {
         struct { T x, y, z; };
@@ -133,6 +135,9 @@ inline constexpr bool is_vec3<Vec3i> = true;
 
 template <>
 inline constexpr bool is_vec3<Vec3u> = true;
+
+static_assert(sizeof(Vec3i) == 16);
+static_assert(sizeof(Vec3u) == 16);
 
 class Vector3
 {

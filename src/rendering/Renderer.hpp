@@ -40,7 +40,6 @@ using renderer::FaceCullMode;
 using renderer::StencilState;
 using renderer::Frame;
 using renderer::Pipeline;
-using renderer::Extent3D;
 using renderer::StorageBuffer;
 
 class Engine;

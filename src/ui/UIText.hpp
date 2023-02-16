@@ -30,7 +30,7 @@ class InputManager;
 
 namespace hyperion::v2 {
 
-using renderer::Extent2D;
+;
 
 class FontMap
 {
@@ -137,7 +137,9 @@ public:
             return Vector2::zero;
         }
 
-        return Vector2(m_char_size) / Vector2(m_texture->GetExtent());
+        const Extent3D extent = m_texture->GetExtent();
+
+        return Vector2(m_char_size) / Vector2(Float(extent.width), Float(extent.height));
     }
 
 private:

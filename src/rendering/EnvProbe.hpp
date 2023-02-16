@@ -173,7 +173,13 @@ public:
         { return m_aabb; }
 
     void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; SetNeedsUpdate(true); }
+    {
+        if (m_aabb != aabb) {
+            m_aabb = aabb;
+
+            SetNeedsUpdate(true);
+        }
+    }
 
     Handle<Texture> &GetTexture()
         { return m_texture; }

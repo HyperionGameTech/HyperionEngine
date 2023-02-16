@@ -22,7 +22,7 @@
 
 namespace hyperion {
 
-static inline Vector2 Vector(float x, float y)
+static inline Vector2 Vector(Float x, Float y)
 {
     return { x, y };
 }
@@ -32,7 +32,7 @@ static inline Vector2 Vector(const Vector2 &vec)
     return Vector2(vec);
 }
 
-static inline Vector3 Vector(float x, float y, float z)
+static inline Vector3 Vector(Float x, Float y, Float z)
 {
     return { x, y, z };
 }
@@ -42,12 +42,12 @@ static inline Vector3 Vector(const Vector3 &vec)
     return Vector3(vec);
 }
 
-static inline Vector3 Vector(const Vector2 &xy, float z)
+static inline Vector3 Vector(const Vector2 &xy, Float z)
 {
     return Vector3(xy.x, xy.y, z);
 }
 
-static inline Vector4 Vector(float x, float y, float z, float w)
+static inline Vector4 Vector(Float x, Float y, Float z, Float w)
 {
     return { x, y, z, w };
 }
@@ -62,12 +62,12 @@ static inline Vector4 Vector(const Vector2 &xy, const Vector2 &zw)
     return Vector4(xy.x, xy.y, zw.x, zw.y);
 }
 
-static inline Vector4 Vector(const Vector2 &xy, float z, float w)
+static inline Vector4 Vector(const Vector2 &xy, Float z, Float w)
 {
     return Vector4(xy.x, xy.y, z, w);
 }
 
-static inline Vector4 Vector(const Vector3 &xyz, float w)
+static inline Vector4 Vector(const Vector3 &xyz, Float w)
 {
     return Vector4(xyz.x, xyz.y, xyz.z, w);
 }
@@ -272,7 +272,7 @@ public:
     static T Exp(T a) { return T(std::exp(a)); }
 
     template <class T>
-    static T Mod(T a, T b)
+    static constexpr T Mod(T a, T b)
         { return (a % b + b) % b; }
     
     template <class T>

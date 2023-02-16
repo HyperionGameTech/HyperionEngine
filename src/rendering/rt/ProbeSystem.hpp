@@ -24,8 +24,7 @@ using renderer::ImageView;
 using renderer::UniformBuffer;
 using renderer::CommandBuffer;
 using renderer::ImageDescriptor;
-using renderer::Extent3D;
-using renderer::Extent2D;
+;
 using renderer::Frame;
 using renderer::RTUpdateStateFlags;
 using renderer::ShaderVec4;
@@ -64,7 +63,7 @@ struct ProbeGridInfo
     static constexpr Extent3D probe_border = Extent3D(2, 0, 2);
 
     BoundingBox aabb;
-    float probe_distance = 6.0f;
+    Float probe_distance = 6.0f;
     UInt num_rays_per_probe = 128;
 
     const Vector3 &GetOrigin() const
@@ -72,7 +71,7 @@ struct ProbeGridInfo
 
     Extent3D NumProbesPerDimension() const
     {
-        const auto probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vector(probe_border));
+        const Vector3 probes_per_dimension = MathUtil::Ceil((aabb.GetExtent() / probe_distance) + Vector3(probe_border));
 
         return Extent3D(probes_per_dimension);
     }

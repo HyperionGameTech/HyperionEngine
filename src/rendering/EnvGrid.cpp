@@ -223,22 +223,25 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
             new_probes[x][y].Resize(m_density.depth);
 
             for (UInt z = 0; z < m_density.depth; z++) {
-                const Vec3u values = {
-                    UInt32(MathUtil::Mod(Int32(x) - movement_values.x, Int32(m_density.width))),
-                    UInt32(MathUtil::Mod(Int32(y) - movement_values.y, Int32(m_density.height))),
-                    UInt32(MathUtil::Mod(Int32(z) - movement_values.z, Int32(m_density.depth)))
+                const Vec3i scrolled_indices = {
+                    Int32(x) - movement_values.x,
+                    Int32(y) - movement_values.y,
+                    Int32(z) - movement_values.z
                 };
 
-                const SizeType index = values.x * m_density.height * m_density.depth
-                    + values.y * m_density.depth
-                    + values.z;
+                const Vec3i density_i = Vec3i(m_density);
+                const Vec3i clamped_indices = MathUtil::Mod(scrolled_indices, density_i);
+
+                const Int32 index = clamped_indices.z * density_i.x * density_i.y
+                    + clamped_indices.y * density_i.x
+                    + clamped_indices.x;
 
                 const BoundingBox current_aabb = m_ambient_probes[index]->GetAABB();
 
                 // This is wrong
                 const BoundingBox new_aabb = BoundingBox(
-                    m_aabb.min + ((m_grid_offset + Vector3(Float(x), Float(y), Float(z))) * size_of_probe),
-                    m_aabb.min + ((m_grid_offset + Vector3(Float(x + 1), Float(y + 1), Float(z + 1))) * size_of_probe)
+                    m_aabb.min + ((Vector3(Float(x), Float(y), Float(z)) + m_grid_offset) * size_of_probe),
+                    m_aabb.min + ((Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) + m_grid_offset) * size_of_probe)
                 );
 
                 const Float dist = current_aabb.GetCenter().Distance(new_aabb.GetCenter());
@@ -247,16 +250,16 @@ void EnvGrid::SetCameraData(const Vector3 &camera_position)
 
                 new_probes[x][y][z] = m_ambient_probes[index];
 
-                const Vector3 current_center = current_aabb.GetCenter() / size_of_probe;
-                const Vector3 new_center = new_aabb.GetCenter() / size_of_probe;
+                const Vector3 current_center = current_aabb.min / size_of_probe;
+                const Vector3 new_center = new_aabb.min / size_of_probe;
 
                 DebugLog(
                     LogType::Debug,
-                    "Grid Offset: (%f %f %f), Dist: %f, Shift (%u %u %u) -> (%u %u %u)   (%f %f %f) -> (%f %f %f)\n",
+                    "Grid Offset: (%f %f %f), Dist: %f, Shift (%u %u %u) -> (%d %d %d)   (%f %f %f) -> (%f %f %f)\n",
                     m_grid_offset.x, m_grid_offset.y, m_grid_offset.z,
                     dist,
                     x, y, z,
-                    values.x, values.y, values.z,
+                    clamped_indices.x, clamped_indices.y, clamped_indices.z,
                     current_center.x, current_center.y, current_center.z,
                     new_center.x, new_center.y, new_center.z
                 );
@@ -378,9 +381,9 @@ void EnvGrid::Init()
         for (SizeType x = 0; x < m_density.width; x++) {
             for (SizeType y = 0; y < m_density.height; y++) {
                 for (SizeType z = 0; z < m_density.depth; z++) {
-                    const SizeType index = x * m_density.height * m_density.depth
-                         + y * m_density.depth
-                         + z;
+                    const SizeType index = z * m_density.width * m_density.height
+                         + y * m_density.width
+                         + x;
 
                     AssertThrow(!m_ambient_probes[index].IsValid());
 
