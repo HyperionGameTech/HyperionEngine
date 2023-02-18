@@ -43,11 +43,9 @@
 namespace hyperion {
 
 namespace v2 {
-
-class Engine;
 namespace fbom {
 
-class FBOMObjectType;
+struct FBOMObjectType;
 
 class FBOMObject;
 class FBOMReader;

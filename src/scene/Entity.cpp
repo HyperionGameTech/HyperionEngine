@@ -1,6 +1,6 @@
 #include "Entity.hpp"
 #include <math/BoundingSphere.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <scene/Scene.hpp>
 #include <Engine.hpp>
 

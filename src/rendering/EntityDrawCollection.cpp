@@ -1,7 +1,7 @@
 #include <core/lib/DynArray.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/backend/RendererFrame.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <scene/Scene.hpp>
 #include <scene/camera/Camera.hpp>
 

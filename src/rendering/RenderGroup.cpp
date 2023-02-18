@@ -1,4 +1,4 @@
-#include "Renderer.hpp"
+#include "RenderGroup.hpp"
 #include <scene/Entity.hpp>
 #include <Engine.hpp>
 #include <Constants.hpp>

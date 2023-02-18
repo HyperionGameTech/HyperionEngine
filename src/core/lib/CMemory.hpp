@@ -9,7 +9,7 @@
 #include <cstdlib>
 
 #ifdef HYP_WINDOWS
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
 namespace hyperion

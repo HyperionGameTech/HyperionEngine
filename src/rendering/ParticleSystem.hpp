@@ -12,7 +12,7 @@
 #include <util/img/Bitmap.hpp>
 
 #include <rendering/FullScreenPass.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Shader.hpp>

@@ -3,7 +3,7 @@
 
 #include "Framebuffer.hpp"
 #include "Shader.hpp"
-#include "Renderer.hpp"
+#include "RenderGroup.hpp"
 #include "Mesh.hpp"
 #include "FullScreenPass.hpp"
 

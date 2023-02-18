@@ -965,7 +965,7 @@ auto DynArray<T, NumInlineBytes>::Insert(ConstIterator where, const ValueType &v
 
     AssertThrow(m_capacity >= m_size + 1);
 
-    Int64 index;
+    SizeType index;
 
     auto *buffer = GetStorage();
 
@@ -1012,7 +1012,7 @@ auto DynArray<T, NumInlineBytes>::Insert(ConstIterator where, ValueType &&value)
 
     AssertThrow(m_capacity >= m_size + 1);
 
-    Int64 index;
+    SizeType index;
 
     auto *buffer = GetStorage();
 

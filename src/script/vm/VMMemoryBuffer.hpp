@@ -9,17 +9,22 @@
 namespace hyperion {
 namespace vm {
 
-class VMMemoryBuffer {
+class VMMemoryBuffer
+{
 public:
+    using ByteType = UByte;
+
     VMMemoryBuffer(SizeType size = 0);
     VMMemoryBuffer(const VMMemoryBuffer &other);
+    VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
+    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept;
+    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept;
     ~VMMemoryBuffer();
 
-    VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
     bool operator==(const VMMemoryBuffer &other) const { return this == &other; }
 
     SizeType GetSize() const { return m_size; }
-    void *GetBuffer() const { return m_buffer; }
+    ByteType *GetBuffer() const { return m_buffer; }
 
     void GetRepresentation(
         std::stringstream &ss,
@@ -29,7 +34,7 @@ public:
 
 private:
     SizeType m_size;
-    void *m_buffer;
+    ByteType *m_buffer;
 };
 
 } // namespace vm
