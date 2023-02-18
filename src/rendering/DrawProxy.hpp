@@ -147,6 +147,7 @@ struct DrawProxy<STUB_CLASS(EnvProbe)>
     Float camera_near;
     Float camera_far;
     EnvProbeFlags flags;
+    UInt32 grid_slot;
 };
 
 using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;

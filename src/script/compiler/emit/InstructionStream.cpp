@@ -29,7 +29,7 @@ InstructionStream::InstructionStream(const InstructionStream &other)
 {
 }
 
-int InstructionStream::FindStaticObject(const StaticObject &static_object) const
+Int InstructionStream::FindStaticObject(const StaticObject &static_object) const
 {
     for (const StaticObject &so : m_static_objects) {
         if (so == static_object) {

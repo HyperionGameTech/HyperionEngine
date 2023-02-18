@@ -6,7 +6,8 @@
 
 namespace hyperion::compiler {
 
-class AstTypeObject : public AstExpression {
+class AstTypeObject : public AstExpression
+{
 public:
     AstTypeObject(
         const SymbolTypePtr_t &symbol_type,
@@ -51,6 +52,9 @@ private:
     RC<AstVariable> m_proto;
     SymbolTypePtr_t m_enum_underlying_type;
     bool m_is_proxy_class;
+
+    // set while analyzing
+    Array<RC<AstExpression>> m_member_expressions;
 
     RC<AstTypeObject> CloneImpl() const
     {

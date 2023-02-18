@@ -7,6 +7,7 @@
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <core/Containers.hpp>
+#include <Threads.hpp>
 
 namespace hyperion::v2 {
 
@@ -21,6 +22,70 @@ enum EnvGridFlagBits : EnvGridFlags
 };
 
 struct RenderCommand_UpdateEnvProbeAABBsInGrid;
+
+struct LightProbeGrid
+{
+    SizeType num_probes = 0;
+    FixedArray<UInt, max_bound_ambient_probes * 2> indirect_indices;
+    FixedArray<Handle<EnvProbe>, max_bound_ambient_probes> probes;
+
+    // Must be called on init, before render thread starts using probes too
+    // returns the index
+    UInt AddProbe(Handle<EnvProbe> probe)
+    {
+        AssertThrow(num_probes < max_bound_ambient_probes);
+
+        const UInt index = num_probes++;
+
+        probes[index] = std::move(probe);
+        indirect_indices[index] = index;
+        indirect_indices[max_bound_ambient_probes + index] = index;
+
+        return index;
+    }
+
+    void SetProbeIndexOnGameThread(UInt index, UInt new_index)
+    {
+        AssertThrow(index < max_bound_ambient_probes);
+        AssertThrow(new_index < max_bound_ambient_probes);
+
+        indirect_indices[index] = new_index;
+    }
+
+    UInt GetEnvProbeIndexOnGameThread(UInt index) const
+        { return indirect_indices[index]; }
+
+    Handle<EnvProbe> &GetEnvProbeDirect(UInt index)
+        { return probes[index]; }
+
+    const Handle<EnvProbe> &GetEnvProbeDirect(UInt index) const
+        { return probes[index]; }
+
+    Handle<EnvProbe> &GetEnvProbeOnGameThread(UInt index)
+        { return probes[indirect_indices[index]]; }
+
+    const Handle<EnvProbe> &GetEnvProbeOnGameThread(UInt index) const
+        { return probes[indirect_indices[index]]; }
+
+    void SetProbeIndexOnRenderThread(UInt index, UInt new_index)
+    {
+        AssertThrow(index < max_bound_ambient_probes);
+        AssertThrow(new_index < max_bound_ambient_probes);
+
+        index += max_bound_ambient_probes;
+
+        indirect_indices[index] = new_index;
+    }
+
+    UInt GetEnvProbeIndexOnRenderThread(UInt index) const
+        { return indirect_indices[max_bound_ambient_probes + index]; }
+    
+    Handle<EnvProbe> &GetEnvProbeOnRenderThread(UInt index)
+        { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
+    
+    const Handle<EnvProbe> &GetEnvProbeOnRenderThread(UInt index) const
+        { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
+};
 
 class EnvGrid : public RenderComponent<EnvGrid>
 {
@@ -75,8 +140,10 @@ private:
     Handle<Framebuffer> m_framebuffer;
     std::vector<std::unique_ptr<Attachment>> m_attachments;
     
-    Array<Handle<EnvProbe>> m_ambient_probes;
-    Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
+    // Array<Handle<EnvProbe>> m_ambient_probes;
+    // Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
+
+    LightProbeGrid m_grid;
 
     Handle<ComputePipeline> m_compute_clipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_clipmaps_descriptor_sets;

@@ -46,6 +46,42 @@ void AstTypeObject::Visit(AstVisitor *visitor, Module *mod)
     if (m_proto != nullptr) {
         m_proto->Visit(visitor, mod);
     }
+
+    m_member_expressions.Resize(m_symbol_type->GetMembers().Size());
+
+    for (SizeType index = 0; index < m_symbol_type->GetMembers().Size(); index++) {
+        const SymbolMember_t &member = m_symbol_type->GetMembers()[index];
+
+        const SymbolTypePtr_t &member_type = std::get<1>(member);
+        AssertThrow(member_type != nullptr);
+
+        AstExpression *previous_expression = nullptr;
+
+        if (std::get<2>(member) != nullptr) {
+            previous_expression = std::get<2>(member).Get();
+        } else {
+            previous_expression = member_type->GetDefaultValue().Get();
+        }
+
+        if (previous_expression != nullptr) {
+            m_member_expressions[index] = CloneAstNode(previous_expression);
+            m_member_expressions[index]->SetExpressionFlags(previous_expression->GetExpressionFlags());
+        }
+    }
+
+    for (const RC<AstExpression> &expr : m_member_expressions) {
+        if (expr == nullptr) {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_internal_error,
+                m_location
+            ));
+
+            continue;
+        }
+
+        expr->Visit(visitor, mod);
+    }
 }
 
 std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod)
@@ -72,9 +108,11 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         chunk->Append(std::move(instr_type));
     }
 
-    if (m_symbol_type->GetMembers().Any()) {
+    AssertThrow(m_member_expressions.Size() == m_symbol_type->GetMembers().Size());
+
+    if (m_member_expressions.Any()) {
         // push the class to the stack
-        const auto class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        const Int class_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
         // use above as self arg so PUSH
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -89,23 +127,13 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
         // increment stack size for class
         visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
-        int member_index = 0;
+        for (SizeType index = 0; index < m_member_expressions.Size(); index++) {
+            AssertThrowMsg(index < MathUtil::MaxSafeValue<UInt8>(), "Argument out of bouds of max arguments");
 
-        for (const auto &mem : m_symbol_type->GetMembers()) {
-            // TODO: Do some for all base classes' members.
+            const RC<AstExpression> &mem = m_member_expressions[index];
+            AssertThrow(mem != nullptr);
 
-            const SymbolTypePtr_t &mem_type = std::get<1>(mem);
-            AssertThrow(mem_type != nullptr);
-
-            if (std::get<2>(mem) != nullptr) {
-                chunk->Append(std::get<2>(mem)->Build(visitor, mod));
-            } else {
-                // load the data member's default value.
-                AssertThrowMsg(mem_type->GetDefaultValue() != nullptr,
-                    "Default value should not be null (and no assignment was provided)");
-                
-                chunk->Append(mem_type->GetDefaultValue()->Build(visitor, mod));
-            }
+            chunk->Append(mem->Build(visitor, mod));
 
             // increment to not overwrite object in register with out class
             rp = visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
@@ -122,7 +150,7 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
                 auto instr_mov_mem = BytecodeUtil::Make<RawOperation<>>();
                 instr_mov_mem->opcode = MOV_MEM;
                 instr_mov_mem->Accept<UInt8>(rp);
-                instr_mov_mem->Accept<UInt8>(member_index);
+                instr_mov_mem->Accept<UInt8>(UInt8(index));
                 instr_mov_mem->Accept<UInt8>(obj_reg);
                 chunk->Append(std::move(instr_mov_mem));
             }
@@ -131,10 +159,8 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
             rp = visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
 
             { // comment for debug
-                chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(mem)));
+                chunk->Append(BytecodeUtil::Make<Comment>("Store member " + std::get<0>(m_symbol_type->GetMembers()[index])));
             }
-
-            member_index++;
         }
 
         // "return" our class to the last used register before popping
@@ -144,7 +170,11 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 
         { // load class from stack into register
             auto instr_load_offset = BytecodeUtil::Make<StorageOperation>();
-            instr_load_offset->GetBuilder().Load(rp).Local().ByOffset(stack_size - class_stack_location);
+            instr_load_offset->GetBuilder()
+                .Load(rp)
+                .Local()
+                .ByOffset(stack_size - class_stack_location);
+
             chunk->Append(std::move(instr_load_offset));
         }
 
@@ -157,7 +187,7 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 
     chunk->Append(BytecodeUtil::Make<Comment>("End class " + m_symbol_type->GetName()));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstTypeObject::Optimize(AstVisitor *visitor, Module *mod)

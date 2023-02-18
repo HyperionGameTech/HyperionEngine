@@ -77,7 +77,7 @@ std::unique_ptr<Buildable> AstIfStatement::Build(AstVisitor *visitor, Module *mo
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstIfStatement::Optimize(AstVisitor *visitor, Module *mod)

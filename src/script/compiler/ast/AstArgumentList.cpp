@@ -42,7 +42,7 @@ std::unique_ptr<Buildable> AstArgumentList::Build(AstVisitor *visitor, Module *m
         chunk->Append(arg->Build(visitor, mod));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstArgumentList::Optimize(AstVisitor *visitor, Module *mod)

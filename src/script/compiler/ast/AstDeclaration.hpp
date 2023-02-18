@@ -11,8 +11,10 @@ namespace hyperion::compiler {
 class AstDeclaration : public AstStatement
 {
 public:
-    AstDeclaration(const std::string &name,
-        const SourceLocation &location);
+    AstDeclaration(
+        const std::string &name,
+        const SourceLocation &location
+    );
     virtual ~AstDeclaration() = default;
 
     void SetName(const std::string &name) { m_name = name; }
@@ -31,6 +33,9 @@ public:
 protected:
     std::string m_name;
     RC<Identifier> m_identifier;
+
+private:
+    bool m_is_visited = false;
 };
 
 } // namespace hyperion::compiler

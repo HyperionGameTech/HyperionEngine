@@ -40,6 +40,9 @@ AstCallExpression::AstCallExpression(
 
 void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
     AssertThrow(m_target != nullptr);
     m_target->Visit(visitor, mod);
 
@@ -89,10 +92,10 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
         // if (call_member_name == "$invoke") {
             // closure objects have a self parameter for the '$invoke' call.
             RC<AstArgument> self_arg(new AstArgument(
-                m_target,
+                CloneAstNode(m_target),
                 false,
                 false,
-                "__closure_self",
+                "$functor",
                 m_target->GetLocation()
             ));
             
@@ -164,6 +167,8 @@ void AstCallExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(m_is_visited);
+
     AssertThrow(m_target != nullptr);
 
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
@@ -175,6 +180,8 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
         m_substituted_args
     ));
 
+    const Int stack_size_before = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+
     chunk->Append(Compiler::BuildCall(
         visitor,
         mod,
@@ -182,13 +189,22 @@ std::unique_ptr<Buildable> AstCallExpression::Build(AstVisitor *visitor, Module 
         UInt8(m_substituted_args.Size())
     ));
 
+    const Int stack_size_now = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+
+    AssertThrowMsg(
+        stack_size_now == stack_size_before,
+        "Stack size mismatch detected! Internal record of stack does not match. (%d != %d)",
+        stack_size_now,
+        stack_size_before
+    );
+
     chunk->Append(Compiler::BuildArgumentsEnd(
         visitor,
         mod,
         m_substituted_args.Size()
     ));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstCallExpression::Optimize(AstVisitor *visitor, Module *mod)

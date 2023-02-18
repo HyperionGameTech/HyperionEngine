@@ -74,7 +74,7 @@ std::unique_ptr<Buildable> AstTryCatch::Build(AstVisitor *visitor, Module *mod)
 
     chunk->Append(BytecodeUtil::Make<LabelMarker>(end_label));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstTryCatch::Optimize(AstVisitor *visitor, Module *mod)

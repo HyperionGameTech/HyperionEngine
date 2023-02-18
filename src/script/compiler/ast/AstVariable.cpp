@@ -30,6 +30,9 @@ AstVariable::AstVariable(
 
 void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
     AstIdentifier::Visit(visitor, mod);
 
     AssertThrow(m_properties.GetIdentifierType() != IDENTIFIER_TYPE_UNKNOWN);
@@ -41,7 +44,13 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 #if ACE_ENABLE_VARIABLE_INLINING
             // clone the AST node so we don't double-visit
             if (auto current_value = m_properties.GetIdentifier()->GetCurrentValue()) {
-                m_inline_value = current_value;//CloneAstNode(current_value);
+                // m_inline_value = CloneAstNode(current_value);
+
+                const AstConstant *constant_value = nullptr;
+
+                if (current_value->IsLiteral() && (constant_value = dynamic_cast<const AstConstant *>(current_value->GetDeepValueOf()))) {
+                    m_inline_value = CloneAstNode(constant_value);
+                }
             }
 #endif
 
@@ -55,6 +64,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
             const bool is_const = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_CONST;
             const bool is_ref = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_REF;
             const bool is_member = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_MEMBER;
+            const bool is_substitution = m_properties.GetIdentifier()->GetFlags() & IdentifierFlags::FLAG_GENERIC_SUBSTITUTION;
 
             if (false) {//is_member) {
                 m_self_member_access.Reset(new AstMember(
@@ -83,9 +93,7 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                 }
 
                 if (is_generic) {
-                    if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION)
-                        && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION))
-                    {
+                    if (!mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_GENERIC_INSTANTIATION) && !mod->IsInScopeOfType(ScopeType::SCOPE_TYPE_ALIAS_DECLARATION)) {
                         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                             LEVEL_ERROR,
                             Msg_generic_expression_no_arguments_provided,
@@ -97,13 +105,16 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                     }
                 }
 
-    #if ACE_ENABLE_VARIABLE_INLINING
-                const bool force_inline = is_alias || is_mixin;
+#if ACE_ENABLE_VARIABLE_INLINING
+                const bool force_inline = is_alias || is_mixin || is_substitution;
 
-                // NOTE: if we are loading a const and current_value == nullptr, proceed with loading the
-                // normal way.
-                if (force_inline) {
-                    AssertThrow(m_inline_value != nullptr);
+                if (force_inline && m_inline_value != nullptr) {
+                    visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                        LEVEL_ERROR,
+                        Msg_cannot_inline_variable,
+                        m_location,
+                        m_name
+                    ));
                 }
 
                 // don't inline arguments.
@@ -121,80 +132,62 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
                     // if alias, accept the current value instead
                     m_inline_value->Visit(visitor, mod);
                 }
-    #else
+#else
                 static constexpr bool force_inline = false;
                 m_should_inline = false;
-    #endif
+#endif
 
                 // if it is alias or mixin, update symbol type of this expression
-                if (force_inline) {
-                    if (SymbolTypePtr_t inline_value_type = m_inline_value->GetExprType()) {
-                        // set symbol type to match alias inline value
-                        m_properties.GetIdentifier()->SetSymbolType(inline_value_type);
-                    }
-                } else {
 
-    #if ACE_ENABLE_VARIABLE_INLINING
-                    // if the value to be inlined is not literal - do not inline
-                    if (m_should_inline && !m_inline_value->IsLiteral()) {
-                        m_should_inline = false;
-                    }
 
-                    // increase usage count for variable loads (non-inlined)
-                    if (!m_should_inline) {
-    #endif
-                        m_properties.GetIdentifier()->IncUseCount();
+#if ACE_ENABLE_VARIABLE_INLINING
+                // increase usage count for variable loads (non-inlined)
+                if (!m_should_inline) {
+#endif
+                    m_properties.GetIdentifier()->IncUseCount();
 
-    #if ACE_ENABLE_VARIABLE_INLINING
-                    }
-    #endif
+#if ACE_ENABLE_VARIABLE_INLINING
+                }
+#endif
 
-                    if (m_properties.IsInFunction()) {
-                        if (m_properties.IsInPureFunction()) {
-                            // check if pure function - in a pure function, only variables from this scope may be used
-                            if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
-                                // add error that the variable must be passed as a parameter
-                                visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-                                    LEVEL_ERROR,
-                                    Msg_pure_function_scope,
-                                    m_location,
-                                    m_name
-                                ));
-                            }
+                if (m_properties.IsInFunction()) {
+                    if (m_properties.IsInPureFunction()) {
+                        // check if pure function - in a pure function, only variables from this scope may be used
+                        if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
+                            // add error that the variable must be passed as a parameter
+                            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                                LEVEL_ERROR,
+                                Msg_pure_function_scope,
+                                m_location,
+                                m_name
+                            ));
                         }
+                    }
 
-                        // NOTE: if we are in a function, and the variable we are loading is declared in a separate function,
-                        // we will show an error message saying that the variable must be passed as a parameter to be captured.
-                        // the reason for this is that any variables owned by the parent function will be immediately popped from the stack
-                        // when the parent function returns. That will mean the variables used here will reference garbage.
-                        // In the near feature, it'd be possible to automatically make a copy of those variables referenced and store them
-                        // on the stack of /this/ function.
-                        if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
-                            // lookup the variable by depth to make sure it was declared in the current function
-                            // we do this to make sure it was declared in this scope.
-                            if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
-                                Scope *function_scope = m_properties.GetFunctionScope();
-                                AssertThrow(function_scope != nullptr);
+                    if (m_properties.GetIdentifier()->GetFlags() & FLAG_DECLARED_IN_FUNCTION) {
+                        // lookup the variable by depth to make sure it was declared in the current function
+                        if (!mod->LookUpIdentifierDepth(m_name, m_properties.GetDepth())) {
+                            Scope *function_scope = m_properties.GetFunctionScope();
+                            AssertThrow(function_scope != nullptr);
 
-                                function_scope->AddClosureCapture(
-                                    m_name,
-                                    m_properties.GetIdentifier()
-                                );
+                            function_scope->AddClosureCapture(
+                                m_name,
+                                m_properties.GetIdentifier()
+                            );
 
-                                // closures are objects with a method named '$invoke',
-                                // because we are in the '$invoke' method currently,
-                                // we use the variable as 'self.<variable name>'
-                                m_closure_member_access.Reset(new AstMember(
-                                    m_name,
-                                    RC<AstVariable>(new AstVariable(
-                                        "__closure_self",
-                                        m_location
-                                    )),
+                            // closures are objects with a method named '$invoke',
+                            // because we are in the '$invoke' method currently,
+                            // we use the variable as 'self.<variable name>'
+                            m_closure_member_access.Reset(new AstMember(
+                                m_name,
+                                RC<AstVariable>(new AstVariable(
+                                    "$functor",
                                     m_location
-                                ));
+                                )),
+                                m_location
+                            ));
 
-                                m_closure_member_access->Visit(visitor, mod);
-                            }
+                            m_closure_member_access->Visit(visitor, mod);
                         }
                     }
                 }
@@ -234,6 +227,8 @@ void AstVariable::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(m_is_visited);
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_closure_member_access != nullptr) {
@@ -256,12 +251,12 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
         m_inline_value->SetAccessMode(current_access_mode);
     } else {
 #endif
-        int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        int stack_location = m_properties.GetIdentifier()->GetStackLocation();
+        Int stack_size = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        Int stack_location = m_properties.GetIdentifier()->GetStackLocation();
 
-        AssertThrow(stack_location != -1);
+        AssertThrowMsg(stack_location != -1, "Variable %s has invalid stack location stored; not visited?", m_name.data());
 
-        int offset = stack_size - stack_location;
+        Int offset = stack_size - stack_location;
 
         // get active register
         UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
@@ -320,11 +315,15 @@ std::unique_ptr<Buildable> AstVariable::Build(AstVisitor *visitor, Module *mod)
     }
 #endif
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstVariable::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_inline_value != nullptr) {
+        return m_inline_value->Optimize(visitor, mod);
+    }
+
     if (m_closure_member_access != nullptr) {
         m_closure_member_access->Optimize(visitor, mod);
     }
@@ -341,10 +340,8 @@ RC<AstStatement> AstVariable::Clone() const
 
 Tribool AstVariable::IsTrue() const
 {
-    if (m_should_inline && m_inline_value != nullptr) {
-        if (const AstConstant *constant = dynamic_cast<const AstConstant *>(m_inline_value.Get())) {
-            return constant->IsTrue();
-        }
+    if (m_inline_value != nullptr) {
+        return m_inline_value->IsTrue();
     }
 
     // if (m_closure_member_access != nullptr) {
@@ -360,6 +357,10 @@ Tribool AstVariable::IsTrue() const
 
 bool AstVariable::MayHaveSideEffects() const
 {
+    if (m_inline_value != nullptr) {
+        return m_inline_value->MayHaveSideEffects();
+    }
+
     // if (m_closure_member_access != nullptr) {
     //     return m_closure_member_access->MayHaveSideEffects();
     // }
@@ -393,9 +394,7 @@ bool AstVariable::IsLiteral() const
         return false;
     }
 
-    if (m_should_inline) {
-        AssertThrow(m_inline_value != nullptr);
-
+    if (m_inline_value != nullptr) {
         return m_inline_value->IsLiteral();
     }
 
@@ -423,9 +422,7 @@ bool AstVariable::IsLiteral() const
 
 SymbolTypePtr_t AstVariable::GetExprType() const
 {
-    if (m_should_inline) {
-        AssertThrow(m_inline_value != nullptr);
-
+    if (m_inline_value != nullptr) {
         return m_inline_value->GetExprType();
     }
 
@@ -437,10 +434,8 @@ SymbolTypePtr_t AstVariable::GetExprType() const
         return m_self_member_access->GetExprType();
     }
 
-    if (m_properties.GetIdentifier() != nullptr) {
-        if (m_properties.GetIdentifier()->GetSymbolType() != nullptr) {
-            return m_properties.GetIdentifier()->GetSymbolType();
-        }
+    if (m_properties.GetIdentifier() != nullptr && m_properties.GetIdentifier()->GetSymbolType() != nullptr) {
+        return m_properties.GetIdentifier()->GetSymbolType();
     }
 
     return BuiltinTypes::UNDEFINED;

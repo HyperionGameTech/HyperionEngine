@@ -100,7 +100,7 @@ std::unique_ptr<BytecodeChunk> Builtins::Build(CompilationUnit *unit)
 
     m_ast.ResetPosition();
 
-    return std::move(chunk);
+    return chunk;
 }
 
 } // namespace hyperion::compiler

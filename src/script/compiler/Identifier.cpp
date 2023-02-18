@@ -11,7 +11,7 @@ Identifier::Identifier(
   Identifier *aliasee
 ) : m_name(name),
     m_index(index),
-    m_stack_location(-1),
+    m_stack_location(~0u),
     m_usecount(0),
     m_flags(flags),
     m_aliasee(aliasee),

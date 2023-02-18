@@ -25,15 +25,14 @@ enum ScopeType
 
 enum ScopeFunctionFlags : int
 {
-    PURE_FUNCTION_FLAG          = 0b000000001,
-    CLOSURE_FUNCTION_FLAG       = 0b000000010,
-    GENERATOR_FUNCTION_FLAG     = 0b000000100,
-    UNINSTANTIATED_GENERIC_FLAG = 0b000001000,
-    CONSTRUCTOR_DEFINITION_FLAG = 0b000010000,
-    REF_VARIABLE_FLAG           = 0b000100000,
-    CONST_VARIABLE_FLAG         = 0b001000000,
-    ENUM_MEMBERS_FLAG           = 0b010000000,
-    PROXY_ALIAS_FLAG            = 0b100000000
+    PURE_FUNCTION_FLAG          = 0x1,
+    CLOSURE_FUNCTION_FLAG       = 0x2,
+    GENERATOR_FUNCTION_FLAG     = 0x4,
+    UNINSTANTIATED_GENERIC_FLAG = 0x8,
+    CONSTRUCTOR_DEFINITION_FLAG = 0x10,
+    REF_VARIABLE_FLAG           = 0x20,
+    CONST_VARIABLE_FLAG         = 0x40,
+    ENUM_MEMBERS_FLAG           = 0x80
 };
 
 class Scope
@@ -53,8 +52,14 @@ public:
     ScopeType GetScopeType() const
         { return m_scope_type; }
 
+    void SetScopeType(ScopeType scope_type)
+        { m_scope_type = scope_type; }
+
     int GetScopeFlags() const
         { return m_scope_flags; }
+
+    void SetScopeFlags(int flags)
+        { m_scope_flags = flags; }
 
     void AddReturnType(const SymbolTypePtr_t &type, const SourceLocation &location) 
         { m_return_types.PushBack({type, location}); }

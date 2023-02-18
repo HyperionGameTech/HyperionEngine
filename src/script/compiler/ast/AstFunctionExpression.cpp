@@ -43,56 +43,16 @@ AstFunctionExpression::AstFunctionExpression(
 {
 }
 
-std::unique_ptr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor *visitor, Module *mod)
-{
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    // increase stack size by the number of parameters
-    int param_stack_size = 0;
-
-    if (m_is_closure && m_closure_self_param != nullptr) {
-        chunk->Append(m_closure_self_param->Build(visitor, mod));
-        param_stack_size++;
-    }
-
-    for (int i = 0; i < m_parameters.Size(); i++) {
-        AssertThrow(m_parameters[i] != nullptr);
-        chunk->Append(m_parameters[i]->Build(visitor, mod));
-        param_stack_size++;
-    }
-
-    // increase stack size for call stack info
-    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
-
-    // build the function body
-    chunk->Append(m_block->Build(visitor, mod));
-
-    if (!m_block->IsLastStatementReturn()) {
-        // add RET instruction
-        chunk->Append(BytecodeUtil::Make<Return>());
-    }
-
-    for (int i = 0; i < param_stack_size; i++) {
-        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-    }
-
-    // decrease stack size for call stack info
-    visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
-
-    return std::move(chunk);
-}
-
 void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
+    AssertThrow(m_block != nullptr);
 
-    // set m_is_closure to be true if we are already
-    // located within a function
-    // @TODO Revisit
-    m_is_closure = true;//mod->IsInFunction();
+    m_block_with_parameters = CloneAstNode(m_block);
 
-    m_is_constructor_definition = mod->IsInScopeOfType(SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
+    m_is_closure = true;
+    m_is_constructor_definition = GetExpressionFlags() & EXPR_FLAGS_CONSTRUCTOR_DEFINITION;
 
     int scope_flags = 0;
 
@@ -100,9 +60,9 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         scope_flags |= ScopeFunctionFlags::CLOSURE_FUNCTION_FLAG;
 
         // closures are objects with a method named '$invoke',
-        // so we pass the 'self' argument when it is called.
+        // so we pass the '$functor' argument when it is called.
         m_closure_self_param.Reset(new AstParameter(
-            "__closure_self",
+            "$functor",
             nullptr,
             nullptr,
             false,
@@ -111,60 +71,26 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
             m_location
         ));
     }
+
+    if (m_is_constructor_definition) {
+        scope_flags |= CONSTRUCTOR_DEFINITION_FLAG;
+    }
     
-    // open the new scope for parameters
+    // // open the new scope for parameters
     mod->m_scopes.Open(Scope(
         SCOPE_TYPE_FUNCTION,
         scope_flags
     ));
 
-    // first item will be set to return type
-    Array<GenericInstanceTypeInfo::Arg> param_symbol_types;
-
     if (m_is_closure) {
-        AssertThrow(m_closure_self_param != nullptr);
+        // m_block_with_parameters->PrependChild(m_closure_self_param);
         m_closure_self_param->Visit(visitor, mod);
     }
 
-    for (auto &param : m_parameters) {
-        if (param != nullptr) {
-            // add the identifier to the table
-            param->Visit(visitor, mod);
-            
-            AssertThrow(param->GetIdentifier() != nullptr);
-            // add to list of param types
-            param_symbol_types.PushBack(GenericInstanceTypeInfo::Arg {
-                .m_name = param->GetName(),
-                .m_type = param->GetIdentifier()->GetSymbolType(),
-                .m_default_value = param->GetDefaultValue(),
-                .m_is_ref = param->IsRef(),
-                .m_is_const = param->IsConst()
-            });
-        }
-    }
-
-    if (m_is_constructor_definition) {
-        m_return_type = mod->LookupSymbolType("Self");
-        AssertThrowMsg(m_return_type != nullptr, "Self type alias not found in constructor definition");
-
-        m_return_type = m_return_type->GetUnaliased();
-    }
-
-    // function body
-    if (m_block != nullptr) {
-        if (m_is_constructor_definition) {
-            // add implicit 'return self' at the end
-            m_block->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
-                RC<AstVariable>(new AstVariable(
-                    Keyword::ToString(Keywords::Keyword_self),
-                    m_block->GetLocation()
-                )),
-                m_block->GetLocation()
-            )));
-        }
-
-        // visit the function body
-        m_block->Visit(visitor, mod);
+    for (SizeType index = 0; index < m_parameters.Size(); index++) {
+        AssertThrow(m_parameters[index] != nullptr);
+        // m_block_with_parameters->PrependChild(m_parameters[index - 1]);
+        m_parameters[index]->Visit(visitor, mod);
     }
 
     if (m_return_type_specification != nullptr) {
@@ -175,18 +101,59 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
                 m_return_type_specification->GetLocation()
             ));
         } else {
-            m_return_type_specification->Visit(visitor, mod);
-
-            AssertThrow(m_return_type_specification->GetHeldType() != nullptr);
-            m_return_type = m_return_type_specification->GetHeldType();
+            m_block_with_parameters->PrependChild(m_return_type_specification);
         }
     }
 
-    const Scope &function_scope = mod->m_scopes.Top();
+    if (m_is_constructor_definition) {
+        // m_return_type = mod->LookupSymbolType("Self");
+        // AssertThrowMsg(m_return_type != nullptr, "Self type alias not found in constructor definition");
+
+        // m_return_type = m_return_type->GetUnaliased();
+        
+        // add implicit 'return self' at the end
+        m_block_with_parameters->AddChild(RC<AstReturnStatement>(new AstReturnStatement(
+            RC<AstVariable>(new AstVariable(
+                Keyword::ToString(Keywords::Keyword_self),
+                m_block_with_parameters->GetLocation()
+            )),
+            m_block_with_parameters->GetLocation()
+        )));
+    }
+
+    // visit the function body
+    m_block_with_parameters->Visit(visitor, mod);
+
+    if (m_return_type_specification != nullptr) {
+        if (m_return_type_specification->GetHeldType() != nullptr) {
+            m_return_type = m_return_type_specification->GetHeldType();
+        } else {
+            m_return_type = BuiltinTypes::UNDEFINED;
+        }
+    }
+
+    // first item will be set to return type
+    Array<GenericInstanceTypeInfo::Arg> param_symbol_types;
+
+    for (auto &param : m_parameters) {
+        // add the identifier to the table
+        AssertThrow(param->GetIdentifier() != nullptr);
+        // add to list of param types
+        param_symbol_types.PushBack(GenericInstanceTypeInfo::Arg {
+            .m_name = param->GetName(),
+            .m_type = param->GetIdentifier()->GetSymbolType(),
+            .m_default_value = param->GetDefaultValue(),
+            .m_is_ref = param->IsRef(),
+            .m_is_const = param->IsConst()
+        });
+    }
+
+    const Scope *function_scope = &mod->m_scopes.Top();//m_block_with_parameters->GetScope();
+    AssertThrow(function_scope != nullptr);
     
-    if (function_scope.GetReturnTypes().Any()) {
+    if (function_scope->GetReturnTypes().Any()) {
         // search through return types for ambiguities
-        for (const auto &it : function_scope.GetReturnTypes()) {
+        for (const auto &it : function_scope->GetReturnTypes()) {
             AssertThrow(it.first != nullptr);
 
             if (m_return_type_specification != nullptr) {
@@ -226,7 +193,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     // create data members to copy closure parameters
     Array<SymbolMember_t> closure_obj_members;
 
-    for (const auto &it : function_scope.GetClosureCaptures()) {
+    for (const auto &it : function_scope->GetClosureCaptures()) {
         const std::string &name = it.first;
         const RC<Identifier> &identifier = it.second;
 
@@ -358,11 +325,19 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_block != nullptr);
+    AssertThrow(m_block_with_parameters != nullptr);
     
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
-    // the register index variable we will reuse
+    if (m_is_closure && m_closure_self_param != nullptr) {
+        chunk->Append(m_closure_self_param->Build(visitor, mod));
+    }
+
+    for (SizeType index = 0; index < m_parameters.Size(); index++) {
+        AssertThrow(m_parameters[index] != nullptr);
+        chunk->Append(m_parameters[index]->Build(visitor, mod));
+    }
+
     UInt8 rp;
 
     AssertThrow(m_parameters.Size() + (m_is_closure ? 1 : 0) <= MathUtil::MaxSafeValue<UInt8>());
@@ -420,13 +395,13 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
     if (m_is_closure) {
         AssertThrow(m_closure_object != nullptr);
 
-        const int func_expr_reg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        const UInt8 func_expr_reg = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         // increase reg usage for closure object to hold it while we move this function expr as a member
         visitor->GetCompilationUnit()->GetInstructionStream().IncRegisterUsage();
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
-        const int closure_obj_reg = rp;
+        const UInt8 closure_obj_reg = rp;
 
         chunk->Append(m_closure_object->Build(visitor, mod));
 
@@ -446,7 +421,37 @@ std::unique_ptr<Buildable> AstFunctionExpression::Build(AstVisitor *visitor, Mod
         chunk->Append(std::move(instr_mov_reg));
     }
 
-    return std::move(chunk);
+    return chunk;
+}
+
+std::unique_ptr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor *visitor, Module *mod)
+{
+    AssertThrow(m_block_with_parameters != nullptr);
+
+    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+
+    // increase stack size by the number of parameters
+    const SizeType param_stack_size = m_parameters.Size() + ((m_is_closure && m_closure_self_param != nullptr) ? 1 : 0);
+
+    // increase stack size for call stack info
+    visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
+
+    // build the function body
+    chunk->Append(m_block_with_parameters->Build(visitor, mod));
+
+    if (!m_block_with_parameters->IsLastStatementReturn()) {
+        // add RET instruction
+        chunk->Append(BytecodeUtil::Make<Return>());
+    }
+
+    for (SizeType i = 0; i < param_stack_size; i++) {
+        visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+    }
+
+    // decrease stack size for call stack info
+    visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
+
+    return chunk;
 }
 
 void AstFunctionExpression::Optimize(AstVisitor *visitor, Module *mod)
@@ -457,8 +462,8 @@ void AstFunctionExpression::Optimize(AstVisitor *visitor, Module *mod)
         }
     }
 
-    if (m_block != nullptr) {
-        m_block->Optimize(visitor, mod);
+    if (m_block_with_parameters != nullptr) {
+        m_block_with_parameters->Optimize(visitor, mod);
     }
 }
 

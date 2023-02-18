@@ -33,6 +33,7 @@ private:
     bool m_should_inline;
     bool m_is_in_ref_assignment;
     bool m_is_in_const_assignment;
+    bool m_is_visited = false;
 
     RC<AstVariable> CloneImpl() const
     {

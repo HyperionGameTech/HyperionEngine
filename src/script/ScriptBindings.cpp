@@ -493,6 +493,23 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Free)
     }
 }
 
+static HYP_SCRIPT_FUNCTION(VM_ReadStackVar)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    const UInt32 index = GetArgument<0, UInt32>(params);
+
+    const auto &stk = params.handler->state->MAIN_THREAD->m_stack;
+
+    if (index >= stk.GetStackPointer()) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Stack index out of bounds"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    HYP_SCRIPT_RETURN(stk.GetData()[index]);
+}
+
 static HYP_SCRIPT_FUNCTION(Runtime_HasMember)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
@@ -896,8 +913,7 @@ static HYP_SCRIPT_FUNCTION(NameToString)
     vm::VMObject *name_object_ptr = GetArgument<0, vm::VMObject>(params);
     AssertThrow(name_object_ptr != nullptr);
 
-    HYP_SCRIPT_GET_ARG_PTR(0, vm::VMObject, arg0);
-    HYP_SCRIPT_GET_MEMBER_UINT(arg0, "hash_code", UInt64, hash_code_value);
+    HYP_SCRIPT_GET_MEMBER_UINT(name_object_ptr, "hash_code", UInt64, hash_code_value);
 
     Name name = Name(NameID(hash_code_value));
     const ANSIString &string_value = name.LookupString();
@@ -996,6 +1012,16 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
                     LoadModule
                 )
             }
+        );
+
+    api_instance.Module("vm")
+        .Function(
+            "ReadStackVar",
+            BuiltinTypes::ANY,
+            {
+                { "index", BuiltinTypes::UNSIGNED_INT }
+            },
+            VM_ReadStackVar
         );
 
     api_instance.Module(Config::global_module_name)

@@ -179,7 +179,7 @@ std::unique_ptr<Buildable> AstArrayExpression::Build(AstVisitor *visitor, Module
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstArrayExpression::Optimize(AstVisitor *visitor, Module *mod)

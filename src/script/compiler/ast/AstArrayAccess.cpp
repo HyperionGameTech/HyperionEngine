@@ -121,7 +121,7 @@ std::unique_ptr<Buildable> AstArrayAccess::Build(AstVisitor *visitor, Module *mo
         chunk->Append(std::move(instr));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstArrayAccess::Optimize(AstVisitor *visitor, Module *mod)

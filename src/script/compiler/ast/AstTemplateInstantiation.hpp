@@ -45,6 +45,7 @@ private:
     RC<AstExpression> m_inner_expr;
     RC<AstBlock> m_block;
     SymbolTypePtr_t m_expr_type;
+    bool m_is_visited = false;
 
     RC<AstTemplateInstantiation> CloneImpl() const
     {

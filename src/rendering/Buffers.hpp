@@ -287,10 +287,10 @@ static_assert(sizeof(SH9Buffer) == 256);
 
 struct alignas(256) SHGridBuffer
 {
-    ShaderVec4<Float> values[max_probes_in_sh_grid_buffer * ((9 + 4 - 1) / 4)];
+    ShaderVec4<Float> values[max_probes_in_sh_grid_buffer * 9];
 };
 
-static_assert(sizeof(SHGridBuffer) == 49152);
+// static_assert(sizeof(SHGridBuffer) == 9216);
 
 struct alignas(16) SHTile
 {

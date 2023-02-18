@@ -15,6 +15,12 @@ AstDeclaration::AstDeclaration(
 
 void AstDeclaration::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(visitor != nullptr);
+    AssertThrow(mod != nullptr);
+
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
     CompilationUnit *compilation_unit = visitor->GetCompilationUnit();
     Scope &scope = mod->m_scopes.Top();
 

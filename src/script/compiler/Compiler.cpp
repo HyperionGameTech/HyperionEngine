@@ -52,7 +52,8 @@ std::unique_ptr<Buildable> Compiler::BuildArgumentsStart(
 std::unique_ptr<Buildable> Compiler::BuildArgumentsEnd(
     AstVisitor *visitor,
     Module *mod,
-    UInt8 nargs)
+    UInt8 nargs
+)
 {
      // the reason we decrement the compiler's record of the stack size directly after
     // is because the function body will actually handle the management of the stack size,
@@ -89,7 +90,7 @@ std::unique_ptr<Buildable> Compiler::BuildCall(
     instr_call->Accept<UInt8>(nargs);
     chunk->Append(std::move(instr_call));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::LoadMemberFromHash(AstVisitor *visitor, Module *mod, UInt32 hash)
@@ -98,7 +99,7 @@ std::unique_ptr<Buildable> Compiler::LoadMemberFromHash(AstVisitor *visitor, Mod
 
     auto instr_load_mem_hash = BytecodeUtil::Make<StorageOperation>();
     instr_load_mem_hash->GetBuilder().Load(rp).Member(rp).ByHash(hash);
-    return std::move(instr_load_mem_hash);
+    return instr_load_mem_hash;
 }
 
 std::unique_ptr<Buildable> Compiler::StoreMemberFromHash(AstVisitor *visitor, Module *mod, UInt32 hash)
@@ -107,7 +108,7 @@ std::unique_ptr<Buildable> Compiler::StoreMemberFromHash(AstVisitor *visitor, Mo
 
     auto instr_mov_mem_hash = BytecodeUtil::Make<StorageOperation>();
     instr_mov_mem_hash->GetBuilder().Store(rp - 1).Member(rp).ByHash(hash);
-    return std::move(instr_mov_mem_hash);
+    return instr_mov_mem_hash;
 }
 
 std::unique_ptr<Buildable> Compiler::LoadMemberAtIndex(AstVisitor *visitor, Module *mod, UInt8 index)
@@ -120,7 +121,7 @@ std::unique_ptr<Buildable> Compiler::LoadMemberAtIndex(AstVisitor *visitor, Modu
     instr_load_mem->Accept<UInt8>(rp); // src
     instr_load_mem->Accept<UInt8>(index); // index
     
-    return std::move(instr_load_mem);
+    return instr_load_mem;
 }
 
 std::unique_ptr<Buildable> Compiler::StoreMemberAtIndex(AstVisitor *visitor, Module *mod, UInt8 index)
@@ -133,7 +134,7 @@ std::unique_ptr<Buildable> Compiler::StoreMemberAtIndex(AstVisitor *visitor, Mod
     instr_mov_mem->Accept<UInt8>(index); // index
     instr_mov_mem->Accept<UInt8>(rp - 1); // src
     
-    return std::move(instr_mov_mem);
+    return instr_mov_mem;
 }
 
 std::unique_ptr<Buildable> Compiler::CreateConditional(
@@ -193,7 +194,7 @@ std::unique_ptr<Buildable> Compiler::CreateConditional(
     // so we can skip it if the condition is false
     chunk->Append(BytecodeUtil::Make<LabelMarker>(end_label));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::LoadLeftThenRight(AstVisitor *visitor, Module *mod, Compiler::ExprInfo info)
@@ -211,7 +212,7 @@ std::unique_ptr<Buildable> Compiler::LoadLeftThenRight(AstVisitor *visitor, Modu
         chunk->Append(info.right->Build(visitor, mod));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::LoadRightThenLeft(AstVisitor *visitor, Module *mod, Compiler::ExprInfo info)
@@ -228,7 +229,7 @@ std::unique_ptr<Buildable> Compiler::LoadRightThenLeft(AstVisitor *visitor, Modu
 
     // if left is a function call, we have to move rhs to the stack!
     // otherwise, the function call will overwrite what's in register 0.
-    int stack_size_before = 0;
+    Int stack_size_before = 0;
     if (left_side_effects) {
         { // store value of the right hand side on the stack
             auto instr_push = BytecodeUtil::Make<RawOperation<>>();
@@ -253,8 +254,8 @@ std::unique_ptr<Buildable> Compiler::LoadRightThenLeft(AstVisitor *visitor, Modu
         // get register position
         rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         // load from stack
-        int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-        int diff = stack_size_after - stack_size_before;
+        Int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+        Int diff = stack_size_after - stack_size_before;
         AssertThrow(diff == 1);
 
         {
@@ -275,7 +276,7 @@ std::unique_ptr<Buildable> Compiler::LoadRightThenLeft(AstVisitor *visitor, Modu
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
@@ -300,7 +301,7 @@ std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
         chunk->Append(std::move(instr_push));
     }
 
-    int stack_size_before = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    Int stack_size_before = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
     // increment stack size
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
@@ -314,8 +315,8 @@ std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
     rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     // load from stack
-    int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
-    int diff = stack_size_after - stack_size_before;
+    Int stack_size_after = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    Int diff = stack_size_after - stack_size_before;
 
     AssertThrow(diff == 1);
 
@@ -336,7 +337,7 @@ std::unique_ptr<Buildable> Compiler::LoadLeftAndStore(
     // decrement stack size
     visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
 
-    return std::move(chunk);
+    return chunk;
 }
 
 std::unique_ptr<Buildable> Compiler::BuildBinOp(
@@ -412,33 +413,33 @@ std::unique_ptr<Buildable> Compiler::BuildBinOp(
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
-std::unique_ptr<Buildable> Compiler::PopStack(AstVisitor *visitor, int amt)
+std::unique_ptr<Buildable> Compiler::PopStack(AstVisitor *visitor, Int amt)
 {
     if (amt == 1) {
         auto instr_pop = BytecodeUtil::Make<RawOperation<>>();
         instr_pop->opcode = POP;
 
-        return std::move(instr_pop);
+        return instr_pop;
     }
 
-    for (int i = 0; i < amt;) {
-        int j = 0;
+    for (Int i = 0; i < amt;) {
+        Int j = 0;
 
-        while (j < std::numeric_limits<UInt8>::max() && i < amt) {
+        while (j < MathUtil::MaxSafeValue<UInt8>() && i < amt) {
             j++, i++;
         }
         
         if (j > 0) {
-            AssertThrow(j <= std::numeric_limits<UInt8>::max());
+            AssertThrow(j <= MathUtil::MaxSafeValue<UInt8>());
 
             auto instr_pop_n = BytecodeUtil::Make<RawOperation<>>();
             instr_pop_n->opcode = POP_N;
             instr_pop_n->Accept<UInt8>(j);
 
-            return std::move(instr_pop_n);
+            return instr_pop_n;
         }
     }
 

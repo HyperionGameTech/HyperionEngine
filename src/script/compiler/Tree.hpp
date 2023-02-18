@@ -88,10 +88,8 @@ public:
         Close();
 
         // first in, first out
-        for (int i = m_nodes.Size() - 1; i >= 0; i--) {
-            if (m_nodes[i]) {
-                delete m_nodes[i];
-            }
+        for (SizeType i = m_nodes.Size(); i != 0; i--) {
+            delete m_nodes[i - 1];
         }
     }
 

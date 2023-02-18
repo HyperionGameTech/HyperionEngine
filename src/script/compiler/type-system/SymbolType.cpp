@@ -730,7 +730,8 @@ SymbolTypePtr_t SymbolType::Function(
 
 SymbolTypePtr_t SymbolType::GenericInstance(
     const SymbolTypePtr_t &base,
-    const GenericInstanceTypeInfo &info)
+    const GenericInstanceTypeInfo &info
+)
 {
     AssertThrow(base != nullptr);
     AssertThrow(base->IsGeneric());
@@ -880,6 +881,8 @@ SymbolTypePtr_t SymbolType::Extend(
     const Array<SymbolMember_t> &members
 )
 {
+    AssertThrow(base != nullptr);
+
     SymbolTypePtr_t symbol_type(new SymbolType(
         name,
         base->GetTypeClass() == TYPE_BUILTIN
@@ -893,29 +896,27 @@ SymbolTypePtr_t SymbolType::Extend(
     symbol_type->SetDefaultValue(RC<AstObject>(
         new AstObject(symbol_type, SourceLocation::eof)
     ));
+
+    symbol_type->m_generic_info = base->m_generic_info;
+    symbol_type->m_generic_instance_info = base->m_generic_instance_info;
+    symbol_type->m_generic_param_info = base->m_generic_param_info;
+    symbol_type->m_function_info = base->m_function_info;
     
     return symbol_type;
 }
 
 SymbolTypePtr_t SymbolType::Extend(
     const SymbolTypePtr_t &base,
-    const Array<SymbolMember_t> &members)
+    const Array<SymbolMember_t> &members
+)
 {
-    SymbolTypePtr_t symbol_type(new SymbolType(
-        base->GetName(),
-        base->GetTypeClass() == TYPE_BUILTIN
-            ? TYPE_USER_DEFINED
-            : base->GetTypeClass(),
-        base,
-        base->GetDefaultValue(),
-        members
-    ));
+    AssertThrow(base != nullptr);
 
-    symbol_type->SetDefaultValue(RC<AstObject>(
-        new AstObject(symbol_type, SourceLocation::eof)
-    ));
-    
-    return symbol_type;
+    return Extend(
+        base->GetName() + " (extended)",
+        base,
+        members
+    );
 }
     
 SymbolTypePtr_t PrototypedObject(

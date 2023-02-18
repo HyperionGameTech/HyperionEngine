@@ -140,7 +140,7 @@ std::unique_ptr<Buildable> AstHasExpression::Build(AstVisitor *visitor, Module *
         chunk->Append(BytecodeUtil::Make<LabelMarker>(end_label));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstHasExpression::Optimize(AstVisitor *visitor, Module *mod)

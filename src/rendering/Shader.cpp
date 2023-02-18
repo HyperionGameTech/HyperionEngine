@@ -74,7 +74,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
     virtual Result operator()()
     {
         // @TODO: Make GPU only
-        sh_grid_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer));
+        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer)));
         sh_grid_buffer->Memset(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer), 0);
 
         HYPERION_RETURN_OK;

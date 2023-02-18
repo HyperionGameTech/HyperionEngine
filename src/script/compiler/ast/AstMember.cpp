@@ -330,7 +330,7 @@ std::unique_ptr<Buildable> AstMember::Build(AstVisitor *visitor, Module *mod)
             break;
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstMember::Optimize(AstVisitor *visitor, Module *mod)

@@ -61,6 +61,10 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         target_type = target_type->GetUnaliased();
         AssertThrow(target_type != nullptr);
 
+        if (target_type->GetName() == "Any") {
+            AssertThrow(target_type->IsAnyType());
+        }
+
         const auto operator_string = m_op->LookupStringValue();
         const auto overload_function_name = "operator" + operator_string;
 
@@ -72,7 +76,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
             RC<AstArgumentList>(new AstArgumentList(
                 {
                     RC<AstArgument>(new AstArgument(
-                        m_right,
+                        CloneAstNode(m_right),
                         false,
                         false,
                         "other",
@@ -93,7 +97,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 )),
                 {
                     RC<AstArgument>(new AstArgument(
-                        m_right,
+                        CloneAstNode(m_right),
                         false,
                         false,
                         "other",
@@ -104,6 +108,7 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
                 m_location
             ));
         }
+
         // for ANY type we conditionally build in a check
         // also, for proxy class that does not have the operator overloaded,
         // we build in the condition as well
@@ -139,6 +144,9 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     }
 
+    // not overloading an operator from this point on,
+    // but still have to be aware of Any types.
+
     m_right->Visit(visitor, mod);
 
     SymbolTypePtr_t left_type = m_left->GetExprType();
@@ -159,33 +167,35 @@ void AstBinaryExpression::Visit(AstVisitor *visitor, Module *mod)
 
     AssertThrow(right_type_unboxed != nullptr);
 
-    if (m_op->GetType() & BITWISE) {
-        // no bitwise operators on floats allowed.
-        visitor->Assert(
-            (left_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT || left_type_unboxed == BuiltinTypes::ANY) &&
-            (right_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT || right_type_unboxed == BuiltinTypes::ANY),
-            CompilerError(
-                LEVEL_ERROR,
-                Msg_bitwise_operands_must_be_int,
-                m_location,
-                left_type_unboxed->GetName(),
-                right_type_unboxed->GetName()
-            )
-        );
-    } else if (m_op->GetType() & ARITHMETIC) {
-        // arithmetic operators are only for numbers
-        visitor->Assert(
-            left_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false) &&
-            right_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false),
-            CompilerError(
-                LEVEL_ERROR,
-                Msg_arithmetic_operands_must_be_numbers,
-                m_location,
-                m_op->LookupStringValue(),
-                left_type_unboxed->GetName(),
-                right_type_unboxed->GetName()
-            )
-        );
+    if (!left_type_unboxed->IsAnyType() && !right_type_unboxed->IsAnyType()) {
+        if (m_op->GetType() & BITWISE) {
+            // no bitwise operators on floats allowed.
+            visitor->Assert(
+                (left_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT) &&
+                (right_type_unboxed == BuiltinTypes::INT || left_type_unboxed == BuiltinTypes::UNSIGNED_INT),
+                CompilerError(
+                    LEVEL_ERROR,
+                    Msg_bitwise_operands_must_be_int,
+                    m_location,
+                    left_type_unboxed->GetName(),
+                    right_type_unboxed->GetName()
+                )
+            );
+        } else if (m_op->GetType() & ARITHMETIC) {
+            // arithmetic operators are only for numbers
+            visitor->Assert(
+                left_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false) &&
+                right_type_unboxed->TypeCompatible(*BuiltinTypes::NUMBER, false),
+                CompilerError(
+                    LEVEL_ERROR,
+                    Msg_arithmetic_operands_must_be_numbers,
+                    m_location,
+                    m_op->LookupStringValue(),
+                    left_type_unboxed->GetName(),
+                    right_type_unboxed->GetName()
+                )
+            );
+        }
     }
 
     if (m_op->ModifiesValue()) {
@@ -290,8 +300,8 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
         RC<AstExpression> first = nullptr;
         RC<AstExpression> second = nullptr;
 
-        AstBinaryExpression *left_as_binop = dynamic_cast<AstBinaryExpression*>(m_left.Get());
-        AstBinaryExpression *right_as_binop = dynamic_cast<AstBinaryExpression*>(m_right.Get());
+        AstBinaryExpression *left_as_binop = dynamic_cast<AstBinaryExpression *>(m_left.Get());
+        AstBinaryExpression *right_as_binop = dynamic_cast<AstBinaryExpression *>(m_right.Get());
 
         if (left_as_binop == nullptr && right_as_binop != nullptr) {
             first = m_right;
@@ -627,7 +637,7 @@ std::unique_ptr<Buildable> AstBinaryExpression::Build(AstVisitor *visitor, Modul
         visitor->GetCompilationUnit()->GetInstructionStream().DecRegisterUsage();
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstBinaryExpression::Optimize(AstVisitor *visitor, Module *mod)

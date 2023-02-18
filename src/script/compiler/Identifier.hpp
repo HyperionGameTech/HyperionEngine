@@ -26,31 +26,49 @@ enum IdentifierFlags : IdentifierFlagBits
    FLAG_ARGUMENT             = 0x200,
    FLAG_REF                  = 0x400,
    FLAG_ENUM                 = 0x800,
-   FLAG_MEMBER               = 0x1000
+   FLAG_MEMBER               = 0x1000,
+   FLAG_GENERIC_SUBSTITUTION = 0x2000,
+   FLAG_CONSTRUCTOR          = 0x4000
 };
 
 class Identifier
 {
 public:
-    Identifier(const std::string &name, int index, IdentifierFlagBits flags, Identifier *aliasee = nullptr);
+    Identifier(const std::string &name, int Index, IdentifierFlagBits flags, Identifier *aliasee = nullptr);
     Identifier(const Identifier &other);
 
     const std::string &GetName() const { return m_name; }
     int GetIndex() const { return Unalias()->m_index; }
     
-    int GetStackLocation() const { return Unalias()->m_stack_location; }
-    void SetStackLocation(int stack_location) { Unalias()->m_stack_location = stack_location; }
+    Int GetStackLocation() const
+        { return Unalias()->m_stack_location; }
 
-    void IncUseCount() const { Unalias()->m_usecount++; }
-    void DecUseCount() const { Unalias()->m_usecount--; }
-    int GetUseCount() const { return Unalias()->m_usecount; }
+    void SetStackLocation(Int stack_location)
+        { Unalias()->m_stack_location = stack_location; }
 
-    IdentifierFlagBits GetFlags() const { return m_flags; }
-    IdentifierFlagBits &GetFlags() { return m_flags; }
-    void SetFlags(IdentifierFlagBits flags) { m_flags = flags; }
+    void IncUseCount() const
+        { Unalias()->m_usecount++; }
 
-    bool IsReassigned() const { return m_is_reassigned; }
-    void SetIsReassigned(bool is_reassigned) { m_is_reassigned = is_reassigned; }
+    void DecUseCount() const
+        { Unalias()->m_usecount--; }
+
+    Int GetUseCount() const
+        { return Unalias()->m_usecount; }
+
+    IdentifierFlagBits GetFlags() const
+        { return m_flags; }
+
+    IdentifierFlagBits &GetFlags()
+        { return m_flags; }
+
+    void SetFlags(IdentifierFlagBits flags)
+        { m_flags = flags; }
+
+    bool IsReassigned() const
+        { return m_is_reassigned; }
+
+    void SetIsReassigned(bool is_reassigned)
+        { m_is_reassigned = is_reassigned; }
 
     const RC<AstExpression> &GetCurrentValue() const { return Unalias()->m_current_value; }
     void SetCurrentValue(const RC<AstExpression> &expr) { Unalias()->m_current_value = expr; }
@@ -68,9 +86,9 @@ public:
 
 private:
     std::string m_name;
-    int m_index;
-    int m_stack_location;
-    mutable int m_usecount;
+    Int m_index;
+    Int m_stack_location;
+    mutable Int m_usecount;
     IdentifierFlagBits m_flags;
     Identifier *m_aliasee;
     RC<AstExpression> m_current_value;

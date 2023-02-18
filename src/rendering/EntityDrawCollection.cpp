@@ -40,7 +40,7 @@ struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 
 #pragma endregion
 
-EntityDrawCollection::ThreadType EntityDrawCollection::GetThreadType()
+ThreadType EntityDrawCollection::GetThreadType()
 {
     const UInt thread_id = Threads::CurrentThreadID().value;
 
@@ -196,7 +196,7 @@ void RenderList::UpdateRenderGroups()
     Array<IteratorType> iterators;
     Array<Pair<RenderableAttributeSet, Handle<RenderGroup>>> added_render_groups;
 
-    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(EntityDrawCollection::THREAD_TYPE_GAME)) {
+    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_GAME)) {
         for (auto &it : collection_per_pass_type) {
             iterators.PushBack(&it);
         }
@@ -333,7 +333,7 @@ void RenderList::CollectDrawCalls(
 
     Array<IteratorType> iterators;
 
-    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
+    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_RENDER)) {
         for (auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
 
@@ -444,7 +444,7 @@ void RenderList::ExecuteDrawCalls(
 
     Engine::Get()->GetRenderState().BindCamera(camera.Get());
 
-    for (const auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(EntityDrawCollection::THREAD_TYPE_RENDER)) {
+    for (const auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_RENDER)) {
         for (const auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
             const EntityDrawCollection::EntityList &entity_list = it.second;

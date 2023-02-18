@@ -84,6 +84,7 @@ const std::map<ErrorMessage, std::string> CompilerError::error_message_strings {
     { Msg_not_a_data_member, "'%' is not a member of type '%'" },
     { Msg_not_a_constant_type, "% is not a constant, 'Any' deduced from type. An exception will be thrown at runtime if the object is not a class." },
     { Msg_type_missing_prototype, "Type % is missing '$proto' member." },
+    { Msg_cannot_inline_variable, "Unable to inline variable which is marked as force inline" },
     { Msg_bitwise_operands_must_be_int, "Bitwise operands must both be 'Int', got '%' and '%'" },
     { Msg_bitwise_operand_must_be_int, "Bitwise operand must be 'Int', got '%'" },
     { Msg_arithmetic_operands_must_be_numbers, "Operands of arithmetic operator '%', % and %, are not numeric and no overload was found" },

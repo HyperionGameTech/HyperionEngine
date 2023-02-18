@@ -222,7 +222,7 @@ std::unique_ptr<Buildable> AstNewExpression::Build(AstVisitor *visitor, Module *
         }
     }*/
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstNewExpression::Optimize(AstVisitor *visitor, Module *mod)

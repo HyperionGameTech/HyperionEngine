@@ -32,42 +32,56 @@ AstTemplateExpression::AstTemplateExpression(
 
 void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
+    m_symbol_type = BuiltinTypes::UNDEFINED;
+
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
     mod->m_scopes.Open(Scope(SCOPE_TYPE_NORMAL, UNINSTANTIATED_GENERIC_FLAG));
 
+    m_block.Reset(new AstBlock(m_location));
+
+
     // visit params before expression to make declarations
     // for things that may be used in the expression
-    for (auto &generic_param : m_generic_params) {
-        AssertThrow(generic_param != nullptr);
 
-        generic_param->SetIsGenericParam(true);
+    {
+        for (auto &generic_param : m_generic_params) {
+            AssertThrow(generic_param != nullptr);
 
-        if (generic_param->GetPrototypeSpecification() == nullptr) {
-            generic_param->SetPrototypeSpecification(RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
-                RC<AstVariable>(new AstVariable(
-                    BuiltinTypes::ANY->GetName(),
+            generic_param->SetIsGenericParam(true);
+
+            if (generic_param->GetPrototypeSpecification() == nullptr) {
+                generic_param->SetPrototypeSpecification(RC<AstPrototypeSpecification>(new AstPrototypeSpecification(
+                    RC<AstVariable>(new AstVariable(
+                        BuiltinTypes::ANY->GetName(),
+                        m_location
+                    )),
                     m_location
-                )),
-                m_location
-            )));
-        }
+                )));
+            }
 
-        // gross, but we gotta do this our else on first pass,
-        // these will just refer to the wrong memory
-        if (generic_param->GetDefaultValue() == nullptr) {
-            generic_param->SetDefaultValue(RC<AstNil>(new AstNil(
-                m_location
-            )));
-        }
+            // gross, but we gotta do this our else on first pass,
+            // these will just refer to the wrong memory
+            if (generic_param->GetDefaultValue() == nullptr) {
+                generic_param->SetDefaultValue(RC<AstNil>(new AstNil(
+                    m_location
+                )));
+            }
 
-        generic_param->Visit(visitor, mod);
+            m_block->AddChild(generic_param);
+        }
     }
 
     // added because i made creation of this object happen in parser
     AssertThrow(m_expr != nullptr);
-    m_expr->Visit(visitor, mod);
+    // m_expr->Visit(visitor, mod);
+
+    m_block->AddChild(m_expr);
+    m_block->Visit(visitor, mod);
 
     AssertThrow(m_expr->GetExprType() != nullptr);
 
@@ -101,13 +115,19 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         expr_return_type
     });
 
-    for (size_t i = 0; i < m_generic_params.Size(); i++) {
+    for (SizeType i = 0; i < m_generic_params.Size(); i++) {
         const RC<AstParameter> &param = m_generic_params[i];
         AssertThrow(param != nullptr);
 
+        SymbolTypePtr_t param_type = BuiltinTypes::UNDEFINED;
+
+        if (param->GetIdentifier() && param->GetIdentifier()->GetSymbolType()) {
+            param_type = param->GetIdentifier()->GetSymbolType();
+        }
+
         generic_param_types.PushBack(GenericInstanceTypeInfo::Arg {
             param->GetName(),
-            param->GetIdentifier()->GetSymbolType(),
+            param_type,
             param->GetDefaultValue()
         });
     }
@@ -119,29 +139,32 @@ void AstTemplateExpression::Visit(AstVisitor *visitor, Module *mod)
         }
     );
 
+    AssertThrow(m_symbol_type != nullptr);
+
     mod->m_scopes.Close();
 }
 
 std::unique_ptr<Buildable> AstTemplateExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
+    AssertThrow(m_is_visited);
 
-    for (auto &generic_param : m_generic_params) {
-        AssertThrow(generic_param != nullptr);
-        chunk->Append(generic_param->Build(visitor, mod));
+    if (m_block == nullptr) {
+        return nullptr;
     }
 
-    // attempt at using the template expression directly...
-    AssertThrow(m_expr != nullptr);
-    chunk->Append(m_expr->Build(visitor, mod));
-
-    return std::move(chunk);
+    return m_block->Build(visitor, mod);
 }
 
 void AstTemplateExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_expr != nullptr);
-    m_expr->Optimize(visitor, mod);
+    // AssertThrow(m_expr != nullptr);
+    // m_expr->Optimize(visitor, mod);
+
+    if (m_block == nullptr) {
+        return;
+    }
+
+    m_block->Optimize(visitor, mod);
 }
 
 RC<AstStatement> AstTemplateExpression::Clone() const
@@ -161,28 +184,23 @@ bool AstTemplateExpression::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstTemplateExpression::GetExprType() const
 {
-    //AssertThrow(m_expr != nullptr);
-    //return m_expr->GetExprType();
+    AssertThrow(m_is_visited);
     AssertThrow(m_symbol_type != nullptr);
     return m_symbol_type;
 }
 
 const AstExpression *AstTemplateExpression::GetValueOf() const
 {
-    // if (m_expr != nullptr) {
-    //     return m_expr.Get();
-    // }
-
     return AstExpression::GetValueOf();
 }
 
 const AstExpression *AstTemplateExpression::GetDeepValueOf() const
 {
-    if (m_expr != nullptr) {
-        AssertThrow(m_expr.Get() != this);
+    // if (m_expr != nullptr) {
+    //     AssertThrow(m_expr.Get() != this);
 
-        return m_expr->GetDeepValueOf();
-    }
+    //     return m_expr->GetDeepValueOf();
+    // }
 
     return AstExpression::GetDeepValueOf();
 }

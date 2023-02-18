@@ -459,15 +459,25 @@ FunctionTypeSignature_t SemanticAnalyzer::Helpers::SubstituteFunctionArgs(
                     const bool is_ref = generic_args[unused_index].m_is_ref;
                     const bool is_const = generic_args[unused_index].m_is_const;
 
-                    RC<AstArgument> substituted_arg(new AstArgument(
-                        has_default_value
-                            ? CloneAstNode(generic_args[unused_index].m_default_value)
-                            : RC<AstUndefined>(new AstUndefined(location)).Cast<AstExpression>(),
-                        false,
-                        true,
-                        generic_args[unused_index].m_name,
-                        location
-                    ));
+                    RC<AstArgument> substituted_arg;
+
+                    {
+                        RC<AstExpression> expr;
+
+                        if (has_default_value) {
+                            expr = CloneAstNode(generic_args[unused_index].m_default_value);
+                        } else {
+                            expr.Reset(new AstUndefined(location));
+                        }
+
+                        substituted_arg.Reset(new AstArgument(
+                            expr,
+                            false,
+                            true,
+                            generic_args[unused_index].m_name,
+                            location
+                        ));
+                    }
                     
                     // push the default value as argument
                     // use named argument, same name as in definition

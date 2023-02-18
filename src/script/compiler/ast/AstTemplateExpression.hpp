@@ -3,6 +3,7 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/ast/AstParameter.hpp>
+#include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
@@ -10,12 +11,15 @@
 
 namespace hyperion::compiler {
 
-class AstTemplateExpression : public AstExpression {
+class AstTemplateExpression final : public AstExpression
+{
 public:
-    AstTemplateExpression(const RC<AstExpression> &expr,
+    AstTemplateExpression(
+        const RC<AstExpression> &expr,
         const Array<RC<AstParameter>> &generic_params,
         const RC<AstPrototypeSpecification> &return_type_specification,
-        const SourceLocation &location);
+        const SourceLocation &location
+    );
     virtual ~AstTemplateExpression() = default;
 
     const Array<RC<AstParameter>> &GetGenericParameters() const { return m_generic_params; }
@@ -41,6 +45,8 @@ private:
 
     // set while analyzing
     SymbolTypePtr_t m_symbol_type;
+    RC<AstBlock> m_block;
+    bool m_is_visited = false;
 
     RC<AstTemplateExpression> CloneImpl() const
     {
