@@ -105,6 +105,7 @@ enum ErrorMessage
     Msg_not_a_data_member,
     Msg_not_a_constant_type,
     Msg_type_missing_prototype,
+    Msg_cannot_inline_variable,
 
     Msg_bitwise_operands_must_be_int,
     Msg_bitwise_operand_must_be_int,

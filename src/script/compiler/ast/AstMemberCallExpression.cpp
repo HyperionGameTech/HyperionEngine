@@ -53,6 +53,11 @@ void AstMemberCallExpression::Visit(AstVisitor *visitor, Module *mod)
         self_target->GetLocation()
     ));
 
+    const SizeType num_arguments = m_arguments != nullptr
+        ? m_arguments->GetArguments().Size() + 1
+        : 1;
+
+    m_substituted_args.Reserve(num_arguments);
     m_substituted_args.PushBack(self_arg);
 
     if (m_arguments != nullptr) {
@@ -130,12 +135,12 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
     const auto target_stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
 
     // use above as self arg so PUSH
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
     { // add instruction to store on stack
         auto instr_push = BytecodeUtil::Make<RawOperation<>>();
         instr_push->opcode = PUSH;
-        instr_push->Accept<uint8_t>(rp);
+        instr_push->Accept<UInt8>(rp);
         chunk->Append(std::move(instr_push));
     }
 
@@ -193,7 +198,7 @@ std::unique_ptr<Buildable> AstMemberCallExpression::Build(AstVisitor *visitor, M
         m_substituted_args.Size() + 1 // pops self off stack as well
     ));
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstMemberCallExpression::Optimize(AstVisitor *visitor, Module *mod)

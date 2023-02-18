@@ -28,6 +28,9 @@ AstArgument::AstArgument(
 
 void AstArgument::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
     if (m_is_splat) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -77,6 +80,8 @@ std::unique_ptr<Buildable> AstArgument::Build(AstVisitor *visitor, Module *mod)
 {
     AssertThrow(m_expr != nullptr);
 
+    AssertThrow(m_is_visited);
+
     std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     chunk->Append(m_expr->Build(visitor, mod));
@@ -88,7 +93,7 @@ std::unique_ptr<Buildable> AstArgument::Build(AstVisitor *visitor, Module *mod)
     //     chunk->Append(BytecodeUtil::Make<LoadRef>(rp, rp));
     // }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstArgument::Optimize(AstVisitor *visitor, Module *mod)

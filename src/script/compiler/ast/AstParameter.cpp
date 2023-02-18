@@ -107,7 +107,7 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
     AssertThrow(m_identifier != nullptr);
 
     // get current stack size
-    const int stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
+    const Int stack_location = visitor->GetCompilationUnit()->GetInstructionStream().GetStackSize();
     // set identifier stack location
     m_identifier->SetStackLocation(stack_location);
 
@@ -120,10 +120,9 @@ std::unique_ptr<Buildable> AstParameter::Build(AstVisitor *visitor, Module *mod)
         chunk->Append(BytecodeUtil::Make<StoreLocal>(rp));
     }
 
-    // increment stack size
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstParameter::Optimize(AstVisitor *visitor, Module *mod)

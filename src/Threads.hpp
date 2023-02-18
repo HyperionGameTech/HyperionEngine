@@ -34,6 +34,17 @@ enum ThreadName : ThreadMask
     THREAD_PHYSICS = THREAD_GAME // for now
 };
 
+// Used for having 1 value of something per thread,
+// e.g `UInt counter[THREAD_TYPE_MAX]` and selecting the value
+// based on the current thread.
+enum ThreadType : UInt
+{
+    THREAD_TYPE_INVALID = UInt(-1),
+    THREAD_TYPE_GAME = 0,
+    THREAD_TYPE_RENDER = 1,
+    THREAD_TYPE_MAX
+};
+
 class Threads
 {
 public:

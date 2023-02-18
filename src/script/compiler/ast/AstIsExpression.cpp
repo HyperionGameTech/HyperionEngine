@@ -71,7 +71,7 @@ std::unique_ptr<Buildable> AstIsExpression::Build(AstVisitor *visitor, Module *m
         chunk->Append(BytecodeUtil::Make<ConstBool>(rp, bool(m_is_type.Value())));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstIsExpression::Optimize(AstVisitor *visitor, Module *mod)

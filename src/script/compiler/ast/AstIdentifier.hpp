@@ -49,6 +49,7 @@ public:
         const std::string &name,
         const SourceLocation &location
     );
+
     virtual ~AstIdentifier() = default;
 
     void PerformLookup(AstVisitor *visitor, Module *mod);
@@ -66,7 +67,7 @@ public:
     virtual Tribool IsTrue() const override = 0;
     virtual bool MayHaveSideEffects() const override = 0;
     virtual SymbolTypePtr_t GetExprType() const override = 0;
-    virtual ExprAccessBits GetExprAccess() const override;
+    virtual ExprAccess GetExprAccess() const override;
 
     virtual const AstExpression *GetValueOf() const override;
     virtual const AstExpression *GetDeepValueOf() const override;

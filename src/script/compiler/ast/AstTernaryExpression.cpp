@@ -32,8 +32,16 @@ void AstTernaryExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(m_right != nullptr);
 
     m_conditional->Visit(visitor, mod);
-    m_left->Visit(visitor, mod);
-    m_right->Visit(visitor, mod);
+
+    // TEMPORARY HACK UNTIL SOMETHING LIKE `AstCompileTimeTernary` exists.
+
+    if (m_conditional->IsTrue() != TRI_FALSE) {
+        m_left->Visit(visitor, mod);
+    }
+
+    if (m_conditional->IsTrue() != TRI_TRUE) {
+        m_right->Visit(visitor, mod);
+    }
 
     if (GetExprType() == BuiltinTypes::UNDEFINED) {
         visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
@@ -86,7 +94,7 @@ std::unique_ptr<Buildable> AstTernaryExpression::Build(AstVisitor *visitor, Modu
         chunk->Append(m_right->Build(visitor, mod));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstTernaryExpression::Optimize(AstVisitor *visitor, Module *mod)

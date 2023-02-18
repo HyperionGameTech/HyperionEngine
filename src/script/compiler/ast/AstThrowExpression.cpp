@@ -48,7 +48,7 @@ std::unique_ptr<Buildable> AstThrowExpression::Build(AstVisitor *visitor, Module
         chunk->Append(std::move(instr_throw));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstThrowExpression::Optimize(AstVisitor *visitor, Module *mod)

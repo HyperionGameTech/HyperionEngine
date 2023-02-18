@@ -31,6 +31,9 @@ AstTemplateInstantiation::AstTemplateInstantiation(
 
 void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(!m_is_visited);
+    m_is_visited = true;
+
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 
@@ -145,7 +148,7 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
                     nullptr,
                     CloneAstNode(args_substituted[i]->GetExpr()),
                     {},
-                    IdentifierFlags::FLAG_CONST,
+                    IdentifierFlags::FLAG_CONST | IdentifierFlags::FLAG_GENERIC_SUBSTITUTION,
                     args_substituted[i]->GetLocation()
                 ));
 
@@ -165,6 +168,8 @@ void AstTemplateInstantiation::Visit(AstVisitor *visitor, Module *mod)
 
 std::unique_ptr<Buildable> AstTemplateInstantiation::Build(AstVisitor *visitor, Module *mod)
 {
+    AssertThrow(m_is_visited);
+
     AssertThrow(visitor != nullptr);
     AssertThrow(mod != nullptr);
 

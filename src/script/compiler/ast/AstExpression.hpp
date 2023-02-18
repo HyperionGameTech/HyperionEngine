@@ -11,13 +11,22 @@ namespace hyperion::compiler {
 
 class AstTypeObject;
 
-using ExprAccessBits = UInt32;
+using ExprAccess = UInt32;
 
-enum ExprAccess : ExprAccessBits
+enum ExprAccessBits : ExprAccess
 {
+    EXPR_ACCESS_NONE      = 0x0,
     EXPR_ACCESS_PUBLIC    = 0x1,
     EXPR_ACCESS_PRIVATE   = 0x2,
     EXPR_ACCESS_PROTECTED = 0x4
+};
+
+using ExpressionFlags = UInt32;
+
+enum ExpressionFlagBits : ExpressionFlags
+{
+    EXPR_FLAGS_NONE                   = 0x0,
+    EXPR_FLAGS_CONSTRUCTOR_DEFINITION = 0x1
 };
 
 class AstExpression : public AstStatement
@@ -61,12 +70,28 @@ public:
     /** Determine whether or not there is a possibility of side effects. */
     virtual bool MayHaveSideEffects() const = 0;
     virtual SymbolTypePtr_t GetExprType() const = 0;
-    virtual ExprAccessBits GetExprAccess() const { return ExprAccess::EXPR_ACCESS_PUBLIC; }
     virtual bool IsMutable() const { return false; }
+    virtual ExprAccess GetExprAccess() const { return EXPR_ACCESS_PUBLIC; }
+
+    ExpressionFlags GetExpressionFlags() const
+        { return m_expression_flags; }
+
+    void SetExpressionFlags(ExpressionFlags expression_flags)
+        { m_expression_flags = expression_flags; }
+
+    void ApplyExpressionFlags(ExpressionFlags expression_flags, bool set = true)
+    {
+        if (set) {
+            m_expression_flags |= expression_flags;
+        } else {
+            m_expression_flags &= ~expression_flags;
+        }
+    }
     
 protected:
     AccessMode m_access_mode;
     int m_access_options;
+    ExpressionFlags m_expression_flags = EXPR_FLAGS_NONE;
 };
 
 } // namespace hyperion::compiler

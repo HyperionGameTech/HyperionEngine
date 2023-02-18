@@ -6,7 +6,6 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstPrototypeSpecification.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <script/compiler/ast/AstObject.hpp>
 
 #include <memory>
 #include <vector>
@@ -51,6 +50,7 @@ protected:
 
     RC<AstExpression> m_closure_object;
     RC<AstParameter> m_closure_self_param;
+    RC<AstBlock> m_block_with_parameters;
 
     bool m_is_constructor_definition;
 

@@ -276,7 +276,7 @@
 #define HYP_SCRIPT_SET_MEMBER(object, name_str, assignment) \
     do { \
         auto *member = object.LookupMemberFromHash(hash_fnv_1(name_str)); \
-        AssertThrowMsg(member != nullptr, "Member " name_str " not set on object, unmatching prototype definition");\
+        AssertThrowMsg(member != nullptr, "Member " name_str " not set on object, unmatching prototype definition"); \
         member->value = assignment; \
     } while (false)
 

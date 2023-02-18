@@ -164,7 +164,7 @@ std::unique_ptr<Buildable> AstObject::Build(AstVisitor *visitor, Module *mod)
         chunk->Append(std::move(instr_mov_reg));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstObject::Optimize(AstVisitor *visitor, Module *mod)

@@ -46,6 +46,7 @@ protected:
     // set while analyzing
     Array<RC<AstArgument>> m_substituted_args;
     SymbolTypePtr_t m_return_type;
+    bool m_is_visited = false;
 
     RC<AstCallExpression> CloneImpl() const
     {

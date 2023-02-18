@@ -183,7 +183,7 @@ void EnvProbe::UpdateEnvProbeShaderData(
                   Int32(grid_slot % grid_size.width),
                   Int32((grid_slot % (grid_size.width * grid_size.height)) / grid_size.width),
                   Int32(grid_slot / (grid_size.width * grid_size.height)),
-                  0
+                  Int32(grid_slot)
               }
             : ShaderVec4<Int32> { 0, 0, 0, 0 },
         .position_offset = { 0, 0, 0, 0 }
@@ -231,7 +231,8 @@ void EnvProbe::Init()
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-            | (NeedsRender() ? ENV_PROBE_FLAGS_DIRTY : ENV_PROBE_FLAGS_NONE)
+            | (NeedsRender() ? ENV_PROBE_FLAGS_DIRTY : ENV_PROBE_FLAGS_NONE),
+        .grid_slot = m_grid_slot
     };
 
     m_view_matrices = CreateCubemapMatrices(m_aabb);
@@ -512,7 +513,8 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         .camera_far = m_camera_far,
         .flags = (IsReflectionProbe() ? ENV_PROBE_FLAGS_PARALLAX_CORRECTED : ENV_PROBE_FLAGS_NONE)
             | (IsShadowProbe() ? ENV_PROBE_FLAGS_SHADOW : ENV_PROBE_FLAGS_NONE)
-            | ENV_PROBE_FLAGS_DIRTY
+            | ENV_PROBE_FLAGS_DIRTY,
+        .grid_slot = m_grid_slot
     });
 
     SetNeedsUpdate(false);

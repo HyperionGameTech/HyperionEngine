@@ -35,6 +35,8 @@ void AstPrototypeSpecification::Visit(AstVisitor *visitor, Module *mod)
     m_proto->Visit(visitor, mod);
 
     const AstExpression *value_of = m_proto->GetDeepValueOf(); // GetDeepValueOf() returns the non-wrapped generic AstTypeObject*
+    AssertThrow(value_of != nullptr);
+
     const AstTypeObject *type_obj = nullptr;
     const AstIdentifier *identifier = nullptr;
 

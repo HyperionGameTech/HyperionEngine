@@ -26,7 +26,7 @@ std::unique_ptr<Buildable> AstString::Build(AstVisitor *visitor, Module *mod)
     instr_string->reg = rp;
     instr_string->value = m_value;
 
-    return std::move(instr_string);
+    return instr_string;
 }
 
 RC<AstStatement> AstString::Clone() const

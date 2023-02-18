@@ -15,6 +15,8 @@
 namespace hyperion {
 namespace detail {
 
+/** @TODO! Reimplement Cast<> to match UniquePtr */
+
 template <class CountType = UInt>
 struct RefCountData
 {

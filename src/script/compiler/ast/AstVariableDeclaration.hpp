@@ -41,6 +41,21 @@ public:
     bool IsRef() const { return m_flags & IdentifierFlags::FLAG_REF; }
     bool IsGeneric() const { return m_flags & IdentifierFlags::FLAG_GENERIC; }
 
+    IdentifierFlagBits GetIdentifierFlags() const
+        { return m_flags; }
+    
+    void SetIdentifierFlags(IdentifierFlagBits flags)
+        { m_flags = flags; }
+
+    void ApplyIdentifierFlags(IdentifierFlagBits flags, bool set = true)
+    {
+        if (set) {
+            m_flags |= flags;
+        } else {
+            m_flags &= ~flags;
+        }
+    }
+
     virtual void Visit(AstVisitor *visitor, Module *mod) override;
     virtual std::unique_ptr<Buildable> Build(AstVisitor *visitor, Module *mod) override;
     virtual void Optimize(AstVisitor *visitor, Module *mod) override;

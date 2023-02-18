@@ -17,7 +17,8 @@ class AstVisitor;
 class Module;
 class SymbolType;
 
-class AstStatement {
+class AstStatement
+{
     friend class AstIterator;
 
 protected:

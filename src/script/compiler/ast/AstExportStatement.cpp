@@ -66,7 +66,7 @@ std::unique_ptr<Buildable> AstExportStatement::Build(AstVisitor *visitor, Module
     // add EXPORT instruction
     chunk->Append(BytecodeUtil::Make<SymbolExport>(rp, m_exported_symbol_name));
     
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstExportStatement::Optimize(AstVisitor *visitor, Module *mod)

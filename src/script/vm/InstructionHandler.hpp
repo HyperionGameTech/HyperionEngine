@@ -266,6 +266,14 @@ public:
 
     HYP_FORCE_INLINE void LoadOffset(BCRegister reg, UInt16 offset)
     {
+        const auto &stk = state->MAIN_THREAD->m_stack;
+
+        AssertThrowMsg(
+            offset <= stk.GetStackPointer(),
+            "Stack offset out of bounds (%u)",
+            offset
+        );
+
         // read value from stack at (sp - offset)
         // into the the register
         thread->m_regs[reg].AssignValue(thread->m_stack[thread->m_stack.GetStackPointer() - offset], false);

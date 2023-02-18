@@ -48,15 +48,8 @@ void AstReturnStatement::Visit(AstVisitor *visitor, Module *mod)
         top = top->m_parent;
     }
 
-    /*if (is_constructor) {
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_return_invalid_in_constructor,
-            m_location
-        ));
-    } else*/ if (in_function) {
+    if (in_function) {
         AssertThrow(top != nullptr);
-        // add return type
 
         if (m_expr != nullptr) {
             top->m_value.AddReturnType(m_expr->GetExprType(), m_location);
@@ -88,7 +81,7 @@ std::unique_ptr<Buildable> AstReturnStatement::Build(AstVisitor *visitor, Module
     instr_ret->opcode = RET;
     chunk->Append(std::move(instr_ret));
     
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstReturnStatement::Optimize(AstVisitor *visitor, Module *mod)

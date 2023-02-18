@@ -201,7 +201,7 @@ std::unique_ptr<Buildable> AstForLoop::Build(AstVisitor *visitor, Module *mod)
         chunk->Append(Compiler::PopStack(visitor, m_num_used_initializers));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstForLoop::Optimize(AstVisitor *visitor, Module *mod)

@@ -55,6 +55,8 @@ private:
     bool m_is_pass_by_ref;
     bool m_is_pass_const;
     std::string m_name;
+    
+    bool m_is_visited = false;
 
     RC<AstArgument> CloneImpl() const
     {

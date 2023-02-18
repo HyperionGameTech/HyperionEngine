@@ -130,7 +130,7 @@ std::unique_ptr<Buildable> AstWhileLoop::Build(AstVisitor *visitor, Module *mod)
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstWhileLoop::Optimize(AstVisitor *visitor, Module *mod)

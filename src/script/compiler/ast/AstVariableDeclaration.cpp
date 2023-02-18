@@ -182,6 +182,10 @@ void AstVariableDeclaration::Visit(AstVisitor *visitor, Module *mod)
         }
 
         // visit assignment
+        if (m_name == "$construct") {//m_flags & FLAG_CONSTRUCTOR) {
+            m_real_assignment->ApplyExpressionFlags(EXPR_FLAGS_CONSTRUCTOR_DEFINITION);
+        }
+
         m_real_assignment->Visit(visitor, mod);
 
         /* ===== handle assignment ===== */
@@ -308,7 +312,7 @@ std::unique_ptr<Buildable> AstVariableDeclaration::Build(AstVisitor *visitor, Mo
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstVariableDeclaration::Optimize(AstVisitor *visitor, Module *mod)

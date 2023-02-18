@@ -9,6 +9,7 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
 #include <util/Defines.hpp>
+#include <Threads.hpp>
 #include <Types.hpp>
 
 namespace hyperion::renderer {
@@ -52,14 +53,6 @@ constexpr PassType BucketToPassType(Bucket bucket)
 class EntityDrawCollection
 {
 public:
-    enum ThreadType : UInt
-    {
-        THREAD_TYPE_INVALID = UInt(-1),
-        THREAD_TYPE_GAME = 0,
-        THREAD_TYPE_RENDER = 1,
-        THREAD_TYPE_MAX
-    };
-
     struct EntityList
     {
         Array<EntityDrawProxy> drawables;

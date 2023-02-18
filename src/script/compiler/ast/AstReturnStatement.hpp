@@ -6,10 +6,13 @@
 
 namespace hyperion::compiler {
 
-class AstReturnStatement : public AstStatement {
+class AstReturnStatement final : public AstStatement
+{
 public:
-    AstReturnStatement(const RC<AstExpression> &expr,
-        const SourceLocation &location);
+    AstReturnStatement(
+        const RC<AstExpression> &expr,
+        const SourceLocation &location
+    );
     virtual ~AstReturnStatement() = default;
 
     const RC<AstExpression> &GetExpression() const
@@ -23,7 +26,9 @@ public:
 
 private:
     RC<AstExpression> m_expr;
+
     int m_num_pops;
+    bool m_is_visited = false;
 
     RC<AstReturnStatement> CloneImpl() const
     {

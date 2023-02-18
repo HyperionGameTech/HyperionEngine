@@ -90,7 +90,7 @@ public:
         the POP_N instruction is generated. Otherwise, the POP
         instruction is generated.
     */
-    static std::unique_ptr<Buildable> PopStack(AstVisitor *visitor, int amt);
+    static std::unique_ptr<Buildable> PopStack(AstVisitor *visitor, Int amt);
 
 public:
     Compiler(AstIterator *ast_iterator, CompilationUnit *compilation_unit);

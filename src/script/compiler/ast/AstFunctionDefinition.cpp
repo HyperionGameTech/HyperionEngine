@@ -51,16 +51,16 @@ std::unique_ptr<Buildable> AstFunctionDefinition::Build(AstVisitor *visitor, Mod
         chunk->Append(m_expr->Build(visitor, mod));
 
         // get active register
-        uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
         
         // store on stack
         auto instr_push = BytecodeUtil::Make<RawOperation<>>();
         instr_push->opcode = PUSH;
-        instr_push->Accept<uint8_t>(rp);
+        instr_push->Accept<UInt8>(rp);
         chunk->Append(std::move(instr_push));
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstFunctionDefinition::Optimize(AstVisitor *visitor, Module *mod)

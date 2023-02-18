@@ -219,9 +219,11 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
                 const bool is_constructor_definition = mem->GetName() == m_name;
 
                 if (is_constructor_definition) {
-                    ScopeGuard constructor_definition_scope(mod, SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
+                    // ScopeGuard constructor_definition_scope(mod, SCOPE_TYPE_FUNCTION, CONSTRUCTOR_DEFINITION_FLAG);
 
+                    mem->ApplyIdentifierFlags(FLAG_CONSTRUCTOR);
                     mem->SetName("$construct");
+
                     mem->Visit(visitor, mod);
                 } else {
                     mem->Visit(visitor, mod);

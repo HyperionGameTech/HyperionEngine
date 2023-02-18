@@ -104,7 +104,7 @@ std::unique_ptr<Buildable> AstModuleDeclaration::Build(AstVisitor *visitor, Modu
         }
     }
 
-    return std::move(chunk);
+    return chunk;
 }
 
 void AstModuleDeclaration::Optimize(AstVisitor *visitor, Module *mod)
