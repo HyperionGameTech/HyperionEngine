@@ -34,6 +34,13 @@ VMMemoryBuffer &VMMemoryBuffer::operator=(const VMMemoryBuffer &other)
     return *this;
 }
 
+VMMemoryBuffer::~VMMemoryBuffer()
+{
+    if (m_buffer != nullptr) {
+        std::free(m_buffer);
+    }
+}
+
 void VMMemoryBuffer::GetRepresentation(
     std::stringstream &ss,
     bool add_type_name,

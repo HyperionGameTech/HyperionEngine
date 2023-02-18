@@ -6,7 +6,7 @@
 #include <rendering/RenderComponent.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/Compute.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/EntityDrawCollection.hpp>

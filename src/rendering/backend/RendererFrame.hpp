@@ -19,7 +19,7 @@ namespace renderer {
 class Swapchain;
 class CommandBuffer;
 class Fence;
-class DeviceQueue;
+struct DeviceQueue;
 
 using ::hyperion::non_owning_ptr;
 class Frame

@@ -2,7 +2,7 @@
 #define HYPERION_V2_UI_RENDERER_H
 
 #include <core/Base.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EntityDrawCollection.hpp>
 

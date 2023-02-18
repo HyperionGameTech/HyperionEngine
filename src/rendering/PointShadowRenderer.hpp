@@ -2,7 +2,7 @@
 #define HYPERION_V2_POINT_SHADOW_RENDERER_HPP
 
 #include <core/Base.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 #include <rendering/RenderComponent.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>

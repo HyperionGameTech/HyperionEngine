@@ -417,7 +417,7 @@ public:
         Member *members = new Member[size];
         
         for (size_t i = 0; i < size; i++) {
-            std::strncpy(members[i].name, names[i], 255);
+            Memory::CopyString(members[i].name, names[i], sizeof(Member::name));
             members[i].hash = hash_fnv_1(names[i]);
             members[i].value = Value(Value::HEAP_POINTER, { .ptr = nullptr });
         }
@@ -851,7 +851,20 @@ public:
                     return;
                 }
 
-                Memory::Copy(&static_cast<UInt8 *>(memory_buffer->GetBuffer())[index], &dst_data, sizeof(dst_data));
+                UByte byte_value = 0x0;
+
+                // take the passed int/uint value and clip it to the first byte.
+                if (dst_data.flags & Number::FLAG_SIGNED) {
+                    // convert -128..127 to 0..255 for signed integers.
+                    byte_value = static_cast<UByte>((dst_data.i + 128) & 0xff);
+                } else if (dst_data.flags & Number::FLAG_UNSIGNED) {
+                    byte_value = static_cast<UByte>(dst_data.u & 0xff);
+                } else {
+                    AssertThrowMsg(false, "Should not reach!");
+                }
+
+                // copy first byte from value
+                Memory::Copy(memory_buffer->GetBuffer() + index, &byte_value, sizeof(UByte));
 
                 return;
             }

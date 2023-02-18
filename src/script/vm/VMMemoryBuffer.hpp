@@ -14,12 +14,16 @@ namespace vm {
 class VMMemoryBuffer
 {
 public:
+    using ByteType = UByte;
+
     VMMemoryBuffer(SizeType size = 0);
     VMMemoryBuffer(const ByteBuffer &bytes);
     VMMemoryBuffer(const VMMemoryBuffer &other);
+    VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
+    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept;
+    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept;
     ~VMMemoryBuffer();
 
-    VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
     bool operator==(const VMMemoryBuffer &other) const { return this == &other; }
 
     SizeType GetSize() const { return m_bytes.Size(); }

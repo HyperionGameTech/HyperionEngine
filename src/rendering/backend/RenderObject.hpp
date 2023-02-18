@@ -431,7 +431,7 @@ struct RenderObjectDeleter
                 }
             }
 
-            num_items.Set(items.Size(), MemoryOrder::RELEASE);
+            num_items.Set(UInt32(items.Size()), MemoryOrder::RELEASE);
 
             mtx.unlock();
 
