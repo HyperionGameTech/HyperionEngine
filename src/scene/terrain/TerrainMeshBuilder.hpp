@@ -13,7 +13,7 @@
 
 namespace hyperion::v2 {
 
-class PatchInfo;
+struct PatchInfo;
 
 class TerrainMeshBuilder
 {

@@ -13,7 +13,7 @@
 
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Renderer.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>

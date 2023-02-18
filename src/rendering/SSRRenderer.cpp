@@ -273,7 +273,7 @@ void SSRRenderer::Create()
             m_extent,
             ssr_format,
             TemporalBlendTechnique::TECHNIQUE_1,
-            TemporalBlendFeedback::MEDIUM,
+            TemporalBlendFeedback::LOW,
             FixedArray<ImageViewRef, 2> {
 #ifdef USE_SSR_FRAGMENT_SHADER
                 m_temporal_history_textures[0]->GetImageView(), //m_image_outputs[0][blur_result ? 3 : 1].image_view,

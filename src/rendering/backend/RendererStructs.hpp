@@ -371,10 +371,10 @@ struct alignas(16) ShaderVec4
     ShaderVec4(const ShaderVec4 &other) = default;
     ShaderVec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
     ShaderVec4(const Vector4 &vec)
-        : x(vec.x),
-          y(vec.y),
-          z(vec.z),
-          w(vec.w)
+        : x(T(vec.x)),
+          y(T(vec.y)),
+          z(T(vec.z)),
+          w(T(vec.w))
     {
     }
 
@@ -389,7 +389,7 @@ struct alignas(16) ShaderVec4
     constexpr T &operator[](UInt index) { return values[index]; }
     constexpr const T &operator[](UInt index) const { return values[index]; }
 
-    operator Vector4() const { return Vector4(x, y, z, w); }
+    operator Vector4() const { return Vector4(Float(x), Float(y), Float(z), Float(w)); }
 };
 
 static_assert(sizeof(ShaderVec4<Float>) == 16);
