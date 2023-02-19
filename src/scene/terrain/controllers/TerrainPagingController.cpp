@@ -69,7 +69,7 @@ void TerrainPagingController::OnRemoved()
     for (const auto &enqueued_patch : m_enqueued_patches) {
         const auto &task = enqueued_patch.second;
 
-        Engine::Get()->task_system.Unschedule(task);
+        g_engine->task_system.Unschedule(task);
     }
 
     PagingController::OnRemoved();
@@ -152,7 +152,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
         }
     }
 
-    const auto task_ref = Engine::Get()->task_system.ScheduleTask([this, patch_info = patch->info]() {
+    const auto task_ref = g_engine->task_system.ScheduleTask([this, patch_info = patch->info]() {
         TerrainMeshBuilder builder(patch_info);
         builder.GenerateHeights(m_noise_combinator);
 
@@ -187,7 +187,7 @@ void TerrainPagingController::OnPatchRemoved(Patch *patch)
             it->first.y
         );
 
-        Engine::Get()->task_system.Unschedule(it->second);
+        g_engine->task_system.Unschedule(it->second);
 
         m_enqueued_patches.Erase(it);
     }

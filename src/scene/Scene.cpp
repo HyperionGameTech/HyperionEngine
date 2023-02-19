@@ -28,7 +28,7 @@ struct RENDER_COMMAND(BindLights) : RenderCommand
     virtual Result operator()()
     {
         for (SizeType i = 0; i < num_lights; i++) {
-            Engine::Get()->GetRenderState().BindLight(lights[i].first, lights[i].second);
+            g_engine->GetRenderState().BindLight(lights[i].first, lights[i].second);
         }
 
         delete[] lights;
@@ -49,7 +49,7 @@ struct RENDER_COMMAND(BindEnvProbes) : RenderCommand
     virtual Result operator()()
     {
         for (const auto &it : items) {
-            Engine::Get()->GetRenderState().BindEnvProbe(it.second, it.first);
+            g_engine->GetRenderState().BindEnvProbe(it.second, it.first);
         }
 
         HYPERION_RETURN_OK;
@@ -96,7 +96,7 @@ void Scene::Init()
 
     if (IsWorldScene()) {
         if (!m_tlas) {
-            if (Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED) && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
+            if (g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED) && HasFlags(InitInfo::SCENE_FLAGS_HAS_TLAS)) {
                 CreateTLAS();
             } else {
                 SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
@@ -172,7 +172,7 @@ void Scene::Init()
     SetReady(true);
 
     OnTeardown([this]() {
-        auto *engine = Engine::Get();
+        auto *engine = g_engine;
 
         m_camera.Reset();
         m_tlas.Reset();
@@ -805,7 +805,7 @@ void Scene::EnqueueRenderUpdates()
             shader_data.frame_counter    = frame_counter;
             shader_data.enabled_render_components_mask = render_environment->GetEnabledRenderComponentsMask();
             
-            Engine::Get()->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
+            g_engine->GetRenderData()->scenes.Set(id.ToIndex(), shader_data);
 
             HYPERION_RETURN_OK;
         }
@@ -834,7 +834,7 @@ bool Scene::CreateTLAS()
         return true;
     }
     
-    if (!Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         // cannot create TLAS if RT is not supported.
         SetFlags(InitInfo::SCENE_FLAGS_HAS_TLAS, false);
 

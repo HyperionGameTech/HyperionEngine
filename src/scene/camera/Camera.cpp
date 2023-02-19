@@ -24,7 +24,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommand
     {
         camera->m_draw_proxy = draw_proxy;
 
-        CameraShaderData &shader_data = Engine::Get()->GetRenderData()->cameras.Get(camera->GetID().ToIndex());
+        CameraShaderData &shader_data = g_engine->GetRenderData()->cameras.Get(camera->GetID().ToIndex());
 
         shader_data.view             = draw_proxy.view;
         shader_data.projection       = draw_proxy.projection;
@@ -36,7 +36,7 @@ struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommand
         shader_data.camera_fov       = draw_proxy.fov;
         shader_data.camera_far       = draw_proxy.clip_far;
 
-        Engine::Get()->GetRenderData()->cameras.MarkDirty(camera->GetID().ToIndex());
+        g_engine->GetRenderData()->cameras.MarkDirty(camera->GetID().ToIndex());
         
         HYPERION_RETURN_OK;
     }
@@ -352,7 +352,7 @@ void Camera::Update(GameCounter::TickUnit dt)
     UpdateMatrices();
 
     // TODO: Check that matrices have changed before this.
-    Engine::Get()->GetWorld()->GetOctree().CalculateVisibility(this);
+    g_engine->GetWorld()->GetOctree().CalculateVisibility(this);
 
     RenderCommands::Push<RENDER_COMMAND(UpdateCameraDrawProxy)>(
         this,

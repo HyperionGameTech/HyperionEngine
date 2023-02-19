@@ -18,8 +18,8 @@ void BindlessStorage::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    m_descriptor_sets[0] = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS);
-    m_descriptor_sets[1] = Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
+    m_descriptor_sets[0] = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS);
+    m_descriptor_sets[1] = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS_FRAME_1);
 }
 
 void BindlessStorage::Destroy()
@@ -53,16 +53,16 @@ void BindlessStorage::AddResource(Texture *texture)
 
         switch (texture->GetFilterMode()) {
         case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
-            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinearMipmap();
+            sampler = &g_engine->GetPlaceholderData().GetSamplerLinearMipmap();
 
             break;
         case FilterMode::TEXTURE_FILTER_LINEAR:
-            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear();
+            sampler = &g_engine->GetPlaceholderData().GetSamplerLinear();
 
             break;
         case FilterMode::TEXTURE_FILTER_NEAREST: // fallthrough
         default:
-            sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest();
+            sampler = &g_engine->GetPlaceholderData().GetSamplerNearest();
 
             break;
         }
@@ -92,8 +92,8 @@ void BindlessStorage::RemoveResource(ID<Texture> id)
 
         descriptor->SetElementImageSamplerCombined(
             id.ToIndex(),
-            &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8(),
-            &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
+            &g_engine->GetPlaceholderData().GetImageView2D1x1R8(),
+            &g_engine->GetPlaceholderData().GetSamplerLinear()
         );
     }
 

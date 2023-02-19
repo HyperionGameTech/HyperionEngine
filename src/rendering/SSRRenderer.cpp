@@ -57,10 +57,10 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (auto &image_output : image_outputs[frame_index]) {
-                image_output.Create(Engine::Get()->GetGPUDevice());
+                image_output.Create(g_engine->GetGPUDevice());
             }
 
-            radius_outputs[frame_index].Create(Engine::Get()->GetGPUDevice());
+            radius_outputs[frame_index].Create(g_engine->GetGPUDevice());
         }
 
         HYPERION_RETURN_OK;
@@ -99,12 +99,12 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
             AssertThrow(uniform_buffers[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create(
-                Engine::Get()->GetGPUDevice(),
+                g_engine->GetGPUDevice(),
                 sizeof(ssr_params)
             ));
 
             uniform_buffers[frame_index]->Copy(
-                Engine::Get()->GetGPUDevice(),
+                g_engine->GetGPUDevice(),
                 sizeof(ssr_params),
                 &ssr_params
             );
@@ -134,12 +134,12 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommand
             AssertThrow(descriptor_sets[frame_index] != nullptr);
             
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -161,12 +161,12 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // unset final result from the global descriptor set
-            auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSR_RESULT)
-                ->SetElementSRV(0, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -396,42 +396,42 @@ void SSRRenderer::CreateDescriptorSets()
 
         descriptor_set // gbuffer mip chain texture
             ->AddDescriptor<renderer::ImageDescriptor>(10)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredRenderer().GetMipChain()->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredRenderer().GetMipChain()->GetImageView());
 
         descriptor_set // gbuffer normals texture
             ->AddDescriptor<renderer::ImageDescriptor>(11)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
 
         descriptor_set // gbuffer material texture
             ->AddDescriptor<renderer::ImageDescriptor>(12)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
 
         descriptor_set // gbuffer depth
             ->AddDescriptor<renderer::ImageDescriptor>(13)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // nearest sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(14)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<renderer::SamplerDescriptor>(15)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         // scene data
         descriptor_set
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(16)
-            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
         // camera
         descriptor_set
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(17)
-            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
         // uniforms
         descriptor_set
@@ -441,7 +441,7 @@ void SSRRenderer::CreateDescriptorSets()
         // blue noise buffer
         descriptor_set
             ->AddDescriptor<renderer::StorageBufferDescriptor>(19)
-            ->SetElementBuffer(0, Engine::Get()->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
+            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -517,10 +517,10 @@ void SSRRenderer::CreateComputePipelines()
 
 void SSRRenderer::Render(Frame *frame)
 {
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const auto &scene_binding = g_engine->render_state.GetScene();
     const UInt scene_index = scene_binding ? scene_binding.id.ToIndex() : 0;
 
-    const auto &camera_binding = Engine::Get()->render_state.GetCamera();
+    const auto &camera_binding = g_engine->render_state.GetCamera();
     const UInt camera_index = camera_binding ? camera_binding.id.ToIndex() : 0;
 
     CommandBuffer *command_buffer = frame->GetCommandBuffer();
@@ -532,11 +532,11 @@ void SSRRenderer::Render(Frame *frame)
 #ifdef USE_SSR_FRAGMENT_SHADER
     // Begin new SSR (one pass)
     {
-        // if (Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Empty()) {
+        // if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Empty()) {
         //     return;
         // }
 
-        // Engine::Get()->GetRenderState().SetActiveEnvProbe(Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
+        // g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
 
         struct alignas(128) {
             ShaderVec4<UInt32> dimensions;
@@ -567,7 +567,7 @@ void SSRRenderer::Render(Frame *frame)
         m_reflection_pass->Render(frame);
 
         
-        // Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
+        // g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
 
     // End new SSR
@@ -580,7 +580,7 @@ void SSRRenderer::Render(Frame *frame)
     m_write_uvs->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_write_uvs->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
@@ -608,7 +608,7 @@ void SSRRenderer::Render(Frame *frame)
     m_sample->GetPipeline()->Bind(command_buffer);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_sample->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
@@ -637,7 +637,7 @@ void SSRRenderer::Render(Frame *frame)
         m_blur_hor->GetPipeline()->Bind(command_buffer);
 
         frame->GetCommandBuffer()->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_hor->GetPipeline(),
             m_descriptor_sets[frame->GetFrameIndex()].Get(),
             0,
@@ -663,7 +663,7 @@ void SSRRenderer::Render(Frame *frame)
         m_blur_vert->GetPipeline()->Bind(command_buffer);
 
         frame->GetCommandBuffer()->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_vert->GetPipeline(),
             m_descriptor_sets[frame->GetFrameIndex()].Get(),
             0,

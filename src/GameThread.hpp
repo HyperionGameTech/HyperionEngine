@@ -7,27 +7,24 @@
 #include <core/Scheduler.hpp>
 #include <core/Containers.hpp>
 
-#include <atomic>
-
 namespace hyperion::v2 {
 
 class Engine;
 class Game;
 
-class GameThread
-    : public Thread<Scheduler<Task<void, GameCounter::TickUnit>>,  Game *>
+class GameThread final : public Thread<Scheduler<Task<void, GameCounter::TickUnit>>, Game *>
 {
 public:
     GameThread();
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
-        { return m_is_running.load(std::memory_order_relaxed); }
+        { return m_is_running.Get(MemoryOrder::RELAXED); }
 
 private:
     virtual void operator()(Game *game) override;
 
-    std::atomic_bool m_is_running;
+    AtomicVar<Bool> m_is_running;
 };
 
 } // namespace hyperion::v2

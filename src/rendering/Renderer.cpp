@@ -58,16 +58,16 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             for (UInt j = 0; j < UInt(command_buffers[i].Size()); j++) {
                 HYPERION_BUBBLE_ERRORS(command_buffers[i][j]->Create(
-                    Engine::Get()->GetGPUInstance()->GetDevice(),
-                    Engine::Get()->GetGPUInstance()->GetGraphicsCommandPool(j)
+                    g_engine->GetGPUInstance()->GetDevice(),
+                    g_engine->GetGPUInstance()->GetGraphicsCommandPool(j)
                 ));
             }
         }
 
         return pipeline->Create(
-            Engine::Get()->GetGPUDevice(),
+            g_engine->GetGPUDevice(),
             std::move(construction_info),
-            &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            &g_engine->GetGPUInstance()->GetDescriptorPool()
         );
     }
 };
@@ -141,7 +141,7 @@ void RenderGroup::Init()
         }
     }
 
-    OnInit(Engine::Get()->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
+    OnInit(g_engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         renderer::RenderPass *render_pass = nullptr;
         
         Array<renderer::FramebufferObject *> framebuffers;
@@ -193,7 +193,7 @@ void RenderGroup::Init()
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 for (UInt i = 0; i < UInt(m_command_buffers[frame_index].Size()); i++) {
-                    Engine::Get()->SafeRelease(std::move(m_command_buffers[frame_index][i]));
+                    g_engine->SafeRelease(std::move(m_command_buffers[frame_index][i]));
                 }
             }
 
@@ -235,7 +235,7 @@ void RenderGroup::CollectDrawCalls()
         if (DrawCall *draw_call = previous_draw_state.TakeDrawCall(draw_call_id)) {
             // take the batch for reuse
             if ((batch_index = draw_call->batch_index)) {
-                Engine::Get()->shader_globals->entity_instance_batches.ResetBatch(batch_index);
+                g_engine->shader_globals->entity_instance_batches.ResetBatch(batch_index);
             }
 
             draw_call->batch_index = 0;
@@ -304,23 +304,23 @@ static void BindGlobalDescriptorSets(
     const UInt frame_index = frame->GetFrameIndex();
 
     command_buffer->BindDescriptorSets(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         pipeline,
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
         FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
         FixedArray {
-            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(Light, 0),
-            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().GetActiveEnvProbe().ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
         }
     );
 
 #if HYP_FEATURES_BINDLESS_TEXTURES
     /* Bindless textures */
-    Engine::Get()->GetGPUInstance()->GetDescriptorPool().Bind(
-        Engine::Get()->GetGPUDevice(),
+    g_engine->GetGPUInstance()->GetDescriptorPool().Bind(
+        g_engine->GetGPUDevice(),
         command_buffer,
         pipeline,
         {
@@ -330,8 +330,8 @@ static void BindGlobalDescriptorSets(
     );
 #endif
                     
-    Engine::Get()->GetGPUInstance()->GetDescriptorPool().Bind(
-        Engine::Get()->GetGPUDevice(),
+    g_engine->GetGPUInstance()->GetDescriptorPool().Bind(
+        g_engine->GetGPUDevice(),
         command_buffer,
         pipeline,
         {
@@ -354,7 +354,7 @@ static void BindPerObjectDescriptorSets(
 #if HYP_FEATURES_BINDLESS_TEXTURES
     if constexpr (use_indexed_array_for_object_data) {
         command_buffer->BindDescriptorSets(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             pipeline,
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
@@ -365,7 +365,7 @@ static void BindPerObjectDescriptorSets(
         );
     } else {
         command_buffer->BindDescriptorSets(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             pipeline,
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::object_buffer_mapping[frame_index] },
             FixedArray<DescriptorSet::Index, 1> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT },
@@ -379,7 +379,7 @@ static void BindPerObjectDescriptorSets(
 #else
     if constexpr (use_indexed_array_for_object_data) {
         command_buffer->BindDescriptorSets(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             pipeline,
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
@@ -390,7 +390,7 @@ static void BindPerObjectDescriptorSets(
         );
     } else {
         command_buffer->BindDescriptorSets(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             pipeline,
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::object_buffer_mapping[frame_index], DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, material_index, frame_index) },
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT, DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES },
@@ -421,13 +421,13 @@ RenderAll(
         return;
     }
 
-    const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
+    const auto &scene_binding = g_engine->GetRenderState().GetScene();
     const ID<Scene> scene_id = scene_binding.id;
 
     const UInt frame_index = frame->GetFrameIndex();
 
     const auto num_batches = use_parallel_rendering
-        ? MathUtil::Min(UInt(Engine::Get()->task_system.GetPool(THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
+        ? MathUtil::Min(UInt(g_engine->task_system.GetPool(THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     
     GetDividedDrawCalls(
@@ -443,7 +443,7 @@ RenderAll(
     // always run renderer items as HIGH priority,
     // so we do not lock up because we're waiting for a large process to
     // complete in the same thread
-    Engine::Get()->task_system.ParallelForEach(
+    g_engine->task_system.ParallelForEach(
         THREAD_POOL_RENDER,
         num_batches,
         divided_draw_calls,
@@ -453,7 +453,7 @@ RenderAll(
             }
 
             command_buffers[frame_index][index/*(command_buffer_index + batch_index) % static_cast<UInt>(command_buffers.Size())*/]->Record(
-                Engine::Get()->GetGPUDevice(),
+                g_engine->GetGPUDevice(),
                 pipeline->GetConstructionInfo().render_pass,
                 [&](CommandBuffer *secondary) {
                     pipeline->Bind(secondary);
@@ -467,7 +467,7 @@ RenderAll(
                     for (const DrawCall &draw_call : draw_calls) {
                         AssertThrow(draw_call.mesh != nullptr);
 
-                        const EntityInstanceBatch &entity_batch = Engine::Get()->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
+                        const EntityInstanceBatch &entity_batch = g_engine->shader_globals->entity_instance_batches.Get(draw_call.batch_index);
 
                         BindPerObjectDescriptorSets(
                             frame,
@@ -632,7 +632,7 @@ void RendererProxy::Bind(Frame *frame)
     CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
+    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->m_pipeline->GetConstructionInfo().render_pass);
 
     m_render_group->m_pipeline->Bind(command_buffer);
 }
@@ -650,7 +650,7 @@ void RendererProxy::Submit(Frame *frame)
     CommandBuffer *command_buffer = m_render_group->m_command_buffers[frame->GetFrameIndex()].Front().Get();
     AssertThrow(command_buffer != nullptr);
 
-    command_buffer->End(Engine::Get()->GetGPUDevice());
+    command_buffer->End(g_engine->GetGPUDevice());
     command_buffer->SubmitSecondary(frame->GetCommandBuffer());
 }
 

@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommand
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(Engine::Get()->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(image_outputs[frame_index].Create(g_engine->GetGPUDevice()));
         }
 
         HYPERION_RETURN_OK;
@@ -52,8 +52,8 @@ struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommand
             AssertThrow(descriptor_set.IsValid());
                 
             HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -174,17 +174,17 @@ void TemporalBlending::CreateDescriptorSets()
         // velocity (used for temporal blending)
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(2)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         // sampler to use
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(3)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         // sampler to use
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(4)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         // blurred output
         descriptor_set
@@ -194,17 +194,17 @@ void TemporalBlending::CreateDescriptorSets()
         // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
-            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
         // camera
         descriptor_set
             ->AddDescriptor<DynamicUniformBufferDescriptor>(7)
-            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
         // depth texture
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(8)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
@@ -260,7 +260,7 @@ void TemporalBlending::Render(Frame *frame)
 
     push_constants.output_dimensions = Extent2D(extent);
     push_constants.depth_texture_dimensions = Extent2D(
-        Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+        g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
             .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetAttachment()->GetImage()->GetExtent()
     );
 
@@ -268,13 +268,13 @@ void TemporalBlending::Render(Frame *frame)
     m_perform_blending->GetPipeline()->Bind(frame->GetCommandBuffer());
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_perform_blending->GetPipeline(),
         m_descriptor_sets[frame->GetFrameIndex()].Get(),
         0,
         FixedArray {
-            HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
-            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex()),
         }
     );
 

@@ -46,7 +46,7 @@ void AssetBatch::LoadAsync(UInt num_batches)
 
     procs.Clear();
 
-    Engine::Get()->task_system.EnqueueBatch(this);
+    g_engine->task_system.EnqueueBatch(this);
 }
 
 AssetMap AssetBatch::AwaitResults()

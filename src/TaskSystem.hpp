@@ -2,6 +2,7 @@
 #define HYPERION_V2_TASK_SYSTEM_HPP
 
 #include <core/lib/FixedArray.hpp>
+#include <core/lib/AtomicVar.hpp>
 #include <math/MathUtil.hpp>
 #include <util/Defines.hpp>
 #include <system/Debug.hpp>
@@ -33,7 +34,7 @@ enum TaskThreadPoolName : UInt
 
 struct TaskBatch
 {
-    std::atomic<UInt> num_completed;
+    AtomicVar<UInt> num_completed;
     UInt num_enqueued = 0;
 
     /*! \brief The priority / pool lane for which to place
@@ -59,7 +60,7 @@ struct TaskBatch
     // batch has been enqueued, so once num_completed is equal to num_enqueued,
     // we know it's done
     HYP_FORCE_INLINE bool IsCompleted() const
-        { return num_completed.load(std::memory_order_relaxed) >= num_enqueued; }
+        { return num_completed.Get(MemoryOrder::RELAXED) >= num_enqueued; }
 
     /*! \brief Block the current thread until all tasks have been marked as completed. */
     HYP_FORCE_INLINE void AwaitCompletion() const
@@ -167,7 +168,7 @@ public:
     {
         AssertThrow(batch != nullptr);
 
-        batch->num_completed.store(0u, std::memory_order_relaxed);
+        batch->num_completed.Set(0, MemoryOrder::RELAXED);
         batch->num_enqueued = 0u;
         batch->task_refs.Resize(batch->tasks.Size());
 
@@ -359,9 +360,7 @@ public:
     }
 
 private:
-
     FixedArray<TaskThreadPool, THREAD_POOL_MAX> m_pools;
-
     Array<TaskBatch *> m_running_batches;
 };
 

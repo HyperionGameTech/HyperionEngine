@@ -35,7 +35,7 @@ public:
             return err;
         }
 
-        if (!Engine::Get()->GetComponents().IsRegistered(controller_name.Data())) {
+        if (!g_engine->GetComponents().IsRegistered(controller_name.Data())) {
             DebugLog(
                 LogType::Error,
                 "Controller with name %s is not registered, cannot continue loading the controller\n",
@@ -45,13 +45,13 @@ public:
             return { FBOMResult::FBOM_ERR, "Invalid controller - not registered" };
         }
 
-        TypeID type_id = Engine::Get()->GetComponents().GetControllerTypeID(controller_name.Data());
+        TypeID type_id = g_engine->GetComponents().GetControllerTypeID(controller_name.Data());
 
         if (!type_id) {
             return { FBOMResult::FBOM_ERR, "Invalid controller type ID" };
         }
 
-        auto controller_ptr = Engine::Get()->GetComponents().CreateByName(controller_name.Data());
+        auto controller_ptr = g_engine->GetComponents().CreateByName(controller_name.Data());
 
         if (!controller_ptr) {
             return { FBOMResult::FBOM_ERR, "Failed to construct controller" };

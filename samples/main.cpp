@@ -115,7 +115,7 @@ public:
     {
         Game::InitGame();
     
-        // Engine::Get()->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
+        // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
 
         const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
 
@@ -219,7 +219,7 @@ public:
                 }
 
                 m_scene->GetRoot().AddChild(exported_node);
-                Engine::Get()->GetWorld()->AddScene(m_scene);
+                g_engine->GetWorld()->AddScene(m_scene);
 
                 return;
             }
@@ -232,12 +232,12 @@ public:
             }
         }
         
-        if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
+        if (g_engine->GetConfig().Get(CONFIG_VOXEL_GI)) { // voxel cone tracing for indirect light and reflections
             m_scene->GetEnvironment()->AddRenderComponent<VoxelConeTracing>(
                 HYP_NAME(VCTRenderer0),
                 VoxelConeTracing::Params { BoundingBox(-22.0f, 22.0f) }
             );
-        } else if (Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO)) {
+        } else if (g_engine->GetConfig().Get(CONFIG_VOXEL_GI_SVO)) {
             m_scene->GetEnvironment()->AddRenderComponent<SparseVoxelOctree>(HYP_NAME(VCT_SVO));
         }
 
@@ -246,7 +246,7 @@ public:
         m_scene->GetFogParams().start_distance = 5000.0f;
         m_scene->GetFogParams().end_distance = 40000.0f;
 
-        Engine::Get()->GetWorld()->AddScene(m_scene);
+        g_engine->GetWorld()->AddScene(m_scene);
         
         auto batch = g_asset_manager->CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
@@ -291,7 +291,7 @@ public:
         // test_model.Scale(0.325f);
         test_model.Scale(0.0125f);
 
-        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
+        if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             // m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
             //     HYP_NAME(AmbientGrid0),
             //     test_model.GetWorldAABB() * 1.01f,
@@ -305,7 +305,7 @@ public:
             GetScene()->AddEntity(std::move(env_grid_entity));
         }
 
-        if (Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
+        if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS)) {
             m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
                 HYP_NAME(EnvProbe0),
                 test_model.GetWorldAABB()
@@ -539,31 +539,31 @@ public:
             GetScene()->GetRoot().AddChild(tree);
         }
         
-        if (false) {
+        if (true) {
             auto cube_model = g_asset_manager->Load<Node>("models/cube.obj");
 
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
             plane->SetTranslation(Vector3(0, 0.1f, 0));
             plane->SetMesh(MeshBuilder::Quad());//Cube());
-            plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes);
+            plane->GetMesh()->SetVertexAttributes(renderer::static_mesh_vertex_attributes);
             plane->SetScale(Vector3(15.0f));
             plane->SetMaterial(CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.1f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.005f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
+            //plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/water.jpg"));
+            //plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/water.jpg"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, g_asset_manager->Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
             // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.3f);
-            plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            plane->GetMaterial()->SetIsAlphaBlended(true);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.1f);
+            //plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
+            //plane->GetMaterial()->SetIsAlphaBlended(true);
             plane->SetShader(Handle<Shader>(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes(), {{ "FORWARD_LIGHTING" }}))));
             plane->RebuildRenderableAttributes();
             plane->CreateBLAS();
@@ -678,7 +678,7 @@ public:
                     }
                 });
 
-                Engine::Get()->task_system.EnqueueBatch(m_export_task.Get());
+                g_engine->task_system.EnqueueBatch(m_export_task.Get());
             }
         }
 
@@ -741,7 +741,7 @@ public:
         Ray ray { m_scene->GetCamera()->GetTranslation(), Vector3(ray_direction) };
         RayTestResults results;
 
-        if (Engine::Get()->GetWorld()->GetOctree().TestRay(ray, results)) {
+        if (g_engine->GetWorld()->GetOctree().TestRay(ray, results)) {
 
             if (precise) {
                 RayTestResults triangle_mesh_results;
@@ -928,19 +928,19 @@ int main()
     using namespace hyperion::renderer;
 
     RefCountedPtr<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 768));//1920, 1080));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1920, 1080));
     
     SystemEvent event;
     
     auto *my_game = new MyGame(application);
 
-    Engine::Get()->Initialize(application);
+    g_engine->Initialize(application);
 
     my_game->Init();
 
-    // Engine::Get()->Compile();
+    // g_engine->Compile();
     
-    Engine::Get()->game_thread.Start(my_game);
+    g_engine->game_thread.Start(my_game);
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;
@@ -967,7 +967,7 @@ int main()
             num_frames = 0;
         }
         
-        Engine::Get()->RenderNextFrame(my_game);
+        g_engine->RenderNextFrame(my_game);
     }
 
     delete my_game;

@@ -31,8 +31,8 @@ struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommand
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(command_buffers[i]->Create(
-                Engine::Get()->GetGPUDevice(),
-                Engine::Get()->GetGPUInstance()->GetGraphicsCommandPool()
+                g_engine->GetGPUDevice(),
+                g_engine->GetGPUInstance()->GetGraphicsCommandPool()
             ));
         }
 
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommand
         auto result = renderer::Result::OK;
 
         for (auto &attachment : attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()), result);
+            HYPERION_PASS_ERRORS(attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()), result);
         }
 
         attachments.Clear();
@@ -158,7 +158,7 @@ void FullScreenPass::CreateFramebuffer()
 {
     if (m_extent.Size() == 0) {
         // TODO: Make non render-thread
-        m_extent = Engine::Get()->GetGPUInstance()->GetSwapchain()->extent;
+        m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
     m_framebuffer = CreateObject<Framebuffer>(
@@ -179,7 +179,7 @@ void FullScreenPass::CreateFramebuffer()
     ));
 
     HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_usage
@@ -188,7 +188,7 @@ void FullScreenPass::CreateFramebuffer()
     m_framebuffer->AddAttachmentUsage(attachment_usage);
 
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
     }
     
     InitObject(m_framebuffer);
@@ -225,7 +225,7 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet &renderable_att
 
     m_render_group->AddFramebuffer(Handle<Framebuffer>(m_framebuffer));
 
-    Engine::Get()->AddRenderGroup(m_render_group);
+    g_engine->AddRenderGroup(m_render_group);
     InitObject(m_render_group);
 }
 
@@ -262,58 +262,58 @@ void FullScreenPass::Record(UInt frame_index)
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
     auto record_result = command_buffer->Record(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
             );
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
-                    HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
                     HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                    HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().GetActiveEnvProbe().ToIndex()),
-                    HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
                 }
             );
             
 #if HYP_FEATURES_BINDLESS_TEXTURES
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::bindless_textures_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             );
 #else
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
             );
             
 #if HYP_FEATURES_ENABLE_RAYTRACING
-          //  if (!Engine::Get()->GetGPUDevice()->GetFeatures().IsRaytracingDisabled()) {
+          //  if (!g_engine->GetGPUDevice()->GetFeatures().IsRaytracingDisabled()) {
                 cmd->BindDescriptorSet(
-                    Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                    g_engine->GetGPUInstance()->GetDescriptorPool(),
                     m_render_group->GetPipeline(),
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
                     DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING
@@ -351,7 +351,7 @@ void FullScreenPass::Begin(Frame *frame)
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
-    command_buffer->Begin(Engine::Get()->GetGPUDevice(), m_render_group->GetPipeline()->GetConstructionInfo().render_pass);
+    command_buffer->Begin(g_engine->GetGPUDevice(), m_render_group->GetPipeline()->GetConstructionInfo().render_pass);
 
     m_render_group->GetPipeline()->Bind(command_buffer);
 }
@@ -363,7 +363,7 @@ void FullScreenPass::End(Frame *frame)
     const UInt frame_index = frame->GetFrameIndex();
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
-    command_buffer->End(Engine::Get()->GetGPUDevice());
+    command_buffer->End(g_engine->GetGPUDevice());
 
     m_framebuffer->BeginCapture(frame_index, frame->GetCommandBuffer());
     HYPERION_ASSERT_RESULT(command_buffer->SubmitSecondary(frame->GetCommandBuffer()));

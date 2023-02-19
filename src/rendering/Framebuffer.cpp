@@ -27,7 +27,7 @@ struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
             render_pass->AddAttachmentUsage(def.attachment_usage.Get());
         }
 
-        return render_pass->Create(Engine::Get()->GetGPUDevice());
+        return render_pass->Create(g_engine->GetGPUDevice());
     }
 };
 
@@ -42,7 +42,7 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
 
     virtual Result operator()()
     {
-        return render_pass->Destroy(Engine::Get()->GetGPUDevice());
+        return render_pass->Destroy(g_engine->GetGPUDevice());
     }
 };
 
@@ -71,7 +71,7 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
             framebuffer->AddAttachmentUsage(def.attachment_usage.Get());
         }
 
-        return framebuffer->Create(Engine::Get()->GetGPUDevice(), render_pass);
+        return framebuffer->Create(g_engine->GetGPUDevice(), render_pass);
     }
 };
 
@@ -86,7 +86,7 @@ struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommand
 
     virtual Result operator()()
     {
-        return framebuffer->Destroy(Engine::Get()->GetGPUDevice());
+        return framebuffer->Destroy(g_engine->GetGPUDevice());
     }
 };
 
@@ -107,7 +107,7 @@ struct RENDER_COMMAND(CreateAttachmentMap) : RenderCommand
             AttachmentDef &def = it.second;
 
             AssertThrow(def.attachment.IsValid());
-            HYPERION_BUBBLE_ERRORS(def.attachment->Create(Engine::Get()->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(def.attachment->Create(g_engine->GetGPUDevice()));
 
             def.attachment_usage = RenderObjects::Make<AttachmentUsage>(
                 def.attachment.Get(),
@@ -117,7 +117,7 @@ struct RENDER_COMMAND(CreateAttachmentMap) : RenderCommand
 
             def.attachment->AddAttachmentUsage(def.attachment_usage);
 
-            HYPERION_BUBBLE_ERRORS(def.attachment_usage->Create(Engine::Get()->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(def.attachment_usage->Create(g_engine->GetGPUDevice()));
         }
 
         HYPERION_RETURN_OK;

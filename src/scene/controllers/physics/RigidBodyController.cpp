@@ -45,7 +45,7 @@ void RigidBodyController::OnAttachedToScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
         if (scene->IsWorldScene()) {
-            Engine::Get()->GetWorld()->GetPhysicsWorld().AddRigidBody(Handle<physics::RigidBody>(m_rigid_body));
+            g_engine->GetWorld()->GetPhysicsWorld().AddRigidBody(Handle<physics::RigidBody>(m_rigid_body));
         }
     }
 }
@@ -54,7 +54,7 @@ void RigidBodyController::OnDetachedFromScene(ID<Scene> id)
 {
     if (auto scene = Handle<Scene>(id)) {
         if (scene->IsWorldScene()) {
-            Engine::Get()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(m_rigid_body);
+            g_engine->GetWorld()->GetPhysicsWorld().RemoveRigidBody(m_rigid_body);
         }
     }
 }

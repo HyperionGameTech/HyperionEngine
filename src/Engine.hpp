@@ -223,10 +223,10 @@ public:
     EngineCallbacks callbacks;
 
     ShaderCompiler m_shader_compiler;
-                             
+
     RenderState render_state;
-    
-    std::atomic_bool m_running { false };
+
+    AtomicVar<Bool> m_stop_requested;
 
     GameThread game_thread;
     TaskSystem task_system;

@@ -29,7 +29,7 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < 2; i++) {
-                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(Engine::Get()->GetGPUDevice()));
+                HYPERION_BUBBLE_ERRORS(image_outputs[frame_index][i].Create(g_engine->GetGPUDevice()));
             }
         }
 
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommand
             // destroy our images
             for (auto &image_output : image_outputs[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    image_output.Destroy(Engine::Get()->GetGPUDevice()),
+                    image_output.Destroy(g_engine->GetGPUDevice()),
                     result
                 );
             }
@@ -80,8 +80,8 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommand
                 AssertThrow(descriptor_set != nullptr);
                 
                 HYPERION_ASSERT_RESULT(descriptor_set->Create(
-                    Engine::Get()->GetGPUDevice(),
-                    &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                    g_engine->GetGPUDevice(),
+                    &g_engine->GetGPUInstance()->GetDescriptorPool()
                 ));
             }
         }
@@ -107,7 +107,7 @@ struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommand
             // destroy our descriptor sets
             for (auto &descriptor_set : descriptor_sets[frame_index]) {
                 HYPERION_PASS_ERRORS(
-                    descriptor_set->Destroy(Engine::Get()->GetGPUDevice()),
+                    descriptor_set->Destroy(g_engine->GetGPUDevice()),
                     result
                 );
             }
@@ -195,7 +195,7 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<ImageDescriptor>(2)
                 ->SetSubDescriptor({
-                    .image_view = Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                    .image_view = g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                         .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView()
                 });
 
@@ -203,14 +203,14 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(3)
                 ->SetSubDescriptor({
-                    .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerLinear()
+                    .sampler = &g_engine->GetPlaceholderData().GetSamplerLinear()
                 });
 
             // sampler to use
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(4)
                 ->SetSubDescriptor({
-                    .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
+                    .sampler = &g_engine->GetPlaceholderData().GetSamplerNearest()
                 });
 
             // blurred output
@@ -224,7 +224,7 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
                 ->SetSubDescriptor({
-                    .buffer = Engine::Get()->shader_globals->scenes.GetBuffers()[frame_index].get(),
+                    .buffer = g_engine->shader_globals->scenes.GetBuffers()[frame_index].get(),
                     .range = static_cast<UInt>(sizeof(SceneShaderData))
                 });
 
@@ -260,7 +260,7 @@ void BlurRadiance::Render(
     auto &descriptor_sets = m_descriptor_sets[frame->GetFrameIndex()];
     FixedArray passes { m_blur_hor.Get(), m_blur_vert.Get() };
     
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const auto &scene_binding = g_engine->render_state.GetScene();
     const UInt scene_index = scene_binding.id.ToIndex();
 
     for (UInt i = 0; i < static_cast<UInt>(passes.Size()); i++) {
@@ -272,7 +272,7 @@ void BlurRadiance::Render(
         pass->GetPipeline()->Bind(frame->GetCommandBuffer());
 
         frame->GetCommandBuffer()->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             pass->GetPipeline(),
             descriptor_sets[i].Get(),
             0,

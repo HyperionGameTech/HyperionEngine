@@ -41,8 +41,8 @@ struct RENDER_COMMAND(UploadMeshData) : RenderCommand
 
     virtual Result operator()()
     {
-        auto *instance = Engine::Get()->GetGPUInstance();
-        auto *device = Engine::Get()->GetGPUDevice();
+        auto *instance = g_engine->GetGPUInstance();
+        auto *device = g_engine->GetGPUDevice();
 
         const SizeType packed_buffer_size = vertex_data.size() * sizeof(Float);
         const SizeType packed_indices_size = index_data.size() * sizeof(Mesh::Index);

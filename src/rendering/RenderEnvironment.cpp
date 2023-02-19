@@ -49,7 +49,7 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_next_enabled_render_components_mask(0),
       m_rt_radiance(Extent2D { 1024, 1024 }),
       m_probe_system({
-          .aabb = {{-20.0f, -20.0f, -20.0f}, {20.0f, 20.0f, 20.0f}}
+          .aabb = {{-15.0f, -5.0f, -15.0f}, {15.0f, 25.0f, 15.0f}}
       }),
       m_has_rt_radiance(false),
       m_has_ddgi_probes(false)
@@ -171,7 +171,7 @@ void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    AssertThrow(Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED));
+    AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
         m_rt_radiance.ApplyTLASUpdates(flags);
@@ -187,7 +187,7 @@ void RenderEnvironment::RenderRTRadiance(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    AssertThrow(Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED));
+    AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
         m_rt_radiance.Render(frame);
@@ -199,15 +199,15 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    AssertThrow(Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED));
+    AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_ddgi_probes) {
         m_probe_system.RenderProbes(frame);
         m_probe_system.ComputeIrradiance(frame);
 
-        if (Engine::Get()->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
+        if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
             for (const auto &probe : m_probe_system.GetProbes()) {
-                Engine::Get()->GetImmediateMode().Sphere(probe.position);
+                g_engine->GetImmediateMode().Sphere(probe.position);
             }
         }
     }
@@ -305,7 +305,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         m_render_components_pending_removal.Clear();
     }
 
-    if (Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         if (update_marker_value & RENDER_ENVIRONMENT_UPDATES_TLAS) {
             inverse_mask |= RENDER_ENVIRONMENT_UPDATES_TLAS;
 

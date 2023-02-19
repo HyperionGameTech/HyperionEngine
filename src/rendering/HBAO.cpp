@@ -29,8 +29,8 @@ struct RENDER_COMMAND(CreateHBAODescriptorSets) : RenderCommand
             AssertThrow(descriptor_sets[frame_index].IsValid());
             
             HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -53,7 +53,7 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -186,12 +186,12 @@ void HBAO::Destroy()
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 // unset final result from the global descriptor set
-                auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                     .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
                 descriptor_set_globals
                     ->GetOrAddDescriptor<ImageDescriptor>(DescriptorKey::SSAO_GI_RESULT)
-                    ->SetElementSRV(0, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+                    ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
             }
 
             return result;
@@ -218,7 +218,7 @@ void HBAO::CreateImages()
             if constexpr (blur_result) {
                 for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                     for (UInt i = 0; i < 2; i++) {
-                        HYPERION_BUBBLE_ERRORS(blur_image_outputs[frame_index][i].Create(Engine::Get()->GetGPUDevice()));
+                        HYPERION_BUBBLE_ERRORS(blur_image_outputs[frame_index][i].Create(g_engine->GetGPUDevice()));
                     }
                 }
             }
@@ -241,45 +241,45 @@ void HBAO::CreateDescriptorSets()
 
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(0)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_ALBEDO)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_ALBEDO)->GetImageView());
 
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(1)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
 
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(2)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // motion vectors
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(3)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         // material
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(4)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
 
         // nearest sampler
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(5)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         // linear sampler
         descriptor_set
             ->AddDescriptor<SamplerDescriptor>(6)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(7)
-            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffer(frame_index).get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer(frame_index).get());
 
         // camera
         descriptor_set
             ->AddDescriptor<DynamicUniformBufferDescriptor>(8)
-            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffer(frame_index).get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer(frame_index).get());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -306,17 +306,17 @@ void HBAO::CreateBlurComputeShaders()
 
             descriptor_set
                 ->AddDescriptor<ImageDescriptor>(1)
-                ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+                ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
             // nearest sampler
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(2)
-                ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
             // linear sampler
             descriptor_set
                 ->AddDescriptor<SamplerDescriptor>(3)
-                ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
             // output image
             descriptor_set
@@ -350,14 +350,14 @@ void HBAO::CreateBlurComputeShaders()
 void HBAO::CreatePass()
 {
     ShaderProperties shader_properties;
-    shader_properties.Set("HBIL_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBIL));
+    shader_properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
 
     Handle<Shader> hbao_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(HBAO),
         shader_properties
     );
 
-    Engine::Get()->InitObject(hbao_shader);
+    g_engine->InitObject(hbao_shader);
 
     m_hbao_pass.Reset(new FullScreenPass(
         hbao_shader,
@@ -400,13 +400,13 @@ void HBAO::Render(Frame *frame)
         m_hbao_pass->Begin(frame);
         
         m_hbao_pass->GetCommandBuffer(frame_index)->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_hbao_pass->GetRenderGroup()->GetPipeline(),
             m_descriptor_sets[frame_index].Get(),
             0,
             FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(Scene, Engine::Get()->GetRenderState().GetScene().id.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+                HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
             }
         );
         
@@ -431,7 +431,7 @@ void HBAO::Render(Frame *frame)
             } blur_push_constants;
 
             blur_push_constants.depth_texture_dimensions = Extent2D(
-                Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)
+                g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)
                     ->GetAttachment()->GetImage()->GetExtent()
             );
 
@@ -447,7 +447,7 @@ void HBAO::Render(Frame *frame)
                 ->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
     
             command_buffer->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 compute_pipeline->GetPipeline(),
                 m_blur_descriptor_sets[blur_pass_index][frame_index].Get(),
                 0

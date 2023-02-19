@@ -55,9 +55,9 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
         Memory::Copy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
         Memory::Copy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
 
-        HYPERION_BUBBLE_ERRORS(buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(AlignedBuffer)));
+        HYPERION_BUBBLE_ERRORS(buffer->Create(g_engine->GetGPUDevice(), sizeof(AlignedBuffer)));
 
-        buffer->Copy(Engine::Get()->GetGPUDevice(), sizeof(AlignedBuffer), aligned_buffer.Get());
+        buffer->Copy(g_engine->GetGPUDevice(), sizeof(AlignedBuffer), aligned_buffer.Get());
 
         HYPERION_RETURN_OK;
     }
@@ -68,19 +68,19 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
 static ShaderProperties GetDeferredShaderProperties()
 {
     ShaderProperties properties;
-    properties.Set("RT_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED));
-    properties.Set("SSR_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_SSR));
-    properties.Set("REFLECTION_PROBE_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));
-    properties.Set("ENV_GRID_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI));
-    properties.Set("VCT_ENABLED_TEXTURE", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI));
-    properties.Set("VCT_ENABLED_SVO", Engine::Get()->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
-    properties.Set("HBIL_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBIL));
-    properties.Set("HBAO_ENABLED", Engine::Get()->GetConfig().Get(CONFIG_HBAO));
+    properties.Set("RT_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_ENABLED));
+    properties.Set("SSR_ENABLED", g_engine->GetConfig().Get(CONFIG_SSR));
+    properties.Set("REFLECTION_PROBE_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));
+    properties.Set("ENV_GRID_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI));
+    properties.Set("VCT_ENABLED_TEXTURE", g_engine->GetConfig().Get(CONFIG_VOXEL_GI));
+    properties.Set("VCT_ENABLED_SVO", g_engine->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
+    properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
+    properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
 
 
-    if (Engine::Get()->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
+    if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
         properties.Set("DEBUG_REFLECTIONS");
-    } else if (Engine::Get()->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
+    } else if (g_engine->GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
         properties.Set("DEBUG_IRRADIANCE");
     }
 
@@ -148,26 +148,26 @@ void DeferredPass::Record(UInt frame_index)
     }
 
     // no lights bound, do not render direct shading at all
-    if (Engine::Get()->GetRenderState().lights.Empty()) {
+    if (g_engine->GetRenderState().lights.Empty()) {
         return;
     }
 
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
     auto record_result = command_buffer->Record(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
+            const auto &scene_binding = g_engine->GetRenderState().GetScene();
 
             const UInt scene_index = scene_binding.id.ToIndex();
-            const UInt camera_index = Engine::Get()->GetRenderState().GetCamera().id.ToIndex();
+            const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
@@ -175,21 +175,21 @@ void DeferredPass::Record(UInt frame_index)
             
 #if HYP_FEATURES_BINDLESS_TEXTURES
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::bindless_textures_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS
             );
 #else
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES
             );
 #endif
 
             // render with each light
-            for (const auto &it : Engine::Get()->GetRenderState().lights) {
+            for (const auto &it : g_engine->GetRenderState().lights) {
                 const ID<Light> light_id = it.first;
                 const LightDrawProxy &light = it.second;
 
@@ -210,14 +210,14 @@ void DeferredPass::Record(UInt frame_index)
                     }
 
                     cmd->BindDescriptorSet(
-                        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                        g_engine->GetGPUInstance()->GetDescriptorPool(),
                         m_render_group->GetPipeline(),
                         DescriptorSet::scene_buffer_mapping[frame_index],
                         DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                         FixedArray {
                             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                             HYP_RENDER_OBJECT_OFFSET(Light, light_id.ToIndex()),
-                            HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+                            HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
                             HYP_RENDER_OBJECT_OFFSET(EnvProbe, shadow_probe_index),
                             HYP_RENDER_OBJECT_OFFSET(Camera, camera_index)
                         }
@@ -285,17 +285,17 @@ void EnvGridPass::Record(UInt frame_index)
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
     auto record_result = command_buffer->Record(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = Engine::Get()->render_state.GetScene();
+            const auto &scene_binding = g_engine->render_state.GetScene();
             const UInt scene_index = scene_binding.id.ToIndex();
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
@@ -304,16 +304,16 @@ void EnvGridPass::Record(UInt frame_index)
             // TODO: Do for each env grid in view
             
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::scene_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
                 FixedArray {
                     HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                     HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
+                    HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
                     HYP_RENDER_OBJECT_OFFSET(EnvProbe, 0),
-                    HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+                    HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
                 }
             );
 
@@ -374,18 +374,18 @@ void ReflectionProbePass::Record(UInt frame_index)
     auto *command_buffer = m_command_buffers[frame_index].Get();
 
     auto record_result = command_buffer->Record(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
         [this, frame_index](CommandBuffer *cmd) {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
-            const auto &scene_binding = Engine::Get()->GetRenderState().GetScene();
+            const auto &scene_binding = g_engine->GetRenderState().GetScene();
             const UInt scene_index = scene_binding.id.ToIndex();
-            const UInt camera_index = Engine::Get()->GetRenderState().GetCamera().id.ToIndex();
+            const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
 
             cmd->BindDescriptorSet(
-                Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_render_group->GetPipeline(),
                 DescriptorSet::global_buffer_mapping[frame_index],
                 DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL
@@ -395,7 +395,7 @@ void ReflectionProbePass::Record(UInt frame_index)
 
             UInt counter = 0;
 
-            for (const auto &it : Engine::Get()->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
+            for (const auto &it : g_engine->render_state.bound_env_probes[ENV_PROBE_TYPE_REFLECTION]) {
                 if (counter >= max_bound_reflection_probes) {
                     DebugLog(
                         LogType::Warn,
@@ -414,7 +414,7 @@ void ReflectionProbePass::Record(UInt frame_index)
                 // TODO: Add visibility check so we skip probes that don't have any impact on the current view
 
                 cmd->BindDescriptorSet(
-                    Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                    g_engine->GetGPUInstance()->GetDescriptorPool(),
                     m_render_group->GetPipeline(),
                     DescriptorSet::scene_buffer_mapping[frame_index],
                     DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE,
@@ -460,11 +460,11 @@ void DeferredRenderer::Create()
     m_direct_pass.Create();
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_opaque_fbo = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
-        m_translucent_fbo = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
+        m_opaque_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_OPAQUE].GetFramebuffer();
+        m_translucent_fbo = g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer();
     }
     
-    const auto *depth_attachment_usage = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentUsages().back();
+    const auto *depth_attachment_usage = g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()->GetAttachmentUsages().back();
     AssertThrow(depth_attachment_usage != nullptr);
 
     m_dpr.Create(depth_attachment_usage);
@@ -487,13 +487,13 @@ void DeferredRenderer::Create()
     
     CreateBlueNoiseBuffer();
 
-    m_ssr.Reset(new SSRRenderer(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent / 2 /* Half-res */, true));
+    m_ssr.Reset(new SSRRenderer(g_engine->GetGPUInstance()->GetSwapchain()->extent / 2 /* Half-res */, true));
     m_ssr->Create();
 
     CreateCombinePass();
     CreateDescriptorSets();
     
-    m_temporal_aa.Reset(new TemporalAA(Engine::Get()->GetGPUInstance()->GetSwapchain()->extent));
+    m_temporal_aa.Reset(new TemporalAA(g_engine->GetGPUInstance()->GetSwapchain()->extent));
     m_temporal_aa->Create();
 
     HYP_SYNC_RENDER();
@@ -503,7 +503,7 @@ void DeferredRenderer::CreateDescriptorSets()
 {
     // set global gbuffer data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set_globals = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+        auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
         
         { // add gbuffer textures
@@ -539,12 +539,12 @@ void DeferredRenderer::CreateDescriptorSets()
         /* Gbuffer depth sampler */
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_DEPTH_SAMPLER)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         /* Gbuffer sampler */
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::SamplerDescriptor>(DescriptorKey::GBUFFER_SAMPLER)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinearMipmap());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinearMipmap());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEPTH_PYRAMID_RESULT)
@@ -583,7 +583,7 @@ void DeferredRenderer::CreateCombinePass()
         GetDeferredShaderProperties()
     );
 
-    Engine::Get()->InitObject(shader);
+    g_engine->InitObject(shader);
 
     m_combine_pass.Reset(new FullScreenPass(shader, InternalFormat::RGBA16F));
     m_combine_pass->Create();
@@ -625,19 +625,19 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     CommandBuffer *primary = frame->GetCommandBuffer();
     const UInt frame_index = frame->GetFrameIndex();
 
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const auto &scene_binding = g_engine->render_state.GetScene();
     const UInt scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
 
-    const bool use_ssr = Engine::Get()->GetConfig().Get(CONFIG_SSR);
-    const bool use_rt_radiance = Engine::Get()->GetConfig().Get(CONFIG_RT_REFLECTIONS);
-    const bool use_ddgi = Engine::Get()->GetConfig().Get(CONFIG_RT_GI);
-    const bool use_hbao = Engine::Get()->GetConfig().Get(CONFIG_HBAO);
-    const bool use_hbil = Engine::Get()->GetConfig().Get(CONFIG_HBIL);
-    const bool use_env_grid_irradiance = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_GI);
-    const bool use_reflection_probes = Engine::Get()->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
-    const bool use_temporal_aa = Engine::Get()->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
+    const bool use_ssr = g_engine->GetConfig().Get(CONFIG_SSR);
+    const bool use_rt_radiance = g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS);
+    const bool use_ddgi = g_engine->GetConfig().Get(CONFIG_RT_GI);
+    const bool use_hbao = g_engine->GetConfig().Get(CONFIG_HBAO);
+    const bool use_hbil = g_engine->GetConfig().Get(CONFIG_HBIL);
+    const bool use_env_grid_irradiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI);
+    const bool use_reflection_probes = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
+    const bool use_temporal_aa = g_engine->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
 
     if (use_temporal_aa) {
         ApplyCameraJitter();
@@ -735,7 +735,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         m_indirect_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
 
-        if (Engine::Get()->GetRenderState().lights.Any()) {
+        if (g_engine->GetRenderState().lights.Any()) {
             m_direct_pass.GetCommandBuffer(frame_index)->SubmitSecondary(primary);
         }
 
@@ -754,8 +754,8 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         bool has_set_active_env_probe = false;
 
-        if (Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
-            Engine::Get()->GetRenderState().SetActiveEnvProbe(Engine::Get()->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
+        if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
+            g_engine->GetRenderState().SetActiveEnvProbe(g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Front().first);
 
             has_set_active_env_probe = true;
         }
@@ -768,10 +768,10 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         }
 
         if (has_set_active_env_probe) {
-            Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
+            g_engine->GetRenderState().UnsetActiveEnvProbe();
         }
 
-        Engine::Get()->GetImmediateMode().Render(frame);
+        g_engine->GetImmediateMode().Render(frame);
 
         m_translucent_fbo->EndCapture(frame_index, primary);
     }
@@ -794,16 +794,16 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_combine_pass->Begin(frame);
 
         m_combine_pass->GetCommandBuffer(frame_index)->BindDescriptorSets(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_combine_pass->GetRenderGroup()->GetPipeline(),
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::global_buffer_mapping[frame_index], DescriptorSet::scene_buffer_mapping[frame_index] },
             FixedArray<DescriptorSet::Index, 2> { DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL, DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE },
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
                 HYP_RENDER_OBJECT_OFFSET(Light, 0),
-                HYP_RENDER_OBJECT_OFFSET(EnvGrid, Engine::Get()->GetRenderState().bound_env_grid.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(EnvProbe, Engine::Get()->GetRenderState().GetActiveEnvProbe().ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, g_engine->GetRenderState().bound_env_grid.ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(EnvProbe, g_engine->GetRenderState().GetActiveEnvProbe().ToIndex()),
+                HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
             }
         );
 
@@ -849,7 +849,7 @@ void DeferredRenderer::GenerateMipChain(Frame *frame, Image *src_image)
     );
 
     HYPERION_ASSERT_RESULT(mipmapped_result->GenerateMipmaps(
-        Engine::Get()->GetGPUDevice(),
+        g_engine->GetGPUDevice(),
         primary
     ));
 
@@ -861,18 +861,18 @@ void DeferredRenderer::ApplyCameraJitter()
 {
     Vector4 jitter;
 
-    const ID<Camera> camera_id = Engine::Get()->GetRenderState().GetCamera().id;
-    const CameraDrawProxy &camera = Engine::Get()->GetRenderState().GetCamera().camera;
+    const ID<Camera> camera_id = g_engine->GetRenderState().GetCamera().id;
+    const CameraDrawProxy &camera = g_engine->GetRenderState().GetCamera().camera;
 
-    const UInt frame_counter = Engine::Get()->GetRenderState().frame_counter + 1;
+    const UInt frame_counter = g_engine->GetRenderState().frame_counter + 1;
 
     static const Float jitter_scale = 0.25f;
 
     if (camera.projection[3][3] < MathUtil::epsilon<Float>) {
         Matrix4::Jitter(frame_counter, camera.dimensions.width, camera.dimensions.height, jitter);
 
-        Engine::Get()->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
-        Engine::Get()->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());
+        g_engine->GetRenderData()->cameras.Get(camera_id.ToIndex()).jitter = jitter * jitter_scale;
+        g_engine->GetRenderData()->cameras.MarkDirty(camera_id.ToIndex());
     }
 }
 
@@ -885,10 +885,10 @@ void DeferredRenderer::CreateBlueNoiseBuffer()
 
 void DeferredRenderer::CollectDrawCalls(Frame *frame)
 {
-    const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (UInt index = 0; index < num_render_lists; index++) {
-        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->CollectDrawCalls(
+        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->CollectDrawCalls(
             frame,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT)),
             &m_cull_data
@@ -898,10 +898,10 @@ void DeferredRenderer::CollectDrawCalls(Frame *frame)
 
 void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 {
-    const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (UInt index = 0; index < num_render_lists; index++) {
-        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
+        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX)),
@@ -912,10 +912,10 @@ void DeferredRenderer::RenderOpaqueObjects(Frame *frame)
 
 void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 {
-    const UInt num_render_lists = Engine::Get()->GetWorld()->GetRenderListContainer().NumRenderLists();
+    const UInt num_render_lists = g_engine->GetWorld()->GetRenderListContainer().NumRenderLists();
 
     for (UInt index = 0; index < num_render_lists; index++) {
-        Engine::Get()->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
+        g_engine->GetWorld()->GetRenderListContainer().GetRenderListAtIndex(index)->ExecuteDrawCalls(
             frame,
             Handle<Framebuffer>::empty,
             Bitset((1 << BUCKET_TRANSLUCENT)),
@@ -926,7 +926,7 @@ void DeferredRenderer::RenderTranslucentObjects(Frame *frame)
 
 void DeferredRenderer::RenderUI(Frame *frame)
 {
-    for (auto &render_group : Engine::Get()->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
+    for (auto &render_group : g_engine->GetDeferredSystem().Get(Bucket::BUCKET_UI).GetRenderGroups()) {
         render_group->Render(frame);
     }
 }

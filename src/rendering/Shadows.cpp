@@ -35,7 +35,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
     virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
             auto *shadow_map_descriptor = descriptor_set
@@ -64,8 +64,8 @@ struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommand
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(Engine::Get()->GetGPUDevice()));
-        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(Engine::Get()->GetGPUDevice(), shadow_map_image));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image->Create(g_engine->GetGPUDevice()));
+        HYPERION_BUBBLE_ERRORS(shadow_map_image_view->Create(g_engine->GetGPUDevice(), shadow_map_image));
 
         HYPERION_RETURN_OK;
     }
@@ -84,8 +84,8 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommand
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
             HYPERION_BUBBLE_ERRORS(descriptor_sets[i].Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -110,11 +110,11 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
     {
         auto result = Result::OK;
 
-        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(Engine::Get()->GetGPUDevice()), result);
-        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(Engine::Get()->GetGPUDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image->Destroy(g_engine->GetGPUDevice()), result);
+        HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(g_engine->GetGPUDevice()), result);
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(Engine::Get()->GetGPUDevice()), result);
+            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(g_engine->GetGPUDevice()), result);
         }
 
         return result;
@@ -149,7 +149,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : RenderCommand
     virtual Result operator()() override
     {
         
-        Engine::Get()->GetRenderData()->shadow_maps.Set(
+        g_engine->GetRenderData()->shadow_maps.Set(
             shadow_map_index,
             {
                 .projection = projection_matrix,
@@ -229,7 +229,7 @@ void ShadowPass::CreateFramebuffer()
         ));
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
-            Engine::Get()->GetGPUInstance()->GetDevice(),
+            g_engine->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
             &attachment_usage
@@ -242,14 +242,14 @@ void ShadowPass::CreateFramebuffer()
         m_attachments.PushBack(std::make_unique<Attachment>(
             RenderObjects::Make<Image>(renderer::FramebufferImage2D(
                 m_dimensions,
-                Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+                g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
                 nullptr
             )),
             RenderPassStage::SHADER
         ));
 
         HYPERION_ASSERT_RESULT(m_attachments.Back()->AddAttachmentUsage(
-            Engine::Get()->GetGPUInstance()->GetDevice(),
+            g_engine->GetGPUInstance()->GetDevice(),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE,
             &attachment_usage
@@ -260,7 +260,7 @@ void ShadowPass::CreateFramebuffer()
 
     // should be created in render thread
     for (auto &attachment : m_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
     }
 
     InitObject(m_framebuffer);
@@ -297,7 +297,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().front()->GetImageView());
 
         m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_blur_descriptor_sets[i].AddDescriptor<StorageImageDescriptor>(2)
             ->SetElementUAV(0, m_shadow_map_image_view.get());
@@ -366,7 +366,7 @@ void ShadowPass::Render(Frame *frame)
 
     AssertThrow(m_parent_scene.IsValid());
 
-    Engine::Get()->GetRenderState().BindScene(m_parent_scene.Get());
+    g_engine->GetRenderState().BindScene(m_parent_scene.Get());
 
     m_render_list.CollectDrawCalls(
         frame,
@@ -380,7 +380,7 @@ void ShadowPass::Render(Frame *frame)
         nullptr
     );
 
-    Engine::Get()->GetRenderState().UnbindScene();
+    g_engine->GetRenderState().UnbindScene();
 
     if (m_shadow_mode == ShadowMode::VSM) {
         // blur the image using compute shader
@@ -395,7 +395,7 @@ void ShadowPass::Render(Frame *frame)
 
         // bind descriptor set containing info needed to blur
         command_buffer->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_shadow_map->GetPipeline(),
             &m_blur_descriptor_sets[frame->GetFrameIndex()],
             DescriptorSet::Index(0)

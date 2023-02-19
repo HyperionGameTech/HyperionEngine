@@ -45,8 +45,8 @@ void Game::Init()
 
 void Game::Update(GameCounter::TickUnit delta)
 {
-    Engine::Get()->GetComponents().Update(delta);
-    Engine::Get()->GetWorld()->Update(delta);
+    g_engine->GetComponents().Update(delta);
+    g_engine->GetWorld()->Update(delta);
 
     Logic(delta);
 }
@@ -61,11 +61,11 @@ void Game::InitGame()
 void Game::Teardown()
 {
     if (m_scene) {
-        Engine::Get()->GetWorld()->RemoveScene(m_scene->GetID());
+        g_engine->GetWorld()->RemoveScene(m_scene->GetID());
         m_scene.Reset();
     }
 
-    Engine::Get()->GetWorld().Reset();
+    g_engine->GetWorld().Reset();
 
     m_is_init = false;
 }
@@ -80,12 +80,12 @@ void Game::HandleEvent(SystemEvent &&event)
 
     switch (event.GetType()) {
         case SystemEventType::EVENT_SHUTDOWN:
-            Engine::Get()->RequestStop();
+            g_engine->RequestStop();
 
             break;
         default:
-            if (Engine::Get()->game_thread.IsRunning()) {
-                Engine::Get()->game_thread.GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
+            if (g_engine->game_thread.IsRunning()) {
+                g_engine->game_thread.GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
                     OnInputEvent(event);
 
                     HYPERION_RETURN_OK;
@@ -172,11 +172,11 @@ void Game::OnFrameBegin(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    Engine::Get()->GetRenderState().AdvanceFrameCounter();
-    Engine::Get()->GetRenderState().BindScene(m_scene.Get());
+    g_engine->GetRenderState().AdvanceFrameCounter();
+    g_engine->GetRenderState().BindScene(m_scene.Get());
 
     if (m_scene->GetCamera()) {
-        Engine::Get()->GetRenderState().BindCamera(m_scene->GetCamera().Get());
+        g_engine->GetRenderState().BindCamera(m_scene->GetCamera().Get());
     }
 }
 
@@ -185,10 +185,10 @@ void Game::OnFrameEnd(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     if (m_scene->GetCamera()) {
-        Engine::Get()->GetRenderState().UnbindCamera();
+        g_engine->GetRenderState().UnbindCamera();
     }
 
-    Engine::Get()->GetRenderState().UnbindScene();
+    g_engine->GetRenderState().UnbindScene();
 }
 
 } // namespace hyperion::v2

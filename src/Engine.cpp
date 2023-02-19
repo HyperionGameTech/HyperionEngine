@@ -888,8 +888,6 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
-    m_running.store(true);
-
     PrepareFinalPass();
 
     Compile();
@@ -956,7 +954,7 @@ void Engine::Compile()
 
 void Engine::RequestStop()
 {
-    m_running.store(false);
+    m_stop_requested.Set(true, MemoryOrder::RELAXED);
 }
 
 void Engine::FinalizeStop()
@@ -997,7 +995,7 @@ void Engine::FinalizeStop()
 
 void Engine::RenderNextFrame(Game *game)
 {
-    if (!m_running.load()) {
+    if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
         FinalizeStop();
 
         return;
@@ -1012,7 +1010,7 @@ void Engine::RenderNextFrame(Game *game)
         m_crash_handler.HandleGPUCrash(frame_result);
 
         m_is_render_loop_active = false;
-        m_running.store(false);
+        RequestStop();
     }
 
     auto *frame = GetGPUInstance()->GetFrameHandler()->GetCurrentFrameData().Get<Frame>();
@@ -1038,7 +1036,7 @@ void Engine::RenderNextFrame(Game *game)
         m_crash_handler.HandleGPUCrash(frame_result);
 
         m_is_render_loop_active = false;
-        m_running.store(false);
+        RequestStop();
     }
 
     game->OnFrameEnd(frame);
