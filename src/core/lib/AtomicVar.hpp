@@ -58,7 +58,9 @@ class AtomicVar
     std::atomic<T> m_value;
 
 public:
-    AtomicVar() : m_value { } {}
+    AtomicVar() : m_value { 0 }
+    {
+    }
 
     AtomicVar(T value)
         : m_value { value }

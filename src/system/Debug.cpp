@@ -72,7 +72,7 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     vfprintf(debug_output_stream, fmt, args);
     va_end(args);
 
-    fflush(debug_output_stream);
+    //fflush(debug_output_stream);
 }
 
 #endif

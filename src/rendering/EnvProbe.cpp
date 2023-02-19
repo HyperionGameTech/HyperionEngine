@@ -470,7 +470,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     if (m_octant_hash_code != octant_hash) {
         SetNeedsUpdate(true);
 
-        DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu)\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value());
+        //DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu)\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value());
 
         m_octant_hash_code = octant_hash;
     }

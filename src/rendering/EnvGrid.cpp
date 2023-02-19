@@ -128,6 +128,7 @@ void EnvGrid::SetCameraData(const Vector3 &position)
 
     const Vector3 aabb_extent = m_aabb.GetExtent();
     const Vector3 size_of_probe = (aabb_extent / Vector3(m_density));
+    
 
     Vector3 position_snapped = Vector3(
         MathUtil::Floor<Float, Float>(position.x / size_of_probe.x),
@@ -146,7 +147,7 @@ void EnvGrid::SetCameraData(const Vector3 &position)
     const Vector3 delta = camera_position - position_snapped;
     camera_position = position_snapped;
 
-    Vec3i movement_values = {
+    const Vec3i movement_values = {
         MathUtil::Floor<Float, Vec3i::Type>(delta.x),
         MathUtil::Floor<Float, Vec3i::Type>(delta.y),
         MathUtil::Floor<Float, Vec3i::Type>(delta.z)
@@ -195,10 +196,14 @@ void EnvGrid::SetCameraData(const Vector3 &position)
                 const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(probe_index);
                 AssertThrow(probe.IsValid());
 
+                DebugLog(LogType::Debug, "Probe at index %d %d %d -> %d %d %d\n", x, y, z, clamped_indices.x, clamped_indices.y, clamped_indices.z);
+                DebugLog(LogType::Debug, "  AABB: %f %f %f\n", probe->GetAABB().min.x, probe->GetAABB().min.y, probe->GetAABB().min.z);
+
                 probe->SetAABB(BoundingBox(
                     m_aabb.min + ((Vector3(Float(x), Float(y), Float(z)) + camera_position) * size_of_probe),
                     m_aabb.min + ((Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) + camera_position) * size_of_probe)
                 ));
+                DebugLog(LogType::Debug, "  Now: %f %f %f\n", probe->GetAABB().min.x, probe->GetAABB().min.y, probe->GetAABB().min.z);
 
                 new_probes[x][y][z] = probe_index;//probe;
 
