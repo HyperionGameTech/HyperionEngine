@@ -87,7 +87,6 @@ struct RenderCommandList
         return last_block->storage.Data() + command_index;
     }
 
-    HYP_FORCE_INLINE
     void Rewind()
     {
         // Note: all items must have been destructed,
@@ -204,8 +203,8 @@ private:
     {
         struct Data
         {
-            RenderCommandList<T> command_list;
             RenderCommandRewindFunc rewind_func;
+            RenderCommandList<T> command_list;
             SizeType command_type_index;
 
             Data()

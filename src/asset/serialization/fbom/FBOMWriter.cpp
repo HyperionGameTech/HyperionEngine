@@ -150,7 +150,7 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
     out->Write<UInt8>(FBOM_STATIC_DATA_START);
 
     // write SIZE of static data as uint32_t
-    out->Write<UInt32>(static_data_ordered.Size());
+    out->Write<UInt32>(UInt32(static_data_ordered.Size()));
     // 8 bytes of padding
     out->Write<UInt64>(0);
 
@@ -162,7 +162,7 @@ FBOMResult FBOMWriter::WriteStaticDataToByteStream(ByteWriter *out)
     for (auto &it : static_data_ordered) {
         AssertThrow(it.offset < static_data_ordered.Size());
 
-        out->Write<UInt32>(it.offset);
+        out->Write<UInt32>(UInt32(it.offset));
         out->Write<UInt8>(it.type);
 
         switch (it.type) {
@@ -238,8 +238,8 @@ FBOMResult FBOMWriter::WriteObject(ByteWriter *out, const FBOMObject &object)
     FBOMStaticData static_data;
     String external_key;
 
-    const auto data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
-    out->Write<UInt8>(static_cast<UInt8>(data_location));
+    const FBOMDataLocation data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
+    out->Write<UInt8>(UInt8(data_location));
 
     switch (data_location) {
     // case FBOM_DATA_LOCATION_STATIC: // fallthrough
@@ -334,7 +334,7 @@ FBOMResult FBOMWriter::WriteObjectType(ByteWriter *out, const FBOMType &type)
             out->WriteString(type_chain.top()->name);
 
             // write size of the type
-            out->Write<UInt64>(static_cast<UInt64>(type_chain.top()->size));
+            out->Write<UInt64>(type_chain.top()->size);
 
             type_chain.pop();
         }
@@ -353,8 +353,8 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data)
     String external_key;
 
     const auto unique_id = data.GetUniqueID();
-    const auto data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
-    out->Write<UInt8>(static_cast<UInt8>(data_location));
+    const FBOMDataLocation data_location = m_write_stream.GetDataLocation(unique_id, static_data, external_key);
+    out->Write<UInt8>(UInt8(data_location));
 
     if (data_location == FBOM_DATA_LOCATION_STATIC) {
         return WriteStaticDataUsage(out, static_data);
@@ -373,7 +373,7 @@ FBOMResult FBOMWriter::WriteData(ByteWriter *out, const FBOMData &data)
         data.ReadBytes(sz, bytes);
 
         // size of data as uint32_t
-        out->Write<UInt32>(static_cast<UInt32>(sz));
+        out->Write<UInt32>(UInt32(sz));
         out->Write(bytes, sz);
 
         delete[] bytes;
@@ -390,7 +390,7 @@ FBOMResult FBOMWriter::WriteStaticDataUsage(ByteWriter *out, const FBOMStaticDat
 {
     const auto offset = static_data.offset;
 
-    out->Write<UInt32>(static_cast<UInt32>(offset));
+    out->Write<UInt32>(UInt32(offset));
 
     return FBOMResult::FBOM_OK;
 }

@@ -12,7 +12,7 @@ std::condition_variable RenderCommands::flushed_cv = std::condition_variable();
 void RenderScheduler::Commit(RenderCommand *command)
 {
     m_commands.PushBack(command);
-    m_num_enqueued.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    m_num_enqueued.Increment(1, MemoryOrder::RELAXED);
 }
 
 RenderScheduler::FlushResult RenderScheduler::Flush()
@@ -56,7 +56,7 @@ Result RenderCommands::Flush()
     if (flush_result.num_executed) {
         Rewind();
 
-        scheduler.m_num_enqueued.Decrement(flush_result.num_executed, MemoryOrder::ACQUIRE_RELEASE);
+        scheduler.m_num_enqueued.Decrement(flush_result.num_executed, MemoryOrder::RELAXED);
     }
 
     lock.unlock();
@@ -90,6 +90,15 @@ void RenderCommands::Rewind()
 {
     // all items in the cache must have had destructor called on them already.
 
+    for (auto it = holders.Begin(); it != holders.End(); ++it) {
+        if (!it->render_command_list_ptr) {
+            break;
+        }
+
+        it->rewind_func(it->render_command_list_ptr);
+    }
+
+#if 0
     RenderCommandHolder *p = holders.Data();
 
     while (p->render_command_list_ptr) {
@@ -97,6 +106,7 @@ void RenderCommands::Rewind()
 
         ++p;
     }
+#endif
 }
 
 } // namespace hyperion::v2

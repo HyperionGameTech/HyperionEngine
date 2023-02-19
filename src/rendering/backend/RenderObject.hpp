@@ -444,7 +444,7 @@ struct RenderObjectDeleter
 
         void Push(renderer::RenderObjectHandle<T> &&handle)
         {
-            num_items.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            num_items.Increment(1, MemoryOrder::RELAXED);
 
             std::lock_guard guard(mtx);
 
@@ -460,7 +460,7 @@ struct RenderObjectDeleter
 
         DeletionQueueInstance()
         {
-            index = queue_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            index = queue_index.Increment(1, MemoryOrder::RELAXED);
 
             AssertThrowMsg(index < max_queues, "Maximum number of deletion queues added");
 
