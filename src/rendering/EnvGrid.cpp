@@ -63,7 +63,7 @@ struct RENDER_COMMAND(CreateSHData) : RenderCommand
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(sh_tiles_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHTile) * num_tiles.Size() * 6));
+        HYPERION_BUBBLE_ERRORS(sh_tiles_buffer->Create(g_engine->GetGPUDevice(), sizeof(SHTile) * num_tiles.Size() * 6));
 
         HYPERION_RETURN_OK;
     }
@@ -81,7 +81,7 @@ struct RENDER_COMMAND(CreateComputeSHDescriptorSets) : RenderCommand
     virtual Result operator()()
     {
         for (auto &descriptor_set : descriptor_sets) {
-            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(Engine::Get()->GetGPUDevice(), &Engine::Get()->GetGPUInstance()->GetDescriptorPool()));
+            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool()));
         }
 
         HYPERION_RETURN_OK;
@@ -100,7 +100,7 @@ struct RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets) : RenderCommand
     virtual Result operator()()
     {
         for (auto &descriptor_set : descriptor_sets) {
-            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(Engine::Get()->GetGPUDevice(), &Engine::Get()->GetGPUInstance()->GetDescriptorPool()));
+            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool()));
         }
 
         HYPERION_RETURN_OK;
@@ -333,7 +333,7 @@ void EnvGrid::OnRemoved()
             }
 
             for (auto &attachment : env_grid.m_attachments) {
-                HYPERION_PASS_ERRORS(attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()), result);
+                HYPERION_PASS_ERRORS(attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()), result);
             }
 
             env_grid.m_attachments.clear();
@@ -446,7 +446,7 @@ void EnvGrid::OnRender(Frame *frame)
 
         const ID<EnvProbe> probe_id = probe->GetID();
 
-        Engine::Get()->GetImmediateMode().Sphere(
+        g_engine->GetImmediateMode().Sphere(
             probe->GetDrawProxy().world_position,
             0.15f,
             Color(probe_id.Value())
@@ -457,7 +457,7 @@ void EnvGrid::OnRender(Frame *frame)
         // update probe positions in grid, choose next to render.
         AssertThrow(m_current_probe_index < m_grid.num_probes);
 
-        const Vector3 &camera_position = Engine::Get()->GetRenderState().GetCamera().camera.position;
+        const Vector3 &camera_position = g_engine->GetRenderState().GetCamera().camera.position;
 
         Array<Pair<UInt, Float>> indices_distances;
         indices_distances.Reserve(16);
@@ -529,7 +529,7 @@ void EnvGrid::OnRender(Frame *frame)
     m_shader_data.aabb_min = Vector4(grid_aabb.min, 1.0f);
     m_shader_data.density = { m_density.width, m_density.height, m_density.depth, 0 };
 
-    Engine::Get()->GetRenderData()->env_grids.Set(GetComponentIndex(), m_shader_data);
+    g_engine->GetRenderData()->env_grids.Set(GetComponentIndex(), m_shader_data);
 
     ComputeClipmaps(frame);
 
@@ -556,16 +556,16 @@ void EnvGrid::CreateSHData()
         m_compute_sh_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
-            ->SetElementSRV(0, &Engine::Get()->GetPlaceholderData().GetImageViewCube1x1R8());
+            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(2)
             ->SetElementBuffer(0, m_sh_tiles_buffer);
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-            ->SetElementBuffer(0, Engine::Get()->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
+            ->SetElementBuffer(0, g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
     }
 
     PUSH_RENDER_COMMAND(CreateComputeSHDescriptorSets, m_compute_sh_descriptor_sets);
@@ -598,52 +598,52 @@ void EnvGrid::CreateSHClipmapData()
         m_compute_clipmaps_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
 
         m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, Engine::Get()->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
+            ->SetElementBuffer(0, g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
         m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
-            ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(2)
-            ->SetElementUAV(0, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[0].image_view)
-            ->SetElementUAV(1, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[1].image_view)
-            ->SetElementUAV(2, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[2].image_view)
-            ->SetElementUAV(3, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[3].image_view)
-            ->SetElementUAV(4, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[4].image_view)
-            ->SetElementUAV(5, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[5].image_view)
-            ->SetElementUAV(6, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[6].image_view)
-            ->SetElementUAV(7, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[7].image_view)
-            ->SetElementUAV(8, Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps[8].image_view);
+            ->SetElementUAV(0, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[0].image_view)
+            ->SetElementUAV(1, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[1].image_view)
+            ->SetElementUAV(2, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[2].image_view)
+            ->SetElementUAV(3, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[3].image_view)
+            ->SetElementUAV(4, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[4].image_view)
+            ->SetElementUAV(5, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[5].image_view)
+            ->SetElementUAV(6, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[6].image_view)
+            ->SetElementUAV(7, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[7].image_view)
+            ->SetElementUAV(8, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[8].image_view);
 
         // gbuffer textures
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<ImageDescriptor>(3)
-            ->SetElementSRV(0, Engine::Get()->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // scene buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffer(frame_index).get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer(frame_index).get());
 
         // camera buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(5)
-            ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffer(frame_index).get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer(frame_index).get());
 
         // env grid buffer (dynamic)
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(6)
-            ->SetElementBuffer<EnvGridShaderData>(0, Engine::Get()->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
 
         // env probes buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::StorageBufferDescriptor>(7)
-            ->SetElementBuffer(0, Engine::Get()->GetRenderData()->env_probes.GetBuffer(frame_index).get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer(frame_index).get());
     }
 
     PUSH_RENDER_COMMAND(CreateComputeSHClipmapDescriptorSets, m_compute_clipmaps_descriptor_sets);
 
     m_compute_clipmaps = CreateObject<ComputePipeline>(
-        CreateObject<Shader>(Engine::Get()->GetShaderCompiler().GetCompiledShader(HYP_NAME(ComputeSHClipmap))),
+        CreateObject<Shader>(g_engine->GetShaderCompiler().GetCompiledShader(HYP_NAME(ComputeSHClipmap))),
         Array<const DescriptorSet *> { m_compute_clipmaps_descriptor_sets[0].Get() }
     );
 
@@ -652,12 +652,12 @@ void EnvGrid::CreateSHClipmapData()
 
 void EnvGrid::ComputeClipmaps(Frame *frame)
 {
-    const auto &scene_binding = Engine::Get()->render_state.GetScene();
+    const auto &scene_binding = g_engine->render_state.GetScene();
     const UInt scene_index = scene_binding.id.ToIndex();
 
-    const auto &camera = Engine::Get()->GetRenderState().GetCamera();
+    const auto &camera = g_engine->GetRenderState().GetCamera();
     
-    const auto &clipmaps = Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps;
+    const auto &clipmaps = g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps;
 
     AssertThrow(clipmaps[0].image.IsValid());
     const Extent3D &clipmap_extent = clipmaps[0].image->GetExtent();
@@ -670,14 +670,14 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
     push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
     push_constants.cage_center_world = Vector4(camera.camera.position, 1.0f);
 
-    for (auto &texture : Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps) {
+    for (auto &texture : g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps) {
         texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     }
 
-    Engine::Get()->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_compute_clipmaps->GetPipeline(),
         m_compute_clipmaps_descriptor_sets[frame->GetFrameIndex()],
         0,
@@ -698,7 +698,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
         }
     );
 
-    for (auto &texture : Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps) {
+    for (auto &texture : g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps) {
         texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     }
 }
@@ -738,7 +738,7 @@ void EnvGrid::CreateFramebuffer()
         1,
         RenderObjects::Make<Image>(renderer::FramebufferImageCube(
             ambient_probe_dimensions,
-            Engine::Get()->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
+            g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
         )),
         RenderPassStage::SHADER,
@@ -766,8 +766,8 @@ void EnvGrid::RenderEnvProbe(
         struct alignas(128) { UInt32 env_probe_index; } push_constants;
         push_constants.env_probe_index = probe->GetID().ToIndex();
 
-        Engine::Get()->GetRenderState().SetActiveEnvProbe(probe->GetID());
-        Engine::Get()->GetRenderState().BindScene(GetParent()->GetScene());
+        g_engine->GetRenderState().SetActiveEnvProbe(probe->GetID());
+        g_engine->GetRenderState().BindScene(GetParent()->GetScene());
 
         m_render_list.CollectDrawCalls(
             frame,
@@ -782,8 +782,8 @@ void EnvGrid::RenderEnvProbe(
             &push_constants
         );
 
-        Engine::Get()->GetRenderState().UnbindScene();
-        Engine::Get()->GetRenderState().UnsetActiveEnvProbe();
+        g_engine->GetRenderState().UnbindScene();
+        g_engine->GetRenderState().UnsetActiveEnvProbe();
     }
     
     Image *framebuffer_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
@@ -832,12 +832,12 @@ void EnvGrid::ComputeSH(
         ->SetElementSRV(0, image_view);
 
     m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
-        ->ApplyUpdates(Engine::Get()->GetGPUDevice());
+        ->ApplyUpdates(g_engine->GetGPUDevice());
 
     m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_clear_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
         0,
@@ -850,7 +850,7 @@ void EnvGrid::ComputeSH(
     m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_compute_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
         0,
@@ -862,10 +862,10 @@ void EnvGrid::ComputeSH(
 
     m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    Engine::Get()->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_finalize_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
         0,

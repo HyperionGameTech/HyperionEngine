@@ -519,7 +519,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties &properties)
     properties.Set(ShaderProperty("DX12", false));
 #endif
 
-    if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
         properties.Set(ShaderProperty("HYP_FEATURES_BINDLESS_TEXTURES", false));
     }
 
@@ -696,7 +696,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         DebugLog(
             LogType::Warn,
             "Not compiled with GLSL compiler support... Shaders may become out of date.\n"
-            "If any .hypshader files are missing, you may need to recompile the Engine::Get() with glslang linked, "
+            "If any .hypshader files are missing, you may need to recompile the g_engine with glslang linked, "
             "so that they can be generated.\n"
         );
     }
@@ -824,7 +824,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supports_rt_shaders = Engine::Get()->GetConfig().Get(CONFIG_RT_SUPPORTED);
+    const bool supports_rt_shaders = g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
 
     FlatMap<Bundle *, bool> results;
 
@@ -904,7 +904,7 @@ struct LoadedSourceFile
 
 bool ShaderCompiler::CanCompileShaders() const
 {
-    if (!Engine::Get()->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
+    if (!g_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
         return false;
     }
 

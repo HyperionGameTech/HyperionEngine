@@ -18,27 +18,27 @@ void AtomicCounter::Create()
     AssertThrow(m_buffer == nullptr);
 
     m_buffer = std::make_unique<AtomicCounterBuffer>();
-    HYPERION_ASSERT_RESULT(m_buffer->Create(Engine::Get()->GetGPUInstance()->GetDevice(), sizeof(UInt32)));
+    HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUInstance()->GetDevice(), sizeof(UInt32)));
 }
 
 void AtomicCounter::Destroy()
 {
     AssertThrow(m_buffer != nullptr);
 
-    HYPERION_ASSERT_RESULT(m_buffer->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()));
+    HYPERION_ASSERT_RESULT(m_buffer->Destroy(g_engine->GetGPUInstance()->GetDevice()));
     m_buffer.reset();
 }
 
 void AtomicCounter::Reset(CountType value)
 {
-    HYPERION_ASSERT_RESULT(Engine::Get()->GetGPUInstance()->GetStagingBufferPool().Use(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+    HYPERION_ASSERT_RESULT(g_engine->GetGPUInstance()->GetStagingBufferPool().Use(
+        g_engine->GetGPUInstance()->GetDevice(),
         [this, value](Context &context) {
             auto *staging_buffer = context.Acquire(sizeof(value));
             
-            staging_buffer->Copy(Engine::Get()->GetGPUInstance()->GetDevice(), sizeof(value), (void *)&value);
+            staging_buffer->Copy(g_engine->GetGPUInstance()->GetDevice(), sizeof(value), (void *)&value);
    
-            auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
             commands.Push([&](const CommandBufferRef &command_buffer) {
                 m_buffer->CopyFrom(command_buffer, staging_buffer, sizeof(value));
@@ -46,7 +46,7 @@ void AtomicCounter::Reset(CountType value)
                 HYPERION_RETURN_OK;
             });
 
-            return commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice());
+            return commands.Execute(g_engine->GetGPUInstance()->GetDevice());
         }
     ));
 }
@@ -55,12 +55,12 @@ auto AtomicCounter::Read() const -> CountType
 {
     auto result = MathUtil::MaxSafeValue<CountType>();
 
-    HYPERION_ASSERT_RESULT(Engine::Get()->GetGPUInstance()->GetStagingBufferPool().Use(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+    HYPERION_ASSERT_RESULT(g_engine->GetGPUInstance()->GetStagingBufferPool().Use(
+        g_engine->GetGPUInstance()->GetDevice(),
         [this, &result](Context &context) {
             auto *staging_buffer = context.Acquire(sizeof(result));
             
-            auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+            auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
             commands.Push([&](const CommandBufferRef &command_buffer) {
                 staging_buffer->CopyFrom(command_buffer, m_buffer.get(), sizeof(result));
@@ -68,9 +68,9 @@ auto AtomicCounter::Read() const -> CountType
                 HYPERION_RETURN_OK;
             });
 
-            HYPERION_BUBBLE_ERRORS(commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice()));
+            HYPERION_BUBBLE_ERRORS(commands.Execute(g_engine->GetGPUInstance()->GetDevice()));
             
-            staging_buffer->Read(Engine::Get()->GetGPUInstance()->GetDevice(), sizeof(result), (void *)&result);
+            staging_buffer->Read(g_engine->GetGPUInstance()->GetDevice(), sizeof(result), (void *)&result);
 
             HYPERION_RETURN_OK;
         }

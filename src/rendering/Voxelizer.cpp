@@ -80,12 +80,12 @@ void Voxelizer::Init()
                 }
 
                 if (voxelizer.m_fragment_list_buffer != nullptr) {
-                    Engine::Get()->SafeRelease(UniquePtr<StorageBuffer>(voxelizer.m_fragment_list_buffer.release()));
+                    g_engine->SafeRelease(UniquePtr<StorageBuffer>(voxelizer.m_fragment_list_buffer.release()));
                 }
 
                 for (auto &attachment : voxelizer.m_attachments) {
                     HYPERION_PASS_ERRORS(
-                        attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()),
+                        attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()),
                         result
                     );
                 }
@@ -128,7 +128,7 @@ void Voxelizer::CreateBuffers()
             voxelizer.m_counter->Create();
             
             HYPERION_PASS_ERRORS(
-                voxelizer.m_fragment_list_buffer->Create(Engine::Get()->GetGPUInstance()->GetDevice(), default_fragment_list_buffer_size),
+                voxelizer.m_fragment_list_buffer->Create(g_engine->GetGPUInstance()->GetDevice(), default_fragment_list_buffer_size),
                 result
             );
 
@@ -143,7 +143,7 @@ void Voxelizer::CreateShader()
 {
     Name shader_name = HYP_NAME(VCTVoxelizeWithGeometryShader);
 
-    if (!Engine::Get()->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
+    if (!g_engine->GetGPUDevice()->GetFeatures().SupportsGeometryShaders()) {
         shader_name = HYP_NAME(VCTVoxelizeWithoutGeometryShader);
     }
 
@@ -179,7 +179,7 @@ void Voxelizer::CreateDescriptors()
 
         virtual Result operator()()
         {
-            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
 
             descriptor_set
@@ -217,17 +217,17 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *frame)
         new_size
     );
 
-    Engine::Get()->SafeRelease(UniquePtr<StorageBuffer>(m_fragment_list_buffer.release()));
+    g_engine->SafeRelease(UniquePtr<StorageBuffer>(m_fragment_list_buffer.release()));
 
     m_fragment_list_buffer.reset(new StorageBuffer);
     
     HYPERION_ASSERT_RESULT(m_fragment_list_buffer->Create(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         new_size
     ));
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+        auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
         descriptor_set
@@ -235,7 +235,7 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *frame)
             ->SetElementBuffer(0, m_fragment_list_buffer.get());
 
         if (frame_index == frame->GetFrameIndex()) {
-            descriptor_set->ApplyUpdates(Engine::Get()->GetGPUInstance()->GetDevice());
+            descriptor_set->ApplyUpdates(g_engine->GetGPUInstance()->GetDevice());
         }
     }
 }
@@ -244,7 +244,7 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
 {
     AssertThrow(scene != nullptr);
 
-    auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+    auto single_time_commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
     single_time_commands.Push([&](const CommandBufferRef &command_buffer) {
         auto temp_frame = Frame::TemporaryFrame(command_buffer);
@@ -257,8 +257,8 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
         push_constants.grid_size = voxel_map_size;
         push_constants.count_mode = UInt32(count_mode);
         
-        Engine::Get()->GetRenderState().BindScene(scene);
-        Engine::Get()->GetRenderState().BindCamera(m_camera.Get());
+        g_engine->GetRenderState().BindScene(scene);
+        g_engine->GetRenderState().BindCamera(m_camera.Get());
 
         m_render_list.CollectDrawCalls(
             &temp_frame,
@@ -273,13 +273,13 @@ void Voxelizer::RenderFragmentList(Frame *frame, const Scene *scene, bool count_
             &push_constants
         );
 
-        Engine::Get()->GetRenderState().UnbindCamera();
-        Engine::Get()->GetRenderState().UnbindScene();
+        g_engine->GetRenderState().UnbindCamera();
+        g_engine->GetRenderState().UnbindScene();
 
         HYPERION_RETURN_OK;
     });
 
-    HYPERION_ASSERT_RESULT(single_time_commands.Execute(Engine::Get()->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(single_time_commands.Execute(g_engine->GetGPUDevice()));
 }
 
 void Voxelizer::CollectEntities(const Scene *scene)

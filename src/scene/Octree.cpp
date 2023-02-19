@@ -514,7 +514,7 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
         entity_it->aabb = new_aabb;
     } else { /* Moved into new octant */
         // force this octant to be visible to prevent flickering
-        CopyVisibilityState(Engine::Get()->GetWorld()->GetOctree().GetVisibilityState());
+        CopyVisibilityState(g_engine->GetWorld()->GetOctree().GetVisibilityState());
 
         m_nodes.PushBack(Node {
             .entity = entity,

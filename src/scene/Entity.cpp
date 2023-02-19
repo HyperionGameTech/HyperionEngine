@@ -39,7 +39,7 @@ struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
     {
         entity->m_draw_proxy = draw_proxy;
 
-        Engine::Get()->GetRenderData()->objects.Set(
+        g_engine->GetRenderData()->objects.Set(
             entity->GetID().ToIndex(),
             ObjectShaderData {
                 .model_matrix = transform_matrix,
@@ -178,7 +178,7 @@ void Entity::Init()
     InitObject(m_material);
     InitObject(m_skeleton);
 
-    if (Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         if (InitObject(m_blas)) {
             SetFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS);
         } else if (HasFlags(InitInfo::ENTITY_FLAGS_HAS_BLAS)) {
@@ -390,7 +390,7 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
     }
 
     if (m_skeleton && IsInitCalled()) {
-        Engine::Get()->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
+        g_engine->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
     }
 
     m_skeleton = std::move(skeleton);
@@ -409,7 +409,7 @@ void Entity::SetShader(Handle<Shader> &&shader)
     }
 
     if (m_shader && IsInitCalled()) {
-        Engine::Get()->SafeReleaseHandle<Shader>(std::move(m_shader));
+        g_engine->SafeReleaseHandle<Shader>(std::move(m_shader));
     }
 
     m_shader = std::move(shader);
@@ -540,8 +540,8 @@ void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
 
 bool Entity::IsVisibleToCamera(ID<Camera> camera_id) const
 {
-    const VisibilityState &parent_visibility_state = Engine::Get()->GetWorld()->GetOctree().GetVisibilityState();
-    const UInt8 visibility_cursor = Engine::Get()->GetWorld()->GetOctree().LoadVisibilityCursor();
+    const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
+    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
 
     return m_visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
         && m_visibility_state.Get(camera_id, visibility_cursor);
@@ -764,7 +764,7 @@ bool Entity::CreateBLAS()
     }
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
-    if (!Engine::Get()->GetConfig().Get(CONFIG_RT_ENABLED)) {
+    if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return false;
     }
 #else

@@ -29,13 +29,13 @@ void GameThread::operator()(Game *game)
     GameCounter counter;
 #endif
 
-    m_is_running.store(true, std::memory_order_relaxed);
+    m_is_running.Set(true, MemoryOrder::RELAXED);
 
     game->InitGame();
     
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (Engine::Get()->m_running.load(std::memory_order_relaxed)) {
+    while (!g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
         if (auto num_enqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 
@@ -62,7 +62,7 @@ void GameThread::operator()(Game *game)
 
     game->Teardown();
 
-    m_is_running.store(false, std::memory_order_relaxed);
+    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 } // namespace hyperion::v2

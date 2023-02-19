@@ -52,7 +52,7 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
         .direction = Vector3::UnitY() * -1.0f
     };
 
-    if (Engine::Get()->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
+    if (g_engine->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {
         RayTestResults triangle_mesh_results;
 
         auto &hit = m_ray_test_results.Front();

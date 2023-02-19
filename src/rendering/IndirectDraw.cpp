@@ -31,15 +31,15 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
 
             // global object data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-                ->SetElementBuffer(0, Engine::Get()->GetRenderData()->objects.GetBuffers()[frame_index].get());
+                ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffers()[frame_index].get());
 
             // global scene data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-                ->SetElementBuffer<SceneShaderData>(0, Engine::Get()->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
             // current camera
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(2)
-                ->SetElementBuffer<CameraShaderData>(0, Engine::Get()->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
             // instances buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
@@ -56,24 +56,24 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
             // entity batches
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(5)
                 ->SetSubDescriptor({
-                    .buffer = Engine::Get()->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get(),
+                    .buffer = g_engine->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get(),
                 });
 
             // depth pyramid image (set to placeholder)
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(6)
                 ->SetSubDescriptor({
-                    .image_view = &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8()
+                    .image_view = &g_engine->GetPlaceholderData().GetImageView2D1x1R8()
                 });
 
             // sampler
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(7)
                 ->SetSubDescriptor({
-                    .sampler = &Engine::Get()->GetPlaceholderData().GetSamplerNearest()
+                    .sampler = &g_engine->GetPlaceholderData().GetSamplerNearest()
                 });
 
             HYPERION_BUBBLE_ERRORS(indirect_renderer.m_descriptor_sets[frame_index]->Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
         }
 
@@ -92,7 +92,7 @@ IndirectDrawState::~IndirectDrawState()
 
 Result IndirectDrawState::Create()
 {
-    auto single_time_commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+    auto single_time_commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
     single_time_commands.Push([this](const CommandBufferRef &command_buffer) -> Result {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -110,7 +110,7 @@ Result IndirectDrawState::Create()
         HYPERION_RETURN_OK;
     });
 
-    return single_time_commands.Execute(Engine::Get()->GetGPUDevice());
+    return single_time_commands.Execute(g_engine->GetGPUDevice());
 }
 
 void IndirectDrawState::Destroy()
@@ -161,7 +161,7 @@ static bool ResizeBuffer(
             new_buffer_size
         );
 
-        HYPERION_ASSERT_RESULT(buffers[frame_index]->Create(Engine::Get()->GetGPUDevice(), new_buffer_size));
+        HYPERION_ASSERT_RESULT(buffers[frame_index]->Create(g_engine->GetGPUDevice(), new_buffer_size));
 
         return true;
     }
@@ -218,12 +218,12 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType 
     m_staging_buffers[frame->GetFrameIndex()] = RenderObjects::Make<GPUBuffer>(StagingBuffer());
 
     HYPERION_ASSERT_RESULT(m_staging_buffers[frame->GetFrameIndex()]->Create(
-        Engine::Get()->GetGPUDevice(),
+        g_engine->GetGPUDevice(),
         m_indirect_buffers[frame->GetFrameIndex()]->size
     ));
 
     m_staging_buffers[frame->GetFrameIndex()]->Memset(
-        Engine::Get()->GetGPUDevice(),
+        g_engine->GetGPUDevice(),
         m_staging_buffers[frame->GetFrameIndex()]->size,
         0x00 // fill buffer with zeros
     );
@@ -262,7 +262,7 @@ bool IndirectDrawState::ResizeInstancesBuffer(Frame *frame, SizeType count)
 
     if (was_created_or_resized) {
         m_instance_buffers[frame->GetFrameIndex()]->Memset(
-            Engine::Get()->GetGPUDevice(),
+            g_engine->GetGPUDevice(),
             m_instance_buffers[frame->GetFrameIndex()]->size,
             0x00
         );
@@ -335,7 +335,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
         AssertThrow(m_staging_buffers[frame_index]->size >= sizeof(IndirectDrawCommand) * m_draw_commands.Size());
         
         m_staging_buffers[frame_index]->Copy(
-            Engine::Get()->GetGPUDevice(),
+            g_engine->GetGPUDevice(),
             m_draw_commands.Size() * sizeof(IndirectDrawCommand),
             m_draw_commands.Data()
         );
@@ -366,7 +366,7 @@ void IndirectDrawState::UpdateBufferData(Frame *frame, bool *out_was_resized)
 
     // update data for object instances (cpu - gpu)
     m_instance_buffers[frame_index]->Copy(
-        Engine::Get()->GetGPUDevice(),
+        g_engine->GetGPUDevice(),
         m_object_instances.Size() * sizeof(ObjectInstance),
         m_object_instances.Data()
     );
@@ -445,23 +445,23 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
         m_descriptor_sets[frame_index]->GetDescriptor(6)
             ->SetElementSRV(0, m_cached_cull_data.depth_pyramid_image_views[frame_index]);
 
-        m_descriptor_sets[frame_index]->ApplyUpdates(Engine::Get()->GetGPUDevice());
+        m_descriptor_sets[frame_index]->ApplyUpdates(g_engine->GetGPUDevice());
 
         m_cached_cull_data_updated_bits &= ~(1u << frame_index);
     }
     
-    const ID<Scene> scene_id = Engine::Get()->GetRenderState().GetScene().id;
+    const ID<Scene> scene_id = g_engine->GetRenderState().GetScene().id;
     const UInt scene_index = scene_id.ToIndex();
 
     // bind our descriptor set to binding point 0
     command_buffer->BindDescriptorSet(
-        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+        g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_object_visibility->GetPipeline(),
         m_descriptor_sets[frame_index].Get(),
         static_cast<DescriptorSet::Index>(0),
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex())
+            HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
         }
     );
     
@@ -500,7 +500,7 @@ void IndirectRenderer::RebuildDescriptors(Frame *frame)
     descriptor_set->GetDescriptor(4)->RemoveSubDescriptor(0);
     descriptor_set->GetDescriptor(4)->SetElementBuffer(0, m_indirect_draw_state.GetIndirectBuffer(frame_index));
 
-    descriptor_set->ApplyUpdates(Engine::Get()->GetGPUDevice());
+    descriptor_set->ApplyUpdates(g_engine->GetGPUDevice());
 }
 
 } // namespace hyperion::v2

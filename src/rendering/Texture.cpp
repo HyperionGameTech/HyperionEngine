@@ -44,11 +44,11 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommand
 
     virtual Result operator()()
     {
-        HYPERION_BUBBLE_ERRORS(image->Create(Engine::Get()->GetGPUDevice(), Engine::Get()->GetGPUInstance(), initial_state));
-        HYPERION_BUBBLE_ERRORS(image_view->Create(Engine::Get()->GetGPUInstance()->GetDevice(), image.Get()));
+        HYPERION_BUBBLE_ERRORS(image->Create(g_engine->GetGPUDevice(), g_engine->GetGPUInstance(), initial_state));
+        HYPERION_BUBBLE_ERRORS(image_view->Create(g_engine->GetGPUInstance()->GetDevice(), image.Get()));
         
-        if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            Engine::Get()->GetRenderData()->textures.AddResource(texture);
+        if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            g_engine->GetRenderData()->textures.AddResource(texture);
         }
 
         HYPERION_RETURN_OK;
@@ -73,8 +73,8 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommand
 
     virtual Result operator()()
     {
-        if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
-            Engine::Get()->GetRenderData()->textures.RemoveResource(id);
+        if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+            g_engine->GetRenderData()->textures.RemoveResource(id);
         }
 
         SafeRelease(std::move(image));
@@ -103,7 +103,7 @@ struct RENDER_COMMAND(CreateMipImageView) : RenderCommand
     virtual Result operator()() override
     {
         return mip_image_view->Create(
-            Engine::Get()->GetGPUDevice(),
+            g_engine->GetGPUDevice(),
             src_image.Get(),
             mip_level, 1,
             0, src_image->NumFaces()
@@ -124,8 +124,8 @@ struct RENDER_COMMAND(CreateMipDescriptorSet) : RenderCommand
     virtual Result operator()() override
     {
         return descriptor_set->Create(
-            Engine::Get()->GetGPUDevice(),
-            &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            g_engine->GetGPUDevice(),
+            &g_engine->GetGPUInstance()->GetDescriptorPool()
         );
     }
 };
@@ -166,7 +166,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
     virtual Result operator()() override
     {
         // draw a quad for each level
-        auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();
+        auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
         commands.Push([this](const CommandBufferRef &command_buffer) {
             const Extent3D extent = m_image->GetExtent();
@@ -203,7 +203,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
                     pass->Begin(&temp_frame);
                     
                     pass->GetCommandBuffer(temp_frame.GetFrameIndex())->BindDescriptorSet(
-                        Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+                        g_engine->GetGPUInstance()->GetDescriptorPool(),
                         pass->GetRenderGroup()->GetPipeline(),
                         m_descriptor_sets[mip_level].Get(), 0
                     );
@@ -268,7 +268,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
             HYPERION_RETURN_OK;
         });
 
-        return commands.Execute(Engine::Get()->GetGPUInstance()->GetDevice());
+        return commands.Execute(g_engine->GetGPUInstance()->GetDevice());
     }
 };
 
@@ -320,12 +320,12 @@ public:
                 // linear sampler
                 descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(1)
-                    ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+                    ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
                 // nearest / point sampler
                 descriptor_set
                     ->AddDescriptor<renderer::SamplerDescriptor>(2)
-                    ->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerNearest());
+                    ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
                 PUSH_RENDER_COMMAND(CreateMipDescriptorSet, descriptor_set);
 

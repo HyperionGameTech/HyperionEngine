@@ -26,7 +26,7 @@ static void AddOwnedAttachment(
 )
 {
     if (!extent.Size()) {
-        extent = Engine::Get()->GetGPUInstance()->swapchain->extent;
+        extent = g_engine->GetGPUInstance()->swapchain->extent;
     }
 
     AttachmentUsage *attachment_usage;
@@ -41,7 +41,7 @@ static void AddOwnedAttachment(
     ));
 
     HYPERION_ASSERT_RESULT(attachments.Back()->AddAttachmentUsage(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         renderer::LoadOperation::CLEAR,
         renderer::StoreOperation::STORE,
         &attachment_usage
@@ -59,7 +59,7 @@ static void AddSharedAttachment(
     Array<std::unique_ptr<Attachment>> &attachments
 )
 {
-    auto &opaque_fbo = Engine::Get()->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
+    auto &opaque_fbo = g_engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
     AssertThrowMsg(opaque_fbo != nullptr, "Bucket framebuffers added in wrong order");
 
     renderer::AttachmentUsage *attachment_usage;
@@ -67,7 +67,7 @@ static void AddSharedAttachment(
     AssertThrow(attachment_index < opaque_fbo->GetAttachmentUsages().size());
 
     HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentUsages().at(attachment_index)->AddAttachmentUsage(
-        Engine::Get()->GetGPUInstance()->GetDevice(),
+        g_engine->GetGPUInstance()->GetDevice(),
         renderer::StoreOperation::STORE,
         &attachment_usage
     ));
@@ -88,10 +88,10 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
     if (const InternalFormat *format = DeferredSystem::gbuffer_resources[resource].format.TryGet<InternalFormat>()) {
         color_format = *format;
     } else if (const TextureFormatDefault *default_format = DeferredSystem::gbuffer_resources[resource].format.TryGet<TextureFormatDefault>()) {
-        color_format = Engine::Get()->GetDefaultFormat(*default_format);   
+        color_format = g_engine->GetDefaultFormat(*default_format);   
     } else if (const Array<InternalFormat> *default_formats = DeferredSystem::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>()) {
         for (const InternalFormat format : *default_formats) {
-            if (Engine::Get()->GetGPUDevice()->GetFeatures().IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
+            if (g_engine->GetGPUDevice()->GetFeatures().IsSupportedFormat(format, renderer::ImageSupportType::SRV)) {
                 color_format = format;
 
                 break;
@@ -219,7 +219,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
         mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
     }
 
-    const Extent2D extent = Engine::Get()->GetGPUInstance()->swapchain->extent;
+    const Extent2D extent = g_engine->GetGPUInstance()->swapchain->extent;
 
     m_framebuffer = CreateObject<Framebuffer>(
         extent,
@@ -273,7 +273,7 @@ void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
     }
 
     for (const auto &attachment : attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(Engine::Get()->GetGPUInstance()->GetDevice()));
+        HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUInstance()->GetDevice()));
     }
 
     InitObject(m_framebuffer);
@@ -293,7 +293,7 @@ void DeferredSystem::RenderGroupHolder::Destroy()
 
     for (const auto &attachment : attachments) {
         HYPERION_PASS_ERRORS(
-            attachment->Destroy(Engine::Get()->GetGPUInstance()->GetDevice()),
+            attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()),
             result
         );
     }

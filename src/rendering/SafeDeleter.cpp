@@ -16,7 +16,7 @@ struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : RenderCommand
 
     virtual Result operator()()
     {
-        Engine::Get()->GetRenderData()->textures.RemoveResource(id);
+        g_engine->GetRenderData()->textures.RemoveResource(id);
 
         HYPERION_RETURN_OK;
     }
@@ -97,7 +97,7 @@ void SafeDeleter::ForceReleaseAll()
 
 void SafeDeleter::EnqueueTextureBindlessStorageRemoval(ID<Texture> id)
 {
-    if (Engine::Get()->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
+    if (g_engine->GetGPUDevice()->GetFeatures().SupportsBindlessTextures()) {
         PUSH_RENDER_COMMAND(RemoveTextureFromBindlessStorage, id);
     }
 }

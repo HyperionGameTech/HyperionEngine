@@ -133,7 +133,7 @@ void World::PreRender(Frame *frame)
     AssertReady();
 
     // set visibility cursor to previous Octree visibility cursor (atomic, relaxed)
-    Engine::Get()->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
+    g_engine->render_state.visibility_cursor = m_octree.LoadPreviousVisibilityCursor();
 }
 
 void World::Render(Frame *frame)

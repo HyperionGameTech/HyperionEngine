@@ -25,7 +25,7 @@ struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommand
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set
@@ -53,13 +53,13 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : RenderCommand
 
         // remove descriptors from global descriptor set
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set = Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             // set to placeholder data.
             descriptor_set
                 ->GetDescriptor(DescriptorKey::UI_TEXTURE)
-                ->SetElementSRV(component_index, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+                ->SetElementSRV(component_index, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
         }
 
         return result;
@@ -110,7 +110,7 @@ void UIRenderer::Init()
 
 void UIRenderer::CreateFramebuffer()
 {
-    m_framebuffer = Engine::Get()->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
+    m_framebuffer = g_engine->GetDeferredSystem()[Bucket::BUCKET_UI].GetFramebuffer();
 }
 
 void UIRenderer::CreateDescriptors()
@@ -146,7 +146,7 @@ void UIRenderer::OnUpdate(GameCounter::TickUnit delta)
 
 void UIRenderer::OnRender(Frame *frame)
 {
-    Engine::Get()->GetRenderState().BindScene(m_scene.Get());
+    g_engine->GetRenderState().BindScene(m_scene.Get());
 
     m_render_list.CollectDrawCalls(
         frame,
@@ -160,7 +160,7 @@ void UIRenderer::OnRender(Frame *frame)
         nullptr
     );
 
-    Engine::Get()->GetRenderState().UnbindScene();
+    g_engine->GetRenderState().UnbindScene();
 }
 
 } // namespace hyperion::v2

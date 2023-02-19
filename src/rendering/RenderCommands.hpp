@@ -31,8 +31,7 @@ using renderer::Result;
     }
 
 constexpr SizeType max_render_command_types = 128;
-constexpr SizeType render_command_cache_size = 128;
-
+constexpr SizeType render_command_cache_size_bytes = 1 << 16;
 
 using RenderCommandRewindFunc = void(*)(void *);
 
@@ -41,12 +40,15 @@ struct RenderCommandList
 {
     struct Block
     {
+        static constexpr SizeType render_command_cache_size = MathUtil::Max(render_command_cache_size_bytes / sizeof(T), 1);
+
         FixedArray<ValueStorage<T>, render_command_cache_size> storage;
         UInt index = 0;
 
-        HYP_FORCE_INLINE
-        bool IsFull() const
-            { return index >= render_command_cache_size; }
+        HYP_FORCE_INLINE bool IsFull() const
+            { return index >= UInt(render_command_cache_size); }
+
+        static_assert(render_command_cache_size >= 8, "Render command storage size is too large; runtime performance would be impacted due to needing to allocate more blocks to compensate.");
     };
 
     // Use a linked list so we can grow the container without invalidating pointers.

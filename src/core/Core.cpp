@@ -8,17 +8,17 @@ using namespace renderer;
 
 Engine *GetEngine()
 {
-    return Engine::Get();
+    return g_engine;
 }
 
 Device *GetEngineDevice()
 {
-    return Engine::Get()->GetGPUInstance()->GetDevice();
+    return g_engine->GetGPUInstance()->GetDevice();
 }
 
 ObjectPool &GetObjectPool()
 {
-    return Engine::Get()->GetObjectPool();
+    return g_engine->GetObjectPool();
 }
 
 } // namespace hyperion::v2

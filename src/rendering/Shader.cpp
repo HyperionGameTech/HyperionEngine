@@ -36,13 +36,13 @@ struct RENDER_COMMAND(CreateShaderProgram) : RenderCommand
             }
 
             HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
-                Engine::Get()->GetGPUInstance()->GetDevice(),
+                g_engine->GetGPUInstance()->GetDevice(),
                 ShaderModule::Type(index),
                 { byte_buffer }
             ));
         }
 
-        return shader_program->Create(Engine::Get()->GetGPUDevice());
+        return shader_program->Create(g_engine->GetGPUDevice());
     }
 };
 
@@ -57,7 +57,7 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommand
 
     virtual Result operator()()
     {
-        return shader_program->Destroy(Engine::Get()->GetGPUDevice());
+        return shader_program->Destroy(g_engine->GetGPUDevice());
     }
 };
 
@@ -74,8 +74,8 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
     virtual Result operator()()
     {
         // @TODO: Make GPU only
-        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer)));
-        sh_grid_buffer->Memset(Engine::Get()->GetGPUDevice(), sizeof(SHGridBuffer), 0);
+        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(g_engine->GetGPUDevice(), sizeof(SHGridBuffer)));
+        sh_grid_buffer->Memset(g_engine->GetGPUDevice(), sizeof(SHGridBuffer), 0);
 
         HYPERION_RETURN_OK;
     }
@@ -93,8 +93,8 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
     virtual Result operator()()
     {
         for (auto &item : grid_textures) {
-            HYPERION_BUBBLE_ERRORS(item.image->Create(Engine::Get()->GetGPUDevice()));
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create(Engine::Get()->GetGPUDevice(), item.image));
+            HYPERION_BUBBLE_ERRORS(item.image->Create(g_engine->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(item.image_view->Create(g_engine->GetGPUDevice(), item.image));
         }
 
         HYPERION_RETURN_OK;
@@ -113,8 +113,8 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : RenderCommand
     virtual Result operator()()
     {
         for (auto &item : grid_textures) {
-            HYPERION_BUBBLE_ERRORS(item.image->Create(Engine::Get()->GetGPUDevice()));
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create(Engine::Get()->GetGPUDevice(), item.image));
+            HYPERION_BUBBLE_ERRORS(item.image->Create(g_engine->GetGPUDevice()));
+            HYPERION_BUBBLE_ERRORS(item.image_view->Create(g_engine->GetGPUDevice(), item.image));
         }
 
         HYPERION_RETURN_OK;
@@ -202,7 +202,7 @@ ShaderGlobals::ShaderGlobals()
 
 void ShaderGlobals::Create()
 {
-    auto *device = Engine::Get()->GetGPUDevice();
+    auto *device = g_engine->GetGPUDevice();
 
     scenes.Create(device);
     cameras.Create(device);
@@ -223,7 +223,7 @@ void ShaderGlobals::Create()
 
 void ShaderGlobals::Destroy()
 {
-    auto *device = Engine::Get()->GetGPUDevice();
+    auto *device = g_engine->GetGPUDevice();
     
     env_probes.Destroy(device);
     env_grids.Destroy(device);
@@ -332,7 +332,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
 
     CompiledShader compiled_shader;
 
-    const bool is_valid_compiled_shader = Engine::Get()->GetShaderCompiler().GetCompiledShader(
+    const bool is_valid_compiled_shader = g_engine->GetShaderCompiler().GetCompiledShader(
         definition.GetName(),
         definition.GetProperties(),
         compiled_shader

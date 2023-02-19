@@ -21,7 +21,7 @@ struct RENDER_COMMAND(UnbindLight) : RenderCommand
 
     virtual Result operator()()
     {
-        Engine::Get()->GetRenderState().UnbindLight(id);
+        g_engine->GetRenderState().UnbindLight(id);
 
         HYPERION_RETURN_OK;
     }
@@ -43,12 +43,12 @@ struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommand
         light.m_draw_proxy = draw_proxy;
         
         if (draw_proxy.visibility_bits == 0) {
-            Engine::Get()->GetRenderState().UnbindLight(draw_proxy.id);
+            g_engine->GetRenderState().UnbindLight(draw_proxy.id);
         } else {
-            Engine::Get()->GetRenderState().BindLight(draw_proxy.id, draw_proxy);
+            g_engine->GetRenderState().BindLight(draw_proxy.id, draw_proxy);
         }
 
-        Engine::Get()->GetRenderData()->lights.Set(
+        g_engine->GetRenderData()->lights.Set(
             light.GetID().ToIndex(),
             LightShaderData {
                 .light_id           = UInt32(draw_proxy.id),

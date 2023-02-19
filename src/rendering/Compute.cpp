@@ -21,9 +21,9 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommand
     virtual Result operator()()
     {
         return pipeline->Create(
-            Engine::Get()->GetGPUDevice(),
+            g_engine->GetGPUDevice(),
             shader_program,
-            &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+            &g_engine->GetGPUInstance()->GetDescriptorPool()
         );
     }
 };

@@ -219,7 +219,7 @@ void RenderList::UpdateRenderGroups()
                 auto render_group_it = m_render_groups.Find(attributes);
 
                 if (render_group_it == m_render_groups.End() || !render_group_it->second) {
-                    Handle<RenderGroup> render_group = Engine::Get()->CreateRenderGroup(attributes);
+                    Handle<RenderGroup> render_group = g_engine->CreateRenderGroup(attributes);
 
                     if (!render_group.IsValid()) {
                         DebugLog(LogType::Error, "Render group not valid for attribute set %llu!\n", attributes.GetHashCode().Value());
@@ -247,7 +247,7 @@ void RenderList::UpdateRenderGroups()
     };
 
     if constexpr (do_parallel_collection) {
-        Engine::Get()->task_system.ParallelForEach(THREAD_POOL_RENDER_COLLECT, iterators, UpdateRenderGroupForAttributeSet);
+        g_engine->task_system.ParallelForEach(THREAD_POOL_RENDER_COLLECT, iterators, UpdateRenderGroupForAttributeSet);
     } else {
         for (UInt index = 0; index < iterators.Size(); index++) {
             UpdateRenderGroupForAttributeSet(iterators[index], index, 0);
@@ -348,7 +348,7 @@ void RenderList::CollectDrawCalls(
     }
 
     if constexpr (do_parallel_collection) {
-        Engine::Get()->task_system.ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt) {
+        g_engine->task_system.ParallelForEach(THREAD_POOL_RENDER, iterators, [](IteratorType it, UInt, UInt) {
             EntityDrawCollection::EntityList &entity_list = it->second;
             Handle<RenderGroup> &render_group = entity_list.render_group;
 
@@ -442,7 +442,7 @@ void RenderList::ExecuteDrawCalls(
         framebuffer->BeginCapture(frame_index, command_buffer);
     }
 
-    Engine::Get()->GetRenderState().BindCamera(camera.Get());
+    g_engine->GetRenderState().BindCamera(camera.Get());
 
     for (const auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_RENDER)) {
         for (const auto &it : collection_per_pass_type) {
@@ -476,7 +476,7 @@ void RenderList::ExecuteDrawCalls(
         }
     }
 
-    Engine::Get()->GetRenderState().UnbindCamera();
+    g_engine->GetRenderState().UnbindCamera();
 
     if (framebuffer) {
         framebuffer->EndCapture(frame_index, command_buffer);

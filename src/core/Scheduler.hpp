@@ -3,26 +3,21 @@
 
 // #define HYP_SCHEDULER_USE_ATOMIC_LOCK 1
 
-#include "lib/AtomicSemaphore.hpp"
-#include "lib/DynArray.hpp"
-#include "lib/FixedArray.hpp"
-#include "lib/Proc.hpp"
+#include <core/lib/AtomicSemaphore.hpp>
+#include <core/lib/DynArray.hpp>
+#include <core/lib/FixedArray.hpp>
+#include <core/lib/Proc.hpp>
+#include <core/lib/AtomicVar.hpp>
+#include <core/lib/Optional.hpp>
 #include <core/Thread.hpp>
 #include <Threads.hpp>
-#include <core/lib/Optional.hpp>
 
 #include <Util.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
 
-#include <functional>
-#include <atomic>
-#include <thread>
-#include <tuple>
 #include <utility>
-#include <deque>
 #include <type_traits>
-
 #include <mutex>
 #include <condition_variable>
 
@@ -105,11 +100,11 @@ public:
     struct ScheduledTask
     {
         Task task;
-        std::atomic<UInt> *atomic_counter = nullptr;
+        AtomicVar<UInt> *atomic_counter = nullptr;
 
         ScheduledTask() = default;
 
-        ScheduledTask(Task &&task, std::atomic<UInt> *atomic_counter)
+        ScheduledTask(Task &&task, AtomicVar<UInt> *atomic_counter)
             : task(std::move(task)),
               atomic_counter(atomic_counter)
         {
@@ -147,7 +142,7 @@ public:
             lambda(task);
 
             if (atomic_counter != nullptr) {
-                atomic_counter->fetch_add(1u, std::memory_order_relaxed);
+                atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
         }
 
@@ -157,7 +152,7 @@ public:
             task.Execute(std::forward<Args>(args)...);
 
             if (atomic_counter != nullptr) {
-                atomic_counter->fetch_add(1u, std::memory_order_relaxed);
+                atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
         }
     };
@@ -177,7 +172,7 @@ public:
     ~Scheduler() = default;
 
     HYP_FORCE_INLINE UInt NumEnqueued() const
-        { return m_num_enqueued.load(std::memory_order_relaxed); }
+        { return m_num_enqueued.Get(MemoryOrder::RELAXED); }
 
     /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
      *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
@@ -208,7 +203,7 @@ public:
      * @param fn The task to execute
      * @param atomic_counter A pointer to an atomic UInt variable that is incremented upon completion.
      */
-    TaskID Enqueue(Task &&fn, std::atomic<UInt> *atomic_counter)
+    TaskID Enqueue(Task &&fn, AtomicVar<UInt> *atomic_counter)
     {
         std::unique_lock lock(m_mutex);
 
@@ -336,7 +331,7 @@ public:
         }
 
         m_scheduled_functions.Clear();
-        m_num_enqueued.store(0u, std::memory_order_relaxed);
+        m_num_enqueued.Set(0, MemoryOrder::RELAXED);
 
         lock.unlock();
 
@@ -350,14 +345,14 @@ public:
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
         std::unique_lock lock(m_mutex);
-        m_has_tasks.wait(lock, [this] { return m_num_enqueued.load() != 0u; });
+        m_has_tasks.wait(lock, [this] { return m_num_enqueued.Get(MemoryOrder::RELAXED) != 0; });
 
         for (auto it = m_scheduled_functions.Begin(); it != m_scheduled_functions.End(); ++it) {
             out_container.Push(std::move(*it));
         }
 
         m_scheduled_functions.Clear();
-        m_num_enqueued.store(0u, std::memory_order_relaxed);
+        m_num_enqueued.Set(0, MemoryOrder::RELAXED);
 
         lock.unlock();
 
@@ -379,13 +374,13 @@ public:
             executor(front.task);
 
             if (front.atomic_counter != nullptr) {
-                front.atomic_counter->fetch_add(1u, std::memory_order_relaxed);
+                front.atomic_counter->Increment(1, MemoryOrder::RELAXED);
             }
 
             m_scheduled_functions.PopFront();
         }
 
-        m_num_enqueued.store(0u, std::memory_order_relaxed);
+        m_num_enqueued.Set(0, MemoryOrder::RELAXED);
 
         lock.unlock();
 
@@ -393,13 +388,13 @@ public:
     }
     
 private:
-    TaskID EnqueueInternal(Task &&fn, std::atomic<UInt> *atomic_counter = nullptr)
+    TaskID EnqueueInternal(Task &&fn, AtomicVar<UInt> *atomic_counter = nullptr)
     {
         fn.id = ++m_id_counter;
 
         m_scheduled_functions.PushBack(ScheduledTask(std::forward<Task>(fn), atomic_counter));
 
-        m_num_enqueued.fetch_add(1u, std::memory_order_relaxed);
+        m_num_enqueued.Increment(1, MemoryOrder::RELAXED);
 
         return m_scheduled_functions.Back().task.id;
     }
@@ -421,13 +416,13 @@ private:
 
         m_scheduled_functions.Erase(it);
 
-        m_num_enqueued.fetch_sub(1u, std::memory_order_relaxed);
+        m_num_enqueued.Decrement(1, MemoryOrder::RELAXED);
 
         return true;
     }
 
     UInt m_id_counter = 0;
-    std::atomic_uint m_num_enqueued { 0 };
+    AtomicVar<UInt> m_num_enqueued { 0 };
     ScheduledFunctionQueue m_scheduled_functions;
 
     std::mutex m_mutex;

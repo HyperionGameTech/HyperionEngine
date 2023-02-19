@@ -61,7 +61,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
             }
         }
 
-        Engine::Get()->GetRenderData()->materials.Set(id.ToIndex(), shader_data);
+        g_engine->GetRenderData()->materials.Set(id.ToIndex(), shader_data);
 
         HYPERION_RETURN_OK;
     }
@@ -88,7 +88,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.value - 1, frame_index);
 
-            const auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
+            const auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
             const auto *descriptor_set = descriptor_pool.GetDescriptorSet(descriptor_set_index);
             auto *descriptor = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
 
@@ -132,10 +132,10 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
                 UInt(index)
             );
 
-            auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
+            auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
             auto *descriptor_set = descriptor_pool.AddDescriptorSet(
-                Engine::Get()->GetGPUDevice(),
+                g_engine->GetGPUDevice(),
                 std::make_unique<DescriptorSet>(
                     parent_index,
                     UInt(index),
@@ -144,13 +144,13 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
             );
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
-            sampler_descriptor->SetElementSampler(0, &Engine::Get()->GetPlaceholderData().GetSamplerLinear());
+            sampler_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
             
             // set placeholder for all items, then manually set the actual bound items
             auto *image_descriptor = descriptor_set->AddDescriptor<ImageDescriptor>(DescriptorKey::TEXTURES);
 
             for (UInt texture_index = 0; texture_index < Material::max_textures_to_set; texture_index++) {
-                image_descriptor->SetElementSRV(texture_index, &Engine::Get()->GetPlaceholderData().GetImageView2D1x1R8());
+                image_descriptor->SetElementSRV(texture_index, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
             }
 
             for (const auto &it : textures) {
@@ -174,8 +174,8 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 
             if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
                 result = descriptor_set->Create(
-                    Engine::Get()->GetGPUDevice(),
-                    &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                    g_engine->GetGPUDevice(),
+                    &g_engine->GetGPUInstance()->GetDescriptorPool()
                 );
 
                 if (result != Result::OK) {
@@ -183,16 +183,16 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 
                     while (previous_index != frame_index) {
                         if (descriptor_sets[previous_index]) {
-                            HYPERION_PASS_ERRORS(descriptor_sets[previous_index]->Destroy(Engine::Get()->GetGPUDevice()), result);
+                            HYPERION_PASS_ERRORS(descriptor_sets[previous_index]->Destroy(g_engine->GetGPUDevice()), result);
 
-                            descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_sets[previous_index]);
+                            descriptor_pool.RemoveDescriptorSet(g_engine->GetGPUDevice(), descriptor_sets[previous_index]);
                             descriptor_sets[previous_index] = nullptr;
                         }
 
                         previous_index = (previous_index + 1) % max_frames_in_flight;
                     }
 
-                    descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_set);
+                    descriptor_pool.RemoveDescriptorSet(g_engine->GetGPUDevice(), descriptor_set);
                     descriptor_sets[frame_index] = nullptr;
 
                     return Result::OK;
@@ -217,7 +217,7 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
 
     virtual Result operator()()
     {
-        auto &descriptor_pool = Engine::Get()->GetGPUInstance()->GetDescriptorPool();
+        auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             if (!descriptor_sets[frame_index]) {
@@ -225,10 +225,10 @@ struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
             }
 
             // if (descriptor_pool.IsCreated()) { // creating at runtime, after descriptor sets all created
-            //     HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Destroy(Engine::Get()->GetGPUDevice()));
+            //     HYPERION_BUBBLE_ERRORS(descriptor_sets[frame_index]->Destroy(g_engine->GetGPUDevice()));
             // }
 
-            descriptor_pool.RemoveDescriptorSet(Engine::Get()->GetGPUDevice(), descriptor_sets[frame_index]);
+            descriptor_pool.RemoveDescriptorSet(g_engine->GetGPUDevice(), descriptor_sets[frame_index]);
             descriptor_sets[frame_index] = nullptr;
         }
 
@@ -488,7 +488,7 @@ const Handle<Texture> Material::GetTexture(TextureKey key) const
 
 Handle<Material> Material::Clone() const
 {
-    auto handle = Engine::Get()->CreateObject<Material>(
+    auto handle = g_engine->CreateObject<Material>(
         m_name,
         m_render_attributes,
         m_parameters,
@@ -596,7 +596,7 @@ Handle<Material> MaterialCache::GetOrCreate(
         }
     }
 
-    auto handle = Engine::Get()->CreateObject<Material>(
+    auto handle = g_engine->CreateObject<Material>(
         CreateNameFromDynamicString(ANSIString("cached_material_") + ANSIString::ToString(hc.Value())),
         attributes,
         parameters,

@@ -21,7 +21,7 @@ AssetManager::AssetManager()
 
 ObjectPool &AssetManager::GetObjectPool()
 {
-    return Engine::Get()->GetObjectPool();
+    return g_engine->GetObjectPool();
 }
 
 void AssetManager::RegisterDefaultLoaders()

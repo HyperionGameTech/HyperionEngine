@@ -30,7 +30,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     );
 
-    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(Engine::Get()->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create(g_engine->GetGPUDevice()));
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         const auto *depth_attachment = m_depth_attachment_usage->GetAttachment();
@@ -52,10 +52,10 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
             nullptr
         );
 
-        m_depth_pyramid[i]->Create(Engine::Get()->GetGPUDevice());
+        m_depth_pyramid[i]->Create(g_engine->GetGPUDevice());
 
         m_depth_pyramid_results[i] = std::make_unique<ImageView>();
-        m_depth_pyramid_results[i]->Create(Engine::Get()->GetGPUDevice(), m_depth_pyramid[i].get());
+        m_depth_pyramid_results[i]->Create(g_engine->GetGPUDevice(), m_depth_pyramid[i].get());
 
         const UInt num_mip_levels = m_depth_pyramid[i]->NumMipmaps();
 
@@ -65,7 +65,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
             auto mip_image_view = std::make_unique<ImageView>();
 
             HYPERION_ASSERT_RESULT(mip_image_view->Create(
-                Engine::Get()->GetGPUDevice(),
+                g_engine->GetGPUDevice(),
                 m_depth_pyramid[i].get(),
                 mip_level, 1,
                 0, m_depth_pyramid[i]->NumFaces()
@@ -108,8 +108,8 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
                 });
 
             HYPERION_ASSERT_RESULT(depth_pyramid_descriptor_set->Create(
-                Engine::Get()->GetGPUDevice(),
-                &Engine::Get()->GetGPUInstance()->GetDescriptorPool()
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
 
             m_depth_pyramid_descriptor_sets[i].PushBack(std::move(depth_pyramid_descriptor_set));
@@ -128,22 +128,22 @@ void DepthPyramidRenderer::Destroy()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (auto &descriptor_set : m_depth_pyramid_descriptor_sets[i]) {
-            HYPERION_ASSERT_RESULT(descriptor_set->Destroy(Engine::Get()->GetGPUDevice()));
+            HYPERION_ASSERT_RESULT(descriptor_set->Destroy(g_engine->GetGPUDevice()));
         }
 
         m_depth_pyramid_descriptor_sets[i].Clear();
 
         for (auto &mip_image_view : m_depth_pyramid_mips[i]) {
-            HYPERION_ASSERT_RESULT(mip_image_view->Destroy(Engine::Get()->GetGPUDevice()));
+            HYPERION_ASSERT_RESULT(mip_image_view->Destroy(g_engine->GetGPUDevice()));
         }
 
         m_depth_pyramid_mips[i].Clear();
 
-        HYPERION_ASSERT_RESULT(m_depth_pyramid_results[i]->Destroy(Engine::Get()->GetGPUDevice()));
-        HYPERION_ASSERT_RESULT(m_depth_pyramid[i]->Destroy(Engine::Get()->GetGPUDevice()));
+        HYPERION_ASSERT_RESULT(m_depth_pyramid_results[i]->Destroy(g_engine->GetGPUDevice()));
+        HYPERION_ASSERT_RESULT(m_depth_pyramid[i]->Destroy(g_engine->GetGPUDevice()));
     }
 
-    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(Engine::Get()->GetGPUDevice()));
+    HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Destroy(g_engine->GetGPUDevice()));
 
     if (m_depth_attachment_usage != nullptr) {
         m_depth_attachment_usage->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
@@ -186,7 +186,7 @@ void DepthPyramidRenderer::Render(Frame *frame)
 
         // bind descriptor set to compute pipeline
         primary->BindDescriptorSet(
-            Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_generate_depth_pyramid->GetPipeline(),
             m_depth_pyramid_descriptor_sets[frame_index][mip_level].get(),
             DescriptorSet::Index(0)

@@ -2,6 +2,7 @@
 #define HYPERION_V2_CORE_THREAD_H
 
 #include <core/lib/FixedString.hpp>
+#include <core/lib/AtomicVar.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
@@ -61,7 +62,7 @@ public:
      * @param atomic_counter An optionally provided pointer to atomic UInt which will be incremented
      *      upon completion
      */
-    TaskID ScheduleTask(Task &&task, std::atomic<UInt> *atomic_counter = nullptr)
+    TaskID ScheduleTask(Task &&task, AtomicVar<UInt> *atomic_counter = nullptr)
     {
         return m_scheduler.Enqueue(std::forward<Task>(task), atomic_counter);
     }
