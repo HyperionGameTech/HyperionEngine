@@ -65,7 +65,7 @@ Configuration::Configuration() = default;
 
 bool Configuration::LoadFromDefinitionsFile()
 {
-    const DefinitionsFile definitions(Engine::Get()->GetAssetManager().GetBasePath() / "config.def");
+    const DefinitionsFile definitions(g_asset_manager->GetBasePath() / "config.def");
 
     if (!definitions.IsValid()) {
         return false;
@@ -140,7 +140,7 @@ bool Configuration::SaveToDefinitionsFile()
         str_result += OptionNameToString(OptionName(index)) + " = " + value_string + "\n";
     }
 
-    const String path = Engine::Get()->GetAssetManager().GetBasePath() / "config.def";
+    const String path = g_asset_manager->GetBasePath() / "config.def";
 
     FileByteWriter writer(path.Data());
 

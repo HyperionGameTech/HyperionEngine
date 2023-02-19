@@ -248,7 +248,7 @@ void TemporalAA::CreateDescriptorSets()
 void TemporalAA::CreateComputePipelines()
 {
     m_compute_taa = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(TemporalAA)),
+        g_shader_manager->GetOrCreate(HYP_NAME(TemporalAA)),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

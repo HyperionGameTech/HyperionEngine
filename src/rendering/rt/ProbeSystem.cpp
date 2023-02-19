@@ -271,7 +271,7 @@ void ProbeGrid::Destroy()
 
 void ProbeGrid::CreatePipeline()
 {
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(RTProbe));
+    m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbe));
     InitObject(m_shader);
 
     m_pipeline = RenderObjects::Make<RaytracingPipeline>(
@@ -292,28 +292,28 @@ void ProbeGrid::CreatePipeline()
 void ProbeGrid::CreateComputePipelines()
 {
     m_update_irradiance = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(RTProbeUpdateIrradiance)),
+        g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateIrradiance)),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_update_irradiance);
 
     m_update_depth = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(RTProbeUpdateDepth)),
+        g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateDepth)),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_update_depth);
 
     m_copy_border_texels_irradiance = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(RTCopyBorderTexelsIrradiance)),
+        g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsIrradiance)),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_copy_border_texels_irradiance);
 
     m_copy_border_texels_depth = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(RTCopyBorderTexelsDepth)),
+        g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsDepth)),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

@@ -32,7 +32,7 @@ bool UIButtonController::CreateScriptedMethods()
 
 void UIButtonController::OnAdded()
 {
-    auto font_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/fontmap.png");
+    auto font_texture = g_asset_manager->Load<Texture>("textures/fontmap.png");
             
     FontMap font_map(
         font_texture,
@@ -40,7 +40,7 @@ void UIButtonController::OnAdded()
     );
 
     GetOwner()->SetMesh(UIText::BuildTextMesh(font_map, "HyperionEngine v0.2"));
-    GetOwner()->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
+    GetOwner()->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);

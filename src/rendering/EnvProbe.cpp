@@ -306,14 +306,14 @@ void EnvProbe::CreateShader()
 {
     switch (m_env_probe_type) {
     case EnvProbeType::ENV_PROBE_TYPE_REFLECTION:
-        m_shader = Engine::Get()->GetShaderManager().GetOrCreate({
+        m_shader = g_shader_manager->GetOrCreate({
             HYP_NAME(CubemapRenderer),
             ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_REFLECTION" })
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SHADOW:
-        m_shader = Engine::Get()->GetShaderManager().GetOrCreate({
+        m_shader = g_shader_manager->GetOrCreate({
             HYP_NAME(CubemapRenderer),
             ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_SHADOWS" })
         });
@@ -407,21 +407,21 @@ void EnvProbe::CreateSHData()
     PUSH_RENDER_COMMAND(CreateComputeSHDescriptorSets, m_compute_sh_descriptor_sets);
     
     m_clear_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 
     InitObject(m_clear_sh);
 
     m_compute_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 
     InitObject(m_compute_sh);
 
     m_finalize_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 

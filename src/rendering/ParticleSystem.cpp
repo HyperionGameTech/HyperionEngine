@@ -276,7 +276,7 @@ void ParticleSpawner::CreateBuffers()
 
 void ParticleSpawner::CreateShader()
 {
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Particle));
+    m_shader = g_shader_manager->GetOrCreate(HYP_NAME(Particle));
 
     InitObject(m_shader);
 }
@@ -378,7 +378,7 @@ void ParticleSpawner::CreateComputePipelines()
     properties.Set("HAS_PHYSICS", m_params.has_physics);
 
     m_update_particles = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(
+        g_shader_manager->GetOrCreate(
             HYP_NAME(UpdateParticles),
             properties
         ),

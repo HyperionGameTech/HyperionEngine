@@ -57,7 +57,7 @@ void ImmediateMode::Create()
 
     RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
 
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(DebugAABB),
         ShaderProperties(
             renderer::static_mesh_vertex_attributes,

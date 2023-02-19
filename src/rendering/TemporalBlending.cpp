@@ -239,7 +239,7 @@ void TemporalBlending::CreateComputePipelines()
     shader_properties.Set("FEEDBACK_" + feedback_strings[MathUtil::Min(UInt(m_feedback), std::size(feedback_strings) - 1)]);
 
     m_perform_blending = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(TemporalBlending), shader_properties),
+        g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

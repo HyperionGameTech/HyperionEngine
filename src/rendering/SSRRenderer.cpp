@@ -474,7 +474,7 @@ void SSRRenderer::CreateComputePipelines()
     }
 
 #ifdef USE_SSR_FRAGMENT_SHADER
-    auto on_screen_reflections_shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(OnScreenReflections));
+    auto on_screen_reflections_shader = g_shader_manager->GetOrCreate(HYP_NAME(OnScreenReflections));
     InitObject(on_screen_reflections_shader);
 
     m_reflection_pass.Reset(new FullScreenPass(
@@ -486,28 +486,28 @@ void SSRRenderer::CreateComputePipelines()
     m_reflection_pass->Create();
 #else
     m_write_uvs = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
+        g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_write_uvs);
 
     m_sample = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRSample), shader_properties),
+        g_shader_manager->GetOrCreate(HYP_NAME(SSRSample), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_sample);
 
     m_blur_hor = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurHor), shader_properties),
+        g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurHor), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(SSRBlurVert), shader_properties),
+        g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurVert), shader_properties),
         Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
     );
 

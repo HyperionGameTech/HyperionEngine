@@ -107,7 +107,7 @@ public:
 
     MyGame(RefCountedPtr<Application> application)
         : Game(application),
-          scene_export_filepath(Engine::Get()->GetAssetManager().GetBasePath() / "export.hypnode")
+          scene_export_filepath(g_asset_manager->GetBasePath() / "export.hypnode")
     {
     }
 
@@ -174,7 +174,7 @@ public:
             btn_node.GetEntity()->AddController<UIButtonController>();
 
             if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
-                controller->SetScript(Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/ui_controller.hypscript"));
+                controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));
             }
 
             btn_node.Scale(0.01f);
@@ -248,7 +248,7 @@ public:
 
         Engine::Get()->GetWorld()->AddScene(m_scene);
         
-        auto batch = Engine::Get()->GetAssetManager().CreateBatch();
+        auto batch = g_asset_manager->CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch.Add<Node>("test_model", "models/sponza/sponza.obj");//victorian-salon/victorian-salon.obj");//mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
@@ -262,7 +262,7 @@ public:
 
         auto obj_models = batch.AwaitResults();
         auto zombie = obj_models["zombie"].Get<Node>();
-        auto test_model = obj_models["test_model"].Get<Node>();//Engine::Get()->GetAssetManager().Load<Node>("../data/dump2/sponza.fbom");
+        auto test_model = obj_models["test_model"].Get<Node>();//g_asset_manager->Load<Node>("../data/dump2/sponza.fbom");
         auto cube_obj = obj_models["cube"].Get<Node>();
         auto material_test_obj = obj_models["material"].Get<Node>();
         
@@ -394,7 +394,7 @@ public:
         cube_obj.Scale(50.0f);
 
         if (false) {
-            auto axis_angles = Engine::Get()->GetAssetManager().Load<Node>("models/editor/axis_arrows.obj");
+            auto axis_angles = g_asset_manager->Load<Node>("models/editor/axis_arrows.obj");
             axis_angles.Scale(10.0f);
             GetScene()->GetRoot().AddChild(axis_angles);
         }
@@ -420,7 +420,7 @@ public:
 
         if (false) { // physics
             for (int i = 0; i < 6; i++) {
-                if (auto cube = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj")) {
+                if (auto cube = g_asset_manager->Load<Node>("models/cube.obj")) {
                     cube.SetName("cube " + String::ToString(i));
                     auto cube_entity = cube[0].GetEntity();
                     cube_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
@@ -449,10 +449,10 @@ public:
         }
 
         if (true) {
-            if (auto monkey = Engine::Get()->GetAssetManager().Load<Node>("models/monkey/monkey.obj")) {
+            if (auto monkey = g_asset_manager->Load<Node>("models/monkey/monkey.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
-                monkey_entity->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward),
+                monkey_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward),
                     ShaderProperties(renderer::static_mesh_vertex_attributes, {{ "FORWARD_LIGHTING" }})));
                 monkey_entity->SetFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED, false);
                 monkey_entity->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.08f);
@@ -472,7 +472,7 @@ public:
                 InitObject(monkey_entity);
 
                 monkey_entity->AddController<ScriptedController>(
-                    Engine::Get()->GetAssetManager().Load<Script>("scripts/examples/controller.hypscript")
+                    g_asset_manager->Load<Script>("scripts/examples/controller.hypscript")
                 );
 
                 monkey_entity->CreateBLAS();
@@ -487,7 +487,7 @@ public:
 
         if (true) {
 #if 0
-            auto mh = Engine::Get()->GetAssetManager().Load<Node>("models/mh/mh1.obj");
+            auto mh = g_asset_manager->Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
             mh.Scale(0.35f);
             for (auto &mh_child : mh.GetChildren()) {
@@ -504,13 +504,13 @@ public:
             GetScene()->GetRoot().AddChild(mh);
 #endif
 
-            NodeProxy tree = Engine::Get()->GetAssetManager().Load<Node>("models/conifer/Conifer_Low.obj");
+            NodeProxy tree = g_asset_manager->Load<Node>("models/conifer/Conifer_Low.obj");
             tree.SetName("tree");
             tree.Scale(0.175f);
             tree.SetLocalTranslation(Vector3(3, 1, 0));
             if (auto needles = tree.Select("Needles")) {
                 if (needles.GetEntity() && needles.GetEntity()->GetMaterial()) {
-                    needles.GetEntity()->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward),
+                    needles.GetEntity()->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward),
                         ShaderProperties(renderer::static_mesh_vertex_attributes, {{ "FORWARD_LIGHTING" }})));
                     needles.GetEntity()->GetMaterial()->SetFaceCullMode(FaceCullMode::NONE);
                     needles.GetEntity()->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALPHA_THRESHOLD, 0.05f);
@@ -529,7 +529,7 @@ public:
                 needles_copy_material->SetFaceCullMode(FaceCullMode::NONE);
                 needles_copy->SetMaterial(needles_copy_material);
 
-                needles_copy->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(renderer::static_mesh_vertex_attributes)));
+                needles_copy->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(renderer::static_mesh_vertex_attributes)));
 
                 auto needles_copy_node = NodeProxy(new Node);
                 needles_copy_node.SetEntity(needles_copy);
@@ -540,7 +540,7 @@ public:
         }
         
         if (false) {
-            auto cube_model = Engine::Get()->GetAssetManager().Load<Node>("models/cube.obj");
+            auto cube_model = g_asset_manager->Load<Node>("models/cube.obj");
 
             // add a plane physics shape
             auto plane = CreateObject<Entity>();
@@ -554,17 +554,17 @@ public:
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
-            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/water.jpg"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
-            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
+            plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/water.jpg"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-albedo.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-normal.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_PARALLAX_MAP, g_asset_manager->Load<Texture>("textures/forest-floor-unity/forest_floor_Height.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_METALNESS_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-metal.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_AO_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-ao.png"));
+            // plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ROUGHNESS_MAP, g_asset_manager->Load<Texture>("textures/bamboo_wood/bamboo-wood-semigloss-roughness.png"));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.3f);
             plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             plane->GetMaterial()->SetIsAlphaBlended(true);
-            plane->SetShader(Handle<Shader>(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes(), {{ "FORWARD_LIGHTING" }}))));
+            plane->SetShader(Handle<Shader>(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes(), {{ "FORWARD_LIGHTING" }}))));
             plane->RebuildRenderableAttributes();
             plane->CreateBLAS();
             if (NodeProxy plane_node_proxy = GetScene()->AddEntity(plane)) {
@@ -581,7 +581,7 @@ public:
 
         if (true) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-                .texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/spark.png"),
+                .texture = g_asset_manager->Load<Texture>("textures/spark.png"),
                 .max_particles = 1024u,
                 .origin = Vector3(0.0f, 4.1f, 0.0f),
                 .randomness = 1.0f,
@@ -803,8 +803,8 @@ public:
                 material_parameters.Set(Material::MATERIAL_KEY_METALNESS, 0.01f);
                 
                 box_entity->SetMesh(box_mesh);
-                box_entity->SetMaterial(Engine::Get()->GetMaterialCache().GetOrCreate({ }, material_parameters));
-                box_entity->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(box_mesh->GetVertexAttributes())));
+                box_entity->SetMaterial(g_material_system->GetOrCreate({ }, material_parameters));
+                box_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(box_mesh->GetVertexAttributes())));
                 box_entity->SetTranslation(box_position);
 
                 GetScene()->AddEntity(box_entity);
@@ -817,7 +817,7 @@ public:
 
                 if (path->Open(reader)) {
 
-                    auto batch = Engine::Get()->GetAssetManager().CreateBatch();
+                    auto batch = g_asset_manager->CreateBatch();
                     batch.Add<Node>("dropped_object", *path);
                     batch.LoadAsync();
 
@@ -946,7 +946,7 @@ int main()
     float delta_time_accum = 0.0f;
     GameCounter counter;
 
-    while (Engine::Get()->IsRenderLoopActive()) {
+    while (g_engine->IsRenderLoopActive()) {
         // input manager stuff
         while (application->PollEvent(event)) {
             my_game->HandleEvent(std::move(event));
