@@ -11,7 +11,7 @@ SkydomeController::SkydomeController()
 
 void SkydomeController::OnAdded()
 {
-    auto dome_node = Engine::Get()->GetAssetManager().Load<Node>("models/dome.obj");
+    auto dome_node = g_asset_manager->Load<Node>("models/dome.obj");
     m_dome = dome_node[0].GetEntity();
 
     if (m_dome) {
@@ -26,7 +26,7 @@ void SkydomeController::OnAdded()
         material->SetIsDepthWriteEnabled(false);
 
         m_dome->SetMaterial(std::move(material));
-        m_dome->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(
+        m_dome->SetShader(g_shader_manager->GetOrCreate(
             HYP_NAME(Skydome),
             ShaderProperties(renderer::static_mesh_vertex_attributes)
         ));

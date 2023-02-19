@@ -73,6 +73,7 @@ class Framebuffer;
 extern Engine *g_engine;
 extern AssetManager *g_asset_manager;
 extern ShaderManagerSystem *g_shader_manager;
+extern MaterialCache *g_material_system;
 
 struct DebugMarker
 {
@@ -151,9 +152,6 @@ public:
     ObjectPool &GetObjectPool() { return registry; }
     const ObjectPool &GetObjectPool() const { return registry; }
 
-    AssetManager &GetAssetManager() { return m_asset_manager; }
-    const AssetManager &GetAssetManager() const { return m_asset_manager; }
-
     Handle<World> &GetWorld() { return m_world; }
     const Handle<World> &GetWorld() const { return m_world; }
 
@@ -165,9 +163,6 @@ public:
 
     ComponentRegistry &GetComponents() { return m_components; }
     const ComponentRegistry &GetComponents() const { return m_components; }
-
-    MaterialCache &GetMaterialCache() { return m_material_cache; }
-    const MaterialCache &GetMaterialCache() const { return m_material_cache; }
 
     ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
     const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
@@ -305,7 +300,6 @@ public:
 
 private:
     void RegisterComponents();
-    void RegisterDefaultAssetLoaders();
 
     void FinalizeStop();
 
@@ -333,8 +327,6 @@ private:
     std::mutex m_render_group_mapping_mutex;
 
     ComponentRegistry m_components;
-
-    MaterialCache m_material_cache;
 
     PlaceholderData m_placeholder_data;
 

@@ -33,7 +33,7 @@ bool UIContainerController::CreateScriptedMethods()
 void UIContainerController::OnAdded()
 {
     GetOwner()->SetMesh(MeshBuilder::Quad());
-    GetOwner()->SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
+    GetOwner()->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(UIObject), ShaderProperties(GetOwner()->GetMesh()->GetVertexAttributes())));
 
     auto mat = CreateObject<Material>();
     mat->SetBucket(Bucket::BUCKET_UI);

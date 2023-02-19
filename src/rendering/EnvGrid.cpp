@@ -571,21 +571,21 @@ void EnvGrid::CreateSHData()
     PUSH_RENDER_COMMAND(CreateComputeSHDescriptorSets, m_compute_sh_descriptor_sets);
     
     m_clear_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 
     InitObject(m_clear_sh);
 
     m_compute_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 
     InitObject(m_compute_sh);
 
     m_finalize_sh = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
+        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
         Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
     );
 
@@ -705,7 +705,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
 
 void EnvGrid::CreateShader()
 {
-    m_ambient_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_ambient_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(CubemapRenderer),
         ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_AMBIENT" })
     );

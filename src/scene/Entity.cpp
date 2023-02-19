@@ -168,7 +168,7 @@ void Entity::Init()
     EngineComponentBase::Init();
 
     // if (!m_shader) {
-    //     SetShader(Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward)));
+    //     SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward)));
     // }
 
     m_draw_proxy.entity_id = m_id;
@@ -584,7 +584,7 @@ void Entity::RebuildRenderableAttributes()
                 m_shader->GetID().Value()
             );
 
-            m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+            m_shader = g_shader_manager->GetOrCreate(
                 m_shader->GetName(),
                 new_shader_definition.properties
             );

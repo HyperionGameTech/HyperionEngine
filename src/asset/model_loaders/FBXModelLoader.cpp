@@ -1283,8 +1283,8 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
 
             if (GetFBXObject(node.mesh_id, mesh)) {
                 // create Entity for Mesh
-                auto shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh->attributes, {{ "SKINNING" }}));
-                auto material = Engine::Get()->GetMaterialCache().GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
+                auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh->attributes, {{ "SKINNING" }}));
+                auto material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
 
                 auto entity = CreateObject<Entity>();
                 entity->SetName(CreateNameFromDynamicString(node.name.Data()));

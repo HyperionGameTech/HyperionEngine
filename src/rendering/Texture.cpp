@@ -335,7 +335,7 @@ public:
             m_mip_image_views[mip_level] = std::move(mip_image_view);
 
             {
-                auto shader = Engine::Get()->GetShaderManager().GetOrCreate(
+                auto shader = g_shader_manager->GetOrCreate(
                     HYP_NAME(GenerateMipmaps),
                     ShaderProperties()
                 );

@@ -98,12 +98,12 @@ DeferredPass::~DeferredPass() = default;
 void DeferredPass::CreateShader()
 {
     if (m_is_indirect_pass) {
-        m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+        m_shader = g_shader_manager->GetOrCreate(
             HYP_NAME(DeferredIndirect),
             GetDeferredShaderProperties()
         );
     } else {
-        m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+        m_shader = g_shader_manager->GetOrCreate(
             HYP_NAME(DeferredDirect),
             GetDeferredShaderProperties()
         );
@@ -251,7 +251,7 @@ void EnvGridPass::CreateShader()
 {
     ShaderProperties properties { };
     
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(ApplyEnvGrid),
         properties
     );
@@ -340,7 +340,7 @@ void ReflectionProbePass::CreateShader()
 {
     ShaderProperties properties { };
     
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(ApplyReflectionProbe),
         properties
     );
@@ -578,7 +578,7 @@ void DeferredRenderer::CreateDescriptorSets()
 
 void DeferredRenderer::CreateCombinePass()
 {
-    auto shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    auto shader = g_shader_manager->GetOrCreate(
         HYP_NAME(DeferredCombine),
         GetDeferredShaderProperties()
     );

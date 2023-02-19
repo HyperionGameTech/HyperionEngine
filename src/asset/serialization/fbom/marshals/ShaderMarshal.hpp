@@ -83,7 +83,7 @@ public:
             properties.Set(property_name);
         }
 
-        Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(name, properties);
+        Handle<Shader> shader = g_shader_manager->GetOrCreate(name, properties);
 
         if (!shader.IsValid()) {
             DebugLog(

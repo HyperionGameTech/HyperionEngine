@@ -167,7 +167,7 @@ public:
             }
         }
 
-        auto material_handle = Engine::Get()->GetMaterialCache().GetOrCreate(attributes, parameters, textures);
+        auto material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
 
         if (name) {
             material_handle->SetName(name);

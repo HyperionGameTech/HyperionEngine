@@ -360,7 +360,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         }
 
         if (!material) {
-            material = Engine::Get()->GetMaterialCache().GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
+            material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
         }
 
         auto mesh = CreateObject<Mesh>(
@@ -378,7 +378,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         auto mesh_attributes = mesh->GetRenderAttributes();
         auto material_attributes = material->GetRenderAttributes();
         
-        auto shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh_attributes.vertex_attributes));
+        auto shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(mesh_attributes.vertex_attributes));
 
         auto entity = CreateObject<Entity>(
             std::move(mesh),

@@ -41,7 +41,7 @@ void AABBDebugController::OnAdded()
     Material::ParameterTable material_parameters = Material::DefaultParameters();
     material_parameters.Set(Material::MATERIAL_KEY_ALBEDO, Material::Parameter(Color(1.0f, 0.0f, 0.0f, 1.0f)));
 
-    Handle<Material> material = Engine::Get()->GetMaterialCache().GetOrCreate(
+    Handle<Material> material = g_material_system->GetOrCreate(
         MaterialAttributes {
             .bucket = Bucket::BUCKET_TRANSLUCENT,
             .fill_mode = FillMode::LINE,
@@ -51,7 +51,7 @@ void AABBDebugController::OnAdded()
         material_parameters
     );
 
-    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Forward), shader_properties);
+    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties);
 
     m_aabb_entity = CreateObject<Entity>(
         std::move(mesh),

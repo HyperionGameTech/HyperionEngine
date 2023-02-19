@@ -147,7 +147,7 @@ void Voxelizer::CreateShader()
         shader_name = HYP_NAME(VCTVoxelizeWithoutGeometryShader);
     }
 
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         shader_name,
         ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_SVO" })
     );

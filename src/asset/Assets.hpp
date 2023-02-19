@@ -30,10 +30,7 @@ class AssetManager
     friend class AssetLoader;
 
 public:
-    AssetManager()
-    {
-    }
-
+    AssetManager();
     AssetManager(const AssetManager &other) = delete;
     AssetManager &operator=(const AssetManager &other) = delete;
     ~AssetManager() = default;
@@ -166,6 +163,8 @@ public:
     }
 
 private:
+    void RegisterDefaultLoaders();
+
     ObjectPool &GetObjectPool();
 
     FilePath m_base_path;

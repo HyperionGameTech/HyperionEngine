@@ -51,12 +51,12 @@ void TerrainPagingController::OnAdded()
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, 3.0f);
 
-    if (auto albedo_texture = Engine::Get()->GetAssetManager().Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
+    if (auto albedo_texture = g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
         albedo_texture->GetImage()->SetIsSRGB(true);
         m_material->SetTexture(Material::MATERIAL_TEXTURE_ALBEDO_MAP, std::move(albedo_texture));
     }
 
-    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, Engine::Get()->GetAssetManager().Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"));
+    m_material->SetTexture(Material::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"));
 
     InitObject(m_material);
 
@@ -114,7 +114,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
     const VertexAttributeSet vertex_attributes = renderer::static_mesh_vertex_attributes;
     
-    Handle<Shader> shader = Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(Terrain), ShaderProperties(vertex_attributes));
+    Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Terrain), ShaderProperties(vertex_attributes));
     AssertThrow(shader.IsValid());
 
     patch->entity = CreateObject<Entity>(

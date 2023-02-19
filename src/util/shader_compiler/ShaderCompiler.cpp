@@ -548,7 +548,7 @@ void ShaderCompiler::ParseDefinitionSection(
             }
         } else if (shader_type_names.Contains(section_it.key)) {
             bundle.sources[shader_type_names.At(section_it.key)] = SourceFile {
-                Engine::Get()->GetAssetManager().GetBasePath() / "vkshaders" / section_it.value.GetValue().name
+                g_asset_manager->GetBasePath() / "vkshaders" / section_it.value.GetValue().name
             };
         } else {
             DebugLog(
@@ -730,7 +730,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     const DefinitionsFile::Section &section = m_definitions->GetSection(name_string);
     ParseDefinitionSection(section, bundle);
     
-    const FilePath output_file_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
+    const FilePath output_file_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
 
     // read file if it already exists.
     fbom::FBOMReader reader(fbom::FBOMConfig { });
@@ -775,7 +775,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
 
 bool ShaderCompiler::LoadShaderDefinitions()
 {
-    const FilePath data_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders";
+    const FilePath data_path = g_asset_manager->GetBasePath() / "data/compiled_shaders";
 
     if (!data_path.Exists()) {
         if (FileSystem::Mkdir(data_path.Data()) != 0) {
@@ -793,7 +793,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
         delete m_definitions;
     }
 
-    m_definitions = new DefinitionsFile(Engine::Get()->GetAssetManager().GetBasePath() / "shaders.def");
+    m_definitions = new DefinitionsFile(g_asset_manager->GetBasePath() / "shaders.def");
 
     if (!m_definitions->IsValid()) {
         DebugLog(
@@ -1055,7 +1055,7 @@ bool ShaderCompiler::CompileBundle(
     }
 
     // run with spirv-cross
-    FileSystem::Mkdir((Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders/tmp").Data());
+    FileSystem::Mkdir((g_asset_manager->GetBasePath() / "data/compiled_shaders/tmp").Data());
 
     Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Reserve(bundle.sources.Size());
@@ -1195,7 +1195,7 @@ bool ShaderCompiler::CompileBundle(
             // check if a file exists w/ same hash
             
             const auto output_filepath = item.GetOutputFilepath(
-                Engine::Get()->GetAssetManager().GetBasePath(),
+                g_asset_manager->GetBasePath(),
                 properties
             );
 
@@ -1260,7 +1260,7 @@ bool ShaderCompiler::CompileBundle(
             Array<String> error_messages;
 
             // set directory to the directory of the shader
-            const FilePath dir = Engine::Get()->GetAssetManager().GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), Engine::Get()->GetAssetManager().GetBasePath());
+            const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
 
             FileSystem::PushDirectory(dir);
             byte_buffer = CompileToSPIRV(item.type, item.language, item.original_source.Data(), item.file.path.Data(), properties, error_messages);
@@ -1304,7 +1304,7 @@ bool ShaderCompiler::CompileBundle(
         out.compiled_shaders.PushBack(std::move(compiled_shader));
     });
 
-    const FilePath final_output_path = Engine::Get()->GetAssetManager().GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
+    const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 
     FileByteWriter byte_writer(final_output_path.Data());
 

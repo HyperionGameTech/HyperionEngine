@@ -199,7 +199,7 @@ void ShadowPass::CreateShader()
         break;
     }
 
-    m_shader = Engine::Get()->GetShaderManager().GetOrCreate(
+    m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(Shadows),
         properties
     );
@@ -306,7 +306,7 @@ void ShadowPass::CreateComputePipelines()
     RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets.Data());
 
     m_blur_shadow_map = CreateObject<ComputePipeline>(
-        Engine::Get()->GetShaderManager().GetOrCreate(HYP_NAME(BlurShadowMap)),
+        g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap)),
         Array<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
     );
 

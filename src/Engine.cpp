@@ -10,16 +10,6 @@
 #include <rendering/vct/VoxelConeTracing.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <asset/model_loaders/FBOMModelLoader.hpp>
-#include <asset/model_loaders/FBXModelLoader.hpp>
-#include <asset/model_loaders/OBJModelLoader.hpp>
-#include <asset/material_loaders/MTLMaterialLoader.hpp>
-#include <asset/model_loaders/OgreXMLModelLoader.hpp>
-#include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
-#include <asset/texture_loaders/TextureLoader.hpp>
-#include <asset/audio_loaders/WAVAudioLoader.hpp>
-#include <asset/script_loaders/ScriptLoader.hpp>
-
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/AnimationController.hpp>
 #include <scene/controllers/AudioController.hpp>
@@ -47,6 +37,9 @@ using renderer::DescriptorKey;
 using renderer::FillMode;
 
 Engine *g_engine = new Engine;
+AssetManager *g_asset_manager = new AssetManager;
+ShaderManagerSystem *g_shader_manager = new ShaderManagerSystem;
+MaterialCache *g_material_system = new MaterialCache;
 
 class StaticDescriptorTable
 {
@@ -158,7 +151,6 @@ Engine::Engine()
     : shader_globals(nullptr)
 {
     RegisterComponents();
-    RegisterDefaultAssetLoaders();
 }
 
 Engine::~Engine()
@@ -191,24 +183,6 @@ void Engine::RegisterComponents()
     m_components.Register<AudioController>();
     m_components.Register<RigidBodyController>();
     m_components.Register<BasicPagingController>();
-}
-
-void Engine::RegisterDefaultAssetLoaders()
-{
-    m_asset_manager.SetBasePath(FilePath::Join(HYP_ROOT_DIR, "res"));
-
-    m_asset_manager.Register<OBJModelLoader>("obj");
-    m_asset_manager.Register<OgreXMLModelLoader>("mesh.xml");
-    m_asset_manager.Register<OgreXMLSkeletonLoader>("skeleton.xml");
-    m_asset_manager.Register<TextureLoader>(
-        "png", "jpg", "jpeg", "tga",
-        "bmp", "psd", "gif", "hdr", "tif"
-    );
-    m_asset_manager.Register<MTLMaterialLoader>("mtl");
-    m_asset_manager.Register<WAVAudioLoader>("wav");
-    m_asset_manager.Register<ScriptLoader>("hypscript");
-    m_asset_manager.Register<FBOMModelLoader>("fbom");
-    m_asset_manager.Register<FBXModelLoader>("fbx");
 }
 
 void Engine::FindTextureFormatDefaults()
@@ -300,7 +274,7 @@ void Engine::PrepareFinalPass()
 
     final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(m_instance->swapchain->image_format));
 
-    auto shader = GetShaderManager().GetOrCreate(
+    auto shader = g_shader_manager->GetOrCreate(
         HYP_NAME(FinalOutput),
         final_output_props
     );
@@ -1075,7 +1049,7 @@ void Engine::RenderNextFrame(Game *game)
 
 Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
 {
-    Handle<Shader> shader = GetShaderManager().GetOrCreate(renderable_attributes.GetShaderDefinition());
+    Handle<Shader> shader = g_shader_manager->GetOrCreate(renderable_attributes.GetShaderDefinition());
 
     if (!shader) {
         DebugLog(
