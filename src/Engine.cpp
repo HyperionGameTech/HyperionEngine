@@ -46,6 +46,8 @@ using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
 
+Engine *g_engine = new Engine;
+
 class StaticDescriptorTable
 {
     static constexpr SizeType max_static_descriptor_sets = 8;
@@ -151,13 +153,6 @@ DECLARE_DESCRIPTOR_UAV(0, 0, Foo1);
 DECLARE_DESCRIPTOR_SET(1, Scene);
 DECLARE_DESCRIPTOR_SET(2, Object);
 DECLARE_DESCRIPTOR_SET(3, Material);
-
-Engine *Engine::Get()
-{
-    static Engine engine;
-
-    return &engine;
-}
 
 Engine::Engine()
     : shader_globals(nullptr)

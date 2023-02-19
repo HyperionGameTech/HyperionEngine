@@ -70,6 +70,10 @@ class Engine;
 class Game;
 class Framebuffer;
 
+extern Engine *g_engine;
+extern AssetManager *g_asset_manager;
+extern ShaderManagerSystem *g_shader_manager;
+
 struct DebugMarker
 {
     CommandBuffer *command_buffer = nullptr;
@@ -121,7 +125,8 @@ class Engine
 #endif
 
 public:
-    static Engine *Get();
+    HYP_FORCE_INLINE static Engine *Get()
+        { return g_engine; }
 
     Engine();
     ~Engine();
@@ -163,9 +168,6 @@ public:
 
     MaterialCache &GetMaterialCache() { return m_material_cache; }
     const MaterialCache &GetMaterialCache() const { return m_material_cache; }
-
-    ShaderManagerSystem &GetShaderManager() { return m_shader_manager; }
-    const ShaderManagerSystem &GetShaderManager() const { return m_shader_manager; }
 
     ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
     const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
@@ -226,7 +228,6 @@ public:
     EngineCallbacks callbacks;
 
     ShaderCompiler m_shader_compiler;
-    ShaderManagerSystem m_shader_manager;
                              
     RenderState render_state;
     
@@ -342,8 +343,7 @@ private:
     Handle<World> m_world;
 
     Handle<Mesh> m_full_screen_quad;
-
-    AssetManager m_asset_manager;
+    
     Configuration m_configuration;
 
     ImmediateMode m_immediate_mode;

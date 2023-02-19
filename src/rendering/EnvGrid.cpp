@@ -196,14 +196,10 @@ void EnvGrid::SetCameraData(const Vector3 &position)
                 const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(probe_index);
                 AssertThrow(probe.IsValid());
 
-                DebugLog(LogType::Debug, "Probe at index %d %d %d -> %d %d %d\n", x, y, z, clamped_indices.x, clamped_indices.y, clamped_indices.z);
-                DebugLog(LogType::Debug, "  AABB: %f %f %f\n", probe->GetAABB().min.x, probe->GetAABB().min.y, probe->GetAABB().min.z);
-
                 probe->SetAABB(BoundingBox(
                     m_aabb.min + ((Vector3(Float(x), Float(y), Float(z)) + camera_position) * size_of_probe),
                     m_aabb.min + ((Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) + camera_position) * size_of_probe)
                 ));
-                DebugLog(LogType::Debug, "  Now: %f %f %f\n", probe->GetAABB().min.x, probe->GetAABB().min.y, probe->GetAABB().min.z);
 
                 new_probes[x][y][z] = probe_index;//probe;
 
@@ -291,7 +287,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, m_aabb.GetRadius()//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -395,7 +391,7 @@ static EnvProbeIndex GetProbeBindingIndex(const Vector3 &probe_position, const B
     probe_diff_units.x = std::fmodf(probe_diff_units.x, Float(grid_density.width));
     probe_diff_units.y = std::fmodf(probe_diff_units.y, Float(grid_density.height));
     probe_diff_units.z = std::fmodf(probe_diff_units.z, Float(grid_density.depth));
-    probe_diff_units = MathUtil::Abs(MathUtil::Floor(probe_diff_units));
+    probe_diff_units = MathUtil::Abs(MathUtil::Floor(probe_diff_units + 0.01f));
 
     const Int probe_index_at_point = (Int(probe_diff_units.x) * Int(grid_density.height) * Int(grid_density.depth))
         + (Int(probe_diff_units.y) * Int(grid_density.depth))
@@ -660,8 +656,6 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
     const UInt scene_index = scene_binding.id.ToIndex();
 
     const auto &camera = Engine::Get()->GetRenderState().GetCamera();
-
-    DebugLog(LogType::Debug, "Camera #%u at %f, %f, %f\n", camera.id.Value(), camera.camera.position.x, camera.camera.position.y, camera.camera.position.z);
     
     const auto &clipmaps = Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps;
 
@@ -674,7 +668,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
     } push_constants;
 
     push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
-    push_constants.cage_center_world = Vector4(Engine::Get()->GetRenderState().GetCamera().camera.position, 1.0f);
+    push_constants.cage_center_world = Vector4(camera.camera.position, 1.0f);
 
     for (auto &texture : Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps) {
         texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -689,7 +683,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
         0,
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
-            HYP_RENDER_OBJECT_OFFSET(Camera, Engine::Get()->GetRenderState().GetCamera().id.ToIndex()),
+            HYP_RENDER_OBJECT_OFFSET(Camera, camera.id.ToIndex()),
             HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
         }
     );
