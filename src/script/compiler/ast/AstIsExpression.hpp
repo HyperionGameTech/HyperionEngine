@@ -34,6 +34,8 @@ protected:
     RC<AstExpression> m_target;
     RC<AstPrototypeSpecification> m_type_specification;
 
+    RC<AstExpression> m_override_expr;
+
     Tribool m_is_type;
 
 private:

@@ -13,7 +13,8 @@
 
 namespace hyperion::compiler {
 
-class Builtins {
+class Builtins
+{
 public:
     Builtins();
 

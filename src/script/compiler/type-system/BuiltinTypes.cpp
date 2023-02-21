@@ -74,6 +74,11 @@ const SymbolTypePtr_t BuiltinTypes::CLASS_TYPE = SymbolType::Extend(
                 SourceLocation::eof
             )),
         }
+        // SymbolMember_t {
+        //     "name",
+        //     BuiltinTypes::STRING,
+        //     RC<AstString>(new AstString("Class", SourceLocation::eof))
+        // },
     }
 );
 

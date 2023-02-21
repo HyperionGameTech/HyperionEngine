@@ -8,8 +8,6 @@
 namespace hyperion {
 namespace vm {
 
-const SizeType StackMemory::STACK_SIZE = 20000;
-
 std::ostream &operator<<(std::ostream &os, const StackMemory &stack)
 {
     // print table header
@@ -19,8 +17,8 @@ std::ostream &operator<<(std::ostream &os, const StackMemory &stack)
     os << std::setw(16) << "Value";
     os << std::endl;
 
-    for (int i = 0; i < stack.m_sp; i++) {
-        Value &value = stack.m_data[i];
+    for (SizeType i = 0; i < stack.m_sp; i++) {
+        const Value &value = stack.m_data[i];
         
         os << std::setw(5) << i << "| ";
 
@@ -44,15 +42,11 @@ std::ostream &operator<<(std::ostream &os, const StackMemory &stack)
 }
 
 StackMemory::StackMemory()
-    : m_data(new Value[STACK_SIZE]),
-      m_sp(0)
+    : m_sp(0)
 {
 }
 
-StackMemory::~StackMemory()
-{
-    delete[] m_data;
-}
+StackMemory::~StackMemory() = default;
 
 void StackMemory::Purge()
 {
@@ -66,7 +60,7 @@ void StackMemory::Purge()
 
 void StackMemory::MarkAll()
 {
-    for (Int64 i = static_cast<Int64>(m_sp) - 1; i >= 0; i--) {
+    for (SizeType i = 0; i < m_sp; i++) {
         m_data[i].Mark();
     }
 }

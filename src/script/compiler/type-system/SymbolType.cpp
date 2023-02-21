@@ -245,7 +245,7 @@ bool SymbolType::TypeCompatible(
                 }
 
                 // check each substituted parameter
-                for (size_t i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
+                for (SizeType i = 0; i < m_generic_instance_info.m_generic_args.Size(); i++) {
                     const SymbolTypePtr_t &param_type = m_generic_instance_info.m_generic_args[i].m_type;
                     const SymbolTypePtr_t &other_param_type = right.m_generic_instance_info.m_generic_args[i].m_type;
 

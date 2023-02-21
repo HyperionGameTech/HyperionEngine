@@ -925,7 +925,7 @@ void VM::Invoke(
 
     if (value.m_type != Value::FUNCTION) {
         if (value.m_type == Value::NATIVE_FUNCTION) {
-            auto **args = new Value*[nargs > 0 ? nargs : 1];
+            Value **args = new Value*[nargs > 0 ? nargs : 1];
 
             Int64 i = static_cast<Int64>(thread->m_stack.GetStackPointer()) - 1;
             for (int j = nargs - 1; j >= 0 && i >= 0; i--, j--) {

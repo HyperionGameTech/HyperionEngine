@@ -98,12 +98,24 @@ public:
             first_value = item;
         } else if constexpr (std::is_base_of_v<ValueHandle, ArgType>) {
             first_value = item._inner;
+        } else if constexpr (std::is_same_v<int8_t, ArgType>) {
+            first_value.m_type = Value::I8;
+            first_value.m_value.i8 = item;
+        } else if constexpr (std::is_same_v<int16_t, ArgType>) {
+            first_value.m_type = Value::I16;
+            first_value.m_value.i16 = item;
         } else if constexpr (std::is_same_v<int32_t, ArgType>) {
             first_value.m_type = Value::I32;
             first_value.m_value.i32 = item;
         } else if constexpr (std::is_same_v<int64_t, ArgType>) {
             first_value.m_type = Value::I64;
             first_value.m_value.i64 = item;
+        } else if constexpr (std::is_same_v<uint8_t, ArgType>) {
+            first_value.m_type = Value::U8;
+            first_value.m_value.u8 = item;
+        }  else if constexpr (std::is_same_v<uint16_t, ArgType>) {
+            first_value.m_type = Value::U16;
+            first_value.m_value.u16 = item;
         } else if constexpr (std::is_same_v<uint32_t, ArgType>) {
             first_value.m_type = Value::U32;
             first_value.m_value.u32 = item;

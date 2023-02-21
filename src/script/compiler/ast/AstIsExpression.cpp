@@ -48,34 +48,40 @@ void AstIsExpression::Visit(AstVisitor *visitor, Module *mod)
     }
 
     if (m_is_type == TRI_INDETERMINATE) {
-        // TODO: Run time check
-        visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
-            LEVEL_ERROR,
-            Msg_internal_error,
-            m_location
-        ));
+        // runtime check
+        m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
+            .Module(Config::global_module_name)
+            .Function("IsInstance")
+            .Call({
+                RC<AstArgument>(new AstArgument(CloneAstNode(m_target), false, false, "", m_target->GetLocation())),
+                RC<AstArgument>(new AstArgument(CloneAstNode(m_type_specification->GetExpr()), false, false, "", m_type_specification->GetLocation()))
+            });
+
+        m_override_expr->Visit(visitor, mod);
     }
 }
 
 std::unique_ptr<Buildable> AstIsExpression::Build(AstVisitor *visitor, Module *mod)
 {
-    AssertThrow(m_target != nullptr);
-
-    std::unique_ptr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
-
-    if (m_is_type == TRI_INDETERMINATE) {
-        // TODO: runtime check
-    } else {
-        UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
-
-        chunk->Append(BytecodeUtil::Make<ConstBool>(rp, bool(m_is_type.Value())));
+    if (m_override_expr != nullptr) {
+        return m_override_expr->Build(visitor, mod);
     }
 
-    return chunk;
+    AssertThrow(m_is_type == TRI_TRUE || m_is_type == TRI_FALSE);
+    
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    return BytecodeUtil::Make<ConstBool>(rp, bool(m_is_type.Value()));
 }
 
 void AstIsExpression::Optimize(AstVisitor *visitor, Module *mod)
 {
+    if (m_override_expr != nullptr) {
+        m_override_expr->Optimize(visitor, mod);
+
+        return;
+    }
+
     AssertThrow(m_target != nullptr);
     m_target->Optimize(visitor, mod);
 

@@ -527,7 +527,8 @@ void API::ModuleDefine::BindType(
 
         vm::VMObject prototype_object(
             member_data.Data(),
-            member_data.Size()
+            member_data.Size(),
+            nullptr // @TODO
         );
 
         // create heap value for object

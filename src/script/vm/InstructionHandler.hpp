@@ -27,11 +27,41 @@
 #define HYP_NUMERIC_OPERATION(a, b, oper) \
     do { \
         switch (result.m_type) { \
+            case Value::I8: \
+                result.m_value.i8 = static_cast<Int8>(a.i) oper static_cast<Int8>(b.i); \
+                break; \
+            case Value::I16: \
+                result.m_value.i16 = static_cast<Int16>(a.i) oper static_cast<Int16>(b.i); \
+                break; \
             case Value::I32: \
                 result.m_value.i32 = static_cast<Int32>(a.i) oper static_cast<Int32>(b.i); \
                 break; \
             case Value::I64: \
                 result.m_value.i64 = a.i oper b.i; \
+                break; \
+            case Value::U8: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u8 = static_cast<UInt8>(a.i); \
+                } else { \
+                    result.m_value.u8 = static_cast<UInt8>(a.u); \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u8 oper##= static_cast<UInt8>(b.i); \
+                } else { \
+                    result.m_value.u8 oper##= static_cast<UInt8>(b.u); \
+                } \
+                break; \
+            case Value::U16: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u16 = static_cast<UInt16>(a.i); \
+                } else { \
+                    result.m_value.u16 = static_cast<UInt16>(a.u); \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u16 oper##= static_cast<UInt16>(b.i); \
+                } else { \
+                    result.m_value.u16 oper##= static_cast<UInt16>(b.u); \
+                } \
                 break; \
             case Value::U32: \
                 if (a.flags & Number::FLAG_SIGNED) { \
@@ -98,11 +128,41 @@
 #define HYP_NUMERIC_OPERATION_BITWISE(a, b, oper) \
     do { \
         switch (result.m_type) { \
+            case Value::I8: \
+                result.m_value.i8 = static_cast<Int8>(a.i) oper static_cast<Int8>(b.i); \
+                break; \
+            case Value::I16: \
+                result.m_value.i16 = static_cast<Int16>(a.i) oper static_cast<Int16>(b.i); \
+                break; \
             case Value::I32: \
                 result.m_value.i32 = static_cast<Int32>(a.i) oper static_cast<Int32>(b.i); \
                 break; \
             case Value::I64: \
                 result.m_value.i64 = a.i oper b.i; \
+                break; \
+            case Value::U8: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u8 = static_cast<UInt8>(a.i); \
+                } else { \
+                    result.m_value.u8 = static_cast<UInt8>(a.u); \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u8 oper##= static_cast<UInt8>(b.i); \
+                } else { \
+                    result.m_value.u8 oper##= static_cast<UInt8>(b.u); \
+                } \
+                break; \
+            case Value::U16: \
+                if (a.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u16 = static_cast<UInt16>(a.i); \
+                } else { \
+                    result.m_value.u16 = static_cast<UInt16>(a.u); \
+                } \
+                if (b.flags & Number::FLAG_SIGNED) { \
+                    result.m_value.u16 oper##= static_cast<UInt16>(b.i); \
+                } else { \
+                    result.m_value.u16 oper##= static_cast<UInt16>(b.u); \
+                } \
                 break; \
             case Value::U32: \
                 if (a.flags & Number::FLAG_SIGNED) { \
@@ -343,9 +403,9 @@ public:
 
     HYP_FORCE_INLINE void LoadType(
         BCRegister reg,
-        uint16_t type_name_len,
+        UInt16 type_name_len,
         const char *type_name,
-        uint16_t size,
+        UInt16 size,
         char **names
     )
     {
@@ -359,11 +419,14 @@ public:
         for (size_t i = 0; i < size; i++) {
             std::strncpy(members[i].name, names[i], 255);
             members[i].hash = hash_fnv_1(names[i]);
-            members[i].value = Value(Value::HEAP_POINTER, {.ptr = nullptr});
+            members[i].value = Value(Value::HEAP_POINTER, { .ptr = nullptr });
         }
 
+        Value parent_class_value = thread->m_regs[reg];
+        AssertThrow(parent_class_value.GetType() == Value::HEAP_POINTER);
+
         // create prototype object
-        hv->Assign(VMObject(members, size));
+        hv->Assign(VMObject(members, size, parent_class_value.m_value.ptr));
 
         delete[] members;
 
@@ -1555,6 +1618,20 @@ public:
 
         if (lhs->GetNumber(&a) && rhs->GetNumber(&b)) {
             switch (result.m_type) {
+            case Value::I8:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
+                }
+                result.m_value.i8 = static_cast<Int8>(a.i % b.i);
+                break;
+            case Value::I16:
+                if (b.i == 0) {
+                    state->ThrowException(thread, Exception::DivisionByZeroException());
+                    break;
+                }
+                result.m_value.i16 = static_cast<Int16>(a.i % b.i);
+                break;
             case Value::I32:
                 if (b.i == 0) {
                     state->ThrowException(thread, Exception::DivisionByZeroException());
@@ -1568,6 +1645,46 @@ public:
                     break;
                 }
                 result.m_value.i64 = a.i % b.i;
+                break;
+            case Value::U8:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u8 = static_cast<UInt8>(a.i);
+                } else {
+                    result.m_value.u8 = static_cast<UInt8>(a.u);
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u8 = result.m_value.u8 % static_cast<UInt8>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u8 = result.m_value.u8 % static_cast<UInt8>(b.u);
+                }
+                break;
+            case Value::U16:
+                if (a.flags & Number::FLAG_SIGNED) {
+                    result.m_value.u16 = static_cast<UInt16>(a.i);
+                } else {
+                    result.m_value.u16 = static_cast<UInt16>(a.u);
+                }
+                if (b.flags & Number::FLAG_SIGNED) {
+                    if (b.i == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u16 = result.m_value.u16 % static_cast<UInt16>(b.i);
+                } else {
+                    if (b.u == 0) {
+                        state->ThrowException(thread, Exception::DivisionByZeroException());
+                        break;
+                    }
+                    result.m_value.u16 = result.m_value.u16 % static_cast<UInt16>(b.u);
+                }
                 break;
             case Value::U32:
                 if (a.flags & Number::FLAG_SIGNED) {
@@ -1833,12 +1950,20 @@ public:
         if (value->GetInteger(&i)) {
             if (value->m_type == Value::I32) {
                 value->m_value.i32 = static_cast<Int32>(~i);
-            } else {
+            } else if (value->m_type == Value::I16) {
+                value->m_value.i16 = static_cast<Int16>(~i);
+            } else if (value->m_type == Value::I8) {
+                value->m_value.i8 = static_cast<Int8>(~i);
+            }  else {
                 value->m_value.i64 = ~i;
             }
         } else if (value->GetUnsigned(&u)) {
             if (value->m_type == Value::U32) {
                 value->m_value.u32 = static_cast<UInt32>(~u);
+            } else if (value->m_type == Value::U16) {
+                value->m_value.u16 = static_cast<UInt16>(~u);
+            } else if (value->m_type == Value::U8) {
+                value->m_value.u8 = static_cast<UInt8>(~u);
             } else {
                 value->m_value.u64 = ~u;
             }
@@ -1886,12 +2011,20 @@ public:
         if (value->GetInteger(&i)) {
             if (value->m_type == Value::I32) {
                 value->m_value.i32 = -static_cast<Int32>(i);
+            } else if (value->m_type == Value::I16) {
+                value->m_value.i16 = -static_cast<Int16>(i);
+            } else if (value->m_type == Value::I8) {
+                value->m_value.i8 = -static_cast<Int8>(i);
             } else {
                 value->m_value.i64 = -i;
             }
         } else if (value->GetUnsigned(&u)) {
             if (value->m_type == Value::U32) {
                 value->m_value.u32 = -static_cast<UInt32>(u);
+            } else if (value->m_type == Value::U16) {
+                value->m_value.u16 = -static_cast<UInt16>(u);
+            } else if (value->m_type == Value::U8) {
+                value->m_value.u8 = -static_cast<UInt8>(u);
             } else {
                 value->m_value.u64 = -u;
             }

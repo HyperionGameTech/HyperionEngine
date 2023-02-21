@@ -653,6 +653,10 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
 {
     const auto &scene_binding = Engine::Get()->render_state.GetScene();
     const UInt scene_index = scene_binding.id.ToIndex();
+
+    const auto &camera = Engine::Get()->GetRenderState().GetCamera();
+
+    DebugLog(LogType::Debug, "Camera #%u at %f, %f, %f\n", camera.id.Value(), camera.camera.position.x, camera.camera.position.y, camera.camera.position.z);
     
     const auto &clipmaps = Engine::Get()->GetRenderData()->spherical_harmonics_grid.clipmaps;
 

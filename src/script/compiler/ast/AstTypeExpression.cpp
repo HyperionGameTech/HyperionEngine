@@ -64,18 +64,24 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
     AssertThrow(visitor != nullptr && mod != nullptr);
 
     auto prototype_type = SymbolType::Object(
-        m_name + "Instance", // Prototype type
+        "$$" + m_name + "Prototype",
         {},
         BuiltinTypes::OBJECT
     );
 
-    SymbolTypePtr_t base_type = BuiltinTypes::CLASS_TYPE;
+    SymbolTypePtr_t base_type = BuiltinTypes::OBJECT;
 
     if (m_base_specification != nullptr) {
         m_base_specification->Visit(visitor, mod);
 
         if (auto base_type_inner = m_base_specification->GetHeldType()) {
             base_type = base_type_inner;
+        } else {
+            visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_internal_error,
+                m_location
+            ));
         }
     }
 
@@ -91,7 +97,7 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
 
     m_expr.Reset(new AstTypeObject(
         m_symbol_type,
-        nullptr, // prototype - TODO
+        RC<AstVariable>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location)),
         m_enum_underlying_type,
         m_is_proxy_class,
         m_location
@@ -145,11 +151,9 @@ void AstTypeExpression::Visit(AstVisitor *visitor, Module *mod)
         m_symbol_type->AddMember(SymbolMember_t {
             "base",
             base_type,
-            RC<AstTypeObject>(new AstTypeObject(
-                base_type,
-                nullptr,
-                m_location
-            ))
+            m_base_specification != nullptr
+                ? CloneAstNode(m_base_specification->GetExpr())
+                : RC<AstExpression>(new AstVariable(BuiltinTypes::CLASS_TYPE->GetName(), m_location))
         });
     }
 

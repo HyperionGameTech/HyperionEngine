@@ -2,9 +2,12 @@
 #define VALUE_HPP
 
 #include <core/lib/TypeID.hpp>
+#include <core/lib/String.hpp>
 
 #include <script/vm/VMString.hpp>
 #include <Types.hpp>
+
+#include <asset/ByteWriter.hpp>
 
 #include <util/Defines.hpp>
 
@@ -40,8 +43,10 @@ struct Number
         FLAG_UNSIGNED = 0x02,
         FLAG_FLOATING_POINT = 0x04,
 
-        FLAG_32_BIT = 0x08,
-        FLAG_64_BIT = 0x10
+        FLAG_8_BIT = 0x08,
+        FLAG_16_BIT = 0x10,
+        FLAG_32_BIT = 0x20,
+        FLAG_64_BIT = 0x40
     };
 
     FlagBits flags;
@@ -95,8 +100,12 @@ struct Value
         NONE,
 
         /* These first types are listed in order of conversion precedence */
+        I8,
+        I16,
         I32,
         I64,
+        U8,
+        U16,
         U32,
         U64,
         F32,
@@ -117,6 +126,13 @@ struct Value
 
     union ValueData
     {
+        // internal only, for now
+        Int8 i8;
+        UInt8 u8;
+        Int16 i16;
+        UInt16 u16;
+        // -----
+
         Int32 i32;
         Int64 i64;
         UInt32 u32;
@@ -177,6 +193,8 @@ struct Value
     HYP_FORCE_INLINE bool GetUnsigned(UInt64 *out) const
     {
         switch (m_type) {
+            case U8: *out = static_cast<UInt64>(m_value.u8); return true;
+            case U16: *out = static_cast<UInt64>(m_value.u16); return true;
             case U32: *out = static_cast<UInt64>(m_value.u32); return true;
             case U64: *out = m_value.u64; return true;
             default: return false;
@@ -186,6 +204,8 @@ struct Value
     HYP_FORCE_INLINE bool GetInteger(Int64 *out) const
     {
         switch (m_type) {
+            case I8: *out = static_cast<Int64>(m_value.i8); return true;
+            case I16: *out = static_cast<Int64>(m_value.i16); return true;
             case I32: *out = static_cast<Int64>(m_value.i32); return true;
             case I64: *out = m_value.i64; return true;
             default: return false;
@@ -195,8 +215,12 @@ struct Value
     HYP_FORCE_INLINE bool GetSignedOrUnsigned(Number *out) const
     {
         switch (m_type) {
+            case I8: out->i = static_cast<Int64>(m_value.i8); out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT; return true;
+            case I16: out->i = static_cast<Int64>(m_value.i16); out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT; return true;
             case I32: out->i = static_cast<Int64>(m_value.i32); out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT; return true;
             case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT; return true;
+            case U8: out->u = static_cast<UInt64>(m_value.u8); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT; return true;
+            case U16: out->u = static_cast<UInt64>(m_value.u16); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT; return true;
             case U32: out->u = static_cast<UInt64>(m_value.u32); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT; return true;
             case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT; return true;
             default: return false;
@@ -234,8 +258,12 @@ struct Value
     HYP_FORCE_INLINE bool GetNumber(Double *out) const
     {
         switch (m_type) {
+            case I8: *out = static_cast<Double>(m_value.i8); return true;
+            case I16: *out = static_cast<Double>(m_value.i16); return true;
             case I32: *out = static_cast<Double>(m_value.i32); return true;
             case I64: *out = static_cast<Double>(m_value.i64); return true;
+            case U8: *out = static_cast<Double>(m_value.u8); return true;
+            case U16: *out = static_cast<Double>(m_value.u16); return true;
             case U32: *out = static_cast<Double>(m_value.u32); return true;
             case U64: *out = static_cast<Double>(m_value.u64); return true;
             case F32: *out = static_cast<Double>(m_value.f); return true;
@@ -247,8 +275,12 @@ struct Value
     HYP_FORCE_INLINE bool GetNumber(Number *out) const
     {
         switch (m_type) {
+            case I8: out->i = static_cast<Int64>(m_value.i8); out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT; return true;
+            case I16: out->i = static_cast<Int64>(m_value.i16); out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT; return true;
             case I32: out->i = static_cast<Int64>(m_value.i32); out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT; return true;
             case I64: out->i = m_value.i64; out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT; return true;
+            case U8: out->u = static_cast<UInt64>(m_value.u8); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT; return true;
+            case U16: out->u = static_cast<UInt64>(m_value.u16); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT; return true;
             case U32: out->u = static_cast<UInt64>(m_value.u32); out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT; return true;
             case U64: out->u = m_value.u64; out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT; return true;
             case F32: out->f = static_cast<Double>(m_value.f); out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT; return true;

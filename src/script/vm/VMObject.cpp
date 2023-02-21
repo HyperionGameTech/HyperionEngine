@@ -153,12 +153,12 @@ Member *ObjectMap::Get(UInt32 hash)
     return res;
 }
 
-VMObject::VMObject(HeapValue *proto)
-    : m_proto(proto)
+VMObject::VMObject(HeapValue *class_ptr)
+    : m_class_ptr(class_ptr)
 {
-    AssertThrow(proto != nullptr);
+    AssertThrow(m_class_ptr != nullptr);
 
-    const VMObject *proto_obj = proto->GetPointer<VMObject>();
+    const VMObject *proto_obj = m_class_ptr->GetPointer<VMObject>();
     AssertThrow(proto_obj != nullptr);
 
     SizeType size = proto_obj->GetSize();
@@ -181,8 +181,8 @@ VMObject::VMObject(HeapValue *proto)
     m_object_map->Push(hash, &m_members[i]);*/
 }
 
-VMObject::VMObject(const Member *members, size_t size, HeapValue *proto)
-    : m_proto(proto)
+VMObject::VMObject(const Member *members, size_t size, HeapValue *class_ptr)
+    : m_class_ptr(class_ptr)
 {
     AssertThrow(members != nullptr);
 
@@ -196,7 +196,7 @@ VMObject::VMObject(const Member *members, size_t size, HeapValue *proto)
 }
 
 VMObject::VMObject(const VMObject &other)
-    : m_proto(other.m_proto)
+    : m_class_ptr(other.m_class_ptr)
 {
     const SizeType size = other.GetSize();
 
@@ -214,7 +214,7 @@ VMObject::VMObject(const VMObject &other)
 
 VMObject::~VMObject()
 {
-    m_proto = nullptr;
+    m_class_ptr = nullptr;
 
     delete m_object_map;
     m_object_map = nullptr;
@@ -229,8 +229,8 @@ Member *VMObject::LookupMemberFromHash(UInt32 hash, bool deep) const
         return member;
     }
 
-    if (deep && m_proto != nullptr) {
-        if (VMObject *base_object = m_proto->GetPointer<VMObject>()) {
+    if (deep && m_class_ptr != nullptr) {
+        if (VMObject *base_object = m_class_ptr->GetPointer<VMObject>()) {
             return base_object->LookupMemberFromHash(hash);
         }
     }

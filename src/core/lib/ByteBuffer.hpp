@@ -4,6 +4,8 @@
 #include <core/lib/RefCountedPtr.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/Variant.hpp>
+#include <core/lib/Span.hpp>
+#include <core/lib/CMemory.hpp>
 #include <HashCode.hpp>
 
 #include <Types.hpp>
@@ -11,6 +13,9 @@
 namespace hyperion {
 
 using ByteArray = Array<UByte>;
+
+using ByteView = Span<UByte>;
+using ConstByteView = Span<const UByte>;
 
 /*! \brief An immutable array of bytes, which for large buffers, shares the memory with any copied objects */
 class ByteBuffer
@@ -36,6 +41,20 @@ public:
         // default it to internal byte array
         m_internal.Set<InternalArray>({ });
         SetData(count, data);
+    }
+
+    explicit ByteBuffer(const ByteView &view)
+    {
+        // default it to internal byte array
+        m_internal.Set<InternalArray>({ });
+        SetData(view.size, view.ptr);
+    }
+
+    explicit ByteBuffer(const ConstByteView &view)
+    {
+        // default it to internal byte array
+        m_internal.Set<InternalArray>({ });
+        SetData(view.size, view.ptr);
     }
 
     ByteBuffer(const ByteBuffer &other)
@@ -69,17 +88,23 @@ public:
         if (count > InternalArray::num_inline_elements) {
             m_internal.Set(RefCountedPtr<InternalArray>(new InternalArray()));
 
-            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
+            if (count != 0) {
+                auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
 
-            byte_array->Resize(count);
-            Memory::Copy(byte_array->Data(), data, count);
+                byte_array->Resize(count);
+
+                Memory::Copy(byte_array->Data(), data, count);
+            }
         } else {
             m_internal.Set(InternalArray { });
 
-            auto &byte_array = m_internal.Get<InternalArray>();
+            if (count != 0) {
+                auto &byte_array = m_internal.Get<InternalArray>();
 
-            byte_array.Resize(count);
-            Memory::Copy(byte_array.Data(), data, count);
+                byte_array.Resize(count);
+
+                Memory::Copy(byte_array.Data(), data, count);
+            }
         }
     }
 
@@ -114,6 +139,53 @@ public:
 
     const UByte *Data() const
         { return GetInternalArray().Data(); }
+
+    bool Read(SizeType offset, SizeType count, UByte *out_values) const
+    {
+        AssertThrow(out_values != nullptr);
+
+        const SizeType size = Size();
+
+        if (offset >= size || offset + count > size) {
+            return false;
+        }
+
+        const UByte *data = Data();
+
+        for (SizeType index = offset; index < offset + count; index++) {
+            out_values[index - offset] = data[index];
+        }
+
+        return true;
+    }
+
+    template <class T>
+    bool Read(SizeType offset, T *out) const
+    {
+        static_assert(std::is_pod_v<T>, "Must be POD type");
+
+        AssertThrow(out != nullptr);
+
+        constexpr SizeType count = sizeof(T);
+        const SizeType size = Size();
+
+        if (offset >= size || offset + count > size) {
+            return false;
+        }
+
+        const UByte *data = Data();
+
+        alignas(T) UByte bytes[sizeof(T)];
+
+        for (SizeType index = offset; index < offset + count; index++) {
+            bytes[index - offset] = data[index];
+        }
+
+        Memory::Copy(out, bytes, sizeof(T));
+
+        return true;
+
+    }
 
     SizeType Size() const
         { return GetInternalArray().Size(); }

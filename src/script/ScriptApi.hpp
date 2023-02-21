@@ -23,7 +23,6 @@
 #include <util/Defines.hpp>
 
 #include <unordered_map>
-#include <list>
 
 #ifndef __cplusplus
 #error Script requires a C++ compiler

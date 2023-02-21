@@ -156,19 +156,19 @@ SymbolTypePtr_t AstArrayAccess::GetExprType() const
     SymbolTypePtr_t target_type = m_target->GetExprType();
     AssertThrow(target_type != nullptr);
 
-    if (target_type->GetTypeClass() == TYPE_ARRAY) {
-        SymbolTypePtr_t held_type = BuiltinTypes::UNDEFINED;
+    SymbolTypePtr_t held_type;
 
-        if (target_type->GetGenericInstanceInfo().m_generic_args.Size() == 1) {
+    if (target_type->IsArrayType()) {
+        if (target_type->GetGenericInstanceInfo().m_generic_args.Size() >= 1) {
             held_type = target_type->GetGenericInstanceInfo().m_generic_args[0].m_type;
-            // todo: tuple?
         }
-
-        AssertThrow(held_type != nullptr);
-        return held_type;
     }
 
-    return BuiltinTypes::ANY;
+    if (!held_type) {
+        held_type = BuiltinTypes::ANY;
+    }
+
+    return held_type;
 }
 
 AstExpression *AstArrayAccess::GetTarget() const
