@@ -7,22 +7,21 @@ namespace hyperion {
 namespace vm {
 
 VMMemoryBuffer::VMMemoryBuffer(SizeType size)
-    : m_size(size),
-      m_buffer(std::malloc(size))
+    : m_bytes(size)
+{
+}
+
+VMMemoryBuffer::VMMemoryBuffer(const ByteBuffer &bytes)
+    : m_bytes(bytes)
 {
 }
 
 VMMemoryBuffer::VMMemoryBuffer(const VMMemoryBuffer &other)
-    : m_size(other.m_size),
-      m_buffer(std::malloc(other.m_size))
+    : m_bytes(other.m_bytes)
 {
-    hyperion::Memory::Copy(m_buffer, other.m_buffer, m_size);
 }
 
-VMMemoryBuffer::~VMMemoryBuffer()
-{
-    std::free(m_buffer);
-}
+VMMemoryBuffer::~VMMemoryBuffer() = default;
 
 VMMemoryBuffer &VMMemoryBuffer::operator=(const VMMemoryBuffer &other)
 {
@@ -30,17 +29,7 @@ VMMemoryBuffer &VMMemoryBuffer::operator=(const VMMemoryBuffer &other)
         return *this;
     }
 
-    if (other.m_size != m_size) {
-        if (m_buffer) {
-            std::free(m_buffer);
-        }
-
-        m_size = other.m_size;
-        m_buffer = std::malloc(other.m_size);
-    }
-
-    // copy all objects
-    hyperion::Memory::Copy(m_buffer, other.m_buffer, m_size);
+    m_bytes = other.m_bytes;
 
     return *this;
 }
@@ -52,14 +41,14 @@ void VMMemoryBuffer::GetRepresentation(
 ) const
 {
     if (depth == 0) {
-        ss << "MemoryBuffer(" << m_buffer << ")\n";
+        ss << "MemoryBuffer(" << ((const void *)m_bytes.Data()) << ")\n";
 
         return;
     }
 
     // convert all array elements to string
-    for (SizeType i = 0; i < m_size; i++) {
-        ss << "\\0x" << std::hex << static_cast<uint16_t>(reinterpret_cast<unsigned char *>(m_buffer)[i]) << std::dec;
+    for (SizeType i = 0; i < m_bytes.Size(); i++) {
+        ss << "\\0x" << std::hex << static_cast<UInt16>(m_bytes.Data()[i]) << std::dec;
     }
 }
 

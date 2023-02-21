@@ -3,6 +3,7 @@
 
 #include <core/lib/CMemory.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/DynArray.hpp>
 #include <Types.hpp>
 
 #include <type_traits>
@@ -77,16 +78,18 @@ public:
     {
     }
 
-    const std::vector<char> &GetData() const { return m_data; }
+    const Array<UByte> &GetData() const { return m_data; }
 
 private:
-    std::vector<char> m_data;
-    size_t m_pos;
+    Array<UByte> m_data;
+    SizeType m_pos;
 
     void WriteBytes(const char *ptr, SizeType size)
     {
+        m_data.Reserve(m_data.Size() + size);
+
         for (SizeType i = 0; i < size; i++) {
-            m_data.push_back(ptr[i]);
+            m_data.PushBack(ptr[i]);
             m_pos++;
         }
     }

@@ -1,6 +1,8 @@
 #ifndef MEMORY_BUFFER_HPP
 #define  MEMORY_BUFFER_HPP
 
+#include <core/lib/ByteBuffer.hpp>
+
 #include <system/Debug.hpp>
 #include <Types.hpp>
 
@@ -9,17 +11,21 @@
 namespace hyperion {
 namespace vm {
 
-class VMMemoryBuffer {
+class VMMemoryBuffer
+{
 public:
     VMMemoryBuffer(SizeType size = 0);
+    VMMemoryBuffer(const ByteBuffer &bytes);
     VMMemoryBuffer(const VMMemoryBuffer &other);
     ~VMMemoryBuffer();
 
     VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
     bool operator==(const VMMemoryBuffer &other) const { return this == &other; }
 
-    SizeType GetSize() const { return m_size; }
-    void *GetBuffer() const { return m_buffer; }
+    SizeType GetSize() const { return m_bytes.Size(); }
+
+    void *GetBuffer() { return m_bytes.Data(); }
+    const void *GetBuffer() const { return m_bytes.Data(); }
 
     void GetRepresentation(
         std::stringstream &ss,
@@ -28,8 +34,7 @@ public:
     ) const;
 
 private:
-    SizeType m_size;
-    void *m_buffer;
+    ByteBuffer m_bytes;
 };
 
 } // namespace vm

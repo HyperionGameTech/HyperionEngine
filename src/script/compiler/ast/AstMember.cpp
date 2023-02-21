@@ -41,7 +41,6 @@ void AstMember::Visit(AstVisitor *visitor, Module *mod)
 {
     if (m_field_name == Keyword::ToString(Keyword_class)) {
         // transform x.class into GetClass(x)
-
         m_override_expr = visitor->GetCompilationUnit()->GetAstNodeBuilder()
             .Module(Config::global_module_name)
             .Function("GetClass")

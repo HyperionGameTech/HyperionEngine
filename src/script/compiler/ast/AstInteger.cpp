@@ -26,7 +26,7 @@ AstInteger::AstInteger(hyperion::Int32 value, const SourceLocation &location)
 std::unique_ptr<Buildable> AstInteger::Build(AstVisitor *visitor, Module *mod)
 {
     // get active register
-    uint8_t rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+    UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
     return BytecodeUtil::Make<ConstI32>(rp, m_value);
 }
 

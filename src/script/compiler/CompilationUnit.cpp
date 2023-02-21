@@ -24,7 +24,6 @@ CompilationUnit::CompilationUnit()
 
     Scope &top = m_global_module->m_scopes.Top();
 
-    top.GetIdentifierTable().BindTypeToIdentifier("Object", BuiltinTypes::OBJECT);
     top.GetIdentifierTable().BindTypeToIdentifier("Any", BuiltinTypes::ANY);
     top.GetIdentifierTable().BindTypeToIdentifier("Maybe", BuiltinTypes::MAYBE);
     top.GetIdentifierTable().BindTypeToIdentifier("Const", BuiltinTypes::CONST_TYPE);

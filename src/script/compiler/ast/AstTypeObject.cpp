@@ -93,6 +93,15 @@ std::unique_ptr<Buildable> AstTypeObject::Build(AstVisitor *visitor, Module *mod
 
     // get active register
     UInt8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
+    if (m_proto != nullptr) {
+        chunk->Append(m_proto->Build(visitor, mod));
+    } else {
+        chunk->Append(BytecodeUtil::Make<ConstNull>(rp));
+    }
+
+    rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
+
     // store object's register location
     const UInt8 obj_reg = rp;
 
@@ -211,8 +220,7 @@ bool AstTypeObject::MayHaveSideEffects() const
 
 SymbolTypePtr_t AstTypeObject::GetExprType() const
 {
-    AssertThrow(m_symbol_type != nullptr);
-    return m_symbol_type->GetBaseType();
+    return BuiltinTypes::CLASS_TYPE;
 }
 
 } // namespace hyperion::compiler

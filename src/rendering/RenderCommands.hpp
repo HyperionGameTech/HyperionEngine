@@ -31,7 +31,7 @@ using renderer::Result;
     }
 
 constexpr SizeType max_render_command_types = 128;
-constexpr SizeType render_command_cache_size = 2048;
+constexpr SizeType render_command_cache_size = 128;
 
 
 using RenderCommandRewindFunc = void(*)(void *);

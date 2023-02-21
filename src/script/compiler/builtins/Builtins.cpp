@@ -20,6 +20,10 @@ Builtins::Builtins()
         BuiltinTypes::CLASS_TYPE, nullptr, SourceLocation::eof
     ));
 
+    m_vars["Object"].Reset(new AstTypeObject(
+        BuiltinTypes::OBJECT, nullptr, SourceLocation::eof
+    ));
+
     m_vars["Null"].Reset(new AstTypeObject(
         BuiltinTypes::NULL_TYPE, nullptr, SourceLocation::eof
     ));

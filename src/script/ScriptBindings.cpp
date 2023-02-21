@@ -22,6 +22,14 @@ namespace hyperion {
 using namespace vm;
 using namespace compiler;
 
+struct FilePointerMap
+{
+    HashMap<UInt32, FILE *> data;
+    UInt32 counter = 0;
+};
+
+thread_local FilePointerMap file_pointer_map;
+
 APIInstance::ClassBindings ScriptBindings::class_bindings = {};
 // static APIInstance::ClassBindings class_bindings = {};
 
@@ -510,6 +518,306 @@ static HYP_SCRIPT_FUNCTION(VM_ReadStackVar)
     HYP_SCRIPT_RETURN(stk.GetData()[index]);
 }
 
+static HYP_SCRIPT_FUNCTION(Runtime_MakeStruct)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::VMArray *arguments_ptr = GetArgument<0, vm::VMArray>(params);
+
+    if (!arguments_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    Array<vm::VMStructMember> members;
+    members.Resize(arguments_ptr->GetSize());
+
+    for (Int32 index = 0; index < arguments_ptr->GetSize(); index++) {
+        vm::VMStructMember &member = members[index];
+
+        vm::VMArray *item_array = nullptr;
+        vm::VMString *item_type_str = nullptr;
+        vm::VMString *item_name_str = nullptr;
+        vm::VMString *value_str = nullptr;
+        vm::VMStruct *value_struct = nullptr;
+        vm::Value default_value = vm::Value(vm::Value::ValueType::NONE, { .ptr = nullptr });
+
+        vm::VMStructType member_type = vm::VM_STRUCT_TYPE_NONE;
+
+        vm::Value::ValueData data;
+        
+        if (!arguments_ptr->AtIndex(index).GetPointer<vm::VMArray>(&item_array)) {
+            goto invalid_array;
+        }
+
+        if (item_array->GetSize() != 3) {
+            goto invalid_array;
+        }
+
+        if (!item_array->AtIndex(0).GetPointer<vm::VMString>(&item_type_str)) {
+            goto invalid_array;
+        }
+
+        if (!item_array->AtIndex(1).GetPointer<vm::VMString>(&item_name_str)) {
+            goto invalid_array;
+        }
+
+        default_value = item_array->AtIndex(2);
+
+        // Lookup a type based on the name
+        if ((*item_type_str) == "i8") {
+            member_type = vm::VM_STRUCT_TYPE_I8;
+
+            default_value.GetInteger(&data.i64);
+            data.i8 = static_cast<Int8>(data.i64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "u8") {
+            member_type = vm::VM_STRUCT_TYPE_U8;
+
+            default_value.GetUnsigned(&data.u64);
+            data.u8 = static_cast<UInt8>(data.u64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "i16") {
+            member_type = vm::VM_STRUCT_TYPE_I16;
+
+            default_value.GetInteger(&data.i64);
+            data.i16 = static_cast<Int8>(data.i64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "u16") {
+            member_type = vm::VM_STRUCT_TYPE_U16;
+
+            default_value.GetUnsigned(&data.u64);
+            data.u16 = static_cast<UInt16>(data.u64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "i32") {
+            member_type = vm::VM_STRUCT_TYPE_I32;
+
+            default_value.GetInteger(&data.i64);
+            data.i32 = static_cast<Int8>(data.i64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "u32") {
+            member_type = vm::VM_STRUCT_TYPE_U32;
+
+            default_value.GetUnsigned(&data.u64);
+            data.u32 = static_cast<UInt32>(data.u64);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "i64") {
+            member_type = vm::VM_STRUCT_TYPE_I64;
+
+            default_value.GetInteger(&data.i64);
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "u64") {
+            member_type = vm::VM_STRUCT_TYPE_U64;
+
+            default_value.GetUnsigned(&data.u64);
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "f32") {
+            member_type = vm::VM_STRUCT_TYPE_F32;
+
+            default_value.GetFloatingPoint(&data.d);
+            data.f = static_cast<Float32>(data.d);
+
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "f64") {
+            member_type = vm::VM_STRUCT_TYPE_F64;
+
+            default_value.GetFloatingPoint(&data.d);
+            members[index].data_buffer.Set(data);
+        } else if ((*item_type_str) == "string") {
+            member_type = vm::VM_STRUCT_TYPE_STRING;
+
+            if (default_value.GetPointer<vm::VMString>(&value_str)) {
+                members[index].data_buffer.Set(ByteBuffer(value_str->GetLength(), value_str->GetData()));
+            } else {
+                members[index].data_buffer.Set(ByteBuffer(0, nullptr));
+            }
+        } else if ((*item_type_str) == "struct") {
+            member_type = vm::VM_STRUCT_TYPE_STRUCT;
+
+            if (default_value.GetPointer<vm::VMStruct>(&value_struct)) {
+                members[index].data_buffer.Set(value_struct->GetStructMemory());
+            } else {
+                members[index].data_buffer.Set(ByteBuffer(0, nullptr));
+            }
+        } else {
+            goto invalid_member_type_given;
+        }
+
+        members[index].type = member_type;
+        members[index].name = ANSIString(item_name_str->GetData());
+
+        continue;
+
+invalid_member_type_given:
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid member type given"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+
+invalid_array:
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("All arguments to MakeStruct must be an array of 2-3 elements, in format: (type: String, name: String, default_value: Any)"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    vm::VMStruct struct_object;
+
+    if (vm::VMStruct::Make(members, struct_object)) {
+        // create heap value for string
+        vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+        AssertThrow(ptr != nullptr);
+
+        ptr->Assign(std::move(struct_object));
+        ptr->Mark();
+
+        HYP_SCRIPT_RETURN_PTR(ptr);
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid struct object; could not create the struct."));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_ReadStructMember)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct>(params);
+    vm::VMString *member_name_ptr = GetArgument<1, vm::VMString>(params);
+
+    if (!struct_ptr || !member_name_ptr) {
+        HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    vm::VMStructView struct_view;
+    
+    if (!struct_ptr->Decompose(struct_ptr->GetStructMemory(), struct_view)) {
+        HYP_BREAKPOINT;
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid struct object; could not decompose the struct memory."));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    const auto it = struct_view.members.FindIf([member_name_ptr](const vm::VMStructMemberView &item) {
+        if (Memory::StringCompare(reinterpret_cast<const char *>(item.name_view.ptr), member_name_ptr->GetData(), item.name_view.size) == 0) {
+            return true;
+        }
+
+        return false;
+    });
+
+    if (it == struct_view.members.End()) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+
+    vm::Value value = vm::Value(vm::Value::NONE, { .ptr = nullptr });
+
+    if (it->type < vm::VM_STRUCT_TYPE_DYNAMIC) {
+        if (vm::Value::ValueData *value_data = it->data_view.TryGet<vm::Value::ValueData>()) {
+            value.m_value = *value_data;
+
+            switch (it->type) {
+            case VM_STRUCT_TYPE_I8:
+                value.m_type = vm::Value::I8;
+                break;
+            case VM_STRUCT_TYPE_U8:
+                value.m_type = vm::Value::U8;
+                break;
+            case VM_STRUCT_TYPE_I16:
+                value.m_type = vm::Value::I16;
+                break;
+            case VM_STRUCT_TYPE_U16:
+                value.m_type = vm::Value::U16;
+                break;
+            case VM_STRUCT_TYPE_I32:
+                value.m_type = vm::Value::I32;
+                break;
+            case VM_STRUCT_TYPE_U32:
+                value.m_type = vm::Value::U32;
+                break;
+            case VM_STRUCT_TYPE_I64:
+                value.m_type = vm::Value::I64;
+                break;
+            case VM_STRUCT_TYPE_U64:
+                value.m_type = vm::Value::U64;
+                break;
+            case VM_STRUCT_TYPE_F32:
+                value.m_type = vm::Value::F32;
+                break;
+            case VM_STRUCT_TYPE_F64:
+                value.m_type = vm::Value::F64;
+                break;
+            default:
+                AssertThrowMsg(false, "Not implemented");
+                break;
+            }
+
+            HYP_SCRIPT_RETURN(value);
+        }
+    } else {
+        if (vm::VMStructMemoryView *value_memory = it->data_view.TryGet<vm::VMStructMemoryView>()) {
+            // create heap value for struct or string
+            vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+            AssertThrow(ptr != nullptr);
+
+            switch (it->type) {
+            case VM_STRUCT_TYPE_STRING:
+                ptr->Assign(vm::VMString(reinterpret_cast<const char *>(value_memory->ptr), value_memory->size));
+
+                break;
+            case VM_STRUCT_TYPE_STRUCT:
+                ptr->Assign(vm::VMStruct(*value_memory));
+
+                break;
+            
+            default:
+                AssertThrowMsg(false, "Not implemented");
+                break;
+            }
+
+            ptr->Mark();
+
+            HYP_SCRIPT_RETURN_PTR(ptr);
+        }
+    }
+
+    params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid struct object; could not construct a valid value for the struct member."));
+
+    HYP_SCRIPT_RETURN_VOID(nullptr);
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_GetStructMemoryBuffer)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct>(params);
+
+    if (!struct_ptr) {
+        HYP_SCRIPT_RETURN_NULL();
+    }
+    
+    // create heap value for struct memory buffer
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+
+    AssertThrow(ptr != nullptr);
+    ptr->Assign(vm::VMMemoryBuffer(struct_ptr->GetStructMemory()));
+
+    vm::Value res;
+    // assign register value to the allocated object
+    res.m_type = vm::Value::HEAP_POINTER;
+    res.m_value.ptr = ptr;
+
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN(res);
+}
+
 static HYP_SCRIPT_FUNCTION(Runtime_HasMember)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
@@ -573,12 +881,282 @@ static HYP_SCRIPT_FUNCTION(Runtime_GetClass)
     vm::VMObject *object_ptr;
 
     if (arg0->GetPointer<vm::VMObject>(&object_ptr)) {
-        vm::Value result_value(vm::Value::HEAP_POINTER, { .ptr = object_ptr->GetBaseObject() });
+        vm::Value result_value(vm::Value::HEAP_POINTER, { .ptr = object_ptr->GetClassPointer() });
         
         HYP_SCRIPT_RETURN(result_value);
     } else {
         HYP_SCRIPT_THROW(vm::Exception("Not an object"));
     }
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_OpenFilePointer)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    vm::VMString *path_str = GetArgument<0, vm::VMString>(params);
+    vm::VMString *args_str = GetArgument<1, vm::VMString>(params);
+
+    if (!path_str || !args_str) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid arguments to fopen"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    FILE *fptr = nullptr;
+
+    if (Memory::StringCompare(path_str->GetData(), "stdout") == 0) {
+        fptr = stdout;
+    } else if (Memory::StringCompare(path_str->GetData(), "stderr") == 0) {
+        fptr = stderr;
+    } else {
+        fptr = fopen(path_str->GetData(), args_str->GetData());
+    }
+
+    if (!fptr) {
+        HYP_SCRIPT_RETURN_UINT32(~0u);
+    }
+
+    const UInt32 id = ++file_pointer_map.counter;
+    file_pointer_map.data[id] = fptr;
+
+    HYP_SCRIPT_RETURN_UINT32(id);
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_CloseFilePointer)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    const UInt32 file_id = GetArgument<0, UInt32>(params);
+
+    if (file_id == ~0u) {
+        HYP_SCRIPT_RETURN_BOOLEAN(false);
+    }
+
+    const auto it = file_pointer_map.data.Find(file_id);
+
+    if (it == file_pointer_map.data.End()) {
+        HYP_SCRIPT_RETURN_BOOLEAN(false);
+    }
+
+    Int close_result = -1;
+    
+    if (it->value != stdout && it->value != stderr) {
+        close_result = fclose(it->value);
+    }
+
+    file_pointer_map.data.Erase(it);
+
+    HYP_SCRIPT_RETURN_BOOLEAN(close_result == 0);
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_WriteFileData)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 2);
+
+    const UInt32 file_id = GetArgument<0, UInt32>(params);
+
+    if (file_id == ~0u) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    const auto it = file_pointer_map.data.Find(file_id);
+
+    if (it == file_pointer_map.data.End()) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    FILE *fptr = it->value;
+
+    if (!fptr) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    Value *target_ptr = params.args[1];
+
+    const int buffer_size = 256;
+    char buffer[buffer_size];
+    std::snprintf(
+        buffer,
+        buffer_size,
+        "Invalid argument type to write to file, %s. Argument must be one of: (String, MemoryBuffer, Struct)",
+        target_ptr ? target_ptr->GetTypeString() : "NULL"
+    );
+    vm::Exception e(buffer);
+    
+    if (!target_ptr) {
+        params.handler->state->ThrowException(params.handler->thread, e);
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    if (target_ptr->GetType() == Value::ValueType::HEAP_POINTER) {
+        union
+        {
+            VMString *str_ptr;
+            VMArray *array_ptr;
+            VMMemoryBuffer *memory_buffer_ptr;
+            VMObject *obj_ptr;
+            VMStruct *struct_ptr;
+        } data;
+
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((data.str_ptr = target_ptr->GetValue().ptr->GetPointer<VMString>()) != nullptr) {
+            fwrite(data.str_ptr->GetData(), 1, data.str_ptr->GetLength(), fptr);
+        } else if ((data.memory_buffer_ptr = target_ptr->GetValue().ptr->GetPointer<VMMemoryBuffer>()) != nullptr) {
+            fwrite(data.memory_buffer_ptr->GetBuffer(), 1, data.memory_buffer_ptr->GetSize(), fptr);
+        } else if ((data.struct_ptr = target_ptr->GetValue().ptr->GetPointer<VMStruct>()) != nullptr) {
+            fwrite(data.struct_ptr->GetStructMemory().Data(), 1, data.struct_ptr->GetStructMemory().Size(), fptr);
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+    } else {
+        params.handler->state->ThrowException(params.handler->thread, e);
+    }
+
+    HYP_SCRIPT_RETURN_VOID(nullptr);
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_FlushFileStream)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    const UInt32 file_id = GetArgument<0, UInt32>(params);
+
+    if (file_id == ~0u) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    const auto it = file_pointer_map.data.Find(file_id);
+
+    if (it == file_pointer_map.data.End()) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    FILE *fptr = it->value;
+
+    if (!fptr) {
+        params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    fflush(fptr);
+
+    HYP_SCRIPT_RETURN_VOID(nullptr);
+}
+
+static HYP_SCRIPT_FUNCTION(Runtime_ToMemoryBuffer)
+{
+    HYP_SCRIPT_CHECK_ARGS(==, 1);
+
+    MemoryByteWriter byte_writer;
+
+    vm::Value *target_ptr = params.args[0];
+
+    const int buffer_size = 256;
+    char buffer[buffer_size];
+    std::snprintf(
+        buffer,
+        buffer_size,
+        "Invalid argument type to convert to MemoryBuffer, %s.",
+        target_ptr ? target_ptr->GetTypeString() : "NULL"
+    );
+    vm::Exception e(buffer);
+    
+    if (!target_ptr) {
+        params.handler->state->ThrowException(params.handler->thread, e);
+
+        HYP_SCRIPT_RETURN_VOID(nullptr);
+    }
+
+    union
+    {
+        VMString *str_ptr;
+        VMArray *array_ptr;
+        VMMemoryBuffer *memory_buffer_ptr;
+        VMObject *obj_ptr;
+        VMStruct *struct_ptr;
+    } data;
+
+    switch (target_ptr->GetType()) {
+    case Value::ValueType::HEAP_POINTER:
+        if (target_ptr->GetValue().ptr == nullptr) {
+            params.handler->state->ThrowException(
+                params.handler->thread,
+                vm::Exception::NullReferenceException()
+            );
+        } else if ((data.str_ptr = target_ptr->GetValue().ptr->GetPointer<VMString>()) != nullptr) {
+            byte_writer.Write(data.str_ptr->GetData(), data.str_ptr->GetLength());
+        } else if ((data.memory_buffer_ptr = target_ptr->GetValue().ptr->GetPointer<VMMemoryBuffer>()) != nullptr) {
+            byte_writer.Write(data.memory_buffer_ptr->GetBuffer(), data.memory_buffer_ptr->GetSize());
+        } else if ((data.struct_ptr = target_ptr->GetValue().ptr->GetPointer<VMStruct>()) != nullptr) {
+            byte_writer.Write(data.struct_ptr->GetStructMemory().Data(), data.struct_ptr->GetStructMemory().Size());
+        } else {
+            params.handler->state->ThrowException(params.handler->thread, e);
+        }
+
+        break;
+    case Value::ValueType::I8:
+        byte_writer.Write(target_ptr->m_value.i8);
+        break;
+    case Value::ValueType::I16:
+        byte_writer.Write(target_ptr->m_value.i16);
+        break;
+    case Value::ValueType::I32:
+        byte_writer.Write(target_ptr->m_value.i32);
+        break;
+    case Value::ValueType::I64:
+        byte_writer.Write(target_ptr->m_value.i64);
+        break;
+    case Value::ValueType::U8:
+        byte_writer.Write(target_ptr->m_value.u8);
+        break;
+    case Value::ValueType::U16:
+        byte_writer.Write(target_ptr->m_value.u16);
+        break;
+    case Value::ValueType::U32:
+        byte_writer.Write(target_ptr->m_value.u32);
+        break;
+    case Value::ValueType::U64:
+        byte_writer.Write(target_ptr->m_value.u64);
+        break;
+    case Value::ValueType::BOOLEAN:
+        byte_writer.Write(UInt8(target_ptr->m_value.b));
+        break;
+    case Value::ValueType::F32:
+        byte_writer.Write(target_ptr->m_value.f);
+        break;
+    case Value::ValueType::F64:
+        byte_writer.Write(target_ptr->m_value.d);
+        break;
+    default:
+        params.handler->state->ThrowException(params.handler->thread, e);
+
+        break;
+    }
+
+    // create heap value for string
+    vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
+    AssertThrow(ptr != nullptr);
+
+    ptr->Assign(vm::VMMemoryBuffer(ByteBuffer(SizeType(byte_writer.Position()), byte_writer.GetData().Data())));
+    ptr->Mark();
+
+    HYP_SCRIPT_RETURN_PTR(ptr);
 }
 
 static HYP_SCRIPT_FUNCTION(Runtime_GetMemoryAddress)
@@ -653,11 +1231,31 @@ static HYP_SCRIPT_FUNCTION(Runtime_IsInstance)
         // target is an object, we compare the base class of target
         // to the value we have in class_object_ptr.
 
-        HeapValue *target_base = target_ptr->GetBaseObject();
-        vm::VMObject *target_base_object = nullptr;
+        if (HeapValue *target_class = target_ptr->GetClassPointer()) {
+            constexpr UInt max_depth = 1024;
+            UInt depth = 0;
 
-        if (target_base != nullptr && (target_base_object = target_base->GetPointer<vm::VMObject>())) {
-            is_instance = (*target_base_object == *class_object_ptr);
+            vm::VMObject *target_class_object = target_class->GetPointer<vm::VMObject>();
+
+            while (target_class_object != nullptr && depth < max_depth) {
+                is_instance = (*target_class_object == *class_object_ptr);
+
+                if (is_instance) {
+                    break;
+                }
+
+                vm::Value base = vm::Value(vm::Value::NONE, { .ptr = nullptr });
+
+                if (!(target_class_object->LookupBasePointer(base) && base.GetPointer<vm::VMObject>(&target_class_object))) {
+                    break;
+                }
+
+                depth++;
+            }
+
+            if (depth == max_depth) {
+                HYP_SCRIPT_THROW(vm::Exception("Maximum recursion depth for IsInstance() exceeded"));
+            }
         }
     } else {
         Member *proto_mem = class_object_ptr->LookupMemberFromHash(VMObject::PROTO_MEMBER_HASH, false);
@@ -1025,6 +1623,106 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
         );
 
     api_instance.Module(Config::global_module_name)
+        .Function(
+            "MakeStruct",
+            BuiltinTypes::ANY,
+            {
+                {
+                    "members",
+                    BuiltinTypes::ARRAY
+                }
+            },
+            Runtime_MakeStruct
+        )
+        .Function(
+            "ReadStructMember",
+            BuiltinTypes::ANY,
+            {
+                {
+                    "struct",
+                    BuiltinTypes::ANY
+                },
+                {
+                    "member_name",
+                    BuiltinTypes::STRING
+                }
+            },
+            Runtime_ReadStructMember
+        )
+        .Function(
+            "GetStructMemoryBuffer",
+            BuiltinTypes::ANY,
+            {
+                {
+                    "struct",
+                    BuiltinTypes::ANY
+                }
+            },
+            Runtime_GetStructMemoryBuffer
+        )
+        .Function(
+            "fopen",
+            BuiltinTypes::UNSIGNED_INT,
+            {
+                {
+                    "path",
+                    BuiltinTypes::STRING
+                },
+                {
+                    "args",
+                    BuiltinTypes::STRING
+                }
+            },
+            Runtime_OpenFilePointer
+        )
+        .Function(
+            "fclose",
+            BuiltinTypes::BOOLEAN,
+            {
+                {
+                    "file_id",
+                    BuiltinTypes::UNSIGNED_INT
+                }
+            },
+            Runtime_CloseFilePointer
+        )
+        .Function(
+            "fwrite",
+            BuiltinTypes::VOID_TYPE,
+            {
+                {
+                    "file_id",
+                    BuiltinTypes::UNSIGNED_INT
+                },
+                {
+                    "data",
+                    BuiltinTypes::ANY
+                }
+            },
+            Runtime_WriteFileData
+        )
+        .Function(
+            "fflush",
+            BuiltinTypes::VOID_TYPE,
+            {
+                {
+                    "file_id",
+                    BuiltinTypes::UNSIGNED_INT
+                }
+            },
+            Runtime_FlushFileStream
+        )
+        .Function(
+            "ToMemoryBuffer",
+            BuiltinTypes::ANY,
+            {
+                {
+                    "obj",
+                    BuiltinTypes::ANY
+                }
+            },
+            Runtime_ToMemoryBuffer
+        )
         .Function(
             "GetMemoryAddress",
             BuiltinTypes::STRING,

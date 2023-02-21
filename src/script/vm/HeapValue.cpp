@@ -29,8 +29,8 @@ void HeapValue::Mark()
             object->GetMember(i).value.Mark();
         }
 
-        if (HeapValue *base_object = object->GetBaseObject()) {
-            base_object->Mark();
+        if (HeapValue *class_pointer = object->GetClassPointer()) {
+            class_pointer->Mark();
         }
     } else if (VMArray *array = GetPointer<VMArray>()) {
         const auto size = array->GetSize();

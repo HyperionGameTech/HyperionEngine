@@ -185,36 +185,39 @@ VMString Value::ToString() const
     const int depth = 3;
 
     switch (m_type) {
+        case Value::I8: {
+            int n = snprintf(buf, buf_size, "%" PRId8, m_value.i8);
+            return VMString(buf, n);
+        }
+        case Value::I16: {
+            int n = snprintf(buf, buf_size, "%" PRId16, m_value.i16);
+            return VMString(buf, n);
+        }
         case Value::I32: {
-            int n = snprintf(buf, buf_size, "%d", m_value.i32);
+            int n = snprintf(buf, buf_size, "%" PRId32, m_value.i32);
             return VMString(buf, n);
         }
-
         case Value::I64: {
-            int n = snprintf(
-                buf,
-                buf_size,
-                "%" PRId64,
-                m_value.i64
-            );
+            int n = snprintf(buf, buf_size, "%" PRId64, m_value.i64);
             return VMString(buf, n);
         }
 
+        case Value::U8: {
+            int n = snprintf(buf, buf_size, "%" PRIu8, m_value.u8);
+            return VMString(buf, n);
+        }
+        case Value::U16: {
+            int n = snprintf(buf, buf_size, "%" PRIu16, m_value.u16);
+            return VMString(buf, n);
+        }
         case Value::U32: {
-            int n = snprintf(buf, buf_size, "%u", m_value.u32);
+            int n = snprintf(buf, buf_size, "%" PRIu32, m_value.u32);
             return VMString(buf, n);
         }
-
         case Value::U64: {
-            int n = snprintf(
-                buf,
-                buf_size,
-                "%" PRIu64,
-                m_value.u64
-            );
+            int n = snprintf(buf, buf_size, "%" PRIu64, m_value.u64);
             return VMString(buf, n);
         }
-
         case Value::F32: {
             int n = snprintf(
                 buf,

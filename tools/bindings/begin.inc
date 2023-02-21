@@ -123,8 +123,30 @@ struct GetArgumentImpl<vm::VMObject>
     }
 };
 
+template <>
+struct GetArgumentImpl<vm::VMArray>
+{
+    auto operator()(Int index, sdk::Params &params)
+    {
+        HYP_SCRIPT_GET_ARG_PTR(index, vm::VMArray, arg_value);
+
+        return arg_value;
+    }
+};
+
+template <>
+struct GetArgumentImpl<vm::VMStruct>
+{
+    auto operator()(Int index, sdk::Params &params)
+    {
+        HYP_SCRIPT_GET_ARG_PTR(index, vm::VMStruct, arg_value);
+
+        return arg_value;
+    }
+};
+
 template <class T>
-constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T>;
+constexpr bool is_vm_object_type = std::is_same_v<vm::VMString, T> || std::is_same_v<vm::VMObject, T> || std::is_same_v<vm::VMArray, T> || std::is_same_v<vm::VMStruct, T>;
 
 template <int index, class ReturnType>
 typename std::enable_if_t<
@@ -181,7 +203,7 @@ GetArgument(sdk::Params &params)
 
 template <int index, class ReturnType>
 typename std::enable_if_t<
-    std::is_class_v<NormalizedType<ReturnType>> && !std::is_same_v<vm::VMString, ReturnType> && !std::is_same_v<vm::VMObject, ReturnType>,
+    std::is_class_v<NormalizedType<ReturnType>> && !(is_vm_object_type<NormalizedType<ReturnType>>),
     NormalizedType<ReturnType> &
 >
 GetArgument(sdk::Params &params)

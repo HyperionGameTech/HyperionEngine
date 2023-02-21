@@ -261,7 +261,7 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
         });
 
         // visit each member
-        for (auto &member : closure_obj_members) {
+        for (SymbolMember_t &member : closure_obj_members) {
             if (std::get<2>(member) != nullptr) {
                 std::get<2>(member)->Visit(visitor, mod);
             }

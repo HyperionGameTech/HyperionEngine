@@ -6,6 +6,7 @@
 #include <script/vm/VMString.hpp>
 #include <script/vm/VMArray.hpp>
 #include <script/vm/VMObject.hpp>
+#include <script/vm/VMStruct.hpp>
 #include <Constants.hpp>
 #include <util/Defines.hpp>
 
@@ -30,9 +31,14 @@ enum HeapValueFlags
 
 class HeapValue_Impl
 {
-    Variant<VMString, VMObject, VMArray, Any> m_variant;
+    Variant<VMString, VMObject, VMArray, VMStruct, Any> m_variant;
 
-#define IS_INLINE_TYPE(T) (std::is_same_v<VMString, NormalizedType<T>> || std::is_same_v<VMObject, NormalizedType<T>> || std::is_same_v<VMArray, NormalizedType<T>>)
+#define IS_INLINE_TYPE(T) ( \
+        std::is_same_v<VMString, NormalizedType<T>> \
+        || std::is_same_v<VMObject, NormalizedType<T>> \
+        || std::is_same_v<VMArray, NormalizedType<T>> \
+        || std::is_same_v<VMStruct, NormalizedType<T>> \
+    )
 
 public:
     HeapValue_Impl() = default;
