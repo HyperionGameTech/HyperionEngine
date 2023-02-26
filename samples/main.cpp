@@ -250,7 +250,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch.Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch.Add<Node>("test_model", "models/sponza/sponza.obj");//victorian-salon/victorian-salon.obj");//mysterious-hallway/mysterious-hallway.obj");//"mideval/p3d_medieval_enterable_bld-13.obj");//"San_Miguel/san-miguel-low-poly.obj");
+        batch.Add<Node>("test_model", "models/San_Miguel/san-miguel-low-poly.obj");
         batch.Add<Node>("cube", "models/cube.obj");
         batch.Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch.Add<Node>("grass", "models/grass/grass.obj");
@@ -289,15 +289,9 @@ public:
         }
 
         // test_model.Scale(0.325f);
-        test_model.Scale(0.0125f);
+        test_model.Scale(1.0125f);
 
         if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
-            // m_scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
-            //     HYP_NAME(AmbientGrid0),
-            //     test_model.GetWorldAABB() * 1.01f,
-            //     Extent3D { 12, 3, 12 }
-            // );
-
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
             env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-40.0f, -20.0f, -40.0f), Vector3(40.0f, 20.0f, 40.0f)));
@@ -342,7 +336,7 @@ public:
                     }
 
                     ent->AddController<RigidBodyController>(
-                        UniquePtr<physics::ConvexHullPhysicsShape>::Construct(vertices),
+                        RC<physics::ConvexHullPhysicsShape>::Construct(vertices),
                         physics::PhysicsMaterial { .mass = 0.0f }
                     );
                     ent->GetController<RigidBodyController>()->GetRigidBody()->SetIsKinematic(false);
@@ -352,7 +346,7 @@ public:
             }
         }
 
-        if (false) { // hardware skinning
+        if (true) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -441,7 +435,7 @@ public:
                     m_scene->GetRoot().AddChild(cube);
 
                     cube_entity->AddController<RigidBodyController>(
-                        UniquePtr<physics::BoxPhysicsShape>::Construct(cube_entity->GetWorldAABB()),
+                        RC<physics::BoxPhysicsShape>::Construct(cube_entity->GetWorldAABB()),
                         physics::PhysicsMaterial { .mass = 1.0f }
                     );
                 }

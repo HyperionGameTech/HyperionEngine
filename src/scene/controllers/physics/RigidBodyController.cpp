@@ -1,6 +1,9 @@
 #include <scene/controllers/physics/RigidBodyController.hpp>
 #include <Engine.hpp>
 
+#include <asset/serialization/fbom/FBOMObject.hpp>
+#include <asset/serialization/fbom/marshals/PhysicsShapeMarshal.hpp>
+
 namespace hyperion::v2 {
 
 RigidBodyController::RigidBodyController()
@@ -9,7 +12,7 @@ RigidBodyController::RigidBodyController()
 }
 
 RigidBodyController::RigidBodyController(
-    UniquePtr<physics::PhysicsShape> &&shape,
+    RC<physics::PhysicsShape> &&shape,
     const physics::PhysicsMaterial &physics_material
 ) : Controller(),
     m_shape(std::move(shape)),
@@ -59,6 +62,31 @@ void RigidBodyController::OnDetachedFromScene(ID<Scene> id)
     }
 }
 
+void RigidBodyController::Serialize(fbom::FBOMObject &out) const
+{
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+
+    if (m_shape) {
+        out.AddChild(*m_shape);
+    }
+    
+    out.SetProperty("physics_shape.mass", fbom::FBOMData::FromFloat(m_physics_material.mass));
+}
+
+fbom::FBOMResult RigidBodyController::Deserialize(const fbom::FBOMObject &in)
+{
+    in.GetProperty("physics_shape.mass").ReadFloat(&m_physics_material.mass);
+
+    
+    for (auto &sub_object : *in.nodes) {
+        if (sub_object.GetType().IsOrExtends("PhysicsShape")) {
+            m_shape = sub_object.deserialized.Get<physics::PhysicsShape>();
+        }
+    }
+
+    return fbom::FBOMResult::FBOM_OK;
+}
+
 void RigidBodyController::OnUpdate(GameCounter::TickUnit delta)
 {
     Transform transform = m_rigid_body->GetTransform();
@@ -66,7 +94,7 @@ void RigidBodyController::OnUpdate(GameCounter::TickUnit delta)
     GetOwner()->SetTransform(transform);
 }
 
-void RigidBodyController::SetPhysicsShape(UniquePtr<physics::PhysicsShape> &&shape)
+void RigidBodyController::SetPhysicsShape(RC<physics::PhysicsShape> &&shape)
 {
     if (m_rigid_body) {
         m_rigid_body->SetShape(std::move(shape));

@@ -15,6 +15,8 @@
 #include <asset/serialization/fbom/marshals/ShaderBundleMarshal.hpp>
 #include <asset/serialization/fbom/marshals/ScriptMarshal.hpp>
 #include <asset/serialization/fbom/marshals/ControllerMarshal.hpp>
+#include <asset/serialization/fbom/marshals/AudioSourceMarshal.hpp>
+#include <asset/serialization/fbom/marshals/PhysicsShapeMarshal.hpp>
 
 namespace hyperion::v2::fbom {
 
@@ -34,6 +36,8 @@ FBOM::FBOM()
     RegisterLoader<CompiledShaderBatch>();
     RegisterLoader<Script>();
     RegisterLoader<Controller>();
+    RegisterLoader<AudioSource>();
+    RegisterLoader<physics::PhysicsShape>();
 }
 
 FBOM::~FBOM() = default;

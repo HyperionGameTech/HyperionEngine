@@ -19,10 +19,6 @@ GameThread::GameThread()
 
 void GameThread::operator()(Game *game)
 {
-#ifdef HYP_WINDOWS
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-#endif
-
 #if HYP_GAME_THREAD_LOCKED
     LockstepGameCounter counter(1.0f / game_thread_target_ticks_per_second);
 #else

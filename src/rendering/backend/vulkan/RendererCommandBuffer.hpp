@@ -31,19 +31,16 @@ public:
         COMMAND_BUFFER_SECONDARY
     };
 
-    static Result SubmitSecondary(
-        CommandBuffer *primary,
-        const std::vector<std::unique_ptr<CommandBuffer>> &command_buffers
-    );
-
     CommandBuffer(Type type);
     CommandBuffer(const CommandBuffer &other) = delete;
     CommandBuffer &operator=(const CommandBuffer &other) = delete;
     ~CommandBuffer();
 
-    Type GetType() const                     { return m_type; }
+    Type GetType() const
+        { return m_type; }
 
-    VkCommandBuffer GetCommandBuffer() const { return m_command_buffer; }
+    VkCommandBuffer GetCommandBuffer() const
+        { return m_command_buffer; }
 
     Result Create(Device *device, VkCommandPool command_pool);
     Result Destroy(Device *device);

@@ -25,6 +25,9 @@ public:
     virtual void OnAttachedToScene(ID<Scene> id) override;
     virtual void OnDetachedFromScene(ID<Scene> id) override;
 
+    virtual void Serialize(fbom::FBOMObject &out) const override;
+    virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in) override;
+
 protected:
     Handle<Entity> m_aabb_entity;
     BoundingBox m_aabb;

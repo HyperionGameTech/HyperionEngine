@@ -14,13 +14,13 @@ public:
     RigidBodyController();
 
     RigidBodyController(
-        UniquePtr<physics::PhysicsShape> &&shape,
+        RC<physics::PhysicsShape> &&shape,
         const physics::PhysicsMaterial &physics_material
     );
 
     virtual ~RigidBodyController() override = default;
 
-    void SetPhysicsShape(UniquePtr<physics::PhysicsShape> &&shape);
+    void SetPhysicsShape(RC<physics::PhysicsShape> &&shape);
 
     const physics::PhysicsMaterial &GetPhysicsMaterial() const
         { return m_physics_material; }
@@ -40,8 +40,11 @@ public:
     virtual void OnDetachedFromScene(ID<Scene> id) override;
     virtual void OnAttachedToScene(ID<Scene> id) override;
 
+    virtual void Serialize(fbom::FBOMObject &out) const override;
+    virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in) override;
+
 protected:
-    UniquePtr<physics::PhysicsShape> m_shape;
+    RC<physics::PhysicsShape> m_shape;
     physics::PhysicsMaterial m_physics_material;
     Handle<physics::RigidBody> m_rigid_body;
 

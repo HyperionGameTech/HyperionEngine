@@ -95,6 +95,14 @@ struct FBOMData
         data.SetBytes(sizeof(c_type) * items.Size(), items.Data()); \
         return data; \
     } \
+    template <SizeType Sz> \
+    static FBOMData FromArray(const c_type (&items)[Sz]) \
+    { \
+        FBOMArray type(FBOM##type_name(), Sz); \
+        FBOMData data(type); \
+        data.SetBytes(sizeof(c_type) * Sz, items); \
+        return data; \
+    } \
     static FBOMData FromArray(const Array<c_type> &items) \
     { \
         FBOMArray type(FBOM##type_name(), items.Size()); \
