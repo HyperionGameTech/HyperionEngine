@@ -19,7 +19,7 @@ void RigidBody::Init()
     // do nothing
 }
 
-void RigidBody::SetShape(UniquePtr<PhysicsShape> &&shape)
+void RigidBody::SetShape(RC<PhysicsShape> &&shape)
 {
     m_shape = std::move(shape);
 

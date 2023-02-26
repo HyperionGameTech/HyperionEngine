@@ -54,10 +54,6 @@ protected:
             HYP_WAIT_IDLE();
         }
 
-#ifdef HYP_WINDOWS
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-#endif
-
         while (IsRunning()) {
             m_scheduler.WaitForTasks(m_task_queue);
 

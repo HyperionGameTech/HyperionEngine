@@ -80,7 +80,7 @@ public:
 
     static void Garble(void *dest, SizeType length)
     {
-        std::memset(dest, 0xEFEFEFE, length);
+        std::memset(dest, 0xDEAD, length);
     }
 
     template <class T, class ...Args>
@@ -110,7 +110,10 @@ public:
     }
 
     template <class T>
-    static void Destruct(T &object)
+    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(T &) { /* Do nothing */ }
+
+    template <class T>
+    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(T &object)
     {
         object.~T();
 
@@ -157,6 +160,6 @@ public:
 
 }
 
-
+#define StackAlloc(size) alloca(size)
 
 #endif

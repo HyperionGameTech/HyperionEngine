@@ -210,7 +210,7 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter *out)
     const SizeType remaining_bytes = FBOM::header_size - position_change;
     AssertThrow(remaining_bytes < 64);
 
-    void *zeros = alloca(remaining_bytes);
+    void *zeros = StackAlloc(remaining_bytes);
     Memory::Set(zeros, 0, remaining_bytes);
 
     out->Write(zeros, remaining_bytes);

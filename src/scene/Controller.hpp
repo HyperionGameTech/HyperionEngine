@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <type_traits>
 
+//#define HYP_CONTROLLER_SERIALIZATION_METHDOS_PURE_VIRTUAL
+
 namespace hyperion::v2 {
 
 namespace fbom {
@@ -108,13 +110,20 @@ public:
     virtual void OnAttachedToScene(ID<Scene> id) {}
 
     virtual void Serialize(fbom::FBOMObject &out) const
+#ifdef HYP_CONTROLLER_SERIALIZATION_METHDOS_PURE_VIRTUAL
+        = 0;
+#else
     {
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(false, "Serialize() not implemented for controller!");
 #endif
     }
+#endif
 
     virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in)
+#ifdef HYP_CONTROLLER_SERIALIZATION_METHDOS_PURE_VIRTUAL
+        = 0;
+#else
     {
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(false, "Deserialize() not implemented for controller!");
@@ -122,6 +131,7 @@ public:
 
         return fbom::FBOMResult::FBOM_OK;
     }
+#endif
 
 protected:
     bool CreateScriptedObjects();

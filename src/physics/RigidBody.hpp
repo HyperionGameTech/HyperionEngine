@@ -9,6 +9,8 @@
 #include <math/Vector3.hpp>
 #include <physics/PhysicsMaterial.hpp>
 
+#include <Types.hpp>
+
 #include <type_traits>
 
 namespace hyperion::v2 {
@@ -19,7 +21,7 @@ class Engine;
 
 namespace hyperion::v2::physics {
 
-enum class PhysicsShapeType
+enum class PhysicsShapeType : UInt32
 {
     NONE,
     BOX,
@@ -149,7 +151,7 @@ public:
     {
     }
 
-    RigidBody(UniquePtr<PhysicsShape> &&shape, const PhysicsMaterial &physics_material)
+    RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material)
         : EngineComponentBase(),
           m_shape(std::move(shape)),
           m_physics_material(physics_material),
@@ -176,13 +178,13 @@ public:
     void SetTransform(const Transform &transform)
         { m_transform = transform; }
 
-    UniquePtr<PhysicsShape> &GetShape()
+    RC<PhysicsShape> &GetShape()
         { return m_shape; }
 
-    const UniquePtr<PhysicsShape> &GetShape() const
+    const RC<PhysicsShape> &GetShape() const
         { return m_shape; }
 
-    void SetShape(UniquePtr<PhysicsShape> &&shape);
+    void SetShape(RC<PhysicsShape> &&shape);
 
     PhysicsMaterial &GetPhysicsMaterial()
         { return m_physics_material; }
@@ -215,7 +217,7 @@ public:
 
 private:
     Transform m_transform;
-    UniquePtr<PhysicsShape> m_shape;
+    RC<PhysicsShape> m_shape;
     PhysicsMaterial m_physics_material;
     bool m_is_kinematic;
 

@@ -116,22 +116,6 @@ Result CommandBuffer::Reset(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::SubmitSecondary(
-    CommandBuffer *primary,
-    const std::vector<std::unique_ptr<CommandBuffer>> &command_buffers
-)
-{
-    const auto *vk_command_buffers = static_cast<VkCommandBuffer *>(alloca(sizeof(VkCommandBuffer) * command_buffers.size()));
-
-    vkCmdExecuteCommands(
-        primary->GetCommandBuffer(),
-        static_cast<UInt32>(command_buffers.size()),
-        vk_command_buffers
-    );
-    
-    HYPERION_RETURN_OK;
-}
-
 Result CommandBuffer::SubmitPrimary(
     VkQueue queue,
     Fence *fence,

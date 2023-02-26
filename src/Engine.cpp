@@ -378,7 +378,6 @@ void Engine::Initialize(RefCountedPtr<Application> application)
 
 #ifdef HYP_WINDOWS
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-    //SetThreadAffinityMask(GetCurrentThread(), (1 << 8));
 #endif
 
     AssertThrow(m_instance == nullptr);
