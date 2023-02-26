@@ -162,10 +162,10 @@ Application::Application(const char *name)
         name = "HyperionApp";
     }
 
-    const SizeType len = Memory::StringLength(name);
+    const SizeType len = Memory::StrLen(name);
 
     m_name = new char[len + 1];
-    Memory::Copy(m_name, name, len);
+    Memory::MemCpy(m_name, name, len);
     m_name[len] = '\0';
 }
 

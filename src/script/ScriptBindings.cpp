@@ -705,7 +705,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_ReadStructMember)
     }
 
     const auto it = struct_view.members.FindIf([member_name_ptr](const vm::VMStructMemberView &item) {
-        if (Memory::StringCompare(reinterpret_cast<const char *>(item.name_view.ptr), member_name_ptr->GetData(), item.name_view.size) == 0) {
+        if (Memory::StrCmp(reinterpret_cast<const char *>(item.name_view.ptr), member_name_ptr->GetData(), item.name_view.size) == 0) {
             return true;
         }
 
@@ -904,9 +904,9 @@ static HYP_SCRIPT_FUNCTION(Runtime_OpenFilePointer)
 
     FILE *fptr = nullptr;
 
-    if (Memory::StringCompare(path_str->GetData(), "stdout") == 0) {
+    if (Memory::StrCmp(path_str->GetData(), "stdout") == 0) {
         fptr = stdout;
-    } else if (Memory::StringCompare(path_str->GetData(), "stderr") == 0) {
+    } else if (Memory::StrCmp(path_str->GetData(), "stderr") == 0) {
         fptr = stderr;
     } else {
         fptr = fopen(path_str->GetData(), args_str->GetData());

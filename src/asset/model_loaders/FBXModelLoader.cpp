@@ -222,7 +222,7 @@ static bool ReadMagic(ByteReader &reader)
 
     reader.Read(read_magic, sizeof(header_string));
 
-    if (Memory::StringCompare(read_magic, header_string, sizeof(header_string)) != 0) {
+    if (Memory::StrCmp(read_magic, header_string, sizeof(header_string)) != 0) {
         return false;
     }
 

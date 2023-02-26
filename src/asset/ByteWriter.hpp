@@ -42,7 +42,7 @@ public:
 
     void WriteString(const char *str)
     {
-        const auto len = Memory::StringLength(str);
+        const auto len = Memory::StrLen(str);
 
         WriteBytes(reinterpret_cast<const char *>(&len), sizeof(uint32_t));
         WriteBytes(str, len);

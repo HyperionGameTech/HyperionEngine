@@ -18,11 +18,11 @@ public:
 
     VMMemoryBuffer(SizeType size = 0);
     VMMemoryBuffer(const ByteBuffer &bytes);
-    VMMemoryBuffer(const VMMemoryBuffer &other);
-    VMMemoryBuffer &operator=(const VMMemoryBuffer &other);
-    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept;
-    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept;
-    ~VMMemoryBuffer();
+    VMMemoryBuffer(const VMMemoryBuffer &other) = default;
+    VMMemoryBuffer &operator=(const VMMemoryBuffer &other) = default;
+    VMMemoryBuffer(VMMemoryBuffer &&other) noexcept = default;
+    VMMemoryBuffer &operator=(VMMemoryBuffer &&other) noexcept = default;
+    ~VMMemoryBuffer() = default;
 
     bool operator==(const VMMemoryBuffer &other) const { return this == &other; }
 

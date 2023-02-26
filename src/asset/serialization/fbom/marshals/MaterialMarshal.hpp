@@ -65,7 +65,7 @@ public:
         }
 
         UInt32 texture_keys[Material::max_textures];
-        Memory::Set(&texture_keys[0], 0, sizeof(texture_keys));
+        Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
         for (SizeType i = 0, texture_index = 0; i < in_object.GetTextures().Size(); i++) {
             const auto key = in_object.GetTextures().KeyAt(i);
@@ -144,7 +144,7 @@ public:
         }
 
         UInt32 texture_keys[Material::max_textures];
-        Memory::Set(&texture_keys[0], 0, sizeof(texture_keys));
+        Memory::MemSet(&texture_keys[0], 0, sizeof(texture_keys));
 
         if (auto err = in.GetProperty("texture_keys").ReadArrayElements(FBOMUnsignedInt(), std::size(texture_keys), &texture_keys[0])) {
             return err;

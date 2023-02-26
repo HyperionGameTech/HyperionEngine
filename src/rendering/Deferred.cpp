@@ -51,9 +51,9 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
         static_assert(sizeof(AlignedBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
 
         UniquePtr<AlignedBuffer> aligned_buffer(new AlignedBuffer);
-        Memory::Copy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
-        Memory::Copy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
-        Memory::Copy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
+        Memory::MemCpy(&aligned_buffer->sobol_256spp_256d[0], BlueNoise::sobol_256spp_256d, sizeof(BlueNoise::sobol_256spp_256d));
+        Memory::MemCpy(&aligned_buffer->scrambling_tile[0], BlueNoise::scrambling_tile, sizeof(BlueNoise::scrambling_tile));
+        Memory::MemCpy(&aligned_buffer->ranking_tile[0], BlueNoise::ranking_tile, sizeof(BlueNoise::ranking_tile));
 
         HYPERION_BUBBLE_ERRORS(buffer->Create(g_engine->GetGPUDevice(), sizeof(AlignedBuffer)));
 
@@ -645,7 +645,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
     struct alignas(128) { UInt32 flags; } deferred_data;
 
-    Memory::Set(&deferred_data, 0, sizeof(deferred_data));
+    Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
 
     deferred_data.flags |= use_ssr && m_ssr->IsRendered() ? DEFERRED_FLAGS_SSR_ENABLED : 0;
     deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;

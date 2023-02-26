@@ -384,7 +384,7 @@ void GPUMemory::Copy(Device *device, SizeType count, const void *ptr)
         Map(device, &map);
     }
 
-    Memory::Copy(map, ptr, count);
+    Memory::MemCpy(map, ptr, count);
 }
 
 void GPUMemory::Copy(Device *device, SizeType offset, SizeType count, const void *ptr)
@@ -393,7 +393,7 @@ void GPUMemory::Copy(Device *device, SizeType offset, SizeType count, const void
         Map(device, &map);
     }
 
-    Memory::Copy(reinterpret_cast<void *>(uintptr_t(map) + offset), ptr, count);
+    Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(map) + offset), ptr, count);
 }
 
 void GPUMemory::Read(Device *device, SizeType count, void *out_ptr) const
@@ -403,7 +403,7 @@ void GPUMemory::Read(Device *device, SizeType count, void *out_ptr) const
         DebugLog(LogType::Warn, "Attempt to Read() from buffer but data has not been mapped previously\n");
     }
 
-    Memory::Copy(out_ptr, map, count);
+    Memory::MemCpy(out_ptr, map, count);
 }
 
 void GPUMemory::Create()

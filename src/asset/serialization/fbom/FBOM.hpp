@@ -370,7 +370,7 @@ public:
 
             // get version info
             UInt32 binary_version;
-            Memory::Copy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(UInt8), sizeof(UInt32));
+            Memory::MemCpy(&binary_version, header_bytes + sizeof(FBOM::header_identifier) + sizeof(UInt8), sizeof(UInt32));
 
             if (binary_version > FBOM::version || binary_version < 0x1) {
                 return { FBOMResult::FBOM_ERR, "Invalid binary version specified in header" };

@@ -232,7 +232,7 @@ Matrix4::Matrix4(const float *v)
 
 Matrix4::Matrix4(const Matrix4 &other)
 {
-    hyperion::Memory::Copy(values, other.values, sizeof(values));
+    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
 }
 
 float Matrix4::Determinant() const
@@ -361,7 +361,7 @@ float Matrix4::GetRoll() const
 
 Matrix4 &Matrix4::operator=(const Matrix4 &other)
 {
-    hyperion::Memory::Copy(values, other.values, sizeof(values));
+    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
 
     return *this;
 }

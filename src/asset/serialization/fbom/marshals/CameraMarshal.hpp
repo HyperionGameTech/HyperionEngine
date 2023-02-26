@@ -56,7 +56,7 @@ public:
             UInt32 width, height;
         } camera_params;
 
-        Memory::Set(&camera_params, 0, sizeof(camera_params));
+        Memory::MemSet(&camera_params, 0, sizeof(camera_params));
 
         in.GetProperty("width").ReadUInt32(&camera_params.width);
         in.GetProperty("height").ReadUInt32(&camera_params.height);

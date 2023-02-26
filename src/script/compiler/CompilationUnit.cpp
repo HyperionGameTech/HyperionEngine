@@ -44,7 +44,7 @@ void CompilationUnit::RegisterType(SymbolTypePtr_t &type_ptr)
 
         Array<UInt8> array_elements;
         array_elements.Resize(mem_name.size());
-        Memory::Copy(array_elements.Data(), mem_name.data(), mem_name.size());
+        Memory::MemCpy(array_elements.Data(), mem_name.data(), mem_name.size());
 
         names.PushBack(NamesPair_t {
             mem_name.size(),

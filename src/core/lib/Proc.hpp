@@ -48,7 +48,7 @@ struct ProcFunctorInternal
 
     ProcFunctorInternal(ProcFunctorInternal &&other) noexcept
     {
-        Memory::Copy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
+        Memory::MemCpy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
 
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(other.memory.GetPointer(), sizeof(other.memory.bytes));
@@ -71,7 +71,7 @@ struct ProcFunctorInternal
             delete_fn(memory.GetPointer());
         }
 
-        Memory::Copy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
+        Memory::MemCpy(memory.GetPointer(), other.memory.GetPointer(), sizeof(memory.bytes));
 
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(other.memory.GetPointer(), sizeof(other.memory.bytes));
@@ -160,13 +160,13 @@ public:
         static_assert(alignof(Functor) <= alignof(std::max_align_t), "Alignment not valid to be used as functor!");
 
         /*if constexpr (std::is_trivially_copyable_v<Functor>) {
-            Memory::Copy(functor.memory.GetPointer(), &fn, sizeof(Functor));
+            Memory::MemCpy(functor.memory.GetPointer(), &fn, sizeof(Functor));
 
             if constexpr (sizeof(Functor) < inline_storage_size_bytes) {
-                Memory::Set(functor.memory.GetPointer() + sizeof(Functor), 0, inline_storage_size_bytes - sizeof(Functor));
+                Memory::MemSet(functor.memory.GetPointer() + sizeof(Functor), 0, inline_storage_size_bytes - sizeof(Functor));
             }
 
-            functor.delete_fn = [](void *ptr) { Memory::Set(ptr, 0, sizeof(Functor)); };
+            functor.delete_fn = [](void *ptr) { Memory::MemSet(ptr, 0, sizeof(Functor)); };
         } else {*/
             Memory::Construct<Functor>(functor.memory.GetPointer(), std::forward<Functor>(fn));
             functor.delete_fn = &Memory::Destruct<Functor>;

@@ -99,7 +99,7 @@ void AudioController::OnUpdate(GameCounter::TickUnit delta)
 
 void AudioController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 
     if (m_source) {
         out.AddChild(*m_source.Get());

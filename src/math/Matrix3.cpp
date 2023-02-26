@@ -14,7 +14,7 @@ Matrix3::Matrix3()
 
 Matrix3::Matrix3(const float *v)
 {
-    hyperion::Memory::Copy(&values[0], v, std::size(values) * sizeof(values[0]));
+    hyperion::Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
 }
 
 Matrix3::Matrix3(const Matrix3 &other)
@@ -72,7 +72,7 @@ Matrix3 &Matrix3::Invert()
 
 Matrix3 &Matrix3::operator=(const Matrix3 &other)
 {
-    hyperion::Memory::Copy(values, other.values, sizeof(values));
+    hyperion::Memory::MemCpy(values, other.values, sizeof(values));
 
     return *this;
 }

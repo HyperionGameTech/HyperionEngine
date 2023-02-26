@@ -468,7 +468,7 @@ public:
         AssertThrow(batch_index < Size);
 
         auto &batch = Get(batch_index);
-        Memory::Set(&batch, 0, sizeof(StructType));
+        Memory::MemSet(&batch, 0, sizeof(StructType));
 
         MarkDirty(batch_index);
     }

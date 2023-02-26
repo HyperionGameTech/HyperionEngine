@@ -224,7 +224,7 @@ void Mesh::Init()
  * mesh attribute. This macro helps keep the code cleaner and easier to maintain. */
 #define PACKED_SET_ATTR(raw_values, arg_size)                                                    \
     do {                                                                                         \
-        Memory::Copy((void *)(raw_buffer + current_offset), (raw_values), (arg_size) * sizeof(float)); \
+        Memory::MemCpy((void *)(raw_buffer + current_offset), (raw_values), (arg_size) * sizeof(float)); \
         current_offset += (arg_size);                                                            \
     } while (0)
 

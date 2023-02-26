@@ -9,17 +9,17 @@ struct StackTrace
 
     StackTrace()
     {
-        hyperion::Memory::Set(call_addresses, 0, sizeof(call_addresses));
+        hyperion::Memory::MemSet(call_addresses, 0, sizeof(call_addresses));
     }
 
     StackTrace(const StackTrace &other)
     {
-        hyperion::Memory::Copy(call_addresses, other.call_addresses, sizeof(call_addresses));
+        hyperion::Memory::MemCpy(call_addresses, other.call_addresses, sizeof(call_addresses));
     }
 
     StackTrace &operator=(const StackTrace &other)
     {
-        hyperion::Memory::Copy(call_addresses, other.call_addresses, sizeof(call_addresses));
+        hyperion::Memory::MemCpy(call_addresses, other.call_addresses, sizeof(call_addresses));
 
         return *this;
     }

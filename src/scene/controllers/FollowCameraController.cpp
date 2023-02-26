@@ -84,7 +84,7 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
 
 void BasicCharacterController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 }
 
 fbom::FBOMResult BasicCharacterController::Deserialize(const fbom::FBOMObject &in)

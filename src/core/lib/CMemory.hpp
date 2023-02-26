@@ -18,12 +18,12 @@ namespace hyperion
 class Memory
 {
 public:
-    static Int Compare(const void *lhs, const void *rhs, SizeType size)
+    static Int MemCmp(const void *lhs, const void *rhs, SizeType size)
     {
         return std::memcmp(lhs, rhs, size);
     }
 
-    static Int StringCompare(const char *lhs, const char *rhs, SizeType length = 0)
+    static Int StrCmp(const char *lhs, const char *rhs, SizeType length = 0)
     {
         if (length) {
             return std::strncmp(lhs, rhs, length);
@@ -38,7 +38,7 @@ public:
             && (*lhs == '\0' || AreStaticStringsEqual(lhs + 1, rhs + 1));
     }
 
-    static char *CopyString(char *dest, const char *src, SizeType length = 0)
+    static char *StrCpy(char *dest, const char *src, SizeType length = 0)
     {
         if (length) {
             return std::strncpy(dest, src, length);
@@ -47,7 +47,7 @@ public:
         return std::strcpy(dest, src);
     }
 
-    static inline SizeType StringLength(const char *str)
+    static inline SizeType StrLen(const char *str)
     {
         if (!str) {
             return 0;
@@ -58,17 +58,17 @@ public:
 
     /*! \brief Alias for memset. Takes in a UByte (unsigned char) as value,
         To signify that only the lowest byte is copied over. */
-    static inline void *Set(void *dest, UByte ch, SizeType size)
+    static inline void *MemSet(void *dest, UByte ch, SizeType size)
     {
         return std::memset(dest, ch, size);
     }
 
-    static inline void *Copy(void *dest, const void *src, SizeType size) 
+    static inline void *MemCpy(void *dest, const void *src, SizeType size) 
     {
         return std::memcpy(dest, src, size);
     }
 
-    static inline void *Move(void *dest, const void *src, SizeType size)
+    static inline void *MemMove(void *dest, const void *src, SizeType size)
     {
         return std::memmove(dest, src, size);
     }
@@ -155,6 +155,11 @@ public:
     static void *AllocateZeros(SizeType count)
     {
         return std::calloc(count, 1);
+    }
+
+    static void *Allocate(SizeType count)
+    {
+        return std::malloc(count);
     }
 };
 

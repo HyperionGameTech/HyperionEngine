@@ -74,10 +74,10 @@ void ComputePipeline::Bind(
 {
     AssertThrow(push_constants_size <= sizeof(push_constants));
 
-    Memory::Copy(&push_constants, push_constants_ptr, push_constants_size);
+    Memory::MemCpy(&push_constants, push_constants_ptr, push_constants_size);
 
     if (push_constants_size < sizeof(push_constants)) {
-        Memory::Set(&push_constants, 0, sizeof(push_constants) - push_constants_size);
+        Memory::MemSet(&push_constants, 0, sizeof(push_constants) - push_constants_size);
     }
 
     Bind(command_buffer);

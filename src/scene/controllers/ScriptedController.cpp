@@ -36,7 +36,7 @@ void ScriptedController::OnUpdate(GameCounter::TickUnit delta)
 
 void ScriptedController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 
     if (m_script) {
         out.AddChild(*m_script.Get());

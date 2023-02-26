@@ -41,7 +41,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
     {
         shader_data.texture_usage = 0;
 
-        Memory::Set(shader_data.texture_index, 0, sizeof(shader_data.texture_index));
+        Memory::MemSet(shader_data.texture_index, 0, sizeof(shader_data.texture_index));
 
         if (num_bound_textures != 0) {
             for (SizeType i = 0; i < bound_texture_ids.Size(); i++) {

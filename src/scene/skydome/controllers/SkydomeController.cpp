@@ -57,7 +57,7 @@ void SkydomeController::OnAttachedToScene(ID<Scene> id)
 
 void SkydomeController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 }
 
 fbom::FBOMResult SkydomeController::Deserialize(const fbom::FBOMObject &in)

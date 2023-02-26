@@ -226,7 +226,7 @@ public:
     SizeType Read(void *ptr, SizeType count)
     {
         return Read(ptr, count, [](void *ptr, const Byte *buffer, SizeType chunk_size) {
-           Memory::Copy(ptr, buffer, chunk_size);
+           Memory::MemCpy(ptr, buffer, chunk_size);
         });
     }
 

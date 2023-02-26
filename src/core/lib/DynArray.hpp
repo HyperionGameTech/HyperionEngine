@@ -372,7 +372,7 @@ DynArray<T, NumInlineBytes>::DynArray(const DynArray &other)
       m_start_offset(other.m_start_offset)
 {
     if (m_is_dynamic) {
-        m_buffer = static_cast<Storage *>(std::malloc(sizeof(Storage) * other.m_capacity));
+        m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * other.m_capacity));
     }
 
     auto *buffer = GetStorage();
@@ -452,7 +452,7 @@ auto DynArray<T, NumInlineBytes>::operator=(const DynArray &other) -> DynArray&
 
         if (other.m_is_dynamic) {
             m_is_dynamic = true;
-            m_buffer = static_cast<Storage *>(std::malloc(sizeof(Storage) * other.m_capacity));
+            m_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * other.m_capacity));
             m_capacity = other.m_capacity;
         } else {
             m_buffer = nullptr;
@@ -575,7 +575,7 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
 
     if (capacity > num_inline_elements) {
         // delete and copy all over again
-        auto *new_buffer = static_cast<Storage *>(std::malloc(sizeof(Storage) * capacity));
+        auto *new_buffer = static_cast<Storage *>(Memory::Allocate(sizeof(Storage) * capacity));
 
         // AssertThrow(Size() <= m_capacity);
         

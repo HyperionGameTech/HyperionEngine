@@ -102,10 +102,10 @@ public:
     {
         AssertThrow(size <= sizeof(m_push_constant_data));
 
-        Memory::Copy(&m_push_constant_data, ptr, size);
+        Memory::MemCpy(&m_push_constant_data, ptr, size);
 
         if (size < sizeof(m_push_constant_data)) {
-            Memory::Set(&m_push_constant_data + size, 0, sizeof(m_push_constant_data) - size);
+            Memory::MemSet(&m_push_constant_data + size, 0, sizeof(m_push_constant_data) - size);
         }
     }
 

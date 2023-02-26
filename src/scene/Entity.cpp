@@ -322,11 +322,11 @@ void Entity::EnqueueRenderUpdates()
         m_previous_transform_matrix
     );
 
-    if (Memory::Compare(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4)) == 0) {
+    if (Memory::MemCmp(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4)) == 0) {
         m_shader_data_state = ShaderDataState::CLEAN;
     }
 
-    Memory::Copy(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4));
+    Memory::MemCpy(&m_previous_transform_matrix, &m_transform.GetMatrix(), sizeof(Matrix4));
 }
 
 void Entity::UpdateOctree()

@@ -34,7 +34,7 @@ Image::Image(
 
     if (bytes != nullptr) {
         m_bytes = new UByte[m_size];
-        Memory::Copy(m_bytes, bytes, m_size);
+        Memory::MemCpy(m_bytes, bytes, m_size);
     } else {
         m_bytes = nullptr;
     }
@@ -782,14 +782,14 @@ void Image::EnsureCapacity(SizeType size)
         // resize
         auto *new_bytes = new UByte[size];
         // copy from existing
-        Memory::Copy(new_bytes, m_bytes, GetByteSize());
-        Memory::Set(new_bytes + GetByteSize(), 0, size - GetByteSize());
+        Memory::MemCpy(new_bytes, m_bytes, GetByteSize());
+        Memory::MemSet(new_bytes + GetByteSize(), 0, size - GetByteSize());
 
         delete[] m_bytes;
         m_bytes = new_bytes;
     } else {
         m_bytes = new UByte[size];
-        Memory::Set(m_bytes, 0, size);
+        Memory::MemSet(m_bytes, 0, size);
     }
 }
 

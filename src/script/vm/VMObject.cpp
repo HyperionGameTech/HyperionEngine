@@ -25,7 +25,7 @@ ObjectMap::ObjectBucket::ObjectBucket(const ObjectBucket &other)
       m_capacity(other.m_capacity),
       m_size(other.m_size)
 {
-    Memory::Copy(
+    Memory::MemCpy(
         m_data,
         other.m_data,
         sizeof(Member *) * other.m_size
@@ -47,7 +47,7 @@ ObjectMap::ObjectBucket &ObjectMap::ObjectBucket::operator=(const ObjectBucket &
     }
 
     // copy members
-    Memory::Copy(
+    Memory::MemCpy(
         m_data,
         other.m_data,
         sizeof(Member *) * other.m_size
@@ -62,7 +62,7 @@ void ObjectMap::ObjectBucket::Resize(size_t capacity)
         const size_t new_capacity = COMPUTE_CAPACITY(capacity);
         // create new bucket and copy
         Member **new_data = new Member*[new_capacity];
-        Memory::Copy(
+        Memory::MemCpy(
             new_data,
             m_data,
             sizeof(Member *) * m_size
@@ -167,7 +167,7 @@ VMObject::VMObject(HeapValue *class_ptr)
     // AssertThrow(names != nullptr);
 
     m_members = new Member[size];
-    Memory::Copy(m_members, proto_obj->GetMembers(), sizeof(Member) * size);
+    Memory::MemCpy(m_members, proto_obj->GetMembers(), sizeof(Member) * size);
 
     m_object_map = new ObjectMap(size);
     for (SizeType i = 0; i < size; i++) {
@@ -187,7 +187,7 @@ VMObject::VMObject(const Member *members, size_t size, HeapValue *class_ptr)
     AssertThrow(members != nullptr);
 
     m_members = new Member[size];
-    Memory::Copy(m_members, members, sizeof(Member) * size);
+    Memory::MemCpy(m_members, members, sizeof(Member) * size);
 
     m_object_map = new ObjectMap(size);
     for (SizeType i = 0; i < size; i++) {
@@ -205,7 +205,7 @@ VMObject::VMObject(const VMObject &other)
     AssertThrow(other.GetObjectMap() != nullptr);
     m_object_map = new ObjectMap(*other.GetObjectMap());
 
-    Memory::Copy(m_members, other.m_members, sizeof(Member) * size);
+    Memory::MemCpy(m_members, other.m_members, sizeof(Member) * size);
 
     for (SizeType i = 0; i < size; i++) {
         m_object_map->Push(m_members[i].hash, &m_members[i]);

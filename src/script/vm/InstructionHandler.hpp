@@ -417,7 +417,7 @@ public:
         Member *members = new Member[size];
         
         for (size_t i = 0; i < size; i++) {
-            Memory::CopyString(members[i].name, names[i], sizeof(Member::name));
+            Memory::StrCpy(members[i].name, names[i], sizeof(Member::name));
             members[i].hash = hash_fnv_1(names[i]);
             members[i].value = Value(Value::HEAP_POINTER, { .ptr = nullptr });
         }
@@ -864,7 +864,7 @@ public:
                 }
 
                 // copy first byte from value
-                Memory::Copy(memory_buffer->GetBuffer() + index, &byte_value, sizeof(UByte));
+                Memory::MemCpy(static_cast<UByte *>(memory_buffer->GetBuffer()) + index, &byte_value, sizeof(UByte));
 
                 return;
             }
@@ -971,7 +971,7 @@ public:
                         }
                     }
                     
-                    Memory::Copy(&static_cast<UInt8 *>(memory_buffer->GetBuffer())[index_value], &dst_data, sizeof(dst_data));
+                    Memory::MemCpy(&static_cast<UInt8 *>(memory_buffer->GetBuffer())[index_value], &dst_data, sizeof(dst_data));
                 } else { // unsigned
                     const UInt64 index_value = index.u;
 
@@ -984,7 +984,7 @@ public:
                         return;
                     }
 
-                    Memory::Copy(&static_cast<UInt8 *>(memory_buffer->GetBuffer())[index_value], &dst_data, sizeof(dst_data));
+                    Memory::MemCpy(&static_cast<UInt8 *>(memory_buffer->GetBuffer())[index_value], &dst_data, sizeof(dst_data));
                 }
 
                 return;

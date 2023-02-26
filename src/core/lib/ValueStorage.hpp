@@ -102,7 +102,7 @@ static HYP_FORCE_INLINE To BitCast(const From &from)
     ValueStorage<To> to_memory;
 
     ValueStorage<From> from_memory;
-    Memory::Copy(&from_memory.data_buffer[0], &from, sizeof(From));
+    Memory::MemCpy(&from_memory.data_buffer[0], &from, sizeof(From));
 
     for (SizeType i = 0; i < sizeof(from); i++) {
         to_memory.data_buffer[i] = from_memory.data_buffer[i];

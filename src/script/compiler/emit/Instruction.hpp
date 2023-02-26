@@ -357,7 +357,7 @@ struct RawOperation final : public Instruction
 
         const SizeType previous_size = data.Size();
         data.Resize(previous_size + length);
-        Memory::Copy(data.Data() + previous_size, str, length);
+        Memory::MemCpy(data.Data() + previous_size, str, length);
     }
 
     template <typename T>
@@ -373,7 +373,7 @@ struct RawOperation final : public Instruction
     {
         const SizeType previous_size = data.Size();
         data.Resize(previous_size + sizeof(T));
-        Memory::Copy(data.Data() + previous_size, &t, sizeof(T));
+        Memory::MemCpy(data.Data() + previous_size, &t, sizeof(T));
     }
 };
 

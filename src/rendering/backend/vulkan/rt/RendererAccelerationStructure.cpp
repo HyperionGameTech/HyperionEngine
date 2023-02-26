@@ -805,7 +805,7 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
 	    const BottomLevelAccelerationStructure *blas = m_blas[i];
 
 		MeshDescription &mesh_description = mesh_descriptions[i - first];
-		Memory::Set(&mesh_description, 0, sizeof(MeshDescription));
+		Memory::MemSet(&mesh_description, 0, sizeof(MeshDescription));
 
 		if (blas->GetGeometries().empty()) {
 			AssertThrowMsg(

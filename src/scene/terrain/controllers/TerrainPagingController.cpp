@@ -278,7 +278,7 @@ void TerrainPagingController::AddEnqueuedChunks()
 
 void TerrainPagingController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 
     out.SetProperty("seed", fbom::FBOMUnsignedInt(), m_seed);
     out.SetProperty("width", fbom::FBOMUnsignedInt(), m_patch_size.width);

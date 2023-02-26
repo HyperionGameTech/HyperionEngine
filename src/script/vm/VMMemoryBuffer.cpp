@@ -16,31 +16,6 @@ VMMemoryBuffer::VMMemoryBuffer(const ByteBuffer &bytes)
 {
 }
 
-VMMemoryBuffer::VMMemoryBuffer(const VMMemoryBuffer &other)
-    : m_bytes(other.m_bytes)
-{
-}
-
-VMMemoryBuffer::~VMMemoryBuffer() = default;
-
-VMMemoryBuffer &VMMemoryBuffer::operator=(const VMMemoryBuffer &other)
-{
-    if (&other == this) {
-        return *this;
-    }
-
-    m_bytes = other.m_bytes;
-
-    return *this;
-}
-
-VMMemoryBuffer::~VMMemoryBuffer()
-{
-    if (m_buffer != nullptr) {
-        std::free(m_buffer);
-    }
-}
-
 void VMMemoryBuffer::GetRepresentation(
     std::stringstream &ss,
     bool add_type_name,

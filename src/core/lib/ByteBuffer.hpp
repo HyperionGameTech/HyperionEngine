@@ -93,7 +93,7 @@ public:
 
                 byte_array->Resize(count);
 
-                Memory::Copy(byte_array->Data(), data, count);
+                Memory::MemCpy(byte_array->Data(), data, count);
             }
         } else {
             m_internal.Set(InternalArray { });
@@ -103,7 +103,7 @@ public:
 
                 byte_array.Resize(count);
 
-                Memory::Copy(byte_array.Data(), data, count);
+                Memory::MemCpy(byte_array.Data(), data, count);
             }
         }
     }
@@ -127,7 +127,7 @@ public:
 
         ByteArray byte_array;
         byte_array.Resize(size);
-        Memory::Copy(byte_array.Data(), data, size);
+        Memory::MemCpy(byte_array.Data(), data, size);
 
         return byte_array;
     }
@@ -181,7 +181,7 @@ public:
             bytes[index - offset] = data[index];
         }
 
-        Memory::Copy(out, bytes, sizeof(T));
+        Memory::MemCpy(out, bytes, sizeof(T));
 
         return true;
 

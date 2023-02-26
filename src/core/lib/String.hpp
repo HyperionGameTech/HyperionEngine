@@ -293,7 +293,7 @@ DynString<T, IsUtf8>::DynString(const CharArray<T> &char_array)
       m_length(0)
 {
     Base::Resize(char_array.Size());
-    Memory::Copy(Data(), char_array.Data(), char_array.Size());
+    Memory::MemCpy(Data(), char_array.Data(), char_array.Size());
     
     // add null terminator char if it does not exist yet.
     if (char_array.Empty() || char_array.Back() != 0) {
@@ -319,7 +319,7 @@ DynString<T, IsUtf8>::DynString(const ByteBuffer &byte_buffer)
     }
 
     Base::Resize((size / sizeof(T)) + 1); // +1 for null char
-    Memory::Copy(Data(), byte_buffer.Data(), size / sizeof(T));
+    Memory::MemCpy(Data(), byte_buffer.Data(), size / sizeof(T));
 
     m_length = utf::utf_strlen<T, IsUtf8>(Base::Data());
 }

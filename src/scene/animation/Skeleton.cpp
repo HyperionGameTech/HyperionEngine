@@ -23,7 +23,7 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : RenderCommand
     virtual Result operator()() override
     {
         SkeletonShaderData shader_data;
-        Memory::Copy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(std::size(shader_data.bones), bone_data.matrices->Size()));
+        Memory::MemCpy(shader_data.bones, bone_data.matrices->Data(), sizeof(Matrix4) * MathUtil::Min(std::size(shader_data.bones), bone_data.matrices->Size()));
 
         g_engine->GetRenderData()->skeletons.Set(id.ToIndex(), shader_data);
 

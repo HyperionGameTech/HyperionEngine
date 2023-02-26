@@ -102,7 +102,7 @@ void AABBDebugController::OnTransformUpdate(const Transform &transform)
 
 void AABBDebugController::Serialize(fbom::FBOMObject &out) const
 {
-    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StringLength(controller_name), controller_name);
+    out.SetProperty("controller_name", fbom::FBOMString(), Memory::StrLen(controller_name), controller_name);
 
     out.SetProperty("aabb_max", fbom::FBOMData::FromVector3(m_aabb.max));
     out.SetProperty("aabb_min", fbom::FBOMData::FromVector3(m_aabb.min));

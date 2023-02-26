@@ -101,7 +101,7 @@ public:
         AssertThrow(m_bytes != nullptr);
         AssertThrow(offset + count <= m_size);
 
-        Memory::Copy(&m_bytes[offset], data, count);
+        Memory::MemCpy(&m_bytes[offset], data, count);
     }
 
     bool IsDepthStencil() const;
