@@ -92,7 +92,9 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::VCT_SVO_BUFFER, 72},
             {DescriptorKey::VCT_SVO_FRAGMENT_LIST, 73},
 
-            {DescriptorKey::BLUE_NOISE_BUFFER, 75}
+            {DescriptorKey::BLUE_NOISE_BUFFER, 75},
+
+            {DescriptorKey::DOF_BLUR_RESULT, 77}
         }
     },
     {

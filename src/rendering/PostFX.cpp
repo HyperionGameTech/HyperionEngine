@@ -116,6 +116,16 @@ void PostProcessingEffect::Init()
     SetReady(true);
 }
 
+void PostProcessingEffect::RenderEffect(Frame *frame, UInt slot)
+{
+    m_pass.SetPushConstants({
+        .post_fx_data = { (slot << 1) | UInt(m_stage) }
+    });
+
+    m_pass.Record(frame->GetFrameIndex());
+    m_pass.Render(frame);
+}
+
 PostProcessing::PostProcessing() = default;
 PostProcessing::~PostProcessing() = default;
 
@@ -195,7 +205,7 @@ void PostProcessing::PerformUpdates()
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    if (!m_effects_updated.load()) {
+    if (!m_effects_updated.Get(MemoryOrder::RELAXED)) {
         return;
     }
 
@@ -232,7 +242,7 @@ void PostProcessing::PerformUpdates()
         m_effects_pending_removal[stage_index].Clear();
     }
 
-    m_effects_updated.store(false);
+    m_effects_updated.Set(false, MemoryOrder::RELAXED);
 
     HYP_SYNC_RENDER();
 }
@@ -299,12 +309,7 @@ void PostProcessing::RenderPre(Frame *frame) const
     for (auto &it : m_effects[UInt(PostProcessingEffect::Stage::PRE_SHADING)]) {
         auto &effect = it.second;
 
-        effect->GetPass().SetPushConstants({
-            .post_fx_data = { index << 1 }
-        });
-
-        effect->GetPass().Record(frame->GetFrameIndex());
-        effect->GetPass().Render(frame);
+        effect->RenderEffect(frame, index);
 
         ++index;
     }
@@ -319,12 +324,7 @@ void PostProcessing::RenderPost(Frame *frame) const
     for (auto &it : m_effects[UInt(PostProcessingEffect::Stage::POST_SHADING)]) {
         auto &effect = it.second;
         
-        effect->GetPass().SetPushConstants({
-            .post_fx_data = { (index << 1) | 1 }
-        });
-
-        effect->GetPass().Record(frame->GetFrameIndex());
-        effect->GetPass().Render(frame);
+        effect->RenderEffect(frame, index);
 
         ++index;
     }

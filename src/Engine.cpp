@@ -836,6 +836,12 @@ void Engine::Initialize(RefCountedPtr<Application> application)
                 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::BLUE_NOISE_BUFFER);
+                
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DOF_BLUR_RESULT)
+                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8())
+                ->SetElementSRV(1, &GetPlaceholderData().GetImageView2D1x1R8())
+                ->SetElementSRV(2, &GetPlaceholderData().GetImageView2D1x1R8());
         }
 
         { // POST FX processing placeholders

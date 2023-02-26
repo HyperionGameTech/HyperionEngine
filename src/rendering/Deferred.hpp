@@ -11,6 +11,7 @@
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
 
@@ -171,6 +172,8 @@ private:
 
     UniquePtr<SSRRenderer> m_ssr;
     DepthPyramidRenderer m_dpr;
+
+    UniquePtr<DOFBlur> m_dof_blur;
 
     FixedArray<Handle<Texture>, max_frames_in_flight> m_results;
     Handle<Texture> m_mip_chain;

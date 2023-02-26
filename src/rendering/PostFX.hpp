@@ -64,11 +64,10 @@ public:
     virtual void CreateDescriptors() override;
 };
 
-class PostProcessingEffect
-    : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)>
+class PostProcessingEffect : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)>
 {
 public:
-    enum class Stage
+    enum Stage : UInt
     {
         PRE_SHADING,
         POST_SHADING
@@ -99,6 +98,8 @@ public:
 
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;
+
+    virtual void RenderEffect(Frame *frame, UInt slot);
 
 protected:
     virtual Handle<Shader> CreateShader() = 0;
@@ -184,7 +185,7 @@ private:
             m_effects_pending_addition[UInt(stage)].Set<EffectClass>(std::move(effect));
         }
         
-        m_effects_updated.store(true);
+        m_effects_updated.Set(true, MemoryOrder::RELAXED);
     }
 
     template <class EffectClass>
@@ -209,7 +210,7 @@ private:
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects_pending_addition;
     FixedArray<FlatSet<TypeID>, 2> m_effects_pending_removal;
     std::mutex m_effects_mutex;
-    std::atomic_bool m_effects_updated { false };
+    AtomicVar<Bool> m_effects_updated { false };
 
     GPUBufferRef m_uniform_buffer;
 };

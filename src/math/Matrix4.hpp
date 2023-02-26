@@ -55,7 +55,7 @@ public:
     float GetYaw() const;
     float GetPitch() const;
     float GetRoll() const;
-
+    
     Matrix4 &operator=(const Matrix4 &other);
     Matrix4 operator+(const Matrix4 &other) const;
     Matrix4 &operator+=(const Matrix4 &other);
