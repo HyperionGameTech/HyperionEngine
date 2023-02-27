@@ -5,6 +5,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
+#include <script/ScriptApi.hpp>
 #include <script/ScriptBindingDef.generated.hpp>
 
 #include <vector>
@@ -711,7 +712,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
     virtual void Generate(APIInstance &api_instance) override
     {
         api_instance.Module(Config::global_module_name)
-            .Class<Mesh>(
+            .Class<Handle<Mesh>>(
                 "Mesh",
                 {
                     API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
@@ -721,7 +722,15 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxCtor< Mesh > 
+                        CxxFn< Handle<Mesh>, void *, ScriptCreateObject<Mesh> >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetID",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< UInt32, const Handle<Mesh> &, ScriptGetHandleIDValue<Mesh> >
                     ),
                     API::NativeMemberDefine(
                         "Init",
@@ -729,7 +738,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< void, Mesh, &Mesh::Init >
+                        CxxMemberFnWrapped< void, Handle<Mesh>, Mesh, &Mesh::Init >
                     ),
                     API::NativeMemberDefine(
                         "NumIndices",
@@ -737,7 +746,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< UInt64, Mesh, &Mesh::NumIndices >
+                        CxxMemberFnWrapped< UInt64, Handle<Mesh>, Mesh, &Mesh::NumIndices >
                     ),
                     API::NativeMemberDefine(
                         "NumVertices",
@@ -745,7 +754,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< UInt64, Mesh, &Mesh::NumVertices >
+                        CxxMemberFnWrapped< UInt64, Handle<Mesh>, Mesh, &Mesh::NumVertices >
                     ),
                     API::NativeMemberDefine(
                         "SetVertices",
@@ -754,7 +763,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                             { "self", BuiltinTypes::ANY },
                             { "vertices", BuiltinTypes::ARRAY }
                         },
-                        CxxMemberFn< void, Mesh, const Array<Vertex> &, &Mesh::SetVertices >
+                        CxxMemberFnWrapped< void, Handle<Mesh>, Mesh, const Array<Vertex> &, &Mesh::SetVertices >
                     ),
                     API::NativeMemberDefine(
                         "SetIndices",
@@ -763,7 +772,7 @@ static struct MeshScriptBindings : ScriptBindingsBase
                             { "self", BuiltinTypes::ANY },
                             { "indices", BuiltinTypes::ARRAY }
                         },
-                        CxxMemberFn< void, Mesh, const Array<Mesh::Index> &, &Mesh::SetIndices >
+                        CxxMemberFnWrapped< void, Handle<Mesh>, Mesh, const Array<Mesh::Index> &, &Mesh::SetIndices >
                     )
                 }
             );

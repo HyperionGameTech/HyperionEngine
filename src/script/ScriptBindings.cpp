@@ -1554,8 +1554,8 @@ void ScriptBindings::DeclareAll(APIInstance &api_instance)
 {
     using namespace hyperion::compiler;
 
-    api_instance.Module(Config::global_module_name)
-        .Class<Handle<Entity>>("Entity", { API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })) }, { });
+    //api_instance.Module(Config::global_module_name)
+   //     .Class<Handle<Entity>>("Entity", { API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })) }, { });
 
     api_instance.Module(Config::global_module_name)
         .Class<Name>(

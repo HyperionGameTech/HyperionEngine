@@ -809,4 +809,81 @@ bool Entity::CreateBLAS()
     }
 }
 
+static struct EntityScriptBindings : ScriptBindingsBase
+{
+    EntityScriptBindings()
+        : ScriptBindingsBase(TypeID::ForType<Entity>())
+    {
+    }
+
+    virtual void Generate(APIInstance &api_instance) override
+    {
+        api_instance.Module(Config::global_module_name)
+            .Class<Handle<Entity>>(
+                "Entity",
+                {
+                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                    API::NativeMemberDefine(
+                        "$construct",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< Handle<Entity>, void *, ScriptCreateObject<Entity> >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetID",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< UInt32, const Handle<Entity> &, ScriptGetHandleIDValue<Entity> >
+                    ),
+                    API::NativeMemberDefine(
+                        "Init",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Entity>, Entity, &Entity::Init >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetMesh",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "mesh", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Entity>, Entity, const Handle<Mesh> &, &Entity::SetMesh >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetMesh",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< const Handle<Mesh> &, Handle<Entity>, Entity, &Entity::GetMesh >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetMaterial",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "material", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Entity>, Entity, const Handle<Material> &, &Entity::SetMaterial >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetMaterial",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< const Handle<Material> &, Handle<Entity>, Entity, &Entity::GetMaterial >
+                    )
+                }
+            );
+    }
+} entity_script_bindings = { };
+
 } // namespace hyperion::v2

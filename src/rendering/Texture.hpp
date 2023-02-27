@@ -35,6 +35,8 @@ class Texture
 public:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
 
+    Texture();
+
     Texture(
         Extent3D extent,
         InternalFormat format,

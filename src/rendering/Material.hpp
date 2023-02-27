@@ -42,7 +42,9 @@ public:
             : DescriptorSet::max_material_texture_samplers
     );
 
-    enum TextureKey : UInt64
+    using TextureKeyType = UInt64;
+
+    enum TextureKey : TextureKeyType
     {
         MATERIAL_TEXTURE_NONE = 0,
 
@@ -338,6 +340,22 @@ public:
      */
     void SetTexture(TextureKey key, Handle<Texture> &&texture);
 
+    /*! \brief Sets the texture with the given key on this Material.
+     * If the Material has already been initialized, the Texture is initialized.
+     * Otherwise, it will be initialized when the Material is initialized.
+     * @param key The texture slot to set the texture on
+     * @param texture A Texture resource
+     */
+    void SetTexture(TextureKey key, const Handle<Texture> &texture);
+
+    /*! \brief Sets the texture at the given index on this Material.
+     * If the Material has already been initialized, the Texture is initialized.
+     * Otherwise, it will be initialized when the Material is initialized.
+     * @param index The index to set the texture in
+     * @param texture A Texture resource
+     */
+    void SetTextureAtIndex(UInt index, const Handle<Texture> &texture);
+
     TextureSet &GetTextures()
         { return m_textures; }
 
@@ -349,14 +367,14 @@ public:
      * @param key The key of the texture to find
      * @returns Pointer to the found Texture, or nullptr.
      */
-    Handle<Texture> GetTexture(TextureKey key);
+    const Handle<Texture> &GetTexture(TextureKey key) const;
 
     /*! \brief Return a pointer to a Texture set on this Material by the given
-     * texture key. If no Texture was set, nullptr is returned.
-     * @param key The key of the texture to find
+     * index. If no Texture was set, nullptr is returned.
+     * @param index The index of the texture to find
      * @returns Pointer to the found Texture, or nullptr.
      */
-    const Handle<Texture> GetTexture(TextureKey key) const;
+    const Handle<Texture> &GetTextureAtIndex(UInt index) const;
 
     Bucket GetBucket() const
         { return m_render_attributes.bucket; }

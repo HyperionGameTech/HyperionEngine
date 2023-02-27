@@ -2,6 +2,9 @@
 #include <Engine.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
+#include <script/ScriptApi.hpp>
+#include <script/ScriptBindingDef.generated.hpp>
+
 namespace hyperion::v2 {
 
 using renderer::Result;
@@ -392,6 +395,20 @@ private:
     Array<RC<FullScreenPass>> m_passes;
 };
 
+Texture::Texture()
+    : Texture(
+          TextureImage(
+              Extent3D { 1, 1, 1},
+              InternalFormat::RGBA8,
+              ImageType::TEXTURE_TYPE_2D,
+              FilterMode::TEXTURE_FILTER_NEAREST,
+              nullptr
+          ),
+          FilterMode::TEXTURE_FILTER_NEAREST,
+          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
+      )
+{
+}
 
 Texture::Texture(
     Extent3D extent,
@@ -478,5 +495,48 @@ void Texture::GenerateMipmaps()
     mipmap_renderer.Render();
     mipmap_renderer.Destroy();
 }
+
+static struct TextureScriptBindings : ScriptBindingsBase
+{
+    TextureScriptBindings()
+        : ScriptBindingsBase(TypeID::ForType<Texture>())
+    {
+    }
+
+    virtual void Generate(APIInstance &api_instance) override
+    {
+        api_instance.Module(Config::global_module_name)
+            .Class<Handle<Texture>>(
+                "Texture",
+                {
+                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                    API::NativeMemberDefine(
+                        "$construct",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< Handle<Texture>, void *, ScriptCreateObject<Texture> >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetID",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< UInt32, const Handle<Texture> &, ScriptGetHandleIDValue<Texture> >
+                    ),
+                    API::NativeMemberDefine(
+                        "Init",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Texture>, Texture, &Texture::Init >
+                    )
+                }
+            );
+    }
+} texture_script_bindings = { };
 
 } // namespace hyperion::v2

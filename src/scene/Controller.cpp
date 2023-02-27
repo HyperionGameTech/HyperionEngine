@@ -63,7 +63,7 @@ bool Controller::CreateScriptedObjects()
 
     if (m_script->Compile()) {
         m_script->Bake();
-        m_script->Decompile(&utf::cout);
+        // m_script->Decompile(&utf::cout);
         m_script->Run();
 
         Script::ObjectHandle engine_object_handle;

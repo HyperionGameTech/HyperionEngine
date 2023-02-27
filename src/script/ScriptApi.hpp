@@ -816,6 +816,43 @@ static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Valu
 //static inline auto ConvertScriptObject(APIInstance &, const vm::Value &) -> Optional<std::conditional_t<std::is_fundamental_v<Normalized>, Normalized, Normalized *>>;
 
 template <class T>
+struct ConvertImpl;
+
+template <class T>
+static inline auto ConvertScriptObjectInternal(APIInstance &api_instance, const vm::Value &value)
+{
+    ConvertImpl<T> impl;
+
+    return impl(api_instance, value);
+}
+
+#if 1
+
+template <class T, class Ty = NormalizedType<T>>
+static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value)
+    -> std::enable_if_t<!std::is_enum_v<Ty>, decltype(ConvertScriptObjectInternal<Ty>(api_instance, value))>
+{
+    return ConvertScriptObjectInternal<Ty>(api_instance, value);
+}
+
+template <class T, class Ty = NormalizedType<T>>
+static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value)
+    -> std::enable_if_t<std::is_enum_v<Ty>, decltype(ConvertScriptObjectInternal<std::underlying_type_t<Ty>>(api_instance, value))>
+{
+    return ConvertScriptObjectInternal<std::underlying_type_t<Ty>>(api_instance, value);
+}
+
+#else
+
+template <class T, class Ty = NormalizedType<T>>
+static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value)
+{
+    return ConvertScriptObjectInternal<Ty>(api_instance, value);
+}
+
+#endif
+
+template <class T>
 struct ConvertImpl
 {
     static_assert(!is_vm_object_type<NormalizedType<T>>, "Should not receive a VM object type as it is handled by other specializations");
@@ -1155,14 +1192,6 @@ struct ConvertImpl<Array<T, NumInlineBytes>>
         return { };
     }
 };
-
-template <class T, class Normalized = NormalizedType<T>>
-static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value)//-> std::enable_if_t<!std::is_class_v<NormalizedType<std::remove_pointer_t<T>>> || is_vm_object_type<NormalizedType<std::remove_pointer_t<T>>>, bool>
-{
-    ConvertImpl<Normalized> impl;
-
-    return impl(api_instance, value);
-}
 
 /*template <class T>
 static inline auto ConvertScriptObject(APIInstance &api_instance, const vm::Value &value, T &&out) -> std::enable_if_t<std::is_class_v<NormalizedType<std::remove_pointer_t<T>>> && !(is_vm_object_type<NormalizedType<std::remove_pointer_t<T>>>), bool>

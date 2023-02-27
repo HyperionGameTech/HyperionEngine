@@ -334,6 +334,26 @@ static HYP_FORCE_INLINE Handle<T> CreateObject(Args &&... args)
     return CreateObjectIntern<T>(GetEngine(), std::forward<Args>(args)...);
 }
 
+// Version of CreateObject for within scripts,
+// taking single void * parameter for the allocated object
+template <class T>
+static HYP_FORCE_INLINE Handle<T> ScriptCreateObject(void *)
+{
+    return CreateObject<T>();
+}
+
+template <class T>
+static HYP_FORCE_INLINE ID<T> ScriptGetHandleID(const Handle<T> &handle)
+{
+    return handle.GetID();
+}
+
+template <class T>
+static HYP_FORCE_INLINE typename ID<T>::ValueType ScriptGetHandleIDValue(const Handle<T> &handle)
+{
+    return handle.GetID().Value();
+}
+
 } // namespace hyperion::v2
 
 #endif

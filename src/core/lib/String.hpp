@@ -68,6 +68,7 @@ public:
     DynString();
     DynString(const DynString &other);
     DynString(const T *str);
+    DynString(const T *str, Int max_len);
     explicit DynString(const CharArray<T> &char_array);
     explicit DynString(const ByteBuffer &byte_buffer);
 
@@ -247,6 +248,41 @@ DynString<T, IsUtf8>::DynString(const T *str)
 
     int count;
     int len = utf::utf_strlen<T, IsUtf8>(str, &count);
+
+    if (len == -1) {
+        // invalid utf8 string
+        // push back null terminated char
+        Base::PushBack(T { 0 });
+
+        return;
+    }
+
+    m_length = static_cast<typename Base::SizeType>(len);
+
+    const auto size = static_cast<typename Base::SizeType>(count);
+    
+    // reserves + 1 for null char
+    Reserve(size);
+
+    for (SizeType i = 0; i < size; ++i) {
+        Base::PushBack(str[i]);
+    }
+    
+    // null-terminated char
+    Base::PushBack(T { 0 });
+}
+
+template <class T, bool IsUtf8>
+DynString<T, IsUtf8>::DynString(const T *str, Int max_len)
+    : Base(),
+      m_length(0)
+{
+    if (str == nullptr) {
+        return;
+    }
+
+    int count;
+    int len = MathUtil::Min(utf::utf_strlen<T, IsUtf8>(str, &count), max_len);
 
     if (len == -1) {
         // invalid utf8 string

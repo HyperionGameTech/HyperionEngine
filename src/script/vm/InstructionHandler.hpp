@@ -794,7 +794,7 @@ public:
         member->value.AssignValue(thread->m_regs[src_reg], true);
     }
 
-    HYP_FORCE_INLINE void MovArrayIdx(BCRegister dst_reg, uint32_t index, BCRegister src_reg)
+    HYP_FORCE_INLINE void MovArrayIdx(BCRegister dst_reg, UInt32 index, BCRegister src_reg)
     {
         Value &sv = thread->m_regs[dst_reg];
 

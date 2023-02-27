@@ -1,6 +1,7 @@
 #ifndef IMMUTABLE_STRING_HPP
 #define IMMUTABLE_STRING_HPP
 
+#include <core/lib/String.hpp>
 #include <Types.hpp>
 
 #include <cstring>
@@ -8,13 +9,16 @@
 namespace hyperion {
 namespace vm {
 
-class VMString {
+class VMString
+{
 public:
     static VMString Concat(const VMString &a, const VMString &b);
 
 public:
     VMString(const char *str);
-    VMString(const char *str, SizeType len);
+    VMString(const char *str, Int max_len);
+    VMString(const String &str);
+    VMString(String &&str);
     VMString(const VMString &other);
     VMString &operator=(const VMString &other);
     VMString(VMString &&other) noexcept;
@@ -22,17 +26,22 @@ public:
     ~VMString();
 
     bool operator==(const VMString &other) const
-        { return m_length == other.m_length && !std::strcmp(m_data, other.m_data); }
+        { return m_str == other.m_str; }
 
     const char *GetData() const
-        { return m_data; }
+        { return m_str.Data(); }
+
     SizeType GetLength() const
-        { return m_length; }
+        { return m_str.Size(); /* need to use size as other places are relying on it for memory size */ }
+
+    const String &GetString() const
+        { return m_str; }
+
+    explicit operator String() const
+        { return m_str; }
 
 private:
-    char *m_data;
-    // cache length
-    SizeType m_length;
+    String m_str;
 };
 
 } // namespace vm

@@ -4,6 +4,9 @@
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
+#include <script/ScriptApi.hpp>
+#include <script/ScriptBindingDef.generated.hpp>
+
 #include <util/ByteUtil.hpp>
 #include <Types.hpp>
 
@@ -476,14 +479,28 @@ void Material::SetTexture(TextureKey key, Handle<Texture> &&texture)
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
-Handle<Texture> Material::GetTexture(TextureKey key)
+void Material::SetTexture(TextureKey key, const Handle<Texture> &texture)
+{
+    SetTexture(key, Handle<Texture>(texture));
+}
+
+void Material::SetTextureAtIndex(UInt index, const Handle<Texture> &texture)
+{
+    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
+
+    return SetTexture(key, texture);
+}
+
+const Handle<Texture> &Material::GetTexture(TextureKey key) const
 {
     return m_textures.Get(key);
 }
 
-const Handle<Texture> Material::GetTexture(TextureKey key) const
+const Handle<Texture> &Material::GetTextureAtIndex(UInt index) const
 {
-    return m_textures.Get(key);
+    const TextureKey key = static_cast<TextureKey>(m_textures.OrdinalToEnum(index));
+
+    return GetTexture(key);
 }
 
 Handle<Material> Material::Clone() const
@@ -613,5 +630,67 @@ Handle<Material> MaterialCache::GetOrCreate(
 
     return handle;
 }
+
+static struct MaterialScriptBindings : ScriptBindingsBase
+{
+    MaterialScriptBindings()
+        : ScriptBindingsBase(TypeID::ForType<Material>())
+    {
+    }
+
+    virtual void Generate(APIInstance &api_instance) override
+    {
+        api_instance.Module(Config::global_module_name)
+            .Class<Handle<Material>>(
+                "Material",
+                {
+                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                    API::NativeMemberDefine(
+                        "$construct",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< Handle<Material>, void *, ScriptCreateObject<Material> >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetID",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxFn< UInt32, const Handle<Material> &, ScriptGetHandleIDValue<Material> >
+                    ),
+                    API::NativeMemberDefine(
+                        "Init",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Material>, Material, &Material::Init >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetTextureAtIndex",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::UNSIGNED_INT },
+                            { "value", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFnWrapped< void, Handle<Material>, Material, UInt, const Handle<Texture> &, &Material::SetTextureAtIndex >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetTextureAtIndex",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::UNSIGNED_INT }
+                        },
+                        CxxMemberFnWrapped< const Handle<Texture> &, Handle<Material>, Material, UInt, &Material::GetTextureAtIndex >
+                    )
+                }
+            );
+    }
+} material_script_bindings = { };
 
 } // namespace hyperion::v2

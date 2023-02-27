@@ -128,16 +128,24 @@ const char *Value::GetTypeString() const
 {
     switch (m_type) {
         case NONE:
-            return "<Uninitialized Data>";
-        case I32: // fallthrough
+            return "<Uninitialized data>";
+        case I8:
+            return "Int8";
+        case I16:
+            return "Int16";
+        case I32:
             return "Int32";
         case I64:
             return "Int64";
-        case U32: // fallthrough
+        case U8:
+            return "UInt8";
+        case U16:
+            return "UInt16";
+        case U32:
             return "UInt32";
         case U64:
             return "UInt64";
-        case F32: // fallthrough
+        case F32:
             return "Float";
         case F64:
             return "Double";
@@ -161,25 +169,27 @@ const char *Value::GetTypeString() const
                 return "Array";
             } else if (m_value.ptr->GetPointer<VMMemoryBuffer>()) {
                 return "MemoryBuffer";
+            } else if (m_value.ptr->GetPointer<VMStruct>()) {
+                return "Struct";
             } else if (VMObject *object = m_value.ptr->GetPointer<VMObject>()) {
                 return "Object"; // TODO prototype name
             }
 
-            return "Pointer";
+            return "<Unknown pointer type>";
 
-        case FUNCTION: return "Function";
-        case NATIVE_FUNCTION: return "NativeFunction";
-        case ADDRESS: return "Address";
-        case FUNCTION_CALL: return "FunctionCallInfo";
-        case TRY_CATCH_INFO: return "TryCatchInfo";
+        case FUNCTION: // fallthrough
+        case NATIVE_FUNCTION: return "Function";
+        case ADDRESS: return "<Function address>";
+        case FUNCTION_CALL: return "<Stack frame>";
+        case TRY_CATCH_INFO: return "<Try catch info>";
         case USER_DATA: return "UserData";
-        default: return "??";
+        default: return "<Invalid type>";
     }
 }
 
 VMString Value::ToString() const
 {
-    const size_t buf_size = 256;
+    const SizeType buf_size = 256;
     char buf[buf_size] = {0};
 
     const int depth = 3;
