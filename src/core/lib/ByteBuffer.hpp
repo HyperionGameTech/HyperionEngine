@@ -7,6 +7,7 @@
 #include <core/lib/Span.hpp>
 #include <core/lib/CMemory.hpp>
 #include <HashCode.hpp>
+#include <Constants.hpp>
 
 #include <Types.hpp>
 
@@ -162,7 +163,7 @@ public:
     template <class T>
     bool Read(SizeType offset, T *out) const
     {
-        static_assert(std::is_pod_v<T>, "Must be POD type");
+        static_assert(IsPODType<T>, "Must be POD type");
 
         AssertThrow(out != nullptr);
 

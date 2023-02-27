@@ -1087,6 +1087,13 @@ void DynArray<T, NumInlineBytes>::Clear()
 template <class T, SizeType NumInlineBytes = 256u>
 using Array = containers::detail::DynArray<T, NumInlineBytes>;
 
+// traits
+template <class T>
+struct IsDynArray { enum { value = false }; };
+
+template <class T, SizeType NumInlineBytes>
+struct IsDynArray<Array<T, NumInlineBytes>> { enum { value = true }; };
+
 } // namespace hyperion
 
 #endif

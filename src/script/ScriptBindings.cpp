@@ -94,7 +94,7 @@ HYP_SCRIPT_FUNCTION(ScriptBindings::Vector3ToString)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    auto &&vector3_value = GetArgument<0, Vector3>(params);
+    Vector3 vector3_value = GetArgument<0, Vector3>(params);
     
     // create heap value for string
     vm::HeapValue *ptr = params.handler->state->HeapAlloc(params.handler->thread);
@@ -522,7 +522,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_MakeStruct)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    vm::VMArray *arguments_ptr = GetArgument<0, vm::VMArray>(params);
+    vm::VMArray *arguments_ptr = GetArgument<0, vm::VMArray *>(params);
 
     if (!arguments_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -687,8 +687,8 @@ static HYP_SCRIPT_FUNCTION(Runtime_ReadStructMember)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
-    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct>(params);
-    vm::VMString *member_name_ptr = GetArgument<1, vm::VMString>(params);
+    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct *>(params);
+    vm::VMString *member_name_ptr = GetArgument<1, vm::VMString *>(params);
 
     if (!struct_ptr || !member_name_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -796,7 +796,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_GetStructMemoryBuffer)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct>(params);
+    vm::VMStruct *struct_ptr = GetArgument<0, vm::VMStruct *>(params);
 
     if (!struct_ptr) {
         HYP_SCRIPT_RETURN_NULL();
@@ -823,7 +823,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_HasMember)
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
     vm::Value *arg0 = params.args[0];
-    VMString *str = GetArgument<1, VMString>(params);
+    VMString *str = GetArgument<1, VMString *>(params);
 
     if (!arg0 || !str) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -893,8 +893,8 @@ static HYP_SCRIPT_FUNCTION(Runtime_OpenFilePointer)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
-    vm::VMString *path_str = GetArgument<0, vm::VMString>(params);
-    vm::VMString *args_str = GetArgument<1, vm::VMString>(params);
+    vm::VMString *path_str = GetArgument<0, vm::VMString *>(params);
+    vm::VMString *args_str = GetArgument<1, vm::VMString *>(params);
 
     if (!path_str || !args_str) {
         params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid arguments to fopen"));
@@ -1274,7 +1274,7 @@ static HYP_SCRIPT_FUNCTION(EntityGetName)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    auto &entity_handle = GetArgument<0, Handle<Entity>>(params);
+    auto &&entity_handle = GetArgument<0, Handle<Entity>>(params);
 
     if (!entity_handle) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -1319,8 +1319,8 @@ static HYP_SCRIPT_FUNCTION(Entity_SetTranslation)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
-    auto &&entity_ptr = GetArgument<0, Handle<Entity> &>(params);
-    const Vector3 &translation = GetArgument<1, const Vector3 &>(params);
+    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
+    const Vector3 translation = GetArgument<1, Vector3>(params);
 
     if (!entity_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -1335,7 +1335,7 @@ static HYP_SCRIPT_FUNCTION(Entity_GetTranslation)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    auto &&entity_ptr = GetArgument<0, Handle<Entity> &>(params);
+    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
 
     if (!entity_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -1360,7 +1360,7 @@ static HYP_SCRIPT_FUNCTION(Entity_GetWorldAABB)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    auto &&entity_ptr = GetArgument<0, Handle<Entity> &>(params);
+    auto &&entity_ptr = GetArgument<0, Handle<Entity>>(params);
 
     if (!entity_ptr) {
         HYP_SCRIPT_THROW(vm::Exception::NullReferenceException());
@@ -1385,7 +1385,7 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
-    VMString *str = GetArgument<1, VMString>(params);
+    VMString *str = GetArgument<1, VMString *>(params);
 
     if (str == nullptr) {
         HYP_SCRIPT_THROW(vm::Exception("Module name must be a string"));
@@ -1488,8 +1488,8 @@ static HYP_SCRIPT_FUNCTION(GetModuleExportedValue)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
-    RC<DynModule> &dyn_module = GetArgument<0, RC<DynModule>>(params);
-    VMString *name_ptr = GetArgument<1, VMString>(params);
+    RC<DynModule> dyn_module = GetArgument<0, RC<DynModule>>(params);
+    VMString *name_ptr = GetArgument<1, VMString *>(params);
 
     if (dyn_module == nullptr || dyn_module->ptr == nullptr || name_ptr == nullptr) {
         HYP_SCRIPT_RETURN_NULL();
@@ -1508,7 +1508,7 @@ static HYP_SCRIPT_FUNCTION(NameToString)
 {
     HYP_SCRIPT_CHECK_ARGS(==, 1);
 
-    vm::VMObject *name_object_ptr = GetArgument<0, vm::VMObject>(params);
+    vm::VMObject *name_object_ptr = GetArgument<0, vm::VMObject *>(params);
     AssertThrow(name_object_ptr != nullptr);
 
     HYP_SCRIPT_GET_MEMBER_UINT(name_object_ptr, "hash_code", UInt64, hash_code_value);
@@ -1531,7 +1531,8 @@ static HYP_SCRIPT_FUNCTION(NameCreateFromString)
     HYP_SCRIPT_CHECK_ARGS(==, 2);
 
     // auto &&name = GetArgument<0, Name>(params);
-    VMString *str = GetArgument<1, VMString>(params);
+    VMString *str = GetArgument<1, VMString *>(params);
+
 
     AssertThrow(str != nullptr);
 

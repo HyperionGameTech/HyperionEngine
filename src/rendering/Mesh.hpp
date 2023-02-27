@@ -43,6 +43,8 @@ public:
 
     static std::pair<std::vector<Vertex>, std::vector<Index>> CalculateIndices(const std::vector<Vertex> &vertices);
 
+    Mesh();
+
     Mesh(
         const std::vector<Vertex> &vertices,
         const std::vector<Index> &indices,
@@ -58,18 +60,27 @@ public:
 
     Mesh(const Mesh &other) = delete;
     Mesh &operator=(const Mesh &other) = delete;
+
+    Mesh(Mesh &&other) noexcept;;
+    Mesh &operator=(Mesh &&other) noexcept;
+
     ~Mesh();
 
     const GPUBufferRef &GetVertexBuffer() const { return m_vbo; }
     const GPUBufferRef &GetIndexBuffer() const { return m_ibo; }
                                                                    
     const std::vector<Vertex> &GetVertices() const { return m_vertices; }
+
+    void SetVertices(const Array<Vertex> &vertices);
+    void SetIndices(const Array<Index> &indices);
+
     void SetVertices(const std::vector<Vertex> &vertices, const std::vector<Index> &indices)
         { m_vertices = vertices; m_indices = indices; }
 
     const std::vector<Index> &GetIndices() const { return m_indices; }
 
     SizeType NumIndices() const { return m_indices_count; }
+    SizeType NumVertices() const { return m_vertices.size(); }
 
     const VertexAttributeSet &GetVertexAttributes() const { return m_mesh_attributes.vertex_attributes; }
     void SetVertexAttributes(const VertexAttributeSet &attributes) { m_mesh_attributes.vertex_attributes = attributes; }
@@ -105,7 +116,7 @@ private:
     GPUBufferRef m_vbo;
     GPUBufferRef m_ibo;
 
-    size_t m_indices_count = 0;
+    SizeType m_indices_count = 0;
 
     MeshAttributes m_mesh_attributes;
 
@@ -113,6 +124,6 @@ private:
     std::vector<Index> m_indices;
 };
 
-}
+} // namespace hyperion::v2
 
 #endif //HYPERION_MESH_H

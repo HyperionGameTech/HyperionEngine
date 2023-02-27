@@ -5,6 +5,8 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
+#include <script/ScriptBindingDef.generated.hpp>
+
 #include <vector>
 #include <unordered_map>
 #include <cstring>
@@ -117,6 +119,17 @@ Mesh::CalculateIndices(const std::vector<Vertex> &vertices)
     return std::make_pair(new_vertices, indices);
 }
 
+Mesh::Mesh()
+    : EngineComponentBase(),
+      m_vbo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
+      m_ibo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
+      m_mesh_attributes {
+          .vertex_attributes = renderer::static_mesh_vertex_attributes,
+          .topology = Topology::TRIANGLES
+      }
+{
+}
+
 Mesh::Mesh(
     const std::vector<Vertex> &vertices,
     const std::vector<Index> &indices,
@@ -145,6 +158,30 @@ Mesh::Mesh(
         renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes
     )
 {
+}
+
+Mesh::Mesh(Mesh &&other) noexcept
+    : m_vbo(std::move(other.m_vbo)),
+      m_ibo(std::move(other.m_ibo)),
+      m_mesh_attributes(other.m_mesh_attributes),
+      m_vertices(std::move(other.m_vertices)),
+      m_indices(std::move(other.m_indices))
+{
+}
+
+Mesh &Mesh::operator=(Mesh &&other) noexcept
+{
+    if (&other == this) {
+        return *this;
+    }
+
+    m_vbo = std::move(other.m_vbo);
+    m_ibo = std::move(other.m_ibo);
+    m_mesh_attributes = other.m_mesh_attributes;
+    m_vertices = std::move(other.m_vertices);
+    m_indices = std::move(other.m_indices);
+
+    return *this;
 }
 
 Mesh::~Mesh()
@@ -218,6 +255,24 @@ void Mesh::Init()
     );
             
     SetReady(true);
+}
+
+void Mesh::SetVertices(const Array<Vertex> &vertices)
+{
+    m_vertices.resize(vertices.Size());
+    m_indices.resize(vertices.Size());
+
+    for (SizeType index = 0; index < vertices.Size(); index++) {
+        m_vertices[index] = vertices[index];
+        m_indices[index] = Index(index);
+    }
+}
+
+void Mesh::SetIndices(const Array<Index> &indices)
+{
+    m_indices.resize(indices.Size());
+
+    Memory::MemCpy(m_indices.data(), indices.Data(), indices.Size() * sizeof(Index));
 }
 
 /* Copy our values into the packed vertex buffer, and increase the index for the next possible
@@ -646,4 +701,73 @@ BoundingBox Mesh::CalculateAABB() const
     return aabb;
 }
 
-}
+static struct MeshScriptBindings : ScriptBindingsBase
+{
+    MeshScriptBindings()
+        : ScriptBindingsBase(TypeID::ForType<Mesh>())
+    {
+    }
+
+    virtual void Generate(APIInstance &api_instance) override
+    {
+        api_instance.Module(Config::global_module_name)
+            .Class<Mesh>(
+                "Mesh",
+                {
+                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                    API::NativeMemberDefine(
+                        "$construct",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxCtor< Mesh > 
+                    ),
+                    API::NativeMemberDefine(
+                        "Init",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< void, Mesh, &Mesh::Init >
+                    ),
+                    API::NativeMemberDefine(
+                        "NumIndices",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< UInt64, Mesh, &Mesh::NumIndices >
+                    ),
+                    API::NativeMemberDefine(
+                        "NumVertices",
+                        BuiltinTypes::UNSIGNED_INT,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< UInt64, Mesh, &Mesh::NumVertices >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetVertices",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "vertices", BuiltinTypes::ARRAY }
+                        },
+                        CxxMemberFn< void, Mesh, const Array<Vertex> &, &Mesh::SetVertices >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetIndices",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "indices", BuiltinTypes::ARRAY }
+                        },
+                        CxxMemberFn< void, Mesh, const Array<Mesh::Index> &, &Mesh::SetIndices >
+                    )
+                }
+            );
+    }
+} mesh_script_bindings = { };
+
+} // namespace hyperion::v2

@@ -178,6 +178,8 @@ public:
             }
 
             btn_node.Scale(0.01f);
+
+            HYP_BREAKPOINT;
         }
 
         { // allow ui rendering
@@ -272,7 +274,7 @@ public:
         monkey_fbx.Rotate(Vector3(90, 0, 0));
 
         material_test_obj.Scale(2.0f);
-        material_test_obj.Translate(Vector3(0.0f, 4.0f, 9.0f));
+        material_test_obj.Translate(Vector3(5.0f, 3.0f, 0.0f));
         GetScene()->GetRoot().AddChild(material_test_obj);
         
         if (auto dude = obj_models["dude3"].Get<Node>()) {
@@ -479,7 +481,7 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
 #if 0
             auto mh = g_asset_manager->Load<Node>("models/mh/mh1.obj");
             mh.SetName("mh_model");
@@ -931,8 +933,6 @@ int main()
     g_engine->Initialize(application);
 
     my_game->Init();
-
-    // g_engine->Compile();
     
     g_engine->game_thread.Start(my_game);
 

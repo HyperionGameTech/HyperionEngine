@@ -13,6 +13,35 @@ namespace hyperion {
 using namespace vm;
 using namespace compiler;
 
+static ScriptBindingsHolder bindings_holder { };
+
+ScriptBindingsBase::ScriptBindingsBase(TypeID type_id)
+{
+    bindings_holder.AddBinding(this);
+}
+
+
+void ScriptBindingsHolder::AddBinding(ScriptBindingsBase *script_bindings)
+{
+    const UInt index = binding_index++;
+
+    AssertThrowMsg(index < max_bindings, "Too many script bindings attached.");
+
+    bindings[index] = script_bindings;
+}
+
+void ScriptBindingsHolder::GenerateAll(APIInstance &api_instance)
+{
+    for (auto it = bindings.Begin(); it != bindings.End(); ++it) {
+        if (*it == nullptr) {
+            break;
+        }
+
+        (*it)->Generate(api_instance);
+    }
+}
+
+
 static Module *GetModule(CompilationUnit *compilation_unit, const std::string &module_name)
 {
     if (Module *mod = compilation_unit->LookupModule(module_name)) {
@@ -605,6 +634,8 @@ API::ModuleDefine &APIInstance::Module(const std::string &name)
 
 void APIInstance::BindAll(VM *vm, CompilationUnit *compilation_unit)
 {
+    bindings_holder.GenerateAll(*this);
+
     for (auto &module_def : m_module_defs) {
         module_def.BindAll(
             *this,

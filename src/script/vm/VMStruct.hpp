@@ -131,7 +131,7 @@ public:
                     writer.Write<Int16>(data->i16);
                     break;
                 case VM_STRUCT_TYPE_U16:
-                    writer.Write<UInt8>(data->i16);
+                    writer.Write<UInt16>(data->u16);
                     break;
                 case VM_STRUCT_TYPE_I32:
                     writer.Write<Int32>(data->i32);

@@ -1,5 +1,8 @@
 #include "Vertex.hpp"
 
+#include <script/ScriptApi.hpp>
+#include <script/ScriptBindingDef.generated.hpp>
+
 namespace hyperion {
 bool Vertex::operator==(const Vertex &other) const
 {
@@ -55,5 +58,138 @@ Vertex operator*(const Transform &transform, const Vertex &vertex)
 {
     return transform.GetMatrix() * vertex;
 }
+
+static struct VertexScriptBindings : ScriptBindingsBase
+{
+    VertexScriptBindings()
+        : ScriptBindingsBase(TypeID::ForType<Vertex>())
+    {
+    }
+
+    virtual void Generate(APIInstance &api_instance) override
+    {
+        api_instance.Module(Config::global_module_name)
+            .Class<Vertex>(
+                "Vertex",
+                {
+                    API::NativeMemberDefine("__intern", BuiltinTypes::ANY, vm::Value(vm::Value::HEAP_POINTER, { .ptr = nullptr })),
+                    API::NativeMemberDefine(
+                        "$construct",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxCtor< Vertex > 
+                    ),
+                    API::NativeMemberDefine(
+                        "GetPosition",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< const Vector3 &, Vertex, &Vertex::GetPosition >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetPosition",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "position", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< void, Vertex, const Vector3 &, &Vertex::SetPosition >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetNormal",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< const Vector3 &, Vertex, &Vertex::GetNormal >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetNormal",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "normal", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< void, Vertex, const Vector3 &, &Vertex::SetNormal >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetTangent",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< const Vector3 &, Vertex, &Vertex::GetTangent >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetTangent",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "normal", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< void, Vertex, const Vector3 &, &Vertex::SetTangent >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetBitangent",
+                        BuiltinTypes::ANY,
+                        {
+                            { "self", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< const Vector3 &, Vertex, &Vertex::GetBitangent >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetBitangent",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "normal", BuiltinTypes::ANY }
+                        },
+                        CxxMemberFn< void, Vertex, const Vector3 &, &Vertex::SetBitangent >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetBoneIndex",
+                        BuiltinTypes::INT,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::INT }
+                        },
+                        CxxMemberFn< Int, Vertex, Int, &Vertex::GetBoneIndex >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetBoneIndex",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::INT },
+                            { "value", BuiltinTypes::INT }
+                        },
+                        CxxMemberFn< void, Vertex, Int, Int, &Vertex::SetBoneIndex >
+                    ),
+                    API::NativeMemberDefine(
+                        "GetBoneWeight",
+                        BuiltinTypes::FLOAT,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::INT }
+                        },
+                        CxxMemberFn< Float, Vertex, Int, &Vertex::GetBoneWeight >
+                    ),
+                    API::NativeMemberDefine(
+                        "SetBoneWeight",
+                        BuiltinTypes::VOID_TYPE,
+                        {
+                            { "self", BuiltinTypes::ANY },
+                            { "index", BuiltinTypes::INT },
+                            { "value", BuiltinTypes::FLOAT }
+                        },
+                        CxxMemberFn< void, Vertex, Int, Float, &Vertex::SetBoneWeight >
+                    )
+                }
+            );
+    }
+} vertex_script_bindings = { };
 
 } // namespace hyperion

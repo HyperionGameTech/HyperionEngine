@@ -12,7 +12,7 @@
 
         <% invoke_args = [] %>
 
-        auto &&this_arg = GetArgument<0, ThisType>(params);
+        auto &&this_arg = GetArgument<0, ThisType *>(params);
 
         % for i in range(0, num_args):
             auto &&arg${i} = GetArgument<${i + 1}, Arg${i}Type>(params);
@@ -21,23 +21,23 @@
         % endfor
         
         if constexpr (std::is_same_v<void, Normalized>) {
-            HYP_SCRIPT_RETURN_VOID((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_VOID((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<int32_t, Normalized>) {
-            HYP_SCRIPT_RETURN_INT32((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_INT32((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<int64_t, Normalized>) {
-            HYP_SCRIPT_RETURN_INT64((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_INT64((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<uint32_t, Normalized>) {
-            HYP_SCRIPT_RETURN_UINT32((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_UINT32((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<uint64_t, Normalized>) {
-            HYP_SCRIPT_RETURN_UINT64((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_UINT64((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<float, Normalized>) {
-            HYP_SCRIPT_RETURN_FLOAT32((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_FLOAT32((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<double, Normalized>) {
-            HYP_SCRIPT_RETURN_FLOAT64((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_FLOAT64((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else if constexpr (std::is_same_v<bool, Normalized>) {
-            HYP_SCRIPT_RETURN_BOOLEAN((this_arg.*MemFn)(${', '.join(invoke_args)}));
+            HYP_SCRIPT_RETURN_BOOLEAN((this_arg->*MemFn)(${', '.join(invoke_args)}));
         } else {
-            HYP_SCRIPT_CREATE_PTR((this_arg.*MemFn)(${', '.join(invoke_args)}), result);
+            HYP_SCRIPT_CREATE_PTR((this_arg->*MemFn)(${', '.join(invoke_args)}), result);
 
             const auto class_name_it = params.api_instance.class_bindings.class_names.Find<Normalized>();
             AssertThrowMsg(class_name_it != params.api_instance.class_bindings.class_names.End(), "Class not registered!");
