@@ -11,25 +11,52 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/Texture.hpp>
 
-namespace hyperion::v2::font
+namespace hyperion::v2
 {
 
 class Glyph
 {
 public:
-    Glyph(Face &face, Face::GlyphIndex index, bool render);
+
+    HYP_PACK_BEGIN
+    struct PackedMetrics
+    {
+        UInt16 width;     /* 2 */
+        UInt16 height;    /* 4 */
+        Int16 bearing_x;  /* 6 */
+        Int16 bearing_y;  /* 8 */
+        UInt8 advance;    /* 9 */
+
+        UInt8 _reserved0;  /* 10 */
+    } HYP_PACK_END;
+
+
+    struct Metrics
+    {
+        PackedMetrics metrics;
+
+        Extent2D image_position;
+
+        [[nodiscard]] PackedMetrics GetPackedMetrics() const { return metrics; }
+    };
+
+    Glyph(Handle<hyperion::v2::Face> face, hyperion::v2::Face::GlyphIndex index, bool render);
     void Render();
+
+    [[nodiscard]] Metrics GetMetrics() const { return m_metrics; }
+
     Extent2D GetMax();
     Extent2D GetMin();
     const Handle<Texture> &GetTexture();
 
 private:
-    Face m_face;
+    Handle<hyperion::v2::Face> m_face;
 
     FontEngine::Glyph m_glyph;
     Handle<Texture> m_texture;
+    Metrics m_metrics { 0 };
 };
 
-}; // namespace hyperion::v2::font
+}; // namespace hyperion::v2
 
 #endif //HYP_FONT_FONTGLYPH_HPP

@@ -8,30 +8,40 @@
 #include <string>
 #include "FontEngine.hpp"
 
+#include <core/Base.hpp>
+
+#include <Constants.hpp>
 #include <Types.hpp>
 
-namespace hyperion::v2::font {
+namespace hyperion::v2 {
 
-class Face
+class Engine;
+class Face : public EngineComponentBase<STUB_CLASS(Face)>
 {
 public:
     using WChar = UInt32;
     using GlyphIndex = UInt;
 
-    Face(FontEngine::Backend backend, const std::string &path);
+    Face() = default;
+
+    Face(FontEngine::Backend backend, const std::string &file_path);
+    Face(const Face &other) = delete;
+    Face &operator=(const Face &other) = delete;
+
+    ~Face();
+
+    void Init();
 
     void RequestPixelSizes(Int width, Int height);
     void SetGlyphSize(Int pt_w, Int pt_h, Int screen_width, Int screen_height);
     GlyphIndex GetGlyphIndex(WChar to_find);
     FontEngine::Font GetFace();
 
-    ~Face() = default;
-
 private:
-    FontEngine::Font m_face;
+    FontEngine::Font m_face = nullptr;
 
 };
 
-} // namespace hyperion::v2::font
+} // namespace hyperion::v2
 
 #endif //HYP_FONT_FACE_HPP

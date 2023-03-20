@@ -17,8 +17,6 @@
 
 #include <util/UTF8.hpp>
 
-#include <Types.hpp>
-
 #include <memory>
 #include <array>
 

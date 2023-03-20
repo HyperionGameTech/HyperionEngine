@@ -224,6 +224,7 @@ public:
     }
 
 DEF_HANDLE(Texture,                      16384);
+DEF_HANDLE(Face,                         16);
 DEF_HANDLE(Camera,                       64);
 DEF_HANDLE(Entity,                       32768);
 DEF_HANDLE(Mesh,                         65536);

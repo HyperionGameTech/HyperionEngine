@@ -36,6 +36,8 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
+#include <font/FontEngine.hpp>
+
 #include <TaskSystem.hpp>
 
 #include <system/CrashHandler.hpp>
@@ -147,6 +149,8 @@ public:
 
     AssetManager &GetAssetManager() { return m_asset_manager; }
     const AssetManager &GetAssetManager() const { return m_asset_manager; }
+
+    FontEngine &GetFontEngine() { return m_font_engine; }
 
     Handle<World> &GetWorld() { return m_world; }
     const Handle<World> &GetWorld() const { return m_world; }
@@ -325,6 +329,8 @@ private:
 
     DeferredRenderer m_deferred_renderer;
     DeferredSystem m_render_list_container;
+
+    FontEngine m_font_engine;
 
     /* TMP */
     std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;

@@ -270,7 +270,7 @@ public:
     ByteBuffer GenerateColorRamp()
     {
         const int bits_per_pixel = NumComponents * 8;
-        SizeType size = std::pow(2, bits_per_pixel) - 1;
+        SizeType size = std::pow<SizeType>(2, bits_per_pixel) - 1;
         ByteBuffer buffer(size * 4);
 
         for (SizeType i = 0; i < size; i++) {

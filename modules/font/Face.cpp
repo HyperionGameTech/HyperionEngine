@@ -7,20 +7,34 @@
 
 #include <iostream>
 
-namespace hyperion::v2::font {
+namespace hyperion::v2 {
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
 Face::Face(FontEngine::Backend backend, const std::string &path)
-        : m_face(nullptr)
+        : EngineComponentBase(),
+          m_face(nullptr)
 {
     if (FT_New_Face(backend, path.c_str(), 0, &m_face)) {
         std::cout << "Error! could not load font face at '" << path << "'!\n";
         m_face = nullptr;
-        
         return;
     }
+}
+
+Face::~Face()
+{
+    Teardown();
+}
+
+void Face::Init()
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    EngineComponentBase::Init();
 }
 
 void Face::SetGlyphSize(Int pt_w, Int pt_h, Int screen_width, Int screen_height)

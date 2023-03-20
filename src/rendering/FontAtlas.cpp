@@ -27,7 +27,7 @@ struct RENDER_COMMAND(RenderFontAtlas) : RenderCommand {
 
 #pragma endregion
 
-void FontAtlas::RenderCharacter(Extent2D location, Extent2D dimensions, font::Glyph &glyph)
+void FontAtlas::RenderCharacter(Extent2D location, Extent2D dimensions, Glyph &glyph)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     auto commands = Engine::Get()->GetGPUInstance()->GetSingleTimeCommands();

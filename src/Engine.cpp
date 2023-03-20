@@ -19,6 +19,7 @@
 #include <asset/texture_loaders/TextureLoader.hpp>
 #include <asset/audio_loaders/WAVAudioLoader.hpp>
 #include <asset/script_loaders/ScriptLoader.hpp>
+#include <asset/font_loaders/FontLoader.hpp>
 
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/AnimationController.hpp>
@@ -32,6 +33,7 @@
 #include <ui/controllers/UIButtonController.hpp>
 
 #include <Game.hpp>
+#include <font/FontEngine.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -160,7 +162,8 @@ Engine *Engine::Get()
 }
 
 Engine::Engine()
-    : shader_globals(nullptr)
+    : shader_globals(nullptr),
+      m_font_engine()
 {
     RegisterComponents();
     RegisterDefaultAssetLoaders();
@@ -214,6 +217,7 @@ void Engine::RegisterDefaultAssetLoaders()
     m_asset_manager.Register<ScriptLoader>("hypscript");
     m_asset_manager.Register<FBOMModelLoader>("fbom");
     m_asset_manager.Register<FBXModelLoader>("fbx");
+    m_asset_manager.Register<FontLoader>("otf");
 }
 
 void Engine::FindTextureFormatDefaults()

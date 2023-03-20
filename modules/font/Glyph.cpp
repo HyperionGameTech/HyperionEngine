@@ -12,31 +12,45 @@
 #include <Engine.hpp>
 #include <rendering/Texture.hpp>
 
-namespace hyperion::v2::font
+namespace hyperion::v2
 {
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-Glyph::Glyph(Face &face, Face::GlyphIndex index, bool render = false)
+Glyph::Glyph(Handle<Face> face, Face::GlyphIndex index, bool render = false)
     : m_face(face)
 {
-    if (FT_Load_Glyph(face.GetFace(), index, (render) ? FT_LOAD_RENDER : FT_LOAD_DEFAULT)) {
+    if (FT_Load_Glyph(face->GetFace(), index, (render) ? FT_LOAD_RENDER : FT_LOAD_DEFAULT)) {
         DebugLog(LogType::Error, "Error loading glyph from font face!\n");
     }
 }
 
 void Glyph::Render()
 {
-    int error = FT_Render_Glyph(m_face.GetFace()->glyph, FT_RENDER_MODE_NORMAL);
+    int error = FT_Render_Glyph(m_face->GetFace()->glyph, FT_RENDER_MODE_NORMAL);
 
     if (error) {
         DebugLog(LogType::Error, "Error rendering glyph '%s'\n", error, FT_Error_String(error));
     }
 
-    FT_Bitmap *ft_bitmap = &m_face.GetFace()->glyph->bitmap;
+    FontEngine::Glyph glyph = m_face->GetFace()->glyph;
+    FT_Bitmap *ft_bitmap = &glyph->bitmap;
 
-    DebugLog(LogType::Info, "Creating glyph (%d, %d)\n", ft_bitmap->width, ft_bitmap->rows);
+    PackedMetrics packed_metrics =  {
+        .bearing_x = static_cast<Int16>(glyph->metrics.horiBearingX / 64),
+        .bearing_y = static_cast<Int16>(glyph->metrics.horiBearingY / 64),
+        .width  = static_cast<UInt8>(glyph->metrics.width / 64),
+        .height = static_cast<UInt8>(glyph->metrics.height / 64),
+        .advance = static_cast<UInt8>(glyph->metrics.horiAdvance / 64),
+        ._reserved0 = 0,
+    };
+
+    m_metrics = {
+        .metrics = packed_metrics,
+
+        .image_position = { 0, 0 }
+    };
 
     m_texture = CreateObject<Texture>(
         Texture2D(
@@ -48,24 +62,18 @@ void Glyph::Render()
         )
     );
 
-    Bitmap<1> bitmap(ft_bitmap->width, ft_bitmap->rows);
-    auto color_table = bitmap.GenerateColorRamp();
-    bitmap.SetColourTable(color_table);
-    bitmap.SetPixelsFromMemory(ft_bitmap->width, ft_bitmap->buffer, ft_bitmap->width * ft_bitmap->rows);
-    bitmap.Write("glyph.bmp");
-
     InitObject(m_texture);
 }
 
 Extent2D Glyph::GetMax()
 {
-    auto &box = m_face.GetFace()->glyph->metrics;
+    auto &box = m_face->GetFace()->glyph->metrics;
     return { (UInt32)box.width/64, (UInt32)box.height/64 };
 }
 
 Extent2D Glyph::GetMin()
 {
-    auto &box = m_face.GetFace()->bbox;
+    auto &box = m_face->GetFace()->bbox;
     return { (UInt32)box.xMin, (UInt32)box.yMin };
 }
 
@@ -75,4 +83,4 @@ const Handle<Texture> &Glyph::GetTexture()
 }
 
 
-} // namespace::v2::font
+} // namespace::v2

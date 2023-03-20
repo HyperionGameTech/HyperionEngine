@@ -121,11 +121,11 @@ public:
             0.01f, 30000.0f
         ));
 
-        /*m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
+        m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
             Vector3(0.0f), Vector3(0.0f, 150.0f, -15.0f)
-        ));*/
+        ));
         m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
-        /*
+
         { // adding lights to scene
             m_sun = CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
@@ -583,7 +583,7 @@ public:
 
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
-        */
+
     }
 
     virtual void Teardown() override
@@ -605,7 +605,7 @@ public:
 
     virtual void Logic(GameCounter::TickUnit delta) override
     {
-        /*
+
         timer += delta;
 
         m_ui.Update(delta);
@@ -624,7 +624,7 @@ public:
             }
         }
 
-        //GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie")[0].GetWorldTranslation());
+        GetScene()->GetCamera()->SetTarget(GetScene()->GetRoot().Select("zombie")[0].GetWorldTranslation());
 
         //for (auto &light : m_point_lights) {
         //    light->SetPosition(Vector3(
@@ -681,9 +681,9 @@ public:
 
                 Engine::Get()->task_system.EnqueueBatch(m_export_task.Get());
             }
-        }*/
+        }
 
-        // m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.25f), MathUtil::Cos(timer * 0.25f), -MathUtil::Sin(timer * 0.25f)).Normalize());
+        m_sun->SetPosition(Vector3(MathUtil::Sin(timer * 0.25f), MathUtil::Cos(timer * 0.25f), -MathUtil::Sin(timer * 0.25f)).Normalize());
 
         #if 1 && 0 // bad performance on large meshes. need bvh
         if (GetInputManager()->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
@@ -822,7 +822,7 @@ public:
             });
         }
 
-        /*
+
         if (auto character = GetScene()->GetRoot().Select("zombie")) {
             character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
 
@@ -831,7 +831,7 @@ public:
                     controller->GetRigidBody()->ApplyForce(dir);
                 }
             }
-        }*/
+        }
 
 #if 0
         if (auto character = GetScene()->GetRoot().Select("dude")) {
@@ -880,17 +880,21 @@ int main()
     Engine::Get()->game_thread.Start(my_game);
 
 
-    font::FontEngine font_engine;
-    font::Face face = font_engine.LoadFont("/usr/share/fonts/cantarell/Cantarell-VF.otf");
+    //font::FontEngine font_engine;
+    //font::Face face = font_engine.LoadFont("/usr/share/fonts/gnu-free/FreeSerif.otf");
 
-    face.RequestPixelSizes(0, 32);
+    if (auto face = Engine::Get()->GetAssetManager().Load<Face>("fonts/FreeSerif/FreeSerif.otf")) {
+        DebugLog(LogType::RenDebug, "Base Path: %s\n", Engine::Get()->GetAssetManager().GetBasePath().Data());
+        face->RequestPixelSizes(0, 32);
 
-    FontAtlas font_atlas(face);
+        FontAtlas font_atlas(face);
 
-    FontRenderer fr;
-    fr.RenderAtlas(font_atlas);
+        FontRenderer fr;
+        fr.RenderAtlas(font_atlas);
+        fr.WriteTexture(font_atlas, "font.bmp");
 
-    face.GetFace();
+        face->GetFace();
+    }
 
     UInt num_frames = 0;
     float delta_time_accum = 0.0f;
