@@ -35,6 +35,8 @@ using renderer::ImageView;
 using renderer::FramebufferObject;
 using renderer::DescriptorKey;
 using renderer::FillMode;
+using renderer::GPUBufferType;
+using renderer::GPUBuffer;
 
 Engine *g_engine = nullptr;
 AssetManager *g_asset_manager = nullptr;
@@ -146,6 +148,81 @@ DECLARE_DESCRIPTOR_UAV(0, 0, Foo1);
 DECLARE_DESCRIPTOR_SET(1, Scene);
 DECLARE_DESCRIPTOR_SET(2, Object);
 DECLARE_DESCRIPTOR_SET(3, Material);
+
+#pragma region Render commands
+
+struct RENDER_COMMAND(CopyBackbufferToCPU) : RenderCommand
+{
+    ImageRef image;
+    GPUBufferRef buffer;
+
+    RENDER_COMMAND(CopyBackbufferToCPU)(const ImageRef &image, const GPUBufferRef &buffer)
+        : image(image),
+          buffer(buffer)
+    {
+    }
+
+    virtual Result operator()()
+    {
+        AssertThrow(image.IsValid());
+        AssertThrow(buffer.IsValid());
+
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion
+
+void StreamerData::Create()
+{
+    m_texture = CreateObject<Texture>(Texture2D(
+        Extent2D { 256, 256 },
+        InternalFormat::RGBA8,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    AssertThrow(InitObject(m_texture));
+
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_buffers[frame_index] = RenderObjects::Make<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
+
+        HYPERION_ASSERT_RESULT(m_buffers[frame_index]->Create(
+            g_engine->GetGPUDevice(),
+            m_texture->GetImage()->GetByteSize()
+        ));
+    }
+}
+
+void StreamerData::CopyBackbufferImage(Frame *frame, const ImageRef &backbuffer_image)
+{
+    // ### TEMP: Copy backbuffer to a texture which will be sent to the connected client
+
+    const ImageRef &result_image = m_texture->GetImage();
+
+    // put src image in state for copying from
+    backbuffer_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
+    // put dst image in state for copying to
+    result_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
+
+    // Blit into the streamer image
+    result_image->Blit(
+        frame->GetCommandBuffer(),
+        backbuffer_image
+    );
+
+    HYPERION_ASSERT_RESULT(result_image->GenerateMipmaps(
+        g_engine->GetGPUDevice(),
+        frame->GetCommandBuffer()
+    ));
+
+    // put src image in state for reading
+    backbuffer_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+
+    result_image->CopyToBuffer(frame->GetCommandBuffer(), m_buffers[frame->GetFrameIndex()]);
+}
 
 Engine::Engine()
     : shader_globals(nullptr)
@@ -920,6 +997,8 @@ void Engine::Initialize(RC<Application> application)
     PrepareFinalPass();
 
     Compile();
+
+    m_streamer_data.Create();
 }
 
 void Engine::Compile()
@@ -1256,5 +1335,11 @@ void Engine::RenderFinalPass(Frame *frame)
     m_full_screen_quad->Render(frame->GetCommandBuffer());
     
     m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(0, frame->GetCommandBuffer());
+
+    // TEMP
+    m_streamer_data.CopyBackbufferImage(
+        frame,
+        m_root_pipeline->GetFramebuffers()[acquired_image_index]->GetAttachmentUsages()[0]->GetAttachment()->GetImage()
+    );
 }
 } // namespace hyperion::v2

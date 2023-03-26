@@ -117,6 +117,19 @@ struct DebugMarker
 
 class IndirectDrawState;
 
+class StreamerData
+{
+public:
+    void Create();
+
+    void CopyBackbufferImage(Frame *frame, const ImageRef &backbuffer_image);
+
+    Handle<Texture> m_texture;
+    FixedArray<GPUBufferRef, max_frames_in_flight> m_buffers;
+    Queue<ByteBuffer> m_cpu_bytebuffer_queue;
+    Queue<TaskRef> m_send_task_queue;
+};
+
 class Engine
 {
 #ifdef HYP_DEBUG_MODE
@@ -342,6 +355,8 @@ private:
     ImmediateMode m_immediate_mode;
 
     CrashHandler m_crash_handler;
+
+    StreamerData m_streamer_data;
 
     bool m_is_stopping { false };
     bool m_is_render_loop_active { false };

@@ -35,6 +35,9 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
+
+#include <core/net/Socket.hpp>
+
 #include <GameThread.hpp>
 #include <Game.hpp>
 
@@ -1065,6 +1068,45 @@ int main()
     GameCounter counter;
 
     SystemEvent event;
+
+    SocketServer server;
+
+    server.SetEventProc(
+        HYP_NAME(OnError),
+        [](Array<SocketProcArgument> &&args) {
+            const String *error_message = args.Size() >= 1
+                ? args[0].TryGet<String>()
+                : nullptr;
+
+            const Int32 *error_code = args.Size() >= 2
+                ? args[1].TryGet<Int32>()
+                : nullptr;
+
+            if (error_message != nullptr) {
+                DebugLog(
+                    LogType::Error,
+                    "Socket error! %s Code: %d\n",
+                    error_message->Data(),
+                    error_code ? *error_code : INT32_MIN
+                );
+            } else {
+                DebugLog(
+                    LogType::Error,
+                    "Unknown socket error! Code: %d\n",
+                    error_code ? *error_code : INT32_MIN
+                );
+            }
+        }
+    );
+
+    server.SetEventProc(
+        HYP_NAME(OnServerStarted),
+        [](Array<SocketProcArgument> &&args) {
+            DebugLog(LogType::Info, "Server started\n");
+        }
+    );
+
+    AssertThrow(server.Start());
 
     while (g_engine->IsRenderLoopActive()) {
         // input manager stuff
