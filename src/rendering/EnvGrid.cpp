@@ -129,11 +129,12 @@ void EnvGrid::SetCameraData(const Vector3 &position)
     const Vector3 aabb_extent = m_aabb.GetExtent();
     const Vector3 size_of_probe = (aabb_extent / Vector3(m_density));
     
+    const Vector3 position_offset = m_offset_center + position;
 
     Vector3 position_snapped = Vector3(
-        MathUtil::Floor<Float, Float>(position.x / size_of_probe.x),
-        MathUtil::Floor<Float, Float>(position.y / size_of_probe.y),
-        MathUtil::Floor<Float, Float>(position.z / size_of_probe.z)
+        MathUtil::Floor<Float, Float>(position_offset.x / size_of_probe.x),
+        MathUtil::Floor<Float, Float>(position_offset.y / size_of_probe.y),
+        MathUtil::Floor<Float, Float>(position_offset.z / size_of_probe.z)
     );
 
     Vector3 camera_position;
@@ -271,6 +272,8 @@ void EnvGrid::Init()
     CreateSHData();
     CreateSHClipmapData();
 
+    // m_offset_center = m_aabb.GetCenter();
+
     {
         for (SizeType index = 0; index < std::size(m_shader_data.probe_indices); index++) {
             m_shader_data.probe_indices[index] = invalid_probe_index.GetProbeIndex();
@@ -288,7 +291,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, m_aabb.GetRadius()//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -364,7 +367,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::FRONT
+                .cull_faces = FaceCullMode::NONE
             },
             m_ambient_shader->GetCompiledShader().GetDefinition(),
             Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set
@@ -437,24 +440,24 @@ void EnvGrid::OnRender(Frame *frame)
         RenderEnvProbe(frame, m_next_render_indices.Pop());
     }
 
-#if 0
-    // Debug draw
-    for (UInt index = 0; index < m_grid.num_probes; index++) {
-        const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(index);
+    if (g_engine->GetConfig().Get(CONFIG_DEBUG_ENV_GRID_PROBES)) {
+        // Debug draw
+        for (UInt index = 0; index < m_grid.num_probes; index++) {
+            const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(index);
 
-        if (!probe.IsValid()) {
-            continue;
+            if (!probe.IsValid()) {
+                continue;
+            }
+
+            const ID<EnvProbe> probe_id = probe->GetID();
+
+            g_engine->GetImmediateMode().Sphere(
+                probe->GetDrawProxy().world_position,
+                0.15f,
+                Color(probe_id.Value())
+            );
         }
-
-        const ID<EnvProbe> probe_id = probe->GetID();
-
-        g_engine->GetImmediateMode().Sphere(
-            probe->GetDrawProxy().world_position,
-            0.15f,
-            Color(probe_id.Value())
-        );
     }
-#endif
     
     if (num_ambient_probes != 0) {
         // update probe positions in grid, choose next to render.
@@ -794,7 +797,7 @@ void EnvGrid::RenderEnvProbe(
     
     ComputeSH(frame, framebuffer_image, framebuffer_image_view, probe_index);
 
-    // probe->SetNeedsRender(false);
+    probe->SetNeedsRender(false);
 }
 
 void EnvGrid::ComputeSH(

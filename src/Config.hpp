@@ -6,6 +6,8 @@
 #include <util/definitions/DefinitionsFile.hpp>
 #include <Types.hpp>
 
+#include <Threads.hpp>
+
 namespace hyperion::v2 {
 
 class Engine;
@@ -44,6 +46,7 @@ enum OptionName
     CONFIG_DEBUG_HBIL,
     CONFIG_DEBUG_REFLECTIONS,
     CONFIG_DEBUG_IRRADIANCE,
+    CONFIG_DEBUG_ENV_GRID_PROBES,
 
     CONFIG_MAX
 };
@@ -209,10 +212,40 @@ public:
     ~Configuration() = default;
 
     HYP_FORCE_INLINE Option &Get(OptionName option)
-        { return m_variables[UInt(option)]; }
+    {
+        return m_variables[UInt(option)];
+    }
 
     HYP_FORCE_INLINE const Option &Get(OptionName option) const
-        { return m_variables[UInt(option)]; }
+    {
+        return m_variables[UInt(option)];
+    }
+
+    // HYP_FORCE_INLINE Option &Get(OptionName option, ThreadType thread_type)
+    // {
+    //     return m_variables[UInt(option)][thread_type];
+    // }
+
+    // HYP_FORCE_INLINE const Option &Get(OptionName option, ThreadType thread_type) const
+    // {
+    //     return m_variables[UInt(option)][thread_type];
+    // }
+
+    // HYP_FORCE_INLINE Option &Get(OptionName option)
+    // {
+    //     ThreadType thread_type = Threads::GetThreadType();
+
+    //     if (thread_type == THREAD_TYPE_INVALID) {
+    //         thread_type = THREAD_TYPE_GAME;
+    //     }
+
+    //     return m_variables[UInt(option)][thread_type];
+    // }
+
+    // HYP_FORCE_INLINE const Option &Get(OptionName option) const
+    // {
+    //     return const_cast<Configuration *>(this)->Get(option);
+    // }
 
     bool LoadFromDefinitionsFile();
     bool SaveToDefinitionsFile();

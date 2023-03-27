@@ -424,14 +424,14 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        // test_model.Scale(0.325f);
+        // test_model.Scale(1.825f);
         // test_model.Scale(6.425f);
-        test_model.Scale(0.0125f);
+        // test_model.Scale(0.0125f);
 
         if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-40.0f, -20.0f, -40.0f), Vector3(40.0f, 20.0f, 40.0f)));
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-40.0f, -10.0f, -40.0f), Vector3(40.0f, 10.0f, 40.0f)));
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(std::move(env_grid_entity));
         }
@@ -1053,10 +1053,39 @@ public:
 
 #endif
 
+void HandleSignal(int signum)
+{
+    if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED)) {
+        DebugLog(
+            LogType::Warn,
+            "Forcing stop\n"
+        );
+
+        fflush(stdout);
+
+        exit(signum);
+
+        return;
+    }
+
+    g_engine->RequestStop();
+
+    while (g_engine->IsRenderLoopActive());
+
+    exit(signum);
+}
+
 int main()
 {
+    signal(SIGINT, HandleSignal);
+
     RC<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 768));
+    application->SetCurrentWindow(application->CreateSystemWindow({
+        "Hyperion Engine",
+        1280,
+        768,
+        false
+    }));
     
     hyperion::InitializeApplication(application);
 

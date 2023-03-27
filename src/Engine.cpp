@@ -724,17 +724,21 @@ void Engine::Initialize(RC<Application> application)
                 .image_view = &GetPlaceholderData().GetImageView2D1x1R8()
             });
 
+        // descriptor_set
+        //     ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_VOLUMES)
+        //     ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.textures[0].image_view)
+        //     ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.textures[1].image_view)
+        //     ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.textures[2].image_view)
+        //     ->SetElementSRV(3, shader_globals->spherical_harmonics_grid.textures[3].image_view)
+        //     ->SetElementSRV(4, shader_globals->spherical_harmonics_grid.textures[4].image_view)
+        //     ->SetElementSRV(5, shader_globals->spherical_harmonics_grid.textures[5].image_view)
+        //     ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.textures[6].image_view)
+        //     ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.textures[7].image_view)
+        //     ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.textures[8].image_view);
+
         descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_VOLUMES)
-            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.textures[0].image_view)
-            ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.textures[1].image_view)
-            ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.textures[2].image_view)
-            ->SetElementSRV(3, shader_globals->spherical_harmonics_grid.textures[3].image_view)
-            ->SetElementSRV(4, shader_globals->spherical_harmonics_grid.textures[4].image_view)
-            ->SetElementSRV(5, shader_globals->spherical_harmonics_grid.textures[5].image_view)
-            ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.textures[6].image_view)
-            ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.textures[7].image_view)
-            ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.textures[8].image_view);
+            ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SH_GRID_BUFFER)
+            ->SetElementBuffer(0, GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(DescriptorKey::VCT_VOXEL_UAV)

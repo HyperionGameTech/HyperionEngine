@@ -216,8 +216,6 @@ public:
 
     void Render(Frame *frame);
 
-    void ComputeSH(Frame *frame, const Image *image, const ImageView *image_view);
-
     void UpdateRenderData(bool set_texture = false);
     void UpdateRenderData(const EnvProbeIndex &probe_index);
 
@@ -227,8 +225,6 @@ public:
 private:
     void CreateShader();
     void CreateFramebuffer();
-
-    void CreateSHData();
 
     Handle<Scene> m_parent_scene;
     BoundingBox m_aabb;

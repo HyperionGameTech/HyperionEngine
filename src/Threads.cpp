@@ -131,6 +131,14 @@ const ThreadID &Threads::CurrentThreadID()
     return current_thread_id;
 }
 
+ThreadType Threads::GetThreadType()
+{
+    const UInt thread_id = Threads::CurrentThreadID().value;
+
+    return thread_id == THREAD_GAME ? THREAD_TYPE_GAME
+        : (thread_id == THREAD_RENDER ? THREAD_TYPE_RENDER : THREAD_TYPE_INVALID);
+}
+
 SizeType Threads::NumCores()
 {
     return std::thread::hardware_concurrency();

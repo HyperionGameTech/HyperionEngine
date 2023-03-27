@@ -28,7 +28,8 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_DEBUG_HBAO, "DebugHBAO" },
     { CONFIG_DEBUG_HBIL, "DebugHBIL" },
     { CONFIG_DEBUG_REFLECTIONS, "DebugReflections" },
-    { CONFIG_DEBUG_IRRADIANCE, "DebugIrradiance" }
+    { CONFIG_DEBUG_IRRADIANCE, "DebugIrradiance" },
+    { CONFIG_DEBUG_ENV_GRID_PROBES, "DebugEnvGridProbes" }
 };
 
 OptionName Configuration::StringToOptionName(const String &str)
@@ -187,6 +188,7 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_DEBUG_HBIL] = Option(false, true);
     m_variables[CONFIG_DEBUG_REFLECTIONS] = Option(false, true);
     m_variables[CONFIG_DEBUG_IRRADIANCE] = Option(false, true);
+    m_variables[CONFIG_DEBUG_ENV_GRID_PROBES] = Option(false, true);
 }
 
 } // namespace hyperion::v2

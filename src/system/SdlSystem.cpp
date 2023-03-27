@@ -37,14 +37,14 @@ SDLApplicationWindow::~SDLApplicationWindow()
     SDL_DestroyWindow(this->window);
 }
 
-void SDLApplicationWindow::Initialize()
+void SDLApplicationWindow::Initialize(WindowOptions window_options)
 {
     this->window = SDL_CreateWindow(
         m_title.Data(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         Int(m_width), Int(m_height),
-        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI
+        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | (window_options.enable_high_dpi ? SDL_WINDOW_ALLOW_HIGHDPI : 0)
     );
 
     // make sure to use SDL_free on file name strings for these events
@@ -109,11 +109,11 @@ SDLApplication::~SDLApplication()
     SDL_Quit();
 }
 
-UniquePtr<ApplicationWindow> SDLApplication::CreateSystemWindow(const ANSIString &title, UInt width, UInt height)
+UniquePtr<ApplicationWindow> SDLApplication::CreateSystemWindow(WindowOptions window_options)
 {
     UniquePtr<SDLApplicationWindow> window;
-    window.Reset(new SDLApplicationWindow(title.Data(), width, height));
-    window->Initialize();
+    window.Reset(new SDLApplicationWindow(window_options.title.Data(), window_options.width, window_options.height));
+    window->Initialize(window_options);
 
     return window;
 }

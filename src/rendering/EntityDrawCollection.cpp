@@ -40,17 +40,9 @@ struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 
 #pragma endregion
 
-ThreadType EntityDrawCollection::GetThreadType()
-{
-    const UInt thread_id = Threads::CurrentThreadID().value;
-
-    return thread_id == THREAD_GAME ? THREAD_TYPE_GAME
-        : (thread_id == THREAD_RENDER ? THREAD_TYPE_RENDER : THREAD_TYPE_INVALID);
-}
-
 FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList()
 {
-    const ThreadType thread_type = GetThreadType();
+    const ThreadType thread_type = Threads::GetThreadType();
 
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 
@@ -59,7 +51,7 @@ FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, P
 
 const FixedArray<ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>, PASS_TYPE_MAX> &EntityDrawCollection::GetEntityList() const
 {
-    const ThreadType thread_type = GetThreadType();
+    const ThreadType thread_type = Threads::GetThreadType();
 
     AssertThrowMsg(thread_type != THREAD_TYPE_INVALID, "Invalid thread for calling method");
 

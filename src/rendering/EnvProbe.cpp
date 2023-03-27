@@ -237,9 +237,7 @@ void EnvProbe::Init()
 
     m_view_matrices = CreateCubemapMatrices(m_aabb);
 
-    if (IsAmbientProbe()) {
-        CreateSHData();
-    } else {
+    if (!IsAmbientProbe()) {
         if (IsReflectionProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
@@ -367,65 +365,6 @@ void EnvProbe::CreateFramebuffer()
     );
 
     InitObject(m_framebuffer);
-}
-
-void EnvProbe::CreateSHData()
-{
-    AssertThrow(IsAmbientProbe());
-
-    m_sh_tiles_buffer = RenderObjects::Make<GPUBuffer>(StorageBuffer());
-    
-    PUSH_RENDER_COMMAND(
-        CreateSHData,
-        m_sh_tiles_buffer
-    );
-
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_compute_sh_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
-
-        m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
-            ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
-
-        m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::SamplerDescriptor>(1)
-            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
-
-        m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(2)
-            ->SetElementBuffer(0, m_sh_tiles_buffer);
-
-        m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(3)
-            ->SetElementUAV(0, g_engine->shader_globals->spherical_harmonics_grid.textures[0].image_view)
-            ->SetElementUAV(1, g_engine->shader_globals->spherical_harmonics_grid.textures[1].image_view)
-            ->SetElementUAV(2, g_engine->shader_globals->spherical_harmonics_grid.textures[2].image_view)
-            ->SetElementUAV(3, g_engine->shader_globals->spherical_harmonics_grid.textures[3].image_view)
-            ->SetElementUAV(4, g_engine->shader_globals->spherical_harmonics_grid.textures[4].image_view)
-            ->SetElementUAV(5, g_engine->shader_globals->spherical_harmonics_grid.textures[5].image_view)
-            ->SetElementUAV(6, g_engine->shader_globals->spherical_harmonics_grid.textures[6].image_view)
-            ->SetElementUAV(7, g_engine->shader_globals->spherical_harmonics_grid.textures[7].image_view)
-            ->SetElementUAV(8, g_engine->shader_globals->spherical_harmonics_grid.textures[8].image_view);
-    }
-
-    PUSH_RENDER_COMMAND(CreateComputeSHDescriptorSets, m_compute_sh_descriptor_sets);
-    
-    m_clear_sh = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
-    );
-
-    InitObject(m_clear_sh);
-
-    m_compute_sh = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
-    );
-
-    InitObject(m_compute_sh);
-
-    m_finalize_sh = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
-    );
-
-    InitObject(m_finalize_sh);
 }
 
 void EnvProbe::EnqueueBind() const
@@ -626,100 +565,6 @@ void EnvProbe::Render(Frame *frame)
     HYPERION_ASSERT_RESULT(result);
 
     SetNeedsRender(false);
-}
-
-void EnvProbe::ComputeSH(Frame *frame, const Image *image, const ImageView *image_view)
-{
-    AssertThrow(IsAmbientProbe());
-
-    EnvProbeIndex bound_index = m_bound_index;
-
-    AssertThrowMsg(bound_index != ~0u, "Probe not bound to an index!");
-    AssertThrow(m_grid_slot != ~0u);
-
-    // ambient probes have +1 for their bound index, so we subtract that to get the actual index
-    bound_index.position[2] -= 1;
-
-    const Extent3D &grid_image_extent = g_engine->shader_globals->spherical_harmonics_grid.textures[0].image->GetExtent();
-
-    // AssertThrowMsg(probe_index < grid_image_extent.Size(), "Out of bounds!");
-
-    AssertThrow(image != nullptr);
-    AssertThrow(image_view != nullptr);
-
-    struct alignas(128) {
-        ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec4<UInt32> cubemap_dimensions;
-    } push_constants;
-    
-#ifdef ENV_PROBE_STATIC_INDEX
-    push_constants.probe_grid_position = {
-        m_grid_slot % bound_index.grid_size.width,
-        (m_grid_slot % (bound_index.grid_size.width * bound_index.grid_size.height)) / bound_index.grid_size.width,
-        m_grid_slot / (bound_index.grid_size.width * bound_index.grid_size.height),
-        0
-    };
-#else
-    push_constants.probe_grid_position = { bound_index.position[0], bound_index.position[1], bound_index.position[2], 0 };
-#endif
-
-    push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
-    
-    m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
-        ->GetDescriptor(0)
-        ->SetElementSRV(0, image_view);
-
-    m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
-        ->ApplyUpdates(g_engine->GetGPUDevice());
-
-    m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_clear_sh->GetPipeline(),
-        m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * GetID().ToIndex())}
-    );
-
-    m_clear_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_clear_sh->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
-
-    m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_compute_sh->GetPipeline(),
-        m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * GetID().ToIndex())}
-    );
-
-    m_compute_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_compute_sh->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
-
-    m_sh_tiles_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    for (auto &texture : g_engine->shader_globals->spherical_harmonics_grid.textures) {
-        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-    }
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_finalize_sh->GetPipeline(),
-        m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * GetID().ToIndex())}
-    );
-
-    m_finalize_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_finalize_sh->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
-    
-    for (auto &texture : g_engine->shader_globals->spherical_harmonics_grid.textures) {
-        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    }
-    
-    m_is_rendered.Set(true, MemoryOrder::RELEASE);
 }
 
 void EnvProbe::UpdateRenderData(bool set_texture)

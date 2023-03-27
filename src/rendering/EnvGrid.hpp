@@ -131,6 +131,7 @@ private:
     );
 
     BoundingBox m_aabb;
+    Vector3 m_offset_center;
     Extent3D m_density;
     
     Handle<Camera> m_camera;

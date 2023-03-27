@@ -24,7 +24,13 @@ namespace renderer {
 class Instance;
 } // namespace renderer
 
-;
+struct WindowOptions
+{
+    ANSIString title;
+    UInt width;
+    UInt height;
+    bool enable_high_dpi = false;
+};
 
 enum SystemEventType
 {
@@ -271,7 +277,7 @@ public:
     virtual void SetMouseLocked(bool locked) override;
     virtual bool HasMouseFocus() const override;
     
-    void Initialize();
+    void Initialize(WindowOptions);
 
     SDL_Window *GetInternalWindow()
         { return window; }
@@ -305,7 +311,7 @@ public:
     void SetCurrentWindow(UniquePtr<ApplicationWindow> &&window)
         { m_current_window = std::move(window); }
 
-    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(const ANSIString &title, UInt width, UInt height) = 0;
+    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual Int PollEvent(SystemEvent &event) = 0;
 
 #ifdef HYP_VULKAN
@@ -323,7 +329,7 @@ public:
     SDLApplication(const char *name);
     virtual ~SDLApplication() override;
 
-    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(const ANSIString &title, UInt width, UInt height) override;
+    virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
 
     virtual Int PollEvent(SystemEvent &event) override;
 

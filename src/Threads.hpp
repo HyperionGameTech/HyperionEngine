@@ -59,6 +59,8 @@ public:
     static const ThreadID &CurrentThreadID();
     static void SetThreadID(const ThreadID &thread_id);
 
+    static ThreadType GetThreadType();
+
     static SizeType NumCores();
 };
 
