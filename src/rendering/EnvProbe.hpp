@@ -196,17 +196,17 @@ public:
     void SetNeedsRender(bool needs_render)
     {
         if (needs_render) {
-            m_needs_render_counter.Set(1, MemoryOrder::RELEASE);
+            m_needs_render_counter.Increment(1, MemoryOrder::RELAXED);
         } else {
-            m_needs_render_counter.Set(0, MemoryOrder::RELEASE);
+            m_needs_render_counter.Decrement(1, MemoryOrder::RELAXED);
         }
     }
 
     bool NeedsRender() const
     {
-        const UInt8 counter = m_needs_render_counter.Get(MemoryOrder::ACQUIRE);
+        const Int32 counter = m_needs_render_counter.Get(MemoryOrder::RELAXED);
 
-        return counter != 0;
+        return counter > 0;
     }
 
     void Init();
@@ -260,7 +260,7 @@ private:
 
     bool m_needs_update;
     AtomicVar<Bool> m_is_rendered;
-    AtomicVar<UInt8> m_needs_render_counter;
+    AtomicVar<Int32> m_needs_render_counter;
     HashCode m_octant_hash_code;
 
 };

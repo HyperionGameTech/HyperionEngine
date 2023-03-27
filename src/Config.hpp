@@ -37,6 +37,8 @@ enum OptionName
 
     CONFIG_TEMPORAL_AA,
 
+    CONFIG_LIGHT_RAYS,
+
     CONFIG_DEBUG_SSR,
     CONFIG_DEBUG_HBAO,
     CONFIG_DEBUG_HBIL,
@@ -46,9 +48,9 @@ enum OptionName
     CONFIG_MAX
 };
 
-class Option : public Variant<bool, Float, Int>
+class Option : public Variant<Bool, Float, Int>
 {
-    using Base = Variant<bool, Float, Int>;
+    using Base = Variant<Bool, Float, Int>;
 
     bool m_save = true;
 
@@ -94,7 +96,7 @@ public:
             Base::Set(*ptr | other.GetInt());
         } else if (auto *ptr = TryGet<Float>()) {
             Base::Set(static_cast<Int>(*ptr) | other.GetInt());
-        } else if (auto *ptr = TryGet<bool>()) {
+        } else if (auto *ptr = TryGet<Bool>()) {
             Base::Set(*ptr | other.GetBool());
         }
 
@@ -110,7 +112,7 @@ public:
             Base::Set(*ptr & other.GetInt());
         } else if (auto *ptr = TryGet<Float>()) {
             Base::Set(static_cast<Int>(*ptr) & other.GetInt());
-        } else if (auto *ptr = TryGet<bool>()) {
+        } else if (auto *ptr = TryGet<Bool>()) {
             Base::Set(*ptr & other.GetBool());
         }
 
@@ -119,7 +121,7 @@ public:
 
     Option operator~() const
     {
-        if (auto *ptr = TryGet<bool>()) {
+        if (auto *ptr = TryGet<Bool>()) {
             return Option(!*ptr);
         }
 
@@ -150,7 +152,7 @@ public:
             return static_cast<Int>(*ptr);
         }
 
-        if (auto *ptr = TryGet<bool>()) {
+        if (auto *ptr = TryGet<Bool>()) {
             return static_cast<Int>(*ptr);
         }
 
@@ -167,24 +169,24 @@ public:
             return *ptr;
         }
 
-        if (auto *ptr = TryGet<bool>()) {
+        if (auto *ptr = TryGet<Bool>()) {
             return static_cast<Float>(*ptr);
         }
 
         return 0.0f;
     }
 
-    bool GetBool() const
+    Bool GetBool() const
     {
         if (auto *ptr = TryGet<Int>()) {
-            return static_cast<bool>(*ptr);
+            return static_cast<Bool>(*ptr);
         }
 
         if (auto *ptr = TryGet<Float>()) {
-            return static_cast<bool>(*ptr);
+            return static_cast<Bool>(*ptr);
         }
 
-        if (auto *ptr = TryGet<bool>()) {
+        if (auto *ptr = TryGet<Bool>()) {
             return *ptr;
         }
 

@@ -76,7 +76,7 @@ static ShaderProperties GetDeferredShaderProperties()
     properties.Set("VCT_ENABLED_SVO", g_engine->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
     properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
     properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
-
+    properties.Set("LIGHT_RAYS_ENABLED", g_engine->GetConfig().Get(CONFIG_LIGHT_RAYS));
 
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
         properties.Set("DEBUG_REFLECTIONS");

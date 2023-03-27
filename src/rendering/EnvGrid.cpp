@@ -794,7 +794,7 @@ void EnvGrid::RenderEnvProbe(
     
     ComputeSH(frame, framebuffer_image, framebuffer_image_view, probe_index);
 
-    probe->SetNeedsRender(false);
+    // probe->SetNeedsRender(false);
 }
 
 void EnvGrid::ComputeSH(

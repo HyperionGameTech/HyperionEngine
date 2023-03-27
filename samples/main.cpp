@@ -274,7 +274,7 @@ public:
             m_sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
                 Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
                 Color(1.0f, 1.0f, 1.0f),
-                1.0f
+                5.0f
             )));
             m_sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
             m_sun->AddController<ShadowMapController>();
@@ -1056,7 +1056,7 @@ public:
 int main()
 {
     RC<Application> application(new SDLApplication("My Application"));
-    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 960, 540));
+    application->SetCurrentWindow(application->CreateSystemWindow("Hyperion Engine", 1280, 768));
     
     hyperion::InitializeApplication(application);
 
@@ -1106,7 +1106,7 @@ int main()
         }
     );
 
-    AssertThrow(server.Start());
+    // AssertThrow(server.Start());
 
     while (g_engine->IsRenderLoopActive()) {
         // input manager stuff
