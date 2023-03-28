@@ -218,8 +218,6 @@ void EnvGrid::SetCameraData(const Vector3 &position)
             m_grid.SetProbeIndexOnGameThread(update_index, updates[update_index]);
         }
 
-        // m_flags.BitOr(ENV_GRID_FLAGS_RESET_REQUESTED, MemoryOrder::ACQUIRE_RELEASE);
-
         PUSH_RENDER_COMMAND(
             UpdateEnvProbeAABBsInGrid,
             this,
@@ -293,7 +291,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(ambient_probe_dimensions.width), Int(ambient_probe_dimensions.height),
-            0.15f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
+            0.001f, (m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 0.15f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -369,7 +367,8 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::NONE
+                .cull_faces = FaceCullMode::NONE,
+                // .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
             m_ambient_shader->GetCompiledShader().GetDefinition(),
             Entity::InitInfo::ENTITY_FLAGS_INCLUDE_IN_INDIRECT_LIGHTING // override flags -- require this flag to be set
@@ -388,20 +387,28 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
     }
 }
 
+
 static EnvProbeIndex GetProbeBindingIndex(const Vector3 &probe_position, const BoundingBox &grid_aabb, const Extent3D &grid_density)
 {
     const Vector3 size_of_probe = (grid_aabb.GetExtent() / Vector3(grid_density));
     const Vector3 probe_position_center = probe_position;
-    // const Vector3 probe_position_clamped = probe_position_center / size_of_probe + Vector3(grid_density) * 0.5f;
+    // // const Vector3 probe_position_clamped = probe_position_center / size_of_probe + Vector3(grid_density) * 0.5f;
 
-    // const Vector3 diff = probe_position_center - grid_aabb.GetCenter();
-    // const Vector3 probe_position_clamped = (diff / (grid_aabb.GetExtent() * 0.5f));
+    // // const Vector3 diff = probe_position_center - grid_aabb.GetCenter();
+    // // const Vector3 probe_position_clamped = (diff / (grid_aabb.GetExtent() * 0.5f));
 
     Vector3 probe_diff_units = probe_position_center / size_of_probe + Vector3(grid_density) * 0.5f; //probe_position_clamped * Vector3(grid_density);
-    // probe_diff_units.x = std::fmodf(probe_diff_units.x, Float(grid_density.width));
-    // probe_diff_units.y = std::fmodf(probe_diff_units.y, Float(grid_density.height));
-    // probe_diff_units.z = std::fmodf(probe_diff_units.z, Float(grid_density.depth));
+    // // probe_diff_units.x = std::fmodf(probe_diff_units.x, Float(grid_density.width));
+    // // probe_diff_units.y = std::fmodf(probe_diff_units.y, Float(grid_density.height));
+    // // probe_diff_units.z = std::fmodf(probe_diff_units.z, Float(grid_density.depth));
     probe_diff_units = MathUtil::Trunc(probe_diff_units);
+
+
+    // const Vector3 size_of_probe = (grid_aabb.GetExtent() / Vector3(grid_density));
+    // const Vector3 probe_position_center = (probe_position + size_of_probe * 0.5f) - grid_aabb.GetCenter();
+    
+    // Vector3 probe_diff_units = (probe_position_center / size_of_probe) - 0.5f + (Vector3(grid_density) * 0.5f);
+    // probe_diff_units = MathUtil::Trunc(probe_diff_units);
 
     const Int probe_index_at_point = (Int(probe_diff_units.x) * Int(grid_density.height) * Int(grid_density.depth))
         + (Int(probe_diff_units.y) * Int(grid_density.depth))
@@ -459,7 +466,7 @@ void EnvGrid::OnRender(Frame *frame)
 
             g_engine->GetImmediateMode().Sphere(
                 probe->GetDrawProxy().world_position,
-                0.15f,
+                0.35f,
                 Color(probe_id.Value())
             );
         }

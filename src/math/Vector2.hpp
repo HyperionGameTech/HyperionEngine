@@ -14,6 +14,7 @@
 
 namespace hyperion {
 
+class Vector2;
 class Vector4;
 
 template <class T>
@@ -164,6 +165,12 @@ public:
 
     explicit operator bool() const
         { return Sum() != 0.0f; }
+
+    explicit operator Vec2i() const
+        { return Vec2i(static_cast<Int>(x), static_cast<Int>(y)); }
+
+    explicit operator Vec2u() const
+        { return Vec2u(static_cast<UInt>(x), static_cast<UInt>(y)); }
 
     Vector2 &operator=(const Vector2 &other);
     Vector2 operator+(const Vector2 &other) const;

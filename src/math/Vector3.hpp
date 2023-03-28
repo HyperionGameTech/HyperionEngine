@@ -16,6 +16,7 @@ namespace hyperion {
 
 class Quaternion;
 class Vector2;
+class Vector3;
 class Matrix3;
 class Matrix4;
 
@@ -179,6 +180,12 @@ public:
 
     explicit operator bool() const
         { return Sum() != 0.0f; }
+
+    explicit operator Vec3i() const
+        { return Vec3i(static_cast<Int>(x), static_cast<Int>(y), static_cast<Int>(z)); }
+
+    explicit operator Vec3u() const
+        { return Vec3u(static_cast<UInt>(x), static_cast<UInt>(y), static_cast<UInt>(z)); }
 
     Vector3 &operator=(const Vector3 &other);
     Vector3 operator+(const Vector3 &other) const;

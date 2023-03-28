@@ -552,7 +552,7 @@ void SSRRenderer::Render(Frame *frame)
         } push_constants;
 
         push_constants.dimensions = { m_extent.width, m_extent.height, 0, 0 };
-        push_constants.ray_step = 0.33f;
+        push_constants.ray_step = 0.15f;
         push_constants.num_iterations = 128.0f;
         push_constants.max_ray_distance = 100.0f;
         push_constants.distance_bias = 0.1f;

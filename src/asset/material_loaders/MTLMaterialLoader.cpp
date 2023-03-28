@@ -308,18 +308,6 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         }
 
         for (auto &it : item.textures) {
-            // const auto &texture_path = texture_names_to_path[it.name];
-
-            // if (texture_path.empty()) {
-            //     DebugLog(
-            //         LogType::Warn,
-            //         "OBJ MTL loader: Texture %s could not be used because it was in the texture name -> path map!\n",
-            //         it.name.c_str()
-            //     );
-
-            //     continue;
-            // }
-
             // Handle<Texture> texture = loaded_textures[String(texture_path.c_str())].Get<Texture>();
             auto texture = loaded_textures[String(it.name.c_str())].Get<Texture>();
 
