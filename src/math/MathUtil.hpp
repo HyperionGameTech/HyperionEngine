@@ -230,6 +230,20 @@ public:
     }
 
     template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
+    static HYP_ENABLE_IF(is_math_vector_v<T>, T) Trunc(const T &a)
+    {
+        using VectorScalarType = NormalizedType<decltype(T::values[0])>;
+
+        T result { }; /* doesn't need initialization but gets rid of annoying warnings */
+
+        for (SizeType i = 0; i < std::size(result.values); i++) {
+            result.values[i] = VectorScalarType(Trunc<VectorScalarType, IntegralType>(a.values[i]));
+        }
+
+        return result;
+    }
+
+    template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
     static HYP_ENABLE_IF(is_math_vector_v<T>, T) Floor(const T &a)
     {
         using VectorScalarType = NormalizedType<decltype(T::values[0])>;
@@ -256,6 +270,10 @@ public:
 
         return result;
     }
+
+    template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
+    static HYP_ENABLE_IF(!is_math_vector_v<T>, IntegralType) Trunc(T a)
+        { return IntegralType(std::trunc(a)); }
 
     template <class T, class IntegralType = std::conditional_t<std::is_integral_v<T>, T, int>>
     static HYP_ENABLE_IF(!is_math_vector_v<T>, IntegralType) Floor(T a)

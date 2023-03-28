@@ -72,9 +72,7 @@ struct LightProbeGrid
         AssertThrow(index < max_bound_ambient_probes);
         AssertThrow(new_index < max_bound_ambient_probes);
 
-        index += max_bound_ambient_probes;
-
-        indirect_indices[index] = new_index;
+        indirect_indices[max_bound_ambient_probes + index] = new_index;
     }
 
     UInt GetEnvProbeIndexOnRenderThread(UInt index) const
