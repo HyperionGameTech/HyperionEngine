@@ -767,6 +767,18 @@ void Engine::Initialize(RC<Application> application)
             ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.clipmaps[6].image_view)
             ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.clipmaps[7].image_view)
             ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.clipmaps[8].image_view);
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_NORMALS_BUFFER)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
     }
 
     // add placeholder scene data

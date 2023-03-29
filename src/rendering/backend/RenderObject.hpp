@@ -211,6 +211,8 @@ class RenderObjectHandle
 
 public:
 
+    static const RenderObjectHandle unset;
+
     static RenderObjectHandle FromIndex(UInt index)
     {
         RenderObjectHandle handle;
@@ -346,6 +348,9 @@ public:
         return RenderObjects::Make<T>(std::forward<Args>(args)...);
     }
 };
+
+template <class T>
+const RenderObjectHandle<T> RenderObjectHandle<T>::unset = RenderObjectHandle<T>();
 
 } // namespace renderer
 

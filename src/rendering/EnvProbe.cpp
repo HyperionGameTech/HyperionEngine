@@ -237,7 +237,7 @@ void EnvProbe::Init()
 
     m_view_matrices = CreateCubemapMatrices(m_aabb);
 
-    if (!IsAmbientProbe()) {
+    if (!IsControlledByEnvGrid()) {
         if (IsReflectionProbe()) {
             m_texture = CreateObject<Texture>(TextureCube(
                 m_dimensions,
@@ -317,7 +317,8 @@ void EnvProbe::CreateShader()
         });
 
         break;
-    case EnvProbeType::ENV_PROBE_TYPE_AMBIENT:
+    case EnvProbeType::ENV_PROBE_TYPE_AMBIENT: // fallthrough
+    case EnvProbeType::ENV_PROBE_TYPE_LIGHT_FIELD:
         // Do nothing
         return;
     }
@@ -372,7 +373,7 @@ void EnvProbe::EnqueueBind() const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    if (!IsAmbientProbe()) {
+    if (!IsControlledByEnvGrid()) {
         PUSH_RENDER_COMMAND(BindEnvProbe, GetEnvProbeType(), m_id);
     }
 }
@@ -382,7 +383,7 @@ void EnvProbe::EnqueueUnbind() const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    if (!IsAmbientProbe()) {
+    if (!IsControlledByEnvGrid()) {
         PUSH_RENDER_COMMAND(UnbindEnvProbe, GetEnvProbeType(), m_id);
     }
 }
@@ -420,7 +421,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
     // Ambient probes do not use their own render list,
     // instead they are attached to a grid which shares one
-    if (!IsAmbientProbe()) {
+    if (!IsControlledByEnvGrid()) {
         AssertThrow(m_camera.IsValid());
         AssertThrow(m_shader.IsValid());
 
@@ -465,7 +466,7 @@ void EnvProbe::Render(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    if (IsAmbientProbe()) {
+    if (IsControlledByEnvGrid()) {
         return;
     }
 
@@ -574,11 +575,11 @@ void EnvProbe::UpdateRenderData(bool set_texture)
 
     AssertThrow(m_bound_index.GetProbeIndex() != ~0u);
 
-    if (IsAmbientProbe()) {
+    if (IsControlledByEnvGrid()) {
         AssertThrow(m_grid_slot != ~0u);
     }
 
-    const UInt texture_slot = IsAmbientProbe() ? ~0u : m_bound_index.GetProbeIndex();
+    const UInt texture_slot = IsControlledByEnvGrid() ? ~0u : m_bound_index.GetProbeIndex();
 
     {
         const ShadowFlags shadow_flags = IsShadowProbe() ? SHADOW_FLAGS_VSM : SHADOW_FLAGS_NONE;
@@ -594,8 +595,8 @@ void EnvProbe::UpdateRenderData(bool set_texture)
         GetID(),
         m_draw_proxy,
         texture_slot,
-        IsAmbientProbe() ? m_grid_slot : ~0u,
-        IsAmbientProbe() ? m_bound_index.grid_size : Extent3D { }
+        IsControlledByEnvGrid() ? m_grid_slot : ~0u,
+        IsControlledByEnvGrid() ? m_bound_index.grid_size : Extent3D { }
     );
 
     // update cubemap texture in array of bound env probes
@@ -642,7 +643,7 @@ void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
 
     bool set_texture = true;
 
-    if (IsAmbientProbe()) {
+    if (IsControlledByEnvGrid()) {
         if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {
             DebugLog(LogType::Warn, "Probe index (%u) out of range of max bound ambient probes\n", probe_index.GetProbeIndex());
         }

@@ -166,7 +166,7 @@ void Scene::Init()
         SizeType index = 0;
 
         for (auto &it : m_env_probes) {
-            if (!it.second->IsAmbientProbe()) {
+            if (!it.second->IsControlledByEnvGrid()) {
                 items.PushBack({ it.first, it.second->GetEnvProbeType() });
             }
         }

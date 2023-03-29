@@ -6,6 +6,7 @@
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/RenderComponent.hpp>
 #include <rendering/EnvProbe.hpp>
+#include <rendering/Buffers.hpp>
 #include <core/Containers.hpp>
 #include <Threads.hpp>
 
@@ -17,7 +18,7 @@ using EnvGridFlags = UInt32;
 
 enum EnvGridFlagBits : EnvGridFlags
 {
-    ENV_GRID_FLAGS_NONE            = 0x0,
+    ENV_GRID_FLAGS_NONE = 0x0,
     ENV_GRID_FLAGS_RESET_REQUESTED = 0x1
 };
 
@@ -85,6 +86,12 @@ struct LightProbeGrid
         { return probes[indirect_indices[max_bound_ambient_probes + index]]; }
 };
 
+struct LightFieldStorageImage
+{
+    ImageRef image;
+    ImageViewRef image_view;
+};
+
 class EnvGrid : public RenderComponent<EnvGrid>
 {
 public:
@@ -92,10 +99,13 @@ public:
 
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_ENV_GRID;
 
-    EnvGrid(const BoundingBox &aabb, const Extent3D &density);
+    EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &density);
     EnvGrid(const EnvGrid &other) = delete;
     EnvGrid &operator=(const EnvGrid &other) = delete;
     virtual ~EnvGrid();
+
+    HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
+        { return m_type; }
 
     void SetCameraData(const Vector3 &camera_position);
 
@@ -107,6 +117,18 @@ public:
     void OnRender(Frame *frame);
 
 private:
+    EnvProbeType GetEnvProbeType() const
+    {
+        switch (GetEnvGridType()) {
+        case ENV_GRID_TYPE_SH:
+            return ENV_PROBE_TYPE_AMBIENT;
+        case ENV_GRID_TYPE_LIGHT_FIELD:
+            return ENV_PROBE_TYPE_LIGHT_FIELD;
+        default:
+            return ENV_PROBE_TYPE_INVALID;
+        }
+    }
+
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
     void CreateShader();
@@ -115,6 +137,12 @@ private:
     void CreateSHData();
     void CreateSHClipmapData();
     void ComputeClipmaps(Frame *frame);
+
+    void CreateLightFieldData();
+    void ComputeLightFieldData(
+        Frame *frame,
+        UInt32 probe_index
+    );
 
     void RenderEnvProbe(
         Frame *frame,
@@ -127,6 +155,8 @@ private:
         const ImageView *image_view,
         UInt32 probe_index
     );
+
+    EnvGridType m_type;
 
     BoundingBox m_aabb;
     Vector3 m_offset_center;
@@ -157,6 +187,15 @@ private:
     Handle<ComputePipeline> m_finalize_sh;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_sh_descriptor_sets;
     GPUBufferRef m_sh_tiles_buffer;
+
+    Handle<ComputePipeline> m_pack_light_field_probe;
+    Handle<ComputePipeline> m_copy_light_field_border_texels_irradiance;
+    Handle<ComputePipeline> m_copy_light_field_border_texels_depth;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_light_field_probe_descriptor_sets;
+
+    LightFieldStorageImage m_light_field_color_texture;
+    LightFieldStorageImage m_light_field_normals_texture;
+    LightFieldStorageImage m_light_field_depth_texture;
 
     Queue<UInt> m_next_render_indices;
 };

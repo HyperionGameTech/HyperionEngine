@@ -200,11 +200,12 @@ struct RenderState
 
         constexpr UInt max_counts[ENV_PROBE_TYPE_MAX] = {
             max_bound_reflection_probes,
+            max_bound_point_shadow_maps,
             max_bound_ambient_probes,
-            max_bound_point_shadow_maps
+            max_bound_light_field_probes
         };
 
-        const bool has_texture_slot = type != ENV_PROBE_TYPE_AMBIENT;
+        const bool has_texture_slot = type < ENV_PROBE_TYPE_AMBIENT;
 
         const auto it = bound_env_probes[type].Find(probe_id);
 

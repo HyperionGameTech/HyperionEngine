@@ -49,6 +49,14 @@ using renderer::ShaderMat4;
 static constexpr SizeType max_entities_per_instance_batch = 60;
 static constexpr SizeType max_probes_in_sh_grid_buffer = max_bound_ambient_probes;
 
+enum EnvGridType : UInt
+{
+    ENV_GRID_TYPE_INVALID = UInt(-1),
+    ENV_GRID_TYPE_SH = 0,
+    ENV_GRID_TYPE_LIGHT_FIELD,
+    ENV_GRID_TYPE_MAX
+};
+
 struct alignas(256) EntityInstanceBatch
 {
     UInt32 num_entities;
@@ -287,7 +295,8 @@ static_assert(sizeof(SH9Buffer) == 256);
 
 struct alignas(256) SHGridBuffer
 {
-    ShaderVec4<Float> values[max_probes_in_sh_grid_buffer * 9];
+    ShaderVec4<Float> color_values[max_probes_in_sh_grid_buffer * 9];
+    // ShaderVec4<Float> depth_values[max_probes_in_sh_grid_buffer * 9 / 4]; // group into 4s
 };
 
 // static_assert(sizeof(SHGridBuffer) == 9216);

@@ -34,8 +34,11 @@ enum EnvProbeType : UInt
 {
     ENV_PROBE_TYPE_INVALID = UInt(-1),
     ENV_PROBE_TYPE_REFLECTION = 0,
-    ENV_PROBE_TYPE_AMBIENT,
     ENV_PROBE_TYPE_SHADOW,
+
+    // These two types are controlled by EnvGrid
+    ENV_PROBE_TYPE_AMBIENT,
+    ENV_PROBE_TYPE_LIGHT_FIELD,
 
     ENV_PROBE_TYPE_MAX
 };
@@ -145,34 +148,41 @@ public:
     EnvProbe &operator=(const EnvProbe &other) = delete;
     ~EnvProbe();
 
-    EnvProbeType GetEnvProbeType() const
+    HYP_FORCE_INLINE EnvProbeType GetEnvProbeType() const
         { return m_env_probe_type; }
 
-    bool IsReflectionProbe() const
+    HYP_FORCE_INLINE bool IsReflectionProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION; }
 
-    bool IsAmbientProbe() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
-
-    bool IsShadowProbe() const
+    HYP_FORCE_INLINE bool IsShadowProbe() const
         { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW; }
 
-    const EnvProbeIndex &GetBoundIndex() const
+    HYP_FORCE_INLINE bool IsAmbientProbe() const
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
+
+    HYP_FORCE_INLINE bool IsLightFieldProbe() const
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_LIGHT_FIELD; }
+
+    HYP_FORCE_INLINE bool IsControlledByEnvGrid() const
+        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT
+            || m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_LIGHT_FIELD; }
+
+    HYP_FORCE_INLINE const EnvProbeIndex &GetBoundIndex() const
         { return m_bound_index; }
 
-    void SetBoundIndex(const EnvProbeIndex &bound_index)
+    HYP_FORCE_INLINE void SetBoundIndex(const EnvProbeIndex &bound_index)
         { m_bound_index = bound_index; }
 
-    const Matrix4 &GetProjectionMatrix() const
+    HYP_FORCE_INLINE const Matrix4 &GetProjectionMatrix() const
         { return m_projection_matrix; }
 
-    const FixedArray<Matrix4, 6> &GetViewMatrices() const
+    HYP_FORCE_INLINE const FixedArray<Matrix4, 6> &GetViewMatrices() const
         { return m_view_matrices; }
 
-    const BoundingBox &GetAABB() const
+    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
         { return m_aabb; }
 
-    void SetAABB(const BoundingBox &aabb)
+    HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
     {
         if (m_aabb != aabb) {
             m_aabb = aabb;
@@ -181,19 +191,19 @@ public:
         }
     }
 
-    Handle<Texture> &GetTexture()
+    HYP_FORCE_INLINE Handle<Texture> &GetTexture()
         { return m_texture; }
 
-    const Handle<Texture> &GetTexture() const
+    HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
         { return m_texture; }
 
-    void SetNeedsUpdate(bool needs_update)
+    HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
         { m_needs_update = needs_update; }
 
-    bool NeedsUpdate() const
+    HYP_FORCE_INLINE bool NeedsUpdate() const
         { return m_needs_update; }
 
-    void SetNeedsRender(bool needs_render)
+    HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
     {
         if (needs_render) {
             m_needs_render_counter.Set(1, MemoryOrder::RELAXED);
@@ -202,7 +212,7 @@ public:
         }
     }
 
-    bool NeedsRender() const
+    HYP_FORCE_INLINE bool NeedsRender() const
     {
         const Int32 counter = m_needs_render_counter.Get(MemoryOrder::RELAXED);
 
