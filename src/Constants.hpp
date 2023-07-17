@@ -16,7 +16,7 @@ constexpr UInt max_bound_reflection_probes = 16;
 constexpr UInt max_bound_ambient_probes = 1024;
 constexpr UInt max_bound_light_field_probes = max_bound_ambient_probes;
 constexpr UInt max_bound_point_shadow_maps = 16;
-constexpr UInt num_gbuffer_textures = 5;
+constexpr UInt num_gbuffer_textures = 6;
 constexpr bool use_indexed_array_for_object_data = true;
 // perform occlusion culling using indirect draw
 constexpr bool use_draw_indirect = true;

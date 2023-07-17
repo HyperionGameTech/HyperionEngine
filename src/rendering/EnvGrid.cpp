@@ -16,7 +16,7 @@ static const Extent2D sh_probe_dimensions = Extent2D { 16, 16 };
 static const Extent2D light_field_probe_dimensions = Extent2D { 32, 32 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-static const UInt light_field_probe_packed_octahedron_size = 32;
+static const UInt light_field_probe_packed_octahedron_size = 16;
 static const UInt light_field_probe_packed_border_size = 2;
 
 static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
@@ -813,7 +813,7 @@ void EnvGrid::CreateLightFieldData()
 
     m_light_field_color_texture.image = RenderObjects::Make<Image>(StorageImage(
         extent,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         ImageType::TEXTURE_TYPE_2D,
         nullptr
     ));
@@ -1186,7 +1186,7 @@ void EnvGrid::ComputeLightFieldData(
 
     //temp
     AssertThrow(probe->m_grid_slot == probe_index);
-
+    
     const Vec3u position_in_grid = {
         probe->m_grid_slot % m_density.width,
         (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
@@ -1203,8 +1203,8 @@ void EnvGrid::ComputeLightFieldData(
     push_constants.cubemap_dimensions = { color_image->GetExtent().width, color_image->GetExtent().height, 0, 0 };
     
     push_constants.probe_offset_coord = Vec2u {
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.x * m_density.height + position_in_grid.y), //+ light_field_probe_packed_border_size,
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z //+ light_field_probe_packed_border_size
+        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
+        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z
     };
 
     push_constants.grid_dimensions = Vec2u {

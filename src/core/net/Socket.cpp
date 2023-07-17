@@ -1,16 +1,23 @@
 #include <core/net/Socket.hpp>
 
+#ifdef HYP_UNIX
+
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/types.h>
+
+#endif
 
 namespace hyperion::v2 {
 
 struct SocketServerImpl
 {
     int socket_id = 0;
+
+#ifdef HYP_UNIX
     struct sockaddr_un local, remote;
+#endif
 };
 
 SocketServer::SocketServer()
@@ -45,7 +52,9 @@ bool SocketServer::Start()
 
     m_impl.Reset(new SocketServerImpl);
 
+#ifdef HYP_UNIX
     m_impl->socket_id = socket(AF_UNIX, SOCK_STREAM, 0);
+#endif
 
     if (m_impl->socket_id == -1) {
         DebugLog(
@@ -61,7 +70,8 @@ bool SocketServer::Start()
 
     constexpr const char *socket_path = "hyp_server.sock";
     constexpr SizeType max_connections = 5;
-
+    
+#ifdef HYP_UNIX
     m_impl->local.sun_family = AF_UNIX;
     strcpy(m_impl->local.sun_path, socket_path);
     unlink(m_impl->local.sun_path);
@@ -104,6 +114,7 @@ bool SocketServer::Start()
     }
 
     TriggerProc(HYP_NAME(OnServerStarted), { });
+#endif
 
     return true;
 }

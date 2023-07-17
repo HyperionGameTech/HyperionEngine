@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//interior2/INTERIOR.obj");//pica_pica/pica_pica.obj");//sponza/sponza.obj");//
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//interior2/INTERIOR.obj");//sponza/sponza.obj");//
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -432,7 +432,7 @@ public:
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             // Local aabb wil not be overwritten unless we add a Mesh to the Entity.
             // env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-70.0f, -40.0f, -70.0f), Vector3(70.0f, 40.0f, 70.0f)));
-            env_grid_entity->SetLocalAABB(test_model.GetWorldAABB() * 1.08f);
+            env_grid_entity->SetLocalAABB(test_model.GetWorldAABB() * 1.25f);
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(std::move(env_grid_entity));
         }
