@@ -27,7 +27,7 @@ public:
     Stack &operator=(const Stack &other);
     Stack &operator=(Stack &&other) noexcept;
 
-    [[nodiscard]] typename Base::SizeType Size() const
+    [[nodiscard]] SizeType Size() const
         { return Base::Size(); }
 
     [[nodiscard]] typename Base::ValueType *Data()
@@ -48,7 +48,7 @@ public:
     [[nodiscard]] bool Any() const
         { return Base::Any(); }
 
-    void Reserve(typename Base::SizeType capacity)
+    void Reserve(SizeType capacity)
         { Base::Reserve(capacity); }
 
     void Refit()

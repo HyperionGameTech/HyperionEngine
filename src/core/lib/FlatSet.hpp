@@ -48,7 +48,7 @@ public:
     Iterator Erase(ConstIterator it);
     Iterator Erase(const T &value);
 
-    [[nodiscard]] typename Base::SizeType Size() const    { return Base::Size(); }
+    [[nodiscard]] SizeType Size() const    { return Base::Size(); }
     [[nodiscard]] T *Data()                               { return Base::Data(); }
     [[nodiscard]] T * const Data() const                  { return Base::Data(); }
     [[nodiscard]] bool Any() const                        { return Base::Any(); }

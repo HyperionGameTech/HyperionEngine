@@ -142,14 +142,14 @@ ControllerType *ComponentContainer<ControllerType>::Get(ID<Entity> id)
         return nullptr;
     }
 
-    return static_cast<ControllerType *>(it.second.Get());
+    return static_cast<ControllerType *>(it->second.Get());
 }
 
 template <class ControllerType>
 void ComponentContainer<ControllerType>::Update(GameCounter::TickUnit delta)
 {
     for (auto &it : ComponentContainerBase::m_entity_to_controller) {
-        static_cast<ControllerType *>(it.second.Get())->ControllerType::OnUpdate(delta);
+        static_cast<ControllerType *>(it->second.Get())->ControllerType::OnUpdate(delta);
     }
 }
 

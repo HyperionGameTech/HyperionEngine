@@ -35,7 +35,7 @@ class StagingBufferPool
     {
         SizeType size;
         std::unique_ptr<StagingBuffer> buffer;
-        std::time_t last_used;
+        time_t last_used;
     };
 
 public:
@@ -94,7 +94,7 @@ public:
         SizeType gpu_memory_used = 0;
         SizeType last_gpu_memory_used = 0;
         Int64 last_diff = 0;
-        std::time_t last_timestamp = 0;
+        time_t last_timestamp = 0;
         const Int64 time_diff = 10000;
 
         HYP_FORCE_INLINE void IncMemoryUsage(SizeType amount)
@@ -115,7 +115,7 @@ public:
 
         HYP_FORCE_INLINE void UpdateStats()
         {
-            const std::time_t now = std::time(nullptr);
+            const time_t now = time(nullptr);
 
             if (last_timestamp == 0 || now - last_timestamp >= time_diff) {
                 if (gpu_memory_used > last_gpu_memory_used) {

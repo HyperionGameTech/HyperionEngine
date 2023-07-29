@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef HYPERION_TYPES_HPP
+#define HYPERION_TYPES_HPP
 
 #include <cstdint>
 #include <memory>

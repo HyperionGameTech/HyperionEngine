@@ -19,8 +19,6 @@ static inline ObjectContainer<T> &GetContainer()
 template <class T>
 struct Handle
 {
-    using ID = ID<T>;
-
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 
     static const Handle empty;
@@ -32,7 +30,7 @@ struct Handle
     {
     }
 
-    explicit Handle(ID id)
+    explicit Handle(ID<T> id)
         : index(id.Value())
     {
         if (index != 0) {
@@ -129,7 +127,7 @@ struct Handle
     bool IsValid() const
         { return index != 0; }
 
-    ID GetID() const
+    ID<T> GetID() const
         { return { UInt(index) }; }
 
     T *Get() const
@@ -171,8 +169,6 @@ struct Handle
 template <class T>
 struct WeakHandle
 {
-    using ID = ID<T>;
-
     static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
 
     UInt index;
@@ -254,7 +250,7 @@ struct WeakHandle
     }
 
     Handle<T> Lock() const
-        { return Handle<T>(ID { index }); }
+        { return Handle<T>(ID<T> { index }); }
 
     bool operator!() const
         { return !IsValid(); }
@@ -289,7 +285,7 @@ struct WeakHandle
     bool IsValid() const
         { return index != 0; }
 
-    ID GetID() const
+    ID<T> GetID() const
         { return { UInt(index) }; }
 
     void Reset()

@@ -1,5 +1,5 @@
-#ifndef HASH_CODE_H
-#define HASH_CODE_H
+#ifndef HYPERION_HASH_CODE_HPP
+#define HYPERION_HASH_CODE_HPP
 
 #include <Types.hpp>
 #include <Constants.hpp>

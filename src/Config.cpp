@@ -162,7 +162,11 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_DEBUG_MODE] = Option(true, false);
 #endif
 
-    m_variables[CONFIG_SHADER_COMPILATION] = Option(bool(HYP_GLSLANG), false);
+#ifdef HYP_GLSLANG
+    m_variables[CONFIG_SHADER_COMPILATION] = Option(true, false);
+#else
+    m_variables[CONFIG_SHADER_COMPILATION] = Option(false, false);
+#endif
     
     m_variables[CONFIG_RT_SUPPORTED] = Option(g_engine->GetGPUDevice()->GetFeatures().IsRaytracingSupported(), false);
     m_variables[CONFIG_RT_ENABLED] = Option(m_variables[CONFIG_RT_SUPPORTED] && g_engine->GetGPUDevice()->GetFeatures().IsRaytracingEnabled(), true);

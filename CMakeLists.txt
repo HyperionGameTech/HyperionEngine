@@ -7,6 +7,11 @@ set(BUILD_NAME hyperion)
 #set(CMAKE_TOOLCHAIN_FILE ${vcpkg_path} CACHE STRING "CMake toolchain file")
 #set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "")
 
+if (NOT DEFINED MSVC)
+    SET (CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE STRING "C++ compiler" FORCE)
+    message(STATUS "NOTE: g++ currently unsupported, working on fixing it. For now clang or msvc is necessary")
+endif()
+
 project(${BUILD_NAME} CXX C)
 
 if(MSVC)
@@ -22,6 +27,7 @@ if(MSVC)
 
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
 else()
+
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address,undefined")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -34,7 +40,6 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib $ENV{VCPKG_INSTALLED_DIR
 find_package(Threads REQUIRED)
 find_package(Bullet REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
 find_package(SDL2 REQUIRED)
 
 find_package(OpenAL)
@@ -108,7 +113,6 @@ set(COMMON_LIBRARIES
     ${OPENAL_LIBRARY}
     ${Vulkan_LIBRARIES}
     ${BULLET_LIBRARIES}
-    glfw
     ${SDL2_LIBRARIES}
 )
 

@@ -25,7 +25,6 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 find_package(Threads REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(Bullet REQUIRED)
-find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(SDL2 REQUIRED)
 
@@ -60,7 +59,6 @@ set(COMMON_LIBRARIES
     ${OPENAL_LIBRARY}
     ${Vulkan_LIBRARIES}
     ${BULLET_LIBRARIES}
-    glfw
     ${SDL2_LIBRARIES}
 )
 

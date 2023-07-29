@@ -204,8 +204,9 @@ static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shade
 } // namespace renderer
 } // namespace hyperion
 
+namespace std {
 template <>
-struct ::std::hash<hyperion::renderer::ImageSubResource>
+struct hash<hyperion::renderer::ImageSubResource>
 {
     size_t operator()(const hyperion::renderer::ImageSubResource &sub_resource) const
     {
@@ -219,5 +220,6 @@ struct ::std::hash<hyperion::renderer::ImageSubResource>
         return hc.Value();
     }
 };
+} // namespace std
 
 #endif //HYPERION_RENDERER_STRUCTS_H

@@ -125,9 +125,9 @@ public:
     [[nodiscard]] std::conditional_t<IsUtf8, u32char, T> GetChar(SizeType index) const;
 
     /*! \brief Return the data size in characters. Note, utf-8 strings can have a shorter length than size. */
-    [[nodiscard]] typename Base::SizeType Size() const { return Base::Size() - 1; /* for NT char */ }
+    [[nodiscard]] SizeType Size() const { return Base::Size() - 1; /* for NT char */ }
     /*! \brief Return the length of the string in characters. Note, utf-8 strings can have a shorter length than size. */
-    [[nodiscard]] typename Base::SizeType Length() const { return m_length; }
+    [[nodiscard]] SizeType Length() const { return m_length; }
 
     [[nodiscard]] typename Base::ValueType *Data() { return Base::Data(); }
     [[nodiscard]] const typename Base::ValueType *Data() const { return Base::Data(); }
@@ -148,11 +148,11 @@ public:
     [[nodiscard]] bool HasMultiByteChars() const { return Size() > Length(); }
 
     /*! \brief Reserve space for the string. {capacity} + 1 is used, to make space for the null character. */
-    void Reserve(typename Base::SizeType capacity) { Base::Reserve(capacity + 1); }
+    void Reserve(SizeType capacity) { Base::Reserve(capacity + 1); }
 
     // NOTE: no Resize(), because utf8 strings can have different length than size
     // /*! \brief Resizes to {new_size} + 1 to make space for the null character. */
-    // void Resize(typename Base::SizeType new_size)                      { Base::Resize(new_size + 1); }
+    // void Resize(SizeType new_size)                      { Base::Resize(new_size + 1); }
 
     void Refit() { Base::Refit(); }
 
@@ -222,7 +222,7 @@ public:
 protected:
     const T *StrStr(const DynString &other) const;
 
-    typename Base::SizeType m_length;
+    SizeType m_length;
 };
 
 template <class T, bool IsUtf8>
@@ -257,9 +257,9 @@ DynString<T, IsUtf8>::DynString(const T *str)
         return;
     }
 
-    m_length = static_cast<typename Base::SizeType>(len);
+    m_length = static_cast<SizeType>(len);
 
-    const auto size = static_cast<typename Base::SizeType>(count);
+    const auto size = static_cast<SizeType>(count);
     
     // reserves + 1 for null char
     Reserve(size);
@@ -292,9 +292,9 @@ DynString<T, IsUtf8>::DynString(const T *str, Int max_len)
         return;
     }
 
-    m_length = static_cast<typename Base::SizeType>(len);
+    m_length = static_cast<SizeType>(len);
 
-    const auto size = static_cast<typename Base::SizeType>(count);
+    const auto size = static_cast<SizeType>(count);
     
     // reserves + 1 for null char
     Reserve(size);
@@ -475,7 +475,7 @@ bool DynString<T, IsUtf8>::operator==(const T *str) const
         return false; // invalid utf string
     }
 
-    if (m_length != static_cast<typename Base::SizeType>(len)) {
+    if (m_length != static_cast<SizeType>(len)) {
         return false;
     }
 

@@ -43,7 +43,7 @@ class Thread
 public:
     using Scheduler = SchedulerType;
     using Task = typename Scheduler::Task;
-    using TaskID = typename Scheduler::TaskID;
+    using TaskIDType = typename Scheduler::TaskIDType;
 
     Thread(const ThreadID &id);
     Thread(const Thread &other) = delete;
@@ -62,7 +62,7 @@ public:
      * @param atomic_counter An optionally provided pointer to atomic UInt which will be incremented
      *      upon completion
      */
-    TaskID ScheduleTask(Task &&task, AtomicVar<UInt> *atomic_counter = nullptr)
+    TaskIDType ScheduleTask(Task &&task, AtomicVar<UInt> *atomic_counter = nullptr)
     {
         return m_scheduler.Enqueue(std::forward<Task>(task), atomic_counter);
     }

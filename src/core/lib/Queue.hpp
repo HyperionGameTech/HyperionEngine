@@ -29,7 +29,7 @@ public:
     Queue &operator=(const Queue &other);
     Queue &operator=(Queue &&other) noexcept;
 
-    [[nodiscard]] typename Base::SizeType Size() const
+    [[nodiscard]] SizeType Size() const
         { return Base::Size(); }
 
     [[nodiscard]] typename Base::ValueType *Data()
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] bool Contains(const T &value) const
         { return Base::Contains(value); }
 
-    void Reserve(typename Base::SizeType capacity)
+    void Reserve(SizeType capacity)
         { Base::Reserve(capacity); }
 
     void Refit()

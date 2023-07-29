@@ -4,6 +4,7 @@
 #include "Pair.hpp"
 #include <util/Defines.hpp>
 #include <HashCode.hpp>
+#include <Types.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -17,7 +18,6 @@ class ContainerBase
 protected:
     using Base = ContainerBase;
 public:
-    using SizeType = SizeType;
     using KeyType = Key;
 
     ContainerBase() { }

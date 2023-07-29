@@ -95,7 +95,7 @@ class Scheduler
 {
 public:
     using Task = TaskType;
-    using TaskID = TaskID;
+    using TaskIDType = TaskID;
 
     struct ScheduledTask
     {

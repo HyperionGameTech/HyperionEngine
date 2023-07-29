@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_THREADS_H
-#define HYPERION_V2_THREADS_H
+#ifndef HYPERION_V2_THREADS_HPP
+#define HYPERION_V2_THREADS_HPP
 
 #include <core/lib/FlatMap.hpp>
 #include <core/Thread.hpp>

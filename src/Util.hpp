@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef HYPERION_UTIL_HPP
+#define HYPERION_UTIL_HPP
 
 #include <util/Defines.hpp>
 #include <system/Debug.hpp>
