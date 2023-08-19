@@ -661,8 +661,8 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     m_copy_border_texels_irradiance->GetPipeline()->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            probe_counts.width * probe_counts.height,
-            probe_counts.depth,
+            (probe_counts.width * probe_counts.height * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.width)) + 7 / 8,
+            (probe_counts.depth * (m_grid_info.irradiance_octahedron_size + m_grid_info.probe_border.depth)) + 7 / 8,
             1u
         }
     );
@@ -679,8 +679,8 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     m_copy_border_texels_depth->GetPipeline()->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            probe_counts.width * probe_counts.height,
-            probe_counts.depth,
+            (probe_counts.width * probe_counts.height * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.width)) + 15 / 16,
+            (probe_counts.depth * (m_grid_info.depth_octahedron_size + m_grid_info.probe_border.depth)) + 15 / 16,
             1u
         }
     );
