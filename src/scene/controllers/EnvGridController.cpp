@@ -25,7 +25,7 @@ void EnvGridController::AddEnvGridRenderer(const Handle<Scene> &scene)
             m_env_grid_renderer_name,
             EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,// EnvGridType::ENV_GRID_TYPE_SH,
             GetOwner()->GetWorldAABB(),
-            Extent3D { 14, 4, 14 }
+            Extent3D { 16, 2, 16 }
         );
     }
 

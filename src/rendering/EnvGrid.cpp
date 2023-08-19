@@ -13,10 +13,10 @@ using renderer::Result;
 
 static const Extent2D num_tiles = { 4, 4 };
 static const Extent2D sh_probe_dimensions = Extent2D { 16, 16 };
-static const Extent2D light_field_probe_dimensions = Extent2D { 32, 32 };
+static const Extent2D light_field_probe_dimensions = Extent2D { 128, 128 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-static const UInt light_field_probe_packed_octahedron_size = 16;
+static const UInt light_field_probe_packed_octahedron_size = 128;
 static const UInt light_field_probe_packed_border_size = 2;
 
 static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
@@ -364,7 +364,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(probe_dimensions.width), Int(probe_dimensions.height),
-            0.001f, m_aabb.GetRadius()//size_of_probe.Max() * 0.5f//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 2.0f
+            0.001f, m_aabb.GetRadius()// size_of_probe.Max() * 0.5f//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 2.0f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -449,7 +449,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::BACK,
+                .cull_faces = FaceCullMode::NONE,
                 // .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
             m_ambient_shader->GetCompiledShader().GetDefinition(),
@@ -810,6 +810,8 @@ void EnvGrid::CreateLightFieldData()
         (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size,
         1
     };
+
+    DebugLog(LogType::Debug, "Light field grid extent: (%u, %u, %u)\n", extent[0], extent[1], extent[2]);
 
     m_light_field_color_texture.image = RenderObjects::Make<Image>(StorageImage(
         extent,
@@ -1180,6 +1182,7 @@ void EnvGrid::ComputeLightFieldData(
         ShaderVec4<UInt32> cubemap_dimensions;
         ShaderVec2<UInt32> probe_offset_coord;
         ShaderVec2<UInt32> grid_dimensions;
+        UInt32 frame_counter;
     } push_constants;
 
     AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
@@ -1212,6 +1215,8 @@ void EnvGrid::ComputeLightFieldData(
         (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
     };
 
+    push_constants.frame_counter = g_engine->GetRenderState().frame_counter;
+
     m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_normals_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_depth_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -1224,11 +1229,18 @@ void EnvGrid::ComputeLightFieldData(
     );
 
     m_pack_light_field_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_pack_light_field_probe->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+    m_pack_light_field_probe->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            1
+        }
+    );
 
     // Copy border texels for irradiance image
 
-    m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    /*m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -1238,7 +1250,14 @@ void EnvGrid::ComputeLightFieldData(
     );
 
     m_copy_light_field_border_texels_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_copy_light_field_border_texels_irradiance->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+    m_copy_light_field_border_texels_irradiance->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            1
+        }
+    );
 
     // Copy border texels for depth image
 
@@ -1252,7 +1271,14 @@ void EnvGrid::ComputeLightFieldData(
     );
 
     m_copy_light_field_border_texels_depth->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_copy_light_field_border_texels_depth->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+    m_copy_light_field_border_texels_depth->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            (light_field_probe_packed_octahedron_size + 7) / 8,
+            1
+        }
+    );*/
 
     m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_normals_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
