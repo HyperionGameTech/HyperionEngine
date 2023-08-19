@@ -68,7 +68,8 @@ struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
 static ShaderProperties GetDeferredShaderProperties()
 {
     ShaderProperties properties;
-    properties.Set("RT_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_ENABLED));
+    properties.Set("RT_REFLECTIONS_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS));
+    properties.Set("RT_GI_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_GI));
     properties.Set("SSR_ENABLED", g_engine->GetConfig().Get(CONFIG_SSR));
     properties.Set("REFLECTION_PROBE_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));
     properties.Set("ENV_GRID_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI));
