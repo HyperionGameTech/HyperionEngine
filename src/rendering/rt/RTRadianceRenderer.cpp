@@ -360,7 +360,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
         m_extent,
         InternalFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::MEDIUM,
+        TemporalBlendFeedback::HIGH,
         FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
     ));
 

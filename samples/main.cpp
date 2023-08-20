@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//interior2/INTERIOR.obj");//sponza/sponza.obj");//
+        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//interior2/INTERIOR.obj");//sponza/sponza.obj");//
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -424,9 +424,9 @@ public:
             GetScene()->GetRoot().AddChild(dude);
         }
 
-        // test_model.Scale(7.0f);
+        test_model.Scale(7.0f);
         // test_model.Scale(8.0f);
-        test_model.Scale(0.0225f);
+        //test_model.Scale(0.0225f);
 
         if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
@@ -683,7 +683,7 @@ public:
             plane->SetMaterial(CreateObject<Material>());
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 1.0f, 1.0f, 1.0f));
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.005f);
-            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+            plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_METALNESS, 1.0f);
             //plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_TRANSMISSION, 0.8f);
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vector2(8.0f));
             //plane->GetMaterial()->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_NORMAL_MAP, g_asset_manager->Load<Texture>("textures/water.jpg"));
@@ -696,7 +696,7 @@ public:
             plane->GetMaterial()->SetParameter(Material::MATERIAL_KEY_NORMAL_MAP_INTENSITY, 0.1f);
             //plane->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
             //plane->GetMaterial()->SetIsAlphaBlended(true);
-            plane->SetShader(Handle<Shader>(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes(), {{ "FORWARD_LIGHTING" }}))));
+            plane->SetShader(Handle<Shader>(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(plane->GetMesh()->GetVertexAttributes(), {}))));
             plane->RebuildRenderableAttributes();
             plane->CreateBLAS();
             if (NodeProxy plane_node_proxy = GetScene()->AddEntity(plane)) {
