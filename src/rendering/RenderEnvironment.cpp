@@ -49,7 +49,7 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_next_enabled_render_components_mask(0),
       m_rt_radiance(Extent2D { 1024, 1024 }),
       m_probe_system({
-          .aabb = {{-15.0f, -5.0f, -15.0f}, {15.0f, 25.0f, 15.0f}}
+          .aabb = {{-25.0f, -5.0f, -25.0f}, {25.0f, 30.0f, 25.0f}}
       }),
       m_has_rt_radiance(false),
       m_has_ddgi_probes(false)

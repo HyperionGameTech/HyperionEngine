@@ -395,7 +395,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     
     // Check if octree has changes, and we need to re-render.
 
-    const bool is_rendered = m_is_rendered.Get(MemoryOrder::ACQUIRE);
+    //const bool is_rendered = m_is_rendered.Get(MemoryOrder::ACQUIRE);
 
     Octree const *octree = nullptr;
 
@@ -410,7 +410,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
     if (m_octant_hash_code != octant_hash) {
         SetNeedsUpdate(true);
 
-        DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu)\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value());
+        //DebugLog(LogType::Debug, "Probe #%u octree hash changed (%llu != %llu)\n", GetID().Value(), octant_hash.Value(), m_octant_hash_code.Value());
 
         m_octant_hash_code = octant_hash;
     }

@@ -129,12 +129,12 @@ RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent)
       m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent),
-              InternalFormat::RGBA8,
+              InternalFormat::RGBA16F,
               ImageType::TEXTURE_TYPE_2D
           )),
           ImageOutput(StorageImage(
               Extent3D(extent),
-              InternalFormat::RGBA8,
+              InternalFormat::RGBA16F,
               ImageType::TEXTURE_TYPE_2D
           ))
       },
@@ -291,30 +291,39 @@ void RTRadianceRenderer::CreateDescriptorSets()
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(4)
             ->SetElementBuffer(0, g_engine->shader_globals->objects.GetBuffers()[frame_index].get());
         
+        // lights
+        descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5)
+            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffers()[frame_index].get());
+        
         descriptor_set // gbuffer normals texture
-            ->AddDescriptor<ImageDescriptor>(5)
+            ->AddDescriptor<ImageDescriptor>(6)
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_NORMALS)->GetImageView());
 
         descriptor_set // gbuffer material texture
-            ->AddDescriptor<ImageDescriptor>(6)
+            ->AddDescriptor<ImageDescriptor>(7)
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_MATERIAL)->GetImageView());
 
         descriptor_set // gbuffer albedo texture
-            ->AddDescriptor<ImageDescriptor>(7)
+            ->AddDescriptor<ImageDescriptor>(8)
             ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
                 .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         // nearest sampler
         descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(8)
+            ->AddDescriptor<renderer::SamplerDescriptor>(9)
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         // linear sampler
         descriptor_set
-            ->AddDescriptor<renderer::SamplerDescriptor>(9)
+            ->AddDescriptor<renderer::SamplerDescriptor>(10)
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+
+        // blue noise buffer
+        descriptor_set
+            ->AddDescriptor<renderer::StorageBufferDescriptor>(11)
+            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -358,7 +367,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending.Reset(new TemporalBlending(
         m_extent,
-        InternalFormat::RGBA8,
+        InternalFormat::RGBA16F,
         TemporalBlendTechnique::TECHNIQUE_1,
         TemporalBlendFeedback::HIGH,
         FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }

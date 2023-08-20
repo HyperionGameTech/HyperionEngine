@@ -5,6 +5,7 @@
 #include <rendering/backend/RendererShader.hpp>
 
 #include <util/fs/FsUtil.hpp>
+#include <util/ByteUtil.hpp>
 
 namespace hyperion::v2 {
 
@@ -140,9 +141,9 @@ struct RENDER_COMMAND(CreateProbeGridUniformBuffer) : RenderCommand
     GPUBufferRef uniform_buffer;
     ProbeSystemUniforms uniforms;
 
-    RENDER_COMMAND(CreateProbeGridUniformBuffer)(const GPUBufferRef &uniform_buffer, ProbeSystemUniforms &&uniforms)
+    RENDER_COMMAND(CreateProbeGridUniformBuffer)(const GPUBufferRef &uniform_buffer, const ProbeSystemUniforms &uniforms)
         : uniform_buffer(uniform_buffer),
-          uniforms(std::move(uniforms))
+          uniforms(uniforms)
     {
     }
 
@@ -327,37 +328,44 @@ void ProbeGrid::CreateUniformBuffer()
     const Extent2D grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Extent3D num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
 
+    m_uniforms = ProbeSystemUniforms {
+        .aabb_max = Vector4(m_grid_info.aabb.max, 1.0f),
+        .aabb_min = Vector4(m_grid_info.aabb.min, 1.0f),
+        .probe_border = {
+            m_grid_info.probe_border.width,
+            m_grid_info.probe_border.height,
+            m_grid_info.probe_border.depth,
+            0
+        },
+        .probe_counts = {
+            num_probes_per_dimension.width,
+            num_probes_per_dimension.height,
+            num_probes_per_dimension.depth,
+            0
+        },
+        .grid_dimensions = {
+            grid_image_dimensions.width,
+            grid_image_dimensions.height,
+            0, 0
+        },
+        .image_dimensions = {
+            m_irradiance_image->GetExtent().width,
+            m_irradiance_image->GetExtent().height,
+            m_depth_image->GetExtent().width,
+            m_depth_image->GetExtent().height
+        },
+        .params = {
+            ByteUtil::PackFloatU32(m_grid_info.probe_distance),
+            m_grid_info.num_rays_per_probe,
+            PROBE_SYSTEM_FLAGS_FIRST_RUN,
+            0
+        }
+    };
+
     PUSH_RENDER_COMMAND(
         CreateProbeGridUniformBuffer,
         m_uniform_buffer,
-        ProbeSystemUniforms {
-            .aabb_max = Vector4(m_grid_info.aabb.max, 1.0f),
-            .aabb_min = Vector4(m_grid_info.aabb.min, 1.0f),
-            .probe_border = {
-                m_grid_info.probe_border.width,
-                m_grid_info.probe_border.height,
-                m_grid_info.probe_border.depth,
-                0
-            },
-            .probe_counts = {
-                num_probes_per_dimension.width,
-                num_probes_per_dimension.height,
-                num_probes_per_dimension.depth,
-                0
-            },
-            .grid_dimensions = {
-                grid_image_dimensions.width,
-                grid_image_dimensions.height,
-                0, 0
-            },
-            .image_dimensions = {
-                m_irradiance_image->GetExtent().width,
-                m_irradiance_image->GetExtent().height,
-                m_depth_image->GetExtent().width,
-                m_depth_image->GetExtent().height
-            },
-            .params = Vector4(m_grid_info.probe_distance, static_cast<Float>(m_grid_info.num_rays_per_probe), 0.0f, 0.0f)
-        }
+        m_uniforms
     );
 }
 
@@ -451,6 +459,10 @@ void ProbeGrid::CreateDescriptorSets()
         // entities
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(6)
             ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffers()[frame_index].get());
+        
+        // lights
+        descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(7)
+            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffers()[frame_index].get());
 
         descriptor_set
             ->GetOrAddDescriptor<UniformBufferDescriptor>(9)
@@ -529,9 +541,20 @@ void ProbeGrid::SubmitPushConstants(CommandBuffer *command_buffer)
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
+void ProbeGrid::UpdateUniforms()
+{
+    m_uniforms.params[3] = UInt32(g_engine->GetRenderState().lights.Size());
+
+    m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(ProbeSystemUniforms), &m_uniforms);
+
+    m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
+}
+
 void ProbeGrid::RenderProbes(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
+
+    UpdateUniforms();
     
     if (m_has_tlas_updates[frame->GetFrameIndex()]) {
         m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());

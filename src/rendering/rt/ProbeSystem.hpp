@@ -31,6 +31,12 @@ using renderer::ShaderVec4;
 
 class Engine;
 
+enum ProbeSystemFlags : UInt32
+{
+    PROBE_SYSTEM_FLAGS_NONE = 0x0,
+    PROBE_SYSTEM_FLAGS_FIRST_RUN = 0x1
+};
+
 struct alignas(256) ProbeSystemUniforms
 {
     Vector4 aabb_max;
@@ -39,8 +45,7 @@ struct alignas(256) ProbeSystemUniforms
     ShaderVec4<UInt32> probe_counts;
     ShaderVec4<UInt32> grid_dimensions;
     ShaderVec4<UInt32> image_dimensions;
-    Vector4 params; // probe distance, num rays per probe
-
+    ShaderVec4<UInt32> params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
     //HYP_PAD_STRUCT_HERE(UInt32, 4);
 };
 
@@ -151,6 +156,7 @@ private:
     void CreateUniformBuffer();
     void CreateStorageBuffers();
     void CreateDescriptorSets();
+    void UpdateUniforms();
     void SubmitPushConstants(CommandBuffer *command_buffer);
 
     ProbeGridInfo m_grid_info;
@@ -174,6 +180,8 @@ private:
 
     Handle<TLAS> m_tlas;
     FixedArray<bool, max_frames_in_flight> m_has_tlas_updates;
+
+    ProbeSystemUniforms m_uniforms;
 
     RotationMatrixGenerator m_random_generator;
     UInt32 m_time;
