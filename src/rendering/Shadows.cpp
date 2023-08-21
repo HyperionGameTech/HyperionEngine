@@ -22,11 +22,11 @@ using renderer::StorageImage2D;
 struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
 {
     SizeType shadow_map_index;
-    renderer::ImageView *shadow_map_image_view;
+    ImageViewRef shadow_map_image_view;
 
     RENDER_COMMAND(CreateShadowMapDescriptors)(
         SizeType shadow_map_index,
-        renderer::ImageView *shadow_map_image_view
+        const ImageViewRef &shadow_map_image_view
     ) : shadow_map_index(shadow_map_index),
         shadow_map_image_view(shadow_map_image_view)
     {
@@ -53,10 +53,10 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
 
 struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommand
 {
-    renderer::Image *shadow_map_image;
-    renderer::ImageView *shadow_map_image_view;
+    ImageRef shadow_map_image;
+    ImageViewRef shadow_map_image_view;
 
-    RENDER_COMMAND(CreateShadowMapImage)(renderer::Image *shadow_map_image, renderer::ImageView *shadow_map_image_view)
+    RENDER_COMMAND(CreateShadowMapImage)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view)
         : shadow_map_image(shadow_map_image),
           shadow_map_image_view(shadow_map_image_view)
     {
@@ -95,11 +95,11 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommand
 
 struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
 {
-    renderer::Image *shadow_map_image;
-    renderer::ImageView *shadow_map_image_view;
+    ImageRef shadow_map_image;
+    ImageViewRef shadow_map_image_view;
     renderer::DescriptorSet *descriptor_sets;
 
-    RENDER_COMMAND(DestroyShadowPassData)(renderer::Image *shadow_map_image, renderer::ImageView *shadow_map_image_view, renderer::DescriptorSet *descriptor_sets)
+    RENDER_COMMAND(DestroyShadowPassData)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view, renderer::DescriptorSet *descriptor_sets)
         : shadow_map_image(shadow_map_image),
           shadow_map_image_view(shadow_map_image_view),
           descriptor_sets(descriptor_sets)
@@ -149,7 +149,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : RenderCommand
     virtual Result operator()() override
     {
         
-        g_engine->GetRenderData()->shadow_maps.Set(
+        g_engine->GetRenderData()->shadow_map_data.Set(
             shadow_map_index,
             {
                 .projection = projection_matrix,
@@ -272,20 +272,20 @@ void ShadowPass::CreateDescriptors()
 
     RenderCommands::Push<RENDER_COMMAND(CreateShadowMapDescriptors)>(
         m_shadow_map_index,
-        m_shadow_map_image_view.get()
+        m_shadow_map_image_view
     );
 }
 
 void ShadowPass::CreateShadowMap()
 {
-    m_shadow_map_image = std::make_unique<StorageImage2D>(
+    m_shadow_map_image = RenderObjects::Make<Image>(StorageImage2D(
         m_dimensions,
         InternalFormat::RG32F
-    );
+    ));
 
-    m_shadow_map_image_view = std::make_unique<ImageView>();
+    m_shadow_map_image_view = RenderObjects::Make<ImageView>();
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapImage)>(m_shadow_map_image.get(), m_shadow_map_image_view.get());
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapImage)>(m_shadow_map_image, m_shadow_map_image_view);
 }
 
 void ShadowPass::CreateComputePipelines()
@@ -300,7 +300,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_blur_descriptor_sets[i].AddDescriptor<StorageImageDescriptor>(2)
-            ->SetElementUAV(0, m_shadow_map_image_view.get());
+            ->SetElementUAV(0, m_shadow_map_image_view);
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets.Data());
@@ -344,8 +344,8 @@ void ShadowPass::Destroy()
     m_parent_scene.Reset();
 
     RenderCommands::Push<RENDER_COMMAND(DestroyShadowPassData)>(
-        m_shadow_map_image.get(),
-        m_shadow_map_image_view.get(),
+        m_shadow_map_image,
+        m_shadow_map_image_view,
         m_blur_descriptor_sets.Data()
     );
 

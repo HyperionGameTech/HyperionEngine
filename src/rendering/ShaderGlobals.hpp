@@ -64,12 +64,12 @@ struct ShaderGlobals
     ShaderData<StorageBuffer, ObjectShaderData, max_entities> objects;
     ShaderData<StorageBuffer, MaterialShaderData, max_materials> materials;
     ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons> skeletons;
-    ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps> shadow_maps;
+    ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps> shadow_map_data;
     ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes> env_probes;
     ShaderData<UniformBuffer, EnvGridShaderData, max_env_grids> env_grids;
     ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws> immediate_draws;
     ShaderData<StorageBuffer, EntityInstanceBatch, max_entity_instance_batches> entity_instance_batches;
-
+    
     BindlessStorage textures;
 
     GlobalSphericalHarmonicsGrid spherical_harmonics_grid;

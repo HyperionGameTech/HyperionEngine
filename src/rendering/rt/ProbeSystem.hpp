@@ -46,6 +46,7 @@ struct alignas(256) ProbeSystemUniforms
     ShaderVec4<UInt32> grid_dimensions;
     ShaderVec4<UInt32> image_dimensions;
     ShaderVec4<UInt32> params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
+    UInt32 shadow_map_index;
     //HYP_PAD_STRUCT_HERE(UInt32, 4);
 };
 
@@ -68,7 +69,7 @@ struct ProbeGridInfo
     static constexpr Extent3D probe_border = Extent3D(2, 0, 2);
 
     BoundingBox aabb;
-    Float probe_distance = 6.0f;
+    Float probe_distance = 3.5f;
     UInt num_rays_per_probe = 128;
 
     const Vector3 &GetOrigin() const
@@ -147,6 +148,8 @@ public:
     void Init();
     void Destroy();
 
+    void SetShadowMapImageView(UInt shadow_map_index, ImageViewRef &&shadow_map_image_view);
+
     void RenderProbes(Frame *frame);
     void ComputeIrradiance(Frame *frame);
 
@@ -156,11 +159,16 @@ private:
     void CreateUniformBuffer();
     void CreateStorageBuffers();
     void CreateDescriptorSets();
-    void UpdateUniforms();
+    void UpdateUniforms(Frame *frame);
     void SubmitPushConstants(CommandBuffer *command_buffer);
 
     ProbeGridInfo m_grid_info;
     Array<Probe> m_probes;
+    
+    FixedArray<UInt32, max_frames_in_flight> m_updates;
+
+    UInt m_shadow_map_index;
+    ImageViewRef m_shadow_map_image_view;
 
     Handle<ComputePipeline> m_update_irradiance,
         m_update_depth,
@@ -179,7 +187,6 @@ private:
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
     Handle<TLAS> m_tlas;
-    FixedArray<bool, max_frames_in_flight> m_has_tlas_updates;
 
     ProbeSystemUniforms m_uniforms;
 

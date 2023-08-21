@@ -2,14 +2,26 @@
 #include <rendering/backend/RendererResult.hpp>
 #include <Engine.hpp>
 
+#include <core/Memory.hpp>
+
+#include "ProbeSystem.hpp"
+
 namespace hyperion::v2 {
 
 using renderer::ImageDescriptor;
 using renderer::StorageImageDescriptor;
 using renderer::StorageBufferDescriptor;
 using renderer::TlasDescriptor;
+using renderer::SamplerDescriptor;
 using renderer::ResourceState;
 using renderer::Result;
+
+enum RTRadianceUpdates : UInt32
+{
+    RT_RADIANCE_UPDATES_NONE = 0x0,
+    RT_RADIANCE_UPDATES_TLAS = 0x1,
+    RT_RADIANCE_UPDATES_SHADOW_MAP = 0x2
+};
 
 #pragma region Render commands
 
@@ -138,7 +150,7 @@ RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent)
               ImageType::TEXTURE_TYPE_2D
           ))
       },
-      m_has_tlas_updates { false, false }
+      m_updates { RT_RADIANCE_UPDATES_NONE, RT_RADIANCE_UPDATES_NONE }
 {
 }
 
@@ -183,15 +195,35 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::Render(Frame *frame)
+void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 {
-    if (m_has_tlas_updates[frame->GetFrameIndex()]) {
+    if (m_updates[frame->GetFrameIndex()]) {
         m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());
 
-        m_has_tlas_updates[frame->GetFrameIndex()] = false;
+        m_updates[frame->GetFrameIndex()] = RT_RADIANCE_UPDATES_NONE;
     }
+}
+
+void RTRadianceRenderer::SubmitPushConstants(CommandBuffer *command_buffer)
+{
+    struct alignas(128) {
+        UInt32 num_bound_lights;
+    } push_constants;
+    
+    push_constants.num_bound_lights = UInt32(g_engine->GetRenderState().lights.Size());
+
+    Memory::MemCpy(&m_raytracing_pipeline->push_constants, &push_constants, sizeof(push_constants));
+
+    m_raytracing_pipeline->SubmitPushConstants(command_buffer);
+}
+
+void RTRadianceRenderer::Render(Frame *frame)
+{
+    UpdateUniforms(frame);
 
     m_raytracing_pipeline->Bind(frame->GetCommandBuffer());
+
+    SubmitPushConstants(frame->GetCommandBuffer());
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
@@ -264,7 +296,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
                 ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
         }
 
-        m_has_tlas_updates[frame_index] = true;
+        m_updates[frame_index] &= RT_RADIANCE_UPDATES_TLAS;
     }
 }
 
@@ -369,7 +401,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
         m_extent,
         InternalFormat::RGBA16F,
         TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::HIGH,
+        TemporalBlendFeedback::LOW,
         FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
     ));
 

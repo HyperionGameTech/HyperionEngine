@@ -1,5 +1,6 @@
 #include "RenderEnvironment.hpp"
 #include <Engine.hpp>
+#include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
@@ -202,6 +203,18 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_ddgi_probes) {
+        const ShadowMapRenderer *shadow_map_renderer = GetRenderComponent<ShadowMapRenderer>();
+
+        ImageViewRef shadow_map_image_view;
+        UInt shadow_map_index = 0;
+
+        if (shadow_map_renderer && shadow_map_renderer->GetPass()) {
+            shadow_map_index = shadow_map_renderer->GetPass()->GetShadowMapIndex();
+            shadow_map_image_view = shadow_map_renderer->GetPass()->GetShadowMapImageView();
+        }
+
+        m_probe_system.SetShadowMapImageView(shadow_map_index, std::move(shadow_map_image_view));
+
         m_probe_system.RenderProbes(frame);
         m_probe_system.ComputeIrradiance(frame);
 

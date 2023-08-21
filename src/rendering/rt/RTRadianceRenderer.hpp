@@ -59,16 +59,15 @@ public:
     void Create();
     void Destroy();
 
-    void Render(
-        
-        Frame *frame
-    );
+    void Render(Frame *frame);
 
 private:
     void CreateImages();
     void CreateDescriptorSets();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
+    void UpdateUniforms(Frame *frame);
+    void SubmitPushConstants(CommandBuffer *command_buffer);
     
     struct ImageOutput
     {
@@ -95,6 +94,8 @@ private:
 
     Extent2D m_extent;
     Handle<TLAS> m_tlas;
+    
+    FixedArray<UInt32, max_frames_in_flight> m_updates;
 
     Handle<Shader> m_shader;
 
@@ -103,7 +104,6 @@ private:
 
     RaytracingPipelineRef m_raytracing_pipeline;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
-    FixedArray<bool, max_frames_in_flight> m_has_tlas_updates;
 };
 
 } // namespace hyperion::v2

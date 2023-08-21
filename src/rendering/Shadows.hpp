@@ -92,6 +92,12 @@ public:
         }
     }
 
+    const ImageRef &GetShadowMapImage() const
+        { return m_shadow_map_image; }
+
+    const ImageViewRef &GetShadowMapImageView() const
+        { return m_shadow_map_image_view; }
+
     void CreateShader();
     virtual void CreateFramebuffer() override;
     virtual void CreateDescriptors() override;
@@ -113,8 +119,8 @@ private:
     UInt m_shadow_map_index;
     Extent2D m_dimensions;
 
-    std::unique_ptr<Image> m_shadow_map_image;
-    std::unique_ptr<ImageView> m_shadow_map_image_view;
+    ImageRef m_shadow_map_image;
+    ImageViewRef m_shadow_map_image_view;
     Handle<ComputePipeline> m_blur_shadow_map;
     FixedArray<DescriptorSet, 2> m_blur_descriptor_sets;
 };

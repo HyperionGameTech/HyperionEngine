@@ -527,7 +527,7 @@ void Engine::Initialize(RC<Application> application)
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_maps.GetBuffer(0).get());
+        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer(0).get());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
@@ -575,7 +575,7 @@ void Engine::Initialize(RC<Application> application)
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_maps.GetBuffer(1).get());
+        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer(1).get());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
@@ -1027,7 +1027,7 @@ void Engine::Compile()
         shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize shadow maps */
-        shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), i);
+        shader_globals->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), i);
 
         /* Finalize lights */
         shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), i);
@@ -1289,7 +1289,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     shader_globals->materials.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->skeletons.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->lights.UpdateBuffer(m_instance->GetDevice(), frame_index);
-    shader_globals->shadow_maps.UpdateBuffer(m_instance->GetDevice(), frame_index);
+    shader_globals->shadow_map_data.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_probes.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->env_grids.UpdateBuffer(m_instance->GetDevice(), frame_index);
     shader_globals->immediate_draws.UpdateBuffer(m_instance->GetDevice(), frame_index);

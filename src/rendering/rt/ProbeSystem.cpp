@@ -12,9 +12,17 @@ namespace hyperion::v2 {
 using renderer::StorageImageDescriptor;
 using renderer::StorageBufferDescriptor;
 using renderer::UniformBufferDescriptor;
+using renderer::SamplerDescriptor;
 using renderer::TlasDescriptor;
 using renderer::ResourceState;
 using renderer::Result;
+
+enum ProbeSystemUpdates : UInt32
+{
+    PROBE_SYSTEM_UPDATES_NONE = 0x0,
+    PROBE_SYSTEM_UPDATES_TLAS = 0x1,
+    PROBE_SYSTEM_UPDATES_SHADOW_MAP = 0x2
+};
 
 struct RENDER_COMMAND(CreateProbeGridImage) : RenderCommand
 {
@@ -199,8 +207,9 @@ struct RENDER_COMMAND(CreateProbeGridPipeline) : RenderCommand
 
 ProbeGrid::ProbeGrid(ProbeGridInfo &&grid_info)
     : m_grid_info(std::move(grid_info)),
-      m_has_tlas_updates { false, false },
-      m_time(0)
+      m_updates { PROBE_SYSTEM_UPDATES_NONE, PROBE_SYSTEM_UPDATES_NONE },
+      m_time(0),
+      m_shadow_map_index(0)
 {
 }
 
@@ -487,6 +496,26 @@ void ProbeGrid::CreateDescriptorSets()
         descriptor_set
             ->GetOrAddDescriptor<ImageDescriptor>(14)
             ->SetElementSRV(0, m_depth_image_view.Get());
+        
+        // shadow map data
+        descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(15)
+            ->SetElementBuffer(0, g_engine->GetRenderData()->shadow_map_data.GetBuffers()[frame_index].get());
+
+        // shadow maps
+        auto *shadow_map_descriptor = descriptor_set
+            ->GetOrAddDescriptor<ImageDescriptor>(16);
+        
+        for (UInt i = 0; i < max_shadow_maps; i++) {
+            shadow_map_descriptor->SetElementSRV(i, &g_engine->GetPlaceholderData().GetImageView2D1x1R8());
+        }
+
+        // Nearest sampler
+        descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(17)
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+
+        // Linear sampler
+        descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(18)
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
@@ -522,7 +551,7 @@ void ProbeGrid::ApplyTLASUpdates(RTUpdateStateFlags flags)
                 ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
         }
 
-        m_has_tlas_updates[frame_index] = true;
+        m_updates[frame_index] &= ~PROBE_SYSTEM_UPDATES_TLAS;
     }
 }
 
@@ -541,32 +570,53 @@ void ProbeGrid::SubmitPushConstants(CommandBuffer *command_buffer)
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::UpdateUniforms()
+void ProbeGrid::SetShadowMapImageView(UInt shadow_map_index, ImageViewRef &&shadow_map_image_view)
+{
+    Threads::AssertOnThread(THREAD_RENDER);
+
+    if (shadow_map_index == m_shadow_map_index && shadow_map_image_view == m_shadow_map_image_view) {
+        return;
+    }
+
+    m_shadow_map_index = shadow_map_index;
+    m_shadow_map_image_view = std::move(shadow_map_image_view);
+
+    m_updates[0] |= PROBE_SYSTEM_UPDATES_SHADOW_MAP;
+    m_updates[1] |= PROBE_SYSTEM_UPDATES_SHADOW_MAP;
+}
+
+void ProbeGrid::UpdateUniforms(Frame *frame)
 {
     m_uniforms.params[3] = UInt32(g_engine->GetRenderState().lights.Size());
+    m_uniforms.shadow_map_index = m_shadow_map_index;
 
     m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(ProbeSystemUniforms), &m_uniforms);
 
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
+    
+    if (m_updates[frame->GetFrameIndex()]) {
+        if (m_updates[frame->GetFrameIndex()] & PROBE_SYSTEM_UPDATES_SHADOW_MAP) {
+            m_descriptor_sets[frame->GetFrameIndex()]->GetDescriptor(16)
+                ->SetElementSRV(m_shadow_map_index, m_shadow_map_image_view);
+        }
+
+        m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());
+
+        m_updates[frame->GetFrameIndex()] = PROBE_SYSTEM_UPDATES_NONE;
+    }
 }
 
 void ProbeGrid::RenderProbes(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    UpdateUniforms();
-    
-    if (m_has_tlas_updates[frame->GetFrameIndex()]) {
-        m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());
-
-        m_has_tlas_updates[frame->GetFrameIndex()] = false;
-    }
+    UpdateUniforms(frame);
 
     m_radiance_buffer->InsertBarrier(frame->GetCommandBuffer(), ResourceState::UNORDERED_ACCESS);
-    
-    SubmitPushConstants(frame->GetCommandBuffer());
 
     m_pipeline->Bind(frame->GetCommandBuffer());
+    
+    SubmitPushConstants(frame->GetCommandBuffer());
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),

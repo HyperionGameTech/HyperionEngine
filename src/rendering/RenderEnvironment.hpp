@@ -131,7 +131,7 @@ public:
             return nullptr;
         }
 
-        FlatMap<Name, UniquePtr<RenderComponentBase>> &items = m_render_components.At<T>();
+        auto &items = m_render_components.At<T>();
 
         if (name) {
             const auto it = items.Find(name);

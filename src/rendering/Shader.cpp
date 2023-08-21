@@ -210,7 +210,7 @@ void ShaderGlobals::Create()
     objects.Create(device);
     skeletons.Create(device);
     lights.Create(device);
-    shadow_maps.Create(device);
+    shadow_map_data.Create(device);
     env_probes.Create(device);
     env_grids.Create(device);
     immediate_draws.Create(device);
@@ -233,7 +233,7 @@ void ShaderGlobals::Destroy()
     materials.Destroy(device);
     skeletons.Destroy(device);
     lights.Destroy(device);
-    shadow_maps.Destroy(device);
+    shadow_map_data.Destroy(device);
     immediate_draws.Destroy(device);
     entity_instance_batches.Destroy(device);
 

@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//pica_pica/pica_pica.obj");///interior2/INTERIOR.obj");////
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//test_structure/test_structure.obj");//pica_pica/pica_pica.obj");///interior2/INTERIOR.obj");////
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -425,7 +425,8 @@ public:
         }
 
         //test_model.Scale(7.0f);
-        // test_model.Scale(8.0f);
+        //test_model.Scale(2.0f);
+        //test_model.Translate(Vector3(-10, 0, 18));
         test_model.Scale(0.0225f);
 
         if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
