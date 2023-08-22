@@ -216,6 +216,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
                 }
 
                 const ImageRef &src_image = pass->GetAttachmentUsage(0)->GetAttachment()->GetImage();
+                const ByteBuffer src_image_byte_buffer = src_image->ReadBack(g_engine->GetGPUDevice(), g_engine->GetGPUInstance());
 
                 // Blit into mip level
                 dst_image->GetGPUImage()->InsertSubResourceBarrier(
@@ -416,14 +417,14 @@ Texture::Texture(
     ImageType type,
     FilterMode filter_mode,
     WrapMode wrap_mode,
-    const UByte *bytes
+    UniquePtr<StreamedData> &&streamed_data
 ) : Texture(
         TextureImage(
             extent,
             format,
             type,
             filter_mode,
-            bytes
+            std::move(streamed_data)
         ),
         filter_mode,
         wrap_mode

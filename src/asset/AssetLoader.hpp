@@ -23,23 +23,23 @@ using AssetValue = Variant<NodeProxy, AtomicRefCountedPtr<void>>;
 struct LoadedAsset
 {
     LoaderResult result;
-    Variant<UniquePtr<void>, AssetValue> value;
+    Variant<AnyPtr, AssetValue> value;
 
     LoadedAsset() = default;
 
     LoadedAsset(LoaderResult result)
-        : result(result)
+        : result(std::move(result))
     {
     }
 
-    LoadedAsset(LoaderResult result, UniquePtr<void> &&value)
-        : result(result),
+    LoadedAsset(LoaderResult result, AnyPtr &&value)
+        : result(std::move(result)),
           value(std::move(value))
     {
     }
 
     LoadedAsset(LoaderResult result, AssetValue &&value)
-        : result(result),
+        : result(std::move(result)),
           value(std::move(value))
     {
     }
@@ -99,13 +99,13 @@ public:
     {   
         if (value.Is<ResultType>()) {
             if constexpr (is_opaque_handle) {
-                auto casted = value.Get<ResultType>().template Cast<Handle<T>>();
+                auto casted = value.Get<ResultType>().Cast<Handle<T>>();
 
                 if (casted) {
                     return *casted;
                 }
             } else {
-                return value.Get<ResultType>().template Cast<InnerType>();
+                return value.Get<ResultType>().Cast<InnerType>();
             }
         }
 
@@ -129,13 +129,13 @@ public:
             return EmptyResult();
         }
 
-        if (loaded_asset.value.template Is<UniquePtr<void>>()) {
-            UniquePtr<void> &casted_result = loaded_asset.value.template Get<UniquePtr<void>>();
+        if (loaded_asset.value.Is<AnyPtr>()) {
+            AnyPtr &casted_result = loaded_asset.value.Get<AnyPtr>();
             
             return MakeCastedType(std::move(casted_result));
-        } else if (loaded_asset.value.template Is<AssetValue>()) {
+        } else if (loaded_asset.value.Is<AssetValue>()) {
 
-            return ExtractAssetValue(loaded_asset.value.template Get<AssetValue>());
+            return ExtractAssetValue(loaded_asset.value.Get<AssetValue>());
         } else {
             AssertThrowMsg(false, "Unhandled variant type!");
         }
@@ -143,7 +143,7 @@ public:
         return EmptyResult();
     }
 
-    static auto MakeCastedType(UniquePtr<void> &&ptr) -> CastedType
+    static auto MakeCastedType(AnyPtr &&ptr) -> CastedType
     {
         if (ptr) {
             if constexpr (is_opaque_handle) {
@@ -162,7 +162,7 @@ public:
         return EmptyResult();
     }
 
-    static auto MakeResultType(UniquePtr<void> &&ptr) -> ResultType
+    static auto MakeResultType(AnyPtr &&ptr) -> ResultType
     {
         if constexpr (is_opaque_handle) {
             Handle<T> handle = MakeCastedType(std::move(ptr));
@@ -220,22 +220,22 @@ struct AssetLoaderWrapper<Node>
             return CastedType();
         }
 
-        if (loaded_asset.value.template Is<UniquePtr<void>>()) {
-            auto casted_result = loaded_asset.value.template Get<UniquePtr<void>>().template Cast<Node>();
+        if (loaded_asset.value.Is<AnyPtr>()) {
+            auto casted_result = loaded_asset.value.Get<AnyPtr>().Cast<Node>();
             
             return MakeCastedType(std::move(casted_result));
-        } else if (loaded_asset.value.template Is<AssetValue>()) {
-            auto &as_ref_counted = loaded_asset.value.template Get<AssetValue>();
+        } else if (loaded_asset.value.Is<AssetValue>()) {
+            auto &as_ref_counted = loaded_asset.value.Get<AssetValue>();
 
-            if (as_ref_counted.template Is<ResultType>()) {
-                return as_ref_counted.template Get<ResultType>();
+            if (as_ref_counted.Is<ResultType>()) {
+                return as_ref_counted.Get<ResultType>();
             }
         }
 
         return CastedType();
     }
 
-    static auto MakeCastedType(UniquePtr<void> &&ptr) -> CastedType
+    static auto MakeCastedType(AnyPtr &&ptr) -> CastedType
     {
         auto casted_result = ptr.Cast<Node>();
 
@@ -246,7 +246,7 @@ struct AssetLoaderWrapper<Node>
         return CastedType();
     }
 
-    static auto MakeResultType(UniquePtr<void> &&ptr) -> ResultType
+    static auto MakeResultType(AnyPtr &&ptr) -> ResultType
     {
         return MakeCastedType(std::move(ptr));
     }

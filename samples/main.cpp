@@ -281,22 +281,22 @@ public:
             GetScene()->AddEntity(m_sun);
         }
         
-        if (true) { // adding lights to scene
+        if (false) { // adding lights to scene
 
             // m_scene->AddLight(m_sun);
 
             m_point_lights.PushBack(CreateObject<Light>(PointLight(
-                Vector3(0.0f, 25.0f, 8.0f),
+                Vector3(0.0f, 35.0f, 8.0f),
                 Color(1.0f, 1.0f, 1.0f),
                 40.0f,
                 200.35f
             )));
-            // m_point_lights.PushBack(CreateObject<Light>(PointLight(
-            //     Vector3(0.0f, 10.0f, 0.0f),
-            //     Color(1.0f, 1.0f, 1.0f),
-            //     15.0f,
-            //     200.0f
-            // )));
+            m_point_lights.PushBack(CreateObject<Light>(PointLight(
+                Vector3(0.0f, 10.0f, 12.0f),
+                Color(1.0f, 0.0f, 0.0f),
+                15.0f,
+                200.0f
+            )));
 
             for (auto &light : m_point_lights) {
                 auto point_light_entity = CreateObject<Entity>();
@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//test_structure/test_structure.obj");//pica_pica/pica_pica.obj");///interior2/INTERIOR.obj");////
+        batch->Add<Node>("test_model", "models/archviz/ArchVis_RT.obj");//test_structure/test_structure.obj");//sponza/sponza.obj"); ///interior2/INTERIOR.obj");////
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -425,9 +425,29 @@ public:
         }
 
         //test_model.Scale(7.0f);
-        //test_model.Scale(2.0f);
-        //test_model.Translate(Vector3(-10, 0, 18));
-        test_model.Scale(0.0225f);
+        test_model.Scale(0.035f);
+        //test_model.Scale(1.0f);
+        //test_model.Translate(Vector3(-30, 0, 30));
+        // test_model.Scale(0.018f);
+
+        /*for (NodeProxy &item : test_model.GetChildren()) {
+            DebugLog(LogType::Debug, "Item: %s\n", item.GetName().Data());
+
+            if (item.GetName().Contains("Light")) {
+                auto point_light_entity = CreateObject<Entity>();
+                point_light_entity->AddController<LightController>(CreateObject<Light>(PointLight(
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Color(1.0f, 1.0f, 1.0f),
+                    40.0f,
+                    200.35f
+                )));
+
+                NodeProxy light_node = NodeProxy(new Node());
+                light_node.SetEntity(point_light_entity);
+
+                item.AddChild(std::move(light_node));
+            }
+        }*/
 
         if (g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI)) {
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
@@ -445,11 +465,11 @@ public:
             );
         }
 
-        m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
+        /*m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(
             HYP_NAME(PointShadowRenderer0),
             m_point_lights.Front(),
             Extent2D { 256, 256 }
-        );
+        );*/
 
         if (false) {
             int i = 0;
@@ -821,7 +841,7 @@ public:
         if (GetInputManager()->IsButtonDown(MOUSE_BUTTON_LEFT) && ray_cast_timer > 1.0f) {
             ray_cast_timer = 0.0f;
 
-            if (auto ray_hit = GetRayHitWorld()) {
+            /*if (auto ray_hit = GetRayHitWorld()) {
                 const ID<Entity> entity_id { ray_hit.Get().id };
 
                 bool select_new_entity = false;
@@ -846,7 +866,27 @@ public:
                     monkey_node.SetWorldTranslation(ray_hit.Get().hitpoint);
                     monkey_node.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetTranslation() - ray_hit.Get().hitpoint, Vector3::UnitY()));
                 }
+            }*/
+
+            const auto ray_hit_world = GetRayHitWorld();
+
+            if (!ray_hit_world) {
+                return;
             }
+
+            auto point_light_entity = CreateObject<Entity>();
+            point_light_entity->SetTranslation(ray_hit_world.Get().hitpoint - ray_hit_world.Get().normal * 0.1f);
+
+            point_light_entity->AddController<LightController>(CreateObject<Light>(PointLight(
+                Vector3(),
+                Color(1.0f, 0.8f, 0.5f),
+                50.0f,
+                10.0f
+            )));
+
+            GetScene()->AddEntity(point_light_entity);
+
+            DebugLog(LogType::Debug, "Add light %f, %f, %f\n", ray_hit_world.Get().hitpoint.x, ray_hit_world.Get().hitpoint.y, ray_hit_world.Get().hitpoint.z);
         } else {
             ray_cast_timer += delta;
         }
@@ -912,6 +952,30 @@ public:
     virtual void OnInputEvent(const SystemEvent &event) override
     {
         Game::OnInputEvent(event);
+        DebugLog(LogType::Debug, "Input Event: %u\n", event.GetType());
+
+        /*if (event.GetType() == SystemEventType::EVENT_MOUSEBUTTON_UP) {
+            if (event.GetMouseButton() == MOUSE_BUTTON_LEFT) {
+                const auto ray_hit_world = GetRayHitWorld();
+
+                if (!ray_hit_world) {
+                    return;
+                }
+
+                auto point_light_entity = CreateObject<Entity>();
+                point_light_entity->AddController<LightController>(CreateObject<Light>(PointLight(
+                    ray_hit_world.Get().hitpoint,
+                    Color(1.0f, 1.0f, 1.0f),
+                    1.0f,
+                    5.0f
+                )));
+
+                NodeProxy light_node = NodeProxy(new Node());
+                light_node.SetEntity(point_light_entity);
+
+                GetScene()->GetRoot().AddChild(std::move(light_node));
+            }
+        }*/
 
         if (event.GetType() == SystemEventType::EVENT_KEYDOWN) {
             if (event.GetNormalizedKeyCode() == KEY_M) {

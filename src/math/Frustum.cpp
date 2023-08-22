@@ -21,12 +21,12 @@ Frustum::Frustum(const Matrix4 &view_proj)
 
 bool Frustum::ContainsAABB(const BoundingBox &aabb) const
 {
-    const auto &corners = aabb.GetCorners();
+    const FixedArray<Vector3, 8> corners = aabb.GetCorners();
 
-    for (const auto &plane : m_planes) {
+    for (const Vector4 &plane : m_planes) {
         bool pass = false;
 
-        for (const auto &corner : corners) {
+        for (const Vector3 &corner : corners) {
             if (plane.Dot(Vector4(corner, 1.0f)) > 0.0f) {
                 pass = true;
                 break;

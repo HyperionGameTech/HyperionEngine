@@ -23,6 +23,13 @@ enum RTRadianceUpdates : UInt32
     RT_RADIANCE_UPDATES_SHADOW_MAP = 0x2
 };
 
+struct alignas(16) RTRadianceUniforms
+{
+    UInt32 num_bound_lights;
+    UInt32 _pad0, _pad1, _pad2;
+    UInt32 light_indices[16];
+};
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : RenderCommand
@@ -123,6 +130,24 @@ struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateRTRadianceUniformBuffer) : RenderCommand
+{
+    GPUBufferRef uniform_buffer;
+
+    RENDER_COMMAND(CreateRTRadianceUniformBuffer)(const GPUBufferRef &uniform_buffer)
+        : uniform_buffer(uniform_buffer)
+    {
+    }
+
+    virtual Result operator()()
+    {
+        HYPERION_BUBBLE_ERRORS(uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms)));
+        uniform_buffer->Memset(g_engine->GetGPUDevice(), sizeof(RTRadianceUniforms), 0x00);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion
 
 Result RTRadianceRenderer::ImageOutput::Create(Device *device)
@@ -166,6 +191,7 @@ void RTRadianceRenderer::Create()
     );
 
     CreateImages();
+    CreateUniformBuffer();
     CreateTemporalBlending();
     CreateDescriptorSets();
     CreateRaytracingPipeline();
@@ -178,6 +204,8 @@ void RTRadianceRenderer::Destroy()
     g_engine->SafeReleaseHandle(std::move(m_shader));
 
     SafeRelease(std::move(m_raytracing_pipeline));
+
+    SafeRelease(std::move(m_uniform_buffer));
 
     // release our owned descriptor sets
     for (auto &descriptor_set : m_descriptor_sets) {
@@ -197,6 +225,21 @@ void RTRadianceRenderer::Destroy()
 
 void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 {
+    RTRadianceUniforms uniforms;
+
+    Memory::MemSet(&uniforms, 0, sizeof(uniforms));
+
+    const UInt32 num_bound_lights = MathUtil::Min(UInt32(g_engine->GetRenderState().lights.Size()), 16);
+
+    for (UInt32 index = 0; index < num_bound_lights; index++) {
+        uniforms.light_indices[index] = (g_engine->GetRenderState().lights.Data() + index)->first.ToIndex();
+    }
+
+    uniforms.num_bound_lights = num_bound_lights;
+
+    m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(uniforms), &uniforms);
+
+
     if (m_updates[frame->GetFrameIndex()]) {
         m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());
 
@@ -206,15 +249,14 @@ void RTRadianceRenderer::UpdateUniforms(Frame *frame)
 
 void RTRadianceRenderer::SubmitPushConstants(CommandBuffer *command_buffer)
 {
-    struct alignas(128) {
+    /*struct alignas(128) {
+        UInt32 light_indices[16];
         UInt32 num_bound_lights;
     } push_constants;
-    
-    push_constants.num_bound_lights = UInt32(g_engine->GetRenderState().lights.Size());
-
-    Memory::MemCpy(&m_raytracing_pipeline->push_constants, &push_constants, sizeof(push_constants));
 
     m_raytracing_pipeline->SubmitPushConstants(command_buffer);
+
+    DebugLog(LogType::Debug, "num_bound_lights = %u\n", num_bound_lights);*/
 }
 
 void RTRadianceRenderer::Render(Frame *frame)
@@ -277,6 +319,13 @@ void RTRadianceRenderer::CreateImages()
     PUSH_RENDER_COMMAND(CreateRTRadianceImageOutputs, m_image_outputs.Data());
 }
 
+void RTRadianceRenderer::CreateUniformBuffer()
+{
+    m_uniform_buffer = RenderObjects::Make<GPUBuffer>(UniformBuffer());
+
+    PUSH_RENDER_COMMAND(CreateRTRadianceUniformBuffer, m_uniform_buffer);
+}
+
 void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 {
     if (!flags) {
@@ -296,7 +345,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
                 ->SetElementBuffer(0, m_tlas->GetInternalTLAS().GetMeshDescriptionsBuffer());
         }
 
-        m_updates[frame_index] &= RT_RADIANCE_UPDATES_TLAS;
+        m_updates[frame_index] |= RT_RADIANCE_UPDATES_TLAS;
     }
 }
 
@@ -356,6 +405,11 @@ void RTRadianceRenderer::CreateDescriptorSets()
         descriptor_set
             ->AddDescriptor<renderer::StorageBufferDescriptor>(11)
             ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
+
+        // RT radiance uniforms
+        descriptor_set
+            ->AddDescriptor<renderer::UniformBufferDescriptor>(12)
+            ->SetElementBuffer(0, m_uniform_buffer);
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

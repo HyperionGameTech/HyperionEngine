@@ -47,6 +47,8 @@ struct alignas(256) ProbeSystemUniforms
     ShaderVec4<UInt32> image_dimensions;
     ShaderVec4<UInt32> params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
     UInt32 shadow_map_index;
+    UInt32 _pad0, _pad1, _pad2;
+    UInt32 light_indices[16];
     //HYP_PAD_STRUCT_HERE(UInt32, 4);
 };
 

@@ -6,10 +6,14 @@
 #include <core/lib/UniquePtr.hpp>
 #include <core/lib/FixedArray.hpp>
 
+#include <streaming/StreamedData.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
+
+#include <scene/VisibilityState.hpp>
 
 #include <math/Vector3.hpp>
 
@@ -43,7 +47,7 @@ public:
         ImageType type,
         FilterMode filter_mode,
         WrapMode wrap_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     );
 
     Texture(
@@ -99,14 +103,14 @@ public:
         InternalFormat format,
         FilterMode filter_mode,
         WrapMode wrap_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : Texture(
         Extent3D(extent),
         format,
         ImageType::TEXTURE_TYPE_2D,
         filter_mode,
         wrap_mode,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -120,14 +124,14 @@ public:
         InternalFormat format,
         FilterMode filter_mode,
         WrapMode wrap_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : Texture(
         extent,
         format,
         ImageType::TEXTURE_TYPE_3D,
         filter_mode,
         wrap_mode,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -141,14 +145,14 @@ public:
         InternalFormat format,
         FilterMode filter_mode,
         WrapMode wrap_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : Texture(
             Extent3D(extent),
             format,
             ImageType::TEXTURE_TYPE_CUBEMAP,
             filter_mode,
             wrap_mode,
-            bytes
+            std::move(streamed_data)
         )
     {
     }
@@ -170,8 +174,7 @@ public:
           )
     {
         if (other && other->GetImage()->HasAssignedImageData()) {
-            m_image->EnsureCapacity(m_image->GetByteSize());
-            m_image->CopyImageData(other->GetImage()->GetBytes(), other->GetImage()->GetByteSize(), 0);
+            m_image->CopyImageData(other->GetImage()->GetStreamedData()->Load());
         }
 
         other.reset();
@@ -188,8 +191,6 @@ public:
             nullptr
         )
     {
-        m_image->EnsureCapacity(m_image->GetByteSize());
-
         SizeType offset = 0,
             face_size = 0;
 
@@ -197,7 +198,9 @@ public:
             if (texture) {
                 face_size = texture->GetExtent().Size() * NumComponents(texture->GetFormat());
 
-                m_image->CopyImageData(texture->GetImage()->GetBytes(), face_size, offset);
+                if (texture->GetImage()->HasAssignedImageData()) {
+                    m_image->CopyImageData(texture->GetImage()->GetStreamedData()->Load().Data(), face_size, offset);
+                }
             }
 
             texture.Reset();

@@ -29,7 +29,7 @@ public:
     static FilePath PopDirectory();
 
     static bool DirExists(const std::string &path);
-    static int Mkdir(const std::string &path);
+    static int MkDir(const std::string &path);
     static std::string CurrentPath();
     static std::string RelativePath(const std::string &path, const std::string &base);
 
@@ -151,6 +151,7 @@ public:
 
     bool Exists() const;
     bool IsDirectory() const;
+    Int MkDir() const;
 
     UInt64 LastModifiedTimestamp() const;
 

@@ -163,6 +163,8 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : RenderCommand
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER)
                 ->SetElementSRV(0, light_field_depth_image_view);
         }
+
+        HYPERION_RETURN_OK;
     }
 };
 

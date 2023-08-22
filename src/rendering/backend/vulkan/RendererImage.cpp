@@ -20,7 +20,8 @@ Image::Image(
     ImageType type,
     FilterMode filter_mode,
     const InternalInfo &internal_info,
-    const UByte *bytes
+    UniquePtr<StreamedData> &&streamed_data,
+    ImageFlags flags
 ) : m_extent(extent),
     m_format(format),
     m_type(type),
@@ -28,16 +29,11 @@ Image::Image(
     m_internal_info(internal_info),
     m_image(nullptr),
     m_is_blended(false),
-    m_bpp(NumComponents(GetBaseFormat(format)))
+    m_streamed_data(std::move(streamed_data)),
+    m_bpp(NumComponents(GetBaseFormat(format))),
+    m_flags(flags)
 {
     m_size = m_extent.width * m_extent.height * m_extent.depth * m_bpp * NumFaces();
-
-    if (bytes != nullptr) {
-        m_bytes = new UByte[m_size];
-        Memory::MemCpy(m_bytes, bytes, m_size);
-    } else {
-        m_bytes = nullptr;
-    }
 }
 
 Image::Image(Image &&other) noexcept
@@ -50,10 +46,10 @@ Image::Image(Image &&other) noexcept
       m_image(other.m_image),
       m_size(other.m_size),
       m_bpp(other.m_bpp),
-      m_bytes(other.m_bytes)
+      m_streamed_data(std::move(other.m_streamed_data)),
+      m_flags(other.m_flags)
 {
     other.m_image = nullptr;
-    other.m_bytes = nullptr;
     other.m_is_blended = false;
     other.m_size = 0;
     other.m_bpp = 0;
@@ -71,10 +67,10 @@ Image &Image::operator=(Image &&other) noexcept
     m_image = other.m_image;
     m_size = other.m_size;
     m_bpp = other.m_bpp;
-    m_bytes = other.m_bytes;
+    m_streamed_data = std::move(other.m_streamed_data),
+    m_flags = other.m_flags;
 
     other.m_image = nullptr;
-    other.m_bytes = nullptr;
     other.m_is_blended = false;
     other.m_size = 0;
     other.m_bpp = 0;
@@ -86,10 +82,6 @@ Image &Image::operator=(Image &&other) noexcept
 Image::~Image()
 {
     AssertExit(m_image == nullptr);
-
-    if (m_bytes != nullptr) {
-        delete[] m_bytes;
-    }
 }
 
 bool Image::IsDepthStencil() const
@@ -311,8 +303,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
             return result;            
         }
 
-        staging_buffer.Copy(device, m_size, m_bytes);
-        // safe to delete m_bytes here?
+        staging_buffer.Copy(device, m_size, m_streamed_data->Load().Data());
 
         commands.Push([&](const CommandBufferRef &command_buffer) {
             m_image->InsertBarrier(
@@ -389,8 +380,9 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
             HYPERION_IGNORE_ERRORS(staging_buffer.Destroy(device));
         }
 
-        // delete[] m_bytes;
-        // m_bytes = nullptr;
+        if (!(m_flags & IMAGE_FLAGS_KEEP_IMAGE_DATA)) {
+            m_streamed_data->Unpage();
+        }
     }
 
     return result;
@@ -407,9 +399,8 @@ Result Image::Destroy(Device *device)
         m_image = nullptr;
     }
 
-    if (m_bytes) {
-        delete[] m_bytes;
-        m_bytes = nullptr;
+    if (m_streamed_data) {
+        m_streamed_data->Unpage();
     }
 
     return result;
@@ -772,25 +763,41 @@ void Image::CopyToBuffer(
     }
 }
 
-void Image::EnsureCapacity(SizeType size)
+ByteBuffer Image::ReadBack(Device *device, Instance *instance) const
 {
+    auto commands = instance->GetSingleTimeCommands();
+    StagingBuffer staging_buffer;
+    Result result = Result::OK;
+
     if (HasAssignedImageData()) {
-        if (GetByteSize() >= size) {
-            return; // already has enough space
+        HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
+
+        if (!result) {
+            return ByteBuffer(0, nullptr);
         }
 
-        // resize
-        auto *new_bytes = new UByte[size];
-        // copy from existing
-        Memory::MemCpy(new_bytes, m_bytes, GetByteSize());
-        Memory::MemSet(new_bytes + GetByteSize(), 0, size - GetByteSize());
 
-        delete[] m_bytes;
-        m_bytes = new_bytes;
-    } else {
-        m_bytes = new UByte[size];
-        Memory::MemSet(m_bytes, 0, size);
+        commands.Push([this, &staging_buffer](const CommandBufferRef &command_buffer) {
+            CopyToBuffer(command_buffer, &staging_buffer);
+
+            HYPERION_RETURN_OK;
+        });
     }
+
+    // execute command stack
+    HYPERION_PASS_ERRORS(commands.Execute(device), result);
+    
+    if (result) {
+        // destroy staging buffer
+        HYPERION_PASS_ERRORS(staging_buffer.Destroy(device), result);
+    } else {
+        HYPERION_IGNORE_ERRORS(staging_buffer.Destroy(device));
+    }
+
+    ByteBuffer byte_buffer(m_size);
+    staging_buffer.Read(device, m_size, byte_buffer.Data());
+
+    return byte_buffer;
 }
 
 Result Image::ConvertTo32BPP(
@@ -809,20 +816,20 @@ Result Image::ConvertTo32BPP(
     const UInt new_size = num_faces * new_bpp * m_extent.width * m_extent.height * m_extent.depth;
     const UInt new_face_offset_step = new_size / num_faces;
     
-    if (m_bytes != nullptr) {
-        auto *new_bytes = new UByte[new_size];
+    if (HasAssignedImageData()) {
+        const ByteBuffer byte_buffer = m_streamed_data->Load();
+        ByteBuffer new_byte_buffer(new_size);
 
         for (UInt i = 0; i < num_faces; i++) {
             ImageUtil::ConvertBPP(
                 m_extent.width, m_extent.height, m_extent.depth,
                 m_bpp, new_bpp,
-                &m_bytes[i * face_offset_step],
-                &new_bytes[i * new_face_offset_step]
+                &byte_buffer.Data()[i * face_offset_step],
+                &new_byte_buffer.Data()[i * new_face_offset_step]
             );
         }
 
-        delete[] m_bytes;
-        m_bytes = new_bytes;
+        m_streamed_data.Reset(new MemoryStreamedData(std::move(new_byte_buffer)));
     }
 
     m_format = FormatChangeNumComponents(m_format, new_bpp);

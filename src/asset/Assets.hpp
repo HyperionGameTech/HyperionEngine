@@ -3,6 +3,7 @@
 
 #include <asset/AssetBatch.hpp>
 #include <asset/AssetLoader.hpp>
+#include <asset/AssetCache.hpp>
 #include <util/fs/FsUtil.hpp>
 #include <scene/Node.hpp>
 
@@ -23,6 +24,17 @@
 #include <asset/BufferedByteReader.hpp>
 
 namespace hyperion::v2 {
+
+class AssetCache;
+
+using AssetLoadFlags = UInt32;
+
+enum AssetLoadFlagBits : AssetLoadFlags
+{
+    ASSET_LOAD_FLAGS_NONE = 0x0,
+    ASSET_LOAD_FLAGS_CACHE_READ = 0x1,
+    ASSET_LOAD_FLAGS_CACHE_WRITE = 0x2
+};
 
 class AssetManager
 {
@@ -65,11 +77,11 @@ public:
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    auto Load(const String &path) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
+    auto Load(const String &path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
     {
         LoaderResult result;
 
-        auto value = Load<T>(path, result);
+        auto value = Load<T>(path, result, flags);
 
         if (result.status != LoaderResult::Status::OK) {
             return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
@@ -83,14 +95,26 @@ public:
         Node -> NodeProxy
         T -> Handle<T> */
     template <class T>
-    auto Load(const String &path, LoaderResult &out_result) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
+    auto Load(const String &path, LoaderResult &out_result, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE) -> typename AssetLoaderWrapper<NormalizedType<T>>::CastedType
     {
+        using Normalized = NormalizedType<T>;
+
+        AssetCachePool<Normalized> *cache_pool = m_asset_cache->GetPool<Normalized>();
+
+        if (flags & ASSET_LOAD_FLAGS_CACHE_READ && cache_pool->Has(path)) {
+            out_result = { };
+
+            DebugLog(LogType::Info, "%s: Load from cache\n", path.Data());
+
+            return cache_pool->Get(path);
+        }
+
         const String extension(StringUtil::ToLower(StringUtil::GetExtension(path.Data())).c_str());
 
         if (extension.Empty()) {
             out_result = { LoaderResult::Status::ERR_NO_LOADER, "File has no extension; cannot determine loader to use" };
 
-            return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
+            return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
 
         AssetLoaderBase *loader = nullptr;
@@ -113,11 +137,17 @@ public:
         if (loader == nullptr) {
             out_result = { LoaderResult::Status::ERR_NO_LOADER, "No registered loader for the given type" };
 
-            return AssetLoaderWrapper<NormalizedType<T>>::EmptyResult();
+            return AssetLoaderWrapper<Normalized>::EmptyResult();
         }
 
-        return AssetLoaderWrapper<NormalizedType<T>>(*loader)
+        const auto result = AssetLoaderWrapper<Normalized>(*loader)
             .Load(*this, path, out_result);
+
+        if (flags & ASSET_LOAD_FLAGS_CACHE_WRITE) {
+            cache_pool->Set(path, result);
+        }
+
+        return result;
     }
 
     template <class T>
@@ -162,10 +192,18 @@ public:
         return RC<AssetBatch>::Construct(this);
     }
 
+    AssetCache *GetAssetCache()
+        { return m_asset_cache.Get(); }
+
+    const AssetCache *GetAssetCache() const
+        { return m_asset_cache.Get(); }
+
 private:
     void RegisterDefaultLoaders();
 
     ObjectPool &GetObjectPool();
+
+    UniquePtr<AssetCache> m_asset_cache;
 
     FilePath m_base_path;
     FlatMap<String, UniquePtr<AssetLoaderBase>> m_loaders;
@@ -223,6 +261,8 @@ public:
             };
 
             asset = LoadAsset(state);
+
+            reader.Close();
 
             if (asset.result) {
                 break; // stop searching when value result is found

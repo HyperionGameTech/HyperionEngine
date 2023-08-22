@@ -542,6 +542,8 @@ public:
 template <class T>
 using UniquePtr = detail::UniquePtr<T>;
 
+using AnyPtr = UniquePtr<void>;
+
 } // namespace hyperion
 
 #endif

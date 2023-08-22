@@ -399,16 +399,12 @@ void ProbeGrid::CreateStorageBuffers()
             1
         };
 
-        void *zeros = Memory::AllocateZeros(extent.Size() * SizeType(NumComponents(irradiance_format)));
-
         m_irradiance_image = RenderObjects::Make<Image>(StorageImage(
             extent,
             irradiance_format,
             ImageType::TEXTURE_TYPE_2D,
-            static_cast<UByte *>(zeros)
+            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * SizeType(NumComponents(irradiance_format))))
         ));
-
-        Memory::DestructAndFree<void>(zeros);
 
         PUSH_RENDER_COMMAND(CreateProbeGridImage, m_irradiance_image);
     }
@@ -428,16 +424,12 @@ void ProbeGrid::CreateStorageBuffers()
             1
         };
 
-        void *zeros = Memory::AllocateZeros(extent.Size() * SizeType(NumComponents(depth_format)));
-
         m_depth_image = RenderObjects::Make<Image>(StorageImage(
             extent,
             depth_format,
             ImageType::TEXTURE_TYPE_2D,
-            static_cast<UByte *>(zeros)
+            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * SizeType(NumComponents(depth_format))))
         ));
-
-        Memory::DestructAndFree<void>(zeros);
 
         PUSH_RENDER_COMMAND(CreateProbeGridImage, m_depth_image);
     }
@@ -587,7 +579,26 @@ void ProbeGrid::SetShadowMapImageView(UInt shadow_map_index, ImageViewRef &&shad
 
 void ProbeGrid::UpdateUniforms(Frame *frame)
 {
-    m_uniforms.params[3] = UInt32(g_engine->GetRenderState().lights.Size());
+    const UInt camera_index = g_engine->GetRenderState().GetCamera().id.ToIndex();
+
+    UInt32 num_bound_lights = 0;
+
+    for (const auto &it : g_engine->GetRenderState().lights) {
+        if (num_bound_lights == std::size(m_uniforms.light_indices)) {
+            break;
+        }
+
+        const ID<Light> &light_id = it.first;
+        const LightDrawProxy &light = it.second;
+
+        if (light.visibility_bits & (1ull << SizeType(camera_index))) {
+            m_uniforms.light_indices[num_bound_lights] = light_id.ToIndex();
+            num_bound_lights++;
+        }
+    }
+
+    m_uniforms.params[3] = num_bound_lights;
+
     m_uniforms.shadow_map_index = m_shadow_map_index;
 
     m_uniform_buffer->Copy(g_engine->GetGPUDevice(), sizeof(ProbeSystemUniforms), &m_uniforms);

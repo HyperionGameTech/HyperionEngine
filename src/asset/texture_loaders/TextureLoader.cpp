@@ -61,14 +61,15 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         return { { LoaderResult::Status::ERR, "Invalid format -- invalid number of components returned" }, UniquePtr<void>() };
     }
 
+    //data.width = 1;
+    //data.height = 1;
+
+
     const SizeType image_bytes_count = SizeType(data.width)
         * SizeType(data.height)
         * SizeType(data.num_components);
 
-    data.data.resize(image_bytes_count);
-    Memory::MemCpy(&data.data[0], image_bytes, image_bytes_count);
-
-    stbi_image_free(image_bytes);
+    auto memory_streamed_data = UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_bytes_count, image_bytes));
 
     UniquePtr<Handle<Texture>> texture(new Handle<Texture>(CreateObject<Texture>(Texture2D(
         Extent2D {
@@ -78,8 +79,10 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
         data.format,
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         WrapMode::TEXTURE_WRAP_REPEAT,
-        &data.data[0]
+        std::move(memory_streamed_data)
     ))));
+
+    stbi_image_free(image_bytes);
 
     (*texture)->SetName(CreateNameFromDynamicString(StringUtil::Basename(state.filepath).c_str()));
 

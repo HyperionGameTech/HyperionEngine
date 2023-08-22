@@ -201,7 +201,7 @@ DescriptorSet::Index DescriptorSet::GetPerFrameIndex(Index index, UInt frame_ind
         }
         
         UInt frame_base = UInt(index);
-        const auto index_offset = frame_base - (UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
+        const UInt index_offset = frame_base - (UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES) + 1);
 
         if (index_offset % 2 != 0) { // it is for frame 1
             --frame_base;

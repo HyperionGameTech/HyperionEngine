@@ -67,7 +67,7 @@ bool FileSystem::DirExists(const std::string &path)
     return false;
 }
 
-int FileSystem::Mkdir(const std::string &path)
+int FileSystem::MkDir(const std::string &path)
 {
 #if HYP_WINDOWS
     return ::_mkdir(path.c_str());
@@ -86,11 +86,31 @@ std::string FileSystem::RelativePath(const std::string &path, const std::string 
     return std::filesystem::proximate(path, base).string();
 }
 
+Int FilePath::MkDir() const
+{
+#if HYP_WINDOWS
+    return ::_mkdir(Data());
+#else
+    return ::mkdir(Data(), 0755);
+#endif
+}
+
 bool FilePath::Exists() const
 {
     struct stat st;
     
     return stat(Data(), &st) == 0;
+}
+
+bool FilePath::IsDirectory() const
+{
+    struct stat st;
+    
+    if (stat(Data(), &st) == 0) {
+        return st.st_mode & S_IFDIR;
+    }
+
+    return false;
 }
 
 UInt64 FilePath::LastModifiedTimestamp() const

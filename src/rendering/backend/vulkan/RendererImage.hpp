@@ -1,6 +1,8 @@
 #ifndef RENDERER_IMAGE_H
 #define RENDERER_IMAGE_H
 
+#include <streaming/StreamedData.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -12,8 +14,19 @@
 namespace hyperion {
 namespace renderer {
 
+using v2::StreamedData;
+using v2::MemoryStreamedData;
+
 class Instance;
 class Device;
+
+using ImageFlags = UInt32;
+
+enum ImageFlagBits : ImageFlags
+{
+    IMAGE_FLAGS_NONE = 0x0,
+    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
+};
 
 class Image
 {
@@ -30,7 +43,8 @@ public:
         ImageType type,
         FilterMode filter_mode,
         const InternalInfo &internal_info,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data,
+        ImageFlags flags = IMAGE_FLAGS_NONE
     );
 
     Image(const Image &other) = delete;
@@ -86,22 +100,22 @@ public:
         GPUBuffer *dst_buffer
     ) const;
 
-    /*! \brief Resize the CPU-side byte array to be at least the given capacity. To be used before uploading.
-        If no bytes are currently allocated, at least the given capacity will be allocated. */
-    void EnsureCapacity(SizeType size);
+    ByteBuffer ReadBack(Device *device, Instance *instance) const;
     
-    const UByte *GetBytes() const
-        { return m_bytes; }
+    const StreamedData *GetStreamedData() const
+        { return m_streamed_data.Get(); }
 
     bool HasAssignedImageData() const
-        { return m_bytes != nullptr; }
+        { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
+
+    void CopyImageData(const ByteBuffer &byte_buffer)
+    {
+        m_streamed_data.Reset(new MemoryStreamedData(byte_buffer));
+    }
 
     void CopyImageData(const UByte *data, SizeType count, SizeType offset = 0)
     {
-        AssertThrow(m_bytes != nullptr);
-        AssertThrow(offset + count <= m_size);
-
-        Memory::MemCpy(&m_bytes[offset], data, count);
+        m_streamed_data.Reset(new MemoryStreamedData(ByteBuffer(count, data + offset)));
     }
 
     bool IsDepthStencil() const;
@@ -170,6 +184,9 @@ public:
 
     ImageType GetType() const
         { return m_type; }
+
+protected:
+    ImageFlags m_flags;
     
 private:
     Result CreateImage(
@@ -190,7 +207,7 @@ private:
     InternalFormat m_format;
     ImageType m_type;
     FilterMode m_filter_mode;
-    UByte *m_bytes;
+    UniquePtr<StreamedData> m_streamed_data;
 
     bool m_is_blended;
 
@@ -219,13 +236,13 @@ public:
         Extent3D extent,
         InternalFormat format,
         ImageType type,
-        const UByte *bytes = nullptr
+        UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : StorageImage(
             extent,
             format,
             type,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            bytes
+            std::move(streamed_data)
         )
     {
     }
@@ -235,7 +252,7 @@ public:
         InternalFormat format,
         ImageType type,
         FilterMode filter_mode,
-        const UByte *bytes = nullptr
+        UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : Image(
         extent,
         format,
@@ -247,7 +264,7 @@ public:
                 | VK_IMAGE_USAGE_STORAGE_BIT
                 | VK_IMAGE_USAGE_SAMPLED_BIT
         },
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -276,12 +293,12 @@ public:
     StorageImage2D(
         Extent2D extent,
         InternalFormat format,
-        const UByte *bytes = nullptr
+        UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : StorageImage(
         Extent3D(extent),
         format,
         ImageType::TEXTURE_TYPE_2D,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -310,12 +327,12 @@ public:
     StorageImage3D(
         Extent3D extent,
         InternalFormat format,
-        const UByte *bytes = nullptr
+        UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : StorageImage(
         extent,
         format,
         ImageType::TEXTURE_TYPE_3D,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -346,7 +363,7 @@ public:
         InternalFormat format,
         ImageType type,
         FilterMode filter_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : Image(
         extent,
         format,
@@ -357,7 +374,7 @@ public:
             .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
                          | VK_IMAGE_USAGE_SAMPLED_BIT
         },
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -387,13 +404,13 @@ public:
         Extent2D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
         Extent3D(extent),
         format,
         ImageType::TEXTURE_TYPE_2D,
         filter_mode,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -423,13 +440,13 @@ public:
         Extent3D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
         extent,
         format,
         ImageType::TEXTURE_TYPE_3D,
         filter_mode,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -459,13 +476,13 @@ public:
         Extent2D extent,
         InternalFormat format,
         FilterMode filter_mode,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
         Extent3D(extent),
         format,
         ImageType::TEXTURE_TYPE_CUBEMAP,
         filter_mode,
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -495,7 +512,7 @@ public:
         Extent3D extent,
         InternalFormat format,
         ImageType type,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : Image(
         extent,
         format,
@@ -508,7 +525,7 @@ public:
                 | VK_IMAGE_USAGE_SAMPLED_BIT
                 | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
         },
-        bytes
+        std::move(streamed_data)
     )
     {
     }
@@ -542,12 +559,12 @@ public:
     FramebufferImage2D(
         Extent2D extent,
         InternalFormat format,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : FramebufferImage(
             Extent3D(extent),
             format,
             ImageType::TEXTURE_TYPE_2D,
-            bytes
+            std::move(streamed_data)
         )
     {
     }
@@ -572,12 +589,12 @@ public:
     FramebufferImageCube(
         Extent2D extent,
         InternalFormat format,
-        const UByte *bytes
+        UniquePtr<StreamedData> &&streamed_data
     ) : FramebufferImage(
         Extent3D(extent),
         format,
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        bytes
+        std::move(streamed_data)
     )
     {
     }

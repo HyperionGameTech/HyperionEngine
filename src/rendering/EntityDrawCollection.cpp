@@ -10,7 +10,7 @@
 
 namespace hyperion::v2 {
 
-static constexpr bool do_parallel_collection = use_parallel_rendering;
+static constexpr bool do_parallel_collection = false;
 
 #pragma region Render commands
 

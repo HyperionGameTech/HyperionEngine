@@ -713,6 +713,8 @@ void Scene::CollectEntities(
 
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
+    
+    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
 
     // push all entities to render if they are visible to the given camera
     for (auto &it : m_entities) {
@@ -721,7 +723,7 @@ void Scene::CollectEntities(
         if (
             entity->IsRenderable()
             && bucket_bits.Test(entity->GetRenderableAttributes().GetMaterialAttributes().bucket)
-            && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id))
+            && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))
         ) {
             render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
         }
@@ -749,24 +751,26 @@ void Scene::CollectEntities(
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
+    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
+    
     // push all entities to render if they are visible to the given camera
     for (auto &it : m_entities) {
         const Handle<Entity> &entity = it.second;
 
-        if (entity->IsRenderable() && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id))) {
+        if (entity->IsRenderable() && (skip_frustum_culling || IsEntityInFrustum(entity, camera_id, visibility_cursor))) {
             render_list.PushEntityToRender(camera, entity, override_attributes_ptr);
         }
     }
 }
 
-bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id) const
+bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
 {
     if (!camera_id) {
         return false;
     }
 
     return entity->GetRenderableAttributes().GetMaterialAttributes().bucket == BUCKET_UI
-        || entity->IsVisibleToCamera(camera_id);
+        || entity->IsVisibleToCamera(camera_id, visibility_cursor);
 }
 
 void Scene::EnqueueRenderUpdates()

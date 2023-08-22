@@ -26,7 +26,7 @@ BoundingBox::BoundingBox(const BoundingBox &other)
 {
 }
 
-std::array<Vector3, 8> BoundingBox::GetCorners() const
+FixedArray<Vector3, 8> BoundingBox::GetCorners() const
 {
     return {
         Vector3(min.x, min.y, min.z),
@@ -201,7 +201,7 @@ BoundingBox &BoundingBox::Extend(const BoundingBox &bb)
 
 bool BoundingBox::Intersects(const BoundingBox &other) const
 {
-    const auto corners = other.GetCorners();
+    const FixedArray<Vector3, 8> corners = other.GetCorners();
 
     if (ContainsPoint(corners[0])) return true;
     if (ContainsPoint(corners[1])) return true;
@@ -217,7 +217,7 @@ bool BoundingBox::Intersects(const BoundingBox &other) const
 
 bool BoundingBox::Contains(const BoundingBox &other) const
 {
-    const auto corners = other.GetCorners();
+    const FixedArray<Vector3, 8> corners = other.GetCorners();
 
     if (!ContainsPoint(corners[0])) return false;
     if (!ContainsPoint(corners[1])) return false;

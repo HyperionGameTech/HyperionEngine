@@ -29,14 +29,17 @@ public:
         out.SetProperty("filter_mode", FBOMUnsignedInt(), in_object.GetFilterMode());
         out.SetProperty("wrap_mode", FBOMUnsignedInt(), in_object.GetWrapMode());
 
-        auto num_bytes = in_object.GetImage()->GetByteSize();
+        const auto num_bytes = in_object.GetImage()->GetByteSize();
 
         out.SetProperty("num_bytes", FBOMUnsignedLong(), num_bytes);
 
-        if (auto *bytes = in_object.GetImage()->GetBytes()) {
-            out.SetProperty("bytes", FBOMArray(FBOMByte(), num_bytes), bytes);
-        } else {
-            out.SetProperty("bytes", FBOMArray(FBOMByte(), 0), nullptr);
+        if (in_object.GetImage() && in_object.GetImage()->HasAssignedImageData()) {
+            const StreamedData *streamed_data = in_object.GetImage()->GetStreamedData();
+            const ByteBuffer byte_buffer = streamed_data->Load();
+
+            AssertThrowMsg(byte_buffer.Size() == num_bytes, "num_bytes != byte_buffer.Size()!");
+            
+            out.SetProperty("bytes", FBOMByteBuffer(byte_buffer.Size()), byte_buffer);
         }
 
         return { FBOMResult::FBOM_OK };
@@ -77,14 +80,10 @@ public:
             return err;
         }
 
-        UByte *bytes = nullptr;
+        ByteBuffer byte_buffer;
 
         if (num_bytes != 0) {
-            bytes = new UByte[num_bytes];
-
-            if (auto err = in.GetProperty("bytes").ReadArrayElements(FBOMByte(), num_bytes, bytes)) {
-                delete[] bytes;
-
+            if (auto err = in.GetProperty("bytes").ReadBytes(num_bytes, byte_buffer)) {
                 return err;
             }
         }
@@ -95,12 +94,8 @@ public:
             type,
             filter_mode,
             wrap_mode,
-            bytes
+            UniquePtr<MemoryStreamedData>::Construct(std::move(byte_buffer))
         ));
-
-        if (bytes != nullptr) {
-            delete[] bytes;
-        }
 
         return { FBOMResult::FBOM_OK };
     }

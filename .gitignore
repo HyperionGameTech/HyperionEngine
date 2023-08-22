@@ -286,6 +286,7 @@ cmake-build-*/**/*
 
 res/data/**/tmp/**/*
 res/data/dump/**/*
+res/data/streaming/**/*
 
 project/**/*
 xcode_project/**/*

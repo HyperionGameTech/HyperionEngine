@@ -53,7 +53,7 @@ void ShadowMapController::UpdateShadowCamera(const Transform &transform)
 
     const Vector3 &center = transform.GetTranslation();
 
-    const Float radius = 30.0f;
+    const Float radius = 40.0f;
 
     BoundingBox aabb = BoundingBox(center - radius, center + radius);
 
@@ -70,9 +70,9 @@ void ShadowMapController::UpdateShadowCamera(const Transform &transform)
     camera->SetTranslation(center + light_direction);
     camera->SetTarget(center);
     
-    auto corners = aabb.GetCorners();
+    FixedArray<Vector3, 8> corners = aabb.GetCorners();
 
-    for (auto &corner : corners) {
+    for (Vector3 &corner : corners) {
         corner = camera->GetViewMatrix() * corner;
 
         aabb.max = MathUtil::Max(aabb.max, corner);

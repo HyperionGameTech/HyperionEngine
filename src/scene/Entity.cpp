@@ -368,7 +368,7 @@ void Entity::SetMesh(Handle<Mesh> &&mesh)
         //}
 
         if (!m_local_aabb.Empty()) {
-            for (const auto &corner : m_local_aabb.GetCorners()) {
+            for (const Vector3 &corner : m_local_aabb.GetCorners()) {
                 m_world_aabb.Extend(m_transform.GetMatrix() * corner);
             }
         }
@@ -389,10 +389,6 @@ void Entity::SetSkeleton(Handle<Skeleton> &&skeleton)
         return;
     }
 
-    if (m_skeleton && IsInitCalled()) {
-        g_engine->SafeReleaseHandle<Skeleton>(std::move(m_skeleton));
-    }
-
     m_skeleton = std::move(skeleton);
 
     if (m_skeleton && IsInitCalled()) {
@@ -406,10 +402,6 @@ void Entity::SetShader(Handle<Shader> &&shader)
 {
     if (m_shader == shader) {
         return;
-    }
-
-    if (m_shader && IsInitCalled()) {
-        g_engine->SafeReleaseHandle<Shader>(std::move(m_shader));
     }
 
     m_shader = std::move(shader);
@@ -538,10 +530,9 @@ void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
-bool Entity::IsVisibleToCamera(ID<Camera> camera_id) const
+bool Entity::IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const
 {
     const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
-    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
 
     return m_visibility_state.ValidToParent(parent_visibility_state, visibility_cursor)
         && m_visibility_state.Get(camera_id, visibility_cursor);
@@ -680,7 +671,7 @@ void Entity::UpdateWorldAABB(bool propagate_to_controllers)
     m_world_aabb = BoundingBox::empty;
     
     if (!m_local_aabb.Empty()) {
-        for (const auto &corner : m_local_aabb.GetCorners()) {
+        for (const Vector3 &corner : m_local_aabb.GetCorners()) {
             m_world_aabb.Extend(m_transform.GetMatrix() * corner);
         }
     }

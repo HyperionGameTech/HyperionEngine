@@ -17,9 +17,11 @@ class AssetManager;
 
 struct LoaderState
 {
+    using Stream = BufferedReader<HYP_LOADER_BUFFER_SIZE>;
+
     AssetManager *asset_manager;
     std::string filepath;
-    BufferedReader<HYP_LOADER_BUFFER_SIZE> stream;
+    Stream stream;
 };
 
 struct LoaderResult

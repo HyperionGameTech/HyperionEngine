@@ -219,7 +219,7 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
         m_probe_system.ComputeIrradiance(frame);
 
         if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES)) {
-            for (const auto &probe : m_probe_system.GetProbes()) {
+            for (const Probe &probe : m_probe_system.GetProbes()) {
                 g_engine->GetImmediateMode().Sphere(probe.position);
             }
         }

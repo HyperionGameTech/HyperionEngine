@@ -5,10 +5,10 @@
 #include "Matrix4.hpp"
 #include "Transform.hpp"
 #include "Ray.hpp"
+#include <core/lib/FixedArray.hpp>
 #include "../HashCode.hpp"
 #include <Types.hpp>
 
-#include <array>
 #include <limits>
 
 namespace hyperion {
@@ -28,7 +28,7 @@ public:
     void SetMin(const Vector3 &min) { this->min = min; }
     const Vector3 &GetMax() const { return max; }
     void SetMax(const Vector3 &max) { this->max = max; }
-    std::array<Vector3, 8> GetCorners() const;
+    FixedArray<Vector3, 8> GetCorners() const;
     Vector3 GetCorner(UInt index) const;
     Vector3 GetCenter() const { return (max + min) * 0.5f; }
     void SetCenter(const Vector3 &center);

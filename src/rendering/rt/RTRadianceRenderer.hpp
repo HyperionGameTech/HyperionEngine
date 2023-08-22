@@ -63,6 +63,7 @@ public:
 
 private:
     void CreateImages();
+    void CreateUniformBuffer();
     void CreateDescriptorSets();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
@@ -104,6 +105,7 @@ private:
 
     RaytracingPipelineRef m_raytracing_pipeline;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
+    GPUBufferRef m_uniform_buffer;
 };
 
 } // namespace hyperion::v2

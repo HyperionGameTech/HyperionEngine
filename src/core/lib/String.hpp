@@ -246,6 +246,17 @@ DynString<T, IsUtf8>::DynString(const T *str)
         return;
     }
 
+#ifdef HYP_DEBUG_MODE
+    {
+        const T *current = str;
+
+        while (*current) {
+            AssertThrowMsg(*current >= 0 && *current <= 255, "Out of character range");
+            ++current;
+        }
+    }
+#endif
+
     int count;
     int len = utf::utf_strlen<T, IsUtf8>(str, &count);
 
@@ -280,6 +291,20 @@ DynString<T, IsUtf8>::DynString(const T *str, Int max_len)
     if (str == nullptr) {
         return;
     }
+
+#ifdef HYP_DEBUG_MODE
+    {
+        Int i = 0;
+        const T *current = str;
+
+        while (*current && i < max_len) {
+            AssertThrowMsg(*current >= 0 && *current <= 255, "Out of character range");
+
+            ++current;
+            ++i;
+        }
+    }
+#endif
 
     int count;
     int len = MathUtil::Min(utf::utf_strlen<T, IsUtf8>(str, &count), max_len);
@@ -347,6 +372,11 @@ DynString<T, IsUtf8>::DynString(const ByteBuffer &byte_buffer)
     SizeType size = byte_buffer.Size();
 
     for (SizeType index = 0; index < size; ++index) {
+
+#ifdef HYP_DEBUG_MODE
+        AssertThrowMsg(byte_buffer.Data()[index] >= 0 && byte_buffer.Data()[index] <= 255, "Out of character range");
+#endif
+
         if (byte_buffer.Data()[index] == 0x00) {
             size = index;
 
@@ -604,6 +634,7 @@ void DynString<T, IsUtf8>::Append(const T &value)
 template <class T, bool IsUtf8>
 void DynString<T, IsUtf8>::Append(T &&value)
 {
+    // +2 to include NT char and new char being appended
     if (Size() + 2 >= Base::m_capacity) {
         if (Base::m_capacity >= Size() + 2) {
             Base::ResetOffsets();
@@ -611,7 +642,7 @@ void DynString<T, IsUtf8>::Append(T &&value)
             Base::SetCapacity(Base::GetCapacity(Size() + 2));
         }
     }
-
+    
     Base::PopBack(); // current NT char
 
     new (&Base::GetStorage()[Base::m_size++].data_buffer) T(std::forward<T>(value));

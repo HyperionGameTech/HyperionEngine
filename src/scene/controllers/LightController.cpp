@@ -25,6 +25,8 @@ void LightController::OnAttachedToScene(ID<Scene> id)
         return;
     }
 
+    OnTransformUpdate(GetOwner()->GetTransform());
+
     if (Handle<Scene> scene = Handle<Scene>(id)) {
         if (scene->IsWorldScene()) {
             scene->AddLight(m_light);

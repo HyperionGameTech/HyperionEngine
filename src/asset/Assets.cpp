@@ -15,6 +15,7 @@
 namespace hyperion::v2 {
 
 AssetManager::AssetManager()
+    : m_asset_cache(new AssetCache())
 {
     RegisterDefaultLoaders();
 }

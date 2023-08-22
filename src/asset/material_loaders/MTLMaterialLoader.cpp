@@ -243,25 +243,14 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
     
     AssetMap loaded_textures;
     std::vector<std::string> all_filepaths;
-
+    
     {
         if (!texture_names_to_path.empty()) {
             UInt num_enqueued = 0;
             String paths_string;
 
             auto textures_batch = state.asset_manager->CreateBatch();
-
-            // for (const String &str : unique_paths) {
-            //     textures_batch.Add<Texture>(str, str);
-
-            //     ++num_enqueued;
-
-            //     if (paths_string.Any()) {
-            //         paths_string += ", ";
-            //     }
-
-            //     paths_string += str;
-            // }
+            
             for (auto &it : texture_names_to_path) {
                 all_filepaths.push_back(it.second);
                 ++num_enqueued;
@@ -309,7 +298,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
         for (auto &it : item.textures) {
             // Handle<Texture> texture = loaded_textures[String(texture_path.c_str())].Get<Texture>();
-            auto texture = loaded_textures[String(it.name.c_str())].Get<Texture>();
+            auto texture = loaded_textures[String(it.name.c_str())].ExtractAs<Texture>();
 
             if (!texture) {
                 DebugLog(

@@ -65,16 +65,16 @@ public:
         
     }
 
-    ~MemoryByteWriter()
+    virtual ~MemoryByteWriter() override
     {
     }
 
-    std::streampos Position() const
+    virtual std::streampos Position() const override
     {
         return std::streampos(m_pos);
     }
 
-    void Close()
+    virtual void Close() override
     {
     }
 
@@ -128,17 +128,17 @@ public:
         return *this;
     }
 
-    ~FileByteWriter()
+    virtual ~FileByteWriter() override
     {
         delete file;
     }
 
-    std::streampos Position() const
+    virtual std::streampos Position() const override
     {
         return file->tellp();
     }
 
-    void Close()
+    virtual void Close() override
     {
         file->close();
     }
@@ -149,7 +149,7 @@ public:
 private:
     std::ofstream *file;
 
-    void WriteBytes(const char *ptr, SizeType size)
+    virtual void WriteBytes(const char *ptr, SizeType size) override
     {
         file->write(ptr, size);
     }

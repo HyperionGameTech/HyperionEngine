@@ -254,6 +254,9 @@ void Mesh::Init()
         m_vbo,
         m_ibo
     );
+
+    //m_vertices.clear();
+    //m_indices.clear();
             
     SetReady(true);
 }

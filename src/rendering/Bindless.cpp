@@ -76,6 +76,8 @@ void BindlessStorage::AddResource(Texture *texture)
     
     const auto insert_result = m_texture_ids.Insert(texture->GetID(), texture);
 
+    DebugLog(LogType::Debug, "Bindless: Add texture %u. Count: %llu\n", texture->GetID().Value(), m_texture_ids.Size());
+
     AssertThrowMsg(insert_result.second, "Duplicate AddResource call for index %u!", texture->GetID().ToIndex());
 }
 

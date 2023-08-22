@@ -29,7 +29,9 @@ public:
     using Byte = UByte;
 
     BufferedReader()
-        : file(nullptr)
+        : file(nullptr),
+          pos(0),
+          max_pos(0)
     {
     }
 
@@ -381,6 +383,8 @@ private:
         return count;
     }
 };
+
+using BufferedByteReader = BufferedReader<HYP_READER_DEFAULT_BUFFER_SIZE>;
 
 } // namespace hyperion
 

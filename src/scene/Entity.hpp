@@ -230,7 +230,7 @@ public:
     void SetWorldAABB(const BoundingBox &aabb)
         { m_world_aabb = aabb; }
 
-    bool IsVisibleToCamera(ID<Camera> camera_id) const;
+    bool IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const;
     
     bool IsReady() const;
 

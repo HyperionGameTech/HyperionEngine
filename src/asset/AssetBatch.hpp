@@ -25,9 +25,17 @@ struct EnqueuedAsset
         the type of the value, if any, held within the variant, no error should occur and an 
         empty container will be returned. */
     template <class T>
-    auto Get() -> typename AssetLoaderWrapper<T>::CastedType
+    HYP_FORCE_INLINE
+    auto ExtractAs() -> typename AssetLoaderWrapper<T>::CastedType
         { return AssetLoaderWrapper<T>::ExtractAssetValue(value); }
 
+    /*! \brief Alias for ExtractAs<T> */
+    template <class T>
+    HYP_FORCE_INLINE
+    auto Get() -> typename AssetLoaderWrapper<T>::CastedType
+        { return ExtractAs<T>(); }
+    
+    HYP_FORCE_INLINE
     explicit operator bool() const
         { return result.status == LoaderResult::Status::OK && value.IsValid(); }
 };
@@ -50,7 +58,7 @@ private:
             const String &key
         )
         {
-            auto &asset = (*map)[key];
+            EnqueuedAsset &asset = (*map)[key];
 
             asset.value.Set(AssetLoaderWrapper<T>::MakeResultType(
                 asset_manager->template Load<T>(asset.path, asset.result)

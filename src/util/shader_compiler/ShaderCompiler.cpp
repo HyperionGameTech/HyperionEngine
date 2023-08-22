@@ -778,7 +778,7 @@ bool ShaderCompiler::LoadShaderDefinitions()
     const FilePath data_path = g_asset_manager->GetBasePath() / "data/compiled_shaders";
 
     if (!data_path.Exists()) {
-        if (FileSystem::Mkdir(data_path.Data()) != 0) {
+        if (FileSystem::MkDir(data_path.Data()) != 0) {
             DebugLog(
                 LogType::Error,
                 "Failed to create data path at %s\n",
@@ -1055,7 +1055,7 @@ bool ShaderCompiler::CompileBundle(
     }
 
     // run with spirv-cross
-    FileSystem::Mkdir((g_asset_manager->GetBasePath() / "data/compiled_shaders/tmp").Data());
+    FileSystem::MkDir((g_asset_manager->GetBasePath() / "data/compiled_shaders/tmp").Data());
 
     Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Reserve(bundle.sources.Size());

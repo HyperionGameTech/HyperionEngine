@@ -115,7 +115,7 @@ static struct EnqueuedAssetScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< NodeProxy, EnqueuedAsset, &EnqueuedAsset::Get<Node> >
+                        CxxMemberFn< NodeProxy, EnqueuedAsset, &EnqueuedAsset::ExtractAs<Node> >
                     ),
                     API::NativeMemberDefine(
                         "AsTexture",
@@ -123,7 +123,7 @@ static struct EnqueuedAssetScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< Handle<Texture>, EnqueuedAsset, &EnqueuedAsset::Get<Texture> >
+                        CxxMemberFn< Handle<Texture>, EnqueuedAsset, &EnqueuedAsset::ExtractAs<Texture> >
                     ),
                     API::NativeMemberDefine(
                         "AsScript",
@@ -131,7 +131,7 @@ static struct EnqueuedAssetScriptBindings : ScriptBindingsBase
                         {
                             { "self", BuiltinTypes::ANY }
                         },
-                        CxxMemberFn< Handle<Script>, EnqueuedAsset, &EnqueuedAsset::Get<Script> >
+                        CxxMemberFn< Handle<Script>, EnqueuedAsset, &EnqueuedAsset::ExtractAs<Script> >
                     )
                 }
             );

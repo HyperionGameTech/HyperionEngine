@@ -19,10 +19,9 @@ public:
 
     struct TextureData
     {
-        std::vector<unsigned char> data;
-        int width;
-        int height;
-        int num_components;
+        Int width;
+        Int height;
+        Int num_components;
         InternalFormat format;
     };
 };

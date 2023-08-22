@@ -208,7 +208,7 @@ private:
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id) const;
+    bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
 
     Handle<Camera> m_camera;
     RenderList m_render_list;
