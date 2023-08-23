@@ -158,10 +158,15 @@ public:
 
     bool SupportsBindlessTextures() const
     {
+#if !HYP_FEATURES_BINDLESS_TEXTURES
+        return false;
+#else
+
         return m_indexing_features.descriptorBindingPartiallyBound
             && m_indexing_features.runtimeDescriptorArray
             && m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSamplers >= 4096
             && m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSampledImages >= 4096;
+#endif
     }
 
     void LoadDynamicFunctions(Device *device);
@@ -415,7 +420,7 @@ public:
 
     bool IsRaytracingSupported() const
     {
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
+#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
         return m_raytracing_pipeline_features.rayTracingPipeline
             && m_acceleration_structure_features.accelerationStructure
             && m_buffer_device_address_features.bufferDeviceAddress;

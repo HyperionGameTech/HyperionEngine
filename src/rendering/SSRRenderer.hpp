@@ -35,6 +35,15 @@ class Engine;
 struct RenderCommand_CreateSSRImageOutputs;
 struct RenderCommand_DestroySSRInstance;
 
+using SSRRendererOptions = UInt32;
+
+enum SSRRendererOptionBits : SSRRendererOptions
+{
+    SSR_RENDERER_OPTIONS_NONE = 0x0,
+    SSR_RENDERER_OPTIONS_CONE_TRACING = 0x1,
+    SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING = 0x2
+};
+
 class SSRRenderer
 {
     static constexpr bool use_temporal_blending = true;
@@ -45,7 +54,7 @@ public:
     friend struct RenderCommand_CreateSSRImageOutputs;
     friend struct RenderCommand_DestroySSRInstance;
 
-    SSRRenderer(const Extent2D &extent, bool should_perform_cone_tracing);
+    SSRRenderer(const Extent2D &extent, SSRRendererOptions options);
     ~SSRRenderer();
 
     bool IsRendered() const
@@ -94,7 +103,7 @@ private:
 
     FixedArray<Handle<Texture>, 2> m_temporal_history_textures;
 
-    bool m_should_perform_cone_tracing;
+    SSRRendererOptions m_options;
 
     bool m_is_rendered;
 };

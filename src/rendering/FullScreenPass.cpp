@@ -310,7 +310,7 @@ void FullScreenPass::Record(UInt frame_index)
                 DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER
             );
             
-#if HYP_FEATURES_ENABLE_RAYTRACING
+#if HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
           //  if (!g_engine->GetGPUDevice()->GetFeatures().IsRaytracingDisabled()) {
                 cmd->BindDescriptorSet(
                     g_engine->GetGPUInstance()->GetDescriptorPool(),

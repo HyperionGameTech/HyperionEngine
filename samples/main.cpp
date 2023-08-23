@@ -386,7 +386,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/archviz/ArchVis_RT.obj");//test_structure/test_structure.obj");//sponza/sponza.obj"); ///interior2/INTERIOR.obj");////
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj"); //pica_pica/pica_pica.obj");//archviz/ArchVis_RT.obj");//test_structure/test_structure.obj");// ///interior2/INTERIOR.obj");////
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -425,10 +425,10 @@ public:
         }
 
         //test_model.Scale(7.0f);
-        test_model.Scale(0.035f);
+        //test_model.Scale(0.035f);
         //test_model.Scale(1.0f);
         //test_model.Translate(Vector3(-30, 0, 30));
-        // test_model.Scale(0.018f);
+        test_model.Scale(0.018f);
 
         /*for (NodeProxy &item : test_model.GetChildren()) {
             DebugLog(LogType::Debug, "Item: %s\n", item.GetName().Data());
@@ -881,7 +881,7 @@ public:
                 Vector3(),
                 Color(1.0f, 0.8f, 0.5f),
                 50.0f,
-                10.0f
+                3.0f
             )));
 
             GetScene()->AddEntity(point_light_entity);

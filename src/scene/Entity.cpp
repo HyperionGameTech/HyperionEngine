@@ -754,7 +754,7 @@ bool Entity::CreateBLAS()
         return true;
     }
 
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING
+#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
     if (!g_engine->GetConfig().Get(CONFIG_RT_ENABLED)) {
         return false;
     }

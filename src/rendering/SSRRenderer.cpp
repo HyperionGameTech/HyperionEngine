@@ -175,9 +175,9 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : RenderCommand
 
 #pragma endregion
 
-SSRRenderer::SSRRenderer(const Extent2D &extent, bool should_perform_cone_tracing)
+SSRRenderer::SSRRenderer(const Extent2D &extent, SSRRendererOptions options)
     : m_extent(extent),
-      m_should_perform_cone_tracing(should_perform_cone_tracing),
+      m_options(options),
       m_is_rendered(false)
 {
 }
@@ -459,7 +459,8 @@ void SSRRenderer::CreateDescriptorSets()
 void SSRRenderer::CreateComputePipelines()
 {
     ShaderProperties shader_properties;
-    shader_properties.Set("CONE_TRACING", m_should_perform_cone_tracing);
+    shader_properties.Set("CONE_TRACING", bool(m_options & SSR_RENDERER_OPTIONS_CONE_TRACING));
+    shader_properties.Set("ROUGHNESS_SCATTERING", bool(m_options & SSR_RENDERER_OPTIONS_ROUGHNESS_SCATTERING));
 
     switch (ssr_format) {
     case InternalFormat::RGBA8:

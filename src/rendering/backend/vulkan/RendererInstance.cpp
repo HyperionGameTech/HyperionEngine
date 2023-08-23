@@ -63,7 +63,7 @@ Result Instance::CheckValidationLayerSupport(const std::vector<const char *> &re
 ExtensionMap Instance::GetExtensionMap()
 {
     return {
-#if HYP_FEATURES_ENABLE_RAYTRACING
+#if HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
         {VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, false},
         {VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, false},
         {VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, false},

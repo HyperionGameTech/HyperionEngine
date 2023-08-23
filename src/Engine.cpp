@@ -1334,7 +1334,7 @@ void Engine::RenderFinalPass(Frame *frame)
         }
     );
 
-#if HYP_FEATURES_ENABLE_RAYTRACING
+#if HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
     /* TMP */
     m_instance->GetDescriptorPool().Bind(
         m_instance->GetDevice(),
