@@ -39,13 +39,25 @@ class Engine;
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
+using RTRadianceRendererOptions = UInt32;
+
+enum RTRadianceRendererOptionBits : RTRadianceRendererOptions
+{
+    RT_RADIANCE_RENDERER_OPTION_NONE = 0x0,
+    RT_RADIANCE_RENDERER_OPTION_PATHTRACER = 0x1
+};
+
 class RTRadianceRenderer
 {
 public:
     friend struct RenderCommand_DestroyRTRadianceRenderer;
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
  
-    RTRadianceRenderer(const Extent2D &extent);
+    RTRadianceRenderer(
+        const Extent2D &extent,
+        RTRadianceRendererOptions options = RT_RADIANCE_RENDERER_OPTION_NONE
+    );
+
     ~RTRadianceRenderer();
 
     void SetTLAS(const Handle<TLAS> &tlas)
@@ -92,6 +104,8 @@ private:
 
         Result Create(Device *device);
     };
+
+    RTRadianceRendererOptions m_options;
 
     Extent2D m_extent;
     Handle<TLAS> m_tlas;

@@ -15,6 +15,7 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_RT_REFLECTIONS, "RTReflections" },
     { CONFIG_RT_GI, "RTGlobalIllumination" },
     { CONFIG_RT_GI_DEBUG_PROBES, "DebugDDGIProbes" },
+    { CONFIG_PATHTRACER,  "PathTracer" },
     { CONFIG_SSR, "ScreenSpaceReflections" },
     { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
     { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
@@ -60,7 +61,8 @@ bool Configuration::IsRTOption(OptionName option)
         || option == CONFIG_RT_ENABLED
         || option == CONFIG_RT_REFLECTIONS
         || option == CONFIG_RT_GI
-        || option == CONFIG_RT_GI_DEBUG_PROBES;
+        || option == CONFIG_RT_GI_DEBUG_PROBES
+        || option == CONFIG_PATHTRACER;
 }
 
 Configuration::Configuration() = default;
@@ -182,6 +184,8 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_TEMPORAL_AA] = Option(true, true);
 
     m_variables[CONFIG_LIGHT_RAYS] = Option(true, true);
+
+    m_variables[CONFIG_PATHTRACER] = Option(false, true);
 
     m_variables[CONFIG_DEBUG_SSR] = Option(false, true);
     m_variables[CONFIG_DEBUG_HBAO] = Option(false, true);

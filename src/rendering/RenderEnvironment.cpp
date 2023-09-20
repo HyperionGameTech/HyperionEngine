@@ -48,7 +48,6 @@ RenderEnvironment::RenderEnvironment(Scene *scene)
       m_frame_counter(0),
       m_current_enabled_render_components_mask(0),
       m_next_enabled_render_components_mask(0),
-      m_rt_radiance(Extent2D { 1024, 1024 }),
       m_probe_system({
           .aabb = {{-25.0f, -5.0f, -25.0f}, {25.0f, 30.0f, 25.0f}}
       }),
@@ -91,9 +90,14 @@ void RenderEnvironment::Init()
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);
     
+    m_rt_radiance.Reset(new RTRadianceRenderer(
+        Extent2D { 1024, 1024 },
+        g_engine->GetConfig().Get(CONFIG_PATHTRACER) ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER : RT_RADIANCE_RENDERER_OPTION_NONE
+    ));
+    
     if (m_tlas) {
-        m_rt_radiance.SetTLAS(m_tlas);
-        m_rt_radiance.Create();
+        m_rt_radiance->SetTLAS(m_tlas);
+        m_rt_radiance->Create();
 
         m_probe_system.SetTLAS(m_tlas);
         m_probe_system.Init();
@@ -122,7 +126,8 @@ void RenderEnvironment::Init()
         m_particle_system.Reset();
             
         if (m_has_rt_radiance) {
-            m_rt_radiance.Destroy();
+            m_rt_radiance->Destroy();
+            m_rt_radiance.Reset();
 
             m_has_rt_radiance = false;
         }
@@ -175,7 +180,7 @@ void RenderEnvironment::ApplyTLASUpdates(Frame *frame, RTUpdateStateFlags flags)
     AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
-        m_rt_radiance.ApplyTLASUpdates(flags);
+        m_rt_radiance->ApplyTLASUpdates(flags);
     }
 
     if (m_has_ddgi_probes) {
@@ -191,7 +196,7 @@ void RenderEnvironment::RenderRTRadiance(Frame *frame)
     AssertThrow(g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED));
     
     if (m_has_rt_radiance) {
-        m_rt_radiance.Render(frame);
+        m_rt_radiance->Render(frame);
     }
 }
 
@@ -324,7 +329,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 
             if (m_tlas) {
                 if (m_has_rt_radiance) {
-                    m_rt_radiance.Destroy();
+                    m_rt_radiance->Destroy();
                 }
 
                 if (m_has_ddgi_probes) {
@@ -332,9 +337,9 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 }
                 
                 m_probe_system.SetTLAS(m_tlas);
-                m_rt_radiance.SetTLAS(m_tlas);
+                m_rt_radiance->SetTLAS(m_tlas);
 
-                m_rt_radiance.Create();
+                m_rt_radiance->Create();
                 m_probe_system.Init();
 
                 m_has_rt_radiance = true;
@@ -343,7 +348,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
                 HYP_SYNC_RENDER();
             } else {
                 if (m_has_rt_radiance) {
-                    m_rt_radiance.Destroy();
+                    m_rt_radiance->Destroy();
                 }
 
                 if (m_has_ddgi_probes) {
@@ -358,6 +363,8 @@ void RenderEnvironment::RenderComponents(Frame *frame)
         }
 
         // for RT, we may need to perform resizing of buffers, and thus modification of descriptor sets
+        AssertThrow(m_scene != nullptr);
+
         if (const auto &tlas = m_scene->GetTLAS()) {
             RTUpdateStateFlags update_state_flags = renderer::RT_UPDATE_STATE_FLAGS_NONE;
 
@@ -382,7 +389,7 @@ void RenderEnvironment::RenderComponents(Frame *frame)
 ID<Scene> RenderEnvironment::GetSceneID() const
 {
     if (!m_scene) {
-        return ID<Scene>();
+        return ID<Scene> { };
     }
 
     return m_scene->GetID();

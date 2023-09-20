@@ -460,18 +460,21 @@ static void ForEachPermutation(
         all_combinations.Size()
     );
 
-    for (UInt combination_index = 0; combination_index < UInt(all_combinations.Size()); combination_index++) {
-        ShaderProperties combination_properties(all_combinations[combination_index]);
+    TaskSystem::GetInstance().ParallelForEach(
+        all_combinations,
+        [&callback](const Array<ShaderProperty> &properties, UInt index, UInt batch_index) {
+            const ShaderProperties combination_properties(properties);
 
-        DebugLog(
-            LogType::Debug,
-            "Processing combination #%u: %s\n",
-            combination_index,
-            combination_properties.ToString().Data()
-        );
+            DebugLog(
+                LogType::Debug,
+                "Processing combination #%u: %s\n",
+                index,
+                combination_properties.ToString().Data()
+            );
 
-        callback(combination_properties);
-    }
+            callback(combination_properties);
+        }
+    );
 }
 
 ShaderCompiler::ShaderCompiler()
@@ -594,6 +597,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
 
     Array<ShaderProperties> missing_variants;
     Array<ShaderProperties> found_variants;
+    std::mutex mtx;
     bool requested_found = false;
 
     {
@@ -607,11 +611,15 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
                 return item.GetDefinition().GetProperties().GetHashCode() == properties_hash;
             });
 
+            mtx.lock();
+
             if (it == batch.compiled_shaders.End()) {
                 missing_variants.PushBack(properties);
             } else {
                 found_variants.PushBack(properties);
             }
+
+            mtx.unlock();
         });
         
         const auto it = batch.compiled_shaders.FindIf([properties_hash = additional_versions.GetHashCode()](const CompiledShader &item) {
@@ -1058,60 +1066,92 @@ bool ShaderCompiler::CompileBundle(
     FileSystem::MkDir((g_asset_manager->GetBasePath() / "data/compiled_shaders/tmp").Data());
 
     Array<LoadedSourceFile> loaded_source_files;
-    loaded_source_files.Reserve(bundle.sources.Size());
+    loaded_source_files.Resize(bundle.sources.Size());
 
-    Array<VertexAttributeDefinition> required_vertex_attributes;
-    Array<VertexAttributeDefinition> optional_vertex_attributes;
+    Array<Array<VertexAttributeDefinition>> required_vertex_attributes;
+    required_vertex_attributes.Resize(bundle.sources.Size());
 
-    for (auto &it : bundle.sources) {
-        const FilePath filepath = it.second.path;
+    Array<Array<VertexAttributeDefinition>> optional_vertex_attributes;
+    optional_vertex_attributes.Resize(bundle.sources.Size());
 
-        Reader reader;
+    Array<Array<ProcessError>> process_errors;
+    process_errors.Resize(bundle.sources.Size());
 
-        if (!filepath.Open(reader)) {
-            // could not open file!
-            DebugLog(
-                LogType::Error,
-                "Failed to open shader source file at %s\n",
-                filepath.Data()
-            );
+    TaskBatch task_batch;
 
-            return false;
-        }
+    for (SizeType index = 0; index < bundle.sources.Size(); index++) {
+        task_batch.AddTask([this, index, &bundle, &required_vertex_attributes, &optional_vertex_attributes, &loaded_source_files, &process_errors](...) {
+            const auto &it = bundle.sources.AtIndex(index);
 
-        ByteBuffer byte_buffer = reader.ReadBytes();
+            const FilePath filepath = it.second.path;
 
-        String source_string = String(byte_buffer);
-        ProcessResult result = ProcessShaderSource(source_string);
+            Reader reader;
 
-        if (result.errors.Any()) {
-            DebugLog(
-                LogType::Error,
-                "%u shader processing errors:\n",
-                UInt(result.errors.Size())
-            );
-
-            for (const auto &error : result.errors) {
+            if (!filepath.Open(reader)) {
+                // could not open file!
                 DebugLog(
                     LogType::Error,
-                    "\t%s\n",
-                    error.error_message.Data()
+                    "Failed to open shader source file at %s\n",
+                    filepath.Data()
                 );
+
+                process_errors[index] = {
+                    ProcessError { "Failed to open source file"}
+                };
+
+                return;
             }
 
-            return false;
+            ByteBuffer byte_buffer = reader.ReadBytes();
+
+            String source_string = String(byte_buffer);
+            ProcessResult result = ProcessShaderSource(source_string);
+
+            if (result.errors.Any()) {
+                DebugLog(
+                    LogType::Error,
+                    "%u shader processing errors:\n",
+                    UInt(result.errors.Size())
+                );
+
+                process_errors[index] = result.errors;
+
+                return;
+            }
+
+            required_vertex_attributes[index] = result.required_attributes;
+            optional_vertex_attributes[index] = result.optional_attributes;
+
+            loaded_source_files[index] = LoadedSourceFile {
+                .type = it.first,
+                .language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
+                .file = it.second,
+                .last_modified_timestamp = filepath.LastModifiedTimestamp(),
+                .original_source = result.final_source
+            };
+        });
+    }
+
+    TaskSystem::GetInstance().EnqueueBatch(&task_batch);
+
+    task_batch.AwaitCompletion();
+
+    Array<ProcessError> all_process_errors;
+
+    for (const auto &error_list : process_errors) {
+        all_process_errors.Concat(error_list);
+    }
+
+    if (!all_process_errors.Empty()) {
+        for (const auto &error : all_process_errors) {
+            DebugLog(
+                LogType::Error,
+                "\t%s\n",
+                error.error_message.Data()
+            );
         }
 
-        required_vertex_attributes.Concat(result.required_attributes);
-        optional_vertex_attributes.Concat(result.optional_attributes);
-
-        loaded_source_files.PushBack(LoadedSourceFile {
-            .type = it.first,
-            .language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
-            .file = it.second,
-            .last_modified_timestamp = filepath.LastModifiedTimestamp(),
-            .original_source = result.final_source
-        });
+        return false;
     }
 
     SizeType num_compiled_permutations = 0;
@@ -1137,36 +1177,40 @@ bool ShaderCompiler::CompileBundle(
         VertexAttributeSet required_vertex_attribute_set;
         VertexAttributeSet optional_vertex_attribute_set;
 
-        for (const VertexAttributeDefinition &definition : required_vertex_attributes) {
-            VertexAttribute::Type type;
+        for (const auto &definitions : required_vertex_attributes) {
+            for (const VertexAttributeDefinition &definition : definitions) {
+                VertexAttribute::Type type;
 
-            if (!FindVertexAttributeForDefinition(definition.name, type)) {
-                DebugLog(
-                    LogType::Error,
-                    "Invalid vertex attribute definition, %s\n",
-                    definition.name.Data()
-                );
+                if (!FindVertexAttributeForDefinition(definition.name, type)) {
+                    DebugLog(
+                        LogType::Error,
+                        "Invalid vertex attribute definition, %s\n",
+                        definition.name.Data()
+                    );
 
-                continue;
+                    continue;
+                }
+
+                required_vertex_attribute_set |= type;
             }
-
-            required_vertex_attribute_set |= type;
         }
+        
+        for (const auto &definitions : optional_vertex_attributes) {
+            for (const VertexAttributeDefinition &definition : definitions) {
+                VertexAttribute::Type type;
 
-        for (const VertexAttributeDefinition &definition : optional_vertex_attributes) {
-            VertexAttribute::Type type;
+                if (!FindVertexAttributeForDefinition(definition.name, type)) {
+                    DebugLog(
+                        LogType::Error,
+                        "Invalid vertex attribute definition, %s\n",
+                        definition.name.Data()
+                    );
 
-            if (!FindVertexAttributeForDefinition(definition.name, type)) {
-                DebugLog(
-                    LogType::Error,
-                    "Invalid vertex attribute definition, %s\n",
-                    definition.name.Data()
-                );
+                    continue;
+                }
 
-                continue;
+                optional_vertex_attribute_set |= type;
             }
-
-            optional_vertex_attribute_set |= type;
         }
 
         final_versions.SetRequiredVertexAttributes(required_vertex_attribute_set);
@@ -1184,6 +1228,10 @@ bool ShaderCompiler::CompileBundle(
 
     // update versions to include vertex attribute properties
     bundle.versions = final_versions;
+
+    std::mutex fs_mutex;
+    std::mutex compiled_shaders_mutex;
+    std::mutex error_messages_mutex;
 
     // compile shader with each permutation of properties
     ForEachPermutation(final_versions, [&](const ShaderProperties &properties) {
@@ -1262,9 +1310,11 @@ bool ShaderCompiler::CompileBundle(
             // set directory to the directory of the shader
             const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
 
+            fs_mutex.lock();
             FileSystem::PushDirectory(dir);
             byte_buffer = CompileToSPIRV(item.type, item.language, item.original_source.Data(), item.file.path.Data(), properties, error_messages);
             FileSystem::PopDirectory();
+            fs_mutex.unlock();
 
             if (byte_buffer.Empty()) {
                 DebugLog(
@@ -1274,7 +1324,9 @@ bool ShaderCompiler::CompileBundle(
                     properties.GetHashCode().Value()
                 );
 
+                error_messages_mutex.lock();
                 out.error_messages.Concat(std::move(error_messages));
+                error_messages_mutex.unlock();
 
                 return;
             }
@@ -1301,7 +1353,10 @@ bool ShaderCompiler::CompileBundle(
         }
 
         num_compiled_permutations += UInt(any_files_compiled);
+
+        compiled_shaders_mutex.lock();
         out.compiled_shaders.PushBack(std::move(compiled_shader));
+        compiled_shaders_mutex.unlock();
     });
 
     const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";

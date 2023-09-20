@@ -363,6 +363,8 @@ void Engine::PrepareFinalPass()
         final_output_props.Set("DEBUG_REFLECTIONS");
     } else if (GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
         final_output_props.Set("DEBUG_IRRADIANCE");
+    } else if (GetConfig().Get(CONFIG_PATHTRACER)) {
+        final_output_props.Set("PATHTRACER");
     }
 
     final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(m_instance->swapchain->image_format));

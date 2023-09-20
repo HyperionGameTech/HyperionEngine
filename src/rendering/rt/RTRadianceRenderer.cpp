@@ -161,8 +161,9 @@ Result RTRadianceRenderer::ImageOutput::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent)
+RTRadianceRenderer::RTRadianceRenderer(const Extent2D &extent, RTRadianceRendererOptions options)
     : m_extent(extent),
+      m_options(options),
       m_image_outputs {
           ImageOutput(StorageImage(
               Extent3D(extent),
@@ -426,7 +427,11 @@ void RTRadianceRenderer::CreateDescriptorSets()
 
 void RTRadianceRenderer::CreateRaytracingPipeline()
 {
-    m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTRadiance));
+    if (m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER) {
+        m_shader = g_shader_manager->GetOrCreate(HYP_NAME(PathTracer));
+    } else {
+        m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTRadiance));
+    }
 
     if (!InitObject(m_shader)) {
         return;
@@ -455,7 +460,9 @@ void RTRadianceRenderer::CreateTemporalBlending()
         m_extent,
         InternalFormat::RGBA16F,
         TemporalBlendTechnique::TECHNIQUE_1,
-        TemporalBlendFeedback::LOW,
+        m_options & RT_RADIANCE_RENDERER_OPTION_PATHTRACER
+            ? TemporalBlendFeedback::HIGH
+            : TemporalBlendFeedback::LOW,
         FixedArray<ImageViewRef, max_frames_in_flight> { m_image_outputs[0].image_view, m_image_outputs[1].image_view }
     ));
 

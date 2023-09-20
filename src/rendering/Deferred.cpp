@@ -78,6 +78,7 @@ static ShaderProperties GetDeferredShaderProperties()
     properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
     properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
     properties.Set("LIGHT_RAYS_ENABLED", g_engine->GetConfig().Get(CONFIG_LIGHT_RAYS));
+    properties.Set("PATHTRACER", g_engine->GetConfig().Get(CONFIG_PATHTRACER));
 
     if (g_engine->GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
         properties.Set("DEBUG_REFLECTIONS");
@@ -653,7 +654,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool do_particles = environment && environment->IsReady();
 
     const bool use_ssr = g_engine->GetConfig().Get(CONFIG_SSR);
-    const bool use_rt_radiance = g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS);
+    const bool use_rt_radiance = g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS) || g_engine->GetConfig().Get(CONFIG_PATHTRACER);
     const bool use_ddgi = g_engine->GetConfig().Get(CONFIG_RT_GI);
     const bool use_hbao = g_engine->GetConfig().Get(CONFIG_HBAO);
     const bool use_hbil = g_engine->GetConfig().Get(CONFIG_HBIL);

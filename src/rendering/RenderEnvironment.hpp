@@ -241,7 +241,7 @@ private:
 
     Handle<ParticleSystem> m_particle_system;
 
-    RTRadianceRenderer m_rt_radiance;
+    UniquePtr<RTRadianceRenderer> m_rt_radiance;
     ProbeGrid m_probe_system;
     bool m_has_rt_radiance;
     bool m_has_ddgi_probes;

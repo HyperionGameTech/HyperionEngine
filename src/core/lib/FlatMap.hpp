@@ -89,6 +89,9 @@ public:
     [[nodiscard]] Value &At(const Key &key)             { return Find(key)->second; }
     [[nodiscard]] const Value &At(const Key &key) const { return Find(key)->second; }
 
+    [[nodiscard]] KeyValuePair &AtIndex(SizeType index)             { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+    [[nodiscard]] const KeyValuePair &AtIndex(SizeType index) const { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+
     template <class Lambda>
     [[nodiscard]] bool Any(Lambda &&lambda) const
         { return Base::Any(std::forward<Lambda>(lambda)); }

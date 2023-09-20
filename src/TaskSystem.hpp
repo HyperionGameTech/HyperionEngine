@@ -164,7 +164,7 @@ public:
     }
 
     /*! \brief Enqueue a batch of multiple Tasks. Each Task will be enqueued to run in parallel.
-     * You will need to call AwaitCompletion() before the pointer to task batch is destroyed.
+     * You will need to call AwaitCompletion() before the underlying TaskBatch is destroyed.
      */
     TaskBatch *EnqueueBatch(TaskBatch *batch)
     {

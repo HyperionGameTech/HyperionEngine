@@ -814,6 +814,7 @@ public:
         if (m_export_task == nullptr || m_export_task->IsCompleted()) {
             if (GetInputManager()->IsKeyStateChanged(KEY_C, &m_export_pressed) && m_export_pressed) {
                 m_export_task.Reset(new TaskBatch);
+
                 m_export_task->AddTask([export_path = scene_export_filepath, node = m_scene->GetRoot().Get()](...) {
                     DebugLog(LogType::Info, "Begin export task, exporting to path: %s\n", export_path.Data());
 
