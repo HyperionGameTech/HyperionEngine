@@ -7,8 +7,6 @@
 
 #include <Types.hpp>
 
-#include <atomic>
-
 namespace hyperion::v2 {
 
 using renderer::Fence;
