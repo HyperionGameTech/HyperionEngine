@@ -5,6 +5,7 @@
 #include <asset/model_loaders/FBOMModelLoader.hpp>
 #include <asset/model_loaders/FBXModelLoader.hpp>
 #include <asset/model_loaders/OBJModelLoader.hpp>
+#include <asset/model_loaders/PLYModelLoader.hpp>
 #include <asset/material_loaders/MTLMaterialLoader.hpp>
 #include <asset/model_loaders/OgreXMLModelLoader.hpp>
 #include <asset/skeleton_loaders/OgreXMLSkeletonLoader.hpp>
@@ -41,6 +42,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<ScriptLoader>("hypscript");
     Register<FBOMModelLoader>("fbom");
     Register<FBXModelLoader>("fbx");
+    Register<PLYModelLoader>("ply");
 }
 
 } // namespace hyperion::v2

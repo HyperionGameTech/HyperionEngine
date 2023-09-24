@@ -261,6 +261,9 @@ DEF_HANDLE(SparseVoxelOctree,            1);
 DEF_HANDLE(UIRenderer,                   1);
 DEF_HANDLE(Voxelizer,                    1);
 
+DEF_HANDLE(GaussianSplattingInstance,    16);
+DEF_HANDLE(GaussianSplatting,            2);
+
 #undef DEF_HANDLE
 #undef DEF_HANDLE_NS
 

@@ -218,7 +218,7 @@ public:
         
         Array<String> lines;
 
-        ReadLines([&lines](const String &line) {
+        ReadLines([&lines](const String &line, bool *) {
             lines.PushBack(line);
         });
 
@@ -279,15 +279,30 @@ public:
             return;
         }
 
+        bool stop = false;
+
         if (!buffered) { // not buffered, do it in one pass
             auto all_bytes = ReadBytes();
+            SizeType total_read = 0;
 
             String accum;
             accum.Reserve(BufferSize);
             
             for (SizeType i = 0; i < all_bytes.Size(); i++) {
                 if (all_bytes[i] == '\n') {
-                    func(accum);
+                    func(accum, &stop);
+                    total_read += accum.Size();
+
+                    if (stop) {
+                        const SizeType amount_remaining = all_bytes.Size() - total_read;
+
+                        if (amount_remaining != 0) {
+                            Rewind(amount_remaining);
+                        }
+
+                        return;
+                    }
+
                     accum.Clear();
                     
                     continue;
@@ -297,7 +312,8 @@ public:
             }
 
             if (accum.Any()) {
-                func(accum);
+                func(accum, &stop);
+                total_read += accum.Size();
             }
 
             return;
@@ -318,7 +334,16 @@ public:
         while ((byte_buffer = ReadBytes(BufferSize)).Any()) {
             for (SizeType i = 0; i < byte_buffer.Size(); i++) {
                 if (byte_buffer[i] == '\n') {
-                    func(accum);
+                    func(accum, &stop);
+
+                    if (stop) {
+                        if (accum.Size() != 0) {
+                            Rewind(accum.Size());
+                        }
+
+                        return;
+                    }
+
                     accum.Clear();
                     
                     continue;
@@ -329,7 +354,7 @@ public:
         }
 
         if (accum.Any()) {
-            func(accum);
+            func(accum, &stop);
         }
     }
 

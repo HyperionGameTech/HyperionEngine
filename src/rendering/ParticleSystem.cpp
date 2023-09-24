@@ -344,9 +344,6 @@ void ParticleSpawner::CreateDescriptorSets()
 
 void ParticleSpawner::CreateRenderGroup()
 {
-    // Not using Engine::FindOrCreateRenderGroup because we want to use
-    // our own descriptor sets which will be destroyed when this object is destroyed.
-    // we don't want any other objects to use our RenderGroup then!
     m_render_group = CreateObject<RenderGroup>(
         Handle<Shader>(m_shader),
         RenderableAttributeSet(

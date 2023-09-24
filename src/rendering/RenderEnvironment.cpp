@@ -89,6 +89,9 @@ void RenderEnvironment::Init()
 
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);
+
+    m_gaussian_splatting = CreateObject<GaussianSplatting>();
+    InitObject(m_gaussian_splatting);
     
     m_rt_radiance.Reset(new RTRadianceRenderer(
         Extent2D { 1024, 1024 },
@@ -124,6 +127,8 @@ void RenderEnvironment::Init()
         SetReady(false);
 
         m_particle_system.Reset();
+
+        m_gaussian_splatting.Reset();
             
         if (m_has_rt_radiance) {
             m_rt_radiance->Destroy();

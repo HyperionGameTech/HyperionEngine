@@ -139,7 +139,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState &state)
 
     std::string active_material;
 
-    state.stream.ReadLines([&](const String &line) {
+    state.stream.ReadLines([&](const String &line, bool *) {
         tokens.clear();
 
         const auto trimmed = StringUtil::Trim(std::string(line.Data()));

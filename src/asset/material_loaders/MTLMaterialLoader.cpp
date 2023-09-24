@@ -113,7 +113,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         }
     };
 
-    state.stream.ReadLines([&](const String &line) {
+    state.stream.ReadLines([&](const String &line, bool *) {
         tokens.clear();
 
         const auto trimmed = StringUtil::Trim(std::string(line.Data()));

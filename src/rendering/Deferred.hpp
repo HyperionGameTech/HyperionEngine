@@ -152,9 +152,6 @@ private:
 
     void GenerateMipChain(Frame *frame, Image *image);
 
-    void UpdateParticles(Frame *frame, RenderEnvironment *environment);
-    void RenderParticles(Frame *frame, RenderEnvironment *environment);
-
     DeferredPass m_indirect_pass;
     DeferredPass m_direct_pass;
 

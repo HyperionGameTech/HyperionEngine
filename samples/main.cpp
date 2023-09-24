@@ -67,6 +67,7 @@
 #include <util/MeshBuilder.hpp>
 
 #include <asset/BufferedByteReader.hpp>
+#include <asset/model_loaders/PLYModelLoader.hpp>
 
 #include "util/Profile.hpp"
 
@@ -85,6 +86,7 @@
 #include "rendering/CubemapRenderer.hpp"
 #include "rendering/PointShadowRenderer.hpp"
 #include "rendering/UIRenderer.hpp"
+#include <rendering/GaussianSplatting.hpp>
 
 #include <rendering/ParticleSystem.hpp>
 
@@ -745,6 +747,41 @@ public:
             InitObject(particle_spawner);
 
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
+        }
+
+        if (true) {
+            // Test gaussian splatting
+            auto ply_model = g_asset_manager->Load<PLYModelLoader::PLYModel>("models/gaussian_splatting/point_cloud.ply");
+
+            const SizeType num_points = ply_model->vertices.Size();
+
+            RC<GaussianSplattingModelData> gaussian_splatting_model = RC<GaussianSplattingModelData>::Construct();
+            gaussian_splatting_model->points.Resize(num_points);
+
+            const bool has_rotations = ply_model->custom_data.Contains("rot_0")
+                && ply_model->custom_data.Contains("rot_1")
+                && ply_model->custom_data.Contains("rot_2")
+                && ply_model->custom_data.Contains("rot_3");
+
+            for (SizeType index = 0; index < num_points; index++) {
+                auto &out_point = gaussian_splatting_model->points[index];
+
+                out_point.position = Vector4(ply_model->vertices[index].GetPosition(), 0.0f);
+
+                if (has_rotations) {
+                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &out_point.rotation.x);
+                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &out_point.rotation.y);
+                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &out_point.rotation.z);
+                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &out_point.rotation.w);
+                }
+
+                DebugLog(LogType::Debug, "Point position: %f, %f, %f\n", out_point.position.x, out_point.position.y, out_point.position.z);
+            }
+
+            auto gaussian_splatting_instance = CreateObject<GaussianSplattingInstance>(std::move(gaussian_splatting_model));
+            InitObject(gaussian_splatting_instance);
+
+            m_scene->GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
         }
     }
 

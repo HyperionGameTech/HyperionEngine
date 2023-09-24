@@ -5,6 +5,7 @@
 #include <rendering/Light.hpp>
 #include <rendering/EnvProbe.hpp>
 #include <rendering/ParticleSystem.hpp>
+#include <rendering/GaussianSplatting.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/rt/ProbeSystem.hpp>
 
@@ -69,6 +70,12 @@ public:
 
     const Handle<ParticleSystem> &GetParticleSystem() const
         { return m_particle_system; }
+
+    Handle<GaussianSplatting> &GetGaussianSplatting()
+        { return m_gaussian_splatting; }
+
+    const Handle<GaussianSplatting> &GetGaussianSplatting() const
+        { return m_gaussian_splatting; }
 
     template <class T>
     T *AddRenderComponent(Name name, UniquePtr<T> &&component)
@@ -240,6 +247,8 @@ private:
     UInt32 m_next_enabled_render_components_mask;
 
     Handle<ParticleSystem> m_particle_system;
+
+    Handle<GaussianSplatting> m_gaussian_splatting;
 
     UniquePtr<RTRadianceRenderer> m_rt_radiance;
     ProbeGrid m_probe_system;
