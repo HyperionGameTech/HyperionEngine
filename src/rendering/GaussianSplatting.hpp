@@ -43,14 +43,13 @@ using renderer::Result;
 class Engine;
 
 struct alignas(16) GaussianSplattingPoint {
-    alignas(16) Vector4 position;
+    alignas(16) Vector4    position;
     alignas(16) Quaternion rotation;
-    alignas(16) Vector4 covariance0;
-    alignas(16) Vector4 covariance1;
-    alignas(16) Vector4 color;
+    alignas(16) Vector4    scale;
+    alignas(16) Vector4    color;
 };
 
-static_assert(sizeof(GaussianSplattingPoint) == 80);
+static_assert(sizeof(GaussianSplattingPoint) == 64);
 
 struct GaussianSplattingModelData {
     Array<GaussianSplattingPoint> points;
@@ -108,6 +107,8 @@ private:
     RC<GaussianSplattingModelData> m_model;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     GPUBufferRef m_splat_buffer;
+    GPUBufferRef m_sorted_splat_buffer;
+    GPUBufferRef m_splat_indices_buffer;
     GPUBufferRef m_indirect_buffer;
     GPUBufferRef m_noise_buffer;
     Handle<ComputePipeline> m_update_gaussian_splatting;

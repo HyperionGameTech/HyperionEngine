@@ -251,9 +251,9 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         const bool blend_enabled = m_construction_info.blend_mode != BlendMode::NONE
             && attachment_usage->AllowBlending();
 
-        static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_SRC_ALPHA };
-        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
-        static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
+        static const VkBlendFactor src_blend_factors_rgb[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA };
+        static const VkBlendFactor dst_blend_factors_rgb[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE  };
+        static const VkBlendFactor src_blend_factors_alpha[] = { VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA  };
         static const VkBlendFactor dst_blend_factors_alpha[] = { VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_FACTOR_ONE };
         static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };

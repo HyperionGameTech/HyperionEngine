@@ -365,7 +365,7 @@ public:
             }
         }
 
-        if (true) { // skydome
+        if (false) { // skydome
             if (auto skydome_node = m_scene->GetRoot().AddChild()) {
                 skydome_node.SetEntity(CreateObject<Entity>());
                 skydome_node.GetEntity()->AddController<SkydomeController>();
@@ -388,7 +388,7 @@ public:
         
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj"); //pica_pica/pica_pica.obj");//archviz/ArchVis_RT.obj");//test_structure/test_structure.obj");// ///interior2/INTERIOR.obj");////
+        //batch->Add<Node>("test_model", "models/sponza/sponza.obj"); //pica_pica/pica_pica.obj");//archviz/ArchVis_RT.obj");//test_structure/test_structure.obj");// ///interior2/INTERIOR.obj");////
         batch->Add<Node>("cube", "models/cube.obj");
         batch->Add<Node>("material", "models/material_sphere/material_sphere.obj");
         batch->Add<Node>("grass", "models/grass/grass.obj");
@@ -507,7 +507,7 @@ public:
             }
         }
 
-        if (true) { // hardware skinning
+        if (false) { // hardware skinning
             auto zombie_entity = zombie[0].GetEntity();
 
             if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
@@ -526,32 +526,6 @@ public:
             zombie.SetName("zombie");
 
             m_scene->GetRoot().AddChild(zombie);
-            
-            // auto zomb2 = CreateObject<Entity>();
-            // zomb2->SetMesh(zombie_entity->GetMesh());
-            // zomb2->SetTranslation(Vector3(0, 20, 0));
-            // zomb2->SetScale(Vector3(2.0f));
-            // zomb2->SetShader(zombie_entity->GetShader());
-            // zomb2->SetMaterial(CreateObject<Material>());//zombie_entity->GetMaterial());
-            // zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Color(1.0f, 1.0f, 1.0f, 0.8f));
-            // //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_TRANSMISSION, 0.95f);
-            // //zomb2->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.025f);
-            // //zomb2->GetMaterial()->SetBucket(Bucket::BUCKET_TRANSLUCENT);
-            // //zomb2->GetMaterial()->SetIsAlphaBlended(true);
-            // // zomb2->SetSkeleton(zombie_entity->GetSkeleton());
-            // zomb2->SetSkeleton(CreateObject<Skeleton>());
-            // zomb2->RebuildRenderableAttributes();
-
-            // InitObject(zomb2);
-            // m_scene->AddEntity(zomb2);
-        }
-
-        cube_obj.Scale(50.0f);
-
-        if (false) {
-            auto axis_angles = g_asset_manager->Load<Node>("models/editor/axis_arrows.obj");
-            axis_angles.Scale(10.0f);
-            GetScene()->GetRoot().AddChild(axis_angles);
         }
         
         for (auto &child : test_model.GetChildren()) {
@@ -603,7 +577,7 @@ public:
             }
         }
 
-        if (true) {
+        if (false) {
             if (auto monkey = g_asset_manager->Load<Node>("models/monkey/monkey.obj")) {
                 monkey.SetName("monkey");
                 auto monkey_entity = monkey[0].GetEntity();
@@ -734,7 +708,7 @@ public:
             }
         }
 
-        if (true) { // particles test
+        if (false) { // particles test
             auto particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
                 .texture = g_asset_manager->Load<Texture>("textures/spark.png"),
                 .max_particles = 1024u,
@@ -763,19 +737,73 @@ public:
                 && ply_model->custom_data.Contains("rot_2")
                 && ply_model->custom_data.Contains("rot_3");
 
+            const bool has_scales = ply_model->custom_data.Contains("scale_0")
+                && ply_model->custom_data.Contains("scale_1")
+                && ply_model->custom_data.Contains("scale_2");
+
+            const bool has_sh = ply_model->custom_data.Contains("f_dc_0")
+                && ply_model->custom_data.Contains("f_dc_1")
+                && ply_model->custom_data.Contains("f_dc_2");
+
+            const bool has_opacity = ply_model->custom_data.Contains("opacity");
+
             for (SizeType index = 0; index < num_points; index++) {
                 auto &out_point = gaussian_splatting_model->points[index];
 
-                out_point.position = Vector4(ply_model->vertices[index].GetPosition(), 0.0f);
+                out_point.position = Vector4(ply_model->vertices[index].GetPosition(), 1.0f);
 
                 if (has_rotations) {
-                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &out_point.rotation.x);
-                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &out_point.rotation.y);
-                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &out_point.rotation.z);
-                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &out_point.rotation.w);
+                    Quaternion rotation;
+
+                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.x);
+                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.y);
+                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.z);
+                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.w);
+
+                    rotation.Normalize();
+
+                    out_point.rotation = rotation;
+
+                    //DebugLog(LogType::Debug, "Rotation %u = %f, %f, %f, %f\n", index, out_point.rotation.x, out_point.rotation.y, out_point.rotation.z, out_point.rotation.w);
                 }
 
-                DebugLog(LogType::Debug, "Point position: %f, %f, %f\n", out_point.position.x, out_point.position.y, out_point.position.z);
+                if (has_scales) {
+                    Vector3 scale = Vector3::one;
+
+                    ply_model->custom_data["scale_0"].Read(index * sizeof(Float), &scale.x);
+                    ply_model->custom_data["scale_1"].Read(index * sizeof(Float), &scale.y);
+                    ply_model->custom_data["scale_2"].Read(index * sizeof(Float), &scale.z);
+
+                    scale = Vector3(MathUtil::Exp(scale.x), MathUtil::Exp(scale.y), MathUtil::Exp(scale.z));
+
+                    out_point.scale = Vector4(scale, 1.0f);
+
+                    // DebugLog(LogType::Debug, "Scale %u = %f, %f, %f\n", index, out_point.scale.x, out_point.scale.y, out_point.scale.z);
+                }
+
+                if (has_sh) {
+                    Float f_dc_0 = 0.0f;
+                    Float f_dc_1 = 0.0f;
+                    Float f_dc_2 = 0.0f;
+                    Float opacity = 1.0f;
+
+                    static constexpr Float SH_C0 = 0.28209479177387814f;
+
+                    ply_model->custom_data["f_dc_0"].Read(index * sizeof(Float), &f_dc_0);
+                    ply_model->custom_data["f_dc_1"].Read(index * sizeof(Float), &f_dc_1);
+                    ply_model->custom_data["f_dc_2"].Read(index * sizeof(Float), &f_dc_2);
+
+                    if (has_opacity) {
+                        ply_model->custom_data["opacity"].Read(index * sizeof(Float), &opacity);
+                    }
+
+                    out_point.color = Vector4(
+                        0.5f + (SH_C0 * f_dc_0),
+                        0.5f + (SH_C0 * f_dc_1),
+                        0.5f + (SH_C0 * f_dc_2),
+                        1.0f / (1.0f + MathUtil::Exp(-opacity))
+                    );
+                }
             }
 
             auto gaussian_splatting_instance = CreateObject<GaussianSplattingInstance>(std::move(gaussian_splatting_model));

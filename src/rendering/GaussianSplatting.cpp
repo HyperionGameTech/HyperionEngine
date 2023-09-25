@@ -26,16 +26,22 @@ using renderer::GPUBufferType;
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
 {
     GPUBufferRef splat_buffer;
+    GPUBufferRef sorted_splat_buffer;
+    GPUBufferRef splat_indices_buffer;
     GPUBufferRef indirect_buffer;
     GPUBufferRef noise_buffer;
     RC<GaussianSplattingModelData> model;
 
     RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)(
         GPUBufferRef splat_buffer,
+        GPUBufferRef sorted_splat_buffer,
+        GPUBufferRef splat_indices_buffer,
         GPUBufferRef indirect_buffer,
         GPUBufferRef noise_buffer,
         RC<GaussianSplattingModelData> model
     ) : splat_buffer(std::move(splat_buffer)),
+        sorted_splat_buffer(std::move(sorted_splat_buffer)),
+        splat_indices_buffer(std::move(splat_indices_buffer)),
         indirect_buffer(std::move(indirect_buffer)),
         noise_buffer(std::move(noise_buffer)),
         model(std::move(model))
@@ -58,9 +64,41 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
 
         splat_buffer->Copy(
             g_engine->GetGPUDevice(),
-            model->points.Size() * sizeof(GaussianSplatShaderData),
+            sorted_splat_buffer->size,
             model->points.Data()
         );
+
+        HYPERION_BUBBLE_ERRORS(sorted_splat_buffer->Create(
+           g_engine->GetGPUDevice(),
+           model->points.Size() * sizeof(GaussianSplatShaderData)
+        ));
+
+        sorted_splat_buffer->Copy(
+            g_engine->GetGPUDevice(),
+            sorted_splat_buffer->size,
+            model->points.Data()
+        );
+
+        HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create(
+           g_engine->GetGPUDevice(),
+           model->points.Size() * sizeof(UInt32)
+        ));
+
+        // Set default indices
+
+        UInt32 *indices_buffer_data = new UInt32[model->points.Size()];
+
+        for (UInt index = 0; index < UInt(model->points.Size()); index++) {
+            indices_buffer_data[index] = index;
+        }
+
+        splat_indices_buffer->Copy(
+            g_engine->GetGPUDevice(),
+            splat_indices_buffer->size,
+            indices_buffer_data
+        );
+
+        delete[] indices_buffer_data;
 
         HYPERION_BUBBLE_ERRORS(indirect_buffer->Create(
             g_engine->GetGPUDevice(),
@@ -204,6 +242,10 @@ void GaussianSplattingInstance::Init()
     CreateDescriptorSets();
     CreateRenderGroup();
     CreateComputePipelines();
+
+    HYP_SYNC_RENDER();
+
+    SetReady(true);
 }
 
 void GaussianSplattingInstance::Record(CommandBuffer *command_buffer)
@@ -214,12 +256,16 @@ void GaussianSplattingInstance::Record(CommandBuffer *command_buffer)
 void GaussianSplattingInstance::CreateBuffers()
 {
     m_splat_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_sorted_splat_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_splat_indices_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
     m_indirect_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
     m_noise_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
     PUSH_RENDER_COMMAND(
         CreateGaussianSplattingInstanceBuffers,
         m_splat_buffer,
+        m_sorted_splat_buffer,
+        m_splat_indices_buffer,
         m_indirect_buffer,
         m_noise_buffer,
         m_model
@@ -295,13 +341,13 @@ void GaussianSplattingInstance::CreateRenderGroup()
         Handle<Shader>(m_shader),
         RenderableAttributeSet(
             MeshAttributes {
-                .vertex_attributes = renderer::static_mesh_vertex_attributes
+                .vertex_attributes = renderer::static_mesh_vertex_attributes//VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
             },
             MaterialAttributes {
                 .bucket = Bucket::BUCKET_TRANSLUCENT,
                 .blend_mode = BlendMode::ADDITIVE,
-                .cull_faces = FaceCullMode::FRONT,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST
+                .cull_faces = FaceCullMode::BACK,
+                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             }
         )
     );
@@ -399,6 +445,8 @@ void GaussianSplatting::UpdateSplats(Frame *frame)
         return;
     }
 
+    AssertThrow(m_gaussian_splatting_instance->IsReady());
+
     m_staging_buffer->InsertBarrier(
         frame->GetCommandBuffer(),
         renderer::ResourceState::COPY_SRC
@@ -432,7 +480,7 @@ void GaussianSplatting::UpdateSplats(Frame *frame)
         UInt32 num_points;
     } update_gaussian_splatting_push_constants;
 
-    update_gaussian_splatting_push_constants.num_points = num_points;
+    update_gaussian_splatting_push_constants.num_points = static_cast<UInt32>(num_points);
 
     m_gaussian_splatting_instance->GetComputePipeline()->GetPipeline()->SetPushConstants(
         &update_gaussian_splatting_push_constants,

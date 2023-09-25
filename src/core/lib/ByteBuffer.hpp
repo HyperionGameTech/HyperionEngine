@@ -133,6 +133,24 @@ public:
         return byte_array;
     }
 
+    ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
+    {
+        if (size > Size()) {
+            size = Size();
+        }
+
+        return ByteView(Data() + offset, size);
+    }
+
+    ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
+    {
+        if (size > Size()) {
+            size = Size();
+        }
+
+        return ConstByteView(Data() + offset, size);
+    }
+
     /*! \brief Be aware that modifying the ByteBuffer's data could have unintentional consequences if
         it is sharing memory with other ByteBuffers. */
     UByte *Data()

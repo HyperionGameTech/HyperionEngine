@@ -251,7 +251,9 @@ void ParticleSpawner::Init()
     CreateRenderGroup();
     CreateComputePipelines();
 
-    // HYP_SYNC_RENDER();
+    HYP_SYNC_RENDER();
+
+    SetReady(true);
 }
 
 void ParticleSpawner::Record(CommandBuffer *command_buffer)

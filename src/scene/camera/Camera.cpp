@@ -103,7 +103,7 @@ Camera::Camera()
 Camera::Camera(int width, int height)
     : EngineComponentBase(),
       HasDrawProxy(),
-      m_fov(60.0f),
+      m_fov(50.0f),
       m_width(width),
       m_height(height),
       m_near(0.01f),
