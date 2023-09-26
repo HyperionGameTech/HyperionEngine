@@ -399,6 +399,8 @@ public:
         batch->LoadAsync();
 
         auto obj_models = batch->AwaitResults();
+        
+#if 0
         auto zombie = obj_models["zombie"].Get<Node>();
         auto test_model = obj_models["test_model"].Get<Node>();//g_asset_manager->Load<Node>("../data/dump2/sponza.fbom");
         auto cube_obj = obj_models["cube"].Get<Node>();
@@ -412,7 +414,7 @@ public:
         material_test_obj.Scale(2.0f);
         material_test_obj.Translate(Vector3(5.0f, 3.0f, 0.0f));
         GetScene()->GetRoot().AddChild(material_test_obj);
-        
+
         if (auto dude = obj_models["dude3"].Get<Node>()) {
             dude.SetName("dude");
             for (auto &child : dude.GetChildren()) {
@@ -722,6 +724,7 @@ public:
 
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
+#endif
 
         if (true) {
             // Test gaussian splatting
@@ -760,7 +763,7 @@ public:
                     ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.z);
                     ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.w);
 
-                    rotation.Normalize();
+                    //rotation.Normalize();
 
                     out_point.rotation = rotation;
 
@@ -774,7 +777,7 @@ public:
                     ply_model->custom_data["scale_1"].Read(index * sizeof(Float), &scale.y);
                     ply_model->custom_data["scale_2"].Read(index * sizeof(Float), &scale.z);
 
-                    scale = Vector3(MathUtil::Exp(scale.x), MathUtil::Exp(scale.y), MathUtil::Exp(scale.z));
+                    //scale = Vector3(MathUtil::Exp(scale.x), MathUtil::Exp(scale.y), MathUtil::Exp(scale.z));
 
                     out_point.scale = Vector4(scale, 1.0f);
 

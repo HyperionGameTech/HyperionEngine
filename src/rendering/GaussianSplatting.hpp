@@ -59,6 +59,13 @@ class GaussianSplattingInstance
     : public EngineComponentBase<STUB_CLASS(GaussianSplattingInstance)>
 {
 public:
+    enum SortStage
+    {
+        SORT_STAGE_FIRST,
+        SORT_STAGE_SECOND,
+        SORT_STAGE_MAX
+    };
+
     GaussianSplattingInstance(RC<GaussianSplattingModelData> model);
     GaussianSplattingInstance(const GaussianSplattingInstance &other) = delete;
     GaussianSplattingInstance &operator=(const GaussianSplattingInstance &other) = delete;
@@ -67,7 +74,7 @@ public:
     const RC<GaussianSplattingModelData> &GetModel() const
         { return m_model; }
 
-    const FixedArray<DescriptorSetRef, max_frames_in_flight> &GetDescriptorSets() const
+    const FixedArray<FixedArray<DescriptorSetRef, SortStage::SORT_STAGE_MAX>, max_frames_in_flight> &GetDescriptorSets() const
         { return m_descriptor_sets; }
 
     GPUBufferRef &GetSplatBuffer()
@@ -111,9 +118,10 @@ private:
     void CreateComputePipelines();
 
     RC<GaussianSplattingModelData> m_model;
-    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<FixedArray<DescriptorSetRef, SortStage::SORT_STAGE_MAX>, max_frames_in_flight> m_descriptor_sets;
     GPUBufferRef m_splat_buffer;
     GPUBufferRef m_splat_indices_buffer;
+    GPUBufferRef m_splat_indices_buffer_secondary;
     GPUBufferRef m_splat_distances_buffer;
     GPUBufferRef m_indirect_buffer;
     Handle<ComputePipeline> m_update_splats;
