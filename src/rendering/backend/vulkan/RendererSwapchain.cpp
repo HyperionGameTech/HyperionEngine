@@ -21,7 +21,7 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
     /* look for srgb format */
     this->image_format = device->GetFeatures().FindSupportedSurfaceFormat(
         this->support_details,
-        std::array{
+        std::array {
             InternalFormat::BGRA8_SRGB
         },
         [this](const VkSurfaceFormatKHR &format) {

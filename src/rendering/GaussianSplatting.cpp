@@ -247,6 +247,15 @@ void GaussianSplattingInstance::Init()
     CreateRenderGroup();
     CreateComputePipelines();
 
+    // Temporary
+    m_cpu_sorted_indices.Resize(m_model->points.Size());
+    m_cpu_distances.Resize(m_model->points.Size());
+
+    for (SizeType index = 0; index < m_model->points.Size(); index++) {
+        m_cpu_sorted_indices[index] = index;
+        m_cpu_distances[index] = -1000.0f;
+    }
+
     HYP_SYNC_RENDER();
 
     SetReady(true);
@@ -299,6 +308,33 @@ void GaussianSplattingInstance::Record(Frame *frame)
             renderer::ResourceState::UNORDERED_ACCESS
         );
     }
+    
+    { // Temporary CPU sorting -- inefficient but useful for testing
+#if 0
+        if (m_cpu_sorted_indices.Size() != m_splat_indices_buffer->size / sizeof(UInt32)) {
+            m_cpu_sorted_indices.Resize(m_model->points.Size());
+            m_cpu_distances.Resize(m_model->points.Size());
+        }
+#endif
+
+        for (SizeType index = 0; index < m_model->points.Size(); index++) {
+            m_cpu_distances[index] = (g_engine->GetRenderState().GetCamera().camera.view * m_model->points[index].position).z;
+        }
+
+        std::sort(m_cpu_sorted_indices.Begin(), m_cpu_sorted_indices.End(), [&distances = m_cpu_distances](UInt32 a, UInt32 b) {
+            return distances[a] < distances[b];
+        });
+
+        AssertThrowMsg(m_splat_indices_buffer->size >= m_cpu_sorted_indices.Size() * sizeof(m_cpu_sorted_indices[0]),
+            "Expected buffer size to be at least %llu -- got %llu.",
+            m_cpu_sorted_indices.Size() * sizeof(m_cpu_sorted_indices[0]),
+            m_splat_indices_buffer->size
+        );
+
+        // Copy the cpu sorted indices over
+        m_splat_indices_buffer->Copy(g_engine->GetGPUDevice(), MathUtil::Min(m_splat_indices_buffer->size, m_cpu_sorted_indices.Size() * sizeof(m_cpu_sorted_indices[0])), m_cpu_sorted_indices.Data());
+    }
+
 #if 0
     { // Sort splats
         constexpr UInt32 block_size = 512;
@@ -739,9 +775,7 @@ void GaussianSplatting::Init()
     }
 
     EngineComponentBase::Init();
-
     
-
     static const std::vector<Vertex> vertices = {
         Vertex {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{ 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
@@ -753,7 +787,7 @@ void GaussianSplatting::Init()
         2, 3, 1
     };
 
-    m_quad_mesh =  CreateObject<Mesh>(
+    m_quad_mesh = CreateObject<Mesh>(
         vertices,
         indices,
         renderer::Topology::TRIANGLES,

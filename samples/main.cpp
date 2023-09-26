@@ -758,12 +758,12 @@ public:
                 if (has_rotations) {
                     Quaternion rotation;
 
-                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.x);
-                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.y);
-                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.z);
-                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.w);
+                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.w);
+                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.x);
+                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.y);
+                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.z);
 
-                    //rotation.Normalize();
+                    rotation.Normalize();
 
                     out_point.rotation = rotation;
 

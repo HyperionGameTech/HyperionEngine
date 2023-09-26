@@ -132,8 +132,8 @@ private:
     Handle<RenderGroup> m_render_group;
 
     // inefficient cpu-based sort, just to test
-    Array<UInt32> cpu_sorted_indices;
-    Array<Float32> cpu_distances;
+    Array<UInt32> m_cpu_sorted_indices;
+    Array<Float32> m_cpu_distances;
 };
 
 class GaussianSplatting
