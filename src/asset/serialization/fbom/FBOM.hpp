@@ -240,7 +240,7 @@ struct FBOMStaticData
         // return hash_code;
     }
 
-    std::string ToString() const
+    String ToString() const
     {
         switch (type) {
         case FBOM_STATIC_DATA_OBJECT:

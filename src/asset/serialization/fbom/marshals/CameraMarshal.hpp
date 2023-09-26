@@ -35,7 +35,7 @@ public:
         out.SetProperty("near", FBOMData::FromFloat(in_object.GetNear()));
         out.SetProperty("far", FBOMData::FromFloat(in_object.GetFar()));
         out.SetProperty("frustum", FBOMData::FromArray(in_object.GetFrustum().GetPlanes()));
-        out.SetProperty("fov", FBOMData::FromFloat(in_object.GetFov()));
+        out.SetProperty("fov", FBOMData::FromFloat(in_object.GetFOV()));
         out.SetProperty("left", FBOMData::FromFloat(in_object.GetLeft()));
         out.SetProperty("right", FBOMData::FromFloat(in_object.GetRight()));
         out.SetProperty("bottom", FBOMData::FromFloat(in_object.GetBottom()));

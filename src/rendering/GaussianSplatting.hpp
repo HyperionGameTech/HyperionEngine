@@ -88,14 +88,20 @@ public:
     const Handle<RenderGroup> &GetRenderGroup() const
         { return m_render_group; }
 
-    Handle<ComputePipeline> &GetComputePipeline()
-        { return m_update_gaussian_splatting; }
+    Handle<ComputePipeline> &GetUpdateSplatsComputePipeline()
+        { return m_update_splats; }
 
-    const Handle<ComputePipeline> &GetComputePipeline() const
-        { return m_update_gaussian_splatting; }
+    const Handle<ComputePipeline> &GetUpdateSplatsComputePipeline() const
+        { return m_update_splats; }
+
+    Handle<ComputePipeline> &GetSortSplatsComputePipeline()
+        { return m_sort_splats; }
+
+    const Handle<ComputePipeline> &GetSortSplatsComputePipeline() const
+        { return m_sort_splats; }
 
     void Init();
-    void Record(CommandBuffer *command_buffer);
+    void Record(Frame *frame);
 
 private:
     void CreateBuffers();
@@ -107,11 +113,13 @@ private:
     RC<GaussianSplattingModelData> m_model;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     GPUBufferRef m_splat_buffer;
-    GPUBufferRef m_sorted_splat_buffer;
     GPUBufferRef m_splat_indices_buffer;
+    GPUBufferRef m_splat_distances_buffer;
     GPUBufferRef m_indirect_buffer;
-    GPUBufferRef m_noise_buffer;
-    Handle<ComputePipeline> m_update_gaussian_splatting;
+    Handle<ComputePipeline> m_update_splats;
+    Handle<ComputePipeline> m_update_splat_distances;
+    Handle<ComputePipeline> m_sort_splats;
+    Handle<ComputePipeline> m_sort_splats_transpose;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
 };

@@ -130,9 +130,9 @@ public:
         if (flags & FBOM_OBJECT_FLAGS_EXTERNAL) {
             if constexpr (std::is_base_of_v<EngineComponentBaseBase, NormalizedType<T>>) {
                 const String class_name_lower(StringUtil::ToLower(marshal.GetObjectType().name.Data()).c_str());
-                external_object_key = String(std::to_string(UInt64(out_object.GetUniqueID())).c_str()) + ".hyp" + class_name_lower;
+                external_object_key = String::ToString(UInt64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
             } else {
-                external_object_key = String(std::to_string(UInt64(out_object.GetUniqueID())).c_str()) + ".hypdata";
+                external_object_key = String::ToString(UInt64(out_object.GetUniqueID())) + ".hypdata";
             }
         }
 
@@ -151,7 +151,7 @@ public:
         { return m_unique_id;  }
 
     HashCode GetHashCode() const;
-    std::string ToString() const;
+    String ToString() const;
 
     template <class T>
     void GenerateUniqueID(const T &object, FBOMObjectFlags flags)

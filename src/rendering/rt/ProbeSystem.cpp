@@ -364,7 +364,7 @@ void ProbeGrid::CreateUniformBuffer()
             m_depth_image->GetExtent().height
         },
         .params = {
-            ByteUtil::PackFloatU32(m_grid_info.probe_distance),
+            ByteUtil::PackFloat32InUInt32(m_grid_info.probe_distance),
             m_grid_info.num_rays_per_probe,
             PROBE_SYSTEM_FLAGS_FIRST_RUN,
             0

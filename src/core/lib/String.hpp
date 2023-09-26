@@ -177,14 +177,78 @@ public:
 
     bool StartsWith(const DynString &other) const;
     bool EndsWith(const DynString &other) const;
-
-    Array<DynString> Split(T separator) const;
     
     DynString Trimmed() const;
     DynString TrimmedLeft() const;
     DynString TrimmedRight() const;
 
     DynString Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const;
+    
+    template <class SeparatorType = std::conditional_t<is_utf8, utf::u32char, T>>
+    Array<DynString> Split(SeparatorType separator) const 
+    {
+        const auto *data = Base::Data();
+        const auto size = Size();
+
+        Array<DynString> tokens;
+
+        DynString working_string;
+        working_string.Reserve(size);
+
+        if (!is_utf8 || m_length == size) {
+            for (SizeType i = 0; i < size; i++) {
+                const auto ch = data[i];
+
+                if (ch == separator) {
+                    tokens.PushBack(std::move(working_string));
+                    // working_string now cleared
+                    continue;
+                }
+
+                working_string.Append(ch);
+            }
+        } else {
+            for (SizeType i = 0; i < size;) {
+                UInt8 num_bytes_read = 0;
+
+                union { UInt32 char_u32; UInt8 char_u8[sizeof(utf::u32char)]; };
+                char_u32 = 0;
+
+                char_u32 = utf::char8to32(
+                    Data() + i,
+                    MathUtil::Min(sizeof(utf::u32char), size - i),
+                    &num_bytes_read
+                );
+
+                if (char_u32 == UInt32(separator)) {
+                    tokens.PushBack(std::move(working_string));
+
+                    continue;
+                }
+                
+                working_string.Append(char_u8[0]);
+
+                if (num_bytes_read >= 2) {
+                    working_string.Append(char_u8[1]);
+                }
+                
+                if (num_bytes_read >= 3) {
+                    working_string.Append(char_u8[2]);
+                }
+
+                if (num_bytes_read == 4) {
+                    working_string.Append(char_u8[3]);
+                }
+            }
+        }
+
+        // finalize by pushing back remaining string
+        if (working_string.Any()) {
+            tokens.PushBack(std::move(working_string));
+        }
+
+        return tokens;
+    }
 
     template <class Integral>
     static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, DynString>
@@ -694,37 +758,6 @@ bool DynString<T, IsUtf8>::EndsWith(const DynString &other) const
     }
     
     return std::equal(Base::Begin() + Size() - other.Size(), Base::End(), other.Base::Begin());
-}
-
-template <class T, bool IsUtf8>
-auto DynString<T, IsUtf8>::Split(T separator) const -> Array<DynString>
-{
-    const auto *data = Base::Data();
-    const auto size = Size();
-
-    Array<DynString> tokens;
-
-    DynString working_string;
-    working_string.Reserve(size);
-
-    for (SizeType i = 0; i < size; i++) {
-        const auto ch = data[i];
-
-        if (ch == separator) {
-            tokens.PushBack(std::move(working_string));
-            // working_string now cleared
-            continue;
-        }
-
-        working_string.Append(ch);
-    }
-
-    // finalize by pushing back remaining string
-    if (working_string.Any()) {
-        tokens.PushBack(std::move(working_string));
-    }
-
-    return tokens;
 }
 
 template <class T, bool IsUtf8>

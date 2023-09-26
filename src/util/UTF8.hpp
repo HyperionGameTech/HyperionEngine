@@ -344,29 +344,30 @@ inline u32char *utf32_strcat(u32char *dst, const u32char *src)
 }
 
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
- *   \ref{str} _must_ be at least the sizeof u32char! (4 bytes)
+ *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char char8to32(const char *str)
+inline u32char char8to32(const char *str, hyperion::SizeType max = sizeof(u32char))
 {
     union { u32char ret; char ret_bytes[sizeof(u32char)]; };
     ret = 0;
 
     hyperion::UInt i = 0;
-    constexpr hyperion::SizeType max = sizeof(u32char);
 
-    if (str[0] <= 0x7F) {
+    const unsigned char ch = (unsigned char)str[0];
+
+    if (ch <= 0x7F) {
         ret_bytes[0] = str[i];
-    } else if ((str[0] & 0xE0) == 0xC0) {
+    } else if ((ch & 0xE0) == 0xC0) {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i];
-    } else if ((str[0] & 0xF0) == 0xE0) {
+    } else if ((ch & 0xF0) == 0xE0) {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[2] = str[i];
-    } else if ((str[0] & 0xF8) == 0xF0) {
+    } else if ((ch & 0xF8) == 0xF0) {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i++];
@@ -374,6 +375,52 @@ inline u32char char8to32(const char *str)
         ret_bytes[2] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[3] = str[i];
+    } else {
+        // invalid utf-8
+        return -1;
+    }
+
+    return ret;
+}
+
+/*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
+ *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
+ */
+inline u32char char8to32(const char *str, hyperion::SizeType max, hyperion::UInt8 *num_bytes_read_ptr)
+{
+    union { u32char ret; char ret_bytes[sizeof(u32char)]; };
+    ret = 0;
+
+    hyperion::UInt8 num_bytes_read = 0;
+
+    if (!num_bytes_read_ptr) {
+        num_bytes_read_ptr = &num_bytes_read;
+    }
+
+    *num_bytes_read_ptr = 0;
+
+    const unsigned char ch = (unsigned char)str[0];
+
+    if (ch <= 0x7F) {
+        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
+    } else if ((ch & 0xE0) == 0xC0) {
+        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
+    } else if ((ch & 0xF0) == 0xE0) {
+        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[2] = str[(*num_bytes_read_ptr)++];
+    } else if ((ch & 0xF8) == 0xF0) {
+        ret_bytes[0] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[1] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[2] = str[(*num_bytes_read_ptr)++];
+        HYP_UTF8_CHECK_BOUNDS(*num_bytes_read_ptr, max);
+        ret_bytes[3] = str[(*num_bytes_read_ptr)++];
     } else {
         // invalid utf-8
         return -1;

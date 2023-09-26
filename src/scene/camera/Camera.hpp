@@ -194,7 +194,7 @@ public:
     void SetFar(float _far) { m_far = _far; }
 
     // perspective only
-    float GetFov() const { return m_fov; }
+    float GetFOV() const { return m_fov; }
 
     // ortho only
     float GetLeft() const { return m_left; }

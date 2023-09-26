@@ -176,7 +176,7 @@ HashCode FBOMObject::GetHashCode() const
     return hc;
 }
 
-std::string FBOMObject::ToString() const
+String FBOMObject::ToString() const
 {
     std::stringstream ss;
 
@@ -196,7 +196,7 @@ std::string FBOMObject::ToString() const
 
     ss << " } ";
 
-    return ss.str();
+    return String(ss.str().data());
 }
 
 } // namespace hyperion::v2::fbom

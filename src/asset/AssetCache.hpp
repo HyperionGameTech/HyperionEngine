@@ -44,7 +44,7 @@ public:
         return m_handles.Find(key) != m_handles.End();
     }
 
-    const RefType &Get(const String &key) const
+    RefType Get(const String &key) const
     {
         std::lock_guard guard(m_mutex);
 

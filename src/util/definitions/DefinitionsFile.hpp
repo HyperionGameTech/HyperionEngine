@@ -19,6 +19,7 @@ public:
         static const Element empty;
 
         String name;
+        String value;
         Array<String> sub_elements;
     };
 

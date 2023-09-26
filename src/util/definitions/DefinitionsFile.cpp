@@ -127,8 +127,29 @@ void DefinitionsFile::Parse()
                     if (working_name.Any()) {
                         element.sub_elements.PushBack(std::move(working_name));
                     }
+                } else if (item_trimmed[index] == '=') {
+                    ++index;
 
-                    break;
+                    // Skip spaces
+                    while (index < item_trimmed.Size()) {
+                        if (std::isspace(item_trimmed[index])) {
+                            ++index;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    String value_str;
+
+                    while (index < item_trimmed.Size()) {
+                        value_str += item_trimmed[index];
+
+                        ++index;
+                    }
+
+                    if (value_str.Any()) {
+                        element.value = value_str;
+                    }
                 } else {
                     element.name += item_trimmed[index];
                 }

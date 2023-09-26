@@ -11,8 +11,34 @@ namespace hyperion {
 class ByteUtil
 {
 public:
+    /**
+     * \brief Pack a 32-bit float as a 16-bit float in the higher 16 bits of a UInt32.
+     */
+    static inline UInt32 PackFloat16InUInt32(Float32 value)
+    {
+        union {
+            UInt32 u;
+            Float32 f;
+        };
 
-    static inline UInt32 PackFloatU32(Float value)
+        f = value * 65535.0f;
+
+        return u << 16;
+    }
+
+    static inline Float32 UnpackFloat16FromUInt32(UInt32 value)
+    {
+        union {
+            UInt32 u;
+            Float32 f;
+        };
+
+        u = value >> 16;
+
+        return f / 65535.0f;
+    }
+
+    static inline UInt32 PackFloat32InUInt32(Float32 value)
     {
         union {
             UInt32 u;
@@ -24,7 +50,7 @@ public:
         return u;
     }
 
-    static inline Float UnpackFloatU32(UInt32 value)
+    static inline Float UnpackFloat32FromUInt32(UInt32 value)
     {
         union {
             UInt32 u;
@@ -59,6 +85,12 @@ public:
             Float(value & 0x0000ff00) / 255.0f,
             Float(value & 0x000000ff) / 255.0f
         };
+    }
+
+    template <class T>
+    static inline constexpr T AlignAs(T value, UInt alignment)
+    {
+        return ((value + alignment - 1) / alignment) * alignment;
     }
 };
 

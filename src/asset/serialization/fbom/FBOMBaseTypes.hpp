@@ -9,22 +9,15 @@
 
 namespace hyperion::v2::fbom {
 
-struct FBOMUnset : FBOMType { FBOMUnset() : FBOMType() {} };
-struct FBOMUnsignedInt : FBOMType { FBOMUnsignedInt() : FBOMType("u32", 4) {} };
-struct FBOMUnsignedLong : FBOMType { FBOMUnsignedLong() : FBOMType("u64", 8) {} };
-struct FBOMInt : FBOMType { FBOMInt() : FBOMType("i32", 4) {} };
-struct FBOMLong : FBOMType { FBOMLong() : FBOMType("i64", 8) {} };
-struct FBOMFloat : FBOMType { FBOMFloat() : FBOMType("f32", 4) {} };
-struct FBOMBool : FBOMType { FBOMBool() : FBOMType("bool", 1) {} };
-struct FBOMByte : FBOMType { FBOMByte() : FBOMType("byte", 1) {} };
-
-struct FBOMStruct : FBOMType
-{
-    FBOMStruct(SizeType sz)
-        : FBOMType("struct", sz)
-    {
-    }
-};
+struct FBOMUnset        : FBOMType { FBOMUnset() : FBOMType() {} };
+struct FBOMUnsignedInt  : FBOMType { FBOMUnsignedInt() : FBOMType("u32", 4) { } };
+struct FBOMUnsignedLong : FBOMType { FBOMUnsignedLong() : FBOMType("u64", 8) { } };
+struct FBOMInt          : FBOMType { FBOMInt() : FBOMType("i32", 4) { } };
+struct FBOMLong         : FBOMType { FBOMLong() : FBOMType("i64", 8) { } };
+struct FBOMFloat        : FBOMType { FBOMFloat() : FBOMType("f32", 4) {} };
+struct FBOMBool         : FBOMType { FBOMBool() : FBOMType("bool", 1) { } };
+struct FBOMByte         : FBOMType { FBOMByte() : FBOMType("byte", 1) { } };
+struct FBOMStruct       : FBOMType { FBOMStruct(SizeType sz) : FBOMType("struct", sz) { } };
 
 struct FBOMArray : FBOMType
 {

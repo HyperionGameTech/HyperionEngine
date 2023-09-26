@@ -149,9 +149,9 @@ struct FBOMType
             && extends == other.extends;
     }
 
-    std::string ToString() const
+    String ToString() const
     {
-        std::string str = std::string(name.Data()) + " (" + std::to_string(size) + ") ";
+        String str = name + " (" + String::ToString(size) + ") ";
 
         if (extends != nullptr) {
             str += "[" + extends->ToString() + "]";

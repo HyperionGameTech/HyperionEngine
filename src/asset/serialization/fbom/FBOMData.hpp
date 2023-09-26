@@ -271,12 +271,12 @@ struct FBOMData
         FBOM_RETURN_OK;
     }
 
-    std::string ToString() const
+    String ToString() const
     {
         std::stringstream stream;
         stream << "FBOM[";
         stream << "type: " << type.name << ", ";
-        stream << "size: " << std::to_string(bytes.Size()) << ", ";
+        stream << "size: " << String::ToString(bytes.Size()) << ", ";
         stream << "data: { ";
 
         for (SizeType i = 0; i < bytes.Size(); i++) {
@@ -291,7 +291,7 @@ struct FBOMData
 
         stream << "]";
 
-        return stream.str();
+        return String(stream.str().c_str());
     }
 
     UniqueID GetUniqueID() const

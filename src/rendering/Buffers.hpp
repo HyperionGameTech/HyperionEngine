@@ -70,19 +70,19 @@ static_assert(sizeof(EntityInstanceBatch) == 256);
 
 struct alignas(16) ParticleShaderData
 {
-    ShaderVec4<Float32> position;   // 4 x 4    = 16
-    ShaderVec4<Float32> velocity;   // + 4 x 4  = 32
-    ShaderVec4<Float32> color;      // + 4 x 4  = 48
+    ShaderVec4<Float32> position;   //   4 x 4 = 16
+    ShaderVec4<Float32> velocity;   // + 4 x 4 = 32
+    ShaderVec4<Float32> color;      // + 4 x 4 = 48
     ShaderVec4<Float32> attributes; // + 4 x 4 = 64
 };
 
 static_assert(sizeof(ParticleShaderData) == 64);
 
 struct alignas(16) GaussianSplatShaderData {
-    ShaderVec4<Float32> position;   // 4 x 4    = 16
-    ShaderVec4<Float32> rotation;   // + 4 x 4  = 32
-    ShaderVec4<Float32> scale;       // + 4 x 4 = 48
-    ShaderVec4<Float32> color;       // + 4 x 4 = 64
+    ShaderVec4<Float32> position;   //   4 x 4 = 16
+    ShaderVec4<Float32> rotation;   // + 4 x 4 = 32
+    ShaderVec4<Float32> scale;      // + 4 x 4 = 48
+    ShaderVec4<Float32> color;      // + 4 x 4 = 64
 };
 
 static_assert(sizeof(GaussianSplatShaderData) == 64);
