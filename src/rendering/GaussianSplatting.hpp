@@ -130,6 +130,10 @@ private:
     Handle<ComputePipeline> m_sort_splats_transpose;
     Handle<Shader> m_shader;
     Handle<RenderGroup> m_render_group;
+
+    // inefficient cpu-based sort, just to test
+    Array<UInt32> cpu_sorted_indices;
+    Array<Float32> cpu_distances;
 };
 
 class GaussianSplatting

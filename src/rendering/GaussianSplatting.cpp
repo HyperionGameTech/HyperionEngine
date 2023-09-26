@@ -299,7 +299,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
             renderer::ResourceState::UNORDERED_ACCESS
         );
     }
-    
+#if 0
     { // Sort splats
         constexpr UInt32 block_size = 512;
         constexpr UInt32 transpose_block_size = 16;
@@ -499,7 +499,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
             }
         }
     }
-
+#endif
     { // Update splats
         struct alignas(128) {
             UInt32 num_points;

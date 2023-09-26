@@ -1272,7 +1272,7 @@ int main()
 
     // AssertThrow(server.Start());
 
-    while (g_engine->IsRenderLoopActive()) {
+     while (g_engine->IsRenderLoopActive()) {
         // input manager stuff
         while (application->PollEvent(event)) {
             my_game->HandleEvent(std::move(event));
