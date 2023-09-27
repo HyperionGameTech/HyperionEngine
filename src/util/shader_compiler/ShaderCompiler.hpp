@@ -155,6 +155,57 @@ struct ShaderProperty
     bool IsValueGroup() const
         { return possible_values.Any(); }
 
+    /**
+     * \brief If this ShaderProperty is a value group, returns the number of possible values, otherwise returns 0. If a default value is set for this ShaderProperty, that is taken into account
+     */
+    SizeType ValueGroupSize() const
+    {
+        if (!IsValueGroup()) {
+            return 0;
+        }
+
+        const SizeType value_group_size = possible_values.Size();
+
+        if (HasValue()) {
+            const String *value_ptr = value.TryGet<String>();
+
+            if (value_ptr && possible_values.Contains(*value_ptr)) {
+                return value_group_size - 1;
+            }
+        }
+
+        return value_group_size;
+    }
+
+    /**
+     * \brief If this ShaderProperty is a value group, returns an Array of all possible values. Otherwise, returns the currently set value (if applicable). If a default value is set for this ShaderProperty, that is included in the Array.
+     */
+    FlatSet<ShaderProperty> GetAllPossibleValues()
+    {
+        FlatSet<ShaderProperty> result;
+
+        if (IsValueGroup()) {
+            result.Reserve(possible_values.Size() + (HasValue() ? 1 : 0));
+
+            for (const auto &possible_value : possible_values) {
+                result.Insert(ShaderProperty(possible_value, false));
+            }
+
+            if (HasValue()) {
+                const String *value_ptr = value.TryGet<String>();
+                AssertThrowMsg(value_ptr != nullptr, "For a valuegroup with a default value, the default value should be of type String. Got TypeID: %u\n", value.GetTypeID().GetHashCode().Value());
+
+                result.Insert(ShaderProperty(name + "_" + *value_ptr, false));
+            }
+        } else {
+            if (HasValue()) {
+                result.Insert(ShaderProperty(name, false, value, flags));
+            }
+        }
+
+        return result;
+    }
+
     bool HasValue() const
         { return value.IsValid(); }
 
@@ -544,11 +595,19 @@ struct ShaderDefinition
 struct CompiledShader
 {
     ShaderDefinition definition;
+    String entry_point_name = "main";
     HeapArray<ByteBuffer, ShaderModule::Type::MAX> modules;
 
     CompiledShader() = default;
     CompiledShader(Name name, const ShaderProperties &properties)
-        : definition { name, properties }
+        : definition { name, properties },
+          entry_point_name("main")
+    {
+    }
+
+    CompiledShader(Name name, const ShaderProperties &properties, String entry_point_name)
+        : definition { name, properties },
+          entry_point_name(std::move(entry_point_name))
     {
     }
 
@@ -573,6 +632,9 @@ struct CompiledShader
 
     Name GetName() const
         { return definition.name; }
+
+    const String &GetEntryPointName() const
+        { return entry_point_name; }
 
     const ShaderProperties &GetProperties() const
         { return definition.properties; }
@@ -712,6 +774,7 @@ public:
     struct Bundle // combination of shader files, .frag, .vert etc.
     {
         Name name;
+        String entry_point_name = "main";
         FlatMap<ShaderModule::Type, SourceFile> sources;
         ShaderProperties versions; // permutations
 

@@ -26,6 +26,8 @@ public:
 
         out.SetProperty("name", FBOMName(), in_object.GetDefinition().name);
 
+        out.SetProperty("entry_point_name", FBOMString(in_object.entry_point_name.Size()), in_object.entry_point_name.Data());
+
         const VertexAttributeSet required_vertex_attributes = in_object.GetDefinition().GetProperties().GetRequiredVertexAttributes();
         out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
 
@@ -96,6 +98,14 @@ public:
 
         if (auto err = in.GetProperty("name").ReadName(&name)) {
             return err;
+        }
+
+        if (in.HasProperty("entry_point_name")) {
+            if (auto err = in.GetProperty("entry_point_name").ReadString(compiled_shader->entry_point_name)) {
+                return err;
+            }
+        } else {
+            compiled_shader->entry_point_name = "main";
         }
 
         VertexAttributeSet required_vertex_attributes;

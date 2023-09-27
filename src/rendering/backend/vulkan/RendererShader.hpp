@@ -2,6 +2,8 @@
 #define HYPERION_RENDERER_SHADER_H
 
 #include <core/lib/ByteBuffer.hpp>
+#include <core/lib/DynArray.hpp>
+#include <core/lib/String.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
 #include <asset/ByteReader.hpp>
@@ -50,19 +52,22 @@ struct ShaderModule
 
         MAX
     } type;
-
+    
+    String entry_point_name;
     ShaderObject spirv;
     VkShaderModule shader_module;
 
-    ShaderModule(Type type)
+    ShaderModule(Type type, String entry_point_name)
         : type(type),
+          entry_point_name(std::move(entry_point_name)),
           spirv { },
           shader_module { }
     {
     }
 
-    ShaderModule(Type type, const ShaderObject &spirv, VkShaderModule shader_module = nullptr)
+    ShaderModule(Type type, String entry_point_name, const ShaderObject &spirv, VkShaderModule shader_module = nullptr)
         : type(type),
+          entry_point_name(std::move(entry_point_name)),
           spirv(spirv),
           shader_module(shader_module)
     {
@@ -96,24 +101,23 @@ struct ShaderGroup
 class ShaderProgram
 {
 public:
-    static constexpr const char *entry_point = "main";
-
     ShaderProgram();
+    ShaderProgram(String entry_point_name);
     ShaderProgram(const ShaderProgram &other) = delete;
     ShaderProgram &operator=(const ShaderProgram &other) = delete;
     ~ShaderProgram();
 
-    const std::vector<ShaderModule> &GetShaderModules() const
+    const Array<ShaderModule> &GetShaderModules() const
         { return m_shader_modules; }
 
-    std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages()
+    Array<VkPipelineShaderStageCreateInfo> &GetShaderStages()
         { return m_shader_stages; }
 
-    const std::vector<VkPipelineShaderStageCreateInfo> &GetShaderStages() const
+    const Array<VkPipelineShaderStageCreateInfo> &GetShaderStages() const
         { return m_shader_stages; }
 
     /* For raytracing only */
-    const std::vector<ShaderGroup> &GetShaderGroups() const
+    const Array<ShaderGroup> &GetShaderGroups() const
         { return m_shader_groups; }
 
     bool IsRaytracing() const
@@ -148,10 +152,12 @@ private:
     VkPipelineShaderStageCreateInfo CreateShaderStage(const ShaderModule &);
     Result CreateShaderGroups();
 
-    std::vector<ShaderModule> m_shader_modules;
+    String m_entry_point_name;
 
-    std::vector<VkPipelineShaderStageCreateInfo> m_shader_stages;
-    std::vector<ShaderGroup> m_shader_groups;
+    Array<ShaderModule> m_shader_modules;
+
+    Array<VkPipelineShaderStageCreateInfo> m_shader_stages;
+    Array<ShaderGroup> m_shader_groups;
 };
 
 } // namespace renderer

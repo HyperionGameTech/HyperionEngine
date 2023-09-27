@@ -328,6 +328,9 @@ static HYP_FORCE_INLINE Handle<T> CreateObjectIntern(Engine *engine, Args &&... 
     return engine->template CreateObject<T>(std::forward<Args>(args)...);
 }
 
+/**
+ * \brief Creates a new object of type T. The object is not initialized until InitObject() is called with the object as a parameter.
+ */
 template <class T, class ...Args>
 static HYP_FORCE_INLINE Handle<T> CreateObject(Args &&... args)
 {

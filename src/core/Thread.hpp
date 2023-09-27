@@ -52,6 +52,9 @@ public:
     Thread &operator=(Thread &&other) noexcept;
     virtual ~Thread();
 
+    /**
+     * \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. 
+     */
     const ThreadID &GetID() const { return m_id; }
 
     Scheduler &GetScheduler() { return m_scheduler; }
@@ -67,9 +70,24 @@ public:
         return m_scheduler.Enqueue(std::forward<Task>(task), atomic_counter);
     }
 
+    /**
+     * \brief Start the thread with the given arguments and run the thread function with them
+     */
     bool Start(Args ...args);
+
+    /**
+     * \brief Detach the thread from the current thread and let it run in the background until it finishes execution
+     */
     bool Detach();
+
+    /**
+     * \brief Join the thread and wait for it to finish execution before continuing execution of the current thread
+     */
     bool Join();
+
+    /**
+     * \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined)
+     */
     bool CanJoin() const;
 
 protected:

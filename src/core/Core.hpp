@@ -32,6 +32,9 @@ static HYP_FORCE_INLINE bool InitObjectIntern(EngineImpl *engine, Handle<T> &han
     return engine->template InitObject<T>(handle);
 }
 
+/**
+ * \brief Initializes an object with the engine. This is a wrapper around the engine's InitObject function.
+ */
 template <class T>
 static HYP_FORCE_INLINE bool InitObject(Handle<T> &handle)
 {

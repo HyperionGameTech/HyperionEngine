@@ -99,14 +99,14 @@ Result RaytracingPipeline::Create(
     const auto &shader_groups = shader_program->GetShaderGroups();
 
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
-    shader_group_create_infos.resize(shader_groups.size());
+    shader_group_create_infos.resize(shader_groups.Size());
 
-    for (SizeType i = 0; i < shader_groups.size(); i++) {
+    for (SizeType i = 0; i < shader_groups.Size(); i++) {
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 
-    pipeline_info.stageCount = static_cast<UInt32>(stages.size());
-    pipeline_info.pStages = stages.data();
+    pipeline_info.stageCount = static_cast<UInt32>(stages.Size());
+    pipeline_info.pStages = stages.Data();
     pipeline_info.groupCount = static_cast<UInt32>(shader_group_create_infos.size());
     pipeline_info.pGroups = shader_group_create_infos.data();
     pipeline_info.layout = layout;
@@ -212,18 +212,17 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device, ShaderProgr
 
     const UInt32 handle_size = properties.shaderGroupHandleSize;
     const UInt32 handle_size_aligned = device->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
-    const UInt32 table_size = static_cast<UInt32>(shader_groups.size()) * handle_size_aligned;
+    const UInt32 table_size = static_cast<UInt32>(shader_groups.Size()) * handle_size_aligned;
 
-    std::vector<UInt8> shader_handle_storage;
-    shader_handle_storage.resize(table_size);
+    ByteBuffer shader_handle_storage(table_size);
 
     HYPERION_VK_CHECK(features.dyn_functions.vkGetRayTracingShaderGroupHandlesKHR(
         device->GetDevice(),
         pipeline,
         0,
-        static_cast<UInt32>(shader_groups.size()),
-        static_cast<UInt32>(shader_handle_storage.size()),
-        shader_handle_storage.data()
+        static_cast<UInt32>(shader_groups.Size()),
+        static_cast<UInt32>(shader_handle_storage.Size()),
+        shader_handle_storage.Data()
     ));
 
     auto result = Result::OK;

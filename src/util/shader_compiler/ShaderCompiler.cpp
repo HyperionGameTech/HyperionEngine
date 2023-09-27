@@ -549,9 +549,11 @@ void ShaderCompiler::ParseDefinitionSection(
                     bundle.versions.AddPermutation(element.name);
                 }
             }
+        } else if (section_it.key == "entry_point") {
+            bundle.entry_point_name = section_it.value.GetValue().name;
         } else if (shader_type_names.Contains(section_it.key)) {
             bundle.sources[shader_type_names.At(section_it.key)] = SourceFile {
-                g_asset_manager->GetBasePath() / "vkshaders" / section_it.value.GetValue().name
+                g_asset_manager->GetBasePath() / "shaders" / section_it.value.GetValue().name
             };
         } else {
             DebugLog(
@@ -1235,7 +1237,7 @@ bool ShaderCompiler::CompileBundle(
 
     // compile shader with each permutation of properties
     ForEachPermutation(final_versions, [&](const ShaderProperties &properties) {
-        CompiledShader compiled_shader(bundle.name, properties);
+        CompiledShader compiled_shader(bundle.name, properties, bundle.entry_point_name);
 
         bool any_files_compiled = false;
 
@@ -1260,7 +1262,7 @@ bool ShaderCompiler::CompileBundle(
                             output_filepath.Data(),
                             properties.ToString().Data()
                         );
-
+                        
                         compiled_shader.modules[item.type] = reader.ReadBytes();
 
                         continue;

@@ -375,12 +375,18 @@ public:
         return rc;
     }
 
+    /**
+     * \brief Constructs a new UniquePtr<T> from the given arguments.
+     */
     template <class ...Args>
     [[nodiscard]] static UniquePtr Construct(Args &&... args)
     {
         return UniquePtr(new T(std::forward<Args>(args)...));
     }
 
+    /**
+     * \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
+     */
     template <class Ty>
     [[nodiscard]] bool Is() const
     {

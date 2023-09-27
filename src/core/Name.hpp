@@ -171,6 +171,9 @@ struct NameRegistration
     }
 };
 
+/**
+ * \brief Creates a Name from a static string. The string must be a compile-time constant.
+ */
 template <class HashedName>
 static inline Name CreateNameFromStaticString(HashedName &&hashed_name)
 {
@@ -179,6 +182,9 @@ static inline Name CreateNameFromStaticString(HashedName &&hashed_name)
     return Name(name_registration.id);
 }
 
+/**
+ * \brief Creates a Name from a dynamic string.
+ */
 Name CreateNameFromDynamicString(const ANSIString &str);
 
 template <auto StaticStringType>

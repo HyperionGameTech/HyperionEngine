@@ -131,25 +131,46 @@ public:
         }
     }
 
+    /**
+     * \brief Get a raw pointer to the held object.
+     */
     HYP_FORCE_INLINE void *GetPointer()
         { return m_ptr; }
 
+    /**
+     * \brief Get a raw pointer to the held object.
+     */
     HYP_FORCE_INLINE const void *GetPointer() const
         { return m_ptr; }
 
+    /**
+     * \brief Returns true if the Any has a value.
+     */
     HYP_FORCE_INLINE bool HasValue() const
         { return m_ptr != nullptr; }
 
+    /**
+     * \brief Returns the TypeID of the held object.
+     */
     HYP_FORCE_INLINE const TypeID &GetTypeID() const
         { return m_type_id; }
 
+    /**
+     * \brief Returns true if the held object is of type T.
+     */
     template <class T>
     HYP_FORCE_INLINE bool Is() const
         { return m_type_id == TypeID::ForType<T>(); }
 
+    /**
+     * \brief Returns true if the held object is of type {type_id}.
+     */
     HYP_FORCE_INLINE bool Is(const TypeID &type_id) const
         { return m_type_id == type_id; }
 
+    /**
+     * \brief Returns the held object as a reference to type T. If the held object is not of type T, an exception is thrown.
+     */
     template <class T>
     HYP_FORCE_INLINE T &Get()
     {
@@ -158,7 +179,10 @@ public:
 
         return *static_cast<T *>(m_ptr);
     }
-
+    
+    /**
+     * \brief Returns the held object as a const reference to type T. If the held object is not of type T, an exception is thrown.
+     */
     template <class T>
     HYP_FORCE_INLINE const T &Get() const
     {
@@ -168,6 +192,9 @@ public:
         return *static_cast<const T *>(m_ptr);
     }
 
+    /**
+     * \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned.
+     */
     template <class T>
     HYP_FORCE_INLINE T *TryGet()
     {
@@ -178,7 +205,10 @@ public:
 
         return nullptr;
     }
-
+    
+    /**
+     * \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned.
+     */
     template <class T>
     HYP_FORCE_INLINE const T *TryGet() const
     {

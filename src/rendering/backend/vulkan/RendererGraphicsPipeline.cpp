@@ -383,12 +383,12 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         depth_stencil.front          = depth_stencil.back;
     }
 
-    VkGraphicsPipelineCreateInfo pipeline_info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+    VkGraphicsPipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
     auto &stages = m_construction_info.shader->GetShaderStages();
 
-    pipeline_info.stageCount          = UInt32(stages.size());
-    pipeline_info.pStages             = stages.data();
+    pipeline_info.stageCount          = UInt32(stages.Size());
+    pipeline_info.pStages             = stages.Data();
     pipeline_info.pVertexInputState   = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &input_asm_info;
     pipeline_info.pViewportState      = &viewport_state;

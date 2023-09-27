@@ -37,6 +37,15 @@ struct RefCountData
     }
 #endif
 
+    auto UseCount() const
+    {
+        if constexpr (std::is_integral_v<CountType>) {
+            return strong_count;
+        } else {
+            return strong_count.load(std::memory_order_acquire);
+        }
+    }
+
     template <class T, class ...Args>
     void Construct(Args &&... args)
     {

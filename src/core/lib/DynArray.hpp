@@ -148,26 +148,79 @@ public:
     DynArray &operator=(const DynArray &other);
     DynArray &operator=(DynArray &&other) noexcept;
 
+    /**
+     * \brief Returns the number of elements in the array.
+     */
     [[nodiscard]] SizeType Size() const { return m_size - m_start_offset; }
 
+    /**
+     * \brief Returns a pointer to the first element in the array.
+     */
     [[nodiscard]] ValueType *Data() { return &GetBuffer()[m_start_offset]; }
+
+    /**
+     * \brief Returns a pointer to the first element in the array.
+     */
     [[nodiscard]] const ValueType *Data() const { return &GetBuffer()[m_start_offset]; }
 
+    /**
+     * \brief Returns a reference to the first element in the array.
+     */
     [[nodiscard]] ValueType &Front() { return GetBuffer()[m_start_offset]; }
+    
+    /**
+     * \brief Returns a reference to the first element in the array.
+     */
     [[nodiscard]] const ValueType &Front() const { return GetBuffer()[m_start_offset]; }
 
+    /**
+     * \brief Returns a reference to the last element in the array.
+     */
     [[nodiscard]] ValueType &Back() { return GetBuffer()[m_size - 1]; }
+
+    /**
+     * \brief Returns a reference to the last element in the array.
+     */
     [[nodiscard]] const ValueType &Back() const { return GetBuffer()[m_size - 1]; }
 
+    /**
+     * \brief Returns true if the array has no elements.
+     */
     [[nodiscard]] bool Empty() const { return Size() == 0; }
+
+    /**
+     * \brief Returns true if the array has any elements.
+     */
     [[nodiscard]] bool Any() const { return Size() != 0; }
 
+    /**
+     * \brief Returns the element at the given index. No bounds checking is performed.
+     */
     ValueType &operator[](KeyType index) { return GetBuffer()[m_start_offset + index]; }
+
+    /**
+     * \brief Returns the element at the given index. No bounds checking is performed.
+     */
     [[nodiscard]] const ValueType &operator[](KeyType index) const { return GetBuffer()[m_start_offset + index]; }
 
+    /**
+     * \brief Reserves enough space for {capacity} elements. If the capacity is smaller than the current capacity, nothing happens.
+     */
     void Reserve(SizeType capacity);
+
+    /**
+     * \brief Resizes the array to the given size. If the size is smaller than the current size, the array is truncated.
+     */
     void Resize(SizeType new_size);
+
+    /**
+     * \brief Refits the array to the smallest possible size. This is useful if you have a large array and want to free up memory.
+     */
     void Refit();
+
+    /**
+     * \brief Updates the capacity of the array to be at least {capacity}
+     */
     void SetCapacity(SizeType capacity, SizeType copy_offset = 0);
 
     void PushBack(const ValueType &value);
@@ -205,10 +258,16 @@ public:
     ValueType PopBack();
     void Clear();
 
+    /**
+     * \brief Returns true if any elements in the array satisfy the given lambda.
+     */
     template <class Lambda>
     [[nodiscard]] bool Any(Lambda &&lambda) const
         { return Base::Any(std::forward<Lambda>(lambda)); }
 
+    /**
+     * \brief Returns true if all elements in the array satisfy the given lambda.
+     */
     template <class Lambda>
     [[nodiscard]] bool Every(Lambda &&lambda) const
         { return Base::Every(std::forward<Lambda>(lambda)); }

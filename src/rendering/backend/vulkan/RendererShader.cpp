@@ -6,7 +6,14 @@
 
 namespace hyperion {
 namespace renderer {
+
 ShaderProgram::ShaderProgram()
+    : m_entry_point_name("main")
+{
+}
+
+ShaderProgram::ShaderProgram(String entry_point_name)
+    : m_entry_point_name(std::move(entry_point_name))
 {
 }
 
@@ -24,9 +31,9 @@ Result ShaderProgram::AttachShader(Device *device, ShaderModule::Type type, cons
 
     HYPERION_VK_CHECK(vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &shader_module));
 
-    m_shader_modules.emplace_back(type, spirv, shader_module);
+    m_shader_modules.PushBack(ShaderModule(type, m_entry_point_name, spirv, shader_module));
 
-    std::sort(m_shader_modules.begin(), m_shader_modules.end());
+    std::sort(m_shader_modules.Begin(), m_shader_modules.End());
 
     HYPERION_RETURN_OK;
 }
@@ -37,7 +44,7 @@ ShaderProgram::CreateShaderStage(const ShaderModule &shader_module)
     VkPipelineShaderStageCreateInfo create_info{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
 
     create_info.module = shader_module.shader_module;
-    create_info.pName  = entry_point;
+    create_info.pName = shader_module.entry_point_name.Data();
 
     switch (shader_module.type) {
     case ShaderModule::Type::VERTEX:
@@ -88,15 +95,15 @@ ShaderProgram::CreateShaderStage(const ShaderModule &shader_module)
 
 Result ShaderProgram::CreateShaderGroups()
 {
-    m_shader_groups.clear();
+    m_shader_groups.Clear();
 
-    for (size_t i = 0; i < m_shader_modules.size(); i++) {
+    for (SizeType i = 0; i < m_shader_modules.Size(); i++) {
         const auto &shader_module = m_shader_modules[i];
         
         switch (shader_module.type) {
         case ShaderModule::Type::RAY_MISS: /* fallthrough */
         case ShaderModule::Type::RAY_GEN:
-            m_shader_groups.push_back({
+            m_shader_groups.PushBack({
                 shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR{
                     .sType              = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -110,7 +117,7 @@ Result ShaderProgram::CreateShaderGroups()
 
             break;
         case ShaderModule::Type::RAY_CLOSEST_HIT:
-            m_shader_groups.push_back({
+            m_shader_groups.PushBack({
                 shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR{
                     .sType              = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -124,7 +131,7 @@ Result ShaderProgram::CreateShaderGroups()
 
             break;
         default:
-            return {Result::RENDERER_ERR, "Unimplemented shader group type"};
+            return { Result::RENDERER_ERR, "Unimplemented shader group type" };
         }
     }
 
@@ -140,7 +147,7 @@ Result ShaderProgram::Create(Device *device)
 
         auto stage = CreateShaderStage(shader_module);
 
-        m_shader_stages.push_back(stage);
+        m_shader_stages.PushBack(stage);
     }
 
     if (is_raytracing) {

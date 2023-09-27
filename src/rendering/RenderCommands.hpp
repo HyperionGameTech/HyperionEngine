@@ -22,8 +22,15 @@ class Engine;
 using renderer::Result;
 
 #define RENDER_COMMAND(name) RenderCommand_##name
+
+/**
+ * \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
+ */
 #define PUSH_RENDER_COMMAND(name, ...) RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__)
 
+/**
+ * \brief Executes a render command line. This must be called from the render thread. Avoid if possible.
+ */
 #define EXEC_RENDER_COMMAND_INLINE(name, ...) \
     { \
         Threads::AssertOnThread(THREAD_RENDER); \
@@ -90,17 +97,19 @@ struct RenderCommandList
         return last_block->storage.Data() + command_index;
     }
 
+    HYP_FORCE_INLINE
     void Rewind()
     {
         // Note: all items must have been destructed,
         // or undefined behavior will occur as the items are not properly destructed
-        while (blocks.Size() != 1) {
+        while (blocks.Size() - 1) {
             blocks.PopBack();
         }
 
         blocks.Front().index = 0;
     }
-
+    
+    HYP_FORCE_INLINE
     static void RewindFunc(void *ptr)
     {
         static_cast<RenderCommandList *>(ptr)->Rewind();
@@ -174,6 +183,7 @@ private:
 
 public:
     template <class T, class ...Args>
+    HYP_FORCE_INLINE
     static T *Push(Args &&... args)
     {
         std::unique_lock lock(mtx);
@@ -202,6 +212,7 @@ public:
 
 private:
     template <class T>
+    HYP_FORCE_INLINE
     static void *Alloc()
     {
         struct Data

@@ -143,10 +143,10 @@ Result ComputePipeline::Create(
         return { Result::RENDERER_ERR, "Device max bound descriptor sets exceeded" };
     }
 
-    layout_info.setLayoutCount = static_cast<uint32_t>(used_layouts.size());
+    layout_info.setLayoutCount = static_cast<UInt32>(used_layouts.size());
     layout_info.pSetLayouts = used_layouts.data();
     
-    layout_info.pushConstantRangeCount = static_cast<uint32_t>(std::size(push_constant_ranges));
+    layout_info.pushConstantRangeCount = static_cast<UInt32>(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
@@ -162,11 +162,11 @@ Result ComputePipeline::Create(
 
     const auto &stages = shader->GetShaderStages();
 
-    if (stages.size() != 1) {
+    if (stages.Size() != 1) {
         return { Result::RENDERER_ERR, "Compute pipelines must have only one shader stage" };
     }
 
-    pipeline_info.stage = stages.front();
+    pipeline_info.stage = stages.Front();
     pipeline_info.layout = layout;
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
     pipeline_info.basePipelineIndex = -1;
