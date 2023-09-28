@@ -33,11 +33,16 @@ enum BitonicSortStage : UInt32
     STAGE_BIG_DISPERSE
 };
 
+struct alignas(8) GaussianSplatIndex
+{
+    UInt32  index;
+    Float32 distance;
+};
+
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
 {
     GPUBufferRef splat_buffer;
     GPUBufferRef splat_indices_buffer;
-    GPUBufferRef splat_indices_buffer_secondary;
     GPUBufferRef splat_distances_buffer;
     GPUBufferRef indirect_buffer;
     RC<GaussianSplattingModelData> model;
@@ -45,13 +50,11 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
     RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)(
         GPUBufferRef splat_buffer,
         GPUBufferRef splat_indices_buffer,
-        GPUBufferRef splat_indices_buffer_secondary,
         GPUBufferRef splat_distances_buffer,
         GPUBufferRef indirect_buffer,
         RC<GaussianSplattingModelData> model
     ) : splat_buffer(std::move(splat_buffer)),
         splat_indices_buffer(std::move(splat_indices_buffer)),
-        splat_indices_buffer_secondary(std::move(splat_indices_buffer_secondary)),
         splat_distances_buffer(std::move(splat_distances_buffer)),
         indirect_buffer(std::move(indirect_buffer)),
         model(std::move(model))
@@ -75,7 +78,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
             model->points.Data()
         );
 
-        const SizeType indices_buffer_size = ByteUtil::AlignAs(num_points * sizeof(UInt32), sizeof(ShaderVec4<UInt32>));
+        const SizeType indices_buffer_size = MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex);
         const SizeType distances_buffer_size = ByteUtil::AlignAs(num_points * sizeof(Float32), sizeof(ShaderVec4<Float32>));
 
         HYPERION_BUBBLE_ERRORS(splat_indices_buffer->Create(
@@ -84,36 +87,29 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
         ));
 
         // Set default indices
-        UInt32 *indices_buffer_data = new UInt32[indices_buffer_size / sizeof(UInt32)];
+        GaussianSplatIndex *indices_buffer_data = new GaussianSplatIndex[indices_buffer_size / sizeof(GaussianSplatIndex)];
 
         for (SizeType index = 0; index < num_points; index++) {
             if (index >= UINT32_MAX) {
                 break;
             }
 
-            indices_buffer_data[index] = static_cast<UInt32>(index);
+            indices_buffer_data[index] = GaussianSplatIndex {
+                UInt32(index),
+                -1000.0f
+            };
         }
 
-        for (SizeType index = num_points; index < indices_buffer_size / sizeof(UInt32); index++) {
-            indices_buffer_data[index] = 0;
+        for (SizeType index = num_points; index < indices_buffer_size / sizeof(GaussianSplatIndex); index++) {
+            indices_buffer_data[index] = GaussianSplatIndex {
+                UInt32(-1),
+                -1000.0f
+            };
         }
 
         splat_indices_buffer->Copy(
             g_engine->GetGPUDevice(),
             splat_indices_buffer->size,
-            indices_buffer_data
-        );
-
-        // Create a secondary buffer, used for sorting
-
-        HYPERION_BUBBLE_ERRORS(splat_indices_buffer_secondary->Create(
-           g_engine->GetGPUDevice(),
-           indices_buffer_size
-        ));
-
-        splat_indices_buffer_secondary->Copy(
-            g_engine->GetGPUDevice(),
-            splat_indices_buffer_secondary->size,
             indices_buffer_data
         );
 
@@ -352,17 +348,13 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
         struct alignas(128) {
             UInt32 num_points;
-            UInt32 level;
-            UInt32 level_mask;
-            UInt32 width;
-            UInt32 height;
             UInt32 stage;
             UInt32 h;
         } sort_splats_push_constants;
 
         Memory::MemSet(&sort_splats_push_constants, 0x0, sizeof(sort_splats_push_constants));
 
-        const UInt32 num_sortable_elements = MathUtil::NextPowerOf2(num_points); // Values are stored in components of uvec4
+        const UInt32 num_sortable_elements = UInt32(MathUtil::NextPowerOf2(num_points)); // Values are stored in components of uvec4
 
         const UInt32 width = block_size;
         const UInt32 height = num_sortable_elements / block_size;
@@ -375,7 +367,7 @@ void GaussianSplattingInstance::Record(Frame *frame)
         );
 
 
-        static constexpr UInt32 max_workgroup_size = 1024;
+        static constexpr UInt32 max_workgroup_size = 512;
         UInt32 workgroup_size_x = 1;
 
         if (num_sortable_elements < max_workgroup_size * 2) {
@@ -384,10 +376,10 @@ void GaussianSplattingInstance::Record(Frame *frame)
             workgroup_size_x = max_workgroup_size;
         }
 
-        AssertThrowMsg(workgroup_size_x == 1024, "Not implemented for workgroup size < 1024");
+        AssertThrowMsg(workgroup_size_x == max_workgroup_size, "Not implemented for workgroup size < max_workgroup_size");
 
         UInt32 h = workgroup_size_x * 2;
-        const UInt32 workgroup_count = num_sortable_elements / ( workgroup_size_x * 2 );
+        const UInt32 workgroup_count = num_sortable_elements / (workgroup_size_x * 2);
 
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
@@ -491,7 +483,6 @@ void GaussianSplattingInstance::CreateBuffers()
 {
     m_splat_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
     m_splat_indices_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_splat_indices_buffer_secondary = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
     m_splat_distances_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
     m_indirect_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
 
@@ -499,7 +490,6 @@ void GaussianSplattingInstance::CreateBuffers()
         CreateGaussianSplattingInstanceBuffers,
         m_splat_buffer,
         m_splat_indices_buffer,
-        m_splat_indices_buffer_secondary,
         m_splat_distances_buffer,
         m_indirect_buffer,
         m_model
@@ -528,6 +518,11 @@ void GaussianSplattingInstance::CreateDescriptorSets()
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
                 ->SetElementBuffer(0, m_indirect_buffer);
+            
+            // splat data indices
+            m_descriptor_sets[frame_index][sort_stage_index]
+                ->AddDescriptor<renderer::StorageBufferDescriptor>(3)
+                ->SetElementBuffer(0, m_splat_indices_buffer);
 
             // splat data distances from camera
             m_descriptor_sets[frame_index][sort_stage_index]
@@ -552,41 +547,6 @@ void GaussianSplattingInstance::CreateDescriptorSets()
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::SamplerDescriptor>(8)
                 ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
-
-            switch (sort_stage_index) {
-            case SortStage::SORT_STAGE_FIRST:
-                // splat data indices
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                    ->SetElementBuffer(0, m_splat_indices_buffer);
-
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(9)
-                    ->SetElementBuffer(0, m_splat_indices_buffer);
-
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(10)
-                    ->SetElementBuffer(0, m_splat_indices_buffer_secondary);
-
-                break;
-            case SortStage::SORT_STAGE_SECOND:
-                // splat data indices
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                    ->SetElementBuffer(0, m_splat_indices_buffer_secondary);
-
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(9)
-                    ->SetElementBuffer(0, m_splat_indices_buffer_secondary);
-
-                m_descriptor_sets[frame_index][sort_stage_index]
-                    ->AddDescriptor<renderer::StorageBufferDescriptor>(10)
-                    ->SetElementBuffer(0, m_splat_indices_buffer);
-
-                break;
-            default:
-                AssertThrowMsg(false, "Invalid sort stage");
-            }
         }
     }
 
@@ -650,22 +610,12 @@ void GaussianSplattingInstance::CreateComputePipelines()
     m_sort_splats = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(
             HYP_NAME(GaussianSplatting_SortSplats),
-            ShaderProperties(base_properties).Set("MODE_SORT")
+            ShaderProperties(base_properties)
         ),
         Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
     );
 
     InitObject(m_sort_splats);
-
-    m_sort_splats_transpose = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(
-            HYP_NAME(GaussianSplatting_SortSplats),
-            ShaderProperties(base_properties).Set("MODE_TRANSPOSE")
-        ),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
-    );
-
-    InitObject(m_sort_splats_transpose);
 }
 
 GaussianSplatting::GaussianSplatting()
