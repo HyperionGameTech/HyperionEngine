@@ -25,6 +25,14 @@ using renderer::Result;
 using renderer::GPUBuffer;
 using renderer::GPUBufferType;
 
+enum BitonicSortStage : UInt32
+{
+    STAGE_LOCAL_BMS,
+    STAGE_LOCAL_DISPERSE,
+    STAGE_BIG_FLIP,
+    STAGE_BIG_DISPERSE
+};
+
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
 {
     GPUBufferRef splat_buffer;
@@ -348,6 +356,8 @@ void GaussianSplattingInstance::Record(Frame *frame)
             UInt32 level_mask;
             UInt32 width;
             UInt32 height;
+            UInt32 stage;
+            UInt32 h;
         } sort_splats_push_constants;
 
         Memory::MemSet(&sort_splats_push_constants, 0x0, sizeof(sort_splats_push_constants));
@@ -364,45 +374,27 @@ void GaussianSplattingInstance::Record(Frame *frame)
             renderer::ResourceState::UNORDERED_ACCESS
         );
 
-#if 0
-        m_sort_splats->GetPipeline()->Bind(frame->GetCommandBuffer());
 
-        frame->GetCommandBuffer()->BindDescriptorSet(
-            g_engine->GetGPUInstance()->GetDescriptorPool(),
-            m_sort_splats->GetPipeline(),
-            m_descriptor_sets[frame->GetFrameIndex()][SORT_STAGE_FIRST],
-            0,
-            FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
-                HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
-            }
-        );
-        
-        m_sort_splats->GetPipeline()->SetPushConstants(
-            &sort_splats_push_constants,
-            sizeof(sort_splats_push_constants)
-        );
+        static constexpr UInt32 max_workgroup_size = 1024;
+        UInt32 workgroup_size_x = 1;
 
-        m_sort_splats->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
+        if (num_sortable_elements < max_workgroup_size * 2) {
+            workgroup_size_x = num_sortable_elements / 2;
+        } else {
+            workgroup_size_x = max_workgroup_size;
+        }
 
-        m_sort_splats->GetPipeline()->Dispatch(
-            frame->GetCommandBuffer(),
-            Extent3D { (num_points + block_size - 1) / block_size, 1, 1}
-        );
+        AssertThrowMsg(workgroup_size_x == 1024, "Not implemented for workgroup size < 1024");
 
-        m_splat_indices_buffer->InsertBarrier(
-            frame->GetCommandBuffer(),
-            renderer::ResourceState::UNORDERED_ACCESS
-        );
+        UInt32 h = workgroup_size_x * 2;
+        const UInt32 workgroup_count = num_sortable_elements / ( workgroup_size_x * 2 );
 
-#endif
+        AssertThrow(h < num_sortable_elements);
+        AssertThrow(h % 2 == 0);
 
-#if 1
-        for (UInt32 level = 2; level <= block_size; level <<= 1) {
-            sort_splats_push_constants.level = level;
-            sort_splats_push_constants.level_mask = level;
-            sort_splats_push_constants.width = height;
-            sort_splats_push_constants.height = width;
+        auto DoPass = [this, frame, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, UInt32 h) mutable {
+            pc.stage = UInt32(stage);
+            pc.h = h;
 
             m_sort_splats->GetPipeline()->Bind(frame->GetCommandBuffer());
 
@@ -416,181 +408,42 @@ void GaussianSplattingInstance::Record(Frame *frame)
                     HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
                 }
             );
-            
+
             m_sort_splats->GetPipeline()->SetPushConstants(
-                &sort_splats_push_constants,
-                sizeof(sort_splats_push_constants)
+                &pc,
+                sizeof(pc)
             );
 
             m_sort_splats->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
 
             m_sort_splats->GetPipeline()->Dispatch(
                 frame->GetCommandBuffer(),
-                Extent3D { num_sortable_elements / block_size, 1, 1 }
+                Extent3D { workgroup_count, 1, 1 }
             );
 
             m_splat_indices_buffer->InsertBarrier(
                 frame->GetCommandBuffer(),
                 renderer::ResourceState::UNORDERED_ACCESS
             );
-        }
-        
-        for (UInt32 level = (block_size << 1); level <= num_sortable_elements; level <<= 1) {
-            sort_splats_push_constants.num_points = num_points;
-            sort_splats_push_constants.level = level / block_size;
-            sort_splats_push_constants.level_mask = (level & ~num_sortable_elements) / block_size;
-            sort_splats_push_constants.width = width;
-            sort_splats_push_constants.height = height;
+        };
 
-            { // Transpose column data
-                m_sort_splats_transpose->GetPipeline()->Bind(frame->GetCommandBuffer());
+        DoPass(STAGE_LOCAL_BMS, h);
 
-                frame->GetCommandBuffer()->BindDescriptorSet(
-                    g_engine->GetGPUInstance()->GetDescriptorPool(),
-                    m_sort_splats_transpose->GetPipeline(),
-                    m_descriptor_sets[frame->GetFrameIndex()][SORT_STAGE_FIRST],
-                    0,
-                    FixedArray {
-                        HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
-                        HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
-                    }
-                );
+        h <<= 1;
 
-                m_sort_splats_transpose->GetPipeline()->SetPushConstants(
-                    &sort_splats_push_constants,
-                    sizeof(sort_splats_push_constants)
-                );
+        for (; h <= num_sortable_elements; h <<= 1) {
+            DoPass(STAGE_BIG_FLIP, h);
 
-                m_sort_splats_transpose->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
+            for (UInt32 hh = h >> 1; hh > 1; hh >>= 1) {
+                if (hh <= workgroup_size_x * 2) {
+                    DoPass(STAGE_LOCAL_DISPERSE, hh);
 
-                m_sort_splats_transpose->GetPipeline()->Dispatch(
-                    frame->GetCommandBuffer(),
-                    Extent3D { width / transpose_block_size, height / transpose_block_size, 1 }
-                );
-
-                m_splat_indices_buffer->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-
-                m_splat_indices_buffer_secondary->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-            }
-
-            { // Sort the transposed column data
-                m_sort_splats->GetPipeline()->Bind(frame->GetCommandBuffer());
-
-                frame->GetCommandBuffer()->BindDescriptorSet(
-                    g_engine->GetGPUInstance()->GetDescriptorPool(),
-                    m_sort_splats->GetPipeline(),
-                    m_descriptor_sets[frame->GetFrameIndex()][SORT_STAGE_SECOND],
-                    0,
-                    FixedArray {
-                        HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
-                        HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
-                    }
-                );
-                
-                m_sort_splats->GetPipeline()->SetPushConstants(
-                    &sort_splats_push_constants,
-                    sizeof(sort_splats_push_constants)
-                );
-
-                m_sort_splats->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
-
-                m_sort_splats->GetPipeline()->Dispatch(
-                    frame->GetCommandBuffer(),
-                    Extent3D { num_sortable_elements / block_size, 1, 1 }
-                );
-
-                m_splat_indices_buffer_secondary->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-            }
-
-            sort_splats_push_constants.level = block_size;
-            sort_splats_push_constants.level_mask = level;
-            sort_splats_push_constants.width = height;
-            sort_splats_push_constants.height = width;
-
-            { // Transpose again
-                m_sort_splats_transpose->GetPipeline()->Bind(frame->GetCommandBuffer());
-
-                frame->GetCommandBuffer()->BindDescriptorSet(
-                    g_engine->GetGPUInstance()->GetDescriptorPool(),
-                    m_sort_splats_transpose->GetPipeline(),
-                    m_descriptor_sets[frame->GetFrameIndex()][SORT_STAGE_SECOND],
-                    0,
-                    FixedArray {
-                        HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
-                        HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
-                    }
-                );
-
-                m_sort_splats_transpose->GetPipeline()->SetPushConstants(
-                    &sort_splats_push_constants,
-                    sizeof(sort_splats_push_constants)
-                );
-
-                m_sort_splats_transpose->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
-
-                m_sort_splats_transpose->GetPipeline()->Dispatch(
-                    frame->GetCommandBuffer(),
-                    Extent3D { height / transpose_block_size, width / transpose_block_size, 1 }
-                );
-
-                m_splat_indices_buffer->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-
-                m_splat_indices_buffer_secondary->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-            }
-
-            { // Finally, sort the transposed row data
-                m_sort_splats->GetPipeline()->Bind(frame->GetCommandBuffer());
-
-                frame->GetCommandBuffer()->BindDescriptorSet(
-                    g_engine->GetGPUInstance()->GetDescriptorPool(),
-                    m_sort_splats->GetPipeline(),
-                    m_descriptor_sets[frame->GetFrameIndex()][SORT_STAGE_FIRST],
-                    0,
-                    FixedArray {
-                        HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
-                        HYP_RENDER_OBJECT_OFFSET(Camera, g_engine->GetRenderState().GetCamera().id.ToIndex())
-                    }
-                );
-
-                m_sort_splats->GetPipeline()->SetPushConstants(
-                    &sort_splats_push_constants,
-                    sizeof(sort_splats_push_constants)
-                );
-
-                m_sort_splats->GetPipeline()->SubmitPushConstants(frame->GetCommandBuffer());
-
-                m_sort_splats->GetPipeline()->Dispatch(
-                    frame->GetCommandBuffer(),
-                    Extent3D { num_sortable_elements / block_size, 1, 1 }
-                );
-
-                m_splat_indices_buffer->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-
-                m_splat_indices_buffer_secondary->InsertBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
+                    break;
+                } else {
+                    DoPass(STAGE_BIG_DISPERSE, hh);
+                }
             }
         }
-#endif
     }
 #endif
     { // Update splats

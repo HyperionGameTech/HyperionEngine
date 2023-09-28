@@ -36,19 +36,19 @@ public:
     virtual ~TaskThread() = default;
 
     HYP_FORCE_INLINE bool IsRunning() const
-        { return m_is_running.load(std::memory_order_relaxed); }
+        { return m_is_running.Get(MemoryOrder::RELAXED); }
 
     HYP_FORCE_INLINE void Stop()
-        { m_is_running.store(false, std::memory_order_relaxed); }
+        { m_is_running.Set(false, MemoryOrder::RELAXED); }
 
     HYP_FORCE_INLINE bool IsFree() const
-        { return m_is_free.load(); }
+        { return m_is_free.Get(MemoryOrder::RELAXED); }
 
 protected:
     virtual void operator()() override
     {
-        m_is_running.store(true);
-        m_is_free.store(true);
+        m_is_running.Set(true, MemoryOrder::RELAXED);
+        m_is_free.Set(true, MemoryOrder::RELAXED);
 
         while (!IsRunning()) {
             HYP_WAIT_IDLE();
@@ -58,23 +58,21 @@ protected:
             m_scheduler.WaitForTasks(m_task_queue);
 
             const bool was_free = m_task_queue.Empty();
-            m_is_free.store(was_free);
+            m_is_free.Set(was_free, MemoryOrder::RELAXED);
             
             // do not execute within lock
             while (m_task_queue.Any()) {
                 m_task_queue.Pop().Execute();
             }
-
-            const bool is_free = m_task_queue.Empty();
             
-            if (is_free != was_free) {
-                m_is_free.store(true);
+            if (!was_free) {
+                m_is_free.Set(true, MemoryOrder::RELAXED);
             }
         }
     }
 
-    std::atomic_bool m_is_running;
-    std::atomic_bool m_is_free;
+    AtomicVar<Bool> m_is_running;
+    AtomicVar<Bool> m_is_free;
 
     Queue<Scheduler::ScheduledTask> m_task_queue;
 };
