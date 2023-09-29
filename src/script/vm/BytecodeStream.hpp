@@ -3,6 +3,7 @@
 
 #include <script/SourceFile.hpp>
 #include <system/Debug.hpp>
+#include <core/lib/ByteBuffer.hpp>
 
 #include <Types.hpp>
 
@@ -17,20 +18,23 @@ public:
 public:
     BytecodeStream();
     BytecodeStream(const UByte *buffer, SizeType size, SizeType position = 0);
+    BytecodeStream(const ByteBuffer &byte_buffer, SizeType position = 0);
     BytecodeStream(const BytecodeStream &other);
     ~BytecodeStream() = default;
 
     BytecodeStream &operator=(const BytecodeStream &other);
 
     const UByte *GetBuffer() const
-        { return m_buffer; }
+        { return m_byte_buffer.Data(); }
 
     void ReadBytes(UByte *ptr, SizeType num_bytes)
     {
-        AssertThrowMsg(m_position + num_bytes < m_size + 1, "cannot read past end of buffer");
+        AssertThrowMsg(m_position + num_bytes < m_byte_buffer.Size() + 1, "cannot read past end of buffer");
+        
+        const auto *data = m_byte_buffer.Data();
 
         for (SizeType i = 0; i < num_bytes; i++) {
-            ptr[i] = m_buffer[m_position++];
+            ptr[i] = data[m_position++];
         }
     }
 
@@ -45,7 +49,7 @@ public:
         { m_position = position; }
 
     SizeType Size() const
-        { return m_size; }
+        { return m_byte_buffer.Size(); }
 
     void Seek(SizeType address)
         { m_position = address; }
@@ -54,13 +58,12 @@ public:
         { m_position += amount; }
 
     bool Eof() const
-        { return m_position >= m_size; }
+        { return m_position >= m_byte_buffer.Size(); }
 
     void ReadZeroTerminatedString(SChar *ptr);
 
 private:
-    const UByte *m_buffer;
-    SizeType m_size;
+    ByteBuffer m_byte_buffer;
     SizeType m_position;
 };
 

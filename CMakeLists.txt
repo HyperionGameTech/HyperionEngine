@@ -100,7 +100,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS} "src/util/json/JSON.cpp")
 
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}

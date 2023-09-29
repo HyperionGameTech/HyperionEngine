@@ -9,31 +9,22 @@ namespace hyperion {
 
 SourceFile::SourceFile()
     : m_filepath("??"),
-      m_position(0),
-      m_size(0),
-      m_buffer(nullptr)
+      m_position(0)
 {
 }
 
-SourceFile::SourceFile(const std::string &filepath, SizeType size)
+SourceFile::SourceFile(const String &filepath, SizeType size)
     : m_filepath(filepath),
-      m_position(0),
-      m_size(size)
+      m_position(0)
 {
-    m_buffer = new UByte[m_size];
-    std::memset(m_buffer, '\0', m_size);
+    m_buffer.SetSize(size);
 }
 
 SourceFile::SourceFile(const SourceFile &other)
     : m_filepath(other.m_filepath),
-      m_position(other.m_position),
-      m_size(other.m_size)
+      m_buffer(other.m_buffer.Copy()),
+      m_position(other.m_position)
 {
-    m_buffer = new UByte[m_size];
-
-    if (m_size != 0) {
-        std::memcpy(m_buffer, other.m_buffer, m_size);
-    }
 }
 
 SourceFile &SourceFile::operator=(const SourceFile &other)
@@ -42,58 +33,49 @@ SourceFile &SourceFile::operator=(const SourceFile &other)
         return *this;
     }
 
-    if (m_size != other.m_size) {
-        if (m_buffer != nullptr) {
-            delete[] m_buffer;
-            m_buffer = nullptr;
-        }
-
-        if (other.m_size != 0) {
-            m_buffer = new UByte[other.m_size];
-        }
-    }
-
-    m_size = other.m_size;
+    m_buffer = other.m_buffer.Copy();
     m_position = other.m_position;
     m_filepath = other.m_filepath;
 
-    if (m_buffer != nullptr) {
-        std::memcpy(m_buffer, other.m_buffer, m_size);
-    }
-
     return *this;
 }
 
-SourceFile::~SourceFile()
+SourceFile::~SourceFile() = default;
+
+void SourceFile::ReadIntoBuffer(const ByteBuffer &input_buffer)
 {
-    if (m_buffer != nullptr) {
-        delete[] m_buffer;
+    AssertThrow(m_buffer.Size() >= input_buffer.Size());
+
+    if (auto buffer = m_buffer.Lock()) {
+        // make sure we have enough space in the buffer
+        if (m_position + input_buffer.Size() >= buffer.Size()) {
+            AssertThrow("not enough space in buffer");
+        }
+
+        for (SizeType i = 0; i < input_buffer.Size(); i++) {
+            buffer.Data()[m_position++] = input_buffer.Data()[i];
+        }
+
+        m_buffer = buffer;
     }
-}
-
-SourceFile &SourceFile::operator>>(const std::string &str)
-{
-    AssertThrowMsg(m_buffer != nullptr, "Not allocated");
-
-    const auto length = str.length();
-    // make sure we have enough space in the buffer
-    if (m_position + length >= m_size) {
-        throw std::out_of_range("not enough space in buffer");
-    }
-
-    for (SizeType i = 0; i < length; i++) {
-        m_buffer[m_position++] = str[i];
-    }
-
-    return *this;
 }
 
 void SourceFile::ReadIntoBuffer(const UByte *data, SizeType size)
 {
-    AssertThrowMsg(m_buffer != nullptr, "Not allocated");
-    AssertThrow(m_size >= size);
+    AssertThrow(m_buffer.Size() >= size);
 
-    std::memcpy(m_buffer, data, size);
+    if (auto buffer = m_buffer.Lock()) {
+        // make sure we have enough space in the buffer
+        if (m_position + size >= buffer.Size()) {
+            AssertThrow("not enough space in buffer");
+        }
+
+        for (SizeType i = 0; i < size; i++) {
+            buffer.Data()[m_position++] = data[i];
+        }
+
+        m_buffer = buffer;
+    }
 }
 
 } // namespace hyperion

@@ -86,8 +86,26 @@ public:
     [[nodiscard]] FlatSet<Key> Keys() const;
     [[nodiscard]] FlatSet<Value> Values() const;
 
-    [[nodiscard]] Value &At(const Key &key)             { return Find(key)->second; }
-    [[nodiscard]] const Value &At(const Key &key) const { return Find(key)->second; }
+#ifndef HYP_DEBUG_MODE
+    [[nodiscard]] ValueType &At(const KeyType &key)             { return Find(key)->second; }
+    [[nodiscard]] const ValueType &At(const KeyType &key) const { return Find(key)->second; }
+#else
+    [[nodiscard]] ValueType &At(const KeyType &key)
+    {
+        const auto it = Find(key);
+        AssertThrowMsg(it != End(), "At(): Element not found");
+
+        return it->second;
+    }
+
+    [[nodiscard]] const ValueType &At(const KeyType &key) const
+    {
+        const auto it = Find(key);
+        AssertThrowMsg(it != End(), "At(): Element not found");
+
+        return it->second;
+    }
+#endif
 
     [[nodiscard]] KeyValuePair &AtIndex(SizeType index)             { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
     [[nodiscard]] const KeyValuePair &AtIndex(SizeType index) const { AssertThrowMsg(index < Size(), "Out of bounds"); return *(Data() + index); }

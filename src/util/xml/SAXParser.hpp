@@ -37,9 +37,9 @@ public:
             SAX_ERR = 1
         } result;
 
-        ANSIString message;
+        String message;
 
-        Result(decltype(result) result = SAX_OK, const ANSIString &message = ANSIString::empty)
+        Result(decltype(result) result = SAX_OK, const String &message = String::empty)
             : result(result),
               message(message)
         {

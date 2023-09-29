@@ -26,19 +26,19 @@ public:
 
         struct OBJMesh
         {
-            std::string tag;
-            std::string material;
-            std::vector<OBJIndex> indices;
+            String tag;
+            String material;
+            Array<OBJIndex> indices;
         };
 
-        std::string filepath;
+        String filepath;
 
-        std::vector<Vector3> positions;
-        std::vector<Vector3> normals;
-        std::vector<Vector2> texcoords;
-        std::vector<OBJMesh> meshes;
-        std::string tag;
-        std::string material_library;
+        Array<Vector3> positions;
+        Array<Vector3> normals;
+        Array<Vector2> texcoords;
+        Array<OBJMesh> meshes;
+        String tag;
+        String material_library;
     };
 
     virtual ~OBJModelLoader() = default;

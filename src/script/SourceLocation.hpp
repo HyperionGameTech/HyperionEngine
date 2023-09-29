@@ -1,7 +1,7 @@
 #ifndef SOURCE_LOCATION_HPP
 #define SOURCE_LOCATION_HPP
 
-#include <string>
+#include <core/lib/String.hpp>
 
 namespace hyperion {
 
@@ -11,15 +11,15 @@ public:
     static const SourceLocation eof;
     
     SourceLocation();
-    SourceLocation(int line, int column, const std::string &filename);
+    SourceLocation(int line, int column, const String &filename);
     SourceLocation(const SourceLocation &other);
 
     int GetLine() const { return m_line; }
     int &GetLine() { return m_line; }
     int GetColumn() const { return m_column; }
     int &GetColumn() { return m_column; }
-    const std::string &GetFileName() const { return m_filename; }
-    void SetFileName(const std::string &filename) { m_filename = filename; }
+    const String &GetFileName() const { return m_filename; }
+    void SetFileName(const String &filename) { m_filename = filename; }
 
     bool operator<(const SourceLocation &other) const;
     bool operator==(const SourceLocation &other) const;
@@ -27,7 +27,7 @@ public:
 private:
     int m_line;
     int m_column;
-    std::string m_filename;
+    String m_filename;
 };
 
 } // namespace hyperion

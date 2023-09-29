@@ -1,6 +1,8 @@
 #include <script/compiler/ErrorList.hpp>
 #include <util/Termcolor.hpp>
 #include <util/StringUtil.hpp>
+#include <core/lib/FlatSet.hpp>
+#include <core/lib/FixedArray.hpp>
 
 #include <unordered_set>
 #include <map>
@@ -32,17 +34,17 @@ bool ErrorList::HasFatalErrors() const
 
 std::ostream &ErrorList::WriteOutput(std::ostream &os) const
 {
-    std::unordered_set<std::string> error_filenames;
+    FlatSet<String> error_filenames;
     Array<std::string> current_file_lines;
 
     for (const CompilerError &error : m_errors) {
-        const std::string &path = error.GetLocation().GetFileName();
+        const String &path = error.GetLocation().GetFileName();
 
-        if (error_filenames.insert(path).second) {
+        if (error_filenames.Insert(path).second) {
             current_file_lines.Clear();
             // read lines into current_lines vector
             // this is used so that we can print out the line that an error occured on
-            std::ifstream is(path);
+            std::ifstream is(path.Data());
             if (is.is_open()) {
                 std::string line;
                 while (std::getline(is, line)) {
@@ -50,13 +52,13 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
                 }
             }
 
-            Array<std::string> split = StringUtil::SplitPath(path);
+            Array<String> split = path.Split('\\', '/');
 
-            std::string real_filename = split.Any()
+            String real_filename = split.Any()
                 ? split.Back()
                 : path;
 
-            real_filename = StringUtil::StripExtension(real_filename);
+            real_filename = StringUtil::StripExtension(real_filename.Data()).c_str();
 
             os << termcolor::reset << "In file \"" << real_filename << "\":\n";
         }
@@ -64,15 +66,15 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
         const std::string &error_text = error.GetText();
 
         switch (error.GetLevel()) {
-            case LEVEL_INFO:
-                os << termcolor::white << termcolor::on_blue << termcolor::bold << "Info";
-                break;
-            case LEVEL_WARN:
-                os << termcolor::white << termcolor::on_yellow << termcolor::bold << "Warning";
-                break;
-            case LEVEL_ERROR:
-                os << termcolor::white << termcolor::on_red << termcolor::bold << "Error";
-                break;
+        case LEVEL_INFO:
+            os << termcolor::white << termcolor::on_blue << termcolor::bold << "Info";
+            break;
+        case LEVEL_WARN:
+            os << termcolor::white << termcolor::on_yellow << termcolor::bold << "Warning";
+            break;
+        case LEVEL_ERROR:
+            os << termcolor::white << termcolor::on_red << termcolor::bold << "Error";
+            break;
         }
 
         os << termcolor::reset
@@ -86,7 +88,7 @@ std::ostream &ErrorList::WriteOutput(std::ostream &os) const
             os << "\n\t" << current_file_lines[error.GetLocation().GetLine()];
             os << "\n\t";
 
-            for (size_t i = 0; i < error.GetLocation().GetColumn(); i++) {
+            for (SizeType i = 0; i < error.GetLocation().GetColumn(); i++) {
                 os << ' ';
             }
 

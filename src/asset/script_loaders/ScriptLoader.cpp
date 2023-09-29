@@ -6,7 +6,13 @@ namespace hyperion::v2 {
 LoadedAsset ScriptLoader::LoadAsset(LoaderState &state) const
 {
     SourceFile source_file(state.filepath, state.stream.Max());
-    state.stream.Read(source_file.GetBuffer(), source_file.GetSize());
+
+    ByteBuffer temp_buffer;
+    temp_buffer.SetSize(source_file.GetSize());
+
+    state.stream.Read(temp_buffer);
+
+    source_file.ReadIntoBuffer(temp_buffer);
 
     auto script = UniquePtr<Handle<Script>>::Construct(
         CreateObject<Script>(source_file)

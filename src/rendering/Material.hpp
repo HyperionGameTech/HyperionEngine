@@ -8,6 +8,7 @@
 
 #include <core/lib/FixedArray.hpp>
 #include <core/lib/String.hpp>
+#include <core/lib/HashMap.hpp>
 #include <Types.hpp>
 
 #include <util/EnumOptions.hpp>
@@ -486,20 +487,20 @@ public:
     ~MaterialGroup();
 
     void Init();
-    void Add(const std::string &name, Handle<Material> &&material);
-    bool Remove(const std::string &name);
+    void Add(const String &name, Handle<Material> &&material);
+    bool Remove(const String &name);
 
-    Handle<Material> &Get(const std::string &name)
+    Handle<Material> &Get(const String &name)
         { return m_materials[name]; }
 
-    const Handle<Material> &Get(const std::string &name) const
-        { return m_materials.at(name); }
+    const Handle<Material> &Get(const String &name) const
+        { return m_materials.At(name); }
 
-    bool Has(const std::string &name) const
-        { return m_materials.find(name) != m_materials.end(); }
+    bool Has(const String &name) const
+        { return m_materials.Contains(name); }
 
 private:
-    std::unordered_map<std::string, Handle<Material>> m_materials;
+    HashMap<String, Handle<Material>> m_materials;
 };
 
 class MaterialCache

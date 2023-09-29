@@ -30,15 +30,15 @@ void AstDirective::Visit(AstVisitor *visitor, Module *mod)
             ));
         } else {
             // find the folder which the current file is in
-            std::string current_dir;
+            String current_dir;
 
-            const size_t index = m_location.GetFileName().find_last_of("/\\");
+            const size_t index = std::string(m_location.GetFileName().Data()).find_last_of("/\\");
             if (index != std::string::npos) {
-                current_dir = m_location.GetFileName().substr(0, index) + "/";
+                current_dir = m_location.GetFileName().Substr(0, index) + "/";
             }
             
             for (const std::string &path_arg : m_args) {
-                const auto scan_path = current_dir + path_arg;
+                const std::string scan_path = current_dir.Data() + path_arg;
 
                 // create relative path
                 DebugLog(LogType::Info, "[Script] add scan path %s\n", scan_path.c_str());

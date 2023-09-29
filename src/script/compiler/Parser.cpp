@@ -306,17 +306,17 @@ void Parser::Parse(bool expect_module_decl)
 
     if (expect_module_decl) {
         // create a module based upon the filename
-        const std::string filepath = m_token_stream->GetInfo().filepath;
-        const Array<std::string> split = StringUtil::SplitPath(filepath);
+        const String filepath = m_token_stream->GetInfo().filepath;
+        const Array<String> split = filepath.Split('\\', '/');
 
-        std::string real_filename = split.Any()
+        String real_filename = split.Any()
             ? split.Back()
             : filepath;
 
-        real_filename = StringUtil::StripExtension(real_filename);
+        real_filename = StringUtil::StripExtension(real_filename.Data()).c_str();
 
         RC<AstModuleDeclaration> module_ast(new AstModuleDeclaration(
-            real_filename,
+            real_filename.Data(),
             SourceLocation(0, 0, filepath)
         ));
 

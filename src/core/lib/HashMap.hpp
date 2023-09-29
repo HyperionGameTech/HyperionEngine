@@ -284,6 +284,30 @@ public:
 
     ValueType &operator[](const KeyType &key);
 
+#ifndef HYP_DEBUG_MODE
+    [[nodiscard]] ValueType &At(const KeyType &key)             { return Find(key)->value; }
+    [[nodiscard]] const ValueType &At(const KeyType &key) const { return Find(key)->value; }
+#else
+    [[nodiscard]] ValueType &At(const KeyType &key)
+    {
+        const auto it = Find(key);
+        AssertThrowMsg(it != End(), "At(): Element not found");
+
+        return it->value;
+    }
+
+    [[nodiscard]] const ValueType &At(const KeyType &key) const
+    {
+        const auto it = Find(key);
+        AssertThrowMsg(it != End(), "At(): Element not found");
+
+        return it->value;
+    }
+#endif
+
+    [[nodiscard]] bool Any() const { return m_buckets.Any([](const HashBucket<KeyType, ValueType> &bucket) { return bucket.elements.Any(); }); }
+    [[nodiscard]] bool Empty() const { return !Any(); }
+
     Iterator Find(const KeyType &key);
     ConstIterator Find(const KeyType &key) const;
 

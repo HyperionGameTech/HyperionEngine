@@ -8,10 +8,13 @@
 
 namespace hyperion::compiler {
 
-class AstVisitor {
+class AstVisitor
+{
 public:
-    AstVisitor(AstIterator *ast_iterator,
-        CompilationUnit *compilation_unit);
+    AstVisitor(
+        AstIterator *ast_iterator,
+        CompilationUnit *compilation_unit
+    );
     virtual ~AstVisitor() = default;
 
     AstIterator *GetAstIterator() const { return m_ast_iterator; }

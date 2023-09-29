@@ -20,10 +20,8 @@ public:
 
     virtual FBOMResult Serialize(const Script &in_object, FBOMObject &out) const override
     {
-        ByteBuffer src_bytes(in_object.GetSourceFile().GetSize(), in_object.GetSourceFile().GetBuffer());
-
-        out.SetProperty("src_data", src_bytes);
-        out.SetProperty("src_filepath", FBOMString(), in_object.GetSourceFile().GetFilePath().size(), in_object.GetSourceFile().GetFilePath().data());
+        out.SetProperty("src_data", in_object.GetSourceFile().GetBuffer());
+        out.SetProperty("src_filepath", FBOMString(), in_object.GetSourceFile().GetFilePath().Size(), in_object.GetSourceFile().GetFilePath().Data());
 
         return { FBOMResult::FBOM_OK };
     }

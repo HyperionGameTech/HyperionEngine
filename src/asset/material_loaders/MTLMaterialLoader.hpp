@@ -27,7 +27,7 @@ public:
         struct TextureDef
         {
             TextureMapping mapping;
-            std::string name;
+            String name;
         };
 
         struct ParameterDef
@@ -37,14 +37,14 @@ public:
 
         struct MaterialDef
         {
-            std::string tag;
-            std::vector<TextureDef> textures;
-            std::unordered_map<Material::MaterialKey, ParameterDef> parameters;
+            String tag;
+            Array<TextureDef> textures;
+            HashMap<Material::MaterialKey, ParameterDef> parameters;
         };
 
-        std::string filepath;
+        String filepath;
 
-        std::vector<MaterialDef> materials;
+        Array<MaterialDef> materials;
     };
 
     virtual ~MTLMaterialLoader() = default;

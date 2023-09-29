@@ -534,15 +534,15 @@ void MaterialGroup::Init()
     EngineComponentBase::Init();
 
     for (auto &it : m_materials) {
-        InitObject(it.second);
+        InitObject(it.value);
     }
 
     OnTeardown([this](...) {
-        m_materials.clear();
+        m_materials.Clear();
     });
 }
 
-void MaterialGroup::Add(const std::string &name, Handle<Material> &&material)
+void MaterialGroup::Add(const String &name, Handle<Material> &&material)
 {
     if (IsInitCalled()) {
         InitObject(material);
@@ -551,12 +551,12 @@ void MaterialGroup::Add(const std::string &name, Handle<Material> &&material)
     m_materials[name] = std::move(material);
 }
 
-bool MaterialGroup::Remove(const std::string &name)
+bool MaterialGroup::Remove(const String &name)
 {
-    const auto it = m_materials.find(name);
+    const auto it = m_materials.Find(name);
 
-    if (it != m_materials.end()) {
-        m_materials.erase(it);
+    if (it != m_materials.End()) {
+        m_materials.Erase(it);
 
         return true;
     }

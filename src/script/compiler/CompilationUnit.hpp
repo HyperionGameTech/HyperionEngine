@@ -15,7 +15,8 @@
 
 namespace hyperion::compiler {
 
-class CompilationUnit {
+class CompilationUnit
+{
 public:
     CompilationUnit();
     CompilationUnit(const CompilationUnit &other) = delete;

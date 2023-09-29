@@ -2,6 +2,7 @@
 #define TOKEN_STREAM_HPP
 
 #include <core/lib/DynArray.hpp>
+#include <core/lib/String.hpp>
 #include <script/compiler/Token.hpp>
 #include <system/Debug.hpp>
 #include <Types.hpp>
@@ -12,9 +13,9 @@ namespace hyperion::compiler {
 
 struct TokenStreamInfo
 {
-    std::string filepath;
+    String filepath;
 
-    TokenStreamInfo(const std::string &filepath)
+    TokenStreamInfo(const String &filepath)
         : filepath(filepath)
     {
     }

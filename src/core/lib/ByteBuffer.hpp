@@ -84,6 +84,9 @@ public:
 
     ~ByteBuffer() = default;
 
+    explicit operator bool() const
+        { return true; }
+
     /**
      * \brief Updates the ByteBuffer's data. If the size would go beyond the number of inline elements that can be stored, the ByteBuffer will switch to a reference counted internal byte array.
      */
@@ -232,6 +235,23 @@ public:
 
     SizeType Size() const
         { return GetInternalArray().Size(); }
+    
+    void SetSize(SizeType count)
+    {
+        if (count > InternalArray::num_inline_elements) {
+            m_internal.Set(RefCountedPtr<InternalArray>(new InternalArray()));
+
+            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
+
+            byte_array->Resize(count);
+        } else {
+            m_internal.Set(InternalArray { });
+
+            auto &byte_array = m_internal.Get<InternalArray>();
+
+            byte_array.Resize(count);
+        }
+    }
 
     /**
      * \brief Returns true if the ByteBuffer has any elements.
@@ -293,23 +313,6 @@ public:
 
 private:
     Variant<InternalArray, RefCountedPtr<InternalArray>> m_internal;
-
-    void SetSize(SizeType count)
-    {
-        if (count > InternalArray::num_inline_elements) {
-            m_internal.Set(RefCountedPtr<InternalArray>(new InternalArray()));
-
-            auto &byte_array = m_internal.Get<RefCountedPtr<InternalArray>>();
-
-            byte_array->Resize(count);
-        } else {
-            m_internal.Set(InternalArray { });
-
-            auto &byte_array = m_internal.Get<InternalArray>();
-
-            byte_array.Resize(count);
-        }
-    }
 };
 
 } // namespace hyperion

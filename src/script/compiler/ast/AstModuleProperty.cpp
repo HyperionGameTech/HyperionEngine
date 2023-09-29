@@ -41,17 +41,17 @@ void AstModuleProperty::Visit(AstVisitor *visitor, Module *mod)
         ));
     } else if (m_field_name == "path") {
         m_expr_value = RC<AstString>(new AstString(
-            mod->GetLocation().GetFileName(),
+            mod->GetLocation().GetFileName().Data(),
             m_location
         ));
     } else if (m_field_name == "directory") {
         m_expr_value = RC<AstString>(new AstString(
-            FilePath(mod->GetLocation().GetFileName().c_str()).BasePath().Data(),
+            FilePath(mod->GetLocation().GetFileName()).BasePath().Data(),
             m_location
         ));
     } else if (m_field_name == "basename") {
         m_expr_value = RC<AstString>(new AstString(
-            FilePath(mod->GetLocation().GetFileName().c_str()).Basename().Data(),
+            FilePath(mod->GetLocation().GetFileName()).Basename().Data(),
             m_location
         ));
     }

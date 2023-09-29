@@ -5,6 +5,7 @@
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/CompilationUnit.hpp>
+#include <core/lib/String.hpp>
 
 namespace hyperion::compiler {
 
@@ -21,7 +22,7 @@ public:
     );
 
     static bool TryOpenFile(
-        const std::string &path,
+        const String &path,
         std::ifstream &is
     );
 
@@ -38,7 +39,7 @@ protected:
     void PerformImport(
         AstVisitor *visitor,
         Module *mod,
-        const std::string &filepath
+        const String &filepath
     );
 };
 

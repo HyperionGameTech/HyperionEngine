@@ -2,9 +2,8 @@
 #define SOURCE_FILE_HPP
 
 #include <Types.hpp>
-
-#include <string>
-#include <cstddef>
+#include <core/lib/String.hpp>
+#include <core/lib/ByteBuffer.hpp>
 
 namespace hyperion {
 
@@ -12,28 +11,25 @@ class SourceFile
 {
 public:
     SourceFile();
-    SourceFile(const std::string &filepath, SizeType size);
+    SourceFile(const String &filepath, SizeType size);
     SourceFile(const SourceFile &other);
     SourceFile &operator=(const SourceFile &other);
     ~SourceFile();
 
-    bool IsValid() const { return m_size != 0; }
+    bool IsValid() const { return !m_buffer.Empty(); }
 
-    // input into buffer
-    SourceFile &operator>>(const std::string &str);
-
-    const std::string &GetFilePath() const { return m_filepath; }
-    UByte *GetBuffer() const { return m_buffer; }
-    SizeType GetSize() const { return m_size; }
-    void SetSize(SizeType size) { m_size = size; }
+    const String &GetFilePath() const { return m_filepath; }
+    const ByteBuffer &GetBuffer() const { return m_buffer; }
+    SizeType GetSize() const { return m_buffer.Size(); }
+    void SetSize(SizeType size) { m_buffer.SetSize(size); }
     
+    void ReadIntoBuffer(const ByteBuffer &input_buffer);
     void ReadIntoBuffer(const UByte *data, SizeType size);
 
 private:
-    std::string m_filepath;
-    UByte *m_buffer;
+    String m_filepath;
+    ByteBuffer m_buffer;
     SizeType m_position;
-    SizeType m_size;
 };
 
 } // namespace hyperion

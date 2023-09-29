@@ -91,16 +91,16 @@ void AstImport::CopyModules(
     visitor->GetCompilationUnit()->m_module_tree.Close();
 }
 
-bool AstImport::TryOpenFile(const std::string &path, std::ifstream &is)
+bool AstImport::TryOpenFile(const String &path, std::ifstream &is)
 {
-    is.open(path, std::ios::in | std::ios::ate);
+    is.open(path.Data(), std::ios::in | std::ios::ate);
     return is.is_open();
 }
 
 void AstImport::PerformImport(
     AstVisitor *visitor,
     Module *mod,
-    const std::string &filepath
+    const String &filepath
     
     /*bool make_parent_module,
     const std::string &parent_module_name*/)
@@ -119,14 +119,14 @@ void AstImport::PerformImport(
     }
 
     // parse path into vector
-    Array<std::string> path_parts = StringUtil::SplitPath(filepath);
+    Array<String> path_parts = filepath.Split('\\', '/');
     // canonicalize the vector
     path_parts = StringUtil::CanonicalizePath(path_parts);
     // put it back into a string
-    const std::string canon_path = StringUtil::PathToString(path_parts);
+    const String canon_path = String::Join(path_parts, '/');
 
     // first, check if the file has already been imported somewhere in this compilation unit
-    const auto it = visitor->GetCompilationUnit()->m_imported_modules.find(canon_path);
+    const auto it = visitor->GetCompilationUnit()->m_imported_modules.find(canon_path.Data());
     if (it != visitor->GetCompilationUnit()->m_imported_modules.end()) {
         // imported file found, so just re-open all
         // modules that belong to the file into this scope
@@ -157,7 +157,13 @@ void AstImport::PerformImport(
             file.seekg(0, std::ios::beg);
             // load stream into file buffer
             SourceFile source_file(filepath, max);
-            file.read(reinterpret_cast<char *>(source_file.GetBuffer()), max);
+
+            ByteBuffer temp;
+            temp.SetSize(max);
+
+            file.read(reinterpret_cast<char *>(temp.Data()), max);
+
+            source_file.ReadIntoBuffer(temp);
 
             // use the lexer and parser on this file buffer
             TokenStream token_stream(TokenStreamInfo {

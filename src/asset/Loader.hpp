@@ -20,7 +20,7 @@ struct LoaderState
     using Stream = BufferedReader<HYP_LOADER_BUFFER_SIZE>;
 
     AssetManager *asset_manager;
-    std::string filepath;
+    String filepath;
     Stream stream;
 };
 
@@ -36,7 +36,7 @@ struct LoaderResult
     };
 
     Status status = Status::OK;
-    ANSIString message;
+    String message;
 
     operator bool() const { return status == Status::OK; }
     bool operator==(Status status) const { return this->status == status; }

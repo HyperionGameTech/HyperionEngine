@@ -9,7 +9,7 @@ SourceLocation::SourceLocation() : SourceLocation(SourceLocation::eof)
 }
 
 SourceLocation::SourceLocation(int line, int column,
-    const std::string &filename)
+    const String &filename)
     : m_line(line),
       m_column(column),
       m_filename(filename)

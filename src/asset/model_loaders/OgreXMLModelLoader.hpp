@@ -26,7 +26,7 @@ public:
             float weight;
         };
 
-        std::string filepath;
+        String filepath;
 
         std::vector<Vector3> positions;
         std::vector<Vector3> normals;

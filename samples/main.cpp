@@ -36,6 +36,8 @@
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
 
+#include <util/json/JSON.hpp>
+
 #include <core/net/Socket.hpp>
 
 #include <GameThread.hpp>
@@ -725,10 +727,105 @@ public:
             m_scene->GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(std::move(particle_spawner));
         }
 #endif
-
+        
+        // Test gaussian splatting
         if (true) {
-            // Test gaussian splatting
-            auto ply_model = g_asset_manager->Load<PLYModelLoader::PLYModel>("models/gaussian_splatting/point_cloud.ply");
+            auto batch = g_asset_manager->CreateBatch();
+            batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
+            batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
+
+            batch->LoadAsync();
+
+            auto loaded_assets = batch->AwaitResults();
+
+            auto cameras_json = loaded_assets["cameras json"].Get<json::JSONValue>();
+            AssertThrow(loaded_assets["cameras json"].result.status == LoaderResult::Status::OK);
+
+            struct GaussianSplattingCameraDefinition
+            {
+                String id;
+                String img_name;
+                UInt32 width;
+                UInt32 height;
+                Vector3 position;
+                Matrix3 rotation;
+                Float fx;
+                Float fy;
+            };
+
+            Array<GaussianSplattingCameraDefinition> camera_definitions;
+
+            if (cameras_json && cameras_json->IsArray()) {
+                camera_definitions.Reserve(cameras_json->AsArray().Size());
+
+                for (const auto &item : cameras_json->AsArray()) {
+                    GaussianSplattingCameraDefinition definition;
+                    definition.id = (*item)["id"].ToString();
+                    definition.img_name = (*item)["img_name"].ToString();
+                    definition.width = MathUtil::Floor((*item)["width"].ToNumber());
+                    definition.height = MathUtil::Floor((*item)["height"].ToNumber());
+                    definition.fx = (*item)["fx"].ToNumber();
+                    definition.fy = (*item)["fy"].ToNumber();
+
+                    if ((*item)["position"].IsArray()) {
+                        definition.position = Vector3(
+                            (*item)["position"][0].ToNumber(),
+                            (*item)["position"][1].ToNumber(),
+                            (*item)["position"][2].ToNumber()
+                        );
+                    }
+
+                    if ((*item)["rotation"].IsArray()) {
+                        float v[9] = {
+                            (*item)["rotation"][0][0].ToNumber(),
+                            (*item)["rotation"][0][1].ToNumber(),
+                            (*item)["rotation"][0][2].ToNumber(),
+                            (*item)["rotation"][1][0].ToNumber(),
+                            (*item)["rotation"][1][1].ToNumber(),
+                            (*item)["rotation"][1][2].ToNumber(),
+                            (*item)["rotation"][2][0].ToNumber(),
+                            (*item)["rotation"][2][1].ToNumber(),
+                            (*item)["rotation"][2][2].ToNumber()
+                        };
+
+                        definition.rotation = Matrix3(v);
+                    }
+
+                    camera_definitions.PushBack(definition);
+                }
+            }
+
+            for (const auto &camera_definition : camera_definitions) {
+                DebugLog(LogType::Debug, "Camera: %s\n", camera_definition.id.Data());
+                DebugLog(LogType::Debug, "Image: %s\n", camera_definition.img_name.Data());
+                DebugLog(LogType::Debug, "Width: %u\n", camera_definition.width);
+                DebugLog(LogType::Debug, "Height: %u\n", camera_definition.height);
+                DebugLog(LogType::Debug, "Position: %f, %f, %f\n", camera_definition.position.x, camera_definition.position.y, camera_definition.position.z);
+                DebugLog(LogType::Debug, "Rotation: %f, %f, %f\n", camera_definition.rotation[0][0], camera_definition.rotation[0][1], camera_definition.rotation[0][2]);
+                DebugLog(LogType::Debug, "Rotation: %f, %f, %f\n", camera_definition.rotation[1][0], camera_definition.rotation[1][1], camera_definition.rotation[1][2]);
+                DebugLog(LogType::Debug, "Rotation: %f, %f, %f\n", camera_definition.rotation[2][0], camera_definition.rotation[2][1], camera_definition.rotation[2][2]);
+                DebugLog(LogType::Debug, "Fx: %f\n", camera_definition.fx);
+                DebugLog(LogType::Debug, "Fy: %f\n", camera_definition.fy);
+            }
+
+            const auto camera_rotation = camera_definitions.Any() ? Quaternion(Matrix4(camera_definitions[0].rotation)) : Quaternion::identity;
+
+            auto box_entity = CreateObject<Entity>();
+            auto box_mesh = MeshBuilder::Cube();
+
+            Material::ParameterTable material_parameters = Material::DefaultParameters();
+            material_parameters.Set(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
+            material_parameters.Set(Material::MATERIAL_KEY_METALNESS, 0.01f);
+            
+            box_entity->SetMesh(box_mesh);
+            box_entity->SetMaterial(g_material_system->GetOrCreate({ }, material_parameters));
+            box_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(box_mesh->GetVertexAttributes())));
+            box_entity->SetRotation(camera_rotation);
+
+            GetScene()->AddEntity(box_entity);
+
+
+            auto ply_model = loaded_assets["ply model"].Get<PLYModelLoader::PLYModel>();
 
             const SizeType num_points = ply_model->vertices.Size();
 
@@ -758,16 +855,15 @@ public:
                 if (has_rotations) {
                     Quaternion rotation;
 
-                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.w);
-                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.x);
-                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.y);
-                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.z);
+                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.x);
+                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.y);
+                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.z);
+                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.w);
 
                     rotation.Normalize();
+                    //rotation.Invert();
 
                     out_point.rotation = rotation;
-
-                    //DebugLog(LogType::Debug, "Rotation %u = %f, %f, %f, %f\n", index, out_point.rotation.x, out_point.rotation.y, out_point.rotation.z, out_point.rotation.w);
                 }
 
                 if (has_scales) {
@@ -1213,7 +1309,7 @@ void HandleSignal(int signum)
 int main()
 {
     signal(SIGINT, HandleSignal);
-
+    
     RC<Application> application(new SDLApplication("My Application"));
     application->SetCurrentWindow(application->CreateSystemWindow({
         "Hyperion Engine",

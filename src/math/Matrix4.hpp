@@ -14,6 +14,7 @@ namespace hyperion {
 
 class Vector3;
 class Quaternion;
+class Matrix3;
 
 class Matrix4
 {
@@ -42,6 +43,7 @@ public:
     };
 
     Matrix4();
+    explicit Matrix4(const Matrix3 &matrix3);
     explicit Matrix4(const Vector4 *rows);
     explicit Matrix4(const float *v);
     Matrix4(const Matrix4 &other);
@@ -67,6 +69,7 @@ public:
     Vector4 operator*(const Vector4 &vec) const;
 
     Vector3 ExtractTransformScale() const;
+    Quaternion ExtractRotation() const;
 
     Vector4 GetColumn(UInt index) const;
 

@@ -1,4 +1,5 @@
 #include "Matrix4.hpp"
+#include "Matrix3.hpp"
 #include "Vector3.hpp"
 #include "Quaternion.hpp"
 #include "Rect.hpp"
@@ -210,6 +211,17 @@ Matrix4::Matrix4()
           { 0.0f, 0.0f, 0.0f, 1.0f }
       }
 {
+}
+
+Matrix4::Matrix4(const Matrix3 &matrix3)
+    : rows {
+        { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
+        { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
+        { matrix3.rows[2][0], matrix3.rows[2][1], matrix3.rows[2][2], 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
+      }
+{
+    
 }
 
 Matrix4::Matrix4(const Vector4 *rows)
@@ -465,6 +477,56 @@ Vector3 Matrix4::ExtractTransformScale() const
     return scale;
 }
 
+Quaternion Matrix4::ExtractRotation() const
+{
+    const float m00 = At(0, 0);
+    const float m01 = At(0, 1);
+    const float m02 = At(0, 2);
+    const float m03 = At(0, 3);
+    const float m10 = At(1, 0);
+    const float m11 = At(1, 1);
+    const float m12 = At(1, 2);
+    const float m13 = At(1, 3);
+    const float m20 = At(2, 0);
+    const float m21 = At(2, 1);
+    const float m22 = At(2, 2);
+    const float m23 = At(2, 3);
+    const float m30 = At(3, 0);
+    const float m31 = At(3, 1);
+    const float m32 = At(3, 2);
+    const float m33 = At(3, 3);
+
+    float t;
+    Quaternion q;
+
+    if (m00 < 0) {
+        if (m00 > m11) {
+            t = 1 + m00 -m11 -m22;
+            q = Quaternion(t, m01 + m10, m20 + m02, m12 - m21);
+        }
+        else {
+            t = 1 -m00 + m11 -m22;
+            q = Quaternion(m01 + m10, t, m12 + m21, m20 - m02);
+        }
+    }
+    else {
+        if (m00 < -m11) {
+            t = 1 -m00 -m11 + m22;
+            q = Quaternion(m20 + m02, m12 + m21, t, m01 - m10);
+        }
+        else {
+            t = 1 + m00 + m11 + m22;
+            q = Quaternion(m12 - m21, m20 - m02, m01 - m10, t);
+        }
+    }
+
+    q.x *= 0.5f / MathUtil::Sqrt(t);
+    q.y *= 0.5f / MathUtil::Sqrt(t);
+    q.z *= 0.5f / MathUtil::Sqrt(t);
+    q.w *= 0.5f / MathUtil::Sqrt(t);
+
+    return q;
+}
 
 Vector4 Matrix4::GetColumn(UInt index) const
 {

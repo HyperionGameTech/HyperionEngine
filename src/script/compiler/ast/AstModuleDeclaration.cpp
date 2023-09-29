@@ -61,17 +61,17 @@ void AstModuleDeclaration::Visit(AstVisitor *visitor, Module *mod)
         // but only if mod == nullptr, that way we don't add nested modules
         if (mod == nullptr) {
             // parse filename
-            Array<std::string> path = StringUtil::SplitPath(m_location.GetFileName());
+            Array<String> path = m_location.GetFileName().Split('\\', '/');
             path = StringUtil::CanonicalizePath(path);
             // change it back to string
-            std::string canon_path = StringUtil::PathToString(path);
+            String canon_path = String::Join(path, "/");
 
             // map filepath to module
-            auto it = visitor->GetCompilationUnit()->m_imported_modules.find(canon_path);
+            auto it = visitor->GetCompilationUnit()->m_imported_modules.find(canon_path.Data());
             if (it != visitor->GetCompilationUnit()->m_imported_modules.end()) {
                 it->second.PushBack(m_module);
             } else {
-                visitor->GetCompilationUnit()->m_imported_modules[canon_path] = { m_module };
+                visitor->GetCompilationUnit()->m_imported_modules[canon_path.Data()] = { m_module };
             }
         }
 

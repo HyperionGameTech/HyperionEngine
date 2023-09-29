@@ -84,7 +84,7 @@ LoadedAsset TextureLoader::LoadAsset(LoaderState &state) const
 
     stbi_image_free(image_bytes);
 
-    (*texture)->SetName(CreateNameFromDynamicString(StringUtil::Basename(state.filepath).c_str()));
+    (*texture)->SetName(CreateNameFromDynamicString(StringUtil::Basename(state.filepath.Data()).c_str()));
 
     return { { LoaderResult::Status::OK }, texture.Cast<void>() };
 }

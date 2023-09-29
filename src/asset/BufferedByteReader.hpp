@@ -225,6 +225,13 @@ public:
         return lines;
     }
 
+    SizeType Read(ByteBuffer &byte_buffer)
+    {
+        return Read(byte_buffer.Data(), byte_buffer.Size(), [](void *ptr, const Byte *buffer, SizeType chunk_size) {
+           Memory::MemCpy(ptr, buffer, chunk_size);
+        });
+    }
+
     SizeType Read(void *ptr, SizeType count)
     {
         return Read(ptr, count, [](void *ptr, const Byte *buffer, SizeType chunk_size) {

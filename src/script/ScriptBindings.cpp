@@ -1391,7 +1391,7 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
         HYP_SCRIPT_THROW(vm::Exception("Module name must be a string"));
     }
 
-    FilePath current_file_path(params.api_instance.GetSourceFile().GetFilePath().c_str());
+    FilePath current_file_path(params.api_instance.GetSourceFile().GetFilePath());
 
     if (!current_file_path.Length()) {
         current_file_path = FilePath::Current();

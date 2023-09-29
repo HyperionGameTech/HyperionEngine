@@ -2,6 +2,7 @@
 #define STRING_UTIL_H
 
 #include <core/lib/DynArray.hpp>
+#include <core/lib/String.hpp>
 
 #include <string>
 #include <vector>
@@ -222,6 +223,21 @@ public:
         return res;
     }
 
+    static inline Array<String> CanonicalizePath(const Array<String> &original)
+    {
+        Array<String> res;
+
+        for (const auto &str : original) {
+            if (str == ".." && !res.Empty()) {
+                res.PopBack();
+            } else if (str != ".") {
+                res.PushBack(str);
+            }
+        }
+
+        return res;
+    }
+
     static inline Array<std::string> CanonicalizePath(const Array<std::string> &original)
     {
         Array<std::string> res;
@@ -348,9 +364,9 @@ public:
     }
 
     template <typename T>
-    static inline T Parse(const std::string &str)
+    static inline T Parse(const std::string &str, T value_on_error = T { })
     {
-        T value;
+        T value = value_on_error;
 
         Parse(str, &value);
 

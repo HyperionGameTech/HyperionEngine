@@ -342,6 +342,8 @@ Token Lexer::ReadNumberLiteral()
 
     u32char ch = m_source_stream.Peek();
 
+    bool has_exponent = false;
+
     while (m_source_stream.HasNext() && utf32_isdigit(ch)) {
         int pos_change = 0;
         u32char next_ch = m_source_stream.Next(pos_change);
@@ -367,6 +369,34 @@ Token Lexer::ReadNumberLiteral()
                         // not a float literal, so go back on the '.'
                         m_source_stream.GoBack(pos_change);
                     }
+                }
+            }
+        }
+
+        if (m_source_stream.HasNext()) {
+            u32char ch = m_source_stream.Peek();
+
+            if (!has_exponent && (ch == (u32char)'e' || ch == (u32char)'E')) {
+                has_exponent = true;
+
+                token_class = TK_FLOAT;
+                value.append(utf::get_bytes(ch));
+
+                int pos_change = 0;
+                m_source_stream.Next(pos_change);
+                m_source_location.GetColumn() += pos_change;
+
+                ch = m_source_stream.Peek();
+
+                // Handle negative exponent
+                if (ch == (u32char)'-') {
+                    value.append(utf::get_bytes(ch));
+
+                    int pos_change = 0;
+                    m_source_stream.Next(pos_change);
+                    m_source_location.GetColumn() += pos_change;
+
+                    m_source_location.GetColumn() += pos_change;
                 }
             }
         }

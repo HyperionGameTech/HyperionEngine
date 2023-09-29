@@ -184,7 +184,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     Handle<Skeleton> skeleton;
 
     if (!model.skeleton_name.empty()) {
-        const String skeleton_path((StringUtil::BasePath(model.filepath) + "/" + model.skeleton_name + ".xml").c_str());
+        const String skeleton_path((StringUtil::BasePath(model.filepath.Data()) + "/" + model.skeleton_name + ".xml").c_str());
 
         LoaderResult result;
         skeleton = state.asset_manager->Load<Skeleton>(skeleton_path, result);

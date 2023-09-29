@@ -64,9 +64,12 @@ namespace hyperion::compiler {
 class Parser
 {
 public:
-    Parser(AstIterator *ast_iterator,
+    Parser(
+        AstIterator *ast_iterator,
         TokenStream *token_stream,
-        CompilationUnit *compilation_unit);
+        CompilationUnit *compilation_unit
+    );
+
     Parser(const Parser &other);
 
     void Parse(bool expect_module_decl = true);

@@ -15,17 +15,17 @@ public:
     SourceStream(const SourceStream &other);
 
     SourceFile *GetFile() const { return m_file; }
-    size_t GetPosition() const { return m_position; }
+    SizeType GetPosition() const { return m_position; }
     bool HasNext() const { return m_position < m_file->GetSize(); }
     utf::u32char Peek() const;
     utf::u32char Next();
     utf::u32char Next(int &pos_change);
     void GoBack(int n = 1);
-    void Read(char *ptr, size_t num_bytes);
+    void Read(char *ptr, SizeType num_bytes);
 
 private:
     SourceFile *m_file;
-    size_t m_position;
+    SizeType m_position;
 };
 
 } // namespace hyperion

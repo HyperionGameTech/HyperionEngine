@@ -117,11 +117,11 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
     // and we won't import the 'range' module again
     if (first->GetParts().Empty() || !opened) {
         // find the folder which the current file is in
-        const SizeType index = m_location.GetFileName().find_last_of("/\\");
+        const SizeType index = std::string(m_location.GetFileName().Data()).find_last_of("/\\");
 
-        std::string current_dir;
+        String current_dir;
         if (index != std::string::npos) {
-            current_dir = m_location.GetFileName().substr(0, index);
+            current_dir = m_location.GetFileName().Substr(0, index);
         }
 
         std::ifstream file;
@@ -130,7 +130,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
         std::string found_path;
 
         // add current directory as first.
-        scan_paths.insert(current_dir);
+        scan_paths.insert(current_dir.Data());
 
         // add this module's scan paths.
         scan_paths.insert(
@@ -155,7 +155,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
             found_path = FileSystem::Join(scan_path, filename + ext);
             tried_paths.PushBack(found_path);
 
-            if (AstImport::TryOpenFile(found_path, file)) {
+            if (AstImport::TryOpenFile(found_path.c_str(), file)) {
                 opened = true;
                 break;
             }
@@ -164,7 +164,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
             found_path = FileSystem::Join(scan_path, filename);
             tried_paths.PushBack(found_path);
 
-            if (AstImport::TryOpenFile(found_path, file)) {
+            if (AstImport::TryOpenFile(found_path.c_str(), file)) {
                 opened = true;
                 break;
             }
@@ -174,7 +174,7 @@ void AstModuleImport::Visit(AstVisitor *visitor, Module *mod)
             AstImport::PerformImport(
                 visitor,
                 mod,
-                found_path
+                found_path.c_str()
             );
         }
     }
