@@ -168,7 +168,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
         ReadPropertyValue<Float>(buffer, model, row_offset, "z", &position.z);
 
         Vertex vertex;
-        vertex.SetPosition(Vector3(-position.x, -position.y, position.z));
+        vertex.SetPosition(Vector3(position.x, position.y, position.z));
         model.vertices[index] = vertex;
         
         for (const auto &it : model.property_types) {

@@ -78,14 +78,20 @@ struct alignas(16) ParticleShaderData
 
 static_assert(sizeof(ParticleShaderData) == 64);
 
-struct alignas(16) GaussianSplatShaderData {
+struct alignas(16) GaussianSplattingInstanceShaderData {
     ShaderVec4<Float32> position;   //   4 x 4 = 16
     ShaderVec4<Float32> rotation;   // + 4 x 4 = 32
     ShaderVec4<Float32> scale;      // + 4 x 4 = 48
     ShaderVec4<Float32> color;      // + 4 x 4 = 64
 };
 
-static_assert(sizeof(GaussianSplatShaderData) == 64);
+static_assert(sizeof(GaussianSplattingInstanceShaderData) == 64);
+
+struct alignas(16) GaussianSplattingSceneShaderData {
+    ShaderMat4 model_matrix;
+};
+
+static_assert(sizeof(GaussianSplattingSceneShaderData) == 64);
 
 struct alignas(256) CubemapUniforms
 {

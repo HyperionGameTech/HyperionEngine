@@ -53,6 +53,7 @@ static_assert(sizeof(GaussianSplattingPoint) == 64);
 
 struct GaussianSplattingModelData {
     Array<GaussianSplattingPoint> points;
+    Transform transform;
 };
 
 class GaussianSplattingInstance
@@ -121,8 +122,7 @@ private:
     FixedArray<FixedArray<DescriptorSetRef, SortStage::SORT_STAGE_MAX>, max_frames_in_flight> m_descriptor_sets;
     GPUBufferRef m_splat_buffer;
     GPUBufferRef m_splat_indices_buffer;
-    GPUBufferRef m_splat_indices_buffer_secondary;
-    GPUBufferRef m_splat_distances_buffer;
+    GPUBufferRef m_scene_buffer;
     GPUBufferRef m_indirect_buffer;
     Handle<ComputePipeline> m_update_splats;
     Handle<ComputePipeline> m_update_splat_distances;

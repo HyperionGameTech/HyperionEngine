@@ -816,6 +816,7 @@ public:
 
             RC<GaussianSplattingModelData> gaussian_splatting_model = RC<GaussianSplattingModelData>::Construct();
             gaussian_splatting_model->points.Resize(num_points);
+            gaussian_splatting_model->transform.SetRotation(Quaternion(Vector3(0, 0, 1), M_PI));
 
             const bool has_rotations = ply_model->custom_data.Contains("rot_0")
                 && ply_model->custom_data.Contains("rot_1")
@@ -845,7 +846,8 @@ public:
                     ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.y);
                     ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.z);
 
-                    //rotation.Normalize();
+                    //rotation.Invert();
+                    rotation.Normalize();
 
                     out_point.rotation = rotation;
                 }
