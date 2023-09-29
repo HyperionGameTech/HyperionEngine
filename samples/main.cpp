@@ -810,21 +810,6 @@ public:
 
             const auto camera_rotation = camera_definitions.Any() ? Quaternion(Matrix4(camera_definitions[0].rotation)) : Quaternion::identity;
 
-            auto box_entity = CreateObject<Entity>();
-            auto box_mesh = MeshBuilder::Cube();
-
-            Material::ParameterTable material_parameters = Material::DefaultParameters();
-            material_parameters.Set(Material::MATERIAL_KEY_ROUGHNESS, 0.01f);
-            material_parameters.Set(Material::MATERIAL_KEY_METALNESS, 0.01f);
-            
-            box_entity->SetMesh(box_mesh);
-            box_entity->SetMaterial(g_material_system->GetOrCreate({ }, material_parameters));
-            box_entity->SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward), ShaderProperties(box_mesh->GetVertexAttributes())));
-            box_entity->SetRotation(camera_rotation);
-
-            GetScene()->AddEntity(box_entity);
-
-
             auto ply_model = loaded_assets["ply model"].Get<PLYModelLoader::PLYModel>();
 
             const SizeType num_points = ply_model->vertices.Size();
@@ -855,13 +840,12 @@ public:
                 if (has_rotations) {
                     Quaternion rotation;
 
-                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.x);
-                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.y);
-                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.z);
-                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.w);
+                    ply_model->custom_data["rot_0"].Read(index * sizeof(Float), &rotation.w);
+                    ply_model->custom_data["rot_1"].Read(index * sizeof(Float), &rotation.x);
+                    ply_model->custom_data["rot_2"].Read(index * sizeof(Float), &rotation.y);
+                    ply_model->custom_data["rot_3"].Read(index * sizeof(Float), &rotation.z);
 
-                    rotation.Normalize();
-                    //rotation.Invert();
+                    //rotation.Normalize();
 
                     out_point.rotation = rotation;
                 }
@@ -1313,8 +1297,8 @@ int main()
     RC<Application> application(new SDLApplication("My Application"));
     application->SetCurrentWindow(application->CreateSystemWindow({
         "Hyperion Engine",
-        1920,
-        1080,
+        1024,
+        1024,
         true
     }));
     
