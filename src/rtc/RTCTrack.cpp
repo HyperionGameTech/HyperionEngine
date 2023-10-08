@@ -32,6 +32,9 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
     AssertThrowMsg(lib_data_channel_client != nullptr,
         "client must be a LibDataChannelRTCClient instance to use on LibDataChannelRTCTrack");
 
+    AssertThrowMsg(lib_data_channel_client->m_peer_connection != nullptr,
+        "m_peer_connection is nullptr on the RTCClient -- make sure PrepareTrack() is being called in the right place");
+
     switch (m_track_type) {
     case RTC_TRACK_TYPE_AUDIO:
         break;
@@ -56,6 +59,16 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
         m_track->onOpen([this]
         {
             DebugLog(LogType::Debug, "Video channel opened\n");
+        });
+
+        m_track->onClosed([this]
+        {
+            DebugLog(LogType::Debug, "Video channel closed\n");
+        });
+
+        m_track->onError([this](std::string message)
+        {
+            DebugLog(LogType::Debug, "Video channel error: %s\n", message.c_str());
         });
 
         break;

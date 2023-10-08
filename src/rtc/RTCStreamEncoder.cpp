@@ -2,6 +2,7 @@
 #include <rtc/RTCServer.hpp>
 
 #include <core/lib/AtomicVar.hpp>
+#include <core/lib/Queue.hpp>
 
 #include <TaskThread.hpp>
 
@@ -19,34 +20,15 @@
 
 namespace hyperion::v2 {
 
-void NullRTCStreamVideoEncoder::Start()
-{
-}
-
-void NullRTCStreamVideoEncoder::Stop()
-{
-}
-
-void NullRTCStreamVideoEncoder::PushData(ByteBuffer data)
-{
-}
-
-Optional<ByteBuffer> NullRTCStreamVideoEncoder::PullData()
-{
-    return { };
-}
-
-#ifdef HYP_GSTREAMER
-
-class GStreamerDataQueue
+class EncoderDataQueue
 {
 public:
-    GStreamerDataQueue()                                                = default;
-    GStreamerDataQueue(const GStreamerDataQueue &other) = delete;
-    GStreamerDataQueue &operator=(const GStreamerDataQueue &other)      = delete;
-    GStreamerDataQueue(GStreamerDataQueue &&other) noexcept             = delete;
-    GStreamerDataQueue &operator=(GStreamerDataQueue &&other) noexcept  = delete;
-    ~GStreamerDataQueue()                                               = default;
+    EncoderDataQueue()                                              = default;
+    EncoderDataQueue(const EncoderDataQueue &other) = delete;
+    EncoderDataQueue &operator=(const EncoderDataQueue &other)      = delete;
+    EncoderDataQueue(EncoderDataQueue &&other) noexcept             = delete;
+    EncoderDataQueue &operator=(EncoderDataQueue &&other) noexcept  = delete;
+    ~EncoderDataQueue()                                             = default;
 
     void Push(ByteBuffer data)
     {
@@ -76,13 +58,34 @@ private:
     std::mutex         m_mutex;
 };
 
+void NullRTCStreamVideoEncoder::Start()
+{
+}
+
+void NullRTCStreamVideoEncoder::Stop()
+{
+}
+
+void NullRTCStreamVideoEncoder::PushData(ByteBuffer data)
+{
+}
+
+Optional<ByteBuffer> NullRTCStreamVideoEncoder::PullData()
+{
+    DebugLog(LogType::Warn, "PullData() used on NullRTCStreamVideoEncoder will return an empty dataset\n");
+
+    return { };
+}
+
+#ifdef HYP_GSTREAMER
+
 class GStreamerThread : public TaskThread
 {
 public:
     GStreamerThread()
         : TaskThread(ThreadID::CreateDynamicThreadID(HYP_NAME(GStreamerThread))),
-          m_in_queue(new GStreamerDataQueue()),
-          m_out_queue(new GStreamerDataQueue())
+          m_in_queue(new EncoderDataQueue()),
+          m_out_queue(new EncoderDataQueue())
     {
 #ifdef HYP_GSTREAMER_BIN_DIR
         _putenv_s("GST_PLUGIN_PATH", HYP_GSTREAMER_BIN_DIR);
@@ -103,7 +106,7 @@ public:
 
             GstBuffer *buffer = nullptr;
 
-            GStreamerDataQueue *in_queue = static_cast<GStreamerDataQueue *>(user_data);
+            EncoderDataQueue *in_queue = static_cast<EncoderDataQueue *>(user_data);
 
             if (in_queue->Size()) {
                 ByteBuffer first = in_queue->Pop();
@@ -154,7 +157,7 @@ public:
                 return;
             }
             
-            GStreamerDataQueue *out_queue = static_cast<GStreamerDataQueue *>(user_data);
+            EncoderDataQueue *out_queue = static_cast<EncoderDataQueue *>(user_data);
             out_queue->Push(ByteBuffer(map_info.size, map_info.data));
 
             gst_sample_unref(sample);
@@ -233,8 +236,8 @@ protected:
     GstElement                      *m_pipeline = nullptr;
     GMainLoop                       *m_loop = nullptr;
 
-    UniquePtr<GStreamerDataQueue>   m_in_queue;
-    UniquePtr<GStreamerDataQueue>   m_out_queue;
+    UniquePtr<EncoderDataQueue>     m_in_queue;
+    UniquePtr<EncoderDataQueue>     m_out_queue;
     void                            (*m_feed_data_callback)(GstElement *, guint, gpointer);
     void                            (*m_recv_data_callback)(GstElement *, guint, gpointer);
 };

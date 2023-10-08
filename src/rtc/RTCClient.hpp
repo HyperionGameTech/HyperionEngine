@@ -48,6 +48,9 @@ public:
     RTCClient &operator=(RTCClient &&other) noexcept = default;
     virtual ~RTCClient() = default;
 
+    const String &GetID() const
+        { return m_id; }
+
     RTCClientState GetState() const
         { return m_state; }
 

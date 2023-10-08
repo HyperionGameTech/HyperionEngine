@@ -165,9 +165,11 @@ void LibDataChannelRTCServer::Start()
 
         const String websocket_url = m_params.address.host + ":"
             + String::ToString(m_params.address.port)
-            + (m_params.address.path.StartsWith("/")
-                ? m_params.address.path
-                : "/" + m_params.address.path);
+            + (m_params.address.path.Any()
+                ? m_params.address.path.StartsWith("/")
+                    ? m_params.address.path
+                    : "/" + m_params.address.path
+                : "");
 
         DebugLog(LogType::Debug, "Attempting to connect websocket server to url: %s\n", websocket_url.Data());
 

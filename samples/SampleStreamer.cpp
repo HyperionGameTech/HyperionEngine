@@ -585,15 +585,17 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
     while (!m_message_queue->Empty()) {
         const json::JSONValue message = m_message_queue->Pop();
 
+        DebugLog(LogType::Debug, "Recv message:\t%s\n", message.ToString().Data());
+
         const String message_type = message["type"].ToString();
         const String id = message["id"].ToString();
         
         if (message_type == "request") {
             RC<RTCClient> client = m_rtc_instance->GetServer()->CreateClient(id);
-            client->Connect();
-            
-            client->AddTrack(m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO));
+            DebugLog(LogType::Debug, "Adding client with ID %s  %s\n", id.Data(), typeid(*client).name());
 
+            client->AddTrack(m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO));
+            client->Connect();
         } else if (message_type == "answer") {
             if (const Optional<RC<RTCClient>> client = m_rtc_instance->GetServer()->GetClientList().Get(id)) {
                 client.Get()->SetRemoteDescription("answer", message["sdp"].ToString());

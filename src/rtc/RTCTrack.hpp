@@ -17,6 +17,7 @@ class RtcpSrReporter;
 namespace hyperion::v2 {
 
 class RTCClient;
+class RTCStream;
 
 enum RTCTrackType
 {
@@ -47,7 +48,7 @@ public:
     virtual void SendData(const ByteBuffer &data) = 0;
 
 protected:
-    RTCTrackType m_track_type;
+    RTCTrackType    m_track_type;
 };
 
 class NullRTCTrack : public RTCTrack

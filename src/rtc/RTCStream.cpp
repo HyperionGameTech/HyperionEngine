@@ -29,11 +29,17 @@ void RTCStream::SendSample(const RTCStreamDestination &destination)
         return;
     }
 
+    UInt num_samples = 0;
+
     while (auto sample = m_encoder->PullData()) {
         for (const RC<RTCTrack> &track : destination.tracks) {
             track->SendData(sample.Get());
         }
+
+        ++num_samples;
     }
+
+    DebugLog(LogType::Debug, "Sent %u samples to %llu tracks\n", num_samples, destination.tracks.Size());
 }
 
 }  // namespace hyperion::v2

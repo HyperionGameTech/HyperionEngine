@@ -169,7 +169,7 @@ public:
             functor.delete_fn = &Memory::Destruct<Functor>;
         } else {
             functor.memory.template Set<void *>(Memory::AllocateAndConstruct<Functor>(std::forward<Functor>(fn)));
-            functor.delete_fn = &Memory::Delete<Functor>;
+            functor.delete_fn = &Memory::DestructAndFree<Functor>;
         }
     }
 

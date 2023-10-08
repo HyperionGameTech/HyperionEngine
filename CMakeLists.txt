@@ -34,12 +34,10 @@ set(OpenGL_GL_PREFERENCE GLVND)
 link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
 find_package(PkgConfig)
-
 pkg_check_modules(GST gstreamer-1.0>=1.4
                       gstreamer-sdp-1.0>=1.4
                       gstreamer-video-1.0>=1.4
-                      gstreamer-app-1.0>=1.4
-                      libpcre2-8)
+                      gstreamer-app-1.0>=1.4)
 
 find_package(Threads REQUIRED)
 find_package(Vulkan REQUIRED)
