@@ -585,8 +585,6 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
     while (!m_message_queue->Empty()) {
         const json::JSONValue message = m_message_queue->Pop();
 
-        DebugLog(LogType::Debug, "Recv message:\t%s\n", message.ToString().Data());
-
         const String message_type = message["type"].ToString();
         const String id = message["id"].ToString();
         
@@ -653,9 +651,35 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
 
             gpu_buffer_ref->Read(g_engine->GetGPUDevice(), m_screen_buffer.Size(), m_screen_buffer.Data());
         }
-        
 
         m_rtc_stream->GetEncoder()->PushData(std::move(m_screen_buffer));
+
+        // ByteBuffer serialized_buffer;
+        
+        // const Handle<Texture> texture = framebuffer_capture->GetTexture();
+        // const InternalFormat format = texture->GetFormat();
+        // const Extent3D extent = texture->GetExtent();
+
+        // Bitmap<3> bitmap(extent.width, extent.height);
+
+        // const UInt num_components = renderer::NumComponents(format);
+
+        // for (UInt pixel = 0; pixel < m_screen_buffer.Size() / num_components; pixel++) {
+        //     UByte components[4] = { 0 };
+
+        //     for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
+        //         components[comp] = m_screen_buffer.Data()[(pixel * num_components) + comp];
+        //     }
+
+        //     bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
+        //         static_cast<Float>(components[0]) / 255.0f,
+        //         static_cast<Float>(components[1]) / 255.0f,
+        //         static_cast<Float>(components[2]) / 255.0f
+        //     ));
+        // }
+
+        // bitmap.FlipVertical();
+        // m_rtc_stream->GetEncoder()->PushData(bitmap.ToByteBuffer());
         
 #if 0
         m_counter++;

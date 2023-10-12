@@ -46,7 +46,7 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
         m_track = lib_data_channel_client->m_peer_connection->addTrack(video_description);
 
         auto rtp_config = std::make_shared<rtc::RtpPacketizationConfig>(1, "video-stream", 102, rtc::H264RtpPacketizer::defaultClockRate);
-        auto packetizer = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::Length, rtp_config);
+        auto packetizer = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtp_config);
         auto h264_handler = std::make_shared<rtc::H264PacketizationHandler>(packetizer);
 
         m_rtcp_sr_reporter = std::make_shared<rtc::RtcpSrReporter>(rtp_config);

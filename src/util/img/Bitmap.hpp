@@ -199,6 +199,20 @@ public:
     const PixelType &GetPixel(UInt x, UInt y) const
         { return const_cast<const Bitmap *>(this)->GetPixel(x, y); }
 
+    ByteBuffer ToByteBuffer() const
+    {
+        ByteBuffer byte_buffer;
+        byte_buffer.SetSize(m_pixels.Size() * PixelType::byte_size);
+
+        for (SizeType i = 0, j = 0; i < byte_buffer.Size() && j < m_pixels.Size(); i += PixelType::byte_size, j++) {
+            for (UInt k = 0; k < PixelType::byte_size; k++) {
+                byte_buffer.Data()[i + k] = m_pixels[j].bytes[k];
+            }
+        }
+
+        return byte_buffer;
+    }
+
     void GetUnpackedBytes(Array<UByte> &out)
     {
         out.Resize(m_pixels.Size() * PixelType::byte_size);

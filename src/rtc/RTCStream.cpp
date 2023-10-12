@@ -39,7 +39,7 @@ void RTCStream::SendSample(const RTCStreamDestination &destination)
         ++num_samples;
     }
 
-    DebugLog(LogType::Debug, "Sent %u samples to %llu tracks\n", num_samples, destination.tracks.Size());
+    // DebugLog(LogType::Debug, "Sent %u samples to %llu tracks\n", num_samples, destination.tracks.Size());
 }
 
 }  // namespace hyperion::v2

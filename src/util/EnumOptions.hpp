@@ -2,13 +2,13 @@
 #define ENUM_OPTIONS_H
 
 #include <core/lib/FixedArray.hpp>
+#include <core/lib/DynArray.hpp>
 #include <HashCode.hpp>
 #include <math/MathUtil.hpp>
 #include <Util.hpp>
 
 #include <Types.hpp>
 
-#include <array>
 #include <initializer_list>
 
 namespace hyperion {
@@ -17,13 +17,13 @@ template <typename EnumType, typename ValueType, SizeType Sz>
 class EnumOptions
 {
 public:
-    using EnumOption_t = EnumType;
-    using Ordinal_t = UInt64;
-    using EnumValueArray_t = FixedArray<ValueType, Sz>;
-    using EnumValuePair_t = std::pair<EnumType, ValueType>;
+    using EnumOption_t      = EnumType;
+    using Ordinal_t         = UInt64;
+    using EnumValueArray_t  = FixedArray<ValueType, Sz>;
+    using EnumValuePair_t   = std::pair<EnumType, ValueType>;
 
-    using Iterator = typename EnumValueArray_t::Iterator;
-    using ConstIterator = typename EnumValueArray_t::ConstIterator;
+    using Iterator          = typename EnumValueArray_t::Iterator;
+    using ConstIterator     = typename EnumValueArray_t::ConstIterator;
 
     // convert from attachment (2^x) into ordinal (0-5) for use as an array index
     static constexpr UInt64 EnumToOrdinal(UInt64 option)
@@ -61,10 +61,12 @@ public:
 
     EnumOptions(const EnumValueArray_t &array) : m_values(array) {}
 
-    EnumOptions(const std::vector<EnumValuePair_t> &pairs)
+    EnumOptions(std::initializer_list<EnumValuePair_t> initializer_list)
         : m_values { }
     {
-        for (const auto &item : pairs) {
+        Array<EnumValuePair_t> temp(initializer_list);
+
+        for (const auto &item : temp) {
             Set(item.first, item.second);
         }
     }

@@ -18,13 +18,21 @@
 
 #endif
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 namespace hyperion::v2 {
 
 class EncoderDataQueue
 {
 public:
+    static constexpr UInt max_queue_size = 5;
+
     EncoderDataQueue()                                              = default;
-    EncoderDataQueue(const EncoderDataQueue &other) = delete;
+    EncoderDataQueue(const EncoderDataQueue &other)                 = delete;
     EncoderDataQueue &operator=(const EncoderDataQueue &other)      = delete;
     EncoderDataQueue(EncoderDataQueue &&other) noexcept             = delete;
     EncoderDataQueue &operator=(EncoderDataQueue &&other) noexcept  = delete;
@@ -33,6 +41,11 @@ public:
     void Push(ByteBuffer data)
     {
         std::lock_guard guard(m_mutex);
+
+        while (m_queue.Size() >= max_queue_size) {
+            m_queue.Pop();
+            m_size.Decrement(1, MemoryOrder::RELAXED);
+        }
 
         m_size.Increment(1, MemoryOrder::RELAXED);
 
@@ -79,6 +92,18 @@ Optional<ByteBuffer> NullRTCStreamVideoEncoder::PullData()
 
 #ifdef HYP_GSTREAMER
 
+struct GStreamerUserData
+{
+    GstAppSrc           *appsrc;
+    GstAppSink          *appsink;
+
+    EncoderDataQueue    *in_queue;
+    EncoderDataQueue    *out_queue;
+
+    UInt                source_id;
+    GSourceFunc         push_data_callback;
+};
+
 class GStreamerThread : public TaskThread
 {
 public:
@@ -88,79 +113,109 @@ public:
           m_out_queue(new EncoderDataQueue())
     {
 #ifdef HYP_GSTREAMER_BIN_DIR
-        _putenv_s("GST_PLUGIN_PATH", HYP_GSTREAMER_BIN_DIR);
-        _putenv_s("GST_REGISTRY", HYP_GSTREAMER_BIN_DIR);
-        DebugLog(LogType::Debug, "GStreamer plugin path: %s\n", getenv("GST_PLUGIN_PATH"));
+        // putenv("GST_PLUGIN_PATH", HYP_GSTREAMER_BIN_DIR);
+        // putenv("GST_REGISTRY", HYP_GSTREAMER_BIN_DIR);
+        // DebugLog(LogType::Debug, "GStreamer plugin path: %s\n", getenv("GST_PLUGIN_PATH"));
 #endif
 
-        gst_debug_set_default_threshold(GST_LEVEL_DEBUG);
+        gst_debug_set_default_threshold(GST_LEVEL_WARNING);
         gst_init(nullptr, nullptr);
 
         GstPlugin *plugin = gst_plugin_load_by_name("app");
         AssertThrowMsg(plugin != nullptr, "Failed to load 'app' plugin\n");
         g_object_unref(plugin);
 
-        m_feed_data_callback = [](GstElement *appsrc, guint unused_size, gpointer user_data)
+        m_custom_data = GStreamerUserData { };
+        m_custom_data.in_queue = m_in_queue.Get();
+        m_custom_data.out_queue = m_out_queue.Get();
+
+        m_custom_data.source_id = 0;
+        m_custom_data.push_data_callback = [](void *user_data_vp) -> gboolean
         {
+            GStreamerUserData *user_data = (GStreamerUserData *)user_data_vp;
             AssertThrow(user_data != nullptr);
 
-            GstBuffer *buffer = nullptr;
+            GstAppSrc *appsrc = user_data->appsrc;
+            AssertThrow(appsrc != nullptr);
+            AssertThrow(GST_IS_APP_SRC(appsrc));
 
-            EncoderDataQueue *in_queue = static_cast<EncoderDataQueue *>(user_data);
+            EncoderDataQueue *in_queue = user_data->in_queue;
+
+            ByteBuffer bytes;
 
             if (in_queue->Size()) {
-                ByteBuffer first = in_queue->Pop();
-
-                const gsize data_size = first.Size();
-
-                GstBuffer *buffer = gst_buffer_new_allocate(NULL, data_size, NULL);
-                
-                GstMapInfo map_info;
-
-                if (gst_buffer_map(buffer, &map_info, GST_MAP_WRITE)) {
-                    memcpy(map_info.data, first.Data(), data_size);
-                    gst_buffer_unmap(buffer, &map_info);
-                } else {
-                    gst_buffer_unref(buffer);
-                    buffer = nullptr;
-
-                    DebugLog(LogType::Error, "Failed to write into GStreamer buffer .Size=%llu\n", data_size);
-                }
+                bytes = in_queue->Pop();
+            } else {
+                bytes = ByteBuffer(1920 * 1080 * 4);
             }
 
-            if (buffer) {
-                gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
+            AssertThrow(bytes.Size() == 1920 * 1080 * 4);
+
+            const gsize data_size = bytes.Size();
+
+            GstBuffer *buffer = gst_buffer_new_allocate(NULL, data_size, NULL);
+            GstMapInfo map_info;
+
+            if (gst_buffer_map(buffer, &map_info, GST_MAP_WRITE)) {
+                memcpy(map_info.data, bytes.Data(), data_size);
+                gst_buffer_unmap(buffer, &map_info);
             } else {
-                // End of stream if no more data
-                gst_app_src_end_of_stream(GST_APP_SRC(appsrc));
+                DebugLog(LogType::Error, "Failed to write into GStreamer buffer .Size=%llu\n", data_size);
+
+                gst_buffer_unref(buffer);
+
+                return FALSE;
+            }
+
+            AssertThrow(buffer != nullptr);
+            AssertThrow(GST_IS_BUFFER(buffer));
+
+            GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
+
+            if (ret != GST_FLOW_OK) {
+                DebugLog(LogType::Error, "appsrc: push buffer error");
+            }
+
+            return TRUE;
+        };
+
+        m_feed_data_callback = [](GstElement *, guint unused_size, GStreamerUserData *user_data)
+        {
+            if (user_data->source_id == 0) {
+                user_data->source_id = g_idle_add((GSourceFunc)user_data->push_data_callback, user_data);
             }
         };
 
-        m_recv_data_callback = [](GstElement *appsink, guint unused_size, gpointer user_data)
+        m_recv_data_callback = [](GstElement *appsink, GStreamerUserData *user_data) -> GstFlowReturn
         {
             AssertThrow(user_data != nullptr);
 
             GstSample *sample = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
 
-            if (!sample) {
-                return;
-            }
+            if (sample != nullptr) {
+                EncoderDataQueue *out_queue = user_data->out_queue;
 
-            GstBuffer *buffer = gst_sample_get_buffer(sample);
-            GstMapInfo map_info;
+                GstBuffer *buffer = gst_sample_get_buffer(sample);
+                GstMapInfo map_info;
 
-            if (!gst_buffer_map(buffer, &map_info, GST_MAP_READ)) {
-                DebugLog(LogType::Error, "Failed to map GStreamer buffer for reading\n");
+                if (!gst_buffer_map(buffer, &map_info, GST_MAP_READ)) {
+                    DebugLog(LogType::Error, "Failed to map GStreamer buffer for reading\n");
+
+                    return GST_FLOW_ERROR;
+                }
+
+                DebugLog(LogType::Info, "Sample received from GStreamer, Size=%llu\n", map_info.size);
+
+                out_queue->Push(ByteBuffer(map_info.size, map_info.data));
+
+                gst_buffer_unmap(buffer, &map_info);
 
                 gst_sample_unref(sample);
 
-                return;
+                return GST_FLOW_OK;
             }
-            
-            EncoderDataQueue *out_queue = static_cast<EncoderDataQueue *>(user_data);
-            out_queue->Push(ByteBuffer(map_info.size, map_info.data));
 
-            gst_sample_unref(sample);
+            return GST_FLOW_ERROR;
         };
     }
 
@@ -178,8 +233,8 @@ public:
         }
 
         if (m_pipeline) {
-            gst_element_set_state(m_pipeline, GST_STATE_NULL);
-            gst_object_unref(GST_OBJECT(m_pipeline));
+            gst_element_set_state(GST_ELEMENT(m_pipeline), GST_STATE_NULL);
+            gst_object_unref(m_pipeline);
 
             m_pipeline = nullptr;
         }
@@ -213,33 +268,56 @@ protected:
 
         GError *error = nullptr;
 
-        // Init Pipeline, AppSrc, AppSink
-        m_pipeline = gst_parse_launch(
-            "appsrc name=source ! video/x-raw,format=RGB,width=640,height=480 ! videoconvert ! x264enc pass=qual quantizer=20 tune=zerolatency ! h264parse ! appsink name=sink", &error
+        m_pipeline = GST_PIPELINE(gst_pipeline_new(NULL));
+
+        GstElement *convert = gst_element_factory_make("videoconvert", "convert");
+        GstElement *encoder = gst_element_factory_make("x264enc", "encoder");
+
+        m_appsrc = GST_APP_SRC(gst_element_factory_make("appsrc", "source"));
+        //g_object_set(m_appsrc, "is-live", TRUE, NULL);
+        g_object_set(
+            m_appsrc,
+            "caps",
+            gst_caps_new_simple(
+                "video/x-raw",
+                "format", G_TYPE_STRING, "RGBA",
+                "width", G_TYPE_INT, 1920,
+                "height", G_TYPE_INT, 1080,
+                "framerate", GST_TYPE_FRACTION, 30, 1,
+                NULL
+            ),
+            NULL
         );
 
-        AssertThrowMsg(error == nullptr, "Failed to create GStreamer pipeline: %s\n", error->message);
+        m_appsink = GST_APP_SINK(gst_element_factory_make("appsink", "sink"));
+        g_object_set(m_appsink, "emit-signals", TRUE, NULL);
+        g_signal_connect(m_appsink, "new-sample", G_CALLBACK(m_recv_data_callback), &m_custom_data);
 
-        m_appsrc = gst_bin_get_by_name(GST_BIN(m_pipeline), "source");
-        g_signal_connect(m_appsrc, "need-data", G_CALLBACK(m_feed_data_callback), m_in_queue.Get());
+        gst_bin_add_many(GST_BIN(m_pipeline), GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
+        gst_element_link_many(GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
 
-        m_appsink = gst_bin_get_by_name(GST_BIN(m_pipeline), "sink");
-        g_signal_connect(m_appsink, "new-sample", G_CALLBACK(m_recv_data_callback), m_out_queue.Get());
+        g_signal_connect(m_appsrc, "need-data", G_CALLBACK(m_feed_data_callback), &m_custom_data);
+
+        m_custom_data.appsink = m_appsink;
+        m_custom_data.appsrc = m_appsrc;
+
+        gst_element_set_state(GST_ELEMENT(m_pipeline), GST_STATE_PLAYING);
 
         m_loop = g_main_loop_new(NULL, FALSE);
-
         g_main_loop_run(m_loop);
     }
 
-    GstElement                      *m_appsrc = nullptr;
-    GstElement                      *m_appsink = nullptr;
-    GstElement                      *m_pipeline = nullptr;
+    GstAppSrc                       *m_appsrc = nullptr;
+    GstAppSink                      *m_appsink = nullptr;
+    GstPipeline                     *m_pipeline = nullptr;
     GMainLoop                       *m_loop = nullptr;
 
     UniquePtr<EncoderDataQueue>     m_in_queue;
     UniquePtr<EncoderDataQueue>     m_out_queue;
-    void                            (*m_feed_data_callback)(GstElement *, guint, gpointer);
-    void                            (*m_recv_data_callback)(GstElement *, guint, gpointer);
+    GStreamerUserData               m_custom_data;
+
+    void                            (*m_feed_data_callback)(GstElement *, guint, GStreamerUserData *);
+    GstFlowReturn                   (*m_recv_data_callback)(GstElement *, GStreamerUserData *);
 };
 
 GStreamerRTCStreamVideoEncoder::GStreamerRTCStreamVideoEncoder()
@@ -294,7 +372,56 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
         return { };
     }
 
-    return m_thread->Pull();
+    Optional<ByteBuffer> pull_result = m_thread->Pull();
+
+    if (pull_result) {
+        ByteBuffer &byte_buffer = pull_result.Get();
+        AssertThrow(byte_buffer.Size() >= 4);
+        
+        SizeType i = 0;
+
+        UInt8 start_code_length = 0;
+
+        union { UByte start_code_bytes[4]; UInt32 start_code; };
+        byte_buffer.Read(i, 4, &start_code_bytes[0]);
+        i += 4;
+
+        UByte nal_header = 0x0;
+
+        if (start_code_bytes[0] == 0x0 && start_code_bytes[1] == 0x0 && start_code_bytes[2] == 0x0 && start_code_bytes[3] == 0x1) {
+            start_code_length = 4;
+            byte_buffer.Read(i, 1, &nal_header);
+            i += 1;
+        } else if (start_code_bytes[0] == 0x0 && start_code_bytes[1] == 0x0 && start_code_bytes[2] == 0x1) {
+            start_code_length = 3;
+            nal_header = start_code_bytes[3];
+            start_code_bytes[3] = 0x0;
+        } else {
+            AssertThrowMsg(
+                false,
+                "Invalid NAL header! Read bytes: %x %x %x %x",
+                start_code_bytes[0],
+                start_code_bytes[1],
+                start_code_bytes[2],
+                start_code_bytes[3]
+            );
+        }
+
+        const UInt32 nal_ref_idc = (nal_header >> 5) & 0x03;
+        const UInt32 nal_unit_type = nal_header & 0x1F;
+
+        DebugLog(LogType::Debug, "Start code bytes: %x %x %x %x\tNAL header: %x\tRef idc: %u\tUnit Type: %u\n",
+            start_code_bytes[0], start_code_bytes[1], start_code_bytes[2], start_code_bytes[3],
+            nal_header,
+            nal_ref_idc,
+            nal_unit_type);
+
+        return Optional<ByteBuffer>(std::move(byte_buffer));
+
+        //return ByteBuffer(byte_buffer.Size() - i, byte_buffer.Data() + i);
+    }
+
+    return { };
 }
 
 

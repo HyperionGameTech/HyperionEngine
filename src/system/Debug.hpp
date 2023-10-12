@@ -52,6 +52,7 @@ void DebugLog_(LogType type, const char *callee, uint32_t line, const char *fmt,
     do { \
         const char *s = "*** assertion failed: (" #cond ") ***"; \
         DebugLog(level, "%s", s); \
+        fflush(stdout); \
     } while (0)
 
 #define AssertOrElse(level, cond, stmt) \
