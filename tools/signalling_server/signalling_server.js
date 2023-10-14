@@ -74,7 +74,7 @@ wsServer.on('request', (req) => {
     clients.set(id, conn);
 });
 
-const endpoint = process.env.PORT || '9945';
+const endpoint = process.env.PORT || '8000';
 const splitted = endpoint.split(':');
 const port = splitted.pop();
 const hostname = splitted.join(':') || '127.0.0.1';

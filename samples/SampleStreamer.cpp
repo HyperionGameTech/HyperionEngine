@@ -660,6 +660,18 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
 
         m_rtc_stream->GetEncoder()->PushData(std::move(m_screen_buffer));
 
+
+        // ByteBuffer temp_buffer;
+        // temp_buffer.SetSize(1920 * 1080 * 3);
+
+        // for (UInt x = 0; x < temp_buffer.Size(); x += 3) {
+        //     temp_buffer.Data()[x] = 0xff;
+        //     temp_buffer.Data()[x + 1] = 0x0;
+        //     temp_buffer.Data()[x + 2] = 0x0;
+        // }
+        // m_rtc_stream->GetEncoder()->PushData(std::move(temp_buffer));
+
+
         // ByteBuffer serialized_buffer;
         
         // const Handle<Texture> texture = framebuffer_capture->GetTexture();
@@ -690,38 +702,66 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
 #if 0
         m_counter++;
 
-        if (m_counter % 100 != 99) {
+        const Handle<Texture> &texture = framebuffer_capture->GetTexture();
+
+         if (m_counter % 100 != 99) {
             return;
         }
+        
+        char name_buffer[255] = { '\0' };
+        std::snprintf(name_buffer, 255, "screencap_%u.png", m_counter / 100);
 
-        const Handle<Texture> texture = framebuffer_capture->GetTexture();
+        Bitmap<3> bitmap(texture->GetExtent().width, texture->GetExtent().height);
 
+        const UInt num_components = NumComponents(texture->GetFormat());
 
-        // Fire and forget
-        TaskSystem::GetInstance().ScheduleTask([screen_buffer = std::move(m_screen_buffer), format = texture->GetFormat(), extent = texture->GetExtent()]() mutable
-        {
-            Bitmap<3> bitmap(extent.width, extent.height);
+        for (UInt pixel = 0; pixel < m_screen_buffer.Size() / num_components; pixel++) {
+            UByte components[4];
 
-            const UInt num_components = renderer::NumComponents(format);
-
-            for (UInt pixel = 0; pixel < screen_buffer.Size() / num_components; pixel++) {
-                UByte components[4] = { 0 };
-
-                for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
-                    components[comp] = screen_buffer.Data()[(pixel * num_components) + comp];
-                }
-
-                bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
-                    static_cast<Float>(components[0]) / 255.0f,
-                    static_cast<Float>(components[1]) / 255.0f,
-                    static_cast<Float>(components[2]) / 255.0f
-                ));
+            for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
+                components[comp] = m_screen_buffer.Data()[(pixel * num_components) + comp];
             }
 
-            bitmap.FlipVertical();
+            bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
+                static_cast<Float>(components[0]) / 255.0f,
+                static_cast<Float>(components[1]) / 255.0f,
+                static_cast<Float>(components[2]) / 255.0f
+            ));
+        }
 
-            bitmap.Write("screencap.bmp");
-        }, THREAD_POOL_BACKGROUND);
+        bitmap.FlipVertical();
+
+        bitmap.Write(name_buffer);
+        
+        // char name_buffer[255] = { '\0' };
+        // std::snprintf(name_buffer, 255, "screencap_%u.bmp", m_counter / 60);
+
+
+        // // Fire and forget
+        // TaskSystem::GetInstance().ScheduleTask([screen_buffer = std::move(m_screen_buffer), format = texture->GetFormat(), extent = texture->GetExtent(), name_buffer]() mutable
+        // {
+        //     Bitmap<3> bitmap(extent.width, extent.height);
+
+        //     const UInt num_components = renderer::NumComponents(format);
+
+        //     for (UInt pixel = 0; pixel < screen_buffer.Size() / num_components; pixel++) {
+        //         UByte components[4] = { 0 };
+
+        //         for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
+        //             components[comp] = screen_buffer.Data()[(pixel * num_components) + comp];
+        //         }
+
+        //         bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
+        //             static_cast<Float>(components[0]) / 255.0f,
+        //             static_cast<Float>(components[1]) / 255.0f,
+        //             static_cast<Float>(components[2]) / 255.0f
+        //         ));
+        //     }
+
+        //     bitmap.FlipVertical();
+
+        //     bitmap.Write(name_buffer);
+        // }, THREAD_POOL_BACKGROUND);
 
 #endif
     }

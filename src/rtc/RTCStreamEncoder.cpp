@@ -30,7 +30,7 @@ namespace hyperion::v2 {
 class EncoderDataQueue
 {
 public:
-    static constexpr UInt max_queue_size = 30;
+    static constexpr UInt max_queue_size = 5;
 
     EncoderDataQueue()                                              = default;
     EncoderDataQueue(const EncoderDataQueue &other)                 = delete;
@@ -105,6 +105,9 @@ struct GStreamerUserData
 
     UInt                source_id;
     GSourceFunc         push_data_callback;
+
+    UInt64              timestamp;
+    Double              sample_duration;
 };
 
 class GStreamerThread : public TaskThread
@@ -129,6 +132,9 @@ public:
         g_object_unref(plugin);
 
         m_custom_data = GStreamerUserData { };
+        m_custom_data.timestamp = 0;
+        m_custom_data.sample_duration = 1.0 / 60.0;
+
         m_custom_data.in_queue = m_in_queue.Get();
         m_custom_data.out_queue = m_out_queue.Get();
 
@@ -149,7 +155,7 @@ public:
             if (in_queue->Size()) {
                 bytes = in_queue->Pop();
             } else {
-                bytes = ByteBuffer(1920 * 1080 * 4);
+                return TRUE;
             }
 
             AssertThrow(bytes.Size() == 1920 * 1080 * 4);
@@ -157,6 +163,11 @@ public:
             const gsize data_size = bytes.Size();
 
             GstBuffer *buffer = gst_buffer_new_allocate(NULL, data_size, NULL);
+            GST_BUFFER_PTS(buffer) = user_data->timestamp;
+            GST_BUFFER_DTS(buffer) = user_data->timestamp;
+            GST_BUFFER_DURATION(buffer) = GST_SECOND / 60;
+            user_data->timestamp += GST_BUFFER_DURATION(buffer);
+            
             GstMapInfo map_info;
 
             if (gst_buffer_map(buffer, &map_info, GST_MAP_WRITE)) {
@@ -203,6 +214,8 @@ public:
 
                 if (!gst_buffer_map(buffer, &map_info, GST_MAP_READ)) {
                     DebugLog(LogType::Error, "Failed to map GStreamer buffer for reading\n");
+
+                    gst_sample_unref(sample);
 
                     return GST_FLOW_ERROR;
                 }
@@ -274,13 +287,23 @@ protected:
         m_pipeline = GST_PIPELINE(gst_pipeline_new(NULL));
 
         GstElement *convert = gst_element_factory_make("videoconvert", "convert");
-        GstElement *encoder = gst_element_factory_make("x264enc", "encoder");
 
-        auto *video_test_src = GST_APP_SRC(gst_element_factory_make("videotestsrc", "source"));
-        g_object_set(video_test_src, "pattern", 1, NULL);
+        GstElement *encoder = gst_element_factory_make("x264enc", "encoder");
+        g_object_set(G_OBJECT(encoder), "tune", 0x00000004, NULL); // ultrafast   
+        g_object_set(G_OBJECT(encoder), "speed-preset", 1, NULL);
+        g_object_set(G_OBJECT(encoder), "bitrate", 35000, NULL);
+        g_object_set(G_OBJECT(encoder), "key-int-max", 1, NULL);
+        g_object_set(G_OBJECT(encoder), "b-adapt", TRUE, NULL);
+        g_object_set(G_OBJECT(encoder), "bframes", 1, NULL);
 
         m_appsrc = GST_APP_SRC(gst_element_factory_make("appsrc", "source"));
-        //g_object_set(m_appsrc, "is-live", TRUE, NULL);
+        g_object_set(
+            m_appsrc,
+            "block", FALSE,
+            NULL
+        );
+        gst_app_src_set_max_buffers(m_appsrc, 3);
+        gst_app_src_set_leaky_type(m_appsrc, GST_APP_LEAKY_TYPE_UPSTREAM);
         g_object_set(
             m_appsrc,
             "caps",
@@ -289,27 +312,27 @@ protected:
                 "format", G_TYPE_STRING, "RGBA",
                 "width", G_TYPE_INT, 1920,
                 "height", G_TYPE_INT, 1080,
-                "framerate", GST_TYPE_FRACTION, 30, 1,
+                "framerate", GST_TYPE_FRACTION, 60, 1,
                 NULL
             ),
             NULL
         );
+        g_signal_connect(m_appsrc, "need-data", G_CALLBACK(m_feed_data_callback), &m_custom_data);
 
         m_appsink = GST_APP_SINK(gst_element_factory_make("appsink", "sink"));
         g_object_set(m_appsink, "emit-signals", TRUE, NULL);
+        g_object_set(
+            m_appsink,
+            "sync", FALSE,
+            NULL
+        );
+        gst_app_sink_set_drop(m_appsink, true);
+        gst_app_sink_set_max_buffers(m_appsink, 3);
         g_signal_connect(m_appsink, "new-sample", G_CALLBACK(m_recv_data_callback), &m_custom_data);
+        g_object_set(G_OBJECT(m_appsink), "format", GST_FORMAT_TIME, "is-live", TRUE, "do-timestamp", TRUE, NULL);
 
-        // auto *sink = gst_element_factory_make("filesink", "sink");
-
-        // // Set the output file location for the filesink
-        // g_object_set(sink, "location", "output.h264", NULL);
-
-
-
-        gst_bin_add_many(GST_BIN(m_pipeline), GST_ELEMENT(video_test_src), convert, encoder, GST_ELEMENT(m_appsink), NULL);
-        gst_element_link_many(GST_ELEMENT(video_test_src), convert, encoder, GST_ELEMENT(m_appsink), NULL);
-
-        g_signal_connect(m_appsrc, "need-data", G_CALLBACK(m_feed_data_callback), &m_custom_data);
+        gst_bin_add_many(GST_BIN(m_pipeline), GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
+        gst_element_link_many(GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
 
         m_custom_data.appsink = m_appsink;
         m_custom_data.appsrc = m_appsrc;
