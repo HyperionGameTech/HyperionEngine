@@ -219,7 +219,7 @@ void ShadowPass::CreateFramebuffer()
     AttachmentUsage *attachment_usage;
 
     { // depth, depth^2 texture (for variance shadow map)
-        m_attachments.PushBack(std::make_unique<Attachment>(
+        m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
             RenderObjects::Make<Image>(renderer::FramebufferImage2D(
                 m_dimensions,
                 InternalFormat::RG32F,
@@ -239,7 +239,7 @@ void ShadowPass::CreateFramebuffer()
     }
 
     { // standard depth texture
-        m_attachments.PushBack(std::make_unique<Attachment>(
+        m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
             RenderObjects::Make<Image>(renderer::FramebufferImage2D(
                 m_dimensions,
                 g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),

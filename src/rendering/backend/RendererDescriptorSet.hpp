@@ -87,6 +87,7 @@ enum class DescriptorKey
     DOF_BLUR_HOR,
     DOF_BLUR_VERT,
     DOF_BLUR_BLENDED,
+    FINAL_OUTPUT,
 
     SCENE_BUFFER,
     LIGHTS_BUFFER,

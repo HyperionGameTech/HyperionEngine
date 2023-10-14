@@ -121,36 +121,20 @@ public:
     {
         auto &deferred_renderer = g_engine->GetDeferredRenderer();
 
-        // const FinalPass &final_pass = g_engine->GetFinalPass();
-        // AssertThrow(final_pass.GetAttachments().Size() != 0);
-
-        const ImageRef &image_ref = deferred_renderer.GetCombinedResult()->GetAttachment()->GetImage();//final_pass.GetAttachments()[0]->GetImage();
+        const FinalPass &final_pass = g_engine->GetFinalPass();
+        const ImageRef &image_ref = final_pass.GetLastFrameImage();//deferred_renderer.GetCombinedResult()->GetAttachment()->GetImage();//final_pass.GetAttachments()[0]->GetImage();
         AssertThrow(image_ref.IsValid());
         
         auto *command_buffer = frame->GetCommandBuffer();
 
         image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-        renderer::Result result = renderer::Result::OK;
-
-        HYPERION_PASS_ERRORS(
-            m_texture->GetImage()->Blit(
-                command_buffer,
-                image_ref
-            ),
-            result
-        );
-
-        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
         m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-        m_texture->GetImage()->CopyToBuffer(
+        image_ref->CopyToBuffer(
             command_buffer,
             m_buffer
         );
-
-        image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        
         m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
     }
 

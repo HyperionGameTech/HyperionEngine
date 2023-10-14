@@ -40,29 +40,6 @@ struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyFullScreenPassAttachments) : RenderCommand
-{
-    Array<std::unique_ptr<renderer::Attachment>> attachments;
-
-    RENDER_COMMAND(DestroyFullScreenPassAttachments)(Array<std::unique_ptr<renderer::Attachment>> &&attachments)
-        : attachments(std::move(attachments))
-    {
-    }
-
-    virtual Result operator()()
-    {
-        auto result = renderer::Result::OK;
-
-        for (auto &attachment : attachments) {
-            HYPERION_PASS_ERRORS(attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()), result);
-        }
-
-        attachments.Clear();
-
-        return result;
-    }
-};
-
 #pragma endregion
 
 FullScreenPass::FullScreenPass(InternalFormat image_format, Extent2D extent)
@@ -157,7 +134,7 @@ void FullScreenPass::CreateCommandBuffers()
 void FullScreenPass::CreateFramebuffer()
 {
     if (m_extent.Size() == 0) {
-        // TODO: Make non render-thread
+        // TODO: Make non render-thread dependent
         m_extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
@@ -169,7 +146,7 @@ void FullScreenPass::CreateFramebuffer()
 
     renderer::AttachmentUsage *attachment_usage;
 
-    m_attachments.PushBack(std::make_unique<Attachment>(
+    m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
         RenderObjects::Make<Image>(renderer::FramebufferImage2D(
             m_extent,
             m_image_format,
@@ -237,8 +214,10 @@ void FullScreenPass::Destroy()
 {
     // TODO: Move all attachment ops into render thread
     for (auto &attachment : m_attachments) {
-        m_framebuffer->RemoveAttachmentUsage(attachment.get());
+        m_framebuffer->RemoveAttachmentUsage(attachment);
     }
+
+    SafeRelease(std::move(m_attachments));
 
     if (m_render_group) {
         m_render_group->RemoveFramebuffer(m_framebuffer->GetID());
@@ -249,8 +228,6 @@ void FullScreenPass::Destroy()
     m_full_screen_quad.Reset();
 
     SafeRelease(std::move(m_command_buffers));
-
-    RenderCommands::Push<RENDER_COMMAND(DestroyFullScreenPassAttachments)>(std::move(m_attachments));
 
     HYP_SYNC_RENDER();
 }

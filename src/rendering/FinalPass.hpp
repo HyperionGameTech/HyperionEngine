@@ -5,8 +5,9 @@
 
 #include <rendering/DefaultFormats.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/backend/RenderObject.hpp>
+#include <rendering/FullScreenPass.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
@@ -21,17 +22,29 @@ class ShaderManagerSystem;
 
 extern ShaderManagerSystem *g_shader_manager;
 
+// Performs tonemapping, samples last postfx in chain
+class CompositePass : public FullScreenPass
+{
+public:
+    CompositePass();
+    CompositePass(const CompositePass &other) = delete;
+    CompositePass &operator=(const CompositePass &other) = delete;
+    virtual ~CompositePass() override;
+
+    void CreateShader();
+    virtual void Create() override;
+};
+
 class FinalPass
 {
 public:
     FinalPass();
+    FinalPass(const FinalPass &other) = delete;
+    FinalPass &operator=(const FinalPass &other) = delete;
     ~FinalPass();
 
-    const Array<AttachmentRef> &GetAttachments() const
-        { return m_attachments; }
-
-    const Handle<RenderGroup> &GetRenderGroup() const
-        { return m_render_group; }
+    const ImageRef &GetLastFrameImage() const
+        { return m_last_frame_image; }
 
     void Create();
     void Destroy();
@@ -42,6 +55,8 @@ private:
     Array<AttachmentRef>    m_attachments;
     Handle<RenderGroup>     m_render_group;
     Handle<Mesh>            m_quad;
+    CompositePass           m_composite_pass;
+    ImageRef                m_last_frame_image;
 };
 } // namespace hyperion::v2
 

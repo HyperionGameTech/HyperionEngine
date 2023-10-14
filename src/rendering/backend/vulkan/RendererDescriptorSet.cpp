@@ -99,7 +99,9 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
 
             {DescriptorKey::DOF_BLUR_HOR, 77},
             {DescriptorKey::DOF_BLUR_VERT, 78},
-            {DescriptorKey::DOF_BLUR_BLENDED, 79}
+            {DescriptorKey::DOF_BLUR_BLENDED, 79},
+
+            {DescriptorKey::FINAL_OUTPUT, 80}
         }
     },
     {

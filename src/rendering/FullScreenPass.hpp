@@ -70,6 +70,9 @@ public:
 
     AttachmentUsage *GetAttachmentUsage(UInt attachment_index)
         { return GetFramebuffer()->GetAttachmentUsages()[attachment_index]; }
+
+    const Array<AttachmentRef> &GetAttachments() const
+        { return m_attachments; }
     
     CommandBuffer *GetCommandBuffer(UInt index) const { return m_command_buffers[index].Get(); }
 
@@ -134,7 +137,7 @@ protected:
     Handle<Mesh> m_full_screen_quad;
     Extent2D m_extent;
 
-    Array<std::unique_ptr<Attachment>> m_attachments;
+    Array<AttachmentRef> m_attachments;
 
     PushConstantData m_push_constant_data;
 
