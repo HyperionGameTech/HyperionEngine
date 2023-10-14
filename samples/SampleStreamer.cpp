@@ -121,42 +121,37 @@ public:
     {
         auto &deferred_renderer = g_engine->GetDeferredRenderer();
 
-        if (auto *attachment = deferred_renderer.GetCombinedResult()->GetAttachment()) {
-            renderer::Result result = renderer::Result::OK;
+        // const FinalPass &final_pass = g_engine->GetFinalPass();
+        // AssertThrow(final_pass.GetAttachments().Size() != 0);
 
-            AssertThrow(attachment != nullptr);
-            AssertThrow(attachment->GetImage() != nullptr);
+        const ImageRef &image_ref = deferred_renderer.GetCombinedResult()->GetAttachment()->GetImage();//final_pass.GetAttachments()[0]->GetImage();
+        AssertThrow(image_ref.IsValid());
+        
+        auto *command_buffer = frame->GetCommandBuffer();
 
-            const auto previous_resource_state = attachment->GetImage()->GetGPUImage()->GetResourceState();
+        image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-            auto *command_buffer = frame->GetCommandBuffer();
+        renderer::Result result = renderer::Result::OK;
 
-            attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-
-            m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-            HYPERION_PASS_ERRORS(
-                m_texture->GetImage()->Blit(
-                    command_buffer,
-                    attachment->GetImage()
-                ),
-                result
-            );
-
-            m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-            m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-            m_texture->GetImage()->CopyToBuffer(
+        HYPERION_PASS_ERRORS(
+            m_texture->GetImage()->Blit(
                 command_buffer,
-                m_buffer
-            );
+                image_ref
+            ),
+            result
+        );
 
-            
-            attachment->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-            m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        } else {
-            DebugLog(LogType::Error, "Could not get attachment\n");
-        }
+        m_texture->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
+        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+
+        m_texture->GetImage()->CopyToBuffer(
+            command_buffer,
+            m_buffer
+        );
+
+        image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
     }
 
 private:
@@ -659,111 +654,6 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
         }
 
         m_rtc_stream->GetEncoder()->PushData(std::move(m_screen_buffer));
-
-
-        // ByteBuffer temp_buffer;
-        // temp_buffer.SetSize(1920 * 1080 * 3);
-
-        // for (UInt x = 0; x < temp_buffer.Size(); x += 3) {
-        //     temp_buffer.Data()[x] = 0xff;
-        //     temp_buffer.Data()[x + 1] = 0x0;
-        //     temp_buffer.Data()[x + 2] = 0x0;
-        // }
-        // m_rtc_stream->GetEncoder()->PushData(std::move(temp_buffer));
-
-
-        // ByteBuffer serialized_buffer;
-        
-        // const Handle<Texture> texture = framebuffer_capture->GetTexture();
-        // const InternalFormat format = texture->GetFormat();
-        // const Extent3D extent = texture->GetExtent();
-
-        // Bitmap<3> bitmap(extent.width, extent.height);
-
-        // const UInt num_components = renderer::NumComponents(format);
-
-        // for (UInt pixel = 0; pixel < m_screen_buffer.Size() / num_components; pixel++) {
-        //     UByte components[4] = { 0 };
-
-        //     for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
-        //         components[comp] = m_screen_buffer.Data()[(pixel * num_components) + comp];
-        //     }
-
-        //     bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
-        //         static_cast<Float>(components[0]) / 255.0f,
-        //         static_cast<Float>(components[1]) / 255.0f,
-        //         static_cast<Float>(components[2]) / 255.0f
-        //     ));
-        // }
-
-        // bitmap.FlipVertical();
-        // m_rtc_stream->GetEncoder()->PushData(bitmap.ToByteBuffer());
-        
-#if 0
-        m_counter++;
-
-        const Handle<Texture> &texture = framebuffer_capture->GetTexture();
-
-         if (m_counter % 100 != 99) {
-            return;
-        }
-        
-        char name_buffer[255] = { '\0' };
-        std::snprintf(name_buffer, 255, "screencap_%u.png", m_counter / 100);
-
-        Bitmap<3> bitmap(texture->GetExtent().width, texture->GetExtent().height);
-
-        const UInt num_components = NumComponents(texture->GetFormat());
-
-        for (UInt pixel = 0; pixel < m_screen_buffer.Size() / num_components; pixel++) {
-            UByte components[4];
-
-            for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
-                components[comp] = m_screen_buffer.Data()[(pixel * num_components) + comp];
-            }
-
-            bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
-                static_cast<Float>(components[0]) / 255.0f,
-                static_cast<Float>(components[1]) / 255.0f,
-                static_cast<Float>(components[2]) / 255.0f
-            ));
-        }
-
-        bitmap.FlipVertical();
-
-        bitmap.Write(name_buffer);
-        
-        // char name_buffer[255] = { '\0' };
-        // std::snprintf(name_buffer, 255, "screencap_%u.bmp", m_counter / 60);
-
-
-        // // Fire and forget
-        // TaskSystem::GetInstance().ScheduleTask([screen_buffer = std::move(m_screen_buffer), format = texture->GetFormat(), extent = texture->GetExtent(), name_buffer]() mutable
-        // {
-        //     Bitmap<3> bitmap(extent.width, extent.height);
-
-        //     const UInt num_components = renderer::NumComponents(format);
-
-        //     for (UInt pixel = 0; pixel < screen_buffer.Size() / num_components; pixel++) {
-        //         UByte components[4] = { 0 };
-
-        //         for (UInt comp = 0; comp < MathUtil::Min(num_components, std::size(components)); comp++) {
-        //             components[comp] = screen_buffer.Data()[(pixel * num_components) + comp];
-        //         }
-
-        //         bitmap.GetPixelAtIndex(pixel).SetRGB(Vector3(
-        //             static_cast<Float>(components[0]) / 255.0f,
-        //             static_cast<Float>(components[1]) / 255.0f,
-        //             static_cast<Float>(components[2]) / 255.0f
-        //         ));
-        //     }
-
-        //     bitmap.FlipVertical();
-
-        //     bitmap.Write(name_buffer);
-        // }, THREAD_POOL_BACKGROUND);
-
-#endif
     }
 }
 

@@ -27,32 +27,31 @@ public:
     DepthPyramidRenderer();
     ~DepthPyramidRenderer();
 
-    auto &GetResults() { return m_depth_pyramid_results; }
-    const auto &GetResults() const { return m_depth_pyramid; }
+    const ImageViewRef &GetResultImageView() const
+        { return m_depth_pyramid_view; }
 
-    auto &GetMips() { return m_depth_pyramid_mips; }
-    const auto &GetMips() const { return m_depth_pyramid_mips; }
+    const Array<ImageViewRef> &GetMipImageVIews() const
+        { return m_depth_pyramid_mips; }
 
-    const Extent3D &GetExtent() const { return m_depth_pyramid[0]->GetExtent(); }
+    Extent3D GetExtent() const
+        { return m_depth_pyramid ? m_depth_pyramid->GetExtent() : Extent3D { 1, 1, 1 }; }
 
-    bool IsRendered() const { return m_is_rendered; }
+    bool IsRendered() const
+        { return m_is_rendered; }
 
     void Create(const AttachmentUsage *depth_attachment_usage);
     void Destroy();
 
-    void Render(
-        
-        Frame *frame
-    );
+    void Render(Frame *frame);
 
 private:
-    const AttachmentUsage *m_depth_attachment_usage;
+    const AttachmentUsage                                       *m_depth_attachment_usage;
 
-    FixedArray<std::unique_ptr<Image>, max_frames_in_flight> m_depth_pyramid;
-    FixedArray<std::unique_ptr<ImageView>, max_frames_in_flight> m_depth_pyramid_results;
-    FixedArray<Array<std::unique_ptr<ImageView>>, max_frames_in_flight> m_depth_pyramid_mips;
-    FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_depth_pyramid_descriptor_sets;
-    std::unique_ptr<Sampler> m_depth_pyramid_sampler;
+    ImageRef                                                    m_depth_pyramid;
+    ImageViewRef                                                m_depth_pyramid_view;
+    Array<ImageViewRef>                                         m_depth_pyramid_mips;
+    FixedArray<Array<DescriptorSetRef>, max_frames_in_flight>   m_depth_pyramid_descriptor_sets;
+    SamplerRef                                                  m_depth_pyramid_sampler;
 
     Handle<ComputePipeline> m_generate_depth_pyramid;
 

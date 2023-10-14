@@ -19,16 +19,18 @@
 #include <rendering/RenderCommands.hpp>
 #include <rendering/debug/ImmediateMode.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
 #include <scene/System.hpp>
 
-#include "GameThread.hpp"
-#include "Threads.hpp"
-#include "TaskSystem.hpp"
+#include <GameThread.hpp>
+#include <Threads.hpp>
+#include <TaskSystem.hpp>
 
 #include <core/Scheduler.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/TypeMap.hpp>
+#include <core/ObjectPool.hpp>
 
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
@@ -36,14 +38,10 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
-#include <TaskSystem.hpp>
-
 #include <system/CrashHandler.hpp>
 
 #include <util/EnumOptions.hpp>
 #include <util/shader_compiler/ShaderCompiler.hpp>
-
-#include <core/ObjectPool.hpp>
 
 #include <Types.hpp>
 
@@ -172,6 +170,9 @@ public:
     InternalFormat GetDefaultFormat(TextureFormatDefault type) const
         { return m_texture_format_defaults.Get(type); }
 
+    const FinalPass &GetFinalPass() const
+        { return m_final_pass; }
+
     Handle<RenderGroup> CreateRenderGroup(
         const RenderableAttributeSet &renderable_attributes
     );
@@ -208,15 +209,8 @@ public:
     void Compile();
     void RequestStop();
 
-    // temporarily public: RT stuff is not yet in it's own unit,
-    // needs to use this method
     void PreFrameUpdate(Frame *frame);
-    // temporarily public: RT stuff is not yet in it's own unit,
-    // needs to use this method
     void RenderDeferred(Frame *frame);
-    // temporarily public: RT stuff is not yet in it's own unit,
-    // needs to use this method
-    void RenderFinalPass(Frame *frame);
 
     void RenderNextFrame(Game *game);
 
@@ -307,23 +301,16 @@ private:
     void ResetRenderState(RenderStateMask mask);
     void UpdateBuffersAndDescriptors(UInt frame_index);
 
-    void PrepareFinalPass();
-
     void FindTextureFormatDefaults();
 
     void AddRenderGroupInternal(Handle<RenderGroup> &, bool cache);
     
     UniquePtr<Instance> m_instance;
-    Handle<RenderGroup> m_root_pipeline;
 
     EnumOptions<TextureFormatDefault, InternalFormat, 16> m_texture_format_defaults;
 
     DeferredRenderer m_deferred_renderer;
     DeferredSystem m_render_list_container;
-
-    /* TMP */
-    std::vector<std::unique_ptr<renderer::Attachment>> m_render_pass_attachments;
-
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_group_mapping;
     std::mutex m_render_group_mapping_mutex;
 
@@ -334,12 +321,12 @@ private:
     SafeDeleter m_safe_deleter;
 
     Handle<World> m_world;
-
-    Handle<Mesh> m_full_screen_quad;
     
     Configuration m_configuration;
 
     ImmediateMode m_immediate_mode;
+
+    FinalPass m_final_pass;
 
     CrashHandler m_crash_handler;
 

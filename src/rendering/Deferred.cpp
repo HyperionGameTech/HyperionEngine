@@ -557,7 +557,7 @@ void DeferredRenderer::CreateDescriptorSets()
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEPTH_PYRAMID_RESULT)
-            ->SetElementSRV(0, m_dpr.GetResults()[frame_index].get());
+            ->SetElementSRV(0, m_dpr.GetResultImageView());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_LIGHTING_AMBIENT)
@@ -848,7 +848,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     { // render depth pyramid
         m_dpr.Render(frame);
         // update culling info now that depth pyramid has been rendered
-        m_cull_data.depth_pyramid_image_views[frame_index] = m_dpr.GetResults()[frame_index].get();
+        m_cull_data.depth_pyramid_image_view = m_dpr.GetResultImageView();
         m_cull_data.depth_pyramid_dimensions = m_dpr.GetExtent();
     }
 

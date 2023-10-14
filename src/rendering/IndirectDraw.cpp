@@ -443,7 +443,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
 
     if (m_cached_cull_data_updated_bits & (1u << frame_index)) {
         m_descriptor_sets[frame_index]->GetDescriptor(6)
-            ->SetElementSRV(0, m_cached_cull_data.depth_pyramid_image_views[frame_index]);
+            ->SetElementSRV(0, m_cached_cull_data.depth_pyramid_image_view);
 
         m_descriptor_sets[frame_index]->ApplyUpdates(g_engine->GetGPUDevice());
 

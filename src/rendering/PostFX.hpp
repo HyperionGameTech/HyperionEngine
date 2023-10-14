@@ -40,8 +40,7 @@ struct alignas(16) PostProcessingUniforms
     ShaderVec2<UInt32> masks; // pre, post
 };
 
-class PostFXPass
-    : public FullScreenPass
+class PostFXPass : public FullScreenPass
 {
 public:
     PostFXPass(

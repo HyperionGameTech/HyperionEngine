@@ -174,6 +174,7 @@ struct RENDER_COMMAND(CopyBackbufferToCPU) : RenderCommand
 
 #pragma endregion
 
+
 Engine::Engine()
     : shader_globals(nullptr)
 {
@@ -295,119 +296,6 @@ void Engine::FindTextureFormatDefaults()
     );
 }
 
-void Engine::PrepareFinalPass()
-{
-    m_full_screen_quad = MeshBuilder::Quad();
-    AssertThrow(InitObject(m_full_screen_quad));
-
-    ShaderProperties final_output_props;
-    final_output_props.Set("TEMPORAL_AA", GetConfig().Get(CONFIG_TEMPORAL_AA));
-
-    if (GetConfig().Get(CONFIG_DEBUG_SSR)) {
-        final_output_props.Set("DEBUG_SSR");
-    } else if (GetConfig().Get(CONFIG_DEBUG_HBAO)) {
-        final_output_props.Set("DEBUG_HBAO");
-    } else if (GetConfig().Get(CONFIG_DEBUG_HBIL)) {
-        final_output_props.Set("DEBUG_HBIL");
-    } else if (GetConfig().Get(CONFIG_DEBUG_REFLECTIONS)) {
-        final_output_props.Set("DEBUG_REFLECTIONS");
-    } else if (GetConfig().Get(CONFIG_DEBUG_IRRADIANCE)) {
-        final_output_props.Set("DEBUG_IRRADIANCE");
-    } else if (GetConfig().Get(CONFIG_PATHTRACER)) {
-        final_output_props.Set("PATHTRACER");
-    }
-
-    final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(m_instance->swapchain->image_format));
-
-    auto shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(FinalOutput),
-        final_output_props
-    );
-
-    AssertThrow(InitObject(shader));
-
-    UInt iteration = 0;
-
-    m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
-            m_instance->swapchain->extent,
-            m_instance->swapchain->image_format,
-            nullptr
-        )),
-        renderer::RenderPassStage::PRESENT
-    ));
-
-    m_render_pass_attachments.push_back(std::make_unique<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
-            m_instance->swapchain->extent,
-            m_texture_format_defaults.Get(TEXTURE_FORMAT_DEFAULT_DEPTH),
-            nullptr
-        )),
-        renderer::RenderPassStage::PRESENT
-    ));
-    
-    for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Create(m_instance->GetDevice()));
-    }
-
-    for (renderer::PlatformImage img : m_instance->swapchain->images) {
-        auto fbo = CreateObject<Framebuffer>(
-            m_instance->swapchain->extent,
-            renderer::RenderPassStage::PRESENT,
-            renderer::RenderPass::Mode::RENDER_PASS_INLINE
-        );
-
-        renderer::AttachmentUsage *color_attachment_usage,
-            *depth_attachment_usage;
-
-        HYPERION_ASSERT_RESULT(m_render_pass_attachments[0]->AddAttachmentUsage(
-            m_instance->GetDevice(),
-            img,
-            renderer::helpers::ToVkFormat(m_instance->swapchain->image_format),
-            VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D,
-            1, 1,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE,
-            &color_attachment_usage
-        ));
-
-        color_attachment_usage->SetBinding(0);
-
-        fbo->AddAttachmentUsage(color_attachment_usage);
-
-        HYPERION_ASSERT_RESULT(m_render_pass_attachments[1]->AddAttachmentUsage(
-            m_instance->GetDevice(),
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE,
-            &depth_attachment_usage
-        ));
-
-        fbo->AddAttachmentUsage(depth_attachment_usage);
-
-        depth_attachment_usage->SetBinding(1);
-
-        if (iteration == 0) {
-            m_root_pipeline = CreateObject<RenderGroup>(
-                std::move(shader),
-                RenderableAttributeSet(
-                    MeshAttributes {
-                        .vertex_attributes = renderer::static_mesh_vertex_attributes
-                    },
-                    MaterialAttributes {
-                        .bucket = BUCKET_SWAPCHAIN
-                    }
-                )
-            );
-        }
-
-        m_root_pipeline->AddFramebuffer(std::move(fbo));
-
-        ++iteration;
-    }
-    
-    m_render_list_container.AddFramebuffersToPipelines();
-    InitObject(m_root_pipeline);
-}
 
 void Engine::Initialize(RC<Application> application)
 {
@@ -960,7 +848,9 @@ void Engine::Initialize(RC<Application> application)
 
     AssertThrowMsg(AudioManager::GetInstance()->Initialize(), "Failed to initialize audio device");
 
-    PrepareFinalPass();
+    m_final_pass.Create();
+
+    m_render_list_container.AddFramebuffersToPipelines();
 
     Compile();
 }
@@ -1030,8 +920,6 @@ void Engine::FinalizeStop()
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
-    m_full_screen_quad.Reset();
-
     m_is_stopping = true;
     m_is_render_loop_active = false;
     TaskSystem::GetInstance().Stop();
@@ -1049,9 +937,7 @@ void Engine::FinalizeStop()
     m_render_list_container.Destroy();
     m_deferred_renderer.Destroy();
 
-    for (auto &attachment : m_render_pass_attachments) {
-        HYPERION_ASSERT_RESULT(attachment->Destroy(m_instance->GetDevice()));
-    }
+    m_final_pass.Destroy();
 
     m_safe_deleter.ForceReleaseAll();
 
@@ -1097,7 +983,8 @@ void Engine::RenderNextFrame(Game *game)
     m_world->Render(frame);
 
     RenderDeferred(frame);
-    RenderFinalPass(frame);
+
+    m_final_pass.Render(frame);
 
     HYPERION_ASSERT_RESULT(frame->EndCapture(GetGPUInstance()->GetDevice()));
 
@@ -1256,45 +1143,5 @@ void Engine::RenderDeferred(Frame *frame)
     Threads::AssertOnThread(THREAD_RENDER);
 
     m_deferred_renderer.Render(frame, render_state.GetScene().render_environment);
-}
-
-void Engine::RenderFinalPass(Frame *frame)
-{
-    Threads::AssertOnThread(THREAD_RENDER);
-
-    const GraphicsPipelineRef &pipeline = m_root_pipeline->GetPipeline();
-    const UInt acquired_image_index = m_instance->GetFrameHandler()->GetAcquiredImageIndex();
-
-    m_root_pipeline->GetFramebuffers()[acquired_image_index]->BeginCapture(0, frame->GetCommandBuffer());
-    
-    pipeline->Bind(frame->GetCommandBuffer());
-
-    m_instance->GetDescriptorPool().Bind(
-        m_instance->GetDevice(),
-        frame->GetCommandBuffer(),
-        pipeline,
-        {
-            {.set = DescriptorSet::global_buffer_mapping[frame->GetFrameIndex()], .count = 1},
-            {.binding = DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL}
-        }
-    );
-
-#if HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
-    /* TMP */
-    m_instance->GetDescriptorPool().Bind(
-        m_instance->GetDevice(),
-        frame->GetCommandBuffer(),
-        pipeline,
-        {{
-            .set = DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING,
-            .count = 1
-        }}
-    );
-#endif
-
-    /* Render full screen quad overlay to blit deferred + all post fx onto screen. */
-    m_full_screen_quad->Render(frame->GetCommandBuffer());
-    
-    m_root_pipeline->GetFramebuffers()[acquired_image_index]->EndCapture(0, frame->GetCommandBuffer());
 }
 } // namespace hyperion::v2
