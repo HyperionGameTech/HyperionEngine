@@ -4,7 +4,7 @@ const iceConnectionLog = document.getElementById('ice-connection-state'),
     dataChannelLog = document.getElementById('data-channel');
 
 const clientId = randomId(10);
-const websocket = new WebSocket('ws://127.0.0.1:9945/' + clientId);
+const websocket = new WebSocket('ws://127.0.0.1:8000/' + clientId);
 
 websocket.onopen = () => {
     document.getElementById('start').disabled = false;
@@ -52,6 +52,7 @@ function createPeerConnection() {
     pc.ontrack = (evt) => {
         document.getElementById('media').style.display = 'block';
         const video = document.getElementById('video');
+        console.log('Update stream: ', evt.streams[0]);
         // always overrite the last stream - you may want to do something more clever in practice
         video.srcObject = evt.streams[0]; // The stream groups audio and video tracks
         video.play();

@@ -10,6 +10,8 @@ namespace hyperion::v2 {
 
 class TaskThread;
 
+class RTCTrack;
+
 class RTCStreamEncoder
 {
 public:

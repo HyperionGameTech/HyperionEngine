@@ -225,7 +225,7 @@ void SampleStreamer::InitGame()
     
     m_rtc_instance.Reset(new RTCInstance(
         RTCServerParams {
-            RTCServerAddress { "ws://127.0.0.1", 9945, "/server" }
+            RTCServerAddress { "ws://127.0.0.1", 8000, "/server" }
         }
     ));
 
@@ -592,7 +592,9 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
             RC<RTCClient> client = m_rtc_instance->GetServer()->CreateClient(id);
             DebugLog(LogType::Debug, "Adding client with ID %s  %s\n", id.Data(), typeid(*client).name());
 
-            client->AddTrack(m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO));
+            auto track = m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO);
+
+            client->AddTrack(track);
             client->Connect();
         } else if (message_type == "answer") {
             if (const Optional<RC<RTCClient>> client = m_rtc_instance->GetServer()->GetClientList().Get(id)) {
@@ -613,6 +615,10 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
             }
 
             for (const auto &track : client.second->GetTracks()) {
+                if (!track->IsOpen()) {
+                    continue;
+                }
+
                 tracks.PushBack(track);
             }
         }

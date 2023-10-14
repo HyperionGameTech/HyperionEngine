@@ -24,12 +24,24 @@ struct RTCStreamDestination
     Array<RC<RTCTrack>> tracks;
 };
 
+struct RTCStreamParams
+{
+    UInt samples_per_second = 60;
+
+    UInt GetSampleDuration() const
+    {
+        return 1000 * 1000 / samples_per_second;
+    }
+};
+
 class RTCStream
 {
 public:
-    RTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
+    RTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder, RTCStreamParams params = { })
         : m_stream_type(stream_type),
-          m_encoder(std::move(encoder))
+          m_encoder(std::move(encoder)),
+          m_params(params),
+          m_timestamp(0)
     {
     }
 
@@ -45,6 +57,9 @@ public:
     const UniquePtr<RTCStreamEncoder> &GetEncoder() const
         { return m_encoder; }
 
+    UInt64 GetCurrentTimestamp() const
+        { return m_timestamp; }
+
     virtual void SendSample(const RTCStreamDestination &destination);
 
     virtual void Start();
@@ -53,6 +68,8 @@ public:
 protected:
     RTCStreamType               m_stream_type;
     UniquePtr<RTCStreamEncoder> m_encoder;
+    RTCStreamParams             m_params;
+    UInt64                      m_timestamp;
 };
 
 class NullRTCStream : public RTCStream
@@ -75,11 +92,7 @@ public:
 class LibDataChannelRTCStream : public RTCStream
 {
 public:
-    LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
-        : RTCStream(stream_type, std::move(encoder))
-    {
-    }
-
+    LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder);
     LibDataChannelRTCStream(const LibDataChannelRTCStream &other)                   = delete;
     LibDataChannelRTCStream &operator=(const LibDataChannelRTCStream &other)        = delete;
     LibDataChannelRTCStream(LibDataChannelRTCStream &&other) noexcept               = default;

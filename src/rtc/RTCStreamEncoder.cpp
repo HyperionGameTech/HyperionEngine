@@ -1,5 +1,6 @@
 #include <rtc/RTCStreamEncoder.hpp>
 #include <rtc/RTCServer.hpp>
+#include <rtc/RTCTrack.hpp>
 
 #include <core/lib/AtomicVar.hpp>
 #include <core/lib/Queue.hpp>
@@ -29,7 +30,7 @@ namespace hyperion::v2 {
 class EncoderDataQueue
 {
 public:
-    static constexpr UInt max_queue_size = 5;
+    static constexpr UInt max_queue_size = 30;
 
     EncoderDataQueue()                                              = default;
     EncoderDataQueue(const EncoderDataQueue &other)                 = delete;
@@ -42,9 +43,11 @@ public:
     {
         std::lock_guard guard(m_mutex);
 
-        while (m_queue.Size() >= max_queue_size) {
-            m_queue.Pop();
-            m_size.Decrement(1, MemoryOrder::RELAXED);
+        if constexpr (max_queue_size != UInt(-1)) {
+            while (m_queue.Size() >= max_queue_size) {
+                m_queue.Pop();
+                m_size.Decrement(1, MemoryOrder::RELAXED);
+            }
         }
 
         m_size.Increment(1, MemoryOrder::RELAXED);
@@ -204,7 +207,7 @@ public:
                     return GST_FLOW_ERROR;
                 }
 
-                DebugLog(LogType::Info, "Sample received from GStreamer, Size=%llu\n", map_info.size);
+                // DebugLog(LogType::Info, "Sample received from GStreamer, Size=%llu\n", map_info.size);
 
                 out_queue->Push(ByteBuffer(map_info.size, map_info.data));
 
@@ -273,6 +276,9 @@ protected:
         GstElement *convert = gst_element_factory_make("videoconvert", "convert");
         GstElement *encoder = gst_element_factory_make("x264enc", "encoder");
 
+        auto *video_test_src = GST_APP_SRC(gst_element_factory_make("videotestsrc", "source"));
+        g_object_set(video_test_src, "pattern", 1, NULL);
+
         m_appsrc = GST_APP_SRC(gst_element_factory_make("appsrc", "source"));
         //g_object_set(m_appsrc, "is-live", TRUE, NULL);
         g_object_set(
@@ -293,8 +299,15 @@ protected:
         g_object_set(m_appsink, "emit-signals", TRUE, NULL);
         g_signal_connect(m_appsink, "new-sample", G_CALLBACK(m_recv_data_callback), &m_custom_data);
 
-        gst_bin_add_many(GST_BIN(m_pipeline), GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
-        gst_element_link_many(GST_ELEMENT(m_appsrc), convert, encoder, GST_ELEMENT(m_appsink), NULL);
+        // auto *sink = gst_element_factory_make("filesink", "sink");
+
+        // // Set the output file location for the filesink
+        // g_object_set(sink, "location", "output.h264", NULL);
+
+
+
+        gst_bin_add_many(GST_BIN(m_pipeline), GST_ELEMENT(video_test_src), convert, encoder, GST_ELEMENT(m_appsink), NULL);
+        gst_element_link_many(GST_ELEMENT(video_test_src), convert, encoder, GST_ELEMENT(m_appsink), NULL);
 
         g_signal_connect(m_appsrc, "need-data", G_CALLBACK(m_feed_data_callback), &m_custom_data);
 
@@ -410,11 +423,11 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
         const UInt32 nal_ref_idc = (nal_header >> 5) & 0x03;
         const UInt32 nal_unit_type = nal_header & 0x1F;
 
-        DebugLog(LogType::Debug, "Start code bytes: %x %x %x %x\tNAL header: %x\tRef idc: %u\tUnit Type: %u\n",
-            start_code_bytes[0], start_code_bytes[1], start_code_bytes[2], start_code_bytes[3],
-            nal_header,
-            nal_ref_idc,
-            nal_unit_type);
+        // DebugLog(LogType::Debug, "Start code bytes: %x %x %x %x\tNAL header: %x\tRef idc: %u\tUnit Type: %u\n",
+        //     start_code_bytes[0], start_code_bytes[1], start_code_bytes[2], start_code_bytes[3],
+        //     nal_header,
+        //     nal_ref_idc,
+        //     nal_unit_type);
 
         return Optional<ByteBuffer>(std::move(byte_buffer));
 

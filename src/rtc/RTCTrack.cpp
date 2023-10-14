@@ -13,7 +13,12 @@
 
 namespace hyperion::v2 {
 
-void NullRTCTrack::SendData(const ByteBuffer &data)
+Bool NullRTCTrack::IsOpen() const
+{
+    return true;
+}
+
+void NullRTCTrack::SendData(const ByteBuffer &data, UInt64 sample_timestamp)
 {
 }
 
@@ -23,6 +28,11 @@ void NullRTCTrack::PrepareTrack(RTCClient *client)
 
 
 #ifdef HYP_LIBDATACHANNEL
+
+Bool LibDataChannelRTCTrack::IsOpen() const
+{
+    return m_track != nullptr && m_track->isOpen();
+}
 
 void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
 {
@@ -45,11 +55,11 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
 
         m_track = lib_data_channel_client->m_peer_connection->addTrack(video_description);
 
-        auto rtp_config = std::make_shared<rtc::RtpPacketizationConfig>(1, "video-stream", 102, rtc::H264RtpPacketizer::defaultClockRate);
-        auto packetizer = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, rtp_config);
+        m_rtp_config = std::make_shared<rtc::RtpPacketizationConfig>(1, "video-stream", 102, rtc::H264RtpPacketizer::defaultClockRate);
+        auto packetizer = std::make_shared<rtc::H264RtpPacketizer>(rtc::NalUnit::Separator::StartSequence, m_rtp_config);
         auto h264_handler = std::make_shared<rtc::H264PacketizationHandler>(packetizer);
 
-        m_rtcp_sr_reporter = std::make_shared<rtc::RtcpSrReporter>(rtp_config);
+        m_rtcp_sr_reporter = std::make_shared<rtc::RtcpSrReporter>(m_rtp_config);
         h264_handler->addToChain(m_rtcp_sr_reporter);
 
         auto nack_responder = std::make_shared<rtc::RtcpNackResponder>();
@@ -80,7 +90,7 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
 }
 
 
-void LibDataChannelRTCTrack::SendData(const ByteBuffer &data)
+void LibDataChannelRTCTrack::SendData(const ByteBuffer &data, UInt64 sample_timestamp)
 {
     if (!m_track) {
         DebugLog(LogType::Warn, "Track in undefined state, not sending data\n");
@@ -92,6 +102,17 @@ void LibDataChannelRTCTrack::SendData(const ByteBuffer &data)
         DebugLog(LogType::Warn, "Track closed, not sending data\n");
 
         return;
+    }
+
+    const Double elapsed_time_seconds = Double(sample_timestamp) / Double(1000 * 1000);
+    
+    const UInt32 elapsed_timestamp = m_rtp_config->secondsToTimestamp(elapsed_time_seconds);
+    m_rtp_config->timestamp = m_rtp_config->startTimestamp + elapsed_timestamp;
+
+    const UInt32 report_elapsed_timestamp = m_rtp_config->timestamp - m_rtcp_sr_reporter->lastReportedTimestamp();
+
+    if (m_rtp_config->timestampToSeconds(report_elapsed_timestamp) > 1) {
+        m_rtcp_sr_reporter->setNeedsToReport();
     }
 
     m_track->send(reinterpret_cast<const rtc::byte *>(data.Data()), data.Size());

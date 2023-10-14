@@ -5,6 +5,11 @@
 
 #include <TaskThread.hpp>
 
+#ifdef HYP_LIBDATACHANNEL
+#include <rtc/rtcpsrreporter.hpp>
+#include <rtc/rtppacketizationconfig.hpp>
+#endif
+
 namespace hyperion::v2 {
 
 void RTCStream::Start()
@@ -33,13 +38,28 @@ void RTCStream::SendSample(const RTCStreamDestination &destination)
 
     while (auto sample = m_encoder->PullData()) {
         for (const RC<RTCTrack> &track : destination.tracks) {
-            track->SendData(sample.Get());
+            if (!track->IsOpen()) {
+                continue;
+            }
+
+            track->SendData(sample.Get(), m_timestamp);
         }
 
         ++num_samples;
     }
 
+    m_timestamp += m_params.GetSampleDuration();
+
     // DebugLog(LogType::Debug, "Sent %u samples to %llu tracks\n", num_samples, destination.tracks.Size());
 }
+
+#ifdef HYP_LIBDATACHANNEL
+
+LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
+    : RTCStream(stream_type, std::move(encoder), { 60 })
+{
+}
+
+#endif
 
 }  // namespace hyperion::v2

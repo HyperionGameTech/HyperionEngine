@@ -131,7 +131,7 @@ void LibDataChannelRTCClient::Connect()
         }
     });
 
-    auto data_channel = peer_connection->createDataChannel("data");
+    auto data_channel = peer_connection->createDataChannel("ping-pong");
 
     data_channel->onOpen([data_channel_weak = std::weak_ptr<rtc::DataChannel>(data_channel)]
     {
@@ -140,8 +140,9 @@ void LibDataChannelRTCClient::Connect()
         }
     });
 
-    data_channel->onMessage([data_channel_weak = std::weak_ptr<rtc::DataChannel>(data_channel)](rtc::binary)
+    data_channel->onMessage([data_channel_weak = std::weak_ptr<rtc::DataChannel>(data_channel)](rtc::binary bin)
     {
+        DebugLog(LogType::Debug, "Got message, %s\n", String(ByteBuffer(bin.size(), bin.data())));
         if (auto data_channel = data_channel_weak.lock()) {
             data_channel->send("Ping");
         }
