@@ -58,7 +58,7 @@ private:
         const ComputePipeline *pipeline
     ) const;
 
-    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
     GPUBufferRef m_voxel_uniforms;
 
     std::unique_ptr<Voxelizer> m_voxelizer;

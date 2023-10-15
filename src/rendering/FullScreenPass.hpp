@@ -51,7 +51,7 @@ public:
 
     FullScreenPass(
         const Handle<Shader> &shader,
-        const Array<const DescriptorSet *> &used_descriptor_sets,
+        const Array<DescriptorSetRef> &used_descriptor_sets,
         InternalFormat image_format = InternalFormat::RGB8_SRGB,
         Extent2D extent = Extent2D { 0, 0 }
     );
@@ -130,23 +130,23 @@ public:
 protected:
     void CreateQuad();
 
-    FixedArray<CommandBufferRef, max_frames_in_flight> m_command_buffers;
-    Handle<Framebuffer> m_framebuffer;
-    Handle<Shader> m_shader;
-    Handle<RenderGroup> m_render_group;
-    Handle<Mesh> m_full_screen_quad;
-    Extent2D m_extent;
+    FixedArray<CommandBufferRef, max_frames_in_flight>  m_command_buffers;
+    Handle<Framebuffer>                                 m_framebuffer;
+    Handle<Shader>                                      m_shader;
+    Handle<RenderGroup>                                 m_render_group;
+    Handle<Mesh>                                        m_full_screen_quad;
+    Extent2D                                            m_extent;
 
-    Array<AttachmentRef> m_attachments;
+    Array<AttachmentRef>                                m_attachments;
 
-    PushConstantData m_push_constant_data;
+    PushConstantData                                    m_push_constant_data;
 
     // TODO: move to PostFXPass?                        
-    InternalFormat m_image_format;                                    
-    DescriptorKey m_descriptor_key;
-    UInt m_sub_descriptor_index;
+    InternalFormat                                      m_image_format;                                    
+    DescriptorKey                                       m_descriptor_key;
+    UInt                                                m_sub_descriptor_index;
 
-    Optional<Array<const DescriptorSet *>> m_used_descriptor_sets;
+    Optional<Array<DescriptorSetRef>>                   m_used_descriptor_sets;
 };
 } // namespace hyperion::v2
 

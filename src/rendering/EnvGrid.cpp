@@ -148,7 +148,7 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : RenderCommand
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             
             descriptor_set_globals
@@ -668,21 +668,21 @@ void EnvGrid::CreateSHData()
     
     m_clear_sh = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_CLEAR" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_compute_sh_descriptor_sets[0] }
     );
 
     InitObject(m_clear_sh);
 
     m_compute_sh = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_BUILD_COEFFICIENTS" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_compute_sh_descriptor_sets[0] }
     );
 
     InitObject(m_compute_sh);
 
     m_finalize_sh = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(ComputeSH), {{ "MODE_FINALIZE" }}),
-        Array<const DescriptorSet *> { m_compute_sh_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_compute_sh_descriptor_sets[0] }
     );
 
     InitObject(m_finalize_sh);
@@ -742,7 +742,7 @@ void EnvGrid::CreateSHClipmapData()
 
     m_compute_clipmaps = CreateObject<ComputePipeline>(
         CreateObject<Shader>(g_engine->GetShaderCompiler().GetCompiledShader(HYP_NAME(ComputeSHClipmap))),
-        Array<const DescriptorSet *> { m_compute_clipmaps_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_compute_clipmaps_descriptor_sets[0] }
     );
 
     InitObject(m_compute_clipmaps);
@@ -885,7 +885,7 @@ void EnvGrid::CreateLightFieldData()
 
     m_pack_light_field_probe = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(PackLightFieldProbe), {}),
-        Array<const DescriptorSet *> { m_light_field_probe_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
     );
 
     InitObject(m_pack_light_field_probe);
@@ -894,14 +894,14 @@ void EnvGrid::CreateLightFieldData()
 
     m_copy_light_field_border_texels_irradiance = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {}),
-        Array<const DescriptorSet *> { m_light_field_probe_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
     );
 
     InitObject(m_copy_light_field_border_texels_irradiance);
 
     m_copy_light_field_border_texels_depth = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {{ "DEPTH" }}),
-        Array<const DescriptorSet *> { m_light_field_probe_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
     );
 
     InitObject(m_copy_light_field_border_texels_depth);

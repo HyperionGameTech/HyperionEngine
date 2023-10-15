@@ -17,13 +17,13 @@ using renderer::ShaderMat4;
 
 struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommand
 {
-    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
     TemporalAA::ImageOutput *image_outputs;
 
     RENDER_COMMAND(CreateTemporalAADescriptors)(
-        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
+        FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets,
         TemporalAA::ImageOutput *image_outputs
-    ) : descriptor_sets(descriptor_sets),
+    ) : descriptor_sets(std::move(descriptor_sets)),
         image_outputs(image_outputs)
     {
     }
@@ -40,7 +40,7 @@ struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommand
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -54,14 +54,11 @@ struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommand
 
 struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderCommand
 {
-    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
     TemporalAA::ImageOutput *image_outputs;
 
     RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)(
-        UniquePtr<renderer::DescriptorSet> *descriptor_sets,
         TemporalAA::ImageOutput *image_outputs
-    ) : descriptor_sets(descriptor_sets),
-        image_outputs(image_outputs)
+    ) : image_outputs(image_outputs)
     {
     }
 
@@ -73,7 +70,7 @@ struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderComma
             image_outputs[frame_index].Destroy(g_engine->GetGPUDevice());
 
             // unset final result from the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -160,16 +157,13 @@ void TemporalAA::Destroy()
     m_compute_taa.Reset();
 
     // release our owned descriptor sets
-    for (auto &descriptor_set : m_descriptor_sets) {
-        g_engine->SafeRelease(std::move(descriptor_set));
-    }
+    SafeRelease(std::move(m_descriptor_sets));
     
     for (auto &uniform_buffer : m_uniform_buffers) {
         g_engine->SafeRelease(std::move(uniform_buffer));
     }
 
     RenderCommands::Push<RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)>(
-        m_descriptor_sets.Data(),
         m_image_outputs.Data()
     );
 
@@ -186,7 +180,7 @@ void TemporalAA::CreateImages()
 void TemporalAA::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
+        auto descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
 
         // input 0 - current frame being rendered
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(0)
@@ -240,7 +234,7 @@ void TemporalAA::CreateDescriptorSets()
     }
     
     RenderCommands::Push<RENDER_COMMAND(CreateTemporalAADescriptors)>(
-        m_descriptor_sets.Data(),
+        m_descriptor_sets,
         m_image_outputs.Data()
     );
 }
@@ -249,7 +243,7 @@ void TemporalAA::CreateComputePipelines()
 {
     m_compute_taa = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(TemporalAA)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_compute_taa);
@@ -284,7 +278,7 @@ void TemporalAA::Render(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_compute_taa->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 

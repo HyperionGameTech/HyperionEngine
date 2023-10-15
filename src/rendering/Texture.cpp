@@ -208,7 +208,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
                     pass->GetCommandBuffer(temp_frame.GetFrameIndex())->BindDescriptorSet(
                         g_engine->GetGPUInstance()->GetDescriptorPool(),
                         pass->GetRenderGroup()->GetPipeline(),
-                        m_descriptor_sets[mip_level].Get(), 0
+                        m_descriptor_sets[mip_level], 0
                     );
                     
                     pass->GetQuadMesh()->Render(pass->GetCommandBuffer(temp_frame.GetFrameIndex()));
@@ -348,7 +348,7 @@ public:
 
                 RC<FullScreenPass> pass(new FullScreenPass(
                     shader,
-                    Array<const DescriptorSet *> { m_descriptor_sets.Front().Get() },
+                    Array<DescriptorSetRef> { m_descriptor_sets.Front() },
                     m_image->GetTextureFormat(),
                     Extent2D { mip_width, mip_height }
                 ));

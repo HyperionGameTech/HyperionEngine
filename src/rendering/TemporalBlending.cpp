@@ -240,7 +240,7 @@ void TemporalBlending::CreateComputePipelines()
 
     m_perform_blending = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(TemporalBlending), shader_properties),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_perform_blending);
@@ -270,7 +270,7 @@ void TemporalBlending::Render(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_perform_blending->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0,
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),

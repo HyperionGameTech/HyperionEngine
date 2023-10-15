@@ -179,7 +179,7 @@ void Voxelizer::CreateDescriptors()
 
         virtual Result operator()()
         {
-            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL);
 
             descriptor_set
@@ -227,7 +227,7 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *frame)
     ));
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
+        DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
         descriptor_set

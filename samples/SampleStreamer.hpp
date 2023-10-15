@@ -3,13 +3,12 @@
 
 #include <Game.hpp>
 #include <HyperionEngine.hpp>
+#include <core/net/MessageQueue.hpp>
 
 #include <rtc/RTCInstance.hpp>
 
 using namespace hyperion;
 using namespace hyperion::v2;
-
-class WebSocketMessageQueue;
 
 class SampleStreamer : public Game
 {
@@ -32,7 +31,7 @@ private:
 
     UniquePtr<RTCInstance>              m_rtc_instance;
     RC<RTCStream>                       m_rtc_stream;
-    UniquePtr<WebSocketMessageQueue>    m_message_queue;
+    net::MessageQueue                   m_message_queue;
 
     Handle<Texture>                     m_texture;
     ByteBuffer                          m_screen_buffer;

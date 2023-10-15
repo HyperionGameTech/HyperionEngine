@@ -669,9 +669,9 @@ Result DescriptorPool::Destroy(Device *device)
     return result;
 }
 
-DescriptorSet *DescriptorPool::AddDescriptorSet(
+void DescriptorPool::AddDescriptorSet(
     Device *device,
-    std::unique_ptr<DescriptorSet> &&descriptor_set,
+    DescriptorSetRef descriptor_set,
     bool add_immediately
 )
 {
@@ -693,15 +693,13 @@ DescriptorSet *DescriptorPool::AddDescriptorSet(
 
         m_descriptor_sets[index] = std::move(descriptor_set);
 
-        return m_descriptor_sets[index].get();
+        return;
     }
 
     const auto descriptor_set_frame_index = DescriptorSet::GetFrameIndex(index);
     AssertThrow(descriptor_set_frame_index >= 0 && descriptor_set_frame_index < max_frames_in_flight);
 
     m_descriptor_sets_pending_addition[descriptor_set_frame_index].PushBack(std::move(descriptor_set));
-
-    return m_descriptor_sets_pending_addition[descriptor_set_frame_index].Back().get();
 }
 
 void DescriptorPool::RemoveDescriptorSet(Device *device, DescriptorSet *descriptor_set)
@@ -792,7 +790,7 @@ Result DescriptorPool::DestroyPendingDescriptorSets(Device *device, UInt frame_i
             HYPERION_BUBBLE_ERRORS(item->Destroy(device));
         }
 
-        m_descriptor_sets[index].reset();
+        m_descriptor_sets[index].Reset();
 
         descriptor_set_queue.Pop();
     }

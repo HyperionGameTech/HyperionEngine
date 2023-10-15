@@ -2,6 +2,7 @@
 #define HYPERION_RENDERER_DESCRIPTOR_SET_H
 
 #include <rendering/backend/RendererResult.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <util/Defines.hpp>
 #include <Constants.hpp>
@@ -514,14 +515,13 @@ public:
 
     void SetDescriptorSetLayout(UInt index, VkDescriptorSetLayout layout);
 
-    // return new descriptor set
-    DescriptorSet *AddDescriptorSet(
+    void AddDescriptorSet(
         Device *device,
-        std::unique_ptr<DescriptorSet> &&descriptor_set,
+        DescriptorSetRef descriptor_set,
         bool add_immediately = false
     );
-    DescriptorSet *GetDescriptorSet(DescriptorSet::Index index) const
-        { return m_descriptor_sets[index].get(); }
+    DescriptorSetRef GetDescriptorSet(DescriptorSet::Index index) const
+        { return m_descriptor_sets[index]; }
 
     void RemoveDescriptorSet(Device *device, DescriptorSet *descriptor_set);
     void RemoveDescriptorSet(Device *device, UInt index);
@@ -538,7 +538,7 @@ public:
     Result UpdateDescriptorSets(Device *device, UInt frame_index);
 
 private:
-    Result DestroyDescriptorSet(Device *device, std::unique_ptr<DescriptorSet> &descriptor_set);
+    Result DestroyDescriptorSet(Device *device, const DescriptorSetRef &descriptor_set);
     
     void BindDescriptorSets(
         Device *device,
@@ -548,12 +548,12 @@ private:
         const DescriptorSetBinding &binding
     ) const;
 
-    Array<std::unique_ptr<DescriptorSet>> m_descriptor_sets;
-    FlatMap<UInt, VkDescriptorSetLayout> m_descriptor_set_layouts;
+    Array<DescriptorSetRef>                                         m_descriptor_sets;
+    FlatMap<UInt, VkDescriptorSetLayout>                            m_descriptor_set_layouts;
     VkDescriptorPool m_descriptor_pool;
 
-    FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_descriptor_sets_pending_addition;
-    FixedArray<Queue<DescriptorSet::Index>, max_frames_in_flight> m_descriptor_sets_pending_destruction;
+    FixedArray<Array<DescriptorSetRef>, max_frames_in_flight>       m_descriptor_sets_pending_addition;
+    FixedArray<Queue<DescriptorSet::Index>, max_frames_in_flight>   m_descriptor_sets_pending_destruction;
 
     bool m_is_created;
 };

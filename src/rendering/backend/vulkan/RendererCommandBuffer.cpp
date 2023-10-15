@@ -252,7 +252,7 @@ void CommandBuffer::BindDescriptorSet(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
@@ -312,7 +312,7 @@ void CommandBuffer::BindDescriptorSets(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
     SizeType num_offsets
@@ -332,7 +332,7 @@ void CommandBuffer::BindDescriptorSet(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
@@ -350,7 +350,7 @@ void CommandBuffer::BindDescriptorSet(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
     SizeType num_offsets
@@ -447,7 +447,7 @@ void CommandBuffer::BindDescriptorSets(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
@@ -465,7 +465,7 @@ void CommandBuffer::BindDescriptorSet(
 void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
     SizeType num_offsets
@@ -595,7 +595,7 @@ void CommandBuffer::BindDescriptorSet(
         pool,
         pipeline,
         bind_point,
-        bind_set.get(),
+        bind_set,
         binding,
         offsets,
         num_offsets
@@ -606,7 +606,7 @@ void CommandBuffer::BindDescriptorSet(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
-    const DescriptorSet *descriptor_set,
+    const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
     SizeType num_offsets
@@ -699,7 +699,7 @@ void CommandBuffer::BindDescriptorSets(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
-    const DescriptorSet *descriptor_sets,
+    const DescriptorSetRef *descriptor_sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
     const UInt32 *offsets,
@@ -727,7 +727,7 @@ void CommandBuffer::BindDescriptorSets(
             );
         }
 
-        descriptor_sets_buffer[i] = descriptor_sets[i].m_set;
+        descriptor_sets_buffer[i] = descriptor_sets[i]->m_set;
     }
 
     vkCmdBindDescriptorSets(

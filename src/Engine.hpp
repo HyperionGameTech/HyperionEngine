@@ -181,7 +181,7 @@ public:
     Handle<RenderGroup> CreateRenderGroup(
         const Handle<Shader> &shader,
         const RenderableAttributeSet &renderable_attributes,
-        const Array<const DescriptorSet *> &used_descriptor_sets
+        const Array<DescriptorSetRef> &used_descriptor_sets
     );
 
 

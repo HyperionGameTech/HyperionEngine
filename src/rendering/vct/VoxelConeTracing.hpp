@@ -83,7 +83,7 @@ private:
     Handle<ComputePipeline> m_generate_mipmap;
     Handle<ComputePipeline> m_perform_temporal_blending;
     FixedArray<Array<std::unique_ptr<ImageView>>, max_frames_in_flight> m_mips;
-    FixedArray<Array<std::unique_ptr<DescriptorSet>>, max_frames_in_flight> m_generate_mipmap_descriptor_sets;
+    FixedArray<Array<DescriptorSetRef>, max_frames_in_flight> m_generate_mipmap_descriptor_sets;
 
     RenderList m_render_list;
 

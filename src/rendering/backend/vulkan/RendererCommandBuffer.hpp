@@ -85,7 +85,7 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const GraphicsPipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
@@ -130,7 +130,7 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const GraphicsPipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
         SizeType num_offsets
@@ -138,10 +138,10 @@ public:
 
     template <SizeType NumOffsets>
     void BindDescriptorSet(
-        const DescriptorPool                 &pool,
-        const GraphicsPipeline               *pipeline,
-        const DescriptorSet                  *descriptor_set,
-        DescriptorSet::Index                  binding,
+        const DescriptorPool &pool,
+        const GraphicsPipeline *pipeline,
+        const DescriptorSetRef &descriptor_set,
+        DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
     ) const
     {
@@ -178,14 +178,14 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const ComputePipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const ComputePipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
         SizeType num_offsets
@@ -195,7 +195,7 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const ComputePipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
     ) const
@@ -284,14 +284,14 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const RaytracingPipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const RaytracingPipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
         SizeType num_offsets
@@ -301,7 +301,7 @@ public:
     void BindDescriptorSet(
         const DescriptorPool &pool,
         const RaytracingPipeline *pipeline,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
     ) const
@@ -417,7 +417,7 @@ private:
         const DescriptorPool &pool,
         const Pipeline *pipeline,
         VkPipelineBindPoint bind_point,
-        const DescriptorSet *descriptor_set,
+        const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
         SizeType num_offsets
@@ -438,7 +438,7 @@ private:
         const DescriptorPool &pool,
         const Pipeline *pipeline,
         VkPipelineBindPoint bind_point,
-        const DescriptorSet *descriptor_sets,
+        const DescriptorSetRef *descriptor_sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
         const UInt32 *offsets,

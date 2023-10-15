@@ -15,7 +15,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(const Array<const DescriptorSet *> &used_descriptor_sets)
+Pipeline::Pipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
     : m_used_descriptor_sets(used_descriptor_sets),
       m_has_custom_descriptor_sets(true),
       pipeline(VK_NULL_HANDLE),
@@ -69,7 +69,7 @@ std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *dev
     std::vector<VkDescriptorSetLayout> used_layouts;
     used_layouts.reserve(m_used_descriptor_sets.Get().Size());
 
-    for (auto *descriptor_set : m_used_descriptor_sets.Get()) {
+    for (DescriptorSetRef descriptor_set : m_used_descriptor_sets.Get()) {
         AssertThrow(descriptor_set != nullptr);
         AssertThrow(descriptor_set->IsCreated());
 

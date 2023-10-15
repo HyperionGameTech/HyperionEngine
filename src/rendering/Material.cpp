@@ -92,7 +92,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
             const auto descriptor_set_index = DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES, id.value - 1, frame_index);
 
             const auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
-            const auto *descriptor_set = descriptor_pool.GetDescriptorSet(descriptor_set_index);
+            const DescriptorSetRef descriptor_set = descriptor_pool.GetDescriptorSet(descriptor_set_index);
             auto *descriptor = descriptor_set->GetDescriptor(DescriptorKey::TEXTURES);
 
             descriptor->SetElementSRV(texture_index, texture->GetImageView());
@@ -137,14 +137,13 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 
             auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
-            auto *descriptor_set = descriptor_pool.AddDescriptorSet(
-                g_engine->GetGPUDevice(),
-                std::make_unique<DescriptorSet>(
-                    parent_index,
-                    UInt(index),
-                    false
-                )
+            DescriptorSetRef descriptor_set = RenderObjects::Make<renderer::DescriptorSet>(
+                parent_index,
+                UInt(index),
+                false
             );
+            
+            descriptor_pool.AddDescriptorSet(g_engine->GetGPUDevice(), descriptor_set);
 
             auto *sampler_descriptor = descriptor_set->AddDescriptor<SamplerDescriptor>(DescriptorKey::SAMPLER);
             sampler_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());

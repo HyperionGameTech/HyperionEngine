@@ -364,8 +364,8 @@ void ParticleSpawner::CreateRenderGroup()
     m_render_group->AddFramebuffer(Handle<Framebuffer>(g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
-    m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
-        m_descriptor_sets[0].Get()
+    m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<DescriptorSetRef> {
+        m_descriptor_sets[0]
     });
 
     AssertThrow(InitObject(m_render_group));
@@ -381,7 +381,7 @@ void ParticleSpawner::CreateComputePipelines()
             HYP_NAME(UpdateParticles),
             properties
         ),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_update_particles);

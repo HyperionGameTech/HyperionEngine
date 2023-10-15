@@ -470,7 +470,7 @@ void Engine::Initialize(RC<Application> application)
     for (UInt frame_index = 0; frame_index < UInt(std::size(DescriptorSet::global_buffer_mapping)); frame_index++) {
         const auto descriptor_set_index = DescriptorSet::global_buffer_mapping[frame_index];
 
-        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
+        DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(descriptor_set_index);
 
         auto *env_probe_textures_descriptor = descriptor_set
@@ -621,7 +621,7 @@ void Engine::Initialize(RC<Application> application)
 
     // add placeholder scene data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
+        DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[frame_index]);
 
         auto *shadow_map_descriptor = descriptor_set
@@ -634,7 +634,7 @@ void Engine::Initialize(RC<Application> application)
 
     // add placeholder scene data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set = GetGPUInstance()->GetDescriptorPool()
+        DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::object_buffer_mapping[frame_index]);
 
         descriptor_set
@@ -643,7 +643,7 @@ void Engine::Initialize(RC<Application> application)
     }
 
     // add VCT descriptor placeholders
-    auto *vct_descriptor_set = GetGPUInstance()->GetDescriptorPool()
+    DescriptorSetRef vct_descriptor_set = GetGPUInstance()->GetDescriptorPool()
         .GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_VOXELIZER);
     
 #if 1
@@ -704,7 +704,7 @@ void Engine::Initialize(RC<Application> application)
 #endif
     
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        auto *descriptor_set_globals = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
+        DescriptorSetRef descriptor_set_globals = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[i]);
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)
             ->SetElementImageSamplerCombined(0, &GetPlaceholderData().GetImageView3D1x1x1R8Storage(), &GetPlaceholderData().GetSamplerLinear());
@@ -817,7 +817,7 @@ void Engine::Initialize(RC<Application> application)
 
 #if 0//HYP_FEATURES_ENABLE_RAYTRACING
     { // add RT placeholders
-        auto *rt_descriptor_set = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
+        DescriptorSetRef rt_descriptor_set = GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_RAYTRACING);
 
         rt_descriptor_set->GetOrAddDescriptor<renderer::StorageImageDescriptor>(1)
             ->SetSubDescriptor({
@@ -1039,7 +1039,7 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 Handle<RenderGroup> Engine::CreateRenderGroup(
     const Handle<Shader> &shader,
     const RenderableAttributeSet &renderable_attributes,
-    const Array<const DescriptorSet *> &used_descriptor_sets
+    const Array<DescriptorSetRef> &used_descriptor_sets
 )
 {
     if (!shader) {

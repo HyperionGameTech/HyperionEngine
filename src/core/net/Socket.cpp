@@ -9,7 +9,7 @@
 
 #endif
 
-namespace hyperion::v2 {
+namespace hyperion::net {
 
 struct SocketServerImpl
 {
@@ -119,4 +119,4 @@ bool SocketServer::Start()
     return true;
 }
 
-} // namespace hyperion::v2
+} // namespace hyperion::net

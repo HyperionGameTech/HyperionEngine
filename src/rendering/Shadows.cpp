@@ -35,7 +35,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
     virtual Result operator()()
     {
         for (UInt i = 0; i < max_frames_in_flight; i++) {
-            auto *descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::scene_buffer_mapping[i]);
 
             auto *shadow_map_descriptor = descriptor_set
@@ -73,17 +73,17 @@ struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommand
 
 struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommand
 {
-    renderer::DescriptorSet *descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
-    RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)(renderer::DescriptorSet *descriptor_sets)
-        : descriptor_sets(descriptor_sets)
+    RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)(FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets)
+        : descriptor_sets(std::move(descriptor_sets))
     {
     }
 
     virtual Result operator()()
     {
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_BUBBLE_ERRORS(descriptor_sets[i].Create(
+        for (UInt i = 0; i < descriptor_sets.Size(); i++) {
+            HYPERION_BUBBLE_ERRORS(descriptor_sets[i]->Create(
                 g_engine->GetGPUDevice(),
                 &g_engine->GetGPUInstance()->GetDescriptorPool()
             ));
@@ -97,12 +97,10 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
 {
     ImageRef shadow_map_image;
     ImageViewRef shadow_map_image_view;
-    renderer::DescriptorSet *descriptor_sets;
 
-    RENDER_COMMAND(DestroyShadowPassData)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view, renderer::DescriptorSet *descriptor_sets)
+    RENDER_COMMAND(DestroyShadowPassData)(const ImageRef &shadow_map_image, const ImageViewRef &shadow_map_image_view)
         : shadow_map_image(shadow_map_image),
-          shadow_map_image_view(shadow_map_image_view),
-          descriptor_sets(descriptor_sets)
+          shadow_map_image_view(shadow_map_image_view)
     {
     }
 
@@ -112,10 +110,6 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
 
         HYPERION_PASS_ERRORS(shadow_map_image->Destroy(g_engine->GetGPUDevice()), result);
         HYPERION_PASS_ERRORS(shadow_map_image_view->Destroy(g_engine->GetGPUDevice()), result);
-
-        for (UInt i = 0; i < max_frames_in_flight; i++) {
-            HYPERION_PASS_ERRORS(descriptor_sets[i].Destroy(g_engine->GetGPUDevice()), result);
-        }
 
         return result;
     }
@@ -293,21 +287,23 @@ void ShadowPass::CreateComputePipelines()
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_blur_descriptor_sets[i].AddDescriptor<ImageDescriptor>(0)
+        m_blur_descriptor_sets[i] = RenderObjects::Make<renderer::DescriptorSet>();
+
+        m_blur_descriptor_sets[i]->AddDescriptor<ImageDescriptor>(0)
             ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().front()->GetImageView());
 
-        m_blur_descriptor_sets[i].AddDescriptor<SamplerDescriptor>(1)
+        m_blur_descriptor_sets[i]->AddDescriptor<SamplerDescriptor>(1)
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
-        m_blur_descriptor_sets[i].AddDescriptor<StorageImageDescriptor>(2)
+        m_blur_descriptor_sets[i]->AddDescriptor<StorageImageDescriptor>(2)
             ->SetElementUAV(0, m_shadow_map_image_view);
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets.Data());
+    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets);
 
     m_blur_shadow_map = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap)),
-        Array<const DescriptorSet *> { &m_blur_descriptor_sets[0] }
+        Array<DescriptorSetRef> { m_blur_descriptor_sets[0] }
     );
 
     InitObject(m_blur_shadow_map);
@@ -343,10 +339,11 @@ void ShadowPass::Destroy()
     m_render_list.Reset();
     m_parent_scene.Reset();
 
+    SafeRelease(std::move(m_blur_descriptor_sets));
+
     RenderCommands::Push<RENDER_COMMAND(DestroyShadowPassData)>(
         m_shadow_map_image,
-        m_shadow_map_image_view,
-        m_blur_descriptor_sets.Data()
+        m_shadow_map_image_view
     );
 
     FullScreenPass::Destroy(); // flushes render queue, releases command buffers...
@@ -397,7 +394,7 @@ void ShadowPass::Render(Frame *frame)
         command_buffer->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_shadow_map->GetPipeline(),
-            &m_blur_descriptor_sets[frame->GetFrameIndex()],
+            m_blur_descriptor_sets[frame->GetFrameIndex()],
             DescriptorSet::Index(0)
         );
 

@@ -122,7 +122,7 @@ private:
     ImageRef m_shadow_map_image;
     ImageViewRef m_shadow_map_image_view;
     Handle<ComputePipeline> m_blur_shadow_map;
-    FixedArray<DescriptorSet, 2> m_blur_descriptor_sets;
+    FixedArray<DescriptorSetRef, 2> m_blur_descriptor_sets;
 };
 
 class ShadowMapRenderer : public RenderComponent<ShadowMapRenderer>

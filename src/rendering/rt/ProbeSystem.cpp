@@ -87,7 +87,7 @@ struct RENDER_COMMAND(CreateProbeGridDescriptors) : RenderCommand
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -121,7 +121,7 @@ struct RENDER_COMMAND(DestroyProbeGridDescriptors) : RenderCommand
         
         // remove result image from global descriptor set
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             // set to placeholder image
@@ -285,8 +285,8 @@ void ProbeGrid::CreatePipeline()
     InitObject(m_shader);
 
     m_pipeline = RenderObjects::Make<RaytracingPipeline>(
-        Array<const DescriptorSet *> {
-            m_descriptor_sets[0].Get(),
+        Array<DescriptorSetRef> {
+            m_descriptor_sets[0],
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
         }
@@ -303,28 +303,28 @@ void ProbeGrid::CreateComputePipelines()
 {
     m_update_irradiance = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateIrradiance)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_update_irradiance);
 
     m_update_depth = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(RTProbeUpdateDepth)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_update_depth);
 
     m_copy_border_texels_irradiance = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsIrradiance)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_copy_border_texels_irradiance);
 
     m_copy_border_texels_depth = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(RTCopyBorderTexelsDepth)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_copy_border_texels_depth);
@@ -632,7 +632,7 @@ void ProbeGrid::RenderProbes(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_pipeline.Get(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 
@@ -691,7 +691,7 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_update_irradiance->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 
@@ -709,7 +709,7 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_update_depth->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 
@@ -738,7 +738,7 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_copy_border_texels_irradiance->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 
@@ -756,7 +756,7 @@ void ProbeGrid::ComputeIrradiance(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_copy_border_texels_depth->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
     

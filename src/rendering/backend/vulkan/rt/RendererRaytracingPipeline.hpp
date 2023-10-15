@@ -21,7 +21,7 @@ class RaytracingPipeline : public Pipeline
 public:
     RaytracingPipeline();
     RaytracingPipeline(
-        const Array<const DescriptorSet *> &used_descriptor_sets
+        const Array<DescriptorSetRef> &used_descriptor_sets
     );
     RaytracingPipeline(const RaytracingPipeline &other) = delete;
     RaytracingPipeline &operator=(const RaytracingPipeline &other) = delete;

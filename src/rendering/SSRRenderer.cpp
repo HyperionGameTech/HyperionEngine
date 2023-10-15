@@ -139,7 +139,7 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommand
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -161,7 +161,7 @@ struct RENDER_COMMAND(RemoveSSRDescriptors) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // unset final result from the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -488,28 +488,28 @@ void SSRRenderer::CreateComputePipelines()
 #else
     m_write_uvs = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SSRWriteUVs), shader_properties),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_write_uvs);
 
     m_sample = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SSRSample), shader_properties),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_sample);
 
     m_blur_hor = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurHor), shader_properties),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SSRBlurVert), shader_properties),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_blur_vert);
@@ -583,7 +583,7 @@ void SSRRenderer::Render(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_write_uvs->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0,
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
@@ -611,7 +611,7 @@ void SSRRenderer::Render(Frame *frame)
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_sample->GetPipeline(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_descriptor_sets[frame->GetFrameIndex()],
         0,
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
@@ -640,7 +640,7 @@ void SSRRenderer::Render(Frame *frame)
         frame->GetCommandBuffer()->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_hor->GetPipeline(),
-            m_descriptor_sets[frame->GetFrameIndex()].Get(),
+            m_descriptor_sets[frame->GetFrameIndex()],
             0,
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),
@@ -666,7 +666,7 @@ void SSRRenderer::Render(Frame *frame)
         frame->GetCommandBuffer()->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_blur_vert->GetPipeline(),
-            m_descriptor_sets[frame->GetFrameIndex()].Get(),
+            m_descriptor_sets[frame->GetFrameIndex()],
             0,
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),

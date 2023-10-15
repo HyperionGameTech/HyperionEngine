@@ -30,7 +30,7 @@ struct RENDER_COMMAND(DestroyVCT) : RenderCommand
     virtual Result operator()()
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
                 ->GetDescriptor(DescriptorKey::VOXEL_IMAGE)
@@ -50,12 +50,6 @@ struct RENDER_COMMAND(DestroyVCT) : RenderCommand
 
             // destroy owned descriptor sets, as well as individual mip imageviews
             if constexpr (vct_manual_mipmap_generation) {
-                for (auto &descriptor_set : vct.m_generate_mipmap_descriptor_sets[frame_index]) {
-                    HYPERION_ASSERT_RESULT(descriptor_set->Destroy(g_engine->GetGPUDevice()));
-                }
-
-                vct.m_generate_mipmap_descriptor_sets[frame_index].Clear();
-
                 for (auto &mip_image_view : vct.m_mips[frame_index]) {
                     HYPERION_ASSERT_RESULT(mip_image_view->Destroy(g_engine->GetGPUDevice()));
                 }
@@ -116,6 +110,10 @@ void VoxelConeTracing::Init()
         m_framebuffer.Reset();
         m_clear_voxels.Reset();
         m_generate_mipmap.Reset();
+        
+        for (UInt i = 0; i < max_frames_in_flight; i++) {
+            SafeRelease(std::move(m_generate_mipmap_descriptor_sets[i]));
+        }
 
         RenderCommands::Push<RENDER_COMMAND(DestroyVCT)>(*this);
         
@@ -232,7 +230,7 @@ void VoxelConeTracing::OnRender(Frame *frame)
             command_buffer->BindDescriptorSet(
                 g_engine->GetGPUInstance()->GetDescriptorPool(),
                 m_generate_mipmap->GetPipeline(),
-                m_generate_mipmap_descriptor_sets[frame_index][mip_level].get(),
+                m_generate_mipmap_descriptor_sets[frame_index][mip_level],
                 static_cast<DescriptorSet::Index>(0)
             );
 
@@ -389,7 +387,7 @@ void VoxelConeTracing::CreateComputePipelines()
     if constexpr (vct_manual_mipmap_generation) {
         m_generate_mipmap = CreateObject<ComputePipeline>(
             g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap)),
-            Array<const DescriptorSet *> { m_generate_mipmap_descriptor_sets[0].Front().get() } // only need to pass first to use for layout.
+            Array<DescriptorSetRef> { m_generate_mipmap_descriptor_sets[0].Front() } // only need to pass first to use for layout.
         );
 
         InitObject(m_generate_mipmap);
@@ -434,7 +432,7 @@ void VoxelConeTracing::CreateDescriptors()
 
             for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
                 // create descriptor sets for mip generation.
-                auto mip_descriptor_set = std::make_unique<DescriptorSet>();
+                auto mip_descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
 
                 auto *mip_in = mip_descriptor_set
                     ->AddDescriptor<renderer::ImageDescriptor>(0);
@@ -474,7 +472,7 @@ void VoxelConeTracing::CreateDescriptors()
             DebugLog(LogType::Debug, "Add voxel cone tracing descriptors\n");
             
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+                DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
                 descriptor_set_globals
                     ->GetOrAddDescriptor<renderer::ImageSamplerDescriptor>(DescriptorKey::VOXEL_IMAGE)

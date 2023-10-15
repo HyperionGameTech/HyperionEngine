@@ -63,7 +63,7 @@ FullScreenPass::FullScreenPass(
 
 FullScreenPass::FullScreenPass(
     const Handle<Shader> &shader,
-    const Array<const DescriptorSet *> &used_descriptor_sets,
+    const Array<DescriptorSetRef> &used_descriptor_sets,
     InternalFormat image_format,
     Extent2D extent
 ) : FullScreenPass(

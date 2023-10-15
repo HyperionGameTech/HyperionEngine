@@ -19,7 +19,7 @@ class ComputePipeline : public EngineComponentBase<STUB_CLASS(ComputePipeline)>
 {
 public:
     ComputePipeline(Handle<Shader> &&shader);
-    ComputePipeline(Handle<Shader> &&shader, const Array<const DescriptorSet *> &used_descriptor_sets);
+    ComputePipeline(Handle<Shader> &&shader, const Array<DescriptorSetRef> &used_descriptor_sets);
     ComputePipeline(const ComputePipeline &) = delete;
     ComputePipeline &operator=(const ComputePipeline &) = delete;
     ~ComputePipeline();
@@ -33,8 +33,8 @@ public:
     void Init();
 
 private:
-    Handle<Shader> m_shader;
-    ComputePipelineRef m_pipeline;
+    Handle<Shader>      m_shader;
+    ComputePipelineRef  m_pipeline;
 };
 
 } // namespace hyperion::v2

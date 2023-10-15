@@ -306,7 +306,7 @@ Result Instance::Initialize(bool load_debug_layers)
 
         descriptor_pool.AddDescriptorSet(
             GetDevice(),
-            std::make_unique<DescriptorSet>(
+            RenderObjects::Make<renderer::DescriptorSet>(
                 slot,
                 i,
                 slot == DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS

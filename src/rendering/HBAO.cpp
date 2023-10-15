@@ -53,7 +53,7 @@ struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -186,7 +186,7 @@ void HBAO::Destroy()
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 // unset final result from the global descriptor set
-                auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+                DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                     .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
                 descriptor_set_globals
@@ -334,14 +334,14 @@ void HBAO::CreateBlurComputeShaders()
 
     m_blur_hor = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(ImageBlurCompute), ShaderProperties({ "HORIZONTAL", "OUTPUT_RGBA8" })),
-        Array<const DescriptorSet *> { m_blur_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_blur_descriptor_sets[0][0] }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
        g_shader_manager->GetOrCreate(HYP_NAME(ImageBlurCompute), ShaderProperties({ "OUTPUT_RGBA8" })),
-        Array<const DescriptorSet *> { m_blur_descriptor_sets[1][0].Get() }
+        Array<DescriptorSetRef> { m_blur_descriptor_sets[1][0] }
     );
 
     InitObject(m_blur_vert);
@@ -361,7 +361,7 @@ void HBAO::CreatePass()
 
     m_hbao_pass.Reset(new FullScreenPass(
         hbao_shader,
-        Array<const DescriptorSet *> { m_descriptor_sets.Front().Get() },
+        Array<DescriptorSetRef> { m_descriptor_sets.Front() },
         InternalFormat::RGBA8,
         m_extent
     ));
@@ -402,7 +402,7 @@ void HBAO::Render(Frame *frame)
         m_hbao_pass->GetCommandBuffer(frame_index)->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_hbao_pass->GetRenderGroup()->GetPipeline(),
-            m_descriptor_sets[frame_index].Get(),
+            m_descriptor_sets[frame_index],
             0,
             FixedArray {
                 HYP_RENDER_OBJECT_OFFSET(Scene, g_engine->GetRenderState().GetScene().id.ToIndex()),
@@ -449,7 +449,7 @@ void HBAO::Render(Frame *frame)
             command_buffer->BindDescriptorSet(
                 g_engine->GetGPUInstance()->GetDescriptorPool(),
                 compute_pipeline->GetPipeline(),
-                m_blur_descriptor_sets[blur_pass_index][frame_index].Get(),
+                m_blur_descriptor_sets[blur_pass_index][frame_index],
                 0
             );
 

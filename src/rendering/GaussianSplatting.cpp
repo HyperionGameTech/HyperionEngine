@@ -576,8 +576,8 @@ void GaussianSplattingInstance::CreateRenderGroup()
     m_render_group->AddFramebuffer(Handle<Framebuffer>(g_engine->GetDeferredSystem()[Bucket::BUCKET_TRANSLUCENT].GetFramebuffer()));
 
     // do not use global descriptor sets for this renderer -- we will just use our own local ones
-    m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<const DescriptorSet *> {
-        m_descriptor_sets[0][0].Get()
+    m_render_group->GetPipeline()->SetUsedDescriptorSets(Array<DescriptorSetRef> {
+        m_descriptor_sets[0][0]
     });
 
     AssertThrow(InitObject(m_render_group));
@@ -592,7 +592,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
             HYP_NAME(GaussianSplatting_UpdateSplats),
             base_properties
         ),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0][0] }
     );
 
     InitObject(m_update_splats);
@@ -602,7 +602,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
             HYP_NAME(GaussianSplatting_UpdateDistances),
             base_properties
         ),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0][0] }
     );
 
     InitObject(m_update_splat_distances);
@@ -612,7 +612,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
             HYP_NAME(GaussianSplatting_SortSplats),
             ShaderProperties(base_properties)
         ),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0][0] }
     );
 
     InitObject(m_sort_splats);
@@ -642,7 +642,7 @@ void GaussianSplatting::Init()
         Vertex {{ 1.0f,  1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}
     };
-    
+
     static const Array<Mesh::Index> indices = {
         0, 3, 1,
         2, 3, 1

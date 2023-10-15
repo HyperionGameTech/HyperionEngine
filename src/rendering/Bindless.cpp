@@ -27,7 +27,7 @@ void BindlessStorage::Destroy()
     Threads::AssertOnThread(THREAD_RENDER);
 
     /* Remove all texture sub-descriptors */
-    for (auto *descriptor_set : m_descriptor_sets) {
+    for (const DescriptorSetRef &descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
         for (const auto &it : m_texture_ids) {
@@ -45,7 +45,7 @@ void BindlessStorage::AddResource(Texture *texture)
     AssertThrow(texture != nullptr);
 
     for (SizeType i = 0; i < m_descriptor_sets.Size(); i++) {
-        auto *descriptor_set = m_descriptor_sets[i];
+        const DescriptorSetRef &descriptor_set = m_descriptor_sets[i];
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
         // TODO: More generic factory
@@ -89,7 +89,7 @@ void BindlessStorage::RemoveResource(ID<Texture> id)
         return;
     }
 
-    for (auto *descriptor_set : m_descriptor_sets) {
+    for (const DescriptorSetRef &descriptor_set : m_descriptor_sets) {
         auto *descriptor = descriptor_set->GetDescriptor(bindless_descriptor_index);
 
         descriptor->SetElementImageSamplerCombined(
@@ -110,7 +110,7 @@ void BindlessStorage::MarkResourceChanged(ID<Texture> id)
         return;
     }
 
-    for (auto *descriptor_set : m_descriptor_sets) {
+    for (const DescriptorSetRef &descriptor_set : m_descriptor_sets) {
         descriptor_set->GetDescriptor(bindless_descriptor_index)->MarkDirty(id.ToIndex());
     }
 }

@@ -145,51 +145,7 @@ private:
         { }
 };
 
-class WebSocketMessageQueue
-{
-public:
-    struct Message
-    {
-        Weak<rtc::WebSocket>    ws;
-        json::JSONValue         message;        
-    };
 
-    WebSocketMessageQueue() = default;
-    WebSocketMessageQueue(const WebSocketMessageQueue &other) = delete;
-    WebSocketMessageQueue &operator=(const WebSocketMessageQueue &other) = delete;
-    WebSocketMessageQueue(WebSocketMessageQueue &&other) = delete;
-    WebSocketMessageQueue &operator=(WebSocketMessageQueue &&other) = delete;
-    ~WebSocketMessageQueue() = default;
-
-    void Push(json::JSONValue &&message)
-    {
-        std::lock_guard guard(m_mutex);
-
-        m_messages.Push(std::move(message));
-        m_size.Increment(1, MemoryOrder::SEQUENTIAL);
-    }
-
-    json::JSONValue Pop()
-    {
-        AssertThrow(!Empty());
-
-        std::lock_guard guard(m_mutex);
-
-        m_size.Decrement(1, MemoryOrder::SEQUENTIAL);
-        return m_messages.Pop();
-    }
-
-    UInt Size() const
-        { return m_size.Get(MemoryOrder::SEQUENTIAL); }
-
-    bool Empty() const
-        { return Size() == 0; }
-
-private:
-    std::mutex              m_mutex;
-    Queue<json::JSONValue>  m_messages;
-    AtomicVar<UInt>         m_size;
-};
 
 SampleStreamer::SampleStreamer(RC<Application> application)
     : Game(application)
@@ -231,8 +187,6 @@ void SampleStreamer::InitGame()
     const UInt16 signalling_server_port = UInt16(arg_parse_result["SignallingServerPort"].Get<Int>());
 
     // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
-
-    m_message_queue.Reset(new WebSocketMessageQueue());
     
     m_rtc_instance.Reset(new RTCInstance(
         RTCServerParams {
@@ -285,7 +239,7 @@ void SampleStreamer::InitGame()
 
             DebugLog(LogType::Debug, " -> %s\n", json_value.ToString().Data());
             
-            m_message_queue->Push(std::move(json_value));
+            m_message_queue.Push(std::move(json_value));
         });
 
         server->Start();
@@ -585,8 +539,8 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
         }
     }
 
-    while (!m_message_queue->Empty()) {
-        const json::JSONValue message = m_message_queue->Pop();
+    while (!m_message_queue.Empty()) {
+        const json::JSONValue message = m_message_queue.Pop();
 
         const String message_type = message["type"].ToString();
         const String id = message["id"].ToString();

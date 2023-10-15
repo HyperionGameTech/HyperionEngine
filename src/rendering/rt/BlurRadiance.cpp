@@ -66,10 +66,10 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommand
 
 struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommand
 {
-    FixedArray<UniquePtr<DescriptorSet>, 2> *descriptor_sets;
+    FixedArray<FixedArray<DescriptorSetRef, 2>, max_frames_in_flight> descriptor_sets;
 
-    RENDER_COMMAND(CreateBlurDescriptors)(FixedArray<UniquePtr<DescriptorSet>, 2> *descriptor_sets)
-        : descriptor_sets(descriptor_sets)
+    RENDER_COMMAND(CreateBlurDescriptors)(FixedArray<FixedArray<DescriptorSetRef, 2>, max_frames_in_flight> descriptor_sets)
+        : descriptor_sets(std::move(descriptor_sets))
     {
     }
 
@@ -87,33 +87,6 @@ struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommand
         }
 
         HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(DestroyBlurDescriptors) : RenderCommand
-{
-    FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> descriptor_sets;
-
-    RENDER_COMMAND(DestroyBlurDescriptors)(FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> &&descriptor_sets)
-        : descriptor_sets(std::move(descriptor_sets))
-    {
-    }
-
-    virtual Result operator()()
-    {
-        auto result = Result::OK;
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            // destroy our descriptor sets
-            for (auto &descriptor_set : descriptor_sets[frame_index]) {
-                HYPERION_PASS_ERRORS(
-                    descriptor_set->Destroy(g_engine->GetGPUDevice()),
-                    result
-                );
-            }
-        }
-
-        return result;
     }
 };
 
@@ -141,7 +114,10 @@ void BlurRadiance::Destroy()
     m_blur_hor.Reset();
     m_blur_vert.Reset();
 
-    RenderCommands::Push<RENDER_COMMAND(DestroyBlurDescriptors)>(std::move(m_descriptor_sets));
+    for (UInt i = 0; i < max_frames_in_flight; i++) {
+        SafeRelease(std::move(m_descriptor_sets[i]));
+    }
+
     RenderCommands::Push<RENDER_COMMAND(DestroyBlurImageOutputs)>(std::move(m_image_outputs));
 }
 
@@ -173,7 +149,7 @@ void BlurRadiance::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
-            auto descriptor_set = UniquePtr<DescriptorSet>::Construct();
+            auto descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
 
             // input image (first pass just radiance image, second pass is prev image)
             descriptor_set
@@ -232,21 +208,21 @@ void BlurRadiance::CreateDescriptorSets()
         }
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateBlurDescriptors)>(m_descriptor_sets.Data());
+    RenderCommands::Push<RENDER_COMMAND(CreateBlurDescriptors)>(m_descriptor_sets);
 }
 
 void BlurRadiance::CreateComputePipelines()
 {
     m_blur_hor = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(BlurRadianceHor)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0][0] }
     );
 
     InitObject(m_blur_hor);
 
     m_blur_vert = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(BlurRadianceVert)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0][0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0][0] }
     );
 
     InitObject(m_blur_vert);
@@ -274,7 +250,7 @@ void BlurRadiance::Render(
         frame->GetCommandBuffer()->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             pass->GetPipeline(),
-            descriptor_sets[i].Get(),
+            descriptor_sets[i],
             0,
             FixedArray { HYP_RENDER_OBJECT_OFFSET(Scene, scene_index) }
         );

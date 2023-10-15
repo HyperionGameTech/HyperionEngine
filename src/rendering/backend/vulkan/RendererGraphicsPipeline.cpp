@@ -25,7 +25,7 @@ GraphicsPipeline::GraphicsPipeline()
 {
 }
 
-GraphicsPipeline::GraphicsPipeline(const Array<const DescriptorSet *> &used_descriptor_sets)
+GraphicsPipeline::GraphicsPipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
     : Pipeline(used_descriptor_sets),
       viewport { },
       scissor { }

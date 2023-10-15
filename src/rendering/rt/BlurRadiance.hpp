@@ -93,7 +93,7 @@ private:
     Handle<ComputePipeline> m_blur_hor;
     Handle<ComputePipeline> m_blur_vert;
 
-    FixedArray<FixedArray<UniquePtr<DescriptorSet>, 2>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<FixedArray<DescriptorSetRef, 2>, max_frames_in_flight> m_descriptor_sets;
     FixedArray<FixedArray<ImageOutput, 2>, max_frames_in_flight> m_image_outputs;
 };
 

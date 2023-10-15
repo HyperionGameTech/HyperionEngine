@@ -4,12 +4,10 @@
 #include <core/Base.hpp>
 #include <core/Containers.hpp>
 #include <core/ID.hpp>
+#include <core/lib/Mutex.hpp>
 #include <Constants.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
-
-#include <mutex>
-#include <atomic>
 
 namespace hyperion::v2 {
 
@@ -39,10 +37,8 @@ public:
     Texture *GetResource(ID<Texture> id) const;
 
 private:
-    FlatMap<ID<Texture>, Texture *> m_texture_ids;
-    
-    FixedArray<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
-    std::mutex m_enqueued_resources_mutex;
+    FlatMap<ID<Texture>, Texture *>                     m_texture_ids;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
 };
 
 } // namespace hyperion::v2

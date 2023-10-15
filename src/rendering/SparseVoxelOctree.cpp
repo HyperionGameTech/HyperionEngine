@@ -64,17 +64,8 @@ void SparseVoxelOctree::Init()
                 auto result = Result::OK;
 
                 for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                    if (svo.m_descriptor_sets[frame_index] == nullptr) {
-                        continue;
-                    }
-
-                    HYPERION_PASS_ERRORS(
-                        svo.m_descriptor_sets[frame_index]->Destroy(g_engine->GetGPUDevice()),
-                        result
-                    );
-
                     { // Remove our elements from global descriptor set, setting back to placeholder data
-                        auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+                        DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
                         
                         descriptor_set_globals
@@ -123,6 +114,8 @@ void SparseVoxelOctree::Init()
                 return result;
             }
         };
+
+        SafeRelease(std::move(m_descriptor_sets));
 
         RenderCommands::Push<RENDER_COMMAND(DestroySVO)>(*this);
 
@@ -276,7 +269,7 @@ void SparseVoxelOctree::CreateBuffers()
 void SparseVoxelOctree::CreateDescriptors()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
+        m_descriptor_sets[frame_index] = RenderObjects::Make<renderer::DescriptorSet>();
     }
 
     struct RENDER_COMMAND(CreateSVODescriptors) : RenderCommand
@@ -331,7 +324,7 @@ void SparseVoxelOctree::CreateDescriptors()
                 ));
 
                 // set octree buffer and uniforms in global descriptor set
-                auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+                DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                     .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
                 
                 descriptor_set_globals
@@ -354,35 +347,35 @@ void SparseVoxelOctree::CreateComputePipelines()
 {
     m_alloc_nodes = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SVOAllocNodes)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     AssertThrow(InitObject(m_alloc_nodes));
 
     m_init_nodes = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SVOInitNodes)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     AssertThrow(InitObject(m_init_nodes));
 
     m_tag_nodes = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SVOTagNodes)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     AssertThrow(InitObject(m_tag_nodes));
 
     m_modify_args = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SVOModifyArgs)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     AssertThrow(InitObject(m_modify_args));
 
     m_write_mipmaps = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(SVOWriteMipmaps)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     AssertThrow(InitObject(m_write_mipmaps));
@@ -450,7 +443,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
         HYPERION_ASSERT_RESULT(m_octree_buffer->Create(g_engine->GetGPUDevice(), num_nodes * sizeof(OctreeNode)));
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
             
             descriptor_set_globals
@@ -575,7 +568,7 @@ void SparseVoxelOctree::BindDescriptorSets(
     command_buffer->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         pipeline->GetPipeline(),
-        m_descriptor_sets[frame_index].Get(),
+        m_descriptor_sets[frame_index],
         static_cast<DescriptorSet::Index>(0)
     );
 }

@@ -8,10 +8,10 @@ using renderer::DynamicStorageBufferDescriptor;
 
 struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommand
 {
-    UniquePtr<renderer::DescriptorSet> *descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
-    RENDER_COMMAND(CreateImmediateModeDescriptors)(UniquePtr<renderer::DescriptorSet> *descriptor_sets)
-        : descriptor_sets(descriptor_sets)
+    RENDER_COMMAND(CreateImmediateModeDescriptors)(FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets)
+        : descriptor_sets(std::move(descriptor_sets))
     {
     }
 
@@ -48,14 +48,14 @@ void ImmediateMode::Create()
     }
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = UniquePtr<DescriptorSet>::Construct();
+        m_descriptor_sets[frame_index] = RenderObjects::Make<renderer::DescriptorSet>();
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<DynamicStorageBufferDescriptor>(0)
             ->SetElementBuffer<ImmediateDrawShaderData>(0, Engine::Get()->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets.Data());
+    RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets);
 
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(DebugAABB),
@@ -80,8 +80,8 @@ void ImmediateMode::Create()
                 .cull_faces = FaceCullMode::NONE
             }
         ),
-        Array<const DescriptorSet *> {
-            m_descriptor_sets[0].Get(),
+        Array<DescriptorSetRef> {
+            m_descriptor_sets[0],
             Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_GLOBAL),
             Engine::Get()->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         }
@@ -102,10 +102,8 @@ void ImmediateMode::Destroy()
 
     m_renderer_instance.Reset();
     m_shader.Reset();
-
-    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        Engine::Get()->SafeRelease(std::move(m_descriptor_sets[frame_index]));
-    }
+    
+    SafeRelease(std::move(m_descriptor_sets));
 }
 
 void ImmediateMode::Render(Frame *frame)
@@ -167,7 +165,7 @@ void ImmediateMode::Render(Frame *frame)
         proxy.GetCommandBuffer(frame_index)->BindDescriptorSet(
             Engine::Get()->GetGPUInstance()->GetDescriptorPool(),
             proxy.GetGraphicsPipeline(),
-            m_descriptor_sets[frame_index].Get(),
+            m_descriptor_sets[frame_index],
             0,
             FixedArray<UInt32, 1> { UInt32(index * sizeof(ImmediateDrawShaderData)) }
         );

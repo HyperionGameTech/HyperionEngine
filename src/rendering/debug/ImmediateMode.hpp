@@ -112,7 +112,7 @@ private:
     Array<DebugDrawCommand> m_draw_commands;
     Array<DebugDrawCommand> m_draw_commands_pending_addition;
 
-    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
     std::atomic<Int64> m_num_draw_commands_pending_addition { 0 };
     std::mutex m_draw_commands_mutex;

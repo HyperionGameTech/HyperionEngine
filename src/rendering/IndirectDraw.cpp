@@ -393,7 +393,7 @@ void IndirectRenderer::Create()
     // TODO: cache pipelines: re-use this
     m_object_visibility = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(ObjectVisibility)),
-        Array<const DescriptorSet *> { m_descriptor_sets[0].Get() }
+        Array<DescriptorSetRef> { m_descriptor_sets[0] }
     );
 
     InitObject(m_object_visibility);
@@ -457,7 +457,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame *frame, const CullData &
     command_buffer->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_object_visibility->GetPipeline(),
-        m_descriptor_sets[frame_index].Get(),
+        m_descriptor_sets[frame_index],
         static_cast<DescriptorSet::Index>(0),
         FixedArray {
             HYP_RENDER_OBJECT_OFFSET(Scene, scene_index),

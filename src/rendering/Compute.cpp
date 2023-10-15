@@ -39,7 +39,7 @@ ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
 
 ComputePipeline::ComputePipeline(
     Handle<Shader> &&shader,
-    const Array<const DescriptorSet *> &used_descriptor_sets
+    const Array<DescriptorSetRef> &used_descriptor_sets
 ) : EngineComponentBase(),
     m_shader(std::move(shader)),
     m_pipeline(RenderObjects::Make<renderer::ComputePipeline>(used_descriptor_sets))

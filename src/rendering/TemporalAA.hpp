@@ -81,7 +81,7 @@ private:
     FixedArray<UniquePtr<Image>, max_frames_in_flight> m_previous_images;
     FixedArray<UniquePtr<ImageView>, max_frames_in_flight> m_previous_image_views;
     FixedArray<UniquePtr<UniformBuffer>, max_frames_in_flight> m_uniform_buffers;
-    FixedArray<UniquePtr<DescriptorSet>, max_frames_in_flight> m_descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
     Handle<ComputePipeline> m_compute_taa;
 };

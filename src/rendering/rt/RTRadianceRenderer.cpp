@@ -57,7 +57,7 @@ struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : RenderCommand
             ));
 
             // Add the final result to the global descriptor set
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             descriptor_set_globals
@@ -84,7 +84,7 @@ struct RENDER_COMMAND(CreateRTRadiancePipeline) : RenderCommand
     {
         return pipeline->Create(
             g_engine->GetGPUDevice(),
-            shader_program.Get(),
+            shader_program,
             &g_engine->GetGPUInstance()->GetDescriptorPool()
         );
     }
@@ -98,7 +98,7 @@ struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : RenderCommand
 
         // remove result image from global descriptor set
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
                 .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
 
             // set to placeholder image
@@ -270,14 +270,14 @@ void RTRadianceRenderer::Render(Frame *frame)
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_raytracing_pipeline.Get(),
-        m_descriptor_sets[frame->GetFrameIndex()].Get(),
+        m_raytracing_pipeline,
+        m_descriptor_sets[frame->GetFrameIndex()],
         0
     );
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_raytracing_pipeline.Get(),
+        m_raytracing_pipeline,
         DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE, frame->GetFrameIndex()),
         1,
         FixedArray {
@@ -291,7 +291,7 @@ void RTRadianceRenderer::Render(Frame *frame)
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_raytracing_pipeline.Get(),
+        m_raytracing_pipeline,
         DescriptorSet::GetPerFrameIndex(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS, frame->GetFrameIndex()),
         2
     );
@@ -405,7 +405,7 @@ void RTRadianceRenderer::CreateDescriptorSets()
         // blue noise buffer
         descriptor_set
             ->AddDescriptor<renderer::StorageBufferDescriptor>(11)
-            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer().Get());
+            ->SetElementBuffer(0, g_engine->GetDeferredRenderer().GetBlueNoiseBuffer());
 
         // RT radiance uniforms
         descriptor_set
@@ -438,8 +438,8 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
     }
 
     m_raytracing_pipeline = RenderObjects::Make<RaytracingPipeline>(
-        Array<const DescriptorSet *> {
-            m_descriptor_sets[0].Get(),
+        Array<DescriptorSetRef> {
+            m_descriptor_sets[0],
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_BINDLESS)
         }

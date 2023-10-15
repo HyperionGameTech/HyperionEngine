@@ -512,7 +512,7 @@ void DeferredRenderer::CreateDescriptorSets()
 {
     // set global gbuffer data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto *descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+        DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
         
         { // add gbuffer textures

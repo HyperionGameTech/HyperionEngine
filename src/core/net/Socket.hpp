@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_CORE_NET_SOCKET_HPP
-#define HYPERION_V2_CORE_NET_SOCKET_HPP
+#ifndef HYPERION_CORE_NET_SOCKET_HPP
+#define HYPERION_CORE_NET_SOCKET_HPP
 
 #include <core/lib/Variant.hpp>
 #include <core/lib/DynArray.hpp>
@@ -10,7 +10,7 @@
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
-namespace hyperion::v2 {
+namespace hyperion::net {
 
 struct OpaqueSocketID
 {
@@ -59,6 +59,6 @@ private:
     UniquePtr<SocketServerImpl> m_impl;
 };
 
-} // namespace hyperion::v2
+} // namespace hyperion::net
 
 #endif
