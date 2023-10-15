@@ -17,8 +17,13 @@ public:
         struct OBJIndex
         {
             Int64 vertex,
-                normal,
-                texcoord;
+                  normal,
+                  texcoord;
+
+            bool operator==(const OBJIndex &other) const
+                { return vertex == other.vertex
+                    && normal == other.normal
+                    && texcoord == other.texcoord; }
 
             bool operator<(const OBJIndex &other) const
                 { return std::tie(vertex, normal, texcoord) < std::tie(other.vertex, other.normal, other.texcoord); }
@@ -26,19 +31,19 @@ public:
 
         struct OBJMesh
         {
-            String tag;
-            String material;
+            String          tag;
+            String          material;
             Array<OBJIndex> indices;
         };
 
-        String filepath;
+        String          filepath;
 
-        Array<Vector3> positions;
-        Array<Vector3> normals;
-        Array<Vector2> texcoords;
-        Array<OBJMesh> meshes;
-        String tag;
-        String material_library;
+        Array<Vector3>  positions;
+        Array<Vector3>  normals;
+        Array<Vector2>  texcoords;
+        Array<OBJMesh>  meshes;
+        String          tag;
+        String          material_library;
     };
 
     virtual ~OBJModelLoader() = default;

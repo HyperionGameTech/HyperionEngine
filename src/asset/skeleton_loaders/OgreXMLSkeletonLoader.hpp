@@ -16,35 +16,35 @@ public:
     {
         struct BoneData
         {
-            String name;
-            UInt id;
+            String      name;
+            UInt        id;
 
-            String parent_name;
-            Vector3 binding_translation;
-            Quaternion binding_rotation;
+            String      parent_name;
+            Vector3     binding_translation;
+            Quaternion  binding_rotation;
         };
 
         struct KeyframeData
         {
-            float time;
-            Vector3 translation;
-            Quaternion rotation;
+            Float       time;
+            Vector3     translation;
+            Quaternion  rotation;
         };
 
         struct AnimationTrackData
         {
-            String bone_name;
-            std::vector<KeyframeData> keyframes;
+            String              bone_name;
+            Array<KeyframeData> keyframes;
         };
 
         struct AnimationData
         {
-            String name;
-            std::vector<AnimationTrackData> tracks;
+            String                      name;
+            Array<AnimationTrackData>   tracks;
         };
 
-        std::vector<BoneData> bones;
-        std::vector<AnimationData> animations;
+        Array<BoneData> bones;
+        Array<AnimationData> animations;
     };
 
     virtual ~OgreXMLSkeletonLoader() = default;

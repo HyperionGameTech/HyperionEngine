@@ -27,8 +27,8 @@ public:
     Handle<Mesh> BuildMesh() const;
 
 private:
-    std::vector<Vertex> BuildVertices() const;
-    std::vector<Mesh::Index> BuildIndices() const;
+    Array<Vertex> BuildVertices() const;
+    Array<Mesh::Index> BuildIndices() const;
 
     TerrainHeightData m_height_data;
 };

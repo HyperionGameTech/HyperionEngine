@@ -2,7 +2,7 @@
 #define HYPERION_ENGINE_HPP
 
 #include <Engine.hpp>
-#include <system/SdlSystem.hpp>
+#include <system/Application.hpp>
 
 namespace hyperion {
 

@@ -10,7 +10,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <system/SdlSystem.hpp>
+#include <system/Application.hpp>
 #include <system/vma/VmaUsage.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>

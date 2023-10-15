@@ -3,6 +3,8 @@
 
 #include <math/Matrix4.hpp>
 
+#include <core/lib/DynArray.hpp>
+
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -53,8 +55,8 @@ class AccelerationGeometry
 
 public:
     AccelerationGeometry(
-        std::vector<PackedVertex> &&packed_vertices,
-        std::vector<PackedIndex> &&packed_indices,
+        Array<PackedVertex> &&packed_vertices,
+        Array<PackedIndex> &&packed_indices,
         UInt entity_index,
         UInt material_index
     );
@@ -63,8 +65,8 @@ public:
     AccelerationGeometry &operator=(const AccelerationGeometry &other) = delete;
     ~AccelerationGeometry();
 
-    const std::vector<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
-    const std::vector<PackedIndex> &GetPackedIndices() const { return m_packed_indices; }
+    const Array<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
+    const Array<PackedIndex> &GetPackedIndices() const { return m_packed_indices; }
 
     PackedVertexStorageBuffer *GetPackedVertexStorageBuffer() const { return m_packed_vertex_buffer.get(); }
     PackedIndexStorageBuffer *GetPackedIndexStorageBuffer() const { return m_packed_index_buffer.get(); }
@@ -90,8 +92,8 @@ public:
     Result Destroy(Device *device);
 
 private:
-    std::vector<PackedVertex> m_packed_vertices;
-    std::vector<PackedIndex> m_packed_indices;
+    Array<PackedVertex> m_packed_vertices;
+    Array<PackedIndex> m_packed_indices;
 
     std::unique_ptr<PackedVertexStorageBuffer> m_packed_vertex_buffer;
     std::unique_ptr<PackedIndexStorageBuffer> m_packed_index_buffer;

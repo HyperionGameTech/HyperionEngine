@@ -30,8 +30,8 @@ VkAccelerationStructureTypeKHR AccelerationStructure::ToVkAccelerationStructureT
 }
 
 AccelerationGeometry::AccelerationGeometry(
-    std::vector<PackedVertex> &&packed_vertices,
-    std::vector<PackedIndex> &&packed_indices,
+    Array<PackedVertex> &&packed_vertices,
+    Array<PackedIndex> &&packed_indices,
     UInt entity_index,
     UInt material_index
 ) : m_packed_vertices(std::move(packed_vertices)),
@@ -55,19 +55,19 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 	    return { Result::RENDERER_ERR, "Device does not support raytracing" };
 	}
 
-	if (m_packed_vertices.empty() || m_packed_indices.empty()) {
+	if (m_packed_vertices.Empty() || m_packed_indices.Empty()) {
 	    return { Result::RENDERER_ERR, "An acceleration geometry must have nonzero vertex count, index count, and vertex size." };
 	}
 
 	// some assertions to prevent gpu faults
-	for (SizeType i = 0; i < m_packed_indices.size(); i++) {
-	    AssertThrow(m_packed_indices[i] < m_packed_vertices.size());
+	for (SizeType i = 0; i < m_packed_indices.Size(); i++) {
+	    AssertThrow(m_packed_indices[i] < m_packed_vertices.Size());
 	}
 
 	auto result = Result::OK;
 
-	const SizeType packed_vertices_size = m_packed_vertices.size() * sizeof(PackedVertex);
-	const SizeType packed_indices_size = m_packed_indices.size() * sizeof(PackedIndex);
+	const SizeType packed_vertices_size = m_packed_vertices.Size() * sizeof(PackedVertex);
+	const SizeType packed_indices_size = m_packed_indices.Size() * sizeof(PackedIndex);
 
 	m_packed_vertex_buffer = std::make_unique<PackedVertexStorageBuffer>();
 
@@ -91,7 +91,7 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 	StagingBuffer vertices_staging_buffer;
 	HYPERION_BUBBLE_ERRORS(vertices_staging_buffer.Create(device, packed_vertices_size));
 	vertices_staging_buffer.Memset(device, packed_vertices_size, 0x0); // zero out
-    vertices_staging_buffer.Copy(device, m_packed_vertices.size() * sizeof(PackedVertex), m_packed_vertices.data());
+    vertices_staging_buffer.Copy(device, m_packed_vertices.Size() * sizeof(PackedVertex), m_packed_vertices.Data());
 	
 	if (!result) {
 	    HYPERION_IGNORE_ERRORS(vertices_staging_buffer.Destroy(device));
@@ -102,7 +102,7 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
 	StagingBuffer indices_staging_buffer;
 	HYPERION_BUBBLE_ERRORS(indices_staging_buffer.Create(device, packed_indices_size));
 	indices_staging_buffer.Memset(device, packed_indices_size, 0x0); // zero out
-	indices_staging_buffer.Copy(device, m_packed_indices.size() * sizeof(PackedIndex), m_packed_indices.data());
+	indices_staging_buffer.Copy(device, m_packed_indices.Size() * sizeof(PackedIndex), m_packed_indices.Data());
 
 	if (!result) {
 	    HYPERION_IGNORE_ERRORS(vertices_staging_buffer.Destroy(device));
@@ -160,14 +160,14 @@ Result AccelerationGeometry::Create(Device *device, Instance *instance)
     m_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 	m_geometry.geometry = {
         .triangles = VkAccelerationStructureGeometryTrianglesDataKHR {
-            .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-            .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
-            .vertexData = vertices_address,
-            .vertexStride = sizeof(PackedVertex),
-            .maxVertex = static_cast<UInt32>(m_packed_vertices.size()),
-            .indexType = VK_INDEX_TYPE_UINT32,
-            .indexData = indices_address,
-            .transformData = { { } }
+            .sType 			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
+            .vertexFormat 	= VK_FORMAT_R32G32B32_SFLOAT,
+            .vertexData 	= vertices_address,
+            .vertexStride 	= sizeof(PackedVertex),
+            .maxVertex 		= UInt32(m_packed_vertices.Size()),
+            .indexType 		= VK_INDEX_TYPE_UINT32,
+            .indexData 		= indices_address,
+            .transformData 	= { { } }
         }
     };
 
@@ -799,7 +799,8 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
 
 	Device *device = instance->GetDevice();
 
-	std::vector<MeshDescription> mesh_descriptions(last - first);
+	Array<MeshDescription> mesh_descriptions;
+	mesh_descriptions.Resize(last - first);
 
 	for (UInt i = first; i < last; i++) {
 	    const BottomLevelAccelerationStructure *blas = m_blas[i];
@@ -816,20 +817,20 @@ Result TopLevelAccelerationStructure::UpdateMeshDescriptionsBuffer(Instance *ins
 
 			mesh_description = { };
 		} else {
-		    mesh_description.vertex_buffer_address = blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
-		    mesh_description.index_buffer_address = blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
-			mesh_description.entity_index = blas->GetGeometries()[0]->GetEntityIndex();
-			mesh_description.material_index = blas->GetGeometries()[0]->GetMaterialIndex();
-			mesh_description.num_indices = static_cast<UInt32>(blas->GetGeometries()[0]->GetPackedIndices().size());
-			mesh_description.num_vertices = static_cast<UInt32>(blas->GetGeometries()[0]->GetPackedVertices().size());
+		    mesh_description.vertex_buffer_address 	= blas->GetGeometries()[0]->GetPackedVertexStorageBuffer()->GetBufferDeviceAddress(device);
+		    mesh_description.index_buffer_address 	= blas->GetGeometries()[0]->GetPackedIndexStorageBuffer()->GetBufferDeviceAddress(device);
+			mesh_description.entity_index 			= blas->GetGeometries()[0]->GetEntityIndex();
+			mesh_description.material_index 		= blas->GetGeometries()[0]->GetMaterialIndex();
+			mesh_description.num_indices 			= UInt32(blas->GetGeometries()[0]->GetPackedIndices().Size());
+			mesh_description.num_vertices 			= UInt32(blas->GetGeometries()[0]->GetPackedVertices().Size());
 		}
 	}
 
 	m_mesh_descriptions_buffer->Copy(
 		device,
 		first * sizeof(MeshDescription),
-		mesh_descriptions.size() * sizeof(MeshDescription),
-		mesh_descriptions.data()
+		mesh_descriptions.Size() * sizeof(MeshDescription),
+		mesh_descriptions.Data()
 	);
 
 	return Result::OK;
@@ -976,7 +977,7 @@ Result BottomLevelAccelerationStructure::Create(Device *device, Instance *instan
     for (SizeType i = 0; i < m_geometries.size(); i++) {
         const auto &geometry = m_geometries[i];
 
-        if (geometry->GetPackedIndices().size() % 3 != 0) {
+        if (geometry->GetPackedIndices().Size() % 3 != 0) {
             return { Result::RENDERER_ERR, "Invalid triangle mesh!" };
         }
 
@@ -984,7 +985,7 @@ Result BottomLevelAccelerationStructure::Create(Device *device, Instance *instan
 
 		if (result) {
 			geometries[i] = geometry->m_geometry;
-			primitive_counts[i] = static_cast<UInt32>(geometry->GetPackedIndices().size() / 3);
+			primitive_counts[i] = UInt32(geometry->GetPackedIndices().Size() / 3);
 
 			if (primitive_counts[i] == 0) {
 				return { Result::RENDERER_ERR, "Cannot create BLAS -- geometry has zero indices" };
@@ -1056,7 +1057,7 @@ Result BottomLevelAccelerationStructure::Rebuild(Instance *instance, RTUpdateSta
 #endif
 
 		geometries[i] = geometry->m_geometry;
-		primitive_counts[i] = static_cast<UInt32>(geometry->GetPackedIndices().size() / 3);
+		primitive_counts[i] = UInt32(geometry->GetPackedIndices().Size() / 3);
 	}
 
 	HYPERION_PASS_ERRORS(

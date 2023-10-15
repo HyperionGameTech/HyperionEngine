@@ -38,29 +38,29 @@ struct Ray
     bool TestTriangle(const Triangle &triangle, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;
     
     bool TestTriangleList(
-        const std::vector<Vertex> &vertices,
-        const std::vector<UInt32> &indices,
+        const Array<Vertex> &vertices,
+        const Array<UInt32> &indices,
         const Transform &transform
     ) const;
 
     bool TestTriangleList(
-        const std::vector<Vertex> &vertices,
-        const std::vector<UInt32> &indices,
+        const Array<Vertex> &vertices,
+        const Array<UInt32> &indices,
         const Transform &transform,
         RayTestResults &out_results
     ) const;
 
     bool TestTriangleList(
-        const std::vector<Vertex> &vertices,
-        const std::vector<UInt32> &indices,
+        const Array<Vertex> &vertices,
+        const Array<UInt32> &indices,
         const Transform &transform,
         RayHitID hit_id,
         RayTestResults &out_results
     ) const;
 
     bool TestTriangleList(
-        const std::vector<Vertex> &vertices,
-        const std::vector<UInt32> &indices,
+        const Array<Vertex> &vertices,
+        const Array<UInt32> &indices,
         const Transform &transform,
         RayHitID hit_id,
         const void *user_data,

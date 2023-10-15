@@ -132,8 +132,8 @@ bool Ray::TestTriangle(const Triangle &triangle, RayHitID hit_id, const void *us
 }
 
 bool Ray::TestTriangleList(
-    const std::vector<Vertex> &vertices,
-    const std::vector<UInt32> &indices,
+    const Array<Vertex> &vertices,
+    const Array<UInt32> &indices,
     const Transform &transform
 ) const
 {
@@ -143,8 +143,8 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const std::vector<Vertex> &vertices,
-    const std::vector<UInt32> &indices,
+    const Array<Vertex> &vertices,
+    const Array<UInt32> &indices,
     const Transform &transform,
     RayTestResults &out_results
 ) const
@@ -153,8 +153,8 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const std::vector<Vertex> &vertices,
-    const std::vector<UInt32> &indices,
+    const Array<Vertex> &vertices,
+    const Array<UInt32> &indices,
     const Transform &transform,
     RayHitID hit_id,
     RayTestResults &out_results
@@ -164,8 +164,8 @@ bool Ray::TestTriangleList(
 }
 
 bool Ray::TestTriangleList(
-    const std::vector<Vertex> &vertices,
-    const std::vector<UInt32> &indices,
+    const Array<Vertex> &vertices,
+    const Array<UInt32> &indices,
     const Transform &transform,
     RayHitID hit_id,
     const void *user_data,
@@ -174,11 +174,11 @@ bool Ray::TestTriangleList(
 {
     bool intersected = false;
     
-    if (indices.size() % 3 != 0) {
+    if (indices.Size() % 3 != 0) {
         DebugLog(
             LogType::Error,
             "Cannot perform raytest on triangle list because number of indices (%llu) was not divisible by 3\n",
-            indices.size()
+            indices.Size()
         );
 
         return false;
@@ -186,7 +186,7 @@ bool Ray::TestTriangleList(
 
     RayTestResults tmp_results;
 
-    for (size_t i = 0; i < indices.size(); i += 3) {
+    for (SizeType i = 0; i < indices.Size(); i += 3) {
         const Triangle triangle(
             vertices[indices[i]].GetPosition()     * transform.GetMatrix(),
             vertices[indices[i + 1]].GetPosition() * transform.GetMatrix(),

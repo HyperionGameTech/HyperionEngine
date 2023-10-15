@@ -61,10 +61,10 @@ void GraphicsPipeline::UpdateDynamicStates(VkCommandBuffer cmd)
 
 std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
 {
-    std::unordered_map<uint32_t, uint32_t> binding_sizes { };
+    FlatMap<UInt32, UInt32> binding_sizes { };
 
-    const auto attributes = attribute_set.BuildAttributes();
-    this->vertex_attributes = std::vector<VkVertexInputAttributeDescription>(attributes.size());
+    const Array<VertexAttribute> attributes = attribute_set.BuildAttributes();
+    this->vertex_attributes = std::vector<VkVertexInputAttributeDescription>(attributes.Size());
 
     static constexpr VkFormat size_to_format[] = {
         VK_FORMAT_UNDEFINED,
@@ -74,7 +74,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
         VK_FORMAT_R32G32B32A32_SFLOAT
     };
 
-    for (size_t i = 0; i < attributes.size(); i++) {
+    for (SizeType i = 0; i < attributes.Size(); i++) {
         const auto &attribute = attributes[i];
 
         this->vertex_attributes[i] = VkVertexInputAttributeDescription {
@@ -88,7 +88,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
     }
 
     this->vertex_binding_descriptions.clear();
-    this->vertex_binding_descriptions.reserve(binding_sizes.size());
+    this->vertex_binding_descriptions.reserve(binding_sizes.Size());
 
     for (const auto &it : binding_sizes) {
         this->vertex_binding_descriptions.push_back(VkVertexInputBindingDescription {

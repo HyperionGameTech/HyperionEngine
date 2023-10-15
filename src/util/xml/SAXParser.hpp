@@ -2,18 +2,18 @@
 #define SAXParser_H
 
 #include <asset/BufferedByteReader.hpp>
+#include <core/lib/FlatMap.hpp>
+#include <core/lib/String.hpp>
+#include <core/lib/Pair.hpp>
 #include <util/fs/FsUtil.hpp>
 
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <vector>
-#include <map>
 
 namespace hyperion {
 namespace xml {
 
-using AttributeMap = std::map<std::string, std::string>;
+using AttributeMap = FlatMap<String, String>;
 
 class SAXHandler
 {
@@ -21,10 +21,10 @@ public:
     SAXHandler() {}
     virtual ~SAXHandler() {}
 
-    virtual void Begin(const std::string &name, const AttributeMap &attributes) = 0;
-    virtual void End(const std::string &name) = 0;
-    virtual void Characters(const std::string &value) = 0;
-    virtual void Comment(const std::string &comment) = 0;
+    virtual void Begin(const String &name, const AttributeMap &attributes) = 0;
+    virtual void End(const String &name) = 0;
+    virtual void Characters(const String &value) = 0;
+    virtual void Comment(const String &comment) = 0;
 };
 
 class SAXParser

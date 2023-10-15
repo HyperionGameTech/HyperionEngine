@@ -25,33 +25,33 @@ public:
 
     OgreXMLSkeleton::AnimationData &LastAnimation()
     {
-        if (m_skeleton.animations.empty()) {
-            m_skeleton.animations.emplace_back();
+        if (m_skeleton.animations.Empty()) {
+            m_skeleton.animations.PushBack({ });
         }
 
-        return m_skeleton.animations.back();
+        return m_skeleton.animations.Back();
     }
 
     OgreXMLSkeleton::AnimationTrackData &LastAnimationTrack()
     {
         auto &animation = LastAnimation();
 
-        if (animation.tracks.empty()) {
-            animation.tracks.emplace_back();
+        if (animation.tracks.Empty()) {
+            animation.tracks.PushBack({ });
         }
 
-        return animation.tracks.back();
+        return animation.tracks.Back();
     }
 
     OgreXMLSkeleton::KeyframeData &LastKeyframe()
     {
         auto &track = LastAnimationTrack();
 
-        if (track.keyframes.empty()) {
-            track.keyframes.emplace_back();
+        if (track.keyframes.Empty()) {
+            track.keyframes.PushBack({ });
         }
 
-        return track.keyframes.back();
+        return track.keyframes.Back();
     }
 
     template <class Lambda>
@@ -66,116 +66,116 @@ public:
         return &*it;
     }
 
-    virtual void Begin(const std::string &name, const xml::AttributeMap &attributes) override
+    virtual void Begin(const String &name, const xml::AttributeMap &attributes) override
     {
         if (name == "bone") {
-            std::string bone_name = attributes.at("name");
-            auto id = StringUtil::Parse<UInt>(attributes.at("id"));
+            String bone_name = attributes.At("name");
+            const UInt id = StringUtil::Parse<UInt>(attributes.At("id"));
 
-            m_skeleton.bones.push_back({
-                .name = String(bone_name.c_str()),
+            m_skeleton.bones.PushBack({
+                .name = std::move(bone_name),
                 .id = id
             });
         } else if (name == "position") {
-            auto x = StringUtil::Parse<float>(attributes.at("x"));
-            auto y = StringUtil::Parse<float>(attributes.at("y"));
-            auto z = StringUtil::Parse<float>(attributes.at("z"));
+            auto x = StringUtil::Parse<Float>(attributes.At("x"));
+            auto y = StringUtil::Parse<Float>(attributes.At("y"));
+            auto z = StringUtil::Parse<Float>(attributes.At("z"));
 
-            if (!m_skeleton.bones.empty()) {
-                m_skeleton.bones.back().binding_translation = Vector(x, y, z);
+            if (!m_skeleton.bones.Empty()) {
+                m_skeleton.bones.Back().binding_translation = Vector3(x, y, z);
             } else {
                 DebugLog(LogType::Warn, "Ogre XML skeleton parser: Attempt to add position when no bones exist yet\n");
             }
         } else if (name == "rotation") {
-            m_binding_angles.push(StringUtil::Parse<float>(attributes.at("angle")));
+            m_binding_angles.Push(StringUtil::Parse<Float>(attributes.At("angle")));
         } else if (name == "boneparent") {
-            std::string parent_name = attributes.at("parent");
-            std::string child_name = attributes.at("bone");
+            String parent_name = attributes.At("parent");
+            String child_name = attributes.At("bone");
 
             auto *child_bone = GetBone([&child_name](const auto &bone) {
-                return bone.name == child_name.c_str();
+                return bone.name == child_name;
             });
 
             if (child_bone != nullptr) {
-                child_bone->parent_name = String(parent_name.c_str());
+                child_bone->parent_name = std::move(parent_name);
             } else {
                 DebugLog(
                     LogType::Warn,
                     "Ogre XML skeleton parser: Attempt to set child bone '%s' to parent '%s' but child bone does not exist yet\n",
-                    child_name.c_str(),
-                    parent_name.c_str()
+                    child_name.Data(),
+                    parent_name.Data()
                 );
             }
         } else if (name == "animation") {
-            m_skeleton.animations.push_back({
-                .name = String(attributes.at("name").c_str())
+            m_skeleton.animations.PushBack({
+                .name = attributes.At("name")
             });
         } else if (name == "track") {
-            LastAnimation().tracks.push_back({
-                .bone_name = String(attributes.at("bone").c_str())
+            LastAnimation().tracks.PushBack({
+                .bone_name = attributes.At("bone")
             });
         } else if (name == "keyframe") {
-            LastAnimationTrack().keyframes.push_back({
-                .time = StringUtil::Parse<float>(attributes.at("time"))
+            LastAnimationTrack().keyframes.PushBack({
+                .time = StringUtil::Parse<float>(attributes.At("time"))
             });
         } else if (name == "translate") {
-            auto x = StringUtil::Parse<float>(attributes.at("x"));
-            auto y = StringUtil::Parse<float>(attributes.at("y"));
-            auto z = StringUtil::Parse<float>(attributes.at("z"));
+            auto x = StringUtil::Parse<Float>(attributes.At("x"));
+            auto y = StringUtil::Parse<Float>(attributes.At("y"));
+            auto z = StringUtil::Parse<Float>(attributes.At("z"));
 
-            LastKeyframe().translation = Vector(x, y, z);
+            LastKeyframe().translation = Vector3(x, y, z);
         } else if (name == "rotate") {
-            m_keyframe_angles.push(StringUtil::Parse<float>(attributes.at("angle")));
+            m_keyframe_angles.Push(StringUtil::Parse<Float>(attributes.At("angle")));
         } else if (name == "axis") {
-            auto x = StringUtil::Parse<float>(attributes.at("x"));
-            auto y = StringUtil::Parse<float>(attributes.at("y"));
-            auto z = StringUtil::Parse<float>(attributes.at("z"));
+            auto x = StringUtil::Parse<Float>(attributes.At("x"));
+            auto y = StringUtil::Parse<Float>(attributes.At("y"));
+            auto z = StringUtil::Parse<Float>(attributes.At("z"));
 
-            const auto axis = Vector(x, y, z).Normalized();
+            const auto axis = Vector3(x, y, z).Normalized();
 
-            if (m_element_tags.empty()) {
+            if (m_element_tags.Empty()) {
                 DebugLog(LogType::Warn, "Ogre XML skeleton loader: Attempt to set rotation axis but no prior elements found\n");
-            } else if (m_element_tags.top() == "rotate") { /* keyframe */
-                if (m_keyframe_angles.empty()) {
+            } else if (m_element_tags.Top() == "rotate") { /* keyframe */
+                if (m_keyframe_angles.Empty()) {
                     DebugLog(LogType::Warn, "Ogre XML skeleton loader: Attempt to set keyframe rotation axis but no angle was set prior\n");
                 } else {
-                    LastKeyframe().rotation = Quaternion(axis, m_keyframe_angles.top()).Invert();
+                    LastKeyframe().rotation = Quaternion(axis, m_keyframe_angles.Top()).Invert();
 
-                    m_keyframe_angles.pop();
+                    m_keyframe_angles.Pop();
                 }
-            } else if (m_element_tags.top() == "rotation") { /* bone binding pose */
-                if (m_binding_angles.empty()) {
+            } else if (m_element_tags.Top() == "rotation") { /* bone binding pose */
+                if (m_binding_angles.Empty()) {
                     DebugLog(LogType::Warn, "Ogre XML skeleton loader: Attempt to set bond binding rotation but no binding angles were set prior\n");
                 } else {
-                    if (m_skeleton.bones.empty()) {
+                    if (m_skeleton.bones.Empty()) {
                         DebugLog(LogType::Warn, "Ogre XML skeleton loader: Attempt to set bone binding rotation but no bones were found\n");
                     } else {
-                        m_skeleton.bones.back().binding_rotation = Quaternion(axis, m_binding_angles.top());
+                        m_skeleton.bones.Back().binding_rotation = Quaternion(axis, m_binding_angles.Top());
                     }
 
-                    m_binding_angles.pop();
+                    m_binding_angles.Pop();
                 }
             }
         }
 
-        m_element_tags.push(name);
+        m_element_tags.Push(name);
     }
 
-    virtual void End(const std::string &name) override
+    virtual void End(const String &name) override
     {
-        m_element_tags.pop();
+        m_element_tags.Pop();
     }
 
-    virtual void Characters(const std::string &value) override {}
-    virtual void Comment(const std::string &comment) override {}
+    virtual void Characters(const String &value) override {}
+    virtual void Comment(const String &comment) override {}
 
 private:
-    LoaderState *m_state;
+    LoaderState     *m_state;
     OgreXMLSkeleton &m_skeleton;
 
-    std::stack<std::string> m_element_tags;
-    std::stack<float> m_binding_angles;
-    std::stack<float> m_keyframe_angles;
+    Stack<String>   m_element_tags;
+    Stack<Float>    m_binding_angles;
+    Stack<Float>    m_keyframe_angles;
 };
 
 LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
@@ -231,7 +231,7 @@ LoadedAsset OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
         for (const auto &track_it : animation_it.tracks) {
             AnimationTrack animation_track;
             animation_track.bone_name = track_it.bone_name;
-            animation_track.keyframes.Reserve(track_it.keyframes.size());
+            animation_track.keyframes.Reserve(track_it.keyframes.Size());
             
             for (const auto &keyframe_it : track_it.keyframes) {
                 animation_track.keyframes.PushBack(Keyframe(

@@ -17,15 +17,18 @@ struct Quad
 {
     Vertex vertices[4];
 
-    constexpr Vertex &operator[](UInt index) { return vertices[index]; }
-    constexpr const Vertex &operator[](UInt index) const { return vertices[index]; }
+    constexpr Vertex &operator[](UInt index)
+        { return vertices[index]; }
+
+    constexpr const Vertex &operator[](UInt index) const
+        { return vertices[index]; }
 };
 
 class MeshBuilder
 {
-    static const std::vector<Vertex> quad_vertices;
-    static const std::vector<Mesh::Index> quad_indices;
-    static const std::vector<Vertex> cube_vertices;
+    static const Array<Vertex>      quad_vertices;
+    static const Array<Mesh::Index> quad_indices;
+    static const Array<Vertex>      cube_vertices;
 
 public:
     struct Voxel

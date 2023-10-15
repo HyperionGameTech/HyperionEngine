@@ -6,7 +6,7 @@
 #include <input/InputManager.hpp>
 #include <scene/Scene.hpp>
 #include <ui/UIScene.hpp>
-#include <system/SdlSystem.hpp>
+#include <system/Application.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -29,12 +29,12 @@ class Game
 public:
     Game(RC<Application> application);
     virtual ~Game();
-    
-    Handle<Scene> &GetScene()
-        { return m_scene; }
 
     const Handle<Scene> &GetScene() const
         { return m_scene; }
+
+    const RC<Application> &GetApplication() const
+        { return m_application; }
 
     virtual void Init() final;
     virtual void Update(GameCounter::TickUnit delta) final;

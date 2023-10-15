@@ -7,7 +7,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <math/Vector2.hpp>
 
-#include "system/SdlSystem.hpp"
+#include "system/Application.hpp"
 
 #include <functional>
 #include <mutex>

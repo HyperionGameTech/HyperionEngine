@@ -77,16 +77,16 @@ struct SwapchainSupportDetails
 };
 
 
-struct PackedVertex
+struct alignas(16) PackedVertex
 {
     Float32 position_x,
-        position_y,
-        position_z,
-        normal_x,
-        normal_y,
-        normal_z,
-        texcoord0_x,
-        texcoord0_y;
+            position_y,
+            position_z,
+            normal_x,
+            normal_y,
+            normal_z,
+            texcoord0_x,
+            texcoord0_y;
 };
 
 static_assert(sizeof(PackedVertex) == sizeof(Float32) * 8);

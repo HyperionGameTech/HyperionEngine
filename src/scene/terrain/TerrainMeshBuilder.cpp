@@ -47,8 +47,8 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 {
     Threads::AssertOnThread(THREAD_TASK);
 
-    std::vector<Vertex> vertices = BuildVertices();
-    std::vector<Mesh::Index> indices = BuildIndices();
+    Array<Vertex> vertices = BuildVertices();
+    Array<Mesh::Index> indices = BuildIndices();
 
     auto mesh = CreateObject<Mesh>(
         vertices,
@@ -63,10 +63,10 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     return mesh;
 }
 
-std::vector<Vertex> TerrainMeshBuilder::BuildVertices() const
+Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 {
-    std::vector<Vertex> vertices;
-    vertices.resize(m_height_data.patch_info.extent.width * m_height_data.patch_info.extent.depth);
+    Array<Vertex> vertices;
+    vertices.Resize(m_height_data.patch_info.extent.width * m_height_data.patch_info.extent.depth);
 
     UInt i = 0;
 
@@ -87,10 +87,10 @@ std::vector<Vertex> TerrainMeshBuilder::BuildVertices() const
     return vertices;
 }
 
-std::vector<Mesh::Index> TerrainMeshBuilder::BuildIndices() const
+Array<Mesh::Index> TerrainMeshBuilder::BuildIndices() const
 {
-    std::vector<Mesh::Index> indices;
-    indices.resize(6 * (m_height_data.patch_info.extent.width - 1) * (m_height_data.patch_info.extent.depth - 1));
+    Array<Mesh::Index> indices;
+    indices.Resize(6 * (m_height_data.patch_info.extent.width - 1) * (m_height_data.patch_info.extent.depth - 1));
 
     UInt pitch = m_height_data.patch_info.extent.width;
     UInt row = 0;

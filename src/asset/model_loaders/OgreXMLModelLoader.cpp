@@ -22,65 +22,77 @@ public:
 
     SubMesh &LastSubMesh()
     {
-        if (m_model.submeshes.empty()) {
-            m_model.submeshes.emplace_back();
+        if (m_model.submeshes.Empty()) {
+            m_model.submeshes.PushBack({ });
         }
 
-        return m_model.submeshes.back();
+        return m_model.submeshes.Back();
     }
 
     void AddBoneAssignment(UInt vertex_index, BoneAssignment &&bone_assignment)
     {
-        m_model.bone_assignments[vertex_index].push_back(bone_assignment);
+        m_model.bone_assignments[vertex_index].PushBack(std::move(bone_assignment));
     }
 
-    virtual void Begin(const std::string &name, const xml::AttributeMap &attributes) override
+    virtual void Begin(const String &name, const xml::AttributeMap &attributes) override
     {
         if (name == "position") {
-            const auto x = StringUtil::Parse<float>(attributes.at("x"));
-            const auto y = StringUtil::Parse<float>(attributes.at("y"));
-            const auto z = StringUtil::Parse<float>(attributes.at("z"));
+            if (!attributes.Contains("x") || !attributes.Contains("y") || !attributes.Contains("z")) {
+                return;
+            }
 
-            m_model.positions.emplace_back(x, y, z);
+            const auto x = StringUtil::Parse<Float>(attributes.At("x"));
+            const auto y = StringUtil::Parse<Float>(attributes.At("y"));
+            const auto z = StringUtil::Parse<Float>(attributes.At("z"));
+
+            m_model.positions.PushBack(Vector3(x, y, z));
         } else if (name == "normal") {
-            const auto x = StringUtil::Parse<float>(attributes.at("x"));
-            const auto y = StringUtil::Parse<float>(attributes.at("y"));
-            const auto z = StringUtil::Parse<float>(attributes.at("z"));
+            if (!attributes.Contains("x") || !attributes.Contains("y") || !attributes.Contains("z")) {
+                return;
+            }
 
-            m_model.normals.emplace_back(x, y, z);
+            const auto x = StringUtil::Parse<Float>(attributes.At("x"));
+            const auto y = StringUtil::Parse<Float>(attributes.At("y"));
+            const auto z = StringUtil::Parse<Float>(attributes.At("z"));
+
+            m_model.normals.PushBack(Vector3(x, y, z));
         } else if (name == "texcoord") {
-            const auto x = StringUtil::Parse<float>(attributes.at("u"));
-            const auto y = StringUtil::Parse<float>(attributes.at("v"));
+            if (!attributes.Contains("u") || !attributes.Contains("v")) {
+                return;
+            }
 
-            m_model.texcoords.emplace_back(x, y);
+            const auto x = StringUtil::Parse<Float>(attributes.At("u"));
+            const auto y = StringUtil::Parse<Float>(attributes.At("v"));
+
+            m_model.texcoords.PushBack(Vector2(x, y));
         } else if (name == "face") {
-            if (attributes.size() != 3) {
+            if (attributes.Size() != 3) {
                 DebugLog(LogType::Warn, "Ogre XML parser: `face` tag expected to have 3 attributes.\n");
             }
 
             for (auto &it : attributes) {
-                LastSubMesh().indices.push_back(StringUtil::Parse<Mesh::Index>(it.second));
+                LastSubMesh().indices.PushBack(StringUtil::Parse<Mesh::Index>(it.second));
             }
         } else if (name == "skeletonlink") {
-            m_model.skeleton_name = attributes.at("name");
+            m_model.skeleton_name = attributes.At("name");
         } else if (name == "vertexboneassignment") {
-            const auto vertex_index = StringUtil::Parse<uint32_t>(attributes.at("vertexindex"));
-            const auto bone_index   = StringUtil::Parse<uint32_t>(attributes.at("boneindex"));
-            const auto bone_weight  = StringUtil::Parse<float>(attributes.at("weight"));
+            const auto vertex_index = StringUtil::Parse<UInt32>(attributes.At("vertexindex"));
+            const auto bone_index   = StringUtil::Parse<UInt32>(attributes.At("boneindex"));
+            const auto bone_weight  = StringUtil::Parse<Float>(attributes.At("weight"));
 
             AddBoneAssignment(vertex_index, {bone_index, bone_weight});
         } else if (name == "submesh") {
-            m_model.submeshes.emplace_back();
+            m_model.submeshes.PushBack({ });
         } else if (name == "vertex") {
             /* no-op */
         }  else {
-            DebugLog(LogType::Warn, "Ogre XML parser: No handler for '%s' tag\n", name.c_str());
+            DebugLog(LogType::Warn, "Ogre XML parser: No handler for '%s' tag\n", name.Data());
         }
     }
 
-    virtual void End(const std::string &name) override {}
-    virtual void Characters(const std::string &value) override {}
-    virtual void Comment(const std::string &comment) override {}
+    virtual void End(const String &name) override {}
+    virtual void Characters(const String &value) override {}
+    virtual void Comment(const String &comment) override {}
 
 private:
     OgreXMLModel &m_model;
@@ -88,64 +100,64 @@ private:
 
 void BuildVertices(OgreXMLModel &model)
 {
-    const bool has_normals = !model.normals.empty(),
-        has_texcoords = !model.texcoords.empty();
+    const bool has_normals = !model.normals.Empty(),
+        has_texcoords = !model.texcoords.Empty();
 
-    std::vector<Vertex> vertices;
-    vertices.resize(model.positions.size());
+    Array<Vertex> vertices;
+    vertices.Resize(model.positions.Size());
 
-    for (SizeType i = 0; i < vertices.size(); i++) {
+    for (SizeType i = 0; i < vertices.Size(); i++) {
         Vector3 position;
         Vector3 normal;
         Vector2 texcoord;
 
-        if (i < model.positions.size()) {
+        if (i < model.positions.Size()) {
             position = model.positions[i];
         } else {
             DebugLog(
                 LogType::Warn,
-                "Ogre XML parser: Vertex index (%lu) out of bounds (%llu)\n",
+                "Ogre XML parser: Vertex index (%llu) out of bounds (%llu)\n",
                 i,
-                model.positions.size()
+                model.positions.Size()
             );
 
             continue;
         }
 
         if (has_normals) {
-            if (i < model.normals.size()) {
+            if (i < model.normals.Size()) {
                 normal = model.normals[i];
             } else {
                 DebugLog(
                     LogType::Warn,
                     "Ogre XML parser: Normal index (%lu) out of bounds (%llu)\n",
                     i,
-                    model.normals.size()
+                    model.normals.Size()
                 );
             }
         }
 
         if (has_texcoords) {
-            if (i < model.texcoords.size()) {
+            if (i < model.texcoords.Size()) {
                 texcoord = model.texcoords[i];
             } else {
                 DebugLog(
                     LogType::Warn,
                     "Ogre XML parser: Texcoord index (%lu) out of bounds (%llu)\n",
                     i,
-                    model.texcoords.size()
+                    model.texcoords.Size()
                 );
             }
         }
 
         vertices[i] = Vertex(position, texcoord, normal);
 
-        const auto bone_it = model.bone_assignments.find(i);
+        const auto bone_it = model.bone_assignments.Find(i);
 
         if (bone_it != model.bone_assignments.end()) {
             auto &bone_assignments = bone_it->second;
 
-            for (SizeType j = 0; j < bone_assignments.size(); j++) {
+            for (SizeType j = 0; j < bone_assignments.Size(); j++) {
                 if (j == 4) {
                     DebugLog(LogType::Warn, "Ogre XML parser: Attempt to add more than 4 bone assignments\n");
 
@@ -183,8 +195,8 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
 
     Handle<Skeleton> skeleton;
 
-    if (!model.skeleton_name.empty()) {
-        const String skeleton_path((StringUtil::BasePath(model.filepath.Data()) + "/" + model.skeleton_name + ".xml").c_str());
+    if (!model.skeleton_name.Empty()) {
+        const String skeleton_path((StringUtil::BasePath(model.filepath.Data()).c_str() + String("/") + model.skeleton_name + ".xml").Data());
 
         LoaderResult result;
         skeleton = state.asset_manager->Load<Skeleton>(skeleton_path, result);
@@ -195,7 +207,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     }
 
     for (auto &sub_mesh : model.submeshes) {
-        if (sub_mesh.indices.empty()) {
+        if (sub_mesh.indices.Empty()) {
             DebugLog(LogType::Info, "Ogre XML parser: Skipping submesh with empty indices\n");
 
             continue;
@@ -209,7 +221,7 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             Topology::TRIANGLES
         );
 
-        if (model.normals.empty()) {
+        if (model.normals.Empty()) {
             mesh->CalculateNormals();
         }
 

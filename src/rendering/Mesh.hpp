@@ -2,21 +2,21 @@
 #define HYPERION_V2_MESH_H
 
 #include <core/Base.hpp>
-#include <rendering/Shader.hpp>
-#include "RenderableAttributes.hpp"
+#include <core/lib/Pair.hpp>
+#include <core/lib/DynArray.hpp>
 
 #include <math/BoundingBox.hpp>
 #include <math/Vertex.hpp>
+
+#include <rendering/RenderableAttributes.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
-#include <core/lib/DynArray.hpp>
-
 #include <cstdint>
-#include <vector>
 
 namespace hyperion::v2 {
 
@@ -41,20 +41,20 @@ class Mesh
 public:
     using Index = UInt32;
 
-    static std::pair<std::vector<Vertex>, std::vector<Index>> CalculateIndices(const std::vector<Vertex> &vertices);
+    static Pair<Array<Vertex>, Array<Index>> CalculateIndices(const Array<Vertex> &vertices);
 
     Mesh();
 
     Mesh(
-        const std::vector<Vertex> &vertices,
-        const std::vector<Index> &indices,
+        const Array<Vertex> &vertices,
+        const Array<Index> &indices,
         Topology topology,
         const VertexAttributeSet &vertex_attributes
     );
 
     Mesh(
-        const std::vector<Vertex> &vertices,
-        const std::vector<Index> &indices,
+        const Array<Vertex> &vertices,
+        const Array<Index> &indices,
         Topology topology = Topology::TRIANGLES
     );
 
@@ -69,18 +69,18 @@ public:
     const GPUBufferRef &GetVertexBuffer() const { return m_vbo; }
     const GPUBufferRef &GetIndexBuffer() const { return m_ibo; }
                                                                    
-    const std::vector<Vertex> &GetVertices() const { return m_vertices; }
+    const Array<Vertex> &GetVertices() const { return m_vertices; }
 
     void SetVertices(const Array<Vertex> &vertices);
     void SetIndices(const Array<Index> &indices);
 
-    void SetVertices(const std::vector<Vertex> &vertices, const std::vector<Index> &indices)
+    void SetVertices(const Array<Vertex> &vertices, const Array<Index> &indices)
         { m_vertices = vertices; m_indices = indices; }
 
-    const std::vector<Index> &GetIndices() const { return m_indices; }
+    const Array<Index> &GetIndices() const { return m_indices; }
 
     UInt NumIndices() const { return m_indices_count; }
-    UInt NumVertices() const { return UInt(m_vertices.size()); }
+    UInt NumVertices() const { return UInt(m_vertices.Size()); }
 
     const VertexAttributeSet &GetVertexAttributes() const { return m_mesh_attributes.vertex_attributes; }
     void SetVertexAttributes(const VertexAttributeSet &attributes) { m_mesh_attributes.vertex_attributes = attributes; }
@@ -89,8 +89,8 @@ public:
 
     Topology GetTopology() const { return m_mesh_attributes.topology; }
 
-    std::vector<PackedVertex> BuildPackedVertices() const;
-    std::vector<PackedIndex> BuildPackedIndices() const;
+    Array<PackedVertex> BuildPackedVertices() const;
+    Array<PackedIndex> BuildPackedIndices() const;
     
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
@@ -111,7 +111,7 @@ public:
     void PopulateIndirectDrawCommand(IndirectDrawCommand &out);
 
 private:
-    std::vector<float> BuildVertexBuffer();
+    Array<Float> BuildVertexBuffer();
 
     GPUBufferRef m_vbo;
     GPUBufferRef m_ibo;
@@ -120,8 +120,8 @@ private:
 
     MeshAttributes m_mesh_attributes;
 
-    std::vector<Vertex> m_vertices;
-    std::vector<Index> m_indices;
+    Array<Vertex> m_vertices;
+    Array<Index> m_indices;
 };
 
 } // namespace hyperion::v2

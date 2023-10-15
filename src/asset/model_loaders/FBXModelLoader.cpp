@@ -28,7 +28,7 @@ struct FBXProperty
 {
     static const FBXProperty empty;
 
-    FBXPropertyValue value;
+    FBXPropertyValue        value;
     Array<FBXPropertyValue> array_elements;
 
     explicit operator bool() const
@@ -43,8 +43,8 @@ struct FBXObject
 {
     static const FBXObject empty;
 
-    String name;
-    Array<FBXProperty> properties;
+    String                      name;
+    Array<FBXProperty>          properties;
     Array<UniquePtr<FBXObject>> children;
 
     const FBXProperty &GetProperty(UInt index) const
@@ -103,8 +103,8 @@ struct FBXObject
 
 struct FBXDefinitionProperty
 {
-    UInt8 type;
-    String name;
+    UInt8   type;
+    String  name;
 };
 
 struct FBXConnection
@@ -115,13 +115,13 @@ struct FBXConnection
 
 struct FBXCluster
 {
-    String name;
-    Matrix4 transform;
-    Matrix4 transform_link;
-    Array<Int32> vertex_indices;
-    Array<Double> bone_weights;
+    String          name;
+    Matrix4         transform;
+    Matrix4         transform_link;
+    Array<Int32>    vertex_indices;
+    Array<Double>   bone_weights;
 
-    FBXObjectID limb_id = 0;
+    FBXObjectID     limb_id = 0;
 };
 
 struct FBXSkin
@@ -132,7 +132,7 @@ struct FBXSkin
 struct FBXPoseNode
 {
     FBXObjectID node_id = 0;
-    Matrix4 matrix;
+    Matrix4     matrix;
 };
 
 struct FBXBindPose
@@ -143,11 +143,11 @@ struct FBXBindPose
 
 struct FBXMesh
 {
-    FBXObjectID skin_id = 0;
+    FBXObjectID         skin_id = 0;
 
-    std::vector<Vertex> vertices;
-    Array<Mesh::Index> indices;
-    VertexAttributeSet attributes;
+    Array<Vertex>       vertices;
+    Array<Mesh::Index>  indices;
+    VertexAttributeSet  attributes;
 
     Optional<Handle<Mesh>> result;
 
@@ -178,22 +178,22 @@ struct FBXNode
         LIMB_NODE
     };
 
-    String name;
-    Type type = Type::NODE;
+    String                      name;
+    Type                        type = Type::NODE;
 
-    FBXObjectID parent_id = 0;
-    FBXObjectID skeleton_holder_node_id = 0;
+    FBXObjectID                 parent_id = 0;
+    FBXObjectID                 skeleton_holder_node_id = 0;
 
-    FBXObjectID mesh_id = 0;
+    FBXObjectID                 mesh_id = 0;
 
-    FlatSet<FBXObjectID> child_ids;
+    FlatSet<FBXObjectID>        child_ids;
 
-    Transform local_transform;
+    Transform                   local_transform;
 
-    Matrix4 world_bind_matrix;
-    Matrix4 local_bind_matrix;
+    Matrix4                     world_bind_matrix;
+    Matrix4                     local_bind_matrix;
 
-    Optional<Handle<Skeleton>> skeleton;
+    Optional<Handle<Skeleton>>  skeleton;
     //Optional<NodeProxy> node_proxy;
 };
 
@@ -773,12 +773,12 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                         position_index = (position_index * -1) - 1;
                     }
 
-                    if (SizeType(position_index) >= mesh.vertices.size()) {
+                    if (SizeType(position_index) >= mesh.vertices.Size()) {
                         DebugLog(
                             LogType::Warn,
                             "Position index (%d) out of range of vertex count (%llu)\n",
                             position_index,
-                            mesh.vertices.size()
+                            mesh.vertices.Size()
                         );
 
                         break;
@@ -1007,8 +1007,8 @@ LoadedAsset FBXModelLoader::LoadAsset(LoaderState &state) const
                     }
                 }
 
-                std::vector<Vertex> vertices;
-                vertices.resize(model_indices.Size());
+                Array<Vertex> vertices;
+                vertices.Resize(model_indices.Size());
 
                 for (SizeType index = 0; index < model_indices.Size(); ++index) {
                     vertices[index].SetPosition(model_vertices[model_indices[index]]);

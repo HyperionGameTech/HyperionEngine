@@ -3,7 +3,7 @@
 #include <scene/camera/OrthoCamera.hpp>
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <ui/controllers/UIController.hpp>
-#include <system/SdlSystem.hpp>
+#include <system/Application.hpp>
 #include <input/InputManager.hpp>
 #include <Threads.hpp>
 #include <Engine.hpp>

@@ -1,7 +1,7 @@
 
 #include "SampleStreamer.hpp"
 
-#include "system/SdlSystem.hpp"
+#include "system/Application.hpp"
 #include "system/Debug.hpp"
 
 #include <rendering/backend/RendererInstance.hpp>
@@ -22,6 +22,7 @@
 #include <core/lib/Queue.hpp>
 #include <core/lib/AtomicVar.hpp>
 
+#include <util/ArgParse.hpp>
 #include <util/json/JSON.hpp>
 
 #include <core/net/Socket.hpp>
@@ -199,13 +200,43 @@ void SampleStreamer::InitGame()
 {
     Game::InitGame();
 
+
+    ArgParse args;
+    args.Add("SignallingServerIP", "s", ArgParse::ArgumentType::ARGUMENT_TYPE_STRING, true);
+    args.Add("SignallingServerPort", "p", ArgParse::ArgumentType::ARGUMENT_TYPE_INT, true);
+
+    auto arg_parse_result = args.Parse(GetApplication()->GetArguments());
+    if (!arg_parse_result.ok) {
+        DebugLog(LogType::Error, "Failed to parse arguments: %s\n", arg_parse_result.message.HasValue() ? arg_parse_result.message.Get().Data() : "<unknown>");
+        std::exit(1);
+    }
+
+    for (const auto &arg : arg_parse_result.values) {
+        const TypeID type_id = arg.second.GetTypeID();
+
+        if (type_id == TypeID::ForType<String>()) {
+            DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<String>().Data());
+        } else if (type_id == TypeID::ForType<Int>()) {
+            DebugLog(LogType::Debug, "Argument %s = %d\n", arg.first.Data(), arg.second.Get<Int>());
+        } else if (type_id == TypeID::ForType<Float>()) {
+            DebugLog(LogType::Debug, "Argument %s = %f\n", arg.first.Data(), arg.second.Get<Float>());
+        } else if (type_id == TypeID::ForType<Bool>()) {
+            DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<Bool>() ? "true" : "false");
+        } else {
+            DebugLog(LogType::Debug, "Argument %s = <unknown>\n", arg.first.Data());
+        }
+    }
+
+    const String signalling_server_ip = arg_parse_result["SignallingServerIP"].Get<String>();
+    const UInt16 signalling_server_port = UInt16(arg_parse_result["SignallingServerPort"].Get<Int>());
+
     // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
 
     m_message_queue.Reset(new WebSocketMessageQueue());
     
     m_rtc_instance.Reset(new RTCInstance(
         RTCServerParams {
-            RTCServerAddress { "ws://127.0.0.1", 8000, "/server" }
+            RTCServerAddress { signalling_server_ip, signalling_server_port, "/server" }
         }
     ));
 

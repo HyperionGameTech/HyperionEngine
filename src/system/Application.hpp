@@ -2,8 +2,8 @@
 // Created by ethan on 2/5/22.
 //
 
-#ifndef HYPERION_SDL_SYSTEM_H
-#define HYPERION_SDL_SYSTEM_H
+#ifndef HYPERION_APPLICATION_HPP
+#define HYPERION_APPLICATION_HPP
 
 #include <SDL2/SDL_vulkan.h>
 #include <SDL2/SDL.h>
@@ -23,6 +23,41 @@ namespace hyperion {
 namespace renderer {
 class Instance;
 } // namespace renderer
+
+struct CommandLineArguments
+{
+    String          command;
+    Array<String>   arguments;
+
+    CommandLineArguments() = default;
+
+    CommandLineArguments(Int argc, char **argv)
+    {
+        if (argc < 1) {
+            return;
+        }
+
+        command = argv[0];
+        
+        arguments.Reserve(argc - 1);
+
+        for (Int i = 1; i < argc; i++) {
+            arguments.PushBack(argv[i]);
+        }
+    }
+
+    CommandLineArguments(const CommandLineArguments &other) = default;
+    CommandLineArguments &operator=(const CommandLineArguments &other) = default;
+    CommandLineArguments(CommandLineArguments &&other) noexcept = default;
+    CommandLineArguments &operator=(CommandLineArguments &&other) noexcept = default;
+    ~CommandLineArguments() = default;
+
+    operator const Array<String> &() const
+        { return arguments; }
+
+    SizeType Size() const
+        { return arguments.Size(); }
+};
 
 struct WindowOptions
 {
@@ -296,11 +331,14 @@ private:
 class Application
 {
 public:
-    Application(const char *name);
+    Application(const char *name, int argc, char **argv);
     virtual ~Application();
 
     const char *GetAppName() const
         { return m_name; }
+
+    const CommandLineArguments &GetArguments() const
+        { return m_arguments; }
 
     ApplicationWindow *GetCurrentWindow()
         { return m_current_window.Get(); }
@@ -319,14 +357,15 @@ public:
 #endif
     
 protected:
-    UniquePtr<ApplicationWindow> m_current_window;
-    char *m_name;
+    UniquePtr<ApplicationWindow>    m_current_window;
+    char                            *m_name;
+    CommandLineArguments            m_arguments;
 };
 
 class SDLApplication : public Application
 {
 public:
-    SDLApplication(const char *name);
+    SDLApplication(const char *name, int argc, char **argv);
     virtual ~SDLApplication() override;
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) override;

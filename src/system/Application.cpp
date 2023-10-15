@@ -2,7 +2,7 @@
 // Created by ethan on 2/5/22.
 //
 
-#include "SdlSystem.hpp"
+#include "Application.hpp"
 #include "Debug.hpp"
 
 #include <core/lib/CMemory.hpp>
@@ -97,8 +97,8 @@ bool SDLApplicationWindow::HasMouseFocus() const
     return focus_window == window;
 }
 
-SDLApplication::SDLApplication(const char *name)
-    : Application(name)
+SDLApplication::SDLApplication(const char *name, int argc, char **argv)
+    : Application(name, argc, argv)
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 }
@@ -155,7 +155,8 @@ bool SDLApplication::GetVkExtensions(Array<const char *> &out_extensions) const
 }
 #endif
 
-Application::Application(const char *name)
+Application::Application(const char *name, int argc, char **argv)
+    : m_arguments(argc, argv)
 {
     if (name == nullptr) {
         name = "HyperionApp";

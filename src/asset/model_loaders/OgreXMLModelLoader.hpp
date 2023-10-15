@@ -17,27 +17,27 @@ public:
     {
         struct SubMesh
         {
-            std::vector<Mesh::Index> indices;
+            Array<Mesh::Index> indices;
         };
 
         struct BoneAssignment
         {
-            UInt index;
-            float weight;
+            UInt    index;
+            Float   weight;
         };
 
-        String filepath;
+        String                                  filepath;
 
-        std::vector<Vector3> positions;
-        std::vector<Vector3> normals;
-        std::vector<Vector2> texcoords;
+        Array<Vector3>                          positions;
+        Array<Vector3>                          normals;
+        Array<Vector2>                          texcoords;
 
-        std::vector<Vertex> vertices;
+        Array<Vertex>                           vertices;
 
-        std::vector<SubMesh> submeshes;
-        std::unordered_map<UInt, std::vector<BoneAssignment>> bone_assignments;
+        Array<SubMesh>                          submeshes;
+        FlatMap<UInt, Array<BoneAssignment>>    bone_assignments;
 
-        std::string skeleton_name;
+        String                                  skeleton_name;
     };
 
     virtual ~OgreXMLModelLoader() = default;

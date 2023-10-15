@@ -1,4 +1,4 @@
-#include "SAXParser.hpp"
+#include <util/xml/SAXParser.hpp>
 
 namespace hyperion {
 namespace xml {
@@ -37,18 +37,19 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
          in_attribute_name = false;
 
     char last_char = '\0';
-    std::string element_str, comment_str, value_str;
-    std::vector<std::pair<std::string, std::string>> attribs;
+    String element_str, comment_str, value_str;
+    Array<Pair<String, String>> attribs;
 
     // shield your eyes
     // 2022-02-09: wtf
     // 2022-04-10: still lookin' good
+    // 2023-10-15: never change, baby <3
     reader->ReadChars([&](char ch) {
         if (ch != '\t' && ch != '\n') {
             if (ch == '<') {
-                element_str.clear();
+                element_str.Clear();
                 in_characters = false;
-                if (!value_str.empty()) {
+                if (!value_str.Empty()) {
                     handler->Characters(value_str);
                 }
                 is_opening = true;
@@ -56,8 +57,8 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
                 in_element = true;
                 in_attributes = false;
                 is_closing = false;
-                value_str.clear();
-                attribs.clear();
+                value_str.Clear();
+                attribs.Clear();
             } else if (ch == '!' && in_element) {
                 in_comment = true;
                 comment_str = "";
@@ -78,7 +79,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
                         AttributeMap locals;
 
                         for (auto &attr : attribs) {
-                            if (!attr.first.empty()) {
+                            if (!attr.first.Empty()) {
                                 locals[attr.first] = attr.second;
                             }
                         }
@@ -96,7 +97,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
                     is_closing = false;
                     is_reading = false;
 
-                    attribs.clear();
+                    attribs.Clear();
                 }
             } else {
                 if (!in_comment && !in_header) {
@@ -105,17 +106,17 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
                             if (ch == ' ') {
                                 in_element = false;
                                 in_attributes = true;
-                                attribs.push_back({ "", "" });
+                                attribs.PushBack({ "", "" });
                             } else {
                                 element_str += ch;
                             }
                         } else if (in_attributes && is_opening) {
                             if (!in_attribute_value && ch == ' ') {
-                                attribs.push_back({ "", "" });
+                                attribs.PushBack({ "", "" });
                             } else if (ch == '\"') {
                                 in_attribute_value = !in_attribute_value;
                             } else {
-                                auto &last = attribs.back();
+                                auto &last = attribs.Back();
                                 if (!in_attribute_value && ch != '=') {
                                     last.first += ch;
                                 } else if (in_attribute_value) {

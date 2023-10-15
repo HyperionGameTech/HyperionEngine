@@ -284,23 +284,23 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
         has_texcoords = !model.texcoords.Empty();
 
     for (auto &obj_mesh : model.meshes) {
-        std::vector<Vertex> vertices;
-        vertices.reserve(model.positions.Size());
+        Array<Vertex> vertices;
+        vertices.Reserve(model.positions.Size());
 
-        std::vector<Mesh::Index> indices;
-        indices.reserve(obj_mesh.indices.Size());
+        Array<Mesh::Index> indices;
+        indices.Reserve(obj_mesh.indices.Size());
 
-        std::map<OBJIndex, Mesh::Index> index_map;
+        FlatMap<OBJIndex, Mesh::Index> index_map;
 
         const bool has_indices = !obj_mesh.indices.Empty();
 
         if (has_indices) {
             for (const OBJIndex &obj_index : obj_mesh.indices) {
-                const auto it = index_map.find(obj_index);
+                const auto it = index_map.Find(obj_index);
 
                 if (create_obj_indices) {
-                    if (it != index_map.end()) {
-                        indices.push_back(it->second);
+                    if (it != index_map.End()) {
+                        indices.PushBack(it->second);
 
                         continue;
                     }
@@ -320,10 +320,10 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
                     vertex.SetTexCoord0(GetIndexedVertexProperty(obj_index.texcoord, model.texcoords));
                 }
 
-                const auto index = Mesh::Index(vertices.size());
+                const auto index = Mesh::Index(vertices.Size());
 
-                vertices.push_back(vertex);
-                indices.push_back(index);
+                vertices.PushBack(vertex);
+                indices.PushBack(index);
 
                 index_map[obj_index] = index;
             }

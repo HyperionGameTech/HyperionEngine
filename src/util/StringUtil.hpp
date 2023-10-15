@@ -293,10 +293,10 @@ public:
         return path.substr(pos + 1);
     }
     
-    static inline bool Parse(const std::string &str, int *out_value)
+    static inline bool Parse(const String &str, int *out_value)
     {
         int c = 0, sign = 0, x = 0;
-        const char *p = str.c_str();
+        const char *p = str.Data();
 
         for(c = *(p++); (c < 48 || c > 57); c = *(p++)) {if (c == 45) {sign = 1; c = *(p++); break;}}; // eat whitespaces and check sign
         for(; c > 47 && c < 58; c = *(p++)) x = (x << 1) + (x << 3) + c - 48;
@@ -306,24 +306,24 @@ public:
         return true;
     }
     
-    static inline bool Parse(const std::string &str, long *out_value)
+    static inline bool Parse(const String &str, long *out_value)
     {
-        *out_value = std::strtol(str.c_str(), nullptr, 0);
+        *out_value = std::strtol(str.Data(), nullptr, 0);
 
         return true;
     }
     
-    static inline bool Parse(const std::string &str, long long *out_value)
+    static inline bool Parse(const String &str, long long *out_value)
     {
-        *out_value = std::strtoll(str.c_str(), nullptr, 0);
+        *out_value = std::strtoll(str.Data(), nullptr, 0);
 
         return true;
     }
     
-    static inline bool Parse(const std::string &str, unsigned int *out_value)
+    static inline bool Parse(const String &str, unsigned int *out_value)
     {
         unsigned int val = 0;
-        const char *p = str.c_str();
+        const char *p = str.Data();
 
         while (*p) {
             val = (val << 1) + (val << 3) + *(p++) - 48;
@@ -334,24 +334,24 @@ public:
         return true;
     }
     
-    static inline bool Parse(const std::string &str, float *out_value)
+    static inline bool Parse(const String &str, float *out_value)
     {
-        *out_value = std::strtof(str.c_str(), nullptr);
+        *out_value = std::strtof(str.Data(), nullptr);
 
         return true;
     }
     
-    static inline bool Parse(const std::string &str, double *out_value)
+    static inline bool Parse(const String &str, double *out_value)
     {
-        *out_value = std::strtod(str.c_str(), nullptr);
+        *out_value = std::strtod(str.Data(), nullptr);
 
         return true;
     }
 
     template <typename T>
-    static inline bool Parse(const std::string &str, T *out_value)
+    static inline bool Parse(const String &str, T *out_value)
     {
-        std::istringstream ss(str);
+        std::istringstream ss(str.Data());
         T value;
 
         if (!(ss >> std::boolalpha >> value)) {
@@ -364,7 +364,7 @@ public:
     }
 
     template <typename T>
-    static inline T Parse(const std::string &str, T value_on_error = T { })
+    static inline T Parse(const String &str, T value_on_error = T { })
     {
         T value = value_on_error;
 
@@ -374,7 +374,7 @@ public:
     }
 
     template <typename T>
-    static inline bool IsNumber(const std::string &str) {
+    static inline bool IsNumber(const String &str) {
         T value{};
 
         return Parse<T>(str, &value);

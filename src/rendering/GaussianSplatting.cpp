@@ -636,13 +636,14 @@ void GaussianSplatting::Init()
 
     EngineComponentBase::Init();
     
-    static const std::vector<Vertex> vertices = {
+    static const Array<Vertex> vertices = {
         Vertex {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{ 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{ 1.0f,  1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
         Vertex {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}
     };
-    static const std::vector<Mesh::Index> indices = {
+    
+    static const Array<Mesh::Index> indices = {
         0, 3, 1,
         2, 3, 1
     };

@@ -27,11 +27,11 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
-int main()
+int main(int argc, char **argv)
 {
     signal(SIGINT, HandleSignal);
     
-    RC<Application> application(new SDLApplication("My Application"));
+    RC<Application> application(new SDLApplication("My Application", argc, argv));
     application->SetCurrentWindow(application->CreateSystemWindow({
         "Hyperion Engine",
         1920, 1080,
