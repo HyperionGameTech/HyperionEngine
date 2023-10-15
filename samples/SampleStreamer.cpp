@@ -60,6 +60,7 @@
 
 #include <rtc/RTCClientList.hpp>
 #include <rtc/RTCClient.hpp>
+#include <rtc/RTCDataChannel.hpp>
 
 class FramebufferCaptureRenderComponent : public RenderComponent<FramebufferCaptureRenderComponent>
 {
@@ -218,27 +219,19 @@ void SampleStreamer::InitGame()
     AssertThrow(m_rtc_instance->GetServer() != nullptr);
 
     if (const RC<RTCServer> &server = m_rtc_instance->GetServer()) {
-        server->GetCallbacks().On(RTCServerCallbackMessages::SERVER_ERROR, [](RTCServerCallbackData data) {
+        server->GetCallbacks().On(RTCServerCallbackMessages::ERROR, [](RTCServerCallbackData data) {
             DebugLog(LogType::Error, "Server error: %s\n", data.error.HasValue() ? data.error.Get().message.Data() : "<unknown>");
         });
 
-        server->GetCallbacks().On(RTCServerCallbackMessages::SERVER_STARTED, [](RTCServerCallbackData) {
+        server->GetCallbacks().On(RTCServerCallbackMessages::CONNECTED, [](RTCServerCallbackData) {
             DebugLog(LogType::Debug, "Server started\n");
         });
 
-        server->GetCallbacks().On(RTCServerCallbackMessages::SERVER_STOPPED, [](RTCServerCallbackData) {
+        server->GetCallbacks().On(RTCServerCallbackMessages::DISCONNECTED, [](RTCServerCallbackData) {
             DebugLog(LogType::Debug, "Server stopped\n");
         });
 
-        server->GetCallbacks().On(RTCServerCallbackMessages::CLIENT_CONNECTED, [](RTCServerCallbackData) {
-            DebugLog(LogType::Debug, "Client connected\n");
-        });
-
-        server->GetCallbacks().On(RTCServerCallbackMessages::CLIENT_DISCONNECTED, [](RTCServerCallbackData) {
-            DebugLog(LogType::Debug, "Client disconnected\n");
-        });
-
-        server->GetCallbacks().On(RTCServerCallbackMessages::CLIENT_MESSAGE, [this](RTCServerCallbackData data) {
+        server->GetCallbacks().On(RTCServerCallbackMessages::MESSAGE, [this](RTCServerCallbackData data) {
             using namespace hyperion::json;
 
             if (!data.bytes.HasValue()) {
@@ -572,6 +565,47 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
             DebugLog(LogType::Debug, "Adding client with ID %s  %s\n", id.Data(), typeid(*client).name());
 
             auto track = m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO);
+
+            client->GetCallbacks().On(RTCClientCallbackMessages::MESSAGE, [client_weak = Weak(client)](RTCClientCallbackData data)
+            {
+                if (!data.bytes.HasValue()) {
+                    return;
+                }
+                
+                json::ParseResult json_parse_result = json::JSON::Parse(String(data.bytes.Get()));
+
+                if (!json_parse_result.ok) {
+                    DebugLog(LogType::Warn, "Failed to parse message as JSON\n");
+
+                    return;
+                }
+
+                if (!json_parse_result.value.IsObject()) {
+                    DebugLog(LogType::Warn, "Invalid JSON message: Expected an object\n");
+
+                    return;
+                }
+
+                json::JSONObject &message = json_parse_result.value.AsObject();
+
+                if (!message["type"].IsString()) {
+                    DebugLog(LogType::Warn, "Invalid JSON message: message[\"type\"] should be a String\n");
+
+                    return;
+                }
+
+                if (message["type"].AsString() == "Pong") {
+                    if (auto client = client_weak.Lock()) {
+                        Optional<RC<RTCDataChannel>> data_channel = client->GetDataChannel(HYP_NAME(ping-pong));
+
+                        if (data_channel.HasValue()) {
+                            data_channel.Get()->Send("Ping");
+                        }
+                    }
+                }
+            });
+
+            client->CreateDataChannel(HYP_NAME(ping-pong));
 
             client->AddTrack(track);
             client->Connect();

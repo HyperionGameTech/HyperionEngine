@@ -1,8 +1,11 @@
 #ifndef HYPERION_V2_RTC_CLIENT_HPP
 #define HYPERION_V2_RTC_CLIENT_HPP
 
+#include <core/Containers.hpp>
 #include <core/lib/String.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/Optional.hpp>
+#include <core/Name.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 namespace rtc {
@@ -19,6 +22,7 @@ namespace hyperion::v2 {
 class RTCServer;
 class RTCStream;
 class RTCTrack;
+class RTCDataChannel;
 
 #ifdef HYP_LIBDATACHANNEL
 class LibDataChannelRTCTrack;
@@ -31,6 +35,31 @@ enum RTCClientState
     RTC_CLIENT_STATE_CONNECTED,
     RTC_CLIENT_STATE_DISCONNECTED
 };
+
+enum class RTCClientCallbackMessages : UInt32
+{
+    UNKNOWN         = 0,
+
+    ERROR           = UInt32(-1),
+
+    CONNECTED       = 1,
+    DISCONNECTED,
+
+    MESSAGE
+};
+
+struct RTCClientError
+{
+    String message;
+};
+
+struct RTCClientCallbackData
+{
+    Optional<ByteBuffer>        bytes;
+    Optional<RTCClientError>    error;
+};
+
+using RTCClientCallbacks = Callbacks<RTCClientCallbackMessages, RTCClientCallbackData>;
 
 class RTCClient
 {
@@ -57,6 +86,15 @@ public:
     const Array<RC<RTCTrack>> &GetTracks() const
         { return m_tracks; }
 
+    RTCClientCallbacks &GetCallbacks()
+        { return m_callbacks; }
+
+    const RTCClientCallbacks &GetCallbacks() const
+        { return m_callbacks; }
+
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) = 0;
+    Optional<RC<RTCDataChannel>> GetDataChannel(Name name) const;
+
     virtual void Connect() = 0;
     virtual void Disconnect() = 0;
 
@@ -67,10 +105,12 @@ public:
 protected:
     virtual void PrepareTracks();
 
-    String              m_id;
-    RTCServer           *m_server;
-    RTCClientState      m_state;
-    Array<RC<RTCTrack>> m_tracks;
+    String                              m_id;
+    RTCServer                           *m_server;
+    RTCClientState                      m_state;
+    Array<RC<RTCTrack>>                 m_tracks;
+    FlatMap<Name, RC<RTCDataChannel>>   m_data_channels;
+    RTCClientCallbacks                  m_callbacks;
 };
 
 class NullRTCClient : public RTCClient
@@ -85,6 +125,8 @@ public:
 
     virtual void Connect() override;
     virtual void Disconnect() override;
+
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) override;
 
     virtual void SetRemoteDescription(const String &type, const String &sdp) override;
 };
@@ -102,6 +144,8 @@ public:
     LibDataChannelRTCClient(LibDataChannelRTCClient &&other) noexcept = default;
     LibDataChannelRTCClient &operator=(LibDataChannelRTCClient &&other) noexcept = default;
     virtual ~LibDataChannelRTCClient() override = default;
+
+    virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) override;
 
     virtual void Connect() override;
     virtual void Disconnect() override;

@@ -40,6 +40,24 @@ RTCServer::~RTCServer()
     }
 }
 
+void RTCServer::EnqueueClientRemoval(String client_id)
+{
+    AssertThrow(m_thread != nullptr && m_thread->IsRunning());
+
+    m_thread->GetScheduler().Enqueue([this, id = std::move(client_id)](...) mutable
+    {
+        Optional<RC<RTCClient>> client = m_client_list.Get(id);
+
+        if (!client.HasValue()) {
+            return;
+        }
+
+        client.Get()->Disconnect();
+
+        m_client_list.Remove(id);
+    });
+}
+
 
 // null (stubbed) implementation
 
@@ -50,26 +68,12 @@ NullRTCServer::NullRTCServer(RTCServerParams params)
 
 void NullRTCServer::Start()
 {
-    AssertThrowMsg(!m_is_running, "NullRTCServer::Start() called, but server is already running!");
-
-    m_is_running = true;
-
-    m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_STARTED, {
-        Optional<ByteBuffer>(),
-        Optional<RTCServerError>()
-    });
+    // Do nothing
 }
 
 void NullRTCServer::Stop()
 {
-    AssertThrowMsg(m_is_running, "NullRTCServer::Stop() called, but server is not running!");
-    
-    m_is_running = false;
-
-    m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_STOPPED, {
-        Optional<ByteBuffer>(),
-        Optional<RTCServerError>()
-    });
+    // Do nothing
 }
 
 RC<RTCClient> NullRTCServer::CreateClient(String id)
@@ -82,15 +86,11 @@ RC<RTCClient> NullRTCServer::CreateClient(String id)
 
 void NullRTCServer::SendToSignallingServer(const ByteBuffer &bytes)
 {
-    AssertThrowMsg(m_is_running, "NullRTCServer::SendToSignallingServer() called, but server is not running!");
-
     // Do nothing
 }
 
 void NullRTCServer::SendToClient(String client_id, const ByteBuffer &bytes)
 {
-    AssertThrowMsg(m_is_running, "NullRTCServer::SendToClient() called, but server is not running!");
-
     // Do nothing
 }
 
@@ -120,7 +120,7 @@ void LibDataChannelRTCServer::Start()
     m_thread->GetScheduler().Enqueue([this]()
     {
         m_websocket->onOpen([this]() {
-            m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_STARTED, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::CONNECTED, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>()
             });
@@ -130,7 +130,7 @@ void LibDataChannelRTCServer::Start()
             // Stupid test
             AssertThrow(this != nullptr);
 
-            m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_STOPPED, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::DISCONNECTED, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>()
             });
@@ -139,24 +139,24 @@ void LibDataChannelRTCServer::Start()
         });
 
         m_websocket->onError([this](const std::string &error) {
-            m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_ERROR, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::ERROR, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>(RTCServerError { error.c_str() })
             });
         });
 
-        m_websocket->onMessage([this](const std::variant<rtc::binary, std::string> &data) {
+        m_websocket->onMessage([this](rtc::message_variant data) {
             if (std::holds_alternative<rtc::binary>(data)) {
                 const rtc::binary &bytes = std::get<rtc::binary>(data);
 
-                m_callbacks.Trigger(RTCServerCallbackMessages::CLIENT_MESSAGE, {
+                m_callbacks.Trigger(RTCServerCallbackMessages::MESSAGE, {
                     Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
                     Optional<RTCServerError>()
                 });
             } else {
                 const std::string &str = std::get<std::string>(data);
 
-                m_callbacks.Trigger(RTCServerCallbackMessages::CLIENT_MESSAGE, {
+                m_callbacks.Trigger(RTCServerCallbackMessages::MESSAGE, {
                     Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
                     Optional<RTCServerError>()
                 });
@@ -222,7 +222,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(const ByteBuffer &bytes)
         Memory::MemCpy(bin.data(), byte_buffer.Data(), byte_buffer.Size());
 
         if (!m_websocket->send(std::move(bin))) {
-            m_callbacks.Trigger(RTCServerCallbackMessages::SERVER_ERROR, {
+            m_callbacks.Trigger(RTCServerCallbackMessages::ERROR, {
                 Optional<ByteBuffer>(),
                 Optional<RTCServerError>(RTCServerError { "Message could not be sent" })
             });

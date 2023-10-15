@@ -118,12 +118,6 @@ public:
           m_in_queue(new EncoderDataQueue()),
           m_out_queue(new EncoderDataQueue())
     {
-#ifdef HYP_GSTREAMER_BIN_DIR
-        // putenv("GST_PLUGIN_PATH", HYP_GSTREAMER_BIN_DIR);
-        // putenv("GST_REGISTRY", HYP_GSTREAMER_BIN_DIR);
-        // DebugLog(LogType::Debug, "GStreamer plugin path: %s\n", getenv("GST_PLUGIN_PATH"));
-#endif
-
         gst_debug_set_default_threshold(GST_LEVEL_WARNING);
         gst_init(nullptr, nullptr);
 

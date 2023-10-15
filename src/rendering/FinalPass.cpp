@@ -209,8 +209,7 @@ void FinalPass::Render(Frame *frame)
 
     { // Copy result to store previous frame's color buffer
         const ImageRef &source_image = m_composite_pass.GetAttachments()[0]->GetImage();
-        //m_render_group->GetFramebuffers()[acquired_image_index]->GetFramebuffer(0).GetAttachmentUsages()[0]->GetAttachment()->GetImage();//
-
+        
         source_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_SRC);
         m_last_frame_image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::COPY_DST);
 

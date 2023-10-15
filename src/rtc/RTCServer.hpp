@@ -20,14 +20,12 @@ enum class RTCServerCallbackMessages : UInt32
 {
     UNKNOWN         = 0,
 
-    SERVER_ERROR    = UInt32(-1),
+    ERROR           = UInt32(-1),
 
-    SERVER_STARTED  = 1,
-    SERVER_STOPPED,
+    CONNECTED       = 1,
+    DISCONNECTED,
 
-    CLIENT_CONNECTED,
-    CLIENT_DISCONNECTED,
-    CLIENT_MESSAGE
+    MESSAGE
 };
 
 struct RTCServerError
@@ -69,6 +67,8 @@ public:
     virtual void Stop() = 0;
 
     virtual RC<RTCClient> CreateClient(String id) = 0;
+
+    void EnqueueClientRemoval(String client_id);
 
     virtual void SendToSignallingServer(const ByteBuffer &bytes) = 0;
     virtual void SendToClient(String client_id, const ByteBuffer &bytes) = 0;
@@ -112,9 +112,6 @@ public:
 
     virtual void SendToSignallingServer(const ByteBuffer &bytes) override;
     virtual void SendToClient(String client_id, const ByteBuffer &bytes) override;
-
-private:
-    bool m_is_running = false;
 };
 
 #ifdef HYP_LIBDATACHANNEL

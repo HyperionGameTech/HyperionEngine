@@ -80,7 +80,7 @@ function createPeerConnection() {
                 if (!dc) {
                     return;
                 }
-                const message = `Pong ${currentTimestamp()}`;
+                const message = JSON.stringify({ type: 'Pong', timestamp: currentTimestamp() });
                 dataChannelLog.textContent += '> ' + message + '\n';
                 dataChannelLog.scrollTop = dataChannelLog.scrollHeight;
                 dc.send(message);
