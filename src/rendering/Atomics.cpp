@@ -1,5 +1,6 @@
-#include "Atomics.hpp"
-#include "../Engine.hpp"
+#include <rendering/Atomics.hpp>
+#include <Engine.hpp>
+#include <Threads.hpp>
 #include <Types.hpp>
 
 namespace hyperion::v2 {
@@ -10,23 +11,22 @@ AtomicCounter::AtomicCounter() = default;
 
 AtomicCounter::~AtomicCounter()
 {
-    AssertThrowMsg(m_buffer == nullptr, "buffer should have been destroyed before destructor call");
+    SafeRelease(std::move(m_buffer));
 }
 
 void AtomicCounter::Create()
 {
+    Threads::AssertOnThread(THREAD_RENDER);
+
     AssertThrow(m_buffer == nullptr);
 
-    m_buffer = std::make_unique<AtomicCounterBuffer>();
+    m_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::ATOMIC_COUNTER);
     HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUInstance()->GetDevice(), sizeof(UInt32)));
 }
 
 void AtomicCounter::Destroy()
 {
-    AssertThrow(m_buffer != nullptr);
-
-    HYPERION_ASSERT_RESULT(m_buffer->Destroy(g_engine->GetGPUInstance()->GetDevice()));
-    m_buffer.reset();
+    SafeRelease(std::move(m_buffer));
 }
 
 void AtomicCounter::Reset(CountType value)
@@ -63,7 +63,7 @@ auto AtomicCounter::Read() const -> CountType
             auto commands = g_engine->GetGPUInstance()->GetSingleTimeCommands();
 
             commands.Push([&](const CommandBufferRef &command_buffer) {
-                staging_buffer->CopyFrom(command_buffer, m_buffer.get(), sizeof(result));
+                staging_buffer->CopyFrom(command_buffer, m_buffer, sizeof(result));
 
                 HYPERION_RETURN_OK;
             });

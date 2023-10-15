@@ -4,6 +4,7 @@
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <Types.hpp>
 
@@ -11,9 +12,6 @@ namespace hyperion::v2 {
 
 using renderer::Fence;
 using renderer::CommandBuffer;
-using renderer::GPUBuffer;
-using renderer::AtomicCounterBuffer;
-using renderer::StagingBuffer;
 
 class Engine;
 
@@ -27,7 +25,8 @@ public:
     AtomicCounter &operator=(const AtomicCounter &other) = delete;
     ~AtomicCounter();
 
-    AtomicCounterBuffer *GetBuffer() const { return m_buffer.get(); }
+    const GPUBufferRef &GetBuffer() const
+        { return m_buffer; }
 
     void Create();
     void Destroy();
@@ -36,8 +35,7 @@ public:
     CountType Read() const;
 
 private:
-    std::unique_ptr<AtomicCounterBuffer> m_buffer;
-    std::unique_ptr<StagingBuffer> m_staging_buffer;
+    GPUBufferRef    m_buffer;
 };
 
 } // namespace hyperion::v2

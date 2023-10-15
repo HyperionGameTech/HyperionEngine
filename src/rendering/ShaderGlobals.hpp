@@ -22,10 +22,8 @@ namespace hyperion::v2 {
 using renderer::ShaderProgram;
 using renderer::ShaderObject;
 using renderer::ShaderModule;
-using renderer::GPUBuffer;
-using renderer::UniformBuffer;
 using renderer::StorageBuffer;
-using renderer::IndirectBuffer;
+using renderer::UniformBuffer;
 
 class Engine;
 class Entity;
@@ -58,16 +56,16 @@ struct ShaderGlobals
     void Create();
     void Destroy();
 
-    ShaderData<StorageBuffer, SceneShaderData, max_scenes> scenes;
-    ShaderData<UniformBuffer, CameraShaderData, max_cameras> cameras;
-    ShaderData<StorageBuffer, LightShaderData, max_lights> lights;
-    ShaderData<StorageBuffer, ObjectShaderData, max_entities> objects;
-    ShaderData<StorageBuffer, MaterialShaderData, max_materials> materials;
-    ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons> skeletons;
-    ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps> shadow_map_data;
-    ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes> env_probes;
-    ShaderData<UniformBuffer, EnvGridShaderData, max_env_grids> env_grids;
-    ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws> immediate_draws;
+    ShaderData<StorageBuffer, SceneShaderData, max_scenes>                      scenes;
+    ShaderData<UniformBuffer, CameraShaderData, max_cameras>                    cameras;
+    ShaderData<StorageBuffer, LightShaderData, max_lights>                      lights;
+    ShaderData<StorageBuffer, ObjectShaderData, max_entities>                   objects;
+    ShaderData<StorageBuffer, MaterialShaderData, max_materials>                materials;
+    ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons>                skeletons;
+    ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps>                shadow_map_data;
+    ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes>               env_probes;
+    ShaderData<UniformBuffer, EnvGridShaderData, max_env_grids>                 env_grids;
+    ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws>     immediate_draws;
     ShaderData<StorageBuffer, EntityInstanceBatch, max_entity_instance_batches> entity_instance_batches;
     
     BindlessStorage textures;

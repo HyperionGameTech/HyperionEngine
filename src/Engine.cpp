@@ -37,6 +37,9 @@ using renderer::DescriptorKey;
 using renderer::FillMode;
 using renderer::GPUBufferType;
 using renderer::GPUBuffer;
+using renderer::UniformBuffer;
+using renderer::StorageBuffer;
+using renderer::AtomicCounterBuffer;
 
 Engine *g_engine = nullptr;
 AssetManager *g_asset_manager = nullptr;
@@ -536,7 +539,7 @@ void Engine::Initialize(RC<Application> application)
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::RT_PROBE_UNIFORMS)
             ->SetSubDescriptor({
                 .element_index = 0,
-                .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(ProbeSystemUniforms))
+                .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(ProbeSystemUniforms))
             });
 
         // placeholder rt probes irradiance image
@@ -584,15 +587,15 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(DescriptorKey::VCT_VOXEL_UNIFORMS)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(VoxelUniforms)));
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(GetGPUDevice(), sizeof(UInt32)));
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::VCT_SVO_FRAGMENT_LIST)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_CLIPMAPS)
@@ -660,7 +663,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(GetGPUDevice(), sizeof(VoxelUniforms))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms))
         });
 
     // temporal blend image
@@ -691,7 +694,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(0)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::AtomicCounterBuffer>(GetGPUDevice(), sizeof(UInt32))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::ATOMIC_COUNTER, sizeof(UInt32))
         });
 
     // fragment list
@@ -699,7 +702,7 @@ void Engine::Initialize(RC<Application> application)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
             .element_index = 0u,
-            .buffer = GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>))
+            .buffer = GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>))
         });
 #endif
     
@@ -717,7 +720,7 @@ void Engine::Initialize(RC<Application> application)
         // sparse voxel octree buffer
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SVO_BUFFER)
-            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer<renderer::StorageBuffer>(GetGPUDevice(), sizeof(ShaderVec2<UInt32>)));
+            ->SetElementBuffer(0, GetPlaceholderData().GetOrCreateBuffer(GetGPUDevice(), renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ShaderVec2<UInt32>)));
 
         { // add placeholder gbuffer textures
             auto *gbuffer_textures = descriptor_set_globals->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::GBUFFER_TEXTURES);

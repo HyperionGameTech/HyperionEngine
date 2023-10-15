@@ -14,7 +14,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::GPUBuffer;
 
 class Engine;
 class Mesh;

@@ -76,21 +76,6 @@ struct SwapchainSupportDetails
     std::vector<VkPresentModeKHR> present_modes;
 };
 
-
-struct alignas(16) PackedVertex
-{
-    Float32 position_x,
-            position_y,
-            position_z,
-            normal_x,
-            normal_y,
-            normal_z,
-            texcoord0_x,
-            texcoord0_y;
-};
-
-static_assert(sizeof(PackedVertex) == sizeof(Float32) * 8);
-
 struct alignas(16) MeshDescription
 {
     UInt64 vertex_buffer_address;
@@ -101,8 +86,6 @@ struct alignas(16) MeshDescription
     UInt32 num_indices;
     UInt32 num_vertices;
 };
-
-using PackedIndex = UInt32;
 
 using ImageSubResourceFlagBits = UInt;
 
@@ -131,65 +114,6 @@ struct ImageSubResource
             && base_mip_level == other.base_mip_level
             && num_levels == other.num_levels;
     }
-};
-
-template<class ...Args>
-class PerFrameData
-{
-    struct FrameDataWrapper
-    {
-        std::tuple<std::unique_ptr<Args>...> tup;
-
-        template <class T>
-        T *Get()
-        {
-            return std::get<std::unique_ptr<T>>(tup).get();
-        }
-
-        template <class T>
-        const T *Get() const
-        {
-            return std::get<std::unique_ptr<T>>(tup).get();
-        }
-
-        template <class T>
-        void Set(std::unique_ptr<T> &&value)
-        {
-            std::get<std::unique_ptr<T>>(tup) = std::move(value);
-        }
-    };
-
-public:
-    PerFrameData(UInt32 num_frames) : m_num_frames(num_frames)
-        { m_data.resize(num_frames); }
-
-    PerFrameData(const PerFrameData &other) = delete;
-    PerFrameData &operator=(const PerFrameData &other) = delete;
-    PerFrameData(PerFrameData &&) = default;
-    PerFrameData &operator=(PerFrameData &&) = default;
-    ~PerFrameData() = default;
-
-    HYP_FORCE_INLINE UInt NumFrames() const
-        { return m_num_frames; }
-
-    HYP_FORCE_INLINE FrameDataWrapper &operator[](UInt32 index)
-        { return m_data[index]; }
-
-    HYP_FORCE_INLINE const FrameDataWrapper &operator[](UInt32 index) const
-        { return m_data[index]; }
-
-    HYP_FORCE_INLINE FrameDataWrapper &At(UInt32 index)
-        { return m_data[index]; }
-
-    HYP_FORCE_INLINE const FrameDataWrapper &At(UInt32 index) const
-        { return m_data[index]; }
-
-    HYP_FORCE_INLINE void Reset()
-        { m_data = std::vector<FrameDataWrapper>(m_num_frames); }
-
-protected:
-    UInt m_num_frames;
-    std::vector<FrameDataWrapper> m_data;
 };
 
 struct IndirectDrawCommand

@@ -28,9 +28,6 @@
 namespace hyperion::v2 {
 
 using renderer::IndirectDrawCommand;
-using renderer::IndirectBuffer;
-using renderer::StorageBuffer;
-using renderer::StagingBuffer;
 using renderer::Frame;
 using renderer::Result;
 

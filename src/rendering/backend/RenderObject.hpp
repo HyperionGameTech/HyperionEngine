@@ -11,6 +11,7 @@
 #include <Types.hpp>
 
 #include <rendering/backend/RendererResult.hpp>
+#include <rendering/backend/Platform.hpp>
 
 #include <mutex>
 #include <atomic>
@@ -371,10 +372,30 @@ const RenderObjectHandle<T> RenderObjectHandle<T>::unset = RenderObjectHandle<T>
     } \
     using T##Ref = renderer::RenderObjectHandle< renderer::T >
 
+#define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType PLATFORM> \
+    class T; \
+    } \
+    using T = platform::T<Platform::CURRENT>; \
+    template <> \
+    struct RenderObjectDefinition< T > \
+    { \
+        static constexpr SizeType max_size = (_max_size); \
+        \
+        static Name GetNameForType() \
+        { \
+            static const Name name = HYP_NAME(T); \
+            return name; \
+        } \
+    }; \
+    } \
+    using T##Ref = renderer::RenderObjectHandle< renderer::T >
+
 DEF_RENDER_OBJECT(CommandBuffer,       2048);
 DEF_RENDER_OBJECT(ShaderProgram,       2048);
 DEF_RENDER_OBJECT(GraphicsPipeline,    2048);
-DEF_RENDER_OBJECT(GPUBuffer,           65536);
 DEF_RENDER_OBJECT(Image,               16384);
 DEF_RENDER_OBJECT(ImageView,           65536);
 DEF_RENDER_OBJECT(Sampler,             16384);
@@ -384,7 +405,10 @@ DEF_RENDER_OBJECT(ComputePipeline,     4096);
 DEF_RENDER_OBJECT(Attachment,          4096);
 DEF_RENDER_OBJECT(AttachmentUsage,     8192);
 
+DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,   65536);
+
 #undef DEF_RENDER_OBJECT
+#undef DEF_RENDER_PLATFORM_OBJECT
 
 using RenderObjects = renderer::RenderObjects;
 

@@ -46,7 +46,7 @@ struct RENDER_COMMAND(DestroyVCT) : RenderCommand
 
             descriptor_set_globals
                 ->GetDescriptor(DescriptorKey::VCT_VOXEL_UNIFORMS)
-                ->SetElementBuffer(0, g_engine->GetPlaceholderData().GetOrCreateBuffer<UniformBuffer>(g_engine->GetGPUDevice(), sizeof(VoxelUniforms)));
+                ->SetElementBuffer(0, g_engine->GetPlaceholderData().GetOrCreateBuffer(g_engine->GetGPUDevice(), renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(VoxelUniforms)));
 
             // destroy owned descriptor sets, as well as individual mip imageviews
             if constexpr (vct_manual_mipmap_generation) {

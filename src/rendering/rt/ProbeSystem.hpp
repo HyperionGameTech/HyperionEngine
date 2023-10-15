@@ -21,7 +21,6 @@ namespace hyperion::v2 {
 using renderer::RaytracingPipeline;
 using renderer::StorageImage;
 using renderer::ImageView;
-using renderer::UniformBuffer;
 using renderer::CommandBuffer;
 using renderer::ImageDescriptor;
 ;

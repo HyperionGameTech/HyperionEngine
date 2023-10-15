@@ -12,7 +12,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::IndirectBuffer;
 using renderer::DescriptorSet;
 
 class ComputePipeline : public EngineComponentBase<STUB_CLASS(ComputePipeline)>

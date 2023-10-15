@@ -59,13 +59,8 @@ void GraphicsPipeline::UpdateDynamicStates(VkCommandBuffer cmd)
     vkCmdSetScissor(cmd, 0, 1, &this->scissor);
 }
 
-std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
+Array<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
 {
-    FlatMap<UInt32, UInt32> binding_sizes { };
-
-    const Array<VertexAttribute> attributes = attribute_set.BuildAttributes();
-    this->vertex_attributes = std::vector<VkVertexInputAttributeDescription>(attributes.Size());
-
     static constexpr VkFormat size_to_format[] = {
         VK_FORMAT_UNDEFINED,
         VK_FORMAT_R32_SFLOAT,
@@ -73,6 +68,11 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
         VK_FORMAT_R32G32B32_SFLOAT,
         VK_FORMAT_R32G32B32A32_SFLOAT
     };
+
+    FlatMap<UInt32, UInt32> binding_sizes { };
+
+    const Array<VertexAttribute> attributes = attribute_set.BuildAttributes();
+    this->vertex_attributes.Resize(attributes.Size());
 
     for (SizeType i = 0; i < attributes.Size(); i++) {
         const auto &attribute = attributes[i];
@@ -87,11 +87,11 @@ std::vector<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttr
         binding_sizes[attribute.binding] += attribute.size;
     }
 
-    this->vertex_binding_descriptions.clear();
-    this->vertex_binding_descriptions.reserve(binding_sizes.Size());
+    this->vertex_binding_descriptions.Clear();
+    this->vertex_binding_descriptions.Reserve(binding_sizes.Size());
 
     for (const auto &it : binding_sizes) {
-        this->vertex_binding_descriptions.push_back(VkVertexInputBindingDescription {
+        this->vertex_binding_descriptions.PushBack(VkVertexInputBindingDescription {
             .binding = it.first,
             .stride = it.second,
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
@@ -121,14 +121,6 @@ void GraphicsPipeline::Bind(CommandBuffer *cmd)
     SubmitPushConstants(cmd);
 }
 
-void GraphicsPipeline::SetVertexInputMode(
-    std::vector<VkVertexInputBindingDescription> &binding_descs,
-    std::vector<VkVertexInputAttributeDescription> &attribs)
-{
-    this->vertex_binding_descriptions = binding_descs;
-    this->vertex_attributes = attribs;
-}
-
 Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool)
 {
     m_construction_info = std::move(construction_info);
@@ -140,13 +132,12 @@ Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_
     const uint32_t height = m_construction_info.fbos[0]->GetHeight();
 
     SetScissor(0, 0, width, height);
-    //SetViewport(0.0f, static_cast<float>(height), static_cast<float>(width), -static_cast<float>(height));
     SetViewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-    
-    SetDynamicStates({
+
+    m_dynamic_states = {
         VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR,
-    });
+        VK_DYNAMIC_STATE_SCISSOR
+    };
 
     static int x = 0;
     DebugLog(LogType::Debug, "Create Pipeline [%d]\n", x++);
@@ -159,10 +150,10 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     BuildVertexAttributes(m_construction_info.vertex_attributes);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-    vertex_input_info.vertexBindingDescriptionCount = UInt32(vertex_binding_descriptions.size());
-    vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions.data();
-    vertex_input_info.vertexAttributeDescriptionCount = UInt32(vertex_attributes.size());
-    vertex_input_info.pVertexAttributeDescriptions = vertex_attributes.data();
+    vertex_input_info.vertexBindingDescriptionCount = UInt32(vertex_binding_descriptions.Size());
+    vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions.Data();
+    vertex_input_info.vertexAttributeDescriptionCount = UInt32(vertex_attributes.Size());
+    vertex_input_info.pVertexAttributeDescriptions = vertex_attributes.Data();
 
     VkPipelineInputAssemblyStateCreateInfo input_asm_info { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     input_asm_info.primitiveRestartEnable = VK_FALSE;
@@ -240,8 +231,8 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-    std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments;
-    color_blend_attachments.reserve(m_construction_info.render_pass->GetAttachmentUsages().size());
+    Array<VkPipelineColorBlendAttachmentState> color_blend_attachments;
+    color_blend_attachments.Reserve(m_construction_info.render_pass->GetAttachmentUsages().size());
 
     for (const auto *attachment_usage : m_construction_info.render_pass->GetAttachmentUsages()) {
         if (attachment_usage->IsDepthAttachment()) {
@@ -258,7 +249,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
         static const VkBlendOp color_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static const VkBlendOp alpha_blend_ops[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
-        color_blend_attachments.push_back(VkPipelineColorBlendAttachmentState {
+        color_blend_attachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blend_enabled,
             .srcColorBlendFactor = src_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
             .dstColorBlendFactor = dst_blend_factors_rgb[UInt(m_construction_info.blend_mode)],
@@ -275,8 +266,8 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
 
     VkPipelineColorBlendStateCreateInfo color_blending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
     color_blending.logicOpEnable = VK_FALSE;
-    color_blending.attachmentCount = UInt32(color_blend_attachments.size());
-    color_blending.pAttachments = color_blend_attachments.data();
+    color_blending.attachmentCount = UInt32(color_blend_attachments.Size());
+    color_blending.pAttachments = color_blend_attachments.Data();
     color_blending.blendConstants[0] = 0.0f;
     color_blending.blendConstants[1] = 0.0f;
     color_blending.blendConstants[2] = 0.0f;
@@ -285,10 +276,9 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     /* Dynamic states; these are the values that can be changed without
      * rebuilding the rendering pipeline. */
     VkPipelineDynamicStateCreateInfo dynamic_state { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    const auto &states = GetDynamicStates();
 
-    dynamic_state.dynamicStateCount = UInt32(states.size());
-    dynamic_state.pDynamicStates = states.data();
+    dynamic_state.dynamicStateCount = UInt32(m_dynamic_states.Size());
+    dynamic_state.pDynamicStates = m_dynamic_states.Data();
     DebugLog(
         LogType::Debug,
         "Enabling [%d] dynamic states\n",

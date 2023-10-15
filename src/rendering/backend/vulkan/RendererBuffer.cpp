@@ -15,166 +15,9 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-StagingBuffer *StagingBufferPool::Context::Acquire(SizeType required_size)
-{
-    if (required_size == 0) {
-        DebugLog(LogType::Warn, "Attempt to acquire staging buffer of 0 size\n");
-
-        return nullptr;
-    }
-    
-    const SizeType new_size = MathUtil::NextPowerOf2(required_size);
-
-    StagingBuffer *staging_buffer = m_pool->FindStagingBuffer(required_size - 1);
-
-    if (staging_buffer != nullptr && m_used.find(staging_buffer) == m_used.end()) {
-#ifdef HYP_LOG_MEMORY_OPERATIONS
-        DebugLog(
-            LogType::Debug,
-            "Requested staging buffer of size %llu, reusing existing staging buffer of size %llu\n",
-            required_size,
-            staging_buffer->size
-        );
-#endif
-    } else {
-#ifdef HYP_LOG_MEMORY_OPERATIONS
-        DebugLog(
-            LogType::Debug,
-            "Staging buffer of size >= %llu not found, creating one of size %llu at time %lld\n",
-            required_size,
-            new_size,
-            std::time(nullptr)
-        );
-#endif
-        staging_buffer = CreateStagingBuffer(new_size);
-    }
-
-    m_used.insert(staging_buffer);
-
-    return staging_buffer;
-}
-
-StagingBuffer *StagingBufferPool::Context::CreateStagingBuffer(SizeType size)
-{
-    const std::time_t current_time = std::time(nullptr);
-
-    DebugLog(
-        LogType::Debug,
-        "Creating staging buffer of size %llu at time %lld\n",
-        size,
-        current_time
-    );
-
-    auto staging_buffer = std::make_unique<StagingBuffer>();
-
-    if (!staging_buffer->Create(m_device, size)) {
-        return nullptr;
-    }
-
-    m_staging_buffers.push_back(StagingBufferRecord{
-        .size = size,
-        .buffer = std::move(staging_buffer),
-        .last_used = current_time
-    });
-
-    return m_staging_buffers.back().buffer.get();
-}
-
-StagingBuffer *StagingBufferPool::FindStagingBuffer(SizeType size)
-{
-    /* do a binary search to find one with the closest size (never less than required) */
-    const auto bound = std::upper_bound(
-        m_staging_buffers.begin(),
-        m_staging_buffers.end(),
-        size,
-        [](const SizeType &sz, const auto &it) {
-            return sz < it.size;
-        }
-    );
-
-    if (bound != m_staging_buffers.end()) {
-        /* Update the time so that frequently used buffers will stay in the pool longer */
-        bound->last_used = std::time(nullptr);
-
-        return bound->buffer.get();
-    }
-
-    return nullptr;
-}
-
-Result StagingBufferPool::Use(Device *device, UseFunction &&fn)
-{
-    auto result = Result::OK;
-
-    Context context(this, device);
-
-    HYPERION_PASS_ERRORS(fn(context), result);
-
-    for (auto &record : context.m_staging_buffers) {
-        const auto bound = std::upper_bound(
-            m_staging_buffers.begin(),
-            m_staging_buffers.end(),
-            record,
-            [](const auto &record, const auto &it) {
-                return record.size < it.size;
-            }
-        );
-
-        m_staging_buffers.insert(bound, std::move(record));
-    }
-    
-    if (++use_calls % gc_threshold == 0) {
-        HYPERION_PASS_ERRORS(GC(device), result);
-    }
-
-    return result;
-}
-
-Result StagingBufferPool::GC(Device *device)
-{
-    const auto current_time = std::time(nullptr);
-
-    DebugLog(LogType::Debug, "Clean up staging buffers from pool\n");
-    
-    auto result = Result::OK;
-    SizeType num_destroyed = 0;
-
-    for (auto it = m_staging_buffers.begin(); it != m_staging_buffers.end();) {
-        if (current_time - it->last_used > hold_time) {
-            ++num_destroyed;
-            
-            HYPERION_PASS_ERRORS(it->buffer->Destroy(device), result);
-
-            it = m_staging_buffers.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    if (num_destroyed != 0) {
-        DebugLog(LogType::Debug, "Removed %llu staging buffers from pool\n", num_destroyed);
-    }
-
-    return result;
-}
-
-Result StagingBufferPool::Destroy(Device *device)
-{
-    auto result = Result::OK;
-
-    for (auto &record : m_staging_buffers) {
-        HYPERION_PASS_ERRORS(record.buffer->Destroy(device), result);
-    }
-
-    m_staging_buffers.clear();
-
-    use_calls = 0;
-
-    return result;
-}
-
-UInt GPUMemory::FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties)
+UInt GPUMemory<Platform::VULKAN>::FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
     vkGetPhysicalDeviceMemoryProperties(device->GetPhysicalDevice(), &mem_properties);
@@ -189,7 +32,7 @@ UInt GPUMemory::FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryProp
     AssertThrowMsg(false, "Could not find suitable memory type!\n");
 }
 
-VkImageLayout GPUMemory::GetImageLayout(ResourceState state)
+VkImageLayout GPUMemory<Platform::VULKAN>::GetImageLayout(ResourceState state)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -220,7 +63,7 @@ VkImageLayout GPUMemory::GetImageLayout(ResourceState state)
     }
 }
 
-VkAccessFlags GPUMemory::GetAccessMask(ResourceState state)
+VkAccessFlags GPUMemory<Platform::VULKAN>::GetAccessMask(ResourceState state)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -258,7 +101,7 @@ VkAccessFlags GPUMemory::GetAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GPUMemory::GetShaderStageMask(ResourceState state, bool src, ShaderModule::Type shader_type)
+VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceState state, bool src, ShaderModule::Type shader_type)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -324,9 +167,9 @@ VkPipelineStageFlags GPUMemory::GetShaderStageMask(ResourceState state, bool src
     }
 }
 
-GPUMemory::Stats GPUMemory::stats{};
+GPUMemory<Platform::VULKAN>::Stats GPUMemory<Platform::VULKAN>::stats{};
 
-GPUMemory::GPUMemory()
+GPUMemory<Platform::VULKAN>::GPUMemory()
     : m_id(0),
       sharing_mode(VK_SHARING_MODE_EXCLUSIVE),
       size(0),
@@ -339,7 +182,7 @@ GPUMemory::GPUMemory()
     m_id = allocations++;
 }
 
-GPUMemory::GPUMemory(GPUMemory &&other) noexcept
+GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
     : m_id(other.m_id),
       sharing_mode(other.sharing_mode),
       size(other.size),
@@ -354,22 +197,22 @@ GPUMemory::GPUMemory(GPUMemory &&other) noexcept
     other.allocation = VK_NULL_HANDLE;
 }
 
-GPUMemory::~GPUMemory()
+GPUMemory<Platform::VULKAN>::~GPUMemory()
 {
 }
 
-void GPUMemory::Map(Device *device, void **ptr) const
+void GPUMemory<Platform::VULKAN>::Map(Device *device, void **ptr) const
 {
     vmaMapMemory(device->GetAllocator(), allocation, ptr);
 }
 
-void GPUMemory::Unmap(Device *device) const
+void GPUMemory<Platform::VULKAN>::Unmap(Device *device) const
 {
     vmaUnmapMemory(device->GetAllocator(), allocation);
     map = nullptr;
 }
 
-void GPUMemory::Memset(Device *device, SizeType count, UByte value)
+void GPUMemory<Platform::VULKAN>::Memset(Device *device, SizeType count, UByte value)
 {    
     if (map == nullptr) {
         Map(device, &map);
@@ -378,7 +221,7 @@ void GPUMemory::Memset(Device *device, SizeType count, UByte value)
     std::memset(map, value, count);
 }
 
-void GPUMemory::Copy(Device *device, SizeType count, const void *ptr)
+void GPUMemory<Platform::VULKAN>::Copy(Device *device, SizeType count, const void *ptr)
 {
     if (map == nullptr) {
         Map(device, &map);
@@ -387,7 +230,7 @@ void GPUMemory::Copy(Device *device, SizeType count, const void *ptr)
     Memory::MemCpy(map, ptr, count);
 }
 
-void GPUMemory::Copy(Device *device, SizeType offset, SizeType count, const void *ptr)
+void GPUMemory<Platform::VULKAN>::Copy(Device *device, SizeType offset, SizeType count, const void *ptr)
 {
     if (map == nullptr) {
         Map(device, &map);
@@ -396,7 +239,7 @@ void GPUMemory::Copy(Device *device, SizeType offset, SizeType count, const void
     Memory::MemCpy(reinterpret_cast<void *>(uintptr_t(map) + offset), ptr, count);
 }
 
-void GPUMemory::Read(Device *device, SizeType count, void *out_ptr) const
+void GPUMemory<Platform::VULKAN>::Read(Device *device, SizeType count, void *out_ptr) const
 {
     if (map == nullptr) {
         Map(device, &map);
@@ -406,12 +249,12 @@ void GPUMemory::Read(Device *device, SizeType count, void *out_ptr) const
     Memory::MemCpy(out_ptr, map, count);
 }
 
-void GPUMemory::Create()
+void GPUMemory<Platform::VULKAN>::Create()
 {
     stats.IncMemoryUsage(size);
 }
 
-void GPUMemory::Destroy()
+void GPUMemory<Platform::VULKAN>::Destroy()
 {
     stats.DecMemoryUsage(size);
 }
@@ -494,8 +337,8 @@ static VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
     }
 }
 
-GPUBuffer::GPUBuffer(GPUBufferType type)
-    : GPUMemory(),
+GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBufferType type)
+    : GPUMemory<Platform::VULKAN>(),
       type(type),
       buffer(nullptr),
       usage_flags(GetVkUsageFlags(type)),
@@ -504,8 +347,8 @@ GPUBuffer::GPUBuffer(GPUBufferType type)
 {
 }
 
-GPUBuffer::GPUBuffer(GPUBuffer &&other) noexcept
-    : GPUMemory(static_cast<GPUMemory &&>(std::move(other))),
+GPUBuffer<Platform::VULKAN>::GPUBuffer(GPUBuffer &&other) noexcept
+    : GPUMemory<Platform::VULKAN>(static_cast<GPUMemory<Platform::VULKAN> &&>(std::move(other))),
       type(other.type),
       buffer(other.buffer),
       usage_flags(other.usage_flags),
@@ -518,12 +361,12 @@ GPUBuffer::GPUBuffer(GPUBuffer &&other) noexcept
     other.vma_allocation_create_flags = 0;
 }
 
-GPUBuffer::~GPUBuffer()
+GPUBuffer<Platform::VULKAN>::~GPUBuffer()
 {
     AssertThrowMsg(buffer == VK_NULL_HANDLE, "buffer should have been destroyed!");
 }
 
-VkBufferCreateInfo GPUBuffer::GetBufferCreateInfo(Device *device) const
+VkBufferCreateInfo GPUBuffer<Platform::VULKAN>::GetBufferCreateInfo(Device *device) const
 {
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const UInt buffer_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
@@ -537,7 +380,7 @@ VkBufferCreateInfo GPUBuffer::GetBufferCreateInfo(Device *device) const
     return vk_buffer_info;
 }
 
-VmaAllocationCreateInfo GPUBuffer::GetAllocationCreateInfo(Device *device) const
+VmaAllocationCreateInfo GPUBuffer<Platform::VULKAN>::GetAllocationCreateInfo(Device *device) const
 {
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.flags = vma_allocation_create_flags;
@@ -547,7 +390,7 @@ VmaAllocationCreateInfo GPUBuffer::GetAllocationCreateInfo(Device *device) const
     return alloc_info;
 }
 
-Result GPUBuffer::CheckCanAllocate(Device *device, SizeType size) const
+Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(Device *device, SizeType size) const
 {
     const auto create_info = GetBufferCreateInfo(device);
     const auto alloc_info = GetAllocationCreateInfo(device);
@@ -555,7 +398,7 @@ Result GPUBuffer::CheckCanAllocate(Device *device, SizeType size) const
     return CheckCanAllocate(device, create_info, alloc_info, this->size);
 }
 
-UInt64 GPUBuffer::GetBufferDeviceAddress(Device *device) const
+UInt64 GPUBuffer<Platform::VULKAN>::GetBufferDeviceAddress(Device *device) const
 {
     AssertThrowMsg(
         device->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
@@ -573,7 +416,7 @@ UInt64 GPUBuffer::GetBufferDeviceAddress(Device *device) const
     );
 }
 
-Result GPUBuffer::CheckCanAllocate(
+Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
     Device *device,
     const VkBufferCreateInfo &buffer_create_info,
     const VmaAllocationCreateInfo &allocation_create_info,
@@ -612,7 +455,7 @@ Result GPUBuffer::CheckCanAllocate(
     return result;
 }
 
-void GPUBuffer::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_state) const
+void GPUBuffer<Platform::VULKAN>::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_state) const
 {
     if (buffer == nullptr) {
         DebugLog(
@@ -645,7 +488,7 @@ void GPUBuffer::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_s
     resource_state = new_state;
 }
 
-void GPUBuffer::CopyFrom(
+void GPUBuffer<Platform::VULKAN>::CopyFrom(
     CommandBuffer *command_buffer,
     const GPUBuffer *src_buffer,
     SizeType count
@@ -666,7 +509,7 @@ void GPUBuffer::CopyFrom(
     );
 }
 
-Result GPUBuffer::CopyStaged(
+Result GPUBuffer<Platform::VULKAN>::CopyStaged(
     Instance *instance,
     const void *ptr,
     SizeType count
@@ -690,7 +533,7 @@ Result GPUBuffer::CopyStaged(
     });
 }
 
-Result GPUBuffer::ReadStaged(
+Result GPUBuffer<Platform::VULKAN>::ReadStaged(
     Instance *instance,
     SizeType count,
     void *out_ptr
@@ -727,7 +570,7 @@ Result GPUBuffer::ReadStaged(
     });
 }
 
-Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
+Result GPUBuffer<Platform::VULKAN>::Create(Device *device, SizeType size, SizeType alignment)
 {
     if (buffer != nullptr) {
         DebugLog(
@@ -747,7 +590,7 @@ Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
 
     this->size = size;
 
-    GPUMemory::Create();
+    GPUMemory<Platform::VULKAN>::Create();
     
     if (size == 0) {
 #ifdef HYP_DEBUG_MODE
@@ -799,9 +642,9 @@ Result GPUBuffer::Create(Device *device, SizeType size, SizeType alignment)
     HYPERION_RETURN_OK;
 }
 
-Result GPUBuffer::Destroy(Device *device)
+Result GPUBuffer<Platform::VULKAN>::Destroy(Device *device)
 {
-    GPUMemory::Destroy();
+    GPUMemory<Platform::VULKAN>::Destroy();
 
     if (map != nullptr) {
         Unmap(device);
@@ -814,7 +657,7 @@ Result GPUBuffer::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result GPUBuffer::EnsureCapacity(
+Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     Device *device,
     SizeType minimum_size,
     bool *out_size_changed
@@ -823,7 +666,7 @@ Result GPUBuffer::EnsureCapacity(
     return EnsureCapacity(device, minimum_size, 0, out_size_changed);
 }
 
-Result GPUBuffer::EnsureCapacity(
+Result GPUBuffer<Platform::VULKAN>::EnsureCapacity(
     Device *device,
     SizeType minimum_size,
     SizeType alignment,
@@ -863,7 +706,7 @@ Result GPUBuffer::EnsureCapacity(
 
 #ifdef HYP_DEBUG_MODE
 
-void GPUBuffer::DebugLogBuffer(Instance *instance) const
+void GPUBuffer<Platform::VULKAN>::DebugLogBuffer(Instance *instance) const
 {
     auto *device = instance->GetDevice();
 
@@ -896,13 +739,8 @@ void GPUBuffer::DebugLogBuffer(Instance *instance) const
 
 #endif
 
-
-VertexBuffer::VertexBuffer()
-    : GPUBuffer(GPUBufferType::MESH_VERTEX_BUFFER)
-{
-}
-
-void VertexBuffer::Bind(CommandBuffer *cmd)
+template <>
+void VertexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
 {
     const VkBuffer vertex_buffers[] = { buffer };
     const VkDeviceSize offsets[]    = { 0 };
@@ -910,12 +748,8 @@ void VertexBuffer::Bind(CommandBuffer *cmd)
     vkCmdBindVertexBuffers(cmd->GetCommandBuffer(), 0, 1, vertex_buffers, offsets);
 }
 
-IndexBuffer::IndexBuffer()
-    : GPUBuffer(GPUBufferType::MESH_INDEX_BUFFER)
-{
-}
-
-void IndexBuffer::Bind(CommandBuffer *cmd)
+template <>
+void IndexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
 {
     vkCmdBindIndexBuffer(
         cmd->GetCommandBuffer(),
@@ -925,32 +759,8 @@ void IndexBuffer::Bind(CommandBuffer *cmd)
     );
 }
 
-UniformBuffer::UniformBuffer()
-    : GPUBuffer(GPUBufferType::CONSTANT_BUFFER)
-{
-}
-
-StorageBuffer::StorageBuffer()
-    : GPUBuffer(GPUBufferType::STORAGE_BUFFER)
-{
-}
-
-AtomicCounterBuffer::AtomicCounterBuffer()
-    : GPUBuffer(GPUBufferType::ATOMIC_COUNTER)
-{
-}
-
-StagingBuffer::StagingBuffer()
-    : GPUBuffer(GPUBufferType::STAGING_BUFFER)
-{
-}
-
-IndirectBuffer::IndirectBuffer()
-    : GPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER)
-{
-}
-
-void IndirectBuffer::DispatchIndirect(CommandBuffer *command_buffer, SizeType offset) const
+template <>
+void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer *command_buffer, SizeType offset) const
 {
     vkCmdDispatchIndirect(
         command_buffer->GetCommandBuffer(),
@@ -959,57 +769,32 @@ void IndirectBuffer::DispatchIndirect(CommandBuffer *command_buffer, SizeType of
     );
 }
 
-ShaderBindingTableBuffer::ShaderBindingTableBuffer()
-    : GPUBuffer(GPUBufferType::SHADER_BINDING_TABLE),
-      region{}
+ShaderBindingTableBuffer<Platform::VULKAN>::ShaderBindingTableBuffer()
+    : GPUBuffer<Platform::VULKAN>(GPUBufferType::SHADER_BINDING_TABLE),
+      region { }
 {
 }
 
-AccelerationStructureBuffer::AccelerationStructureBuffer()
-    : GPUBuffer(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER)
-{
-}
-
-AccelerationStructureInstancesBuffer::AccelerationStructureInstancesBuffer()
-    : GPUBuffer(GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER)
-{
-}
-
-PackedVertexStorageBuffer::PackedVertexStorageBuffer()
-    : GPUBuffer(GPUBufferType::RT_MESH_VERTEX_BUFFER)
-{
-}
-
-PackedIndexStorageBuffer::PackedIndexStorageBuffer()
-    : GPUBuffer(GPUBufferType::RT_MESH_INDEX_BUFFER)
-{
-}
-
-ScratchBuffer::ScratchBuffer()
-    : GPUBuffer(GPUBufferType::SCRATCH_BUFFER)
-{
-}
-
-GPUImageMemory::GPUImageMemory()
-    : GPUMemory(),
+GPUImageMemory<Platform::VULKAN>::GPUImageMemory()
+    : GPUMemory<Platform::VULKAN>(),
       image(VK_NULL_HANDLE),
       is_image_owned(false)
 {
 }
 
-GPUImageMemory::~GPUImageMemory()
+GPUImageMemory<Platform::VULKAN>::~GPUImageMemory()
 {
     AssertThrowMsg(image == VK_NULL_HANDLE, "image should have been destroyed!");
 }
 
-void GPUImageMemory::SetResourceState(ResourceState new_state)
+void GPUImageMemory<Platform::VULKAN>::SetResourceState(ResourceState new_state)
 {
     resource_state = new_state;
 
     sub_resources.clear();
 }
 
-void GPUImageMemory::InsertBarrier(
+void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
     CommandBuffer *command_buffer,
     ResourceState new_state,
     ImageSubResourceFlagBits flags
@@ -1026,7 +811,7 @@ void GPUImageMemory::InsertBarrier(
     );
 }
 
-void GPUImageMemory::InsertBarrier(
+void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
     CommandBuffer *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state
@@ -1081,7 +866,7 @@ void GPUImageMemory::InsertBarrier(
     resource_state = new_state;
 }
 
-void GPUImageMemory::InsertSubResourceBarrier(
+void GPUImageMemory<Platform::VULKAN>::InsertSubResourceBarrier(
     CommandBuffer *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state
@@ -1139,7 +924,7 @@ void GPUImageMemory::InsertSubResourceBarrier(
     sub_resources.emplace(sub_resource, new_state);
 }
 
-auto GPUImageMemory::GetSubResourceState(const ImageSubResource &sub_resource) const -> ResourceState
+auto GPUImageMemory<Platform::VULKAN>::GetSubResourceState(const ImageSubResource &sub_resource) const -> ResourceState
 {
     const auto it = sub_resources.find(sub_resource);
 
@@ -1150,12 +935,12 @@ auto GPUImageMemory::GetSubResourceState(const ImageSubResource &sub_resource) c
     return it->second;
 }
 
-void GPUImageMemory::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
+void GPUImageMemory<Platform::VULKAN>::SetSubResourceState(const ImageSubResource &sub_resource, ResourceState new_state)
 {
     sub_resources[sub_resource] = new_state;
 }
 
-Result GPUImageMemory::Create(Device *device, PlatformImage new_image)
+Result GPUImageMemory<Platform::VULKAN>::Create(Device *device, PlatformImage new_image)
 {
     if (image != VK_NULL_HANDLE) {
         DebugLog(
@@ -1181,7 +966,7 @@ Result GPUImageMemory::Create(Device *device, PlatformImage new_image)
     HYPERION_RETURN_OK;
 }
 
-Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *image_info)
+Result GPUImageMemory<Platform::VULKAN>::Create(Device *device, SizeType size, VkImageCreateInfo *image_info)
 {
     if (image != VK_NULL_HANDLE) {
         DebugLog(
@@ -1201,7 +986,7 @@ Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *
 
     this->size = size;
 
-    GPUMemory::Create();
+    GPUMemory<Platform::VULKAN>::Create();
 
     VmaAllocationCreateInfo alloc_info { };
     alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -1224,10 +1009,10 @@ Result GPUImageMemory::Create(Device *device, SizeType size, VkImageCreateInfo *
     HYPERION_RETURN_OK;
 }
 
-Result GPUImageMemory::Destroy(Device *device)
+Result GPUImageMemory<Platform::VULKAN>::Destroy(Device *device)
 {
     if (is_image_owned) {
-        GPUMemory::Destroy();
+        GPUMemory<Platform::VULKAN>::Destroy();
     }
 
     if (map != nullptr) {
@@ -1246,5 +1031,6 @@ Result GPUImageMemory::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

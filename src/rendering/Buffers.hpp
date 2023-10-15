@@ -36,10 +36,6 @@ class Device;
 
 namespace hyperion::v2 {
 
-using renderer::GPUBuffer;
-using renderer::UniformBuffer;
-using renderer::StorageBuffer;
-using renderer::PerFrameData;
 using renderer::Device;
 using renderer::ShaderVec2;
 using renderer::ShaderVec3;

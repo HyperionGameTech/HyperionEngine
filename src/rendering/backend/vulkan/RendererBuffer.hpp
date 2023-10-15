@@ -22,72 +22,11 @@ using PlatformImage = VkImage;
 class Instance;
 class Device;
 class CommandBuffer;
-class StagingBuffer;
 
-enum BufferIDMask : UInt64
-{
-    ID_MASK_BUFFER = (0x1ull << 32ull),
-    ID_MASK_IMAGE = (0x2ull << 32ull)
-};
+namespace platform {
 
-class StagingBufferPool
-{
-    struct StagingBufferRecord
-    {
-        SizeType size;
-        std::unique_ptr<StagingBuffer> buffer;
-        std::time_t last_used;
-    };
-
-public:
-    class Context
-    {
-        friend class StagingBufferPool;
-
-        StagingBufferPool *m_pool;
-        Device *m_device;
-        std::vector<StagingBufferRecord> m_staging_buffers;
-        std::unordered_set<StagingBuffer *> m_used;
-
-        Context(StagingBufferPool *pool, Device *device)
-            : m_pool(pool),
-              m_device(device)
-        {
-        }
-
-        StagingBuffer *CreateStagingBuffer(SizeType size);
-
-    public:
-        /* \brief Acquire a staging buffer from the pool of at least \ref required_size bytes,
-         * creating one if it does not exist yet. */
-        StagingBuffer *Acquire(SizeType required_size);
-    };
-
-    using UseFunction = std::function<Result(Context &context)>;
-
-    static constexpr time_t hold_time = 1000;
-    static constexpr UInt gc_threshold = 5; /* run every 5 Use() calls */
-
-    /* \brief Use the staging buffer pool. GC will not run until after the given function
-     * is called, and the staging buffers created will not be able to be reused.
-     * This will allow the staging buffer(s) acquired by this to be used in sequence
-     * in a single time command buffer
-     */
-    Result Use(Device *device, UseFunction &&fn);
-
-    Result GC(Device *device);
-
-    /* \brief Destroy all remaining staging buffers in the pool */
-    Result Destroy(Device *device);
-
-private:
-    StagingBuffer *FindStagingBuffer(SizeType size);
-
-    std::vector<StagingBufferRecord> m_staging_buffers;
-    UInt use_calls = 0;
-};
-
-class GPUMemory
+template <>
+class GPUMemory<Platform::VULKAN>
 {
 public:
     struct Stats
@@ -198,7 +137,8 @@ protected:
 
 /* buffers */
 
-class GPUBuffer : public GPUMemory
+template <>
+class GPUBuffer<Platform::VULKAN> : public GPUMemory<Platform::VULKAN>
 {
 public:
     GPUBuffer(GPUBufferType type);
@@ -306,61 +246,8 @@ private:
     VmaAllocationCreateFlags vma_allocation_create_flags;
 };
 
-class VertexBuffer : public GPUBuffer
-{
-public:
-    VertexBuffer();
-
-    void Bind(CommandBuffer *command_buffer);
-};
-
-class IndexBuffer : public GPUBuffer
-{
-public:
-    IndexBuffer();
-
-    void Bind(CommandBuffer *command_buffer);
-
-    DatumType GetDatumType() const { return m_datum_type; }
-    void SetDatumType(DatumType datum_type) { m_datum_type = datum_type; }
-
-private:
-    DatumType m_datum_type = DatumType::UNSIGNED_INT;
-};
-
-class UniformBuffer : public GPUBuffer
-{
-public:
-    UniformBuffer();
-};
-
-class StorageBuffer : public GPUBuffer
-{
-public:
-    StorageBuffer();
-};
-
-class AtomicCounterBuffer : public GPUBuffer
-{
-public:
-    AtomicCounterBuffer();
-};
-
-class StagingBuffer : public GPUBuffer
-{
-public:
-    StagingBuffer();
-};
-
-class IndirectBuffer : public GPUBuffer
-{
-public:
-    IndirectBuffer();
-
-    void DispatchIndirect(CommandBuffer *command_buffer, SizeType offset = 0) const;
-};
-
-class ShaderBindingTableBuffer : public GPUBuffer
+template <>
+class ShaderBindingTableBuffer<Platform::VULKAN> : public GPUBuffer<Platform::VULKAN>
 {
 public:
     ShaderBindingTableBuffer();
@@ -368,39 +255,10 @@ public:
     VkStridedDeviceAddressRegionKHR region;
 };
 
-class AccelerationStructureBuffer : public GPUBuffer
-{
-public:
-    AccelerationStructureBuffer();
-};
-
-class AccelerationStructureInstancesBuffer : public GPUBuffer
-{
-public:
-    AccelerationStructureInstancesBuffer();
-};
-
-class PackedVertexStorageBuffer : public GPUBuffer
-{
-public:
-    PackedVertexStorageBuffer();
-};
-
-class PackedIndexStorageBuffer : public GPUBuffer
-{
-public:
-    PackedIndexStorageBuffer();
-};
-
-class ScratchBuffer : public GPUBuffer
-{
-public:
-    ScratchBuffer();
-};
-
 /* images */
 
-class GPUImageMemory : public GPUMemory
+template <>
+class GPUImageMemory<Platform::VULKAN> : public GPUMemory<Platform::VULKAN>
 {
 public:
     enum class Aspect
@@ -449,6 +307,7 @@ private:
     bool is_image_owned;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

@@ -32,9 +32,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::UniformBuffer;
-using renderer::StorageBuffer;
-using renderer::IndirectBuffer;
 using renderer::Frame;
 using renderer::Device;
 using renderer::DescriptorSet;

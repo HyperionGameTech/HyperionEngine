@@ -43,21 +43,15 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
 
             // instances buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                ->SetSubDescriptor({
-                    .buffer = indirect_renderer.m_indirect_draw_state.GetInstanceBuffer(frame_index)
-                });
+                ->SetElementBuffer(0, indirect_renderer.m_indirect_draw_state.GetInstanceBuffer(frame_index));
 
             // indirect commands
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(4)
-                ->SetSubDescriptor({
-                    .buffer = indirect_renderer.m_indirect_draw_state.GetIndirectBuffer(frame_index)
-                });
+                ->SetElementBuffer(0, indirect_renderer.m_indirect_draw_state.GetIndirectBuffer(frame_index));
 
             // entity batches
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(5)
-                ->SetSubDescriptor({
-                    .buffer = g_engine->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get(),
-                });
+                ->SetElementBuffer(0, g_engine->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get());
 
             // depth pyramid image (set to placeholder)
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(6)
@@ -200,7 +194,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall &draw_call, DrawCommandData 
 
 bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType count)
 {
-    const bool was_created_or_resized = ResizeBuffer<IndirectBuffer>(
+    const bool was_created_or_resized = ResizeBuffer<renderer::IndirectBuffer>(
         frame,
         m_indirect_buffers,
         count * sizeof(IndirectDrawCommand)
@@ -215,7 +209,7 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType 
         SafeRelease(std::move(m_staging_buffers[frame->GetFrameIndex()]));
     }
 
-    m_staging_buffers[frame->GetFrameIndex()] = RenderObjects::Make<GPUBuffer>(StagingBuffer());
+    m_staging_buffers[frame->GetFrameIndex()] = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
     HYPERION_ASSERT_RESULT(m_staging_buffers[frame->GetFrameIndex()]->Create(
         g_engine->GetGPUDevice(),

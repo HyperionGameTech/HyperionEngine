@@ -30,17 +30,13 @@ namespace hyperion::v2 {
 using renderer::CommandBuffer;
 using renderer::DescriptorSet;
 using renderer::DescriptorSetBinding;
-using renderer::GPUBuffer;
-using renderer::UniformBuffer;
 using renderer::VertexAttributeSet;
-using renderer::PerFrameData;
 using renderer::Topology;
 using renderer::FillMode;
 using renderer::FaceCullMode;
 using renderer::StencilState;
 using renderer::Frame;
 using renderer::Pipeline;
-using renderer::StorageBuffer;
 
 class Engine;
 class Mesh;

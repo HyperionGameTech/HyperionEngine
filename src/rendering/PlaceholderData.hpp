@@ -9,6 +9,7 @@
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -24,9 +25,8 @@ using renderer::TextureImageCube;
 using renderer::StorageImage;
 using renderer::ImageView;
 using renderer::Sampler;
-using renderer::UniformBuffer;
 using renderer::Device;
-using renderer::GPUBuffer;
+using renderer::GPUBufferType;
 
 class Engine;
 
@@ -61,28 +61,25 @@ public:
     void Destroy();
 
     /*! \brief Get or create a buffer of at least the given size */
-    template <class T>
-    T *GetOrCreateBuffer(Device *device, SizeType required_size)
+    const GPUBufferRef &GetOrCreateBuffer(Device *device, GPUBufferType buffer_type, SizeType required_size)
     {
-        static_assert(std::is_base_of_v<GPUBuffer, T>, "Must be a derived class of GPUBuffer");
-
         Threads::AssertOnThread(THREAD_RENDER);
 
-        if (!m_buffers.Contains<T>()) {
-            m_buffers.Set<T>({ });
+        if (!m_buffers.Contains(buffer_type)) {
+            m_buffers.Set(buffer_type, { });
         }
 
-        auto &buffer_container = m_buffers.At<T>();
+        auto &buffer_container = m_buffers.At(buffer_type);
 
         auto it = buffer_container.LowerBound(required_size);
 
         if (it != buffer_container.End()) {
-            return static_cast<T *>(it->second.get());
+            return it->second;
         }
 
         const auto required_size_pow2 = MathUtil::NextPowerOf2(required_size);
 
-        auto buffer = std::make_unique<T>();
+        auto buffer = RenderObjects::Make<renderer::GPUBuffer>(buffer_type);
         HYPERION_ASSERT_RESULT(buffer->Create(device, required_size_pow2));
 
         if (buffer->IsCPUAccessible()) {
@@ -92,13 +89,13 @@ public:
         const auto insert_result = buffer_container.Insert(required_size_pow2, std::move(buffer));
         AssertThrow(insert_result.second); // was inserted
 
-        // TODO: GC of these buffers. they'll have to be reference counted?
+        // TODO: GC of these buffers
 
-        return static_cast<T *>(insert_result.first->second.get());
+        return insert_result.first->second;
     }
 
 private:
-    TypeMap<FlatMap<SizeType, std::unique_ptr<GPUBuffer>>> m_buffers;
+    FlatMap<GPUBufferType, FlatMap<SizeType, GPUBufferRef>> m_buffers;
 };
 
 } // namespace hyperion::v2

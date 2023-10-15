@@ -24,7 +24,6 @@
 namespace hyperion::v2 {
 
 using renderer::Device;
-using renderer::GPUBuffer;
 using renderer::GPUImageMemory;
 
 using HandleDeletionMaskBits = UInt;

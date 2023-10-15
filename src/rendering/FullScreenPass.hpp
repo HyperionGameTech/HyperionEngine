@@ -24,7 +24,6 @@ namespace hyperion::v2 {
 using renderer::Attachment;
 using renderer::Frame;
 using renderer::CommandBuffer;
-using renderer::PerFrameData;
 using renderer::VertexAttributeSet;
 using renderer::DescriptorKey;
 using renderer::Image;

@@ -26,7 +26,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::StorageBuffer;
 using renderer::Frame;
 using renderer::DescriptorSet;
 

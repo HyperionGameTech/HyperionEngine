@@ -20,9 +20,7 @@ namespace hyperion::v2 {
 
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
-using renderer::StagingBuffer;
 using renderer::Result;
-using renderer::GPUBuffer;
 using renderer::GPUBufferType;
 
 enum BitonicSortStage : UInt32

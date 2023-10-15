@@ -15,7 +15,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::UniformBuffer;
 using renderer::StorageImage;
 using renderer::Image;
 using renderer::ImageView;

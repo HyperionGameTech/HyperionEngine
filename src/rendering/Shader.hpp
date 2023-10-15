@@ -25,10 +25,6 @@ namespace hyperion::v2 {
 using renderer::ShaderProgram;
 using renderer::ShaderObject;
 using renderer::ShaderModule;
-using renderer::GPUBuffer;
-using renderer::UniformBuffer;
-using renderer::StorageBuffer;
-using renderer::PerFrameData;
 
 class Engine;
 

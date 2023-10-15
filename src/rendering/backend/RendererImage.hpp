@@ -7,6 +7,14 @@
 
 namespace hyperion::renderer {
 
+using ImageFlags = UInt32;
+
+enum ImageFlagBits : ImageFlags
+{
+    IMAGE_FLAGS_NONE            = 0x0,
+    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
+};
+
 enum class ImageType : UInt32
 {
     TEXTURE_TYPE_2D = 0,

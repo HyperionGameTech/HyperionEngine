@@ -21,6 +21,12 @@ ENV CXX=g++
 
 WORKDIR /app
 
+ARG SIGNALLING_SERVER_IP
+ENV SIGNALLING_SERVER_IP=${SIGNALLING_SERVER_IP}
+
+ARG SIGNALLING_SERVER_PORT
+ENV SIGNALLING_SERVER_PORT=${SIGNALLING_SERVER_PORT}
+
 COPY ./src ./src
 COPY ./include ./include
 COPY ./res/shaders ./res/shaders
@@ -40,4 +46,4 @@ RUN set -e; \
 RUN rm -rf src include samples submodules build.sh CMakeLists.txt
 RUN apt-get remove -y g++ make cmake
 
-CMD ["./build/samples/hyperion-sample", "--SignallingServerIP=ws://127.0.0.1", "--SignallingServerPort=8000"]
+CMD ["./build/samples/hyperion-sample", "--SignallingServerIP=$SIGNALLING_SERVER_IP", "--SignallingServerPort=$SIGNALLING_SERVER_PORT"]

@@ -14,6 +14,8 @@
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <core/lib/DynArray.hpp>
+
 #include <HashCode.hpp>
 #include <Types.hpp>
 
@@ -51,16 +53,9 @@ public:
     GraphicsPipeline &operator=(const GraphicsPipeline &other) = delete;
     ~GraphicsPipeline();
 
-    const std::vector<VkDynamicState> &GetDynamicStates() const
-        { return dynamic_states; }
-
-    void SetDynamicStates(const std::vector<VkDynamicState> &states)
-        { dynamic_states = states; }
-
     void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
     void SetScissor(int x, int y, uint32_t width, uint32_t height);
-    void SetVertexInputMode(std::vector<VkVertexInputBindingDescription> &binding_descs, std::vector<VkVertexInputAttributeDescription> &vertex_attribs);
-    
+
     Result Create(Device *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool);
     Result Destroy(Device *device);
     
@@ -72,15 +67,15 @@ public:
 private:
     Result Rebuild(Device *device, DescriptorPool *descriptor_pool);
     void UpdateDynamicStates(VkCommandBuffer cmd);
-    std::vector<VkVertexInputAttributeDescription> BuildVertexAttributes(const VertexAttributeSet &attribute_set);
+    Array<VkVertexInputAttributeDescription> BuildVertexAttributes(const VertexAttributeSet &attribute_set);
 
-    std::vector<VkDynamicState> dynamic_states;
+    Array<VkDynamicState> m_dynamic_states;
 
     VkViewport viewport;
     VkRect2D scissor;
 
-    std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions { };
-    std::vector<VkVertexInputAttributeDescription> vertex_attributes{};
+    Array<VkVertexInputBindingDescription> vertex_binding_descriptions { };
+    Array<VkVertexInputAttributeDescription> vertex_attributes{};
 
     ConstructionInfo m_construction_info;
 

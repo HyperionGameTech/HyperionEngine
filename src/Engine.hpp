@@ -62,7 +62,6 @@ using renderer::Device;
 using renderer::Semaphore;
 using renderer::SemaphoreChain;
 using renderer::Image;
-using renderer::StorageBuffer;
 
 class Engine;
 class Game;

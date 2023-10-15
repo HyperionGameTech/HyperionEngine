@@ -24,14 +24,12 @@ using renderer::VertexAttribute;
 using renderer::VertexAttributeSet;
 using renderer::CommandBuffer;
 using renderer::Device;
-using renderer::VertexBuffer;
-using renderer::IndexBuffer;
+using renderer::GPUBuffer;
 using renderer::PackedVertex;
 using renderer::PackedIndex;
 using renderer::AccelerationStructure;
 using renderer::AccelerationGeometry;
 using renderer::Topology;
-using renderer::IndirectBuffer;
 using renderer::IndirectDrawCommand;
 
 class Mesh

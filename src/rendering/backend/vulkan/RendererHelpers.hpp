@@ -22,8 +22,6 @@ namespace hyperion {
 namespace renderer {
 namespace helpers {
 
-UInt MipmapSize(UInt src_size, int lod);
-
 VkIndexType ToVkIndexType(DatumType);
 VkFormat ToVkFormat(InternalFormat);
 VkImageType ToVkType(ImageType);

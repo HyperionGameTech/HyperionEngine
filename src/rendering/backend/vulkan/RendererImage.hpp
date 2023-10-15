@@ -20,14 +20,6 @@ using v2::MemoryStreamedData;
 class Instance;
 class Device;
 
-using ImageFlags = UInt32;
-
-enum ImageFlagBits : ImageFlags
-{
-    IMAGE_FLAGS_NONE = 0x0,
-    IMAGE_FLAGS_KEEP_IMAGE_DATA = 0x1
-};
-
 class Image
 {
 public:

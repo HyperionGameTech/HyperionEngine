@@ -18,9 +18,7 @@ namespace hyperion::v2 {
 
 using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
-using renderer::StagingBuffer;
 using renderer::Result;
-using renderer::GPUBuffer;
 using renderer::GPUBufferType;
 
 struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommand
@@ -116,25 +114,17 @@ struct RENDER_COMMAND(CreateParticleDescriptors) : RenderCommand
 
 struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommand
 {
-    StagingBuffer *staging_buffer;
-    ThreadSafeContainer<ParticleSpawner> *spawners;
+    ThreadSafeContainer<ParticleSpawner>    *spawners;
 
     RENDER_COMMAND(DestroyParticleSystem)(
-        StagingBuffer *staging_buffer,
         ThreadSafeContainer<ParticleSpawner> *spawners
-    ) : staging_buffer(staging_buffer),
-        spawners(spawners)
+    ) : spawners(spawners)
     {
     }
 
     virtual Result operator()()
     {
         auto result = Result::OK;
-
-        HYPERION_PASS_ERRORS(
-            staging_buffer->Destroy(g_engine->GetGPUDevice()),
-            result
-        );
 
         if (spawners->HasUpdatesPending()) {
             spawners->UpdateItems();
@@ -148,13 +138,13 @@ struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommand
 
 struct RENDER_COMMAND(CreateParticleSystemBuffers) : RenderCommand
 {
-    renderer::StagingBuffer *staging_buffer;
-    Mesh *quad_mesh;
+    GPUBufferRef    staging_buffer;
+    Mesh            *quad_mesh;
 
     RENDER_COMMAND(CreateParticleSystemBuffers)(
-        renderer::StagingBuffer *staging_buffer,
+        GPUBufferRef staging_buffer,
         Mesh *quad_mesh
-    ) : staging_buffer(staging_buffer),
+    ) : staging_buffer(std::move(staging_buffer)),
         quad_mesh(quad_mesh)
     {
     }
@@ -424,8 +414,9 @@ void ParticleSystem::Init()
             }
         }
 
+        SafeRelease(std::move(m_staging_buffer));
+
         RenderCommands::Push<RENDER_COMMAND(DestroyParticleSystem)>(
-            &m_staging_buffer,
             &m_particle_spawners
         );
         
@@ -437,8 +428,10 @@ void ParticleSystem::Init()
 
 void ParticleSystem::CreateBuffers()
 {
+    m_staging_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+
     RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemBuffers)>(
-        &m_staging_buffer,
+        m_staging_buffer,
         m_quad_mesh.Get()
     );
 }
@@ -463,7 +456,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         return;
     }
 
-    m_staging_buffer.InsertBarrier(
+    m_staging_buffer->InsertBarrier(
         frame->GetCommandBuffer(),
         renderer::ResourceState::COPY_SRC
     );
@@ -482,7 +475,7 @@ void ParticleSystem::UpdateParticles(Frame *frame)
         // copy zeros to buffer (to reset instance count)
         spawner->GetIndirectBuffer()->CopyFrom(
             frame->GetCommandBuffer(),
-            &m_staging_buffer,
+            m_staging_buffer,
             sizeof(IndirectDrawCommand)
         );
 

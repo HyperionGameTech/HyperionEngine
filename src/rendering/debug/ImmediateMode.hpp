@@ -36,7 +36,6 @@ class Engine;
 class ImmediateMode;
 
 using renderer::Frame;
-using renderer::UniformBuffer;
 using renderer::DescriptorSet;
 
 enum class DebugDrawShape

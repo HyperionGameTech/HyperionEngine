@@ -6,11 +6,6 @@ namespace hyperion {
 namespace renderer {
 namespace helpers {
 
-UInt MipmapSize(UInt src_size, int lod)
-{
-    return MathUtil::Max(src_size >> lod, 1u);
-}
-
 VkIndexType ToVkIndexType(DatumType datum_type)
 {
     switch (datum_type) {

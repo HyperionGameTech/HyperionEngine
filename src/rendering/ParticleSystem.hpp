@@ -32,9 +32,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-using renderer::UniformBuffer;
-using renderer::StorageBuffer;
-using renderer::IndirectBuffer;
 using renderer::Frame;
 using renderer::Device;
 using renderer::DescriptorSet;
@@ -148,7 +145,7 @@ private:
     Handle<Mesh> m_quad_mesh;
 
     // for zeroing out data
-    StagingBuffer m_staging_buffer;
+    GPUBufferRef m_staging_buffer;
 
     // for each frame in flight - have an array of command buffers to use
     // for async command buffer recording. size will never change once created

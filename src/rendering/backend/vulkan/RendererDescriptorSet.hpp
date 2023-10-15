@@ -3,6 +3,8 @@
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/Platform.hpp>
 
 #include <util/Defines.hpp>
 #include <Constants.hpp>
@@ -37,9 +39,7 @@ class ComputePipeline;
 class RaytracingPipeline;
 class ImageView;
 class Sampler;
-class GPUBuffer;
 class AccelerationStructure;
-
 class DescriptorSet;
 class DescriptorPool;
 

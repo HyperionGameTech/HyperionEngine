@@ -27,7 +27,6 @@ struct RenderCommand_DestroyCubemapRenderPass;
 class Framebuffer;
 
 using renderer::Attachment;
-using renderer::UniformBuffer;
 using renderer::Image;
 
 enum EnvProbeType : UInt

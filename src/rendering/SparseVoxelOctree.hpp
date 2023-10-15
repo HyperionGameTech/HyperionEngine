@@ -12,8 +12,6 @@
 
 namespace hyperion::v2 {
 
-using renderer::IndirectBuffer;
-using renderer::StorageBuffer;
 using renderer::DescriptorSet;
 using renderer::ShaderVec2;
 
@@ -64,9 +62,9 @@ private:
     std::unique_ptr<Voxelizer> m_voxelizer;
     std::unique_ptr<AtomicCounter> m_counter;
 
-    std::unique_ptr<IndirectBuffer> m_indirect_buffer;
-    std::unique_ptr<StorageBuffer> m_build_info_buffer;
-    std::unique_ptr<StorageBuffer> m_octree_buffer;
+    GPUBufferRef m_indirect_buffer;
+    GPUBufferRef m_build_info_buffer;
+    GPUBufferRef m_octree_buffer;
     
     Handle<ComputePipeline> m_init_nodes;
     Handle<ComputePipeline> m_tag_nodes;
