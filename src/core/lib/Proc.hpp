@@ -32,10 +32,8 @@ template <class MemoryType, class ReturnType, class ...Args>
 struct ProcFunctorInternal
 {
     Variant<MemoryType, void *> memory;
-    //static constexpr SizeType alignment = alignof(ProcFunctorMemory<Sz>);
-
-    ReturnType (*invoke_fn)(void *, Args &&...);
-    void (*delete_fn)(void *);
+    ReturnType                  (*invoke_fn)(void *, Args &&...);
+    void                        (*delete_fn)(void *);
 
     ProcFunctorInternal()
         : invoke_fn(nullptr),

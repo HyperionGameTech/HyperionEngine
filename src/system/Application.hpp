@@ -65,7 +65,8 @@ enum WindowFlagBits : WindowFlags
 {
     WINDOW_FLAGS_NONE       = 0x0,
     WINDOW_FLAGS_HEADLESS   = 0x1,
-    WINDOW_FLAGS_NO_GFX     = 0x2
+    WINDOW_FLAGS_NO_GFX     = 0x2,
+    WINDOW_FLAGS_HIGH_DPI   = 0x4
 };
 
 struct WindowOptions
@@ -73,7 +74,6 @@ struct WindowOptions
     ANSIString  title;
     UInt        width;
     UInt        height;
-    Bool        enable_high_dpi = false;
     WindowFlags flags = WINDOW_FLAGS_NONE;
 };
 

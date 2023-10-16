@@ -84,7 +84,7 @@ RC<RTCClient> NullRTCServer::CreateClient(String id)
     return client;
 }
 
-void NullRTCServer::SendToSignallingServer(const ByteBuffer &bytes)
+void NullRTCServer::SendToSignallingServer(ByteBuffer bytes)
 {
     // Do nothing
 }
@@ -207,19 +207,23 @@ RC<RTCClient> LibDataChannelRTCServer::CreateClient(String id)
     return client;
 }
 
-void LibDataChannelRTCServer::SendToSignallingServer(const ByteBuffer &bytes)
+void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
 {
     AssertThrowMsg(m_thread->IsRunning(), "LibDataChannelRTCServer::SendToSignallingServer() called, but server is not running!");
  
     AssertThrow(m_websocket != nullptr);
     AssertThrowMsg(m_websocket->isOpen(), "Expected websocket to be open");
 
-    m_thread->GetScheduler().Enqueue([this, byte_buffer = std::move(bytes)]() mutable
+    if (!bytes.Size()) {
+        return;
+    }
+
+    m_thread->GetScheduler().Enqueue([this, byte_buffer = RC<ByteBuffer>::Construct(std::move(bytes))]() mutable
     {
         rtc::binary bin;
-        bin.resize(byte_buffer.Size());
+        bin.resize(byte_buffer->Size());
 
-        Memory::MemCpy(bin.data(), byte_buffer.Data(), byte_buffer.Size());
+        Memory::MemCpy(bin.data(), byte_buffer->Data(), byte_buffer->Size());
 
         if (!m_websocket->send(std::move(bin))) {
             m_callbacks.Trigger(RTCServerCallbackMessages::ERROR, {

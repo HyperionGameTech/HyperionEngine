@@ -20,8 +20,10 @@ GlobalClassTable g_global_class_table = { };
 
 const RC<ClassBase> &RegisteredClass::GetRefCounted() const
 {
+    static const RC<ClassBase> null_class = nullptr;
+
     if (!IsValid()) {
-        return nullptr;
+        return null_class;
     }
 
     return g_global_class_table.class_objects[index];

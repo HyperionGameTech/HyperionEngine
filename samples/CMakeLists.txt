@@ -22,11 +22,6 @@ set(OpenGL_GL_PREFERENCE GLVND)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
 
-find_package(Threads REQUIRED)
-find_package(OpenAL REQUIRED)
-find_package(Vulkan REQUIRED)
-find_package(SDL2 REQUIRED)
-
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
@@ -40,8 +35,6 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${HYPERION_INCLUDE_DIR}
-    ${OPENAL_INCLUDE_DIR}
-    ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
@@ -53,10 +46,6 @@ endif()
 
 set(COMMON_LIBRARIES
     hyperion
-    ${CMAKE_THREADS_LIBS_INIT}
-    ${OPENAL_LIBRARY}
-    ${Vulkan_LIBRARIES}
-    ${SDL2_LIBRARIES}
 )
 
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

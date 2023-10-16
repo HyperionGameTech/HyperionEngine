@@ -547,11 +547,11 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
         
         if (message_type == "request") {
             RC<RTCClient> client = m_rtc_instance->GetServer()->CreateClient(id);
-            DebugLog(LogType::Debug, "Adding client with ID %s  %s\n", id.Data(), typeid(*client).name());
+            DebugLog(LogType::Debug, "Adding client with ID %s\n", id.Data());
 
             auto track = m_rtc_instance->CreateTrack(RTCTrackType::RTC_TRACK_TYPE_VIDEO);
 
-            client->GetCallbacks().On(RTCClientCallbackMessages::MESSAGE, [client_weak = Weak(client)](RTCClientCallbackData data)
+            client->GetCallbacks().On(RTCClientCallbackMessages::MESSAGE, [client_weak = Weak<RTCClient>(client)](RTCClientCallbackData data)
             {
                 if (!data.bytes.HasValue()) {
                     return;

@@ -35,7 +35,6 @@ link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib ${VCPKG_INSTALLED_DIR}/x
 
 find_package(PkgConfig)
 pkg_check_modules(GST gstreamer-1.0>=1.4
-                      gstreamer-sdp-1.0>=1.4
                       gstreamer-video-1.0>=1.4
                       gstreamer-app-1.0>=1.4)
 
@@ -108,8 +107,11 @@ if(GST_FOUND)
     add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
 
     include_directories(${GST_INCLUDE_DIRS})
+    link_directories(${GST_LIBRARY_DIRS})
 
     # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
+
+    message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}")
 
     
     set(COMMON_LIBRARIES
@@ -136,7 +138,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-add_library(${BUILD_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
 
 set(COMMON_LIBRARIES
     ${COMMON_LIBRARIES}
@@ -147,7 +149,7 @@ set(COMMON_LIBRARIES
 )
 
 
-target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 

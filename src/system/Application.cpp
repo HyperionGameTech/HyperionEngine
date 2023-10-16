@@ -46,7 +46,7 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
 #endif
     }
 
-    if (window_options.enable_high_dpi) {
+    if (window_options.flags & WINDOW_FLAGS_HIGH_DPI) {
         sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
     }
 

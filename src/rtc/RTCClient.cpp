@@ -176,7 +176,7 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
 
     data_channel->m_data_channel = m_peer_connection->createDataChannel(name.LookupString().Data());
 
-    data_channel->m_data_channel->onOpen([data_channel_weak = Weak<RTCDataChannel>(data_channel)](...) mutable
+    data_channel->m_data_channel->onOpen([data_channel_weak = Weak<LibDataChannelRTCDataChannel>(data_channel)](...) mutable
     {
         if (auto data_channel = data_channel_weak.Lock()) {
             data_channel->Send("Ping");

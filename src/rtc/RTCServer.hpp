@@ -70,7 +70,7 @@ public:
 
     void EnqueueClientRemoval(String client_id);
 
-    virtual void SendToSignallingServer(const ByteBuffer &bytes) = 0;
+    virtual void SendToSignallingServer(ByteBuffer bytes) = 0;
     virtual void SendToClient(String client_id, const ByteBuffer &bytes) = 0;
 
     const RTCServerParams &GetParams() const
@@ -110,7 +110,7 @@ public:
 
     virtual RC<RTCClient> CreateClient(String id) override;
 
-    virtual void SendToSignallingServer(const ByteBuffer &bytes) override;
+    virtual void SendToSignallingServer(ByteBuffer bytes) override;
     virtual void SendToClient(String client_id, const ByteBuffer &bytes) override;
 };
 
@@ -131,7 +131,7 @@ public:
 
     virtual RC<RTCClient> CreateClient(String id) override;
 
-    virtual void SendToSignallingServer(const ByteBuffer &bytes) override;
+    virtual void SendToSignallingServer(ByteBuffer bytes) override;
     virtual void SendToClient(String client_id, const ByteBuffer &bytes) override;
 
 private:

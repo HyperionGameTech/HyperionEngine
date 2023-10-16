@@ -18,7 +18,7 @@ struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 {
     RC<EntityDrawCollection>            collection;
     RenderableAttributeSet              attributes;
-    EntityDrawCollection::EntityList     entity_list;
+    EntityDrawCollection::EntityList    entity_list;
 
     RENDER_COMMAND(UpdateDrawCollectionRenderSide)(
         const RC<EntityDrawCollection> &collection,
@@ -163,6 +163,7 @@ HashCode EntityDrawCollection::CalculateCombinedAttributesHashCode() const
 
 
 RenderList::RenderList()
+    : m_draw_collection(new EntityDrawCollection())
 {
 }
 

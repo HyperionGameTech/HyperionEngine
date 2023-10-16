@@ -162,7 +162,7 @@ void TerrainPagingController::OnPatchAdded(Patch *patch)
 
         m_shared_terrain_mesh_queue.Push(TerrainGenerationResult {
             .patch_info = patch_info,
-            .mesh = std::move(mesh)
+            .mesh       = std::move(mesh)
         });
 
         m_terrain_generation_sp.Signal();

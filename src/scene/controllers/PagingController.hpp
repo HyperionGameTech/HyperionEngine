@@ -42,20 +42,21 @@ enum class PageState
 
 struct PatchInfo
 {
-    Extent3D extent;
-    PatchCoord coord { 0.0f };
-    Vector3 scale { 1.0f };
-    PageState state { PageState::UNLOADED };
-    Float unload_timer { 0.0f };
-    PatchNeighbors neighbors{};
+    Extent3D            extent;
+    PatchCoord          coord { 0.0f };
+    Vector3             scale { 1.0f };
+    PageState           state { PageState::UNLOADED };
+    Float               unload_timer { 0.0f };
+    PatchNeighbors      neighbors{};
 };
 
 struct Patch
 {
-    PatchInfo info;
-    Handle<Entity> entity;
+    PatchInfo       info;
+    Handle<Entity>  entity;
 
-    Vector2 GetCenter() const { return info.coord - 0.5f; }
+    Vector2 GetCenter() const
+        { return info.coord - 0.5f; }
 };
 
 class PagingController : public Controller
