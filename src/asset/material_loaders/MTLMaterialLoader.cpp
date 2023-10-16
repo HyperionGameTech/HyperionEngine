@@ -316,7 +316,7 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         (*material_group_handle)->Add(item.tag, std::move(material));
     }
 
-    return { { LoaderResult::Status::OK }, std::move(material_group_handle) };
+    return { { LoaderResult::Status::OK }, material_group_handle.Cast<void>() };
 }
 
 } // namespace hyperion::v2

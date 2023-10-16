@@ -396,7 +396,6 @@ const RenderObjectHandle<T> RenderObjectHandle<T>::unset = RenderObjectHandle<T>
 DEF_RENDER_OBJECT(CommandBuffer,       2048);
 DEF_RENDER_OBJECT(ShaderProgram,       2048);
 DEF_RENDER_OBJECT(GraphicsPipeline,    2048);
-DEF_RENDER_OBJECT(Image,               16384);
 DEF_RENDER_OBJECT(ImageView,           65536);
 DEF_RENDER_OBJECT(Sampler,             16384);
 DEF_RENDER_OBJECT(RaytracingPipeline,  128);
@@ -405,6 +404,7 @@ DEF_RENDER_OBJECT(ComputePipeline,     4096);
 DEF_RENDER_OBJECT(Attachment,          4096);
 DEF_RENDER_OBJECT(AttachmentUsage,     8192);
 
+DEF_RENDER_PLATFORM_OBJECT(Image,       16384);
 DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,   65536);
 
 #undef DEF_RENDER_OBJECT

@@ -158,10 +158,7 @@ void TemporalAA::Destroy()
 
     // release our owned descriptor sets
     SafeRelease(std::move(m_descriptor_sets));
-    
-    for (auto &uniform_buffer : m_uniform_buffers) {
-        g_engine->SafeRelease(std::move(uniform_buffer));
-    }
+    SafeRelease(std::move(m_uniform_buffers));
 
     RenderCommands::Push<RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)>(
         m_image_outputs.Data()
@@ -188,47 +185,29 @@ void TemporalAA::CreateDescriptorSets()
 
         // input 1 - previous frame
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(1)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = &m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view
-            });
+            ->SetElementSRV(0, &m_image_outputs[(frame_index + 1) % max_frames_in_flight].image_view);
 
         // input 2 - velocity
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(2)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-                    .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView()
-            });
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         // gbuffer input - depth
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(3)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
-                    .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView()
-            });
-        
+            ->SetElementSRV(0, g_engine->GetDeferredSystem().Get(BUCKET_OPAQUE)
+                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+    
         // linear sampler
         descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(4)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .sampler = &g_engine->GetPlaceholderData().GetSamplerLinear()
-            });
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
         
         // nearest sampler
         descriptor_set->GetOrAddDescriptor<SamplerDescriptor>(5)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .sampler = &g_engine->GetPlaceholderData().GetSamplerNearest()
-            });
+            ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         // output
         descriptor_set->GetOrAddDescriptor<StorageImageDescriptor>(6)
-            ->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = &m_image_outputs[frame_index].image_view
-            });
+            ->SetElementUAV(0, &m_image_outputs[frame_index].image_view);
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

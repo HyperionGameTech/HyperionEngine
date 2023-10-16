@@ -52,28 +52,6 @@ namespace renderer {
 class Attachment;
 class AttachmentUsage;
 
-enum class RenderPassStage
-{
-    NONE,
-    PRESENT, /* for presentation on screen */
-    SHADER   /* for use as a sampled texture in a shader */
-};
-
-enum class LoadOperation
-{
-    UNDEFINED,
-    NONE,
-    CLEAR,
-    LOAD
-};
-
-enum class StoreOperation
-{
-    UNDEFINED,
-    NONE,
-    STORE
-};
-
 // for making it easier to track holders
 #define HYP_ATTACHMENT_USAGE_INSTANCE \
     ::hyperion::renderer::AttachmentUsageInstance { \
@@ -254,58 +232,6 @@ private:
 
     Array<AttachmentUsageRef> m_attachment_usages;
     Array<AttachmentUsage::RefCount *> m_ref_counts;
-};
-
-class AttachmentSet
-{
-public:
-    AttachmentSet(RenderPassStage stage, UInt width, UInt height);
-    AttachmentSet(const AttachmentSet &other) = delete;
-    AttachmentSet &operator=(const AttachmentSet &other) = delete;
-    ~AttachmentSet();
-
-    UInt GetWidth() const { return m_width; }
-    UInt GetHeight() const { return m_height; }
-    RenderPassStage GetStage() const { return m_stage; }
-
-    bool Has(UInt binding) const;
-
-    AttachmentUsage *Get(UInt binding) const;
-
-    /*! \brief Add a new owned attachment, constructed using the width/height provided to this class,
-     * along with the given format argument.
-     * @param binding The input attachment binding the attachment will take on
-     * @param format The image format of the newly constructed Image
-     */
-    Result Add(Device *device, uint32_t binding, InternalFormat format);
-    /*! \brief Add a new owned attachment using the given image argument.
-     * @param binding The input attachment binding the attachment will take on
-     * @param image The unique pointer to a non-initialized (but constructed)
-     * Image which will be used to render to for this attachment.
-     */
-    Result Add(Device *device, UInt binding, ImageRef &&image);
-
-    /*! \brief Add a reference to an existing attachment, not owned.
-     * An AttachmentUsage is created and its reference count incremented.
-     * @param binding The input attachment binding the attachment will take on
-     * @param attachment Pointer to an Attachment that exists elsewhere and will be used
-     * as an input for this set of attachments. The operation will be an OP_LOAD.
-     */
-    Result Add(Device *device, UInt binding, Attachment *attachment);
-
-    /*! \brief Remove an attachment reference by the binding argument */
-    Result Remove(Device *device, UInt binding);
-
-    Result Create(Device *device);
-    Result Destroy(Device *device);
-
-private:
-    void SortAttachmentUsages();
-
-    UInt m_width, m_height;
-    RenderPassStage m_stage;
-    std::vector<std::unique_ptr<Attachment>> m_attachments;
-    std::vector<std::pair<UInt, AttachmentUsage *>> m_attachment_usages;
 };
 
 } // namespace renderer

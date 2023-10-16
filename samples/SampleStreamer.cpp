@@ -158,8 +158,8 @@ void SampleStreamer::InitGame()
 
 
     ArgParse args;
-    args.Add("SignallingServerIP", "s", ArgParse::ArgumentType::ARGUMENT_TYPE_STRING, true);
-    args.Add("SignallingServerPort", "p", ArgParse::ArgumentType::ARGUMENT_TYPE_INT, true);
+    args.Add("SignallingServerIP", "s", ArgParse::ARG_FLAGS_REQUIRED, ArgParse::ArgumentType::ARGUMENT_TYPE_STRING);
+    args.Add("SignallingServerPort", "p", ArgParse::ARG_FLAGS_REQUIRED, ArgParse::ArgumentType::ARGUMENT_TYPE_INT);
 
     auto arg_parse_result = args.Parse(GetApplication()->GetArguments());
     if (!arg_parse_result.ok) {

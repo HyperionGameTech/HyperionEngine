@@ -215,7 +215,7 @@ Result Instance::Initialize(bool load_debug_layers)
     }
 
     VkApplicationInfo app_info { VK_STRUCTURE_TYPE_APPLICATION_INFO };
-    app_info.pApplicationName = m_application->GetAppName();
+    app_info.pApplicationName = m_application->GetAppName().Data();
     app_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
     app_info.pEngineName = "HyperionEngine";
     app_info.engineVersion = VK_MAKE_VERSION(0, 1, 0);

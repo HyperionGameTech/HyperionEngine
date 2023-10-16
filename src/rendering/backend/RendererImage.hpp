@@ -3,6 +3,7 @@
 
 #include <util/Defines.hpp>
 #include <math/MathUtil.hpp>
+#include <rendering/backend/Platform.hpp>
 #include <Types.hpp>
 
 namespace hyperion::renderer {
@@ -216,6 +217,43 @@ static inline bool IsSRGBFormat(InternalFormat fmt)
     return fmt >= InternalFormat::SRGB && fmt < InternalFormat::DEPTH;
 }
 
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Image { };
+
+template <PlatformType PLATFORM>
+class StorageImage : public Image<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class StorageImage2D : public StorageImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class StorageImage3D : public StorageImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class TextureImage : public Image<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class TextureImage2D : public TextureImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class TextureImage3D : public TextureImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class TextureImageCube : public TextureImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class FramebufferImage : public Image<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class FramebufferImage2D : public FramebufferImage<PLATFORM> { };
+
+template <PlatformType PLATFORM>
+class FramebufferImageCube : public FramebufferImage<PLATFORM> { };
+
+} // namespace platform
+
 } // namespace hyperion::renderer
 
 #if HYP_VULKAN
@@ -233,6 +271,22 @@ using renderer::InternalFormat;
 using renderer::FilterMode;
 using renderer::WrapMode;
 using renderer::TextureMode;
+
+namespace renderer {
+
+using Image                 = platform::Image<Platform::CURRENT>;
+using StorageImage          = platform::StorageImage<Platform::CURRENT>;
+using StorageImage2D        = platform::StorageImage2D<Platform::CURRENT>;
+using StorageImage3D        = platform::StorageImage3D<Platform::CURRENT>;
+using TextureImage          = platform::TextureImage<Platform::CURRENT>;
+using TextureImage2D        = platform::TextureImage2D<Platform::CURRENT>;
+using TextureImage3D        = platform::TextureImage3D<Platform::CURRENT>;
+using TextureImageCube      = platform::TextureImageCube<Platform::CURRENT>;
+using FramebufferImage      = platform::FramebufferImage<Platform::CURRENT>;
+using FramebufferImage2D    = platform::FramebufferImage2D<Platform::CURRENT>;
+using FramebufferImageCube  = platform::FramebufferImageCube<Platform::CURRENT>;
+
+} // namespace renderer
 
 } // namespace hyperion
 

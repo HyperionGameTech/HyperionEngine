@@ -783,8 +783,12 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     return HandleCompiledShaderBatch(bundle, properties, output_file_path, out);
 }
 
-bool ShaderCompiler::LoadShaderDefinitions()
+Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
 {
+    if (m_definitions && m_definitions->IsValid()) {
+        return true;
+    }
+    
     const FilePath data_path = g_asset_manager->GetBasePath() / "data/compiled_shaders";
 
     if (!data_path.Exists()) {
@@ -818,6 +822,10 @@ bool ShaderCompiler::LoadShaderDefinitions()
         return false;
     }
 
+    if (!precompile_shaders) {
+        return true;
+    }
+
     Array<Bundle> bundles;
 
     // create a bundle for each section.
@@ -839,35 +847,28 @@ bool ShaderCompiler::LoadShaderDefinitions()
     FlatMap<Bundle *, bool> results;
 
     // // Compile all shaders ahead of time
-    // for (auto &bundle : bundles) {
-    //     if (bundle.HasRTShaders() && !supports_rt_shaders) {
-    //         DebugLog(
-    //             LogType::Warn,
-    //             "Not compiling shader bundle %s because it contains raytracing shaders and raytracing is not supported on this device.\n",
-    //             bundle.name.LookupString().Data()
-    //         );
+    for (auto &bundle : bundles) {
+        if (bundle.HasRTShaders() && !supports_rt_shaders) {
+            DebugLog(
+                LogType::Warn,
+                "Not compiling shader bundle %s because it contains raytracing shaders and raytracing is not supported on this device.\n",
+                bundle.name.LookupString().Data()
+            );
 
-    //         continue;
-    //     }
+            continue;
+        }
 
-    //     VertexAttributeSet default_vertex_attributes;
+        if (bundle.HasVertexShader()) {
+            bundle.versions.Merge(ShaderProperties(renderer::static_mesh_vertex_attributes));
+            bundle.versions.Merge(ShaderProperties(renderer::static_mesh_vertex_attributes | renderer::skeleton_vertex_attributes));
+        }
 
-    //     if (bundle.HasVertexShader()) {
-    //         // TODO: what to do with vertex attributes here?
-    //         default_vertex_attributes = renderer::static_mesh_vertex_attributes;
-    //     }
+        ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties) {
+            CompiledShader compiled_shader;
 
-    //     if (default_vertex_attributes) {
-    //         bundle.versions.Merge(ShaderProperties(default_vertex_attributes));
-    //     }
-
-    //     // TODO: Maybe don't need to cache these?
-    //     ForEachPermutation(bundle.versions.ToArray(), [&](const ShaderProperties &properties) {
-    //         CompiledShader compiled_shader;
-
-    //         results[&bundle] = GetCompiledShader(bundle.name, properties, compiled_shader);
-    //     });
-    // }
+            results[&bundle] = GetCompiledShader(bundle.name, properties, compiled_shader);
+        });
+    }
 
     return results.Every([](const KeyValuePair<Bundle *, bool> &it) {
         if (!it.second) {

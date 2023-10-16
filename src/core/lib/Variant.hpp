@@ -24,6 +24,21 @@ struct VariantHelper;
 template <class T, class ... Ts>
 struct VariantHelper<T, Ts...>
 {
+    template <class SrcType>
+    static constexpr bool holds_type = std::is_same_v<T, NormalizedType<SrcType>> || (std::is_same_v<Ts, NormalizedType<SrcType>> || ...);
+
+    template <class SrcType>
+    static constexpr bool copy_assignable_to = (std::is_assignable_v<T, const NormalizedType<SrcType> &> || (std::is_assignable_v<Ts, const NormalizedType<SrcType> &> || ...));
+
+    template <class SrcType>
+    static constexpr bool move_assignable_to = (std::is_assignable_v<T, NormalizedType<SrcType> &&> || (std::is_assignable_v<Ts, NormalizedType<SrcType> &&> || ...));
+
+    template <class SrcType>
+    static constexpr bool copy_constructible_to = (std::is_constructible_v<T, const NormalizedType<SrcType> &> || (std::is_constructible_v<Ts, const NormalizedType<SrcType> &> || ...));
+
+    template <class SrcType>
+    static constexpr bool move_constructible_to = (std::is_constructible_v<T, NormalizedType<SrcType> &&> || (std::is_constructible_v<Ts, NormalizedType<SrcType> &&> || ...));
+
     static constexpr bool copy_constructible = (std::is_copy_constructible_v<T> && (std::is_copy_constructible_v<Ts> && ...));
     static constexpr bool copy_assignable = (std::is_copy_assignable_v<T> && (std::is_copy_assignable_v<Ts> && ...));
     static constexpr bool move_constructible = (std::is_move_constructible_v<T> && (std::is_move_constructible_v<Ts> && ...));
@@ -102,6 +117,21 @@ struct VariantHelper<T, Ts...>
 template <>
 struct VariantHelper<>
 {
+    template <class SrcType>
+    static constexpr bool holds_type = false;
+
+    template <class SrcType>
+    static constexpr bool copy_assignable_to = false;
+
+    template <class SrcType>
+    static constexpr bool move_assignable_to = false;
+
+    template <class SrcType>
+    static constexpr bool copy_constructible_to = false;
+
+    template <class SrcType>
+    static constexpr bool move_constructible_to = false;
+
     static inline bool CopyAssign(TypeID type_id, void *dst, const void *src) { return false; }
     static inline bool CopyConstruct(TypeID type_id, void *dst, const void *src) { return false; }
     static inline void MoveAssign(TypeID type_id, void *dst, void *src) {}
@@ -186,7 +216,9 @@ public:
     explicit VariantBase(const T &value)
         : m_current_type_id(invalid_type_id)
     {
-        const auto type_id = TypeID::ForType<NormalizedType<T>>();
+        static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
+
+        const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrow(Helper::CopyConstruct(type_id, m_storage.GetPointer(), &value));
         m_current_type_id = type_id;
@@ -196,7 +228,9 @@ public:
     explicit VariantBase(T &&value) noexcept
         : m_current_type_id(invalid_type_id)
     {
-        const auto type_id = TypeID::ForType<NormalizedType<T>>();
+        static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
+
+        const TypeID type_id = TypeID::ForType<NormalizedType<T>>();
 
         AssertThrow(Helper::MoveConstruct(type_id, m_storage.GetPointer(), &value));
         m_current_type_id = type_id;
@@ -299,6 +333,8 @@ public:
     template <class T>
     void Set(const T &value)
     {
+        static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
+
         if (IsValid()) {
             Helper::Destruct(m_current_type_id, m_storage.GetPointer());
         }
@@ -318,6 +354,8 @@ public:
     template <class T>
     void Set(T &&value)
     {
+        static_assert(Helper::template holds_type<T>, "Type is not valid for the variant");
+
         if (IsValid()) {
             Helper::Destruct(m_current_type_id, m_storage.GetPointer());
         }
@@ -512,13 +550,13 @@ struct Variant
     ~Variant() = default;
 
     template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
-    explicit Variant(const T &value)
+    Variant(const T &value)
         : m_holder(value)
     {
     }
 
     template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
-    explicit Variant(T &&value) noexcept
+    Variant(T &&value) noexcept
         : m_holder(std::forward<T>(value))
     {
     }

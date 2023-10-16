@@ -805,14 +805,14 @@ public:
     ShaderCompiler &operator=(const ShaderCompiler &other) = delete;
     ~ShaderCompiler();
 
-    bool CanCompileShaders() const;
+    Bool CanCompileShaders() const;
 
-    bool LoadShaderDefinitions();
+    Bool LoadShaderDefinitions(Bool precompile_shaders = false);
 
     CompiledShader GetCompiledShader(Name name);
     CompiledShader GetCompiledShader(Name name, const ShaderProperties &properties);
 
-    bool GetCompiledShader(
+    Bool GetCompiledShader(
         Name name,
         const ShaderProperties &versions,
         CompiledShader &out

@@ -13,8 +13,9 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-Image::Image(
+Image<Platform::VULKAN>::Image(
     Extent3D extent,
     InternalFormat format,
     ImageType type,
@@ -36,7 +37,7 @@ Image::Image(
     m_size = m_extent.width * m_extent.height * m_extent.depth * m_bpp * NumFaces();
 }
 
-Image::Image(Image &&other) noexcept
+Image<Platform::VULKAN>::Image(Image &&other) noexcept
     : m_extent(other.m_extent),
       m_format(other.m_format),
       m_type(other.m_type),
@@ -56,7 +57,7 @@ Image::Image(Image &&other) noexcept
     other.m_extent = Extent3D { };
 }
 
-Image &Image::operator=(Image &&other) noexcept
+Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexcept
 {
     m_extent = other.m_extent;
     m_format = other.m_format;
@@ -79,22 +80,22 @@ Image &Image::operator=(Image &&other) noexcept
     return *this;
 }
 
-Image::~Image()
+Image<Platform::VULKAN>::~Image()
 {
     AssertExit(m_image == nullptr);
 }
 
-bool Image::IsDepthStencil() const
+bool Image<Platform::VULKAN>::IsDepthStencil() const
 {
     return IsDepthFormat(m_format);
 }
 
-bool Image::IsSRGB() const
+bool Image<Platform::VULKAN>::IsSRGB() const
 {
     return IsSRGBFormat(m_format);
 }
 
-void Image::SetIsSRGB(bool srgb)
+void Image<Platform::VULKAN>::SetIsSRGB(bool srgb)
 {
     const bool is_srgb = IsSRGB();
 
@@ -123,7 +124,7 @@ void Image::SetIsSRGB(bool srgb)
     m_format = to_srgb_format;
 }
 
-Result Image::CreateImage(
+Result Image<Platform::VULKAN>::CreateImage(
     Device *device,
     VkImageLayout initial_layout,
     VkImageCreateInfo *out_image_info
@@ -257,21 +258,21 @@ Result Image::CreateImage(
 
     *out_image_info = image_info;
 
-    m_image = new GPUImageMemory();
+    m_image = new GPUImageMemory<Platform::VULKAN>();
 
     HYPERION_BUBBLE_ERRORS(m_image->Create(device, m_size, &image_info));
 
     HYPERION_RETURN_OK;
 }
 
-Result Image::Create(Device *device)
+Result Image<Platform::VULKAN>::Create(Device *device)
 {
     VkImageCreateInfo image_info;
 
     return CreateImage(device, VK_IMAGE_LAYOUT_UNDEFINED, &image_info);
 }
 
-Result Image::Create(Device *device, Instance *instance, ResourceState state)
+Result Image<Platform::VULKAN>::Create(Device *device, Instance *instance, ResourceState state)
 {
     auto result = Result::OK;
 
@@ -292,7 +293,8 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
     };
 
     auto commands = instance->GetSingleTimeCommands();
-    StagingBuffer staging_buffer;
+    
+    StagingBuffer<Platform::VULKAN> staging_buffer;
 
     if (HasAssignedImageData()) {
         HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
@@ -337,7 +339,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
                     command_buffer->GetCommandBuffer(),
                     staging_buffer.buffer,
                     m_image->image,
-                    GPUMemory::GetImageLayout(m_image->GetResourceState()),
+                    GPUMemory<Platform::VULKAN>::GetImageLayout(m_image->GetResourceState()),
                     1,
                     &region
                 );
@@ -388,7 +390,7 @@ Result Image::Create(Device *device, Instance *instance, ResourceState state)
     return result;
 }
 
-Result Image::Destroy(Device *device)
+Result Image<Platform::VULKAN>::Destroy(Device *device)
 {
     auto result = Result::OK;
 
@@ -406,7 +408,7 @@ Result Image::Destroy(Device *device)
     return result;
 }
 
-Result Image::Blit(
+Result Image<Platform::VULKAN>::Blit(
     CommandBuffer *command_buffer,
     const Image *src
 )
@@ -429,7 +431,7 @@ Result Image::Blit(
     );
 }
 
-Result Image::Blit(
+Result Image<Platform::VULKAN>::Blit(
     CommandBuffer *command_buffer,
     const Image *src_image,
     Rect src_rect,
@@ -490,9 +492,9 @@ Result Image::Blit(
         vkCmdBlitImage(
             command_buffer->GetCommandBuffer(),
             src_image->GetGPUImage()->image,
-            GPUMemory::GetImageLayout(src_image->GetGPUImage()->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(src_image->GetGPUImage()->GetResourceState()),
             this->GetGPUImage()->image,
-            GPUMemory::GetImageLayout(this->GetGPUImage()->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(this->GetGPUImage()->GetResourceState()),
             1, &blit,
             helpers::ToVkFilter(src_image->GetFilterMode())
         );
@@ -501,7 +503,7 @@ Result Image::Blit(
     HYPERION_RETURN_OK;
 }
 
-Result Image::Blit(
+Result Image<Platform::VULKAN>::Blit(
     CommandBuffer *command_buffer,
     const Image *src_image,
     Rect src_rect,
@@ -564,9 +566,9 @@ Result Image::Blit(
         vkCmdBlitImage(
             command_buffer->GetCommandBuffer(),
             src_image->GetGPUImage()->image,
-            GPUMemory::GetImageLayout(src_image->GetGPUImage()->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(src_image->GetGPUImage()->GetResourceState()),
             this->GetGPUImage()->image,
-            GPUMemory::GetImageLayout(this->GetGPUImage()->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(this->GetGPUImage()->GetResourceState()),
             1, &blit,
             helpers::ToVkFilter(src_image->GetFilterMode())
         );
@@ -575,7 +577,7 @@ Result Image::Blit(
     HYPERION_RETURN_OK;
 }
 
-Result Image::GenerateMipmaps(
+Result Image<Platform::VULKAN>::GenerateMipmaps(
     Device *device,
     CommandBuffer *command_buffer
 )
@@ -669,9 +671,9 @@ Result Image::GenerateMipmaps(
             vkCmdBlitImage(
                 command_buffer->GetCommandBuffer(),
                 m_image->image,
-                GPUMemory::GetImageLayout(ResourceState::COPY_SRC),//m_image->GetSubResourceState(src)),
+                GPUMemory<Platform::VULKAN>::GetImageLayout(ResourceState::COPY_SRC),//m_image->GetSubResourceState(src)),
                 m_image->image,
-                GPUMemory::GetImageLayout(ResourceState::COPY_DST),//m_image->GetSubResourceState(dst)),
+                GPUMemory<Platform::VULKAN>::GetImageLayout(ResourceState::COPY_DST),//m_image->GetSubResourceState(dst)),
                 1, &blit,
                 IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
             );
@@ -681,9 +683,9 @@ Result Image::GenerateMipmaps(
     HYPERION_RETURN_OK;
 }
 
-void Image::CopyFromBuffer(
+void Image<Platform::VULKAN>::CopyFromBuffer(
     CommandBuffer *command_buffer,
-    const GPUBuffer *src_buffer
+    const GPUBuffer<Platform::VULKAN> *src_buffer
 ) const
 {
     const auto flags = IsDepthStencil()
@@ -715,16 +717,16 @@ void Image::CopyFromBuffer(
             command_buffer->GetCommandBuffer(),
             src_buffer->buffer,
             m_image->image,
-            GPUMemory::GetImageLayout(m_image->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(m_image->GetResourceState()),
             1,
             &region
         );
     }
 }
 
-void Image::CopyToBuffer(
+void Image<Platform::VULKAN>::CopyToBuffer(
     CommandBuffer *command_buffer,
-    GPUBuffer *dst_buffer
+    GPUBuffer<Platform::VULKAN> *dst_buffer
 ) const
 {
     const auto flags = IsDepthStencil()
@@ -755,7 +757,7 @@ void Image::CopyToBuffer(
         vkCmdCopyImageToBuffer(
             command_buffer->GetCommandBuffer(),
             m_image->image,
-            GPUMemory::GetImageLayout(m_image->GetResourceState()),
+            GPUMemory<Platform::VULKAN>::GetImageLayout(m_image->GetResourceState()),
             dst_buffer->buffer,
             1,
             &region
@@ -763,10 +765,11 @@ void Image::CopyToBuffer(
     }
 }
 
-ByteBuffer Image::ReadBack(Device *device, Instance *instance) const
+ByteBuffer Image<Platform::VULKAN>::ReadBack(Device *device, Instance *instance) const
 {
+    StagingBuffer<Platform::VULKAN> staging_buffer;
+
     auto commands = instance->GetSingleTimeCommands();
-    StagingBuffer staging_buffer;
     Result result = Result::OK;
 
     if (HasAssignedImageData()) {
@@ -800,7 +803,7 @@ ByteBuffer Image::ReadBack(Device *device, Instance *instance) const
     return byte_buffer;
 }
 
-Result Image::ConvertTo32BPP(
+Result Image<Platform::VULKAN>::ConvertTo32BPP(
     Device *device,
     VkImageType image_type,
     VkImageCreateFlags image_create_flags,
@@ -841,5 +844,6 @@ Result Image::ConvertTo32BPP(
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

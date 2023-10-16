@@ -17,7 +17,13 @@ ArgParse::ArgumentValue ArgParse::Result::operator[](const String &key) const
     return it->second;
 }
 
-void ArgParse::Add(String name, String shorthand, ArgumentType type, Bool required)
+void ArgParse::Add(
+    String name,
+    String shorthand,
+    ArgFlags flags,
+    ArgumentType type,
+    ArgumentValue default_value
+)
 {
     auto it = m_definitions.FindIf([&name](const auto &item)
     {
@@ -28,8 +34,9 @@ void ArgParse::Add(String name, String shorthand, ArgumentType type, Bool requir
         *it = ArgumentDefinition {
             std::move(name),
             shorthand.Empty() ? Optional<String>() : std::move(shorthand),
+            flags,
             type,
-            required
+            std::move(default_value)
         };
 
         return;
@@ -38,8 +45,45 @@ void ArgParse::Add(String name, String shorthand, ArgumentType type, Bool requir
     m_definitions.PushBack(ArgumentDefinition {
         std::move(name),
         shorthand.Empty() ? Optional<String>() : std::move(shorthand),
+        flags,
         type,
-        required
+        std::move(default_value)
+    });
+}
+
+void ArgParse::Add(
+    String name,
+    String shorthand,
+    ArgFlags flags,
+    Optional<Array<String>> enum_values,
+    ArgumentValue default_value
+)
+{
+    auto it = m_definitions.FindIf([&name](const auto &item)
+    {
+        return item.name == name;
+    });
+
+    if (it != m_definitions.End()) {
+        *it = ArgumentDefinition {
+            std::move(name),
+            shorthand.Empty() ? Optional<String>() : std::move(shorthand),
+            flags,
+            ArgumentType::ARGUMENT_TYPE_ENUM,
+            std::move(default_value),
+            std::move(enum_values)
+        };
+
+        return;
+    }
+
+    m_definitions.PushBack(ArgumentDefinition {
+        std::move(name),
+        shorthand.Empty() ? Optional<String>() : std::move(shorthand),
+        flags,
+        ArgumentType::ARGUMENT_TYPE_ENUM,
+        std::move(default_value),
+        std::move(enum_values)
     });
 }
 
@@ -61,8 +105,10 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
 
     FlatSet<String> used_arguments;
 
-    auto ParseArgument = [](const String &str, ArgumentType type) -> Optional<ArgumentValue>
+    auto ParseArgument = [](const ArgumentDefinition &argument_definition, const String &str) -> Optional<ArgumentValue>
     {
+        const ArgumentType type = argument_definition.type;
+
         switch (type) {
         case ArgumentType::ARGUMENT_TYPE_STRING:
             return ArgumentValue { str };
@@ -86,6 +132,19 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
         }
         case ArgumentType::ARGUMENT_TYPE_BOOL:
             return ArgumentValue { str == "true" };
+        case ArgumentType::ARGUMENT_TYPE_ENUM: {
+            const Array<String> *enum_values = argument_definition.enum_values.TryGet();
+
+            if (!enum_values) {
+                return { };
+            }
+
+            if (!enum_values->Contains(str)) {
+                return { };
+            }
+
+            return ArgumentValue { str };
+        }
         }
 
         return { };
@@ -103,7 +162,7 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
             arg = arg.Substr(1);
         } else {
             result.ok = false;
-            result.message = "Unknown argument: " + arg;
+            result.message = "Invalid argument: " + arg;
 
             return result;
         }
@@ -114,16 +173,14 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
         });
 
         if (it == m_definitions.End()) {
-            result.ok = false;
-            result.message = "Unknown argument: " + arg;
-
-            return result;
+            // Unknown argument
+            continue;
         }
 
         used_arguments.Insert(it->name);
 
         if (parts.Size() > 1) {
-            Optional<ArgumentValue> parsed_value = ParseArgument(parts[1], it->type);
+            Optional<ArgumentValue> parsed_value = ParseArgument(*it, parts[1]);
 
             if (!parsed_value.HasValue()) {
                 result.ok = false;
@@ -150,7 +207,7 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
             return result;
         }
 
-        Optional<ArgumentValue> parsed_value = ParseArgument(args[++i], it->type);
+        Optional<ArgumentValue> parsed_value = ParseArgument(*it, args[++i]);
 
         if (!parsed_value.HasValue()) {
             result.ok = false;
@@ -163,7 +220,17 @@ ArgParse::Result ArgParse::Parse(const Array<String> &args) const
     }
 
     for (const ArgumentDefinition &def : m_definitions) {
-        if (def.required && !used_arguments.Contains(def.name)) {
+        if (used_arguments.Contains(def.name)) {
+            continue;
+        }
+
+        if (def.default_value.HasValue()) {
+            result.values.PushBack({ def.name, def.default_value });
+
+            continue;
+        }
+
+        if (def.flags & ARG_FLAGS_REQUIRED) {
             result.ok = false;
             result.message = "Missing required argument: " + def.name;
 

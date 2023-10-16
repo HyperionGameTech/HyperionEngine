@@ -18,15 +18,15 @@ SDL_Event *SystemEvent::GetInternalEvent() {
     return &(this->sdl_event);
 }
 
-ApplicationWindow::ApplicationWindow(const ANSIString &title, UInt width, UInt height)
-    : m_title(title),
+ApplicationWindow::ApplicationWindow(ANSIString title, UInt width, UInt height)
+    : m_title(std::move(title)),
       m_width(width),
       m_height(height)
 {
 }
 
-SDLApplicationWindow::SDLApplicationWindow(const ANSIString &title, UInt width, UInt height)
-    : ApplicationWindow(title, width, height),
+SDLApplicationWindow::SDLApplicationWindow(ANSIString title, UInt width, UInt height)
+    : ApplicationWindow(std::move(title), width, height),
       window(nullptr)
 {
 }
@@ -38,16 +38,34 @@ SDLApplicationWindow::~SDLApplicationWindow()
 
 void SDLApplicationWindow::Initialize(WindowOptions window_options)
 {
+    UInt32 sdl_flags = 0;
+
+    if (!(window_options.flags & WINDOW_FLAGS_NO_GFX)) {
+#if HYP_VULKAN
+        sdl_flags |= SDL_WINDOW_VULKAN;
+#endif
+    }
+
+    if (window_options.enable_high_dpi) {
+        sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+    }
+
+    if (window_options.flags & WINDOW_FLAGS_HEADLESS) {
+        sdl_flags |= SDL_WINDOW_HIDDEN;
+    } else {
+        sdl_flags |= SDL_WINDOW_SHOWN;
+
+        // make sure to use SDL_free on file name strings for these events
+        SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+    }
+
     this->window = SDL_CreateWindow(
         m_title.Data(),
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         Int(m_width), Int(m_height),
-        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | (window_options.enable_high_dpi ? SDL_WINDOW_ALLOW_HIGHDPI : 0)
+        sdl_flags
     );
-
-    // make sure to use SDL_free on file name strings for these events
-    SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
     AssertThrowMsg(this->window != nullptr, "Failed to initialize window: %s", SDL_GetError());
 }
@@ -97,10 +115,12 @@ bool SDLApplicationWindow::HasMouseFocus() const
     return focus_window == window;
 }
 
-SDLApplication::SDLApplication(const char *name, int argc, char **argv)
-    : Application(name, argc, argv)
+SDLApplication::SDLApplication(ANSIString name, int argc, char **argv)
+    : Application(std::move(name), argc, argv)
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    const Int sdl_init_result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+
+    AssertThrowMsg(sdl_init_result == 0, "Failed to initialize SDL: %s", SDL_GetError());
 }
 
 SDLApplication::~SDLApplication()
@@ -155,23 +175,16 @@ bool SDLApplication::GetVkExtensions(Array<const char *> &out_extensions) const
 }
 #endif
 
-Application::Application(const char *name, int argc, char **argv)
+Application::Application(ANSIString name, int argc, char **argv)
     : m_arguments(argc, argv)
 {
     if (name == nullptr) {
         name = "HyperionApp";
     }
 
-    const SizeType len = Memory::StrLen(name);
-
-    m_name = new char[len + 1];
-    Memory::MemCpy(m_name, name, len);
-    m_name[len] = '\0';
+    m_name = name;
 }
 
-Application::~Application()
-{
-    delete[] m_name;
-}
+Application::~Application() = default;
 
 } // namespace hyperion

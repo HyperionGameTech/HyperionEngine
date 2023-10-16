@@ -22,7 +22,7 @@ using AssetValue = Variant<NodeProxy, AtomicRefCountedPtr<void>>;
 
 struct LoadedAsset
 {
-    LoaderResult result;
+    LoaderResult                result;
     Variant<AnyPtr, AssetValue> value;
 
     LoadedAsset() = default;

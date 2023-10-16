@@ -209,10 +209,17 @@ struct HashedName
     static constexpr const char *data = Sequence::Data();
 };
 
+#if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
 #define HYP_HASHED_NAME(name)   ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
 #define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
 #define HYP_NAME_UNSAFE(name)   ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
 #define HYP_WEAK_NAME(name)     ::hyperion::Name(HYP_HASHED_NAME(name).hash_code.Value())
+#else
+#define HYP_NAME(name)          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
+#define HYP_NAME_UNSAFE(name)   HYP_NAME(name)
+#define HYP_WEAK_NAME(name)     HYP_NAME(name)
+#endif
+
 
 } // namespace hyperion
 

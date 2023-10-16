@@ -177,15 +177,15 @@ struct KeyValuePair : Pair<Key, Value>
             && Pair<Key, Value>::second == other.second;
     }
 
-    friend bool operator<(const KeyValuePair &, const Pair<Key, Value> &);
-    friend bool operator<=(const KeyValuePair &, const Pair<Key, Value> &);
-    friend bool operator>(const KeyValuePair &, const Pair<Key, Value> &);
-    friend bool operator>=(const KeyValuePair &, const Pair<Key, Value> &);
+    // friend bool operator<(const KeyValuePair &, const Pair<Key, Value> &);
+    // friend bool operator<=(const KeyValuePair &, const Pair<Key, Value> &);
+    // friend bool operator>(const KeyValuePair &, const Pair<Key, Value> &);
+    // friend bool operator>=(const KeyValuePair &, const Pair<Key, Value> &);
 
-    friend bool operator<(const Pair<Key, Value> &, const KeyValuePair &);
-    friend bool operator<=(const Pair<Key, Value> &, const KeyValuePair &);
-    friend bool operator>(const Pair<Key, Value> &, const KeyValuePair &);
-    friend bool operator>=(const Pair<Key, Value> &, const KeyValuePair &);
+    // friend bool operator<(const Pair<Key, Value> &, const KeyValuePair &);
+    // friend bool operator<=(const Pair<Key, Value> &, const KeyValuePair &);
+    // friend bool operator>(const Pair<Key, Value> &, const KeyValuePair &);
+    // friend bool operator>=(const Pair<Key, Value> &, const KeyValuePair &);
 
     HashCode GetHashCode() const { return Pair<Key, Value>::GetHashCode(); }
 };

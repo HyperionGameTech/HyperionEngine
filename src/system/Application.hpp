@@ -59,39 +59,49 @@ struct CommandLineArguments
         { return arguments.Size(); }
 };
 
+using WindowFlags = UInt32;
+
+enum WindowFlagBits : WindowFlags
+{
+    WINDOW_FLAGS_NONE       = 0x0,
+    WINDOW_FLAGS_HEADLESS   = 0x1,
+    WINDOW_FLAGS_NO_GFX     = 0x2
+};
+
 struct WindowOptions
 {
-    ANSIString title;
-    UInt width;
-    UInt height;
-    bool enable_high_dpi = false;
+    ANSIString  title;
+    UInt        width;
+    UInt        height;
+    Bool        enable_high_dpi = false;
+    WindowFlags flags = WINDOW_FLAGS_NONE;
 };
 
 enum SystemEventType
 {
-    EVENT_WINDOW_EVENT  = SDL_WINDOWEVENT,
-    EVENT_KEYDOWN = SDL_KEYDOWN,
-    EVENT_SHUTDOWN = SDL_QUIT,
-    EVENT_KEYUP = SDL_KEYUP,
+    EVENT_WINDOW_EVENT      = SDL_WINDOWEVENT,
+    EVENT_KEYDOWN           = SDL_KEYDOWN,
+    EVENT_SHUTDOWN          = SDL_QUIT,
+    EVENT_KEYUP             = SDL_KEYUP,
 
-    EVENT_MOUSEMOTION = SDL_MOUSEMOTION,
-    EVENT_MOUSEBUTTON_DOWN = SDL_MOUSEBUTTONDOWN,
-    EVENT_MOUSEBUTTON_UP = SDL_MOUSEBUTTONUP,
-    EVENT_MOUSESCROLL = SDL_MOUSEWHEEL,
+    EVENT_MOUSEMOTION       = SDL_MOUSEMOTION,
+    EVENT_MOUSEBUTTON_DOWN  = SDL_MOUSEBUTTONDOWN,
+    EVENT_MOUSEBUTTON_UP    = SDL_MOUSEBUTTONUP,
+    EVENT_MOUSESCROLL       = SDL_MOUSEWHEEL,
 
-    EVENT_FILE_DROP = SDL_DROPFILE
+    EVENT_FILE_DROP         = SDL_DROPFILE
 };
 
 enum SystemWindowEventType
 {
-    EVENT_WINDOW_MOVED = SDL_WINDOWEVENT_MOVED,
-    EVENT_WINDOW_RESIZED = SDL_WINDOWEVENT_RESIZED,
+    EVENT_WINDOW_MOVED          = SDL_WINDOWEVENT_MOVED,
+    EVENT_WINDOW_RESIZED        = SDL_WINDOWEVENT_RESIZED,
 
-    EVENT_WINDOW_FOCUS_GAINED = SDL_WINDOWEVENT_FOCUS_GAINED,
-    EVENT_WINDOW_FOCUS_LOST = SDL_WINDOWEVENT_FOCUS_LOST,
+    EVENT_WINDOW_FOCUS_GAINED   = SDL_WINDOWEVENT_FOCUS_GAINED,
+    EVENT_WINDOW_FOCUS_LOST     = SDL_WINDOWEVENT_FOCUS_LOST,
 
-    EVENT_WINDOW_CLOSE = SDL_WINDOWEVENT_CLOSE,
-    EVENT_WINDOW_MINIMIZED = SDL_WINDOWEVENT_MINIMIZED,
+    EVENT_WINDOW_CLOSE          = SDL_WINDOWEVENT_CLOSE,
+    EVENT_WINDOW_MINIMIZED      = SDL_WINDOWEVENT_MINIMIZED,
 };
 
 using KeyCode = UInt16;
@@ -275,7 +285,7 @@ struct MouseState
 class ApplicationWindow
 {
 public:
-    ApplicationWindow(const ANSIString &title, UInt width, UInt height);
+    ApplicationWindow(ANSIString title, UInt width, UInt height);
     ApplicationWindow(const ApplicationWindow &other) = delete;
     ApplicationWindow &operator=(const ApplicationWindow &other) = delete;
     virtual ~ApplicationWindow() = default;
@@ -293,15 +303,15 @@ public:
 #endif
 
 protected:
-    ANSIString m_title;
-    UInt m_width;
-    UInt m_height;
+    ANSIString  m_title;
+    UInt        m_width;
+    UInt        m_height;
 };
 
 class SDLApplicationWindow : public ApplicationWindow
 {
 public:
-    SDLApplicationWindow(const ANSIString &title, UInt width, UInt height);
+    SDLApplicationWindow(ANSIString title, UInt width, UInt height);
     virtual ~SDLApplicationWindow() override;
 
     virtual void SetMousePosition(Int x, Int y) override;
@@ -331,19 +341,16 @@ private:
 class Application
 {
 public:
-    Application(const char *name, int argc, char **argv);
+    Application(ANSIString name, int argc, char **argv);
     virtual ~Application();
 
-    const char *GetAppName() const
+    const ANSIString &GetAppName() const
         { return m_name; }
 
     const CommandLineArguments &GetArguments() const
         { return m_arguments; }
 
-    ApplicationWindow *GetCurrentWindow()
-        { return m_current_window.Get(); }
-
-    const ApplicationWindow *GetCurrentWindow() const
+    ApplicationWindow *GetCurrentWindow() const
         { return m_current_window.Get(); }
 
     void SetCurrentWindow(UniquePtr<ApplicationWindow> &&window)
@@ -358,14 +365,14 @@ public:
     
 protected:
     UniquePtr<ApplicationWindow>    m_current_window;
-    char                            *m_name;
+    ANSIString                      m_name;
     CommandLineArguments            m_arguments;
 };
 
 class SDLApplication : public Application
 {
 public:
-    SDLApplication(const char *name, int argc, char **argv);
+    SDLApplication(ANSIString name, int argc, char **argv);
     virtual ~SDLApplication() override;
 
     virtual UniquePtr<ApplicationWindow> CreateSystemWindow(WindowOptions) override;

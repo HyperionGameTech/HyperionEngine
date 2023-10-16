@@ -1,4 +1,5 @@
 ﻿#include "SampleStreamer.hpp"
+#include <util/ArgParse.hpp>
 
 #include <HyperionEngine.hpp>
 #include <core/lib/AtomicVar.hpp>
@@ -30,22 +31,52 @@ void HandleSignal(int signum)
 int main(int argc, char **argv)
 {
     signal(SIGINT, HandleSignal);
+
+    WindowFlags window_flags = WINDOW_FLAGS_NONE;
+
+    ArgParse arg_parse;
+    arg_parse.Add("headless", String::empty, ArgParse::ARG_FLAGS_NONE, ArgParse::ARGUMENT_TYPE_BOOL, false);    
+    arg_parse.Add("mode", "m", ArgParse::ARG_FLAGS_NONE, Array<String> { "precompile_shaders", "streamer" }, String("streamer"));
+
+    if (auto parse_result = arg_parse.Parse(argc, argv)) {
+        if (Bool *headless_ptr = parse_result["headless"].TryGet<Bool>()) {
+            if (*headless_ptr) {
+                window_flags |= WINDOW_FLAGS_HEADLESS;
+            }
+        }
+
+        if (String *mode_str = parse_result["mode"].TryGet<String>()) {
+            if (*mode_str == "precompile_shaders") {
+                window_flags |= WINDOW_FLAGS_NO_GFX;
+
+                if (!g_engine->GetShaderCompiler().LoadShaderDefinitions(true)) {
+                    DebugLog(LogType::Error, "Shader precompilation failed!\n");
+
+                    std::exit(1);
+                } else {
+                    DebugLog(LogType::Info, "Precompiled shaders successfuly\n");
+
+                    std::exit(0);
+                }
+            }
+        }
+    }
     
     RC<Application> application(new SDLApplication("My Application", argc, argv));
-    application->SetCurrentWindow(application->CreateSystemWindow({
-        "Hyperion Engine",
-        1920, 1080,
-        true
-    }));
-    
+
+    if (!(window_flags & WINDOW_FLAGS_NO_GFX)) {
+        application->SetCurrentWindow(application->CreateSystemWindow({
+            "Hyperion Engine",
+            1920, 1080,
+            true,
+            window_flags
+        }));
+    }
+
     hyperion::InitializeApplication(application);
 
     auto my_game = SampleStreamer(application);
     g_engine->InitializeGame(&my_game);
-
-    UInt num_frames = 0;
-    float delta_time_accum = 0.0f;
-    GameCounter counter;
 
     SystemEvent event;
 

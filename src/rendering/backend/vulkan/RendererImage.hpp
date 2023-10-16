@@ -6,6 +6,7 @@
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/Platform.hpp>
 
 #include <math/MathUtil.hpp>
 
@@ -20,7 +21,10 @@ using v2::MemoryStreamedData;
 class Instance;
 class Device;
 
-class Image
+namespace platform {
+
+template <>
+class Image<Platform::VULKAN>
 {
 public:
     struct InternalInfo
@@ -84,12 +88,12 @@ public:
 
     void CopyFromBuffer(
         CommandBuffer *command_buffer,
-        const GPUBuffer *src_buffer
+        const GPUBuffer<Platform::VULKAN> *src_buffer
     ) const;
 
     void CopyToBuffer(
         CommandBuffer *command_buffer,
-        GPUBuffer *dst_buffer
+        GPUBuffer<Platform::VULKAN> *dst_buffer
     ) const;
 
     ByteBuffer ReadBack(Device *device, Instance *instance) const;
@@ -162,10 +166,10 @@ public:
     const Extent3D &GetExtent() const
         { return m_extent; }
 
-    GPUImageMemory *GetGPUImage()
+    GPUImageMemory<Platform::VULKAN> *GetGPUImage()
         { return m_image; }
 
-    const GPUImageMemory *GetGPUImage() const
+    const GPUImageMemory<Platform::VULKAN> *GetGPUImage() const
         { return m_image; }
 
     InternalFormat GetTextureFormat() const
@@ -195,22 +199,23 @@ private:
         VkFormat *out_format
     );
 
-    Extent3D m_extent;
-    InternalFormat m_format;
-    ImageType m_type;
-    FilterMode m_filter_mode;
-    UniquePtr<StreamedData> m_streamed_data;
+    Extent3D                            m_extent;
+    InternalFormat                      m_format;
+    ImageType                           m_type;
+    FilterMode                          m_filter_mode;
+    UniquePtr<StreamedData>             m_streamed_data;
 
-    bool m_is_blended;
+    Bool                                m_is_blended;
 
-    InternalInfo m_internal_info;
+    InternalInfo                        m_internal_info;
 
-    SizeType m_size;
-    SizeType m_bpp; // bytes per pixel
-    GPUImageMemory *m_image;
+    SizeType                            m_size;
+    SizeType                            m_bpp; // bytes per pixel
+    GPUImageMemory<Platform::VULKAN>    *m_image;
 };
 
-class StorageImage : public Image
+template <>
+class StorageImage<Platform::VULKAN> : public Image<Platform::VULKAN>
 {
 public:
     StorageImage()
@@ -245,7 +250,7 @@ public:
         ImageType type,
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data = nullptr
-    ) : Image(
+    ) : Image<Platform::VULKAN>(
         extent,
         format,
         type,
@@ -279,7 +284,8 @@ public:
     ~StorageImage() = default;
 };
 
-class StorageImage2D : public StorageImage
+template <>
+class StorageImage2D<Platform::VULKAN> : public StorageImage<Platform::VULKAN>
 {
 public:
     StorageImage2D(
@@ -313,7 +319,8 @@ public:
     ~StorageImage2D() = default;
 };
 
-class StorageImage3D : public StorageImage
+template <>
+class StorageImage3D<Platform::VULKAN> : public StorageImage<Platform::VULKAN>
 {
 public:
     StorageImage3D(
@@ -347,7 +354,8 @@ public:
     ~StorageImage3D() = default;
 };
 
-class TextureImage : public Image
+template <>
+class TextureImage<Platform::VULKAN> : public Image<Platform::VULKAN>
 {
 public:
     TextureImage(
@@ -356,7 +364,7 @@ public:
         ImageType type,
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data
-    ) : Image(
+    ) : Image<Platform::VULKAN>(
         extent,
         format,
         type,
@@ -375,13 +383,13 @@ public:
     TextureImage &operator=(const TextureImage &other) = delete;
 
     TextureImage(TextureImage &&other) noexcept
-        : Image(std::move(other))
+        : Image<Platform::VULKAN>(std::move(other))
     {
     }
 
     TextureImage &operator=(TextureImage &&other) noexcept
     {
-        Image::operator=(std::move(other));
+        Image<Platform::VULKAN>::operator=(std::move(other));
 
         return *this;
     }
@@ -389,7 +397,8 @@ public:
     ~TextureImage() = default;
 };
 
-class TextureImage2D : public TextureImage
+template <>
+class TextureImage2D<Platform::VULKAN> : public TextureImage<Platform::VULKAN>
 {
 public:
     TextureImage2D(
@@ -398,12 +407,12 @@ public:
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_2D,
-        filter_mode,
-        std::move(streamed_data)
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_2D,
+            filter_mode,
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -425,7 +434,8 @@ public:
     ~TextureImage2D() = default;
 };
 
-class TextureImage3D : public TextureImage
+template <>
+class TextureImage3D<Platform::VULKAN> : public TextureImage<Platform::VULKAN>
 {
 public:
     TextureImage3D(
@@ -434,12 +444,12 @@ public:
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
-        extent,
-        format,
-        ImageType::TEXTURE_TYPE_3D,
-        filter_mode,
-        std::move(streamed_data)
-    )
+            extent,
+            format,
+            ImageType::TEXTURE_TYPE_3D,
+            filter_mode,
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -461,7 +471,8 @@ public:
     ~TextureImage3D() = default;
 };
 
-class TextureImageCube : public TextureImage
+template <>
+class TextureImageCube<Platform::VULKAN> : public TextureImage<Platform::VULKAN>
 {
 public:
     TextureImageCube(
@@ -470,12 +481,12 @@ public:
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data
     ) : TextureImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        filter_mode,
-        std::move(streamed_data)
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_CUBEMAP,
+            filter_mode,
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -497,7 +508,8 @@ public:
     ~TextureImageCube() = default;
 };
 
-class FramebufferImage : public Image
+template <>
+class FramebufferImage<Platform::VULKAN> : public Image<Platform::VULKAN>
 {
 public:
     FramebufferImage(
@@ -505,20 +517,20 @@ public:
         InternalFormat format,
         ImageType type,
         UniquePtr<StreamedData> &&streamed_data
-    ) : Image(
-        extent,
-        format,
-        type,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        Image::InternalInfo {
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
-                ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-                | VK_IMAGE_USAGE_SAMPLED_BIT
-                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
-        },
-        std::move(streamed_data)
-    )
+    ) : Image<Platform::VULKAN>(
+            extent,
+            format,
+            type,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            Image::InternalInfo {
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
+                    ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                    | VK_IMAGE_USAGE_SAMPLED_BIT
+                    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
+            },
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -527,25 +539,26 @@ public:
         InternalFormat format,
         ImageType type,
         FilterMode filter_mode
-    ) : Image(
-        extent,
-        format,
-        type,
-        filter_mode,
-        Image::InternalInfo {
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
-                ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-                | VK_IMAGE_USAGE_SAMPLED_BIT
-                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
-        },
-        nullptr
-    )
+    ) : Image<Platform::VULKAN>(
+            extent,
+            format,
+            type,
+            filter_mode,
+            Image::InternalInfo {
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
+                    ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                    | VK_IMAGE_USAGE_SAMPLED_BIT
+                    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
+            },
+            nullptr
+        )
     {
     }
 };
 
-class FramebufferImage2D : public FramebufferImage
+template <>
+class FramebufferImage2D<Platform::VULKAN> : public FramebufferImage<Platform::VULKAN>
 {
 public:
     FramebufferImage2D(
@@ -575,7 +588,8 @@ public:
     }
 };
 
-class FramebufferImageCube : public FramebufferImage
+template <>
+class FramebufferImageCube<Platform::VULKAN> : public FramebufferImage<Platform::VULKAN>
 {
 public:
     FramebufferImageCube(
@@ -583,11 +597,11 @@ public:
         InternalFormat format,
         UniquePtr<StreamedData> &&streamed_data
     ) : FramebufferImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        std::move(streamed_data)
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_CUBEMAP,
+            std::move(streamed_data)
+        )
     {
     }
 
@@ -596,15 +610,16 @@ public:
         InternalFormat format,
         FilterMode filter_mode
     ) : FramebufferImage(
-        Extent3D(extent),
-        format,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        filter_mode
-    )
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_CUBEMAP,
+            filter_mode
+        )
     {
     }
 };
 
+} // namespace platform
 
 } // namespace renderer
 } // namespace hyperion

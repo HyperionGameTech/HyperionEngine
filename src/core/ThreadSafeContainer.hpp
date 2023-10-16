@@ -164,12 +164,12 @@ public:
     HYP_DEF_STL_ITERATOR(m_owned_items);
 
 private:
-    ThreadName m_owner_thread;
-    Array<Handle<T>> m_owned_items;
-    Array<Handle<T>> m_items_pending_addition;
-    Array<ID<T>> m_items_pending_removal;
-    std::atomic_bool m_updates_pending;
-    std::mutex m_update_mutex;
+    ThreadName          m_owner_thread;
+    Array<Handle<T>>    m_owned_items;
+    Array<Handle<T>>    m_items_pending_addition;
+    Array<ID<T>>        m_items_pending_removal;
+    std::atomic_bool    m_updates_pending;
+    std::mutex          m_update_mutex;
 };
 
 } // namespace hyperion

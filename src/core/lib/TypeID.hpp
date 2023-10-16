@@ -31,9 +31,7 @@ private:
 public:
     template <class T>
     static const TypeID &ForType()
-    {
-        return TypeIDGenerator<T>::GetID();
-    }
+        { return TypeIDGenerator<T>::GetID(); }
 
     constexpr TypeID() : value { } { }
     constexpr TypeID(const Value &id) : value(id) {}
@@ -70,17 +68,39 @@ public:
         return *this;
     }
 
+    HYP_FORCE_INLINE
     explicit operator bool() const
         { return value != ForType<void>().value; }
 
+    HYP_FORCE_INLINE
     bool operator!() const
         { return value == ForType<void>().value; }
 
-    bool operator==(const TypeID &other) const { return value == other.value; }
-    bool operator!=(const TypeID &other) const { return value != other.value; }
-    bool operator<(const TypeID &other) const  { return value < other.value; }
-    bool operator>(const TypeID &other) const  { return value > other.value; }
+    HYP_FORCE_INLINE
+    bool operator==(const TypeID &other) const
+        { return value == other.value; }
 
+    HYP_FORCE_INLINE
+    bool operator!=(const TypeID &other) const
+        { return value != other.value; }
+
+    HYP_FORCE_INLINE
+    bool operator<(const TypeID &other) const
+        { return value < other.value; }
+
+    HYP_FORCE_INLINE
+    bool operator<=(const TypeID &other) const
+        { return value <= other.value; }
+
+    HYP_FORCE_INLINE
+    bool operator>(const TypeID &other) const
+        { return value > other.value; }
+
+    HYP_FORCE_INLINE
+    bool operator>=(const TypeID &other) const
+        { return value >= other.value; }
+
+    HYP_FORCE_INLINE
     HashCode GetHashCode() const
     {
         HashCode hc;
