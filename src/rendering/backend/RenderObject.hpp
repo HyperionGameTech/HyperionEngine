@@ -403,7 +403,9 @@ DEF_RENDER_OBJECT(DescriptorSet,       4096);
 DEF_RENDER_OBJECT(ComputePipeline,     4096);
 DEF_RENDER_OBJECT(Attachment,          4096);
 DEF_RENDER_OBJECT(AttachmentUsage,     8192);
+DEF_RENDER_OBJECT(FramebufferObject,   8192);
 
+DEF_RENDER_PLATFORM_OBJECT(Device,      1);
 DEF_RENDER_PLATFORM_OBJECT(Image,       16384);
 DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,   65536);
 

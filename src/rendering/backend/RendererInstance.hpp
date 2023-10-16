@@ -7,11 +7,9 @@
 namespace hyperion {
 namespace renderer {
 namespace platform {
-template <PlatformType PLATFORM>
-class Instance
-{
 
-};
+template <PlatformType PLATFORM>
+class Instance { };
 
 } // namespace platform
 } // namespace renderer

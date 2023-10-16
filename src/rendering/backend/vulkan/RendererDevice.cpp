@@ -15,7 +15,9 @@
 
 namespace hyperion {
 namespace renderer {
-Device::Device(VkPhysicalDevice physical, VkSurfaceKHR surface)
+namespace platform {
+
+Device<Platform::VULKAN>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface)
     : device(VK_NULL_HANDLE),
       physical(physical),
       surface(surface),
@@ -26,39 +28,39 @@ Device::Device(VkPhysicalDevice physical, VkSurfaceKHR surface)
     this->queue_family_indices = FindQueueFamilies(this->physical, this->surface);
 }
 
-Device::~Device()
+Device<Platform::VULKAN>::~Device()
 {
     delete features;
 }
 
-void Device::SetPhysicalDevice(VkPhysicalDevice physical)
+void Device<Platform::VULKAN>::SetPhysicalDevice(VkPhysicalDevice physical)
 {
     this->physical = physical;
     this->features->SetPhysicalDevice(physical);
 }
 
-void Device::SetRenderSurface(const VkSurfaceKHR &surface)
+void Device<Platform::VULKAN>::SetRenderSurface(const VkSurfaceKHR &surface)
 {
     this->surface = surface;
 }
 
-void Device::SetRequiredExtensions(const ExtensionMap &extensions)
+void Device<Platform::VULKAN>::SetRequiredExtensions(const ExtensionMap &extensions)
 {
     this->required_extensions = extensions;
 }
 
-VkDevice Device::GetDevice()
+VkDevice Device<Platform::VULKAN>::GetDevice()
 {
     AssertThrow(this->device != VK_NULL_HANDLE);
     return this->device;
 }
 
-VkPhysicalDevice Device::GetPhysicalDevice()
+VkPhysicalDevice Device<Platform::VULKAN>::GetPhysicalDevice()
 {
     return this->physical;
 }
 
-VkSurfaceKHR Device::GetRenderSurface()
+VkSurfaceKHR Device<Platform::VULKAN>::GetRenderSurface()
 {
     if (this->surface == VK_NULL_HANDLE) {
         DebugLog(LogType::Fatal, "Device render surface is null!\n");
@@ -67,7 +69,7 @@ VkSurfaceKHR Device::GetRenderSurface()
     return this->surface;
 }
 
-QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices{};
 
@@ -200,7 +202,7 @@ QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice physical_device, V
     return indices;
 }
 
-std::vector<VkExtensionProperties> Device::GetSupportedExtensions()
+std::vector<VkExtensionProperties> Device<Platform::VULKAN>::GetSupportedExtensions()
 {
     uint32_t extension_count = 0;
     vkEnumerateDeviceExtensionProperties(this->physical, nullptr, &extension_count, nullptr);
@@ -210,7 +212,7 @@ std::vector<VkExtensionProperties> Device::GetSupportedExtensions()
     return supported_extensions;
 }
 
-ExtensionMap Device::GetUnsupportedExtensions()
+ExtensionMap Device<Platform::VULKAN>::GetUnsupportedExtensions()
 {
     const auto extensions_supported = GetSupportedExtensions();
     ExtensionMap unsupported_extensions;
@@ -232,7 +234,7 @@ ExtensionMap Device::GetUnsupportedExtensions()
     return unsupported_extensions;
 }
 
-Result Device::CheckDeviceSuitable(const ExtensionMap &unsupported_extensions)
+Result Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap &unsupported_extensions)
 {
     if (!unsupported_extensions.empty()) {
         DebugLog(LogType::Warn, "--- Unsupported Extensions ---\n");
@@ -268,7 +270,7 @@ Result Device::CheckDeviceSuitable(const ExtensionMap &unsupported_extensions)
     HYPERION_RETURN_OK;
 }
 
-Result Device::SetupAllocator(Instance *instance)
+Result Device<Platform::VULKAN>::SetupAllocator(Instance<Platform::VULKAN> *instance)
 {
     VmaVulkanFunctions vkfuncs { };
     vkfuncs.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
@@ -287,7 +289,7 @@ Result Device::SetupAllocator(Instance *instance)
     HYPERION_RETURN_OK;
 }
 
-void Device::DebugLogAllocatorStats() const
+void Device<Platform::VULKAN>::DebugLogAllocatorStats() const
 {
     if (this->allocator != VK_NULL_HANDLE) {
         char *stats_string;
@@ -299,7 +301,7 @@ void Device::DebugLogAllocatorStats() const
     }
 }
 
-Result Device::DestroyAllocator()
+Result Device<Platform::VULKAN>::DestroyAllocator()
 {
     if (this->allocator != VK_NULL_HANDLE) {
         DebugLogAllocatorStats();
@@ -310,14 +312,14 @@ Result Device::DestroyAllocator()
 
     HYPERION_RETURN_OK;
 }
-Result Device::Wait() const
+Result Device<Platform::VULKAN>::Wait() const
 {
     HYPERION_VK_CHECK(vkDeviceWaitIdle(this->device));
 
     HYPERION_RETURN_OK;
 }
 
-Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_families)
+Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32_t> &required_queue_families)
 {
     DebugLog(LogType::Debug, "Memory properties:\n");
     const auto &memory_properties = features->GetPhysicalDeviceMemoryProperties();
@@ -405,7 +407,7 @@ Result Device::CreateLogicalDevice(const std::set<uint32_t> &required_queue_fami
     HYPERION_RETURN_OK;
 }
 
-VkQueue Device::GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t queue_index)
+VkQueue Device<Platform::VULKAN>::GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t queue_index)
 {
     VkQueue queue;
     vkGetDeviceQueue(this->GetDevice(), queue_family_index, queue_index, &queue);
@@ -413,7 +415,7 @@ VkQueue Device::GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t 
     return queue;
 }
 
-void Device::Destroy()
+void Device<Platform::VULKAN>::Destroy()
 {
     if (this->device != nullptr) {
         /* By the time this destructor is called there should never
@@ -424,5 +426,6 @@ void Device::Destroy()
     }
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

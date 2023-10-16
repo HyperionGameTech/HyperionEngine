@@ -13,16 +13,13 @@
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
+#include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererStructs.hpp>
 
 #include <vector>
 #include <string>
 
 namespace hyperion {
-
-namespace renderer {
-class Instance;
-} // namespace renderer
 
 struct CommandLineArguments
 {

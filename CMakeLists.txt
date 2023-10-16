@@ -3,18 +3,14 @@ cmake_minimum_required(VERSION 3.5)
 set(BUILD_NAME hyperion)
 
 set(vcpkg_path "$ENV{VCPKG_INSTALLED_DIR}/../scripts/buildsystems/vcpkg.cmake")
-#set(CMAKE_TOOLCHAIN_FILE ${vcpkg_path} CACHE STRING "CMake toolchain file")
-#set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "")
-#set(VCPKG_LIBRARY_LINKAGE dynamic)
-#set(VCPKG_BUILD_TYPE release)
 project(${BUILD_NAME} CXX C)
 
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(RENDERING_BACKEND "Vulkan" CACHE STRING "Rendering backend to use")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    set(NATIVE false)
+    set(NATIVE false CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 else()
-    set(NATIVE true)
+    set(NATIVE true CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
 endif()
 
 if(MSVC)
@@ -47,8 +43,17 @@ pkg_check_modules(GST gstreamer-1.0>=1.4
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(OpenAL)
+find_package(Vulkan)
 
-if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
+if (NOT DEFINED RENDERING_BACKEND)
+    if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
+        set(RENDERING_BACKEND "WebGPU")
+    elseif (Vulkan_FOUND)
+        set(RENDERING_BACKEND "Vulkan")
+    endif()
+endif()
+
+if (RENDERING_BACKEND STREQUAL "WebGPU")
     add_definitions(-DHYP_WEBGPU=1)
 
     include_directories(submodules/webgpu PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/webgpu/include")
@@ -57,10 +62,12 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
     add_subdirectory(submodules/webgpu)
 
     message(STATUS "Using experimental WebGPU rendering backend")
-elseif (Vulkan_FOUND)
+elseif (RENDERING_BACKEND STREQUAL "Vulkan")
     add_definitions(-DHYP_VULKAN=1)
 
     message(STATUS "Using Vulkan rendering backend")
+else()
+    message(FATAL_ERROR "No rendering backend found! Please install Vulkan or WebGPU.")
 endif()
 
 if(${OpenAL_FOUND})

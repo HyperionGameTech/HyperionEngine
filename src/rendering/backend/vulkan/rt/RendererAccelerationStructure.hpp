@@ -5,6 +5,7 @@
 
 #include <core/lib/DynArray.hpp>
 
+#include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -17,7 +18,19 @@
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
 class Instance;
+
+template <PlatformType PLATFORM>
+class Device;
+
+} // namespace platform
+
+using Device    = platform::Device<Platform::VULKAN>;
+using Instance  = platform::Instance<Platform::VULKAN>;
+
 class AccelerationStructure;
 
 enum class AccelerationStructureType
@@ -30,21 +43,21 @@ using RTUpdateStateFlags = UInt;
 
 enum RTUpdateStateFlagBits : RTUpdateStateFlags
 {
-    RT_UPDATE_STATE_FLAGS_NONE = 0x0,
+    RT_UPDATE_STATE_FLAGS_NONE                          = 0x0,
     RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE = 0x1,
-    RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS = 0x2,
-    RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES = 0x4,
-    RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM = 0x8
+    RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS      = 0x2,
+    RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES              = 0x4,
+    RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM              = 0x8
 };
 
 using AccelerationStructureFlags = UInt;
 
 enum AccelerationStructureFlagBits : AccelerationStructureFlags
 {
-    ACCELERATION_STRUCTURE_FLAGS_NONE = 0x0,
-    ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING = 0x1,
-    ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE = 0x2,
-    ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE = 0x4
+    ACCELERATION_STRUCTURE_FLAGS_NONE               = 0x0,
+    ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING   = 0x1,
+    ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE   = 0x2,
+    ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE    = 0x4
 };
 
 class AccelerationGeometry
@@ -92,16 +105,16 @@ public:
     Result Destroy(Device *device);
 
 private:
-    Array<PackedVertex> m_packed_vertices;
-    Array<PackedIndex> m_packed_indices;
+    Array<PackedVertex>                         m_packed_vertices;
+    Array<PackedIndex>                          m_packed_indices;
 
-    std::unique_ptr<PackedVertexStorageBuffer> m_packed_vertex_buffer;
-    std::unique_ptr<PackedIndexStorageBuffer> m_packed_index_buffer;
+    std::unique_ptr<PackedVertexStorageBuffer>  m_packed_vertex_buffer;
+    std::unique_ptr<PackedIndexStorageBuffer>   m_packed_index_buffer;
 
-    VkAccelerationStructureGeometryKHR m_geometry;
+    VkAccelerationStructureGeometryKHR          m_geometry;
     
-    UInt m_entity_index;
-    UInt m_material_index;
+    UInt                                        m_entity_index;
+    UInt                                        m_material_index;
 };
 
 class AccelerationStructure

@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_COMMAND_BUFFER_H
-#define HYPERION_RENDERER_COMMAND_BUFFER_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_COMMAND_BUFFER_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_COMMAND_BUFFER_HPP
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererRenderPass.hpp>

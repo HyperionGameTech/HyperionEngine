@@ -10,7 +10,13 @@ namespace hyperion {
 namespace renderer {
 
 class ImageView;
+
+namespace platform {
+template <PlatformType PLATFORM>
 class Device;
+} // namespace platform
+
+using Device = platform::Device<Platform::VULKAN>;
 
 class Sampler
 {

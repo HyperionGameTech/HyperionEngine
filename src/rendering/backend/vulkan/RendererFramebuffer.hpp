@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_FBO_H
-#define HYPERION_RENDERER_FBO_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_FBO_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_FBO_HPP
 
 #include <rendering/backend/RendererAttachment.hpp>
 #include <rendering/backend/RendererImage.hpp>

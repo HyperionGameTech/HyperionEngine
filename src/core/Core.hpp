@@ -6,9 +6,17 @@
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
+#include <rendering/backend/Platform.hpp>
+
 namespace hyperion::renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
 class Device;
+} // namespace platform
+
+using Device = platform::Device<Platform::CURRENT>;
 
 } // namespace hyperion::renderer
 

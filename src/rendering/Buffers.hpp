@@ -3,7 +3,9 @@
 
 #include <rendering/DrawProxy.hpp>
 #include <rendering/Light.hpp>
+
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/Platform.hpp>
 
 #include <math/Rect.hpp>
 #include <math/Matrix4.hpp>
@@ -30,7 +32,12 @@
 
 namespace hyperion::renderer {
 
+namespace platform {
+template <PlatformType PLATFORM>
 class Device;
+} // namespace platform
+
+using Device = platform::Device<Platform::CURRENT>;
 
 } // namespace hyperion::renderer
 

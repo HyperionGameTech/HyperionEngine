@@ -98,7 +98,7 @@ Result SemaphoreChain::Create(Device *device)
         
         HYPERION_BUBBLE_ERRORS(ref.Get().Create(device));
 
-        m_signal_semaphores_view[i] = ref.GetSemaphore();
+        m_signal_semaphores_view[i] = ref.Get().GetSemaphore();
     }
 
     for (size_t i = 0; i < m_wait_semaphores.size(); i++) {
@@ -106,7 +106,7 @@ Result SemaphoreChain::Create(Device *device)
 
         HYPERION_BUBBLE_ERRORS(ref.Get().Create(device));
 
-        m_wait_semaphores_view[i] = ref.GetSemaphore();
+        m_wait_semaphores_view[i] = ref.Get().GetSemaphore();
     }
 
     HYPERION_RETURN_OK;
@@ -156,8 +156,8 @@ SemaphoreChain &SemaphoreChain::WaitsFor(const SignalSemaphore &signal_semaphore
     }
 
     m_wait_semaphores.push_back(wait_semaphore);
-    m_wait_semaphores_view.push_back(wait_semaphore.GetSemaphore());
-    m_wait_semaphores_stage_view.push_back(wait_semaphore.GetStageFlags());
+    m_wait_semaphores_view.push_back(wait_semaphore.Get().GetSemaphore());
+    m_wait_semaphores_stage_view.push_back(wait_semaphore.Get().GetStageFlags());
 
     return *this;
 }
@@ -180,8 +180,8 @@ SemaphoreChain &SemaphoreChain::SignalsTo(const WaitSemaphore &wait_semaphore)
     }
 
     m_signal_semaphores.push_back(signal_semaphore);
-    m_signal_semaphores_view.push_back(signal_semaphore.GetSemaphore());
-    m_signal_semaphores_stage_view.push_back(signal_semaphore.GetStageFlags());
+    m_signal_semaphores_view.push_back(signal_semaphore.Get().GetSemaphore());
+    m_signal_semaphores_stage_view.push_back(signal_semaphore.Get().GetStageFlags());
 
     return *this;
 }
@@ -205,15 +205,15 @@ void SemaphoreChain::UpdateViews()
     for (size_t i = 0; i < m_signal_semaphores.size(); i++) {
         const auto &semaphore = m_signal_semaphores[i];
 
-        m_signal_semaphores_view[i] = semaphore.GetSemaphore();
-        m_signal_semaphores_stage_view[i] = semaphore.GetStageFlags();
+        m_signal_semaphores_view[i] = semaphore.Get().GetSemaphore();
+        m_signal_semaphores_stage_view[i] = semaphore.Get().GetStageFlags();
     }
 
     for (size_t i = 0; i < m_wait_semaphores.size(); i++) {
         const auto &semaphore = m_wait_semaphores[i];
 
-        m_wait_semaphores_view[i] = semaphore.GetSemaphore();
-        m_wait_semaphores_stage_view[i] = semaphore.GetStageFlags();
+        m_wait_semaphores_view[i] = semaphore.Get().GetSemaphore();
+        m_wait_semaphores_stage_view[i] = semaphore.Get().GetStageFlags();
     }
 }
 

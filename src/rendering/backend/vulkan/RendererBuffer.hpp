@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_BUFFER_H
-#define HYPERION_RENDERER_BUFFER_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -19,11 +19,15 @@ namespace renderer {
 
 using PlatformImage = VkImage;
 
-class Instance;
-class Device;
 class CommandBuffer;
 
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Instance;
+
+template <PlatformType PLATFORM>
+class Device;
 
 template <>
 class GPUMemory<Platform::VULKAN>
@@ -70,7 +74,7 @@ public:
         }
     };
 
-    static UInt FindMemoryType(Device *device, UInt vk_type_filter, VkMemoryPropertyFlags properties);
+    static UInt FindMemoryType(Device<Platform::VULKAN> *device, UInt vk_type_filter, VkMemoryPropertyFlags properties);
     static VkImageLayout GetImageLayout(ResourceState state);
     static VkAccessFlags GetAccessMask(ResourceState state);
     static VkPipelineStageFlags GetShaderStageMask(
@@ -101,7 +105,7 @@ public:
     UInt GetID() const
         { return m_id; }
 
-    void *GetMapping(Device *device) const
+    void *GetMapping(Device<Platform::VULKAN> *device) const
     {
         if (!map) {
             Map(device, &map);
@@ -110,12 +114,12 @@ public:
         return map;
     }
 
-    void Memset(Device *device, SizeType count, UByte value);
+    void Memset(Device<Platform::VULKAN> *device, SizeType count, UByte value);
 
-    void Copy(Device *device, SizeType count, const void *ptr);
-    void Copy(Device *device, SizeType offset, SizeType count, const void *ptr);
+    void Copy(Device<Platform::VULKAN> *device, SizeType count, const void *ptr);
+    void Copy(Device<Platform::VULKAN> *device, SizeType offset, SizeType count, const void *ptr);
 
-    void Read(Device *device, SizeType count, void *out_ptr) const;
+    void Read(Device<Platform::VULKAN> *device, SizeType count, void *out_ptr) const;
     
     VmaAllocation allocation;
     VkDeviceSize size;
@@ -123,8 +127,8 @@ public:
     static Stats stats;
 
 protected:
-    void Map(Device *device, void **ptr) const;
-    void Unmap(Device *device) const;
+    void Map(Device<Platform::VULKAN> *device, void **ptr) const;
+    void Unmap(Device<Platform::VULKAN> *device) const;
     void Create();
     void Destroy();
 
@@ -169,47 +173,47 @@ public:
     );
 
     [[nodiscard]] Result CopyStaged(
-        Instance *instance,
+        Instance<Platform::VULKAN> *instance,
         const void *ptr,
         SizeType count
     );
 
     [[nodiscard]] Result ReadStaged(
-        Instance *instance,
+        Instance<Platform::VULKAN> *instance,
         SizeType count,
         void *out_ptr
     ) const;
 
-    Result CheckCanAllocate(Device *device, SizeType size) const;
+    Result CheckCanAllocate(Device<Platform::VULKAN> *device, SizeType size) const;
 
     /* \brief Calls vkGetBufferDeviceAddressKHR. Only use this if the extension is enabled */
-    uint64_t GetBufferDeviceAddress(Device *device) const;
+    uint64_t GetBufferDeviceAddress(Device<Platform::VULKAN> *device) const;
 
     [[nodiscard]] Result Create(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         SizeType buffer_size,
         SizeType buffer_alignment = 0
     );
-    [[nodiscard]] Result Destroy(Device *device);
+    [[nodiscard]] Result Destroy(Device<Platform::VULKAN> *device);
     [[nodiscard]] Result EnsureCapacity(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         SizeType minimum_size,
         bool *out_size_changed = nullptr
     );
     [[nodiscard]] Result EnsureCapacity(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         SizeType minimum_size,
         SizeType alignment,
         bool *out_size_changed = nullptr
     );
 
 #ifdef HYP_DEBUG_MODE
-    void DebugLogBuffer(Instance *instance) const;
+    void DebugLogBuffer(Instance<Platform::VULKAN> *instance) const;
 
     template <class T = UByte>
     std::vector<T> DebugReadBytes(
-        Instance *instance,
-        Device *device,
+        Instance<Platform::VULKAN> *instance,
+        Device<Platform::VULKAN> *device,
         bool staged = false
     ) const
     {
@@ -230,14 +234,14 @@ public:
     
 private:
     Result CheckCanAllocate(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         const VkBufferCreateInfo &buffer_create_info,
         const VmaAllocationCreateInfo &allocation_create_info,
         SizeType size
     ) const;
 
-    VmaAllocationCreateInfo GetAllocationCreateInfo(Device *device) const;
-    VkBufferCreateInfo GetBufferCreateInfo(Device *device) const;
+    VmaAllocationCreateInfo GetAllocationCreateInfo(Device<Platform::VULKAN> *device) const;
+    VkBufferCreateInfo GetBufferCreateInfo(Device<Platform::VULKAN> *device) const;
 
     GPUBufferType type;
 
@@ -295,10 +299,10 @@ public:
         ResourceState new_state
     );
 
-    [[nodiscard]] Result Create(Device *device, PlatformImage image);
+    [[nodiscard]] Result Create(Device<Platform::VULKAN> *device, PlatformImage image);
 
-    [[nodiscard]] Result Create(Device *device, SizeType size, VkImageCreateInfo *image_info);
-    [[nodiscard]] Result Destroy(Device *device);
+    [[nodiscard]] Result Create(Device<Platform::VULKAN> *device, SizeType size, VkImageCreateInfo *image_info);
+    [[nodiscard]] Result Destroy(Device<Platform::VULKAN> *device);
 
     PlatformImage image;
 
@@ -311,4 +315,4 @@ private:
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_BUFFER_H
+#endif //HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP

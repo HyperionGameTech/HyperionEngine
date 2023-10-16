@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_INSTANCE_H
-#define HYPERION_RENDERER_INSTANCE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_INSTANCE_HPP
 
 #include <vector>
 #include <set>
@@ -10,9 +10,9 @@
 
 #include <vulkan/vulkan.h>
 
-#include <system/Application.hpp>
 #include <system/vma/VmaUsage.hpp>
 
+#include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererShader.hpp>
@@ -28,6 +28,9 @@
 #include <Types.hpp>
 
 namespace hyperion {
+
+class Application;
+
 namespace renderer {
 namespace platform {
 
@@ -82,7 +85,9 @@ public:
 
     void SetValidationLayers(Array<const char *> validation_layers);
 
-    Device *GetDevice();
+    Device<Platform::VULKAN> *GetDevice() const
+        { return m_device; }
+
     Result InitializeDevice(VkPhysicalDevice _physical_device = nullptr);
     Result InitializeSwapchain();
     
@@ -106,7 +111,7 @@ private:
 
     VmaAllocator allocator = nullptr;
 
-    Device *device = nullptr;
+    Device<Platform::VULKAN> *m_device;
 
     DeviceQueue queue_graphics,
         queue_transfer,

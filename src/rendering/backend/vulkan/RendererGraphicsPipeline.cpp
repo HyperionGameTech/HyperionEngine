@@ -126,7 +126,7 @@ Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_
     m_construction_info = std::move(construction_info);
 
     AssertThrow(m_construction_info.shader != nullptr);
-    AssertThrow(!m_construction_info.fbos.empty());
+    AssertThrow(!m_construction_info.fbos.Empty());
 
     const uint32_t width = m_construction_info.fbos[0]->GetWidth();
     const uint32_t height = m_construction_info.fbos[0]->GetHeight();
@@ -427,7 +427,7 @@ Result GraphicsPipeline::Destroy(Device *device)
 {
     VkDevice render_device = device->GetDevice();
 
-    m_construction_info.fbos.clear();
+    m_construction_info.fbos.Clear();
 
     DebugLog(LogType::Info, "Destroying pipeline!\n");
 

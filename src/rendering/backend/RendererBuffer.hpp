@@ -12,7 +12,6 @@ namespace hyperion {
 namespace renderer {
 
 class CommandBuffer;
-class Device;
 
 enum class ResourceState : UInt
 {
@@ -62,6 +61,9 @@ enum BufferIDMask : UInt64
 };
 
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
 
 template <PlatformType PLATFORM>
 class GPUMemory {};
@@ -248,6 +250,9 @@ using AccelerationStructureInstancesBuffer  = platform::AccelerationStructureIns
 using PackedVertexStorageBuffer             = platform::PackedVertexStorageBuffer<Platform::CURRENT>;
 using PackedIndexStorageBuffer              = platform::PackedIndexStorageBuffer<Platform::CURRENT>;
 using ScratchBuffer                         = platform::ScratchBuffer<Platform::CURRENT>;
+
+// Forward declared
+using Device                                = platform::Device<Platform::CURRENT>;
 
 class StagingBufferPool
 {

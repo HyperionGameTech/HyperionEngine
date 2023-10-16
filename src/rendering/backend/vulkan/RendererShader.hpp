@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_SHADER_H
-#define HYPERION_RENDERER_SHADER_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP
 
 #include <core/lib/ByteBuffer.hpp>
 #include <core/lib/DynArray.hpp>
@@ -163,4 +163,4 @@ private:
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_SHADER_H
+#endif //HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP

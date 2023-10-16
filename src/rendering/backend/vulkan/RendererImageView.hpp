@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_IMAGE_VIEW_H
-#define HYPERION_RENDERER_IMAGE_VIEW_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_IMAGE_VIEW_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_IMAGE_VIEW_HPP
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -12,7 +12,12 @@
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+template <PlatformType PLATFORM>
 class Device;
+} // namespace platform
+
+using Device = platform::Device<Platform::VULKAN>;
 
 class ImageView
 {

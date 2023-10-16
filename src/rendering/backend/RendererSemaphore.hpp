@@ -3,6 +3,18 @@
 
 #include <util/Defines.hpp>
 
+namespace hyperion {
+namespace renderer {
+
+enum class SemaphoreType
+{
+    WAIT,
+    SIGNAL
+};
+
+} // namespace renderer
+} // namespace hyperion
+
 #if HYP_VULKAN
 #include <rendering/backend/vulkan/RendererSemaphore.hpp>
 #else

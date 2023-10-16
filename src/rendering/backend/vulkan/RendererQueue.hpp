@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_QUEUE_H
-#define HYPERION_RENDERER_QUEUE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_QUEUE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_QUEUE_HPP
 
 #include <core/lib/FixedArray.hpp>
 #include <Types.hpp>

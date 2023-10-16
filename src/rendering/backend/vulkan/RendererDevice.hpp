@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_DEVICE_H
-#define HYPERION_RENDERER_DEVICE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP
 
 #include <vector>
 #include <set>
@@ -15,11 +15,17 @@ namespace hyperion {
 namespace renderer {
 
 class Features;
-class Instance;
+
 
 using ExtensionMap = std::unordered_map<std::string, bool>;
 
-class Device
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Instance;
+
+template <>
+class Device<Platform::VULKAN>
 {
     static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
 
@@ -39,7 +45,7 @@ public:
 
     void DebugLogAllocatorStats() const;
 
-    Result SetupAllocator(Instance *instance);
+    Result SetupAllocator(Instance<Platform::VULKAN> *instance);
     Result DestroyAllocator();
     VmaAllocator GetAllocator() const { return allocator; }
 
@@ -71,7 +77,8 @@ private:
     ExtensionMap required_extensions;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_DEVICE_H
+#endif //HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP

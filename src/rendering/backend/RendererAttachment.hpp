@@ -6,13 +6,25 @@
 #include <core/lib/FlatMap.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererImage.hpp>
+#include <rendering/backend/Platform.hpp>
 #include <math/Extent.hpp>
 #include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
 class Device;
+
+template <PlatformType PLATFORM>
+class Instance;
+
+} // namespace platform
+
+using Device    = platform::Device<Platform::CURRENT>;
+using Instance  = platform::Instance<Platform::CURRENT>;
 
 enum class RenderPassStage
 {

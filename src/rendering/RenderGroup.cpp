@@ -13,18 +13,18 @@ using renderer::Result;
 
 struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
 {
-    GraphicsPipelineRef pipeline;
-    renderer::ShaderProgram *shader_program;
-    renderer::RenderPass *render_pass;
-    Array<renderer::FramebufferObject *> framebuffers;
+    GraphicsPipelineRef                     pipeline;
+    renderer::ShaderProgram                 *shader_program;
+    renderer::RenderPass                    *render_pass;
+    Array<FramebufferObjectRef>             framebuffers;
     Array<Array<renderer::CommandBuffer *>> command_buffers;
-    RenderableAttributeSet attributes;
+    RenderableAttributeSet                  attributes;
 
     RENDER_COMMAND(CreateGraphicsPipeline)(
         GraphicsPipelineRef pipeline,
         renderer::ShaderProgram *shader_program,
         renderer::RenderPass *render_pass,
-        Array<renderer::FramebufferObject *> &&framebuffers,
+        Array<FramebufferObjectRef> &&framebuffers,
         Array<Array<renderer::CommandBuffer *>> &&command_buffers,
         const RenderableAttributeSet &attributes
     ) : pipeline(std::move(pipeline)),
@@ -51,8 +51,8 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
             .stencil_state     = attributes.GetStencilState()
         };
 
-        for (renderer::FramebufferObject *framebuffer : framebuffers) {
-            construction_info.fbos.push_back(framebuffer);
+        for (FramebufferObjectRef &framebuffer : framebuffers) {
+            construction_info.fbos.PushBack(std::move(framebuffer));
         }
 
         for (UInt i = 0; i < max_frames_in_flight; i++) {
@@ -144,7 +144,7 @@ void RenderGroup::Init()
     OnInit(g_engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
         renderer::RenderPass *render_pass = nullptr;
         
-        Array<renderer::FramebufferObject *> framebuffers;
+        Array<FramebufferObjectRef> framebuffers;
         framebuffers.Reserve(m_fbos.Size());
 
         for (auto &fbo : m_fbos) {
@@ -153,7 +153,7 @@ void RenderGroup::Init()
             }
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-                framebuffers.PushBack(&fbo->GetFramebuffer(frame_index));
+                framebuffers.PushBack(fbo->GetFramebuffer(frame_index));
             }
         }
 

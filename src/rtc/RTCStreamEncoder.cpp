@@ -181,7 +181,7 @@ public:
             GstFlowReturn ret = gst_app_src_push_buffer(GST_APP_SRC(appsrc), buffer);
 
             if (ret != GST_FLOW_OK) {
-                DebugLog(LogType::Error, "appsrc: push buffer error");
+                DebugLog(LogType::Error, "appsrc: push buffer error %s\n", gst_flow_get_name(ret));
             }
 
             return TRUE;

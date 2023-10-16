@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_STRUCTS_H
-#define HYPERION_RENDERER_STRUCTS_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP
 
 #include <util/EnumOptions.hpp>
 #include <HashCode.hpp>
@@ -148,4 +148,4 @@ struct hash<hyperion::renderer::ImageSubResource>
 
 } // namespace std
 
-#endif //HYPERION_RENDERER_STRUCTS_H
+#endif //HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP

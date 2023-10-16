@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_GRAPHICS_PIPELINE_H
-#define HYPERION_RENDERER_GRAPHICS_PIPELINE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_GRAPHICS_PIPELINE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_GRAPHICS_PIPELINE_HPP
 
 #include <vulkan/vulkan.h>
 
@@ -8,7 +8,6 @@
 #include <rendering/backend/RendererSwapchain.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 #include <rendering/backend/RendererShader.hpp>
-#include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -23,28 +22,29 @@ namespace hyperion {
 namespace renderer {
 
 class FramebufferObject;
+class RenderPass;
 
 class GraphicsPipeline : public Pipeline
 {
 public:
     struct ConstructionInfo
     {
-        VertexAttributeSet vertex_attributes;
+        VertexAttributeSet          vertex_attributes;
 
-        Topology topology = Topology::TRIANGLES;
-        FaceCullMode cull_mode = FaceCullMode::BACK;
-        FillMode fill_mode = FillMode::FILL;
-        BlendMode blend_mode = BlendMode::NONE;
+        Topology                    topology = Topology::TRIANGLES;
+        FaceCullMode                cull_mode = FaceCullMode::BACK;
+        FillMode                    fill_mode = FillMode::FILL;
+        BlendMode                   blend_mode = BlendMode::NONE;
 
-        bool depth_test = true,
-            depth_write = true;
+        Bool                        depth_test = true;
+        Bool                        depth_write = true;
 
-        ShaderProgram *shader = nullptr;
-        RenderPass *render_pass = nullptr;
-        std::vector<FramebufferObject *> fbos;
+        ShaderProgram               *shader = nullptr;
+        RenderPass                  *render_pass = nullptr;
+        Array<FramebufferObjectRef> fbos;
 
         // stencil
-        StencilState stencil_state { };
+        StencilState                stencil_state { };
     };
 
     GraphicsPipeline();
@@ -54,7 +54,7 @@ public:
     ~GraphicsPipeline();
 
     void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
-    void SetScissor(int x, int y, uint32_t width, uint32_t height);
+    void SetScissor(int x, int y, UInt32 width, UInt32 height);
 
     Result Create(Device *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool);
     Result Destroy(Device *device);
@@ -62,26 +62,27 @@ public:
     void Bind(CommandBuffer *cmd);
     void SubmitPushConstants(CommandBuffer *cmd) const;
 
-    const ConstructionInfo &GetConstructionInfo() const { return m_construction_info; }
+    const ConstructionInfo &GetConstructionInfo() const
+        { return m_construction_info; }
 
 private:
     Result Rebuild(Device *device, DescriptorPool *descriptor_pool);
     void UpdateDynamicStates(VkCommandBuffer cmd);
     Array<VkVertexInputAttributeDescription> BuildVertexAttributes(const VertexAttributeSet &attribute_set);
 
-    Array<VkDynamicState> m_dynamic_states;
+    Array<VkDynamicState>                       m_dynamic_states;
 
-    VkViewport viewport;
-    VkRect2D scissor;
+    VkViewport                                  viewport;
+    VkRect2D                                    scissor;
 
-    Array<VkVertexInputBindingDescription> vertex_binding_descriptions { };
-    Array<VkVertexInputAttributeDescription> vertex_attributes{};
+    Array<VkVertexInputBindingDescription>      vertex_binding_descriptions { };
+    Array<VkVertexInputAttributeDescription>    vertex_attributes{};
 
-    ConstructionInfo m_construction_info;
+    ConstructionInfo                            m_construction_info;
 
 };
 
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_GRAPHICS_PIPELINE_H
+#endif //HYPERION_RENDERER_BACKEND_VULKAN_GRAPHICS_PIPELINE_HPP

@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_RENDER_PASS_H
-#define HYPERION_RENDERER_RENDER_PASS_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_RENDER_PASS_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_RENDER_PASS_HPP
 
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>

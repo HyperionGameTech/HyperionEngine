@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_FRAME_HANDLER_H
-#define HYPERION_RENDERER_FRAME_HANDLER_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_FRAME_HANDLER_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_FRAME_HANDLER_HPP
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>

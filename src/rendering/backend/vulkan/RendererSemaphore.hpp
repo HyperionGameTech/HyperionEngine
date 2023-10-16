@@ -1,9 +1,9 @@
-#ifndef HYPERION_RENDERER_SEMAPHORE_H
-#define HYPERION_RENDERER_SEMAPHORE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_SEMAPHORE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_SEMAPHORE_HPP
 
-#include <csignal>
-
+#include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
+
 #include <util/NonOwningPtr.hpp>
 
 #include <vector>
@@ -15,7 +15,19 @@
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
 class Device;
+
+template <PlatformType PLATFORM>
+class Instance;
+
+} // namespace platform
+
+using Device    = platform::Device<Platform::VULKAN>;
+using Instance  = platform::Instance<Platform::VULKAN>;
+
 class SemaphoreChain;
 
 class Semaphore {
@@ -51,11 +63,6 @@ struct SemaphoreRef {
 
     bool operator<(const SemaphoreRef &other) const
         { return uintptr_t(semaphore.GetSemaphore()) < uintptr_t(other.semaphore.GetSemaphore()); }
-};
-
-enum class SemaphoreType {
-    WAIT,
-    SIGNAL
 };
 
 template <SemaphoreType Type>
@@ -112,9 +119,6 @@ struct SemaphoreRefHolder {
 
     Semaphore &Get() { return ref->semaphore; }
     const Semaphore &Get() const { return ref->semaphore; }
-    VkSemaphore &GetSemaphore() { return ref->semaphore.GetSemaphore(); }
-    const VkSemaphore &GetSemaphore() const { return ref->semaphore.GetSemaphore(); }
-    VkPipelineStageFlags GetStageFlags() const { return ref->semaphore.GetStageFlags(); }
 
     template <SemaphoreType ToType>
     SemaphoreRefHolder<ToType> ConvertHeldType() const
@@ -131,7 +135,6 @@ using SignalSemaphore = SemaphoreRefHolder<SemaphoreType::SIGNAL>;
 class SemaphoreChain
 {
     friend class CommandBuffer;
-    friend class Instance;
 public:
     using SemaphoreView = std::vector<VkSemaphore>;
     using SemaphoreStageView = std::vector<VkPipelineStageFlags>;

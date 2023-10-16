@@ -102,14 +102,14 @@ public:
     auto &GetAttachmentUsages() { return m_render_pass.GetAttachmentUsages(); }
     const auto &GetAttachmentUsages() const { return m_render_pass.GetAttachmentUsages(); }
 
-    renderer::FramebufferObject &GetFramebuffer(UInt frame_index) { return m_framebuffers[frame_index]; }
-    const renderer::FramebufferObject &GetFramebuffer(UInt frame_index) const { return m_framebuffers[frame_index]; }
+    const FramebufferObjectRef &GetFramebuffer(UInt frame_index) const
+        { return m_framebuffers[frame_index]; }
 
     renderer::RenderPass &GetRenderPass() { return m_render_pass; }
     const renderer::RenderPass &GetRenderPass() const { return m_render_pass; }
 
     Extent2D GetExtent() const
-        { return { m_framebuffers[0].GetWidth(), m_framebuffers[0].GetHeight() }; }
+        { return Extent2D(m_extent); }
 
     void Init();
 
@@ -117,9 +117,10 @@ public:
     void EndCapture(UInt frame_index, CommandBuffer *command_buffer);
 
 private:
-    AttachmentMap m_attachment_map;
-    FixedArray<renderer::FramebufferObject, max_frames_in_flight> m_framebuffers;
-    RenderPass m_render_pass;
+    AttachmentMap                                           m_attachment_map;
+    FixedArray<FramebufferObjectRef, max_frames_in_flight>  m_framebuffers;
+    RenderPass                                              m_render_pass;
+    Extent3D                                                m_extent;
 };
 
 } // namespace hyperion::v2

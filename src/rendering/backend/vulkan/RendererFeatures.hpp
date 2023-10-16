@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_FEATURES_H
-#define HYPERION_RENDERER_FEATURES_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_FEATURES_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_FEATURES_HPP
 
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RendererImage.hpp>

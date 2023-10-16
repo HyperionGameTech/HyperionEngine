@@ -18,10 +18,14 @@ namespace renderer {
 using v2::StreamedData;
 using v2::MemoryStreamedData;
 
-class Instance;
-class Device;
 
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <PlatformType PLATFORM>
+class Instance;
 
 template <>
 class Image<Platform::VULKAN>
@@ -52,13 +56,13 @@ public:
     /*
      * Create the image. No texture data will be copied.
      */
-    Result Create(Device *device);
+    Result Create(Device<Platform::VULKAN> *device);
 
     /* Create the image and transfer the provided texture data into it if given.
      * The image is transitioned into the given state.
      */
-    Result Create(Device *device, Instance *instance, ResourceState state);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance, ResourceState state);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
     Result Blit(
         CommandBuffer *command_buffer,
@@ -82,7 +86,7 @@ public:
     );
 
     Result GenerateMipmaps(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         CommandBuffer *command_buffer
     );
 
@@ -96,7 +100,7 @@ public:
         GPUBuffer<Platform::VULKAN> *dst_buffer
     ) const;
 
-    ByteBuffer ReadBack(Device *device, Instance *instance) const;
+    ByteBuffer ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const;
     
     const StreamedData *GetStreamedData() const
         { return m_streamed_data.Get(); }
@@ -186,13 +190,13 @@ protected:
     
 private:
     Result CreateImage(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         VkImageLayout initial_layout,
         VkImageCreateInfo *out_image_info
     );
 
     Result ConvertTo32BPP(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         VkImageType image_type,
         VkImageCreateFlags image_create_flags,
         VkImageFormatProperties *out_image_format_properties,

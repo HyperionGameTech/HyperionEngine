@@ -48,22 +48,23 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
 
 struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
 {
-    renderer::FramebufferObject *framebuffer;
-    RenderPass *render_pass;
-    AttachmentMap *attachment_map;
+    FramebufferObjectRef    framebuffer;
+    RenderPass              *render_pass;
+    AttachmentMap           *attachment_map;
 
-    RENDER_COMMAND(CreateFramebuffer)(renderer::FramebufferObject *framebuffer, RenderPass *render_pass, AttachmentMap *attachment_map)
-        : framebuffer(framebuffer),
+    RENDER_COMMAND(CreateFramebuffer)(FramebufferObjectRef framebuffer, RenderPass *render_pass, AttachmentMap *attachment_map)
+        : framebuffer(std::move(framebuffer)),
           render_pass(render_pass),
           attachment_map(attachment_map)
     {
         AssertThrow(render_pass != nullptr);
-        AssertThrow(framebuffer != nullptr);
         AssertThrow(attachment_map != nullptr);
     }
 
     virtual Result operator()()
     {
+        AssertThrow(framebuffer.IsValid());
+
         for (const auto &it : attachment_map->attachments) {
             const AttachmentDef &def = it.second;
 
@@ -72,21 +73,6 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
         }
 
         return framebuffer->Create(g_engine->GetGPUDevice(), render_pass);
-    }
-};
-
-struct RENDER_COMMAND(DestroyFramebuffer) : RenderCommand
-{
-    renderer::FramebufferObject *framebuffer;
-
-    RENDER_COMMAND(DestroyFramebuffer)(renderer::FramebufferObject *framebuffer)
-        : framebuffer(framebuffer)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        return framebuffer->Destroy(g_engine->GetGPUDevice());
     }
 };
 
@@ -149,9 +135,12 @@ Framebuffer::Framebuffer(
     RenderPass::Mode render_pass_mode,
     UInt num_multiview_layers
 ) : EngineComponentBase(),
-    m_framebuffers { renderer::FramebufferObject(extent), renderer::FramebufferObject(extent) },
+    m_extent(extent),
     m_render_pass(stage, render_pass_mode, num_multiview_layers)
 {
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        m_framebuffers[frame_index] = RenderObjects::Make<renderer::FramebufferObject>(m_extent);
+    }
 }
 
 Framebuffer::~Framebuffer()
@@ -168,11 +157,12 @@ void Framebuffer::Init()
     EngineComponentBase::Init();
     
     PUSH_RENDER_COMMAND(CreateAttachmentMap, &m_attachment_map);
-
     PUSH_RENDER_COMMAND(CreateRenderPass, &m_render_pass, &m_attachment_map);
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        PUSH_RENDER_COMMAND(CreateFramebuffer, &m_framebuffers[frame_index], &m_render_pass, &m_attachment_map);
+        AssertThrow(m_framebuffers[frame_index].IsValid());
+
+        PUSH_RENDER_COMMAND(CreateFramebuffer, m_framebuffers[frame_index], &m_render_pass, &m_attachment_map);
     }
 
     SetReady(true);
@@ -180,9 +170,7 @@ void Framebuffer::Init()
     OnTeardown([this]() {
         SetReady(false);
 
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            PUSH_RENDER_COMMAND(DestroyFramebuffer, &m_framebuffers[frame_index]);
-        }
+        SafeRelease(std::move(m_framebuffers));
 
         PUSH_RENDER_COMMAND(DestroyRenderPass, &m_render_pass);
 
@@ -193,7 +181,7 @@ void Framebuffer::Init()
 void Framebuffer::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_framebuffers[frame_index].AddAttachmentUsage(attachment_usage);
+        m_framebuffers[frame_index]->AddAttachmentUsage(attachment_usage);
     }
 
     m_render_pass.AddAttachmentUsage(attachment_usage);
@@ -202,7 +190,7 @@ void Framebuffer::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 void Framebuffer::RemoveAttachmentUsage(const Attachment *attachment)
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_framebuffers[frame_index].RemoveAttachmentUsage(attachment);
+        m_framebuffers[frame_index]->RemoveAttachmentUsage(attachment);
     }
 
     m_render_pass.RemoveAttachmentUsage(attachment);
@@ -212,7 +200,7 @@ void Framebuffer::BeginCapture(UInt frame_index, CommandBuffer *command_buffer)
 {
     AssertThrow(frame_index < max_frames_in_flight);
 
-    m_render_pass.Begin(command_buffer, &m_framebuffers[frame_index]);
+    m_render_pass.Begin(command_buffer, m_framebuffers[frame_index]);
 }
 
 void Framebuffer::EndCapture(UInt frame_index, CommandBuffer *command_buffer)

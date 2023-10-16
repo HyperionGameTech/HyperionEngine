@@ -1,5 +1,5 @@
-#ifndef HYPERION_RENDERER_PIPELINE_H
-#define HYPERION_RENDERER_PIPELINE_H
+#ifndef HYPERION_RENDERER_BACKEND_VULKAN_PIPELINE_HPP
+#define HYPERION_RENDERER_BACKEND_VULKAN_PIPELINE_HPP
 
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -16,7 +16,13 @@
 namespace hyperion {
 namespace renderer {
     
+namespace platform {
+template <PlatformType PLATFORM>
 class Device;
+} // namespace platform
+
+using Device = platform::Device<Platform::VULKAN>;
+
 class DescriptorPool;
 
 class Pipeline
