@@ -48,8 +48,19 @@ find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(OpenAL)
 
-if (Vulkan_FOUND)
+if (EXISTS "${CMAKE_SOURCE_DIR}/submodules/webgpu/CMakeLists.txt")
+    add_definitions(-DHYP_WEBGPU=1)
+
+    include_directories(submodules/webgpu PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/webgpu/include")
+    set(COMMON_LIBRARIES ${WGPU_RUNTIME_LIB})
+
+    add_subdirectory(submodules/webgpu)
+
+    message(STATUS "Using experimental WebGPU rendering backend")
+elseif (Vulkan_FOUND)
     add_definitions(-DHYP_VULKAN=1)
+
+    message(STATUS "Using Vulkan rendering backend")
 endif()
 
 if(${OpenAL_FOUND})

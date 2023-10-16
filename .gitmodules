@@ -7,3 +7,6 @@
 [submodule "submodules/zlib"]
 	path = submodules/zlib
 	url = https://github.com/madler/zlib
+[submodule "submodules/webgpu"]
+	path = submodules/webgpu
+	url = https://github.com/eliemichel/WebGPU-binaries

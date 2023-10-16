@@ -21,6 +21,7 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
 static VkResult HandleNextFrame(Device *device, Swapchain *swapchain, Frame *frame, uint32_t *index)
 {
@@ -68,7 +69,7 @@ static Array<const char *> CheckValidationLayerSupport(const Array<const char *>
     return supported_layers;
 }
 
-ExtensionMap Instance::GetExtensionMap()
+ExtensionMap Instance<Platform::VULKAN>::GetExtensionMap()
 {
     return {
 #if HYP_FEATURES_ENABLE_RAYTRACING && HYP_FEATURES_BINDLESS_TEXTURES
@@ -85,7 +86,7 @@ ExtensionMap Instance::GetExtensionMap()
     };
 }
 
-void Instance::SetValidationLayers(Array<const char *> validation_layers)
+void Instance<Platform::VULKAN>::SetValidationLayers(Array<const char *> validation_layers)
 {
     this->validation_layers = std::move(validation_layers);
 }
@@ -141,7 +142,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 
 #endif
 
-Result Instance::SetupDebug()
+Result Instance<Platform::VULKAN>::SetupDebug()
 {
     static const Array<const char *> layers {
         "VK_LAYER_KHRONOS_validation"
@@ -157,7 +158,7 @@ Result Instance::SetupDebug()
     HYPERION_RETURN_OK;
 }
 
-Instance::Instance(RC<Application> application)
+Instance<Platform::VULKAN>::Instance(RC<Application> application)
     : m_application(application),
       frame_handler(nullptr)
 {
@@ -165,7 +166,7 @@ Instance::Instance(RC<Application> application)
     this->device = nullptr;
 }
 
-Result Instance::CreateCommandPool(DeviceQueue &queue, UInt index)
+Result Instance<Platform::VULKAN>::CreateCommandPool(DeviceQueue &queue, UInt index)
 {
     VkCommandPoolCreateInfo pool_info { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
     pool_info.queueFamilyIndex = queue.family;
@@ -182,7 +183,7 @@ Result Instance::CreateCommandPool(DeviceQueue &queue, UInt index)
     HYPERION_RETURN_OK;
 }
 
-Result Instance::SetupDebugMessenger()
+Result Instance<Platform::VULKAN>::SetupDebugMessenger()
 {
 #ifndef HYPERION_BUILD_RELEASE
     VkDebugUtilsMessengerCreateInfoEXT messenger_info{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -207,7 +208,7 @@ Result Instance::SetupDebugMessenger()
     HYPERION_RETURN_OK;
 }
 
-Result Instance::Initialize(bool load_debug_layers)
+Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
 {
     /* Set up our debug and validation layers */
     if (load_debug_layers) {
@@ -334,7 +335,7 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-Result Instance::Destroy()
+Result Instance<Platform::VULKAN>::Destroy()
 {
     auto result = Result::OK;
 
@@ -393,18 +394,18 @@ Result Instance::Destroy()
     return result;
 }
 
-Device *Instance::GetDevice()
+Device *Instance<Platform::VULKAN>::GetDevice()
 {
     return device;
 }
 
-void Instance::CreateSurface()
+void Instance<Platform::VULKAN>::CreateSurface()
 {
     surface = m_application->GetCurrentWindow()->CreateVkSurface(this);
     DebugLog(LogType::Debug, "Created window surface\n");
 }
 
-VkPhysicalDevice Instance::PickPhysicalDevice(std::vector<VkPhysicalDevice> _devices)
+VkPhysicalDevice Instance<Platform::VULKAN>::PickPhysicalDevice(std::vector<VkPhysicalDevice> _devices)
 {
     Features::DeviceRequirementsResult device_requirements_result(
         Features::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR,
@@ -464,7 +465,7 @@ VkPhysicalDevice Instance::PickPhysicalDevice(std::vector<VkPhysicalDevice> _dev
     return _device;
 }
 
-Result Instance::InitializeDevice(VkPhysicalDevice physical_device)
+Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_device)
 {
     /* If no physical device passed in, we select one */
     if (physical_device == nullptr) {
@@ -522,14 +523,14 @@ Result Instance::InitializeDevice(VkPhysicalDevice physical_device)
     HYPERION_RETURN_OK;
 }
 
-Result Instance::InitializeSwapchain()
+Result Instance<Platform::VULKAN>::InitializeSwapchain()
 {
     HYPERION_BUBBLE_ERRORS(this->swapchain->Create(this->device, this->surface));
 
     HYPERION_RETURN_OK;
 }
 
-std::vector<VkPhysicalDevice> Instance::EnumeratePhysicalDevices()
+std::vector<VkPhysicalDevice> Instance<Platform::VULKAN>::EnumeratePhysicalDevices()
 {
     uint32_t device_count = 0;
 
@@ -544,7 +545,7 @@ std::vector<VkPhysicalDevice> Instance::EnumeratePhysicalDevices()
     return devices;
 }
 
-helpers::SingleTimeCommands Instance::GetSingleTimeCommands()
+helpers::SingleTimeCommands Instance<Platform::VULKAN>::GetSingleTimeCommands()
 {
     const QueueFamilyIndices &family_indices = this->device->GetQueueFamilyIndices();
 
@@ -555,5 +556,6 @@ helpers::SingleTimeCommands Instance::GetSingleTimeCommands()
     return single_time_commands;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

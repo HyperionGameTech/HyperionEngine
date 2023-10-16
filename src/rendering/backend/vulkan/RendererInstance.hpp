@@ -29,8 +29,10 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-class Instance
+template <>
+class Instance<Platform::VULKAN>
 {
     static ExtensionMap GetExtensionMap();
 
@@ -120,6 +122,7 @@ private:
 #endif
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 
