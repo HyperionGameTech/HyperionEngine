@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 Game::Game(RC<Application> application)
     : m_application(application),
       m_is_init(false),
-      m_input_manager(nullptr)
+      m_input_manager(new InputManager())
 {
 }
 
@@ -26,10 +26,9 @@ void Game::Init()
     Threads::AssertOnThread(THREAD_MAIN);
 
     AssertThrowMsg(m_application != nullptr, "No valid Application instance was provided to Game constructor!");
-    AssertThrowMsg(m_application->GetCurrentWindow() != nullptr, "The Application instance has no current window!");
-
-    m_input_manager.Reset(new InputManager());
-    m_input_manager->SetWindow(m_application->GetCurrentWindow());
+    if (m_application->GetCurrentWindow()) {
+        m_input_manager->SetWindow(m_application->GetCurrentWindow());
+    }
 
     m_scene = CreateObject<Scene>(
         Handle<Camera>(),
@@ -87,20 +86,20 @@ void Game::HandleEvent(SystemEvent &&event)
     m_input_manager->CheckEvent(&event);
 
     switch (event.GetType()) {
-        case SystemEventType::EVENT_SHUTDOWN:
-            g_engine->RequestStop();
+    case SystemEventType::EVENT_SHUTDOWN:
+        g_engine->RequestStop();
 
-            break;
-        default:
-            if (g_engine->game_thread->IsRunning()) {
-                g_engine->game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
-                    OnInputEvent(event);
+        break;
+    default:
+        if (g_engine->game_thread->IsRunning()) {
+            g_engine->game_thread->GetScheduler().Enqueue([this, event = std::move(event)](...) mutable {
+                OnInputEvent(event);
 
-                    HYPERION_RETURN_OK;
-                });
-            }
+                HYPERION_RETURN_OK;
+            });
+        }
 
-            break;
+        break;
     }
 }
 
@@ -115,57 +114,57 @@ void Game::OnInputEvent(const SystemEvent &event)
     }
 
     switch (event.GetType()) {
-        case SystemEventType::EVENT_MOUSESCROLL:
-        {
-            if (m_scene && m_scene->GetCamera()) {
-                int wheel_x,
-                    wheel_y;
+    case SystemEventType::EVENT_MOUSESCROLL:
+    {
+        if (m_scene && m_scene->GetCamera()) {
+            int wheel_x,
+                wheel_y;
 
-                event.GetMouseWheel(&wheel_x, &wheel_y);
+            event.GetMouseWheel(&wheel_x, &wheel_y);
 
+            if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
+                controller->PushCommand(CameraCommand {
+                    .command = CameraCommand::CAMERA_COMMAND_SCROLL,
+                    .scroll_data = {
+                        .wheel_x = wheel_x,
+                        .wheel_y = wheel_y
+                    }
+                });
+            }
+        }
+
+        break;
+    }
+    case SystemEventType::EVENT_MOUSEMOTION:
+    {
+        if (m_input_manager->GetWindow()->HasMouseFocus()) {
+            const auto &mouse_position = m_input_manager->GetMousePosition();
+
+            const Int mouse_x = mouse_position.x.load(),
+                mouse_y = mouse_position.y.load();
+
+            const auto extent = m_input_manager->GetWindow()->GetExtent();
+
+            const Float mx = (Float(mouse_x) - Float(extent.width) * 0.5f) / (Float(extent.width));
+            const Float my = (Float(mouse_y) - Float(extent.height) * 0.5f) / (Float(extent.height));
+            
+            if (m_scene) {
                 if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
                     controller->PushCommand(CameraCommand {
-                        .command = CameraCommand::CAMERA_COMMAND_SCROLL,
-                        .scroll_data = {
-                            .wheel_x = wheel_x,
-                            .wheel_y = wheel_y
+                        .command = CameraCommand::CAMERA_COMMAND_MAG,
+                        .mag_data = {
+                            .mouse_x = mouse_x,
+                            .mouse_y = mouse_y,
+                            .mx = mx,
+                            .my = my
                         }
                     });
                 }
             }
-
-            break;
         }
-        case SystemEventType::EVENT_MOUSEMOTION:
-        {
-            if (m_input_manager->GetWindow()->HasMouseFocus()) {
-                const auto &mouse_position = m_input_manager->GetMousePosition();
 
-                const Int mouse_x = mouse_position.x.load(),
-                    mouse_y = mouse_position.y.load();
-
-                const auto extent = m_input_manager->GetWindow()->GetExtent();
-
-                const Float mx = (Float(mouse_x) - Float(extent.width) * 0.5f) / (Float(extent.width));
-                const Float my = (Float(mouse_y) - Float(extent.height) * 0.5f) / (Float(extent.height));
-                
-                if (m_scene) {
-                    if (auto *controller = m_scene->GetCamera()->GetCameraController()) {
-                        controller->PushCommand(CameraCommand {
-                            .command = CameraCommand::CAMERA_COMMAND_MAG,
-                            .mag_data = {
-                                .mouse_x = mouse_x,
-                                .mouse_y = mouse_y,
-                                .mx = mx,
-                                .my = my
-                            }
-                        });
-                    }
-                }
-            }
-
-            break;
-        }
+        break;
+    }
     case SystemEventType::EVENT_FILE_DROP:
     {
 

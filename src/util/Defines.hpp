@@ -1,8 +1,6 @@
 #ifndef HYPERION_DEFINES_H
 #define HYPERION_DEFINES_H
 
-#define HYP_VULKAN 1
-
 // #define HYP_LOG_MEMORY_OPERATIONS
 // #define HYP_LOG_DESCRIPTOR_SET_UPDATES
 // #define HYP_DEBUG_LOG_RENDER_COMMANDS
@@ -69,7 +67,15 @@
     #define HYPERION_BUILD_RELEASE 1 // just to ensure
 #endif
 
-#if defined(__GNUC__) || defined(__GNUG__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__GNUG__)
+    #define HYP_GCC 1
+#endif
+
+#if defined(__clang__)
+    #define HYP_CLANG 1
+#endif
+
+#if defined(HYP_GCC) || defined(HYP_CLANG)
     #define HYP_CLANG_OR_GCC 1
 #elif defined(_MSC_VER)
     #define HYP_MSVC 1
@@ -152,10 +158,8 @@
     #define HYP_DEBUG_LINE       (__LINE__)
 
     #if HYP_ENABLE_BREAKPOINTS
-        #if defined(HYP_ARM) && HYP_ARM
+        #if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
             #define HYP_BREAKPOINT { __builtin_trap(); }
-            //#define HYP_BREAKPOINT { asm("brk #0xF000"); }
-            //#define HYP_BREAKPOINT { asm(".inst 0xd4200000"); }
         #else
             #define HYP_BREAKPOINT { __asm__ volatile("int $0x03"); }
         #endif

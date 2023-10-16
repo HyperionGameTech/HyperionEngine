@@ -11,6 +11,12 @@ project(${BUILD_NAME} CXX C)
 
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    set(NATIVE false)
+else()
+    set(NATIVE true)
+endif()
+
 if(MSVC)
     message(STATUS "Building on MSVC, checking toolchain is set (should be set to `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`)")
 
@@ -39,9 +45,12 @@ pkg_check_modules(GST gstreamer-1.0>=1.4
                       gstreamer-app-1.0>=1.4)
 
 find_package(Threads REQUIRED)
-find_package(Vulkan REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(OpenAL)
+
+if (Vulkan_FOUND)
+    add_definitions(-DHYP_VULKAN=1)
+endif()
 
 if(${OpenAL_FOUND})
     add_definitions(-DHYP_OPENAL=1)
@@ -63,43 +72,46 @@ if(Bullet_FOUND)
     add_definitions(-DHYP_BULLET=1)
 endif()
 
-# if glslang folder exists, link with it.
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
-    add_definitions(-DHYP_GLSLANG=1)
+if (${NATIVE})
 
-    include_directories(BEFORE submodules/glslang)
-    add_subdirectory(submodules/glslang)
+    # if glslang folder exists, link with it.
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+        add_definitions(-DHYP_GLSLANG=1)
 
-    set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        glslang
-        SPIRV
-    )
-endif()
+        include_directories(BEFORE submodules/glslang)
+        add_subdirectory(submodules/glslang)
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
-    add_definitions(-DHYP_ZLIB=1)
+        set(COMMON_LIBRARIES
+            ${COMMON_LIBRARIES}
+            glslang
+            SPIRV
+        )
+    endif()
 
-    include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-    add_subdirectory(submodules/zlib)
-    
-    set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        zlibstatic
-    )
-endif()
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
+        add_definitions(-DHYP_ZLIB=1)
+
+        include_directories(submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+        add_subdirectory(submodules/zlib)
+        
+        set(COMMON_LIBRARIES
+            ${COMMON_LIBRARIES}
+            zlibstatic
+        )
+    endif()
 
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
-    add_definitions(-DHYP_LIBDATACHANNEL=1)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
+        add_definitions(-DHYP_LIBDATACHANNEL=1)
 
-    include_directories(submodules/libdatachannel PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/libdatachannel/include")
-    add_subdirectory(submodules/libdatachannel)
-    
-    set(COMMON_LIBRARIES
-        ${COMMON_LIBRARIES}
-        datachannel-static
-    )
+        include_directories(submodules/libdatachannel PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/libdatachannel/include")
+        add_subdirectory(submodules/libdatachannel)
+        
+        set(COMMON_LIBRARIES
+            ${COMMON_LIBRARIES}
+            datachannel-static
+        )
+    endif()
 endif()
 
 if(GST_FOUND)

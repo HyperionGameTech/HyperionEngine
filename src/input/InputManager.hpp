@@ -121,20 +121,18 @@ public:
     bool IsButtonDown(int btn) const;  
     bool IsButtonUp(int btn) const { return !IsButtonDown(btn); }
 
+    ApplicationWindow *GetWindow() const
+        { return m_window; }
+
     void SetWindow(ApplicationWindow *window)
         { m_window = window; }
 
-    ApplicationWindow *GetWindow()
-        { return m_window; }
-
 private:
-    InputState m_input_state;
-    Scalar2D<true> m_mouse_position;
-    Scalar2D<true> m_window_size;
+    InputState          m_input_state;
+    Scalar2D<true>      m_mouse_position;
+    Scalar2D<true>      m_window_size;
 
-    ApplicationWindow *m_window;
-
-    std::mutex key_mutex;
+    ApplicationWindow   *m_window;
 
     void SetKey(int key, bool pressed);
     void SetMouseButton(int btn, bool pressed);
