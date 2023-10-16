@@ -129,13 +129,13 @@ public:
             return EmptyResult();
         }
 
-        if (loaded_asset.value.Is<AnyPtr>()) {
-            AnyPtr &casted_result = loaded_asset.value.Get<AnyPtr>();
+        if (loaded_asset.value.template Is<AnyPtr>()) {
+            AnyPtr &casted_result = loaded_asset.value.template Get<AnyPtr>();
             
             return MakeCastedType(std::move(casted_result));
-        } else if (loaded_asset.value.Is<AssetValue>()) {
+        } else if (loaded_asset.value.template Is<AssetValue>()) {
 
-            return ExtractAssetValue(loaded_asset.value.Get<AssetValue>());
+            return ExtractAssetValue(loaded_asset.value.template Get<AssetValue>());
         } else {
             AssertThrowMsg(false, "Unhandled variant type!");
         }

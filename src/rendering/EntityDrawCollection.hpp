@@ -55,9 +55,9 @@ class EntityDrawCollection
 public:
     struct EntityList
     {
-        Array<EntityDrawProxy> drawables;
-        Handle<RenderGroup> render_group;
-        RenderResourceManager render_side_resources;
+        Array<EntityDrawProxy>  drawables;
+        Handle<RenderGroup>     render_group;
+        RenderResourceManager   render_side_resources;
     };
 
     void Insert(const RenderableAttributeSet &attributes, const EntityDrawProxy &entity);
@@ -72,7 +72,6 @@ public:
     const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList(ThreadType) const;
 
     HashCode CalculateCombinedAttributesHashCode() const;
-
 
 private:
     static ThreadType GetThreadType();
@@ -135,7 +134,7 @@ public:
     void SetCamera(const Handle<Camera> &camera)
         { m_camera = camera; }
 
-    const Ref<EntityDrawCollection> &GetEntityCollection() const
+    const RC<EntityDrawCollection> &GetEntityCollection() const
         { return m_draw_collection; }
 
     void ClearEntities();
@@ -192,10 +191,10 @@ public:
     void Reset();
 
 private:
-    Handle<Camera> m_camera;
-    Ref<EntityDrawCollection> m_draw_collection;
-    FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_groups;
-    HashCode m_combined_attributes_hash_code;
+    Handle<Camera>                                          m_camera;
+    RC<EntityDrawCollection>                                m_draw_collection;
+    FlatMap<RenderableAttributeSet, Handle<RenderGroup>>    m_render_groups;
+    HashCode                                                m_combined_attributes_hash_code;
 };
 
 } // namespace hyperion::v2

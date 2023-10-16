@@ -132,6 +132,7 @@ include_directories(
     ${HYPERION_INCLUDE_DIR}
     ${OPENAL_INCLUDE_DIR}
     ${Vulkan_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/src
 )
 

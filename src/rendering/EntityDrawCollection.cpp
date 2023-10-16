@@ -16,12 +16,12 @@ static constexpr bool do_parallel_collection = true;
 
 struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 {
-    Ref<EntityDrawCollection> collection;
-    RenderableAttributeSet attributes;
-    EntityDrawCollection::EntityList entity_list;
+    RC<EntityDrawCollection>            collection;
+    RenderableAttributeSet              attributes;
+    EntityDrawCollection::EntityList     entity_list;
 
     RENDER_COMMAND(UpdateDrawCollectionRenderSide)(
-        const Ref<EntityDrawCollection> &collection,
+        const RC<EntityDrawCollection> &collection,
         const RenderableAttributeSet &attributes,
         EntityDrawCollection::EntityList &&entity_list
     ) : collection(collection),
@@ -32,7 +32,7 @@ struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
 
     virtual Result operator()()
     {
-        collection.Get().SetRenderSideList(attributes, std::move(entity_list));
+        collection->SetRenderSideList(attributes, std::move(entity_list));
 
         HYPERION_RETURN_OK;
     }
@@ -173,22 +173,22 @@ RenderList::RenderList(const Handle<Camera> &camera)
 
 void RenderList::ClearEntities()
 {
-    AssertThrow(m_draw_collection.IsValid());
+    AssertThrow(m_draw_collection != nullptr);
 
-    m_draw_collection.Get().ClearEntities();
+    m_draw_collection->ClearEntities();
 }
 
 void RenderList::UpdateRenderGroups()
 {
     Threads::AssertOnThread(THREAD_GAME);
-    AssertThrow(m_draw_collection.IsValid());
+    AssertThrow(m_draw_collection != nullptr);
 
     using IteratorType = ArrayMap<RenderableAttributeSet, EntityDrawCollection::EntityList>::Iterator;
 
     Array<IteratorType> iterators;
     Array<Pair<RenderableAttributeSet, Handle<RenderGroup>>> added_render_groups;
 
-    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_GAME)) {
+    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(THREAD_TYPE_GAME)) {
         for (auto &it : collection_per_pass_type) {
             iterators.PushBack(&it);
         }
@@ -263,7 +263,7 @@ void RenderList::PushEntityToRender(
 )
 {
     Threads::AssertOnThread(THREAD_GAME);
-    AssertThrow(m_draw_collection.IsValid());
+    AssertThrow(m_draw_collection != nullptr);
 
     AssertThrow(entity.IsValid());
     AssertThrow(entity->IsRenderable());
@@ -310,7 +310,7 @@ void RenderList::PushEntityToRender(
         attributes.SetStencilState(override_attributes->GetStencilState());
     }
 
-    m_draw_collection.Get().Insert(attributes, entity->GetDrawProxy());
+    m_draw_collection->Insert(attributes, entity->GetDrawProxy());
 }
 
 void RenderList::CollectDrawCalls(
@@ -325,7 +325,7 @@ void RenderList::CollectDrawCalls(
 
     Array<IteratorType> iterators;
 
-    for (auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_RENDER)) {
+    for (auto &collection_per_pass_type : m_draw_collection->GetEntityList(THREAD_TYPE_RENDER)) {
         for (auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
 
@@ -423,7 +423,7 @@ void RenderList::ExecuteDrawCalls(
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
-    AssertThrow(m_draw_collection.IsValid());
+    AssertThrow(m_draw_collection != nullptr);
 
     AssertThrowMsg(camera.IsValid(), "Cannot render with invalid Camera");
 
@@ -436,7 +436,7 @@ void RenderList::ExecuteDrawCalls(
 
     g_engine->GetRenderState().BindCamera(camera.Get());
 
-    for (const auto &collection_per_pass_type : m_draw_collection.Get().GetEntityList(THREAD_TYPE_RENDER)) {
+    for (const auto &collection_per_pass_type : m_draw_collection->GetEntityList(THREAD_TYPE_RENDER)) {
         for (const auto &it : collection_per_pass_type) {
             const RenderableAttributeSet &attributes = it.first;
             const EntityDrawCollection::EntityList &entity_list = it.second;
@@ -477,11 +477,11 @@ void RenderList::ExecuteDrawCalls(
 
 void RenderList::Reset()
 {
-    AssertThrow(m_draw_collection.IsValid());
+    AssertThrow(m_draw_collection != nullptr);
     // Threads::AssertOnThread(THREAD_GAME);
 
     // perform full clear
-    m_draw_collection.Get() = { };
+    *m_draw_collection = { };
 }
 
 } // namespace hyperion::v2
