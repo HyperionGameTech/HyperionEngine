@@ -19,8 +19,6 @@ namespace renderer {
 
 using PlatformImage = VkImage;
 
-class CommandBuffer;
-
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -28,6 +26,9 @@ class Instance;
 
 template <PlatformType PLATFORM>
 class Device;
+
+template <PlatformType PLATFORM>
+class CommandBuffer;
 
 template <>
 class GPUMemory<Platform::VULKAN>
@@ -162,12 +163,12 @@ public:
         { return vma_usage != VMA_MEMORY_USAGE_GPU_ONLY; }
 
     void InsertBarrier(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state
     ) const;
 
     void CopyFrom(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const GPUBuffer *src_buffer,
         SizeType count
     );
@@ -282,19 +283,19 @@ public:
     void SetResourceState(ResourceState new_state);
 
     void InsertBarrier(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         ResourceState new_state,
         ImageSubResourceFlagBits flags = ImageSubResourceFlags::IMAGE_SUB_RESOURCE_FLAGS_COLOR
     );
 
     void InsertBarrier(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
         ResourceState new_state
     );
 
     void InsertSubResourceBarrier(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const ImageSubResource &sub_resource,
         ResourceState new_state
     );

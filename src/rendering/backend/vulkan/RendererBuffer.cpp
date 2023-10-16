@@ -455,7 +455,7 @@ Result GPUBuffer<Platform::VULKAN>::CheckCanAllocate(
     return result;
 }
 
-void GPUBuffer<Platform::VULKAN>::InsertBarrier(CommandBuffer *command_buffer, ResourceState new_state) const
+void GPUBuffer<Platform::VULKAN>::InsertBarrier(CommandBuffer<Platform::VULKAN> *command_buffer, ResourceState new_state) const
 {
     if (buffer == nullptr) {
         DebugLog(
@@ -489,7 +489,7 @@ void GPUBuffer<Platform::VULKAN>::InsertBarrier(CommandBuffer *command_buffer, R
 }
 
 void GPUBuffer<Platform::VULKAN>::CopyFrom(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const GPUBuffer *src_buffer,
     SizeType count
 )
@@ -523,7 +523,7 @@ Result GPUBuffer<Platform::VULKAN>::CopyStaged(
         auto *staging_buffer = holder.Acquire(count);
         staging_buffer->Copy(device, count, ptr);
         
-        commands.Push([&](CommandBuffer *cmd) {
+        commands.Push([&](CommandBuffer<Platform::VULKAN> *cmd) {
             CopyFrom(cmd, staging_buffer, count);
 
             HYPERION_RETURN_OK;
@@ -546,7 +546,7 @@ Result GPUBuffer<Platform::VULKAN>::ReadStaged(
 
         auto *staging_buffer = holder.Acquire(count);
         
-        commands.Push([&](CommandBuffer *cmd) {
+        commands.Push([&](CommandBuffer<Platform::VULKAN> *cmd) {
             staging_buffer->CopyFrom(
                 cmd,
                 this,
@@ -740,7 +740,7 @@ void GPUBuffer<Platform::VULKAN>::DebugLogBuffer(Instance<Platform::VULKAN> *ins
 #endif
 
 template <>
-void VertexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
+void VertexBuffer<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd)
 {
     const VkBuffer vertex_buffers[] = { buffer };
     const VkDeviceSize offsets[]    = { 0 };
@@ -749,7 +749,7 @@ void VertexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
 }
 
 template <>
-void IndexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
+void IndexBuffer<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd)
 {
     vkCmdBindIndexBuffer(
         cmd->GetCommandBuffer(),
@@ -760,7 +760,7 @@ void IndexBuffer<Platform::VULKAN>::Bind(CommandBuffer *cmd)
 }
 
 template <>
-void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer *command_buffer, SizeType offset) const
+void IndirectBuffer<Platform::VULKAN>::DispatchIndirect(CommandBuffer<Platform::VULKAN> *command_buffer, SizeType offset) const
 {
     vkCmdDispatchIndirect(
         command_buffer->GetCommandBuffer(),
@@ -795,7 +795,7 @@ void GPUImageMemory<Platform::VULKAN>::SetResourceState(ResourceState new_state)
 }
 
 void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     ResourceState new_state,
     ImageSubResourceFlagBits flags
 )
@@ -812,7 +812,7 @@ void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
 }
 
 void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state
 )
@@ -867,7 +867,7 @@ void GPUImageMemory<Platform::VULKAN>::InsertBarrier(
 }
 
 void GPUImageMemory<Platform::VULKAN>::InsertSubResourceBarrier(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const ImageSubResource &sub_resource,
     ResourceState new_state
 )

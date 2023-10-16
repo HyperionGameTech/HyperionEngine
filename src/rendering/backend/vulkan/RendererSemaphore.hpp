@@ -23,16 +23,21 @@ class Device;
 template <PlatformType PLATFORM>
 class Instance;
 
+template <PlatformType PLATFORM>
+class CommandBuffer;
+
 } // namespace platform
 
-using Device    = platform::Device<Platform::VULKAN>;
-using Instance  = platform::Instance<Platform::VULKAN>;
+using Device        = platform::Device<Platform::VULKAN>;
+using Instance      = platform::Instance<Platform::VULKAN>;
+using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
 
 class SemaphoreChain;
 
 class Semaphore {
     friend class SemaphoreChain;
-    friend class CommandBuffer;
+    friend class platform::CommandBuffer<Platform::VULKAN>;
+
 public:
     Semaphore(VkPipelineStageFlags pipeline_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     Semaphore(const Semaphore &other) = delete;
@@ -134,7 +139,7 @@ using SignalSemaphore = SemaphoreRefHolder<SemaphoreType::SIGNAL>;
 
 class SemaphoreChain
 {
-    friend class CommandBuffer;
+    friend class platform::CommandBuffer<Platform::VULKAN>;
 public:
     using SemaphoreView = std::vector<VkSemaphore>;
     using SemaphoreStageView = std::vector<VkPipelineStageFlags>;

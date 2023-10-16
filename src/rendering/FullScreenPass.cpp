@@ -14,6 +14,7 @@ using renderer::Descriptor;
 using renderer::DescriptorSet;
 using renderer::ImageDescriptor;
 using renderer::ImageSamplerDescriptor;
+using renderer::CommandBufferType;
 using renderer::FillMode;
 
 #pragma region Render commands
@@ -124,7 +125,7 @@ void FullScreenPass::CreateQuad()
 void FullScreenPass::CreateCommandBuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_command_buffers[i] = RenderObjects::Make<CommandBuffer>(CommandBuffer::COMMAND_BUFFER_SECONDARY);
+        m_command_buffers[i] = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
     // create command buffers in render thread

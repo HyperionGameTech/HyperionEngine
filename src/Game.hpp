@@ -6,15 +6,8 @@
 #include <input/InputManager.hpp>
 #include <scene/Scene.hpp>
 #include <ui/UIScene.hpp>
+#include <rendering/backend/RendererFrame.hpp>
 #include <system/Application.hpp>
-
-namespace hyperion {
-namespace renderer {
-
-class Frame;
-
-} // namespace renderer
-} // namespace hyperion
 
 namespace hyperion::v2 {
 

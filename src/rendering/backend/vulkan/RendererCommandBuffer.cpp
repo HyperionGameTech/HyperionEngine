@@ -10,20 +10,21 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-CommandBuffer::CommandBuffer(Type type)
+CommandBuffer<Platform::VULKAN>::CommandBuffer(CommandBufferType type)
     : m_type(type),
       m_command_buffer(VK_NULL_HANDLE),
       m_command_pool(VK_NULL_HANDLE)
 {
 }
 
-CommandBuffer::~CommandBuffer()
+CommandBuffer<Platform::VULKAN>::~CommandBuffer()
 {
     AssertThrowMsg(m_command_buffer == VK_NULL_HANDLE, "command buffer should have been destroyed");
 }
 
-Result CommandBuffer::Create(Device *device, VkCommandPool command_pool)
+Result CommandBuffer<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, VkCommandPool command_pool)
 {
     AssertThrow(command_pool != VK_NULL_HANDLE);
 
@@ -55,7 +56,7 @@ Result CommandBuffer::Create(Device *device, VkCommandPool command_pool)
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::Destroy(Device *device)
+Result CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_command_buffer != VK_NULL_HANDLE);
     AssertThrow(m_command_pool != VK_NULL_HANDLE);
@@ -69,7 +70,7 @@ Result CommandBuffer::Destroy(Device *device)
     return result;
 }
 
-Result CommandBuffer::Begin(Device *device, const RenderPass *render_pass)
+Result CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *device, const RenderPass *render_pass)
 {
     VkCommandBufferInheritanceInfo inheritance_info { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
     inheritance_info.subpass = 0;
@@ -96,7 +97,7 @@ Result CommandBuffer::Begin(Device *device, const RenderPass *render_pass)
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::End(Device *device)
+Result CommandBuffer<Platform::VULKAN>::End(Device<Platform::VULKAN> *device)
 {
     HYPERION_VK_CHECK_MSG(
         vkEndCommandBuffer(m_command_buffer),
@@ -106,7 +107,7 @@ Result CommandBuffer::End(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::Reset(Device *device)
+Result CommandBuffer<Platform::VULKAN>::Reset(Device<Platform::VULKAN> *device)
 {
     HYPERION_VK_CHECK_MSG(
         vkResetCommandBuffer(m_command_buffer, 0),
@@ -116,7 +117,7 @@ Result CommandBuffer::Reset(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::SubmitPrimary(
+Result CommandBuffer<Platform::VULKAN>::SubmitPrimary(
     VkQueue queue,
     Fence *fence,
     SemaphoreChain *semaphore_chain
@@ -149,7 +150,7 @@ Result CommandBuffer::SubmitPrimary(
     HYPERION_RETURN_OK;
 }
 
-Result CommandBuffer::SubmitSecondary(CommandBuffer *primary)
+Result CommandBuffer<Platform::VULKAN>::SubmitSecondary(CommandBuffer *primary)
 {
     vkCmdExecuteCommands(
         primary->GetCommandBuffer(),
@@ -160,7 +161,7 @@ Result CommandBuffer::SubmitSecondary(CommandBuffer *primary)
     HYPERION_RETURN_OK;
 }
 
-void CommandBuffer::BindVertexBuffer(const GPUBuffer *buffer)
+void CommandBuffer<Platform::VULKAN>::BindVertexBuffer(const GPUBuffer<Platform::VULKAN> *buffer)
 {
     AssertThrow(buffer != nullptr);
     AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", UInt(buffer->GetBufferType()));
@@ -171,7 +172,7 @@ void CommandBuffer::BindVertexBuffer(const GPUBuffer *buffer)
     vkCmdBindVertexBuffers(m_command_buffer, 0, 1, vertex_buffers, offsets);
 }
 
-void CommandBuffer::BindIndexBuffer(const GPUBuffer *buffer, DatumType datum_type)
+void CommandBuffer<Platform::VULKAN>::BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type)
 {
     AssertThrow(buffer != nullptr);
     AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", UInt(buffer->GetBufferType()));
@@ -184,7 +185,7 @@ void CommandBuffer::BindIndexBuffer(const GPUBuffer *buffer, DatumType datum_typ
     );
 }
 
-void CommandBuffer::DrawIndexed(
+void CommandBuffer<Platform::VULKAN>::DrawIndexed(
     UInt32 num_indices,
     UInt32 num_instances,
     UInt32 instance_index
@@ -200,8 +201,8 @@ void CommandBuffer::DrawIndexed(
     );
 }
 
-void CommandBuffer::DrawIndexedIndirect(
-    const GPUBuffer *buffer,
+void CommandBuffer<Platform::VULKAN>::DrawIndexedIndirect(
+    const GPUBuffer<Platform::VULKAN> *buffer,
     UInt32 buffer_offset
 ) const
 {
@@ -214,7 +215,7 @@ void CommandBuffer::DrawIndexedIndirect(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     DescriptorSet::Index set
@@ -231,7 +232,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     DescriptorSet::Index set,
@@ -249,7 +250,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -267,7 +268,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     DescriptorSet::Index set,
@@ -287,7 +288,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSets(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     const DescriptorSet::Index *sets,
@@ -309,7 +310,7 @@ void CommandBuffer::BindDescriptorSets(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const GraphicsPipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -329,7 +330,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -347,7 +348,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -367,7 +368,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     DescriptorSet::Index set
@@ -384,7 +385,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     DescriptorSet::Index set,
@@ -402,7 +403,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     DescriptorSet::Index set,
@@ -422,7 +423,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSets(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
     const ComputePipeline *pipeline,
     const DescriptorSet::Index *sets,
@@ -444,7 +445,7 @@ void CommandBuffer::BindDescriptorSets(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -462,7 +463,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     const DescriptorSetRef &descriptor_set,
@@ -482,7 +483,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     DescriptorSet::Index set
@@ -499,7 +500,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     DescriptorSet::Index set,
@@ -517,7 +518,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     DescriptorSet::Index set,
@@ -537,7 +538,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSets(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
     const RaytracingPipeline *pipeline,
     const DescriptorSet::Index *sets,
@@ -559,7 +560,7 @@ void CommandBuffer::BindDescriptorSets(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
@@ -602,7 +603,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSet(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
@@ -627,7 +628,7 @@ void CommandBuffer::BindDescriptorSet(
     );
 }
 
-void CommandBuffer::BindDescriptorSets(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
@@ -695,7 +696,7 @@ void CommandBuffer::BindDescriptorSets(
     );
 }
 
-void CommandBuffer::BindDescriptorSets(
+void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
     const Pipeline *pipeline,
     VkPipelineBindPoint bind_point,
@@ -744,7 +745,7 @@ void CommandBuffer::BindDescriptorSets(
 
 
 
-void CommandBuffer::DebugMarkerBegin(const char *marker_name) const
+void CommandBuffer<Platform::VULKAN>::DebugMarkerBegin(const char *marker_name) const
 {
     if (Features::dyn_functions.vkCmdDebugMarkerBeginEXT) {
         const VkDebugMarkerMarkerInfoEXT marker {
@@ -757,12 +758,13 @@ void CommandBuffer::DebugMarkerBegin(const char *marker_name) const
     }
 }
 
-void CommandBuffer::DebugMarkerEnd() const
+void CommandBuffer<Platform::VULKAN>::DebugMarkerEnd() const
 {
     if (Features::dyn_functions.vkCmdDebugMarkerEndEXT) {
         Features::dyn_functions.vkCmdDebugMarkerEndEXT(m_command_buffer);
     }
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

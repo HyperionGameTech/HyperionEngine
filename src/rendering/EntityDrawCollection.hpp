@@ -5,6 +5,7 @@
 #include <core/lib/FlatMap.hpp>
 #include <core/ID.hpp>
 #include <rendering/DrawProxy.hpp>
+#include <rendering/backend/Platform.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
@@ -14,8 +15,12 @@
 
 namespace hyperion::renderer {
 
+namespace platform {
+template <PlatformType PLATFORM>
 class Frame;
+} // namespace platform
 
+using Frame = platform::Frame<Platform::CURRENT>;
 } // namespace hyperion::renderer
 
 namespace hyperion::v2 {
@@ -24,6 +29,8 @@ class Scene;
 class Camera;
 class Entity;
 class RenderGroup;
+
+using renderer::Frame;
 
 enum PassType : UInt
 {

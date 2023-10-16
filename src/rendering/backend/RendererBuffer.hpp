@@ -11,8 +11,6 @@
 namespace hyperion {
 namespace renderer {
 
-class CommandBuffer;
-
 enum class ResourceState : UInt
 {
     UNDEFINED,
@@ -63,6 +61,9 @@ enum BufferIDMask : UInt64
 namespace platform {
 
 template <PlatformType PLATFORM>
+class CommandBuffer;
+
+template <PlatformType PLATFORM>
 class Device;
 
 template <PlatformType PLATFORM>
@@ -86,7 +87,7 @@ public:
     {
     }
 
-    void Bind(CommandBuffer *command_buffer);
+    void Bind(CommandBuffer<PLATFORM> *command_buffer);
 };
 
 template <PlatformType PLATFORM>
@@ -98,7 +99,7 @@ public:
     {
     }
 
-    void Bind(CommandBuffer *command_buffer);
+    void Bind(CommandBuffer<PLATFORM> *command_buffer);
 
     DatumType GetDatumType() const { return m_datum_type; }
     void SetDatumType(DatumType datum_type) { m_datum_type = datum_type; }
@@ -156,7 +157,7 @@ public:
     {
     }
 
-    void DispatchIndirect(CommandBuffer *command_buffer, SizeType offset = 0) const;
+    void DispatchIndirect(CommandBuffer<PLATFORM> *command_buffer, SizeType offset = 0) const;
 };
 
 template <PlatformType PLATFORM>

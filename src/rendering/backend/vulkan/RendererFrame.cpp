@@ -6,26 +6,30 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-Frame Frame::TemporaryFrame(CommandBuffer *command_buffer, UInt frame_index)
+template <>
+Frame<Platform::VULKAN> Frame<Platform::VULKAN>::TemporaryFrame(CommandBuffer<Platform::VULKAN> *command_buffer, UInt frame_index)
 {
     Frame frame;
-    frame.command_buffer = non_owning_ptr(command_buffer);
+    frame.m_command_buffer = command_buffer;
     frame.m_frame_index = frame_index;
     return frame;
 }
 
-Frame::Frame()
+template <>
+Frame<Platform::VULKAN>::Frame()
     : m_frame_index(0),
-      command_buffer(nullptr),
+      m_command_buffer(nullptr),
       fc_queue_submit(nullptr),
       m_present_semaphores({}, {})
 {
 }
 
-Frame::Frame(UInt frame_index)
+template <>
+Frame<Platform::VULKAN>::Frame(UInt frame_index)
     : m_frame_index(frame_index),
-      command_buffer(nullptr),
+      m_command_buffer(nullptr),
       fc_queue_submit(nullptr),
       m_present_semaphores(
           { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
@@ -34,24 +38,27 @@ Frame::Frame(UInt frame_index)
 {
 }
 
-Frame::Frame(Frame &&other) noexcept
+template <>
+Frame<Platform::VULKAN>::Frame(Frame &&other) noexcept
     : m_frame_index(other.m_frame_index),
-      command_buffer(other.command_buffer),
+      m_command_buffer(other.m_command_buffer),
       fc_queue_submit(std::move(other.fc_queue_submit)),
       m_present_semaphores(std::move(other.m_present_semaphores))
 {
     other.m_frame_index = 0;
-    other.command_buffer = nullptr;
+    other.m_command_buffer = nullptr;
 }
 
-Frame::~Frame()
+template <>
+Frame<Platform::VULKAN>::~Frame()
 {
     AssertThrowMsg(fc_queue_submit == nullptr, "fc_queue_submit should have been destroyed");
 }
 
-Result Frame::Create(Device *device, const non_owning_ptr<CommandBuffer> &cmd)
+template <>
+Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, CommandBuffer<Platform::VULKAN> *cmd)
 {
-    this->command_buffer = cmd;
+    m_command_buffer = cmd;
     
     HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create(device));
 
@@ -64,38 +71,42 @@ Result Frame::Create(Device *device, const non_owning_ptr<CommandBuffer> &cmd)
     HYPERION_RETURN_OK;
 }
 
-Result Frame::Destroy(Device *device)
+template <>
+Result Frame<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     auto result = Result::OK;
 
     HYPERION_PASS_ERRORS(m_present_semaphores.Destroy(device), result);
 
     AssertThrow(fc_queue_submit != nullptr);
-
     HYPERION_PASS_ERRORS(fc_queue_submit->Destroy(device), result);
     fc_queue_submit = nullptr;
 
     return result;
 }
 
-Result Frame::BeginCapture(Device *device)
+template <>
+Result Frame<Platform::VULKAN>::BeginCapture(Device<Platform::VULKAN> *device)
 {
-    return command_buffer->Begin(device);
+    return m_command_buffer->Begin(device);
 }
 
-Result Frame::EndCapture(Device *device)
+template <>
+Result Frame<Platform::VULKAN>::EndCapture(Device<Platform::VULKAN> *device)
 {
-    return command_buffer->End(device);
+    return m_command_buffer->End(device);
 }
 
-Result Frame::Submit(DeviceQueue *queue)
+template <>
+Result Frame<Platform::VULKAN>::Submit(DeviceQueue *queue)
 {
-    return command_buffer->SubmitPrimary(
+    return m_command_buffer->SubmitPrimary(
         queue->queue,
         fc_queue_submit.get(),
         &m_present_semaphores
     );
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

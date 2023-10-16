@@ -13,12 +13,13 @@
 
 namespace hyperion::v2 {
 
+template <auto ... Args>
 struct IDCreator
 {
-    TypeID type_id;
-    std::atomic<UInt> id_counter { 0u };
-    std::mutex free_id_mutex;
-    Queue<UInt> free_indices;
+    TypeID              type_id;
+    std::atomic<UInt>   id_counter { 0u };
+    std::mutex          free_id_mutex;
+    Queue<UInt>         free_indices;
 
     UInt NextID()
     {

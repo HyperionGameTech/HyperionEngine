@@ -16,12 +16,6 @@
 #include <atomic>
 #include <type_traits>
 
-namespace hyperion::renderer {
-
-class Frame;
-
-} // namespace renderer
-
 namespace hyperion::v2 {
 
 class RenderEnvironment;

@@ -32,13 +32,18 @@ namespace hyperion {
 namespace renderer {
 
 namespace platform {
+
 template <PlatformType PLATFORM>
 class Device;
+
+template <PlatformType PLATFORM>
+class CommandBuffer;
+
 } // namespace platform
 
-using Device = platform::Device<Platform::VULKAN>;
+using Device        = platform::Device<Platform::VULKAN>;
+using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
 
-class CommandBuffer;
 class Pipeline;
 class GraphicsPipeline;
 class ComputePipeline;

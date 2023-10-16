@@ -13,7 +13,19 @@
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <PlatformType PLATFORM>
 class CommandBuffer;
+
+} // namespace platform
+
+using Device        = platform::Device<Platform::VULKAN>;
+using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
+
 class FramebufferObject;
 
 class RenderPass
@@ -85,8 +97,8 @@ private:
         { m_dependencies.push_back(dependency); }
 
     RenderPassStage m_stage;
-    Mode m_mode;
-    UInt m_num_multiview_layers;
+    Mode            m_mode;
+    UInt            m_num_multiview_layers;
 
     std::vector<AttachmentUsage *> m_render_pass_attachment_usages;
 

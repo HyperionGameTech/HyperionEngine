@@ -71,7 +71,7 @@ private:
 
     Result Begin(Device *device)
     {
-        command_buffer = RenderObjects::Make<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_PRIMARY);
+        command_buffer = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
         m_fence = std::make_unique<Fence>();
 
         HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, pool));

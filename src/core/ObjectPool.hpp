@@ -120,7 +120,7 @@ public:
 
     HYP_FORCE_INLINE UInt NextIndex()
     {
-        const UInt index = IDCreator::ForType<T>().NextID() - 1;
+        const UInt index = IDCreator<>::template ForType<T>().NextID() - 1;
 
         AssertThrowMsg(
             index < HandleDefinition<T>::max_size,
@@ -145,14 +145,14 @@ public:
     HYP_FORCE_INLINE void DecRefStrong(UInt index)
     {
         if (m_data[index].DecRefStrong() == 0 && m_data[index].GetRefCountWeak() == 0) {
-            IDCreator::ForType<T>().FreeID(index + 1);
+            IDCreator<>::template ForType<T>().FreeID(index + 1);
         }
     }
 
     HYP_FORCE_INLINE void DecRefWeak(UInt index)
     {
         if (m_data[index].DecRefWeak() == 0 && m_data[index].GetRefCountStrong() == 0) {
-            IDCreator::ForType<T>().FreeID(index + 1);
+            IDCreator<>::template ForType<T>().FreeID(index + 1);
         }
     }
 

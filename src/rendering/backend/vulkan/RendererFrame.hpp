@@ -1,6 +1,4 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_FRAME_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_FRAME_HPP
 
-// intentionally left blank
-
 #endif

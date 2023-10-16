@@ -20,6 +20,7 @@ using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
 using renderer::Result;
 using renderer::GPUBufferType;
+using renderer::CommandBufferType;
 
 struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommand
 {
@@ -184,7 +185,7 @@ struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : RenderCommand
     {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
             for (UInt i = 0; i < UInt(command_buffers[frame_index].Size()); i++) {
-                command_buffers[frame_index][i].Reset(new CommandBuffer(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY));
+                command_buffers[frame_index][i].Reset(new CommandBuffer(CommandBufferType::COMMAND_BUFFER_SECONDARY));
     
                 HYPERION_BUBBLE_ERRORS(command_buffers[frame_index][i]->Create(
                     g_engine->GetGPUInstance()->GetDevice(),

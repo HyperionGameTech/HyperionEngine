@@ -22,6 +22,7 @@ using renderer::IndirectDrawCommand;
 using renderer::Pipeline;
 using renderer::Result;
 using renderer::GPUBufferType;
+using renderer::CommandBufferType;
 
 enum BitonicSortStage : UInt32
 {
@@ -685,7 +686,7 @@ void GaussianSplatting::CreateBuffers()
 void GaussianSplatting::CreateCommandBuffers()
 {
     for (UInt frame_index = 0; frame_index < static_cast<UInt>(m_command_buffers.Size()); frame_index++) {
-        m_command_buffers[frame_index] = RenderObjects::Make<CommandBuffer>(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY);
+        m_command_buffers[frame_index] = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateGaussianSplattingCommandBuffers)>(

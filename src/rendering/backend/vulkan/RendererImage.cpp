@@ -409,7 +409,7 @@ Result Image<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 }
 
 Result Image<Platform::VULKAN>::Blit(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const Image *src
 )
 {
@@ -432,7 +432,7 @@ Result Image<Platform::VULKAN>::Blit(
 }
 
 Result Image<Platform::VULKAN>::Blit(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const Image *src_image,
     Rect src_rect,
     Rect dst_rect
@@ -504,7 +504,7 @@ Result Image<Platform::VULKAN>::Blit(
 }
 
 Result Image<Platform::VULKAN>::Blit(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const Image *src_image,
     Rect src_rect,
     Rect dst_rect,
@@ -579,7 +579,7 @@ Result Image<Platform::VULKAN>::Blit(
 
 Result Image<Platform::VULKAN>::GenerateMipmaps(
     Device<Platform::VULKAN> *device,
-    CommandBuffer *command_buffer
+    CommandBuffer<Platform::VULKAN> *command_buffer
 )
 {
     if (m_image == nullptr) {
@@ -684,7 +684,7 @@ Result Image<Platform::VULKAN>::GenerateMipmaps(
 }
 
 void Image<Platform::VULKAN>::CopyFromBuffer(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const GPUBuffer<Platform::VULKAN> *src_buffer
 ) const
 {
@@ -725,7 +725,7 @@ void Image<Platform::VULKAN>::CopyFromBuffer(
 }
 
 void Image<Platform::VULKAN>::CopyToBuffer(
-    CommandBuffer *command_buffer,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     GPUBuffer<Platform::VULKAN> *dst_buffer
 ) const
 {

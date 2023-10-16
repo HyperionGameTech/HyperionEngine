@@ -27,6 +27,9 @@ class Device;
 template <PlatformType PLATFORM>
 class Instance;
 
+template <PlatformType PLATFORM>
+class CommandBuffer;
+
 template <>
 class Image<Platform::VULKAN>
 {
@@ -65,19 +68,19 @@ public:
     Result Destroy(Device<Platform::VULKAN> *device);
 
     Result Blit(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src
     );
 
     Result Blit(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src,
         Rect src_rect,
         Rect dst_rect
     );
 
     Result Blit(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const Image *src,
         Rect src_rect,
         Rect dst_rect,
@@ -87,16 +90,16 @@ public:
 
     Result GenerateMipmaps(
         Device<Platform::VULKAN> *device,
-        CommandBuffer *command_buffer
+        CommandBuffer<Platform::VULKAN> *command_buffer
     );
 
     void CopyFromBuffer(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         const GPUBuffer<Platform::VULKAN> *src_buffer
     ) const;
 
     void CopyToBuffer(
-        CommandBuffer *command_buffer,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         GPUBuffer<Platform::VULKAN> *dst_buffer
     ) const;
 

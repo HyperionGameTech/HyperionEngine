@@ -9,6 +9,8 @@
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/rt/ProbeSystem.hpp>
 
+#include <rendering/backend/RendererFrame.hpp>
+
 #include <core/Base.hpp>
 #include <core/Name.hpp>
 #include <core/Containers.hpp>
@@ -21,10 +23,6 @@
 #include <Types.hpp>
 
 #include <vector>
-
-namespace hyperion::renderer {
-class Frame;
-} // namespace hyperion::renderer
 
 namespace hyperion::v2 {
 

@@ -8,6 +8,7 @@
 namespace hyperion::v2 {
 
 using renderer::Result;
+using renderer::CommandBufferType;
 
 #pragma region Render commands
 
@@ -137,7 +138,7 @@ void RenderGroup::Init()
 
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (auto &command_buffer : m_command_buffers[i]) {
-            command_buffer.Reset(new CommandBuffer(CommandBuffer::Type::COMMAND_BUFFER_SECONDARY));
+            command_buffer.Reset(new CommandBuffer(CommandBufferType::COMMAND_BUFFER_SECONDARY));
         }
     }
 

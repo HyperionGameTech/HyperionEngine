@@ -22,31 +22,28 @@ class GraphicsPipeline;
 class ComputePipeline;
 class RaytracingPipeline;
 
-class CommandBuffer
+namespace platform {
+
+template <>
+class CommandBuffer<Platform::VULKAN>
 {
 public:
-    enum Type
-    {
-        COMMAND_BUFFER_PRIMARY,
-        COMMAND_BUFFER_SECONDARY
-    };
-
-    CommandBuffer(Type type);
+    CommandBuffer(CommandBufferType type);
     CommandBuffer(const CommandBuffer &other) = delete;
     CommandBuffer &operator=(const CommandBuffer &other) = delete;
     ~CommandBuffer();
 
-    Type GetType() const
+    CommandBufferType GetType() const
         { return m_type; }
 
     VkCommandBuffer GetCommandBuffer() const
         { return m_command_buffer; }
 
-    Result Create(Device *device, VkCommandPool command_pool);
-    Result Destroy(Device *device);
-    Result Begin(Device *device, const RenderPass *render_pass = nullptr);
-    Result End(Device *device);
-    Result Reset(Device *device);
+    Result Create(Device<Platform::VULKAN> *device, VkCommandPool command_pool);
+    Result Destroy(Device<Platform::VULKAN> *device);
+    Result Begin(Device<Platform::VULKAN> *device, const RenderPass *render_pass = nullptr);
+    Result End(Device<Platform::VULKAN> *device);
+    Result Reset(Device<Platform::VULKAN> *device);
     Result SubmitPrimary(
         VkQueue queue,
         Fence *fence,
@@ -55,8 +52,8 @@ public:
 
     Result SubmitSecondary(CommandBuffer *primary);
 
-    void BindVertexBuffer(const GPUBuffer *buffer);
-    void BindIndexBuffer(const GPUBuffer *buffer, DatumType datum_type = DatumType::UNSIGNED_INT);
+    void BindVertexBuffer(const GPUBuffer<Platform::VULKAN> *buffer);
+    void BindIndexBuffer(const GPUBuffer<Platform::VULKAN> *buffer, DatumType datum_type = DatumType::UNSIGNED_INT);
 
     void DrawIndexed(
         UInt32 num_indices,
@@ -65,7 +62,7 @@ public:
     ) const;
 
     void DrawIndexedIndirect(
-        const GPUBuffer *buffer,
+        const GPUBuffer<Platform::VULKAN> *buffer,
         UInt32 buffer_offset
     ) const;
 
@@ -391,7 +388,7 @@ public:
     void DebugMarkerEnd() const;
 
     template <class LambdaFunction>
-    Result Record(Device *device, const RenderPass *render_pass, const LambdaFunction &fn)
+    Result Record(Device<Platform::VULKAN> *device, const RenderPass *render_pass, const LambdaFunction &fn)
     {
         HYPERION_BUBBLE_ERRORS(Begin(device, render_pass));
 
@@ -445,11 +442,12 @@ private:
         SizeType num_offsets
     ) const;
 
-    Type m_type;
-    VkCommandBuffer m_command_buffer;
-    VkCommandPool m_command_pool;
+    CommandBufferType   m_type;
+    VkCommandBuffer     m_command_buffer;
+    VkCommandPool       m_command_pool;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 
