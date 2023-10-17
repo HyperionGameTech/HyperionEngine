@@ -38,18 +38,24 @@ class Device;
 
 template <PlatformType PLATFORM>
 class CommandBuffer;
+    
+template <PlatformType PLATFORM>
+class ImageView;
+
+template <PlatformType PLATFORM>
+class Sampler;
 
 } // namespace platform
 
 using Device        = platform::Device<Platform::VULKAN>;
 using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
+using ImageView     = platform::ImageView<Platform::VULKAN>;
+using Sampler       = platform::Sampler<Platform::VULKAN>;
 
 class Pipeline;
 class GraphicsPipeline;
 class ComputePipeline;
 class RaytracingPipeline;
-class ImageView;
-class Sampler;
 class AccelerationStructure;
 class DescriptorSet;
 class DescriptorPool;

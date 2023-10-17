@@ -34,7 +34,8 @@ using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
 
 class SemaphoreChain;
 
-class Semaphore {
+class Semaphore
+{
     friend class SemaphoreChain;
     friend class platform::CommandBuffer<Platform::VULKAN>;
 

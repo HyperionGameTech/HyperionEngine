@@ -7,14 +7,16 @@
 
 namespace hyperion {
 namespace renderer {
-Sampler::Sampler(FilterMode filter_mode, WrapMode wrap_mode)
+namespace platform {
+
+Sampler<Platform::VULKAN>::Sampler(FilterMode filter_mode, WrapMode wrap_mode)
     : m_sampler(VK_NULL_HANDLE),
       m_filter_mode(filter_mode),
       m_wrap_mode(wrap_mode)
 {
 }
 
-Sampler::Sampler(Sampler &&other) noexcept
+Sampler<Platform::VULKAN>::Sampler(Sampler<Platform::VULKAN> &&other) noexcept
     : m_sampler(other.m_sampler),
       m_filter_mode(other.m_filter_mode),
       m_wrap_mode(other.m_wrap_mode)
@@ -22,7 +24,7 @@ Sampler::Sampler(Sampler &&other) noexcept
     other.m_sampler = VK_NULL_HANDLE;
 }
 
-Sampler &Sampler::operator=(Sampler &&other) noexcept
+Sampler<Platform::VULKAN> &Sampler<Platform::VULKAN>::operator=(Sampler<Platform::VULKAN> &&other) noexcept
 {
     AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");
 
@@ -35,12 +37,12 @@ Sampler &Sampler::operator=(Sampler &&other) noexcept
     return *this;
 }
 
-Sampler::~Sampler()
+Sampler<Platform::VULKAN>::~Sampler()
 {
     AssertThrowMsg(m_sampler == VK_NULL_HANDLE, "sampler should have been destroyed");
 }
 
-Result Sampler::Create(Device *device)
+Result Sampler<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_sampler == VK_NULL_HANDLE);
 
@@ -102,7 +104,7 @@ Result Sampler::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result Sampler::Destroy(Device *device)
+Result Sampler<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_sampler != VK_NULL_HANDLE);
 
@@ -113,5 +115,6 @@ Result Sampler::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

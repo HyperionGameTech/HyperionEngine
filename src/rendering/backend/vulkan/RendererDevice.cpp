@@ -117,7 +117,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             i
         );
 
-        if (!indices.present_family.has_value()) {
+        if (!indices.present_family.HasValue()) {
             VkBool32 supports_presentation = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_presentation);
 
@@ -127,7 +127,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             }
         }
 
-        if (!indices.graphics_family.has_value()) {
+        if (!indices.graphics_family.HasValue()) {
             if (predicate(i, VK_QUEUE_GRAPHICS_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated graphics presentation queue (%d)\n", i);
                 indices.graphics_family = i;
@@ -136,7 +136,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             }
         }
 
-        if (!indices.transfer_family.has_value()) {
+        if (!indices.transfer_family.HasValue()) {
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated transfer queue (%d)\n", i);
                 indices.transfer_family = i;
@@ -145,7 +145,7 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             }
         }
 
-        if (!indices.compute_family.has_value()) {
+        if (!indices.compute_family.HasValue()) {
             if (predicate(i, VK_QUEUE_COMPUTE_BIT, true)) {
                 DebugLog(LogType::Debug, "Found dedicated compute queue (%d)\n", i);
                 indices.compute_family = i;

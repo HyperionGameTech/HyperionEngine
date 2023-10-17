@@ -11,15 +11,13 @@
 
 namespace hyperion {
 namespace renderer {
-
 namespace platform {
+
 template <PlatformType PLATFORM>
 class Device;
-} // namespace platform
 
-using Device = platform::Device<Platform::VULKAN>;
-
-class ImageView
+template <>
+class ImageView<Platform::VULKAN>
 {
 public:
     ImageView();
@@ -29,12 +27,12 @@ public:
     ImageView &operator=(ImageView &&other) noexcept;
     ~ImageView();
 
-    VkImageView &GetImageView() { return m_image_view; }
-    const VkImageView &GetImageView() const { return m_image_view; }
+    VkImageView GetImageView() const
+        { return m_image_view; }
 
     /* Create imageview independent of an Image */
     Result Create(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         VkImage image,
         VkFormat format,
         VkImageAspectFlags aspect_flags,
@@ -49,8 +47,8 @@ public:
 
     /* Create imageview referencing an Image */
     Result Create(
-        Device *device,
-        const Image *image,
+        Device<Platform::VULKAN> *device,
+        const Image<Platform::VULKAN> *image,
         UInt mipmap_layer,
         UInt num_mipmaps,
         UInt face_layer,
@@ -59,18 +57,19 @@ public:
 
     /* Create imageview referencing an Image */
     Result Create(
-        Device *device,
-        const Image *image
+        Device<Platform::VULKAN> *device,
+        const Image<Platform::VULKAN> *image
     );
 
-    Result Destroy(Device *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
 private:
     VkImageView m_image_view;
 
-    UInt m_num_faces;
+    UInt        m_num_faces;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

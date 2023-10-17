@@ -7,14 +7,15 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-Swapchain::Swapchain()
+Swapchain<Platform::VULKAN>::Swapchain()
     : swapchain(nullptr),
       image_format(InternalFormat::NONE)
 {
 }
 
-VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
+VkSurfaceFormatKHR Swapchain<Platform::VULKAN>::ChooseSurfaceFormat(Device<Platform::VULKAN> *device)
 {
     DebugLog(LogType::Info, "Looking for SRGB surface format\n");
 
@@ -61,17 +62,17 @@ VkSurfaceFormatKHR Swapchain::ChooseSurfaceFormat(Device *device)
     return this->surface_format;
 }
 
-VkPresentModeKHR Swapchain::GetPresentMode()
+VkPresentModeKHR Swapchain<Platform::VULKAN>::GetPresentMode()
 {
     return HYP_ENABLE_VSYNC ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 }
 
-void Swapchain::RetrieveSupportDetails(Device *device)
+void Swapchain<Platform::VULKAN>::RetrieveSupportDetails(Device<Platform::VULKAN> *device)
 {
     this->support_details = device->GetFeatures().QuerySwapchainSupport(device->GetRenderSurface());
 }
 
-void Swapchain::RetrieveImageHandles(Device *device)
+void Swapchain<Platform::VULKAN>::RetrieveImageHandles(Device<Platform::VULKAN> *device)
 {
     UInt32 image_count = 0;
     /* Query for the size, as we will need to create swap chains with more images
@@ -85,7 +86,7 @@ void Swapchain::RetrieveImageHandles(Device *device)
     DebugLog(LogType::Info, "Retrieved Swapchain images\n");
 }
 
-Result Swapchain::Create(Device *device, const VkSurfaceKHR &surface)
+Result Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, const VkSurfaceKHR &surface)
 {
     RetrieveSupportDetails(device);
 
@@ -154,7 +155,7 @@ Result Swapchain::Create(Device *device, const VkSurfaceKHR &surface)
     HYPERION_RETURN_OK;
 }
 
-Result Swapchain::Destroy(Device *device)
+Result Swapchain<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     DebugLog(LogType::Debug, "Destroying swapchain\n");
 
@@ -163,5 +164,6 @@ Result Swapchain::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

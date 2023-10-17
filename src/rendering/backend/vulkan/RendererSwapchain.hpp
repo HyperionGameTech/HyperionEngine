@@ -19,35 +19,43 @@
 
 namespace hyperion {
 namespace renderer {
-class Swapchain
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <>
+class Swapchain<Platform::VULKAN>
 {
     static constexpr VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VkSurfaceFormatKHR ChooseSurfaceFormat(Device *device);
+    VkSurfaceFormatKHR ChooseSurfaceFormat(Device<Platform::VULKAN> *device);
     VkPresentModeKHR GetPresentMode();
-    void RetrieveSupportDetails(Device *device);
-    void RetrieveImageHandles(Device *device);
+    void RetrieveSupportDetails(Device<Platform::VULKAN> *device);
+    void RetrieveImageHandles(Device<Platform::VULKAN> *device);
 
 public:
     Swapchain();
     ~Swapchain() = default;
 
-    Result Create(Device *device, const VkSurfaceKHR &surface);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device, const VkSurfaceKHR &surface);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
-    SizeType NumImages() const { return images.Size(); }
+    SizeType NumImages() const
+        { return images.Size(); }
 
-    VkSwapchainKHR swapchain;
-    Extent2D extent;
-    VkSurfaceFormatKHR surface_format;
-    InternalFormat image_format;
-    Array<PlatformImage> images;
+    VkSwapchainKHR          swapchain;
+    Extent2D                extent;
+    VkSurfaceFormatKHR      surface_format;
+    InternalFormat          image_format;
+    Array<PlatformImage>    images;
 
 private:
     SwapchainSupportDetails support_details;
-    VkPresentModeKHR present_mode;
+    VkPresentModeKHR        present_mode;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

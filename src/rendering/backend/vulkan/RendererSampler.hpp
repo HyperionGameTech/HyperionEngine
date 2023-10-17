@@ -9,16 +9,16 @@
 namespace hyperion {
 namespace renderer {
 
-class ImageView;
-
 namespace platform {
+
 template <PlatformType PLATFORM>
 class Device;
-} // namespace platform
+    
+template <PlatformType PLATFORM>
+class ImageView;
 
-using Device = platform::Device<Platform::VULKAN>;
-
-class Sampler
+template <>
+class Sampler<Platform::VULKAN>
 {
 public:
     Sampler(
@@ -32,21 +32,25 @@ public:
     Sampler &operator=(Sampler &&other) noexcept;
     ~Sampler();
 
-    VkSampler &GetSampler() { return m_sampler; }
-    const VkSampler &GetSampler() const { return m_sampler; }
+    VkSampler GetSampler() const
+        { return m_sampler; }
 
-    FilterMode GetFilterMode() const { return m_filter_mode; }
-    WrapMode GetWrapMode() const { return m_wrap_mode; }
+    FilterMode GetFilterMode() const
+        { return m_filter_mode; }
 
-    Result Create(Device *device);
-    Result Destroy(Device *device);
+    WrapMode GetWrapMode() const
+        { return m_wrap_mode; }
+
+    Result Create(Device<Platform::VULKAN> *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
 private:
-    VkSampler m_sampler;
-    FilterMode m_filter_mode;
-    WrapMode m_wrap_mode;
+    VkSampler   m_sampler;
+    FilterMode  m_filter_mode;
+    WrapMode    m_wrap_mode;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

@@ -7,14 +7,15 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-ImageView::ImageView()
+ImageView<Platform::VULKAN>::ImageView()
     : m_image_view(VK_NULL_HANDLE),
       m_num_faces(1)
 {
 }
 
-ImageView::ImageView(ImageView &&other) noexcept
+ImageView<Platform::VULKAN>::ImageView(ImageView<Platform::VULKAN> &&other) noexcept
     : m_image_view(other.m_image_view),
       m_num_faces(other.m_num_faces)
 {
@@ -22,7 +23,7 @@ ImageView::ImageView(ImageView &&other) noexcept
     other.m_num_faces = 1;
 }
 
-ImageView &ImageView::operator=(ImageView &&other) noexcept
+ImageView<Platform::VULKAN> &ImageView<Platform::VULKAN>::operator=(ImageView<Platform::VULKAN> &&other) noexcept
 {
     m_image_view = other.m_image_view;
     m_num_faces = other.m_num_faces;
@@ -33,13 +34,13 @@ ImageView &ImageView::operator=(ImageView &&other) noexcept
     return *this;
 }
 
-ImageView::~ImageView()
+ImageView<Platform::VULKAN>::~ImageView()
 {
     AssertThrowMsg(m_image_view == VK_NULL_HANDLE, "image view should have been destroyed");
 }
 
-Result ImageView::Create(
-    Device *device,
+Result ImageView<Platform::VULKAN>::Create(
+    Device<Platform::VULKAN> *device,
     VkImage image,
     VkFormat format,
     VkImageAspectFlags aspect_flags,
@@ -76,9 +77,9 @@ Result ImageView::Create(
     HYPERION_RETURN_OK;
 }
 
-Result ImageView::Create(
-    Device *device,
-    const Image *image,
+Result ImageView<Platform::VULKAN>::Create(
+    Device<Platform::VULKAN> *device,
+    const Image<Platform::VULKAN> *image,
     UInt mipmap_layer,
     UInt num_mipmaps,
     UInt face_layer,
@@ -101,7 +102,10 @@ Result ImageView::Create(
     );
 }
 
-Result ImageView::Create(Device *device, const Image *image)
+Result ImageView<Platform::VULKAN>::Create(
+    Device<Platform::VULKAN> *device,
+    const Image<Platform::VULKAN> *image
+)
 {
     AssertThrow(image != nullptr);
     AssertThrow(image->GetGPUImage() != nullptr);
@@ -119,7 +123,7 @@ Result ImageView::Create(Device *device, const Image *image)
     );
 }
 
-Result ImageView::Destroy(Device *device)
+Result ImageView<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     vkDestroyImageView(device->GetDevice(), m_image_view, nullptr);
     m_image_view = nullptr;
@@ -127,5 +131,6 @@ Result ImageView::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
