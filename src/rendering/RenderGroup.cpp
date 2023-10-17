@@ -79,7 +79,7 @@ RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     const RenderableAttributeSet &renderable_attributes
 ) : EngineComponentBase(),
-    m_pipeline(RenderObjects::Make<renderer::GraphicsPipeline>()),
+    m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>()),
     m_shader(std::move(shader)),
     m_renderable_attributes(renderable_attributes)
 {
@@ -90,7 +90,7 @@ RenderGroup::RenderGroup(
     const RenderableAttributeSet &renderable_attributes,
     const Array<DescriptorSetRef> &used_descriptor_sets
 ) : EngineComponentBase(),
-    m_pipeline(RenderObjects::Make<renderer::GraphicsPipeline>(used_descriptor_sets)),
+    m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>(used_descriptor_sets)),
     m_shader(std::move(shader)),
     m_renderable_attributes(renderable_attributes)
 {

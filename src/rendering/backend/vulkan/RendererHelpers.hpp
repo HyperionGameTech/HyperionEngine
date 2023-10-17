@@ -35,7 +35,7 @@ class SingleTimeCommands
 public:
     SingleTimeCommands() : command_buffer{}, pool{}, family_indices{} {}
 
-    void Push(const std::function<Result(const CommandBufferRef &)> &fn)
+    void Push(const std::function<Result(const CommandBufferRef_VULKAN &)> &fn)
     {
         m_functions.push_back(fn);
     }
@@ -61,17 +61,17 @@ public:
         return result;
     }
 
-    CommandBufferRef command_buffer;
-    VkCommandPool pool;
-    QueueFamilyIndices family_indices;
+    CommandBufferRef_VULKAN command_buffer;
+    VkCommandPool           pool;
+    QueueFamilyIndices      family_indices;
 
 private:
-    std::vector<std::function<Result(const CommandBufferRef &)>> m_functions;
+    std::vector<std::function<Result(const CommandBufferRef_VULKAN &)>> m_functions;
     std::unique_ptr<Fence> m_fence;
 
     Result Begin(Device *device)
     {
-        command_buffer = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
+        command_buffer = MakeRenderObject<CommandBuffer, Platform::VULKAN>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
         m_fence = std::make_unique<Fence>();
 
         HYPERION_BUBBLE_ERRORS(command_buffer->Create(device, pool));

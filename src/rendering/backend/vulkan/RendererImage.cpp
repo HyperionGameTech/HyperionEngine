@@ -307,7 +307,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
 
         staging_buffer.Copy(device, m_size, m_streamed_data->Load().Data());
 
-        commands.Push([&](const CommandBufferRef &command_buffer) {
+        commands.Push([&](const CommandBufferRef_VULKAN &command_buffer) {
             m_image->InsertBarrier(
                 command_buffer,
                 sub_resource,
@@ -323,7 +323,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
         UInt buffer_offset_step = static_cast<UInt>(m_size) / num_faces;
 
         for (UInt i = 0; i < num_faces; i++) {
-            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef &command_buffer) {
+            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef_VULKAN &command_buffer) {
                 VkBufferImageCopy region { };
                 region.bufferOffset = i * buffer_offset_step;
                 region.bufferRowLength = 0;
@@ -354,14 +354,14 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
 
             /* Generate our mipmaps
             */
-            commands.Push([this, device](const CommandBufferRef &command_buffer) {
+            commands.Push([this, device](const CommandBufferRef_VULKAN &command_buffer) {
                 return GenerateMipmaps(device, command_buffer);
             });
         }
     }
 
     /* Transition from whatever the previous layout state was to our destination state */
-    commands.Push([&](const CommandBufferRef &command_buffer) {
+    commands.Push([&](const CommandBufferRef_VULKAN &command_buffer) {
         m_image->InsertBarrier(
             command_buffer,
             sub_resource,
@@ -780,7 +780,7 @@ ByteBuffer Image<Platform::VULKAN>::ReadBack(Device<Platform::VULKAN> *device, I
         }
 
 
-        commands.Push([this, &staging_buffer](const CommandBufferRef &command_buffer) {
+        commands.Push([this, &staging_buffer](const CommandBufferRef_VULKAN &command_buffer) {
             CopyToBuffer(command_buffer, &staging_buffer);
 
             HYPERION_RETURN_OK;

@@ -39,13 +39,12 @@ enum HandleDeletionMask : HandleDeletionMaskBits
     RENDERABLE_DELETION_SHADERS           = 1 << 5
 };
 
-constexpr UInt8 initial_cycles_remaining = UInt8(max_frames_in_flight + 1);
-
-
 class SafeDeleter
 {
 
 public:
+    static constexpr UInt8 initial_cycles_remaining = UInt8(max_frames_in_flight + 1);
+
     void SafeReleaseHandle(Handle<Texture> &&resource)
     {
         SafeReleaseHandleImpl<Texture>(std::move(resource), RENDERABLE_DELETION_TEXTURES);
@@ -130,55 +129,6 @@ public:
         }
     };
 
-    
-    template <class T>
-    struct RenderObjectDeletionEntry : private KeyValuePair<renderer::RenderObjectHandle<T>, UInt8>
-    {
-        using Base = KeyValuePair<renderer::RenderObjectHandle<T>, UInt8>;
-
-        using Base::first;
-        using Base::second;
-
-        static_assert(renderer::has_render_object_defined<T>, "T must be a render object");
-
-        RenderObjectDeletionEntry(renderer::RenderObjectHandle<T> &&renderable)
-            : Base(std::move(renderable), initial_cycles_remaining)
-        {
-        }
-
-        RenderObjectDeletionEntry(const renderer::RenderObjectHandle<T> &renderable) = delete;
-
-        RenderObjectDeletionEntry(const RenderObjectDeletionEntry &other) = delete;
-        RenderObjectDeletionEntry &operator=(const RenderObjectDeletionEntry &other) = delete;
-
-        RenderObjectDeletionEntry(RenderObjectDeletionEntry &&other) noexcept
-            : Base(std::move(other))
-        {
-        }
-
-        RenderObjectDeletionEntry &operator=(RenderObjectDeletionEntry &&other) noexcept
-        {
-            Base::operator=(std::move(other));
-
-            return *this;
-        }
-
-        ~RenderObjectDeletionEntry() = default;
-
-        bool operator==(const RenderObjectDeletionEntry &other) const
-            { return Base::operator==(other); }
-
-        bool operator<(const RenderObjectDeletionEntry &other) const
-            { return Base::operator<(other); }
-    
-        void PerformDeletion(bool force = false)
-        {
-            // cycle should be at zero
-            AssertThrow(force || Base::second == 0u);
-
-            Base::first.Reset();
-        }
-    };
 
 
 

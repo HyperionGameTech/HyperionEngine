@@ -432,7 +432,7 @@ void VoxelConeTracing::CreateDescriptors()
 
             for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
                 // create descriptor sets for mip generation.
-                auto mip_descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
+                auto mip_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
 
                 auto *mip_in = mip_descriptor_set
                     ->AddDescriptor<renderer::ImageDescriptor>(0);

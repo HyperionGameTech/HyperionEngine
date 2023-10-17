@@ -144,7 +144,7 @@ static bool ResizeBuffer(
             new_buffer_size = MathUtil::NextPowerOf2(new_buffer_size);
         }
 
-        buffers[frame_index] = RenderObjects::Make<GPUBuffer>(BufferType());
+        buffers[frame_index] = MakeRenderObject<GPUBuffer>(BufferType());
 
         DebugLog(
             LogType::Debug,
@@ -209,7 +209,7 @@ bool IndirectDrawState::ResizeIndirectDrawCommandsBuffer(Frame *frame, SizeType 
         SafeRelease(std::move(m_staging_buffers[frame->GetFrameIndex()]));
     }
 
-    m_staging_buffers[frame->GetFrameIndex()] = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+    m_staging_buffers[frame->GetFrameIndex()] = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
     HYPERION_ASSERT_RESULT(m_staging_buffers[frame->GetFrameIndex()]->Create(
         g_engine->GetGPUDevice(),
@@ -378,7 +378,7 @@ IndirectRenderer::~IndirectRenderer() = default;
 void IndirectRenderer::Create()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+        m_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateIndirectRenderer)>(*this);

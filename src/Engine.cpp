@@ -1136,7 +1136,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
     m_instance->GetDescriptorPool().DestroyPendingDescriptorSets(m_instance->GetDevice(), frame_index);
     m_instance->GetDescriptorPool().UpdateDescriptorSets(m_instance->GetDevice(), frame_index);
 
-    RenderObjectDeleter::Iterate();
+    RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();
 
     m_safe_deleter.PerformEnqueuedDeletions();
 }

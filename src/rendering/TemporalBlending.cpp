@@ -135,7 +135,7 @@ void TemporalBlending::CreateImageOutputs()
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         auto &image_output = m_image_outputs[frame_index];
 
-        image_output.image = RenderObjects::Make<Image>(StorageImage(
+        image_output.image = MakeRenderObject<Image>(StorageImage(
             Extent3D(m_extent),
             m_image_format,
             ImageType::TEXTURE_TYPE_2D,
@@ -143,7 +143,7 @@ void TemporalBlending::CreateImageOutputs()
             nullptr
         ));
 
-        image_output.image_view = RenderObjects::Make<ImageView>();
+        image_output.image_view = MakeRenderObject<ImageView>();
     }
 
     PUSH_RENDER_COMMAND(CreateTemporalBlendingImageOutputs, m_image_outputs.Data());
@@ -152,7 +152,7 @@ void TemporalBlending::CreateImageOutputs()
 void TemporalBlending::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         if (m_input_framebuffer) {
             AssertThrowMsg(m_input_framebuffer->GetAttachmentUsages().size() != 0, "No attachment refs on input framebuffer!");

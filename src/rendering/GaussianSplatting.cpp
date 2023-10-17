@@ -480,10 +480,10 @@ void GaussianSplattingInstance::Record(Frame *frame)
 
 void GaussianSplattingInstance::CreateBuffers()
 {
-    m_splat_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_splat_indices_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_scene_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
-    m_indirect_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
+    m_splat_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_splat_indices_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_scene_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+    m_indirect_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
 
     PUSH_RENDER_COMMAND(
         CreateGaussianSplattingInstanceBuffers,
@@ -506,7 +506,7 @@ void GaussianSplattingInstance::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++) {
-            m_descriptor_sets[frame_index][sort_stage_index] = RenderObjects::Make<DescriptorSet>();
+            m_descriptor_sets[frame_index][sort_stage_index] = MakeRenderObject<DescriptorSet>();
 
             // splat data
             m_descriptor_sets[frame_index][sort_stage_index]
@@ -675,7 +675,7 @@ void GaussianSplatting::SetGaussianSplattingInstance(Handle<GaussianSplattingIns
 
 void GaussianSplatting::CreateBuffers()
 {
-    m_staging_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
+    m_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
 
     RenderCommands::Push<RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)>(
         m_staging_buffer,
@@ -686,7 +686,7 @@ void GaussianSplatting::CreateBuffers()
 void GaussianSplatting::CreateCommandBuffers()
 {
     for (UInt frame_index = 0; frame_index < static_cast<UInt>(m_command_buffers.Size()); frame_index++) {
-        m_command_buffers[frame_index] = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
+        m_command_buffers[frame_index] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
     RenderCommands::Push<RENDER_COMMAND(CreateGaussianSplattingCommandBuffers)>(

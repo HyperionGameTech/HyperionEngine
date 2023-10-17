@@ -284,7 +284,7 @@ void ProbeGrid::CreatePipeline()
     m_shader = g_shader_manager->GetOrCreate(HYP_NAME(RTProbe));
     InitObject(m_shader);
 
-    m_pipeline = RenderObjects::Make<RaytracingPipeline>(
+    m_pipeline = MakeRenderObject<RaytracingPipeline>(
         Array<DescriptorSetRef> {
             m_descriptor_sets[0],
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),
@@ -332,7 +332,7 @@ void ProbeGrid::CreateComputePipelines()
 
 void ProbeGrid::CreateUniformBuffer()
 {
-    m_uniform_buffer = RenderObjects::Make<GPUBuffer>(UniformBuffer());
+    m_uniform_buffer = MakeRenderObject<GPUBuffer>(UniformBuffer());
 
     const Extent2D grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Extent3D num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
@@ -382,7 +382,7 @@ void ProbeGrid::CreateStorageBuffers()
 {
     const Extent3D probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_radiance_buffer = RenderObjects::Make<GPUBuffer>(StorageBuffer());
+    m_radiance_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
 
     PUSH_RENDER_COMMAND(
         CreateProbeGridRadianceBuffer,
@@ -399,7 +399,7 @@ void ProbeGrid::CreateStorageBuffers()
             1
         };
 
-        m_irradiance_image = RenderObjects::Make<Image>(StorageImage(
+        m_irradiance_image = MakeRenderObject<Image>(StorageImage(
             extent,
             irradiance_format,
             ImageType::TEXTURE_TYPE_2D,
@@ -410,7 +410,7 @@ void ProbeGrid::CreateStorageBuffers()
     }
 
     { // irradiance image view
-        m_irradiance_image_view = RenderObjects::Make<ImageView>();
+        m_irradiance_image_view = MakeRenderObject<ImageView>();
 
         PUSH_RENDER_COMMAND(CreateProbeGridImageView, m_irradiance_image_view, m_irradiance_image);
     }
@@ -424,7 +424,7 @@ void ProbeGrid::CreateStorageBuffers()
             1
         };
 
-        m_depth_image = RenderObjects::Make<Image>(StorageImage(
+        m_depth_image = MakeRenderObject<Image>(StorageImage(
             extent,
             depth_format,
             ImageType::TEXTURE_TYPE_2D,
@@ -435,7 +435,7 @@ void ProbeGrid::CreateStorageBuffers()
     }
 
     { // depth image view
-        m_depth_image_view = RenderObjects::Make<ImageView>();
+        m_depth_image_view = MakeRenderObject<ImageView>();
 
         PUSH_RENDER_COMMAND(CreateProbeGridImageView, m_depth_image_view, m_depth_image);
     }
@@ -444,7 +444,7 @@ void ProbeGrid::CreateStorageBuffers()
 void ProbeGrid::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
             ->SetElementAccelerationStructure(0, &m_tlas->GetInternalTLAS());

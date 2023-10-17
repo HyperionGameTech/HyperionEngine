@@ -125,7 +125,7 @@ void FullScreenPass::CreateQuad()
 void FullScreenPass::CreateCommandBuffers()
 {
     for (UInt i = 0; i < max_frames_in_flight; i++) {
-        m_command_buffers[i] = RenderObjects::Make<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
+        m_command_buffers[i] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
     // create command buffers in render thread
@@ -147,8 +147,8 @@ void FullScreenPass::CreateFramebuffer()
 
     renderer::AttachmentUsage *attachment_usage;
 
-    m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+    m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
+        MakeRenderObject<Image>(renderer::FramebufferImage2D(
             m_extent,
             m_image_format,
             nullptr

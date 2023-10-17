@@ -33,7 +33,7 @@ static void AddOwnedAttachment(
     AttachmentUsage *attachment_usage;
 
     attachments.PushBack(std::make_unique<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+        MakeRenderObject<Image>(renderer::FramebufferImage2D(
             extent,
             format,
             nullptr

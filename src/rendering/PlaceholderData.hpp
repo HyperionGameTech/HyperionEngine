@@ -79,7 +79,7 @@ public:
 
         const auto required_size_pow2 = MathUtil::NextPowerOf2(required_size);
 
-        auto buffer = RenderObjects::Make<renderer::GPUBuffer>(buffer_type);
+        auto buffer = MakeRenderObject<renderer::GPUBuffer>(buffer_type);
         HYPERION_ASSERT_RESULT(buffer->Create(device, required_size_pow2));
 
         if (buffer->IsCPUAccessible()) {

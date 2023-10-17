@@ -162,12 +162,12 @@ class Attachment
     friend class AttachmentUsage;
 
 public:
-    Attachment(ImageRef &&image, RenderPassStage stage);
+    Attachment(ImageRef_VULKAN &&image, RenderPassStage stage);
     Attachment(const Attachment &other) = delete;
     Attachment &operator=(const Attachment &other) = delete;
     ~Attachment();
 
-    const ImageRef &GetImage() const { return m_image; }
+    const ImageRef_VULKAN &GetImage() const { return m_image; }
 
     auto &GetAttachmentUsages() { return m_attachment_usages; }
     const auto &GetAttachmentUsages() const { return m_attachment_usages; }
@@ -226,12 +226,12 @@ private:
         }
     }
 
-    bool m_is_created;
-    ImageRef m_image;
-    RenderPassStage m_stage;
+    Bool                                m_is_created;
+    ImageRef_VULKAN                     m_image;
+    RenderPassStage                     m_stage;
 
-    Array<AttachmentUsageRef> m_attachment_usages;
-    Array<AttachmentUsage::RefCount *> m_ref_counts;
+    Array<AttachmentUsageRef>           m_attachment_usages;
+    Array<AttachmentUsage::RefCount *>  m_ref_counts;
 };
 
 } // namespace renderer

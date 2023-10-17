@@ -48,7 +48,7 @@ void ImmediateMode::Create()
     }
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = RenderObjects::Make<renderer::DescriptorSet>();
+        m_descriptor_sets[frame_index] = MakeRenderObject<renderer::DescriptorSet>();
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<DynamicStorageBufferDescriptor>(0)

@@ -29,22 +29,22 @@ class GraphicsPipeline : public Pipeline
 public:
     struct ConstructionInfo
     {
-        VertexAttributeSet          vertex_attributes;
+        VertexAttributeSet                  vertex_attributes;
 
-        Topology                    topology = Topology::TRIANGLES;
-        FaceCullMode                cull_mode = FaceCullMode::BACK;
-        FillMode                    fill_mode = FillMode::FILL;
-        BlendMode                   blend_mode = BlendMode::NONE;
+        Topology                            topology = Topology::TRIANGLES;
+        FaceCullMode                        cull_mode = FaceCullMode::BACK;
+        FillMode                            fill_mode = FillMode::FILL;
+        BlendMode                           blend_mode = BlendMode::NONE;
 
-        Bool                        depth_test = true;
-        Bool                        depth_write = true;
+        Bool                                depth_test = true;
+        Bool                                depth_write = true;
 
-        ShaderProgram               *shader = nullptr;
-        RenderPass                  *render_pass = nullptr;
-        Array<FramebufferObjectRef> fbos;
+        ShaderProgram                       *shader = nullptr;
+        RenderPass                          *render_pass = nullptr;
+        Array<FramebufferObjectRef>         fbos;
 
         // stencil
-        StencilState                stencil_state { };
+        StencilState                        stencil_state { };
     };
 
     GraphicsPipeline();

@@ -137,7 +137,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
 
             auto &descriptor_pool = g_engine->GetGPUInstance()->GetDescriptorPool();
 
-            DescriptorSetRef descriptor_set = RenderObjects::Make<renderer::DescriptorSet>(
+            DescriptorSetRef descriptor_set = MakeRenderObject<renderer::DescriptorSet>(
                 parent_index,
                 UInt(index),
                 false

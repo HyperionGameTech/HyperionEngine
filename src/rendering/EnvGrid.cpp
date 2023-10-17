@@ -641,7 +641,7 @@ void EnvGrid::CreateSHData()
 {
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
-    m_sh_tiles_buffer = RenderObjects::Make<GPUBuffer>(StorageBuffer());
+    m_sh_tiles_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
     
     PUSH_RENDER_COMMAND(
         CreateSHData,
@@ -649,7 +649,7 @@ void EnvGrid::CreateSHData()
     );
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_compute_sh_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+        m_compute_sh_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
             ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
@@ -693,7 +693,7 @@ void EnvGrid::CreateSHClipmapData()
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_compute_clipmaps_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+        m_compute_clipmaps_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
             ->SetElementBuffer(0, g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
@@ -813,32 +813,32 @@ void EnvGrid::CreateLightFieldData()
         1
     };
 
-    m_light_field_color_texture.image = RenderObjects::Make<Image>(StorageImage(
+    m_light_field_color_texture.image = MakeRenderObject<Image>(StorageImage(
         extent,
         InternalFormat::RGBA16F,
         ImageType::TEXTURE_TYPE_2D,
         nullptr
     ));
 
-    m_light_field_color_texture.image_view = RenderObjects::Make<ImageView>();
+    m_light_field_color_texture.image_view = MakeRenderObject<ImageView>();
 
-    m_light_field_normals_texture.image = RenderObjects::Make<Image>(StorageImage(
+    m_light_field_normals_texture.image = MakeRenderObject<Image>(StorageImage(
         extent,
         InternalFormat::RG16F,
         ImageType::TEXTURE_TYPE_2D,
         nullptr
     ));
 
-    m_light_field_normals_texture.image_view = RenderObjects::Make<ImageView>();
+    m_light_field_normals_texture.image_view = MakeRenderObject<ImageView>();
 
-    m_light_field_depth_texture.image = RenderObjects::Make<Image>(StorageImage(
+    m_light_field_depth_texture.image = MakeRenderObject<Image>(StorageImage(
         extent,
         InternalFormat::RG16F,
         ImageType::TEXTURE_TYPE_2D,
         nullptr
     ));
 
-    m_light_field_depth_texture.image_view = RenderObjects::Make<ImageView>();
+    m_light_field_depth_texture.image_view = MakeRenderObject<ImageView>();
 
     PUSH_RENDER_COMMAND(
         CreateLightFieldStorageImages,
@@ -852,7 +852,7 @@ void EnvGrid::CreateLightFieldData()
     // Descriptor sets
 
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_light_field_probe_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+        m_light_field_probe_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(0)
             ->SetElementSRV(0, &g_engine->GetPlaceholderData().GetImageViewCube1x1R8());
@@ -945,7 +945,7 @@ void EnvGrid::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         0,
-        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
             probe_dimensions,
             InternalFormat::RGBA8_SRGB,
             nullptr
@@ -959,7 +959,7 @@ void EnvGrid::CreateFramebuffer()
         // Normals
         m_framebuffer->AddAttachment(
             1,
-            RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+            MakeRenderObject<Image>(renderer::FramebufferImageCube(
                 probe_dimensions,
                 InternalFormat::RG8,
                 nullptr
@@ -972,7 +972,7 @@ void EnvGrid::CreateFramebuffer()
         // Moments
         m_framebuffer->AddAttachment(
             2,
-            RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+            MakeRenderObject<Image>(renderer::FramebufferImageCube(
                 probe_dimensions,
                 InternalFormat::RG16F,
                 nullptr
@@ -987,7 +987,7 @@ void EnvGrid::CreateFramebuffer()
         GetEnvGridType() == ENV_GRID_TYPE_SH
             ? 1
             : 3,
-        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
             probe_dimensions,
             g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr

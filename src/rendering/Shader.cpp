@@ -126,7 +126,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : RenderCommand
 GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 {
     {
-        sh_grid_buffer = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
+        sh_grid_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
     }
 
     {
@@ -134,7 +134,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
         const Extent3D image_dimensions { dimension_cube, dimension_cube, dimension_cube };
 
         for (auto &item : textures) {
-            item.image = RenderObjects::Make<Image>(StorageImage(
+            item.image = MakeRenderObject<Image>(StorageImage(
                 image_dimensions,
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_3D,
@@ -142,7 +142,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
                 UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(Float) * 4))
             ));
 
-            item.image_view = RenderObjects::Make<ImageView>();
+            item.image_view = MakeRenderObject<ImageView>();
         }
     }
 
@@ -150,7 +150,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
         const Extent3D image_dimensions { 32, 32, 32 };
 
         for (auto &item : clipmaps) {
-            item.image = RenderObjects::Make<Image>(StorageImage(
+            item.image = MakeRenderObject<Image>(StorageImage(
                 image_dimensions,
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_3D,
@@ -158,7 +158,7 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
                 UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(Float) * 4))
             ));
 
-            item.image_view = RenderObjects::Make<ImageView>();
+            item.image_view = MakeRenderObject<ImageView>();
         }
     }
 }
@@ -232,14 +232,14 @@ void ShaderGlobals::Destroy()
 
 Shader::Shader()
     : EngineComponentBase(),
-      m_shader_program(RenderObjects::Make<ShaderProgram>())
+      m_shader_program(MakeRenderObject<ShaderProgram>())
 {
 }
 
 Shader::Shader(const CompiledShader &compiled_shader)
     : EngineComponentBase(),
       m_compiled_shader(compiled_shader),
-      m_shader_program(RenderObjects::Make<ShaderProgram>())
+      m_shader_program(MakeRenderObject<ShaderProgram>())
 {
 }
 

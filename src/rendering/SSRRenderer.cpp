@@ -190,54 +190,54 @@ void SSRRenderer::Create()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_image_outputs[frame_index][0] = ImageOutput {
-            RenderObjects::Make<Image>(StorageImage(
+            MakeRenderObject<Image>(StorageImage(
                 Extent3D(m_extent),
                 InternalFormat::RGBA16F,
                 ImageType::TEXTURE_TYPE_2D,
                 nullptr
             )),
-            RenderObjects::Make<ImageView>()
+            MakeRenderObject<ImageView>()
         };
 
         m_image_outputs[frame_index][1] = ImageOutput {
-            RenderObjects::Make<Image>(StorageImage(
+            MakeRenderObject<Image>(StorageImage(
                 Extent3D(m_extent),
                 ssr_format,
                 ImageType::TEXTURE_TYPE_2D,
                 nullptr
             )),
-            RenderObjects::Make<ImageView>()
+            MakeRenderObject<ImageView>()
         };
 
         // if constexpr (blur_result) {
             m_image_outputs[frame_index][2] = ImageOutput {
-                RenderObjects::Make<Image>(StorageImage(
+                MakeRenderObject<Image>(StorageImage(
                     Extent3D(m_extent),
                     ssr_format,
                     ImageType::TEXTURE_TYPE_2D,
                     nullptr
                 )),
-                RenderObjects::Make<ImageView>()
+                MakeRenderObject<ImageView>()
             };
 
             m_image_outputs[frame_index][3] = ImageOutput {
-                RenderObjects::Make<Image>(StorageImage(
+                MakeRenderObject<Image>(StorageImage(
                     Extent3D(m_extent),
                     ssr_format,
                     ImageType::TEXTURE_TYPE_2D,
                     nullptr
                 )),
-                RenderObjects::Make<ImageView>()
+                MakeRenderObject<ImageView>()
             };
 
             m_radius_output[frame_index] = ImageOutput {
-                RenderObjects::Make<Image>(StorageImage(
+                MakeRenderObject<Image>(StorageImage(
                     Extent3D(m_extent),
                     InternalFormat::R8,
                     ImageType::TEXTURE_TYPE_2D,
                     nullptr
                 )),
-                RenderObjects::Make<ImageView>()
+                MakeRenderObject<ImageView>()
             };
         // }
     }
@@ -339,7 +339,7 @@ void SSRRenderer::Destroy()
 void SSRRenderer::CreateUniformBuffers()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_uniform_buffers[frame_index] = RenderObjects::Make<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
+        m_uniform_buffers[frame_index] = MakeRenderObject<GPUBuffer>(GPUBufferType::CONSTANT_BUFFER);
     }
 
     PUSH_RENDER_COMMAND(
@@ -352,7 +352,7 @@ void SSRRenderer::CreateUniformBuffers()
 void SSRRenderer::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set // 1st stage -- trace, write UVs
             ->AddDescriptor<renderer::StorageImageDescriptor>(0)

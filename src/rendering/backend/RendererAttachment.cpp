@@ -36,7 +36,7 @@ AttachmentUsage *AttachmentSet::Get(UInt binding) const
 
 Result AttachmentSet::Add(Device *device, UInt binding, InternalFormat format)
 {
-    return Add(device, binding, RenderObjects::Make<Image>(FramebufferImage2D(Extent2D(m_extent), format, nullptr)));
+    return Add(device, binding, MakeRenderObject<Image>(FramebufferImage2D(Extent2D(m_extent), format, nullptr)));
 }
 
 Result AttachmentSet::Add(Device *device, UInt binding, ImageRef &&image)
@@ -47,7 +47,7 @@ Result AttachmentSet::Add(Device *device, UInt binding, ImageRef &&image)
         return { Result::RENDERER_ERR, "Cannot set duplicate bindings" };
     }
 
-    m_attachments.PushBack(RenderObjects::Make<Attachment>(
+    m_attachments.PushBack(MakeRenderObject<Attachment>(
         std::move(image),
         m_stage
     ));

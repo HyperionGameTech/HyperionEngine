@@ -343,7 +343,7 @@ void EnvProbe::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         0,
-        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
             m_dimensions,
             format,
             nullptr
@@ -355,7 +355,7 @@ void EnvProbe::CreateFramebuffer()
 
     m_framebuffer->AddAttachment(
         1,
-        RenderObjects::Make<Image>(renderer::FramebufferImageCube(
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
             m_dimensions,
             g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr

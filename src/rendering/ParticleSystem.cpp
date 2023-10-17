@@ -254,9 +254,9 @@ void ParticleSpawner::Record(CommandBuffer *command_buffer)
 
 void ParticleSpawner::CreateBuffers()
 {
-    m_particle_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
-    m_indirect_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
-    m_noise_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_particle_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_indirect_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::INDIRECT_ARGS_BUFFER);
+    m_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
     PUSH_RENDER_COMMAND(
         CreateParticleSpawnerBuffers,
@@ -277,7 +277,7 @@ void ParticleSpawner::CreateShader()
 void ParticleSpawner::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = RenderObjects::Make<DescriptorSet>();
+        m_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
         // particle data
         m_descriptor_sets[frame_index]
@@ -429,7 +429,7 @@ void ParticleSystem::Init()
 
 void ParticleSystem::CreateBuffers()
 {
-    m_staging_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+    m_staging_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
     RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemBuffers)>(
         m_staging_buffer,

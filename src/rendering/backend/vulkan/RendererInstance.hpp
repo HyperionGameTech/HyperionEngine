@@ -68,18 +68,23 @@ public:
     VkCommandPool GetGraphicsCommandPool(UInt index = 0) const { return this->queue_graphics.command_pools[index]; }
     VkCommandPool GetComputeCommandPool(UInt index = 0) const { return this->queue_compute.command_pools[index]; }
     
-    VkInstance GetInstance() const { return this->instance; }
+    VkInstance GetInstance() const
+        { return this->instance; }
 
-    Swapchain *GetSwapchain() { return swapchain; }
-    const Swapchain *GetSwapchain() const { return swapchain; }
+    Swapchain *GetSwapchain() const
+        { return swapchain; }
                                                           
-    FrameHandler *GetFrameHandler() { return frame_handler; }
-    const FrameHandler *GetFrameHandler() const { return frame_handler; }
+    FrameHandler<Platform::VULKAN> *GetFrameHandler() const
+        { return frame_handler; }
 
-    StagingBufferPool &GetStagingBufferPool() { return m_staging_buffer_pool; }
-    const StagingBufferPool &GetStagingBufferPool() const { return m_staging_buffer_pool; }
+    StagingBufferPool &GetStagingBufferPool()
+        { return m_staging_buffer_pool; }
 
-    VmaAllocator GetAllocator() const { return allocator; }
+    const StagingBufferPool &GetStagingBufferPool() const
+        { return m_staging_buffer_pool; }
+
+    VmaAllocator GetAllocator() const
+        { return allocator; }
 
     helpers::SingleTimeCommands GetSingleTimeCommands();
 
@@ -93,37 +98,37 @@ public:
     
     Result Destroy();
 
-    const char *app_name;
-    const char *engine_name;
+    const char                      *app_name;
+    const char                      *engine_name;
     
-    Swapchain *swapchain = nullptr;
+    Swapchain                       *swapchain = nullptr;
 
     /* Per frame data */
-    FrameHandler *frame_handler;
+    FrameHandler<Platform::VULKAN>  *frame_handler;
 
 private:
-    RC<Application> m_application;
+    RC<Application>                 m_application;
 
-    VkInstance instance = nullptr;
-    VkSurfaceKHR surface = nullptr;
+    VkInstance                      instance = nullptr;
+    VkSurfaceKHR                    surface = nullptr;
 
-    DescriptorPool descriptor_pool;
+    DescriptorPool                  descriptor_pool;
 
-    VmaAllocator allocator = nullptr;
+    VmaAllocator                    allocator = nullptr;
 
-    Device<Platform::VULKAN> *m_device;
+    Device<Platform::VULKAN>        *m_device;
 
-    DeviceQueue queue_graphics,
-        queue_transfer,
-        queue_present,
-        queue_compute;
+    DeviceQueue                     queue_graphics;
+    DeviceQueue                     queue_transfer;
+    DeviceQueue                     queue_present;
+    DeviceQueue                     queue_compute;
     
-    Array<const char *> validation_layers;
+    Array<const char *>             validation_layers;
 
-    StagingBufferPool m_staging_buffer_pool;
+    StagingBufferPool               m_staging_buffer_pool;
 
 #ifndef HYPERION_BUILD_RELEASE
-    VkDebugUtilsMessengerEXT debug_messenger;
+    VkDebugUtilsMessengerEXT        debug_messenger;
 #endif
 };
 

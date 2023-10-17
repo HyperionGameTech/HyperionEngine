@@ -149,7 +149,7 @@ void BlurRadiance::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         for (UInt i = 0; i < m_descriptor_sets[frame_index].Size(); i++) {
-            auto descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
+            auto descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
 
             // input image (first pass just radiance image, second pass is prev image)
             descriptor_set

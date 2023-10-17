@@ -915,7 +915,7 @@ void DeferredRenderer::ApplyCameraJitter()
 
 void DeferredRenderer::CreateBlueNoiseBuffer()
 {
-    m_blue_noise_buffer = RenderObjects::Make<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
+    m_blue_noise_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
 
     PUSH_RENDER_COMMAND(CreateBlueNoiseBuffer, m_blue_noise_buffer);
 }

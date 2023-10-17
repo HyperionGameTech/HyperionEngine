@@ -9,15 +9,6 @@ namespace renderer {
 namespace platform {
 
 template <>
-Frame<Platform::VULKAN> Frame<Platform::VULKAN>::TemporaryFrame(CommandBuffer<Platform::VULKAN> *command_buffer, UInt frame_index)
-{
-    Frame frame;
-    frame.m_command_buffer = command_buffer;
-    frame.m_frame_index = frame_index;
-    return frame;
-}
-
-template <>
 Frame<Platform::VULKAN>::Frame()
     : m_frame_index(0),
       m_command_buffer(nullptr),

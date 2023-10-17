@@ -282,7 +282,7 @@ void PostProcessing::CreateUniformBuffer()
     
     const PostProcessingUniforms post_processing_uniforms = GetUniforms();
 
-    m_uniform_buffer = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
+    m_uniform_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
     HYPERION_ASSERT_RESULT(m_uniform_buffer->Create(g_engine->GetGPUDevice(), sizeof(post_processing_uniforms)));
 
     m_uniform_buffer->Copy(

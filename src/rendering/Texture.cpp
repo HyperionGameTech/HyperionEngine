@@ -302,13 +302,13 @@ public:
             const UInt32 mip_width = MathUtil::Max(1u, extent.width >> (mip_level));
             const UInt32 mip_height = MathUtil::Max(1u, extent.height >> (mip_level));
 
-            ImageViewRef mip_image_view = RenderObjects::Make<ImageView>();
+            ImageViewRef mip_image_view = MakeRenderObject<ImageView>();
 
             PUSH_RENDER_COMMAND(CreateMipImageView, m_image, mip_image_view, mip_level);
 
             {
                 // create a descriptor set for the shader to use for this mip level
-                DescriptorSetRef descriptor_set = RenderObjects::Make<DescriptorSet>();
+                DescriptorSetRef descriptor_set = MakeRenderObject<DescriptorSet>();
 
                 // input image
                 if (mip_level == 0) {
@@ -437,8 +437,8 @@ Texture::Texture(
     FilterMode filter_mode,
     WrapMode wrap_mode
 ) : EngineComponentBase(),
-    m_image(RenderObjects::Make<Image>(std::move(image))),
-    m_image_view(RenderObjects::Make<ImageView>()),
+    m_image(MakeRenderObject<Image>(std::move(image))),
+    m_image_view(MakeRenderObject<ImageView>()),
     m_filter_mode(filter_mode),
     m_wrap_mode(wrap_mode)
 {

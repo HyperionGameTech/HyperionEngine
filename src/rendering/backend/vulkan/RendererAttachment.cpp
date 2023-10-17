@@ -10,8 +10,8 @@ AttachmentUsage::AttachmentUsage(
     StoreOperation store_operation
 ) : AttachmentUsage(
         attachment,
-        RenderObjects::Make<ImageView>(),
-        RenderObjects::Make<Sampler>(),
+        MakeRenderObject<ImageView, Platform::VULKAN>(),
+        MakeRenderObject<Sampler, Platform::VULKAN>(),
         load_operation,
         store_operation
     )
@@ -220,7 +220,7 @@ Result AttachmentUsage::RemoveSelf(Device *device)
     return m_attachment->RemoveAttachmentUsage(device, this);
 }
 
-Attachment::Attachment(ImageRef &&image, RenderPassStage stage)
+Attachment::Attachment(ImageRef_VULKAN &&image, RenderPassStage stage)
     : m_is_created(false),
       m_image(std::move(image)),
       m_stage(stage)
@@ -260,10 +260,10 @@ Result Attachment::AddAttachmentUsage(
     AttachmentUsage **out
 )
 {
-    auto attachment_usage = RenderObjects::Make<AttachmentUsage>(
+    auto attachment_usage = MakeRenderObject<AttachmentUsage, Platform::VULKAN>(
         this,
-        RenderObjects::Make<ImageView>(),
-        RenderObjects::Make<Sampler>(
+        MakeRenderObject<ImageView, Platform::VULKAN>(),
+        MakeRenderObject<Sampler, Platform::VULKAN>(
             m_image != nullptr
                 ? m_image->GetFilterMode()
                 : FilterMode::TEXTURE_FILTER_NEAREST
@@ -304,7 +304,7 @@ Result Attachment::AddAttachmentUsage(
     AttachmentUsage **out
 )
 {
-    auto attachment_usage = RenderObjects::Make<AttachmentUsage>(this, load_operation, store_operation);
+    auto attachment_usage = MakeRenderObject<AttachmentUsage, Platform::VULKAN>(this, load_operation, store_operation);
 
     if (out != nullptr) {
         *out = nullptr;

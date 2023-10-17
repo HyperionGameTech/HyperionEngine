@@ -42,7 +42,7 @@ struct AttachmentMap
         attachments.Set(
             binding,
             AttachmentDef {
-                RenderObjects::Make<Attachment>(
+                MakeRenderObject<Attachment>(
                     std::move(image),
                     stage
                 ),

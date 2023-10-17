@@ -91,8 +91,8 @@ void FinalPass::Create()
 
     UInt iteration = 0;
 
-    m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+    m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
+        MakeRenderObject<Image>(renderer::FramebufferImage2D(
             g_engine->GetGPUInstance()->swapchain->extent,
             g_engine->GetGPUInstance()->swapchain->image_format,
             nullptr
@@ -100,8 +100,8 @@ void FinalPass::Create()
         renderer::RenderPassStage::PRESENT
     ));
 
-    m_attachments.PushBack(RenderObjects::Make<renderer::Attachment>(
-        RenderObjects::Make<Image>(renderer::FramebufferImage2D(
+    m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
+        MakeRenderObject<Image>(renderer::FramebufferImage2D(
             g_engine->GetGPUInstance()->swapchain->extent,
             g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
@@ -170,7 +170,7 @@ void FinalPass::Create()
     
     InitObject(m_render_group);
 
-    m_last_frame_image = RenderObjects::Make<renderer::Image>(renderer::TextureImage(
+    m_last_frame_image = MakeRenderObject<renderer::Image>(renderer::TextureImage(
         Extent3D { g_engine->GetGPUInstance()->swapchain->extent, 1 },
         InternalFormat::RGBA8_SRGB,
         ImageType::TEXTURE_TYPE_2D,

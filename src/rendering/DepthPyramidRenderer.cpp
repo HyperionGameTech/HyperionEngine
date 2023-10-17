@@ -25,7 +25,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     // AssertThrow(depth_attachment_usage->IsDepthAttachment());
     m_depth_attachment_usage = depth_attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
-    m_depth_pyramid_sampler = RenderObjects::Make<renderer::Sampler>(
+    m_depth_pyramid_sampler = MakeRenderObject<renderer::Sampler>(
         FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
     );
@@ -39,7 +39,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     AssertThrow(depth_image.IsValid());
 
     // create depth pyramid image
-    m_depth_pyramid = RenderObjects::Make<renderer::Image>(renderer::StorageImage(
+    m_depth_pyramid = MakeRenderObject<renderer::Image>(renderer::StorageImage(
         Extent3D {
             UInt32(MathUtil::NextPowerOf2(depth_image->GetExtent().width)),
             UInt32(MathUtil::NextPowerOf2(depth_image->GetExtent().height)),
@@ -53,14 +53,14 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
 
     m_depth_pyramid->Create(g_engine->GetGPUDevice());
 
-    m_depth_pyramid_view = RenderObjects::Make<renderer::ImageView>();
+    m_depth_pyramid_view = MakeRenderObject<renderer::ImageView>();
     m_depth_pyramid_view->Create(g_engine->GetGPUDevice(), m_depth_pyramid);
 
     const UInt num_mip_levels = m_depth_pyramid->NumMipmaps();
     m_depth_pyramid_mips.Reserve(num_mip_levels);
 
     for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-        ImageViewRef mip_image_view = RenderObjects::Make<renderer::ImageView>();
+        ImageViewRef mip_image_view = MakeRenderObject<renderer::ImageView>();
 
         HYPERION_ASSERT_RESULT(mip_image_view->Create(
             g_engine->GetGPUDevice(),
@@ -75,7 +75,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
             // create descriptor sets for depth pyramid generation.
-            DescriptorSetRef depth_pyramid_descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
+            DescriptorSetRef depth_pyramid_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
 
             /* Depth pyramid - generated w/ compute shader */
             auto *depth_pyramid_in = depth_pyramid_descriptor_set

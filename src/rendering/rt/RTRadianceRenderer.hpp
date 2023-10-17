@@ -88,8 +88,8 @@ private:
         ImageViewRef image_view;
 
         ImageOutput(StorageImage &&image)
-            : image(RenderObjects::Make<Image>(std::move(image))),
-              image_view(RenderObjects::Make<ImageView>())
+            : image(MakeRenderObject<Image>(std::move(image))),
+              image_view(MakeRenderObject<ImageView>())
         {
         }
 

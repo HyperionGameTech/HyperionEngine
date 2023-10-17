@@ -122,8 +122,8 @@ Mesh::CalculateIndices(const Array<Vertex> &vertices)
 
 Mesh::Mesh()
     : EngineComponentBase(),
-      m_vbo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
-      m_ibo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
+      m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
+      m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
       m_mesh_attributes {
           .vertex_attributes = renderer::static_mesh_vertex_attributes,
           .topology = Topology::TRIANGLES
@@ -137,8 +137,8 @@ Mesh::Mesh(
     Topology topology,
     const VertexAttributeSet &vertex_attributes
 ) : EngineComponentBase(),
-    m_vbo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
-    m_ibo(RenderObjects::Make<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
+    m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
+    m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
     m_mesh_attributes {
         .vertex_attributes = vertex_attributes,
         .topology = topology

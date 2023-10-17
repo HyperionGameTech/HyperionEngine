@@ -177,7 +177,7 @@ void TemporalAA::CreateImages()
 void TemporalAA::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<renderer::DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
 
         // input 0 - current frame being rendered
         descriptor_set->GetOrAddDescriptor<ImageDescriptor>(0)

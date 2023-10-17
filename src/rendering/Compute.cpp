@@ -33,7 +33,7 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommand
 ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
     : EngineComponentBase(),
       m_shader(std::move(shader)),
-      m_pipeline(RenderObjects::Make<renderer::ComputePipeline>())
+      m_pipeline(MakeRenderObject<renderer::ComputePipeline>())
 {
 }
 
@@ -42,7 +42,7 @@ ComputePipeline::ComputePipeline(
     const Array<DescriptorSetRef> &used_descriptor_sets
 ) : EngineComponentBase(),
     m_shader(std::move(shader)),
-    m_pipeline(RenderObjects::Make<renderer::ComputePipeline>(used_descriptor_sets))
+    m_pipeline(MakeRenderObject<renderer::ComputePipeline>(used_descriptor_sets))
 {
 }
 

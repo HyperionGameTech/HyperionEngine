@@ -322,7 +322,7 @@ void RTRadianceRenderer::CreateImages()
 
 void RTRadianceRenderer::CreateUniformBuffer()
 {
-    m_uniform_buffer = RenderObjects::Make<GPUBuffer>(UniformBuffer());
+    m_uniform_buffer = MakeRenderObject<GPUBuffer>(UniformBuffer());
 
     PUSH_RENDER_COMMAND(CreateRTRadianceUniformBuffer, m_uniform_buffer);
 }
@@ -353,7 +353,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 void RTRadianceRenderer::CreateDescriptorSets()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set->GetOrAddDescriptor<TlasDescriptor>(0)
             ->SetElementAccelerationStructure(0, &m_tlas->GetInternalTLAS());
@@ -437,7 +437,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
         return;
     }
 
-    m_raytracing_pipeline = RenderObjects::Make<RaytracingPipeline>(
+    m_raytracing_pipeline = MakeRenderObject<RaytracingPipeline>(
         Array<DescriptorSetRef> {
             m_descriptor_sets[0],
             g_engine->GetGPUInstance()->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE),

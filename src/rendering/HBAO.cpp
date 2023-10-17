@@ -87,38 +87,38 @@ HBAO::HBAO(const Extent2D &extent)
       m_blur_image_outputs {
           FixedArray<ImageOutput, 2> {
               ImageOutput {
-                  RenderObjects::Make<Image>(StorageImage(
+                  MakeRenderObject<Image>(StorageImage(
                       Extent3D(extent.width, extent.height, 1),
                       InternalFormat::RGBA8,
                       ImageType::TEXTURE_TYPE_2D
                   )),
-                  RenderObjects::Make<ImageView>()
+                  MakeRenderObject<ImageView>()
               },
               ImageOutput {
-                  RenderObjects::Make<Image>(StorageImage(
+                  MakeRenderObject<Image>(StorageImage(
                       Extent3D(extent.width, extent.height, 1),
                       InternalFormat::RGBA8,
                       ImageType::TEXTURE_TYPE_2D
                   )),
-                  RenderObjects::Make<ImageView>()
+                  MakeRenderObject<ImageView>()
               }
           },
           FixedArray<ImageOutput, 2> {
               ImageOutput {
-                  RenderObjects::Make<Image>(StorageImage(
+                  MakeRenderObject<Image>(StorageImage(
                       Extent3D(extent.width, extent.height, 1),
                       InternalFormat::RGBA8,
                       ImageType::TEXTURE_TYPE_2D
                   )),
-                  RenderObjects::Make<ImageView>()
+                  MakeRenderObject<ImageView>()
               },
               ImageOutput {
-                  RenderObjects::Make<Image>(StorageImage(
+                  MakeRenderObject<Image>(StorageImage(
                       Extent3D(extent.width, extent.height, 1),
                       InternalFormat::RGBA8,
                       ImageType::TEXTURE_TYPE_2D
                   )),
-                  RenderObjects::Make<ImageView>()
+                  MakeRenderObject<ImageView>()
               }
           }
       }
@@ -237,7 +237,7 @@ void HBAO::CreateDescriptorSets()
 {
     // create main descriptor sets
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+        auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         descriptor_set
             ->AddDescriptor<ImageDescriptor>(0)
@@ -296,7 +296,7 @@ void HBAO::CreateBlurComputeShaders()
 
     for (UInt blur_pass_index = 0; blur_pass_index < 2; blur_pass_index++) {
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            auto descriptor_set = RenderObjects::Make<DescriptorSet>();
+            auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
             descriptor_set
                 ->AddDescriptor<ImageDescriptor>(0)

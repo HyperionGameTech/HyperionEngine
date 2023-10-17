@@ -98,7 +98,7 @@ public:
 
         InitObject(m_texture);
 
-        m_buffer = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
+        m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
         HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetImage()->GetByteSize()));
         m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
         m_buffer->GetMapping(g_engine->GetGPUDevice());

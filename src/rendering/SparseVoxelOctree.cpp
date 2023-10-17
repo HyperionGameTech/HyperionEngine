@@ -191,11 +191,11 @@ UInt32 SparseVoxelOctree::CalculateNumNodes() const
 
 void SparseVoxelOctree::CreateBuffers()
 {
-    m_voxel_uniforms = RenderObjects::Make<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
+    m_voxel_uniforms = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::CONSTANT_BUFFER);
 
-    m_build_info_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
-    m_indirect_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::INDIRECT_ARGS_BUFFER);
-    m_octree_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
+    m_build_info_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
+    m_indirect_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::INDIRECT_ARGS_BUFFER);
+    m_octree_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
     m_counter = std::make_unique<AtomicCounter>();
 
     struct RENDER_COMMAND(CreateSVOBuffers) : RenderCommand
@@ -259,7 +259,7 @@ void SparseVoxelOctree::CreateBuffers()
 void SparseVoxelOctree::CreateDescriptors()
 {
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        m_descriptor_sets[frame_index] = RenderObjects::Make<renderer::DescriptorSet>();
+        m_descriptor_sets[frame_index] = MakeRenderObject<renderer::DescriptorSet>();
     }
 
     struct RENDER_COMMAND(CreateSVODescriptors) : RenderCommand
@@ -429,7 +429,7 @@ void SparseVoxelOctree::OnRender(Frame *frame)
         SafeRelease(std::move(m_octree_buffer));
 
         // HYPERION_ASSERT_RESULT(m_octree_buffer->Destroy(g_engine->GetGPUDevice()));
-        m_octree_buffer = RenderObjects::Make<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
+        m_octree_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
         HYPERION_ASSERT_RESULT(m_octree_buffer->Create(g_engine->GetGPUDevice(), num_nodes * sizeof(OctreeNode)));
 
         for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
