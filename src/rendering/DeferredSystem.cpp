@@ -63,11 +63,11 @@ static void AddSharedAttachment(
     auto &opaque_fbo = g_engine->GetDeferredSystem()[BUCKET_OPAQUE].GetFramebuffer();
     AssertThrowMsg(opaque_fbo != nullptr, "Bucket framebuffers added in wrong order");
 
+    AssertThrow(attachment_index < opaque_fbo->GetAttachmentUsages().Size());
+
     renderer::AttachmentUsage *attachment_usage;
 
-    AssertThrow(attachment_index < opaque_fbo->GetAttachmentUsages().size());
-
-    HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentUsages().at(attachment_index)->AddAttachmentUsage(
+    HYPERION_ASSERT_RESULT(opaque_fbo->GetAttachmentUsages()[attachment_index]->AddAttachmentUsage(
         g_engine->GetGPUInstance()->GetDevice(),
         renderer::StoreOperation::STORE,
         &attachment_usage

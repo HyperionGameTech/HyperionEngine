@@ -100,13 +100,13 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
             depth_attachment_usage = attachment_usage->GetHandle();
             subpass_description.pDepthStencilAttachment = &depth_attachment_usage;
 
-            m_clear_values.push_back(VkClearValue {
+            m_clear_values.PushBack(VkClearValue {
                 .depthStencil = { 1.0f, 0 }
             });
         } else {
             color_attachment_usages.PushBack(attachment_usage->GetHandle());
 
-            m_clear_values.push_back(VkClearValue {
+            m_clear_values.PushBack(VkClearValue {
                 .color = {
                     .float32 = { 0.0f, 0.0f, 0.0f, 0.0f }
                 }
@@ -140,9 +140,7 @@ Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
             multiview_view_mask |= 1 << i;
             multiview_correlation_mask |= 1 << i;
         }
-
-        DebugLog(LogType::RenDebug, "Multiview layer masks:\n\tVIEW MASK: 0x%02X\n\tCORRELATION MASK 0x%02X\n", multiview_view_mask, multiview_correlation_mask);
-
+        
         render_pass_info.pNext = &multiview_info;
     }
 

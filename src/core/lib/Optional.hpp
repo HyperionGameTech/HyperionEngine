@@ -159,6 +159,24 @@ public:
         return *reinterpret_cast<const T *>(&m_storage.data_buffer);
     }
 
+    T GetOr(T &&default_value) const &
+    {
+        if (m_has_value) {
+            return Get();
+        }
+
+        return std::forward<T>(default_value);
+    }
+
+    T GetOr(T &&default_value) &&
+    {
+        if (m_has_value) {
+            return std::move(Get());
+        }
+
+        return std::forward<T>(default_value);
+    }
+
     void Set(const T &value)
     {
         *this = value;

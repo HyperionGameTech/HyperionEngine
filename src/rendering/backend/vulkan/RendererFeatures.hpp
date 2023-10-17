@@ -186,24 +186,37 @@ public:
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, _surface, &details.capabilities);
 
-        uint32_t queue_family_count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_count, nullptr);
-        std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_count, queue_family_properties.data());
+        UInt32 num_queue_families = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &num_queue_families, nullptr);
 
-        uint32_t count = 0;
-        /* Get device surface formats */
-        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &count, nullptr);
-        std::vector<VkSurfaceFormatKHR> surface_formats(count);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &count, surface_formats.data());
-        if (count == 0)
+        Array<VkQueueFamilyProperties> queue_family_properties;
+        queue_family_properties.Resize(num_queue_families);
+
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &num_queue_families, queue_family_properties.Data());
+
+        UInt32 num_surface_formats = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &num_surface_formats, nullptr);
+
+        Array<VkSurfaceFormatKHR> surface_formats;
+        surface_formats.Resize(num_surface_formats);
+
+        vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &num_surface_formats, surface_formats.Data());
+
+        if (surface_formats.Empty()) {
             DebugLog(LogType::Warn, "No surface formats available!\n");
+        }
 
-        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &count, nullptr);
-        std::vector<VkPresentModeKHR> present_modes(count);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &count, present_modes.data());
-        if (count == 0)
+        UInt32 num_present_modes = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &num_present_modes, nullptr);
+
+        Array<VkPresentModeKHR> present_modes;
+        present_modes.Resize(num_present_modes);
+
+        vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &num_present_modes, present_modes.Data());
+
+        if (present_modes.Empty()) {
             DebugLog(LogType::Warn, "No present modes available!\n");
+        }
 
         details.queue_family_properties = queue_family_properties;
         details.formats = surface_formats;

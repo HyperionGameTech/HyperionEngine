@@ -117,11 +117,11 @@ Result Swapchain<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, con
     /* Graphics computations and presentation are done on separate hardware */
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
     const UInt32 concurrent_families[] = {
-        qf_indices.graphics_family.value(),
-        qf_indices.present_family.value()
+        qf_indices.graphics_family.Get(),
+        qf_indices.present_family.Get()
     };
 
-    if (qf_indices.graphics_family != qf_indices.present_family) {
+    if (qf_indices.graphics_family.Get() != qf_indices.present_family.Get()) {
         DebugLog(LogType::Debug, "Swapchain sharing mode set to Concurrent\n");
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = UInt32(std::size(concurrent_families)); /* Two family indices(one for each process) */

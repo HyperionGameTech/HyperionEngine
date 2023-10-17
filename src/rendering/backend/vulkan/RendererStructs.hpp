@@ -52,12 +52,10 @@ struct MeshBindingDescription
 
 struct QueueFamilyIndices
 {
-    using Index = UInt32;
-    
-    Optional<Index> graphics_family;
-    Optional<Index> transfer_family;
-    Optional<Index> present_family;
-    Optional<Index> compute_family;
+    Optional<UInt32> graphics_family;
+    Optional<UInt32> transfer_family;
+    Optional<UInt32> present_family;
+    Optional<UInt32> compute_family;
 
     bool IsComplete() const {
         return graphics_family.HasValue()

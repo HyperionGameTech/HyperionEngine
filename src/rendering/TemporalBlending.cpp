@@ -155,7 +155,7 @@ void TemporalBlending::CreateDescriptorSets()
         auto descriptor_set = MakeRenderObject<DescriptorSet>();
 
         if (m_input_framebuffer) {
-            AssertThrowMsg(m_input_framebuffer->GetAttachmentUsages().size() != 0, "No attachment refs on input framebuffer!");
+            AssertThrowMsg(m_input_framebuffer->GetAttachmentUsages().Size() != 0, "No attachment refs on input framebuffer!");
         }
 
         const ImageView *input_image_view = m_input_framebuffer ? m_input_framebuffer->GetAttachmentUsages()[0]->GetImageView() : m_input_image_views[frame_index];

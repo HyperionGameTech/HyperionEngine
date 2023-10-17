@@ -52,7 +52,7 @@ public:
     const QueueFamilyIndices &GetQueueFamilyIndices() const { return queue_family_indices; }
     const Features &GetFeatures() const { return *features; }
 
-    VkQueue GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t queue_index = 0);
+    VkQueue GetQueue(UInt32 queue_family_index, UInt32 queue_index = 0);
 
     Result CreateLogicalDevice(const std::set<uint32_t> &required_queue_families);
     Result CheckDeviceSuitable(const ExtensionMap &unsupported_extensions);

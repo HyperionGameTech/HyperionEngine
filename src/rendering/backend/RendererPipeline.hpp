@@ -1,6 +1,7 @@
 #ifndef HYPERION_V2_BACKEND_RENDERER_PIPELINE_H
 #define HYPERION_V2_BACKEND_RENDERER_PIPELINE_H
 
+#include <rendering/backend/Platform.hpp>
 #include <util/Defines.hpp>
 
 namespace hyperion {

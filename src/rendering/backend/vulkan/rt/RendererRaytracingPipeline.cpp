@@ -99,20 +99,20 @@ Result RaytracingPipeline<Platform::VULKAN>::Create(
     const auto &stages = shader_program->GetShaderStages();
     const auto &shader_groups = shader_program->GetShaderGroups();
 
-    std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
-    shader_group_create_infos.resize(shader_groups.Size());
+    Array<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
+    shader_group_create_infos.Resize(shader_groups.Size());
 
     for (SizeType i = 0; i < shader_groups.Size(); i++) {
         shader_group_create_infos[i] = shader_groups[i].raytracing_group_create_info;
     }
 
-    pipeline_info.stageCount = static_cast<UInt32>(stages.Size());
-    pipeline_info.pStages = stages.Data();
-    pipeline_info.groupCount = static_cast<UInt32>(shader_group_create_infos.size());
-    pipeline_info.pGroups = shader_group_create_infos.data();
-    pipeline_info.layout = layout;
-    pipeline_info.basePipelineHandle  = VK_NULL_HANDLE;
-    pipeline_info.basePipelineIndex = -1;
+    pipeline_info.stageCount            = UInt32(stages.Size());
+    pipeline_info.pStages               = stages.Data();
+    pipeline_info.groupCount            = UInt32(shader_group_create_infos.Size());
+    pipeline_info.pGroups               = shader_group_create_infos.Data();
+    pipeline_info.layout                = layout;
+    pipeline_info.basePipelineHandle    = VK_NULL_HANDLE;
+    pipeline_info.basePipelineIndex     = -1;
     
     HYPERION_VK_PASS_ERRORS(
         device->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(

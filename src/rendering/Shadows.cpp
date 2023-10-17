@@ -290,7 +290,7 @@ void ShadowPass::CreateComputePipelines()
         m_blur_descriptor_sets[i] = MakeRenderObject<renderer::DescriptorSet>();
 
         m_blur_descriptor_sets[i]->AddDescriptor<ImageDescriptor>(0)
-            ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().front()->GetImageView());
+            ->SetElementSRV(0, m_framebuffer->GetAttachmentUsages().Front()->GetImageView());
 
         m_blur_descriptor_sets[i]->AddDescriptor<SamplerDescriptor>(1)
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());

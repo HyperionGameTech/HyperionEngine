@@ -369,13 +369,13 @@ GPUBuffer<Platform::VULKAN>::~GPUBuffer()
 VkBufferCreateInfo GPUBuffer<Platform::VULKAN>::GetBufferCreateInfo(Device<Platform::VULKAN> *device) const
 {
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const UInt buffer_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
+    const UInt32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    vk_buffer_info.size = size;
-    vk_buffer_info.usage = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    vk_buffer_info.pQueueFamilyIndices = buffer_family_indices;
-    vk_buffer_info.queueFamilyIndexCount = static_cast<UInt>(std::size(buffer_family_indices));
+    vk_buffer_info.size                     = size;
+    vk_buffer_info.usage                    = usage_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vk_buffer_info.pQueueFamilyIndices      = buffer_family_indices;
+    vk_buffer_info.queueFamilyIndexCount    = UInt32(std::size(buffer_family_indices));
 
     return vk_buffer_info;
 }

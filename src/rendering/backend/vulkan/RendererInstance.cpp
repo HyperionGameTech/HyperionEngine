@@ -170,7 +170,7 @@ Instance<Platform::VULKAN>::Instance(RC<Application> application)
     : m_application(application),
       frame_handler(nullptr)
 {
-    m_swapchain = new Swapchain();
+    m_swapchain = new Swapchain<Platform::VULKAN>();
 }
 
 Result Instance<Platform::VULKAN>::CreateCommandPool(DeviceQueue &queue, UInt index)

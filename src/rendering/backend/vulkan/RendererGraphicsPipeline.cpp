@@ -17,26 +17,27 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-GraphicsPipeline::GraphicsPipeline()
-    : Pipeline(),
+GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline()
+    : Pipeline<Platform::VULKAN>(),
       viewport { },
       scissor { }
 {
 }
 
-GraphicsPipeline::GraphicsPipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
-    : Pipeline(used_descriptor_sets),
+GraphicsPipeline<Platform::VULKAN>::GraphicsPipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
+    : Pipeline<Platform::VULKAN>(used_descriptor_sets),
       viewport { },
       scissor { }
 {
 }
 
-GraphicsPipeline::~GraphicsPipeline()
+GraphicsPipeline<Platform::VULKAN>::~GraphicsPipeline()
 {
 }
 
-void GraphicsPipeline::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth)
+void GraphicsPipeline<Platform::VULKAN>::SetViewport(float x, float y, float width, float height, float min_depth, float max_depth)
 {
     VkViewport *vp = &this->viewport;
     vp->x = x;
@@ -47,19 +48,19 @@ void GraphicsPipeline::SetViewport(float x, float y, float width, float height, 
     vp->maxDepth = max_depth;
 }
 
-void GraphicsPipeline::SetScissor(int x, int y, uint32_t width, uint32_t height)
+void GraphicsPipeline<Platform::VULKAN>::SetScissor(int x, int y, uint32_t width, uint32_t height)
 {
     this->scissor.offset = {x, y};
     this->scissor.extent = {width, height};
 }
 
-void GraphicsPipeline::UpdateDynamicStates(VkCommandBuffer cmd)
+void GraphicsPipeline<Platform::VULKAN>::UpdateDynamicStates(VkCommandBuffer cmd)
 {
     vkCmdSetViewport(cmd, 0, 1, &this->viewport);
     vkCmdSetScissor(cmd, 0, 1, &this->scissor);
 }
 
-Array<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
+Array<VkVertexInputAttributeDescription> GraphicsPipeline<Platform::VULKAN>::BuildVertexAttributes(const VertexAttributeSet &attribute_set)
 {
     static constexpr VkFormat size_to_format[] = {
         VK_FORMAT_UNDEFINED,
@@ -101,7 +102,7 @@ Array<VkVertexInputAttributeDescription> GraphicsPipeline::BuildVertexAttributes
     return this->vertex_attributes;
 }
 
-void GraphicsPipeline::SubmitPushConstants(CommandBuffer *cmd) const
+void GraphicsPipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const
 {
     vkCmdPushConstants(
         cmd->GetCommandBuffer(),
@@ -112,7 +113,7 @@ void GraphicsPipeline::SubmitPushConstants(CommandBuffer *cmd) const
     );
 }
 
-void GraphicsPipeline::Bind(CommandBuffer *cmd)
+void GraphicsPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *cmd)
 {
     UpdateDynamicStates(cmd->GetCommandBuffer());
 
@@ -121,7 +122,7 @@ void GraphicsPipeline::Bind(CommandBuffer *cmd)
     SubmitPushConstants(cmd);
 }
 
-Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool)
+Result GraphicsPipeline<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool)
 {
     m_construction_info = std::move(construction_info);
 
@@ -145,7 +146,7 @@ Result GraphicsPipeline::Create(Device *device, ConstructionInfo &&construction_
     return Rebuild(device, descriptor_pool);
 }
 
-Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool)
+Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *device, DescriptorPool *descriptor_pool)
 {
     BuildVertexAttributes(m_construction_info.vertex_attributes);
 
@@ -232,7 +233,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
     Array<VkPipelineColorBlendAttachmentState> color_blend_attachments;
-    color_blend_attachments.Reserve(m_construction_info.render_pass->GetAttachmentUsages().size());
+    color_blend_attachments.Reserve(m_construction_info.render_pass->GetAttachmentUsages().Size());
 
     for (const auto *attachment_usage : m_construction_info.render_pass->GetAttachmentUsages()) {
         if (attachment_usage->IsDepthAttachment()) {
@@ -423,7 +424,7 @@ Result GraphicsPipeline::Rebuild(Device *device, DescriptorPool *descriptor_pool
     HYPERION_RETURN_OK;
 }
 
-Result GraphicsPipeline::Destroy(Device *device)
+Result GraphicsPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     VkDevice render_device = device->GetDevice();
 
@@ -440,5 +441,6 @@ Result GraphicsPipeline::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

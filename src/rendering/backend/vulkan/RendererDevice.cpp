@@ -155,14 +155,14 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
         }
     }
 
-    AssertThrowMsg(indices.present_family.has_value(), "No present queue family found!");
-    AssertThrowMsg(indices.graphics_family.has_value(), "No graphics queue family found that supports presentation!");
+    AssertThrowMsg(indices.present_family.HasValue(), "No present queue family found!");
+    AssertThrowMsg(indices.graphics_family.HasValue(), "No graphics queue family found that supports presentation!");
 
-    if (!indices.transfer_family.has_value()) {
+    if (!indices.transfer_family.HasValue()) {
         DebugLog(LogType::Warn, "No dedicated transfer queue family found!\n");
     }
 
-    if (!indices.compute_family.has_value()) {
+    if (!indices.compute_family.HasValue()) {
         DebugLog(LogType::Warn, "No dedicated compute queue family found!\n");
     }
 
@@ -174,14 +174,14 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
             i
         );
 
-        if (!indices.transfer_family.has_value()) {
+        if (!indices.transfer_family.HasValue()) {
             if (predicate(i, VK_QUEUE_TRANSFER_BIT, false)) {
                 DebugLog(LogType::Debug, "Found non-dedicated transfer queue (%d)\n", i);
                 indices.transfer_family = i;
             }
         }
 
-        if (!indices.compute_family.has_value()) {
+        if (!indices.compute_family.HasValue()) {
             if (predicate(i, VK_QUEUE_COMPUTE_BIT, false)) {
                 DebugLog(LogType::Debug, "Found non-dedicated compute queue (%d)\n", i);
                 indices.compute_family = i;
@@ -194,10 +194,10 @@ QueueFamilyIndices Device<Platform::VULKAN>::FindQueueFamilies(VkPhysicalDevice 
         "\tTransfer: %d\n"
         "\tPresent: %d\n",
         "\tCompute: %d\n",
-        indices.graphics_family.value_or(0xBEEF),
-        indices.transfer_family.value_or(0xBEEF),
-        indices.present_family.value_or(0xBEEF),
-        indices.compute_family.value_or(0xBEEF));
+        indices.graphics_family.GetOr(0xBEEF),
+        indices.transfer_family.GetOr(0xBEEF),
+        indices.present_family.GetOr(0xBEEF),
+        indices.compute_family.GetOr(0xBEEF));
 
     return indices;
 }
@@ -257,7 +257,7 @@ Result Device<Platform::VULKAN>::CheckDeviceSuitable(const ExtensionMap &unsuppo
     }
 
     const SwapchainSupportDetails swapchain_support = features->QuerySwapchainSupport(surface);
-    const bool swapchains_available = !swapchain_support.formats.empty() && !swapchain_support.present_modes.empty();
+    const bool swapchains_available = swapchain_support.formats.Any() && swapchain_support.present_modes.Any();
 
     if (!this->queue_family_indices.IsComplete()) {
         return {Result::RENDERER_ERR, "Device not supported -- indices setup was not complete."};
@@ -361,19 +361,13 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     }
 
     Array<const char *> required_extensions_linear;
-    required_extensions_linear.Reserve(required_extensions.Size());
+    required_extensions_linear.Reserve(required_extensions.size());
 
-    std::transform(
-        required_extensions.begin(), 
-        required_extensions.end(),
-        std::back_inserter(required_extensions_linear),
-        [](const auto &it) {
-            return it.first.c_str();
-        }
-    );
+    for (const auto &it : required_extensions) {
+        required_extensions_linear.PushBack(it.first.c_str());
+    }
 
     DebugLog(LogType::RenDebug, "Required vulkan extensions:\n");
-
     DebugLog(LogType::RenDebug, "-----\n");
 
     for (const char *str : required_extensions_linear) {
@@ -383,11 +377,11 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     DebugLog(LogType::RenDebug, "-----\n");
 
     VkDeviceCreateInfo create_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-    create_info.pQueueCreateInfos       = queue_create_infos.data();
-    create_info.queueCreateInfoCount    = UInt32(queue_create_infos.size());
+    create_info.pQueueCreateInfos       = queue_create_infos.Data();
+    create_info.queueCreateInfoCount    = UInt32(queue_create_infos.Size());
     // Setup Device extensions
-    create_info.enabledExtensionCount   = UInt32(required_extensions_linear.size());
-    create_info.ppEnabledExtensionNames = required_extensions_linear.data();
+    create_info.enabledExtensionCount   = UInt32(required_extensions_linear.Size());
+    create_info.ppEnabledExtensionNames = required_extensions_linear.Data();
     // Setup Device Features
     //create_info.pEnabledFeatures        = &features->GetPhysicalDeviceFeatures();
     create_info.pNext                   = &features->GetPhysicalDeviceFeatures2();
@@ -406,7 +400,7 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &req
     HYPERION_RETURN_OK;
 }
 
-VkQueue Device<Platform::VULKAN>::GetQueue(QueueFamilyIndices::Index queue_family_index, uint32_t queue_index)
+VkQueue Device<Platform::VULKAN>::GetQueue(UInt32 queue_family_index, UInt32 queue_index)
 {
     VkQueue queue;
     vkGetDeviceQueue(this->GetDevice(), queue_family_index, queue_index, &queue);

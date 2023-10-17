@@ -237,7 +237,7 @@ Result Image<Platform::VULKAN>::CreateImage(
     // }
 
     const QueueFamilyIndices &qf_indices = device->GetQueueFamilyIndices();
-    const UInt32 image_family_indices[] = { qf_indices.graphics_family.value(), qf_indices.compute_family.value() };
+    const UInt32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     image_info.imageType = image_type;
