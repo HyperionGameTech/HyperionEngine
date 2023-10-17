@@ -331,7 +331,7 @@ void EnvProbe::CreateFramebuffer()
     m_framebuffer = CreateObject<Framebuffer>(
         m_dimensions,
         RenderPassStage::SHADER,
-        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
+        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
     );
 

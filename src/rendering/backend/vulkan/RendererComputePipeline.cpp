@@ -11,20 +11,21 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-ComputePipeline::ComputePipeline()
-    : Pipeline()
+ComputePipeline<Platform::VULKAN>::ComputePipeline()
+    : Pipeline<Platform::VULKAN>()
 {
 }
 
-ComputePipeline::ComputePipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
-    : Pipeline(used_descriptor_sets)
+ComputePipeline<Platform::VULKAN>::ComputePipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
+    : Pipeline<Platform::VULKAN>(used_descriptor_sets)
 {
 }
 
-ComputePipeline::~ComputePipeline() = default;
+ComputePipeline<Platform::VULKAN>::~ComputePipeline() = default;
 
-void ComputePipeline::Bind(CommandBuffer *command_buffer) const
+void ComputePipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *command_buffer) const
 {
     AssertThrow(pipeline != nullptr);
 
@@ -44,7 +45,7 @@ void ComputePipeline::Bind(CommandBuffer *command_buffer) const
     );
 }
 
-void ComputePipeline::SubmitPushConstants(CommandBuffer *cmd) const
+void ComputePipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const
 {
     vkCmdPushConstants(
         cmd->GetCommandBuffer(),
@@ -56,8 +57,8 @@ void ComputePipeline::SubmitPushConstants(CommandBuffer *cmd) const
     );
 }
 
-void ComputePipeline::Bind(
-    CommandBuffer *command_buffer,
+void ComputePipeline<Platform::VULKAN>::Bind(
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const PushConstantData &push_constant_data
 )
 {
@@ -66,8 +67,8 @@ void ComputePipeline::Bind(
     Bind(command_buffer);
 }
 
-void ComputePipeline::Bind(
-    CommandBuffer *command_buffer,
+void ComputePipeline<Platform::VULKAN>::Bind(
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     const void *push_constants_ptr,
     SizeType push_constants_size
 )
@@ -83,8 +84,8 @@ void ComputePipeline::Bind(
     Bind(command_buffer);
 }
 
-void ComputePipeline::Dispatch(
-    CommandBuffer *command_buffer,
+void ComputePipeline<Platform::VULKAN>::Dispatch(
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     Extent3D group_size
 ) const
 {
@@ -96,17 +97,17 @@ void ComputePipeline::Dispatch(
     );
 }
 
-void ComputePipeline::DispatchIndirect(
-    CommandBuffer *command_buffer,
-    const IndirectBuffer *indirect,
+void ComputePipeline<Platform::VULKAN>::DispatchIndirect(
+    CommandBuffer<Platform::VULKAN> *command_buffer,
+    const IndirectBuffer<Platform::VULKAN> *indirect,
     SizeType offset
 ) const
 {
     indirect->DispatchIndirect(command_buffer, offset);
 }
 
-Result ComputePipeline::Create(
-    Device *device,
+Result ComputePipeline<Platform::VULKAN>::Create(
+    Device<Platform::VULKAN> *device,
     ShaderProgram *shader,
     DescriptorPool *descriptor_pool
 )
@@ -179,7 +180,7 @@ Result ComputePipeline::Create(
     HYPERION_RETURN_OK;
 }
 
-Result ComputePipeline::Destroy(Device *device)
+Result ComputePipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     DebugLog(LogType::Debug, "Destroying compute pipeline\n");
 
@@ -192,5 +193,6 @@ Result ComputePipeline::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

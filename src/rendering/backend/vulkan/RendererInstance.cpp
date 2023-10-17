@@ -24,7 +24,12 @@ namespace hyperion {
 namespace renderer {
 namespace platform {
 
-static Result HandleNextFrame(Device<Platform::VULKAN> *device, Swapchain *swapchain, Frame<Platform::VULKAN> *frame, UInt32 *index)
+static Result HandleNextFrame(
+    Device<Platform::VULKAN> *device,
+    Swapchain<Platform::VULKAN> *swapchain,
+    Frame<Platform::VULKAN> *frame,
+    UInt32 *index
+)
 {
     HYPERION_VK_CHECK(vkAcquireNextImageKHR(
         device->GetDevice(),
@@ -165,7 +170,7 @@ Instance<Platform::VULKAN>::Instance(RC<Application> application)
     : m_application(application),
       frame_handler(nullptr)
 {
-    this->swapchain = new Swapchain();
+    m_swapchain = new Swapchain();
 }
 
 Result Instance<Platform::VULKAN>::CreateCommandPool(DeviceQueue &queue, UInt index)
@@ -284,8 +289,8 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
 
     /* Set up our frame handler - this class lets us abstract
      * away a little bit of the double/triple buffering stuff */
-    DebugLog(LogType::RenDebug, "Num swapchain images: %d\n", this->swapchain->NumImages());
-    this->frame_handler = new FrameHandler<Platform::VULKAN>(this->swapchain->NumImages(), HandleNextFrame);
+    DebugLog(LogType::RenDebug, "Num swapchain images: %d\n", m_swapchain->NumImages());
+    this->frame_handler = new FrameHandler<Platform::VULKAN>(m_swapchain->NumImages(), HandleNextFrame);
     
     /* Our command pool will have a command buffer for each frame we can render to. */
     HYPERION_BUBBLE_ERRORS(this->frame_handler->CreateCommandBuffers(m_device, &queue_graphics));
@@ -367,10 +372,10 @@ Result Instance<Platform::VULKAN>::Destroy()
     m_device->DestroyAllocator();
 
     /* Destroy the vulkan swapchain */
-    if (this->swapchain != nullptr) {
-        HYPERION_PASS_ERRORS(this->swapchain->Destroy(m_device), result);
-        delete this->swapchain;
-        this->swapchain = nullptr;
+    if (m_swapchain != nullptr) {
+        HYPERION_PASS_ERRORS(m_swapchain->Destroy(m_device), result);
+        delete m_swapchain;
+        m_swapchain = nullptr;
     }
 
     /* Destroy the surface from SDL */
@@ -475,11 +480,11 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
     const QueueFamilyIndices &family_indices = m_device->GetQueueFamilyIndices();
 
     /* Put into a set so we don't have any duplicate indices */
-    const std::set<uint32_t> required_queue_family_indices{
-        family_indices.graphics_family.value(),
-        family_indices.transfer_family.value(),
-        family_indices.present_family.value(),
-        family_indices.compute_family.value()
+    const std::set<UInt32> required_queue_family_indices {
+        family_indices.graphics_family.Get(),
+        family_indices.transfer_family.Get(),
+        family_indices.present_family.Get(),
+        family_indices.compute_family.Get()
     };
     
     /* Create a logical device to operate on */
@@ -487,30 +492,30 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
 
     /* Get the internal queues from our device */
     this->queue_graphics = {
-        .family = family_indices.graphics_family.value(),
-        .queue = m_device->GetQueue(family_indices.graphics_family.value())
+        .family = family_indices.graphics_family.Get(),
+        .queue  = m_device->GetQueue(family_indices.graphics_family.Get())
     };
 
     this->queue_transfer = {
-        .family = family_indices.transfer_family.value(),
-        .queue = m_device->GetQueue(family_indices.transfer_family.value())
+        .family = family_indices.transfer_family.Get(),
+        .queue  = m_device->GetQueue(family_indices.transfer_family.Get())
     };
 
     this->queue_present = {
-        .family = family_indices.present_family.value(),
-        .queue = m_device->GetQueue(family_indices.present_family.value())
+        .family = family_indices.present_family.Get(),
+        .queue  = m_device->GetQueue(family_indices.present_family.Get())
     };
 
     this->queue_compute = {
-        .family = family_indices.compute_family.value(),
-        .queue = m_device->GetQueue(family_indices.compute_family.value())
+        .family = family_indices.compute_family.Get(),
+        .queue  = m_device->GetQueue(family_indices.compute_family.Get())
     };
 
-    for (UInt i = 0; i < static_cast<UInt>(queue_graphics.command_pools.Size()); i++) {
+    for (UInt i = 0; i < UInt(queue_graphics.command_pools.Size()); i++) {
         HYPERION_BUBBLE_ERRORS(CreateCommandPool(queue_graphics, i));
     }
 
-    for (UInt i = 0; i < static_cast<UInt>(queue_compute.command_pools.Size()); i++) {
+    for (UInt i = 0; i < UInt(queue_compute.command_pools.Size()); i++) {
         HYPERION_BUBBLE_ERRORS(CreateCommandPool(queue_compute, i));
     }
 
@@ -519,7 +524,7 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
 
 Result Instance<Platform::VULKAN>::InitializeSwapchain()
 {
-    HYPERION_BUBBLE_ERRORS(this->swapchain->Create(m_device, this->surface));
+    HYPERION_BUBBLE_ERRORS(m_swapchain->Create(m_device, this->surface));
 
     HYPERION_RETURN_OK;
 }

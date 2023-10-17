@@ -70,7 +70,7 @@ Result CommandBuffer<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device
     return result;
 }
 
-Result CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *device, const RenderPass *render_pass)
+Result CommandBuffer<Platform::VULKAN>::Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass)
 {
     VkCommandBufferInheritanceInfo inheritance_info { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
     inheritance_info.subpass = 0;
@@ -217,13 +217,13 @@ void CommandBuffer<Platform::VULKAN>::DrawIndexedIndirect(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         set,
         set,
@@ -234,14 +234,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         set,
         binding,
@@ -252,14 +252,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         descriptor_set,
         binding,
@@ -270,7 +270,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -279,7 +279,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         set,
         binding,
@@ -290,7 +290,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
@@ -300,7 +300,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 {
     BindDescriptorSets(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         sets,
         bindings,
@@ -312,7 +312,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const GraphicsPipeline *pipeline,
+    const GraphicsPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -321,7 +321,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         descriptor_set,
         binding,
@@ -332,14 +332,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         descriptor_set,
         binding,
@@ -350,7 +350,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -359,7 +359,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         descriptor_set,
         binding,
@@ -370,13 +370,13 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         set,
         set,
@@ -387,14 +387,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         set,
         binding,
@@ -405,7 +405,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -414,7 +414,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         set,
         binding,
@@ -425,7 +425,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
-    const ComputePipeline *pipeline,
+    const ComputePipeline<Platform::VULKAN> *pipeline,
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
@@ -435,7 +435,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 {
     BindDescriptorSets(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_COMPUTE,
         sets,
         bindings,
@@ -447,14 +447,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         descriptor_set,
         binding,
@@ -465,7 +465,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -474,7 +474,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         descriptor_set,
         binding,
@@ -485,13 +485,13 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         set,
         set,
@@ -502,14 +502,14 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding
 ) const
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         set,
         binding,
@@ -520,7 +520,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
     const UInt32 *offsets,
@@ -529,7 +529,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 {
     BindDescriptorSet(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         set,
         binding,
@@ -540,7 +540,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
-    const RaytracingPipeline *pipeline,
+    const RaytracingPipeline<Platform::VULKAN> *pipeline,
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
     SizeType num_descriptor_sets,
@@ -550,7 +550,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 {
     BindDescriptorSets(
         pool,
-        static_cast<const Pipeline *>(pipeline),
+        static_cast<const Pipeline<Platform::VULKAN> *>(pipeline),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
         sets,
         bindings,
@@ -562,7 +562,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const Pipeline *pipeline,
+    const Pipeline<Platform::VULKAN> *pipeline,
     VkPipelineBindPoint bind_point,
     DescriptorSet::Index set,
     DescriptorSet::Index binding,
@@ -605,7 +605,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     const DescriptorPool &pool,
-    const Pipeline *pipeline,
+    const Pipeline<Platform::VULKAN> *pipeline,
     VkPipelineBindPoint bind_point,
     const DescriptorSetRef &descriptor_set,
     DescriptorSet::Index binding,
@@ -630,7 +630,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
-    const Pipeline *pipeline,
+    const Pipeline<Platform::VULKAN> *pipeline,
     VkPipelineBindPoint bind_point,
     const DescriptorSet::Index *sets,
     const DescriptorSet::Index *bindings,
@@ -698,7 +698,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
 
 void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
     const DescriptorPool &pool,
-    const Pipeline *pipeline,
+    const Pipeline<Platform::VULKAN> *pipeline,
     VkPipelineBindPoint bind_point,
     const DescriptorSetRef *descriptor_sets,
     const DescriptorSet::Index *bindings,

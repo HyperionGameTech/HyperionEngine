@@ -207,7 +207,7 @@ void ShadowPass::CreateFramebuffer()
     m_framebuffer = CreateObject<Framebuffer>(
         m_dimensions,
         renderer::RenderPassStage::SHADER,
-        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
+        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
     AttachmentUsage *attachment_usage;

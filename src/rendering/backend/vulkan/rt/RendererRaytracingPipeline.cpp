@@ -10,6 +10,7 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
 static constexpr VkShaderStageFlags push_constant_stage_flags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
     | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
@@ -17,21 +18,21 @@ static constexpr VkShaderStageFlags push_constant_stage_flags = VK_SHADER_STAGE_
     | VK_SHADER_STAGE_MISS_BIT_KHR
     | VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 
-RaytracingPipeline::RaytracingPipeline()
-    : Pipeline()
+RaytracingPipeline<Platform::VULKAN>::RaytracingPipeline()
+    : Pipeline<Platform::VULKAN>()
 {
 }
 
-RaytracingPipeline::RaytracingPipeline(
+RaytracingPipeline<Platform::VULKAN>::RaytracingPipeline(
     const Array<DescriptorSetRef> &used_descriptor_sets
 ) : Pipeline(used_descriptor_sets)
 {
 }
 
-RaytracingPipeline::~RaytracingPipeline() = default;
+RaytracingPipeline<Platform::VULKAN>::~RaytracingPipeline() = default;
 
-Result RaytracingPipeline::Create(
-    Device *device,
+Result RaytracingPipeline<Platform::VULKAN>::Create(
+    Device<Platform::VULKAN> *device,
     ShaderProgram *shader_program,
     DescriptorPool *descriptor_pool
 )
@@ -74,8 +75,8 @@ Result RaytracingPipeline::Create(
     const VkPushConstantRange push_constant_ranges[] = {
         {
             .stageFlags = push_constant_stage_flags,
-            .offset = 0,
-            .size = static_cast<UInt32>(device->GetFeatures().PaddedSize<PushConstantData>())
+            .offset     = 0,
+            .size       = static_cast<UInt32>(device->GetFeatures().PaddedSize<PushConstantData>())
         }
     };
 
@@ -143,7 +144,7 @@ Result RaytracingPipeline::Create(
     HYPERION_RETURN_OK;
 }
 
-Result RaytracingPipeline::Destroy(Device *device)
+Result RaytracingPipeline<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     DebugLog(LogType::Debug, "Destroying raytracing pipeline\n");
 
@@ -166,7 +167,7 @@ Result RaytracingPipeline::Destroy(Device *device)
     return result;
 }
 
-void RaytracingPipeline::Bind(CommandBuffer *command_buffer)
+void RaytracingPipeline<Platform::VULKAN>::Bind(CommandBuffer<Platform::VULKAN> *command_buffer)
 {
     vkCmdBindPipeline(
         command_buffer->GetCommandBuffer(),
@@ -175,7 +176,7 @@ void RaytracingPipeline::Bind(CommandBuffer *command_buffer)
     );
 }
 
-void RaytracingPipeline::SubmitPushConstants(CommandBuffer *cmd) const
+void RaytracingPipeline<Platform::VULKAN>::SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const
 {
     vkCmdPushConstants(
         cmd->GetCommandBuffer(),
@@ -187,9 +188,9 @@ void RaytracingPipeline::SubmitPushConstants(CommandBuffer *cmd) const
     );
 }
 
-void RaytracingPipeline::TraceRays(
-    Device *device,
-    CommandBuffer *command_buffer,
+void RaytracingPipeline<Platform::VULKAN>::TraceRays(
+    Device<Platform::VULKAN> *device,
+    CommandBuffer<Platform::VULKAN> *command_buffer,
     Extent3D extent
 ) const
 {
@@ -203,7 +204,7 @@ void RaytracingPipeline::TraceRays(
     );
 }
 
-Result RaytracingPipeline::CreateShaderBindingTables(Device *device, ShaderProgram *shader_program)
+Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram *shader_program)
 {
     const auto &shader_groups = shader_program->GetShaderGroups();
 
@@ -294,7 +295,8 @@ Result RaytracingPipeline::CreateShaderBindingTables(Device *device, ShaderProgr
     return result;
 }
 
-Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
+Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTableEntry(
+    Device<Platform::VULKAN> *device,
     UInt32 num_shaders,
     ShaderBindingTableEntry &out
 )
@@ -304,12 +306,12 @@ Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
     AssertThrow(properties.shaderGroupHandleSize != 0);
 
     if (num_shaders == 0) {
-        return {Result::RENDERER_ERR, "Creating shader binding table entry with zero shader count"};
+        return { Result::RENDERER_ERR, "Creating shader binding table entry with zero shader count" };
     }
 
     auto result = Result::OK;
 
-    out.buffer.reset(new ShaderBindingTableBuffer());
+    out.buffer.reset(new ShaderBindingTableBuffer<Platform::VULKAN>());
 
     HYPERION_PASS_ERRORS(
         out.buffer->Create(
@@ -323,10 +325,10 @@ Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
         /* Get strided device address region */
         const UInt32 handle_size = device->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
-        out.strided_device_address_region = VkStridedDeviceAddressRegionKHR{
-            .deviceAddress = out.buffer->GetBufferDeviceAddress(device),
-            .stride = handle_size,
-            .size = num_shaders * handle_size
+        out.strided_device_address_region = VkStridedDeviceAddressRegionKHR {
+            .deviceAddress  = out.buffer->GetBufferDeviceAddress(device),
+            .stride         = handle_size,
+            .size           = num_shaders * handle_size
         };
     } else {
         out.buffer.reset();
@@ -335,5 +337,6 @@ Result RaytracingPipeline::CreateShaderBindingTableEntry(Device *device,
     return result;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

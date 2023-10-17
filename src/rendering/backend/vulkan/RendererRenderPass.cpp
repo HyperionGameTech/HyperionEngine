@@ -4,8 +4,9 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-RenderPass::RenderPass(RenderPassStage stage, Mode mode)
+RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
@@ -13,7 +14,7 @@ RenderPass::RenderPass(RenderPassStage stage, Mode mode)
 {
 }
 
-RenderPass::RenderPass(RenderPassStage stage, Mode mode, UInt num_multiview_layers)
+RenderPass<Platform::VULKAN>::RenderPass(RenderPassStage stage, RenderPassMode mode, UInt num_multiview_layers)
     : m_stage(stage),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
@@ -21,12 +22,12 @@ RenderPass::RenderPass(RenderPassStage stage, Mode mode, UInt num_multiview_laye
 {
 }
 
-RenderPass::~RenderPass()
+RenderPass<Platform::VULKAN>::~RenderPass()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE, "handle should have been destroyed");
 }
 
-void RenderPass::CreateDependencies()
+void RenderPass<Platform::VULKAN>::CreateDependencies()
 {
     switch (m_stage) {
     case RenderPassStage::PRESENT:
@@ -70,18 +71,18 @@ void RenderPass::CreateDependencies()
     }
 }
 
-Result RenderPass::Create(Device *device)
+Result RenderPass<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     CreateDependencies();
 
-    std::vector<VkAttachmentDescription> attachment_descriptions;
-    attachment_descriptions.reserve(m_render_pass_attachment_usages.size());
+    Array<VkAttachmentDescription> attachment_descriptions;
+    attachment_descriptions.Reserve(m_render_pass_attachment_usages.Size());
 
     VkAttachmentReference depth_attachment_usage { };
-    std::vector<VkAttachmentReference> color_attachment_usages;
+    Array<VkAttachmentReference> color_attachment_usages;
 
     VkSubpassDescription subpass_description { };
-    subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass_description.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass_description.pDepthStencilAttachment = nullptr;
 
     UInt next_binding = 0;
@@ -93,7 +94,7 @@ Result RenderPass::Create(Device *device)
 
         next_binding = attachment_usage->GetBinding() + 1;
 
-        attachment_descriptions.push_back(attachment_usage->GetAttachmentDescription());
+        attachment_descriptions.PushBack(attachment_usage->GetAttachmentDescription());
 
         if (attachment_usage->IsDepthAttachment()) {
             depth_attachment_usage = attachment_usage->GetHandle();
@@ -103,7 +104,7 @@ Result RenderPass::Create(Device *device)
                 .depthStencil = { 1.0f, 0 }
             });
         } else {
-            color_attachment_usages.push_back(attachment_usage->GetHandle());
+            color_attachment_usages.PushBack(attachment_usage->GetHandle());
 
             m_clear_values.push_back(VkClearValue {
                 .color = {
@@ -113,25 +114,25 @@ Result RenderPass::Create(Device *device)
         }
     }
 
-    subpass_description.colorAttachmentCount = static_cast<UInt32>(color_attachment_usages.size());
-    subpass_description.pColorAttachments = color_attachment_usages.data();
+    subpass_description.colorAttachmentCount    = UInt32(color_attachment_usages.Size());
+    subpass_description.pColorAttachments       = color_attachment_usages.Data();
 
     // Create the actual renderpass
     VkRenderPassCreateInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    render_pass_info.attachmentCount = static_cast<UInt32>(attachment_descriptions.size());
-    render_pass_info.pAttachments = attachment_descriptions.data();
-    render_pass_info.subpassCount = 1;
-    render_pass_info.pSubpasses = &subpass_description;
-    render_pass_info.dependencyCount = static_cast<UInt32>(m_dependencies.size());
-    render_pass_info.pDependencies = m_dependencies.data();
+    render_pass_info.attachmentCount    = UInt32(attachment_descriptions.Size());
+    render_pass_info.pAttachments       = attachment_descriptions.Data();
+    render_pass_info.subpassCount       = 1;
+    render_pass_info.pSubpasses         = &subpass_description;
+    render_pass_info.dependencyCount    = UInt32(m_dependencies.Size());
+    render_pass_info.pDependencies      = m_dependencies.Data();
 
     UInt32 multiview_view_mask = 0;
     UInt32 multiview_correlation_mask = 0;
 
     VkRenderPassMultiviewCreateInfo multiview_info { VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO };
-    multiview_info.subpassCount = 1;
-    multiview_info.pViewMasks = &multiview_view_mask;
-    multiview_info.pCorrelationMasks = &multiview_correlation_mask;
+    multiview_info.subpassCount         = 1;
+    multiview_info.pViewMasks           = &multiview_view_mask;
+    multiview_info.pCorrelationMasks    = &multiview_correlation_mask;
     multiview_info.correlationMaskCount = 1;
 
     if (IsMultiview()) {
@@ -150,7 +151,7 @@ Result RenderPass::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result RenderPass::Destroy(Device *device)
+Result RenderPass<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     auto result = Result::OK;
 
@@ -161,30 +162,30 @@ Result RenderPass::Destroy(Device *device)
         attachment_usage->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
     }
 
-    m_render_pass_attachment_usages.clear();
+    m_render_pass_attachment_usages.Clear();
 
     return result;
 }
 
-void RenderPass::Begin(CommandBuffer *cmd, FramebufferObject *framebuffer)
+void RenderPass<Platform::VULKAN>::Begin(CommandBuffer<Platform::VULKAN> *cmd, FramebufferObject<Platform::VULKAN> *framebuffer)
 {
     AssertThrow(framebuffer != nullptr && framebuffer->GetHandle() != nullptr);
 
-    VkRenderPassBeginInfo render_pass_info{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-    render_pass_info.renderPass = m_handle;
-    render_pass_info.framebuffer = framebuffer->GetHandle();
-    render_pass_info.renderArea.offset = { 0, 0 };
-    render_pass_info.renderArea.extent = VkExtent2D{framebuffer->GetWidth(), framebuffer->GetHeight()};
-    render_pass_info.clearValueCount = static_cast<UInt32>(m_clear_values.size());
-    render_pass_info.pClearValues = m_clear_values.data();
+    VkRenderPassBeginInfo render_pass_info { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+    render_pass_info.renderPass         = m_handle;
+    render_pass_info.framebuffer        = framebuffer->GetHandle();
+    render_pass_info.renderArea.offset  = { 0, 0 };
+    render_pass_info.renderArea.extent  = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
+    render_pass_info.clearValueCount    = UInt32(m_clear_values.Size());
+    render_pass_info.pClearValues       = m_clear_values.Data();
 
     VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE;
 
     switch (m_mode) {
-    case Mode::RENDER_PASS_INLINE:
+    case RENDER_PASS_INLINE:
         contents = VK_SUBPASS_CONTENTS_INLINE;
         break;
-    case Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER:
+    case RENDER_PASS_SECONDARY_COMMAND_BUFFER:
         contents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
         break;
     }
@@ -192,10 +193,11 @@ void RenderPass::Begin(CommandBuffer *cmd, FramebufferObject *framebuffer)
     vkCmdBeginRenderPass(cmd->GetCommandBuffer(), &render_pass_info, contents);
 }
 
-void RenderPass::End(CommandBuffer *cmd)
+void RenderPass<Platform::VULKAN>::End(CommandBuffer<Platform::VULKAN> *cmd)
 {
     vkCmdEndRenderPass(cmd->GetCommandBuffer());
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

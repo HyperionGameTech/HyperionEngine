@@ -14,8 +14,10 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-class FramebufferObject
+template <>
+class FramebufferObject<Platform::VULKAN>
 {
 public:
     FramebufferObject(Extent2D extent);
@@ -26,8 +28,8 @@ public:
 
     VkFramebuffer GetHandle() const { return m_handle; }
 
-    Result Create(Device *device, RenderPass *render_pass);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device, RenderPass<Platform::VULKAN> *render_pass);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
     void AddAttachmentUsage(AttachmentUsage *attachment_usage);
     bool RemoveAttachmentUsage(const Attachment *attachment);
@@ -46,6 +48,7 @@ private:
     VkFramebuffer m_handle;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

@@ -36,7 +36,7 @@ void CompositePass::CreateShader()
         final_output_props.Set("PATHTRACER");
     }
 
-    final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(g_engine->GetGPUInstance()->swapchain->image_format));
+    final_output_props.Set("OUTPUT_SRGB", renderer::IsSRGBFormat(g_engine->GetGPUInstance()->GetSwapchain()->image_format));
 
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(Composite),
@@ -93,8 +93,8 @@ void FinalPass::Create()
 
     m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
         MakeRenderObject<Image>(renderer::FramebufferImage2D(
-            g_engine->GetGPUInstance()->swapchain->extent,
-            g_engine->GetGPUInstance()->swapchain->image_format,
+            g_engine->GetGPUInstance()->GetSwapchain()->extent,
+            g_engine->GetGPUInstance()->GetSwapchain()->image_format,
             nullptr
         )),
         renderer::RenderPassStage::PRESENT
@@ -102,7 +102,7 @@ void FinalPass::Create()
 
     m_attachments.PushBack(MakeRenderObject<renderer::Attachment>(
         MakeRenderObject<Image>(renderer::FramebufferImage2D(
-            g_engine->GetGPUInstance()->swapchain->extent,
+            g_engine->GetGPUInstance()->GetSwapchain()->extent,
             g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
         )),
@@ -113,11 +113,11 @@ void FinalPass::Create()
         HYPERION_ASSERT_RESULT(attachment->Create(g_engine->GetGPUDevice()));
     }
 
-    for (renderer::PlatformImage img : g_engine->GetGPUInstance()->swapchain->images) {
+    for (renderer::PlatformImage img : g_engine->GetGPUInstance()->GetSwapchain()->images) {
         auto fbo = CreateObject<Framebuffer>(
-            g_engine->GetGPUInstance()->swapchain->extent,
+            g_engine->GetGPUInstance()->GetSwapchain()->extent,
             renderer::RenderPassStage::PRESENT,
-            renderer::RenderPass::Mode::RENDER_PASS_INLINE
+            renderer::RenderPassMode::RENDER_PASS_INLINE
         );
 
         renderer::AttachmentUsage *color_attachment_usage,
@@ -126,7 +126,7 @@ void FinalPass::Create()
         HYPERION_ASSERT_RESULT(m_attachments[0]->AddAttachmentUsage(
             g_engine->GetGPUDevice(),
             img,
-            renderer::helpers::ToVkFormat(g_engine->GetGPUInstance()->swapchain->image_format),
+            renderer::helpers::ToVkFormat(g_engine->GetGPUInstance()->GetSwapchain()->image_format),
             VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D,
             1, 1,
             renderer::LoadOperation::CLEAR,
@@ -171,7 +171,7 @@ void FinalPass::Create()
     InitObject(m_render_group);
 
     m_last_frame_image = MakeRenderObject<renderer::Image>(renderer::TextureImage(
-        Extent3D { g_engine->GetGPUInstance()->swapchain->extent, 1 },
+        Extent3D { g_engine->GetGPUInstance()->GetSwapchain()->extent, 1 },
         InternalFormat::RGBA8_SRGB,
         ImageType::TEXTURE_TYPE_2D,
         FilterMode::TEXTURE_FILTER_NEAREST,

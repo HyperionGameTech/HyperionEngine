@@ -415,7 +415,7 @@ void VoxelConeTracing::CreateFramebuffer()
     m_framebuffer = CreateObject<Framebuffer>(
         Extent2D(voxel_map_extent),
         RenderPassStage::SHADER,
-        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
+        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
 
     InitObject(m_framebuffer);

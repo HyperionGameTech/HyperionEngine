@@ -71,8 +71,8 @@ public:
     VkInstance GetInstance() const
         { return this->instance; }
 
-    Swapchain *GetSwapchain() const
-        { return swapchain; }
+    Swapchain<Platform::VULKAN> *GetSwapchain() const
+        { return m_swapchain; }
                                                           
     FrameHandler<Platform::VULKAN> *GetFrameHandler() const
         { return frame_handler; }
@@ -100,8 +100,6 @@ public:
 
     const char                      *app_name;
     const char                      *engine_name;
-    
-    Swapchain                       *swapchain = nullptr;
 
     /* Per frame data */
     FrameHandler<Platform::VULKAN>  *frame_handler;
@@ -116,7 +114,8 @@ private:
 
     VmaAllocator                    allocator = nullptr;
 
-    Device<Platform::VULKAN>        *m_device;
+    Device<Platform::VULKAN>        *m_device = nullptr;
+    Swapchain<Platform::VULKAN>     *m_swapchain = nullptr;
 
     DeviceQueue                     queue_graphics;
     DeviceQueue                     queue_transfer;

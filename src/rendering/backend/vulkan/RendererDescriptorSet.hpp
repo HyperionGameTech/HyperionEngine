@@ -45,17 +45,29 @@ class ImageView;
 template <PlatformType PLATFORM>
 class Sampler;
 
+template <PlatformType PLATFORM>
+class Pipeline;
+
+template <PlatformType PLATFORM>
+class GraphicsPipeline;
+
+template <PlatformType PLATFORM>
+class ComputePipeline;
+
+template <PlatformType PLATFORM>
+class RaytracingPipeline;
+
 } // namespace platform
 
-using Device        = platform::Device<Platform::VULKAN>;
-using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
-using ImageView     = platform::ImageView<Platform::VULKAN>;
-using Sampler       = platform::Sampler<Platform::VULKAN>;
+using Device                = platform::Device<Platform::VULKAN>;
+using CommandBuffer         = platform::CommandBuffer<Platform::VULKAN>;
+using ImageView             = platform::ImageView<Platform::VULKAN>;
+using Sampler               = platform::Sampler<Platform::VULKAN>;
+using Pipeline              = platform::Pipeline<Platform::VULKAN>;
+using GraphicsPipeline      = platform::GraphicsPipeline<Platform::VULKAN>;
+using ComputePipeline       = platform::ComputePipeline<Platform::VULKAN>;
+using RaytracingPipeline    = platform::RaytracingPipeline<Platform::VULKAN>;
 
-class Pipeline;
-class GraphicsPipeline;
-class ComputePipeline;
-class RaytracingPipeline;
 class AccelerationStructure;
 class DescriptorSet;
 class DescriptorPool;

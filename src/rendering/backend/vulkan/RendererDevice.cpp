@@ -319,14 +319,14 @@ Result Device<Platform::VULKAN>::Wait() const
     HYPERION_RETURN_OK;
 }
 
-Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32_t> &required_queue_families)
+Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<UInt32> &required_queue_families)
 {
     DebugLog(LogType::Debug, "Memory properties:\n");
     const auto &memory_properties = features->GetPhysicalDeviceMemoryProperties();
 
-    for (uint32_t i = 0; i < memory_properties.memoryTypeCount; i++) {
+    for (UInt32 i = 0; i < memory_properties.memoryTypeCount; i++) {
         const auto &memory_type = memory_properties.memoryTypes[i];
-        const uint32_t heap_index =  memory_type.heapIndex;
+        const UInt32 heap_index =  memory_type.heapIndex;
 
         DebugLog(LogType::Debug, "Memory type %lu:\t(index: %lu, flags: %lu)\n", i, heap_index, memory_type.propertyFlags);
 
@@ -335,21 +335,20 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32_t> &r
         DebugLog(LogType::Debug, "\tHeap:\t\t(size: %llu, flags: %lu)\n", heap.size, heap.flags);
     }
 
-    std::vector<VkDeviceQueueCreateInfo> queue_create_info_vec;
+    Array<VkDeviceQueueCreateInfo> queue_create_infos;
     const float priorities[] = { 1.0f };
     // for each queue family(for separate threads) we add them to
     // our device initialization data
-    for (uint32_t family : required_queue_families) {
-        VkDeviceQueueCreateInfo queue_info{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+    for (UInt32 family : required_queue_families) {
+        VkDeviceQueueCreateInfo queue_info { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
         queue_info.pQueuePriorities = priorities;
         queue_info.queueCount = 1;
         queue_info.queueFamilyIndex = family;
 
-        queue_create_info_vec.push_back(queue_info);
+        queue_create_infos.PushBack(queue_info);
     }
     
-    const auto unsupported_extensions = GetUnsupportedExtensions();
-
+    const ExtensionMap unsupported_extensions = GetUnsupportedExtensions();
 
     HYPERION_BUBBLE_ERRORS(CheckDeviceSuitable(unsupported_extensions));
 
@@ -361,8 +360,8 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32_t> &r
         required_extensions.erase(it.first);
     }
 
-    std::vector<const char *> required_extensions_linear;
-    required_extensions_linear.reserve(required_extensions.size());
+    Array<const char *> required_extensions_linear;
+    required_extensions_linear.Reserve(required_extensions.Size());
 
     std::transform(
         required_extensions.begin(), 
@@ -384,8 +383,8 @@ Result Device<Platform::VULKAN>::CreateLogicalDevice(const std::set<uint32_t> &r
     DebugLog(LogType::RenDebug, "-----\n");
 
     VkDeviceCreateInfo create_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-    create_info.pQueueCreateInfos       = queue_create_info_vec.data();
-    create_info.queueCreateInfoCount    = UInt32(queue_create_info_vec.size());
+    create_info.pQueueCreateInfos       = queue_create_infos.data();
+    create_info.queueCreateInfoCount    = UInt32(queue_create_infos.size());
     // Setup Device extensions
     create_info.enabledExtensionCount   = UInt32(required_extensions_linear.size());
     create_info.ppEnabledExtensionNames = required_extensions_linear.data();

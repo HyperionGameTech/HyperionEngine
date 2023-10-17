@@ -15,8 +15,10 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-class RaytracingPipeline : public Pipeline
+template <>
+class RaytracingPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
 {
 public:
     RaytracingPipeline();
@@ -28,24 +30,24 @@ public:
     ~RaytracingPipeline();
 
     Result Create(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         ShaderProgram *shader_program,
         DescriptorPool *pool
     );
-    Result Destroy(Device *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
-    void Bind(CommandBuffer *command_buffer);
-    void SubmitPushConstants(CommandBuffer *cmd) const;
+    void Bind(CommandBuffer<Platform::VULKAN> *command_buffer);
+    void SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const;
     void TraceRays(
-        Device *device,
-        CommandBuffer *command_buffer,
+        Device<Platform::VULKAN> *device,
+        CommandBuffer<Platform::VULKAN> *command_buffer,
         Extent3D extent
     ) const;
 
 private:
     struct ShaderBindingTableEntry {
-        std::unique_ptr<ShaderBindingTableBuffer> buffer;
-        VkStridedDeviceAddressRegionKHR           strided_device_address_region;
+        std::unique_ptr<ShaderBindingTableBuffer<Platform::VULKAN>> buffer;
+        VkStridedDeviceAddressRegionKHR                             strided_device_address_region;
     };
 
     struct {
@@ -57,10 +59,10 @@ private:
 
     using ShaderBindingTableMap = std::unordered_map<ShaderModule::Type, ShaderBindingTableEntry>;
 
-    Result CreateShaderBindingTables(Device *device, ShaderProgram *shader_program);
+    Result CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram *shader_program);
 
     Result CreateShaderBindingTableEntry(
-        Device *device,
+        Device<Platform::VULKAN> *device,
         UInt32 num_shaders,
         ShaderBindingTableEntry &out
     );
@@ -68,7 +70,8 @@ private:
     ShaderBindingTableMap m_shader_binding_table_buffers;
 };
 
+} // namespace platform
 } // namespace renderer
-}; // namespace hyperion
+} // namespace hyperion
 
 #endif //HYPERION_RENDERER_BACKEND_VULKAN_RAYTRACING_PIPELINE_HPP

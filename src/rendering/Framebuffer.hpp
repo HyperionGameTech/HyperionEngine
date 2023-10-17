@@ -16,6 +16,7 @@ using renderer::AttachmentUsage;
 using renderer::Attachment;
 using renderer::RenderPass;
 using renderer::RenderPassStage;
+using renderer::RenderPassMode;
 using renderer::LoadOperation;
 using renderer::StoreOperation;
 
@@ -64,14 +65,14 @@ public:
     Framebuffer(
         Extent2D extent,
         RenderPassStage stage = RenderPassStage::SHADER,
-        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
+        RenderPassMode render_pass_mode = RenderPassMode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 
     Framebuffer(
         Extent3D extent,
         RenderPassStage stage = RenderPassStage::SHADER,
-        RenderPass::Mode render_pass_mode = RenderPass::Mode::RENDER_PASS_INLINE,
+        RenderPassMode render_pass_mode = RenderPassMode::RENDER_PASS_INLINE,
         UInt num_multiview_layers = 0
     );
 

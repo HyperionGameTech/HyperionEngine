@@ -10,7 +10,6 @@
 namespace hyperion {
 namespace renderer {
 
-class Swapchain;
 class DeviceQueue;
 
 namespace platform {
@@ -25,10 +24,13 @@ template <PlatformType PLATFORM>
 class CommandBuffer;
 
 template <PlatformType PLATFORM>
+class Swapchain;
+
+template <PlatformType PLATFORM>
 class FrameHandler
 {
 public:
-    using NextImageFunction = std::add_pointer_t<Result(Device<PLATFORM> *device, Swapchain *swapchain, Frame<PLATFORM> *frame, UInt *image_index)>;
+    using NextImageFunction = std::add_pointer_t<Result(Device<PLATFORM> *device, Swapchain<PLATFORM> *swapchain, Frame<PLATFORM> *frame, UInt *image_index)>;
 
     FrameHandler(UInt num_frames, NextImageFunction next_image);
     FrameHandler(const FrameHandler &other) = delete;
@@ -47,9 +49,9 @@ public:
 
     /* Used to acquire a new image from the provided next_image function.
      * Really only useful for our main swapchain surface */
-    Result PrepareFrame(Device<Platform::VULKAN> *device, Swapchain *swapchain);
+    Result PrepareFrame(Device<Platform::VULKAN> *device, Swapchain<Platform::VULKAN> *swapchain);
     /* Submit the frame for presentation */
-    Result PresentFrame(DeviceQueue *queue, Swapchain *swapchain) const;
+    Result PresentFrame(DeviceQueue *queue, Swapchain<Platform::VULKAN> *swapchain) const;
     /* Advance the current frame index; call at the end of a render loop. */
     void NextFrame();
     /* Create our Frame objects (count is same as num_frames) */

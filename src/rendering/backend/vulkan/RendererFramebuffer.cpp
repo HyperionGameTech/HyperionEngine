@@ -7,26 +7,28 @@
 
 namespace hyperion {
 namespace renderer {
-FramebufferObject::FramebufferObject(Extent2D extent)
+namespace platform {
+
+FramebufferObject<Platform::VULKAN>::FramebufferObject(Extent2D extent)
     : FramebufferObject(Extent3D(extent))
 {
 }
 
-FramebufferObject::FramebufferObject(Extent3D extent)
+FramebufferObject<Platform::VULKAN>::FramebufferObject(Extent3D extent)
     : m_extent(extent),
       m_handle(VK_NULL_HANDLE)
 {
 }
 
-FramebufferObject::~FramebufferObject()
+FramebufferObject<Platform::VULKAN>::~FramebufferObject()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE, "handle should have been destroyed");
 }
 
-Result FramebufferObject::Create(Device *device, RenderPass *render_pass)
+Result FramebufferObject<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, RenderPass<Platform::VULKAN> *render_pass)
 {
-    std::vector<VkImageView> attachment_image_views;
-    attachment_image_views.reserve(m_attachment_usages.size());
+    Array<VkImageView> attachment_image_views;
+    attachment_image_views.Reserve(m_attachment_usages.size());
 
     UInt num_layers = 1;
     
@@ -37,23 +39,23 @@ Result FramebufferObject::Create(Device *device, RenderPass *render_pass)
 
         //num_layers = MathUtil::Max(num_layers, attachment_usage->GetImageView()->NumFaces());
 
-        attachment_image_views.push_back(attachment_usage->GetImageView()->GetImageView());
+        attachment_image_views.PushBack(attachment_usage->GetImageView()->GetImageView());
     }
 
     VkFramebufferCreateInfo framebuffer_create_info { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    framebuffer_create_info.renderPass = render_pass->GetHandle();
-    framebuffer_create_info.attachmentCount = static_cast<UInt32>(attachment_image_views.size());
-    framebuffer_create_info.pAttachments = attachment_image_views.data();
-    framebuffer_create_info.width = m_extent.width;
-    framebuffer_create_info.height = m_extent.height;
-    framebuffer_create_info.layers = num_layers;
+    framebuffer_create_info.renderPass      = render_pass->GetHandle();
+    framebuffer_create_info.attachmentCount = UInt32(attachment_image_views.Size());
+    framebuffer_create_info.pAttachments    = attachment_image_views.Data();
+    framebuffer_create_info.width           = m_extent.width;
+    framebuffer_create_info.height          = m_extent.height;
+    framebuffer_create_info.layers          = num_layers;
 
     HYPERION_VK_CHECK(vkCreateFramebuffer(device->GetDevice(), &framebuffer_create_info, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
 
-Result FramebufferObject::Destroy(Device *device)
+Result FramebufferObject<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     auto result = Result::OK;
 
@@ -69,14 +71,14 @@ Result FramebufferObject::Destroy(Device *device)
     return result;
 }
 
-void FramebufferObject::AddAttachmentUsage(AttachmentUsage *attachment_usage)
+void FramebufferObject<Platform::VULKAN>::AddAttachmentUsage(AttachmentUsage *attachment_usage)
 {
     attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
     m_attachment_usages.push_back(attachment_usage);
 }
 
-bool FramebufferObject::RemoveAttachmentUsage(const Attachment *attachment)
+bool FramebufferObject<Platform::VULKAN>::RemoveAttachmentUsage(const Attachment *attachment)
 {
     const auto it = std::find_if(
         m_attachment_usages.begin(),
@@ -97,5 +99,6 @@ bool FramebufferObject::RemoveAttachmentUsage(const Attachment *attachment)
     return true;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

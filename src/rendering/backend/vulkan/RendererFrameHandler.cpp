@@ -46,7 +46,10 @@ Result FrameHandler<Platform::VULKAN>::CreateFrames(Device<Platform::VULKAN> *de
 }
 
 template <>
-Result FrameHandler<Platform::VULKAN>::PrepareFrame(Device<Platform::VULKAN> *device, Swapchain *swapchain)
+Result FrameHandler<Platform::VULKAN>::PrepareFrame(
+    Device<Platform::VULKAN> *device,
+    Swapchain<Platform::VULKAN> *swapchain
+)
 {
     auto *frame = GetCurrentFrameData().Get<Frame<Platform::VULKAN>>();
 
@@ -77,7 +80,10 @@ void FrameHandler<Platform::VULKAN>::NextFrame()
 }
 
 template <>
-Result FrameHandler<Platform::VULKAN>::PresentFrame(DeviceQueue *queue, Swapchain *swapchain) const
+Result FrameHandler<Platform::VULKAN>::PresentFrame(
+    DeviceQueue *queue,
+    Swapchain<Platform::VULKAN> *swapchain
+) const
 {
     auto *frame = GetCurrentFrameData().Get<Frame<Platform::VULKAN>>();
 

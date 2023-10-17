@@ -16,13 +16,19 @@
 
 namespace hyperion {
 namespace renderer {
-
-class Pipeline;
-class GraphicsPipeline;
-class ComputePipeline;
-class RaytracingPipeline;
-
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Pipeline;
+
+template <PlatformType PLATFORM>
+class GraphicsPipeline;
+
+template <PlatformType PLATFORM>
+class ComputePipeline;
+
+template <PlatformType PLATFORM>
+class RaytracingPipeline;
 
 template <>
 class CommandBuffer<Platform::VULKAN>
@@ -41,7 +47,7 @@ public:
 
     Result Create(Device<Platform::VULKAN> *device, VkCommandPool command_pool);
     Result Destroy(Device<Platform::VULKAN> *device);
-    Result Begin(Device<Platform::VULKAN> *device, const RenderPass *render_pass = nullptr);
+    Result Begin(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass = nullptr);
     Result End(Device<Platform::VULKAN> *device);
     Result Reset(Device<Platform::VULKAN> *device);
     Result SubmitPrimary(
@@ -68,27 +74,27 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -98,7 +104,7 @@ public:
     template <SizeType Size>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, Size> &offsets
@@ -116,7 +122,7 @@ public:
 
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
@@ -126,7 +132,7 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -136,7 +142,7 @@ public:
     template <SizeType NumOffsets>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -155,7 +161,7 @@ public:
     template <SizeType NumDescriptorSets, SizeType NumOffsets>
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const GraphicsPipeline *pipeline,
+        const GraphicsPipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -174,14 +180,14 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -191,7 +197,7 @@ public:
     template <SizeType NumOffsets>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -209,20 +215,20 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -232,7 +238,7 @@ public:
     template <SizeType NumOffsets>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -250,7 +256,7 @@ public:
 
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
@@ -261,7 +267,7 @@ public:
     template <SizeType NumDescriptorSets, SizeType NumOffsets>
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const ComputePipeline *pipeline,
+        const ComputePipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -280,14 +286,14 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -297,7 +303,7 @@ public:
     template <SizeType NumOffsets>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -315,20 +321,20 @@ public:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding
     ) const;
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const UInt32 *offsets,
@@ -338,7 +344,7 @@ public:
     template <SizeType NumOffsets>
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -356,7 +362,7 @@ public:
 
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
         SizeType num_descriptor_sets,
@@ -367,7 +373,7 @@ public:
     template <SizeType NumDescriptorSets, SizeType NumOffsets>
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const RaytracingPipeline *pipeline,
+        const RaytracingPipeline<Platform::VULKAN> *pipeline,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &sets,
         const FixedArray<DescriptorSet::Index, NumDescriptorSets> &bindings,
         const FixedArray<UInt32, NumOffsets> &offsets
@@ -388,7 +394,7 @@ public:
     void DebugMarkerEnd() const;
 
     template <class LambdaFunction>
-    Result Record(Device<Platform::VULKAN> *device, const RenderPass *render_pass, const LambdaFunction &fn)
+    Result Record(Device<Platform::VULKAN> *device, const RenderPass<Platform::VULKAN> *render_pass, const LambdaFunction &fn)
     {
         HYPERION_BUBBLE_ERRORS(Begin(device, render_pass));
 
@@ -402,7 +408,7 @@ public:
 private:
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const Pipeline *pipeline,
+        const Pipeline<Platform::VULKAN> *pipeline,
         VkPipelineBindPoint bind_point,
         DescriptorSet::Index set,
         DescriptorSet::Index binding,
@@ -412,7 +418,7 @@ private:
 
     void BindDescriptorSet(
         const DescriptorPool &pool,
-        const Pipeline *pipeline,
+        const Pipeline<Platform::VULKAN> *pipeline,
         VkPipelineBindPoint bind_point,
         const DescriptorSetRef &descriptor_set,
         DescriptorSet::Index binding,
@@ -422,7 +428,7 @@ private:
 
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const Pipeline *pipeline,
+        const Pipeline<Platform::VULKAN> *pipeline,
         VkPipelineBindPoint bind_point,
         const DescriptorSet::Index *sets,
         const DescriptorSet::Index *bindings,
@@ -433,7 +439,7 @@ private:
 
     void BindDescriptorSets(
         const DescriptorPool &pool,
-        const Pipeline *pipeline,
+        const Pipeline<Platform::VULKAN> *pipeline,
         VkPipelineBindPoint bind_point,
         const DescriptorSetRef *descriptor_sets,
         const DescriptorSet::Index *bindings,

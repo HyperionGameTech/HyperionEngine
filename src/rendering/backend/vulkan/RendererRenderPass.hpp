@@ -6,6 +6,8 @@
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
 
+#include <core/lib/DynArray.hpp>
+
 #include <Types.hpp>
 
 #include <vulkan/vulkan.h>
@@ -21,60 +23,58 @@ class Device;
 template <PlatformType PLATFORM>
 class CommandBuffer;
 
-} // namespace platform
+template <PlatformType PLATFORM>
+class GraphicsPipeline;
 
-using Device        = platform::Device<Platform::VULKAN>;
-using CommandBuffer = platform::CommandBuffer<Platform::VULKAN>;
-
+template <PlatformType PLATFORM>
 class FramebufferObject;
 
-class RenderPass
+template <>
+class RenderPass<Platform::VULKAN>
 {
-    friend class FramebufferObject;
-    friend class GraphicsPipeline;
+    friend class FramebufferObject<Platform::VULKAN>;
+    friend class GraphicsPipeline<Platform::VULKAN>;
 
 public:
-    enum class Mode
-    {
-        RENDER_PASS_INLINE = 0,
-        RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
-    };
-
-    RenderPass(RenderPassStage stage, Mode mode);
-    RenderPass(RenderPassStage stage, Mode mode, UInt num_multiview_layers);
+    RenderPass(RenderPassStage stage, RenderPassMode mode);
+    RenderPass(RenderPassStage stage, RenderPassMode mode, UInt num_multiview_layers);
     RenderPass(const RenderPass &other) = delete;
     RenderPass &operator=(const RenderPass &other) = delete;
     ~RenderPass();
 
-    RenderPassStage GetStage() const { return m_stage; }
+    RenderPassStage GetStage() const
+        { return m_stage; }
 
-    bool IsMultiview() const { return m_num_multiview_layers != 0; }
-    UInt NumMultiviewLayers() const { return m_num_multiview_layers; }
+    bool IsMultiview() const
+        { return m_num_multiview_layers != 0; }
+
+    UInt NumMultiviewLayers() const
+        { return m_num_multiview_layers; }
 
     void AddAttachmentUsage(AttachmentUsage *attachment_usage)
     {
         attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
-        m_render_pass_attachment_usages.push_back(attachment_usage);
+        m_render_pass_attachment_usages.PushBack(attachment_usage);
     }
 
     bool RemoveAttachmentUsage(const Attachment *attachment)
     {
         const auto it = std::find_if(
-            m_render_pass_attachment_usages.begin(),
-            m_render_pass_attachment_usages.end(),
+            m_render_pass_attachment_usages.Begin(),
+            m_render_pass_attachment_usages.End(),
             [attachment](const AttachmentUsage *item) {
                 return item->GetAttachment() == attachment;
             }
         );
 
-        if (it == m_render_pass_attachment_usages.end()) {
+        if (it == m_render_pass_attachment_usages.End()) {
             return false;
         }
 
         (*it)->DecRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
-        m_render_pass_attachment_usages.erase(it);
+        m_render_pass_attachment_usages.Erase(it);
 
         return true;
     }
@@ -84,30 +84,31 @@ public:
 
     VkRenderPass GetHandle() const { return m_handle; }
 
-    Result Create(Device *device);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
-    void Begin(CommandBuffer *cmd, FramebufferObject *framebuffer);
-    void End(CommandBuffer *cmd);
+    void Begin(CommandBuffer<Platform::VULKAN> *cmd, FramebufferObject<Platform::VULKAN> *framebuffer);
+    void End(CommandBuffer<Platform::VULKAN> *cmd);
 
 private:
     void CreateDependencies();
 
     void AddDependency(const VkSubpassDependency &dependency)
-        { m_dependencies.push_back(dependency); }
+        { m_dependencies.PushBack(dependency); }
 
-    RenderPassStage m_stage;
-    Mode            m_mode;
-    UInt            m_num_multiview_layers;
+    RenderPassStage                     m_stage;
+    RenderPassMode                      m_mode;
+    UInt                                m_num_multiview_layers;
 
-    std::vector<AttachmentUsage *> m_render_pass_attachment_usages;
+    Array<AttachmentUsage *>            m_render_pass_attachment_usages;
 
-    std::vector<VkSubpassDependency> m_dependencies;
-    std::vector<VkClearValue> m_clear_values;
+    Array<VkSubpassDependency>          m_dependencies;
+    Array<VkClearValue>                 m_clear_values;
 
-    VkRenderPass m_handle;
+    VkRenderPass                        m_handle;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

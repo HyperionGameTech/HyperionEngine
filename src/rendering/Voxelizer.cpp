@@ -159,8 +159,8 @@ void Voxelizer::CreateFramebuffer()
 {
     m_framebuffer = CreateObject<Framebuffer>(
         Extent2D { voxel_map_size, voxel_map_size },
-        RenderPassStage::SHADER,
-        renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
+        renderer::RenderPassStage::SHADER,
+        renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER
     );
     
     InitObject(m_framebuffer);
@@ -219,7 +219,7 @@ void Voxelizer::ResizeFragmentListBuffer(Frame *frame)
 
     g_engine->SafeRelease(UniquePtr<StorageBuffer>(m_fragment_list_buffer.release()));
 
-    m_fragment_list_buffer.reset(new StorageBuffer);
+    m_fragment_list_buffer.reset(new StorageBuffer());
     
     HYPERION_ASSERT_RESULT(m_fragment_list_buffer->Create(
         g_engine->GetGPUInstance()->GetDevice(),
@@ -297,9 +297,9 @@ void Voxelizer::CollectEntities(const Scene *scene)
         RenderableAttributeSet(
             MeshAttributes { },
             MaterialAttributes {
-                .bucket = BUCKET_INTERNAL,
+                .bucket     = BUCKET_INTERNAL,
                 .cull_faces = FaceCullMode::NONE,
-                .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+                .flags      = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
             m_shader->GetCompiledShader().GetDefinition()
         ),

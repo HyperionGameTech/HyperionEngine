@@ -11,13 +11,15 @@
 namespace hyperion {
 namespace renderer {
 
-class Swapchain;
 class Fence;
 struct DeviceQueue;
 
 using ::hyperion::non_owning_ptr;
 
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Swapchain;
 
 template <PlatformType PLATFORM>
 class CommandBuffer;

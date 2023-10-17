@@ -16,16 +16,15 @@
 namespace hyperion {
 namespace renderer {
     
-namespace platform {
-template <PlatformType PLATFORM>
-class Device;
-} // namespace platform
-
-using Device = platform::Device<Platform::VULKAN>;
-
 class DescriptorPool;
 
-class Pipeline
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <>
+class Pipeline<Platform::VULKAN>
 {
     friend class DescriptorPool;
 
@@ -176,13 +175,14 @@ public:
 
 protected:
     void AssignDefaultDescriptorSets(DescriptorPool *descriptor_pool);
-    std::vector<VkDescriptorSetLayout> GetDescriptorSetLayouts(Device *device, DescriptorPool *descriptor_pool);
+    std::vector<VkDescriptorSetLayout> GetDescriptorSetLayouts(Device<Platform::VULKAN> *device, DescriptorPool *descriptor_pool);
 
     VkPipeline                          pipeline;
     bool                                m_has_custom_descriptor_sets;
     Optional<Array<DescriptorSetRef>>   m_used_descriptor_sets;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

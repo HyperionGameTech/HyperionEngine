@@ -123,7 +123,7 @@ AttachmentMap::~AttachmentMap()
 Framebuffer::Framebuffer(
     Extent2D extent,
     RenderPassStage stage,
-    RenderPass::Mode render_pass_mode,
+    RenderPassMode render_pass_mode,
     UInt num_multiview_layers
 ) : Framebuffer(Extent3D(extent), stage, render_pass_mode, num_multiview_layers)
 {
@@ -132,7 +132,7 @@ Framebuffer::Framebuffer(
 Framebuffer::Framebuffer(
     Extent3D extent,
     RenderPassStage stage,
-    RenderPass::Mode render_pass_mode,
+    RenderPassMode render_pass_mode,
     UInt num_multiview_layers
 ) : EngineComponentBase(),
     m_extent(extent),

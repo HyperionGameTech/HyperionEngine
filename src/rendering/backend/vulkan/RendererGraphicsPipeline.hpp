@@ -21,10 +21,16 @@
 namespace hyperion {
 namespace renderer {
 
+namespace platform {
+
+template <PlatformType PLATFORM>
 class FramebufferObject;
+
+template <PlatformType PLATFORM>
 class RenderPass;
 
-class GraphicsPipeline : public Pipeline
+template <>
+class GraphicsPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
 {
 public:
     struct ConstructionInfo
@@ -40,8 +46,8 @@ public:
         Bool                                depth_write = true;
 
         ShaderProgram                       *shader = nullptr;
-        RenderPass                          *render_pass = nullptr;
-        Array<FramebufferObjectRef>         fbos;
+        RenderPass<Platform::VULKAN>        *render_pass = nullptr;
+        Array<FramebufferObjectRef_VULKAN>  fbos;
 
         // stencil
         StencilState                        stencil_state { };
@@ -56,17 +62,17 @@ public:
     void SetViewport(float x, float y, float width, float height, float min_depth = 0.0f, float max_depth = 1.0f);
     void SetScissor(int x, int y, UInt32 width, UInt32 height);
 
-    Result Create(Device *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device, ConstructionInfo &&construction_info, DescriptorPool *descriptor_pool);
+    Result Destroy(Device<Platform::VULKAN> *device);
     
-    void Bind(CommandBuffer *cmd);
-    void SubmitPushConstants(CommandBuffer *cmd) const;
+    void Bind(CommandBuffer<Platform::VULKAN> *cmd);
+    void SubmitPushConstants(CommandBuffer<Platform::VULKAN> *cmd) const;
 
     const ConstructionInfo &GetConstructionInfo() const
         { return m_construction_info; }
 
 private:
-    Result Rebuild(Device *device, DescriptorPool *descriptor_pool);
+    Result Rebuild(Device<Platform::VULKAN> *device, DescriptorPool *descriptor_pool);
     void UpdateDynamicStates(VkCommandBuffer cmd);
     Array<VkVertexInputAttributeDescription> BuildVertexAttributes(const VertexAttributeSet &attribute_set);
 
@@ -82,6 +88,7 @@ private:
 
 };
 
+} // namsepace platform
 } // namespace renderer
 } // namespace hyperion
 

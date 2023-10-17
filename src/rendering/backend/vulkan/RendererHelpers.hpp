@@ -88,7 +88,7 @@ private:
         HYPERION_PASS_ERRORS(m_fence->Create(device), result);
 
         // Submit to the queue
-        auto queue_graphics = device->GetQueue(family_indices.graphics_family.value(), 0);
+        auto queue_graphics = device->GetQueue(family_indices.graphics_family.Get(), 0);
 
         HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(queue_graphics, m_fence.get(), nullptr), result);
         

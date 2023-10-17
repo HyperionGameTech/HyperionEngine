@@ -27,7 +27,7 @@ static void AddOwnedAttachment(
 )
 {
     if (!extent.Size()) {
-        extent = g_engine->GetGPUInstance()->swapchain->extent;
+        extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
     }
 
     AttachmentUsage *attachment_usage;
@@ -214,13 +214,13 @@ void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderG
 
 void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 {
-    auto mode = renderer::RenderPass::Mode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
+    auto mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
     if (bucket == BUCKET_SWAPCHAIN) {
-        mode = renderer::RenderPass::Mode::RENDER_PASS_INLINE;
+        mode = renderer::RenderPassMode::RENDER_PASS_INLINE;
     }
 
-    const Extent2D extent = g_engine->GetGPUInstance()->swapchain->extent;
+    const Extent2D extent = g_engine->GetGPUInstance()->GetSwapchain()->extent;
 
     m_framebuffer = CreateObject<Framebuffer>(
         extent,

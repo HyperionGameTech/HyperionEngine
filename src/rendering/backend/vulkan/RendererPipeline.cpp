@@ -6,8 +6,9 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-Pipeline::Pipeline()
+Pipeline<Platform::VULKAN>::Pipeline()
     : m_has_custom_descriptor_sets(false),
       pipeline(VK_NULL_HANDLE),
       layout(VK_NULL_HANDLE),
@@ -15,7 +16,7 @@ Pipeline::Pipeline()
 {
 }
 
-Pipeline::Pipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
+Pipeline<Platform::VULKAN>::Pipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
     : m_used_descriptor_sets(used_descriptor_sets),
       m_has_custom_descriptor_sets(true),
       pipeline(VK_NULL_HANDLE),
@@ -24,13 +25,13 @@ Pipeline::Pipeline(const Array<DescriptorSetRef> &used_descriptor_sets)
 {
 }
 
-Pipeline::~Pipeline()
+Pipeline<Platform::VULKAN>::~Pipeline()
 {
     AssertThrowMsg(pipeline == VK_NULL_HANDLE, "Expected pipeline to have been destroyed");
     AssertThrowMsg(layout == VK_NULL_HANDLE, "Expected layout to have been destroyed");
 }
 
-void Pipeline::AssignDefaultDescriptorSets(DescriptorPool *descriptor_pool)
+void Pipeline<Platform::VULKAN>::AssignDefaultDescriptorSets(DescriptorPool *descriptor_pool)
 {
     m_has_custom_descriptor_sets = false;
 
@@ -56,7 +57,7 @@ void Pipeline::AssignDefaultDescriptorSets(DescriptorPool *descriptor_pool)
 #endif
 }
 
-std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *device, DescriptorPool *descriptor_pool)
+std::vector<VkDescriptorSetLayout> Pipeline<Platform::VULKAN>::GetDescriptorSetLayouts(Device<Platform::VULKAN> *device, DescriptorPool *descriptor_pool)
 {
     // TODO: set specialization constants based on these values so the indices all match up
 
@@ -84,7 +85,7 @@ std::vector<VkDescriptorSetLayout> Pipeline::GetDescriptorSetLayouts(Device *dev
 }
 
 
-void Pipeline::SetPushConstants(const void *data, SizeType size)
+void Pipeline<Platform::VULKAN>::SetPushConstants(const void *data, SizeType size)
 {
     AssertThrow(size <= sizeof(push_constants));
 
@@ -95,5 +96,6 @@ void Pipeline::SetPushConstants(const void *data, SizeType size)
     }
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
