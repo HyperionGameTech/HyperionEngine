@@ -27,8 +27,6 @@ enum class LogType : int
     RenDebug,
 };
 
-void DebugSetOutputStream(FILE *stream);
-
 /* To keep final executable size down and avoid extra calculations
  * the release build will have function naming disabled. */
 

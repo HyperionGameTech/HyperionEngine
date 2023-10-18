@@ -183,6 +183,11 @@ public:
         const Array<DescriptorSetRef> &used_descriptor_sets
     );
 
+    // /*! \brief Create a RenderGroup, using implied DescriptorSets from the Shader's CompiledShaderBatch Definition */
+    // Handle<RenderGroup> CreateRenderGroup(
+    //     const Handle<Shader> &shader,
+    //     const RenderableAttributeSet &renderable_attributes
+    // );
 
     void AddRenderGroup(Handle<RenderGroup> &render_group);
 

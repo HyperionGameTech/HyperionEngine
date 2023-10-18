@@ -26,9 +26,9 @@ if(MSVC)
 
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address,undefined")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
@@ -81,7 +81,7 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.c")
-file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp")
+file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp" "src/*.inl")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -77,7 +77,9 @@ private:
 class ShaderManagerSystem
 {
 public:
-    Handle<Shader> GetOrCreate(const ShaderDefinition &definition);
+    Handle<Shader> GetOrCreate(
+        const ShaderDefinition &definition
+    );
 
     Handle<Shader> GetOrCreate(
         Name name,
@@ -85,8 +87,8 @@ public:
     );
 
 private:
-    HashMap<ShaderDefinition, WeakHandle<Shader>> m_map;
-    std::mutex m_mutex;
+    HashMap<ShaderDefinition, WeakHandle<Shader>>   m_map;
+    std::mutex                                      m_mutex;
 };
 
 } // namespace hyperion::v2

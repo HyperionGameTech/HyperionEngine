@@ -34,8 +34,30 @@ public:
         const VertexAttributeSet optional_vertex_attributes = in_object.GetDefinition().GetProperties().GetOptionalVertexAttributes();
         out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
 
-        auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
+        out.SetProperty("num_descriptor_usages", FBOMData::FromUInt32(UInt32(in_object.GetDefinition().GetDescriptorUsages().Size())));
 
+        for (SizeType index = 0; index < in_object.GetDefinition().GetDescriptorUsages().Size(); index++) {
+            const DescriptorUsage &item = in_object.GetDefinition().GetDescriptorUsages()[index];
+
+            out.SetProperty(
+                String("descriptor_usages.") + String::ToString(index) + ".slot",
+                FBOMData::FromUInt32(item.slot)
+            );
+
+            out.SetProperty(
+                String("descriptor_usages.") + String::ToString(index) + ".descriptor_name",
+                FBOMName(),
+                item.descriptor_name
+            );
+
+            out.SetProperty(
+                String("descriptor_usages.") + String::ToString(index) + ".set_name",
+                FBOMName(),
+                item.set_name
+            );
+        }
+
+        auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
         out.SetProperty("properties.size", FBOMData::FromUInt32(UInt32(properties_array.Size())));
 
         for (SizeType index = 0; index < properties_array.Size(); index++) {
@@ -116,6 +138,34 @@ public:
 
         compiled_shader->GetDefinition().GetProperties().SetRequiredVertexAttributes(required_vertex_attributes);
         compiled_shader->GetDefinition().GetProperties().SetOptionalVertexAttributes(optional_vertex_attributes);
+
+        UInt num_descriptor_usages = 0;
+
+        if (in.HasProperty("num_descriptor_usages")) {
+            in.GetProperty("num_descriptor_usages").ReadUInt32(&num_descriptor_usages);
+
+            if (num_descriptor_usages != 0) {
+                for (UInt i = 0; i < num_descriptor_usages; i++) {
+                    const auto descriptor_usage_index_string = String("descriptor_usages.") + String::ToString(i);
+
+                    DescriptorUsage usage;
+
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".slot").ReadUInt32(&usage.slot)) {
+                        return err;
+                    }
+
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".descriptor_name").ReadName(&usage.descriptor_name)) {
+                        return err;
+                    }
+
+                    if (auto err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadName(&usage.set_name)) {
+                        return err;
+                    }
+
+                    compiled_shader->GetDefinition().GetDescriptorUsages().Add(std::move(usage));
+                }
+            }
+        }
 
         UInt num_properties;
 

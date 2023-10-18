@@ -30,7 +30,7 @@ struct RENDER_COMMAND(CreateComputeShader) : RenderCommand
 
 #pragma endregion
     
-ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
+ComputePipeline::ComputePipeline(Handle<Shader> shader)
     : EngineComponentBase(),
       m_shader(std::move(shader)),
       m_pipeline(MakeRenderObject<renderer::ComputePipeline>())
@@ -38,7 +38,7 @@ ComputePipeline::ComputePipeline(Handle<Shader> &&shader)
 }
 
 ComputePipeline::ComputePipeline(
-    Handle<Shader> &&shader,
+    Handle<Shader> shader,
     const Array<DescriptorSetRef> &used_descriptor_sets
 ) : EngineComponentBase(),
     m_shader(std::move(shader)),

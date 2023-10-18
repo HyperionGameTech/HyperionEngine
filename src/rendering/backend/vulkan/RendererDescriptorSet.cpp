@@ -278,7 +278,14 @@ DescriptorSet::DescriptorSet()
 {
 }
 
-DescriptorSet::DescriptorSet(Index index, UInt real_index, bool bindless)
+DescriptorSet::DescriptorSet(DescriptorSetDeclaration declaration)
+    : DescriptorSet()
+{
+    m_declaration = std::move(declaration);
+    AddDescriptors();
+}
+
+DescriptorSet::DescriptorSet(Index index, UInt real_index, Bool bindless)
     : m_set(VK_NULL_HANDLE),
       m_layout(VK_NULL_HANDLE),
       m_descriptor_pool(nullptr),
@@ -467,6 +474,40 @@ Result DescriptorSet::Destroy(Device *device)
     return result;
 }
 
+void DescriptorSet::AddDescriptors()
+{
+    for (Array<DescriptorDeclaration> &slot : m_declaration.slots) {
+        for (DescriptorDeclaration &descriptor : slot) {
+            const UInt descriptor_index = m_declaration.CalculateFlatIndex(descriptor.slot, descriptor.name);
+            AssertThrow(descriptor_index != UInt(-1));
+
+            switch (descriptor.slot) {
+            case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
+                AddDescriptor<renderer::ImageDescriptor>(descriptor_index);
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_UAV:
+                AddDescriptor<renderer::StorageImageDescriptor>(descriptor_index);
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_CBUFF:
+                AddDescriptor<renderer::UniformBufferDescriptor>(descriptor_index);
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_SSBO:
+                AddDescriptor<renderer::StorageBufferDescriptor>(descriptor_index);
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
+                AddDescriptor<renderer::TlasDescriptor>(descriptor_index);
+                break;
+            case DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER:
+                AddDescriptor<renderer::SamplerDescriptor>(descriptor_index);
+                break;
+            default:
+                AssertThrowMsg(false, "Invalid descriptor slot");
+                break;
+            }
+        }
+    }
+}
+
 bool DescriptorSet::RemoveDescriptor(Descriptor *descriptor)
 {
     AssertThrow(descriptor != nullptr);
@@ -502,6 +543,29 @@ Descriptor *DescriptorSet::GetDescriptor(DescriptorKey key) const
 Descriptor *DescriptorSet::GetDescriptor(UInt binding) const
 {
     const auto it = m_descriptors.FindIf([binding](const auto &item) {
+        return item->GetBinding() == binding;
+    });
+
+    if (it == m_descriptors.End()) {
+        return nullptr;
+    }
+
+    return it->get();
+}
+
+Descriptor *DescriptorSet::GetDescriptorByName(Name name) const
+{
+    const DescriptorDeclaration *decl = m_declaration.FindDescriptorDeclaration(name);
+
+    if (!decl) {
+        return nullptr;
+    }
+
+    const auto binding = m_declaration.CalculateFlatIndex(decl->slot, decl->name);
+    AssertThrow(binding != UInt(~0u)); // Make sure its not unset
+
+    const auto it = m_descriptors.FindIf([binding](const auto &item)
+    {
         return item->GetBinding() == binding;
     });
 

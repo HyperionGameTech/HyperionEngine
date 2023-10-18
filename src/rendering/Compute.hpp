@@ -17,8 +17,8 @@ using renderer::DescriptorSet;
 class ComputePipeline : public EngineComponentBase<STUB_CLASS(ComputePipeline)>
 {
 public:
-    ComputePipeline(Handle<Shader> &&shader);
-    ComputePipeline(Handle<Shader> &&shader, const Array<DescriptorSetRef> &used_descriptor_sets);
+    ComputePipeline(Handle<Shader> shader);
+    ComputePipeline(Handle<Shader> shader, const Array<DescriptorSetRef> &used_descriptor_sets);
     ComputePipeline(const ComputePipeline &) = delete;
     ComputePipeline &operator=(const ComputePipeline &) = delete;
     ~ComputePipeline();

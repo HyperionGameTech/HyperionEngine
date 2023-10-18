@@ -1,6 +1,10 @@
 #ifndef HYPERION_V2_BACKEND_RENDERER_DESCRIPTOR_SET_H
 #define HYPERION_V2_BACKEND_RENDERER_DESCRIPTOR_SET_H
 
+#include <core/Name.hpp>
+#include <core/lib/Optional.hpp>
+#include <core/lib/RefCountedPtr.hpp>
+#include <Types.hpp>
 #include <util/Defines.hpp>
 
 
@@ -124,6 +128,143 @@ static inline bool IsDescriptorTypeDynamicBuffer(DescriptorType type)
         || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
 }
 
+/* Convenience descriptor classes */
+
+enum DescriptorSlot : UInt32
+{
+    DESCRIPTOR_SLOT_NONE,
+    DESCRIPTOR_SLOT_SRV,
+    DESCRIPTOR_SLOT_UAV,
+    DESCRIPTOR_SLOT_CBUFF,
+    DESCRIPTOR_SLOT_SSBO,
+    DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE,
+    DESCRIPTOR_SLOT_SAMPLER,
+    DESCRIPTOR_SLOT_MAX
+};
+
+struct DescriptorDeclaration
+{
+    DescriptorSlot  slot   = DESCRIPTOR_SLOT_NONE;
+    UInt            index  = ~0u;
+    Name            name   = Name::invalid;
+};
+
+struct DescriptorSetDeclaration
+{
+    UInt set_index = ~0u;
+    Name name = Name::invalid;
+    FixedArray<
+        Array<DescriptorDeclaration>,
+        DESCRIPTOR_SLOT_MAX
+    > slots = { };
+
+    DescriptorSetDeclaration()                                                      = default;
+
+    DescriptorSetDeclaration(UInt set_index, Name name)
+        : set_index(set_index),
+          name(name)
+    {
+    }
+
+    DescriptorSetDeclaration(const DescriptorSetDeclaration &other)                 = default;
+    DescriptorSetDeclaration &operator=(const DescriptorSetDeclaration &other)      = default;
+    DescriptorSetDeclaration(DescriptorSetDeclaration &&other) noexcept             = default;
+    DescriptorSetDeclaration &operator=(DescriptorSetDeclaration &&other) noexcept  = default;
+    ~DescriptorSetDeclaration()                                                     = default;
+
+    Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot)
+    {
+        AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
+
+        return slots[UInt(slot) - 1];
+    }
+
+    const Array<DescriptorDeclaration> &GetSlot(DescriptorSlot slot) const
+    {
+        AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
+
+        return slots[UInt(slot) - 1];
+    }
+
+    void AddDescriptor(DescriptorSlot slot, Name name)
+    {
+        AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
+
+        slots[UInt(slot) - 1].PushBack(DescriptorDeclaration {
+            .slot   = slot,
+            .index  = UInt(slots[UInt(slot) - 1].Size()),
+            .name   = name
+        });
+    }
+
+    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
+        Returns -1 if not found */
+    UInt CalculateFlatIndex(DescriptorSlot slot, Name name) const;
+
+    DescriptorDeclaration *FindDescriptorDeclaration(Name name) const;
+};
+
+class DescriptorTable
+{
+public:
+
+    DescriptorSetDeclaration *FindDescriptorSetDeclaration(Name name) const;
+    DescriptorSetDeclaration *AddDescriptorSet(DescriptorSetDeclaration descriptor_set);
+
+    Array<DescriptorSetDeclaration> &GetDescriptorSetDeclarations()
+        { return declarations; }
+
+    const Array<DescriptorSetDeclaration> &GetDescriptorSetDeclarations() const
+        { return declarations; }
+
+private:
+    Array<DescriptorSetDeclaration> declarations;
+
+public:
+
+    struct DeclareSet
+    {
+        DeclareSet(DescriptorTable *table, UInt set_index, Name name)
+        {
+            AssertThrow(table != nullptr);
+
+            if (table->declarations.Size() <= set_index) {
+                table->declarations.Resize(set_index + 1);
+            }
+
+            DescriptorSetDeclaration decl;
+            decl.set_index = set_index;
+            decl.name = name;
+            table->declarations[set_index] = std::move(decl);
+        }
+    };
+
+    struct DeclareDescriptor
+    {
+        DeclareDescriptor(DescriptorTable *table, UInt set_index, DescriptorSlot slot_type, UInt index, Name name)
+        {
+            AssertThrow(table != nullptr);
+            AssertThrow(set_index < table->declarations.Size());
+
+            DescriptorSetDeclaration &decl = table->declarations[set_index];
+            AssertThrow(decl.set_index == set_index);
+            AssertThrow(slot_type > 0 && slot_type < decl.slots.Size());
+
+            if (index >= decl.slots[UInt(slot_type) - 1].Size()) {
+                decl.slots[UInt(slot_type) - 1].Resize(index + 1);
+            }
+
+            DescriptorDeclaration descriptor_decl;
+            descriptor_decl.index = index;
+            descriptor_decl.slot = slot_type;
+            descriptor_decl.name = name;
+            decl.slots[UInt(slot_type) - 1][index] = std::move(descriptor_decl);
+        }
+    };
+};
+
+extern DescriptorTable *g_static_descriptor_table;
+
 } // namespace renderer
 } // namespace hyperion
 
@@ -135,8 +276,6 @@ static inline bool IsDescriptorTypeDynamicBuffer(DescriptorType type)
 
 namespace hyperion {
 namespace renderer {
-
-/* Convenience descriptor classes */
 
 #define HYP_DEFINE_DESCRIPTOR(class_name, descriptor_type) \
     class class_name : public Descriptor { \
@@ -156,9 +295,9 @@ HYP_DEFINE_DESCRIPTOR(ImageSamplerDescriptor,         DescriptorType::IMAGE_SAMP
 HYP_DEFINE_DESCRIPTOR(StorageImageDescriptor,         DescriptorType::IMAGE_STORAGE);
 HYP_DEFINE_DESCRIPTOR(TlasDescriptor,                 DescriptorType::ACCELERATION_STRUCTURE);
 
+#undef HYP_DEFINE_DESCRIPTOR
+
 } // namespace renderer
 } // namespace hyperion
-
-#undef HYP_DEFINE_DESCRIPTOR
 
 #endif

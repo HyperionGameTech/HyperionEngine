@@ -41,116 +41,10 @@ using renderer::UniformBuffer;
 using renderer::StorageBuffer;
 using renderer::AtomicCounterBuffer;
 
-Engine *g_engine = nullptr;
-AssetManager *g_asset_manager = nullptr;
+Engine              *g_engine = nullptr;
+AssetManager        *g_asset_manager = nullptr;
 ShaderManagerSystem *g_shader_manager = nullptr;
-MaterialCache *g_material_system = nullptr;
-
-class StaticDescriptorTable
-{
-    static constexpr SizeType max_static_descriptor_sets = 8;
-    static constexpr SizeType max_static_descriptor_sets_per_slot = 16;
-
-public:
-    enum Slot
-    {
-        SLOT_NONE,
-        SRV,
-        UAV,
-        CBUFF,
-        SSBO,
-        ACCELERATION_STRUCTURE,
-        SLOT_MAX
-    };
-
-    struct DescriptorDeclaration
-    {
-        Slot slot = SLOT_NONE;
-        UInt slot_index = ~0u;
-        const char *name;
-
-        SizeType GetFlatIndex() const
-        {
-            return ((SizeType(slot) - 1) * max_static_descriptor_sets_per_slot) + slot_index;
-        }
-    };
-
-    struct DescriptorSetDeclaration
-    {
-        UInt set_index = ~0u;
-        const char *name;
-
-        DescriptorDeclaration slots[SLOT_MAX][max_static_descriptor_sets_per_slot] = { };
-    };
-
-private:
-    static DescriptorSetDeclaration declarations[max_static_descriptor_sets];
-
-public:
-
-    struct DeclareSet
-    {
-        DeclareSet(UInt set_index, const char *name)
-        {
-            AssertThrow(set_index < max_static_descriptor_sets);
-
-            DescriptorSetDeclaration decl;
-            decl.set_index = set_index;
-            decl.name = name;
-
-            AssertThrow(declarations[set_index].set_index == ~0u);
-
-            declarations[set_index] = decl;
-        }
-    };
-
-    struct DeclareDescriptor
-    {
-        DeclareDescriptor(UInt set_index, Slot slot_type, UInt slot_index, const char *name)
-        {
-            AssertThrow(set_index < max_static_descriptor_sets);
-
-            AssertThrow(slot_type != SLOT_NONE);
-            AssertThrow(slot_index < max_static_descriptor_sets_per_slot);
-
-            DescriptorSetDeclaration &decl = declarations[set_index];
-        
-            AssertThrow(decl.set_index == set_index);
-            AssertThrow(decl.slots[UInt(slot_type) - 1][slot_index].slot_index == ~0u);
-
-            DescriptorDeclaration descriptor_decl;
-            descriptor_decl.slot_index = slot_index;
-            descriptor_decl.slot = slot_type;
-            descriptor_decl.name = name;
-
-            decl.slots[UInt(slot_type) - 1][slot_index] = descriptor_decl;
-        }
-    };
-};
-
-StaticDescriptorTable::DescriptorSetDeclaration StaticDescriptorTable::declarations[max_static_descriptor_sets] = { };
-
-#define DECLARE_DESCRIPTOR_SET(index, name) \
-    StaticDescriptorTable::DeclareSet desc_##name(index, HYP_STR(name))
-
-#define DECLARE_DESCRIPTOR_SRV(set_index, slot_index, name) \
-    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::SRV, slot_index, HYP_STR(name))
-#define DECLARE_DESCRIPTOR_UAV(set_index, slot_index, name) \
-    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::UAV, slot_index, HYP_STR(name))
-#define DECLARE_DESCRIPTOR_CBUFF(set_index, slot_index, name) \
-    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::CBUFF, slot_index, HYP_STR(name))
-#define DECLARE_DESCRIPTOR_SSBO(set_index, slot_index, name) \
-    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::SSBO, slot_index, HYP_STR(name))
-#define DECLARE_DESCRIPTOR_ACCELERATION_STRUCTURE(set_index, slot_index, name) \
-    StaticDescriptorTable::DeclareDescriptor desc_##name(set_index, StaticDescriptorTable::Slot::ACCELERATION_STRUCTURE, slot_index, HYP_STR(name))
-
-DECLARE_DESCRIPTOR_SET(0, Globals);
-DECLARE_DESCRIPTOR_SRV(0, 0, Foo);
-DECLARE_DESCRIPTOR_UAV(0, 0, Foo1);
-
-DECLARE_DESCRIPTOR_SET(1, Scene);
-DECLARE_DESCRIPTOR_SET(2, Object);
-DECLARE_DESCRIPTOR_SET(3, Material);
+MaterialCache       *g_material_system = nullptr;
 
 #pragma region Render commands
 
@@ -1008,7 +902,9 @@ void Engine::RenderNextFrame(Game *game)
 
 Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &renderable_attributes)
 {
-    Handle<Shader> shader = g_shader_manager->GetOrCreate(renderable_attributes.GetShaderDefinition());
+    const ShaderDefinition &shader_definition = renderable_attributes.GetShaderDefinition();
+
+    Handle<Shader> shader = g_shader_manager->GetOrCreate(shader_definition);
 
     if (!shader) {
         DebugLog(
@@ -1038,6 +934,24 @@ Handle<RenderGroup> Engine::CreateRenderGroup(const RenderableAttributeSet &rend
 
     return renderer_instance;
 }
+
+// Handle<RenderGroup> Engine::CreateRenderGroup(
+//     const Handle<Shader> &shader,
+//     const RenderableAttributeSet &renderable_attributes
+// )
+// {
+
+//     if (!shader) {
+//         DebugLog(
+//             LogType::Error,
+//             "Shader is empty; Cannot create RenderGroup.\n"
+//         );
+
+//         return Handle<RenderGroup>::empty;
+//     }
+
+
+// }
 
 Handle<RenderGroup> Engine::CreateRenderGroup(
     const Handle<Shader> &shader,

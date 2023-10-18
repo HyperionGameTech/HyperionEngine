@@ -339,7 +339,7 @@ public:
     static DynString ToString(DynString &&value)      { return value; }
 
     [[nodiscard]] HashCode GetHashCode() const
-        { return Base::GetHashCode(); }
+        { return HashCode::GetHashCode(Data()); }
 
 protected:
     const T *StrStr(const DynString &other) const;

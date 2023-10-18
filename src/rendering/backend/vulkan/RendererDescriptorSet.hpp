@@ -369,9 +369,12 @@ public:
         This is a newer way of creating them that will let us create descriptor sets that own their own
         resources such as layout. You would hold the DescriptorSet as a class member manually Create()/Destroy() it. */
     DescriptorSet();
+
+    DescriptorSet(DescriptorSetDeclaration declaration);
+
     /*! \brief Create a descriptor set the older way. The descriptor set will be held in the DescriptorPool and managed
         indirectly by going through methods on DescriptorPool etc. */
-    DescriptorSet(Index index, UInt real_index, bool bindless);
+    DescriptorSet(Index index, UInt real_index, Bool bindless);
     DescriptorSet(const DescriptorSet &other) = delete;
     DescriptorSet &operator=(const DescriptorSet &other) = delete;
     DescriptorSet(DescriptorSet &&other) noexcept;
@@ -381,24 +384,23 @@ public:
     DescriptorSetState GetState() const { return m_state; }
     Index GetIndex() const { return m_index; }
     UInt GetRealIndex() const { return m_real_index; }
-    bool IsBindless() const { return m_bindless; }
-    bool IsCreated() const { return m_is_created; }
+    Bool IsBindless() const { return m_bindless; }
+    Bool IsCreated() const { return m_is_created; }
 
     /* doesn't allocate a descriptor set, just a template for other material textures to follow. Creates a layout. */
-    bool IsTemplate() const { return GetRealIndex() == UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
+    Bool IsTemplate() const { return GetRealIndex() == UInt(DESCRIPTOR_SET_INDEX_MATERIAL_TEXTURES); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(DescriptorKey key)
-    {
-        return AddDescriptor<DescriptorType>(DescriptorKeyToIndex(key));
-    }
+        { return AddDescriptor<DescriptorType>(DescriptorKeyToIndex(key)); }
 
     template <class DescriptorType>
     Descriptor *AddDescriptor(UInt binding)
     {
         static_assert(std::is_base_of_v<Descriptor, DescriptorType>, "DescriptorType must be a derived class of Descriptor");
 
-        auto it = m_descriptors.FindIf([binding](const auto &item) {
+        auto it = m_descriptors.FindIf([binding](const auto &item)
+        {
             return item->GetBinding() == binding;
         });
 
@@ -410,12 +412,14 @@ public:
         return m_descriptors.Back().get();
     }
 
-    bool RemoveDescriptor(Descriptor *descriptor);
-    bool RemoveDescriptor(DescriptorKey key);
-    bool RemoveDescriptor(UInt binding);
+    Bool RemoveDescriptor(Descriptor *descriptor);
+    Bool RemoveDescriptor(DescriptorKey key);
+    Bool RemoveDescriptor(UInt binding);
 
     Descriptor *GetDescriptor(DescriptorKey key) const;
     Descriptor *GetDescriptor(UInt binding) const;
+    /*! \brief Get a Descriptor by name -- must have a DescriptorSetDeclaration */
+    Descriptor *GetDescriptorByName(Name name) const;
 
     template <class DescriptorType>
     Descriptor *GetOrAddDescriptor(DescriptorKey key)
@@ -447,19 +451,24 @@ public:
     VkDescriptorSetLayout m_layout;
 
 private:
+    /* Add descriptors from m_declaration */
+    void AddDescriptors();
+
     UInt DescriptorKeyToIndex(DescriptorKey key) const;
 
-    DescriptorPool *m_descriptor_pool;
-    Array<std::unique_ptr<Descriptor>> m_descriptors;
+    DescriptorSetDeclaration            m_declaration;
+
+    DescriptorPool                      *m_descriptor_pool;
+    Array<std::unique_ptr<Descriptor>>  m_descriptors;
     Array<VkDescriptorSetLayoutBinding> m_descriptor_bindings; /* one per each descriptor */
-    Array<VkWriteDescriptorSet> m_descriptor_writes; /* any number of per descriptor - reset after each update */
-    DescriptorSetState m_state;
-    Index m_index;
-    UInt m_real_index;
-    bool m_bindless;
-    bool m_is_created;
-    bool m_is_standalone; // a descriptor set is 'standalone' if it is not created as part of the DescriptorPool.
-                          // it it manages its own layout resource, as well.
+    Array<VkWriteDescriptorSet>         m_descriptor_writes; /* any number of per descriptor - reset after each update */
+    DescriptorSetState                  m_state;
+    Index                               m_index;
+    UInt                                m_real_index;
+    Bool                                m_bindless;
+    Bool                                m_is_created;
+    Bool                                m_is_standalone; // a descriptor set is 'standalone' if it is not created as part of the DescriptorPool.
+                                                         // it it manages its own layout resource, as well.
 };
 
 struct DescriptorSetBinding {
@@ -515,7 +524,8 @@ struct DescriptorSetBinding {
     }
 };
 
-class DescriptorPool {
+class DescriptorPool
+{
     friend class DescriptorSet;
 
     Result AllocateDescriptorSet(Device *device, VkDescriptorSetLayout *layout, DescriptorSet *out);
@@ -579,7 +589,7 @@ private:
 
     Array<DescriptorSetRef>                                         m_descriptor_sets;
     FlatMap<UInt, VkDescriptorSetLayout>                            m_descriptor_set_layouts;
-    VkDescriptorPool m_descriptor_pool;
+    VkDescriptorPool                                                m_descriptor_pool;
 
     FixedArray<Array<DescriptorSetRef>, max_frames_in_flight>       m_descriptor_sets_pending_addition;
     FixedArray<Queue<DescriptorSet::Index>, max_frames_in_flight>   m_descriptor_sets_pending_destruction;

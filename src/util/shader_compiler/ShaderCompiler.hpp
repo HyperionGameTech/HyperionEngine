@@ -5,6 +5,7 @@
 #include <core/Name.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RendererDescriptorSet.hpp>
 #include <util/definitions/DefinitionsFile.hpp>
 #include <util/Defines.hpp>
 #include <HashCode.hpp>
@@ -31,10 +32,10 @@ enum ShaderPropertyFlagBits : ShaderPropertyFlags
 
 struct VertexAttributeDefinition
 {
-    String name;
-    String type_class;
-    Int location = -1;
-    Optional<String> condition;
+    String              name;
+    String              type_class;
+    Int                 location = -1;
+    Optional<String>    condition;
 };
 
 struct ShaderProperty;
@@ -289,7 +290,7 @@ public:
         { return m_props == other.m_props; }
 
     bool operator!=(const ShaderProperties &other) const
-        { return m_props == other.m_props; }
+        { return m_props != other.m_props; }
 
     bool Any() const
         { return m_props.Any(); }
@@ -533,19 +534,19 @@ private:
 
     FlatSet<ShaderProperty> m_props;
 
-    VertexAttributeSet m_required_vertex_attributes;
-    VertexAttributeSet m_optional_vertex_attributes;
+    VertexAttributeSet      m_required_vertex_attributes;
+    VertexAttributeSet      m_optional_vertex_attributes;
 
-    mutable HashCode m_cached_hash_code;
-    mutable HashCode m_cached_property_set_hash_code;
-    mutable bool m_needs_hash_code_recalculation = true;
+    mutable HashCode        m_cached_hash_code;
+    mutable HashCode        m_cached_property_set_hash_code;
+    mutable Bool            m_needs_hash_code_recalculation = true;
 };
 
 struct HashedShaderDefinition
 {
-    Name name;
-    HashCode property_set_hash;
-    VertexAttributeSet required_vertex_attributes;
+    Name                name;
+    HashCode            property_set_hash;
+    VertexAttributeSet  required_vertex_attributes;
     
     HYP_FORCE_INLINE
     HashCode GetHashCode() const
@@ -559,10 +560,74 @@ struct HashedShaderDefinition
     }
 };
 
+struct DescriptorUsage
+{
+    renderer::DescriptorSlot    slot;
+    Name                        set_name;
+    Name                        descriptor_name;
+
+    Bool operator==(const DescriptorUsage &other) const
+    {
+        return slot == other.slot
+            && set_name == other.set_name
+            && descriptor_name == other.descriptor_name;
+    }
+
+    Bool operator<(const DescriptorUsage &other) const
+    {
+        if (slot != other.slot) {
+            return slot < other.slot;
+        }
+
+        if (set_name != other.set_name) {
+            return set_name < other.set_name;
+        }
+
+        // if (descriptor_name != other.descriptor_name) {
+            return descriptor_name < other.descriptor_name;
+        // }
+    }
+};
+
+struct DescriptorUsageSet
+{
+    FlatSet<DescriptorUsage> descriptor_usages;
+
+    DescriptorUsage &operator[](SizeType index)
+        { return descriptor_usages[index]; }
+
+    const DescriptorUsage &operator[](SizeType index) const
+        { return descriptor_usages[index]; }
+
+    Bool operator==(const DescriptorUsageSet &other) const
+        { return descriptor_usages == other.descriptor_usages; }
+
+    SizeType Size() const
+        { return descriptor_usages.Size(); }
+
+    void Add(DescriptorUsage descriptor_usage)
+        { descriptor_usages.Insert(std::move(descriptor_usage)); }
+
+    void Merge(const Array<DescriptorUsage> &other)
+        { descriptor_usages.Merge(other); }
+
+    void Merge(Array<DescriptorUsage> &&other)
+        { descriptor_usages.Merge(std::move(other)); }
+
+    void Merge(const DescriptorUsageSet &other)
+        { descriptor_usages.Merge(other.descriptor_usages); }
+
+    void Merge(DescriptorUsageSet &&other)
+        { descriptor_usages.Merge(std::move(other.descriptor_usages)); }
+
+    renderer::DescriptorTable BuildDescriptorTable() const;
+};
+
 struct ShaderDefinition
 {
-    Name name;
-    ShaderProperties properties;
+    Name                name;
+    ShaderProperties    properties;
+    DescriptorUsageSet  descriptor_usages;
     
     HYP_FORCE_INLINE
     Name GetName() const
@@ -575,6 +640,14 @@ struct ShaderDefinition
     HYP_FORCE_INLINE
     const ShaderProperties &GetProperties() const
         { return properties; }
+
+    HYP_FORCE_INLINE
+    DescriptorUsageSet &GetDescriptorUsages()
+        { return descriptor_usages; }
+
+    HYP_FORCE_INLINE
+    const DescriptorUsageSet &GetDescriptorUsages() const
+        { return descriptor_usages; }
     
     HYP_FORCE_INLINE
     explicit operator bool() const
@@ -594,34 +667,27 @@ struct ShaderDefinition
 
 struct CompiledShader
 {
-    ShaderDefinition definition;
-    String entry_point_name = "main";
-    HeapArray<ByteBuffer, ShaderModule::Type::MAX> modules;
+    ShaderDefinition                                definition;
+    String                                          entry_point_name = "main";
+    HeapArray<ByteBuffer, ShaderModule::Type::MAX>  modules;
 
     CompiledShader() = default;
-    CompiledShader(Name name, const ShaderProperties &properties)
-        : definition { name, properties },
-          entry_point_name("main")
-    {
-    }
-
-    CompiledShader(Name name, const ShaderProperties &properties, String entry_point_name)
-        : definition { name, properties },
+    CompiledShader(ShaderDefinition shader_definition, String entry_point_name = "main")
+        : definition(std::move(shader_definition)),
           entry_point_name(std::move(entry_point_name))
     {
     }
 
-    CompiledShader(const CompiledShader &other) = default;
-    CompiledShader &operator=(const CompiledShader &other) = default;
-    CompiledShader(CompiledShader &&other) noexcept = default;
-    CompiledShader &operator=(CompiledShader &&other) noexcept = default;
-
-    ~CompiledShader() = default;
+    CompiledShader(const CompiledShader &other)                 = default;
+    CompiledShader &operator=(const CompiledShader &other)      = default;
+    CompiledShader(CompiledShader &&other) noexcept             = default;
+    CompiledShader &operator=(CompiledShader &&other) noexcept  = default;
+    ~CompiledShader()                                           = default;
 
     explicit operator bool() const
         { return IsValid(); }
 
-    bool IsValid() const
+    Bool IsValid() const
         { return modules.Any([](const ByteBuffer &buffer) { return buffer.Any(); }); }
 
     ShaderDefinition &GetDefinition()
@@ -654,10 +720,10 @@ struct CompiledShader
 
 struct CompiledShaderBatch
 {
-    Array<CompiledShader> compiled_shaders;
-    Array<String> error_messages;
+    Array<CompiledShader>   compiled_shaders;
+    Array<String>           error_messages;
 
-    bool HasErrors() const
+    Bool HasErrors() const
         { return error_messages.Any(); }
 
     HashCode GetHashCode() const
@@ -669,12 +735,12 @@ struct CompiledShaderBatch
 class ShaderCache
 {
 public:
-    ShaderCache() = default;
-    ShaderCache(const ShaderCache &other) = delete;
-    ShaderCache &operator=(const ShaderCache &other) = delete;
-    ShaderCache(ShaderCache &&other) noexcept = delete;
-    ShaderCache &operator=(ShaderCache &&other) noexcept = delete;
-    ~ShaderCache() = default;
+    ShaderCache()                                           = default;
+    ShaderCache(const ShaderCache &other)                   = delete;
+    ShaderCache &operator=(const ShaderCache &other)        = delete;
+    ShaderCache(ShaderCache &&other) noexcept               = delete;
+    ShaderCache &operator=(ShaderCache &&other) noexcept    = delete;
+    ~ShaderCache()                                          = default;
 
     bool Get(Name name, CompiledShaderBatch &out) const
     {
@@ -701,7 +767,8 @@ public:
             return false;
         }
 
-        const auto version_it = it->value.compiled_shaders.FindIf([version_hash](const CompiledShader &item) {
+        const auto version_it = it->value.compiled_shaders.FindIf([version_hash](const CompiledShader &item)
+        {
             return item.definition.properties.GetHashCode().Value() == version_hash;
         });
 
@@ -736,9 +803,10 @@ public:
     }
 
 private:
-    HashMap<Name, CompiledShaderBatch> m_compiled_shaders;
-    mutable std::mutex m_mutex;
+    HashMap<Name, CompiledShaderBatch>  m_compiled_shaders;
+    mutable std::mutex                  m_mutex;
 };
+
 
 class ShaderCompiler
 {
@@ -751,10 +819,11 @@ class ShaderCompiler
 
     struct ProcessResult
     {
-        String final_source;
-        Array<ProcessError> errors;
-        Array<VertexAttributeDefinition> required_attributes;
-        Array<VertexAttributeDefinition> optional_attributes;
+        String                              processed_source;
+        Array<ProcessError>                 errors;
+        Array<VertexAttributeDefinition>    required_attributes;
+        Array<VertexAttributeDefinition>    optional_attributes;
+        Array<DescriptorUsage>              descriptor_usages;
     };
 
 public:
@@ -773,28 +842,32 @@ public:
 
     struct Bundle // combination of shader files, .frag, .vert etc.
     {
-        Name name;
-        String entry_point_name = "main";
+        Name                                    name;
+        String                                  entry_point_name = "main";
         FlatMap<ShaderModule::Type, SourceFile> sources;
-        ShaderProperties versions; // permutations
+        ShaderProperties                        versions; // permutations
+        DescriptorUsageSet                      descriptor_usages;
 
-        bool HasRTShaders() const
+        Bool HasRTShaders() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item) {
+            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            {
                 return ShaderModule::IsRaytracingType(item.first);
             });
         }
 
-        bool IsComputeShader() const
+        Bool IsComputeShader() const
         {
-            return sources.Every([](const KeyValuePair<ShaderModule::Type, SourceFile> &item) {
+            return sources.Every([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            {
                 return item.first == ShaderModule::Type::COMPUTE;
             });
         }
 
-        bool HasVertexShader() const
+        Bool HasVertexShader() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item) {
+            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            {
                 return item.first == ShaderModule::Type::VERTEX;
             });
         }
@@ -814,7 +887,7 @@ public:
 
     Bool GetCompiledShader(
         Name name,
-        const ShaderProperties &versions,
+        const ShaderProperties &properties,
         CompiledShader &out
     );
 
@@ -852,8 +925,8 @@ private:
     );
 
     DefinitionsFile *m_definitions;
-    ShaderCache m_cache;
-    Array<Bundle> m_bundles;
+    ShaderCache     m_cache;
+    Array<Bundle>   m_bundles;
 };
 
 } // namespace hyperion::v2

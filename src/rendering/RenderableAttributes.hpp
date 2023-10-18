@@ -114,12 +114,12 @@ struct MeshAttributes
 
 class RenderableAttributeSet
 {
-    ShaderDefinition m_shader_definition;
-    ID<Framebuffer> m_framebuffer_id; // only used for scenes, not per entity
-    MeshAttributes m_mesh_attributes;
-    MaterialAttributes m_material_attributes;
-    StencilState m_stencil_state { };
-    UInt32 m_override_flags;
+    ShaderDefinition    m_shader_definition;
+    ID<Framebuffer>     m_framebuffer_id; // only used for scenes, not per entity
+    MeshAttributes      m_mesh_attributes;
+    MaterialAttributes  m_material_attributes;
+    StencilState        m_stencil_state { };
+    UInt32              m_override_flags;
 
     mutable HashCode m_cached_hash_code;
     mutable bool m_needs_hash_code_recalculation = true;

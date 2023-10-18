@@ -49,7 +49,7 @@ public:
     //  and if the item was found, it will be erased (and iterators will be invalidated)
     Iterator Erase(const T &value);
 
-    [[nodiscard]] size_t Size() const                     { return Base::Size(); }
+    [[nodiscard]] SizeType Size() const                   { return Base::Size(); }
     [[nodiscard]] T *Data()                               { return Base::Data(); }
     [[nodiscard]] T * const Data() const                  { return Base::Data(); }
     [[nodiscard]] bool Empty() const                      { return Base::Empty(); }
@@ -73,6 +73,7 @@ private:
     using Base::PushFront;
     using Base::PopBack;
     using Base::PopFront;
+    using Base::Concat;
 };
 
 template <class T>

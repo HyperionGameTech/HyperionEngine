@@ -145,7 +145,7 @@ struct NameRegistration
     
     static NameID GenerateID(const ANSIString &str)
     {
-        const HashCode hash_code = HashCode::GetHashCode(str);
+        const HashCode hash_code = HashCode::GetHashCode(str.Data());
         const NameID id = hash_code.Value();// IsLittleEndian() ? hash_code.Value() : SwapEndianness(hash_code.Value());
 
         return id;
