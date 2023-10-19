@@ -16,7 +16,7 @@ using renderer::DescriptorKey;
 using renderer::Rect;
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommand
+struct RENDER_COMMAND(CreateBlurImageOuptuts) : renderer::RenderCommand
 {
     FixedArray<BlurRadiance::ImageOutput, 2> *image_outputs;
 
@@ -37,7 +37,7 @@ struct RENDER_COMMAND(CreateBlurImageOuptuts) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommand
+struct RENDER_COMMAND(DestroyBlurImageOutputs) : renderer::RenderCommand
 {
     FixedArray<FixedArray<BlurRadiance::ImageOutput, 2>, max_frames_in_flight> image_outputs;
 
@@ -64,7 +64,7 @@ struct RENDER_COMMAND(DestroyBlurImageOutputs) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateBlurDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateBlurDescriptors) : renderer::RenderCommand
 {
     FixedArray<FixedArray<DescriptorSetRef, 2>, max_frames_in_flight> descriptor_sets;
 
@@ -118,7 +118,7 @@ void BlurRadiance::Destroy()
         SafeRelease(std::move(m_descriptor_sets[i]));
     }
 
-    RenderCommands::Push<RENDER_COMMAND(DestroyBlurImageOutputs)>(std::move(m_image_outputs));
+    PUSH_RENDER_COMMAND(DestroyBlurImageOutputs, std::move(m_image_outputs));
 }
 
 void BlurRadiance::CreateImageOutputs()
@@ -142,7 +142,7 @@ void BlurRadiance::CreateImageOutputs()
         }
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateBlurImageOuptuts)>(m_image_outputs.Data());
+    PUSH_RENDER_COMMAND(CreateBlurImageOuptuts, m_image_outputs.Data());
 }
 
 void BlurRadiance::CreateDescriptorSets()
@@ -208,7 +208,7 @@ void BlurRadiance::CreateDescriptorSets()
         }
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateBlurDescriptors)>(m_descriptor_sets);
+    PUSH_RENDER_COMMAND(CreateBlurDescriptors, m_descriptor_sets);
 }
 
 void BlurRadiance::CreateComputePipelines()

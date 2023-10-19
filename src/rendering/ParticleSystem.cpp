@@ -22,7 +22,7 @@ using renderer::Result;
 using renderer::GPUBufferType;
 using renderer::CommandBufferType;
 
-struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 {
     GPUBufferRef particle_buffer;
     GPUBufferRef indirect_buffer;
@@ -90,7 +90,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateParticleDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateParticleDescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -113,7 +113,7 @@ struct RENDER_COMMAND(CreateParticleDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommand
+struct RENDER_COMMAND(DestroyParticleSystem) : renderer::RenderCommand
 {
     ThreadSafeContainer<ParticleSpawner>    *spawners;
 
@@ -137,7 +137,7 @@ struct RENDER_COMMAND(DestroyParticleSystem) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateParticleSystemBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateParticleSystemBuffers) : renderer::RenderCommand
 {
     GPUBufferRef    staging_buffer;
     Mesh            *quad_mesh;
@@ -171,7 +171,7 @@ struct RENDER_COMMAND(CreateParticleSystemBuffers) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateParticleSystemCommandBuffers) : renderer::RenderCommand
 {
     FixedArray<FixedArray<UniquePtr<CommandBuffer>, num_async_rendering_command_buffers>, max_frames_in_flight> &command_buffers;
 
@@ -417,7 +417,7 @@ void ParticleSystem::Init()
 
         SafeRelease(std::move(m_staging_buffer));
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyParticleSystem)>(
+        PUSH_RENDER_COMMAND(DestroyParticleSystem, 
             &m_particle_spawners
         );
         
@@ -431,7 +431,7 @@ void ParticleSystem::CreateBuffers()
 {
     m_staging_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
 
-    RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemBuffers)>(
+    PUSH_RENDER_COMMAND(CreateParticleSystemBuffers, 
         m_staging_buffer,
         m_quad_mesh.Get()
     );
@@ -439,7 +439,7 @@ void ParticleSystem::CreateBuffers()
 
 void ParticleSystem::CreateCommandBuffers()
 {
-    RenderCommands::Push<RENDER_COMMAND(CreateParticleSystemCommandBuffers)>(
+    PUSH_RENDER_COMMAND(CreateParticleSystemCommandBuffers, 
         m_command_buffers
     );
 }

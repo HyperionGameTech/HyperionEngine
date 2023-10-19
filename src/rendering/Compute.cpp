@@ -5,7 +5,7 @@ namespace hyperion::v2 {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateComputeShader) : RenderCommand
+struct RENDER_COMMAND(CreateComputeShader) : renderer::RenderCommand
 {
     ComputePipelineRef pipeline;
     ShaderProgramRef shader_program;

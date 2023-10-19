@@ -48,7 +48,7 @@ MaterialCache       *g_material_system = nullptr;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CopyBackbufferToCPU) : RenderCommand
+struct RENDER_COMMAND(CopyBackbufferToCPU) : renderer::RenderCommand
 {
     ImageRef image;
     GPUBufferRef buffer;
@@ -198,7 +198,7 @@ void Engine::Initialize(RC<Application> application)
 {
     Threads::AssertOnThread(THREAD_MAIN);
 
-    RenderCommands::SetOwnerThreadID(Threads::GetThreadID(THREAD_RENDER));
+    renderer::RenderCommands::SetOwnerThreadID(Threads::GetThreadID(THREAD_RENDER));
 
     game_thread.Reset(new GameThread);
 
@@ -1016,9 +1016,7 @@ void Engine::PreFrameUpdate(Frame *frame)
 
     m_render_list_container.AddPendingRenderGroups();
 
-    //if (RenderCommands::Count() != 0) {
-        HYPERION_ASSERT_RESULT(RenderCommands::Flush());
-    //}
+    HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 
     UpdateBuffersAndDescriptors(frame->GetFrameIndex());
 

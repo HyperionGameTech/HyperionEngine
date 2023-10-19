@@ -15,7 +15,7 @@ using renderer::DynamicStorageBufferDescriptor;
 using renderer::ShaderVec2;
 using renderer::ShaderMat4;
 
-struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateTemporalAADescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
     TemporalAA::ImageOutput *image_outputs;
@@ -52,7 +52,7 @@ struct RENDER_COMMAND(CreateTemporalAADescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderCommand
+struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : renderer::RenderCommand
 {
     TemporalAA::ImageOutput *image_outputs;
 
@@ -82,7 +82,7 @@ struct RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs) : RenderComma
     }
 };
 
-struct RENDER_COMMAND(CreateTemporalAAImageOutputs) : RenderCommand
+struct RENDER_COMMAND(CreateTemporalAAImageOutputs) : renderer::RenderCommand
 {
     TemporalAA::ImageOutput *image_outputs;
 
@@ -160,7 +160,7 @@ void TemporalAA::Destroy()
     SafeRelease(std::move(m_descriptor_sets));
     SafeRelease(std::move(m_uniform_buffers));
 
-    RenderCommands::Push<RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs)>(
+    PUSH_RENDER_COMMAND(DestroyTemporalAADescriptorsAndImageOutputs, 
         m_image_outputs.Data()
     );
 
@@ -169,7 +169,7 @@ void TemporalAA::Destroy()
 
 void TemporalAA::CreateImages()
 {
-    RenderCommands::Push<RENDER_COMMAND(CreateTemporalAAImageOutputs)>(
+    PUSH_RENDER_COMMAND(CreateTemporalAAImageOutputs, 
         m_image_outputs.Data()
     );
 }
@@ -212,7 +212,7 @@ void TemporalAA::CreateDescriptorSets()
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }
     
-    RenderCommands::Push<RENDER_COMMAND(CreateTemporalAADescriptors)>(
+    PUSH_RENDER_COMMAND(CreateTemporalAADescriptors, 
         m_descriptor_sets,
         m_image_outputs.Data()
     );

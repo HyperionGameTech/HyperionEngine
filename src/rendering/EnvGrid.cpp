@@ -44,7 +44,7 @@ struct EnvProbeAABBUpdate
     BoundingBox new_aabb;
 };
 
-struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : RenderCommand
+struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : renderer::RenderCommand
 {
     EnvGrid *grid;
     Array<UInt> updates;
@@ -71,7 +71,7 @@ struct RENDER_COMMAND(UpdateEnvProbeAABBsInGrid) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateSHData) : RenderCommand
+struct RENDER_COMMAND(CreateSHData) : renderer::RenderCommand
 {
     GPUBufferRef sh_tiles_buffer;
 
@@ -89,7 +89,7 @@ struct RENDER_COMMAND(CreateSHData) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateEnvGridDescriptorSets) : RenderCommand
+struct RENDER_COMMAND(CreateEnvGridDescriptorSets) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -109,7 +109,7 @@ struct RENDER_COMMAND(CreateEnvGridDescriptorSets) : RenderCommand
 };
 
 
-struct RENDER_COMMAND(CreateLightFieldStorageImages) : RenderCommand
+struct RENDER_COMMAND(CreateLightFieldStorageImages) : renderer::RenderCommand
 {
     Array<LightFieldStorageImage> storage_images;
 
@@ -132,7 +132,7 @@ struct RENDER_COMMAND(CreateLightFieldStorageImages) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : RenderCommand
+struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::RenderCommand
 {
     ImageViewRef light_field_color_image_view;
     ImageViewRef light_field_normals_image_view;
@@ -392,7 +392,7 @@ void EnvGrid::OnRemoved()
     m_render_list.Reset();
     m_ambient_shader.Reset();
 
-    struct RENDER_COMMAND(DestroyEnvGridFramebufferAttachments) : RenderCommand
+    struct RENDER_COMMAND(DestroyEnvGridFramebufferAttachments) : renderer::RenderCommand
     {
         EnvGrid &env_grid;
 

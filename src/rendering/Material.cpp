@@ -21,7 +21,7 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
+struct RENDER_COMMAND(UpdateMaterialRenderData) : renderer::RenderCommand
 {
     ID<Material> id;
     MaterialShaderData shader_data;
@@ -70,7 +70,7 @@ struct RENDER_COMMAND(UpdateMaterialRenderData) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
+struct RENDER_COMMAND(UpdateMaterialTexture) : renderer::RenderCommand
 {
     ID<Material> id;
     SizeType texture_index;
@@ -102,7 +102,7 @@ struct RENDER_COMMAND(UpdateMaterialTexture) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateMaterialDescriptors) : renderer::RenderCommand
 {
     ID<Material> id;
     // map slot index -> image view
@@ -208,7 +208,7 @@ struct RENDER_COMMAND(CreateMaterialDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyMaterialDescriptors) : RenderCommand
+struct RENDER_COMMAND(DestroyMaterialDescriptors) : renderer::RenderCommand
 {
     renderer::DescriptorSet **descriptor_sets;
 
@@ -372,7 +372,7 @@ void Material::EnqueueDescriptorSetCreate()
 
 void Material::EnqueueDescriptorSetDestroy()
 {
-    RenderCommands::Push<RENDER_COMMAND(DestroyMaterialDescriptors)>(
+    PUSH_RENDER_COMMAND(DestroyMaterialDescriptors, 
         m_descriptor_sets.Data()
     );
 }
@@ -428,7 +428,7 @@ void Material::EnqueueTextureUpdate(TextureKey key)
     Texture *texture = m_textures.Get(key).Get();
     AssertThrow(texture != nullptr);
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateMaterialTexture)>(
+    PUSH_RENDER_COMMAND(UpdateMaterialTexture, 
         m_id,
         texture_index,
         texture

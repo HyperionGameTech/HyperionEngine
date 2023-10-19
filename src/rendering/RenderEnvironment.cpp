@@ -8,7 +8,7 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(RemoveAllRenderComponents) : RenderCommand
+struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 {
     TypeMap<FlatMap<Name, UniquePtr<RenderComponentBase>>> render_components;
 

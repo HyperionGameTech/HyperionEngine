@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_RENDER_COMMANDS_HPP
-#define HYPERION_V2_RENDER_COMMANDS_HPP
+#ifndef HYPERION_V2_BACKEND_RENDER_COMMAND_HPP
+#define HYPERION_V2_BACKEND_RENDER_COMMAND_HPP
 
 #include <rendering/backend/RendererResult.hpp>
 
@@ -15,27 +15,34 @@
 #include <condition_variable>
 
 namespace hyperion {
-namespace v2 {
-
-class Engine;
+namespace renderer {
 
 using renderer::Result;
+using v2::ThreadID;
+using v2::Threads;
 
 #define RENDER_COMMAND(name) RenderCommand_##name
 
 /**
  * \brief Pushes a render command to the render command queue. This is a wrapper around RenderCommands::Push.
  */
-#define PUSH_RENDER_COMMAND(name, ...) RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__)
+#define PUSH_RENDER_COMMAND(name, ...) ::hyperion::renderer::RenderCommands::Push< RENDER_COMMAND(name) >(__VA_ARGS__)
 
 /**
  * \brief Executes a render command line. This must be called from the render thread. Avoid if possible.
  */
 #define EXEC_RENDER_COMMAND_INLINE(name, ...) \
     { \
-        Threads::AssertOnThread(THREAD_RENDER); \
+        ::hyperion::v2::Threads::AssertOnThread(::hyperion::v2::THREAD_RENDER); \
         RENDER_COMMAND(name) _command(__VA_ARGS__)(); \
     }
+
+#define HYP_SYNC_RENDER() \
+    do { \
+        ::hyperion::v2::Threads::AssertOnThread(~::hyperion::v2::THREAD_TASK, "Waiting on render thread from task threads is disabled as it may cause a deadlock."); \
+        HYPERION_ASSERT_RESULT(::hyperion::renderer::RenderCommands::FlushOrWait()); \
+    } while (0)
+
 
 constexpr SizeType max_render_command_types = 128;
 constexpr SizeType render_command_cache_size_bytes = 1 << 16;
@@ -134,16 +141,16 @@ struct RenderScheduler
 {
     struct FlushResult
     {
-        Result result;
-        SizeType num_executed;
+        Result      result;
+        SizeType    num_executed;
     };
 
-    Array<RenderCommand *> m_commands;
+    Array<RenderCommand *>  m_commands;
 
-    std::mutex m_mutex;
-    AtomicVar<SizeType> m_num_enqueued;
+    std::mutex              m_mutex;
+    AtomicVar<SizeType>     m_num_enqueued;
     std::condition_variable m_flushed_cv;
-    ThreadID m_owner_thread;
+    ThreadID                m_owner_thread;
 
     RenderScheduler()
         : m_owner_thread(ThreadID::invalid)
@@ -262,7 +269,7 @@ private:
     static void Rewind();
 };
 
-} // namespace v2
+} // namespace renderer
 } // namespace hyperion
 
 #endif

@@ -1,6 +1,8 @@
-#include <rendering/RenderCommands.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 
-namespace hyperion::v2 {
+namespace hyperion::renderer {
+
+using ::hyperion::v2::Threads;
 
 FixedArray<RenderCommandHolder, max_render_command_types> RenderCommands::holders = { };
 AtomicVar<SizeType> RenderCommands::render_command_type_index = { 0 };
@@ -109,4 +111,4 @@ void RenderCommands::Rewind()
 #endif
 }
 
-} // namespace hyperion::v2
+} // namespace hyperion::renderer

@@ -206,7 +206,7 @@ struct HashedName
     using Sequence = IntegerSequenceFromString<StaticStringType>;
 
     static constexpr HashCode hash_code = HashCode::GetHashCode(Sequence::Data());
-    static constexpr const char *data = Sequence::Data();
+    static constexpr const char *data   = Sequence::Data();
 };
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING

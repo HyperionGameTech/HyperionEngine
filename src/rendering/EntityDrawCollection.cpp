@@ -14,7 +14,7 @@ static constexpr bool do_parallel_collection = true;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : RenderCommand
+struct RENDER_COMMAND(UpdateDrawCollectionRenderSide) : renderer::RenderCommand
 {
     RC<EntityDrawCollection>            collection;
     RenderableAttributeSet              attributes;

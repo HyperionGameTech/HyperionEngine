@@ -5,7 +5,7 @@ namespace hyperion::v2 {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
+struct RENDER_COMMAND(CreateRenderPass) : renderer::RenderCommand
 {
     RenderPass *render_pass;
     AttachmentMap *attachment_map;
@@ -31,7 +31,7 @@ struct RENDER_COMMAND(CreateRenderPass) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
+struct RENDER_COMMAND(DestroyRenderPass) : renderer::RenderCommand
 {
     RenderPass *render_pass;
 
@@ -46,7 +46,7 @@ struct RENDER_COMMAND(DestroyRenderPass) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
+struct RENDER_COMMAND(CreateFramebuffer) : renderer::RenderCommand
 {
     FramebufferObjectRef    framebuffer;
     RenderPass              *render_pass;
@@ -76,7 +76,7 @@ struct RENDER_COMMAND(CreateFramebuffer) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateAttachmentMap) : RenderCommand
+struct RENDER_COMMAND(CreateAttachmentMap) : renderer::RenderCommand
 {
     AttachmentMap *attachment_map;
 

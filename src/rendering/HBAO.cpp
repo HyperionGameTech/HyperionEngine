@@ -13,7 +13,7 @@ using renderer::CommandBuffer;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateHBAODescriptorSets) : RenderCommand
+struct RENDER_COMMAND(CreateHBAODescriptorSets) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -38,7 +38,7 @@ struct RENDER_COMMAND(CreateHBAODescriptorSets) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : RenderCommand
+struct RENDER_COMMAND(AddHBAOFinalImagesToGlobalDescriptorSet) : renderer::RenderCommand
 {
     FixedArray<ImageViewRef, max_frames_in_flight> pass_image_views;
     FixedArray<ImageViewRef, max_frames_in_flight> blur_image_views;
@@ -174,7 +174,7 @@ void HBAO::Destroy()
         }
     }
 
-    struct RENDER_COMMAND(RemoveHBAODescriptors) : RenderCommand
+    struct RENDER_COMMAND(RemoveHBAODescriptors) : renderer::RenderCommand
     {
         RENDER_COMMAND(RemoveHBAODescriptors)()
         {
@@ -203,7 +203,7 @@ void HBAO::Destroy()
 
 void HBAO::CreateImages()
 {
-    struct RENDER_COMMAND(CreateHBAOImageOutputs) : RenderCommand
+    struct RENDER_COMMAND(CreateHBAOImageOutputs) : renderer::RenderCommand
     {
         FixedArray<FixedArray<HBAO::ImageOutput, 2>, max_frames_in_flight> blur_image_outputs;
 

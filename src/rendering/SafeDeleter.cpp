@@ -1,12 +1,12 @@
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderCommands.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <Engine.hpp>
 
 namespace hyperion::v2 {
 
 
-struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : RenderCommand
+struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderCommand
 {
     ID<Texture> id;
 

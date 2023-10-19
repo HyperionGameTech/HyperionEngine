@@ -32,7 +32,7 @@ struct alignas(16) RTRadianceUniforms
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : RenderCommand
+struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
     FixedArray<ImageViewRef, max_frames_in_flight> image_views;
@@ -69,7 +69,7 @@ struct RENDER_COMMAND(CreateRTRadianceDescriptorSets) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateRTRadiancePipeline) : RenderCommand
+struct RENDER_COMMAND(CreateRTRadiancePipeline) : renderer::RenderCommand
 {
     RaytracingPipelineRef pipeline;
     ShaderProgramRef shader_program;
@@ -90,7 +90,7 @@ struct RENDER_COMMAND(CreateRTRadiancePipeline) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : RenderCommand
+struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : renderer::RenderCommand
 {
     virtual Result operator()()
     {
@@ -111,7 +111,7 @@ struct RENDER_COMMAND(RemoveRTRadianceDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : RenderCommand
+struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : renderer::RenderCommand
 {
     RTRadianceRenderer::ImageOutput *image_outputs;
 
@@ -130,7 +130,7 @@ struct RENDER_COMMAND(CreateRTRadianceImageOutputs) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateRTRadianceUniformBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateRTRadianceUniformBuffer) : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
 

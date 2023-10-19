@@ -5,7 +5,7 @@
 #include <Engine.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
-#include <rendering/RenderCommands.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 
 #include <script/ScriptApi.hpp>
 #include <script/ScriptBindingDef.generated.hpp>
@@ -16,7 +16,7 @@ class Entity;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UpdateEntityRenderData) : RenderCommand
+struct RENDER_COMMAND(UpdateEntityRenderData) : renderer::RenderCommand
 {
     Entity *entity;
     EntityDrawProxy draw_proxy;
@@ -315,7 +315,7 @@ void Entity::EnqueueRenderUpdates()
         .bucket = m_renderable_attributes.GetMaterialAttributes().bucket
     };
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateEntityRenderData)>(
+    PUSH_RENDER_COMMAND(UpdateEntityRenderData, 
         this,
         std::move(draw_proxy),
         m_transform.GetMatrix(),

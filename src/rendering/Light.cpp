@@ -10,7 +10,7 @@ class Light;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(UnbindLight) : RenderCommand
+struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
 {
     ID<Light> id;
 
@@ -27,7 +27,7 @@ struct RENDER_COMMAND(UnbindLight) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(UpdateLightShaderData) : RenderCommand
+struct RENDER_COMMAND(UpdateLightShaderData) : renderer::RenderCommand
 {
     Light &light;
     LightDrawProxy draw_proxy;
@@ -132,7 +132,7 @@ void Light::Init()
     OnTeardown([this]() {
         SetReady(false);
 
-        RenderCommands::Push<RENDER_COMMAND(UnbindLight)>(m_id);
+        PUSH_RENDER_COMMAND(UnbindLight, m_id);
 
         HYP_SYNC_RENDER();
     });
@@ -144,7 +144,7 @@ void Light::EnqueueBind() const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    RenderCommands::Push<RENDER_COMMAND(BindLight)>(m_id);
+    PUSH_RENDER_COMMAND(BindLight, m_id);
 }
 #endif
 
@@ -153,7 +153,7 @@ void Light::EnqueueUnbind() const
     Threads::AssertOnThread(~THREAD_RENDER);
     AssertReady();
 
-    RenderCommands::Push<RENDER_COMMAND(UnbindLight)>(m_id);
+    PUSH_RENDER_COMMAND(UnbindLight, m_id);
 }
 
 void Light::Update()

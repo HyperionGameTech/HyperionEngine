@@ -23,7 +23,7 @@ namespace hyperion::v2 {
 using renderer::Result;
 using renderer::GPUBufferType;
 
-struct RENDER_COMMAND(UploadMeshData) : RenderCommand
+struct RENDER_COMMAND(UploadMeshData) : renderer::RenderCommand
 {
     Array<Float> vertex_data;
     Array<Mesh::Index> index_data;

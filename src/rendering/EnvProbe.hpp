@@ -11,7 +11,7 @@
 #include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/Compute.hpp>
-#include <rendering/RenderCommands.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RendererAttachment.hpp>
@@ -46,7 +46,7 @@ class EnvProbe;
 
 #define ENV_PROBE_STATIC_INDEX
 
-struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : RenderCommand
+struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : renderer::RenderCommand
 {
     EnvProbe &env_probe;
     EnvProbeDrawProxy draw_proxy;

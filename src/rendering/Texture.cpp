@@ -24,7 +24,7 @@ const FixedArray<std::pair<Vector3, Vector3>, 6> Texture::cubemap_directions = {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateTexture) : RenderCommand
+struct RENDER_COMMAND(CreateTexture) : renderer::RenderCommand
 {
     Texture *texture;
     renderer::ResourceState initial_state;
@@ -58,7 +58,7 @@ struct RENDER_COMMAND(CreateTexture) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyTexture) : RenderCommand
+struct RENDER_COMMAND(DestroyTexture) : renderer::RenderCommand
 {
     ID<Texture> id;
     ImageRef image;
@@ -87,7 +87,7 @@ struct RENDER_COMMAND(DestroyTexture) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateMipImageView) : RenderCommand
+struct RENDER_COMMAND(CreateMipImageView) : renderer::RenderCommand
 {
     ImageRef src_image;
     ImageViewRef mip_image_view;
@@ -114,7 +114,7 @@ struct RENDER_COMMAND(CreateMipImageView) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateMipDescriptorSet) : RenderCommand
+struct RENDER_COMMAND(CreateMipDescriptorSet) : renderer::RenderCommand
 {
     DescriptorSetRef descriptor_set;
 
@@ -133,7 +133,7 @@ struct RENDER_COMMAND(CreateMipDescriptorSet) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(RenderTextureMipmapLevels) : RenderCommand
+struct RENDER_COMMAND(RenderTextureMipmapLevels) : renderer::RenderCommand
 {
     ImageRef m_image;
     ImageViewRef m_image_view;
@@ -442,7 +442,7 @@ Texture::Texture(
     m_filter_mode(filter_mode),
     m_wrap_mode(wrap_mode)
 {
-    AssertThrow(m_image.GetRefCount() != 0);
+    AssertThrow(m_image.IsValid());
 }
 
 Texture::Texture(Texture &&other) noexcept

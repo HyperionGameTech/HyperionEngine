@@ -7,7 +7,7 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateShaderProgram) : RenderCommand
+struct RENDER_COMMAND(CreateShaderProgram) : renderer::RenderCommand
 {
     ShaderProgramRef shader_program;
     CompiledShader compiled_shader;
@@ -46,7 +46,7 @@ struct RENDER_COMMAND(CreateShaderProgram) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommand
+struct RENDER_COMMAND(DestroyShaderProgram) : renderer::RenderCommand
 {
     ShaderProgramRef shader_program;
 
@@ -61,7 +61,7 @@ struct RENDER_COMMAND(DestroyShaderProgram) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : renderer::RenderCommand
 {
     GPUBufferRef sh_grid_buffer;
     
@@ -81,7 +81,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : renderer::RenderCommand
 {
     FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
     
@@ -101,7 +101,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : RenderCommand
+struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : renderer::RenderCommand
 {
     FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
     

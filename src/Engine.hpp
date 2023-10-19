@@ -16,7 +16,7 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/RenderCommands.hpp>
+#include <rendering/backend/RenderCommand.hpp>
 #include <rendering/debug/ImmediateMode.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
@@ -48,12 +48,6 @@
 #include <memory>
 #include <mutex>
 #include <stack>
-
-#define HYP_SYNC_RENDER() \
-    do { \
-        Threads::AssertOnThread(~THREAD_TASK, "Waiting on render thread from task threads is disabled as it may cause a deadlock."); \
-        HYPERION_ASSERT_RESULT(RenderCommands::FlushOrWait()); \
-    } while (0)
 
 namespace hyperion::v2 {
 

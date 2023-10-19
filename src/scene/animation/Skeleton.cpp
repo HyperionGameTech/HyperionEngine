@@ -9,7 +9,7 @@ using renderer::Result;
 
 #pragma region Render commmands
 
-struct RENDER_COMMAND(UpdateSkeletonRenderData) : RenderCommand
+struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
 {
     ID<Skeleton> id;
     SkeletonBoneData bone_data;

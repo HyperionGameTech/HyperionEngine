@@ -5,7 +5,7 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateBLAS) : RenderCommand
+struct RENDER_COMMAND(CreateBLAS) : renderer::RenderCommand
 {
     renderer::BottomLevelAccelerationStructure *blas;
 
@@ -20,7 +20,7 @@ struct RENDER_COMMAND(CreateBLAS) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyBLAS) : RenderCommand
+struct RENDER_COMMAND(DestroyBLAS) : renderer::RenderCommand
 {
     renderer::BottomLevelAccelerationStructure *blas;
 
@@ -145,14 +145,14 @@ void BLAS::Init()
         material_index
     ));
 
-    RenderCommands::Push<RENDER_COMMAND(CreateBLAS)>(&m_blas);
+    PUSH_RENDER_COMMAND(CreateBLAS, &m_blas);
 
     SetReady(true);
 
     OnTeardown([this]() {
         SetReady(false);
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyBLAS)>(&m_blas);
+        PUSH_RENDER_COMMAND(DestroyBLAS, &m_blas);
 
         HYP_SYNC_RENDER();
     });

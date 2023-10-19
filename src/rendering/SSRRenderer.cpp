@@ -37,7 +37,7 @@ struct alignas(16) SSRParams
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
+struct RENDER_COMMAND(CreateSSRImageOutputs) : renderer::RenderCommand
 {
     Extent2D extent;
     FixedArray<SSRRenderer::ImageOutput, 4> *image_outputs;
@@ -67,7 +67,7 @@ struct RENDER_COMMAND(CreateSSRImageOutputs) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 {
     Extent2D extent;
     FixedArray<GPUBufferRef, max_frames_in_flight> uniform_buffers;
@@ -114,7 +114,7 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateSSRDescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
     FixedArray<ImageViewRef, max_frames_in_flight> image_views;
@@ -151,7 +151,7 @@ struct RENDER_COMMAND(CreateSSRDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(RemoveSSRDescriptors) : RenderCommand
+struct RENDER_COMMAND(RemoveSSRDescriptors) : renderer::RenderCommand
 {
     RENDER_COMMAND(RemoveSSRDescriptors)()
     {

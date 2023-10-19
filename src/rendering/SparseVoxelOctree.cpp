@@ -53,7 +53,7 @@ void SparseVoxelOctree::Init()
     OnTeardown([this]() {
         SetReady(false);
 
-        struct RENDER_COMMAND(DestroySVO) : RenderCommand
+        struct RENDER_COMMAND(DestroySVO) : renderer::RenderCommand
         {
             SparseVoxelOctree &svo;
 
@@ -120,7 +120,7 @@ void SparseVoxelOctree::Init()
 
         SafeRelease(std::move(m_descriptor_sets));
 
-        RenderCommands::Push<RENDER_COMMAND(DestroySVO)>(*this);
+        PUSH_RENDER_COMMAND(DestroySVO, *this);
 
         HYP_SYNC_RENDER();
 
@@ -198,7 +198,7 @@ void SparseVoxelOctree::CreateBuffers()
     m_octree_buffer = MakeRenderObject<renderer::GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
     m_counter = std::make_unique<AtomicCounter>();
 
-    struct RENDER_COMMAND(CreateSVOBuffers) : RenderCommand
+    struct RENDER_COMMAND(CreateSVOBuffers) : renderer::RenderCommand
     {
         SparseVoxelOctree &svo;
         GPUBufferRef voxel_uniforms;
@@ -253,7 +253,7 @@ void SparseVoxelOctree::CreateBuffers()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(CreateSVOBuffers)>(*this, m_voxel_uniforms);
+    PUSH_RENDER_COMMAND(CreateSVOBuffers, *this, m_voxel_uniforms);
 }
 
 void SparseVoxelOctree::CreateDescriptors()
@@ -262,7 +262,7 @@ void SparseVoxelOctree::CreateDescriptors()
         m_descriptor_sets[frame_index] = MakeRenderObject<renderer::DescriptorSet>();
     }
 
-    struct RENDER_COMMAND(CreateSVODescriptors) : RenderCommand
+    struct RENDER_COMMAND(CreateSVODescriptors) : renderer::RenderCommand
     {
         SparseVoxelOctree &svo;
 
@@ -330,7 +330,7 @@ void SparseVoxelOctree::CreateDescriptors()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(CreateSVODescriptors)>(*this);
+    PUSH_RENDER_COMMAND(CreateSVODescriptors, *this);
 }
 
 void SparseVoxelOctree::CreateComputePipelines()

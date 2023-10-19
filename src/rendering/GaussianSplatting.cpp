@@ -38,7 +38,7 @@ struct alignas(8) GaussianSplatIndex
     Float32 distance;
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : renderer::RenderCommand
 {
     GPUBufferRef splat_buffer;
     GPUBufferRef splat_indices_buffer;
@@ -140,7 +140,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingInstanceDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateGaussianSplattingInstanceDescriptors) : renderer::RenderCommand
 {
     FixedArray<FixedArray<DescriptorSetRef, GaussianSplattingInstance::SortStage::SORT_STAGE_MAX>, max_frames_in_flight> descriptor_sets;
 
@@ -165,7 +165,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceDescriptors) : RenderComman
     }
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers) : renderer::RenderCommand
 {
     GPUBufferRef staging_buffer;
     Handle<Mesh> quad_mesh;
@@ -199,7 +199,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateGaussianSplattingCommandBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateGaussianSplattingCommandBuffers) : renderer::RenderCommand
 {
     FixedArray<CommandBufferRef, max_frames_in_flight> command_buffers;
 
@@ -677,7 +677,7 @@ void GaussianSplatting::CreateBuffers()
 {
     m_staging_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STAGING_BUFFER);
 
-    RenderCommands::Push<RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)>(
+    PUSH_RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers, 
         m_staging_buffer,
         m_quad_mesh
     );
@@ -689,7 +689,7 @@ void GaussianSplatting::CreateCommandBuffers()
         m_command_buffers[frame_index] = MakeRenderObject<CommandBuffer>(CommandBufferType::COMMAND_BUFFER_SECONDARY);
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateGaussianSplattingCommandBuffers)>(
+    PUSH_RENDER_COMMAND(CreateGaussianSplattingCommandBuffers, 
         m_command_buffers
     );
 }

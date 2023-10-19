@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateUIDescriptors) : renderer::RenderCommand
 {
     SizeType component_index;
     renderer::ImageView *image_view;
@@ -37,7 +37,7 @@ struct RENDER_COMMAND(CreateUIDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyUIDescriptors) : RenderCommand
+struct RENDER_COMMAND(DestroyUIDescriptors) : renderer::RenderCommand
 {
     SizeType component_index;
 
@@ -81,7 +81,7 @@ UIRenderer::~UIRenderer()
 
     SetReady(false);
 
-    RenderCommands::Push<RENDER_COMMAND(DestroyUIDescriptors)>(GetComponentIndex());
+    PUSH_RENDER_COMMAND(DestroyUIDescriptors, GetComponentIndex());
 
     HYP_SYNC_RENDER();
 }
@@ -116,7 +116,7 @@ void UIRenderer::CreateFramebuffer()
 void UIRenderer::CreateDescriptors()
 {
     // create descriptors in render thread
-    RenderCommands::Push<RENDER_COMMAND(CreateUIDescriptors)>(
+    PUSH_RENDER_COMMAND(CreateUIDescriptors, 
         GetComponentIndex(),
         m_framebuffer->GetAttachmentUsages()[0]->GetImageView()
     );

@@ -6,7 +6,7 @@ namespace hyperion::v2 {
 
 using renderer::DynamicStorageBufferDescriptor;
 
-struct RENDER_COMMAND(CreateImmediateModeDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateImmediateModeDescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -55,7 +55,7 @@ void ImmediateMode::Create()
             ->SetElementBuffer<ImmediateDrawShaderData>(0, Engine::Get()->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateImmediateModeDescriptors)>(m_descriptor_sets);
+    PUSH_RENDER_COMMAND(CreateImmediateModeDescriptors, m_descriptor_sets);
 
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(DebugAABB),

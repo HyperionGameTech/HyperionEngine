@@ -29,7 +29,7 @@ Result RENDER_COMMAND(UpdateEnvProbeDrawProxy)::operator()()
     HYPERION_RETURN_OK;
 }
 
-struct RENDER_COMMAND(BindEnvProbe) : RenderCommand
+struct RENDER_COMMAND(BindEnvProbe) : renderer::RenderCommand
 {
     EnvProbeType env_probe_type;
     ID<EnvProbe> id;
@@ -48,7 +48,7 @@ struct RENDER_COMMAND(BindEnvProbe) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(UnbindEnvProbe) : RenderCommand
+struct RENDER_COMMAND(UnbindEnvProbe) : renderer::RenderCommand
 {
     EnvProbeType env_probe_type;
     ID<EnvProbe> id;
@@ -67,7 +67,7 @@ struct RENDER_COMMAND(UnbindEnvProbe) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommand
+struct RENDER_COMMAND(DestroyCubemapRenderPass) : renderer::RenderCommand
 {
     EnvProbe &env_probe;
 
@@ -96,7 +96,7 @@ struct RENDER_COMMAND(DestroyCubemapRenderPass) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateSHData) : RenderCommand
+struct RENDER_COMMAND(CreateSHData) : renderer::RenderCommand
 {
     GPUBufferRef sh_tiles_buffer;
 
@@ -114,7 +114,7 @@ struct RENDER_COMMAND(CreateSHData) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateComputeSHDescriptorSets) : RenderCommand
+struct RENDER_COMMAND(CreateComputeSHDescriptorSets) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 

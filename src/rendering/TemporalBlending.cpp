@@ -17,7 +17,7 @@ using renderer::DescriptorKey;
 using renderer::Rect;
 using renderer::ShaderVec2;
 
-struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommand
+struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : renderer::RenderCommand
 {
     TemporalBlending::ImageOutput *image_outputs;
 
@@ -36,7 +36,7 @@ struct RENDER_COMMAND(CreateTemporalBlendingImageOutputs) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateTemporalBlendingDescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 

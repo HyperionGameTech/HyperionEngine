@@ -19,7 +19,7 @@ using renderer::StorageImage2D;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateShadowMapDescriptors) : renderer::RenderCommand
 {
     SizeType shadow_map_index;
     ImageViewRef shadow_map_image_view;
@@ -51,7 +51,7 @@ struct RENDER_COMMAND(CreateShadowMapDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommand
+struct RENDER_COMMAND(CreateShadowMapImage) : renderer::RenderCommand
 {
     ImageRef shadow_map_image;
     ImageViewRef shadow_map_image_view;
@@ -71,7 +71,7 @@ struct RENDER_COMMAND(CreateShadowMapImage) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommand
+struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -93,7 +93,7 @@ struct RENDER_COMMAND(CreateShadowMapBlurDescriptorSets) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
+struct RENDER_COMMAND(DestroyShadowPassData) : renderer::RenderCommand
 {
     ImageRef shadow_map_image;
     ImageViewRef shadow_map_image_view;
@@ -115,7 +115,7 @@ struct RENDER_COMMAND(DestroyShadowPassData) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(UpdateShadowMapRenderData) : RenderCommand
+struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 {
     UInt shadow_map_index;
     Matrix4 view_matrix;
@@ -264,7 +264,7 @@ void ShadowPass::CreateDescriptors()
 {
     AssertThrow(m_shadow_map_index != ~0u);
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapDescriptors)>(
+    PUSH_RENDER_COMMAND(CreateShadowMapDescriptors, 
         m_shadow_map_index,
         m_shadow_map_image_view
     );
@@ -279,7 +279,7 @@ void ShadowPass::CreateShadowMap()
 
     m_shadow_map_image_view = MakeRenderObject<ImageView>();
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapImage)>(m_shadow_map_image, m_shadow_map_image_view);
+    PUSH_RENDER_COMMAND(CreateShadowMapImage, m_shadow_map_image, m_shadow_map_image_view);
 }
 
 void ShadowPass::CreateComputePipelines()
@@ -299,7 +299,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementUAV(0, m_shadow_map_image_view);
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateShadowMapBlurDescriptorSets)>(m_blur_descriptor_sets);
+    PUSH_RENDER_COMMAND(CreateShadowMapBlurDescriptorSets, m_blur_descriptor_sets);
 
     m_blur_shadow_map = CreateObject<ComputePipeline>(
         g_shader_manager->GetOrCreate(HYP_NAME(BlurShadowMap)),
@@ -341,7 +341,7 @@ void ShadowPass::Destroy()
 
     SafeRelease(std::move(m_blur_descriptor_sets));
 
-    RenderCommands::Push<RENDER_COMMAND(DestroyShadowPassData)>(
+    PUSH_RENDER_COMMAND(DestroyShadowPassData, 
         m_shadow_map_image,
         m_shadow_map_image_view
     );

@@ -13,7 +13,7 @@ using renderer::ShaderVec4;
 
 class IndirectRenderer;
 
-struct RENDER_COMMAND(CreateIndirectRenderer) : RenderCommand
+struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
 {
     IndirectRenderer &indirect_renderer;
 
@@ -381,7 +381,7 @@ void IndirectRenderer::Create()
         m_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateIndirectRenderer)>(*this);
+    PUSH_RENDER_COMMAND(CreateIndirectRenderer, *this);
 
     // create compute pipeline for object visibility (for indirect render)
     // TODO: cache pipelines: re-use this

@@ -62,7 +62,7 @@ void Voxelizer::Init()
         m_shader.Reset();
         m_framebuffer.Reset();
 
-        struct RENDER_COMMAND(DestroyVoxelizer) : RenderCommand
+        struct RENDER_COMMAND(DestroyVoxelizer) : renderer::RenderCommand
         {
             Voxelizer &voxelizer;
 
@@ -96,7 +96,7 @@ void Voxelizer::Init()
             }
         };
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyVoxelizer)>(*this);
+        PUSH_RENDER_COMMAND(DestroyVoxelizer, *this);
 
         HYP_SYNC_RENDER();
         
@@ -112,7 +112,7 @@ void Voxelizer::CreateBuffers()
     m_counter = std::make_unique<AtomicCounter>();
     m_fragment_list_buffer = std::make_unique<StorageBuffer>();
 
-    struct RENDER_COMMAND(CreateVoxelizerBuffers) : RenderCommand
+    struct RENDER_COMMAND(CreateVoxelizerBuffers) : renderer::RenderCommand
     {
         Voxelizer &voxelizer;
 
@@ -136,7 +136,7 @@ void Voxelizer::CreateBuffers()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(CreateVoxelizerBuffers)>(*this);
+    PUSH_RENDER_COMMAND(CreateVoxelizerBuffers, *this);
 }
 
 void Voxelizer::CreateShader()
@@ -168,7 +168,7 @@ void Voxelizer::CreateFramebuffer()
 
 void Voxelizer::CreateDescriptors()
 {
-    struct RENDER_COMMAND(CreateVoxelizerDescriptors) : RenderCommand
+    struct RENDER_COMMAND(CreateVoxelizerDescriptors) : renderer::RenderCommand
     {
         Voxelizer &voxelizer;
 
@@ -194,7 +194,7 @@ void Voxelizer::CreateDescriptors()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(CreateVoxelizerDescriptors)>(*this);
+    PUSH_RENDER_COMMAND(CreateVoxelizerDescriptors, *this);
 }
 
 /* We only reconstruct the buffer if the number of rendered fragments is

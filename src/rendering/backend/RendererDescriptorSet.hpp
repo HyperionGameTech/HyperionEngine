@@ -4,12 +4,28 @@
 #include <core/Name.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/RefCountedPtr.hpp>
+#include <core/lib/Mutex.hpp>
+#include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RenderObject.hpp>
 #include <Types.hpp>
 #include <util/Defines.hpp>
 
 
 namespace hyperion {
 namespace renderer {
+
+namespace platform {
+
+template <PlatformType PLATFORM>
+class Device;
+    
+template <PlatformType PLATFORM>
+class Instance;
+
+} // namespace platform
+
+using Device    = platform::Device<Platform::CURRENT>;
+using Instance  = platform::Instance<Platform::CURRENT>;
 
 class DescriptorSet;
 class DescriptorPool;
@@ -261,6 +277,20 @@ public:
             decl.slots[UInt(slot_type) - 1][index] = std::move(descriptor_decl);
         }
     };
+};
+
+class GlobalDescriptorManager
+{
+public:
+    Array<DescriptorSetRef> GetOrCreateDescriptorSets(
+        Instance *instance,
+        Device *device,
+        const DescriptorTable &table
+    );
+
+private:
+    FlatMap<Name, DescriptorSetWeakRef> m_weak_refs;
+    Mutex                               m_mutex;
 };
 
 extern DescriptorTable *g_static_descriptor_table;

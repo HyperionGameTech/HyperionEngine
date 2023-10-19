@@ -17,7 +17,7 @@ using renderer::Result;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(BindLights) : RenderCommand
+struct RENDER_COMMAND(BindLights) : renderer::RenderCommand
 {
     SizeType num_lights;
     Pair<ID<Light>, LightDrawProxy> *lights;
@@ -40,7 +40,7 @@ struct RENDER_COMMAND(BindLights) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(BindEnvProbes) : RenderCommand
+struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 {
     Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
 
@@ -152,7 +152,7 @@ void Scene::Init()
             lights[index++] = { it.first, it.second->GetDrawProxy() };
         }
 
-        RenderCommands::Push<RENDER_COMMAND(BindLights)>(
+        PUSH_RENDER_COMMAND(BindLights, 
             index,
             lights
         );
@@ -775,7 +775,7 @@ bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id
 
 void Scene::EnqueueRenderUpdates()
 {
-    struct RENDER_COMMAND(UpdateSceneRenderData) : RenderCommand
+    struct RENDER_COMMAND(UpdateSceneRenderData) : renderer::RenderCommand
     {
         ID<Scene> id;
         BoundingBox aabb;
@@ -823,7 +823,7 @@ void Scene::EnqueueRenderUpdates()
         }
     };
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateSceneRenderData)>(
+    PUSH_RENDER_COMMAND(UpdateSceneRenderData, 
         m_id,
         m_root_node_proxy.GetWorldAABB(),
         m_environment->GetGlobalTimer(),

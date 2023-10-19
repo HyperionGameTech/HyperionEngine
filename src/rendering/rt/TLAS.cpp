@@ -5,7 +5,7 @@ namespace hyperion::v2 {
 
 using renderer::Result;
 
-struct RENDER_COMMAND(CreateTLAS) : RenderCommand
+struct RENDER_COMMAND(CreateTLAS) : renderer::RenderCommand
 {
     renderer::TopLevelAccelerationStructure *tlas;
     Array<renderer::BottomLevelAccelerationStructure *> blases;
@@ -26,7 +26,7 @@ struct RENDER_COMMAND(CreateTLAS) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyTLAS) : RenderCommand
+struct RENDER_COMMAND(DestroyTLAS) : renderer::RenderCommand
 {
     renderer::TopLevelAccelerationStructure *tlas;
 
@@ -99,7 +99,7 @@ void TLAS::Init()
         internal_blases[i] = &m_blas[i]->GetInternalBLAS();
     }
 
-    RenderCommands::Push<RENDER_COMMAND(CreateTLAS)>(&m_tlas, std::move(internal_blases));
+    PUSH_RENDER_COMMAND(CreateTLAS, &m_tlas, std::move(internal_blases));
 
     HYP_SYNC_RENDER();
 
@@ -118,7 +118,7 @@ void TLAS::Init()
             m_has_blas_updates.store(false);
         }
 
-        RenderCommands::Push<RENDER_COMMAND(DestroyTLAS)>(&m_tlas);
+        PUSH_RENDER_COMMAND(DestroyTLAS, &m_tlas);
 
         HYP_SYNC_RENDER();
     });

@@ -180,18 +180,20 @@ void LibDataChannelRTCServer::Start()
 void LibDataChannelRTCServer::Stop()
 {
     if (m_thread != nullptr) {
-        if (m_websocket != nullptr) {
-            m_thread->GetScheduler().Enqueue([this]
-            {
-                for (const auto &client : m_client_list) {
-                    client.second->Disconnect();
-                }
+        m_thread->GetScheduler().Enqueue([this]
+        {
+            for (const auto &client : m_client_list) {
+                client.second->Disconnect();
+            }
 
+            if (m_websocket != nullptr) {
                 if (m_websocket->isOpen()) {
                     m_websocket->close();
                 }
-            });
-        }
+
+                m_websocket.Reset();
+            }
+        });
 
         // Parent destructor will flush thread tasks and join
     }

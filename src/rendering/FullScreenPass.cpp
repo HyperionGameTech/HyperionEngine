@@ -19,7 +19,7 @@ using renderer::FillMode;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateCommandBuffers) : RenderCommand
+struct RENDER_COMMAND(CreateCommandBuffers) : renderer::RenderCommand
 {
     FixedArray<CommandBufferRef, max_frames_in_flight> command_buffers;
 
@@ -129,7 +129,7 @@ void FullScreenPass::CreateCommandBuffers()
     }
 
     // create command buffers in render thread
-    RenderCommands::Push<RENDER_COMMAND(CreateCommandBuffers)>(m_command_buffers);
+    PUSH_RENDER_COMMAND(CreateCommandBuffers, m_command_buffers);
 }
 
 void FullScreenPass::CreateFramebuffer()

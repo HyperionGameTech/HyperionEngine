@@ -24,7 +24,7 @@ enum ProbeSystemUpdates : UInt32
     PROBE_SYSTEM_UPDATES_SHADOW_MAP = 0x2
 };
 
-struct RENDER_COMMAND(CreateProbeGridImage) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridImage) : renderer::RenderCommand
 {
     ImageRef storage_image;
 
@@ -39,7 +39,7 @@ struct RENDER_COMMAND(CreateProbeGridImage) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateProbeGridImageView) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridImageView) : renderer::RenderCommand
 {
     ImageViewRef image_view;
     ImageRef image;
@@ -56,7 +56,7 @@ struct RENDER_COMMAND(CreateProbeGridImageView) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateProbeGridDescriptors) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridDescriptors) : renderer::RenderCommand
 {
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
     GPUBufferRef uniform_buffer;
@@ -107,7 +107,7 @@ struct RENDER_COMMAND(CreateProbeGridDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(DestroyProbeGridDescriptors) : RenderCommand
+struct RENDER_COMMAND(DestroyProbeGridDescriptors) : renderer::RenderCommand
 {
     RENDER_COMMAND(DestroyProbeGridDescriptors)()
     {
@@ -144,7 +144,7 @@ struct RENDER_COMMAND(DestroyProbeGridDescriptors) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateProbeGridUniformBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridUniformBuffer) : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
     ProbeSystemUniforms uniforms;
@@ -164,7 +164,7 @@ struct RENDER_COMMAND(CreateProbeGridUniformBuffer) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateProbeGridRadianceBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridRadianceBuffer) : renderer::RenderCommand
 {
     GPUBufferRef radiance_buffer;
     ProbeGridInfo grid_info;
@@ -184,7 +184,7 @@ struct RENDER_COMMAND(CreateProbeGridRadianceBuffer) : RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateProbeGridPipeline) : RenderCommand
+struct RENDER_COMMAND(CreateProbeGridPipeline) : renderer::RenderCommand
 {
     RaytracingPipelineRef pipeline;
     ShaderProgramRef shader_program;

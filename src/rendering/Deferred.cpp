@@ -26,7 +26,7 @@ const Extent2D DeferredRenderer::ssr_extent(512, 512);
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateBlueNoiseBuffer) : RenderCommand
+struct RENDER_COMMAND(CreateBlueNoiseBuffer) : renderer::RenderCommand
 {
     GPUBufferRef buffer;
 

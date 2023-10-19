@@ -1,4 +1,5 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
+#include <rendering/backend/RendererInstance.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -59,6 +60,44 @@ DescriptorSetDeclaration *DescriptorTable::AddDescriptorSet(DescriptorSetDeclara
     declarations.PushBack(std::move(descriptor_set));
 
     return &declarations.Back();
+}
+
+Array<DescriptorSetRef> GlobalDescriptorManager::GetOrCreateDescriptorSets(
+    Instance *instance,
+    Device *device,
+    const DescriptorTable &table
+)
+{
+    Array<DescriptorSetRef> results;
+    results.Reserve(table.GetDescriptorSetDeclarations().Size());
+
+    Mutex::Guard guard(m_mutex);
+
+    for (const DescriptorSetDeclaration &decl : table.GetDescriptorSetDeclarations()) {
+        const auto it = m_weak_refs.Find(decl.name);
+
+        DescriptorSetRef descriptor_set_ref;
+
+        if (it != m_weak_refs.End()) {
+            descriptor_set_ref = it->second.Lock();
+
+            if (descriptor_set_ref) {
+                results.PushBack(std::move(descriptor_set_ref));
+                continue;
+            }
+        }
+
+        descriptor_set_ref = MakeRenderObject<DescriptorSet>(decl);
+        m_weak_refs.Set(decl.name, descriptor_set_ref);
+
+        DeferCreate(descriptor_set_ref, device, &instance->GetDescriptorPool());
+
+        // HYPERION_ASSERT_RESULT(descriptor_set_ref->Create(device, &instance->GetDescriptorPool()));
+
+        results.PushBack(std::move(descriptor_set_ref));
+    }
+
+    return results;
 }
 
 #define HYP_DESCRIPTOR_SETS_DEFINE

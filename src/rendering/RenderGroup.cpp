@@ -12,7 +12,7 @@ using renderer::CommandBufferType;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateGraphicsPipeline) : RenderCommand
+struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 {
     GraphicsPipelineRef                     pipeline;
     renderer::ShaderProgram                 *shader_program;
@@ -172,7 +172,7 @@ void RenderGroup::Init()
             command_buffers.PushBack(std::move(frame_command_buffers));
         }
 
-        RenderCommands::Push<RENDER_COMMAND(CreateGraphicsPipeline)>(
+        PUSH_RENDER_COMMAND(CreateGraphicsPipeline, 
             m_pipeline,
             m_shader->GetShaderProgram(),
             render_pass,

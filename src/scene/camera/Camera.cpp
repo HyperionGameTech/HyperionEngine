@@ -9,7 +9,7 @@ using renderer::Result;
 
 class Camera;
 
-struct RENDER_COMMAND(UpdateCameraDrawProxy) : RenderCommand
+struct RENDER_COMMAND(UpdateCameraDrawProxy) : renderer::RenderCommand
 {
     Camera *camera;
     CameraDrawProxy draw_proxy;
@@ -354,7 +354,7 @@ void Camera::Update(GameCounter::TickUnit dt)
     // TODO: Check that matrices have changed before this.
     g_engine->GetWorld()->GetOctree().CalculateVisibility(this);
 
-    RenderCommands::Push<RENDER_COMMAND(UpdateCameraDrawProxy)>(
+    PUSH_RENDER_COMMAND(UpdateCameraDrawProxy, 
         this,
         CameraDrawProxy {
             .view = m_view_mat,
