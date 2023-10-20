@@ -752,6 +752,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         m_hbao->Render(frame);
     }
     
+    // Redirect indirect and direct lighting into the same framebuffer
     auto &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
     
     m_post_processing.RenderPre(frame);
@@ -771,7 +772,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        Image *src_image = deferred_pass_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+        const ImageRef &src_image = deferred_pass_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
         GenerateMipChain(frame, src_image);
     }
 

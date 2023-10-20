@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     if (!(window_flags & WINDOW_FLAGS_NO_GFX)) {
         application->SetCurrentWindow(application->CreateSystemWindow({
             "Hyperion Engine",
-            1920, 1080,
+            1080, 720,
             window_flags
         }));
     }

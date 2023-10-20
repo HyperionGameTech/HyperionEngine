@@ -296,9 +296,28 @@ void SampleStreamer::InitGame()
         sun->AddController<ShadowMapController>();
         GetScene()->AddEntity(sun);
     }
+
+    // add sample model
+    {
+        auto batch = g_asset_manager->CreateBatch();
+        batch->Add<Node>("television", "models/television/Television_01_4k.obj");
+        batch->LoadAsync();
+        auto results = batch->AwaitResults();
+
+        if (results["television"]) {
+            auto television = results["television"].ExtractAs<Node>();
+            
+            if (television) {
+                DebugLog(LogType::Debug, "Adding television model\n");
+                GetScene()->GetRoot().AddChild(std::move(television));
+            } else {
+                DebugLog(LogType::Debug, "television model not found\n");
+            }
+        }
+    }
     
     // Test gaussian splatting
-    if (true) {
+    if (false) {
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
         batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");

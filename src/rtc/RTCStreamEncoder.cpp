@@ -152,7 +152,7 @@ public:
                 return TRUE;
             }
 
-            AssertThrow(bytes.Size() == 1920 * 1080 * 4);
+            AssertThrow(bytes.Size() == 1080 * 720 * 4);
 
             const gsize data_size = bytes.Size();
 
@@ -304,8 +304,8 @@ protected:
             gst_caps_new_simple(
                 "video/x-raw",
                 "format", G_TYPE_STRING, "RGBA",
-                "width", G_TYPE_INT, 1920,
-                "height", G_TYPE_INT, 1080,
+                "width", G_TYPE_INT, 1080,
+                "height", G_TYPE_INT, 720,
                 "framerate", GST_TYPE_FRACTION, 60, 1,
                 NULL
             ),
