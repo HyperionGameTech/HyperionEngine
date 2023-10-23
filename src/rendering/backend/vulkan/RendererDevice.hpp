@@ -16,7 +16,11 @@ namespace renderer {
 
 class Features;
 
-
+/*! @typedef renderer::ExtensionMap
+ * @brief A map of extension names, as well as if they are required.
+ * @tparam name The name of the extension
+ * @tparam required A boolean value denoting if the extension is required
+ */
 using ExtensionMap = std::unordered_map<std::string, bool>;
 
 namespace platform {
@@ -38,6 +42,7 @@ public:
     void SetPhysicalDevice(VkPhysicalDevice);
     void SetRenderSurface(const VkSurfaceKHR &surface);
     void SetRequiredExtensions(const ExtensionMap &extensions);
+    ExtensionMap GetRequiredExtensions() const { return required_extensions; }
 
     VkDevice GetDevice();
     VkSurfaceKHR GetRenderSurface();

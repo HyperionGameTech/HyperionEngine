@@ -20,6 +20,10 @@
 #include <optional>
 #include <cstring>
 
+#ifndef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
+#define VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME "VK_KHR_portability_subset"
+#endif
+
 namespace hyperion {
 namespace renderer {
 namespace platform {
@@ -240,6 +244,7 @@ Result Instance<Platform::VULKAN>::Initialize(bool load_debug_layers)
     // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
     // translation layers such as moltenvk.
     create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    DebugLog(LogType::RenInfo, "Enabling KHR Portability Extension (API Version >= 1.3.216)!\n");
 #endif
 
     // Setup Vulkan extensions
@@ -467,6 +472,32 @@ VkPhysicalDevice Instance<Platform::VULKAN>::PickPhysicalDevice(std::vector<VkPh
     return _device;
 }
 
+/**
+ * \brief Check if the Vulkan extension VK_KHR_portability_subset is required.
+ *        If it is needed, add it to the required device extensions.
+ */
+void Instance<Platform::VULKAN>::CheckDevicePortabilitySubsetExtension()
+{
+    const std::string portability_subset_ext = VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
+    const auto &supported_extensions = m_device->GetSupportedExtensions();
+
+    const auto found_portability_subset = std::find_if(
+        supported_extensions.begin(),
+        supported_extensions.end(),
+        [portability_subset_ext](VkExtensionProperties extension) {
+            return !std::strcmp(extension.extensionName, portability_subset_ext.c_str());
+        }
+    );
+
+    if (found_portability_subset == supported_extensions.end()) {
+        return;
+    }
+
+    ExtensionMap required_extensions = m_device->GetRequiredExtensions();
+    required_extensions.insert({ portability_subset_ext, true });
+    m_device->SetRequiredExtensions(required_extensions);
+}
+
 Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_device)
 {
     /* If no physical device passed in, we select one */
@@ -476,6 +507,10 @@ Result Instance<Platform::VULKAN>::InitializeDevice(VkPhysicalDevice physical_de
     
     m_device = new Device<Platform::VULKAN>(physical_device, this->surface);
     m_device->SetRequiredExtensions(GetExtensionMap());
+
+    // check if our graphics card requires the device portability extension,
+    // if so, add to our required extensions list
+    CheckDevicePortabilitySubsetExtension();
 
     const QueueFamilyIndices &family_indices = m_device->GetQueueFamilyIndices();
 

@@ -48,6 +48,8 @@ class Instance<Platform::VULKAN>
 
     Result CreateCommandPool(DeviceQueue &queue, UInt index);
 
+    void CheckDevicePortabilitySubsetExtension();
+
 public:
     Instance(RC<Application> application);
     Result Initialize(bool load_debug_layers = false);
