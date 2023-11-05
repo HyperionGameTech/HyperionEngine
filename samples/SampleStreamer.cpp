@@ -265,7 +265,7 @@ void SampleStreamer::InitGame()
     /*m_scene->GetCamera()->SetCameraController(UniquePtr<FollowCameraController>::Construct(
         Vector3(0.0f, 7.0f, 0.0f), Vector3(0.0f, 0.0f, 5.0f)
     ));*/
-    m_scene->GetCamera()->SetCameraController(UniquePtr<FirstPersonCameraController>::Construct());
+    m_scene->GetCamera()->SetCameraController(RC<CameraController>(new FirstPersonCameraController()));
 
     { // allow ui rendering
         auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
@@ -317,7 +317,7 @@ void SampleStreamer::InitGame()
     }
     
     // Test gaussian splatting
-    if (false) {
+    if (true) {
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
         batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
@@ -332,6 +332,23 @@ void SampleStreamer::InitGame()
         batch->LoadAsync();
 
         m_asset_batches.Insert(HYP_NAME(GaussianSplatting), std::move(batch));
+    }
+
+    // Test voxelizing model
+    if (true) {
+        auto batch = g_asset_manager->CreateBatch();
+        batch->Add<Node>("pica_pica", "models/pica_pica/pica_pica.obj");
+
+        batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
+        {
+            const String &key = data.GetAssetKey();
+            
+            DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
+        });
+
+        batch->LoadAsync();
+
+        m_asset_batches.Insert(HYP_NAME(PicaPicaModel), std::move(batch));
     }
 }
 
@@ -540,6 +557,65 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         InitObject(gaussian_splatting_instance);
 
         m_scene->GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
+    } else if (name == HYP_NAME(PicaPicaModel)) {
+        auto node = loaded_assets["pica_pica"].ExtractAs<Node>();
+
+        if (node) {
+            // Voxelize 
+            UInt voxel_grid_index = 0;
+
+            for (const auto &child : node.GetChildren()) {
+                const auto &entity = child.GetEntity();
+
+                if (entity) {
+                    const auto &mesh = entity->GetMesh();
+
+                    if (mesh) {
+                        const auto voxel_grid = MeshBuilder::Voxelize(mesh.Get(), 0.1f);
+
+                        DebugLog(LogType::Debug, "Dumping voxel grid with %llu voxels\n", voxel_grid.voxels.Size());
+
+                        String filename = String("voxel_grid_") + String::ToString(voxel_grid_index++) + String(".txt");
+
+                        FileByteWriter writer(filename.Data());
+
+                        if (!writer.IsOpen()) {
+                            DebugLog(LogType::Error, "Failed to open file %s\n", filename.Data());
+
+                            continue;
+                        }
+
+                        // Scale it so that the voxel grid coords can remain integers (chopping off the fractional part)
+                        const Vector3 scale = Vector3(1.0f / voxel_grid.voxel_size);
+                        
+                        for (UInt x = 0; x < voxel_grid.size_x; x++) {
+                            for (UInt y = 0; y < voxel_grid.size_y; y++) {
+                                for (UInt z = 0; z < voxel_grid.size_z; z++) {
+                                    const UInt index = voxel_grid.GetIndex(x, y, z);
+                                    const auto &voxel = voxel_grid.voxels[index];
+
+                                    const Vector3 position = voxel.aabb.GetCenter();
+
+                                    Vec3i voxel_position = Vec3i(
+                                        MathUtil::Floor(position.x * scale.x),
+                                        MathUtil::Floor(position.y * scale.y),
+                                        MathUtil::Floor(position.z * scale.z)
+                                    );
+
+                                    String str;
+                                    str += voxel.filled ? "F " : "E ";
+                                    str += String(std::to_string(voxel_position.x).c_str()) + " ";
+                                    str += String(std::to_string(voxel_position.y).c_str()) + " ";
+                                    str += String(std::to_string(voxel_position.z).c_str()) + "\n";
+
+                                    writer.WriteString(str, BYTE_WRITER_FLAGS_WRITE_NULL_CHAR);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

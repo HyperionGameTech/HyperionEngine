@@ -45,7 +45,7 @@ void Voxelizer::Init()
     m_camera = CreateObject<Camera>(voxel_map_size, voxel_map_size);
     m_camera->SetFramebuffer(m_framebuffer);
 
-    m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+    m_camera->SetCameraController(RC<OrthoCameraController>::Construct(
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2,
         -voxel_map_size_signed / 2, voxel_map_size_signed / 2

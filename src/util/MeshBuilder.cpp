@@ -302,9 +302,9 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
     BoundingBox total_aabb = mesh->CalculateAABB();
     Vector3 total_aabb_dimensions = total_aabb.GetExtent();
 
-    UInt num_voxels_x = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.x / voxel_size);
-    UInt num_voxels_y = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.y / voxel_size);
-    UInt num_voxels_z = MathUtil::Ceil<Float, UInt>(total_aabb_dimensions.z / voxel_size);
+    UInt num_voxels_x = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.x / voxel_size);
+    UInt num_voxels_y = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.y / voxel_size);
+    UInt num_voxels_z = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.z / voxel_size);
 
     // building out grid
     VoxelGrid grid;
@@ -322,7 +322,10 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
     for (UInt x = 0; x < num_voxels_x; x++) {
         for (UInt y = 0; y < num_voxels_y; y++) {
             for (UInt z = 0; z < num_voxels_z; z++) {
-                UInt voxel_index = (z * num_voxels_x * num_voxels_y) + (y * num_voxels_y) + x;
+                UInt voxel_index = grid.GetIndex(x, y, z);
+
+                AssertThrow(voxel_index < grid.voxels.Size());
+
                 grid.voxels[voxel_index] = Voxel(
                     BoundingBox(
                         Vector3(x, y, z) * voxel_size,
@@ -344,7 +347,7 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
         UInt y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.y * (static_cast<Float>(num_voxels_y) - 1.0f), 0.0f, static_cast<Float>(num_voxels_y) - 1.0f));
         UInt z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.z * (static_cast<Float>(num_voxels_z) - 1.0f), 0.0f, static_cast<Float>(num_voxels_z) - 1.0f));
 
-        UInt voxel_index = (z * num_voxels_x * num_voxels_y) + (y * num_voxels_y) + x;
+        UInt voxel_index = grid.GetIndex(x, y, z);
 
         grid.voxels[voxel_index].filled = true;
         ++num_filled_voxels;
@@ -360,7 +363,7 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
     for (UInt x = 0; x < voxel_grid.size_x; x++) {
         for (UInt y = 0; y < voxel_grid.size_y; y++) {
             for (UInt z = 0; z < voxel_grid.size_z; z++) {
-                UInt index = (z * voxel_grid.size_x * voxel_grid.size_y) + (y * voxel_grid.size_y) + x;
+                UInt index = voxel_grid.GetIndex(x, y, z);
 
                 if (!voxel_grid.voxels[index].filled) {
                     continue;

@@ -23,13 +23,15 @@ OrthoCameraController::OrthoCameraController(Float left, Float right, Float bott
 
 void OrthoCameraController::OnAdded(Camera *camera)
 {
-    CameraController::OnAdded(camera);
+    m_camera = camera;
 
-    camera->SetToOrthographicProjection(
-        m_left, m_right,
-        m_bottom, m_top,
-        m_near, m_far
-    );
+    if (m_camera) {
+        m_camera->SetToOrthographicProjection(
+            m_left, m_right,
+            m_bottom, m_top,
+            m_near, m_far
+        );
+    }
 }
 
 void OrthoCameraController::UpdateLogic(double dt)

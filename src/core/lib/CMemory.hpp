@@ -154,6 +154,11 @@ public:
         std::free(ptr);
     }
 
+    static void Free(void *ptr)
+    {
+        std::free(ptr);
+    }
+
     static void *AllocateZeros(SizeType count)
     {
         return std::calloc(count, 1);

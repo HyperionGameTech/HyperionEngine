@@ -46,9 +46,14 @@ public:
 
     struct VoxelGrid
     {
-        Array<Voxel> voxels;
-        UInt size_x, size_y, size_z;
-        Float voxel_size;
+        Array<Voxel>    voxels;
+        UInt            size_x, size_y, size_z;
+        Float           voxel_size;
+
+        UInt GetIndex(UInt x, UInt y, UInt z) const
+        {
+            return (x * size_y * size_z) + (y * size_z) + z;
+        }
     };
 
     static Handle<Mesh> Quad(Topology topology = Topology::TRIANGLES);

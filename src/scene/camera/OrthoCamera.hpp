@@ -9,7 +9,7 @@ class OrthoCameraController : public CameraController
 public:
     OrthoCameraController();
     OrthoCameraController(Float left, Float right, Float bottom, Float top, Float _near, Float _far);
-    virtual ~OrthoCameraController() = default;
+    virtual ~OrthoCameraController() override = default;
 
     virtual void OnAdded(Camera *camera) override;
 

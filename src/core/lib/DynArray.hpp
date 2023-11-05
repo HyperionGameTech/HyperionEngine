@@ -488,7 +488,8 @@ DynArray<T, NumInlineBytes>::~DynArray()
     // only nullptr if it has been move()'d in which case size would be 0
     //delete[] m_buffer;
     if (m_is_dynamic) {
-        std::free(m_buffer);
+        Memory::Free(m_buffer);
+        m_buffer = nullptr;
     }
 }
 
@@ -508,7 +509,8 @@ auto DynArray<T, NumInlineBytes>::operator=(const DynArray &other) -> DynArray&
         }
 
         if (m_is_dynamic) {
-            std::free(m_buffer);
+            Memory::Free(m_buffer);
+            m_buffer = nullptr;
         }
 
         if (other.m_is_dynamic) {
@@ -560,7 +562,7 @@ auto DynArray<T, NumInlineBytes>::operator=(DynArray &&other) noexcept -> DynArr
         }
 
         if (m_is_dynamic) {
-            std::free(buffer);
+            Memory::Free(buffer);
             m_buffer = nullptr;
         }
     }
@@ -655,7 +657,7 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
 
         if (m_is_dynamic) {
             // delete old buffer memory
-            std::free(old_buffer);
+            Memory::Free(old_buffer);
         }
 
         // set internal buffer to the new one
@@ -677,7 +679,7 @@ void DynArray<T, NumInlineBytes>::SetCapacity(SizeType capacity, SizeType copy_o
                 Memory::Destruct(old_buffer[--i].Get());
             }
 
-            std::free(old_buffer);
+            Memory::Free(old_buffer);
 
             m_is_dynamic = false;
             m_capacity = num_inline_elements;

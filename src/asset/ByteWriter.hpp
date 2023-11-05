@@ -11,6 +11,16 @@
 #include <string>
 
 namespace hyperion {
+
+using ByteWriterFlags = UByte;
+
+enum ByteWriterFlagBits : ByteWriterFlags
+{
+    BYTE_WRITER_FLAGS_NONE              = 0,
+    BYTE_WRITER_FLAGS_WRITE_NULL_CHAR   = 1 << 0,
+    BYTE_WRITER_FLAGS_WRITE_SIZE        = 1 << 1
+};
+
 class ByteWriter
 {
 public:
@@ -32,12 +42,21 @@ public:
         WriteBytes(reinterpret_cast<const char *>(&value), sizeof(T));
     }
 
-    void WriteString(const String &str)
+    void WriteString(const String &str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_WRITE_SIZE)
     {
-        const auto len = static_cast<UInt32>(str.Size());
+        const UInt32 len = static_cast<UInt32>(str.Size());
 
-        WriteBytes(reinterpret_cast<const char *>(&len), sizeof(UInt32));
+        if (flags & BYTE_WRITER_FLAGS_WRITE_SIZE) {
+            const UInt32 len_nt = len + ((flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) ? 1 : 0);
+
+            WriteBytes(reinterpret_cast<const char *>(&len_nt), sizeof(UInt32));
+        }
+
         WriteBytes(str.Data(), len);
+
+        if (flags & BYTE_WRITER_FLAGS_WRITE_NULL_CHAR) {
+            WriteBytes("\0", 1);
+        }
     }
 
     void WriteString(const char *str)

@@ -30,7 +30,7 @@ void UIScene::Init()
 
     m_scene = CreateObject<Scene>(CreateObject<Camera>());
 
-    m_scene->GetCamera()->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+    m_scene->GetCamera()->SetCameraController(RC<OrthoCameraController>::Construct(
         0.0f, 1.0f,
         0.0f, 1.0f,
         -1.0f, 1.0f

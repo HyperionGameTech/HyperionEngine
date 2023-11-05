@@ -320,7 +320,7 @@ void ShadowPass::Create()
     {
         m_camera = CreateObject<Camera>(m_dimensions.width, m_dimensions.height);
 
-        m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct());
+        m_camera->SetCameraController(RC<OrthoCameraController>::Construct());
         m_camera->SetFramebuffer(m_framebuffer);
 
         InitObject(m_camera);

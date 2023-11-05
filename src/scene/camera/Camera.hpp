@@ -80,13 +80,12 @@ public:
     CameraType GetType() const
         { return m_type; }
 
-    virtual void OnAdded(Camera *camera)
-        { m_camera = camera; }
-
     virtual void SetTranslation(const Vector3 &translation) { }
     virtual void SetNextTranslation(const Vector3 &translation) { }
     virtual void SetDirection(const Vector3 &direction) { }
     virtual void SetUpVector(const Vector3 &up) { }
+
+    virtual void OnAdded(Camera *camera) = 0;
 
     virtual void UpdateLogic(double dt) = 0;
     virtual void UpdateViewMatrix() = 0;
@@ -99,13 +98,13 @@ protected:
 
     void UpdateCommandQueue(GameCounter::TickUnit dt);
 
-    Camera *m_camera;
+    Camera                  *m_camera;
 
-    CameraType m_type;
+    CameraType              m_type;
 
-    std::mutex m_command_queue_mutex;
-    std::atomic_uint m_command_queue_count;
-    Queue<CameraCommand> m_command_queue;
+    std::mutex              m_command_queue_mutex;
+    std::atomic_uint        m_command_queue_count;
+    Queue<CameraCommand>    m_command_queue;
 };
 
 class PerspectiveCameraController;
@@ -143,7 +142,7 @@ public:
     CameraController *GetCameraController() const
         { return m_camera_controller.Get(); }
 
-    void SetCameraController(UniquePtr<CameraController> &&camera_controller)
+    void SetCameraController(RC<CameraController> camera_controller)
     {
         m_camera_controller = std::move(camera_controller);
 
@@ -273,26 +272,26 @@ protected:
     void UpdateProjectionatrix();
     void UpdateViewProjectionMatrix();
 
-    UniquePtr<CameraController> m_camera_controller;
+    RC<CameraController>    m_camera_controller;
 
-    Handle<Framebuffer> m_framebuffer;
+    Handle<Framebuffer>     m_framebuffer;
 
-    Vector3 m_translation, m_next_translation, m_direction, m_up;
-    Matrix4 m_view_mat, m_proj_mat;
-    Frustum m_frustum;
+    Vector3                 m_translation, m_next_translation, m_direction, m_up;
+    Matrix4                 m_view_mat, m_proj_mat;
+    Frustum                 m_frustum;
 
-    int m_width, m_height;
-    float m_near, m_far;
+    Int                     m_width, m_height;
+    Float                   m_near, m_far;
 
     // only for perspective
-    float m_fov;
+    Float                   m_fov;
 
     // only for ortho
-    float m_left, m_right, m_bottom, m_top;
+    Float                   m_left, m_right, m_bottom, m_top;
 
 private:
-    Matrix4 m_view_proj_mat;
-    Matrix4 m_previous_view_matrix;
+    Matrix4                 m_view_proj_mat;
+    Matrix4                 m_previous_view_matrix;
 };
 
 } // namespace v2

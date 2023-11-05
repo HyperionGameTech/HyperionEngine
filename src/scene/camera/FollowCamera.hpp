@@ -8,8 +8,7 @@ class FollowCameraController : public PerspectiveCameraController
 {
 public:
     FollowCameraController(const Vector3 &target, const Vector3 &offset);
-
-    virtual ~FollowCameraController() = default;
+    virtual ~FollowCameraController() override = default;
 
     const Vector3 &GetOffset() const { return m_offset; }
     void SetOffset(const Vector3 &offset) { m_offset = offset; }

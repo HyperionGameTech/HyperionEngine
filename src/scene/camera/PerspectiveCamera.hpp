@@ -8,7 +8,9 @@ class PerspectiveCameraController : public CameraController
 {
 public:
     PerspectiveCameraController();
-    virtual ~PerspectiveCameraController() = default;
+    virtual ~PerspectiveCameraController() override = default;
+
+    virtual void OnAdded(Camera *camera) override;
 
     virtual void UpdateLogic(double dt) override;
     virtual void UpdateViewMatrix() override;

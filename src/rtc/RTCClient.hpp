@@ -73,8 +73,8 @@ public:
 
     RTCClient(const RTCClient &other) = delete;
     RTCClient &operator=(const RTCClient &other) = delete;
-    RTCClient(RTCClient &&other) noexcept = default;
-    RTCClient &operator=(RTCClient &&other) noexcept = default;
+    RTCClient(RTCClient &&other) noexcept = delete;
+    RTCClient &operator=(RTCClient &&other) noexcept = delete;
     virtual ~RTCClient() = default;
 
     const String &GetID() const
@@ -119,8 +119,8 @@ public:
     NullRTCClient(String id, RTCServer *server);
     NullRTCClient(const NullRTCClient &other) = delete;
     NullRTCClient &operator=(const NullRTCClient &other) = delete;
-    NullRTCClient(NullRTCClient &&other) noexcept = default;
-    NullRTCClient &operator=(NullRTCClient &&other) noexcept = default;
+    NullRTCClient(NullRTCClient &&other) noexcept = delete;
+    NullRTCClient &operator=(NullRTCClient &&other) noexcept = delete;
     virtual ~NullRTCClient() override = default;
 
     virtual void Connect() override;
@@ -141,8 +141,8 @@ public:
     LibDataChannelRTCClient(String id, RTCServer *server);
     LibDataChannelRTCClient(const LibDataChannelRTCClient &other) = delete;
     LibDataChannelRTCClient &operator=(const LibDataChannelRTCClient &other) = delete;
-    LibDataChannelRTCClient(LibDataChannelRTCClient &&other) noexcept = default;
-    LibDataChannelRTCClient &operator=(LibDataChannelRTCClient &&other) noexcept = default;
+    LibDataChannelRTCClient(LibDataChannelRTCClient &&other) noexcept = delete;
+    LibDataChannelRTCClient &operator=(LibDataChannelRTCClient &&other) noexcept = delete;
     virtual ~LibDataChannelRTCClient() override = default;
 
     virtual RC<RTCDataChannel> CreateDataChannel(Name name = Name::invalid) override;

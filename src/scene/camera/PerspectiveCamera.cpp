@@ -6,6 +6,11 @@ PerspectiveCameraController::PerspectiveCameraController()
 {
 }
 
+void PerspectiveCameraController::OnAdded(Camera *camera)
+{
+    m_camera = camera;
+}
+
 void PerspectiveCameraController::UpdateLogic(double dt)
 {
 }

@@ -92,7 +92,7 @@ void VoxelConeTracing::Init()
 
     m_camera = CreateObject<Camera>(voxel_map_extent.width, voxel_map_extent.height);
     m_camera->SetFramebuffer(m_framebuffer);
-    m_camera->SetCameraController(UniquePtr<OrthoCameraController>::Construct(
+    m_camera->SetCameraController(RC<OrthoCameraController>::Construct(
         -Float(voxel_map_extent[0]) * 0.5f, Float(voxel_map_extent[0]) * 0.5f,
         -Float(voxel_map_extent[1]) * 0.5f, Float(voxel_map_extent[1]) * 0.5f,
         -Float(voxel_map_extent[2]) * 0.5f, Float(voxel_map_extent[2]) * 0.5f
