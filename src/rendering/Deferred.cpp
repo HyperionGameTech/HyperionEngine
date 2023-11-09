@@ -652,7 +652,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const UInt scene_index = scene_binding.id.ToIndex();
 
     const bool do_particles = environment && environment->IsReady();
-    const bool do_gaussian_splatting = environment && environment->IsReady();
+    const bool do_gaussian_splatting = false;//environment && environment->IsReady();
 
     const bool use_ssr = g_engine->GetConfig().Get(CONFIG_SSR);
     const bool use_rt_radiance = g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS) || g_engine->GetConfig().Get(CONFIG_PATHTRACER);

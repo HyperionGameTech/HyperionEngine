@@ -2,9 +2,8 @@
 #define HYPERION_RAY_H
 
 #include "Vector3.hpp"
-#include "Vertex.hpp"
-#include "Triangle.hpp"
-#include "Transform.hpp"
+#include <math/Vertex.hpp>
+#include <math/Transform.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>
@@ -17,6 +16,7 @@
 namespace hyperion {
 
 class BoundingBox;
+class Triangle;
 class RayTestResults;
 struct RayHit;
 
@@ -82,10 +82,10 @@ struct RayHit
 {
     static constexpr bool no_hit = false;
     
-    Vector3 hitpoint;
-    Vector3 normal;
-    float distance = 0.0f;
-    RayHitID id = ~0u;
+    Vector3     hitpoint;
+    Vector3     normal;
+    Float       distance = 0.0f;
+    RayHitID    id = ~0u;
     const void *user_data = nullptr;
 
     bool operator<(const RayHit &other) const

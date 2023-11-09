@@ -63,6 +63,23 @@
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCDataChannel.hpp>
 
+static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &out)
+{
+    const auto &entity = node.GetEntity();
+
+    if (entity) {
+        const auto &mesh = entity->GetMesh();
+
+        if (mesh) {
+            out.PushBack(Pair<Handle<Mesh>, Transform> { mesh, entity->GetTransform() });
+        }
+    }
+
+    for (auto &child : node.GetChildren()) {
+        CollectMeshes(child, out);
+    }
+}
+
 class FramebufferCaptureRenderComponent : public RenderComponent<FramebufferCaptureRenderComponent>
 {
     Extent2D        m_window_size;
@@ -300,24 +317,25 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("television", "models/television/Television_01_4k.obj");
+        batch->Add<Node>("sponza", "models/sponza/sponza.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
-        if (results["television"]) {
-            auto television = results["television"].ExtractAs<Node>();
+        if (results["sponza"]) {
+            auto sponza = results["sponza"].ExtractAs<Node>();
+            sponza.Scale(0.01f);
             
-            if (television) {
-                DebugLog(LogType::Debug, "Adding television model\n");
-                GetScene()->GetRoot().AddChild(std::move(television));
+            if (sponza) {
+                DebugLog(LogType::Debug, "Adding sponza model\n");
+                GetScene()->GetRoot().AddChild(std::move(sponza));
             } else {
-                DebugLog(LogType::Debug, "television model not found\n");
+                DebugLog(LogType::Debug, "sponza model not found\n");
             }
         }
     }
     
     // Test gaussian splatting
-    if (true) {
+    if (false) {
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
         batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
@@ -335,9 +353,25 @@ void SampleStreamer::InitGame()
     }
 
     // Test voxelizing model
-    if (true) {
+    // if (true) {
+    //     auto batch = g_asset_manager->CreateBatch();
+    //     batch->Add<Node>("test_voxelizer_model", "models/suzanne.obj");
+
+    //     batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
+    //     {
+    //         const String &key = data.GetAssetKey();
+            
+    //         DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
+    //     });
+
+    //     batch->LoadAsync();
+
+    //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
+    // }
+
+    if (false) {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("pica_pica", "models/pica_pica/pica_pica.obj");
+        batch->Add<Node>("test_revit_model", "models/test_revit/test_revit.obj");
 
         batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
         {
@@ -348,7 +382,7 @@ void SampleStreamer::InitGame()
 
         batch->LoadAsync();
 
-        m_asset_batches.Insert(HYP_NAME(PicaPicaModel), std::move(batch));
+        m_asset_batches.Insert(HYP_NAME(TestRevitModel), std::move(batch));
     }
 }
 
@@ -557,65 +591,114 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
         InitObject(gaussian_splatting_instance);
 
         m_scene->GetEnvironment()->GetGaussianSplatting()->SetGaussianSplattingInstance(std::move(gaussian_splatting_instance));
-    } else if (name == HYP_NAME(PicaPicaModel)) {
-        auto node = loaded_assets["pica_pica"].ExtractAs<Node>();
+    } else if (name == HYP_NAME(TestVoxelizerModel)) {
+        auto node = loaded_assets["test_voxelizer_model"].ExtractAs<Node>();
+        node.Scale(0.1f);
 
         if (node) {
             // Voxelize 
             UInt voxel_grid_index = 0;
 
-            for (const auto &child : node.GetChildren()) {
-                const auto &entity = child.GetEntity();
+            Array<Pair<Handle<Mesh>, Transform>> all_meshes;
 
-                if (entity) {
-                    const auto &mesh = entity->GetMesh();
+            CollectMeshes(node, all_meshes);
 
-                    if (mesh) {
-                        const auto voxel_grid = MeshBuilder::Voxelize(mesh.Get(), 0.1f);
+            Handle<Mesh> merged_mesh;
 
-                        DebugLog(LogType::Debug, "Dumping voxel grid with %llu voxels\n", voxel_grid.voxels.Size());
+            for (const auto &it : all_meshes) {
+                if (!merged_mesh) {
+                    merged_mesh = MeshBuilder::ApplyTransform(it.first.Get(), it.second);
+                } else {
+                    merged_mesh = MeshBuilder::Merge(merged_mesh.Get(), it.first.Get(), Transform(), it.second);
+                }
+            }
 
-                        String filename = String("voxel_grid_") + String::ToString(voxel_grid_index++) + String(".txt");
+            if (!merged_mesh) {
+                DebugLog(LogType::Error, "Failed to merge meshes\n");
 
-                        FileByteWriter writer(filename.Data());
+                return;
+            }
 
-                        if (!writer.IsOpen()) {
-                            DebugLog(LogType::Error, "Failed to open file %s\n", filename.Data());
+            DebugLog(LogType::Debug, "Merged mesh vertex attributes: %llu\n", merged_mesh->GetVertexAttributes().flag_mask);
 
-                            continue;
+            const auto voxel_grid = MeshBuilder::Voxelize(merged_mesh.Get(), Vec3u { 20, 20, 20 });
+            
+            { // Add to scene
+                Handle<Mesh> voxel_mesh = MeshBuilder::BuildVoxelMesh(voxel_grid);
+                InitObject(voxel_mesh);
+
+                auto material = g_material_system->GetOrCreate({ .bucket = Bucket::BUCKET_OPAQUE });
+
+                auto vertex_attributes = voxel_mesh->GetVertexAttributes();
+                
+                ShaderProperties shader_properties(vertex_attributes);
+
+                Handle<Shader> shader = g_shader_manager->GetOrCreate(HYP_NAME(Forward), shader_properties);
+
+                Handle<Entity> voxel_entity = CreateObject<Entity>(
+                    voxel_mesh,
+                    std::move(shader),
+                    std::move(material),
+                    RenderableAttributeSet(
+                        MeshAttributes {
+                            .vertex_attributes = vertex_attributes
+                        },
+                        MaterialAttributes {
+                            .bucket = Bucket::BUCKET_OPAQUE
                         }
+                    )
+                );
 
-                        // Scale it so that the voxel grid coords can remain integers (chopping off the fractional part)
-                        const Vector3 scale = Vector3(1.0f / voxel_grid.voxel_size);
-                        
-                        for (UInt x = 0; x < voxel_grid.size_x; x++) {
-                            for (UInt y = 0; y < voxel_grid.size_y; y++) {
-                                for (UInt z = 0; z < voxel_grid.size_z; z++) {
-                                    const UInt index = voxel_grid.GetIndex(x, y, z);
-                                    const auto &voxel = voxel_grid.voxels[index];
+                InitObject(voxel_entity);
 
-                                    const Vector3 position = voxel.aabb.GetCenter();
+                GetScene()->AddEntity(std::move(voxel_entity));
+            }
 
-                                    Vec3i voxel_position = Vec3i(
-                                        MathUtil::Floor(position.x * scale.x),
-                                        MathUtil::Floor(position.y * scale.y),
-                                        MathUtil::Floor(position.z * scale.z)
-                                    );
+            DebugLog(LogType::Debug, "Dumping voxel grid with %llu voxels\n", voxel_grid.voxels.Size());
+            return;
+            String filename = String("voxel_grid_") + String::ToString(voxel_grid_index++) + String(".txt");
 
-                                    String str;
-                                    str += voxel.filled ? "F " : "E ";
-                                    str += String(std::to_string(voxel_position.x).c_str()) + " ";
-                                    str += String(std::to_string(voxel_position.y).c_str()) + " ";
-                                    str += String(std::to_string(voxel_position.z).c_str()) + "\n";
+            FileByteWriter writer(filename.Data());
 
-                                    writer.WriteString(str, BYTE_WRITER_FLAGS_WRITE_NULL_CHAR);
-                                }
-                            }
-                        }
+            if (!writer.IsOpen()) {
+                DebugLog(LogType::Error, "Failed to open file %s\n", filename.Data());
+
+                return;
+            }
+
+            // Scale it so that the voxel grid coords can remain integers (chopping off the fractional part)
+            const Vector3 scale = Vector3(1.0f / voxel_grid.voxel_size);
+            
+            for (UInt x = 0; x < voxel_grid.size_x; x++) {
+                for (UInt y = 0; y < voxel_grid.size_y; y++) {
+                    for (UInt z = 0; z < voxel_grid.size_z; z++) {
+                        const UInt index = voxel_grid.GetIndex(x, y, z);
+                        const auto &voxel = voxel_grid.voxels[index];
+
+                        const Vector3 position = voxel.aabb.GetCenter();
+
+                        Vec3i voxel_position = Vec3i(
+                            MathUtil::Floor(position.x * scale.x),
+                            MathUtil::Floor(position.y * scale.y),
+                            MathUtil::Floor(position.z * scale.z)
+                        );
+
+                        String str;
+                        str += voxel.filled ? "F " : "E ";
+                        str += String(std::to_string(voxel_position.x).c_str()) + " ";
+                        str += String(std::to_string(voxel_position.y).c_str()) + " ";
+                        str += String(std::to_string(voxel_position.z).c_str()) + "\n";
+
+                        writer.WriteString(str, BYTE_WRITER_FLAGS_NONE);
                     }
                 }
             }
         }
+    } else if (name == HYP_NAME(TestRevitModel)) {
+        auto node = loaded_assets["test_revit_model"].ExtractAs<Node>();
+        // node.Scale(0.1f);
+
+        GetScene()->GetRoot().AddChild(node);
     }
 }
 

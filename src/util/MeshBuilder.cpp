@@ -1,6 +1,8 @@
 #include "MeshBuilder.hpp"
 #include <Engine.hpp>
 
+#include <math/Triangle.hpp>
+
 // temp
 #include <util/NoiseFactory.hpp>
 
@@ -297,7 +299,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
     return Merge(a, b, Transform(), Transform());
 }
 
-MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
+MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Float voxel_size)
 {
     BoundingBox total_aabb = mesh->CalculateAABB();
     Vector3 total_aabb_dimensions = total_aabb.GetExtent();
@@ -306,57 +308,127 @@ MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, float voxel_size)
     UInt num_voxels_y = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.y / voxel_size);
     UInt num_voxels_z = MathUtil::Floor<Float, UInt>(total_aabb_dimensions.z / voxel_size);
 
-    // building out grid
+    return Voxelize(mesh, Vec3u(num_voxels_x, num_voxels_y, num_voxels_z));
+}
+
+MeshBuilder::VoxelGrid MeshBuilder::Voxelize(const Mesh *mesh, Vec3u voxel_grid_size)
+{
+    BoundingBox mesh_aabb = mesh->CalculateAABB();
+
+    Float voxel_size = 1.0f / Float(voxel_grid_size.Max());
+
+ // building out grid
     VoxelGrid grid;
     grid.voxel_size = voxel_size;
-    grid.size_x = num_voxels_x;
-    grid.size_y = num_voxels_y;
-    grid.size_z = num_voxels_z;
+    grid.size_x = voxel_grid_size.x;
+    grid.size_y = voxel_grid_size.y;
+    grid.size_z = voxel_grid_size.z;
 
-    if (!num_voxels_x || !num_voxels_y || !num_voxels_z) {
+    if (!voxel_grid_size.Max()) {
         return grid;
     }
 
-    grid.voxels.Resize(num_voxels_x * num_voxels_y * num_voxels_z);
+    grid.voxels.Resize(voxel_grid_size.x * voxel_grid_size.y * voxel_grid_size.z);
 
-    for (UInt x = 0; x < num_voxels_x; x++) {
-        for (UInt y = 0; y < num_voxels_y; y++) {
-            for (UInt z = 0; z < num_voxels_z; z++) {
+    BoundingBox total_aabb;
+
+    for (UInt x = 0; x < voxel_grid_size.x; x++) {
+        for (UInt y = 0; y < voxel_grid_size.y; y++) {
+            for (UInt z = 0; z < voxel_grid_size.z; z++) {
                 UInt voxel_index = grid.GetIndex(x, y, z);
 
                 AssertThrow(voxel_index < grid.voxels.Size());
 
+                BoundingBox voxel_aabb(
+                    Vector3(x, y, z) * voxel_size,
+                    Vector3(x + 1, y + 1, z + 1) * voxel_size
+                );
+
+                total_aabb.Extend(voxel_aabb);
+
                 grid.voxels[voxel_index] = Voxel(
-                    BoundingBox(
-                        Vector3(x, y, z) * voxel_size,
-                        Vector3(x + 1, y + 1, z + 1) * voxel_size
-                    ),
+                    voxel_aabb,
                     false
                 );
             }
         }
     }
 
+    // const Vector3 ratio = (mesh_aabb.GetExtent() / total_aabb.GetExtent()).Normalize();
+
     UInt num_filled_voxels = 0;
 
     // filling in data
-    for (const auto &vertex : mesh->GetVertices()) {
-        Vector3 vertex_over_dimensions = (vertex.GetPosition() - total_aabb.GetMin()) / Vector3::Max(total_aabb.GetExtent(), 0.0001f);
+    const Array<Vertex> &vertices = mesh->GetVertices();
+    const Array<Mesh::Index> &indices = mesh->GetIndices();
 
-        UInt x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.x * (static_cast<Float>(num_voxels_x) - 1.0f), 0.0f, static_cast<Float>(num_voxels_x) - 1.0f));
-        UInt y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.y * (static_cast<Float>(num_voxels_y) - 1.0f), 0.0f, static_cast<Float>(num_voxels_y) - 1.0f));
-        UInt z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_over_dimensions.z * (static_cast<Float>(num_voxels_z) - 1.0f), 0.0f, static_cast<Float>(num_voxels_z) - 1.0f));
+    AssertThrow(indices.Size() % 3 == 0);
 
-        UInt voxel_index = grid.GetIndex(x, y, z);
+    for (SizeType index = 0; index < indices.Size(); index += 3) {
+        const Triangle triangle(
+            vertices[indices[index]].GetPosition(),
+            vertices[indices[index + 1]].GetPosition(),
+            vertices[indices[index + 2]].GetPosition()
+        );
 
-        grid.voxels[voxel_index].filled = true;
-        ++num_filled_voxels;
+        BoundingBox triangle_aabb = triangle.GetBoundingBox();
+
+        const Vector3 min_in_aabb = triangle_aabb.GetMin() / mesh_aabb.GetExtent() + 0.5f;//::Max(triangle_aabb.GetMin(), Vector3::zero);
+        const Vector3 max_in_aabb = triangle_aabb.GetMax() / mesh_aabb.GetExtent() + 0.5f;//Vector3::Min(triangle_aabb.GetMax(), Vector3::one);
+
+        AssertThrow(triangle_aabb.GetMin().Min() >= triangle_aabb.GetMin().Min());
+        AssertThrow(triangle_aabb.GetMax().Max() <= triangle_aabb.GetMax().Max());
+
+        const UInt min_x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
+        const UInt min_y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
+        const UInt min_z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(min_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+
+        const UInt max_x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
+        const UInt max_y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
+        const UInt max_z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(max_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+
+        for (UInt x = min_x; x <= max_x; x++) {
+            for (UInt y = min_y; y <= max_y; y++) {
+                for (UInt z = min_z; z <= max_z; z++) {
+                    const UInt voxel_index = grid.GetIndex(x, y, z);
+
+                    AssertThrow(voxel_index < grid.voxels.Size());
+
+                    const Vector3 v0 = triangle[0].GetPosition() / mesh_aabb.GetExtent() + 0.5f;
+                    const Vector3 v1 = triangle[1].GetPosition() / mesh_aabb.GetExtent() + 0.5f;
+                    const Vector3 v2 = triangle[2].GetPosition() / mesh_aabb.GetExtent() + 0.5f;
+
+                    const Vector3 v0_scaled = v0 * voxel_size;
+                    const Vector3 v1_scaled = v1 * voxel_size;
+                    const Vector3 v2_scaled = v2 * voxel_size;
+
+                    const Triangle triangle_scaled(v0_scaled, v1_scaled, v2_scaled);
+
+                    grid.voxels[voxel_index].filled |= triangle_scaled.ContainsPoint(grid.voxels[voxel_index].aabb.GetCenter());
+                    ++num_filled_voxels;
+                }
+            }
+        }
     }
+
+    // for (const auto &vertex : mesh->GetVertices()) {
+    //     // x,y,z from 0..1 
+    //     const Vector3 vertex_position_in_aabb = (vertex.GetPosition() / mesh_aabb.GetExtent()) + 0.5f;
+
+    //     const UInt x = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.x * (Float(voxel_grid_size.x) - 1.0f), 0.0f, Float(voxel_grid_size.x) - 1.0f));
+    //     const UInt y = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.y * (Float(voxel_grid_size.y) - 1.0f), 0.0f, Float(voxel_grid_size.y) - 1.0f));
+    //     const UInt z = MathUtil::Floor<Float, UInt>(MathUtil::Clamp(vertex_position_in_aabb.z * (Float(voxel_grid_size.z) - 1.0f), 0.0f, Float(voxel_grid_size.z) - 1.0f));
+
+    //     const UInt voxel_index = grid.GetIndex(x, y, z);
+
+    //     grid.voxels[voxel_index].filled = true;
+    //     ++num_filled_voxels;
+    // }
 
     return grid;
 }
 
-Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
+Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid voxel_grid)
 {
     Handle<Mesh> mesh;
 
@@ -387,6 +459,10 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid &&voxel_grid)
                 }
             }
         }
+    }
+
+    if (!mesh) {
+        mesh = Cube();
     }
 
     return mesh;

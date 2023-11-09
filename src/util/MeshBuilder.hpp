@@ -6,6 +6,7 @@
 #include <core/lib/UniquePtr.hpp>
 #include <core/Handle.hpp>
 #include <math/BoundingBox.hpp>
+#include <math/Vector3.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
@@ -64,8 +65,9 @@ public:
     static Handle<Mesh> Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform);
     static Handle<Mesh> Merge(const Mesh *a, const Mesh *b);
 
-    static VoxelGrid Voxelize(const Mesh *mesh, float voxel_size);
-    static Handle<Mesh> BuildVoxelMesh(VoxelGrid &&voxel_grid);
+    static VoxelGrid Voxelize(const Mesh *mesh, Float voxel_size);
+    static VoxelGrid Voxelize(const Mesh *mesh, Vec3u voxel_grid_size);
+    static Handle<Mesh> BuildVoxelMesh(VoxelGrid voxel_grid);
 };
 
 } // namespace hyperion::v2

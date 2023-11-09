@@ -161,7 +161,7 @@ struct VertexAttributeSet
 
     ~VertexAttributeSet() = default;
 
-    explicit operator bool() const { return flag_mask != 0; }
+    explicit operator Bool() const { return flag_mask != 0; }
 
     bool operator==(const VertexAttributeSet &other) const
         { return flag_mask == other.flag_mask; }

@@ -730,7 +730,7 @@ bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
         DebugLog(
             LogType::Warn,
             "Not compiled with GLSL compiler support... Shaders may become out of date.\n"
-            "If any .hypshader files are missing, you may need to recompile the g_engine with glslang linked, "
+            "If any .hypshader files are missing, you may need to recompile the engine with glslang linked, "
             "so that they can be generated.\n"
         );
     }

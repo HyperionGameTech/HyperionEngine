@@ -1,6 +1,7 @@
-#include "Ray.hpp"
-#include "BoundingBox.hpp"
-#include "MathUtil.hpp"
+#include <math/Ray.hpp>
+#include <math/BoundingBox.hpp>
+#include <math/Triangle.hpp>
+#include <math/MathUtil.hpp>
 
 namespace hyperion {
 
@@ -55,7 +56,7 @@ bool Ray::TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_da
 
     const auto hitpoint = position + (direction * distance);
 
-    out_results.AddHit(RayHit{
+    out_results.AddHit(RayHit {
         .hitpoint = hitpoint,
         .normal = -direction.Normalized(), // TODO: change to be box normal
         .distance = distance,

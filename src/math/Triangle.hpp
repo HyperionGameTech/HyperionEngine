@@ -1,9 +1,10 @@
 #ifndef TRIANGLE_H
 #define TRIANGLE_H
 
-#include "Vertex.hpp"
-#include "Transform.hpp"
-#include "Matrix4.hpp"
+#include <math/Vertex.hpp>
+#include <math/Transform.hpp>
+#include <math/Matrix4.hpp>
+#include <math/BoundingBox.hpp>
 
 #include <core/lib/FixedArray.hpp>
 #include <Types.hpp>
@@ -32,6 +33,10 @@ public:
     Vertex &Closest(const Vector3 &vec);
     const Vertex &Closest(const Vector3 &vec) const;
     // bool IntersectRay(const Ray &ray, RayTestResults &out) const;
+
+    BoundingBox GetBoundingBox() const;
+
+    Bool ContainsPoint(const Vector3 &pt) const;
 
 private:
     FixedArray<Vertex, 3> m_points;
