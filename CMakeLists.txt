@@ -26,8 +26,8 @@ if(MSVC)
 
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /MD")
 else()
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fsanitize=address")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif()
 
@@ -141,7 +141,7 @@ if(GST_FOUND)
 
     # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
 
-    message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}")
+    message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
 
     
     set(COMMON_LIBRARIES

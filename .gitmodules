@@ -4,6 +4,7 @@
 [submodule "submodules/libdatachannel"]
 	path = submodules/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel
+	branch = v0.19
 [submodule "submodules/zlib"]
 	path = submodules/zlib
 	url = https://github.com/madler/zlib

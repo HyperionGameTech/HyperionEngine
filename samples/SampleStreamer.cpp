@@ -312,24 +312,46 @@ void SampleStreamer::InitGame()
         sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
         sun->AddController<ShadowMapController>();
         GetScene()->AddEntity(sun);
+
+        Array<Handle<Light>> point_lights;
+
+        point_lights.PushBack(CreateObject<Light>(PointLight(
+            Vector3(0.0f, 35.0f, 8.0f),
+            Color(1.0f, 1.0f, 1.0f),
+            40.0f,
+            200.35f
+        )));
+        point_lights.PushBack(CreateObject<Light>(PointLight(
+            Vector3(0.0f, 10.0f, 12.0f),
+            Color(1.0f, 0.0f, 0.0f),
+            15.0f,
+            200.0f
+        )));
+
+        for (auto &light : point_lights) {
+            auto point_light_entity = CreateObject<Entity>();
+            point_light_entity->AddController<LightController>(light);
+            GetScene()->AddEntity(std::move(point_light_entity));
+        }
     }
 
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("sponza", "models/sponza/sponza.obj");
+        batch->Add<Node>("test_revit", "models/test_revit/uploaded_file_conv.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
-        if (results["sponza"]) {
-            auto sponza = results["sponza"].ExtractAs<Node>();
-            sponza.Scale(0.01f);
+        if (results["test_revit"]) {
+            auto node = results["test_revit"].ExtractAs<Node>();
+            node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
+            // node.Scale(0.01f);
             
-            if (sponza) {
-                DebugLog(LogType::Debug, "Adding sponza model\n");
-                GetScene()->GetRoot().AddChild(std::move(sponza));
+            if (node) {
+                DebugLog(LogType::Debug, "Adding test model\n");
+                GetScene()->GetRoot().AddChild(std::move(node));
             } else {
-                DebugLog(LogType::Debug, "sponza model not found\n");
+                DebugLog(LogType::Debug, "Test model not found\n");
             }
         }
     }
