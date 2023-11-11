@@ -179,87 +179,69 @@ void SampleStreamer::InitGame()
     args.Add("SignallingServerPort", "p", ArgParse::ARG_FLAGS_REQUIRED, ArgParse::ArgumentType::ARGUMENT_TYPE_INT);
 
     auto arg_parse_result = args.Parse(GetApplication()->GetArguments());
-    if (!arg_parse_result.ok) {
-        DebugLog(LogType::Error, "Failed to parse arguments: %s\n", arg_parse_result.message.HasValue() ? arg_parse_result.message.Get().Data() : "<unknown>");
-        std::exit(1);
-    }
 
-    for (const auto &arg : arg_parse_result.values) {
-        const TypeID type_id = arg.second.GetTypeID();
+    if (arg_parse_result.ok) {
+        const String signalling_server_ip = arg_parse_result["SignallingServerIP"].Get<String>();
+        const UInt16 signalling_server_port = UInt16(arg_parse_result["SignallingServerPort"].Get<Int>());
 
-        if (type_id == TypeID::ForType<String>()) {
-            DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<String>().Data());
-        } else if (type_id == TypeID::ForType<Int>()) {
-            DebugLog(LogType::Debug, "Argument %s = %d\n", arg.first.Data(), arg.second.Get<Int>());
-        } else if (type_id == TypeID::ForType<Float>()) {
-            DebugLog(LogType::Debug, "Argument %s = %f\n", arg.first.Data(), arg.second.Get<Float>());
-        } else if (type_id == TypeID::ForType<Bool>()) {
-            DebugLog(LogType::Debug, "Argument %s = %s\n", arg.first.Data(), arg.second.Get<Bool>() ? "true" : "false");
-        } else {
-            DebugLog(LogType::Debug, "Argument %s = <unknown>\n", arg.first.Data());
-        }
-    }
-
-    const String signalling_server_ip = arg_parse_result["SignallingServerIP"].Get<String>();
-    const UInt16 signalling_server_port = UInt16(arg_parse_result["SignallingServerPort"].Get<Int>());
-
-    // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
-    
-    m_rtc_instance.Reset(new RTCInstance(
-        RTCServerParams {
-            RTCServerAddress { signalling_server_ip, signalling_server_port, "/server" }
-        }
-    ));
-
-    m_rtc_stream = m_rtc_instance->CreateStream(
-        RTCStreamType::RTC_STREAM_TYPE_VIDEO,
-        UniquePtr<RTCStreamEncoder>(new GStreamerRTCStreamVideoEncoder())
-    );
-
-    m_rtc_stream->Start();
-
-    AssertThrow(m_rtc_instance->GetServer() != nullptr);
-
-    if (const RC<RTCServer> &server = m_rtc_instance->GetServer()) {
-        server->GetCallbacks().On(RTCServerCallbackMessages::ERROR, [](RTCServerCallbackData data) {
-            DebugLog(LogType::Error, "Server error: %s\n", data.error.HasValue() ? data.error.Get().message.Data() : "<unknown>");
-        });
-
-        server->GetCallbacks().On(RTCServerCallbackMessages::CONNECTED, [](RTCServerCallbackData) {
-            DebugLog(LogType::Debug, "Server started\n");
-        });
-
-        server->GetCallbacks().On(RTCServerCallbackMessages::DISCONNECTED, [](RTCServerCallbackData) {
-            DebugLog(LogType::Debug, "Server stopped\n");
-        });
-
-        server->GetCallbacks().On(RTCServerCallbackMessages::MESSAGE, [this](RTCServerCallbackData data) {
-            using namespace hyperion::json;
-
-            if (!data.bytes.HasValue()) {
-                DebugLog(LogType::Warn, "Received client message, but no bytes were provided\n");
-
-                return;
+        // g_engine->GetDeferredRenderer().GetPostProcessing().AddEffect<FXAAEffect>();
+        
+        m_rtc_instance.Reset(new RTCInstance(
+            RTCServerParams {
+                RTCServerAddress { signalling_server_ip, signalling_server_port, "/server" }
             }
+        ));
 
-            const ByteBuffer &bytes = data.bytes.Get();
+        m_rtc_stream = m_rtc_instance->CreateStream(
+            RTCStreamType::RTC_STREAM_TYPE_VIDEO,
+            UniquePtr<RTCStreamEncoder>(new GStreamerRTCStreamVideoEncoder())
+        );
 
-            auto json_parse_result = JSON::Parse(String(bytes));
+        m_rtc_stream->Start();
 
-            if (!json_parse_result.ok) {
-                DebugLog(LogType::Warn, "Failed to parse JSON from client message: %s\n", json_parse_result.message.Data());
+        AssertThrow(m_rtc_instance->GetServer() != nullptr);
 
-                return;
-            }
+        if (const RC<RTCServer> &server = m_rtc_instance->GetServer()) {
+            server->GetCallbacks().On(RTCServerCallbackMessages::ERROR, [](RTCServerCallbackData data) {
+                DebugLog(LogType::Error, "Server error: %s\n", data.error.HasValue() ? data.error.Get().message.Data() : "<unknown>");
+            });
 
-            JSONValue &json_value = json_parse_result.value;
+            server->GetCallbacks().On(RTCServerCallbackMessages::CONNECTED, [](RTCServerCallbackData) {
+                DebugLog(LogType::Debug, "Server started\n");
+            });
 
-            DebugLog(LogType::Debug, " -> %s\n", json_value.ToString().Data());
-            
-            m_message_queue.Push(std::move(json_value));
-        });
+            server->GetCallbacks().On(RTCServerCallbackMessages::DISCONNECTED, [](RTCServerCallbackData) {
+                DebugLog(LogType::Debug, "Server stopped\n");
+            });
 
-        server->Start();
+            server->GetCallbacks().On(RTCServerCallbackMessages::MESSAGE, [this](RTCServerCallbackData data) {
+                using namespace hyperion::json;
+
+                if (!data.bytes.HasValue()) {
+                    DebugLog(LogType::Warn, "Received client message, but no bytes were provided\n");
+
+                    return;
+                }
+
+                const ByteBuffer &bytes = data.bytes.Get();
+
+                auto json_parse_result = JSON::Parse(String(bytes));
+
+                if (!json_parse_result.ok) {
+                    DebugLog(LogType::Warn, "Failed to parse JSON from client message: %s\n", json_parse_result.message.Data());
+
+                    return;
+                }
+
+                JSONValue &json_value = json_parse_result.value;
+
+                DebugLog(LogType::Debug, " -> %s\n", json_value.ToString().Data());
+                
+                m_message_queue.Push(std::move(json_value));
+            });
+
+            server->Start();
+        }
     }
 
     const Extent2D window_size = GetInputManager()->GetWindow()->GetExtent();
@@ -336,9 +318,9 @@ void SampleStreamer::InitGame()
     }
 
     // add sample model
-    {
+    if (false) {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_revit", "models/test_revit/uploaded_file_conv.obj");
+        batch->Add<Node>("test_revit", "models/sponza/sponza.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -357,7 +339,7 @@ void SampleStreamer::InitGame()
     }
     
     // Test gaussian splatting
-    if (false) {
+    if (true) {
         auto batch = g_asset_manager->CreateBatch();
         batch->Add<json::JSONValue>("cameras json", "models/gaussian_splatting/cameras.json");
         batch->Add<PLYModelLoader::PLYModel>("ply model", "models/gaussian_splatting/point_cloud.ply");
@@ -390,22 +372,6 @@ void SampleStreamer::InitGame()
 
     //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
     // }
-
-    if (false) {
-        auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_revit_model", "models/test_revit/test_revit.obj");
-
-        batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
-        {
-            const String &key = data.GetAssetKey();
-            
-            DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
-        });
-
-        batch->LoadAsync();
-
-        m_asset_batches.Insert(HYP_NAME(TestRevitModel), std::move(batch));
-    }
 }
 
 void SampleStreamer::InitRender()
@@ -804,7 +770,7 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
     }
 
     // Just a test -- will optimize by doing this on another thread.
-    {
+    if (m_rtc_stream) {
         Array<RC<RTCTrack>> tracks;
 
         for (const auto &client : m_rtc_instance->GetServer()->GetClientList()) {
@@ -840,6 +806,10 @@ void SampleStreamer::OnInputEvent(const SystemEvent &event)
 void SampleStreamer::OnFrameEnd(Frame *frame)
 {
     if (!m_scene || !m_scene->IsReady()) {
+        return;
+    }
+
+    if (!m_rtc_stream) {
         return;
     }
 
