@@ -30,6 +30,8 @@ template <class T, SizeType Sz>
 class FixedArray
 {
 public:
+    static constexpr Bool is_contiguous = true;
+
     T m_values[MathUtil::Max(Sz, 1)];
 
     using Iterator = T *;
@@ -83,14 +85,18 @@ public:
         { return Sz != 0; }
         
     template <class Lambda>
-    [[nodiscard]] bool Any(Lambda &&lambda) const
+    [[nodiscard]] Bool Any(Lambda &&lambda) const
     {
-        containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
-        return impl.Any(std::forward<Lambda>(lambda));
+        if constexpr (Sz == 0) {
+            return false;
+        } else {
+            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            return impl.Any(std::forward<Lambda>(lambda));
+        }
     }
 
     template <class Lambda>
-    [[nodiscard]] bool Every(Lambda &&lambda) const
+    [[nodiscard]] Bool Every(Lambda &&lambda) const
     {
         containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
         return impl.Every(std::forward<Lambda>(lambda));
@@ -134,6 +140,17 @@ public:
         if constexpr (Sz != 0) {
             containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
             impl.ParallelForEach(task_system, std::forward<Lambda>(lambda));
+        }
+    }
+
+    template <class OtherContainer>
+    [[nodiscard]] Bool CompareBitwise(const OtherContainer &other) const
+    {
+        if constexpr (Sz != OtherContainer::size) {
+            return false;
+        } else {
+            containers::detail::FixedArrayImpl<T, Sz> impl(const_cast<T *>(&m_values[0]));
+            return impl.CompareBitwise(other);
         }
     }
 
@@ -229,6 +246,8 @@ class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, UInt>
 public:
     T *ptr;
 
+    static constexpr Bool is_contiguous = true;
+
     using Iterator = T *;
     using ConstIterator = const T *;
 
@@ -236,6 +255,9 @@ public:
         : ptr(ptr)
     {
     }
+
+    [[nodiscard]] SizeType Size() const
+        { return Sz; }
 
     HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)
 };

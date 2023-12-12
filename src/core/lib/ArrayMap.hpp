@@ -26,6 +26,8 @@ private:
     Array<KeyValuePairType> m_vector;
 
 public:
+    static constexpr Bool is_contiguous = true;
+
     using Base = ContainerBase<ArrayMap<Key, Value>, Key>;
 
     using KeyType = Key;

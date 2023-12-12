@@ -4,6 +4,7 @@
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
+#include <rendering/backend/RenderObject.hpp>
 #include <util/Defines.hpp>
 
 #include <Types.hpp>
@@ -51,6 +52,9 @@ public:
     Result Create(Device<PLATFORM> *device, CommandBuffer<PLATFORM> *cmd);
     Result Destroy(Device<PLATFORM> *device);
 
+    const FenceRef<PLATFORM> &GetFence() const
+        { return m_queue_submit_fence; }
+
     HYP_FORCE_INLINE UInt GetFrameIndex() const
         { return m_frame_index; }
 
@@ -72,11 +76,11 @@ public:
     
     // Not owned
     CommandBuffer<PLATFORM>         *m_command_buffer;
-    std::unique_ptr<Fence<PLATFORM>>  fc_queue_submit;
 
 private:
-    UInt            m_frame_index;
-    SemaphoreChain  m_present_semaphores;
+    UInt                m_frame_index;
+    SemaphoreChain      m_present_semaphores;
+    FenceRef<PLATFORM>  m_queue_submit_fence;
 };
 
 } // namespace platform

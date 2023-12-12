@@ -2,6 +2,7 @@
 #define HYPERION_V2_LIB_CONTAINER_BASE_H
 
 #include <core/lib/Pair.hpp>
+#include <core/lib/CMemory.hpp>
 #include <util/Defines.hpp>
 #include <HashCode.hpp>
 #include <Types.hpp>
@@ -42,7 +43,7 @@ public:
         AssertThrow(index < static_cast<KeyType>(static_cast<const Container *>(this)->Size()));
         static_cast<Container *>(this)->operator[](index) = value;
     }
-
+    
     template <class ValueType>
     void Set(KeyType index, ValueType &&value)
     {
@@ -227,6 +228,28 @@ public:
         return iter != static_cast<const Container *>(this)->End()
             ? static_cast<KeyType>(std::distance(static_cast<const Container *>(this)->Begin(), iter))
             : KeyType(-1);
+    }
+
+    template <class OtherContainer>
+    [[nodiscard]] Bool CompareBitwise(const OtherContainer &other_container) const
+    {
+        static_assert(Container::is_contiguous && OtherContainer::is_contiguous, "Containers must be contiguous to perform bitwise comparison");
+
+        const SizeType this_size = static_cast<const Container *>(this)->Size();
+        const SizeType this_size_bytes = this_size * sizeof(typename Container::ValueType);
+
+        const SizeType other_size = other_container.Size();
+        const SizeType other_size_bytes = other_size * sizeof(typename OtherContainer::ValueType);
+
+        if (this_size_bytes != other_size_bytes) {
+            return false;
+        }
+
+        return Memory::MemCmp(
+            static_cast<const Container *>(this)->Begin(),
+            other_container.Begin(),
+            this_size_bytes
+        ) == 0;
     }
 
     template <class TaskSystem, class Lambda>

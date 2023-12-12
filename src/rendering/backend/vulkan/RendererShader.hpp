@@ -22,7 +22,6 @@ template <>
 struct ShaderModule<Platform::VULKAN>
 {
     ShaderModuleType    type;
-    
     String              entry_point_name;
     ByteBuffer          spirv;
     VkShaderModule      shader_module;

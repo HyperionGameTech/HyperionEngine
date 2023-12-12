@@ -41,8 +41,6 @@ class Scene;
 class EnvProbe;
 class Light;
 
-void WaitForRenderUpdatesToComplete();
-
 enum class LightType : UInt32
 {
     DIRECTIONAL,

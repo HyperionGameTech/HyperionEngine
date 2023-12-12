@@ -513,7 +513,7 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     using T##Ref = renderer::RenderObjectHandle_Strong< renderer::T, renderer::Platform::CURRENT >; \
     using T##WeakRef = renderer::RenderObjectHandle_Weak< renderer::T, renderer::Platform::CURRENT >
 
-#define DEF_RENDER_PLATFORM_OBJECT(_platform, T, _max_size) \
+#define DEF_RENDER_PLATFORM_OBJECT_(_platform, T, _max_size) \
     namespace renderer { \
     namespace platform { \
     template <PlatformType PLATFORM> \
@@ -534,6 +534,18 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     } \
     using T##Ref##_##_platform = renderer::RenderObjectHandle_Strong< renderer::T##_##_platform, renderer::Platform::_platform >; \
     using T##WeakRef##_##_platform = renderer::RenderObjectHandle_Weak< renderer::T##_##_platform, renderer::Platform::_platform >; \
+
+#define DEF_RENDER_PLATFORM_OBJECT(T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_(VULKAN, T, _max_size) \
+    DEF_RENDER_PLATFORM_OBJECT_(WEBGPU, T, _max_size) \
+    namespace renderer { \
+    namespace platform { \
+    template <PlatformType _platform> \
+    using T##Ref = renderer::RenderObjectHandle_Strong< T<_platform>, _platform >; \
+    template <PlatformType _platform> \
+    using T##WeakRef = renderer::RenderObjectHandle_Weak< T<_platform>, _platform >; \
+    } \
+    } \
 
 template <class RefType, class ... Args>
 static inline void DeferCreate(RefType ref, Args &&... args)
@@ -583,29 +595,18 @@ DEF_RENDER_OBJECT(DescriptorSet,       4096);
 DEF_RENDER_OBJECT(Attachment,          4096);
 DEF_RENDER_OBJECT(AttachmentUsage,     8192);
 
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, Device,              1);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, Image,               16384);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, ImageView,           65536);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, Sampler,             16384);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, GPUBuffer,           65536);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, CommandBuffer,       2048);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, ComputePipeline,     4096);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, GraphicsPipeline,    4096);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, RaytracingPipeline,  128);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, FramebufferObject,   8192);
-DEF_RENDER_PLATFORM_OBJECT(VULKAN, ShaderProgram,       2048);
-
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, Device,              1);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, Image,               16384);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, ImageView,           65536);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, Sampler,             16384);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, GPUBuffer,           65536);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, CommandBuffer,       2048);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, ComputePipeline,     4096);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, GraphicsPipeline,    4096);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, RaytracingPipeline,  128);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, FramebufferObject,   8192);
-DEF_RENDER_PLATFORM_OBJECT(WEBGPU, ShaderProgram,       2048);
+DEF_RENDER_PLATFORM_OBJECT(Device,              1);
+DEF_RENDER_PLATFORM_OBJECT(Image,               16384);
+DEF_RENDER_PLATFORM_OBJECT(ImageView,           65536);
+DEF_RENDER_PLATFORM_OBJECT(Sampler,             16384);
+DEF_RENDER_PLATFORM_OBJECT(GPUBuffer,           65536);
+DEF_RENDER_PLATFORM_OBJECT(CommandBuffer,       2048);
+DEF_RENDER_PLATFORM_OBJECT(ComputePipeline,     4096);
+DEF_RENDER_PLATFORM_OBJECT(GraphicsPipeline,    4096);
+DEF_RENDER_PLATFORM_OBJECT(RaytracingPipeline,  128);
+DEF_RENDER_PLATFORM_OBJECT(FramebufferObject,   8192);
+DEF_RENDER_PLATFORM_OBJECT(ShaderProgram,       2048);
+DEF_RENDER_PLATFORM_OBJECT(Fence,               16);
 
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Device);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(Image);
@@ -618,6 +619,7 @@ DEF_CURRENT_PLATFORM_RENDER_OBJECT(GraphicsPipeline);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(RaytracingPipeline);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(FramebufferObject);
 DEF_CURRENT_PLATFORM_RENDER_OBJECT(ShaderProgram);
+DEF_CURRENT_PLATFORM_RENDER_OBJECT(Fence);
 
 #undef DEF_RENDER_OBJECT
 #undef DEF_RENDER_PLATFORM_OBJECT

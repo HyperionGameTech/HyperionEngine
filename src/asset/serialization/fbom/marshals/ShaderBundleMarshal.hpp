@@ -213,8 +213,6 @@ public:
             const auto module_property_name = String("module[") + String::ToString(index) + "]";
 
             if (const auto &property = in.GetProperty(module_property_name)) {
-                AssertThrow(index < ShaderModuleType::MAX);
-
                 if (auto err = property.ReadByteBuffer(compiled_shader->modules[index])) {
                     return err;
                 }

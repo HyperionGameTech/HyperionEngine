@@ -24,9 +24,11 @@ public:
     static constexpr SizeType num_bits_per_block = sizeof(BlockType) * CHAR_BIT;
 
 private:
+    HYP_FORCE_INLINE
     static constexpr SizeType GetBlockIndex(SizeType bit)
         { return bit / CHAR_BIT / sizeof(BlockType); }
 
+    HYP_FORCE_INLINE
     static constexpr SizeType GetBitMask(SizeType bit)
         { return 1ull << (bit & (num_bits_per_block - 1)); }
 
@@ -37,17 +39,19 @@ public:
 
     explicit DynBitset(UInt64 value);
 
-    DynBitset(const DynBitset &other) = default;
-    DynBitset &operator=(const DynBitset &other) = default;
-    DynBitset(DynBitset &&other) noexcept = default;
-    DynBitset &operator=(DynBitset &&other) noexcept = default;
-    ~DynBitset() = default;
+    DynBitset(const DynBitset &other)                   = default;
+    DynBitset &operator=(const DynBitset &other)        = default;
+    DynBitset(DynBitset &&other) noexcept               = default;
+    DynBitset &operator=(DynBitset &&other) noexcept    = default;
+    ~DynBitset()                                        = default;
 
-    bool operator==(const DynBitset &other) const
-        { return m_blocks == other.m_blocks; }
+    HYP_FORCE_INLINE
+    Bool operator==(const DynBitset &other) const
+        { return m_blocks.CompareBitwise(other.m_blocks); }
 
-    bool operator!=(const DynBitset &other) const
-        { return m_blocks != other.m_blocks; }
+    HYP_FORCE_INLINE
+    Bool operator!=(const DynBitset &other) const
+        { return m_blocks.CompareBitwise(other.m_blocks); }
 
     // DynBitset operator~() const;
 
@@ -63,9 +67,15 @@ public:
     DynBitset operator^(const DynBitset &other) const;
     DynBitset &operator^=(const DynBitset &other);
 
-    bool Get(SizeType index) const;
+    HYP_FORCE_INLINE
+    Bool Get(SizeType index) const
+    {
+        return GetBlockIndex(index) < m_blocks.Size()
+            && (m_blocks[GetBlockIndex(index)] & GetBitMask(index));
+    }
 
-    bool Test(SizeType index) const
+    HYP_FORCE_INLINE
+    Bool Test(SizeType index) const
         { return Get(index); }
 
     void Set(SizeType index, bool value);
@@ -75,12 +85,12 @@ public:
     /*! \brief Sets out to the Uint32 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint32, false is returned. Otherwise, true is returned. */
-    bool ToUInt32(UInt32 *out) const;
+    Bool ToUInt32(UInt32 *out) const;
 
     /*! \brief Sets out to the Uint64 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint64, false is returned. Otherwise, true is returned. */
-    bool ToUInt64(UInt64 *out) const;
+    Bool ToUInt64(UInt64 *out) const;
 
     HashCode GetHashCode() const
     {

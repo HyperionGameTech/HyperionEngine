@@ -138,6 +138,8 @@ struct HashBucket
 template <class KeyType, class ValueType>
 class HashMap : public ContainerBase<HashMap<KeyType, ValueType>, KeyType>
 {
+    static constexpr Bool is_contiguous = false;
+    
     static constexpr SizeType initial_bucket_size = 16;
     static constexpr Double load_factor = 0.75;
 

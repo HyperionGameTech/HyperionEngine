@@ -95,12 +95,6 @@ DynBitset DynBitset::operator^(const DynBitset &other) const
 DynBitset &DynBitset::operator^=(const DynBitset &other)
     { return *this = (*this ^ other); }
 
-bool DynBitset::Get(SizeType index) const
-{
-    return GetBlockIndex(index) < m_blocks.Size()
-        && (m_blocks[GetBlockIndex(index)] & GetBitMask(index));
-}
-
 void DynBitset::Set(SizeType index, bool value)
 {
     const SizeType bit_index = GetBlockIndex(index);

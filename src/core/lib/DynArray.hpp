@@ -36,6 +36,8 @@ public:
     using KeyType = typename Base::KeyType;
     using ValueType = T;
     using Storage = ValueStorage<ValueType>;
+
+    static constexpr Bool is_contiguous = true;
     
     static constexpr bool is_pod_type = IsPODType<T>;
     

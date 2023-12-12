@@ -3,9 +3,4 @@
 
 namespace hyperion::v2 {
 
-void WaitForRenderUpdatesToComplete()
-{
-    HYP_SYNC_RENDER();
-}
-
 } // namespace hyperion::v2

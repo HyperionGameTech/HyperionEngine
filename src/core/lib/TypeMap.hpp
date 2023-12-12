@@ -21,6 +21,8 @@ protected:
     using Map = FlatMap<TypeID, Value>;
 
 public:
+    static constexpr Bool is_contiguous = false;
+
     using InsertResult = typename Map::InsertResult;
 
     using Iterator = typename Map::Iterator;

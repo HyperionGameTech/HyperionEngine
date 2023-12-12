@@ -33,6 +33,8 @@ class LinkedList : public ContainerBase<LinkedList<T>, SizeType>
     using Node = containers::detail::LinkedListNode<T>;
 
 public:
+    static constexpr Bool is_contiguous = false;
+    
     struct ConstIterator;
 
     struct Iterator

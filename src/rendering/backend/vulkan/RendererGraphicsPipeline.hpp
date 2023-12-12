@@ -35,19 +35,19 @@ class GraphicsPipeline<Platform::VULKAN> : public Pipeline<Platform::VULKAN>
 public:
     struct ConstructionInfo
     {
-        VertexAttributeSet                  vertex_attributes;
+        VertexAttributeSet                              vertex_attributes;
 
-        Topology                            topology = Topology::TRIANGLES;
-        FaceCullMode                        cull_mode = FaceCullMode::BACK;
-        FillMode                            fill_mode = FillMode::FILL;
-        BlendMode                           blend_mode = BlendMode::NONE;
+        Topology                                        topology = Topology::TRIANGLES;
+        FaceCullMode                                    cull_mode = FaceCullMode::BACK;
+        FillMode                                        fill_mode = FillMode::FILL;
+        BlendMode                                       blend_mode = BlendMode::NONE;
 
-        Bool                                depth_test = true;
-        Bool                                depth_write = true;
+        Bool                                            depth_test = true;
+        Bool                                            depth_write = true;
 
-        ShaderProgram<Platform::VULKAN>     *shader = nullptr;
-        RenderPass<Platform::VULKAN>        *render_pass = nullptr;
-        Array<FramebufferObjectRef_VULKAN>  fbos;
+        ShaderProgram<Platform::VULKAN>                 *shader = nullptr;
+        RenderPass<Platform::VULKAN>                    *render_pass = nullptr;
+        Array<FramebufferObjectRef<Platform::VULKAN>>   fbos;
 
         // stencil
         StencilState                        stencil_state { };

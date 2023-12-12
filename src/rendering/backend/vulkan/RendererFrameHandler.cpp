@@ -55,7 +55,7 @@ Result FrameHandler<Platform::VULKAN>::PrepareFrame(
 
     VkResult fence_result;
 
-    frame->fc_queue_submit->WaitForGPU(device, true, &fence_result);
+    frame->GetFence()->WaitForGPU(device, true, &fence_result);
 
     if (fence_result == VK_SUBOPTIMAL_KHR || fence_result == VK_ERROR_OUT_OF_DATE_KHR) {
         DebugLog(LogType::Debug, "Waiting -- image result was %d\n", fence_result);
@@ -66,7 +66,7 @@ Result FrameHandler<Platform::VULKAN>::PrepareFrame(
     }
 
     HYPERION_VK_CHECK(fence_result);
-    HYPERION_BUBBLE_ERRORS(frame->fc_queue_submit->Reset(device));
+    HYPERION_BUBBLE_ERRORS(frame->GetFence()->Reset(device));
 
     HYPERION_BUBBLE_ERRORS(m_next_image(device, swapchain, frame, &m_acquired_image_index));
 
