@@ -74,8 +74,8 @@ public:
         UInt material_index
     );
 
-    AccelerationGeometry(const AccelerationGeometry &other) = delete;
-    AccelerationGeometry &operator=(const AccelerationGeometry &other) = delete;
+    AccelerationGeometry(const AccelerationGeometry &other)             = delete;
+    AccelerationGeometry &operator=(const AccelerationGeometry &other)  = delete;
     ~AccelerationGeometry();
 
     const Array<PackedVertex> &GetPackedVertices() const { return m_packed_vertices; }
@@ -121,21 +121,33 @@ class AccelerationStructure
 {
 public:
     AccelerationStructure();
-    AccelerationStructure(const AccelerationStructure &other) = delete;
-    AccelerationStructure &operator=(const AccelerationStructure &other) = delete;
+    AccelerationStructure(const AccelerationStructure &other)               = delete;
+    AccelerationStructure &operator=(const AccelerationStructure &other)    = delete;
     ~AccelerationStructure();
 
-    AccelerationStructureBuffer *GetBuffer() const { return m_buffer.get(); }
-    AccelerationStructureInstancesBuffer *GetInstancesBuffer() const { return m_instances_buffer.get(); }
+    AccelerationStructureBuffer *GetBuffer() const
+        { return m_buffer.get(); }
 
-    VkAccelerationStructureKHR &GetAccelerationStructure() { return m_acceleration_structure; }
-    const VkAccelerationStructureKHR &GetAccelerationStructure() const { return m_acceleration_structure; }
+    AccelerationStructureInstancesBuffer *GetInstancesBuffer() const
+        { return m_instances_buffer.get(); }
 
-    UInt64 GetDeviceAddress() const { return m_device_address; }
+    VkAccelerationStructureKHR &GetAccelerationStructure()
+        { return m_acceleration_structure; }
 
-    AccelerationStructureFlags GetFlags() const { return m_flags; }
-    void SetFlag(AccelerationStructureFlagBits flag) { m_flags = AccelerationStructureFlags(m_flags | flag); }
-    void ClearFlag(AccelerationStructureFlagBits flag) { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
+    const VkAccelerationStructureKHR &GetAccelerationStructure() const
+        { return m_acceleration_structure; }
+
+    UInt64 GetDeviceAddress() const
+        { return m_device_address; }
+
+    AccelerationStructureFlags GetFlags() const
+        { return m_flags; }
+
+    void SetFlag(AccelerationStructureFlagBits flag)
+        { m_flags = AccelerationStructureFlags(m_flags | flag); }
+
+    void ClearFlag(AccelerationStructureFlagBits flag)
+        { m_flags = AccelerationStructureFlags(m_flags & ~flag); }
 
     std::vector<std::unique_ptr<AccelerationGeometry>> &GetGeometries()
         { return m_geometries; }
@@ -194,8 +206,8 @@ class BottomLevelAccelerationStructure : public AccelerationStructure
 {
 public:
     BottomLevelAccelerationStructure();
-    BottomLevelAccelerationStructure(const BottomLevelAccelerationStructure &other) = delete;
-    BottomLevelAccelerationStructure &operator=(const BottomLevelAccelerationStructure &other) = delete;
+    BottomLevelAccelerationStructure(const BottomLevelAccelerationStructure &other)             = delete;
+    BottomLevelAccelerationStructure &operator=(const BottomLevelAccelerationStructure &other)  = delete;
     ~BottomLevelAccelerationStructure();
 
     AccelerationStructureType GetType() const { return AccelerationStructureType::BOTTOM_LEVEL; }
@@ -213,8 +225,8 @@ class TopLevelAccelerationStructure : public AccelerationStructure
 {
 public:
     TopLevelAccelerationStructure();
-    TopLevelAccelerationStructure(const TopLevelAccelerationStructure &other) = delete;
-    TopLevelAccelerationStructure &operator=(const TopLevelAccelerationStructure &other) = delete;
+    TopLevelAccelerationStructure(const TopLevelAccelerationStructure &other)               = delete;
+    TopLevelAccelerationStructure &operator=(const TopLevelAccelerationStructure &other)    = delete;
     ~TopLevelAccelerationStructure();
 
     AccelerationStructureType GetType() const { return AccelerationStructureType::TOP_LEVEL; }

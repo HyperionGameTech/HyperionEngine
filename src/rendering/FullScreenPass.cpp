@@ -179,9 +179,9 @@ void FullScreenPass::CreatePipeline()
             .vertex_attributes = renderer::static_mesh_vertex_attributes
         },
         MaterialAttributes {
-            .bucket = Bucket::BUCKET_INTERNAL,
-            .fill_mode = FillMode::FILL,
-            .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
+            .bucket     = Bucket::BUCKET_INTERNAL,
+            .fill_mode  = FillMode::FILL,
+            .flags      = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
         }
     ));
 }
@@ -242,7 +242,8 @@ void FullScreenPass::Record(UInt frame_index)
     auto record_result = command_buffer->Record(
         g_engine->GetGPUInstance()->GetDevice(),
         m_render_group->GetPipeline()->GetConstructionInfo().render_pass,
-        [this, frame_index](CommandBuffer *cmd) {
+        [this, frame_index](CommandBuffer *cmd)
+        {
             m_render_group->GetPipeline()->push_constants = m_push_constant_data;
             m_render_group->GetPipeline()->Bind(cmd);
 
