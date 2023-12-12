@@ -96,6 +96,10 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
 
         const auto split = line.Split(' ');
 
+        if (split.Empty()) {
+            return;
+        }
+
         if (split[0] == "property") {
             AssertThrowMsg(split.Size() >= 3, "Invalid model header -- property declaration should have at least 3 elements");
             

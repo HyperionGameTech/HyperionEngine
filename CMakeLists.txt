@@ -39,7 +39,7 @@ find_package(PkgConfig)
 pkg_check_modules(GST gstreamer-1.0>=1.4
                       gstreamer-video-1.0>=1.4
                       gstreamer-app-1.0>=1.4)
-
+                      
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(OpenAL)
