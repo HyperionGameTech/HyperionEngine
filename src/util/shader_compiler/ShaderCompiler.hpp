@@ -19,6 +19,7 @@ namespace hyperion::v2 {
 class Engine;
 
 using renderer::ShaderModule;
+using renderer::ShaderModuleType;
 using renderer::VertexAttribute;
 using renderer::VertexAttributeSet;
 
@@ -669,7 +670,7 @@ struct CompiledShader
 {
     ShaderDefinition                                definition;
     String                                          entry_point_name = "main";
-    HeapArray<ByteBuffer, ShaderModule::Type::MAX>  modules;
+    HeapArray<ByteBuffer, ShaderModuleType::MAX>  modules;
 
     CompiledShader() = default;
     CompiledShader(ShaderDefinition shader_definition, String entry_point_name = "main")
@@ -705,7 +706,7 @@ struct CompiledShader
     const ShaderProperties &GetProperties() const
         { return definition.properties; }
 
-    const HeapArray<ByteBuffer, ShaderModule::Type::MAX> &GetModules() const
+    const HeapArray<ByteBuffer, ShaderModuleType::MAX> &GetModules() const
         { return modules; }
 
     HashCode GetHashCode() const
@@ -844,13 +845,13 @@ public:
     {
         Name                                    name;
         String                                  entry_point_name = "main";
-        FlatMap<ShaderModule::Type, SourceFile> sources;
+        FlatMap<ShaderModuleType, SourceFile> sources;
         ShaderProperties                        versions; // permutations
         DescriptorUsageSet                      descriptor_usages;
 
         Bool HasRTShaders() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            return sources.Any([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
                 return ShaderModule::IsRaytracingType(item.first);
             });
@@ -858,17 +859,17 @@ public:
 
         Bool IsComputeShader() const
         {
-            return sources.Every([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            return sources.Every([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
-                return item.first == ShaderModule::Type::COMPUTE;
+                return item.first == ShaderModuleType::COMPUTE;
             });
         }
 
         Bool HasVertexShader() const
         {
-            return sources.Any([](const KeyValuePair<ShaderModule::Type, SourceFile> &item)
+            return sources.Any([](const KeyValuePair<ShaderModuleType, SourceFile> &item)
             {
-                return item.first == ShaderModule::Type::VERTEX;
+                return item.first == ShaderModuleType::VERTEX;
             });
         }
     };

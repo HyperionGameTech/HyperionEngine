@@ -119,7 +119,7 @@ Result CommandBuffer<Platform::VULKAN>::Reset(Device<Platform::VULKAN> *device)
 
 Result CommandBuffer<Platform::VULKAN>::SubmitPrimary(
     VkQueue queue,
-    Fence *fence,
+    Fence<Platform::VULKAN> *fence,
     SemaphoreChain *semaphore_chain
 )
 {

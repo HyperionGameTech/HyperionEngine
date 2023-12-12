@@ -11,12 +11,14 @@
 namespace hyperion {
 namespace renderer {
 
-class Fence;
 struct DeviceQueue;
 
 using ::hyperion::non_owning_ptr;
 
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Fence;
 
 template <PlatformType PLATFORM>
 class Swapchain;
@@ -69,8 +71,8 @@ public:
     Result Submit(DeviceQueue *queue);
     
     // Not owned
-    CommandBuffer<PLATFORM> *m_command_buffer;
-    std::unique_ptr<Fence>  fc_queue_submit;
+    CommandBuffer<PLATFORM>         *m_command_buffer;
+    std::unique_ptr<Fence<PLATFORM>>  fc_queue_submit;
 
 private:
     UInt            m_frame_index;

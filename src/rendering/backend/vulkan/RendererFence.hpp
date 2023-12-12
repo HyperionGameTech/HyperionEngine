@@ -1,7 +1,8 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_FENCE_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_FENCE_HPP
 
-#include <rendering/backend/RendererDevice.hpp>
+#include <rendering/backend/Platform.hpp>
+#include <rendering/backend/RendererResult.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -9,8 +10,17 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-class Fence {
+template <PlatformType PLATFORM>
+class Pipeline;
+
+template <PlatformType PLATFORM>
+class Device;
+
+template <>
+class Fence<Platform::VULKAN>
+{
 public:
     Fence(bool create_signaled = false);
     Fence(const Fence &other) = delete;
@@ -20,16 +30,17 @@ public:
     VkFence &GetHandle() { return m_handle; }
     const VkFence &GetHandle() const { return m_handle; }
 
-    Result Create(Device *device);
-    Result Destroy(Device *device);
-    Result WaitForGPU(Device *device, bool timeout_loop = false, VkResult *out_result = nullptr);
-    Result Reset(Device *device);
+    Result Create(Device<Platform::VULKAN> *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
+    Result WaitForGPU(Device<Platform::VULKAN> *device, bool timeout_loop = false, VkResult *out_result = nullptr);
+    Result Reset(Device<Platform::VULKAN> *device);
 
 private:
     VkFence m_handle;
     bool m_create_signaled;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

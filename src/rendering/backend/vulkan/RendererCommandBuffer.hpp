@@ -7,6 +7,7 @@
 #include <rendering/backend/RendererFence.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/Platform.hpp>
 
 #include <core/lib/FixedArray.hpp>
 
@@ -17,6 +18,9 @@
 namespace hyperion {
 namespace renderer {
 namespace platform {
+
+template <PlatformType PLATFORM>
+class Frame;
 
 template <PlatformType PLATFORM>
 class Pipeline;
@@ -52,7 +56,7 @@ public:
     Result Reset(Device<Platform::VULKAN> *device);
     Result SubmitPrimary(
         VkQueue queue,
-        Fence *fence,
+        Fence<Platform::VULKAN> *fence,
         SemaphoreChain *semaphore_chain
     );
 

@@ -1,6 +1,8 @@
 #ifndef HYPERION_V2_BACKEND_RENDERER_ATTACHMENT_H
 #define HYPERION_V2_BACKEND_RENDERER_ATTACHMENT_H
 
+#include <core/Containers.hpp>
+
 #include <util/Defines.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -13,6 +15,27 @@
 namespace hyperion {
 namespace renderer {
 
+struct AttachmentUsageInstance
+{
+    const char  *cls;
+    void        *ptr;
+
+    bool operator==(const AttachmentUsageInstance &other) const
+    {
+        return ptr == other.ptr;
+    }
+
+    HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(cls);
+        hc.Add(ptr);
+
+        return hc;
+    }
+};
+
+
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -22,9 +45,6 @@ template <PlatformType PLATFORM>
 class Instance;
 
 } // namespace platform
-
-using Device    = platform::Device<Platform::CURRENT>;
-using Instance  = platform::Instance<Platform::CURRENT>;
 
 enum class RenderPassStage
 {
@@ -48,57 +68,31 @@ enum class StoreOperation
     STORE
 };
 
+namespace platform {
+
+// for making it easier to track holders
+#define HYP_ATTACHMENT_USAGE_INSTANCE \
+    ::hyperion::renderer::AttachmentUsageInstance { \
+        .cls = typeid(*this).name(),     \
+        .ptr = static_cast<void *>(this) \
+    }
+
+template <PlatformType PLATFORM>
 class AttachmentSet
 {
-public:
-    AttachmentSet(RenderPassStage stage, Extent3D extent);
-    AttachmentSet(const AttachmentSet &other) = delete;
-    AttachmentSet &operator=(const AttachmentSet &other) = delete;
-    ~AttachmentSet();
-
-    Extent3D GetExtent() const
-        { return m_extent; }
-
-    RenderPassStage GetStage() const
-        { return m_stage; }
-
-    bool Has(UInt binding) const;
-
-    AttachmentUsage *Get(UInt binding) const;
-
-    /*! \brief Add a new owned attachment, constructed using the width/height provided to this class,
-     * along with the given format argument.
-     * @param binding The input attachment binding the attachment will take on
-     * @param format The image format of the newly constructed Image
-     */
-    Result Add(Device *device, UInt binding, InternalFormat format);
-    /*! \brief Add a new owned attachment using the given image argument.
-     * @param binding The input attachment binding the attachment will take on
-     * @param image The unique pointer to a non-initialized (but constructed)
-     * Image which will be used to render to for this attachment.
-     */
-    Result Add(Device *device, UInt binding, ImageRef &&image);
-
-    /*! \brief Add a reference to an existing attachment, not owned.
-     * An AttachmentUsage is created and its reference count incremented.
-     * @param binding The input attachment binding the attachment will take on
-     * @param attachment Pointer to an Attachment that exists elsewhere and will be used
-     * as an input for this set of attachments. The operation will be an OP_LOAD.
-     */
-    Result Add(Device *device, UInt binding, AttachmentRef attachment);
-
-    /*! \brief Remove an attachment reference by the binding argument */
-    Result Remove(Device *device, UInt binding);
-
-    Result Create(Device *device);
-    Result Destroy(Device *device);
-
-private:
-    Extent3D                            m_extent;
-    RenderPassStage                     m_stage;
-    Array<AttachmentRef>                m_attachments;
-    FlatMap<UInt, AttachmentUsage *>    m_attachment_usages;
 };
+
+template <PlatformType PLATFORM>
+class AttachmentUsage
+{
+};
+
+template <PlatformType PLATFORM>
+class Attachment
+{
+};
+
+} // namespace platform
 
 } // namespace renderer
 } // namespace hyperion
@@ -109,5 +103,15 @@ private:
 #else
 #error Unsupported rendering backend
 #endif
+
+namespace hyperion {
+namespace renderer {
+
+using AttachmentSet     = platform::AttachmentSet<Platform::CURRENT>;
+using AttachmentUsage   = platform::AttachmentUsage<Platform::CURRENT>;
+using Attachment        = platform::Attachment<Platform::CURRENT>;
+
+} // namespace renderer
+} // namespace hyperion
 
 #endif

@@ -33,7 +33,7 @@ RaytracingPipeline<Platform::VULKAN>::~RaytracingPipeline() = default;
 
 Result RaytracingPipeline<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
-    ShaderProgram *shader_program,
+    ShaderProgram<Platform::VULKAN> *shader_program,
     DescriptorPool *descriptor_pool
 )
 {
@@ -204,7 +204,7 @@ void RaytracingPipeline<Platform::VULKAN>::TraceRays(
     );
 }
 
-Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram *shader_program)
+Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram<Platform::VULKAN> *shader_program)
 {
     const auto &shader_groups = shader_program->GetShaderGroups();
 
@@ -286,9 +286,9 @@ Result RaytracingPipeline<Platform::VULKAN>::CreateShaderBindingTables(Device<Pl
         } \
     } while (0)
 
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModule::Type::RAY_GEN, ray_gen);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModule::Type::RAY_MISS, ray_miss);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModule::Type::RAY_CLOSEST_HIT, closest_hit);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_GEN, ray_gen);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_MISS, ray_miss);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_CLOSEST_HIT, closest_hit);
 
 #undef GET_STRIDED_DEVICE_ADDRESS_REGION
 

@@ -154,7 +154,7 @@ static TBuiltInResource DefaultResources()
 }
 
 static ByteBuffer CompileToSPIRV(
-    ShaderModule::Type type,
+    ShaderModuleType type,
     ShaderLanguage language,
     String preamble,
     String source,
@@ -181,55 +181,55 @@ static ByteBuffer CompileToSPIRV(
     String stage_string;
 
     switch (type) {
-    case ShaderModule::Type::VERTEX:
+    case ShaderModuleType::VERTEX:
         stage = GLSLANG_STAGE_VERTEX;
         stage_string = "VERTEX_SHADER";
         break;
-    case ShaderModule::Type::FRAGMENT:
+    case ShaderModuleType::FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
         stage_string = "FRAGMENT_SHADER";
         break;
-    case ShaderModule::Type::GEOMETRY:
+    case ShaderModuleType::GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
         stage_string = "GEOMETRY_SHADER";
         break;
-    case ShaderModule::Type::COMPUTE:
+    case ShaderModuleType::COMPUTE:
         stage = GLSLANG_STAGE_COMPUTE;
         stage_string = "COMPUTE_SHADER";
         break;
-    case ShaderModule::Type::TASK:
+    case ShaderModuleType::TASK:
         stage = GLSLANG_STAGE_TASK_NV;
         stage_string = "TASK_SHADER";
         break;
-    case ShaderModule::Type::MESH:
+    case ShaderModuleType::MESH:
         stage = GLSLANG_STAGE_MESH_NV;
         stage_string = "MESH_SHADER";
         break;
-    case ShaderModule::Type::TESS_CONTROL:
+    case ShaderModuleType::TESS_CONTROL:
         stage = GLSLANG_STAGE_TESSCONTROL;
         stage_string = "TESS_CONTROL_SHADER";
         break;
-    case ShaderModule::Type::TESS_EVAL:
+    case ShaderModuleType::TESS_EVAL:
         stage = GLSLANG_STAGE_TESSEVALUATION;
         stage_string = "TESS_EVAL_SHADER";
         break;
-    case ShaderModule::Type::RAY_GEN:
+    case ShaderModuleType::RAY_GEN:
         stage = GLSLANG_STAGE_RAYGEN_NV;
         stage_string = "RAY_GEN_SHADER";
         break;
-    case ShaderModule::Type::RAY_INTERSECT:
+    case ShaderModuleType::RAY_INTERSECT:
         stage = GLSLANG_STAGE_INTERSECT_NV;
         stage_string = "RAY_INTERSECT_SHADER";
         break;
-    case ShaderModule::Type::RAY_ANY_HIT:
+    case ShaderModuleType::RAY_ANY_HIT:
         stage = GLSLANG_STAGE_ANYHIT_NV;
         stage_string = "RAY_ANY_HIT_SHADER";
         break;
-    case ShaderModule::Type::RAY_CLOSEST_HIT:
+    case ShaderModuleType::RAY_CLOSEST_HIT:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
         stage_string = "RAY_CLOSEST_HIT_SHADER";
         break;
-    case ShaderModule::Type::RAY_MISS:
+    case ShaderModuleType::RAY_MISS:
         stage = GLSLANG_STAGE_MISS_NV;
         stage_string = "RAY_MISS_SHADER";
         break;
@@ -330,7 +330,7 @@ static ByteBuffer CompileToSPIRV(
 
 
 static ByteBuffer CompileToSPIRV(
-    ShaderModule::Type type,
+    ShaderModuleType type,
     ShaderLanguage language,
     String preamble,
     String source,
@@ -344,19 +344,19 @@ static ByteBuffer CompileToSPIRV(
 
 #endif
 
-static const FlatMap<String, ShaderModule::Type> shader_type_names = {
-    { "vert", ShaderModule::Type::VERTEX },
-    { "frag", ShaderModule::Type::FRAGMENT },
-    { "geom", ShaderModule::Type::GEOMETRY },
-    { "comp", ShaderModule::Type::COMPUTE },
-    { "rgen", ShaderModule::Type::RAY_GEN },
-    { "rchit", ShaderModule::Type::RAY_CLOSEST_HIT },
-    { "rahit", ShaderModule::Type::RAY_ANY_HIT },
-    { "rmiss", ShaderModule::Type::RAY_MISS },
-    { "rint", ShaderModule::Type::RAY_INTERSECT },
-    { "tesc", ShaderModule::Type::TESS_CONTROL },
-    { "mesh", ShaderModule::Type::MESH },
-    { "task", ShaderModule::Type::TASK }
+static const FlatMap<String, ShaderModuleType> shader_type_names = {
+    { "vert", ShaderModuleType::VERTEX },
+    { "frag", ShaderModuleType::FRAGMENT },
+    { "geom", ShaderModuleType::GEOMETRY },
+    { "comp", ShaderModuleType::COMPUTE },
+    { "rgen", ShaderModuleType::RAY_GEN },
+    { "rchit", ShaderModuleType::RAY_CLOSEST_HIT },
+    { "rahit", ShaderModuleType::RAY_ANY_HIT },
+    { "rmiss", ShaderModuleType::RAY_MISS },
+    { "rint", ShaderModuleType::RAY_INTERSECT },
+    { "tesc", ShaderModuleType::TESS_CONTROL },
+    { "mesh", ShaderModuleType::MESH },
+    { "task", ShaderModuleType::TASK }
 };
 
 static void ForEachPermutation(
@@ -912,7 +912,7 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
 
 struct LoadedSourceFile
 {
-    ShaderModule::Type          type;
+    ShaderModuleType          type;
     ShaderLanguage              language;
     ShaderCompiler::SourceFile  file;
     UInt64                      last_modified_timestamp;

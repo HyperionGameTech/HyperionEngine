@@ -108,7 +108,7 @@ void ComputePipeline<Platform::VULKAN>::DispatchIndirect(
 
 Result ComputePipeline<Platform::VULKAN>::Create(
     Device<Platform::VULKAN> *device,
-    ShaderProgram *shader,
+    ShaderProgram<Platform::VULKAN> *shader,
     DescriptorPool *descriptor_pool
 )
 {

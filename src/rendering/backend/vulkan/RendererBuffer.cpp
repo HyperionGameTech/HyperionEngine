@@ -101,7 +101,7 @@ VkAccessFlags GPUMemory<Platform::VULKAN>::GetAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceState state, bool src, ShaderModule::Type shader_type)
+VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceState state, bool src, ShaderModuleType shader_type)
 {
     switch (state) {
     case ResourceState::UNDEFINED:
@@ -121,29 +121,29 @@ VkPipelineStageFlags GPUMemory<Platform::VULKAN>::GetShaderStageMask(ResourceSta
     case ResourceState::CONSTANT_BUFFER:
     case ResourceState::SHADER_RESOURCE:
         switch (shader_type) {
-        case ShaderModule::Type::VERTEX:
+        case ShaderModuleType::VERTEX:
             return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-        case ShaderModule::Type::FRAGMENT:
+        case ShaderModuleType::FRAGMENT:
             return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        case ShaderModule::Type::COMPUTE:
+        case ShaderModuleType::COMPUTE:
             return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-        case ShaderModule::Type::RAY_ANY_HIT:
-        case ShaderModule::Type::RAY_CLOSEST_HIT:
-        case ShaderModule::Type::RAY_GEN:
-        case ShaderModule::Type::RAY_INTERSECT:
-        case ShaderModule::Type::RAY_MISS:
+        case ShaderModuleType::RAY_ANY_HIT:
+        case ShaderModuleType::RAY_CLOSEST_HIT:
+        case ShaderModuleType::RAY_GEN:
+        case ShaderModuleType::RAY_INTERSECT:
+        case ShaderModuleType::RAY_MISS:
             return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
-        case ShaderModule::Type::GEOMETRY:
+        case ShaderModuleType::GEOMETRY:
             return VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-        case ShaderModule::Type::TESS_CONTROL:
+        case ShaderModuleType::TESS_CONTROL:
             return VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-        case ShaderModule::Type::TESS_EVAL:
+        case ShaderModuleType::TESS_EVAL:
             return VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-        case ShaderModule::Type::MESH:
+        case ShaderModuleType::MESH:
             return VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
-        case ShaderModule::Type::TASK:
+        case ShaderModuleType::TASK:
             return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
-        case ShaderModule::Type::UNSET:
+        case ShaderModuleType::UNSET:
             return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                  | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
                  | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;

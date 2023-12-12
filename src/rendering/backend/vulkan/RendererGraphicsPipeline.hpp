@@ -45,7 +45,7 @@ public:
         Bool                                depth_test = true;
         Bool                                depth_write = true;
 
-        ShaderProgram                       *shader = nullptr;
+        ShaderProgram<Platform::VULKAN>     *shader = nullptr;
         RenderPass<Platform::VULKAN>        *render_pass = nullptr;
         Array<FramebufferObjectRef_VULKAN>  fbos;
 

@@ -1,9 +1,12 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP
 
+
 #include <core/lib/ByteBuffer.hpp>
 #include <core/lib/DynArray.hpp>
 #include <core/lib/String.hpp>
+
+#include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 
 #include <asset/ByteReader.hpp>
@@ -13,51 +16,18 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-struct ShaderObject
+template <>
+struct ShaderModule<Platform::VULKAN>
 {
-    ByteBuffer bytes;
-
-    HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(bytes);
-
-        return hc;
-    }
-};
-
-struct ShaderModule
-{
-    enum Type : UInt
-    {
-        UNSET = 0,
-        VERTEX,
-        FRAGMENT,
-        GEOMETRY,
-        COMPUTE,
-        /* Mesh shaders */
-        TASK,
-        MESH,
-        /* Tesselation */
-        TESS_CONTROL,
-        TESS_EVAL,
-        /* Raytracing */
-        RAY_GEN,
-        RAY_INTERSECT,
-        RAY_ANY_HIT,
-        RAY_CLOSEST_HIT,
-        RAY_MISS,
-
-        MAX
-    } type;
+    ShaderModuleType    type;
     
-    String entry_point_name;
-    ShaderObject spirv;
-    VkShaderModule shader_module;
+    String              entry_point_name;
+    ByteBuffer          spirv;
+    VkShaderModule      shader_module;
 
-    ShaderModule(Type type, String entry_point_name)
+    ShaderModule(ShaderModuleType type, String entry_point_name)
         : type(type),
           entry_point_name(std::move(entry_point_name)),
           spirv { },
@@ -65,7 +35,7 @@ struct ShaderModule
     {
     }
 
-    ShaderModule(Type type, String entry_point_name, const ShaderObject &spirv, VkShaderModule shader_module = nullptr)
+    ShaderModule(ShaderModuleType type, String entry_point_name, const ByteBuffer &spirv, VkShaderModule shader_module = nullptr)
         : type(type),
           entry_point_name(std::move(entry_point_name)),
           spirv(spirv),
@@ -82,32 +52,34 @@ struct ShaderModule
     bool IsRaytracing() const
         { return IsRaytracingType(type); }
 
-    static bool IsRaytracingType(Type type)
+    static bool IsRaytracingType(ShaderModuleType type)
     {
-        return type == Type::RAY_GEN
-            || type == Type::RAY_INTERSECT
-            || type == Type::RAY_ANY_HIT
-            || type == Type::RAY_CLOSEST_HIT
-            || type == Type::RAY_MISS;
+        return type == ShaderModuleType::RAY_GEN
+            || type == ShaderModuleType::RAY_INTERSECT
+            || type == ShaderModuleType::RAY_ANY_HIT
+            || type == ShaderModuleType::RAY_CLOSEST_HIT
+            || type == ShaderModuleType::RAY_MISS;
     }
 };
 
-struct ShaderGroup
+template <>
+struct ShaderGroup<Platform::VULKAN>
 {
-    ShaderModule::Type type;
+    ShaderModuleType type;
     VkRayTracingShaderGroupCreateInfoKHR raytracing_group_create_info;
 };
 
-class ShaderProgram
+template <>
+class ShaderProgram<Platform::VULKAN>
 {
 public:
     ShaderProgram();
     ShaderProgram(String entry_point_name);
-    ShaderProgram(const ShaderProgram &other) = delete;
-    ShaderProgram &operator=(const ShaderProgram &other) = delete;
+    ShaderProgram(const ShaderProgram &other)               = delete;
+    ShaderProgram &operator=(const ShaderProgram &other)    = delete;
     ~ShaderProgram();
 
-    const Array<ShaderModule> &GetShaderModules() const
+    const Array<ShaderModule<Platform::VULKAN>> &GetShaderModules() const
         { return m_shader_modules; }
 
     Array<VkPipelineShaderStageCreateInfo> &GetShaderStages()
@@ -117,24 +89,20 @@ public:
         { return m_shader_stages; }
 
     /* For raytracing only */
-    const Array<ShaderGroup> &GetShaderGroups() const
+    const Array<ShaderGroup<Platform::VULKAN>> &GetShaderGroups() const
         { return m_shader_groups; }
 
     bool IsRaytracing() const
     {
-        return std::any_of(
-            m_shader_modules.begin(),
-            m_shader_modules.end(),
-            [](const ShaderModule &it) {
-                return it.IsRaytracing();
-            }
-        );
+        return m_shader_modules.Any([](const ShaderModule<Platform::VULKAN> &it) {
+            return it.IsRaytracing();
+        });
     }
 
-    Result AttachShader(Device *device, ShaderModule::Type type, const ShaderObject &spirv);
+    Result AttachShader(Device<Platform::VULKAN> *device, ShaderModuleType type, const ShaderObject &shader_object);
 
-    Result Create(Device *device);
-    Result Destroy(Device *device);
+    Result Create(Device<Platform::VULKAN> *device);
+    Result Destroy(Device<Platform::VULKAN> *device);
 
     HashCode GetHashCode() const
     {
@@ -149,17 +117,18 @@ public:
     }
 
 private:
-    VkPipelineShaderStageCreateInfo CreateShaderStage(const ShaderModule &);
+    VkPipelineShaderStageCreateInfo CreateShaderStage(const ShaderModule<Platform::VULKAN> &);
     Result CreateShaderGroups();
 
-    String m_entry_point_name;
+    String                                  m_entry_point_name;
 
-    Array<ShaderModule> m_shader_modules;
+    Array<ShaderModule<Platform::VULKAN>>   m_shader_modules;
 
-    Array<VkPipelineShaderStageCreateInfo> m_shader_stages;
-    Array<ShaderGroup> m_shader_groups;
+    Array<VkPipelineShaderStageCreateInfo>  m_shader_stages;
+    Array<ShaderGroup<Platform::VULKAN>>    m_shader_groups;
 };
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion
 

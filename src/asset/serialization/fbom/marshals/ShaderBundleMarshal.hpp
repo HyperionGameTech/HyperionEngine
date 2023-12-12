@@ -209,11 +209,13 @@ public:
             compiled_shader->GetDefinition().properties.Set(property);
         }
 
-        for (SizeType index = 0; index < ShaderModule::Type::MAX; index++) {
+        for (SizeType index = 0; index < ShaderModuleType::MAX; index++) {
             const auto module_property_name = String("module[") + String::ToString(index) + "]";
 
             if (const auto &property = in.GetProperty(module_property_name)) {
-                if (auto err = property.ReadByteBuffer(compiled_shader->modules[static_cast<ShaderModule::Type>(index)])) {
+                AssertThrow(index < ShaderModuleType::MAX);
+
+                if (auto err = property.ReadByteBuffer(compiled_shader->modules[index])) {
                     return err;
                 }
             }

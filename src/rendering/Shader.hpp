@@ -25,13 +25,14 @@ namespace hyperion::v2 {
 using renderer::ShaderProgram;
 using renderer::ShaderObject;
 using renderer::ShaderModule;
+using renderer::ShaderModuleType;
 
 class Engine;
 
 struct SubShader
 {
-    ShaderModule::Type type;
-    ShaderObject spirv;
+    ShaderModuleType    type;
+    ShaderObject        spirv;
 
     HashCode GetHashCode() const
     {

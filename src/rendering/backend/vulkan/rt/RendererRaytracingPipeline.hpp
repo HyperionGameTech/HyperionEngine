@@ -25,13 +25,13 @@ public:
     RaytracingPipeline(
         const Array<DescriptorSetRef> &used_descriptor_sets
     );
-    RaytracingPipeline(const RaytracingPipeline &other) = delete;
-    RaytracingPipeline &operator=(const RaytracingPipeline &other) = delete;
+    RaytracingPipeline(const RaytracingPipeline &other)             = delete;
+    RaytracingPipeline &operator=(const RaytracingPipeline &other)  = delete;
     ~RaytracingPipeline();
 
     Result Create(
         Device<Platform::VULKAN> *device,
-        ShaderProgram *shader_program,
+        ShaderProgram<Platform::VULKAN> *shader_program,
         DescriptorPool *pool
     );
     Result Destroy(Device<Platform::VULKAN> *device);
@@ -51,15 +51,15 @@ private:
     };
 
     struct {
-        VkStridedDeviceAddressRegionKHR ray_gen{};
-        VkStridedDeviceAddressRegionKHR ray_miss{};
-        VkStridedDeviceAddressRegionKHR closest_hit{};
-        VkStridedDeviceAddressRegionKHR callable{};
+        VkStridedDeviceAddressRegionKHR ray_gen { };
+        VkStridedDeviceAddressRegionKHR ray_miss { };
+        VkStridedDeviceAddressRegionKHR closest_hit { };
+        VkStridedDeviceAddressRegionKHR callable { };
     } m_shader_binding_table_entries;
 
-    using ShaderBindingTableMap = std::unordered_map<ShaderModule::Type, ShaderBindingTableEntry>;
+    using ShaderBindingTableMap = std::unordered_map<ShaderModuleType, ShaderBindingTableEntry>;
 
-    Result CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram *shader_program);
+    Result CreateShaderBindingTables(Device<Platform::VULKAN> *device, ShaderProgram<Platform::VULKAN> *shader_program);
 
     Result CreateShaderBindingTableEntry(
         Device<Platform::VULKAN> *device,

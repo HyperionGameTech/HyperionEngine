@@ -36,9 +36,9 @@ class GPUMemory<Platform::VULKAN>
 public:
     struct Stats
     {
-        SizeType gpu_memory_used = 0;
-        SizeType last_gpu_memory_used = 0;
-        Int64 last_diff = 0;
+        SizeType    gpu_memory_used = 0;
+        SizeType    last_gpu_memory_used = 0;
+        Int64       last_diff = 0;
         std::time_t last_timestamp = 0;
         const Int64 time_diff = 10000;
 
@@ -80,8 +80,8 @@ public:
     static VkAccessFlags GetAccessMask(ResourceState state);
     static VkPipelineStageFlags GetShaderStageMask(
         ResourceState state,
-        bool src,
-        ShaderModule::Type shader_type = ShaderModule::Type::UNSET
+        Bool src,
+        ShaderModuleType shader_type = ShaderModuleType::UNSET
     );
 
     GPUMemory();

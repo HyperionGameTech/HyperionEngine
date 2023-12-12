@@ -37,7 +37,7 @@ struct RENDER_COMMAND(CreateShaderProgram) : renderer::RenderCommand
 
             HYPERION_BUBBLE_ERRORS(shader_program->AttachShader(
                 g_engine->GetGPUInstance()->GetDevice(),
-                ShaderModule::Type(index),
+                ShaderModuleType(index),
                 { byte_buffer }
             ));
         }

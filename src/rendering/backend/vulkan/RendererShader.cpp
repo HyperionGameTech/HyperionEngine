@@ -6,32 +6,35 @@
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-ShaderProgram::ShaderProgram()
+ShaderProgram<Platform::VULKAN>::ShaderProgram()
     : m_entry_point_name("main")
 {
 }
 
-ShaderProgram::ShaderProgram(String entry_point_name)
+ShaderProgram<Platform::VULKAN>::ShaderProgram(String entry_point_name)
     : m_entry_point_name(std::move(entry_point_name))
 {
 }
 
-ShaderProgram::~ShaderProgram()
+ShaderProgram<Platform::VULKAN>::~ShaderProgram()
 {
 }
 
-Result ShaderProgram::AttachShader(Device *device, ShaderModule::Type type, const ShaderObject &spirv)
+Result ShaderProgram<Platform::VULKAN>::AttachShader(Device<Platform::VULKAN> *device, ShaderModuleType type, const ShaderObject &shader_object)
 {
+    const ByteBuffer &spirv = shader_object.bytes;
+
     VkShaderModuleCreateInfo create_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    create_info.codeSize = spirv.bytes.Size();
-    create_info.pCode = reinterpret_cast<const UInt32 *>(spirv.bytes.Data());
+    create_info.codeSize = spirv.Size();
+    create_info.pCode = reinterpret_cast<const UInt32 *>(spirv.Data());
 
     VkShaderModule shader_module;
 
     HYPERION_VK_CHECK(vkCreateShaderModule(device->GetDevice(), &create_info, nullptr, &shader_module));
 
-    m_shader_modules.PushBack(ShaderModule(type, m_entry_point_name, spirv, shader_module));
+    m_shader_modules.PushBack(ShaderModule<Platform::VULKAN>(type, m_entry_point_name, spirv, shader_module));
 
     std::sort(m_shader_modules.Begin(), m_shader_modules.End());
 
@@ -39,7 +42,7 @@ Result ShaderProgram::AttachShader(Device *device, ShaderModule::Type type, cons
 }
 
 VkPipelineShaderStageCreateInfo
-ShaderProgram::CreateShaderStage(const ShaderModule &shader_module)
+ShaderProgram<Platform::VULKAN>::CreateShaderStage(const ShaderModule<Platform::VULKAN> &shader_module)
 {
     VkPipelineShaderStageCreateInfo create_info{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
 
@@ -47,43 +50,43 @@ ShaderProgram::CreateShaderStage(const ShaderModule &shader_module)
     create_info.pName = shader_module.entry_point_name.Data();
 
     switch (shader_module.type) {
-    case ShaderModule::Type::VERTEX:
+    case ShaderModuleType::VERTEX:
         create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
         break;
-    case ShaderModule::Type::FRAGMENT:
+    case ShaderModuleType::FRAGMENT:
         create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         break;
-    case ShaderModule::Type::GEOMETRY:
+    case ShaderModuleType::GEOMETRY:
         create_info.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
         break;
-    case ShaderModule::Type::COMPUTE:
+    case ShaderModuleType::COMPUTE:
         create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         break;
-    case ShaderModule::Type::TASK:
+    case ShaderModuleType::TASK:
         create_info.stage = VK_SHADER_STAGE_TASK_BIT_NV;
         break;
-    case ShaderModule::Type::MESH:
+    case ShaderModuleType::MESH:
         create_info.stage = VK_SHADER_STAGE_MESH_BIT_NV;
         break;
-    case ShaderModule::Type::TESS_CONTROL:
+    case ShaderModuleType::TESS_CONTROL:
         create_info.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
         break;
-    case ShaderModule::Type::TESS_EVAL:
+    case ShaderModuleType::TESS_EVAL:
         create_info.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
         break;
-    case ShaderModule::Type::RAY_GEN:
+    case ShaderModuleType::RAY_GEN:
         create_info.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         break;
-    case ShaderModule::Type::RAY_INTERSECT:
+    case ShaderModuleType::RAY_INTERSECT:
         create_info.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
         break;
-    case ShaderModule::Type::RAY_ANY_HIT:
+    case ShaderModuleType::RAY_ANY_HIT:
         create_info.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
         break;
-    case ShaderModule::Type::RAY_CLOSEST_HIT:
+    case ShaderModuleType::RAY_CLOSEST_HIT:
         create_info.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         break;
-    case ShaderModule::Type::RAY_MISS:
+    case ShaderModuleType::RAY_MISS:
         create_info.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
         break;
     default:
@@ -93,7 +96,7 @@ ShaderProgram::CreateShaderStage(const ShaderModule &shader_module)
     return create_info;
 }
 
-Result ShaderProgram::CreateShaderGroups()
+Result ShaderProgram<Platform::VULKAN>::CreateShaderGroups()
 {
     m_shader_groups.Clear();
 
@@ -101,8 +104,8 @@ Result ShaderProgram::CreateShaderGroups()
         const auto &shader_module = m_shader_modules[i];
         
         switch (shader_module.type) {
-        case ShaderModule::Type::RAY_MISS: /* fallthrough */
-        case ShaderModule::Type::RAY_GEN:
+        case ShaderModuleType::RAY_MISS: /* fallthrough */
+        case ShaderModuleType::RAY_GEN:
             m_shader_groups.PushBack({
                 shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR{
@@ -116,7 +119,7 @@ Result ShaderProgram::CreateShaderGroups()
             });
 
             break;
-        case ShaderModule::Type::RAY_CLOSEST_HIT:
+        case ShaderModuleType::RAY_CLOSEST_HIT:
             m_shader_groups.PushBack({
                 shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR{
@@ -138,7 +141,7 @@ Result ShaderProgram::CreateShaderGroups()
     HYPERION_RETURN_OK;
 }
 
-Result ShaderProgram::Create(Device *device)
+Result ShaderProgram<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     bool is_raytracing = false;
 
@@ -157,7 +160,7 @@ Result ShaderProgram::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result ShaderProgram::Destroy(Device *device)
+Result ShaderProgram<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     for (const auto &shader_module : m_shader_modules) {
         vkDestroyShaderModule(device->GetDevice(), shader_module.shader_module, nullptr);
@@ -166,5 +169,6 @@ Result ShaderProgram::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

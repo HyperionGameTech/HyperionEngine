@@ -51,20 +51,19 @@ public:
     UInt NumMultiviewLayers() const
         { return m_num_multiview_layers; }
 
-    void AddAttachmentUsage(AttachmentUsage *attachment_usage)
+    void AddAttachmentUsage(AttachmentUsage<Platform::VULKAN> *attachment_usage)
     {
         attachment_usage->IncRef(HYP_ATTACHMENT_USAGE_INSTANCE);
 
         m_render_pass_attachment_usages.PushBack(attachment_usage);
     }
 
-    bool RemoveAttachmentUsage(const Attachment *attachment)
+    bool RemoveAttachmentUsage(const Attachment<Platform::VULKAN> *attachment)
     {
-        const auto it = std::find_if(
-            m_render_pass_attachment_usages.Begin(),
-            m_render_pass_attachment_usages.End(),
-            [attachment](const AttachmentUsage *item) {
-                return item->GetAttachment() == attachment;
+        const auto it = m_render_pass_attachment_usages.FindIf(
+            [attachment](const AttachmentUsage<Platform::VULKAN> *item)
+            {
+                return item->m_attachment == attachment;
             }
         );
 
@@ -96,16 +95,16 @@ private:
     void AddDependency(const VkSubpassDependency &dependency)
         { m_dependencies.PushBack(dependency); }
 
-    RenderPassStage                     m_stage;
-    RenderPassMode                      m_mode;
-    UInt                                m_num_multiview_layers;
+    RenderPassStage                             m_stage;
+    RenderPassMode                              m_mode;
+    UInt                                        m_num_multiview_layers;
 
-    Array<AttachmentUsage *>            m_render_pass_attachment_usages;
+    Array<AttachmentUsage<Platform::VULKAN> *>  m_render_pass_attachment_usages;
 
-    Array<VkSubpassDependency>          m_dependencies;
-    Array<VkClearValue>                 m_clear_values;
+    Array<VkSubpassDependency>                  m_dependencies;
+    Array<VkClearValue>                         m_clear_values;
 
-    VkRenderPass                        m_handle;
+    VkRenderPass                                m_handle;
 };
 
 } // namespace platform

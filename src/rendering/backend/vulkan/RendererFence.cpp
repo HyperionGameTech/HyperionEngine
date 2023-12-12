@@ -1,20 +1,22 @@
 #include <rendering/backend/RendererFence.hpp>
+#include <rendering/backend/RendererDevice.hpp>
 
 namespace hyperion {
 namespace renderer {
+namespace platform {
 
-Fence::Fence(bool create_signaled)
+Fence<Platform::VULKAN>::Fence(bool create_signaled)
     : m_handle(VK_NULL_HANDLE),
       m_create_signaled(create_signaled)
 {
 }
 
-Fence::~Fence()
+Fence<Platform::VULKAN>::~Fence()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE, "fence should have been destroyed");
 }
 
-Result Fence::Create(Device *device)
+Result Fence<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_handle == VK_NULL_HANDLE);
 
@@ -31,7 +33,7 @@ Result Fence::Create(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result Fence::Destroy(Device *device)
+Result Fence<Platform::VULKAN>::Destroy(Device<Platform::VULKAN> *device)
 {
     AssertThrow(m_handle != VK_NULL_HANDLE);
 
@@ -41,7 +43,7 @@ Result Fence::Destroy(Device *device)
     HYPERION_RETURN_OK;
 }
 
-Result Fence::WaitForGPU(Device *device, bool timeout_loop, VkResult *out_result)
+Result Fence<Platform::VULKAN>::WaitForGPU(Device<Platform::VULKAN> *device, bool timeout_loop, VkResult *out_result)
 {
     AssertThrow(m_handle != VK_NULL_HANDLE);
 
@@ -60,12 +62,13 @@ Result Fence::WaitForGPU(Device *device, bool timeout_loop, VkResult *out_result
     HYPERION_RETURN_OK;
 }
 
-Result Fence::Reset(Device *device)
+Result Fence<Platform::VULKAN>::Reset(Device<Platform::VULKAN> *device)
 {
     HYPERION_VK_CHECK(vkResetFences(device->GetDevice(), 1, &m_handle));
 
     HYPERION_RETURN_OK;
 }
 
+} // namespace platform
 } // namespace renderer
 } // namespace hyperion

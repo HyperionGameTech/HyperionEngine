@@ -28,7 +28,7 @@ public:
     ComputePipeline &operator=(const ComputePipeline &other) = delete;
     ~ComputePipeline();
 
-    Result Create(Device<Platform::VULKAN> *device, ShaderProgram *shader, DescriptorPool *pool);
+    Result Create(Device<Platform::VULKAN> *device, ShaderProgram<Platform::VULKAN> *shader, DescriptorPool *pool);
     Result Destroy(Device<Platform::VULKAN> *device);
 
     void Bind(CommandBuffer<Platform::VULKAN> *command_buffer) const;

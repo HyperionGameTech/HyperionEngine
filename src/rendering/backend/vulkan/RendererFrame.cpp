@@ -53,7 +53,7 @@ Result Frame<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Command
     
     HYPERION_BUBBLE_ERRORS(m_present_semaphores.Create(device));
 
-    fc_queue_submit = std::make_unique<Fence>(true);
+    fc_queue_submit = std::make_unique<Fence<Platform::VULKAN>>();
 
     HYPERION_BUBBLE_ERRORS(fc_queue_submit->Create(device));
 
