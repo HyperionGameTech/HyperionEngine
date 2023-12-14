@@ -20,6 +20,25 @@ Image<Platform::VULKAN>::Image(
     InternalFormat format,
     ImageType type,
     FilterMode filter_mode,
+    UniquePtr<StreamedData> &&streamed_data,
+    ImageFlags flags
+) : Image(
+        extent,
+        format,
+        type,
+        filter_mode,
+        { },
+        std::move(streamed_data),
+        flags
+    )
+{
+}
+
+Image<Platform::VULKAN>::Image(
+    Extent3D extent,
+    InternalFormat format,
+    ImageType type,
+    FilterMode filter_mode,
     const InternalInfo &internal_info,
     UniquePtr<StreamedData> &&streamed_data,
     ImageFlags flags
@@ -30,11 +49,14 @@ Image<Platform::VULKAN>::Image(
     m_internal_info(internal_info),
     m_image(nullptr),
     m_is_blended(false),
+    m_is_rw_texture(false),
+    m_is_attachment_texture(false),
     m_streamed_data(std::move(streamed_data)),
     m_bpp(NumComponents(GetBaseFormat(format))),
+    m_num_layers(1),
     m_flags(flags)
 {
-    m_size = m_extent.width * m_extent.height * m_extent.depth * m_bpp * NumFaces();
+    m_size = GetByteSize();
 }
 
 Image<Platform::VULKAN>::Image(Image &&other) noexcept
@@ -44,17 +66,23 @@ Image<Platform::VULKAN>::Image(Image &&other) noexcept
       m_filter_mode(other.m_filter_mode),
       m_internal_info(other.m_internal_info),
       m_is_blended(other.m_is_blended),
+      m_is_rw_texture(other.m_is_rw_texture),
+      m_is_attachment_texture(other.m_is_attachment_texture),
       m_image(other.m_image),
       m_size(other.m_size),
       m_bpp(other.m_bpp),
       m_streamed_data(std::move(other.m_streamed_data)),
+      m_num_layers(other.m_num_layers),
       m_flags(other.m_flags)
 {
     other.m_image = nullptr;
     other.m_is_blended = false;
+    other.m_is_rw_texture = false;
+    other.m_is_attachment_texture = false;
     other.m_size = 0;
     other.m_bpp = 0;
     other.m_extent = Extent3D { };
+    other.m_num_layers = 1;
 }
 
 Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexcept
@@ -65,17 +93,23 @@ Image<Platform::VULKAN> &Image<Platform::VULKAN>::operator=(Image &&other) noexc
     m_filter_mode = other.m_filter_mode;
     m_internal_info = other.m_internal_info;
     m_is_blended = other.m_is_blended;
+    m_is_rw_texture = other.m_is_rw_texture;
+    m_is_attachment_texture = other.m_is_attachment_texture;
     m_image = other.m_image;
     m_size = other.m_size;
     m_bpp = other.m_bpp;
-    m_streamed_data = std::move(other.m_streamed_data),
+    m_streamed_data = std::move(other.m_streamed_data);
+    m_num_layers = other.m_num_layers;
     m_flags = other.m_flags;
 
     other.m_image = nullptr;
     other.m_is_blended = false;
+    other.m_is_rw_texture = false;
+    other.m_is_attachment_texture = false;
     other.m_size = 0;
     other.m_bpp = 0;
     other.m_extent = Extent3D { };
+    other.m_num_layers = 1;
 
     return *this;
 }
@@ -135,6 +169,23 @@ Result Image<Platform::VULKAN>::CreateImage(
     VkImageCreateFlags image_create_flags = 0;
     VkFormatFeatureFlags format_features = 0;
     VkImageFormatProperties image_format_properties{};
+
+    m_internal_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+
+    if (m_is_attachment_texture) {
+        m_internal_info.usage_flags |= (IsDepthStencil() ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+            | VK_IMAGE_USAGE_SAMPLED_BIT
+            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
+    }
+
+    if (m_is_rw_texture) {
+        m_internal_info.usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
+            | VK_IMAGE_USAGE_STORAGE_BIT
+            | VK_IMAGE_USAGE_SAMPLED_BIT;
+    } else {
+        m_internal_info.usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+            | VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
 
     if (HasMipmaps()) {
         /* Mipmapped image needs linear blitting. */
@@ -252,7 +303,7 @@ Result Image<Platform::VULKAN>::CreateImage(
     image_info.usage = m_internal_info.usage_flags;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_info.flags = image_create_flags; // TODO: look into flags for sparse s for VCT
+    image_info.flags = image_create_flags;
     image_info.pQueueFamilyIndices = image_family_indices;
     image_info.queueFamilyIndexCount = UInt32(std::size(image_family_indices));
 
@@ -297,6 +348,12 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
     StagingBuffer<Platform::VULKAN> staging_buffer;
 
     if (HasAssignedImageData()) {
+        auto loaded_data = m_streamed_data->Load();
+        AssertThrow(m_size == loaded_data.Size());
+
+        AssertThrowMsg(m_size % m_bpp == 0, "Invalid image size");
+        AssertThrowMsg((m_size / m_bpp) % NumFaces() == 0, "Invalid image size");
+
         HYPERION_PASS_ERRORS(staging_buffer.Create(device, m_size), result);
 
         if (!result) {
@@ -305,7 +362,7 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
             return result;            
         }
 
-        staging_buffer.Copy(device, m_size, m_streamed_data->Load().Data());
+        staging_buffer.Copy(device, m_size, loaded_data.Data());
 
         commands.Push([&](const CommandBufferRef_VULKAN &command_buffer) {
             m_image->InsertBarrier(
@@ -318,12 +375,19 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
         });
 
         // copy from staging to image
-        const auto num_faces = NumFaces();
+        const UInt num_faces = NumFaces();
+        const UInt buffer_offset_step = UInt(m_size) / num_faces;
 
-        UInt buffer_offset_step = static_cast<UInt>(m_size) / num_faces;
+        AssertThrowMsg(m_size % buffer_offset_step == 0, "Invalid image size");
+        AssertThrowMsg(m_size / buffer_offset_step == num_faces, "Invalid image size");
 
         for (UInt i = 0; i < num_faces; i++) {
-            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef_VULKAN &command_buffer) {
+            commands.Push([this, &staging_buffer, &image_info, i, buffer_offset_step](const CommandBufferRef_VULKAN &command_buffer)
+            {
+                volatile UInt buffer_size = staging_buffer.size;
+                volatile UInt buffer_offset_step_ = buffer_offset_step;
+                volatile UInt total_size = m_size;
+
                 VkBufferImageCopy region { };
                 region.bufferOffset = i * buffer_offset_step;
                 region.bufferRowLength = 0;
@@ -354,7 +418,8 @@ Result Image<Platform::VULKAN>::Create(Device<Platform::VULKAN> *device, Instanc
 
             /* Generate our mipmaps
             */
-            commands.Push([this, device](const CommandBufferRef_VULKAN &command_buffer) {
+            commands.Push([this, device](const CommandBufferRef_VULKAN &command_buffer)
+            {
                 return GenerateMipmaps(device, command_buffer);
             });
         }

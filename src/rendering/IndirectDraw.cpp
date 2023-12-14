@@ -31,27 +31,27 @@ struct RENDER_COMMAND(CreateIndirectRenderer) : renderer::RenderCommand
 
             // global object data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-                ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffers()[frame_index].get());
+                ->SetElementBuffer(g_engine->GetRenderData()->objects.GetBuffers()[frame_index].get());
 
             // global scene data
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(1)
-                ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<SceneShaderData>(g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
 
             // current camera
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(2)
-                ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<CameraShaderData>(g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
 
             // instances buffer
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-                ->SetElementBuffer(0, indirect_renderer.m_indirect_draw_state.GetInstanceBuffer(frame_index));
+                ->SetElementBuffer(indirect_renderer.m_indirect_draw_state.GetInstanceBuffer(frame_index));
 
             // indirect commands
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(4)
-                ->SetElementBuffer(0, indirect_renderer.m_indirect_draw_state.GetIndirectBuffer(frame_index));
+                ->SetElementBuffer(indirect_renderer.m_indirect_draw_state.GetIndirectBuffer(frame_index));
 
             // entity batches
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(5)
-                ->SetElementBuffer(0, g_engine->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get());
+                ->SetElementBuffer(g_engine->GetRenderData()->entity_instance_batches.GetBuffers()[frame_index].get());
 
             // depth pyramid image (set to placeholder)
             indirect_renderer.m_descriptor_sets[frame_index]->AddDescriptor<renderer::ImageDescriptor>(6)

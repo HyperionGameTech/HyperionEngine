@@ -106,6 +106,9 @@ public:
     UInt GetID() const
         { return m_id; }
 
+    Bool IsCreated() const
+        { return m_is_created; }
+
     void *GetMapping(Device<Platform::VULKAN> *device) const
     {
         if (!map) {
@@ -134,6 +137,7 @@ protected:
     void Destroy();
 
     UInt m_id;
+    Bool m_is_created;
 
     UInt sharing_mode;
     mutable void *map;

@@ -45,6 +45,15 @@ public:
         InternalFormat format,
         ImageType type,
         FilterMode filter_mode,
+        UniquePtr<StreamedData> &&streamed_data,
+        ImageFlags flags = IMAGE_FLAGS_NONE
+    );
+
+    Image(
+        Extent3D extent,
+        InternalFormat format,
+        ImageType type,
+        FilterMode filter_mode,
         const InternalInfo &internal_info,
         UniquePtr<StreamedData> &&streamed_data,
         ImageFlags flags = IMAGE_FLAGS_NONE
@@ -104,11 +113,23 @@ public:
     ) const;
 
     ByteBuffer ReadBack(Device<Platform::VULKAN> *device, Instance<Platform::VULKAN> *instance) const;
-    
+
+    Bool IsRWTexture() const
+        { return m_is_rw_texture; }
+
+    void SetIsRWTexture(bool is_rw_texture)
+        { m_is_rw_texture = is_rw_texture; }
+
+    Bool IsAttachmentTexture() const
+        { return m_is_attachment_texture; }
+
+    void SetIsAttachmentTexture(bool is_attachment_texture)
+        { m_is_attachment_texture = is_attachment_texture; }
+
     const StreamedData *GetStreamedData() const
         { return m_streamed_data.Get(); }
 
-    bool HasAssignedImageData() const
+    Bool HasAssignedImageData() const
         { return m_streamed_data != nullptr && !m_streamed_data->IsNull(); }
 
     void CopyImageData(const ByteBuffer &byte_buffer)
@@ -121,8 +142,8 @@ public:
         m_streamed_data.Reset(new MemoryStreamedData(ByteBuffer(count, data + offset)));
     }
 
-    bool IsDepthStencil() const;
-    bool IsSRGB() const;
+    Bool IsDepthStencil() const;
+    Bool IsSRGB() const;
     void SetIsSRGB(bool srgb);
 
     bool IsBlended() const
@@ -131,7 +152,7 @@ public:
     void SetIsBlended(bool is_blended)
         { m_is_blended = is_blended; }
 
-    bool HasMipmaps() const
+    Bool HasMipmaps() const
     {
         return m_filter_mode == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
             || m_filter_mode == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
@@ -149,20 +170,42 @@ public:
         for the image data even if the result is non-zero. To check if any CPU-side bytes exist,
         use HasAssignedImageData(). */
     SizeType GetByteSize() const
-        { return static_cast<SizeType>(m_extent.Size())
-            * static_cast<SizeType>(NumComponents(m_format))
-            * static_cast<SizeType>(NumFaces()); }
+        { return m_extent.Size()
+            * SizeType(NumComponents(m_format))
+            * SizeType(NumFaces()); }
 
-    bool IsTextureCube() const
+    Bool IsTextureCube() const
         { return m_type == ImageType::TEXTURE_TYPE_CUBEMAP; }
 
-    bool IsPanorama() const
+    Bool IsPanorama() const
         { return m_type == ImageType::TEXTURE_TYPE_2D
             && m_extent.width == m_extent.height * 2
             && m_extent.depth == 1; }
 
+    Bool IsTextureArray() const
+        { return !IsTextureCube() && m_num_layers > 1; }
+
+    Bool IsTexture3D() const
+        { return m_type == ImageType::TEXTURE_TYPE_3D; }
+
+    Bool IsTexture2D() const
+        { return m_type == ImageType::TEXTURE_TYPE_2D; }
+
+    UInt NumLayers() const
+        { return m_num_layers; }
+
+    void SetNumLayers(UInt num_layers)
+    {
+        m_num_layers = num_layers;
+        m_size = GetByteSize();
+    }
+
     UInt NumFaces() const
-        { return IsTextureCube() ? 6 : 1; }
+        { return IsTextureCube()
+            ? 6
+            : IsTextureArray()
+                ? m_num_layers
+                : 1; }
 
     FilterMode GetFilterMode() const
         { return m_filter_mode; }
@@ -213,6 +256,9 @@ private:
     UniquePtr<StreamedData>             m_streamed_data;
 
     Bool                                m_is_blended;
+    UInt                                m_num_layers;
+    Bool                                m_is_rw_texture;
+    Bool                                m_is_attachment_texture;
 
     InternalInfo                        m_internal_info;
 
@@ -258,19 +304,14 @@ public:
         FilterMode filter_mode,
         UniquePtr<StreamedData> &&streamed_data = nullptr
     ) : Image<Platform::VULKAN>(
-        extent,
-        format,
-        type,
-        filter_mode,
-        Image::InternalInfo {
-            .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT /* allow readback */
-                | VK_IMAGE_USAGE_STORAGE_BIT
-                | VK_IMAGE_USAGE_SAMPLED_BIT
-        },
-        std::move(streamed_data)
-    )
+            extent,
+            format,
+            type,
+            filter_mode,
+            std::move(streamed_data)
+        )
     {
+        SetIsRWTexture(true);
     }
 
     StorageImage(const StorageImage &other) = delete;
@@ -376,11 +417,6 @@ public:
         format,
         type,
         filter_mode,
-        Image::InternalInfo{
-            .tiling      = VK_IMAGE_TILING_OPTIMAL,
-            .usage_flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
-                         | VK_IMAGE_USAGE_SAMPLED_BIT
-        },
         std::move(streamed_data)
     )
     {
@@ -529,16 +565,10 @@ public:
             format,
             type,
             FilterMode::TEXTURE_FILTER_NEAREST,
-            Image::InternalInfo {
-                .tiling = VK_IMAGE_TILING_OPTIMAL,
-                .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
-                    ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-                    | VK_IMAGE_USAGE_SAMPLED_BIT
-                    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
-            },
             std::move(streamed_data)
         )
     {
+        SetIsAttachmentTexture(true);
     }
 
     FramebufferImage(
@@ -551,16 +581,10 @@ public:
             format,
             type,
             filter_mode,
-            Image::InternalInfo {
-                .tiling = VK_IMAGE_TILING_OPTIMAL,
-                .usage_flags = VkImageUsageFlags((GetBaseFormat(format) == BaseFormat::TEXTURE_FORMAT_DEPTH
-                    ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-                    | VK_IMAGE_USAGE_SAMPLED_BIT
-                    | VK_IMAGE_USAGE_TRANSFER_SRC_BIT /* for mip chain */)
-            },
             nullptr
         )
     {
+        SetIsAttachmentTexture(true);
     }
 };
 

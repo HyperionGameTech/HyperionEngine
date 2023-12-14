@@ -168,6 +168,24 @@ public:
         return this;
     }
 
+    template <class Buffer>
+    Descriptor *SetElementBuffer(const GPUBuffer *buffer)
+    {
+        AssertThrowMsg(
+            IsDescriptorTypeDynamicBuffer(m_descriptor_type),
+            "Descriptor type must be a dynamic buffer to use this method"
+        );
+        
+        SubDescriptor element;
+        element.element_index = 0;
+        element.buffer = buffer;
+        element.range = UInt32(sizeof(Buffer));
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
     Descriptor *SetElementBuffer(UInt index, const GPUBuffer *buffer)
     {
         AssertThrowMsg(
@@ -177,6 +195,23 @@ public:
 
         SubDescriptor element;
         element.element_index = index;
+        element.buffer = buffer;
+        element.range = 0;
+
+        SetSubDescriptor(std::move(element));
+
+        return this;
+    }
+
+    Descriptor *SetElementBuffer(const GPUBuffer *buffer)
+    {
+        AssertThrowMsg(
+            IsDescriptorTypeBuffer(m_descriptor_type) && !IsDescriptorTypeDynamicBuffer(m_descriptor_type),
+            "Descriptor type must be a buffer (non-dynamic) to use this method"
+        );
+
+        SubDescriptor element;
+        element.element_index = 0;
         element.buffer = buffer;
         element.range = 0;
 

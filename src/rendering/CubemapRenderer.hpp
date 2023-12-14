@@ -41,9 +41,9 @@ public:
         const BoundingBox &aabb
     );
 
-    CubemapRenderer(const CubemapRenderer &other) = delete;
-    CubemapRenderer &operator=(const CubemapRenderer &other) = delete;
-    ~CubemapRenderer();
+    CubemapRenderer(const CubemapRenderer &other)               = delete;
+    CubemapRenderer &operator=(const CubemapRenderer &other)    = delete;
+    virtual ~CubemapRenderer();
 
     Handle<EnvProbe> &GetEnvProbe() { return m_env_probe; }
     const Handle<EnvProbe> &GetEnvProbe() const { return m_env_probe; }

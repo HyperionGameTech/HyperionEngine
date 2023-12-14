@@ -493,15 +493,7 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::SH_CLIPMAPS)
-            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.clipmaps[0].image_view)
-            ->SetElementSRV(1, shader_globals->spherical_harmonics_grid.clipmaps[1].image_view)
-            ->SetElementSRV(2, shader_globals->spherical_harmonics_grid.clipmaps[2].image_view)
-            ->SetElementSRV(3, shader_globals->spherical_harmonics_grid.clipmaps[3].image_view)
-            ->SetElementSRV(4, shader_globals->spherical_harmonics_grid.clipmaps[4].image_view)
-            ->SetElementSRV(5, shader_globals->spherical_harmonics_grid.clipmaps[5].image_view)
-            ->SetElementSRV(6, shader_globals->spherical_harmonics_grid.clipmaps[6].image_view)
-            ->SetElementSRV(7, shader_globals->spherical_harmonics_grid.clipmaps[7].image_view)
-            ->SetElementSRV(8, shader_globals->spherical_harmonics_grid.clipmaps[8].image_view);
+            ->SetElementSRV(0, shader_globals->spherical_harmonics_grid.clipmap_texture->GetImageView());
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER)

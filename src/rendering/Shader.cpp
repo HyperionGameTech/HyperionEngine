@@ -73,7 +73,7 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : renderer::Rend
 
     virtual Result operator()()
     {
-        // @TODO: Make GPU only
+        // @TODO: Make GPU only buffer
         HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create(g_engine->GetGPUDevice(), sizeof(SHGridBuffer)));
         sh_grid_buffer->Memset(g_engine->GetGPUDevice(), sizeof(SHGridBuffer), 0);
 
@@ -101,33 +101,11 @@ struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : renderer::Rend
     }
 };
 
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps) : renderer::RenderCommand
-{
-    FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
-    
-    RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps)(const FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> &grid_textures)
-        : grid_textures(grid_textures)
-    {
-    }
-
-    virtual Result operator()()
-    {
-        for (auto &item : grid_textures) {
-            HYPERION_BUBBLE_ERRORS(item.image->Create(g_engine->GetGPUDevice()));
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create(g_engine->GetGPUDevice(), item.image));
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 #pragma endregion
 
 GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
 {
-    {
-        sh_grid_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
-    }
+    sh_grid_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STORAGE_BUFFER);
 
     {
         const UInt dimension_cube = 32;//UInt(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
@@ -147,19 +125,20 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
     }
 
     { // clipmaps
-        const Extent3D image_dimensions { 32, 32, 32 };
+        // 32 x 32 x 32 expressed as 2d -- width is longer to compensate
+        const Extent2D image_dimensions { 32 * 32, 32 };
 
-        for (auto &item : clipmaps) {
-            item.image = MakeRenderObject<Image>(StorageImage(
-                image_dimensions,
-                InternalFormat::RGBA16F,
-                ImageType::TEXTURE_TYPE_3D,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(image_dimensions.Size() * sizeof(Float) * 4))
-            ));
+        clipmap_texture = CreateObject<Texture>(TextureArray(
+            image_dimensions,
+            InternalFormat::RGBA8,
+            FilterMode::TEXTURE_FILTER_LINEAR,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            9
+        ));
 
-            item.image_view = MakeRenderObject<ImageView>();
-        }
+        clipmap_texture->GetImage()->SetIsRWTexture(true);
+
+        InitObject(clipmap_texture);
     }
 }
 
@@ -167,7 +146,6 @@ void GlobalSphericalHarmonicsGrid::Create()
 {
     PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer, sh_grid_buffer);
     PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages, textures);
-    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsClipmaps, clipmaps);
 }
 
 void GlobalSphericalHarmonicsGrid::Destroy()
@@ -179,10 +157,7 @@ void GlobalSphericalHarmonicsGrid::Destroy()
         SafeRelease(std::move(item.image_view));
     }
 
-    for (auto &item : clipmaps) {
-        SafeRelease(std::move(item.image));
-        SafeRelease(std::move(item.image_view));
-    }
+    clipmap_texture.Reset();
 }
 
 ShaderGlobals::ShaderGlobals()

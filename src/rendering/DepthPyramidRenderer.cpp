@@ -72,41 +72,34 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
         m_depth_pyramid_mips.PushBack(std::move(mip_image_view));
     }
 
+    auto shader = g_shader_manager->GetOrCreate(HYP_NAME(GenerateDepthPyramid), { });
+    const renderer::DescriptorTable descriptor_table = shader->GetCompiledShader().GetDefinition().GetDescriptorUsages().BuildDescriptorTable();
+
+    const renderer::DescriptorSetDeclaration *depth_pyramid_descriptor_set_decl = descriptor_table.FindDescriptorSetDeclaration(HYP_NAME(DepthPyramidDescriptorSet));
+    AssertThrow(depth_pyramid_descriptor_set_decl != nullptr);
+    
     for (UInt i = 0; i < max_frames_in_flight; i++) {
         for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
             // create descriptor sets for depth pyramid generation.
-            DescriptorSetRef depth_pyramid_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
+            DescriptorSetRef depth_pyramid_descriptor_set = MakeRenderObject<renderer::DescriptorSet>(*depth_pyramid_descriptor_set_decl);
 
-            /* Depth pyramid - generated w/ compute shader */
-            auto *depth_pyramid_in = depth_pyramid_descriptor_set
-                ->AddDescriptor<renderer::ImageDescriptor>(0);
+            auto *depth_pyramid_in = depth_pyramid_descriptor_set->GetDescriptorByName(HYP_NAME(InImage));
+            AssertThrow(depth_pyramid_in != nullptr);
 
             if (mip_level == 0) {
                 // first mip level -- input is the actual depth image
-                depth_pyramid_in->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = depth_attachment_usage->GetImageView()
-                });
+                depth_pyramid_in->SetElementSRV(0, depth_attachment_usage->GetImageView());
             } else {
-                depth_pyramid_in->SetSubDescriptor({
-                    .element_index = 0u,
-                    .image_view = m_depth_pyramid_mips[mip_level - 1]
-                });
+                depth_pyramid_in->SetElementSRV(0, m_depth_pyramid_mips[mip_level - 1]);
             }
 
-            auto *depth_pyramid_out = depth_pyramid_descriptor_set
-                ->AddDescriptor<renderer::StorageImageDescriptor>(1);
+            auto *depth_pyramid_out = depth_pyramid_descriptor_set->GetDescriptorByName(HYP_NAME(OutImage));
+            AssertThrow(depth_pyramid_out != nullptr);
+            depth_pyramid_out->SetElementUAV(0, m_depth_pyramid_mips[mip_level]);
 
-            depth_pyramid_out->SetSubDescriptor({
-                .element_index = 0u,
-                .image_view = m_depth_pyramid_mips[mip_level]
-            });
-
-            depth_pyramid_descriptor_set
-                ->AddDescriptor<renderer::SamplerDescriptor>(2)
-                ->SetSubDescriptor({
-                    .sampler = m_depth_pyramid_sampler
-                });
+            auto *depth_pyramid_sampler = depth_pyramid_descriptor_set->GetDescriptorByName(HYP_NAME(DepthPyramidSampler));
+            AssertThrow(depth_pyramid_sampler != nullptr);
+            depth_pyramid_sampler->SetElementSampler(0, m_depth_pyramid_sampler);
 
             HYPERION_ASSERT_RESULT(depth_pyramid_descriptor_set->Create(
                 g_engine->GetGPUDevice(),
@@ -118,7 +111,7 @@ void DepthPyramidRenderer::Create(const AttachmentUsage *depth_attachment_usage)
     }
     // create compute pipeline for rendering depth image
     m_generate_depth_pyramid = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(GenerateDepthPyramid)),
+        shader,
         Array<DescriptorSetRef> { m_depth_pyramid_descriptor_sets[0].Front() } // only need to pass first to use for layout.
     );
 

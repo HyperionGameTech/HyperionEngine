@@ -175,7 +175,8 @@ GPUMemory<Platform::VULKAN>::GPUMemory()
       size(0),
       map(nullptr),
       resource_state(ResourceState::UNDEFINED),
-      allocation(VK_NULL_HANDLE)
+      allocation(VK_NULL_HANDLE),
+      m_is_created(false)
 {
     static UInt allocations = 0;
 
@@ -188,13 +189,15 @@ GPUMemory<Platform::VULKAN>::GPUMemory(GPUMemory &&other) noexcept
       size(other.size),
       map(other.map),
       resource_state(other.resource_state),
-      allocation(other.allocation)
+      allocation(other.allocation),
+      m_is_created(other.m_is_created)
 {
     other.m_id = 0;
     other.size = 0;
     other.map = nullptr;
     other.resource_state = ResourceState::UNDEFINED;
     other.allocation = VK_NULL_HANDLE;
+    other.m_is_created = false;
 }
 
 GPUMemory<Platform::VULKAN>::~GPUMemory()
@@ -252,11 +255,15 @@ void GPUMemory<Platform::VULKAN>::Read(Device<Platform::VULKAN> *device, SizeTyp
 void GPUMemory<Platform::VULKAN>::Create()
 {
     stats.IncMemoryUsage(size);
+
+    m_is_created = true;
 }
 
 void GPUMemory<Platform::VULKAN>::Destroy()
 {
     stats.DecMemoryUsage(size);
+
+    m_is_created = false;
 }
 
 static VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)

@@ -137,6 +137,46 @@ public:
     }
 };
 
+class TextureArray : public Texture
+{
+public:
+    TextureArray(
+        Extent2D extent,
+        InternalFormat format,
+        FilterMode filter_mode,
+        WrapMode wrap_mode,
+        UInt num_layers
+    ) : Texture(
+            Extent3D(extent),
+            format,
+            ImageType::TEXTURE_TYPE_2D,
+            filter_mode,
+            wrap_mode,
+            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * num_layers * NumComponents(format)))
+        )
+    {
+        m_image->SetNumLayers(num_layers);
+    }
+
+    UInt NumLayers() const
+    {
+        return m_image->NumLayers();
+    }
+
+    void SetNumLayers(UInt num_layers)
+    {
+        m_image->SetNumLayers(num_layers);
+    }
+
+    void SetLayer(UInt layer, const ByteBuffer &data)
+    {
+        AssertThrowMsg(layer < NumLayers(), "layer index out of bounds");
+        AssertThrowMsg(data.Size() == m_image->GetExtent().Size() * NumComponents(m_image->GetTextureFormat()), "data size does not match texture size");
+
+        Memory::MemCpy(m_image->GetStreamedData()->Load().Data() + layer * m_image->GetExtent().Size() * NumComponents(m_image->GetTextureFormat()), data.Data(), data.Size());
+    }
+};
+
 class TextureCube : public Texture
 {
 public:

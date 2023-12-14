@@ -106,8 +106,17 @@ VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format)
         : VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
-VkImageViewType ToVkImageViewType(ImageType type)
+VkImageViewType ToVkImageViewType(ImageType type, Bool is_array)
 {
+    if (is_array) {
+        switch (type) {
+        case ImageType::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        case ImageType::TEXTURE_TYPE_CUBEMAP: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        }
+
+        AssertThrowMsg(false, "Unhandled texture type case %d", int(type));
+    }
+
     switch (type) {
     case ImageType::TEXTURE_TYPE_2D:      return VK_IMAGE_VIEW_TYPE_2D;
     case ImageType::TEXTURE_TYPE_3D:      return VK_IMAGE_VIEW_TYPE_3D;

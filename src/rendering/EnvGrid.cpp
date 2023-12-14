@@ -13,10 +13,10 @@ using renderer::Result;
 
 static const Extent2D num_tiles = { 4, 4 };
 static const Extent2D sh_probe_dimensions = Extent2D { 16, 16 };
-static const Extent2D light_field_probe_dimensions = Extent2D { 32, 32 };
+static const Extent2D light_field_probe_dimensions = Extent2D { 128, 128 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
-static const UInt light_field_probe_packed_octahedron_size = 16;
+static const UInt light_field_probe_packed_octahedron_size = 128;
 static const UInt light_field_probe_packed_border_size = 2;
 
 static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
@@ -641,7 +641,7 @@ void EnvGrid::CreateSHData()
 {
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_SH);
 
-    m_sh_tiles_buffer = MakeRenderObject<GPUBuffer>(StorageBuffer());
+    m_sh_tiles_buffer = MakeRenderObject<GPUBuffer>(GPUBufferType::STORAGE_BUFFER);
     
     PUSH_RENDER_COMMAND(
         CreateSHData,
@@ -658,10 +658,10 @@ void EnvGrid::CreateSHData()
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(2)
-            ->SetElementBuffer(0, m_sh_tiles_buffer);
+            ->SetElementBuffer(m_sh_tiles_buffer);
 
         m_compute_sh_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageBufferDescriptor>(3)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
+            ->SetElementBuffer(g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer);
     }
 
     PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_compute_sh_descriptor_sets);
@@ -702,15 +702,7 @@ void EnvGrid::CreateSHClipmapData()
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
 
         m_compute_clipmaps_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(2)
-            ->SetElementUAV(0, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[0].image_view)
-            ->SetElementUAV(1, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[1].image_view)
-            ->SetElementUAV(2, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[2].image_view)
-            ->SetElementUAV(3, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[3].image_view)
-            ->SetElementUAV(4, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[4].image_view)
-            ->SetElementUAV(5, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[5].image_view)
-            ->SetElementUAV(6, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[6].image_view)
-            ->SetElementUAV(7, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[7].image_view)
-            ->SetElementUAV(8, g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps[8].image_view);
+            ->SetElementUAV(0, g_engine->GetRenderData()->spherical_harmonics_grid.clipmap_texture->GetImageView());
 
         // gbuffer textures
         m_compute_clipmaps_descriptor_sets[frame_index]
@@ -724,7 +716,7 @@ void EnvGrid::CreateSHClipmapData()
 
         // camera buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
-            ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(5)
+            ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
             ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer(frame_index).get());
 
         // env grid buffer (dynamic)
@@ -757,10 +749,10 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
 
     const auto &camera = g_engine->GetRenderState().GetCamera();
     
-    const auto &clipmaps = g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps;
+    const Handle<Texture> &clipmap_texture = g_engine->GetRenderData()->spherical_harmonics_grid.clipmap_texture;
+    AssertThrow(clipmap_texture.IsValid());
 
-    AssertThrow(clipmaps[0].image.IsValid());
-    const Extent3D &clipmap_extent = clipmaps[0].image->GetExtent();
+    const Extent3D &clipmap_extent = clipmap_texture->GetExtent();
 
     struct alignas(128) {
         ShaderVec4<UInt32> clipmap_dimensions;
@@ -770,9 +762,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
     push_constants.clipmap_dimensions = { clipmap_extent[0], clipmap_extent[1], clipmap_extent[2], 0 };
     push_constants.cage_center_world = Vector4(camera.camera.position, 1.0f);
 
-    for (auto &texture : g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps) {
-        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-    }
+    clipmap_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     g_engine->GetRenderData()->spherical_harmonics_grid.sh_grid_buffer->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
@@ -798,9 +788,7 @@ void EnvGrid::ComputeClipmaps(Frame *frame)
         }
     );
 
-    for (auto &texture : g_engine->GetRenderData()->spherical_harmonics_grid.clipmaps) {
-        texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    }
+    clipmap_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
 }
 
 void EnvGrid::CreateLightFieldData()
@@ -1103,8 +1091,7 @@ void EnvGrid::ComputeSH(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_clear_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * id.ToIndex())}
+        0
     );
 
     m_clear_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
@@ -1116,8 +1103,7 @@ void EnvGrid::ComputeSH(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_compute_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * id.ToIndex())}
+        0
     );
 
     m_compute_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
@@ -1131,8 +1117,7 @@ void EnvGrid::ComputeSH(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_finalize_sh->GetPipeline(),
         m_compute_sh_descriptor_sets[frame->GetFrameIndex()],
-        0,
-        FixedArray { UInt32(sizeof(SH9Buffer) * id.ToIndex())}
+        0
     );
 
     m_finalize_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
@@ -1226,35 +1211,44 @@ void EnvGrid::ComputeLightFieldData(
     );
 
     m_pack_light_field_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_pack_light_field_probe->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
-
-    // Copy border texels for irradiance image
-
-    m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_copy_light_field_border_texels_irradiance->GetPipeline(),
-        m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
-        0
+    m_pack_light_field_probe->GetPipeline()->Dispatch(
+        frame->GetCommandBuffer(),
+        Extent3D {
+            (light_field_probe_packed_octahedron_size + 31) / 32,
+            (light_field_probe_packed_octahedron_size + 31) / 32,
+            1
+        }
     );
 
-    m_copy_light_field_border_texels_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_copy_light_field_border_texels_irradiance->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+    // Temporarily commented out because I am increasing the size of the images to test
 
-    // Copy border texels for depth image
+    // // Copy border texels for irradiance image
 
-    m_light_field_depth_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    // m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
-    frame->GetCommandBuffer()->BindDescriptorSet(
-        g_engine->GetGPUInstance()->GetDescriptorPool(),
-        m_copy_light_field_border_texels_depth->GetPipeline(),
-        m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
-        0
-    );
+    // frame->GetCommandBuffer()->BindDescriptorSet(
+    //     g_engine->GetGPUInstance()->GetDescriptorPool(),
+    //     m_copy_light_field_border_texels_irradiance->GetPipeline(),
+    //     m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
+    //     0
+    // );
 
-    m_copy_light_field_border_texels_depth->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-    m_copy_light_field_border_texels_depth->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+    // m_copy_light_field_border_texels_irradiance->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+    // m_copy_light_field_border_texels_irradiance->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+
+    // // Copy border texels for depth image
+
+    // m_light_field_depth_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    // frame->GetCommandBuffer()->BindDescriptorSet(
+    //     g_engine->GetGPUInstance()->GetDescriptorPool(),
+    //     m_copy_light_field_border_texels_depth->GetPipeline(),
+    //     m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
+    //     0
+    // );
+
+    // m_copy_light_field_border_texels_depth->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+    // m_copy_light_field_border_texels_depth->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
 
     m_light_field_color_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_normals_texture.image->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);

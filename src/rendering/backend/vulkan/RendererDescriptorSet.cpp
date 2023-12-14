@@ -1264,14 +1264,46 @@ void Descriptor::UpdateSubDescriptorBuffer(
     VkWriteDescriptorSetAccelerationStructureKHR &out_acceleration_structure
 ) const
 {
+    static constexpr UInt buffer_type_mapping[UInt(DescriptorType::MAX)] = {
+        0,
+        (1u << UInt(GPUBufferType::CONSTANT_BUFFER)),                 // UNIFORM_BUFFER
+        (1u << UInt(GPUBufferType::CONSTANT_BUFFER)),                 // UNIFORM_BUFFER_DYNAMIC
+        (1u << UInt(GPUBufferType::STORAGE_BUFFER))
+            | (1u << UInt(GPUBufferType::ATOMIC_COUNTER))
+            | (1u << UInt(GPUBufferType::STAGING_BUFFER))
+            | (1u << UInt(GPUBufferType::INDIRECT_ARGS_BUFFER)),      // STORAGE_BUFFER
+        
+        (1u << UInt(GPUBufferType::STORAGE_BUFFER))
+            | (1u << UInt(GPUBufferType::ATOMIC_COUNTER))
+            | (1u << UInt(GPUBufferType::STAGING_BUFFER))
+            | (1u << UInt(GPUBufferType::INDIRECT_ARGS_BUFFER)),      // STORAGE_BUFFER_DYNAMIC
+        0,                            // IMAGE
+        0,                            // SAMPLER
+        0,                            // IMAGE_SAMPLER
+        0,                            // IMAGE_STORAGE
+        (1u << UInt(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER))    // ACCELERATION_STRUCTURE
+    };
+
     switch (m_descriptor_type) {
     case DescriptorType::UNIFORM_BUFFER: /* fallthrough */
     case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
     case DescriptorType::STORAGE_BUFFER:
     case DescriptorType::STORAGE_BUFFER_DYNAMIC:
         AssertThrow(sub_descriptor.buffer != nullptr);
-        AssertThrow(sub_descriptor.buffer->buffer != nullptr);
+        AssertThrow(sub_descriptor.buffer->IsCreated());
 
+        AssertThrowMsg(
+            buffer_type_mapping[UInt(m_descriptor_type)] & (1u << UInt(sub_descriptor.buffer->GetBufferType())),
+            "Descriptor type mismatch for descriptor at binding %u: descriptor type is %u but buffer type is %u. %08x does not match mask %08x",
+            GetBinding(),
+            UInt(m_descriptor_type),
+            UInt(sub_descriptor.buffer->GetBufferType()),
+            1u << UInt(sub_descriptor.buffer->GetBufferType()),
+            UInt(buffer_type_mapping[UInt(m_descriptor_type)])
+        );
+
+        AssertThrow(sub_descriptor.buffer->buffer != nullptr);
+        
         out_buffer = {
             .buffer = sub_descriptor.buffer->buffer,
             .offset = 0,
@@ -1352,7 +1384,7 @@ UInt Descriptor::SetSubDescriptor(SubDescriptor &&sub_descriptor)
         sub_descriptor.element_index = m_sub_descriptors.Empty() ? 0 : m_sub_descriptors.Back().first + 1;
     }
 
-    const auto element_index = sub_descriptor.element_index;
+    const UInt element_index = sub_descriptor.element_index;
 
     m_sub_descriptors[element_index] = sub_descriptor;
 

@@ -9,13 +9,12 @@
 
 #include <Engine.hpp>
 #include <rendering/Atomics.hpp>
-#include <scene/animation/Bone.hpp>
-#include <rendering/rt/AccelerationStructureBuilder.hpp>
-#include <rendering/rt/ProbeSystem.hpp>
 #include <scene/controllers/AudioController.hpp>
 #include <scene/controllers/FollowCameraController.hpp>
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/ShadowMapController.hpp>
+#include <scene/controllers/EnvGridController.hpp>
+#include <rendering/CubemapRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
@@ -38,6 +37,7 @@
 #include <scene/terrain/controllers/TerrainPagingController.hpp>
 
 #include <rendering/vct/VoxelConeTracing.hpp>
+#include <rendering/render_components/ScreenCapture.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
 #include <scene/camera/CameraTrackController.hpp>
@@ -79,88 +79,6 @@ static void CollectMeshes(NodeProxy node, Array<Pair<Handle<Mesh>, Transform>> &
         CollectMeshes(child, out);
     }
 }
-
-class FramebufferCaptureRenderComponent : public RenderComponent<FramebufferCaptureRenderComponent>
-{
-    Extent2D        m_window_size;
-    Handle<Texture> m_texture;
-    GPUBufferRef    m_buffer;
-
-public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SLOT6;
-
-    FramebufferCaptureRenderComponent(const Extent2D window_size)
-        : RenderComponent(),
-          m_window_size(window_size)
-    {
-    }
-
-    virtual ~FramebufferCaptureRenderComponent() = default;
-
-    const GPUBufferRef &GetBuffer() const
-        { return m_buffer; }
-
-    const Handle<Texture> &GetTexture() const
-        { return m_texture; }
-
-    void Init()
-    {
-        m_texture = CreateObject<Texture>(Texture2D(
-            m_window_size,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        ));
-
-        InitObject(m_texture);
-
-        m_buffer = MakeRenderObject<GPUBuffer>(renderer::GPUBufferType::STAGING_BUFFER);
-        HYPERION_ASSERT_RESULT(m_buffer->Create(g_engine->GetGPUDevice(), m_texture->GetImage()->GetByteSize()));
-        m_buffer->SetResourceState(renderer::ResourceState::COPY_DST);
-        m_buffer->GetMapping(g_engine->GetGPUDevice());
-    }
-
-    void InitGame()
-    {
-        
-    }
-
-    void OnRemoved()
-    {
-        SafeRelease(std::move(m_buffer));
-    }
-    
-    void OnUpdate(GameCounter::TickUnit delta)
-    {
-        // Do nothing
-    }
-
-    void OnRender(Frame *frame)
-    {
-        auto &deferred_renderer = g_engine->GetDeferredRenderer();
-
-        const FinalPass &final_pass = g_engine->GetFinalPass();
-        const ImageRef &image_ref = final_pass.GetLastFrameImage();//deferred_renderer.GetCombinedResult()->GetAttachment()->GetImage();//final_pass.GetAttachments()[0]->GetImage();
-        AssertThrow(image_ref.IsValid());
-        
-        auto *command_buffer = frame->GetCommandBuffer();
-
-        image_ref->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
-
-        image_ref->CopyToBuffer(
-            command_buffer,
-            m_buffer
-        );
-        
-        m_buffer->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-    }
-
-private:
-    virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
-        { }
-};
 
 
 
@@ -296,7 +214,19 @@ void SampleStreamer::InitGame()
         m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
     }
 
-    m_scene->GetEnvironment()->AddRenderComponent<FramebufferCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
+    // Add grid of environment probes to capture indirect lighting
+    auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
+    env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-40.0f, -20.0f, -40.0f), Vector3(40.0f, 20.0f, 40.0f)));
+    env_grid_entity->AddController<EnvGridController>();
+    GetScene()->AddEntity(env_grid_entity);
+
+    // Add a reflection probe
+    m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
+        HYP_NAME(ReflectionProbe0),
+        BoundingBox(BoundingBox(Vector3(-40.0f, -2.0f, -40.0f), Vector3(40.0f, 30.0f, 40.0f)))
+    );
+
+    m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
     {
         auto sun = CreateObject<Entity>();
@@ -342,6 +272,7 @@ void SampleStreamer::InitGame()
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
+            // node.Scale(3.5f);
             node.Scale(0.01f);
             
             if (node) {
@@ -387,22 +318,6 @@ void SampleStreamer::InitGame()
 
     //     m_asset_batches.Insert(HYP_NAME(TestVoxelizerModel), std::move(batch));
     // }
-
-    if (false) {
-        auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model_model", "models/test_model/test_model.obj");
-
-        batch->GetCallbacks().On(ASSET_BATCH_ITEM_COMPLETE, [](AssetBatchCallbackData data)
-        {
-            const String &key = data.GetAssetKey();
-            
-            DebugLog(LogType::Debug, "Asset %s loaded\n", key.Data());
-        });
-
-        batch->LoadAsync();
-
-        m_asset_batches.Insert(HYP_NAME(TestRevitModel), std::move(batch));
-    }
 }
 
 void SampleStreamer::InitRender()
@@ -713,11 +628,6 @@ void SampleStreamer::HandleCompletedAssetBatch(Name name, const RC<AssetBatch> &
                 }
             }
         }
-    } else if (name == HYP_NAME(TestRevitModel)) {
-        auto node = loaded_assets["test_model_model"].ExtractAs<Node>();
-        // node.Scale(0.1f);
-
-        GetScene()->GetRoot().AddChild(node);
     }
 }
 
@@ -844,10 +754,10 @@ void SampleStreamer::OnFrameEnd(Frame *frame)
     }
 
     if (m_rtc_stream) {
-        const FramebufferCaptureRenderComponent *framebuffer_capture = m_scene->GetEnvironment()->GetRenderComponent<FramebufferCaptureRenderComponent>(HYP_NAME(StreamingCapture));
+        const ScreenCaptureRenderComponent *screen_capture = m_scene->GetEnvironment()->GetRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture));
 
-        if (framebuffer_capture) {
-            const GPUBufferRef &gpu_buffer_ref = framebuffer_capture->GetBuffer();
+        if (screen_capture) {
+            const GPUBufferRef &gpu_buffer_ref = screen_capture->GetBuffer();
 
             if (gpu_buffer_ref.IsValid()) {
                 if (m_screen_buffer.Size() != gpu_buffer_ref->size) {

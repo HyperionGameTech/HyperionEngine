@@ -39,7 +39,8 @@ struct GlobalSphericalHarmonicsGrid
     FixedArray<GridTexture, 9> textures;
 
     GPUBufferRef sh_grid_buffer;
-    FixedArray<GridTexture, 9> clipmaps;
+
+    Handle<Texture> clipmap_texture;
 
     GlobalSphericalHarmonicsGrid();
 

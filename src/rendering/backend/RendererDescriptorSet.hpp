@@ -47,7 +47,8 @@ enum class DescriptorType
     SAMPLER,
     IMAGE_SAMPLER,
     IMAGE_STORAGE,
-    ACCELERATION_STRUCTURE
+    ACCELERATION_STRUCTURE,
+    MAX
 };
 
 enum class DescriptorKey
