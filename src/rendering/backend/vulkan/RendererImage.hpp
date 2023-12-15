@@ -172,6 +172,7 @@ public:
     SizeType GetByteSize() const
         { return m_extent.Size()
             * SizeType(NumComponents(m_format))
+            * SizeType(NumBytes(m_format))
             * SizeType(NumFaces()); }
 
     Bool IsTextureCube() const

@@ -187,6 +187,53 @@ static inline UInt NumComponents(InternalFormat format)
     return NumComponents(GetBaseFormat(format));
 }
 
+static inline UInt NumBytes(InternalFormat format)
+{
+    switch (format) {
+    case InternalFormat::R8:
+    case InternalFormat::R8_SRGB:
+    case InternalFormat::RG8:
+    case InternalFormat::RG8_SRGB:
+    case InternalFormat::RGB8:
+    case InternalFormat::RGB8_SRGB:
+    case InternalFormat::BGR8_SRGB:
+    case InternalFormat::RGBA8:
+    case InternalFormat::RGBA8_SRGB:
+    case InternalFormat::BGRA8:
+    case InternalFormat::BGRA8_SRGB:
+        return 1;
+    case InternalFormat::R16:
+    case InternalFormat::RG16:
+    case InternalFormat::RGB16:
+    case InternalFormat::RGBA16:
+    case InternalFormat::DEPTH_16:
+        return 2;
+    case InternalFormat::R32:
+    case InternalFormat::RG32:
+    case InternalFormat::RGB32:
+    case InternalFormat::RGBA32:
+    case InternalFormat::R32_:
+    case InternalFormat::RG16_:
+    case InternalFormat::R11G11B10F:
+    case InternalFormat::R10G10B10A2:
+    case InternalFormat::DEPTH_24:
+    case InternalFormat::DEPTH_32F:
+        return 4;
+    case InternalFormat::R16F:
+    case InternalFormat::RG16F:
+    case InternalFormat::RGB16F:
+    case InternalFormat::RGBA16F:
+        return 2;
+    case InternalFormat::R32F:
+    case InternalFormat::RG32F:
+    case InternalFormat::RGB32F:
+    case InternalFormat::RGBA32F:
+        return 4;
+    default:
+        return 0; // undefined result
+    }
+}
+
 /*! \brief returns a texture format that has a shifted bytes-per-pixel count
  * e.g calling with RGB16 and num components = 4 --> RGBA16 */
 static inline InternalFormat FormatChangeNumComponents(InternalFormat fmt, UInt8 new_num_components)

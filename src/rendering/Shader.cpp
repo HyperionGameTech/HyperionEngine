@@ -1,5 +1,6 @@
-#include "Shader.hpp"
-#include "../Engine.hpp"
+#include <rendering/Shader.hpp>
+#include <Engine.hpp>
+#include <util/MiscUtil.hpp>
 
 namespace hyperion::v2 {
 
@@ -125,8 +126,9 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
     }
 
     { // clipmaps
-        // 32 x 32 x 32 expressed as 2d -- width is longer to compensate
-        const Extent2D image_dimensions { 32 * 32, 32 };
+        // 32 x 32 x 32 expressed as 2d
+        const Extent3D probe_cage_size { 32, 32, 32 };
+        const Extent2D image_dimensions = ReshapeExtent(probe_cage_size);
 
         clipmap_texture = CreateObject<Texture>(TextureArray(
             image_dimensions,

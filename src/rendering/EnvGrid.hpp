@@ -193,9 +193,9 @@ private:
     Handle<ComputePipeline> m_copy_light_field_border_texels_depth;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_light_field_probe_descriptor_sets;
 
-    LightFieldStorageImage m_light_field_color_texture;
-    LightFieldStorageImage m_light_field_normals_texture;
-    LightFieldStorageImage m_light_field_depth_texture;
+    Handle<Texture> m_light_field_color_texture;
+    Handle<Texture> m_light_field_normals_texture;
+    Handle<Texture> m_light_field_depth_texture;
 
     Queue<UInt> m_next_render_indices;
 };

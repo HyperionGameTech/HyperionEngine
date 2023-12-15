@@ -152,7 +152,7 @@ public:
             ImageType::TEXTURE_TYPE_2D,
             filter_mode,
             wrap_mode,
-            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * num_layers * NumComponents(format)))
+            UniquePtr<MemoryStreamedData>::Construct(ByteBuffer(extent.Size() * num_layers * NumComponents(format) * NumBytes(format)))
         )
     {
         m_image->SetNumLayers(num_layers);
