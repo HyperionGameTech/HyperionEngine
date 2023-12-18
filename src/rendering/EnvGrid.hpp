@@ -191,11 +191,19 @@ private:
     Handle<ComputePipeline> m_pack_light_field_probe;
     Handle<ComputePipeline> m_copy_light_field_border_texels_irradiance;
     Handle<ComputePipeline> m_copy_light_field_border_texels_depth;
+    Handle<ComputePipeline> m_voxelize_probe;
+    Handle<ComputePipeline> m_generate_voxel_grid_mipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_light_field_probe_descriptor_sets;
 
     Handle<Texture> m_light_field_color_texture;
     Handle<Texture> m_light_field_normals_texture;
     Handle<Texture> m_light_field_depth_texture;
+    Handle<Texture> m_light_field_lowres_color_texture;
+    Handle<Texture> m_light_field_lowres_depth_texture;
+    Handle<Texture> m_voxel_grid_texture;
+
+    Array<ImageViewRef> m_voxel_grid_mips;
+    Array<DescriptorSetRef> m_generate_voxel_grid_mipmaps_descriptor_sets;
 
     Queue<UInt> m_next_render_indices;
 };

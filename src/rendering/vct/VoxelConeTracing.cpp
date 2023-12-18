@@ -355,7 +355,7 @@ void VoxelConeTracing::CreateImagesAndBuffers()
 
             // create image views for each mip level
             if constexpr (vct_manual_mipmap_generation) {
-                const auto num_mip_levels = vct.m_voxel_image->GetImage()->NumMipmaps();
+                const UInt num_mip_levels = vct.m_voxel_image->GetImage()->NumMipmaps();
 
                 for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                     for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {

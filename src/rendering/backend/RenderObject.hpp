@@ -552,9 +552,11 @@ static inline void DeferCreate(RefType ref, Args &&... args)
 {
     struct RENDER_COMMAND(CreateRenderObject) : renderer::RenderCommand
     {
-        using ArgsTuple = std::tuple<Args...>;
+        using ArgsTuple = std::tuple<std::decay_t<Args>...>;
+
         RefType     ref;
         ArgsTuple   args;
+
         RENDER_COMMAND(CreateRenderObject)(RefType &&ref, Args &&... args)
             : ref(std::move(ref)),
               args(std::forward<Args>(args)...)

@@ -16,6 +16,12 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> DeferredSystem::gbuffer_
         })
     },
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_NORMALS) }, // world-space normals (untextured)
+    GBufferResource {
+        GBufferFormat(Array<InternalFormat> {
+            InternalFormat::RGBA32F,
+            InternalFormat::RGBA16F
+        })
+    }, // world-space positions.
     GBufferResource { GBufferFormat(TEXTURE_FORMAT_DEFAULT_DEPTH) } // depth
 };
 

@@ -161,9 +161,7 @@ void Scene::Init()
     if (m_env_probes.Any()) {
         // enqueue bind for all in bulk
         Array<Pair<ID<EnvProbe>, EnvProbeType>> items;
-            
-        ID<EnvProbe> *env_probe_ids = new ID<EnvProbe>[m_env_probes.Size()];
-        SizeType index = 0;
+        items.Reserve(m_env_probes.Size());
 
         for (auto &it : m_env_probes) {
             if (!it.second->IsControlledByEnvGrid()) {

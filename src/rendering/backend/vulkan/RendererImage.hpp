@@ -162,7 +162,7 @@ public:
     UInt NumMipmaps() const
     {
         return HasMipmaps()
-            ? static_cast<UInt>(MathUtil::FastLog2(MathUtil::Max(m_extent.width, m_extent.height, m_extent.depth))) + 1
+            ? UInt(MathUtil::FastLog2(MathUtil::Max(m_extent.width, m_extent.height, m_extent.depth))) + 1
             : 1;
     }
 

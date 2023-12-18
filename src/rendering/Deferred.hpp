@@ -68,10 +68,16 @@ private:
     const bool m_is_indirect_pass;
 };
 
+enum EnvGridPassMode
+{
+    ENV_GRID_PASS_MODE_RADIANCE,
+    ENV_GRID_PASS_MODE_IRRADIANCE
+};
+
 class EnvGridPass : public FullScreenPass
 {
 public:
-    EnvGridPass();
+    EnvGridPass(EnvGridPassMode mode);
     EnvGridPass(const EnvGridPass &other) = delete;
     EnvGridPass &operator=(const EnvGridPass &other) = delete;
     virtual ~EnvGridPass() override;
@@ -79,6 +85,9 @@ public:
     void CreateShader();
     virtual void Create() override;
     virtual void Record(UInt frame_index) override;
+
+private:
+    const EnvGridPassMode m_mode;
 };
 
 class ReflectionProbePass : public FullScreenPass
@@ -158,7 +167,8 @@ private:
     DeferredPass m_indirect_pass;
     DeferredPass m_direct_pass;
 
-    EnvGridPass m_env_grid_pass;
+    EnvGridPass m_env_grid_radiance_pass;
+    EnvGridPass m_env_grid_irradiance_pass;
     ReflectionProbePass m_reflection_probe_pass;
 
     PostProcessing m_post_processing;

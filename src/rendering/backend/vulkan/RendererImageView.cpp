@@ -69,6 +69,9 @@ Result ImageView<Platform::VULKAN>::Create(
     view_info.subresourceRange.baseArrayLayer = face_layer;
     view_info.subresourceRange.layerCount = m_num_faces;
 
+    // AssertThrowMsg(mipmap_layer < num_mipmaps, "mipmap layer out of bounds");
+    // AssertThrowMsg(face_layer < m_num_faces, "face layer out of bounds");
+
     HYPERION_VK_CHECK_MSG(
         vkCreateImageView(device->GetDevice(), &view_info, nullptr, &m_image_view),
         "Failed to create image view"

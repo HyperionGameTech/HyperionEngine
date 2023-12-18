@@ -242,8 +242,9 @@ void DeferredPass::Render(Frame *frame)
 
 // ===== Env Grid Pass Begin =====
 
-EnvGridPass::EnvGridPass()
-    : FullScreenPass(InternalFormat::RGBA16F)
+EnvGridPass::EnvGridPass(EnvGridPassMode mode)
+    : FullScreenPass(InternalFormat::RGBA16F),
+      m_mode(mode)
 {
 }
 
@@ -252,6 +253,17 @@ EnvGridPass::~EnvGridPass() = default;
 void EnvGridPass::CreateShader()
 {
     ShaderProperties properties { };
+
+    switch (m_mode) {
+    case EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE:
+        properties.Set("MODE_RADIANCE");
+
+        break;
+    case EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE:
+        properties.Set("MODE_IRRADIANCE");
+
+        break;
+    }
     
     m_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(ApplyEnvGrid),
@@ -444,7 +456,9 @@ void ReflectionProbePass::Record(UInt frame_index)
 
 DeferredRenderer::DeferredRenderer()
     : m_indirect_pass(true),
-      m_direct_pass(false)
+      m_direct_pass(false),
+      m_env_grid_radiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_RADIANCE),
+      m_env_grid_irradiance_pass(EnvGridPassMode::ENV_GRID_PASS_MODE_IRRADIANCE)
 {
 }
 
@@ -454,7 +468,9 @@ void DeferredRenderer::Create()
 {
     Threads::AssertOnThread(THREAD_RENDER);
     
-    m_env_grid_pass.Create();
+    m_env_grid_radiance_pass.Create();
+    m_env_grid_irradiance_pass.Create();
+
     m_reflection_probe_pass.Create();
 
     m_post_processing.Create();
@@ -569,7 +585,11 @@ void DeferredRenderer::CreateDescriptorSets()
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_IRRADIANCE_ACCUM)
-            ->SetElementSRV(0, m_env_grid_pass.GetAttachmentUsage(0)->GetImageView());
+            ->SetElementSRV(0, m_env_grid_irradiance_pass.GetAttachmentUsage(0)->GetImageView());
+
+        descriptor_set_globals
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RADIANCE)
+            ->SetElementSRV(0, m_env_grid_radiance_pass.GetAttachmentUsage(0)->GetImageView());
 
         descriptor_set_globals
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_REFLECTION_PROBE)
@@ -629,7 +649,9 @@ void DeferredRenderer::Destroy()
 
     m_combine_pass->Destroy();
 
-    m_env_grid_pass.Destroy();
+    m_env_grid_irradiance_pass.Destroy();
+    m_env_grid_radiance_pass.Destroy();
+
     m_reflection_probe_pass.Destroy();
 
     m_mip_chain.Reset();
@@ -660,6 +682,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_hbao = g_engine->GetConfig().Get(CONFIG_HBAO);
     const bool use_hbil = g_engine->GetConfig().Get(CONFIG_HBIL);
     const bool use_env_grid_irradiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI);
+    const bool use_env_grid_radiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS);
     const bool use_reflection_probes = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
     const bool use_temporal_aa = g_engine->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
 
@@ -721,11 +744,19 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     // end opaque objs
 
     if (use_env_grid_irradiance) { // submit env grid command buffer
-        DebugMarker marker(primary, "Apply env grid");
+        DebugMarker marker(primary, "Apply env grid irradiance");
 
-        m_env_grid_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_pass.Record(frame_index);
-        m_env_grid_pass.Render(frame);
+        m_env_grid_irradiance_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_irradiance_pass.Record(frame_index);
+        m_env_grid_irradiance_pass.Render(frame);
+    }
+
+    if (use_env_grid_radiance) { // submit env grid command buffer
+        DebugMarker marker(primary, "Apply env grid radiance");
+
+        m_env_grid_radiance_pass.SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_radiance_pass.Record(frame_index);
+        m_env_grid_radiance_pass.Render(frame);
     }
 
     if (use_reflection_probes) { // submit reflection probes command buffer

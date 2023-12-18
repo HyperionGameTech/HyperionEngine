@@ -506,6 +506,18 @@ void Engine::Initialize(RC<Application> application)
         descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER)
             ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_COLOR_BUFFER_LOWRES)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_VOXEL_GRID)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView3D1x1x1R8());
     }
 
     // add placeholder scene data
@@ -662,6 +674,10 @@ void Engine::Initialize(RC<Application> application)
 
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_IRRADIANCE_ACCUM)
+                ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::DEFERRED_RADIANCE)
                 ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
 
             descriptor_set_globals

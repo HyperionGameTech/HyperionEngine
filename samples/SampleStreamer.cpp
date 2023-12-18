@@ -259,22 +259,26 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");
+        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//living_room/living_room.obj");//sponza/sponza.obj");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
-            node.Scale(3.5f);
-            // node.Scale(0.01f);
+            node.Scale(3.0f);
+            // node.Scale(0.005f);
+
+            // Add reflection probe
+            // m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(HYP_NAME(CubemapRenderer0), node.GetWorldAABB());
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
+            // env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-25.0f), Vector3(25.0f)));
             env_grid_entity->SetLocalAABB(node.GetWorldAABB());
             env_grid_entity->AddController<EnvGridController>();
             GetScene()->AddEntity(env_grid_entity);
-            
+
             if (node) {
                 DebugLog(LogType::Debug, "Adding test model\n");
                 GetScene()->GetRoot().AddChild(std::move(node));

@@ -16,6 +16,7 @@ static const Extent2D sh_probe_dimensions = Extent2D { 16, 16 };
 static const Extent2D light_field_probe_dimensions = Extent2D { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
+static const UInt light_field_probe_lowres_packed_octahedron_size = 16;
 static const UInt light_field_probe_packed_octahedron_size = 256;
 static const UInt light_field_probe_packed_border_size = 2;
 
@@ -110,6 +111,24 @@ struct RENDER_COMMAND(CreateEnvGridDescriptorSets) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(CreateVoxelGridMipDescriptorSets) : renderer::RenderCommand
+{
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    RENDER_COMMAND(CreateVoxelGridMipDescriptorSets)(FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets)
+        : descriptor_sets(std::move(descriptor_sets))
+    {
+    }
+
+    virtual Result operator()()
+    {
+        for (auto &descriptor_set : descriptor_sets) {
+            HYPERION_BUBBLE_ERRORS(descriptor_set->Create(g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool()));
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
 
 struct RENDER_COMMAND(CreateLightFieldStorageImages) : renderer::RenderCommand
 {
@@ -139,11 +158,23 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
     ImageViewRef light_field_color_image_view;
     ImageViewRef light_field_normals_image_view;
     ImageViewRef light_field_depth_image_view;
+    ImageViewRef light_field_color_lowres_image_view;
+    ImageViewRef light_field_depth_lowres_image_view;
+    ImageViewRef light_field_voxel_grid_image_view;
 
-    RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet)(ImageViewRef light_field_color_image_view, ImageViewRef light_field_normals_image_view, ImageViewRef light_field_depth_image_view)
-        : light_field_color_image_view(std::move(light_field_color_image_view)),
-          light_field_normals_image_view(std::move(light_field_normals_image_view)),
-          light_field_depth_image_view(std::move(light_field_depth_image_view))
+    RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet)(
+        ImageViewRef light_field_color_image_view,
+        ImageViewRef light_field_normals_image_view,
+        ImageViewRef light_field_depth_image_view,
+        ImageViewRef light_field_color_lowres_image_view,
+        ImageViewRef light_field_depth_lowres_image_view,
+        ImageViewRef light_field_voxel_grid_image_view
+    ) : light_field_color_image_view(std::move(light_field_color_image_view)),
+        light_field_normals_image_view(std::move(light_field_normals_image_view)),
+        light_field_depth_image_view(std::move(light_field_depth_image_view)),
+        light_field_color_lowres_image_view(std::move(light_field_color_lowres_image_view)),
+        light_field_depth_lowres_image_view(std::move(light_field_depth_lowres_image_view)),
+        light_field_voxel_grid_image_view(std::move(light_field_voxel_grid_image_view))
     {
     }
 
@@ -164,6 +195,18 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER)
                 ->SetElementSRV(0, light_field_depth_image_view);
+            
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_COLOR_BUFFER_LOWRES)
+                ->SetElementSRV(0, light_field_color_lowres_image_view);
+            
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
+                ->SetElementSRV(0, light_field_depth_lowres_image_view);
+            
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_VOXEL_GRID)
+                ->SetElementSRV(0, light_field_voxel_grid_image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -175,7 +218,7 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
 EnvGrid::EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &density)
     : RenderComponent(),
       m_type(type),
-      m_aabb(aabb),
+      m_aabb(Vector3(aabb.min.Min()), Vector3(aabb.max.Max())),
       m_density(density),
       m_current_probe_index(0),
       m_flags(ENV_GRID_FLAGS_RESET_REQUESTED)
@@ -368,7 +411,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(probe_dimensions.width), Int(probe_dimensions.height),
-            0.001f, m_aabb.GetRadius()//size_of_probe.Max() * 0.5f//(m_aabb * (Vector3::one / Vector3(m_density))).GetRadius() + 2.0f
+            0.001f, size_of_probe.Max() * 0.5f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -430,9 +473,20 @@ void EnvGrid::OnRemoved()
             SetLightFieldBuffersInGlobalDescriptorSet,
             ImageViewRef::unset,
             ImageViewRef::unset,
+            ImageViewRef::unset,
+            ImageViewRef::unset,
+            ImageViewRef::unset,
             ImageViewRef::unset
         );
+
     }
+
+    SafeRelease(std::move(m_light_field_probe_descriptor_sets));
+
+    SafeRelease(std::move(m_compute_sh_descriptor_sets));
+
+    SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_sets));
+    SafeRelease(std::move(m_voxel_grid_mips));
 }
 
 void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
@@ -453,7 +507,7 @@ void EnvGrid::OnUpdate(GameCounter::TickUnit delta)
             MeshAttributes { },
             MaterialAttributes {
                 .bucket = BUCKET_INTERNAL,
-                .cull_faces = FaceCullMode::BACK,
+                .cull_faces = FaceCullMode::NONE
                 // .flags = MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_NONE
             },
             m_ambient_shader->GetCompiledShader().GetDefinition(),
@@ -804,6 +858,13 @@ void EnvGrid::CreateLightFieldData()
               (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
           };
 
+    const Extent2D lowres_extent = light_field_use_texture_array
+        ? Extent2D { light_field_probe_lowres_packed_octahedron_size, light_field_probe_lowres_packed_octahedron_size }
+        : Extent2D {
+              (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.width * m_density.height + light_field_probe_packed_border_size,
+              (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
+          };
+
     if constexpr (light_field_use_texture_array) {
         m_light_field_color_texture = CreateObject<Texture>(TextureArray(
             extent,
@@ -823,7 +884,6 @@ void EnvGrid::CreateLightFieldData()
     }
 
     m_light_field_color_texture->GetImage()->SetIsRWTexture(true);
-
     InitObject(m_light_field_color_texture);
 
     if constexpr (light_field_use_texture_array) {
@@ -845,7 +905,6 @@ void EnvGrid::CreateLightFieldData()
     }
 
     m_light_field_normals_texture->GetImage()->SetIsRWTexture(true);
-
     InitObject(m_light_field_normals_texture);
 
     if constexpr (light_field_use_texture_array) {
@@ -867,11 +926,62 @@ void EnvGrid::CreateLightFieldData()
     }
 
     m_light_field_depth_texture->GetImage()->SetIsRWTexture(true);
-
     InitObject(m_light_field_depth_texture);
 
-    // Descriptor sets
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_lowres_color_texture = CreateObject<Texture>(TextureArray(
+            lowres_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_lowres_color_texture = CreateObject<Texture>(Texture2D(
+            lowres_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
 
+    m_light_field_lowres_color_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_lowres_color_texture);
+
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_lowres_depth_texture = CreateObject<Texture>(TextureArray(
+            lowres_extent,
+            InternalFormat::R32F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_lowres_depth_texture = CreateObject<Texture>(Texture2D(
+            lowres_extent,
+            InternalFormat::R32F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
+
+    m_light_field_lowres_depth_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_lowres_depth_texture);
+
+    m_voxel_grid_texture = CreateObject<Texture>(Texture3D(
+        Extent3D { 256, 256, 256 },
+        InternalFormat::RGBA16F,
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_voxel_grid_texture);
+
+    // Descriptor sets
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_light_field_probe_descriptor_sets[frame_index] = MakeRenderObject<DescriptorSet>();
 
@@ -898,9 +1008,59 @@ void EnvGrid::CreateLightFieldData()
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(7)
             ->SetElementUAV(0, m_light_field_depth_texture->GetImageView());
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(8)
+            ->SetElementUAV(0, m_light_field_lowres_color_texture->GetImageView());
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
+            ->SetElementUAV(0, m_light_field_lowres_depth_texture->GetImageView());
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(10)
+            ->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(11)
+            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+
+        m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(12)
+            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
     }
 
     PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_light_field_probe_descriptor_sets);
+
+    { // Voxel Grid descriptor sets
+        const UInt num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
+
+        for (UInt mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
+            m_voxel_grid_mips[mip_level] = MakeRenderObject<renderer::ImageView>();
+
+            // create descriptor sets for mip generation.
+            DescriptorSetRef mip_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
+
+            auto *mip_in = mip_descriptor_set
+                ->AddDescriptor<renderer::ImageDescriptor>(0);
+
+            if (mip_level == 0) {
+                // first mip level -- input is the actual image
+                mip_in->SetElementSRV(0, m_voxel_grid_texture->GetImageView());
+            } else {
+                mip_in->SetElementSRV(0, m_voxel_grid_mips[mip_level - 1]);
+            }
+
+            auto *mip_out = mip_descriptor_set
+                ->AddDescriptor<renderer::StorageImageDescriptor>(1);
+
+            mip_out->SetElementUAV(0, m_voxel_grid_mips[mip_level]);
+
+            mip_descriptor_set
+                ->AddDescriptor<renderer::SamplerDescriptor>(2)
+                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+
+            // DeferCreate(mip_descriptor_set, g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool());
+
+            m_generate_voxel_grid_mipmaps_descriptor_sets.PushBack(std::move(mip_descriptor_set));
+        }
+    }
 
     // Compute shader to pack rendered textures into the large grid
 
@@ -927,12 +1087,49 @@ void EnvGrid::CreateLightFieldData()
 
     InitObject(m_copy_light_field_border_texels_depth);
 
+    // Compute shader to voxelize a probe into voxel grid
+
+    m_voxelize_probe = CreateObject<ComputePipeline>(
+        g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {}),
+        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+    );
+
+    InitObject(m_voxelize_probe);
+
+    { // Compute shader to generate mipmaps for voxel grid
+        m_generate_voxel_grid_mipmaps = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap)),
+            Array<DescriptorSetRef> { m_generate_voxel_grid_mipmaps_descriptor_sets[0] } // only need to pass first to use for layout.
+        );
+
+        for (UInt mip_level = 0; mip_level < m_voxel_grid_texture->GetImage()->NumMipmaps(); mip_level++) {
+            DeferCreate(
+                m_voxel_grid_mips[mip_level],
+                g_engine->GetGPUDevice(), 
+                m_voxel_grid_texture->GetImage(),
+                mip_level, 1,
+                0, m_voxel_grid_texture->GetImage()->NumFaces()
+            );
+
+            DeferCreate(
+                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
+            );
+        }
+
+        InitObject(m_generate_voxel_grid_mipmaps);
+    }
+
     // Update global desc sets
     PUSH_RENDER_COMMAND(
         SetLightFieldBuffersInGlobalDescriptorSet,
         m_light_field_color_texture->GetImageView(),
         m_light_field_normals_texture->GetImageView(),
-        m_light_field_depth_texture->GetImageView()
+        m_light_field_depth_texture->GetImageView(),
+        m_light_field_lowres_color_texture->GetImageView(),
+        m_light_field_lowres_depth_texture->GetImageView(),
+        m_voxel_grid_texture->GetImageView()
     );
 }
 
@@ -982,7 +1179,7 @@ void EnvGrid::CreateFramebuffer()
             1,
             MakeRenderObject<Image>(renderer::FramebufferImageCube(
                 probe_dimensions,
-                InternalFormat::RG8,
+                InternalFormat::RG16F,
                 nullptr
             )),
             RenderPassStage::SHADER,
@@ -1199,6 +1396,7 @@ void EnvGrid::ComputeLightFieldData(
         ShaderVec4<UInt32> probe_grid_position;
         ShaderVec4<UInt32> cubemap_dimensions;
         ShaderVec4<UInt32> probe_offset_coord;
+        ShaderVec4<UInt32> probe_offset_coord_lowres;
         ShaderVec2<UInt32> grid_dimensions;
     } push_constants;
 
@@ -1229,6 +1427,13 @@ void EnvGrid::ComputeLightFieldData(
         0
     };
 
+    push_constants.probe_offset_coord_lowres = {
+        (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
+        (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z,
+        probe->m_grid_slot,
+        0
+    };
+
     push_constants.grid_dimensions = {
         (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * (m_density.width * m_density.height) + light_field_probe_packed_border_size,
         (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
@@ -1237,12 +1442,19 @@ void EnvGrid::ComputeLightFieldData(
     m_light_field_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_normals_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_light_field_lowres_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandBuffer()->BindDescriptorSet(
         g_engine->GetGPUInstance()->GetDescriptorPool(),
         m_pack_light_field_probe->GetPipeline(),
         m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
-        0
+        0,
+        FixedArray {
+            HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+        }
     );
 
     m_pack_light_field_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
@@ -1288,6 +1500,96 @@ void EnvGrid::ComputeLightFieldData(
     m_light_field_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_normals_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_light_field_lowres_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    
+    { // Voxelize probe
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
+            m_voxelize_probe->GetPipeline(),
+            m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
+            0,
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+            }
+        );
+
+        m_voxelize_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+        m_voxelize_probe->GetPipeline()->Dispatch(
+            frame->GetCommandBuffer(), 
+            Extent3D {
+                (light_field_probe_dimensions.width + 31) / 32,
+                (light_field_probe_dimensions.height + 31) / 32,
+                1
+            }
+        );
+    }
+
+    { // Generate mipmaps for the voxel grid
+
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+
+        const UInt num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
+        Extent3D mip_extent = voxel_image_extent;
+
+        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+            const Extent3D prev_mip_extent = mip_extent;
+
+            mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
+            mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);
+            mip_extent.depth = MathUtil::Max(1u, voxel_image_extent.depth >> mip_level);
+        
+            if (mip_level != 0) {
+                // put the mip into writeable state
+                m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+                    frame->GetCommandBuffer(),
+                    renderer::ImageSubResource { .base_mip_level = mip_level },
+                    renderer::ResourceState::UNORDERED_ACCESS
+                );
+            }
+
+            frame->GetCommandBuffer()->BindDescriptorSet(
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
+                m_generate_voxel_grid_mipmaps->GetPipeline(),
+                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
+                DescriptorSet::Index(0)
+            );
+
+            m_generate_voxel_grid_mipmaps->GetPipeline()->Bind(
+                frame->GetCommandBuffer(),
+                Pipeline::PushConstantData {
+                    .voxel_mip_data = {
+                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(mip_extent), 0),
+                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(prev_mip_extent), 0),
+                        .mip_level = mip_level
+                    }
+                }
+            );
+            
+            // dispatch to generate this mip level
+            m_generate_voxel_grid_mipmaps->GetPipeline()->Dispatch(
+                frame->GetCommandBuffer(),
+                Extent3D {
+                    (mip_extent.width + 7) / 8,
+                    (mip_extent.height + 7) / 8,
+                    (mip_extent.depth + 7) / 8
+                }
+            );
+
+            // put this mip into readable state
+            m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+                frame->GetCommandBuffer(),
+                renderer::ImageSubResource { .base_mip_level = mip_level },
+                renderer::ResourceState::SHADER_RESOURCE
+            );
+        }
+
+        // all mip levels have been transitioned into this state
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->SetResourceState(
+            renderer::ResourceState::SHADER_RESOURCE
+        );
+    }
 }
 
 } // namespace hyperion::v2
