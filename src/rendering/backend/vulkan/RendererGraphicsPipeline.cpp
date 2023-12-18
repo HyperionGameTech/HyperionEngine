@@ -380,6 +380,7 @@ Result GraphicsPipeline<Platform::VULKAN>::Rebuild(Device<Platform::VULKAN> *dev
     VkGraphicsPipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
     auto &stages = m_construction_info.shader->GetShaderStages();
+    AssertThrowMsg(stages.Any(), "No shader stages found");
 
     pipeline_info.stageCount          = UInt32(stages.Size());
     pipeline_info.pStages             = stages.Data();

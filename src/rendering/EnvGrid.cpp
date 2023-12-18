@@ -17,7 +17,8 @@ static const Extent2D light_field_probe_dimensions = Extent2D { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
 static const UInt light_field_probe_lowres_packed_octahedron_size = 16;
-static const UInt light_field_probe_packed_octahedron_size = 256;
+static const UInt light_field_probe_radiance_packed_octahedron_size = 256;
+static const UInt light_field_probe_irradiance_packed_octahedron_size = 64;
 static const UInt light_field_probe_packed_border_size = 2;
 
 static constexpr Bool light_field_use_texture_array = false;
@@ -158,7 +159,7 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
     ImageViewRef light_field_color_image_view;
     ImageViewRef light_field_normals_image_view;
     ImageViewRef light_field_depth_image_view;
-    ImageViewRef light_field_color_lowres_image_view;
+    ImageViewRef light_field_irradiance_image_view;
     ImageViewRef light_field_depth_lowres_image_view;
     ImageViewRef light_field_voxel_grid_image_view;
 
@@ -166,13 +167,13 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
         ImageViewRef light_field_color_image_view,
         ImageViewRef light_field_normals_image_view,
         ImageViewRef light_field_depth_image_view,
-        ImageViewRef light_field_color_lowres_image_view,
+        ImageViewRef light_field_irradiance_image_view,
         ImageViewRef light_field_depth_lowres_image_view,
         ImageViewRef light_field_voxel_grid_image_view
     ) : light_field_color_image_view(std::move(light_field_color_image_view)),
         light_field_normals_image_view(std::move(light_field_normals_image_view)),
         light_field_depth_image_view(std::move(light_field_depth_image_view)),
-        light_field_color_lowres_image_view(std::move(light_field_color_lowres_image_view)),
+        light_field_irradiance_image_view(std::move(light_field_irradiance_image_view)),
         light_field_depth_lowres_image_view(std::move(light_field_depth_lowres_image_view)),
         light_field_voxel_grid_image_view(std::move(light_field_voxel_grid_image_view))
     {
@@ -197,8 +198,8 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
                 ->SetElementSRV(0, light_field_depth_image_view);
             
             descriptor_set_globals
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_COLOR_BUFFER_LOWRES)
-                ->SetElementSRV(0, light_field_color_lowres_image_view);
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
+                ->SetElementSRV(0, light_field_irradiance_image_view);
             
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
@@ -218,7 +219,7 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
 EnvGrid::EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &density)
     : RenderComponent(),
       m_type(type),
-      m_aabb(Vector3(aabb.min.Min()), Vector3(aabb.max.Max())),
+      m_aabb(aabb),
       m_density(density),
       m_current_probe_index(0),
       m_flags(ENV_GRID_FLAGS_RESET_REQUESTED)
@@ -851,11 +852,18 @@ void EnvGrid::CreateLightFieldData()
 {
     AssertThrow(GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    const Extent2D extent = light_field_use_texture_array
-        ? Extent2D { light_field_probe_packed_octahedron_size, light_field_probe_packed_octahedron_size }
+    const Extent2D radiance_extent = light_field_use_texture_array
+        ? Extent2D { light_field_probe_radiance_packed_octahedron_size, light_field_probe_radiance_packed_octahedron_size }
         : Extent2D {
-              (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.width * m_density.height + light_field_probe_packed_border_size,
-              (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
+              (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.width * m_density.height + light_field_probe_packed_border_size,
+              (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
+          };
+
+    const Extent2D irradiance_extent = light_field_use_texture_array
+        ? Extent2D { light_field_probe_irradiance_packed_octahedron_size, light_field_probe_irradiance_packed_octahedron_size }
+        : Extent2D {
+              (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.width * m_density.height + light_field_probe_packed_border_size,
+              (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
           };
 
     const Extent2D lowres_extent = light_field_use_texture_array
@@ -867,7 +875,7 @@ void EnvGrid::CreateLightFieldData()
 
     if constexpr (light_field_use_texture_array) {
         m_light_field_color_texture = CreateObject<Texture>(TextureArray(
-            extent,
+            radiance_extent,
             InternalFormat::RGBA16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -875,7 +883,7 @@ void EnvGrid::CreateLightFieldData()
         ));
     } else {
         m_light_field_color_texture = CreateObject<Texture>(Texture2D(
-            extent,
+            radiance_extent,
             InternalFormat::RGBA16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -888,7 +896,7 @@ void EnvGrid::CreateLightFieldData()
 
     if constexpr (light_field_use_texture_array) {
         m_light_field_normals_texture = CreateObject<Texture>(TextureArray(
-            extent,
+            radiance_extent,
             InternalFormat::RG16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -896,7 +904,7 @@ void EnvGrid::CreateLightFieldData()
         ));
     } else {
         m_light_field_normals_texture = CreateObject<Texture>(Texture2D(
-            extent,
+            radiance_extent,
             InternalFormat::RG16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -909,7 +917,7 @@ void EnvGrid::CreateLightFieldData()
 
     if constexpr (light_field_use_texture_array) {
         m_light_field_depth_texture = CreateObject<Texture>(TextureArray(
-            extent,
+            radiance_extent,
             InternalFormat::RG16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -917,7 +925,7 @@ void EnvGrid::CreateLightFieldData()
         ));
     } else {
         m_light_field_depth_texture = CreateObject<Texture>(Texture2D(
-            extent,
+            radiance_extent,
             InternalFormat::RG16F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
@@ -929,25 +937,25 @@ void EnvGrid::CreateLightFieldData()
     InitObject(m_light_field_depth_texture);
 
     if constexpr (light_field_use_texture_array) {
-        m_light_field_lowres_color_texture = CreateObject<Texture>(TextureArray(
-            lowres_extent,
-            InternalFormat::RGBA16F,
+        m_light_field_irradiance_texture = CreateObject<Texture>(TextureArray(
+            irradiance_extent,
+            InternalFormat::RGBA8,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             m_density.Size()
         ));
     } else {
-        m_light_field_lowres_color_texture = CreateObject<Texture>(Texture2D(
-            lowres_extent,
-            InternalFormat::RGBA16F,
+        m_light_field_irradiance_texture = CreateObject<Texture>(Texture2D(
+            irradiance_extent,
+            InternalFormat::RGBA8,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
         ));
     }
 
-    m_light_field_lowres_color_texture->GetImage()->SetIsRWTexture(true);
-    InitObject(m_light_field_lowres_color_texture);
+    m_light_field_irradiance_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_irradiance_texture);
 
     if constexpr (light_field_use_texture_array) {
         m_light_field_lowres_depth_texture = CreateObject<Texture>(TextureArray(
@@ -1010,7 +1018,7 @@ void EnvGrid::CreateLightFieldData()
             ->SetElementUAV(0, m_light_field_depth_texture->GetImageView());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(8)
-            ->SetElementUAV(0, m_light_field_lowres_color_texture->GetImageView());
+            ->SetElementUAV(0, m_light_field_irradiance_texture->GetImageView());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
             ->SetElementUAV(0, m_light_field_lowres_depth_texture->GetImageView());
@@ -1127,7 +1135,7 @@ void EnvGrid::CreateLightFieldData()
         m_light_field_color_texture->GetImageView(),
         m_light_field_normals_texture->GetImageView(),
         m_light_field_depth_texture->GetImageView(),
-        m_light_field_lowres_color_texture->GetImageView(),
+        m_light_field_irradiance_texture->GetImageView(),
         m_light_field_lowres_depth_texture->GetImageView(),
         m_voxel_grid_texture->GetImageView()
     );
@@ -1397,7 +1405,7 @@ void EnvGrid::ComputeLightFieldData(
         ShaderVec4<UInt32> cubemap_dimensions;
         ShaderVec4<UInt32> probe_offset_coord;
         ShaderVec4<UInt32> probe_offset_coord_lowres;
-        ShaderVec2<UInt32> grid_dimensions;
+        ShaderVec4<UInt32> grid_dimensions;
     } push_constants;
 
     AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
@@ -1421,28 +1429,29 @@ void EnvGrid::ComputeLightFieldData(
     push_constants.cubemap_dimensions = { color_image->GetExtent().width, color_image->GetExtent().height, 0, 0 };
     
     push_constants.probe_offset_coord = {
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z,
-        probe->m_grid_slot,
-        0
+        (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
+        (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z,
+        (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
+        (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z
     };
 
     push_constants.probe_offset_coord_lowres = {
         (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * (position_in_grid.y * m_density.width + position_in_grid.x),
         (light_field_probe_lowres_packed_octahedron_size + light_field_probe_packed_border_size) * position_in_grid.z,
-        probe->m_grid_slot,
-        0
+        0, 0
     };
 
     push_constants.grid_dimensions = {
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * (m_density.width * m_density.height) + light_field_probe_packed_border_size,
-        (light_field_probe_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
+        (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * (m_density.width * m_density.height) + light_field_probe_packed_border_size,
+        (light_field_probe_radiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size,
+        (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * (m_density.width * m_density.height) + light_field_probe_packed_border_size,
+        (light_field_probe_irradiance_packed_octahedron_size + light_field_probe_packed_border_size) * m_density.depth + light_field_probe_packed_border_size
     };
 
     m_light_field_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_normals_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-    m_light_field_lowres_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+    m_light_field_irradiance_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
     m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
 
     m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -1461,8 +1470,8 @@ void EnvGrid::ComputeLightFieldData(
     m_pack_light_field_probe->GetPipeline()->Dispatch(
         frame->GetCommandBuffer(),
         Extent3D {
-            (light_field_probe_packed_octahedron_size + 31) / 32,
-            (light_field_probe_packed_octahedron_size + 31) / 32,
+            (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
+            (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
             1
         }
     );
@@ -1500,7 +1509,7 @@ void EnvGrid::ComputeLightFieldData(
     m_light_field_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_normals_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    m_light_field_lowres_color_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+    m_light_field_irradiance_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     
     { // Voxelize probe
