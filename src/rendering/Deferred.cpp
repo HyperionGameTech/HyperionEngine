@@ -73,8 +73,6 @@ static ShaderProperties GetDeferredShaderProperties()
     properties.Set("SSR_ENABLED", g_engine->GetConfig().Get(CONFIG_SSR));
     properties.Set("REFLECTION_PROBE_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));
     properties.Set("ENV_GRID_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI));
-    properties.Set("VCT_ENABLED_TEXTURE", g_engine->GetConfig().Get(CONFIG_VOXEL_GI));
-    properties.Set("VCT_ENABLED_SVO", g_engine->GetConfig().Get(CONFIG_VOXEL_GI_SVO));
     properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
     properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
     properties.Set("LIGHT_RAYS_ENABLED", g_engine->GetConfig().Get(CONFIG_LIGHT_RAYS));

@@ -21,8 +21,6 @@ const FlatMap<OptionName, String> Configuration::option_name_strings = {
     { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
     { CONFIG_HBAO, "HBAO" },
     { CONFIG_HBIL, "HBIL" },
-    { CONFIG_VOXEL_GI, "VCTGlobalIllumination" },
-    { CONFIG_VOXEL_GI_SVO, "VCTGlobalIlluminationSVO" },
     { CONFIG_TEMPORAL_AA, "TemporalAA" },
     { CONFIG_LIGHT_RAYS, "LightRays" },
     { CONFIG_DEBUG_SSR, "DebugSSR" },
@@ -181,9 +179,6 @@ void Configuration::SetToDefaultConfiguration()
     m_variables[CONFIG_HBIL] = Option(m_variables[CONFIG_HBAO], true);
     
     m_variables[CONFIG_SSR] = Option(!m_variables[CONFIG_RT_REFLECTIONS], true);
-
-    m_variables[CONFIG_VOXEL_GI] = Option(false, true);
-    m_variables[CONFIG_VOXEL_GI_SVO] = Option(false, true);
 
     m_variables[CONFIG_TEMPORAL_AA] = Option(true, true);
 

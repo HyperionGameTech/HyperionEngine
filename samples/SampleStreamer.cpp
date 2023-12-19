@@ -36,7 +36,6 @@
 
 #include <scene/terrain/controllers/TerrainPagingController.hpp>
 
-#include <rendering/vct/VoxelConeTracing.hpp>
 #include <rendering/render_components/ScreenCapture.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
@@ -259,15 +258,15 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//living_room/living_room.obj");//sponza/sponza.obj");//
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//pica_pica/pica_pica.obj");//living_room/living_room.obj");//
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
-            node.Scale(3.0f);
-            // node.Scale(0.01f);
+            // node.Scale(3.0f);
+            node.Scale(0.01f);
 
             // Add reflection probe
             // m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(HYP_NAME(CubemapRenderer0), node.GetWorldAABB());

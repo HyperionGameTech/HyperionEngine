@@ -7,7 +7,6 @@
 #include <rendering/Compute.hpp>
 #include <rendering/DrawProxy.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/vct/VoxelConeTracing.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/controllers/AabbDebugController.hpp>
