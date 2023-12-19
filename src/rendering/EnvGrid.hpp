@@ -191,6 +191,7 @@ private:
     Handle<ComputePipeline> m_pack_light_field_probe;
     Handle<ComputePipeline> m_copy_light_field_border_texels_irradiance;
     Handle<ComputePipeline> m_copy_light_field_border_texels_depth;
+    Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_voxelize_probe;
     Handle<ComputePipeline> m_generate_voxel_grid_mipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_light_field_probe_descriptor_sets;

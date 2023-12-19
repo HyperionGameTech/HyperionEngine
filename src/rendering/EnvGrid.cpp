@@ -412,7 +412,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(probe_dimensions.width), Int(probe_dimensions.height),
-            0.001f, size_of_probe.Max() * 0.5f
+            0.001f, 1000.0f//(m_aabb.GetExtent() / Vector3(m_density.width, m_density.height, m_density.depth)).Max() + 2.0f
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -1070,39 +1070,50 @@ void EnvGrid::CreateLightFieldData()
         }
     }
 
-    // Compute shader to pack rendered textures into the large grid
+    { // Compute shader to pack rendered textures into the large grid
+        m_pack_light_field_probe = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(PackLightFieldProbe), {}),
+            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+        );
 
-    m_pack_light_field_probe = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(PackLightFieldProbe), {}),
-        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-    );
+        InitObject(m_pack_light_field_probe);
+    }
 
-    InitObject(m_pack_light_field_probe);
+    { // Compute shader to copy border texels after rendering a probe into the grid
+        m_copy_light_field_border_texels_irradiance = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {}),
+            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+        );
 
-    // Compute shader to copy border texels after rendering a probe into the grid
+        InitObject(m_copy_light_field_border_texels_irradiance);
+    }
 
-    m_copy_light_field_border_texels_irradiance = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {}),
-        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-    );
+    { // Compute shader to copy border texels after rendering a probe into the grid
+        m_copy_light_field_border_texels_depth = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {{ "DEPTH" }}),
+            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+        );
 
-    InitObject(m_copy_light_field_border_texels_irradiance);
+        InitObject(m_copy_light_field_border_texels_depth);
+    }
 
-    m_copy_light_field_border_texels_depth = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(LightField_CopyBorderTexels), {{ "DEPTH" }}),
-        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-    );
+    { // Compute shader to clear the voxel grid at a specific position
+        m_clear_voxels = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {{ "MODE_CLEAR" }}),
+            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+        );
 
-    InitObject(m_copy_light_field_border_texels_depth);
+        InitObject(m_clear_voxels);
+    }
 
-    // Compute shader to voxelize a probe into voxel grid
+    { // Compute shader to voxelize a probe into voxel grid
+        m_voxelize_probe = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {{ "MODE_VOXELIZE" }}),
+            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
+        );
 
-    m_voxelize_probe = CreateObject<ComputePipeline>(
-        g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {}),
-        Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-    );
-
-    InitObject(m_voxelize_probe);
+        InitObject(m_voxelize_probe);
+    }
 
     { // Compute shader to generate mipmaps for voxel grid
         m_generate_voxel_grid_mipmaps = CreateObject<ComputePipeline>(
@@ -1413,7 +1424,7 @@ void EnvGrid::ComputeLightFieldData(
     //temp
     AssertThrow(probe->m_grid_slot == probe_index);
     
-    const Vec3u position_in_grid = {
+    const Vec3u position_in_grid {
         probe->m_grid_slot % m_density.width,
         (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
         probe->m_grid_slot / (m_density.width * m_density.height)
@@ -1512,7 +1523,33 @@ void EnvGrid::ComputeLightFieldData(
     m_light_field_irradiance_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     
+    {   // Clear our voxel grid at the start of each probe
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
+            m_clear_voxels->GetPipeline(),
+            m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
+            0,
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+            }
+        );
+
+        m_clear_voxels->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+        m_clear_voxels->GetPipeline()->Dispatch(
+            frame->GetCommandBuffer(), 
+            Extent3D {
+                (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
+                (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
+                1
+            }
+        );
+    }
+
     { // Voxelize probe
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
         frame->GetCommandBuffer()->BindDescriptorSet(
             g_engine->GetGPUInstance()->GetDescriptorPool(),
             m_voxelize_probe->GetPipeline(),
