@@ -649,6 +649,12 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
         }
     }
 
+    auto env_grid_entity = GetScene()->FindEntityByName(HYP_NAME(EnvGridEntity));
+
+    if (env_grid_entity) {
+        // env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
+    }
+
     if (m_rtc_instance) {
 
         while (!m_message_queue.Empty()) {

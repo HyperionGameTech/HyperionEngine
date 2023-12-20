@@ -199,8 +199,9 @@ private:
     Handle<Texture> m_light_field_color_texture;
     Handle<Texture> m_light_field_normals_texture;
     Handle<Texture> m_light_field_depth_texture;
-    Handle<Texture> m_light_field_irradiance_texture;
     Handle<Texture> m_light_field_lowres_depth_texture;
+    Handle<Texture> m_light_field_irradiance_texture;
+    Handle<Texture> m_light_field_filtered_distance_texture;
     Handle<Texture> m_voxel_grid_texture;
 
     Array<ImageViewRef> m_voxel_grid_mips;

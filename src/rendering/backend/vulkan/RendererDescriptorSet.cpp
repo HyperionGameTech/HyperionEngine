@@ -90,9 +90,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::LIGHT_FIELD_COLOR_BUFFER, 63},
             {DescriptorKey::LIGHT_FIELD_NORMALS_BUFFER, 64},
             {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER, 65},
-            {DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER, 66},
-            {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES, 67},
-            {DescriptorKey::LIGHT_FIELD_VOXEL_GRID, 68},
+            {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES, 66},
+            {DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER, 67},
+            {DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER, 68},
+            {DescriptorKey::LIGHT_FIELD_VOXEL_GRID, 69},
 
             {DescriptorKey::VCT_VOXEL_UAV, 70},
             {DescriptorKey::VCT_VOXEL_UNIFORMS, 71},

@@ -159,22 +159,25 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
     ImageViewRef light_field_color_image_view;
     ImageViewRef light_field_normals_image_view;
     ImageViewRef light_field_depth_image_view;
-    ImageViewRef light_field_irradiance_image_view;
     ImageViewRef light_field_depth_lowres_image_view;
+    ImageViewRef light_field_irradiance_image_view;
+    ImageViewRef light_field_filtered_distance_image_view;
     ImageViewRef light_field_voxel_grid_image_view;
 
     RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet)(
         ImageViewRef light_field_color_image_view,
         ImageViewRef light_field_normals_image_view,
         ImageViewRef light_field_depth_image_view,
-        ImageViewRef light_field_irradiance_image_view,
         ImageViewRef light_field_depth_lowres_image_view,
+        ImageViewRef light_field_irradiance_image_view,
+        ImageViewRef light_field_filtered_distance_image_view,
         ImageViewRef light_field_voxel_grid_image_view
     ) : light_field_color_image_view(std::move(light_field_color_image_view)),
         light_field_normals_image_view(std::move(light_field_normals_image_view)),
         light_field_depth_image_view(std::move(light_field_depth_image_view)),
-        light_field_irradiance_image_view(std::move(light_field_irradiance_image_view)),
         light_field_depth_lowres_image_view(std::move(light_field_depth_lowres_image_view)),
+        light_field_irradiance_image_view(std::move(light_field_irradiance_image_view)),
+        light_field_filtered_distance_image_view(std::move(light_field_filtered_distance_image_view)),
         light_field_voxel_grid_image_view(std::move(light_field_voxel_grid_image_view))
     {
     }
@@ -198,12 +201,16 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
                 ->SetElementSRV(0, light_field_depth_image_view);
             
             descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
+                ->SetElementSRV(0, light_field_depth_lowres_image_view);
+            
+            descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
                 ->SetElementSRV(0, light_field_irradiance_image_view);
             
             descriptor_set_globals
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
-                ->SetElementSRV(0, light_field_depth_lowres_image_view);
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER)
+                ->SetElementSRV(0, light_field_filtered_distance_image_view);
             
             descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_VOXEL_GRID)
@@ -472,6 +479,7 @@ void EnvGrid::OnRemoved()
     if (GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD) {
         PUSH_RENDER_COMMAND(
             SetLightFieldBuffersInGlobalDescriptorSet,
+            ImageViewRef::unset,
             ImageViewRef::unset,
             ImageViewRef::unset,
             ImageViewRef::unset,
@@ -918,7 +926,7 @@ void EnvGrid::CreateLightFieldData()
     if constexpr (light_field_use_texture_array) {
         m_light_field_depth_texture = CreateObject<Texture>(TextureArray(
             radiance_extent,
-            InternalFormat::RG16F,
+            InternalFormat::R32F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             m_density.Size()
@@ -926,7 +934,7 @@ void EnvGrid::CreateLightFieldData()
     } else {
         m_light_field_depth_texture = CreateObject<Texture>(Texture2D(
             radiance_extent,
-            InternalFormat::RG16F,
+            InternalFormat::R32F,
             FilterMode::TEXTURE_FILTER_NEAREST,
             WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             nullptr
@@ -935,27 +943,6 @@ void EnvGrid::CreateLightFieldData()
 
     m_light_field_depth_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_light_field_depth_texture);
-
-    if constexpr (light_field_use_texture_array) {
-        m_light_field_irradiance_texture = CreateObject<Texture>(TextureArray(
-            irradiance_extent,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            m_density.Size()
-        ));
-    } else {
-        m_light_field_irradiance_texture = CreateObject<Texture>(Texture2D(
-            irradiance_extent,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        ));
-    }
-
-    m_light_field_irradiance_texture->GetImage()->SetIsRWTexture(true);
-    InitObject(m_light_field_irradiance_texture);
 
     if constexpr (light_field_use_texture_array) {
         m_light_field_lowres_depth_texture = CreateObject<Texture>(TextureArray(
@@ -977,6 +964,48 @@ void EnvGrid::CreateLightFieldData()
 
     m_light_field_lowres_depth_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_light_field_lowres_depth_texture);
+
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_irradiance_texture = CreateObject<Texture>(TextureArray(
+            irradiance_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_irradiance_texture = CreateObject<Texture>(Texture2D(
+            irradiance_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
+
+    m_light_field_irradiance_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_irradiance_texture);
+
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_filtered_distance_texture = CreateObject<Texture>(TextureArray(
+            irradiance_extent,
+            InternalFormat::RG16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_filtered_distance_texture = CreateObject<Texture>(Texture2D(
+            irradiance_extent,
+            InternalFormat::RG16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
+
+    m_light_field_filtered_distance_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_filtered_distance_texture);
 
     m_voxel_grid_texture = CreateObject<Texture>(Texture3D(
         Extent3D { 256, 256, 256 },
@@ -1018,18 +1047,21 @@ void EnvGrid::CreateLightFieldData()
             ->SetElementUAV(0, m_light_field_depth_texture->GetImageView());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(8)
-            ->SetElementUAV(0, m_light_field_irradiance_texture->GetImageView());
-
-        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
             ->SetElementUAV(0, m_light_field_lowres_depth_texture->GetImageView());
 
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
+            ->SetElementUAV(0, m_light_field_irradiance_texture->GetImageView());
+
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(10)
+            ->SetElementUAV(0, m_light_field_filtered_distance_texture->GetImageView());
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(11)
             ->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
 
-        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(11)
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(12)
             ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
 
-        m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(12)
+        m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(13)
             ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
     }
 
@@ -1146,8 +1178,9 @@ void EnvGrid::CreateLightFieldData()
         m_light_field_color_texture->GetImageView(),
         m_light_field_normals_texture->GetImageView(),
         m_light_field_depth_texture->GetImageView(),
-        m_light_field_irradiance_texture->GetImageView(),
         m_light_field_lowres_depth_texture->GetImageView(),
+        m_light_field_irradiance_texture->GetImageView(),
+        m_light_field_filtered_distance_texture->GetImageView(),
         m_voxel_grid_texture->GetImageView()
     );
 }
