@@ -55,6 +55,11 @@ public:
                 FBOMName(),
                 item.set_name
             );
+
+            out.SetProperty(
+                String("descriptor_usages.") + String::ToString(index) + ".flags",
+                FBOMData::FromUInt32(item.flags)
+            );
         }
 
         auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
@@ -161,6 +166,8 @@ public:
                     if (auto err = in.GetProperty(descriptor_usage_index_string + ".set_name").ReadName(&usage.set_name)) {
                         return err;
                     }
+
+                    in.GetProperty(descriptor_usage_index_string + ".flags").ReadUInt32(&usage.flags);
 
                     compiled_shader->GetDefinition().GetDescriptorUsages().Add(std::move(usage));
                 }

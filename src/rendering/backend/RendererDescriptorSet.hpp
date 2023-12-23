@@ -101,9 +101,10 @@ enum class DescriptorKey
     LIGHT_FIELD_COLOR_BUFFER,
     LIGHT_FIELD_NORMALS_BUFFER,
     LIGHT_FIELD_DEPTH_BUFFER,
-    LIGHT_FIELD_IRRADIANCE_BUFFER,
     LIGHT_FIELD_DEPTH_BUFFER_LOWRES,
-    LIGHT_FIELD_VOXEL_GRID,
+    LIGHT_FIELD_IRRADIANCE_BUFFER,
+    LIGHT_FIELD_FILTERED_DISTANCE_BUFFER,
+    VOXEL_GRID_IMAGE,
     VCT_VOXEL_UAV,
     VCT_VOXEL_UNIFORMS,
     VCT_SVO_BUFFER,
@@ -168,6 +169,7 @@ struct DescriptorDeclaration
     DescriptorSlot  slot   = DESCRIPTOR_SLOT_NONE;
     UInt            index  = ~0u;
     Name            name   = Name::invalid;
+    Bool            is_dynamic = false;
 };
 
 struct DescriptorSetDeclaration
@@ -207,14 +209,17 @@ struct DescriptorSetDeclaration
         return slots[UInt(slot) - 1];
     }
 
-    void AddDescriptor(DescriptorSlot slot, Name name)
+    void AddDescriptor(DescriptorSlot slot, Name name, Bool is_dynamic = false)
     {
+        DebugLog(LogType::Debug, "Add descriptor to slot %u with name %s (%u), dynamic: %d\n", slot, name.LookupString().Data(), name.GetHashCode().Value(), is_dynamic);
+
         AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
         slots[UInt(slot) - 1].PushBack(DescriptorDeclaration {
-            .slot   = slot,
-            .index  = UInt(slots[UInt(slot) - 1].Size()),
-            .name   = name
+            .slot       = slot,
+            .index      = UInt(slots[UInt(slot) - 1].Size()),
+            .name       = name,
+            .is_dynamic = is_dynamic
         });
     }
 

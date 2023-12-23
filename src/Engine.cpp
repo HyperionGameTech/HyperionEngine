@@ -507,15 +507,19 @@ void Engine::Initialize(RC<Application> application)
             ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
 
         descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
-            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
-
-        descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
             ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
 
         descriptor_set
-            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_VOXEL_GRID)
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER)
+            ->SetElementSRV(0, &GetPlaceholderData().GetImageView2D1x1R8());
+
+        descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::VOXEL_GRID_IMAGE)
             ->SetElementSRV(0, &GetPlaceholderData().GetImageView3D1x1x1R8());
     }
 

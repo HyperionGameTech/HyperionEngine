@@ -41,7 +41,7 @@ struct VertexAttributeDefinition
 
 struct ShaderProperty;
 
-static bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
+static Bool FindVertexAttributeForDefinition(const String &name, VertexAttribute::Type &out_type)
 {
     for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++) {
         const auto &kv = VertexAttribute::mapping.KeyValueAt(i);
@@ -65,21 +65,21 @@ struct ShaderProperty
     using Value = Variant<String, Int, Float>;
 
     String name;
-    bool is_permutation = false;
+    Bool is_permutation = false;
     ShaderPropertyFlags flags;
     Value value;
     Array<String> possible_values;
 
     ShaderProperty() = default;
 
-    ShaderProperty(const String &name, bool is_permutation, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
+    ShaderProperty(const String &name, Bool is_permutation, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
         : name(name),
           is_permutation(is_permutation),
           flags(flags)
     {
     }
 
-    ShaderProperty(const String &name, bool is_permutation, const Value &value, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
+    ShaderProperty(const String &name, Bool is_permutation, const Value &value, ShaderPropertyFlags flags = SHADER_PROPERTY_FLAG_NONE)
         : name(name),
           is_permutation(is_permutation),
           flags(flags),
@@ -139,22 +139,22 @@ struct ShaderProperty
         return *this;
     }
 
-    bool operator==(const ShaderProperty &other) const
+    Bool operator==(const ShaderProperty &other) const
         { return name == other.name; }
 
-    bool operator!=(const ShaderProperty &other) const
+    Bool operator!=(const ShaderProperty &other) const
         { return name != other.name; }
 
-    bool operator==(const String &str) const
+    Bool operator==(const String &str) const
         { return name == str; }
 
-    bool operator!=(const String &str) const
+    Bool operator!=(const String &str) const
         { return name != str; }
 
-    bool operator<(const ShaderProperty &other) const
+    Bool operator<(const ShaderProperty &other) const
         { return name < other.name; }
 
-    bool IsValueGroup() const
+    Bool IsValueGroup() const
         { return possible_values.Any(); }
 
     /**
@@ -208,7 +208,7 @@ struct ShaderProperty
         return result;
     }
 
-    bool HasValue() const
+    Bool HasValue() const
         { return value.IsValid(); }
 
     const String &GetName() const
@@ -217,13 +217,13 @@ struct ShaderProperty
     ShaderPropertyFlags GetFlags() const
         { return flags; }
 
-    bool IsPermutable() const
+    Bool IsPermutable() const
         { return is_permutation; }
 
-    bool IsVertexAttribute() const
+    Bool IsVertexAttribute() const
         { return flags & SHADER_PROPERTY_FLAG_VERTEX_ATTRIBUTE; }
 
-    bool IsOptionalVertexAttribute() const
+    Bool IsOptionalVertexAttribute() const
         { return IsVertexAttribute() && IsPermutable(); }
 
     String GetValueString() const
@@ -287,31 +287,31 @@ public:
     ShaderProperties &operator=(ShaderProperties &&other) = default;
     ~ShaderProperties() = default;
 
-    bool operator==(const ShaderProperties &other) const
+    Bool operator==(const ShaderProperties &other) const
         { return m_props == other.m_props; }
 
-    bool operator!=(const ShaderProperties &other) const
+    Bool operator!=(const ShaderProperties &other) const
         { return m_props != other.m_props; }
 
-    bool Any() const
+    Bool Any() const
         { return m_props.Any(); }
 
-    bool Empty() const
+    Bool Empty() const
         { return m_props.Empty(); }
 
-    bool HasRequiredVertexAttributes(VertexAttributeSet vertex_attributes) const
+    Bool HasRequiredVertexAttributes(VertexAttributeSet vertex_attributes) const
         { return (m_required_vertex_attributes & vertex_attributes) == vertex_attributes; }
 
-    bool HasRequiredVertexAttribute(VertexAttribute::Type vertex_attribute) const
+    Bool HasRequiredVertexAttribute(VertexAttribute::Type vertex_attribute) const
         { return m_required_vertex_attributes.Has(vertex_attribute); }
 
-    bool HasOptionalVertexAttributes(VertexAttributeSet vertex_attributes) const
+    Bool HasOptionalVertexAttributes(VertexAttributeSet vertex_attributes) const
         { return (m_optional_vertex_attributes & vertex_attributes) == vertex_attributes; }
 
-    bool HasOptionalVertexAttribute(VertexAttribute::Type vertex_attribute) const
+    Bool HasOptionalVertexAttribute(VertexAttribute::Type vertex_attribute) const
         { return m_optional_vertex_attributes.Has(vertex_attribute); }
 
-    bool Has(const ShaderProperty &shader_property) const
+    Bool Has(const ShaderProperty &shader_property) const
     {
         const auto it = m_props.Find(shader_property);
 
@@ -322,7 +322,7 @@ public:
         return true;
     }
 
-    ShaderProperties &Set(const ShaderProperty &property, bool enabled = true)
+    ShaderProperties &Set(const ShaderProperty &property, Bool enabled = true)
     {
         if (property.IsVertexAttribute()) {
             VertexAttribute::Type type;
@@ -381,7 +381,7 @@ public:
         return *this;
     }
 
-    ShaderProperties &Set(const String &name, bool enabled = true)
+    ShaderProperties &Set(const String &name, Bool enabled = true)
     {
         return Set(ShaderProperty(name, true), enabled);
     }
@@ -561,17 +561,49 @@ struct HashedShaderDefinition
     }
 };
 
+using DescriptorUsageFlags = UInt32;
+
+enum DescriptorUsageFlagBits : DescriptorUsageFlags
+{
+    DESCRIPTOR_USAGE_FLAG_NONE = 0x0,
+    DESCRIPTOR_USAGE_FLAG_DYNAMIC = 0x1
+};
+
 struct DescriptorUsage
 {
     renderer::DescriptorSlot    slot;
     Name                        set_name;
     Name                        descriptor_name;
+    DescriptorUsageFlags        flags;
+
+    DescriptorUsage()
+        : slot(renderer::DESCRIPTOR_SLOT_NONE),
+          set_name(Name::invalid),
+          descriptor_name(Name::invalid),
+          flags(DESCRIPTOR_USAGE_FLAG_NONE)
+    {
+    }
+
+    DescriptorUsage(renderer::DescriptorSlot slot, Name set_name, Name descriptor_name, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE)
+        : slot(slot),
+          set_name(set_name),
+          descriptor_name(descriptor_name),
+          flags(flags)
+    {
+    }
+
+    DescriptorUsage(const DescriptorUsage &other) = default;
+    DescriptorUsage &operator=(const DescriptorUsage &other) = default;
+    DescriptorUsage(DescriptorUsage &&other) noexcept = default;
+    DescriptorUsage &operator=(DescriptorUsage &&other) noexcept = default;
+    ~DescriptorUsage() = default;
 
     Bool operator==(const DescriptorUsage &other) const
     {
         return slot == other.slot
             && set_name == other.set_name
-            && descriptor_name == other.descriptor_name;
+            && descriptor_name == other.descriptor_name
+            && flags == other.flags;
     }
 
     Bool operator<(const DescriptorUsage &other) const
@@ -584,9 +616,15 @@ struct DescriptorUsage
             return set_name < other.set_name;
         }
 
-        // if (descriptor_name != other.descriptor_name) {
+        if (descriptor_name != other.descriptor_name) {
             return descriptor_name < other.descriptor_name;
-        // }
+        }
+
+        if (flags != other.flags) {
+            return flags < other.flags;
+        }
+
+        return false;
     }
 };
 
@@ -607,7 +645,7 @@ struct DescriptorUsageSet
         { return descriptor_usages.Size(); }
 
     void Add(DescriptorUsage descriptor_usage)
-        { descriptor_usages.Insert(std::move(descriptor_usage)); }
+        { descriptor_usages.Insert(descriptor_usage); }
 
     void Merge(const Array<DescriptorUsage> &other)
         { descriptor_usages.Merge(other); }
@@ -651,7 +689,7 @@ struct ShaderDefinition
         { return descriptor_usages; }
     
     HYP_FORCE_INLINE
-    explicit operator bool() const
+    explicit operator Bool() const
         { return name.IsValid(); }
     
     HYP_FORCE_INLINE
@@ -685,7 +723,7 @@ struct CompiledShader
     CompiledShader &operator=(CompiledShader &&other) noexcept  = default;
     ~CompiledShader()                                           = default;
 
-    explicit operator bool() const
+    explicit operator Bool() const
         { return IsValid(); }
 
     Bool IsValid() const
@@ -743,7 +781,7 @@ public:
     ShaderCache &operator=(ShaderCache &&other) noexcept    = delete;
     ~ShaderCache()                                          = default;
 
-    bool Get(Name name, CompiledShaderBatch &out) const
+    Bool Get(Name name, CompiledShaderBatch &out) const
     {
         std::lock_guard guard(m_mutex);
 
@@ -758,7 +796,7 @@ public:
         return true;
     }
 
-    bool GetShaderInstance(Name name, UInt64 version_hash, CompiledShader &out) const
+    Bool GetShaderInstance(Name name, UInt64 version_hash, CompiledShader &out) const
     {
         std::lock_guard guard(m_mutex);
 
@@ -825,6 +863,13 @@ class ShaderCompiler
         Array<VertexAttributeDefinition>    required_attributes;
         Array<VertexAttributeDefinition>    optional_attributes;
         Array<DescriptorUsage>              descriptor_usages;
+
+        ProcessResult() = default;
+        ProcessResult(const ProcessResult &other) = default;
+        ProcessResult &operator=(const ProcessResult &other) = default;
+        ProcessResult(ProcessResult &&other) noexcept = default;
+        ProcessResult &operator=(ProcessResult &&other) noexcept = default;
+        ~ProcessResult() = default;
     };
 
 public:
@@ -906,20 +951,20 @@ private:
         Bundle &bundle
     );
 
-    bool CompileBundle(
+    Bool CompileBundle(
         Bundle &bundle,
         const ShaderProperties &additional_versions,
         CompiledShaderBatch &out
     );
 
-    bool HandleCompiledShaderBatch(
+    Bool HandleCompiledShaderBatch(
         Bundle &bundle,
         const ShaderProperties &additional_versions,
         const FilePath &output_file_path,
         CompiledShaderBatch &batch
     );
 
-    bool LoadOrCreateCompiledShaderBatch(
+    Bool LoadOrCreateCompiledShaderBatch(
         Name name,
         const ShaderProperties &additional_versions,
         CompiledShaderBatch &out

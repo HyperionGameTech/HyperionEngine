@@ -134,6 +134,8 @@ private:
     void CreateShader();
     void CreateFramebuffer();
 
+    void CreateVoxelGridData();
+
     void CreateSHData();
     void CreateSHClipmapData();
     void ComputeClipmaps(Frame *frame);
@@ -156,6 +158,11 @@ private:
         UInt32 probe_index
     );
 
+    void VoxelizeProbe(
+        Frame *frame,
+        UInt32 probe_index
+    );
+
     EnvGridType m_type;
 
     BoundingBox m_aabb;
@@ -167,7 +174,6 @@ private:
 
     Handle<Shader> m_ambient_shader;
     Handle<Framebuffer> m_framebuffer;
-    std::vector<std::unique_ptr<Attachment>> m_attachments;
     
     // Array<Handle<EnvProbe>> m_ambient_probes;
     // Array<const EnvProbeDrawProxy *> m_env_probe_draw_proxies;
@@ -199,11 +205,13 @@ private:
     Handle<Texture> m_light_field_color_texture;
     Handle<Texture> m_light_field_normals_texture;
     Handle<Texture> m_light_field_depth_texture;
-    Handle<Texture> m_light_field_irradiance_texture;
     Handle<Texture> m_light_field_lowres_depth_texture;
+    Handle<Texture> m_light_field_irradiance_texture;
+    Handle<Texture> m_light_field_filtered_distance_texture;
     Handle<Texture> m_voxel_grid_texture;
 
     Array<ImageViewRef> m_voxel_grid_mips;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_voxelize_probe_descriptor_sets;
     Array<DescriptorSetRef> m_generate_voxel_grid_mipmaps_descriptor_sets;
 
     Queue<UInt> m_next_render_indices;

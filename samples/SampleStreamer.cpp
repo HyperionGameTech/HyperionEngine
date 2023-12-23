@@ -14,6 +14,7 @@
 #include <scene/controllers/LightController.hpp>
 #include <scene/controllers/ShadowMapController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
+#include <scene/controllers/AabbDebugController.hpp>
 #include <rendering/CubemapRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
@@ -258,24 +259,25 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//pica_pica/pica_pica.obj");//living_room/living_room.obj");//
+        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");//living_room/living_room.obj");//
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
-            // node.Scale(3.0f);
-            node.Scale(0.01f);
+            node.Scale(3.0f);
+            // node.Scale(0.01f);
 
             // Add reflection probe
             // m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(HYP_NAME(CubemapRenderer0), node.GetWorldAABB());
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
-            // env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-25.0f), Vector3(25.0f)));
-            env_grid_entity->SetLocalAABB(node.GetWorldAABB());
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 30.0f, 15.0f)));
+            // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
             env_grid_entity->AddController<EnvGridController>();
+            env_grid_entity->AddController<AABBDebugController>();
             GetScene()->AddEntity(env_grid_entity);
 
             if (node) {
@@ -648,6 +650,12 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
             ++it;
         }
     }
+
+    // auto env_grid_entity = m_scene->FindEntityByName(HYP_NAME(EnvGridEntity));
+
+    // if (env_grid_entity) {
+    //     env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
+    // }
 
     if (m_rtc_instance) {
 

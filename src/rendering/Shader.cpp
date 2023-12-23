@@ -126,7 +126,6 @@ GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
     }
 
     { // clipmaps
-        // 32 x 32 x 32 expressed as 2d
         const Extent3D probe_cage_size { 32, 32, 32 };
         const Extent2D image_dimensions = ReshapeExtent(probe_cage_size);
 

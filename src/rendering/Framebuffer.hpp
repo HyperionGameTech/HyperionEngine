@@ -30,6 +30,9 @@ struct AttachmentDef
 
 struct AttachmentMap
 {
+    using Iterator      = typename FlatMap<UInt, AttachmentDef>::Iterator;
+    using ConstIterator = typename FlatMap<UInt, AttachmentDef>::ConstIterator;
+
     FlatMap<UInt, AttachmentDef> attachments;
 
     void AddAttachment(
@@ -47,7 +50,7 @@ struct AttachmentMap
                     std::move(image),
                     stage
                 ),
-                AttachmentUsageRef(),
+                AttachmentUsageRef::unset,
                 load_op,
                 store_op
             }
@@ -55,6 +58,20 @@ struct AttachmentMap
     }
 
     ~AttachmentMap();
+
+    SizeType Size() const
+        { return attachments.Size(); }
+
+    AttachmentDef &At(UInt binding)
+        { return attachments.At(binding); }
+
+    const AttachmentDef &At(UInt binding) const
+        { return attachments.At(binding); }
+
+    HYP_DEF_STL_BEGIN_END(
+        attachments.Begin(),
+        attachments.End()
+    )
 };
 
 class Framebuffer
@@ -100,8 +117,14 @@ public:
     void AddAttachmentUsage(AttachmentUsage *attachment);
     void RemoveAttachmentUsage(const Attachment *attachment);
 
-    auto &GetAttachmentUsages() { return m_render_pass.GetAttachmentUsages(); }
-    const auto &GetAttachmentUsages() const { return m_render_pass.GetAttachmentUsages(); }
+    const AttachmentMap &GetAttachmentMap() const
+        { return m_attachment_map; }
+
+    auto &GetAttachmentUsages()
+        { return m_render_pass.GetAttachmentUsages(); }
+
+    const auto &GetAttachmentUsages() const
+        { return m_render_pass.GetAttachmentUsages(); }
 
     const FramebufferObjectRef &GetFramebuffer(UInt frame_index) const
         { return m_framebuffers[frame_index]; }

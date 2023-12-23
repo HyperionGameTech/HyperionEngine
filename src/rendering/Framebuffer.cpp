@@ -155,6 +155,26 @@ void Framebuffer::Init()
     }
 
     EngineComponentBase::Init();
+
+
+    // // Create attachments
+    // for (auto &it : m_attachment_map.attachments) {
+    //     const UInt binding = it.first;
+    //     AttachmentDef &def = it.second;
+
+    //     AssertThrow(def.attachment.IsValid());
+    //     DeferCreate(def.attachment, g_engine->GetGPUDevice());
+
+    //     def.attachment_usage = MakeRenderObject<AttachmentUsage>(
+    //         def.attachment,
+    //         def.load_op,
+    //         def.store_op
+    //     );
+
+    //     def.attachment->AddAttachmentUsage(def.attachment_usage);
+
+    //     DeferCreate(def.attachment_usage, g_engine->GetGPUDevice());
+    // }
     
     PUSH_RENDER_COMMAND(CreateAttachmentMap, &m_attachment_map);
     PUSH_RENDER_COMMAND(CreateRenderPass, &m_render_pass, &m_attachment_map);
@@ -164,6 +184,8 @@ void Framebuffer::Init()
 
         PUSH_RENDER_COMMAND(CreateFramebuffer, m_framebuffers[frame_index], &m_render_pass, &m_attachment_map);
     }
+
+    HYP_SYNC_RENDER();
 
     SetReady(true);
 

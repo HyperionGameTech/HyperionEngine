@@ -23,7 +23,7 @@
 
 namespace hyperion::v2 {
 
-static const bool should_compile_missing_variants = true;
+static const Bool should_compile_missing_variants = true;
 
 enum class ShaderLanguage
 {
@@ -467,7 +467,7 @@ renderer::DescriptorTable DescriptorUsageSet::BuildDescriptorTable() const
 {
     renderer::DescriptorTable table;
 
-    for (const auto &descriptor_usage : descriptor_usages) {
+    for (const DescriptorUsage &descriptor_usage : descriptor_usages) {
         renderer::DescriptorSetDeclaration *descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
 
         // check if this descriptor set is defined in the static descriptor table
@@ -492,9 +492,12 @@ renderer::DescriptorTable DescriptorUsageSet::BuildDescriptorTable() const
             ->FindDescriptorDeclaration(descriptor_usage.descriptor_name);
 
         if (descriptor_declaration != nullptr) {
-            // Already exists
+            // Already exists, just update the slot
+            descriptor_declaration->name = descriptor_usage.descriptor_name;
+            descriptor_declaration->slot = descriptor_usage.slot;
+            descriptor_declaration->is_dynamic = descriptor_usage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC;
         } else {
-            descriptor_set_declaration->AddDescriptor(descriptor_usage.slot, descriptor_usage.descriptor_name);
+            descriptor_set_declaration->AddDescriptor(descriptor_usage.slot, descriptor_usage.descriptor_name, descriptor_usage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC);
         }
     }
 
@@ -589,7 +592,7 @@ void ShaderCompiler::ParseDefinitionSection(
     }
 }
 
-bool ShaderCompiler::HandleCompiledShaderBatch(
+Bool ShaderCompiler::HandleCompiledShaderBatch(
     Bundle &bundle,
     const ShaderProperties &additional_versions,
     const FilePath &output_file_path,
@@ -624,7 +627,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     Array<ShaderProperties> missing_variants;
     Array<ShaderProperties> found_variants;
     std::mutex              mtx;
-    bool                    requested_found = false;
+    Bool                    requested_found = false;
 
     {
         // grab each defined property, and iterate over each combination
@@ -720,7 +723,7 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
     return true;
 }
 
-bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
+Bool ShaderCompiler::LoadOrCreateCompiledShaderBatch(
     Name name,
     const ShaderProperties &properties,
     CompiledShaderBatch &out
@@ -866,9 +869,9 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
         bundles.PushBack(std::move(bundle));
     }
 
-    const bool supports_rt_shaders = g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
+    const Bool supports_rt_shaders = g_engine->GetConfig().Get(CONFIG_RT_SUPPORTED);
 
-    FlatMap<Bundle *, bool> results;
+    FlatMap<Bundle *, Bool> results;
 
     // // Compile all shaders ahead of time
     for (auto &bundle : bundles) {
@@ -894,7 +897,7 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
         });
     }
 
-    return results.Every([](const KeyValuePair<Bundle *, bool> &it) {
+    return results.Every([](const KeyValuePair<Bundle *, Bool> &it) {
         if (!it.second) {
             String permutation_string;
 
@@ -937,7 +940,7 @@ struct LoadedSourceFile
     }
 };
 
-bool ShaderCompiler::CanCompileShaders() const
+Bool ShaderCompiler::CanCompileShaders() const
 {
     if (!g_engine->GetConfig().Get(CONFIG_SHADER_COMPILATION)) {
         return false;
@@ -962,7 +965,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
         String remaining;
     };
 
-    auto ParseCustomStatement = [&result](const String &start, const String &line) -> ParseCustomStatementResult
+    auto ParseCustomStatement = [](const String &start, const String &line) -> ParseCustomStatementResult
     {
         const String substr = line.Substr(start.Length());
 
@@ -1008,7 +1011,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
         if (line.StartsWith("HYP_ATTRIBUTE")) {
             Array<String> parts = line.Split(' ');
 
-            bool optional = false;
+            Bool optional = false;
 
             if (parts.Size() != 3) {
                 result.errors.PushBack(ProcessError { "Invalid attribute: Requires format HYP_ATTRIBUTE(location) type name" });
@@ -1129,15 +1132,24 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             }
 
             renderer::DescriptorSlot slot = renderer::DESCRIPTOR_SLOT_NONE;
+            DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE;
 
             if (command_str == "HYP_DESCRIPTOR_SRV") {
                 slot = renderer::DESCRIPTOR_SLOT_SRV;
             } else if (command_str == "HYP_DESCRIPTOR_UAV") {
                 slot = renderer::DESCRIPTOR_SLOT_UAV;
-            } else if (command_str == "HYP_DESCRIPTOR_CBUFF") {
+            } else if (command_str == "HYP_DESCRIPTOR_CBUFF" || command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
                 slot = renderer::DESCRIPTOR_SLOT_CBUFF;
-            } else if (command_str == "HYP_DESCRIPTOR_SSBO") {
+
+                if (command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC") {
+                    flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                }
+            } else if (command_str == "HYP_DESCRIPTOR_SSBO" || command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
                 slot = renderer::DESCRIPTOR_SLOT_SSBO;
+
+                if (command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC") {
+                    flags |= DESCRIPTOR_USAGE_FLAG_DYNAMIC;
+                }
             } else if (command_str == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE") {
                 slot = renderer::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
             } else if (command_str == "HYP_DESCRIPTOR_SAMPLER") {
@@ -1165,10 +1177,14 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             set_name = parse_result.args[0];
             descriptor_name = parse_result.args[1];
 
-            DescriptorUsage usage;
-            usage.set_name = CreateNameFromDynamicString(ANSIString(set_name));
-            usage.descriptor_name = CreateNameFromDynamicString(ANSIString(descriptor_name));
-            usage.slot = slot;
+            const DescriptorUsage usage {
+                slot,
+                CreateNameFromDynamicString(ANSIString(set_name)),
+                CreateNameFromDynamicString(ANSIString(descriptor_name)),
+                flags
+            };
+
+            // DebugLog(LogType::Debug, "Create Descriptor usage: %s %s %u %d\n", set_name.Data(), descriptor_name.Data(), slot, is_dynamic);
 
             // Bool is_custom_descriptor_set = false;
 
@@ -1190,7 +1206,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
 
             result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + ") " + parse_result.remaining + "\n";
 
-            result.descriptor_usages.PushBack(std::move(usage));
+            result.descriptor_usages.PushBack(usage);
         } else {
             result.processed_source += line + '\n';
         }
@@ -1199,7 +1215,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
     return result;
 }
 
-bool ShaderCompiler::CompileBundle(
+Bool ShaderCompiler::CompileBundle(
     Bundle &bundle,
     const ShaderProperties &additional_versions,
     CompiledShaderBatch &out
@@ -1271,16 +1287,16 @@ bool ShaderCompiler::CompileBundle(
 
             required_vertex_attributes[index] = result.required_attributes;
             optional_vertex_attributes[index] = result.optional_attributes;
-            descriptor_usages[index] = result.descriptor_usages;
+            descriptor_usages[index] = std::move(result.descriptor_usages);
 
             String final_source = result.processed_source;
 
             loaded_source_files[index] = LoadedSourceFile {
-                .type = it.first,
-                .language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
-                .file = it.second,
-                .last_modified_timestamp = filepath.LastModifiedTimestamp(),
-                .source = final_source
+                .type                       = it.first,
+                .language                   = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL,
+                .file                       = it.second,
+                .last_modified_timestamp    = filepath.LastModifiedTimestamp(),
+                .source                     = final_source
             };
         });
     }
@@ -1615,7 +1631,7 @@ CompiledShader ShaderCompiler::GetCompiledShader(Name name, const ShaderProperti
     return compiled_shader;
 }
 
-bool ShaderCompiler::GetCompiledShader(
+Bool ShaderCompiler::GetCompiledShader(
     Name name,
     const ShaderProperties &properties,
     CompiledShader &out

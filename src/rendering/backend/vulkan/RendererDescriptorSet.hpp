@@ -451,6 +451,21 @@ public:
     Bool RemoveDescriptor(DescriptorKey key);
     Bool RemoveDescriptor(UInt binding);
 
+    Bool HasDescriptorByName(Name name) const
+        { return m_declaration.FindDescriptorDeclaration(name) != nullptr; }
+
+    template <SizeType Count>
+    Bool HasDescriptorByName(FixedArray<Name, Count> names) const
+    {
+        for (const auto item : names) {
+            if (!m_declaration.FindDescriptorDeclaration(item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     Descriptor *GetDescriptor(DescriptorKey key) const;
     Descriptor *GetDescriptor(UInt binding) const;
     /*! \brief Get a Descriptor by name -- must have a DescriptorSetDeclaration */

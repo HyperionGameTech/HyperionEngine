@@ -23,9 +23,9 @@ void EnvGridController::AddEnvGridRenderer(const Handle<Scene> &scene)
 
         m_env_grid_renderer = scene->GetEnvironment()->AddRenderComponent<EnvGrid>(
             m_env_grid_renderer_name,
-            EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD,
+            EnvGridType::ENV_GRID_TYPE_SH,
             GetOwner()->GetWorldAABB(),
-            Extent3D { 8, 4, 8 }
+            Extent3D { 10, 4, 10 }
         );
     }
 

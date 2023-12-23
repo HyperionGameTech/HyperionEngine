@@ -90,9 +90,10 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::LIGHT_FIELD_COLOR_BUFFER, 63},
             {DescriptorKey::LIGHT_FIELD_NORMALS_BUFFER, 64},
             {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER, 65},
-            {DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER, 66},
-            {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES, 67},
-            {DescriptorKey::LIGHT_FIELD_VOXEL_GRID, 68},
+            {DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES, 66},
+            {DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER, 67},
+            {DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER, 68},
+            {DescriptorKey::VOXEL_GRID_IMAGE, 69},
 
             {DescriptorKey::VCT_VOXEL_UAV, 70},
             {DescriptorKey::VCT_VOXEL_UNIFORMS, 71},
@@ -487,22 +488,35 @@ void DescriptorSet::AddDescriptors()
 
             switch (descriptor.slot) {
             case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
-                AddDescriptor<renderer::ImageDescriptor>(descriptor_index);
+                AddDescriptor<renderer::ImageDescriptor>(descriptor_index)
+                    ->SetElementSRV(0, platform::ImageViewRef<Platform::VULKAN>::unset);
+    
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_UAV:
-                AddDescriptor<renderer::StorageImageDescriptor>(descriptor_index);
+                AddDescriptor<renderer::StorageImageDescriptor>(descriptor_index)
+                    ->SetElementUAV(0, platform::ImageViewRef<Platform::VULKAN>::unset);
+                    
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_CBUFF:
-                AddDescriptor<renderer::UniformBufferDescriptor>(descriptor_index);
+                if (descriptor.is_dynamic) {
+                    AddDescriptor<renderer::DynamicUniformBufferDescriptor>(descriptor_index);
+                } else {
+                    AddDescriptor<renderer::UniformBufferDescriptor>(descriptor_index);
+                }
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_SSBO:
-                AddDescriptor<renderer::StorageBufferDescriptor>(descriptor_index);
+                if (descriptor.is_dynamic) {
+                    AddDescriptor<renderer::DynamicStorageBufferDescriptor>(descriptor_index);
+                } else {
+                    AddDescriptor<renderer::StorageBufferDescriptor>(descriptor_index);
+                }
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
                 AddDescriptor<renderer::TlasDescriptor>(descriptor_index);
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER:
-                AddDescriptor<renderer::SamplerDescriptor>(descriptor_index);
+                AddDescriptor<renderer::SamplerDescriptor>(descriptor_index)
+                    ->SetElementSampler(0, platform::SamplerRef<Platform::VULKAN>::unset);
                 break;
             default:
                 AssertThrowMsg(false, "Invalid descriptor slot");
@@ -1178,7 +1192,7 @@ void Descriptor::Create(
 
     m_sub_descriptor_update_indices.Clear();
 
-    auto descriptor_count = UInt(m_sub_descriptors.Size());
+    UInt32 descriptor_count = UInt32(m_sub_descriptors.Size());
 
     if (m_descriptor_set->IsBindless()) {
         descriptor_count = DescriptorSet::max_bindless_resources;

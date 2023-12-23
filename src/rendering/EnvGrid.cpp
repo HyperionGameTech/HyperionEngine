@@ -14,14 +14,15 @@ using renderer::Result;
 static const Extent2D num_tiles = { 4, 4 };
 static const Extent2D sh_probe_dimensions = Extent2D { 16, 16 };
 static const Extent2D light_field_probe_dimensions = Extent2D { 256, 256 };
+static const Extent2D framebuffer_dimensions = Extent2D { 256, 256 };
 static const EnvProbeIndex invalid_probe_index = EnvProbeIndex();
 
 static const UInt light_field_probe_lowres_packed_octahedron_size = 16;
 static const UInt light_field_probe_radiance_packed_octahedron_size = 256;
-static const UInt light_field_probe_irradiance_packed_octahedron_size = 64;
+static const UInt light_field_probe_irradiance_packed_octahedron_size = 128;
 static const UInt light_field_probe_packed_border_size = 2;
 
-static constexpr Bool light_field_use_texture_array = false;
+static constexpr Bool light_field_use_texture_array = true;
 
 static Extent2D GetProbeDimensions(EnvProbeType env_probe_type)
 {
@@ -154,28 +155,88 @@ struct RENDER_COMMAND(CreateLightFieldStorageImages) : renderer::RenderCommand
     }
 };
 
+struct RENDER_COMMAND(SetElementInGlobalDescriptorSet) : renderer::RenderCommand
+{
+    renderer::DescriptorType type;
+    renderer::DescriptorKey key;
+    UInt32 element_index;
+    ImageViewRef value;
+
+    RENDER_COMMAND(SetElementInGlobalDescriptorSet)(
+        renderer::DescriptorType type,
+        renderer::DescriptorKey key,
+        UInt32 element_index,
+        ImageViewRef value
+    ) : type(type),
+        key(key),
+        element_index(element_index),
+        value(std::move(value))
+    {
+    }
+
+    virtual Result operator()()
+    {
+        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+            DescriptorSetRef descriptor_set_globals = g_engine->GetGPUInstance()->GetDescriptorPool()
+                .GetDescriptorSet(DescriptorSet::global_buffer_mapping[frame_index]);
+
+            switch (type) {
+            case renderer::DescriptorType::IMAGE:
+                descriptor_set_globals
+                    ->GetOrAddDescriptor<renderer::ImageDescriptor>(key)
+                    ->SetElementSRV(element_index, value);
+                break;
+            case renderer::DescriptorType::IMAGE_STORAGE:
+                descriptor_set_globals
+                    ->GetOrAddDescriptor<renderer::StorageImageDescriptor>(key)
+                    ->SetElementUAV(element_index, value);
+                break;
+            // case renderer::DescriptorType::UNIFORM_BUFFER:
+            //     descriptor_set_globals
+            //         ->GetOrAddDescriptor<renderer::UniformBufferDescriptor>(key)
+            //         ->SetElementBuffer(element_index, value.Get<GPUBufferRef>());
+            //     break;
+            // case renderer::DescriptorType::STORAGE_BUFFER:
+            //     descriptor_set_globals
+            //         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(key)
+            //         ->SetElementBuffer(element_index, value.Get<GPUBufferRef>());
+            //     break;
+            // case renderer::DescriptorType::SAMPLER:
+            //     descriptor_set_globals
+            //         ->GetOrAddDescriptor<renderer::SamplerDescriptor>(key)
+            //         ->SetElementSampler(element_index, value.Get<SamplerRef>());
+            //     break;
+            default:
+                AssertThrowMsg(false, "Invalid descriptor type");
+            }
+        }
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::RenderCommand
 {
     ImageViewRef light_field_color_image_view;
     ImageViewRef light_field_normals_image_view;
     ImageViewRef light_field_depth_image_view;
-    ImageViewRef light_field_irradiance_image_view;
     ImageViewRef light_field_depth_lowres_image_view;
-    ImageViewRef light_field_voxel_grid_image_view;
+    ImageViewRef light_field_irradiance_image_view;
+    ImageViewRef light_field_filtered_distance_image_view;
 
     RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet)(
         ImageViewRef light_field_color_image_view,
         ImageViewRef light_field_normals_image_view,
         ImageViewRef light_field_depth_image_view,
-        ImageViewRef light_field_irradiance_image_view,
         ImageViewRef light_field_depth_lowres_image_view,
-        ImageViewRef light_field_voxel_grid_image_view
+        ImageViewRef light_field_irradiance_image_view,
+        ImageViewRef light_field_filtered_distance_image_view
     ) : light_field_color_image_view(std::move(light_field_color_image_view)),
         light_field_normals_image_view(std::move(light_field_normals_image_view)),
         light_field_depth_image_view(std::move(light_field_depth_image_view)),
-        light_field_irradiance_image_view(std::move(light_field_irradiance_image_view)),
         light_field_depth_lowres_image_view(std::move(light_field_depth_lowres_image_view)),
-        light_field_voxel_grid_image_view(std::move(light_field_voxel_grid_image_view))
+        light_field_irradiance_image_view(std::move(light_field_irradiance_image_view)),
+        light_field_filtered_distance_image_view(std::move(light_field_filtered_distance_image_view))
     {
     }
 
@@ -198,16 +259,16 @@ struct RENDER_COMMAND(SetLightFieldBuffersInGlobalDescriptorSet) : renderer::Ren
                 ->SetElementSRV(0, light_field_depth_image_view);
             
             descriptor_set_globals
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
-                ->SetElementSRV(0, light_field_irradiance_image_view);
-            
-            descriptor_set_globals
                 ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_DEPTH_BUFFER_LOWRES)
                 ->SetElementSRV(0, light_field_depth_lowres_image_view);
             
             descriptor_set_globals
-                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_VOXEL_GRID)
-                ->SetElementSRV(0, light_field_voxel_grid_image_view);
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_IRRADIANCE_BUFFER)
+                ->SetElementSRV(0, light_field_irradiance_image_view);
+            
+            descriptor_set_globals
+                ->GetOrAddDescriptor<renderer::ImageDescriptor>(renderer::DescriptorKey::LIGHT_FIELD_FILTERED_DISTANCE_BUFFER)
+                ->SetElementSRV(0, light_field_filtered_distance_image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -363,8 +424,6 @@ void EnvGrid::Init()
                         m_aabb.min + (Vector3(Float(x + 1), Float(y + 1), Float(z + 1)) * (aabb_extent / Vector3(m_density)))
                     );
 
-                    
-
                     Handle<EnvProbe> probe = CreateObject<EnvProbe>(
                         scene,
                         env_probe_aabb,
@@ -383,6 +442,8 @@ void EnvGrid::Init()
 
     CreateShader();
     CreateFramebuffer();
+
+    CreateVoxelGridData();
 
     if (GetEnvGridType() == ENV_GRID_TYPE_SH) {
         CreateSHData();
@@ -437,37 +498,7 @@ void EnvGrid::OnRemoved()
     m_camera.Reset();
     m_render_list.Reset();
     m_ambient_shader.Reset();
-
-    struct RENDER_COMMAND(DestroyEnvGridFramebufferAttachments) : renderer::RenderCommand
-    {
-        EnvGrid &env_grid;
-
-        RENDER_COMMAND(DestroyEnvGridFramebufferAttachments)(EnvGrid &env_grid)
-            : env_grid(env_grid)
-        {
-        }
-
-        virtual Result operator()()
-        {
-            auto result = Result::OK;
-
-            if (env_grid.m_framebuffer != nullptr) {
-                for (auto &attachment : env_grid.m_attachments) {
-                    env_grid.m_framebuffer->RemoveAttachmentUsage(attachment.get());
-                }
-            }
-
-            for (auto &attachment : env_grid.m_attachments) {
-                HYPERION_PASS_ERRORS(attachment->Destroy(g_engine->GetGPUInstance()->GetDevice()), result);
-            }
-
-            env_grid.m_attachments.clear();
-
-            return result;
-        }
-    };
-
-    PUSH_RENDER_COMMAND(DestroyEnvGridFramebufferAttachments, *this);
+    m_framebuffer.Reset();
 
     if (GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD) {
         PUSH_RENDER_COMMAND(
@@ -482,10 +513,20 @@ void EnvGrid::OnRemoved()
 
     }
 
+    PUSH_RENDER_COMMAND(
+        SetElementInGlobalDescriptorSet,
+        renderer::DescriptorType::IMAGE,
+        renderer::DescriptorKey::VOXEL_GRID_IMAGE,
+        0,
+        ImageViewRef::unset
+    );
+
     SafeRelease(std::move(m_light_field_probe_descriptor_sets));
 
     SafeRelease(std::move(m_compute_sh_descriptor_sets));
+    SafeRelease(std::move(m_compute_clipmaps_descriptor_sets));
 
+    SafeRelease(std::move(m_voxelize_probe_descriptor_sets));
     SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_sets));
     SafeRelease(std::move(m_voxel_grid_mips));
 }
@@ -692,6 +733,177 @@ void EnvGrid::OnRender(Frame *frame)
 void EnvGrid::OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index /*prev_index*/)
 {
     AssertThrowMsg(false, "Not implemented");
+}
+
+void EnvGrid::CreateVoxelGridData()
+{
+    // Create our voxel grid texture
+    m_voxel_grid_texture = CreateObject<Texture>(Texture3D(
+        Extent3D { 256, 256, 256 },
+        InternalFormat::RGBA16F,
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
+    ));
+
+    m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_voxel_grid_texture);
+
+    // Set our voxel grid texture in the global descriptor set so we can use it in shaders
+    PUSH_RENDER_COMMAND(
+        SetElementInGlobalDescriptorSet,
+        renderer::DescriptorType::IMAGE,
+        renderer::DescriptorKey::VOXEL_GRID_IMAGE,
+        0,
+        m_voxel_grid_texture->GetImageView()
+    );
+
+    { // Voxel Grid mipmapping descriptor sets
+        const UInt num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
+
+        for (UInt mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
+            m_voxel_grid_mips[mip_level] = MakeRenderObject<renderer::ImageView>();
+
+            // create descriptor sets for mip generation.
+            DescriptorSetRef mip_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
+
+            auto *mip_in = mip_descriptor_set
+                ->AddDescriptor<renderer::ImageDescriptor>(0);
+
+            if (mip_level == 0) {
+                // first mip level -- input is the actual image
+                mip_in->SetElementSRV(0, m_voxel_grid_texture->GetImageView());
+            } else {
+                mip_in->SetElementSRV(0, m_voxel_grid_mips[mip_level - 1]);
+            }
+
+            auto *mip_out = mip_descriptor_set
+                ->AddDescriptor<renderer::StorageImageDescriptor>(1);
+
+            mip_out->SetElementUAV(0, m_voxel_grid_mips[mip_level]);
+
+            mip_descriptor_set
+                ->AddDescriptor<renderer::SamplerDescriptor>(2)
+                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+
+            // DeferCreate(mip_descriptor_set, g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool());
+
+            m_generate_voxel_grid_mipmaps_descriptor_sets.PushBack(std::move(mip_descriptor_set));
+        }
+    }
+
+    // Create shader, descriptor sets for voxelizing probes
+    AssertThrowMsg(m_framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
+    AssertThrowMsg(m_framebuffer->GetAttachmentMap().Size() >= 3, "Framebuffer must have at least 3 attachments (color, normals, distances)");
+
+    Handle<Shader> voxelize_probe_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_VOXELIZE" }});
+    Handle<Shader> clear_voxels_shader = g_shader_manager->GetOrCreate(HYP_NAME(EnvProbe_VoxelizeProbe), {{ "MODE_CLEAR" }});
+
+    const renderer::DescriptorTable descriptor_table = voxelize_probe_shader->GetCompiledShader().GetDefinition().GetDescriptorUsages().BuildDescriptorTable();
+
+    const renderer::DescriptorSetDeclaration *descriptor_set_decl = descriptor_table.FindDescriptorSetDeclaration(HYP_NAME(VoxelizeProbeDescriptorSet));
+    AssertThrow(descriptor_set_decl != nullptr);
+    
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        // create descriptor sets for depth pyramid generation.
+        DescriptorSetRef descriptor_set = MakeRenderObject<renderer::DescriptorSet>(*descriptor_set_decl);
+
+        if (auto *in_color_image_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(InColorImage))) {
+            in_color_image_descriptor->SetElementSRV(0, m_framebuffer->GetAttachmentUsages()[0]->GetImageView());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for InColorImage");
+        }
+
+        if (auto *in_normals_image_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(InNormalsImage))) {
+            in_normals_image_descriptor->SetElementSRV(0, m_framebuffer->GetAttachmentUsages()[1]->GetImageView());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for InNormalsImage");
+        }
+
+        if (auto *in_depth_image_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(InDepthImage))) {
+            in_depth_image_descriptor->SetElementSRV(0, m_framebuffer->GetAttachmentUsages()[2]->GetImageView());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for InDepthImage");
+        }
+
+        if (auto *sampler_linear_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerLinear))) {
+            sampler_linear_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for SamplerLinear");
+        }
+
+        if (auto *sampler_nearest_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(SamplerNearest))) {
+            sampler_nearest_descriptor->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerNearest());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for SamplerNearest");
+        }
+
+        if (auto *env_grid_buffer_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(EnvGridBuffer))) {
+            env_grid_buffer_descriptor->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for EnvGridBuffer");
+        }
+
+        if (auto *env_probes_buffer_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(EnvProbesBuffer))) {
+            env_probes_buffer_descriptor->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for EnvProbesBuffer");
+        }
+
+        if (auto *out_voxel_grid_image_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(OutVoxelGridImage))) {
+            out_voxel_grid_image_descriptor->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
+        } else {
+            AssertThrowMsg(false, "Missing descriptor for OutVoxelGridImage");
+        }
+
+        DeferCreate(descriptor_set, g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool());
+
+        m_voxelize_probe_descriptor_sets[frame_index] = std::move(descriptor_set);
+    }
+
+    { // Compute shader to clear the voxel grid at a specific position
+        m_clear_voxels = CreateObject<ComputePipeline>(
+            clear_voxels_shader,
+            Array<DescriptorSetRef> { m_voxelize_probe_descriptor_sets[0] }
+        );
+
+        InitObject(m_clear_voxels);
+    }
+
+    { // Compute shader to voxelize a probe into voxel grid
+        m_voxelize_probe = CreateObject<ComputePipeline>(
+            voxelize_probe_shader,
+            Array<DescriptorSetRef> { m_voxelize_probe_descriptor_sets[0] }
+        );
+
+        InitObject(m_voxelize_probe);
+    }
+
+    { // Compute shader to generate mipmaps for voxel grid
+        m_generate_voxel_grid_mipmaps = CreateObject<ComputePipeline>(
+            g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap)),
+            Array<DescriptorSetRef> { m_generate_voxel_grid_mipmaps_descriptor_sets[0] } // only need to pass first to use for layout.
+        );
+
+        for (UInt mip_level = 0; mip_level < m_voxel_grid_texture->GetImage()->NumMipmaps(); mip_level++) {
+            DeferCreate(
+                m_voxel_grid_mips[mip_level],
+                g_engine->GetGPUDevice(), 
+                m_voxel_grid_texture->GetImage(),
+                mip_level, 1,
+                0, m_voxel_grid_texture->GetImage()->NumFaces()
+            );
+
+            DeferCreate(
+                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
+                g_engine->GetGPUDevice(),
+                &g_engine->GetGPUInstance()->GetDescriptorPool()
+            );
+        }
+
+        InitObject(m_generate_voxel_grid_mipmaps);
+    }
 }
 
 void EnvGrid::CreateSHData()
@@ -937,27 +1149,6 @@ void EnvGrid::CreateLightFieldData()
     InitObject(m_light_field_depth_texture);
 
     if constexpr (light_field_use_texture_array) {
-        m_light_field_irradiance_texture = CreateObject<Texture>(TextureArray(
-            irradiance_extent,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            m_density.Size()
-        ));
-    } else {
-        m_light_field_irradiance_texture = CreateObject<Texture>(Texture2D(
-            irradiance_extent,
-            InternalFormat::RGBA8,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-            nullptr
-        ));
-    }
-
-    m_light_field_irradiance_texture->GetImage()->SetIsRWTexture(true);
-    InitObject(m_light_field_irradiance_texture);
-
-    if constexpr (light_field_use_texture_array) {
         m_light_field_lowres_depth_texture = CreateObject<Texture>(TextureArray(
             lowres_extent,
             InternalFormat::R32F,
@@ -978,16 +1169,47 @@ void EnvGrid::CreateLightFieldData()
     m_light_field_lowres_depth_texture->GetImage()->SetIsRWTexture(true);
     InitObject(m_light_field_lowres_depth_texture);
 
-    m_voxel_grid_texture = CreateObject<Texture>(Texture3D(
-        Extent3D { 256, 256, 256 },
-        InternalFormat::RGBA16F,
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-        nullptr
-    ));
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_irradiance_texture = CreateObject<Texture>(TextureArray(
+            irradiance_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_irradiance_texture = CreateObject<Texture>(Texture2D(
+            irradiance_extent,
+            InternalFormat::RGBA16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
 
-    m_voxel_grid_texture->GetImage()->SetIsRWTexture(true);
-    InitObject(m_voxel_grid_texture);
+    m_light_field_irradiance_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_irradiance_texture);
+
+    if constexpr (light_field_use_texture_array) {
+        m_light_field_filtered_distance_texture = CreateObject<Texture>(TextureArray(
+            irradiance_extent,
+            InternalFormat::RG16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            m_density.Size()
+        ));
+    } else {
+        m_light_field_filtered_distance_texture = CreateObject<Texture>(Texture2D(
+            irradiance_extent,
+            InternalFormat::RG16F,
+            FilterMode::TEXTURE_FILTER_NEAREST,
+            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            nullptr
+        ));
+    }
+
+    m_light_field_filtered_distance_texture->GetImage()->SetIsRWTexture(true);
+    InitObject(m_light_field_filtered_distance_texture);
 
     // Descriptor sets
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -1018,57 +1240,30 @@ void EnvGrid::CreateLightFieldData()
             ->SetElementUAV(0, m_light_field_depth_texture->GetImageView());
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(8)
-            ->SetElementUAV(0, m_light_field_irradiance_texture->GetImageView());
-
-        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
             ->SetElementUAV(0, m_light_field_lowres_depth_texture->GetImageView());
 
-        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(10)
-            ->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(9)
+            ->SetElementUAV(0, m_light_field_irradiance_texture->GetImageView());
 
-        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(11)
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(10)
+            ->SetElementUAV(0, m_light_field_filtered_distance_texture->GetImageView());
+
+        if (m_voxel_grid_texture.IsValid()) {
+            m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(11)
+                ->SetElementUAV(0, m_voxel_grid_texture->GetImageView());
+        } else {
+            m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::StorageImageDescriptor>(11)
+                ->SetElementUAV(0, &g_engine->GetPlaceholderData().GetImageView3D1x1x1R8Storage());
+        }
+
+        m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(12)
             ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
 
-        m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(12)
+        m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(13)
             ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
     }
 
     PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_light_field_probe_descriptor_sets);
-
-    { // Voxel Grid descriptor sets
-        const UInt num_voxel_grid_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
-        m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
-
-        for (UInt mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++) {
-            m_voxel_grid_mips[mip_level] = MakeRenderObject<renderer::ImageView>();
-
-            // create descriptor sets for mip generation.
-            DescriptorSetRef mip_descriptor_set = MakeRenderObject<renderer::DescriptorSet>();
-
-            auto *mip_in = mip_descriptor_set
-                ->AddDescriptor<renderer::ImageDescriptor>(0);
-
-            if (mip_level == 0) {
-                // first mip level -- input is the actual image
-                mip_in->SetElementSRV(0, m_voxel_grid_texture->GetImageView());
-            } else {
-                mip_in->SetElementSRV(0, m_voxel_grid_mips[mip_level - 1]);
-            }
-
-            auto *mip_out = mip_descriptor_set
-                ->AddDescriptor<renderer::StorageImageDescriptor>(1);
-
-            mip_out->SetElementUAV(0, m_voxel_grid_mips[mip_level]);
-
-            mip_descriptor_set
-                ->AddDescriptor<renderer::SamplerDescriptor>(2)
-                ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
-
-            // DeferCreate(mip_descriptor_set, g_engine->GetGPUDevice(), &g_engine->GetGPUInstance()->GetDescriptorPool());
-
-            m_generate_voxel_grid_mipmaps_descriptor_sets.PushBack(std::move(mip_descriptor_set));
-        }
-    }
 
     { // Compute shader to pack rendered textures into the large grid
         m_pack_light_field_probe = CreateObject<ComputePipeline>(
@@ -1097,69 +1292,25 @@ void EnvGrid::CreateLightFieldData()
         InitObject(m_copy_light_field_border_texels_depth);
     }
 
-    { // Compute shader to clear the voxel grid at a specific position
-        m_clear_voxels = CreateObject<ComputePipeline>(
-            g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {{ "MODE_CLEAR" }}),
-            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-        );
-
-        InitObject(m_clear_voxels);
-    }
-
-    { // Compute shader to voxelize a probe into voxel grid
-        m_voxelize_probe = CreateObject<ComputePipeline>(
-            g_shader_manager->GetOrCreate(HYP_NAME(LightField_VoxelizeProbe), {{ "MODE_VOXELIZE" }}),
-            Array<DescriptorSetRef> { m_light_field_probe_descriptor_sets[0] }
-        );
-
-        InitObject(m_voxelize_probe);
-    }
-
-    { // Compute shader to generate mipmaps for voxel grid
-        m_generate_voxel_grid_mipmaps = CreateObject<ComputePipeline>(
-            g_shader_manager->GetOrCreate(HYP_NAME(VCTGenerateMipmap)),
-            Array<DescriptorSetRef> { m_generate_voxel_grid_mipmaps_descriptor_sets[0] } // only need to pass first to use for layout.
-        );
-
-        for (UInt mip_level = 0; mip_level < m_voxel_grid_texture->GetImage()->NumMipmaps(); mip_level++) {
-            DeferCreate(
-                m_voxel_grid_mips[mip_level],
-                g_engine->GetGPUDevice(), 
-                m_voxel_grid_texture->GetImage(),
-                mip_level, 1,
-                0, m_voxel_grid_texture->GetImage()->NumFaces()
-            );
-
-            DeferCreate(
-                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
-                g_engine->GetGPUDevice(),
-                &g_engine->GetGPUInstance()->GetDescriptorPool()
-            );
-        }
-
-        InitObject(m_generate_voxel_grid_mipmaps);
-    }
-
     // Update global desc sets
     PUSH_RENDER_COMMAND(
         SetLightFieldBuffersInGlobalDescriptorSet,
         m_light_field_color_texture->GetImageView(),
         m_light_field_normals_texture->GetImageView(),
         m_light_field_depth_texture->GetImageView(),
-        m_light_field_irradiance_texture->GetImageView(),
         m_light_field_lowres_depth_texture->GetImageView(),
-        m_voxel_grid_texture->GetImageView()
+        m_light_field_irradiance_texture->GetImageView(),
+        m_light_field_filtered_distance_texture->GetImageView()
     );
 }
 
 void EnvGrid::CreateShader()
 {
-    ShaderProperties shader_properties(renderer::static_mesh_vertex_attributes, { "MODE_AMBIENT" });
-
-    if (GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD) {
-        shader_properties.Set("WRITE_NORMALS");
-        shader_properties.Set("WRITE_MOMENTS");
-    }
+    ShaderProperties shader_properties(renderer::static_mesh_vertex_attributes, {
+        "MODE_AMBIENT",
+        "WRITE_NORMALS",
+        "WRITE_MOMENTS"
+    });
 
     m_ambient_shader = g_shader_manager->GetOrCreate(
         HYP_NAME(CubemapRenderer),
@@ -1171,10 +1322,8 @@ void EnvGrid::CreateShader()
 
 void EnvGrid::CreateFramebuffer()
 {
-    const Extent2D probe_dimensions = GetProbeDimensions(GetEnvProbeType());
-
     m_framebuffer = CreateObject<Framebuffer>(
-        probe_dimensions,
+        framebuffer_dimensions,
         RenderPassStage::SHADER,
         renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER,
         6
@@ -1183,7 +1332,7 @@ void EnvGrid::CreateFramebuffer()
     m_framebuffer->AddAttachment(
         0,
         MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            probe_dimensions,
+            framebuffer_dimensions,
             InternalFormat::RGBA8_SRGB,
             nullptr
         )),
@@ -1192,40 +1341,36 @@ void EnvGrid::CreateFramebuffer()
         renderer::StoreOperation::STORE
     );
 
-    if (GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD) {
-        // Normals
-        m_framebuffer->AddAttachment(
-            1,
-            MakeRenderObject<Image>(renderer::FramebufferImageCube(
-                probe_dimensions,
-                InternalFormat::RG16F,
-                nullptr
-            )),
-            RenderPassStage::SHADER,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE
-        );
+    // Normals
+    m_framebuffer->AddAttachment(
+        1,
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
+            framebuffer_dimensions,
+            InternalFormat::RG16F,
+            nullptr
+        )),
+        RenderPassStage::SHADER,
+        renderer::LoadOperation::CLEAR,
+        renderer::StoreOperation::STORE
+    );
 
-        // Moments
-        m_framebuffer->AddAttachment(
-            2,
-            MakeRenderObject<Image>(renderer::FramebufferImageCube(
-                probe_dimensions,
-                InternalFormat::RG16F,
-                nullptr
-            )),
-            RenderPassStage::SHADER,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE
-        );
-    }
+    // Distance Moments
+    m_framebuffer->AddAttachment(
+        2,
+        MakeRenderObject<Image>(renderer::FramebufferImageCube(
+            framebuffer_dimensions,
+            InternalFormat::RG16F,
+            nullptr
+        )),
+        RenderPassStage::SHADER,
+        renderer::LoadOperation::CLEAR,
+        renderer::StoreOperation::STORE
+    );
 
     m_framebuffer->AddAttachment(
-        GetEnvGridType() == ENV_GRID_TYPE_SH
-            ? 1
-            : 3,
+        3,
         MakeRenderObject<Image>(renderer::FramebufferImageCube(
-            probe_dimensions,
+            framebuffer_dimensions,
             g_engine->GetDefaultFormat(TEXTURE_FORMAT_DEFAULT_DEPTH),
             nullptr
         )),
@@ -1289,6 +1434,8 @@ void EnvGrid::RenderEnvProbe(
         break;
     }
 
+    VoxelizeProbe(frame, probe_index);
+
     probe->SetNeedsRender(false);
 }
 
@@ -1309,7 +1456,8 @@ void EnvGrid::ComputeSH(
     AssertThrow(image != nullptr);
     AssertThrow(image_view != nullptr);
 
-    struct alignas(128) {
+    struct alignas(128)
+    {
         ShaderVec4<UInt32> probe_grid_position;
         ShaderVec4<UInt32> cubemap_dimensions;
     } push_constants;
@@ -1325,6 +1473,7 @@ void EnvGrid::ComputeSH(
         probe->m_grid_slot / (m_density.width * m_density.height),
         probe->m_grid_slot
     };
+    
     push_constants.cubemap_dimensions = { image->GetExtent().width, image->GetExtent().height, 0, 0 };
     
     m_compute_sh_descriptor_sets[frame->GetFrameIndex()]
@@ -1371,6 +1520,154 @@ void EnvGrid::ComputeSH(
 
     m_finalize_sh->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
     m_finalize_sh->GetPipeline()->Dispatch(frame->GetCommandBuffer(), Extent3D { 1, 1, 1 });
+}
+
+void EnvGrid::VoxelizeProbe(
+    Frame *frame,
+    UInt32 probe_index
+)
+{
+    AssertThrow(m_voxel_grid_texture.IsValid());
+
+    const Handle<EnvProbe> &probe = m_grid.GetEnvProbeDirect(probe_index);//GetEnvProbeOnRenderThread(probe_index);
+    AssertThrow(probe.IsValid());
+    AssertThrow(probe->m_grid_slot < max_bound_ambient_probes);
+    AssertThrow(probe->m_grid_slot == probe_index);
+
+    const ImageRef &color_image = m_framebuffer->GetAttachmentUsages()[0]->GetAttachment()->GetImage();
+    const Extent2D cubemap_dimensions = Extent2D(color_image->GetExtent());
+
+    DescriptorSetRef &descriptor_set = m_voxelize_probe_descriptor_sets[frame->GetFrameIndex()];
+    AssertThrow(descriptor_set.IsValid());
+
+    struct alignas(128)
+    {
+        ShaderVec4<UInt32> probe_grid_position;
+        ShaderVec4<UInt32> cubemap_dimensions;
+    } push_constants;
+
+    push_constants.probe_grid_position = {
+        probe->m_grid_slot % m_density.width,
+        (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
+        probe->m_grid_slot / (m_density.width * m_density.height),
+        probe->m_grid_slot
+    };
+
+    push_constants.cubemap_dimensions = { cubemap_dimensions.width, cubemap_dimensions.height, 0, 0 };
+    
+    {   // Clear our voxel grid at the start of each probe
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
+            m_clear_voxels->GetPipeline(),
+            m_voxelize_probe_descriptor_sets[frame->GetFrameIndex()],
+            0,
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+            }
+        );
+
+        m_clear_voxels->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+        m_clear_voxels->GetPipeline()->Dispatch(
+            frame->GetCommandBuffer(), 
+            Extent3D {
+                (cubemap_dimensions.width + 31) / 32,
+                (cubemap_dimensions.height + 31) / 32,
+                1
+            }
+        );
+    }
+
+    { // Voxelize probe
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
+
+        frame->GetCommandBuffer()->BindDescriptorSet(
+            g_engine->GetGPUInstance()->GetDescriptorPool(),
+            m_voxelize_probe->GetPipeline(),
+            m_voxelize_probe_descriptor_sets[frame->GetFrameIndex()],
+            0,
+            FixedArray {
+                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
+            }
+        );
+
+        m_voxelize_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
+        m_voxelize_probe->GetPipeline()->Dispatch(
+            frame->GetCommandBuffer(), 
+            Extent3D {
+                (cubemap_dimensions.width + 31) / 32,
+                (cubemap_dimensions.height + 31) / 32,
+                1
+            }
+        );
+    }
+
+    { // Generate mipmaps for the voxel grid
+
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
+
+        const UInt num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
+        const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
+        Extent3D mip_extent = voxel_image_extent;
+
+        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
+            const Extent3D prev_mip_extent = mip_extent;
+
+            mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
+            mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);
+            mip_extent.depth = MathUtil::Max(1u, voxel_image_extent.depth >> mip_level);
+        
+            if (mip_level != 0) {
+                // put the mip into writeable state
+                m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+                    frame->GetCommandBuffer(),
+                    renderer::ImageSubResource { .base_mip_level = mip_level },
+                    renderer::ResourceState::UNORDERED_ACCESS
+                );
+            }
+
+            frame->GetCommandBuffer()->BindDescriptorSet(
+                g_engine->GetGPUInstance()->GetDescriptorPool(),
+                m_generate_voxel_grid_mipmaps->GetPipeline(),
+                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
+                DescriptorSet::Index(0)
+            );
+
+            m_generate_voxel_grid_mipmaps->GetPipeline()->Bind(
+                frame->GetCommandBuffer(),
+                Pipeline::PushConstantData {
+                    .voxel_mip_data = {
+                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(mip_extent), 0),
+                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(prev_mip_extent), 0),
+                        .mip_level = mip_level
+                    }
+                }
+            );
+            
+            // dispatch to generate this mip level
+            m_generate_voxel_grid_mipmaps->GetPipeline()->Dispatch(
+                frame->GetCommandBuffer(),
+                Extent3D {
+                    (mip_extent.width + 7) / 8,
+                    (mip_extent.height + 7) / 8,
+                    (mip_extent.depth + 7) / 8
+                }
+            );
+
+            // put this mip into readable state
+            m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
+                frame->GetCommandBuffer(),
+                renderer::ImageSubResource { .base_mip_level = mip_level },
+                renderer::ResourceState::SHADER_RESOURCE
+            );
+        }
+
+        // all mip levels have been transitioned into this state
+        m_voxel_grid_texture->GetImage()->GetGPUImage()->SetResourceState(
+            renderer::ResourceState::SHADER_RESOURCE
+        );
+    }
 }
 
 void EnvGrid::ComputeLightFieldData(
@@ -1522,120 +1819,6 @@ void EnvGrid::ComputeLightFieldData(
     m_light_field_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_irradiance_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
     m_light_field_lowres_depth_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-    
-    {   // Clear our voxel grid at the start of each probe
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-        frame->GetCommandBuffer()->BindDescriptorSet(
-            g_engine->GetGPUInstance()->GetDescriptorPool(),
-            m_clear_voxels->GetPipeline(),
-            m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
-            0,
-            FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
-            }
-        );
-
-        m_clear_voxels->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-        m_clear_voxels->GetPipeline()->Dispatch(
-            frame->GetCommandBuffer(), 
-            Extent3D {
-                (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
-                (light_field_probe_radiance_packed_octahedron_size + 31) / 32,
-                1
-            }
-        );
-    }
-
-    { // Voxelize probe
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);
-
-        frame->GetCommandBuffer()->BindDescriptorSet(
-            g_engine->GetGPUInstance()->GetDescriptorPool(),
-            m_voxelize_probe->GetPipeline(),
-            m_light_field_probe_descriptor_sets[frame->GetFrameIndex()],
-            0,
-            FixedArray {
-                HYP_RENDER_OBJECT_OFFSET(EnvGrid, GetComponentIndex())
-            }
-        );
-
-        m_voxelize_probe->GetPipeline()->Bind(frame->GetCommandBuffer(), &push_constants, sizeof(push_constants));
-        m_voxelize_probe->GetPipeline()->Dispatch(
-            frame->GetCommandBuffer(), 
-            Extent3D {
-                (light_field_probe_dimensions.width + 31) / 32,
-                (light_field_probe_dimensions.height + 31) / 32,
-                1
-            }
-        );
-    }
-
-    { // Generate mipmaps for the voxel grid
-
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::SHADER_RESOURCE);
-
-        const UInt num_mip_levels = m_voxel_grid_texture->GetImage()->NumMipmaps();
-        const Extent3D voxel_image_extent = m_voxel_grid_texture->GetImage()->GetExtent();
-        Extent3D mip_extent = voxel_image_extent;
-
-        for (UInt mip_level = 0; mip_level < num_mip_levels; mip_level++) {
-            const Extent3D prev_mip_extent = mip_extent;
-
-            mip_extent.width = MathUtil::Max(1u, voxel_image_extent.width >> mip_level);
-            mip_extent.height = MathUtil::Max(1u, voxel_image_extent.height >> mip_level);
-            mip_extent.depth = MathUtil::Max(1u, voxel_image_extent.depth >> mip_level);
-        
-            if (mip_level != 0) {
-                // put the mip into writeable state
-                m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
-                    frame->GetCommandBuffer(),
-                    renderer::ImageSubResource { .base_mip_level = mip_level },
-                    renderer::ResourceState::UNORDERED_ACCESS
-                );
-            }
-
-            frame->GetCommandBuffer()->BindDescriptorSet(
-                g_engine->GetGPUInstance()->GetDescriptorPool(),
-                m_generate_voxel_grid_mipmaps->GetPipeline(),
-                m_generate_voxel_grid_mipmaps_descriptor_sets[mip_level],
-                DescriptorSet::Index(0)
-            );
-
-            m_generate_voxel_grid_mipmaps->GetPipeline()->Bind(
-                frame->GetCommandBuffer(),
-                Pipeline::PushConstantData {
-                    .voxel_mip_data = {
-                        .mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(mip_extent), 0),
-                        .prev_mip_dimensions = renderer::ShaderVec4<UInt32>(Vec3u(prev_mip_extent), 0),
-                        .mip_level = mip_level
-                    }
-                }
-            );
-            
-            // dispatch to generate this mip level
-            m_generate_voxel_grid_mipmaps->GetPipeline()->Dispatch(
-                frame->GetCommandBuffer(),
-                Extent3D {
-                    (mip_extent.width + 7) / 8,
-                    (mip_extent.height + 7) / 8,
-                    (mip_extent.depth + 7) / 8
-                }
-            );
-
-            // put this mip into readable state
-            m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertSubResourceBarrier(
-                frame->GetCommandBuffer(),
-                renderer::ImageSubResource { .base_mip_level = mip_level },
-                renderer::ResourceState::SHADER_RESOURCE
-            );
-        }
-
-        // all mip levels have been transitioned into this state
-        m_voxel_grid_texture->GetImage()->GetGPUImage()->SetResourceState(
-            renderer::ResourceState::SHADER_RESOURCE
-        );
-    }
 }
 
 } // namespace hyperion::v2
