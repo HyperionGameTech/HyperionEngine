@@ -11,8 +11,8 @@ class Bone;
 
 struct AnimationTrack
 {
-    Bone *bone = nullptr;
-    String bone_name;
+    Bone            *bone = nullptr;
+    String          bone_name;
     Array<Keyframe> keyframes;
 
     Float GetLength() const
@@ -63,8 +63,8 @@ public:
     void ApplyBlended(Float time, Float blend);
 
 private:
-    String m_name;
-    Array<AnimationTrack> m_tracks;
+    String                  m_name;
+    Array<AnimationTrack>   m_tracks;
 };
 
 } // namespace hyperion::v2

@@ -164,7 +164,7 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 ShadowPass::ShadowPass(const Handle<Scene> &parent_scene)
     : FullScreenPass(),
       m_parent_scene(parent_scene),
-      m_shadow_mode(ShadowMode::PCF),
+      m_shadow_mode(ShadowMode::CONTACT_HARDENED),
       m_shadow_map_index(~0u),
       m_dimensions { 2048, 2048 }
 {

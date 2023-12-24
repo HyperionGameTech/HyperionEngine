@@ -1550,7 +1550,7 @@ void EnvGrid::VoxelizeProbe(
         probe->m_grid_slot % m_density.width,
         (probe->m_grid_slot % (m_density.width * m_density.height)) / m_density.width,
         probe->m_grid_slot / (m_density.width * m_density.height),
-        probe->m_grid_slot
+        probe.GetID().ToIndex()
     };
 
     push_constants.cubemap_dimensions = { cubemap_dimensions.width, cubemap_dimensions.height, 0, 0 };

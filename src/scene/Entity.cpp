@@ -263,11 +263,11 @@ void Entity::Update(GameCounter::TickUnit delta)
 
     if (m_octree) {
         if (m_needs_octree_update) {
-            // UpdateOctree();
+            UpdateOctree();
         }
 
         const VisibilityState &octree_visibility_state = m_octree->GetVisibilityState();
-        const auto visibility_cursor = m_octree->LoadVisibilityCursor();
+        const UInt8 visibility_cursor = m_octree->LoadVisibilityCursor();
 
         m_visibility_state.snapshots[visibility_cursor] = octree_visibility_state.snapshots[visibility_cursor];
     }
@@ -446,9 +446,9 @@ void Entity::SetMaterial(Handle<Material> &&material)
     SetRenderableAttributes(new_renderable_attributes);
 }
 
-void Entity::SetIsAttachedToNode(Node *node, bool is_attached_to_node)
+void Entity::SetIsAttachedToNode(Node *node, Bool is_attached_to_node)
 {
-    const bool is_currently_attached_to_node = m_nodes.Contains(node);
+    const Bool is_currently_attached_to_node = m_nodes.Contains(node);
 
     if (is_attached_to_node == is_currently_attached_to_node) {
         return;
@@ -479,13 +479,13 @@ void Entity::SetIsAttachedToNode(Node *node, bool is_attached_to_node)
     }
 }
 
-void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
+void Entity::SetIsInScene(ID<Scene> id, Bool is_in_scene)
 {
     if (!id) {
         return;
     }
 
-    const bool has_scene = IsInScene(id);
+    const Bool has_scene = IsInScene(id);
 
     if (has_scene == is_in_scene) {
         return;
@@ -530,7 +530,7 @@ void Entity::SetIsInScene(ID<Scene> id, bool is_in_scene)
     m_shader_data_state |= ShaderDataState::DIRTY;
 }
 
-bool Entity::IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const
+Bool Entity::IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const
 {
     const VisibilityState &parent_visibility_state = g_engine->GetWorld()->GetOctree().GetVisibilityState();
 
@@ -666,7 +666,7 @@ void Entity::SetTransform(const Transform &transform)
     } 
 }
 
-void Entity::UpdateWorldAABB(bool propagate_to_controllers)
+void Entity::UpdateWorldAABB(Bool propagate_to_controllers)
 {
     m_world_aabb = BoundingBox::empty;
     
@@ -743,12 +743,12 @@ void Entity::RemoveFromOctree()
     m_octree->OnEntityRemoved(this);
 }
 
-bool Entity::IsReady() const
+Bool Entity::IsReady() const
 {
     return Base::IsReady();
 }
 
-bool Entity::CreateBLAS()
+Bool Entity::CreateBLAS()
 {
     if (m_blas) {
         return true;

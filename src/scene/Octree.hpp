@@ -30,15 +30,10 @@ class Octree
         DEPTH_SEARCH_ONLY_THIS = 0
     };
 
-    struct Callback
-    {
-        using CallbackFunction = std::function<void(Octree *, Entity *)>;
-    };
-
-    static constexpr float growth_factor = 1.5f;
+    static constexpr Float growth_factor = 1.5f;
     // the length value at which to stop recusively dividing
     // for a small enough object
-    static constexpr float min_aabb_size = 1.0f; 
+    static constexpr Float min_aabb_size = 1.0f; 
     static const BoundingBox default_bounds;
 
     Octree(Octree *parent, const BoundingBox &aabb, UInt8 index);
@@ -52,30 +47,30 @@ public:
             OCTREE_ERR = 1
         } result;
 
-        const char *message;
-        int error_code = 0;
+        const char  *message;
+        Int         error_code = 0;
 
         Result()
             : Result(OCTREE_OK) {}
         
-        Result(decltype(result) result, const char *message = "", int error_code = 0)
+        Result(decltype(result) result, const char *message = "", Int error_code = 0)
             : result(result), message(message), error_code(error_code) {}
         Result(const Result &other)
             : result(other.result), message(other.message), error_code(other.error_code) {}
 
         HYP_FORCE_INLINE
-        operator bool() const { return result == OCTREE_OK; }
+        operator Bool() const { return result == OCTREE_OK; }
     };
 
     struct Octant
     {
-        UniquePtr<Octree> octree;
-        BoundingBox aabb;
+        UniquePtr<Octree>   octree;
+        BoundingBox         aabb;
     };
 
     struct Node
     {
-        Entity *entity;
+        Entity      *entity = nullptr;
         BoundingBox aabb;
 
         HashCode GetHashCode() const
@@ -99,24 +94,16 @@ public:
 
     struct Root
     {
-        struct Events : ComponentEvents<Callback>
-        {
-            CallbackGroup on_insert_octant,
-                on_remove_octant,
-                on_insert_node,
-                on_remove_node;
-        } events;
-
-        std::unordered_map<Entity *, Octree *> node_to_octree;
-        std::atomic_uint8_t visibility_cursor { 0u };
+        std::unordered_map<Entity *, Octree *>  node_to_octree;
+        std::atomic_uint8_t                     visibility_cursor { 0u };
     };
 
-    static bool IsVisible(
+    static Bool IsVisible(
         const Octree *parent,
         const Octree *child
     );
 
-    static bool IsVisible(
+    static Bool IsVisible(
         const Octree *parent,
         const Octree *child,
         UInt8 cursor
@@ -137,6 +124,15 @@ public:
 
     const BoundingBox &GetAABB() const
         { return m_aabb; }
+
+    const Array<Node> &GetNodes() const
+        { return m_nodes; }
+
+    const FixedArray<Octant, 8> &GetOctants() const
+        { return m_octants; }
+
+    Bool IsDivided() const
+        { return m_is_divided; }
 
     /*! \brief Get a hashcode of all entities currently in this Octant (child octants affect this too) */
     HashCode GetNodesHash() const
@@ -163,17 +159,17 @@ public:
     Result Rebuild(const BoundingBox &new_aabb);
 
     void CollectEntities(Array<Entity *> &out) const;
-    void CollectEntitiesInRange(const Vector3 &position, float radius, Array<Entity *> &out) const;
-    bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
-    bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
-    bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
+    void CollectEntitiesInRange(const Vector3 &position, Float radius, Array<Entity *> &out) const;
+    Bool GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const;
+    Bool GetNearestOctant(const Vector3 &position, Octree const *&out) const;
+    Bool GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const;
 
     void NextVisibilityState();
     void CalculateVisibility(Camera *camera);
     UInt8 LoadVisibilityCursor() const;
     UInt8 LoadPreviousVisibilityCursor() const;
 
-    bool TestRay(const Ray &ray, RayTestResults &out_results) const;
+    Bool TestRay(const Ray &ray, RayTestResults &out_results) const;
 
 private:
     void ResetNodesHash();
@@ -193,12 +189,12 @@ private:
         });
     }
 
-    bool IsRoot() const { return m_parent == nullptr; }
-    bool Empty() const { return m_nodes.Empty(); }
+    Bool IsRoot() const { return m_parent == nullptr; }
+    Bool Empty() const { return m_nodes.Empty(); }
     Root *GetRoot() const { return m_root; }
     
     void SetParent(Octree *parent);
-    bool EmptyDeep(int depth = DEPTH_SEARCH_INF, UInt8 octant_mask = 0xff) const;
+    Bool EmptyDeep(Int depth = DEPTH_SEARCH_INF, UInt8 octant_mask = 0xff) const;
 
     void InitOctants();
     void Divide();
@@ -220,7 +216,7 @@ private:
     Octree                *m_parent;
     BoundingBox            m_aabb;
     FixedArray<Octant, 8>  m_octants;
-    bool                   m_is_divided;
+    Bool                   m_is_divided;
     Root                  *m_root;
     VisibilityState        m_visibility_state;
     UInt8                  m_index;

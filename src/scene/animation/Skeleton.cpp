@@ -73,7 +73,7 @@ void Skeleton::Update(GameCounter::TickUnit)
         return;
     }
 
-    const auto num_bones = MathUtil::Min(SkeletonShaderData::max_bones, NumBones());
+    const SizeType num_bones = MathUtil::Min(SkeletonShaderData::max_bones, NumBones());
 
     if (num_bones != 0) {
         m_bone_data.SetMatrix(0, static_cast<Bone *>(m_root_bone.Get())->GetBoneMatrix());

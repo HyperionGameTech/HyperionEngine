@@ -61,6 +61,41 @@ struct RENDER_COMMAND(BindEnvProbes) : renderer::RenderCommand
 
 #pragma endregion
 
+static void CollectOctantEntities(
+    RenderList &render_list,
+    const Handle<Camera> &camera,
+    RenderableAttributeSet *override_attributes_ptr,
+    const Octree *octree
+)
+{
+    if (!Octree::IsVisible(&g_engine->GetWorld()->GetOctree(), octree)) {
+        return;
+    }
+
+    for (const Octree::Node &octree_node : octree->GetNodes()) {
+        const Entity *entity = octree_node.entity;
+
+        if (!entity) {
+            continue;
+        }
+
+        if (entity->IsRenderable()) {
+            render_list.PushEntityToRender(camera, Handle<Entity>(entity->GetID()) /* temp */, override_attributes_ptr);
+        }
+    }
+
+    if (octree->IsDivided()) {
+        for (const Octree::Octant &octant : octree->GetOctants()) {
+            CollectOctantEntities(
+                render_list,
+                camera,
+                override_attributes_ptr,
+                octant.octree.Get()
+            );
+        }
+    }
+}
+
 Scene::Scene()
     : Scene(Handle<Camera>(), { })
 {
@@ -749,9 +784,17 @@ void Scene::CollectEntities(
     RenderableAttributeSet *override_attributes_ptr = override_attributes.TryGet();
     const UInt32 override_flags = override_attributes_ptr ? override_attributes_ptr->GetOverrideFlags() : 0;
     
-    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
-    
     // push all entities to render if they are visible to the given camera
+
+    // CollectOctantEntities(
+    //     render_list,
+    //     camera,
+    //     override_attributes_ptr,
+    //     &g_engine->GetWorld()->GetOctree()
+    // );
+    
+    const UInt8 visibility_cursor = g_engine->GetWorld()->GetOctree().LoadVisibilityCursor();
+
     for (auto &it : m_entities) {
         const Handle<Entity> &entity = it.second;
 

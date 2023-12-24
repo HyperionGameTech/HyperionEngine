@@ -15,7 +15,9 @@
 #include <scene/controllers/ShadowMapController.hpp>
 #include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
+#include <scene/controllers/AnimationController.hpp>
 #include <rendering/CubemapRenderer.hpp>
+#include <rendering/PointShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
 #include <core/lib/DynArray.hpp>
@@ -202,7 +204,7 @@ void SampleStreamer::InitGame()
     { // allow ui rendering
         auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
         btn_node.SetEntity(CreateObject<Entity>());
-        btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 0.85f, 0.0f));
+        btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 1.0f, 0.0f));
         btn_node.GetEntity()->AddController<UIButtonController>();
 
         if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
@@ -237,21 +239,22 @@ void SampleStreamer::InitGame()
         Array<Handle<Light>> point_lights;
 
         point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(0.0f, 35.0f, 8.0f),
+            Vector3(0.0f, 0.0f, 0.0f),
             Color(1.0f, 1.0f, 1.0f),
             40.0f,
             200.35f
         )));
-        point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(0.0f, 10.0f, 12.0f),
-            Color(1.0f, 0.0f, 0.0f),
-            15.0f,
-            200.0f
-        )));
+        // point_lights.PushBack(CreateObject<Light>(PointLight(
+        //     Vector3(0.0f, 10.0f, 12.0f),
+        //     Color(1.0f, 0.0f, 0.0f),
+        //     15.0f,
+        //     200.0f
+        // )));
 
         for (auto &light : point_lights) {
             auto point_light_entity = CreateObject<Entity>();
             point_light_entity->AddController<LightController>(light);
+            m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(HYP_NAME(PointShadowRenderer), light, Extent2D { 256, 256 });
             GetScene()->AddEntity(std::move(point_light_entity));
         }
     }
@@ -259,18 +262,37 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/pica_pica/pica_pica.obj");//sponza/sponza.obj");//living_room/living_room.obj");//
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");//pica_pica/pica_pica.obj");
+        batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
+
+        if (auto zombie = results["zombie"].Get<Node>()) {
+            auto zombie_entity = zombie[0].GetEntity();
+
+            if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
+                animation_controller->Play(1.0f, LoopMode::REPEAT);
+            }
+
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
+            zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+            zombie_entity->RebuildRenderableAttributes();
+            zombie_entity->SetTranslation(Vector3(0, 1, 0));
+            zombie_entity->SetScale(Vector3(0.25f));
+
+            InitObject(zombie_entity);
+            zombie_entity->CreateBLAS();
+            zombie.SetName("zombie");
+
+            m_scene->GetRoot().AddChild(zombie);
+        }
 
         if (results["test_model"]) {
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
-            node.Scale(3.0f);
-            // node.Scale(0.01f);
-
-            // Add reflection probe
-            // m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(HYP_NAME(CubemapRenderer0), node.GetWorldAABB());
+            // node.Scale(3.0f);
+            node.Scale(0.01f);
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
@@ -812,5 +834,9 @@ void SampleStreamer::HandleCameraMovement(GameCounter::TickUnit delta)
             CameraCommand::CAMERA_COMMAND_MOVEMENT,
             { .movement_data = { CameraCommand::CAMERA_MOVEMENT_RIGHT } }
         });
+    }
+
+    if (auto character = GetScene()->GetRoot().Select("zombie")) {
+        character.SetWorldRotation(Quaternion::LookAt(GetScene()->GetCamera()->GetDirection(), GetScene()->GetCamera()->GetUpVector()));
     }
 }

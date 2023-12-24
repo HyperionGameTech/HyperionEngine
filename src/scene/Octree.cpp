@@ -8,7 +8,7 @@ namespace hyperion::v2 {
 
 const BoundingBox Octree::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 
-bool Octree::IsVisible(
+Bool Octree::IsVisible(
     const Octree *root,
     const Octree *child
 )
@@ -19,7 +19,7 @@ bool Octree::IsVisible(
     );
 }
 
-bool Octree::IsVisible(
+Bool Octree::IsVisible(
     const Octree *root,
     const Octree *child,
     UInt8 cursor
@@ -72,7 +72,7 @@ void Octree::SetParent(Octree *parent)
     }
 }
 
-bool Octree::EmptyDeep(int depth, UInt8 octant_mask) const
+Bool Octree::EmptyDeep(Int depth, UInt8 octant_mask) const
 {
     if (!Empty()) {
         return false;
@@ -125,10 +125,6 @@ void Octree::Divide()
         AssertThrow(octant.octree == nullptr);
 
         octant.octree.Reset(new Octree(this, octant.aabb, UInt8(i)));
-
-        if (m_root != nullptr) {
-            m_root->events.on_insert_octant(octant.octree.Get(), nullptr);
-        }
     }
 
     m_is_divided = true;
@@ -145,10 +141,6 @@ void Octree::Undivide()
 
         if (octant.octree->m_is_divided) {
             octant.octree->Undivide();
-        }
-        
-        if (m_root != nullptr) {
-            m_root->events.on_remove_octant(octant.octree.Get(), nullptr);
         }
 
         octant.octree.Reset();
@@ -292,7 +284,6 @@ Octree::Result Octree::InsertInternal(Entity *entity)
         AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
         m_root->node_to_octree[entity] = this;
-        m_root->events.on_insert_node(this, entity);
     }
 
     entity->OnAddedToOctree(this);
@@ -344,7 +335,6 @@ Octree::Result Octree::RemoveInternal(Entity *entity)
     }
 
     if (m_root != nullptr) {
-        m_root->events.on_remove_node(this, entity);
         m_root->node_to_octree.erase(entity);
     }
 
@@ -386,8 +376,8 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
 {
     const BoundingBox &new_aabb = entity->GetWorldAABB();
 
-    const bool is_root = IsRoot();
-    const bool contains = m_aabb.Contains(new_aabb);
+    const Bool is_root = IsRoot();
+    const Bool contains = m_aabb.Contains(new_aabb);
 
     if (!contains) {
         // NO LONGER CONTAINS AABB
@@ -417,7 +407,7 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
 #endif
 
 
-        bool inserted = false;
+        Bool inserted = false;
 
         /* Contains is false at this point */
         Octree *parent = m_parent;
@@ -430,7 +420,6 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
                 
                 if (it != nullptr) {
                     if (m_root != nullptr) {
-                        m_root->events.on_remove_node(this, entity);
                         m_root->node_to_octree.erase(entity);
                     }
 
@@ -438,7 +427,7 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
                     RebuildNodesHash();
                 }
 
-                inserted = bool(parent->Move(entity));
+                inserted = Bool(parent->Move(entity));
 
                 break;
             }
@@ -485,7 +474,6 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
                 */
                 if (it != nullptr) {
                     if (m_root != nullptr) {
-                        m_root->events.on_remove_node(this, entity);
                         m_root->node_to_octree.erase(entity);
                     }
 
@@ -525,7 +513,6 @@ Octree::Result Octree::Move(Entity *entity, const Array<Node>::Iterator *it)
             AssertThrowMsg(m_root->node_to_octree.find(entity) == m_root->node_to_octree.end(), "Entity must not already be in octree hierarchy.");
 
             m_root->node_to_octree[entity] = this;
-            m_root->events.on_insert_node(this, entity);
         }
 
         entity->OnMovedToOctant(this);
@@ -691,7 +678,7 @@ void Octree::CollectEntitiesInRange(const Vector3 &position, Float radius, Array
 
     out.Reserve(out.Size() + m_nodes.Size());
 
-    for (auto &node : m_nodes) {
+    for (const Octree::Node &node : m_nodes) {
         if (inclusion_aabb.Intersects(node.aabb)) {
             out.PushBack(node.entity);
         }
@@ -706,7 +693,7 @@ void Octree::CollectEntitiesInRange(const Vector3 &position, Float radius, Array
     }
 }
 
-bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const
+Bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> &out) const
 {
     if (!m_aabb.ContainsPoint(position)) {
         return false;
@@ -716,7 +703,7 @@ bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> 
         return false;
     }
 
-    for (auto &octant : m_octants) {
+    for (const Octant &octant : m_octants) {
         AssertThrow(octant.octree != nullptr);
 
         if (octant.octree->GetNearestOctants(position, out)) {
@@ -731,14 +718,14 @@ bool Octree::GetNearestOctants(const Vector3 &position, FixedArray<Octree *, 8> 
     return true;
 }
 
-bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
+Bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
 {
     if (!m_aabb.ContainsPoint(position)) {
         return false;
     }
 
     if (m_is_divided) {
-        for (auto &octant : m_octants) {
+        for (const Octant &octant : m_octants) {
             AssertThrow(octant.octree != nullptr);
 
             if (octant.octree->GetNearestOctant(position, out)) {
@@ -752,14 +739,14 @@ bool Octree::GetNearestOctant(const Vector3 &position, Octree const *&out) const
     return true;
 }
 
-bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
+Bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
 {
     if (!m_aabb.Contains(aabb)) {
         return false;
     }
 
     if (m_is_divided) {
-        for (auto &octant : m_octants) {
+        for (const Octant &octant : m_octants) {
             AssertThrow(octant.octree != nullptr);
 
             if (octant.octree->GetFittingOctant(aabb, out)) {
@@ -876,12 +863,12 @@ void Octree::RebuildNodesHash(UInt level)
     }
 }
 
-bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
+Bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
 {
-    bool has_hit = false;
+    Bool has_hit = false;
 
     if (ray.TestAABB(m_aabb)) {
-        for (auto &node : m_nodes) {
+        for (const Octree::Node &node : m_nodes) {
             AssertThrow(node.entity != nullptr);
 
             if (!node.entity->HasFlags(Entity::InitInfo::ENTITY_FLAGS_RAY_TESTS_ENABLED)) {
@@ -903,7 +890,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results) const
         }
         
         if (m_is_divided) {
-            for (auto &octant : m_octants) {
+            for (const Octant &octant : m_octants) {
                 AssertThrow(octant.octree != nullptr);
 
                 if (octant.octree->TestRay(ray, out_results)) {

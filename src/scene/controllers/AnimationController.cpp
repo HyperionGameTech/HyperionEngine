@@ -31,7 +31,7 @@ void AnimationController::OnUpdate(GameCounter::TickUnit delta)
                     SetPlaybackState(PlaybackState::STOPPED);
                 }
             }
-
+            
             animation.ApplyBlended(m_state.current_time, 0.5f);
         } else {
             m_state = { };

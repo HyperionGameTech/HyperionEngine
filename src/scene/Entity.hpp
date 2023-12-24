@@ -173,20 +173,20 @@ public:
      *  no action is performed and true is returned. If the BLAS could not be created, false is returned.
      *  The Entity must be in a READY state to call this.
      */
-    bool CreateBLAS();
+    Bool CreateBLAS();
 
-    void SetIsAttachedToNode(Node *node, bool is_attached_to_node);
+    void SetIsAttachedToNode(Node *node, Bool is_attached_to_node);
 
-    bool IsInScene(ID<Scene> id) const
+    Bool IsInScene(ID<Scene> id) const
         { return m_scenes.Contains(id); }
 
     // only call from Scene. Don't call manually.
-    void SetIsInScene(ID<Scene> id, bool is_in_scene);
+    void SetIsInScene(ID<Scene> id, Bool is_in_scene);
 
     const FlatSet<ID<Scene>> &GetScenes() const
         { return m_scenes; }
 
-    bool IsRenderable() const
+    Bool IsRenderable() const
         { return m_mesh && m_shader && m_material; }
 
     const RenderableAttributeSet &GetRenderableAttributes() const { return m_renderable_attributes; }
@@ -230,9 +230,9 @@ public:
     void SetWorldAABB(const BoundingBox &aabb)
         { m_world_aabb = aabb; }
 
-    bool IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const;
+    Bool IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) const;
     
-    bool IsReady() const;
+    Bool IsReady() const;
 
     void Init();
     void Update(GameCounter::TickUnit delta);
@@ -302,7 +302,7 @@ public:
     ControllerClass *AddController(Args &&... args)
         { return AddController<ControllerClass>(UniquePtr<ControllerClass>::Construct(std::forward<Args>(args)...)); }
 
-    bool RemoveController(TypeID type_id)
+    Bool RemoveController(TypeID type_id)
     {
         if (auto *controller = m_controllers.Get(type_id)) {
             for (Node *node : m_nodes) {
@@ -322,7 +322,7 @@ public:
     }
 
     template <class ControllerClass>
-    bool RemoveController()
+    Bool RemoveController()
     {
         if (auto *controller = m_controllers.Get<ControllerClass>()) {
             for (Node *node : m_nodes) {
@@ -346,7 +346,7 @@ public:
         { return m_controllers.Get<ControllerType>(); }
 
     template <class ControllerType>
-    bool HasController() const
+    Bool HasController() const
         { return m_controllers.Has<ControllerType>(); }
     
     ControllerSet &GetControllers()
@@ -356,9 +356,11 @@ public:
         { return m_controllers; }
     
     void AddToOctree(Octree &octree);
+    void SetNeedsOctreeUpdate()
+        { m_needs_octree_update = true; }
 
 private:
-    void UpdateWorldAABB(bool propagate_to_controllers = true);
+    void UpdateWorldAABB(Bool propagate_to_controllers = true);
 
     void UpdateControllers(GameCounter::TickUnit delta);
     
@@ -392,12 +394,12 @@ private:
     ControllerSet m_controllers;
 
     Octree *m_octree = nullptr;
-    bool m_needs_octree_update = false;
+    Bool m_needs_octree_update = false;
     VisibilityState m_visibility_state;
 
     struct {
         RenderGroup *renderer_instance = nullptr;
-        bool changed = false;
+        Bool        changed = false;
     } m_primary_renderer_instance;
 
     Matrix4 m_previous_transform_matrix;

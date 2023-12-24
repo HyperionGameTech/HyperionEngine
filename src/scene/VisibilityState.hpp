@@ -20,7 +20,7 @@ struct VisibilityStateSnapshot
     using Nonce = UInt16;
 
     Bitmask bits { 0u };
-    Nonce nonce { 0u };
+    Nonce   nonce { 0u };
 
     VisibilityStateSnapshot()
     {

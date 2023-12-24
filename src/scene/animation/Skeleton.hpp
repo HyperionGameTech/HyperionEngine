@@ -60,8 +60,11 @@ public:
     Skeleton &operator=(const Skeleton &other) = delete;
     ~Skeleton();
 
-    ShaderDataState GetShaderDataState() const { return m_shader_data_state; }
-    void SetShaderDataState(ShaderDataState state) { m_shader_data_state = state; }
+    ShaderDataState GetShaderDataState() const
+        { return m_shader_data_state; }
+
+    void SetShaderDataState(ShaderDataState state)
+        { m_shader_data_state = state; }
 
     /*! \brief Look up a bone with the given name/tag. If no root bone was set,
      * or the bone could not be found, nullptr is returned. Otherwise, the resulting bone
@@ -103,9 +106,14 @@ public:
 
     SizeType NumBones() const;
     
-    auto &GetAnimations() { return m_animations; }
-    const auto &GetAnimations() const { return m_animations; }
-    SizeType NumAnimations() const { return m_animations.Size(); }
+    Array<Animation> &GetAnimations()
+        { return m_animations; }
+
+    const Array<Animation> &GetAnimations() const
+        { return m_animations; }
+
+    SizeType NumAnimations() const
+        { return m_animations.Size(); }
 
     void AddAnimation(Animation &&animation);
 

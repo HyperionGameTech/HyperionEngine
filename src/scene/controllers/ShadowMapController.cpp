@@ -53,7 +53,7 @@ void ShadowMapController::UpdateShadowCamera(const Transform &transform)
 
     const Vector3 &center = transform.GetTranslation();
 
-    const Float radius = 40.0f;
+    const Float radius = 15.0f;
 
     BoundingBox aabb = BoundingBox(center - radius, center + radius);
 

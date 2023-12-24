@@ -138,7 +138,7 @@ public:
      */
     bool CreateTLAS();
 
-    /* ONLY CALL FROM GAME THREAD!!! */
+    /* ONLY USE FROM GAME THREAD */
     auto &GetEntities()
         { return m_entities; }
 
