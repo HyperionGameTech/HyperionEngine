@@ -62,8 +62,8 @@ struct RENDER_COMMAND(UpdateEnvProbeDrawProxy) : renderer::RenderCommand
 
 struct EnvProbeIndex
 {
-    Extent3D position;
-    Extent3D grid_size;
+    Vec3u       position;
+    Extent3D    grid_size;
 
     // defaults such that unset == ~0u
     EnvProbeIndex()
@@ -72,7 +72,7 @@ struct EnvProbeIndex
     {
     }
 
-    EnvProbeIndex(const Extent3D &position, const Extent3D &grid_size)
+    EnvProbeIndex(const Vec3u &position, const Extent3D &grid_size)
         : position(position),
           grid_size(grid_size)
     {
@@ -87,9 +87,9 @@ struct EnvProbeIndex
 
     UInt GetProbeIndex() const
     {
-        return (position[0] * grid_size.height * grid_size.depth)
-            + (position[1] * grid_size.depth)
-            + position[2];
+        return (position.x * grid_size.height * grid_size.depth)
+            + (position.y * grid_size.depth)
+            + position.z;
     }
 
     bool operator<(UInt value) const

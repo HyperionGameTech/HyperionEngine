@@ -142,17 +142,17 @@ struct RENDER_COMMAND(UpdateShadowMapRenderData) : renderer::RenderCommand
 
     virtual Result operator()() override
     {
+        ShadowShaderData data;
+        data.projection = projection_matrix;
+        data.view = view_matrix;
+        data.aabb_max = Vector4(aabb.max, 1.0f);
+        data.aabb_min = Vector4(aabb.min, 1.0f);
+        data.dimensions = dimensions;
+        data.flags = UInt32(flags);
         
         g_engine->GetRenderData()->shadow_map_data.Set(
             shadow_map_index,
-            {
-                .projection = projection_matrix,
-                .view = view_matrix,
-                .aabb_max = Vector4(aabb.max, 1.0f),
-                .aabb_min = Vector4(aabb.min, 1.0f),
-                .dimensions = dimensions,
-                .flags = UInt32(flags)
-            }
+            data
         );
 
         HYPERION_RETURN_OK;
@@ -266,20 +266,23 @@ void ShadowPass::CreateDescriptors()
 
     PUSH_RENDER_COMMAND(CreateShadowMapDescriptors, 
         m_shadow_map_index,
-        m_shadow_map_image_view
+        m_shadow_map->GetImageView()
     );
 }
 
 void ShadowPass::CreateShadowMap()
 {
-    m_shadow_map_image = MakeRenderObject<Image>(StorageImage2D(
+    m_shadow_map = CreateObject<Texture>(Texture2D(
         m_dimensions,
-        InternalFormat::RG32F
+        InternalFormat::RG32F,
+        FilterMode::TEXTURE_FILTER_NEAREST,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        nullptr
     ));
 
-    m_shadow_map_image_view = MakeRenderObject<ImageView>();
+    m_shadow_map->GetImage()->SetIsRWTexture(true);
 
-    PUSH_RENDER_COMMAND(CreateShadowMapImage, m_shadow_map_image, m_shadow_map_image_view);
+    InitObject(m_shadow_map);
 }
 
 void ShadowPass::CreateComputePipelines()
@@ -296,7 +299,7 @@ void ShadowPass::CreateComputePipelines()
             ->SetElementSampler(0, &g_engine->GetPlaceholderData().GetSamplerLinear());
 
         m_blur_descriptor_sets[i]->AddDescriptor<StorageImageDescriptor>(2)
-            ->SetElementUAV(0, m_shadow_map_image_view);
+            ->SetElementUAV(0, m_shadow_map->GetImageView());
     }
 
     PUSH_RENDER_COMMAND(CreateShadowMapBlurDescriptorSets, m_blur_descriptor_sets);
@@ -338,13 +341,9 @@ void ShadowPass::Destroy()
     m_camera.Reset();
     m_render_list.Reset();
     m_parent_scene.Reset();
+    m_shadow_map.Reset();
 
     SafeRelease(std::move(m_blur_descriptor_sets));
-
-    PUSH_RENDER_COMMAND(DestroyShadowPassData, 
-        m_shadow_map_image,
-        m_shadow_map_image_view
-    );
 
     FullScreenPass::Destroy(); // flushes render queue, releases command buffers...
 }
@@ -399,7 +398,7 @@ void ShadowPass::Render(Frame *frame)
         );
 
         // put our shadow map in a state for writing
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
+        m_shadow_map->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::UNORDERED_ACCESS);
 
         m_blur_shadow_map->GetPipeline()->Dispatch(
             command_buffer,
@@ -411,18 +410,18 @@ void ShadowPass::Render(Frame *frame)
         );
 
         // put shadow map back into readable state
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     } else {
         framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_SRC);
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
+        m_shadow_map->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::COPY_DST);
 
-        m_shadow_map_image->Blit(
+        m_shadow_map->GetImage()->Blit(
             command_buffer,
             framebuffer_image
         );
 
         framebuffer_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
-        m_shadow_map_image->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
+        m_shadow_map->GetImage()->GetGPUImage()->InsertBarrier(command_buffer, renderer::ResourceState::SHADER_RESOURCE);
     }
 }
 

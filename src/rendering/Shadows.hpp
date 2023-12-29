@@ -92,11 +92,8 @@ public:
         }
     }
 
-    const ImageRef &GetShadowMapImage() const
-        { return m_shadow_map_image; }
-
-    const ImageViewRef &GetShadowMapImageView() const
-        { return m_shadow_map_image_view; }
+    const Handle<Texture> &GetShadowMap() const
+        { return m_shadow_map; }
 
     void CreateShader();
     virtual void CreateFramebuffer() override;
@@ -110,18 +107,18 @@ private:
     void CreateShadowMap();
     void CreateComputePipelines();
 
-    Handle<Scene> m_parent_scene;
-    Handle<Light> m_light;
-    ShadowMode m_shadow_mode;
-    Handle<Camera> m_camera;
-    RenderList m_render_list;
-    Vector3 m_origin;
-    UInt m_shadow_map_index;
-    Extent2D m_dimensions;
+    Handle<Scene>                   m_parent_scene;
+    Handle<Light>                   m_light;
+    ShadowMode                      m_shadow_mode;
+    Handle<Camera>                  m_camera;
+    RenderList                      m_render_list;
+    Vector3                         m_origin;
+    UInt                            m_shadow_map_index;
+    Extent2D                        m_dimensions;
 
-    ImageRef m_shadow_map_image;
-    ImageViewRef m_shadow_map_image_view;
-    Handle<ComputePipeline> m_blur_shadow_map;
+    Handle<Texture>                 m_shadow_map;
+
+    Handle<ComputePipeline>         m_blur_shadow_map;
     FixedArray<DescriptorSetRef, 2> m_blur_descriptor_sets;
 };
 

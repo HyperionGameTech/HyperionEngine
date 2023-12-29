@@ -335,7 +335,7 @@ Vector4 Camera::TransformScreenToWorld(const Vector2 &screen) const
 
 Vector2 Camera::GetPixelSize() const
 {
-    return Vector2::one / Vector((float)GetWidth(), (float)GetHeight());
+    return Vector2::one / Vector2 { Float(GetWidth()), Float(GetHeight()) };
 }
 
 void Camera::Update(GameCounter::TickUnit dt)

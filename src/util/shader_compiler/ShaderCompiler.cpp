@@ -1166,9 +1166,11 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
                 set_name,
                 slot_str;
 
+            HashMap<String, String> params;
+
             auto parse_result = ParseCustomStatement(command_str, line);
 
-            if (parse_result.args.Size() != 2) {
+            if (parse_result.args.Size() < 2) {
                 result.errors.PushBack(ProcessError { "Invalid descriptor: Requires format HYP_DESCRIPTOR_<TYPE>(set, name)" });
 
                 break;
@@ -1177,11 +1179,33 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             set_name = parse_result.args[0];
             descriptor_name = parse_result.args[1];
 
+            if (parse_result.args.Size() > 2) {
+                for (SizeType index = 2; index < parse_result.args.Size(); index++) {
+                    Array<String> split = parse_result.args[index].Split('=');
+
+                    for (String &part : split) {
+                        part = part.Trimmed();
+                    }
+
+                    if (split.Size() != 2) {
+                        result.errors.PushBack(ProcessError { "Invalid parameter: Requires format <key>=<value>" });
+
+                        break;
+                    }
+
+                    const String &key = split[0];
+                    const String &value = split[1];
+
+                    params[key] = value;
+                }
+            }
+
             const DescriptorUsage usage {
                 slot,
                 CreateNameFromDynamicString(ANSIString(set_name)),
                 CreateNameFromDynamicString(ANSIString(descriptor_name)),
-                flags
+                flags,
+                std::move(params)
             };
 
             // DebugLog(LogType::Debug, "Create Descriptor usage: %s %s %u %d\n", set_name.Data(), descriptor_name.Data(), slot, is_dynamic);
@@ -1204,7 +1228,13 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(const String &
             //     is_custom_descriptor_set = true;
             // }
 
-            result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + ") " + parse_result.remaining + "\n";
+            Array<String> additional_params;
+
+            if (usage.params.Contains("format")) {
+                additional_params.PushBack(usage.params.At("format"));
+            }
+
+            result.processed_source += "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + set_name + ", binding=HYP_DESCRIPTOR_INDEX_" + set_name + "_" + descriptor_name + (additional_params.Any() ? (", " + String::Join(additional_params, ", ")) : "") + ") " + parse_result.remaining + "\n";
 
             result.descriptor_usages.PushBack(usage);
         } else {

@@ -18,8 +18,9 @@ using EnvGridFlags = UInt32;
 
 enum EnvGridFlagBits : EnvGridFlags
 {
-    ENV_GRID_FLAGS_NONE = 0x0,
-    ENV_GRID_FLAGS_RESET_REQUESTED = 0x1
+    ENV_GRID_FLAGS_NONE                     = 0x0,
+    ENV_GRID_FLAGS_RESET_REQUESTED          = 0x1,
+    ENV_GRID_FLAGS_NEEDS_VOXEL_GRID_OFFSET  = 0x2
 };
 
 struct RenderCommand_UpdateEnvProbeAABBsInGrid;
@@ -43,6 +44,17 @@ struct LightProbeGrid
         indirect_indices[max_bound_ambient_probes + index] = index;
 
         return index;
+    }
+
+    void AddProbe(UInt index, Handle<EnvProbe> probe)
+    {
+        AssertThrow(index < max_bound_ambient_probes);
+
+        num_probes = MathUtil::Max(num_probes, index + 1);
+
+        probes[index] = std::move(probe);
+        indirect_indices[index] = index;
+        indirect_indices[max_bound_ambient_probes + index] = index;
     }
 
     void SetProbeIndexOnGameThread(UInt index, UInt new_index)
@@ -107,7 +119,7 @@ public:
     HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
         { return m_type; }
 
-    void SetCameraData(const Vector3 &camera_position);
+    void SetCameraData(const Vec3f &camera_position);
 
     void Init();
     void InitGame(); // init on game thread
@@ -117,6 +129,9 @@ public:
     void OnRender(Frame *frame);
 
 private:
+    Vec3f SizeOfProbe() const
+        { return m_aabb.GetExtent() / Vec3f(m_density); }
+
     EnvProbeType GetEnvProbeType() const
     {
         switch (GetEnvGridType()) {
@@ -158,6 +173,11 @@ private:
         UInt32 probe_index
     );
 
+    void OffsetVoxelGrid(
+        Frame *frame,
+        Vec3i offset
+    );
+
     void VoxelizeProbe(
         Frame *frame,
         UInt32 probe_index
@@ -166,7 +186,7 @@ private:
     EnvGridType m_type;
 
     BoundingBox m_aabb;
-    Vector3 m_offset_center;
+    Vec3f m_offset;
     Extent3D m_density;
     
     Handle<Camera> m_camera;
@@ -199,6 +219,7 @@ private:
     Handle<ComputePipeline> m_copy_light_field_border_texels_depth;
     Handle<ComputePipeline> m_clear_voxels;
     Handle<ComputePipeline> m_voxelize_probe;
+    Handle<ComputePipeline> m_offset_voxel_grid;
     Handle<ComputePipeline> m_generate_voxel_grid_mipmaps;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_light_field_probe_descriptor_sets;
 

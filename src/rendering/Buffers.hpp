@@ -229,8 +229,6 @@ struct alignas(256) ShadowShaderData
     ShaderVec4<Float> aabb_min;
     ShaderVec2<UInt32> dimensions;
     UInt32 flags;
-
-    HYP_PAD_STRUCT_HERE(UByte, 256 - (64 + 64 + 16 + 16 + 8 + 4));
 };
 
 static_assert(sizeof(ShadowShaderData) == 256);

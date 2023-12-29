@@ -149,7 +149,7 @@ public:
     void Init();
     void Destroy();
 
-    void SetShadowMapImageView(UInt shadow_map_index, ImageViewRef &&shadow_map_image_view);
+    void SetShadowMap(UInt shadow_map_index, Handle<Texture> shadow_map);
 
     void RenderProbes(Frame *frame);
     void ComputeIrradiance(Frame *frame);
@@ -169,7 +169,7 @@ private:
     FixedArray<UInt32, max_frames_in_flight> m_updates;
 
     UInt m_shadow_map_index;
-    ImageViewRef m_shadow_map_image_view;
+    Handle<Texture> m_shadow_map;
 
     Handle<ComputePipeline> m_update_irradiance,
         m_update_depth,

@@ -125,15 +125,55 @@ public:
         { return MathUtil::Max(MathUtil::Min(value, MathUtil::MaxSafeValue<T>()), MathUtil::MinSafeValue<T>()); }
 
     template <class T>
-    static constexpr T NaN()
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) NaN()
         { return std::numeric_limits<T>::quiet_NaN(); }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, bool) ApproxEqual(const T &a, const T &b)
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) NaN()
+    {
+        using VectorScalarType = NormalizedType<decltype(T::values[0])>;
+
+        T result { }; /* doesn't need initialization but gets rid of annoying warnings */
+
+        for (SizeType i = 0; i < std::size(result.values); i++) {
+            result.values[i] = VectorScalarType(NaN<VectorScalarType>());
+        }
+
+        return result;
+    }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, Bool) IsNaN(T value)
+        { return value != value; }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, T) Infinity()
+        { return std::numeric_limits<T>::infinity(); }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T> && std::is_floating_point_v<NormalizedType<decltype(T::values[0])>>, T) Infinity()
+    {
+        using VectorScalarType = NormalizedType<decltype(T::values[0])>;
+
+        T result { }; /* doesn't need initialization but gets rid of annoying warnings */
+
+        for (SizeType i = 0; i < std::size(result.values); i++) {
+            result.values[i] = VectorScalarType(Infinity<VectorScalarType>());
+        }
+
+        return result;
+    }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(std::is_floating_point_v<T>, Bool) IsFinite(T value)
+        { return value != Infinity<T>() && value != -Infinity<T>(); }
+
+    template <class T>
+    static constexpr HYP_ENABLE_IF(is_math_vector_v<T>, Bool) ApproxEqual(const T &a, const T &b)
         { return a.DistanceSquared(b) < std::is_same_v<std::remove_all_extents_t<decltype(T::values)>, Double> ? epsilon_d : epsilon_f; }
 
     template <class T>
-    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, Double> ? epsilon_d : epsilon_f)
+    static constexpr HYP_ENABLE_IF(!is_math_vector_v<T>, Bool) ApproxEqual(T a, T b, T eps = std::is_same_v<T, Double> ? epsilon_d : epsilon_f)
         { return Abs(a - b) <= eps; }
 
     template <class T>
@@ -371,7 +411,7 @@ public:
     }
 
     template <class T>
-    static constexpr bool IsPowerOfTwo(T value)
+    static constexpr Bool IsPowerOfTwo(T value)
         { return (value & (value - 1)) == 0; }
 
     /* Fast log2 for power-of-2 numbers */
@@ -453,14 +493,6 @@ public:
         }
 
         return value + multiple - remainder;
-    }
-
-    template <class T>
-    static inline auto FastRand()
-    {
-        g_seed = (214013 * g_seed + 2531011); 
-
-        return (g_seed >> 16) & 0x7FFF; 
     }
 };
 

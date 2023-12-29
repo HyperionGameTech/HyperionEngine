@@ -48,8 +48,8 @@ void BasicCharacterController::OnUpdate(GameCounter::TickUnit)
     }
 
     const Ray ray {
-        .position = m_camera->GetTranslation() + Vector(0, 1000, 0),
-        .direction = Vector3::UnitY() * -1.0f
+        .position = m_camera->GetTranslation() + Vec3f(0, 1000, 0),
+        .direction = Vec3f::UnitY() * -1.0f
     };
 
     if (g_engine->GetWorld()->GetOctree().TestRay(ray, m_ray_test_results)) {

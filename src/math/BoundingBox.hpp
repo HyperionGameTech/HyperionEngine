@@ -1,12 +1,12 @@
 #ifndef BOUNDING_BOX_H
 #define BOUNDING_BOX_H
 
-#include "Vector3.hpp"
-#include "Matrix4.hpp"
-#include "Transform.hpp"
-#include "Ray.hpp"
+#include <math/Vector3.hpp>
+#include <math/Matrix4.hpp>
+#include <math/Transform.hpp>
+#include <math/Ray.hpp>
 #include <core/lib/FixedArray.hpp>
-#include "../HashCode.hpp"
+#include <HashCode.hpp>
 #include <Types.hpp>
 
 #include <limits>
@@ -21,19 +21,33 @@ public:
     static const BoundingBox infinity;
 
     BoundingBox();
-    BoundingBox(const Vector3 &min, const Vector3 &max);
+    BoundingBox(const Vec3f &min, const Vec3f &max);
     BoundingBox(const BoundingBox &other);
 
-    const Vector3 &GetMin() const { return min; }
-    void SetMin(const Vector3 &min) { this->min = min; }
-    const Vector3 &GetMax() const { return max; }
-    void SetMax(const Vector3 &max) { this->max = max; }
-    FixedArray<Vector3, 8> GetCorners() const;
-    Vector3 GetCorner(UInt index) const;
-    Vector3 GetCenter() const { return (max + min) * 0.5f; }
-    void SetCenter(const Vector3 &center);
-    Vector3 GetExtent() const { return max - min; }
-    void SetExtent(const Vector3 &dimensions);
+    const Vec3f &GetMin() const
+        { return min; }
+
+    void SetMin(const Vec3f &min)
+        { this->min = min; }
+    const Vec3f &GetMax() const
+        { return max; }
+
+    void SetMax(const Vec3f &max)
+        { this->max = max; }
+
+    FixedArray<Vec3f, 8> GetCorners() const;
+    Vec3f GetCorner(UInt index) const;
+    
+    Vec3f GetCenter() const
+        { return (max + min) * 0.5f; }
+
+    void SetCenter(const Vec3f &center);
+
+    Vec3f GetExtent() const
+        { return max - min; }
+
+    void SetExtent(const Vec3f &dimensions);
+
     Float GetRadiusSquared() const;
     Float GetRadius() const;
 
@@ -41,39 +55,39 @@ public:
     BoundingBox &operator*=(Float scalar);
     BoundingBox operator/(Float scalar) const;
     BoundingBox &operator/=(Float scalar);
-    BoundingBox operator+(const Vector3 &offset) const;
-    BoundingBox &operator+=(const Vector3 &offset);
-    BoundingBox operator-(const Vector3 &offset) const;
-    BoundingBox &operator-=(const Vector3 &offset);
-    BoundingBox operator/(const Vector3 &scale) const;
-    BoundingBox &operator/=(const Vector3 &scale);
-    BoundingBox operator*(const Vector3 &scale) const;
-    BoundingBox &operator*=(const Vector3 &scale);
+    BoundingBox operator+(const Vec3f &offset) const;
+    BoundingBox &operator+=(const Vec3f &offset);
+    BoundingBox operator-(const Vec3f &offset) const;
+    BoundingBox &operator-=(const Vec3f &offset);
+    BoundingBox operator/(const Vec3f &scale) const;
+    BoundingBox &operator/=(const Vec3f &scale);
+    BoundingBox operator*(const Vec3f &scale) const;
+    BoundingBox &operator*=(const Vec3f &scale);
     BoundingBox operator*(const Transform &transform) const;
     BoundingBox &operator*=(const Transform &transform);
 
-    bool operator==(const BoundingBox &other) const
+    Bool operator==(const BoundingBox &other) const
         { return min == other.min && max == other.max; }
 
-    bool operator!=(const BoundingBox &other) const
+    Bool operator!=(const BoundingBox &other) const
         { return !operator==(other); }
 
     BoundingBox &Clear();
     
-    bool Empty() const
+    Bool Empty() const
     { 
-        return min == MathUtil::MaxSafeValue<Vector3>() && 
-            max == MathUtil::MinSafeValue<Vector3>();
+        return min == MathUtil::MaxSafeValue<Vec3f>() && 
+            max == MathUtil::MinSafeValue<Vec3f>();
     }
 
-    BoundingBox &Extend(const Vector3 &vec);
+    BoundingBox &Extend(const Vec3f &vec);
     BoundingBox &Extend(const BoundingBox &bb);
     
     // do the AABB's intersect at all?
-    bool Intersects(const BoundingBox &other) const;
+    Bool Intersects(const BoundingBox &other) const;
     // does this AABB completely contain other?
-    bool Contains(const BoundingBox &other) const;
-    bool ContainsPoint(const Vector3 &vec) const;
+    Bool Contains(const BoundingBox &other) const;
+    Bool ContainsPoint(const Vec3f &vec) const;
     Float Area() const;
 
     HashCode GetHashCode() const
@@ -86,8 +100,8 @@ public:
         return hc;
     }
 
-    Vector3 min;
-    Vector3 max;
+    Vec3f min;
+    Vec3f max;
 };
 
 } // namespace hyperion

@@ -60,6 +60,27 @@ public:
                 String("descriptor_usages.") + String::ToString(index) + ".flags",
                 FBOMData::FromUInt32(item.flags)
             );
+
+            out.SetProperty(
+                String("descriptor_usages.") + String::ToString(index) + ".num_params",
+                FBOMData::FromUInt32(UInt32(item.params.Size()))
+            );
+
+            UInt param_index = 0;
+
+            for (const auto &it : item.params) {
+                out.SetProperty(
+                    String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].key",
+                    FBOMData::FromString(it.key)
+                );
+
+                out.SetProperty(
+                    String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].value",
+                    FBOMData::FromString(it.value)
+                );
+
+                param_index++;
+            }
         }
 
         auto properties_array = in_object.GetDefinition().properties.GetPropertySet().ToArray();
@@ -168,6 +189,26 @@ public:
                     }
 
                     in.GetProperty(descriptor_usage_index_string + ".flags").ReadUInt32(&usage.flags);
+
+                    UInt num_params = 0;
+                    in.GetProperty(descriptor_usage_index_string + ".num_params").ReadUInt32(&num_params);
+
+                    for (UInt j = 0; j < num_params; j++) {
+                        const String param_string = descriptor_usage_index_string + ".params[" + String::ToString(j) + "]";
+
+                        String key;
+                        String value;
+
+                        if (auto err = in.GetProperty(param_string + ".key").ReadString(key)) {
+                            return err;
+                        }
+
+                        if (auto err = in.GetProperty(param_string + ".value").ReadString(value)) {
+                            return err;
+                        }
+
+                        usage.params[key] = value;
+                    }
 
                     compiled_shader->GetDefinition().GetDescriptorUsages().Add(std::move(usage));
                 }

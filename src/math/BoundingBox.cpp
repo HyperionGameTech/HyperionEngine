@@ -1,4 +1,5 @@
-#include "BoundingBox.hpp"
+#include <math/BoundingBox.hpp>
+#include <math/MathUtil.hpp>
 
 #include <limits>
 #include <cmath>
@@ -6,7 +7,7 @@
 namespace hyperion {
 
 const BoundingBox BoundingBox::empty = BoundingBox();
-const BoundingBox BoundingBox::infinity = BoundingBox(Vector3(-INFINITY), Vector3(INFINITY));
+const BoundingBox BoundingBox::infinity = BoundingBox(-MathUtil::Infinity<Vec3f>(), +MathUtil::Infinity<Vec3f>());
 
 BoundingBox::BoundingBox()
     : min(MathUtil::MaxSafeValue<Float>()), 
@@ -14,7 +15,7 @@ BoundingBox::BoundingBox()
 {
 }
 
-BoundingBox::BoundingBox(const Vector3 &min, const Vector3 &max)
+BoundingBox::BoundingBox(const Vec3f &min, const Vec3f &max)
     : min(min), 
       max(max)
 {
@@ -26,21 +27,21 @@ BoundingBox::BoundingBox(const BoundingBox &other)
 {
 }
 
-FixedArray<Vector3, 8> BoundingBox::GetCorners() const
+FixedArray<Vec3f, 8> BoundingBox::GetCorners() const
 {
     return {
-        Vector3(min.x, min.y, min.z),
-        Vector3(max.x, min.y, min.z),
-        Vector3(max.x, max.y, min.z),
-        Vector3(min.x, max.y, min.z),
-        Vector3(min.x, min.y, max.z),
-        Vector3(min.x, max.y, max.z),
-        Vector3(max.x, max.y, max.z),
-        Vector3(max.x, min.y, max.z)
+        Vec3f(min.x, min.y, min.z),
+        Vec3f(max.x, min.y, min.z),
+        Vec3f(max.x, max.y, min.z),
+        Vec3f(min.x, max.y, min.z),
+        Vec3f(min.x, min.y, max.z),
+        Vec3f(min.x, max.y, max.z),
+        Vec3f(max.x, max.y, max.z),
+        Vec3f(max.x, min.y, max.z)
     };
 }
 
-Vector3 BoundingBox::GetCorner(UInt index) const
+Vec3f BoundingBox::GetCorner(UInt index) const
 {
     const UInt mask = 1u << index;
 
@@ -51,17 +52,17 @@ Vector3 BoundingBox::GetCorner(UInt index) const
     };
 }
 
-void BoundingBox::SetCenter(const Vector3 &center)
+void BoundingBox::SetCenter(const Vec3f &center)
 {
-    Vector3 dimensions = GetExtent();
+    Vec3f dimensions = GetExtent();
 
     max = center + dimensions * 0.5f;
     min = center - dimensions * 0.5f;
 }
 
-void BoundingBox::SetExtent(const Vector3 &dimensions)
+void BoundingBox::SetExtent(const Vec3f &dimensions)
 {
-    Vector3 center = GetCenter();
+    Vec3f center = GetCenter();
 
     max = center + dimensions * 0.5f;
     min = center - dimensions * 0.5f;
@@ -115,12 +116,12 @@ BoundingBox &BoundingBox::operator/=(Float scalar)
     return *this;
 }
 
-BoundingBox BoundingBox::operator+(const Vector3 &scale) const
+BoundingBox BoundingBox::operator+(const Vec3f &scale) const
 {
     return BoundingBox(min + scale, max + scale);
 }
 
-BoundingBox &BoundingBox::operator+=(const Vector3 &scale)
+BoundingBox &BoundingBox::operator+=(const Vec3f &scale)
 {
     min += scale;
     max += scale;
@@ -128,12 +129,12 @@ BoundingBox &BoundingBox::operator+=(const Vector3 &scale)
     return *this;
 }
 
-BoundingBox BoundingBox::operator/(const Vector3 &scale) const
+BoundingBox BoundingBox::operator/(const Vec3f &scale) const
 {
     return BoundingBox(min / scale, max / scale);
 }
 
-BoundingBox &BoundingBox::operator/=(const Vector3 &scale)
+BoundingBox &BoundingBox::operator/=(const Vec3f &scale)
 {
     min /= scale;
     max /= scale;
@@ -141,12 +142,12 @@ BoundingBox &BoundingBox::operator/=(const Vector3 &scale)
     return *this;
 }
 
-BoundingBox BoundingBox::operator*(const Vector3 &scale) const
+BoundingBox BoundingBox::operator*(const Vec3f &scale) const
 {
     return BoundingBox(min * scale, max * scale);
 }
 
-BoundingBox &BoundingBox::operator*=(const Vector3 &scale)
+BoundingBox &BoundingBox::operator*=(const Vec3f &scale)
 {
     min *= scale;
     max *= scale;
@@ -179,29 +180,29 @@ BoundingBox BoundingBox::operator*(const Transform &transform) const
 
 BoundingBox &BoundingBox::Clear()
 {
-    min = Vector3(MathUtil::MaxSafeValue<Float>());
-    max = Vector3(MathUtil::MinSafeValue<Float>());
+    min = Vec3f(MathUtil::MaxSafeValue<Float>());
+    max = Vec3f(MathUtil::MinSafeValue<Float>());
 
     return *this;
 }
 
-BoundingBox &BoundingBox::Extend(const Vector3 &vec)
+BoundingBox &BoundingBox::Extend(const Vec3f &vec)
 {
-    min = Vector3::Min(min, vec);
-    max = Vector3::Max(max, vec);
+    min = Vec3f::Min(min, vec);
+    max = Vec3f::Max(max, vec);
     return *this;
 }
 
 BoundingBox &BoundingBox::Extend(const BoundingBox &bb)
 {
-    min = Vector3::Min(min, bb.min);
-    max = Vector3::Max(max, bb.max);
+    min = Vec3f::Min(min, bb.min);
+    max = Vec3f::Max(max, bb.max);
     return *this;
 }
 
-bool BoundingBox::Intersects(const BoundingBox &other) const
+Bool BoundingBox::Intersects(const BoundingBox &other) const
 {
-    const FixedArray<Vector3, 8> corners = other.GetCorners();
+    const FixedArray<Vec3f, 8> corners = other.GetCorners();
 
     if (ContainsPoint(corners[0])) return true;
     if (ContainsPoint(corners[1])) return true;
@@ -215,9 +216,9 @@ bool BoundingBox::Intersects(const BoundingBox &other) const
     return false;
 }
 
-bool BoundingBox::Contains(const BoundingBox &other) const
+Bool BoundingBox::Contains(const BoundingBox &other) const
 {
-    const FixedArray<Vector3, 8> corners = other.GetCorners();
+    const FixedArray<Vec3f, 8> corners = other.GetCorners();
 
     if (!ContainsPoint(corners[0])) return false;
     if (!ContainsPoint(corners[1])) return false;
@@ -231,7 +232,7 @@ bool BoundingBox::Contains(const BoundingBox &other) const
     return true;
 }
 
-bool BoundingBox::ContainsPoint(const Vector3 &vec) const
+Bool BoundingBox::ContainsPoint(const Vec3f &vec) const
 {
     if (vec.x < min.x) return false;
     if (vec.y < min.y) return false;
@@ -245,7 +246,7 @@ bool BoundingBox::ContainsPoint(const Vector3 &vec) const
 
 Float BoundingBox::Area() const
 {
-    Vector3 dimensions(max - min);
+    Vec3f dimensions(max - min);
     return dimensions.x * dimensions.y * dimensions.z;
 }
 

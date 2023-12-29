@@ -43,16 +43,16 @@ struct HashBucket
         Iterator operator++(int) const
             { return Iterator { bucket, index + 1 }; }
 
-        bool operator==(const ConstIterator &other) const
+        Bool operator==(const ConstIterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
-        bool operator!=(const ConstIterator &other) const
+        Bool operator!=(const ConstIterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
-        bool operator==(const Iterator &other) const
+        Bool operator==(const Iterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
-        bool operator!=(const Iterator &other) const
+        Bool operator!=(const Iterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
         operator ConstIterator() const
@@ -76,16 +76,16 @@ struct HashBucket
         ConstIterator operator++(int) const
             { return ConstIterator { bucket, index + 1 }; }
 
-        bool operator==(const ConstIterator &other) const
+        Bool operator==(const ConstIterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
-        bool operator!=(const ConstIterator &other) const
+        Bool operator!=(const ConstIterator &other) const
             { return bucket != other.bucket || index != other.index; }
 
-        bool operator==(const Iterator &other) const
+        Bool operator==(const Iterator &other) const
             { return bucket == other.bucket && index == other.index; }
 
-        bool operator!=(const Iterator &other) const
+        Bool operator!=(const Iterator &other) const
             { return bucket != other.bucket || index != other.index; }
     };
     
@@ -209,16 +209,16 @@ public:
             return iter;
         }
 
-        bool operator==(const Iterator &other) const
+        Bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        bool operator!=(const Iterator &other) const
+        Bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
-        bool operator==(const ConstIterator &other) const
+        Bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        bool operator!=(const ConstIterator &other) const
+        Bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
         operator ConstIterator() const
@@ -264,16 +264,16 @@ public:
             return iter;
         }
 
-        bool operator==(const Iterator &other) const
+        Bool operator==(const Iterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        bool operator!=(const Iterator &other) const
+        Bool operator!=(const Iterator &other) const
             { return bucket_iter != other.bucket_iter; }
 
-        bool operator==(const ConstIterator &other) const
+        Bool operator==(const ConstIterator &other) const
             { return bucket_iter == other.bucket_iter; }
 
-        bool operator!=(const ConstIterator &other) const
+        Bool operator!=(const ConstIterator &other) const
             { return bucket_iter != other.bucket_iter; }
     };
 
@@ -320,16 +320,52 @@ public:
     }
 #endif
 
-    [[nodiscard]] bool Any() const { return m_buckets.Any([](const HashBucket<KeyType, ValueType> &bucket) { return bucket.elements.Any(); }); }
-    [[nodiscard]] bool Empty() const { return !Any(); }
+    [[nodiscard]] Bool Any() const
+        { return m_buckets.Any([](const HashBucket<KeyType, ValueType> &bucket) { return bucket.elements.Any(); }); }
+
+    [[nodiscard]] Bool Empty() const
+        { return !Any(); }
+
+    [[nodiscard]] Bool operator==(const HashMap &other) const
+    {
+        if (Size() != other.Size()) {
+            return false;
+        }
+
+        for (const auto &bucket : m_buckets) {
+            for (const auto &element : bucket.elements) {
+                const auto other_it = other.Find(element.key);
+
+                if (other_it == other.End()) {
+                    return false;
+                }
+
+                if (other_it->value != element.value) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    [[nodiscard]] Bool operator!=(const HashMap &other) const
+        { return !(*this == other); }
+
+    [[nodiscard]] SizeType Size() const { return m_buckets.Size(); }
+    [[nodiscard]] SizeType BucketCount() const { return m_buckets.Size(); }
+    [[nodiscard]] SizeType BucketSize(SizeType bucket_index) const { return m_buckets[bucket_index].elements.Size(); }
+    [[nodiscard]] SizeType Bucket(const KeyType &key) const { return HashCode::GetHashCode(key).Value() % m_buckets.Size(); }
+    [[nodiscard]] Double LoadFactor() const { return Double(Size()) / Double(BucketCount()); }
+    [[nodiscard]] Double MaxLoadFactor() const { return load_factor; }
 
     Iterator Find(const KeyType &key);
     ConstIterator Find(const KeyType &key) const;
 
-    bool Contains(const KeyType &key) const;
+    Bool Contains(const KeyType &key) const;
     
     Iterator Erase(Iterator iter);
-    bool Erase(const KeyType &key);
+    Bool Erase(const KeyType &key);
 
     void Set(const KeyType &key, const ValueType &value);
     void Set(const KeyType &key, ValueType &&value);
@@ -493,7 +529,7 @@ auto HashMap<KeyType, ValueType>::Find(const KeyType &key) const -> ConstIterato
 }
 
 template <class KeyType, class ValueType>
-bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
+Bool HashMap<KeyType, ValueType>::Contains(const KeyType &key) const
 {
     return Find(key) != End();
 }
@@ -520,7 +556,7 @@ auto HashMap<KeyType, ValueType>::Erase(Iterator iter) -> Iterator
 }
 
 template <class KeyType, class ValueType>
-bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
+Bool HashMap<KeyType, ValueType>::Erase(const KeyType &key)
 {
     const Iterator it = Find(key);
 

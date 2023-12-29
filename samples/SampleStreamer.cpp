@@ -296,7 +296,7 @@ void SampleStreamer::InitGame()
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
-            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 30.0f, 15.0f)));
+            env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
             // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
             env_grid_entity->AddController<EnvGridController>();
             env_grid_entity->AddController<AABBDebugController>();
@@ -673,11 +673,11 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
         }
     }
 
-    // auto env_grid_entity = m_scene->FindEntityByName(HYP_NAME(EnvGridEntity));
+    auto env_grid_entity = m_scene->FindEntityByName(HYP_NAME(EnvGridEntity));
 
-    // if (env_grid_entity) {
-    //     env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
-    // }
+    if (env_grid_entity) {
+        env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
+    }
 
     if (m_rtc_instance) {
 

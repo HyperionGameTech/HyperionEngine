@@ -782,7 +782,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     }
     
     // Redirect indirect and direct lighting into the same framebuffer
-    auto &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
+    Handle<Framebuffer> &deferred_pass_framebuffer = m_indirect_pass.GetFramebuffer();
     
     m_post_processing.RenderPre(frame);
 
@@ -810,7 +810,6 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
 
         m_translucent_fbo->BeginCapture(frame_index, primary);
 
-#if 0
         bool has_set_active_env_probe = false;
 
         if (g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any()) {
@@ -825,18 +824,17 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
         if (do_particles) {
             environment->GetParticleSystem()->Render(frame);
         }
-#endif
+
         if (do_gaussian_splatting) {
             environment->GetGaussianSplatting()->Render(frame);
         }
 
-#if 0
         if (has_set_active_env_probe) {
             g_engine->GetRenderState().UnsetActiveEnvProbe();
         }
 
         g_engine->GetImmediateMode().Render(frame);
-#endif
+
         m_translucent_fbo->EndCapture(frame_index, primary);
     }
 

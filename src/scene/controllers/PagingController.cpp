@@ -107,7 +107,7 @@ void PagingController::OnUpdate(GameCounter::TickUnit delta)
 
     for (Int x = MathUtil::Floor(-m_max_distance); x <= MathUtil::Ceil(m_max_distance) + 1; x++) {
         for (Int z = MathUtil::Floor(-m_max_distance); z <= MathUtil::Ceil(m_max_distance) + 1; z++) {
-            patch_coords_in_range.Insert(camera_coord + Vector(Float(x), Float(z)));
+            patch_coords_in_range.Insert(camera_coord + Vector2 { Float(x), Float(z) });
         }
     }
 

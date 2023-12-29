@@ -575,6 +575,7 @@ struct DescriptorUsage
     Name                        set_name;
     Name                        descriptor_name;
     DescriptorUsageFlags        flags;
+    HashMap<String, String>     params;
 
     DescriptorUsage()
         : slot(renderer::DESCRIPTOR_SLOT_NONE),
@@ -584,11 +585,12 @@ struct DescriptorUsage
     {
     }
 
-    DescriptorUsage(renderer::DescriptorSlot slot, Name set_name, Name descriptor_name, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE)
+    DescriptorUsage(renderer::DescriptorSlot slot, Name set_name, Name descriptor_name, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE, HashMap<String, String> params = { })
         : slot(slot),
           set_name(set_name),
           descriptor_name(descriptor_name),
-          flags(flags)
+          flags(flags),
+          params(std::move(params))
     {
     }
 
@@ -603,7 +605,8 @@ struct DescriptorUsage
         return slot == other.slot
             && set_name == other.set_name
             && descriptor_name == other.descriptor_name
-            && flags == other.flags;
+            && flags == other.flags
+            && params == other.params;
     }
 
     Bool operator<(const DescriptorUsage &other) const

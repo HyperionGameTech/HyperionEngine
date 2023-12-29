@@ -215,15 +215,15 @@ void RenderEnvironment::RenderDDGIProbes(Frame *frame)
     if (m_has_ddgi_probes) {
         const ShadowMapRenderer *shadow_map_renderer = GetRenderComponent<ShadowMapRenderer>();
 
-        ImageViewRef shadow_map_image_view;
         UInt shadow_map_index = 0;
+        Handle<Texture> shadow_map;
 
         if (shadow_map_renderer && shadow_map_renderer->GetPass()) {
             shadow_map_index = shadow_map_renderer->GetPass()->GetShadowMapIndex();
-            shadow_map_image_view = shadow_map_renderer->GetPass()->GetShadowMapImageView();
+            shadow_map = shadow_map_renderer->GetPass()->GetShadowMap();
         }
 
-        m_probe_system.SetShadowMapImageView(shadow_map_index, std::move(shadow_map_image_view));
+        m_probe_system.SetShadowMap(shadow_map_index, std::move(shadow_map));
 
         m_probe_system.RenderProbes(frame);
         m_probe_system.ComputeIrradiance(frame);

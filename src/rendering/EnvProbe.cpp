@@ -474,7 +474,7 @@ void EnvProbe::Render(Frame *frame)
         return;
     }
 
-    DebugLog(LogType::Debug, "Rendering probe #%u\n", GetID().Value());
+    // DebugLog(LogType::Debug, "Rendering probe #%u\n", GetID().Value());
 
     AssertThrow(m_texture.IsValid());
 

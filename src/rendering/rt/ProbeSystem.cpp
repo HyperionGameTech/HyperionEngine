@@ -562,16 +562,16 @@ void ProbeGrid::SubmitPushConstants(CommandBuffer *command_buffer)
     m_pipeline->SubmitPushConstants(command_buffer);
 }
 
-void ProbeGrid::SetShadowMapImageView(UInt shadow_map_index, ImageViewRef &&shadow_map_image_view)
+void ProbeGrid::SetShadowMap(UInt shadow_map_index, Handle<Texture> shadow_map)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    if (shadow_map_index == m_shadow_map_index && shadow_map_image_view == m_shadow_map_image_view) {
+    if (shadow_map_index == m_shadow_map_index && shadow_map == m_shadow_map) {
         return;
     }
 
     m_shadow_map_index = shadow_map_index;
-    m_shadow_map_image_view = std::move(shadow_map_image_view);
+    m_shadow_map = std::move(shadow_map);
 
     m_updates[0] |= PROBE_SYSTEM_UPDATES_SHADOW_MAP;
     m_updates[1] |= PROBE_SYSTEM_UPDATES_SHADOW_MAP;
@@ -588,7 +588,7 @@ void ProbeGrid::UpdateUniforms(Frame *frame)
             break;
         }
 
-        const ID<Light> &light_id = it.first;
+        const ID<Light> light_id = it.first;
         const LightDrawProxy &light = it.second;
 
         if (light.visibility_bits & (1ull << SizeType(camera_index))) {
@@ -608,7 +608,7 @@ void ProbeGrid::UpdateUniforms(Frame *frame)
     if (m_updates[frame->GetFrameIndex()]) {
         if (m_updates[frame->GetFrameIndex()] & PROBE_SYSTEM_UPDATES_SHADOW_MAP) {
             m_descriptor_sets[frame->GetFrameIndex()]->GetDescriptor(16)
-                ->SetElementSRV(m_shadow_map_index, m_shadow_map_image_view);
+                ->SetElementSRV(m_shadow_map_index, m_shadow_map ? m_shadow_map->GetImageView() : ImageViewRef::unset);
         }
 
         m_descriptor_sets[frame->GetFrameIndex()]->ApplyUpdates(g_engine->GetGPUDevice());

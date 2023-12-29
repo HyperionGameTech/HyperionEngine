@@ -74,7 +74,7 @@ struct alignas(alignof(T) * 4) Vec3
     Vec3 &SetZ(Type z)
         { this->z = z; return *this; }
 
-    explicit operator bool() const
+    explicit operator Bool() const
         { return Sum() != Type(0); }
 
     constexpr Type &operator[](Int index)
@@ -131,16 +131,19 @@ struct alignas(alignof(T) * 4) Vec3
     Vec3 &operator^=(const Vec3 &other)
         { x ^= other.x; y ^= other.y; z ^= other.z; return *this; }
 
-    constexpr bool operator==(const Vec3 &other) const
+    constexpr Bool operator==(const Vec3 &other) const
         { return x == other.x && y == other.y && z == other.z; }
 
-    constexpr bool operator!=(const Vec3 &other) const
-        { return x != other.x || y != other.y || z == other.z; }
+    constexpr Bool operator!=(const Vec3 &other) const
+        { return x != other.x || y != other.y || z != other.z; }
 
     constexpr Vec3 operator-() const
         { return operator*(Type(-1)); }
 
-    bool operator<(const Vec3 &other) const
+    constexpr Vec3 operator+() const
+        { return { +x, +y, +z }; }
+
+    Bool operator<(const Vec3 &other) const
         { return std::tie(x, y, z) < std::tie(other.x, other.y, other.z); }
 
     constexpr Type Avg() const { return (x + y + z) / Type(size); }
@@ -239,7 +242,7 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
     Vec3 &SetZ(Type z)
         { this->z = z; return *this; }
 
-    explicit operator bool() const
+    explicit operator Bool() const
         { return Sum() != Type(0); }
 
     constexpr Type &operator[](Int index)
@@ -272,14 +275,17 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
     Vec3 &operator/=(const Vec3 &other)
         { x /= other.x; y /= other.y; z /= other.z; return *this; }
 
-    constexpr bool operator==(const Vec3 &other) const
+    constexpr Bool operator==(const Vec3 &other) const
         { return x == other.x && y == other.y && z == other.z; }
 
-    constexpr bool operator!=(const Vec3 &other) const
-        { return x != other.x || y != other.y || z == other.z; }
+    constexpr Bool operator!=(const Vec3 &other) const
+        { return x != other.x || y != other.y || z != other.z; }
 
     constexpr Vec3 operator-() const
         { return operator*(Type(-1)); }
+
+    constexpr Vec3 operator+() const
+        { return { +x, +y, +z }; }
 
     Vec3 operator*(const Matrix3 &mat) const;
     Vec3 &operator*=(const Matrix3 &mat);
@@ -288,7 +294,7 @@ struct alignas(alignof(Float) * 4) Vec3<Float>
     Vec3 operator*(const Quaternion &quat) const;
     Vec3 &operator*=(const Quaternion &quat);
 
-    bool operator<(const Vec3 &other) const
+    Bool operator<(const Vec3 &other) const
         { return std::tie(x, y, z) < std::tie(other.x, other.y, other.z); }
 
     constexpr Type Avg() const { return (x + y + z) / Type(size); }
@@ -370,21 +376,22 @@ using Vec3u = Vec3<UInt>;
 using Vec3f = Vec3<Float>;
 
 template <class T>
-inline constexpr bool is_vec3 = false;
+inline constexpr Bool is_vec3 = false;
 
 template <>
-inline constexpr bool is_vec3<Vec3i> = true;
+inline constexpr Bool is_vec3<Vec3i> = true;
 
 template <>
-inline constexpr bool is_vec3<Vec3u> = true;
+inline constexpr Bool is_vec3<Vec3u> = true;
 
 template <>
-inline constexpr bool is_vec3<Vec3f> = true;
+inline constexpr Bool is_vec3<Vec3f> = true;
 
 static_assert(sizeof(Vec3i) == 16);
 static_assert(sizeof(Vec3u) == 16);
 static_assert(sizeof(Vec3f) == 16);
 
+// Transitional typedef -- to be removed when code is updated to use Vec3f (to match Vec3i and Vec3u)
 using Vector3 = Vec3f;
 
 } // namespace hyperion
