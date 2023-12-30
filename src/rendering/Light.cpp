@@ -81,7 +81,6 @@ Light::Light(
     m_radius(radius),
     m_falloff(1.0f),
     m_shadow_map_index(~0u),
-    m_visibility_bits(0ull),
     m_shader_data_state(ShaderDataState::DIRTY)
 {
 }
@@ -95,7 +94,7 @@ Light::Light(Light &&other) noexcept
       m_radius(other.m_radius),
       m_falloff(other.m_falloff),
       m_shadow_map_index(other.m_shadow_map_index),
-      m_visibility_bits(0ull),
+      m_visibility_bits(std::move(other.m_visibility_bits)),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
     other.m_shadow_map_index = ~0u;
@@ -122,7 +121,7 @@ void Light::Init()
         .falloff = m_falloff,
         .shadow_map_index = m_shadow_map_index,
         .position_intensity = Vector4(m_position, m_intensity),
-        .visibility_bits = m_visibility_bits.to_ullong()
+        .visibility_bits = m_visibility_bits.ToUInt64()
     };
 
     EnqueueRenderUpdates();
@@ -176,31 +175,23 @@ void Light::EnqueueRenderUpdates()
             .falloff = m_falloff,
             .shadow_map_index = m_shadow_map_index,
             .position_intensity = Vector4(m_position, m_intensity),
-            .visibility_bits = m_visibility_bits.to_ullong()
+            .visibility_bits = m_visibility_bits.ToUInt64()
         }
     );
 
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-bool Light::IsVisible(ID<Camera> camera_id) const
+Bool Light::IsVisible(ID<Camera> camera_id) const
 {
-    if (camera_id.ToIndex() >= m_visibility_bits.size()) {
-        return false;
-    }
-
-    return m_visibility_bits.test(camera_id.ToIndex());
+    return m_visibility_bits.Test(camera_id.ToIndex());
 }
 
-void Light::SetIsVisible(ID<Camera> camera_id, bool is_visible)
+void Light::SetIsVisible(ID<Camera> camera_id, Bool is_visible)
 {
-    if (camera_id.ToIndex() >= m_visibility_bits.size()) {
-        return;
-    }
+    const Bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
 
-    const bool previous_value = m_visibility_bits.test(camera_id.ToIndex());
-
-    m_visibility_bits.set(camera_id.ToIndex(), is_visible);
+    m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
 
     if (is_visible != previous_value) {
         m_shader_data_state |= ShaderDataState::DIRTY;

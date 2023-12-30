@@ -1,5 +1,5 @@
-#ifndef HYPERION_V2_CUBEMAP_RENDERER_H
-#define HYPERION_V2_CUBEMAP_RENDERER_H
+#ifndef HYPERION_V2_REFLECTION_PROBE_HPP
+#define HYPERION_V2_REFLECTION_PROBE_HPP
 
 #include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
@@ -26,27 +26,27 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
-class CubemapRenderer
-    : public EngineComponentBase<STUB_CLASS(CubemapRenderer)>,
-      public RenderComponent<CubemapRenderer>
+class ReflectionProbeRenderer
+    : public EngineComponentBase<STUB_CLASS(ReflectionProbeRenderer)>,
+      public RenderComponent<ReflectionProbeRenderer>
 {
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_CUBEMAP;
 
-    CubemapRenderer(
+    ReflectionProbeRenderer(
         const Vector3 &origin
     );
 
-    CubemapRenderer(
+    ReflectionProbeRenderer(
         const BoundingBox &aabb
     );
 
-    CubemapRenderer(const CubemapRenderer &other)               = delete;
-    CubemapRenderer &operator=(const CubemapRenderer &other)    = delete;
-    virtual ~CubemapRenderer();
+    ReflectionProbeRenderer(const ReflectionProbeRenderer &other)               = delete;
+    ReflectionProbeRenderer &operator=(const ReflectionProbeRenderer &other)    = delete;
+    virtual ~ReflectionProbeRenderer();
 
-    Handle<EnvProbe> &GetEnvProbe() { return m_env_probe; }
-    const Handle<EnvProbe> &GetEnvProbe() const { return m_env_probe; }
+    const Handle<EnvProbe> &GetEnvProbe() const
+        { return m_env_probe; }
 
     void Init();
     void InitGame(); // init on game thread
@@ -58,8 +58,10 @@ public:
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    BoundingBox m_aabb;
-    Handle<EnvProbe> m_env_probe;
+    BoundingBox         m_aabb;
+    Handle<EnvProbe>    m_env_probe;
+
+    Bool                m_last_visibility_state = false;
 };
 
 

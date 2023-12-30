@@ -195,9 +195,6 @@ public:
 
     void SetStencilAttributes(const StencilState &stencil_state);
 
-    RenderGroup *GetPrimaryRenderGroup() const
-        { return m_primary_renderer_instance.renderer_instance; }
-
     const Vector3 &GetTranslation() const
         { return m_transform.GetTranslation(); }
 
@@ -387,22 +384,17 @@ public: // temp
 
 private:
     
-    FlatSet<ID<Scene>> m_scenes;
+    FlatSet<ID<Scene>>      m_scenes;
 
-    RenderableAttributeSet m_renderable_attributes;
+    RenderableAttributeSet  m_renderable_attributes;
 
-    ControllerSet m_controllers;
+    ControllerSet           m_controllers;
 
-    Octree *m_octree = nullptr;
-    Bool m_needs_octree_update = false;
-    VisibilityState m_visibility_state;
+    Octree                  *m_octree = nullptr;
+    Bool                    m_needs_octree_update = false;
+    VisibilityState         m_visibility_state;
 
-    struct {
-        RenderGroup *renderer_instance = nullptr;
-        Bool        changed = false;
-    } m_primary_renderer_instance;
-
-    Matrix4 m_previous_transform_matrix;
+    Matrix4                 m_previous_transform_matrix;
 
     mutable ShaderDataState m_shader_data_state;
 };

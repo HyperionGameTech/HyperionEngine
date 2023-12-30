@@ -541,7 +541,6 @@ Bool Entity::IsVisibleToCamera(ID<Camera> camera_id, UInt8 visibility_cursor) co
 void Entity::SetRenderableAttributes(const RenderableAttributeSet &renderable_attributes)
 {
     m_renderable_attributes = renderable_attributes;
-    m_primary_renderer_instance.changed = true;
     
     m_shader_data_state |= ShaderDataState::DIRTY;
 }

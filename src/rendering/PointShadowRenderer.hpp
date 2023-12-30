@@ -44,12 +44,12 @@ public:
 private:
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override;
 
-    Handle<Light> m_light;
-    Extent2D m_extent;
-    BoundingBox m_aabb;
-    Handle<EnvProbe> m_env_probe;
+    Handle<Light>       m_light;
+    Extent2D            m_extent;
+    BoundingBox         m_aabb;
+    Handle<EnvProbe>    m_env_probe;
 
-    Bool m_last_visibility_state = false;
+    Bool                m_last_visibility_state = false;
 };
 
 

@@ -367,15 +367,15 @@ void RTRadianceRenderer::CreateDescriptorSets()
         
         // materials
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(3)
-            ->SetElementBuffer(0, g_engine->shader_globals->materials.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->shader_globals->materials.GetBuffer());
         
         // entities
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(4)
-            ->SetElementBuffer(0, g_engine->shader_globals->objects.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->shader_globals->objects.GetBuffer());
         
         // lights
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffer());
         
         descriptor_set // gbuffer normals texture
             ->AddDescriptor<ImageDescriptor>(6)

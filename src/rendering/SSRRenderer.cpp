@@ -426,12 +426,12 @@ void SSRRenderer::CreateDescriptorSets()
         // scene data
         descriptor_set
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(16)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
 
         // camera
         descriptor_set
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(17)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
         // uniforms
         descriptor_set

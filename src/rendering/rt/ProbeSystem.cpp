@@ -455,15 +455,15 @@ void ProbeGrid::CreateDescriptorSets()
         
         // materials
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(5)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->materials.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->materials.GetBuffer());
         
         // entities
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(6)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->objects.GetBuffer());
         
         // lights
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(7)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->lights.GetBuffer());
 
         descriptor_set
             ->GetOrAddDescriptor<UniformBufferDescriptor>(9)
@@ -491,7 +491,7 @@ void ProbeGrid::CreateDescriptorSets()
         
         // shadow map data
         descriptor_set->GetOrAddDescriptor<StorageBufferDescriptor>(15)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->shadow_map_data.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->shadow_map_data.GetBuffer());
 
         // shadow maps
         auto *shadow_map_descriptor = descriptor_set

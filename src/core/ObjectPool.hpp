@@ -254,8 +254,6 @@ DEF_HANDLE(Script,                       8192);
 DEF_HANDLE_NS(physics, RigidBody,        8192);
 
 DEF_HANDLE(PostProcessingEffect,         512);
-DEF_HANDLE(ShadowRenderer,               512);
-DEF_HANDLE(CubemapRenderer,              512);
 DEF_HANDLE(UIRenderer,                   1);
 
 DEF_HANDLE(GaussianSplattingInstance,    16);

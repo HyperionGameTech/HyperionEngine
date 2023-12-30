@@ -17,7 +17,7 @@
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/AnimationController.hpp>
 #include <scene/skydome/controllers/SkydomeController.hpp>
-#include <rendering/CubemapRenderer.hpp>
+#include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/PointShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
 #include <core/lib/Pair.hpp>
@@ -217,11 +217,12 @@ void SampleStreamer::InitGame()
         m_scene->GetEnvironment()->AddRenderComponent<UIRenderer>(HYP_NAME(UIRenderer0), GetUI().GetScene());
     }
 
-    // Add a reflection probe
-    m_scene->GetEnvironment()->AddRenderComponent<CubemapRenderer>(
-        HYP_NAME(ReflectionProbe0),
-        BoundingBox(BoundingBox(Vector3(-40.0f, -2.0f, -40.0f), Vector3(40.0f, 30.0f, 40.0f)))
-    );
+    // // Add a reflection probe
+    // TEMP: Commented out due to blending issues with multiple reflection probes
+    // m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(
+    //     HYP_NAME(ReflectionProbe0),
+    //     Vec3f(0.0f)
+    // );
 
     m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
@@ -234,7 +235,7 @@ void SampleStreamer::InitGame()
             5.0f
         )));
         sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
-        // sun->AddController<ShadowMapController>();
+        sun->AddController<ShadowMapController>();
         GetScene()->AddEntity(sun);
 
         Array<Handle<Light>> point_lights;
@@ -270,8 +271,8 @@ void SampleStreamer::InitGame()
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/street/street.obj");//sponza/sponza.obj");//living_room/living_room.obj");
-        // batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");
+        batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -301,14 +302,14 @@ void SampleStreamer::InitGame()
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
             // node.Scale(3.0f);
             // node.Scale(0.01f);
-            node.Scale(0.25f);
+            node.Scale(0.01f);
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
             // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
             env_grid_entity->AddController<EnvGridController>();
-            env_grid_entity->AddController<AABBDebugController>();
+            // env_grid_entity->AddController<AABBDebugController>();
             GetScene()->AddEntity(env_grid_entity);
 
             if (node) {

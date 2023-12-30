@@ -52,7 +52,7 @@ void ImmediateMode::Create()
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<ImmediateDrawShaderData>(0, Engine::Get()->GetRenderData()->immediate_draws.GetBuffer(frame_index).get());
+            ->SetElementBuffer<ImmediateDrawShaderData>(0, Engine::Get()->GetRenderData()->immediate_draws.GetBuffer());
     }
 
     PUSH_RENDER_COMMAND(CreateImmediateModeDescriptors, m_descriptor_sets);

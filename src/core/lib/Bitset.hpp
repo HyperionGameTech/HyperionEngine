@@ -80,12 +80,29 @@ public:
 
     void Set(SizeType index, bool value);
 
+    /*! \brief Returns the total number of bits in the bitset. */
+    SizeType NumBits() const
+        { return m_blocks.Size() * num_bits_per_block; }
+
+    /*! \brief Returns the number of ones in the bitset. */
     SizeType Count() const;
+
+    /*! \brief Returns the Uint32 representation of the bitset.
+        If more bits are included in the bitset than can be converted to
+        a Uint32, the result is truncated.
+    */
+    UInt32 ToUInt32() const;
 
     /*! \brief Sets out to the Uint32 representation of the bitset.
         If more bits are included in the bitset than can be converted to
         a Uint32, false is returned. Otherwise, true is returned. */
     Bool ToUInt32(UInt32 *out) const;
+
+    /*! \brief Returns the Uint64 representation of the bitset.
+        If more bits are included in the bitset than can be converted to
+        a Uint64, the result is truncated.
+    */
+    UInt64 ToUInt64() const;
 
     /*! \brief Sets out to the Uint64 representation of the bitset.
         If more bits are included in the bitset than can be converted to
@@ -105,9 +122,6 @@ public:
 
 private:
     void RemoveLeadingZeros();
-
-    SizeType TotalBitCount() const
-        { return m_blocks.Size() * num_bits_per_block; }
 
     Array<BlockType, 64> m_blocks;
 };

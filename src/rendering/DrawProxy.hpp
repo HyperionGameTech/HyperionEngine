@@ -66,18 +66,18 @@ using MaterialDrawProxy = DrawProxy<STUB_CLASS(Material)>;
 template <>
 struct DrawProxy<STUB_CLASS(Entity)>
 {
-    ID<Entity> entity_id;
-    ID<Mesh> mesh_id;
-    ID<Material> material_id;
-    ID<Skeleton> skeleton_id;
+    ID<Entity>      entity_id;
+    ID<Mesh>        mesh_id;
+    ID<Material>    material_id;
+    ID<Skeleton>    skeleton_id;
 
-    BoundingBox bounding_box;
+    BoundingBox     bounding_box;
 
-    Transform transform;
+    Transform       transform;
 
-    Mesh *mesh = nullptr;
+    Mesh            *mesh = nullptr;
 
-    Bucket bucket = Bucket::BUCKET_OPAQUE;
+    Bucket          bucket = Bucket::BUCKET_OPAQUE;
 };
 
 using EntityDrawProxy = DrawProxy<STUB_CLASS(Entity)>;
@@ -85,20 +85,20 @@ using EntityDrawProxy = DrawProxy<STUB_CLASS(Entity)>;
 template <>
 struct DrawProxy<STUB_CLASS(Camera)>
 {
-    Matrix4 view;
-    Matrix4 projection;
-    Matrix4 previous_view;
-    Vector3 position;
-    Vector3 direction;
-    Vector3 up;
-    Extent2D dimensions;
-    Float clip_near;
-    Float clip_far;
-    Float fov;
-    Frustum frustum;
+    Matrix4     view;
+    Matrix4     projection;
+    Matrix4     previous_view;
+    Vec3f       position;
+    Vec3f       direction;
+    Vec3f       up;
+    Extent2D    dimensions;
+    Float       clip_near;
+    Float       clip_far;
+    Float       fov;
+    Frustum     frustum;
 
-    UInt64 visibility_bitmask;
-    UInt16 visibility_nonce;
+    UInt64      visibility_bitmask;
+    UInt16      visibility_nonce;
 };
 
 using CameraDrawProxy = DrawProxy<STUB_CLASS(Camera)>;
@@ -135,14 +135,15 @@ enum ShadowFlagBits : ShadowFlags
 template <>
 struct DrawProxy<STUB_CLASS(EnvProbe)>
 {
-    ID<EnvProbe> id;
-    BoundingBox aabb;
-    Vector3 world_position;
-    UInt32 texture_index;
-    Float camera_near;
-    Float camera_far;
-    EnvProbeFlags flags;
-    UInt32 grid_slot;
+    ID<EnvProbe>    id;
+    BoundingBox     aabb;
+    Vec3f           world_position;
+    UInt32          texture_index;
+    Float           camera_near;
+    Float           camera_far;
+    EnvProbeFlags   flags;
+    UInt32          grid_slot;
+    UInt64          visibility_bits; // bitmask indicating if EnvProbe is visible to cameras by camera ID
 };
 
 using EnvProbeDrawProxy = DrawProxy<STUB_CLASS(EnvProbe)>;

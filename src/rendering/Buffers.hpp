@@ -48,6 +48,8 @@ using renderer::ShaderVec2;
 using renderer::ShaderVec3;
 using renderer::ShaderVec4;
 using renderer::ShaderMat4;
+using renderer::GPUBuffer;
+using renderer::GPUBufferType;
 
 static constexpr SizeType max_entities_per_instance_batch = 60;
 static constexpr SizeType max_probes_in_sh_grid_buffer = max_bound_ambient_probes;
@@ -371,63 +373,41 @@ static const SizeType max_entity_instance_batches_bytes = max_entity_instance_ba
 template <class T>
 using BufferTicket = UInt;
 
-template <class Buffer, class StructType, SizeType Size>
+template <class StructType, GPUBufferType BufferType, SizeType Size>
 class ShaderData
 {
 public:
     ShaderData()
     {
-        m_buffers.resize(max_frames_in_flight);
+        m_buffer = MakeRenderObject<GPUBuffer>(BufferType);
 
-        for (SizeType i = 0; i < max_frames_in_flight; i++) {
-            m_buffers[i] = std::make_unique<Buffer>();
-        }
-
-        for (SizeType i = 0; i < m_staging_objects_pool.num_staging_buffers; i++) {
-            auto &buffer = m_staging_objects_pool.buffers[i];
-
-            AssertThrow(buffer.dirty.Size() == max_frames_in_flight);
-
-            for (auto &d : buffer.dirty) {
-                d.SetStart(0);
-                d.SetEnd(Size);
-            }
-        }
+        m_staging_objects_pool.m_cpu_buffer.dirty.SetStart(0);
+        m_staging_objects_pool.m_cpu_buffer.dirty.SetEnd(Size);
     }
 
     ShaderData(const ShaderData &other) = delete;
     ShaderData &operator=(const ShaderData &other) = delete;
     ~ShaderData() = default;
 
-    const auto &GetBuffer(UInt frame_index) const
-        { return m_buffers[frame_index]; }
-
-    const auto &GetBuffers() const { return m_buffers; }
+    const GPUBufferRef &GetBuffer() const
+        { return m_buffer; }
     
     void Create(Device *device)
     {
-        for (SizeType i = 0; i < m_buffers.size(); i++) {
-            HYPERION_ASSERT_RESULT(m_buffers[i]->Create(device, sizeof(StructType) * Size));
-            m_buffers[i]->Memset(device, sizeof(StructType) * Size, 0x00); // fill with zeros
-        }
+        HYPERION_ASSERT_RESULT(m_buffer->Create(device, sizeof(StructType) * Size));
+        m_buffer->Memset(device, sizeof(StructType) * Size, 0x00); // fill with zeros
     }
 
     void Destroy(Device *device)
     {
-        for (SizeType i = 0; i < m_buffers.size(); i++) {
-            HYPERION_ASSERT_RESULT(m_buffers[i]->Destroy(device));
-        }
+        SafeRelease(std::move(m_buffer));
     }
 
     void UpdateBuffer(Device *device, SizeType buffer_index)
     {
-        auto &current = m_staging_objects_pool.Current();
-
-        current.PerformUpdate(
+        m_staging_objects_pool.m_cpu_buffer.PerformUpdate(
             device,
-            m_buffers,
-            buffer_index,
-            current.objects.Data()
+            m_buffer
         );
     }
 
@@ -442,18 +422,18 @@ public:
      */
     StructType &Get(SizeType index)
     {
-        return m_staging_objects_pool.Current().objects[index];
+        return m_staging_objects_pool.m_cpu_buffer.objects[index];
     }
     
     void MarkDirty(SizeType index)
     {
-        m_staging_objects_pool.Current().MarkDirty(index);
+        m_staging_objects_pool.m_cpu_buffer.MarkDirty(index);
     }
 
     
-    BufferTicket<StructType> current_index = 1; // reserve first index (0)
+    BufferTicket<StructType>        current_index = 1; // reserve first index (0)
     Queue<BufferTicket<StructType>> free_indices;
-    std::mutex m_mutex;
+    std::mutex                      m_mutex;
 
     BufferTicket<StructType> AcquireTicket()
     {
@@ -513,7 +493,7 @@ private:
         struct StagingObjects
         {
             HeapArray<StructType, Size> objects;
-            FixedArray<Range<SizeType>, max_frames_in_flight> dirty;
+            Range<SizeType>             dirty;
 
             StagingObjects()
             {
@@ -528,74 +508,55 @@ private:
             StagingObjects &operator=(StagingObjects &&other) = delete;
             ~StagingObjects() = default;
 
-            template <class BufferContainer>
-            void PerformUpdate(Device *device, BufferContainer &buffer_container, SizeType buffer_index, StructType *ptr)
+            void PerformUpdate(Device *device, const GPUBufferRef &buffer)
             {
-                // TODO: Time it, see if we can afford to copy multiple small sub-sections
-                // of the buffer..
-
-                auto &current_dirty = dirty[buffer_index];
-
-                const auto dirty_end = current_dirty.GetEnd(),
-                    dirty_start = current_dirty.GetStart();
+                const SizeType dirty_end = dirty.GetEnd(),
+                    dirty_start = dirty.GetStart();
 
                 if (dirty_end <= dirty_start) {
                     return;
                 }
 
-                const auto dirty_distance = dirty_end - dirty_start;
+                const SizeType dirty_distance = dirty_end - dirty_start;
 
-                buffer_container[buffer_index]->Copy(
+                buffer->Copy(
                     device,
                     dirty_start * sizeof(StructType),
                     dirty_distance * sizeof(StructType),
-                    &ptr[dirty_start]
+                    &objects.Data()[dirty_start]
                 );
 
-                current_dirty.Reset();
+                dirty.Reset();
             }
 
             void MarkDirty(SizeType index)
             {
-                for (auto &d : dirty) {
-                    d |= Range<SizeType> { index, index + 1 };
-                }
+                dirty |= Range<SizeType> { index, index + 1 };
             }
 
-        } buffers[num_staging_buffers];
-
-        StagingObjects &Current()
-        {
-            return buffers[0];
-        }
+        } m_cpu_buffer;
 
         void Set(SizeType index, const StructType &value)
         {
-            AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
+            AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot set shader data at %llu in buffer: out of bounds", index);
 
-            auto &staging_object = buffers[0];
-            
-            staging_object.objects[index] = value;
-            staging_object.MarkDirty(index);
+            m_cpu_buffer.objects[index] = value;
+            m_cpu_buffer.MarkDirty(index);
         }
 
         const StructType &Get(SizeType index)
         {
-            AssertThrowMsg(index < buffers[0].objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
+            AssertThrowMsg(index < m_cpu_buffer.objects.Size(), "Cannot get shader data at %llu in buffer: out of bounds", index);
 
-            auto &staging_object = buffers[0];
-            
-            return staging_object.objects[index];
+            return m_cpu_buffer.objects[index];
         }
 
         void MarkDirty(SizeType index)
-        {
-            buffers[0].MarkDirty(index);
-        }
+            { m_cpu_buffer.MarkDirty(index); }
     };
 
-    std::vector<std::unique_ptr<Buffer>> m_buffers;
-    StagingObjectsPool m_staging_objects_pool;
+    GPUBufferRef        m_buffer;
+    StagingObjectsPool  m_staging_objects_pool;
 };
 
 } // namespace hyperion::v2

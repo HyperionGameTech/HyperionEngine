@@ -194,12 +194,12 @@ void TemporalBlending::CreateDescriptorSets()
         // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
 
         // camera
         descriptor_set
             ->AddDescriptor<DynamicUniformBufferDescriptor>(7)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
         // depth texture
         descriptor_set

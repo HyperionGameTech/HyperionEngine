@@ -242,96 +242,96 @@ void Engine::Initialize(RC<Application> application)
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffers()[0].get());
+        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
-        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer(0).get());
+        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
-        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer(0).get());
+        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
-        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer(0).get());
+        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
-        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer(0).get());
+        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer(0).get());
+        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, shader_globals->materials.GetBuffers()[0].get());
+            ->SetElementBuffer(0, shader_globals->materials.GetBuffer());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffers()[0].get());
+            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffer());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
         ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[0].get()
+            .buffer = shader_globals->objects.GetBuffer()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
-            .buffer = shader_globals->skeletons.GetBuffers()[0].get(),
+            .buffer = shader_globals->skeletons.GetBuffer(),
             .range = static_cast<UInt>(sizeof(SkeletonShaderData))
         });
 
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffers()[1].get());
+        ->SetElementBuffer<SceneShaderData>(0, shader_globals->scenes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::LIGHTS_BUFFER)
-        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer(1).get());
+        ->SetElementBuffer<LightShaderData>(0, shader_globals->lights.GetBuffer());
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::ENV_GRID_BUFFER)
-        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer(1).get());
+        ->SetElementBuffer<EnvGridShaderData>(0, shader_globals->env_grids.GetBuffer());
     
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::CURRENT_ENV_PROBE)
-        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer(1).get());
+        ->SetElementBuffer<EnvProbeShaderData>(0, shader_globals->env_probes.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(DescriptorKey::CAMERA_BUFFER)
-        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer(1).get());
+        ->SetElementBuffer<CameraShaderData>(0, shader_globals->cameras.GetBuffer());
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_SCENE_FRAME_1)
         ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::SHADOW_MATRICES)
-        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer(1).get());
+        ->SetElementBuffer(0, shader_globals->shadow_map_data.GetBuffer());
     
     if constexpr (use_indexed_array_for_object_data) {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::StorageBufferDescriptor>(0)
-            ->SetElementBuffer(0, shader_globals->materials.GetBuffers()[1].get());
+            ->SetElementBuffer(0, shader_globals->materials.GetBuffer());
     } else {
         m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(0)
-            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffers()[1].get());
+            ->SetElementBuffer<MaterialShaderData>(0, shader_globals->materials.GetBuffer());
     }
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
         ->AddDescriptor<renderer::StorageBufferDescriptor>(1)
         ->SetSubDescriptor({
-            .buffer = shader_globals->objects.GetBuffers()[1].get()
+            .buffer = shader_globals->objects.GetBuffer()
         });
 
     m_instance->GetDescriptorPool().GetDescriptorSet(DescriptorSet::DESCRIPTOR_SET_INDEX_OBJECT_FRAME_1)
         ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(2)
         ->SetSubDescriptor({
-            .buffer = shader_globals->skeletons.GetBuffers()[1].get(),
+            .buffer = shader_globals->skeletons.GetBuffer(),
             .range = static_cast<UInt>(sizeof(SkeletonShaderData))
         });
 
@@ -379,7 +379,7 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(DescriptorKey::ENV_PROBES)
-            ->SetElementBuffer(0, shader_globals->env_probes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, shader_globals->env_probes.GetBuffer());
 
         auto *point_shadow_maps_descriptor = descriptor_set
             ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::POINT_SHADOW_MAPS);
@@ -551,7 +551,7 @@ void Engine::Initialize(RC<Application> application)
 
         descriptor_set
             ->GetOrAddDescriptor<renderer::DynamicStorageBufferDescriptor>(DescriptorKey::ENTITY_INSTANCES)
-            ->SetElementBuffer<EntityInstanceBatch>(0, shader_globals->entity_instance_batches.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<EntityInstanceBatch>(0, shader_globals->entity_instance_batches.GetBuffer());
     }
 
     // add VCT descriptor placeholders

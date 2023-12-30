@@ -3,6 +3,7 @@
 
 #include <HashCode.hpp>
 #include <core/Base.hpp>
+#include <core/lib/Bitset.hpp>
 #include <core/lib/Optional.hpp>
 #include <core/lib/AtomicVar.hpp>
 #include <math/BoundingBox.hpp>
@@ -226,6 +227,9 @@ public:
         return counter > 0;
     }
 
+    Bool IsVisible(ID<Camera> camera_id) const;
+    void SetIsVisible(ID<Camera> camera_id, Bool is_visible);
+
     void Init();
     void EnqueueBind() const;
     void EnqueueUnbind() const;
@@ -270,6 +274,8 @@ private:
 
     EnvProbeIndex                                       m_bound_index;
     // EnvProbeIndex m_last_rendered_index;
+
+    Bitset                                              m_visibility_bits;
 
     Bool                                                m_needs_update;
     AtomicVar<Bool>                                     m_is_rendered;

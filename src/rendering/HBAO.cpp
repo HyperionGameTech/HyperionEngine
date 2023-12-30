@@ -274,12 +274,12 @@ void HBAO::CreateDescriptorSets()
         // scene buffer
         descriptor_set
             ->AddDescriptor<DynamicStorageBufferDescriptor>(7)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer(frame_index).get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
 
         // camera
         descriptor_set
             ->AddDescriptor<DynamicUniformBufferDescriptor>(8)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer(frame_index).get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
         m_descriptor_sets[frame_index] = std::move(descriptor_set);
     }

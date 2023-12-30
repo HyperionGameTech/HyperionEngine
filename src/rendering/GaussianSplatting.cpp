@@ -531,12 +531,12 @@ void GaussianSplattingInstance::CreateDescriptorSets()
             // scene
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(5)
-                ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
         
             // camera
             m_descriptor_sets[frame_index][sort_stage_index]
                 ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(6)
-                ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+                ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
 
             m_descriptor_sets[frame_index][sort_stage_index]

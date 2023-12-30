@@ -220,7 +220,7 @@ void DeferredSystem::RenderGroupHolder::AddFramebuffersToPipeline(Handle<RenderG
 
 void DeferredSystem::RenderGroupHolder::CreateFramebuffer()
 {
-    auto mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
+    renderer::RenderPassMode mode = renderer::RenderPassMode::RENDER_PASS_SECONDARY_COMMAND_BUFFER;
 
     if (bucket == BUCKET_SWAPCHAIN) {
         mode = renderer::RenderPassMode::RENDER_PASS_INLINE;

@@ -227,6 +227,22 @@ EnvProbe::EnvProbe(
 {
 }
 
+Bool EnvProbe::IsVisible(ID<Camera> camera_id) const
+{
+    return m_visibility_bits.Test(camera_id.ToIndex());
+}
+
+void EnvProbe::SetIsVisible(ID<Camera> camera_id, Bool is_visible)
+{
+    const Bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
+
+    m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
+
+    if (is_visible != previous_value) {
+        SetNeedsUpdate(true);
+    }
+}
+
 EnvProbe::~EnvProbe()
 {
     Teardown();

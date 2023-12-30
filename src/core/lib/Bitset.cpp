@@ -30,7 +30,7 @@ DynBitset DynBitset::operator<<(SizeType pos) const
 {
     DynBitset result;
 
-    const SizeType total_bit_size = TotalBitCount();
+    const SizeType total_bit_size = NumBits();
 
     for (SizeType combined_bit_index = 0; combined_bit_index < total_bit_size; ++combined_bit_index) {
         result.Set(combined_bit_index + pos, Get(combined_bit_index));
@@ -95,7 +95,7 @@ DynBitset DynBitset::operator^(const DynBitset &other) const
 DynBitset &DynBitset::operator^=(const DynBitset &other)
     { return *this = (*this ^ other); }
 
-void DynBitset::Set(SizeType index, bool value)
+void DynBitset::Set(SizeType index, Bool value)
 {
     const SizeType bit_index = GetBlockIndex(index);
 
@@ -125,7 +125,16 @@ SizeType DynBitset::Count() const
     return count;
 }
 
-bool DynBitset::ToUInt32(UInt32 *out) const
+UInt32 DynBitset::ToUInt32() const
+{
+    if (m_blocks.Empty()) {
+        return 0;
+    } else {
+        return m_blocks[0];
+    }
+}
+
+Bool DynBitset::ToUInt32(UInt32 *out) const
 {
     if (m_blocks.Empty()) {
         *out = 0;
@@ -138,7 +147,18 @@ bool DynBitset::ToUInt32(UInt32 *out) const
     }
 }
 
-bool DynBitset::ToUInt64(UInt64 *out) const
+UInt64 DynBitset::ToUInt64() const
+{
+    if (m_blocks.Empty()) {
+        return 0;
+    } else if (m_blocks.Size() == 1) {
+        return UInt64(m_blocks[0]);
+    } else {
+        return UInt64(m_blocks[0]) | (UInt64(m_blocks[1]) << 32);
+    }
+}
+
+Bool DynBitset::ToUInt64(UInt64 *out) const
 {
     if (m_blocks.Empty()) {
         *out = 0;

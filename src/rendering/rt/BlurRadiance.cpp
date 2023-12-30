@@ -200,7 +200,7 @@ void BlurRadiance::CreateDescriptorSets()
             descriptor_set
                 ->AddDescriptor<DynamicStorageBufferDescriptor>(6)
                 ->SetSubDescriptor({
-                    .buffer = g_engine->shader_globals->scenes.GetBuffers()[frame_index].get(),
+                    .buffer = g_engine->shader_globals->scenes.GetBuffer(),
                     .range = static_cast<UInt>(sizeof(SceneShaderData))
                 });
 

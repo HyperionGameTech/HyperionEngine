@@ -497,7 +497,7 @@ void EnvGrid::Init()
         m_camera = CreateObject<Camera>(
             90.0f,
             -Int(probe_dimensions.width), Int(probe_dimensions.height),
-            0.001f, 1000.0f//(m_aabb.GetExtent() / Vector3(m_density.width, m_density.height, m_density.depth)).Max() + 2.0f
+            0.001f, (m_aabb.GetExtent() / Vec3f(m_density)).Max()
         );
 
         m_camera->SetTranslation(m_aabb.GetCenter());
@@ -872,13 +872,13 @@ void EnvGrid::CreateVoxelGridData()
         }
 
         if (auto *env_grid_buffer_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(EnvGridBuffer))) {
-            env_grid_buffer_descriptor->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+            env_grid_buffer_descriptor->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer());
         } else {
             AssertThrowMsg(false, "Missing descriptor for EnvGridBuffer");
         }
 
         if (auto *env_probes_buffer_descriptor = descriptor_set->GetDescriptorByName(HYP_NAME(EnvProbesBuffer))) {
-            env_probes_buffer_descriptor->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
+            env_probes_buffer_descriptor->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer());
         } else {
             AssertThrowMsg(false, "Missing descriptor for EnvProbesBuffer");
         }
@@ -1022,22 +1022,22 @@ void EnvGrid::CreateSHClipmapData()
         // scene buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer(frame_index).get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
 
         // camera buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer(frame_index).get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
         // env grid buffer (dynamic)
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(6)
-            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer());
 
         // env probes buffer
         m_compute_clipmaps_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::StorageBufferDescriptor>(7)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer(frame_index).get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer());
     }
 
     PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_compute_clipmaps_descriptor_sets);
@@ -1298,10 +1298,10 @@ void EnvGrid::CreateLightFieldData()
         }
 
         m_light_field_probe_descriptor_sets[frame_index]->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(12)
-            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer(frame_index).get());
+            ->SetElementBuffer<EnvGridShaderData>(0, g_engine->GetRenderData()->env_grids.GetBuffer());
 
         m_light_field_probe_descriptor_sets[frame_index]->GetOrAddDescriptor<renderer::StorageBufferDescriptor>(13)
-            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer(0, g_engine->GetRenderData()->env_probes.GetBuffer());
     }
 
     PUSH_RENDER_COMMAND(CreateEnvGridDescriptorSets, m_light_field_probe_descriptor_sets);
@@ -1628,8 +1628,9 @@ void EnvGrid::VoxelizeProbe(
 
     struct alignas(128)
     {
-        ShaderVec4<UInt32> probe_grid_position;
-        ShaderVec4<UInt32> cubemap_dimensions;
+        ShaderVec4<UInt32>  probe_grid_position;
+        ShaderVec4<UInt32>  cubemap_dimensions;
+        ShaderVec4<Float32> world_position;
     } push_constants;
 
     push_constants.probe_grid_position = {
@@ -1640,6 +1641,8 @@ void EnvGrid::VoxelizeProbe(
     };
 
     push_constants.cubemap_dimensions = { cubemap_dimensions.width, cubemap_dimensions.height, 0, 0 };
+
+    push_constants.world_position = Vector4(probe->GetAABB().GetCenter(), 1.0f);
     
     {   // Clear our voxel grid at the start of each probe
         m_voxel_grid_texture->GetImage()->GetGPUImage()->InsertBarrier(frame->GetCommandBuffer(), renderer::ResourceState::UNORDERED_ACCESS);

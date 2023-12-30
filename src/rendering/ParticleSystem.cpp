@@ -297,12 +297,12 @@ void ParticleSpawner::CreateDescriptorSets()
         // scene
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicStorageBufferDescriptor>(4)
-            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<SceneShaderData>(0, g_engine->GetRenderData()->scenes.GetBuffer());
     
         // camera
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::DynamicUniformBufferDescriptor>(5)
-            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffers()[frame_index].get());
+            ->SetElementBuffer<CameraShaderData>(0, g_engine->GetRenderData()->cameras.GetBuffer());
 
         m_descriptor_sets[frame_index]
             ->AddDescriptor<renderer::ImageDescriptor>(6)

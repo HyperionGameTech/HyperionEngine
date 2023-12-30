@@ -24,6 +24,7 @@ using renderer::ShaderObject;
 using renderer::ShaderModule;
 using renderer::StorageBuffer;
 using renderer::UniformBuffer;
+using renderer::GPUBufferType;
 
 class Engine;
 class Entity;
@@ -57,17 +58,17 @@ struct ShaderGlobals
     void Create();
     void Destroy();
 
-    ShaderData<StorageBuffer, SceneShaderData, max_scenes>                      scenes;
-    ShaderData<UniformBuffer, CameraShaderData, max_cameras>                    cameras;
-    ShaderData<StorageBuffer, LightShaderData, max_lights>                      lights;
-    ShaderData<StorageBuffer, ObjectShaderData, max_entities>                   objects;
-    ShaderData<StorageBuffer, MaterialShaderData, max_materials>                materials;
-    ShaderData<StorageBuffer, SkeletonShaderData, max_skeletons>                skeletons;
-    ShaderData<StorageBuffer, ShadowShaderData, max_shadow_maps>                shadow_map_data;
-    ShaderData<StorageBuffer, EnvProbeShaderData, max_env_probes>               env_probes;
-    ShaderData<UniformBuffer, EnvGridShaderData, max_env_grids>                 env_grids;
-    ShaderData<StorageBuffer, ImmediateDrawShaderData, max_immediate_draws>     immediate_draws;
-    ShaderData<StorageBuffer, EntityInstanceBatch, max_entity_instance_batches> entity_instance_batches;
+    ShaderData<SceneShaderData, GPUBufferType::STORAGE_BUFFER, max_scenes>                      scenes;
+    ShaderData<CameraShaderData, GPUBufferType::CONSTANT_BUFFER, max_cameras>                   cameras;
+    ShaderData<LightShaderData, GPUBufferType::STORAGE_BUFFER, max_lights>                      lights;
+    ShaderData<ObjectShaderData, GPUBufferType::STORAGE_BUFFER, max_entities>                   objects;
+    ShaderData<MaterialShaderData, GPUBufferType::STORAGE_BUFFER, max_materials>                materials;
+    ShaderData<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER, max_skeletons>                skeletons;
+    ShaderData<ShadowShaderData, GPUBufferType::STORAGE_BUFFER, max_shadow_maps>                shadow_map_data;
+    ShaderData<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER, max_env_probes>               env_probes;
+    ShaderData<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER, max_env_grids>                env_grids;
+    ShaderData<ImmediateDrawShaderData, GPUBufferType::STORAGE_BUFFER, max_immediate_draws>     immediate_draws;
+    ShaderData<EntityInstanceBatch, GPUBufferType::STORAGE_BUFFER, max_entity_instance_batches> entity_instance_batches;
     
     BindlessStorage textures;
 

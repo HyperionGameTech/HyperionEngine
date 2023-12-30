@@ -1,7 +1,7 @@
 #include "Scene.hpp"
 #include <Engine.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/CubemapRenderer.hpp>
+#include <rendering/ReflectionProbeRenderer.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
@@ -647,6 +647,15 @@ void Scene::Update(GameCounter::TickUnit delta)
     }
 
     EnqueueRenderUpdates();
+
+    // update EnvProbe visibility states
+    for (auto &it : m_env_probes) {
+        Handle<EnvProbe> &env_probe = it.second;
+
+        const Bool is_env_probe_in_frustum = m_camera.IsValid() && m_camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
+
+        env_probe->SetIsVisible(camera_id, is_env_probe_in_frustum);
+    }
 
     // update light visibility states
     for (auto &it : m_lights) {

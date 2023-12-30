@@ -2,6 +2,7 @@
 #define HYPERION_V2_LIGHT_H
 
 #include <core/Base.hpp>
+#include <core/lib/Bitset.hpp>
 #include <rendering/ShaderDataState.hpp>
 #include <rendering/DrawProxy.hpp>
 #include <math/Vector3.hpp>
@@ -27,7 +28,7 @@ class Light
 public:
     Light(
         LightType type,
-        const Vector3 &position,
+        const Vec3f &position,
         const Color &color,
         Float intensity,
         Float radius
@@ -45,10 +46,10 @@ public:
     LightType GetType() const
         { return m_type; }
 
-    const Vector3 &GetPosition() const
+    const Vec3f &GetPosition() const
         { return m_position; }
 
-    void SetPosition(const Vector3 &position)
+    void SetPosition(const Vec3f &position)
     {
         m_position = position;
         m_shader_data_state |= ShaderDataState::DIRTY;
@@ -99,8 +100,8 @@ public:
         m_shader_data_state |= ShaderDataState::DIRTY;
     }
 
-    bool IsVisible(ID<Camera> camera_id) const;
-    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
+    Bool IsVisible(ID<Camera> camera_id) const;
+    void SetIsVisible(ID<Camera> camera_id, Bool is_visible);
 
     BoundingBox GetWorldAABB() const;
 
@@ -110,21 +111,21 @@ public:
     void Update();
 
 protected:
-    LightType m_type;
-    Vector3 m_position;
-    Color m_color;
-    Float m_intensity;
+    LightType   m_type;
+    Vec3f       m_position;
+    Color       m_color;
+    Float       m_intensity;
     /* Point, spot lights */
-    Float m_radius;
-    Float m_falloff;
-    UInt m_shadow_map_index;
+    Float       m_radius;
+    Float       m_falloff;
+    UInt        m_shadow_map_index;
 
 private:
     void EnqueueRenderUpdates();
 
     mutable ShaderDataState m_shader_data_state;
 
-    std::bitset<64> m_visibility_bits;
+    Bitset m_visibility_bits;
 };
 
 class DirectionalLight : public Light
@@ -134,7 +135,7 @@ public:
     static constexpr float default_radius = 0.0f;
 
     DirectionalLight(
-        const Vector3 &direction,
+        const Vec3f &direction,
         const Color &color,
         Float intensity = default_intensity,
         Float radius = default_radius
@@ -148,10 +149,10 @@ public:
     {
     }
 
-    const Vector3 &GetDirection() const
+    const Vec3f &GetDirection() const
         { return GetPosition(); }
 
-    void SetDirection(const Vector3 &direction)
+    void SetDirection(const Vec3f &direction)
         { SetPosition(direction); }
 };
 
@@ -162,7 +163,7 @@ public:
     static constexpr float default_radius = 15.0f;
 
     PointLight(
-        const Vector3 &position,
+        const Vec3f &position,
         const Color &color,
         Float intensity = default_intensity,
         Float radius = default_radius
