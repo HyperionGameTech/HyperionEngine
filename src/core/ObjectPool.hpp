@@ -259,7 +259,7 @@ DEF_HANDLE(CubemapRenderer,              512);
 DEF_HANDLE(UIRenderer,                   1);
 
 DEF_HANDLE(GaussianSplattingInstance,    16);
-DEF_HANDLE(GaussianSplatting,            2);
+DEF_HANDLE(GaussianSplatting,            16);
 
 #undef DEF_HANDLE
 #undef DEF_HANDLE_NS

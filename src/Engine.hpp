@@ -61,10 +61,11 @@ class Engine;
 class Game;
 class Framebuffer;
 
-extern Engine *g_engine;
-extern AssetManager *g_asset_manager;
-extern ShaderManagerSystem *g_shader_manager;
-extern MaterialCache *g_material_system;
+extern Engine               *g_engine;
+extern AssetManager         *g_asset_manager;
+extern ShaderManagerSystem  *g_shader_manager;
+extern MaterialCache        *g_material_system;
+extern SafeDeleter          *g_safe_deleter;
 
 struct DebugMarker
 {
@@ -188,18 +189,6 @@ public:
     const auto &GetRenderGroupMapping() const
         { return m_render_group_mapping; }
 
-    template <class T>
-    void SafeReleaseHandle(Handle<T> &&resource)
-    {
-        m_safe_deleter.SafeReleaseHandle(std::move(resource));
-    }
-
-    template <class T>
-    void SafeRelease(UniquePtr<T> &&object)
-    {
-        m_safe_deleter.SafeRelease(std::move(object));
-    }
-
     bool IsRenderLoopActive() const
         { return m_is_render_loop_active; }
 
@@ -315,8 +304,6 @@ private:
     ComponentRegistry m_components;
 
     PlaceholderData m_placeholder_data;
-
-    SafeDeleter m_safe_deleter;
 
     Handle<World> m_world;
     

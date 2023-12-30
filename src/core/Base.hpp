@@ -58,8 +58,6 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class RenderResource { };
-
 class EngineComponentBaseBase { };
 
 template <class Type>

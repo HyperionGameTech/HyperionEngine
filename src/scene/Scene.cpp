@@ -97,17 +97,17 @@ static void CollectOctantEntities(
 }
 
 Scene::Scene()
-    : Scene(Handle<Camera>(), { })
+    : Scene(Handle<Camera>::empty, { })
 {
 }
 
-Scene::Scene(Handle<Camera> &&camera)
+Scene::Scene(Handle<Camera> camera)
     : Scene(std::move(camera), { })
 {
 }
 
 Scene::Scene(
-    Handle<Camera> &&camera,
+    Handle<Camera> camera,
     const InitInfo &info
 ) : EngineComponentBase(info),
     HasDrawProxy(),
@@ -241,7 +241,7 @@ void Scene::Init()
     });
 }
 
-void Scene::SetCamera(Handle<Camera> &&camera)
+void Scene::SetCamera(Handle<Camera> camera)
 {
     m_camera = std::move(camera);
     InitObject(m_camera);
@@ -314,7 +314,7 @@ NodeProxy Scene::AddEntity(Handle<Entity> &&entity)
     return node;
 }
 
-bool Scene::RemoveEntity(ID<Entity> entity_id)
+Bool Scene::RemoveEntity(ID<Entity> entity_id)
 {
     Threads::AssertOnThread(THREAD_GAME);
     AssertReady();
@@ -348,7 +348,7 @@ bool Scene::RemoveEntity(ID<Entity> entity_id)
     return false;
 }
 
-bool Scene::AddEntityInternal(Handle<Entity> &&entity)
+Bool Scene::AddEntityInternal(Handle<Entity> &&entity)
 {
     // Threads::AssertOnThread(THREAD_GAME);
     // AssertReady();
@@ -377,7 +377,7 @@ bool Scene::AddEntityInternal(Handle<Entity> &&entity)
     return true;
 }
 
-bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
+Bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
 {
     // Threads::AssertOnThread(THREAD_GAME);
 
@@ -414,7 +414,7 @@ bool Scene::RemoveEntityInternal(const Handle<Entity> &entity)
     return true;
 }
 
-bool Scene::HasEntity(ID<Entity> entity_id) const
+Bool Scene::HasEntity(ID<Entity> entity_id) const
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -517,7 +517,7 @@ const Handle<Entity> &Scene::FindEntityByName(Name name) const
     return m_root_node_proxy.Get()->FindEntityByName(name);
 }
 
-bool Scene::AddLight(Handle<Light> &&light)
+Bool Scene::AddLight(Handle<Light> &&light)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -528,7 +528,7 @@ bool Scene::AddLight(Handle<Light> &&light)
     auto insert_result = m_lights.Insert(light->GetID(), std::move(light));
     
     auto it = insert_result.first;
-    const bool was_inserted = insert_result.second;
+    const Bool was_inserted = insert_result.second;
 
     if (!was_inserted) {
         return false;
@@ -539,7 +539,7 @@ bool Scene::AddLight(Handle<Light> &&light)
     return true;
 }
 
-bool Scene::AddLight(const Handle<Light> &light)
+Bool Scene::AddLight(const Handle<Light> &light)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -550,7 +550,7 @@ bool Scene::AddLight(const Handle<Light> &light)
     auto insert_result = m_lights.Insert(light->GetID(), light);
     
     auto it = insert_result.first;
-    const bool was_inserted = insert_result.second;
+    const Bool was_inserted = insert_result.second;
 
     if (!was_inserted) {
         return false;
@@ -561,7 +561,7 @@ bool Scene::AddLight(const Handle<Light> &light)
     return true;
 }
 
-bool Scene::RemoveLight(ID<Light> id)
+Bool Scene::RemoveLight(ID<Light> id)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -578,7 +578,7 @@ bool Scene::RemoveLight(ID<Light> id)
     return m_lights.Erase(it) != m_lights.End();
 }
 
-bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
+Bool Scene::AddEnvProbe(Handle<EnvProbe> env_probe)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -589,7 +589,7 @@ bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
     auto insert_result = m_env_probes.Insert(env_probe->GetID(), std::move(env_probe));
     
     auto it = insert_result.first;
-    const bool was_inserted = insert_result.second;
+    const Bool was_inserted = insert_result.second;
 
     if (!was_inserted) {
         return false;
@@ -602,31 +602,7 @@ bool Scene::AddEnvProbe(Handle<EnvProbe> &&env_probe)
     return true;
 }
 
-bool Scene::AddEnvProbe(const Handle<EnvProbe> &env_probe)
-{
-    Threads::AssertOnThread(THREAD_GAME);
-
-    if (!env_probe) {
-        return false;
-    }
-
-    const auto insert_result = m_env_probes.Insert(env_probe->GetID(), env_probe);
-    
-    const auto it = insert_result.first;
-    const bool was_inserted = insert_result.second;
-
-    if (!was_inserted) {
-        return false;
-    }
-
-    if (InitObject(it->second)) {
-        it->second->EnqueueBind();
-    }
-
-    return true;
-}
-
-bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
+Bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
 {
     Threads::AssertOnThread(THREAD_GAME);
 
@@ -641,13 +617,6 @@ bool Scene::RemoveEnvProbe(ID<EnvProbe> id)
     }
 
     return m_env_probes.Erase(it) != m_env_probes.End();
-}
-
-void Scene::ForceUpdate()
-{
-    AssertReady();
-
-    Update(0.0166f);
 }
 
 void Scene::Update(GameCounter::TickUnit delta)
@@ -683,7 +652,7 @@ void Scene::Update(GameCounter::TickUnit delta)
     for (auto &it : m_lights) {
         Handle<Light> &light = it.second;
         
-        const bool is_light_in_frustum = light->GetType() == LightType::DIRECTIONAL
+        const Bool is_light_in_frustum = light->GetType() == LightType::DIRECTIONAL
             || (m_camera.IsValid() && m_camera->GetFrustum().ContainsBoundingSphere(BoundingSphere(light->GetPosition(), light->GetRadius())));
 
         light->SetIsVisible(camera_id, is_light_in_frustum);
@@ -730,7 +699,7 @@ void Scene::CollectEntities(
     const Handle<Camera> &camera,
     const Bitset &bucket_bits,
     Optional<RenderableAttributeSet> override_attributes,
-    bool skip_frustum_culling
+    Bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(THREAD_GAME);
@@ -767,7 +736,7 @@ void Scene::CollectEntities(
     RenderList &render_list,
     const Handle<Camera> &camera,
     Optional<RenderableAttributeSet> override_attributes,
-    bool skip_frustum_culling
+    Bool skip_frustum_culling
 ) const
 {
     Threads::AssertOnThread(THREAD_GAME);
@@ -804,7 +773,7 @@ void Scene::CollectEntities(
     }
 }
 
-bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
+Bool Scene::IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const
 {
     if (!camera_id) {
         return false;
@@ -877,7 +846,7 @@ void Scene::EnqueueRenderUpdates()
     m_shader_data_state = ShaderDataState::CLEAN;
 }
 
-bool Scene::CreateTLAS()
+Bool Scene::CreateTLAS()
 {
     AssertThrowMsg(IsWorldScene(), "Can only create TLAS for world scenes");
     AssertIsInitCalled();

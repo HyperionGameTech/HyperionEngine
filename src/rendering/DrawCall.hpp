@@ -6,6 +6,7 @@
 #include <core/ID.hpp>
 #include <core/lib/AtomicSemaphore.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/SafeDeleter.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 
@@ -19,6 +20,8 @@ class Engine;
 class Mesh;
 class Material;
 class Skeleton;
+
+extern SafeDeleter *g_safe_deleter;
 
 struct DrawCommandData;
 class IndirectDrawState;
@@ -60,8 +63,18 @@ private:
     template <class T>
     struct ResourceUsageMap : ResourceUsageMapBase
     {
-        HashMap<ID<T>, Handle<T>> handles;
-        Bitset usage_bits;
+        HashMap<ID<T>, Handle<T>>   handles;
+        Bitset                      usage_bits;
+
+        ~ResourceUsageMap()
+        {
+            for (auto &pair : handles) {
+                // Use SafeRelease to defer the actual destruction of the resource.
+                // This is used so that any resources that will require a mutex lock to release render side resources
+                // will not cause a deadlock.
+                g_safe_deleter->SafeReleaseHandle(std::move(pair.value));
+            }
+        }
 
         Handle<T> TakeUsage(ID<T> id)
         {

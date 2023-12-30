@@ -153,7 +153,7 @@ public:
 
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    bool HasRenderComponent() const
+    Bool HasRenderComponent() const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -171,7 +171,7 @@ public:
 
     /*! CALL FROM RENDER THREAD ONLY */
     template <class T>
-    bool HasRenderComponent(Name name) const
+    Bool HasRenderComponent(Name name) const
     {
         static_assert(std::is_base_of_v<RenderComponentBase, T>,
             "Component should be a derived class of RenderComponentBase");
@@ -250,8 +250,8 @@ private:
 
     UniquePtr<RTRadianceRenderer> m_rt_radiance;
     ProbeGrid m_probe_system;
-    bool m_has_rt_radiance;
-    bool m_has_ddgi_probes;
+    Bool m_has_rt_radiance;
+    Bool m_has_ddgi_probes;
     Handle<TLAS> m_tlas;
 
     Float m_global_timer;

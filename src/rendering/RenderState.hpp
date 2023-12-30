@@ -91,14 +91,14 @@ struct RenderBinding<Camera>
 
 struct RenderState
 {
-    Stack<RenderBinding<Scene>> scene_bindings;
-    Stack<RenderBinding<Camera>> camera_bindings;
-    FlatMap<ID<Light>, LightDrawProxy> lights;
-    FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX> bound_env_probes; // map to texture slot
-    ID<EnvGrid> bound_env_grid;
-    Stack<ID<EnvProbe>> env_probe_bindings;
-    UInt8 visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
-    UInt32 frame_counter = ~0u;
+    Stack<RenderBinding<Scene>>                                             scene_bindings;
+    Stack<RenderBinding<Camera>>                                            camera_bindings;
+    FlatMap<ID<Light>, LightDrawProxy>                                      lights;
+    FixedArray<FlatMap<ID<EnvProbe>, Optional<UInt>>, ENV_PROBE_TYPE_MAX>   bound_env_probes; // map to texture slot
+    ID<EnvGrid>                                                             bound_env_grid;
+    Stack<ID<EnvProbe>>                                                     env_probe_bindings;
+    UInt8                                                                   visibility_cursor = MathUtil::MaxSafeValue<UInt8>();
+    UInt32                                                                  frame_counter = ~0u;
 
     void AdvanceFrameCounter()
         { ++frame_counter; }

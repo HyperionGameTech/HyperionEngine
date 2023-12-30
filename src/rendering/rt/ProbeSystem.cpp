@@ -259,7 +259,7 @@ void ProbeGrid::Init()
 
 void ProbeGrid::Destroy()
 {
-    g_engine->SafeReleaseHandle(std::move(m_shader));
+    m_shader.Reset();
 
     // release our owned descriptor sets
     for (auto &descriptor_set : m_descriptor_sets) {

@@ -194,7 +194,7 @@ void RenderGroup::Init()
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
                 for (UInt i = 0; i < UInt(m_command_buffers[frame_index].Size()); i++) {
-                    g_engine->SafeRelease(std::move(m_command_buffers[frame_index][i]));
+                    g_safe_deleter->SafeRelease(std::move(m_command_buffers[frame_index][i]));
                 }
             }
 

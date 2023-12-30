@@ -24,8 +24,8 @@ struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderComman
 
 void SafeDeleter::PerformEnqueuedDeletions()
 {
-    if (auto deletion_flags = m_render_resource_deletion_flag.load()) {
-        std::lock_guard guard(m_render_resource_deletion_mutex);
+    if (auto deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+        Mutex::Guard guard(m_render_resource_deletion_mutex);
 
         if (deletion_flags & RENDERABLE_DELETION_BUFFERS_OR_IMAGES) {
             if (DeleteEnqueuedBuffersAndImages()) {
@@ -36,6 +36,12 @@ void SafeDeleter::PerformEnqueuedDeletions()
         if (deletion_flags & RENDERABLE_DELETION_TEXTURES) {
             if (DeleteEnqueuedHandlesOfType<Texture>()) {
                 deletion_flags &= ~RENDERABLE_DELETION_TEXTURES;
+            }
+        }
+
+        if (deletion_flags & RENDERABLE_DELETION_MATERIALS) {
+            if (DeleteEnqueuedHandlesOfType<Material>()) {
+                deletion_flags &= ~RENDERABLE_DELETION_MATERIALS;
             }
         }
 
@@ -57,14 +63,14 @@ void SafeDeleter::PerformEnqueuedDeletions()
             }
         }
 
-        m_render_resource_deletion_flag.store(deletion_flags);
+        m_render_resource_deletion_flag.Set(deletion_flags, MemoryOrder::RELEASE);
     }
 }
 
 void SafeDeleter::ForceReleaseAll()
 {
-    if (auto deletion_flags = m_render_resource_deletion_flag.load()) {
-        std::lock_guard guard(m_render_resource_deletion_mutex);
+    if (auto deletion_flags = m_render_resource_deletion_flag.Get(MemoryOrder::ACQUIRE)) {
+        Mutex::Guard guard(m_render_resource_deletion_mutex);
 
         if (deletion_flags & RENDERABLE_DELETION_BUFFERS_OR_IMAGES) {
             ForceDeleteBuffersAndImages();
@@ -74,6 +80,11 @@ void SafeDeleter::ForceReleaseAll()
         if (deletion_flags & RENDERABLE_DELETION_TEXTURES) {
             ForceDeleteHandlesOfType<Texture>();
             deletion_flags &= ~RENDERABLE_DELETION_TEXTURES;
+        }
+
+        if (deletion_flags & RENDERABLE_DELETION_MATERIALS) {
+            ForceDeleteHandlesOfType<Material>();
+            deletion_flags &= ~RENDERABLE_DELETION_MATERIALS;
         }
 
         if (deletion_flags & RENDERABLE_DELETION_MESHES) {
@@ -91,7 +102,7 @@ void SafeDeleter::ForceReleaseAll()
             deletion_flags &= ~RENDERABLE_DELETION_SHADERS;
         }
 
-        m_render_resource_deletion_flag.store(deletion_flags);
+        m_render_resource_deletion_flag.Set(deletion_flags, MemoryOrder::RELEASE);
     }
 }
 

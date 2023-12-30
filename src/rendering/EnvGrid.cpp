@@ -47,13 +47,13 @@ static EnvProbeIndex GetProbeBindingIndex(const Vec3f &probe_position, const Bou
 
     const Int probe_index_at_point = (Int(probe_diff_units.x) * Int(grid_density.height) * Int(grid_density.depth))
         + (Int(probe_diff_units.y) * Int(grid_density.depth))
-        + Int(probe_diff_units.z) + 1;
+        + Int(probe_diff_units.z);
 
     EnvProbeIndex calculated_probe_index = invalid_probe_index;
     
-    if (probe_index_at_point > 0 && UInt(probe_index_at_point) < max_bound_ambient_probes) {
+    if (probe_index_at_point >= 0 && UInt(probe_index_at_point) < max_bound_ambient_probes) {
         calculated_probe_index = EnvProbeIndex(
-            Extent3D { UInt(probe_diff_units.x), UInt(probe_diff_units.y), UInt(probe_diff_units.z) + 1 },
+            Extent3D { UInt(probe_diff_units.x), UInt(probe_diff_units.y), UInt(probe_diff_units.z) },
             grid_density
         );
     }
@@ -302,6 +302,7 @@ EnvGrid::EnvGrid(EnvGridType type, const BoundingBox &aabb, const Extent3D &dens
     : RenderComponent(),
       m_type(type),
       m_aabb(aabb),
+      m_voxel_grid_aabb(aabb),
       m_offset(aabb.GetCenter()),
       m_density(density),
       m_current_probe_index(0),
@@ -486,6 +487,8 @@ void EnvGrid::Init()
         m_shader_data.extent = Vector4(m_aabb.GetExtent(), 1.0f);
         m_shader_data.aabb_max = Vector4(m_aabb.max, 1.0f);
         m_shader_data.aabb_min = Vector4(m_aabb.min, 1.0f);
+        m_shader_data.voxel_grid_aabb_max = Vector4(m_voxel_grid_aabb.max, 1.0f);
+        m_shader_data.voxel_grid_aabb_min = Vector4(m_voxel_grid_aabb.min, 1.0f);
         m_shader_data.density = { m_density.width, m_density.height, m_density.depth, 0 };
         m_shader_data.enabled_indices_mask = { 0, 0, 0, 0 };
     }
@@ -608,15 +611,15 @@ void EnvGrid::OnRender(Frame *frame)
     if (flags & ENV_GRID_FLAGS_NEEDS_VOXEL_GRID_OFFSET) {
         DebugLog(LogType::Debug, "Offsetting voxel grid\n");
 
-        // Offset the voxel grid.
-        const Vec3f offset = (grid_aabb.GetCenter() - Vector4(m_shader_data.center).GetXYZ()) / SizeOfProbe();
-        const Vec3i offset_i {
-            MathUtil::Floor<Float, Vec3i::Type>(offset.x),
-            MathUtil::Floor<Float, Vec3i::Type>(offset.y),
-            MathUtil::Floor<Float, Vec3i::Type>(offset.z)
-        };
+        // // Offset the voxel grid.
+        // const Vec3f offset = (grid_aabb.GetCenter() - Vector4(m_shader_data.center).GetXYZ()) / SizeOfProbe();
+        // const Vec3i offset_i {
+        //     MathUtil::Floor<Float, Vec3i::Type>(offset.x),
+        //     MathUtil::Floor<Float, Vec3i::Type>(offset.y),
+        //     MathUtil::Floor<Float, Vec3i::Type>(offset.z)
+        // };
 
-        OffsetVoxelGrid(frame, offset_i);
+        // OffsetVoxelGrid(frame, offset_i);
 
         new_flags &= ~ENV_GRID_FLAGS_NEEDS_VOXEL_GRID_OFFSET;
     }
@@ -1351,7 +1354,7 @@ void EnvGrid::CreateShader()
     });
 
     m_ambient_shader = g_shader_manager->GetOrCreate(
-        HYP_NAME(CubemapRenderer),
+        HYP_NAME(RenderToCubemap),
         shader_properties
     );
 

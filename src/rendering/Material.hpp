@@ -29,7 +29,8 @@ namespace hyperion::v2 {
 
 using renderer::BlendMode;
 
-class Material : public EngineComponentBase<STUB_CLASS(Material)>
+class Material
+    : public EngineComponentBase<STUB_CLASS(Material)>
 {
 public:
     static constexpr UInt max_parameters = 32u;

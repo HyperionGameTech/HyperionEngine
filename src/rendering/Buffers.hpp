@@ -177,7 +177,7 @@ struct SceneShaderData
     Float global_timer;
     UInt32 frame_counter;
     UInt32 enabled_render_components_mask;
-    Float _pad0;
+    UInt32 enabled_environment_maps_mask;
 
     HYP_PAD_STRUCT_HERE(UInt8, 64 + 128);
 };
@@ -215,8 +215,8 @@ struct alignas(256) EnvGridShaderData
     ShaderVec4<UInt32> density;
     ShaderVec4<UInt32> enabled_indices_mask;
 
-    ShaderVec4<Float> _pad0;
-    ShaderVec4<Float> _pad1;
+    ShaderVec4<Float> voxel_grid_aabb_max;
+    ShaderVec4<Float> voxel_grid_aabb_min;
 };
 
 static_assert(sizeof(EnvGridShaderData) == 4352);

@@ -44,6 +44,7 @@ Engine              *g_engine = nullptr;
 AssetManager        *g_asset_manager = nullptr;
 ShaderManagerSystem *g_shader_manager = nullptr;
 MaterialCache       *g_material_system = nullptr;
+SafeDeleter         *g_safe_deleter = nullptr;
 
 #pragma region Render commands
 
@@ -534,9 +535,16 @@ void Engine::Initialize(RC<Application> application)
         for (UInt i = 0; i < max_shadow_maps; i++) {
             shadow_map_descriptor->SetElementSRV(i, &GetPlaceholderData().GetImageView2D1x1R8());
         }
+
+        auto *environment_maps_descriptor = descriptor_set
+            ->GetOrAddDescriptor<renderer::ImageDescriptor>(DescriptorKey::ENVIRONMENT_MAPS);
+
+        for (UInt i = 0; i < max_bound_environment_maps; i++) {
+            environment_maps_descriptor->SetElementSRV(i, &GetPlaceholderData().GetImageViewCube1x1R8());
+        }
     }
 
-    // add placeholder scene data
+    // add placeholder object data
     for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         DescriptorSetRef descriptor_set = GetGPUInstance()->GetDescriptorPool()
             .GetDescriptorSet(DescriptorSet::object_buffer_mapping[frame_index]);
@@ -847,7 +855,7 @@ void Engine::FinalizeStop()
 
     m_final_pass.Destroy();
 
-    m_safe_deleter.ForceReleaseAll();
+    g_safe_deleter->ForceReleaseAll();
 
     HYP_SYNC_RENDER();
 
@@ -1061,7 +1069,7 @@ void Engine::UpdateBuffersAndDescriptors(UInt frame_index)
 
     RenderObjectDeleter<renderer::Platform::CURRENT>::Iterate();
 
-    m_safe_deleter.PerformEnqueuedDeletions();
+    g_safe_deleter->PerformEnqueuedDeletions();
 }
 
 void Engine::RenderDeferred(Frame *frame)

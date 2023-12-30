@@ -197,11 +197,28 @@ EnvProbe::EnvProbe(
     const BoundingBox &aabb,
     const Extent2D &dimensions,
     EnvProbeType env_probe_type
+) : EnvProbe(
+    parent_scene,
+    aabb,
+    dimensions,
+    env_probe_type,
+    Handle<Shader>::empty
+)
+{
+}
+
+EnvProbe::EnvProbe(
+    const Handle<Scene> &parent_scene,
+    const BoundingBox &aabb,
+    const Extent2D &dimensions,
+    EnvProbeType env_probe_type,
+    Handle<Shader> custom_shader
 ) : EngineComponentBase(),
     m_parent_scene(parent_scene),
     m_aabb(aabb),
     m_dimensions(dimensions),
     m_env_probe_type(env_probe_type),
+    m_shader(std::move(custom_shader)),
     m_camera_near(0.001f),
     m_camera_far(aabb.GetRadius()),
     m_needs_update(true),
@@ -302,17 +319,24 @@ void EnvProbe::Init()
 
 void EnvProbe::CreateShader()
 {
+    // If a custom shader is provided, use that instead.
+    if (m_shader.IsValid()) {
+        InitObject(m_shader);
+
+        return;
+    }
+
     switch (m_env_probe_type) {
     case EnvProbeType::ENV_PROBE_TYPE_REFLECTION:
         m_shader = g_shader_manager->GetOrCreate({
-            HYP_NAME(CubemapRenderer),
+            HYP_NAME(RenderToCubemap),
             ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_REFLECTION" })
         });
 
         break;
     case EnvProbeType::ENV_PROBE_TYPE_SHADOW:
         m_shader = g_shader_manager->GetOrCreate({
-            HYP_NAME(CubemapRenderer),
+            HYP_NAME(RenderToCubemap),
             ShaderProperties(renderer::static_mesh_vertex_attributes, { "MODE_SHADOWS" })
         });
 
@@ -435,7 +459,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
                 MeshAttributes { },
                 MaterialAttributes {
                     .bucket = BUCKET_INTERNAL,
-                    .cull_faces = FaceCullMode::FRONT
+                    .cull_faces = FaceCullMode::NONE
                 },
                 m_shader->GetCompiledShader().GetDefinition()
             ),
@@ -502,7 +526,7 @@ void EnvProbe::Render(Frame *frame)
                 return;
             }
 
-            // don't care about position in grid,
+            // don't care about position in grid if it is not controlled by one.
             // set it such that the UInt value of probe_index
             // would be the held value.
             probe_index = EnvProbeIndex(
@@ -523,7 +547,7 @@ void EnvProbe::Render(Frame *frame)
         }
     }
 
-    UpdateRenderData(probe_index);
+    BindToIndex(probe_index);
 
     {
         g_engine->GetRenderState().SetActiveEnvProbe(GetID());
@@ -570,7 +594,7 @@ void EnvProbe::Render(Frame *frame)
     SetNeedsRender(false);
 }
 
-void EnvProbe::UpdateRenderData(bool set_texture)
+void EnvProbe::UpdateRenderData(Bool set_texture)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
@@ -638,12 +662,12 @@ void EnvProbe::UpdateRenderData(bool set_texture)
     }
 }
 
-void EnvProbe::UpdateRenderData(const EnvProbeIndex &probe_index)
+void EnvProbe::BindToIndex(const EnvProbeIndex &probe_index)
 {
     Threads::AssertOnThread(THREAD_RENDER);
     AssertReady();
 
-    bool set_texture = true;
+    Bool set_texture = true;
 
     if (IsControlledByEnvGrid()) {
         if (probe_index.GetProbeIndex() >= max_bound_ambient_probes) {

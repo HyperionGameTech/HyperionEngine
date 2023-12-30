@@ -137,10 +137,30 @@ public:
         m_streamed_data.Reset(new MemoryStreamedData(byte_buffer));
     }
 
-    void CopyImageData(const UByte *data, SizeType count, SizeType offset = 0)
-    {
-        m_streamed_data.Reset(new MemoryStreamedData(ByteBuffer(count, data + offset)));
-    }
+    // void CopyImageData(const UByte *data, SizeType count, SizeType offset = 0)
+    // {
+    //     const SizeType min_size = offset + count;
+
+    //     // Copy current data to a new buffer.
+    //     if (HasAssignedImageData()) { 
+    //         ByteBuffer copy_bytebuffer = m_streamed_data->Load().Copy();
+
+    //         if (copy_bytebuffer.Size() < min_size) {
+    //             copy_bytebuffer.SetSize(min_size);
+    //         }
+
+    //         // Copy new data into the buffer, at the given offset.
+    //         Memory::MemCpy(copy_bytebuffer.Data() + offset, data, count);
+
+    //         m_streamed_data.Reset(new MemoryStreamedData(std::move(copy_bytebuffer)));
+    //     } else {
+    //         ByteBuffer new_bytebuffer(min_size);
+
+    //         Memory::MemCpy(new_bytebuffer.Data() + offset, data, count);
+
+    //         m_streamed_data.Reset(new MemoryStreamedData(std::move(new_bytebuffer)));
+    //     }
+    // }
 
     Bool IsDepthStencil() const;
     Bool IsSRGB() const;

@@ -13,6 +13,7 @@ void InitializeApplication(RC<Application> application)
     g_asset_manager = new AssetManager;
     g_shader_manager = new ShaderManagerSystem;
     g_material_system = new MaterialCache;
+    g_safe_deleter = new SafeDeleter;
 
     g_engine->Initialize(application);
 }

@@ -9,6 +9,7 @@ namespace hyperion::v2 {
 
 class Entity;
 class Mesh;
+class SkydomeRenderer;
 
 class SkydomeController : public Controller
 {
@@ -29,7 +30,8 @@ public:
     virtual fbom::FBOMResult Deserialize(const fbom::FBOMObject &in) override;
 
 protected:
-    Handle<Entity> m_dome;
+    SkydomeRenderer *m_skydome_renderer;
+    Handle<Entity>  m_dome;
 };
 
 } // namespace hyperion::v2

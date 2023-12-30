@@ -57,10 +57,10 @@ class Scene
 
 public:
     Scene();
-    Scene(Handle<Camera> &&camera);
+    Scene(Handle<Camera> camera);
 
     Scene(
-        Handle<Camera> &&camera,
+        Handle<Camera> camera,
         const InitInfo &info
     );
 
@@ -74,7 +74,7 @@ public:
     const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
-    void SetCamera(Handle<Camera> &&camera);
+    void SetCamera(Handle<Camera> camera);
 
     RenderList &GetRenderList()
         { return m_render_list; }
@@ -93,27 +93,26 @@ public:
         { return AddEntity(Handle<Entity>(entity)); }
 
     /*! \brief Remove a Node from the Scene with the given Entity */
-    bool RemoveEntity(ID<Entity> entity_id);
+    Bool RemoveEntity(ID<Entity> entity_id);
     /*! \brief Remove a Node from the Scene with the given Entity */
-    bool RemoveEntity(const Handle<Entity> &entity)
+    Bool RemoveEntity(const Handle<Entity> &entity)
         { return RemoveEntity(entity.GetID()); }
 
     /*! \brief Add an Entity to the queue. On Update(), it will be added to the scene. */
-    bool AddEntityInternal(Handle<Entity> &&entity);
-    bool HasEntity(ID<Entity> entity_id) const;
+    Bool AddEntityInternal(Handle<Entity> &&entity);
+    Bool HasEntity(ID<Entity> entity_id) const;
     /*! \brief Add an Remove to the from the Scene in an enqueued way. On Update(), it will be removed from the scene. */
-    bool RemoveEntityInternal(const Handle<Entity> &entity);
+    Bool RemoveEntityInternal(const Handle<Entity> &entity);
 
     const Handle<Entity> &FindEntityWithID(ID<Entity>) const;
     const Handle<Entity> &FindEntityByName(Name) const;
 
-    bool AddLight(Handle<Light> &&light);
-    bool AddLight(const Handle<Light> &light);
-    bool RemoveLight(ID<Light> id);
+    Bool AddLight(Handle<Light> &&light);
+    Bool AddLight(const Handle<Light> &light);
+    Bool RemoveLight(ID<Light> id);
 
-    bool AddEnvProbe(Handle<EnvProbe> &&env_probe);
-    bool AddEnvProbe(const Handle<EnvProbe> &env_probe);
-    bool RemoveEnvProbe(ID<EnvProbe> id);
+    Bool AddEnvProbe(Handle<EnvProbe> env_probe);
+    Bool RemoveEnvProbe(ID<EnvProbe> id);
 
     FogParams &GetFogParams()
         { return m_fog_params; }
@@ -136,7 +135,7 @@ public:
      *  no action is performed and true is returned. If the TLAS could not be created, false is returned.
      *  The Scene must have had Init() called on it before calling this.
      */
-    bool CreateTLAS();
+    Bool CreateTLAS();
 
     /* ONLY USE FROM GAME THREAD */
     auto &GetEntities()
@@ -177,38 +176,41 @@ public:
         but rather a simple container that has items based on another Scene. For example,
         you could have a "shadow map" scene, which gathers entities from the main scene,
         but does not call Update() on them. */
-    bool IsWorldScene() const
+    Bool IsWorldScene() const
         { return !m_parent_scene.IsValid() && !m_is_non_world_scene; }
     
     void Init();
 
-    void ForceUpdate();
+    /*! \brief Update the scene, including all entities, lights, etc.
+        This is to be called from the GAME thread.
+        You will not likely need to call this manually, as it is called
+        by the World, unless you are using a Scene as a non-world scene.
+        * @param delta The delta time since the last update.
+    */
+    void Update(GameCounter::TickUnit delta);
 
     void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         const Bitset &bucket_bits,
         Optional<RenderableAttributeSet> override_attributes = { },
-        bool skip_frustum_culling = false
+        Bool skip_frustum_culling = false
     ) const;
 
     void CollectEntities(
         RenderList &render_list, 
         const Handle<Camera> &camera,
         Optional<RenderableAttributeSet> override_attributes = { },
-        bool skip_frustum_culling = false
+        Bool skip_frustum_culling = false
     ) const;
 
 private:
-    // World only calls
-    void Update(GameCounter::TickUnit delta);
-
     void EnqueueRenderUpdates();
     
     void AddPendingEntities();
     void RemovePendingEntities();
 
-    bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
+    Bool IsEntityInFrustum(const Handle<Entity> &entity, ID<Camera> camera_id, UInt8 visibility_cursor) const;
 
     Handle<Camera> m_camera;
     RenderList m_render_list;
@@ -235,7 +237,7 @@ private:
     Matrix4 m_last_view_projection_matrix;
 
     Handle<Scene> m_parent_scene;
-    bool m_is_non_world_scene;
+    Bool m_is_non_world_scene;
                                  
     mutable ShaderDataState m_shader_data_state;
 };

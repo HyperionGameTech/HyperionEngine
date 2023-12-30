@@ -71,7 +71,7 @@ static ShaderProperties GetDeferredShaderProperties()
     properties.Set("RT_REFLECTIONS_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_REFLECTIONS));
     properties.Set("RT_GI_ENABLED", g_engine->GetConfig().Get(CONFIG_RT_GI));
     properties.Set("SSR_ENABLED", g_engine->GetConfig().Get(CONFIG_SSR));
-    properties.Set("REFLECTION_PROBE_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS));
+    properties.Set("REFLECTION_PROBE_ENABLED", true);
     properties.Set("ENV_GRID_ENABLED", g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI));
     properties.Set("HBIL_ENABLED", g_engine->GetConfig().Get(CONFIG_HBIL));
     properties.Set("HBAO_ENABLED", g_engine->GetConfig().Get(CONFIG_HBAO));
@@ -681,7 +681,7 @@ void DeferredRenderer::Render(Frame *frame, RenderEnvironment *environment)
     const bool use_hbil = g_engine->GetConfig().Get(CONFIG_HBIL);
     const bool use_env_grid_irradiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_GI);
     const bool use_env_grid_radiance = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS);
-    const bool use_reflection_probes = g_engine->GetConfig().Get(CONFIG_ENV_GRID_REFLECTIONS) && g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
+    const bool use_reflection_probes = g_engine->GetRenderState().bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
     const bool use_temporal_aa = g_engine->GetConfig().Get(CONFIG_TEMPORAL_AA) && m_temporal_aa != nullptr;
 
     if (use_temporal_aa) {

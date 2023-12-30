@@ -16,6 +16,7 @@
 #include <scene/controllers/EnvGridController.hpp>
 #include <scene/controllers/AabbDebugController.hpp>
 #include <scene/controllers/AnimationController.hpp>
+#include <scene/skydome/controllers/SkydomeController.hpp>
 #include <rendering/CubemapRenderer.hpp>
 #include <rendering/PointShadowRenderer.hpp>
 #include <core/lib/FlatMap.hpp>
@@ -233,7 +234,7 @@ void SampleStreamer::InitGame()
             5.0f
         )));
         sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
-        sun->AddController<ShadowMapController>();
+        // sun->AddController<ShadowMapController>();
         GetScene()->AddEntity(sun);
 
         Array<Handle<Light>> point_lights;
@@ -259,11 +260,18 @@ void SampleStreamer::InitGame()
         }
     }
 
+    // Add skybox
+    {
+        auto skydome_entity = CreateObject<Entity>();
+        skydome_entity->AddController<SkydomeController>();
+        GetScene()->AddEntity(skydome_entity);
+    }
+
     // add sample model
     {
         auto batch = g_asset_manager->CreateBatch();
-        batch->Add<Node>("test_model", "models/sponza/sponza.obj");//living_room/living_room.obj");//pica_pica/pica_pica.obj");
-        batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
+        batch->Add<Node>("test_model", "models/street/street.obj");//sponza/sponza.obj");//living_room/living_room.obj");
+        // batch->Add<Node>("zombie", "models/ogrexml/dragger_Body.mesh.xml");
         batch->LoadAsync();
         auto results = batch->AwaitResults();
 
@@ -292,7 +300,8 @@ void SampleStreamer::InitGame()
             auto node = results["test_model"].ExtractAs<Node>();
             // node.Rotate(Quaternion(Vector3(0.0f, 0.0f, 90.0f)));
             // node.Scale(3.0f);
-            node.Scale(0.01f);
+            // node.Scale(0.01f);
+            node.Scale(0.25f);
 
             // Add grid of environment probes to capture indirect lighting
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
@@ -676,7 +685,7 @@ void SampleStreamer::Logic(GameCounter::TickUnit delta)
     auto env_grid_entity = m_scene->FindEntityByName(HYP_NAME(EnvGridEntity));
 
     if (env_grid_entity) {
-        env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
+        // env_grid_entity->SetTranslation(m_scene->GetCamera()->GetTranslation());
     }
 
     if (m_rtc_instance) {

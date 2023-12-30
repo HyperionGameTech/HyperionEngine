@@ -58,11 +58,11 @@ void PointShadowRenderer::InitGame()
 
 void PointShadowRenderer::OnRemoved()
 {
-    AssertThrow(m_env_probe.IsValid());
-
-    if (m_env_probe) {
+    if (m_env_probe.IsValid()) {
         m_env_probe->EnqueueUnbind();
     }
+
+    m_env_probe.Reset();
 }
 
 void PointShadowRenderer::OnUpdate(GameCounter::TickUnit delta)

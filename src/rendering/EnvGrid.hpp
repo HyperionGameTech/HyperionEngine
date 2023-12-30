@@ -186,6 +186,7 @@ private:
     EnvGridType m_type;
 
     BoundingBox m_aabb;
+    BoundingBox m_voxel_grid_aabb;
     Vec3f m_offset;
     Extent3D m_density;
     

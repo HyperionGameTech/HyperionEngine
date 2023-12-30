@@ -1,11 +1,13 @@
-#ifndef HYPERION_V2_SCREEN_CAPTURE_HPP
-#define HYPERION_V2_SCREEN_CAPTURE_HPP
+#ifndef HYPERION_V2_SKYDOME_RENDERER_HPP
+#define HYPERION_V2_SKYDOME_RENDERER_HPP
 
 #include <core/Base.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Light.hpp>
 #include <rendering/RenderComponent.hpp>
+#include <rendering/EnvProbe.hpp>
+#include <rendering/EntityDrawCollection.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/EnvProbe.hpp>
 
@@ -26,28 +28,16 @@ using renderer::Frame;
 using renderer::Image;
 using renderer::ImageView;
 
-class ScreenCaptureRenderComponent : public RenderComponent<ScreenCaptureRenderComponent>
+class SkydomeRenderer : public RenderComponent<SkydomeRenderer>
 {
-    Extent2D        m_window_size;
-    Handle<Texture> m_texture;
-    GPUBufferRef    m_buffer;
-
 public:
-    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SLOT6;
+    static constexpr RenderComponentName component_name = RENDER_COMPONENT_SLOT7;
 
-    ScreenCaptureRenderComponent(const Extent2D window_size)
-        : RenderComponent(),
-          m_window_size(window_size)
-    {
-    }
+    SkydomeRenderer(Extent2D dimensions = { 1024, 1024 });
+    virtual ~SkydomeRenderer() = default;
 
-    virtual ~ScreenCaptureRenderComponent() = default;
-
-    const GPUBufferRef &GetBuffer() const
-        { return m_buffer; }
-
-    const Handle<Texture> &GetTexture() const
-        { return m_texture; }
+    const Handle<Texture> &GetCubemap() const
+        { return m_cubemap; }
 
     void Init();
     void InitGame();
@@ -57,6 +47,14 @@ public:
     void OnRender(Frame *frame);
 
 private:
+    Extent2D            m_dimensions;
+    Handle<Texture>     m_cubemap;
+    Handle<Entity>      m_dome;
+    Handle<Camera>      m_camera;
+
+    Handle<Scene>       m_virtual_scene;
+    Handle<EnvProbe>    m_env_probe;
+
     virtual void OnComponentIndexChanged(RenderComponentBase::Index new_index, RenderComponentBase::Index prev_index) override
         { }
 };

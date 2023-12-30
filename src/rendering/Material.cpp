@@ -323,7 +323,7 @@ void Material::Init()
     EngineComponentBase::Init();
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
-        if (auto &texture = m_textures.ValueAt(i)) {
+        if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
             InitObject(texture);
         }
     }
@@ -355,7 +355,7 @@ void Material::EnqueueDescriptorSetCreate()
     const UInt num_bound_textures = max_textures_to_set;
     
     for (UInt i = 0; i < num_bound_textures; i++) {
-        if (const auto &texture = m_textures.ValueAt(i)) {
+        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             if (texture->GetImageView()) {
                 texture_bindings[i] = texture->GetImageView();
             }
@@ -372,7 +372,8 @@ void Material::EnqueueDescriptorSetCreate()
 
 void Material::EnqueueDescriptorSetDestroy()
 {
-    PUSH_RENDER_COMMAND(DestroyMaterialDescriptors, 
+    PUSH_RENDER_COMMAND(
+        DestroyMaterialDescriptors, 
         m_descriptor_sets.Data()
     );
 }
@@ -386,7 +387,7 @@ void Material::EnqueueRenderUpdates()
     const UInt num_bound_textures = max_textures_to_set;
     
     for (UInt i = 0; i < num_bound_textures; i++) {
-        if (const auto &texture = m_textures.ValueAt(i)) {
+        if (const Handle<Texture> &texture = m_textures.ValueAt(i)) {
             bound_texture_ids[i] = texture->GetID();
         }
     }

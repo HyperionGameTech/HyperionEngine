@@ -119,7 +119,7 @@ const decltype(DescriptorSet::mappings) DescriptorSet::mappings = {
             {DescriptorKey::CAMERA_BUFFER,     4},
             {DescriptorKey::SHADOW_MAPS,      12},
             {DescriptorKey::SHADOW_MATRICES,  13},
-            {DescriptorKey::CUBEMAP_UNIFORMS, 20}
+            {DescriptorKey::ENVIRONMENT_MAPS, 20}
         }
     },
     {

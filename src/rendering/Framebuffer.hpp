@@ -75,8 +75,7 @@ struct AttachmentMap
 };
 
 class Framebuffer
-    : public EngineComponentBase<STUB_CLASS(Framebuffer)>,
-      public RenderResource
+    : public EngineComponentBase<STUB_CLASS(Framebuffer)>
 {
 public:
     Framebuffer(

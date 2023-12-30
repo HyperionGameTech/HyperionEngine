@@ -157,12 +157,8 @@ bool DynBitset::ToUInt64(UInt64 *out) const
 
 void DynBitset::RemoveLeadingZeros()
 {
-    while (m_blocks.Any()) {
-        if (m_blocks.Back() == 0) {
-            m_blocks.PopBack();
-        } else {
-            break;
-        }
+    while (!m_blocks.Empty() && m_blocks.Back() == 0) {
+        m_blocks.PopBack();
     }
 }
 

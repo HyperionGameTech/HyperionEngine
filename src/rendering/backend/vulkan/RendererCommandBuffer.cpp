@@ -578,7 +578,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     AssertThrowMsg(
         set_index < descriptor_sets.Size(),
         "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
-        static_cast<UInt>(set),
+        UInt(set),
         set_index,
         descriptor_sets.Size()
     );
@@ -588,7 +588,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSet(
     AssertThrowMsg(
         bind_set != nullptr,
         "Attempt to bind invalid descriptor set %u (at index %u) -- set is null\n",
-        static_cast<UInt>(set),
+        UInt(set),
         set_index
     );
 
@@ -667,7 +667,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         AssertThrowMsg(
             set_index < descriptor_sets.Size(),
             "Attempt to bind invalid descriptor set (%u) (at index %u) -- out of bounds (max is %llu)\n",
-            static_cast<UInt>(sets[i]),
+            UInt(sets[i]),
             set_index,
             descriptor_sets.Size()
         );
@@ -677,7 +677,7 @@ void CommandBuffer<Platform::VULKAN>::BindDescriptorSets(
         AssertThrowMsg(
             bind_set != nullptr,
             "Attempt to bind invalid descriptor set %u (at index %u) -- set is null\n",
-            static_cast<UInt>(sets[i]),
+            UInt(sets[i]),
             set_index
         );
 

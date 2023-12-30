@@ -387,6 +387,16 @@ ParticleSystem::ParticleSystem()
 
 ParticleSystem::~ParticleSystem()
 {
+    for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (auto &command_buffer : m_command_buffers[frame_index]) {
+            g_safe_deleter->SafeRelease(std::move(command_buffer));
+        }
+    }
+
+    SafeRelease(std::move(m_staging_buffer));
+
+    m_quad_mesh.Reset();
+
     Teardown();
 }
 
@@ -407,17 +417,8 @@ void ParticleSystem::Init()
     SetReady(true);
 
     OnTeardown([this]() {
-        g_engine->SafeReleaseHandle<Mesh>(std::move(m_quad_mesh));
-
-        for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            for (auto &command_buffer : m_command_buffers[frame_index]) {
-                g_engine->SafeRelease(std::move(command_buffer));
-            }
-        }
-
-        SafeRelease(std::move(m_staging_buffer));
-
-        PUSH_RENDER_COMMAND(DestroyParticleSystem, 
+        PUSH_RENDER_COMMAND(
+            DestroyParticleSystem, 
             &m_particle_spawners
         );
         

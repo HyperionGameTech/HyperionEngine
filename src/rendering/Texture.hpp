@@ -33,8 +33,7 @@ using renderer::Sampler;
 using renderer::CommandBuffer;
 
 class Texture
-    : public EngineComponentBase<STUB_CLASS(Texture)>,
-      public RenderResource
+    : public EngineComponentBase<STUB_CLASS(Texture)>
 {
 public:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;
@@ -231,15 +230,27 @@ public:
             nullptr
         )
     {
-        SizeType offset = 0,
-            face_size = 0;
+        AssertThrow(texture_faces[0] != nullptr);
+
+        m_image->SetTextureFormat(texture_faces[0]->GetFormat());
+
+        const SizeType face_size = texture_faces[0]->GetExtent().Size() * NumComponents(texture_faces[0]->GetFormat()) * NumBytes(texture_faces[0]->GetFormat());
+
+        SizeType offset = 0;
+
+        ByteBuffer result_buffer;
+        result_buffer.SetSize(face_size * 6);
 
         for (auto &texture : texture_faces) {
             if (texture) {
-                face_size = texture->GetExtent().Size() * NumComponents(texture->GetFormat());
+                AssertThrow(offset + face_size <= m_image->GetByteSize());
 
                 if (texture->GetImage()->HasAssignedImageData()) {
-                    m_image->CopyImageData(texture->GetImage()->GetStreamedData()->Load().Data(), face_size, offset);
+                    const ByteBuffer byte_buffer = texture->GetImage()->GetStreamedData()->Load();
+
+                    AssertThrow(byte_buffer.Size() == face_size);
+
+                    Memory::MemCpy(result_buffer.Data() + offset, byte_buffer.Data(), face_size);
                 }
             }
 
@@ -247,6 +258,8 @@ public:
 
             offset += face_size;
         }
+
+        m_image->CopyImageData(result_buffer);
     }
 };
 

@@ -32,6 +32,7 @@ using renderer::Image;
 enum EnvProbeType : UInt
 {
     ENV_PROBE_TYPE_INVALID = UInt(-1),
+
     ENV_PROBE_TYPE_REFLECTION = 0,
     ENV_PROBE_TYPE_SHADOW,
 
@@ -121,8 +122,7 @@ struct EnvProbeIndex
 
 class EnvProbe
     : public EngineComponentBase<STUB_CLASS(EnvProbe)>,
-      public HasDrawProxy<STUB_CLASS(EnvProbe)>,
-      public RenderResource
+      public HasDrawProxy<STUB_CLASS(EnvProbe)>
 {
 public:
     friend struct RenderCommand_UpdateEnvProbeDrawProxy;
@@ -141,6 +141,14 @@ public:
         const BoundingBox &aabb,
         const Extent2D &dimensions,
         EnvProbeType env_probe_type
+    );
+    
+    EnvProbe(
+        const Handle<Scene> &parent_scene,
+        const BoundingBox &aabb,
+        const Extent2D &dimensions,
+        EnvProbeType env_probe_type,
+        Handle<Shader> custom_shader
     );
 
     EnvProbe(const EnvProbe &other) = delete;
@@ -225,8 +233,8 @@ public:
 
     void Render(Frame *frame);
 
-    void UpdateRenderData(bool set_texture = false);
-    void UpdateRenderData(const EnvProbeIndex &probe_index);
+    void UpdateRenderData(Bool set_texture = false);
+    void BindToIndex(const EnvProbeIndex &probe_index);
 
     UInt32 m_temp_render_frame_id = 0;
     UInt32 m_grid_slot = ~0u; // temp
@@ -235,38 +243,38 @@ private:
     void CreateShader();
     void CreateFramebuffer();
 
-    Handle<Scene> m_parent_scene;
-    BoundingBox m_aabb;
-    Extent2D m_dimensions;
-    EnvProbeType m_env_probe_type;
+    Handle<Scene>                                       m_parent_scene;
+    BoundingBox                                         m_aabb;
+    Extent2D                                            m_dimensions;
+    EnvProbeType                                        m_env_probe_type;
 
-    Float m_camera_near;
-    Float m_camera_far;
+    Float                                               m_camera_near;
+    Float                                               m_camera_far;
 
-    Handle<Texture> m_texture;
-    Handle<Framebuffer> m_framebuffer;
-    std::vector<std::unique_ptr<Attachment>> m_attachments;
-    Handle<Shader> m_shader;
-    Handle<Camera> m_camera;
-    RenderList m_render_list;
+    Handle<Texture>                                     m_texture;
+    Handle<Framebuffer>                                 m_framebuffer;
+    std::vector<std::unique_ptr<Attachment>>            m_attachments;
+    Handle<Shader>                                      m_shader;
+    Handle<Camera>                                      m_camera;
+    RenderList                                          m_render_list;
 
-    GPUBufferRef m_sh_tiles_buffer;
+    GPUBufferRef                                        m_sh_tiles_buffer;
 
-    Handle<ComputePipeline> m_compute_sh;
-    Handle<ComputePipeline> m_clear_sh;
-    Handle<ComputePipeline> m_finalize_sh;
-    FixedArray<DescriptorSetRef, max_frames_in_flight> m_compute_sh_descriptor_sets;
+    Handle<ComputePipeline>                             m_compute_sh;
+    Handle<ComputePipeline>                             m_clear_sh;
+    Handle<ComputePipeline>                             m_finalize_sh;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_compute_sh_descriptor_sets;
 
-    Matrix4 m_projection_matrix;
-    FixedArray<Matrix4, 6> m_view_matrices;
+    Matrix4                                             m_projection_matrix;
+    FixedArray<Matrix4, 6>                              m_view_matrices;
 
-    EnvProbeIndex m_bound_index;
+    EnvProbeIndex                                       m_bound_index;
     // EnvProbeIndex m_last_rendered_index;
 
-    bool m_needs_update;
-    AtomicVar<Bool> m_is_rendered;
-    AtomicVar<Int32> m_needs_render_counter;
-    HashCode m_octant_hash_code;
+    Bool                                                m_needs_update;
+    AtomicVar<Bool>                                     m_is_rendered;
+    AtomicVar<Int32>                                    m_needs_render_counter;
+    HashCode                                            m_octant_hash_code;
 
 };
 
