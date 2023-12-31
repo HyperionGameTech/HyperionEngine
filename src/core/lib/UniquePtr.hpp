@@ -203,7 +203,10 @@ protected:
     UniquePtrHolder m_holder;
 };
 
-/*! \brief A unique pointer with type erasure built in, so anything could be stored as UniquePtr<void>. */
+/*! \brief A unique pointer with type erasure built in, so anything could be stored as UniquePtr<void>.
+    You can also store a derived pointer in a UniquePtr<Base>, and it will be convertible back to UniquePtr<Derived>, as 
+    well as having the destructor called correctly without needing it to be virtual.
+*/
 template <class T>
 class UniquePtr : public UniquePtrBase
 {

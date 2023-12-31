@@ -917,8 +917,8 @@ static HYP_SCRIPT_FUNCTION(Runtime_CloseFilePointer)
 
     Int close_result = -1;
     
-    if (it->value != stdout && it->value != stderr) {
-        close_result = fclose(it->value);
+    if (it->second != stdout && it->second != stderr) {
+        close_result = fclose(it->second);
     }
 
     file_pointer_map.data.Erase(it);
@@ -946,7 +946,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_WriteFileData)
         HYP_SCRIPT_RETURN_VOID(nullptr);
     }
 
-    FILE *fptr = it->value;
+    FILE *fptr = it->second;
 
     if (!fptr) {
         params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
@@ -1023,7 +1023,7 @@ static HYP_SCRIPT_FUNCTION(Runtime_FlushFileStream)
         HYP_SCRIPT_RETURN_VOID(nullptr);
     }
 
-    FILE *fptr = it->value;
+    FILE *fptr = it->second;
 
     if (!fptr) {
         params.handler->state->ThrowException(params.handler->thread, vm::Exception("Invalid file handle"));
@@ -1286,7 +1286,7 @@ static HYP_SCRIPT_FUNCTION(EngineCreateEntity)
     AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
     HYP_SCRIPT_CREATE_PTR(entity_handle, result);
-    vm::VMObject result_value(prototype_it->value); // construct from prototype
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
     HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
     HYP_SCRIPT_CREATE_PTR(result_value, ptr);
     HYP_SCRIPT_RETURN(ptr);
@@ -1327,7 +1327,7 @@ static HYP_SCRIPT_FUNCTION(Entity_GetTranslation)
     AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
     HYP_SCRIPT_CREATE_PTR(translation, result);
-    vm::VMObject result_value(prototype_it->value); // construct from prototype
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
     HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
     HYP_SCRIPT_CREATE_PTR(result_value, ptr);
     HYP_SCRIPT_RETURN(ptr);
@@ -1352,7 +1352,7 @@ static HYP_SCRIPT_FUNCTION(Entity_GetWorldAABB)
     AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
     HYP_SCRIPT_CREATE_PTR(aabb, result);
-    vm::VMObject result_value(prototype_it->value); // construct from prototype
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
     HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
     HYP_SCRIPT_CREATE_PTR(result_value, ptr);
     HYP_SCRIPT_RETURN(ptr);
@@ -1551,7 +1551,7 @@ static HYP_SCRIPT_FUNCTION(LoadModule)
     AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
     HYP_SCRIPT_CREATE_PTR(std::move(dyn_module), result);
-    vm::VMObject result_value(prototype_it->value); // construct from prototype
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
     HYP_SCRIPT_SET_MEMBER(result_value, "__intern", result);
     HYP_SCRIPT_CREATE_PTR(result_value, ptr);
     HYP_SCRIPT_RETURN(ptr);
@@ -1617,7 +1617,7 @@ static HYP_SCRIPT_FUNCTION(NameCreateFromString)
     const auto prototype_it = params.api_instance.class_bindings.class_prototypes.Find(class_name_it->second);
     AssertThrowMsg(prototype_it != params.api_instance.class_bindings.class_prototypes.End(), "Class not registered!");
 
-    vm::VMObject result_value(prototype_it->value); // construct from prototype
+    vm::VMObject result_value(prototype_it->second); // construct from prototype
     HYP_SCRIPT_SET_MEMBER(result_value, "hash_code", vm::Value(vm::Value::U64, { .u64 = name.hash_code }));
     HYP_SCRIPT_CREATE_PTR(result_value, ptr);
     HYP_SCRIPT_RETURN(ptr);

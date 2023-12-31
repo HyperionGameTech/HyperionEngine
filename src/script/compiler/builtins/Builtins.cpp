@@ -79,9 +79,9 @@ Builtins::Builtins()
 
     for (const auto &it : m_vars) {
         m_ast.Push(RC<AstVariableDeclaration>(new AstVariableDeclaration(
-            it.key,
+            it.first,
             nullptr,
-            it.value,
+            it.second,
             {},
             IdentifierFlags::FLAG_CONST,
             BUILTIN_SOURCE_LOCATION

@@ -68,14 +68,20 @@ private:
 
         ~ResourceUsageMap()
         {
-            for (auto &pair : handles) {
+            for (auto &it : handles) {
                 // Use SafeRelease to defer the actual destruction of the resource.
                 // This is used so that any resources that will require a mutex lock to release render side resources
                 // will not cause a deadlock.
-                g_safe_deleter->SafeReleaseHandle(std::move(pair.value));
+                g_safe_deleter->SafeReleaseHandle(std::move(it.second));
             }
         }
 
+        /*! \brief Takes a resource usage handle from the map. This will set the usage bit to false.
+         *
+         *  \param id The ID of the resource to take.
+         *
+         *  \return A handle to the resource, or Handle<T>::empty if the resource is not used.
+         */
         Handle<T> TakeUsage(ID<T> id)
         {
             if (!usage_bits.Test(id.Value())) {
@@ -87,7 +93,7 @@ private:
 
             usage_bits.Set(id.Value(), false);
 
-            return std::move(it->value);
+            return std::move(it->second);
         }
     };
 
@@ -130,7 +136,7 @@ public:
     }
 
     template <class T>
-    void SetIsUsed(ID<T> id, Handle<T> &&handle, bool is_used)
+    void SetIsUsed(ID<T> id, Handle<T> &&handle, Bool is_used)
     {
         if (!id) {
             return;
@@ -154,13 +160,13 @@ public:
     }
 
     template <class T>
-    void SetIsUsed(ID<T> id, bool is_used)
+    void SetIsUsed(ID<T> id, Bool is_used)
     {
         SetIsUsed<T>(id, Handle<T>(), is_used);
     }
 
     template <class T>
-    bool IsUsed(ID<T> id) const
+    Bool IsUsed(ID<T> id) const
     {
         if (!id) {
             return false;
@@ -179,13 +185,13 @@ public:
         auto it = ptr->handles.Find(id);
 
         if (!ptr->usage_bits.Test(id.Value())) {
-            AssertThrow(it == ptr->handles.End() || !it->value.IsValid());
+            AssertThrow(it == ptr->handles.End() || !it->second.IsValid());
 
             return false;
         }
 
         AssertThrow(it != ptr->handles.End());
-        AssertThrow(it->value.IsValid());
+        AssertThrow(it->second.IsValid());
 
         return true;
 #endif
@@ -213,14 +219,14 @@ struct DrawCallID
     {
     }
 
-    bool operator==(const DrawCallID &other) const
+    Bool operator==(const DrawCallID &other) const
         { return value == other.value; }
 
-    bool operator!=(const DrawCallID &other) const
+    Bool operator!=(const DrawCallID &other) const
         { return value != other.value; }
 
-    bool HasMaterial() const
-        { return bool((UInt64(~0u) << 32) & value); }
+    Bool HasMaterial() const
+        { return Bool((UInt64(~0u) << 32) & value); }
 
     operator UInt64() const
         { return value; }
@@ -231,22 +237,22 @@ struct DrawCallID
 
 struct DrawCall
 {
-    static constexpr bool unique_per_material = !use_indexed_array_for_object_data;
+    static constexpr Bool unique_per_material = !use_indexed_array_for_object_data;
 
-    DrawCallID id;
-    BufferTicket<EntityInstanceBatch> batch_index;
-    SizeType draw_command_index;
+    DrawCallID                          id;
+    BufferTicket<EntityInstanceBatch>   batch_index;
+    SizeType                            draw_command_index;
 
-    ID<Mesh> mesh_id;
-    ID<Material> material_id;
-    ID<Skeleton> skeleton_id;
+    ID<Mesh>                            mesh_id;
+    ID<Material>                        material_id;
+    ID<Skeleton>                        skeleton_id;
 
-    UInt entity_id_count;
-    ID<Entity> entity_ids[max_entities_per_instance_batch];
+    UInt                                entity_id_count;
+    ID<Entity>                          entity_ids[max_entities_per_instance_batch];
 
-    Mesh *mesh;
+    Mesh                                *mesh;
 
-    UInt packed_data[4];
+    UInt                                packed_data[4];
 };
 
 struct DrawCallCollection

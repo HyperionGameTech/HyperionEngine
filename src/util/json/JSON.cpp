@@ -219,7 +219,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](cons
             return { nullptr };
         }
 
-        return { &it->value };
+        return { &it->second };
     }
 
     return { nullptr };
@@ -387,7 +387,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
             return { nullptr };
         }
 
-        return { &it->value };
+        return { &it->second };
     }
 
     return { nullptr };

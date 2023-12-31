@@ -84,8 +84,8 @@ String Operator::LookupStringValue() const
     }
 
     for (const auto &it : *map) {
-        if (it.value.GetOperatorType() == m_op_type) {
-            return it.key;
+        if (it.second.GetOperatorType() == m_op_type) {
+            return it.first;
         }
     }
 
@@ -95,8 +95,8 @@ String Operator::LookupStringValue() const
 const Operator *Operator::FindBinaryOperator(Operators op)
 {
     for (auto &it : binary_operators) {
-        if (it.value.GetOperatorType() == op) {
-            return &it.value;
+        if (it.second.GetOperatorType() == op) {
+            return &it.second;
         }
     }
 
@@ -105,8 +105,8 @@ const Operator *Operator::FindBinaryOperator(Operators op)
 const Operator *Operator::FindUnaryOperator(Operators op)
 {
     for (auto &it : unary_operators) {
-        if (it.value.GetOperatorType() == op) {
-            return &it.value;
+        if (it.second.GetOperatorType() == op) {
+            return &it.second;
         }
     }
 

@@ -18,9 +18,9 @@ public:
     {
         static const Element empty;
 
-        String name;
-        String value;
-        Array<String> sub_elements;
+        String          name;
+        String          value;
+        Array<String>   sub_elements;
     };
 
     struct Value
@@ -42,14 +42,12 @@ public:
         }
     };
 
-    struct Section : HashMap<String, Value>
-    {
-    };
+    using Section = HashMap<String, Value>;
 
     DefinitionsFile(const FilePath &path);
     ~DefinitionsFile() = default;
 
-    bool IsValid() const
+    Bool IsValid() const
         { return m_is_valid; }
 
     const FilePath &GetFilePath() const
@@ -58,7 +56,7 @@ public:
     const HashMap<String, Section> &GetSections() const
         { return m_sections; }
 
-    bool HasSection(const String &key) const
+    Bool HasSection(const String &key) const
         { return m_sections.Contains(key); }
 
     Section &GetSection(const String &key)
@@ -67,10 +65,10 @@ public:
 private:
     void Parse();
 
-    bool m_is_valid;
-    FilePath m_path;
+    Bool                        m_is_valid;
+    FilePath                    m_path;
 
-    HashMap<String, Section> m_sections;
+    HashMap<String, Section>    m_sections;
 };
 
 } // namespace hyperion::v2

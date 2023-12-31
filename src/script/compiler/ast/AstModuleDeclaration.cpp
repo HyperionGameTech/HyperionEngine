@@ -69,7 +69,7 @@ void AstModuleDeclaration::Visit(AstVisitor *visitor, Module *mod)
             // map filepath to module
             auto it = visitor->GetCompilationUnit()->m_imported_modules.Find(canon_path);
             if (it != visitor->GetCompilationUnit()->m_imported_modules.End()) {
-                it->value.PushBack(m_module);
+                it->second.PushBack(m_module);
             } else {
                 visitor->GetCompilationUnit()->m_imported_modules[canon_path.Data()] = { m_module };
             }

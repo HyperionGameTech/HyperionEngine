@@ -369,7 +369,7 @@ public:
             Array<Pair<JSONString, JSONValue>> members;
 
             for (const auto &member : as_object) {
-                members.PushBack({ member.key, member.value });
+                members.PushBack({ member.first, member.second });
             }
 
             String result = "{";

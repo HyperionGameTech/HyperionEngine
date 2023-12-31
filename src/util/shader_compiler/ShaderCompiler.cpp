@@ -567,26 +567,26 @@ void ShaderCompiler::ParseDefinitionSection(
 )
 {
     for (const auto &section_it : section) {
-        if (section_it.key == "permute") {
+        if (section_it.first == "permute") {
             // set each property
-            for (const auto &element : section_it.value.elements) {
+            for (const auto &element : section_it.second.elements) {
                 if (element.sub_elements.Any()) {
                     bundle.versions.AddValueGroup(element.name, element.sub_elements);
                 } else {
                     bundle.versions.AddPermutation(element.name);
                 }
             }
-        } else if (section_it.key == "entry_point") {
-            bundle.entry_point_name = section_it.value.GetValue().name;
-        } else if (shader_type_names.Contains(section_it.key)) {
-            bundle.sources[shader_type_names.At(section_it.key)] = SourceFile {
-                g_asset_manager->GetBasePath() / "shaders" / section_it.value.GetValue().name
+        } else if (section_it.first == "entry_point") {
+            bundle.entry_point_name = section_it.second.GetValue().name;
+        } else if (shader_type_names.Contains(section_it.first)) {
+            bundle.sources[shader_type_names.At(section_it.first)] = SourceFile {
+                g_asset_manager->GetBasePath() / "shaders" / section_it.second.GetValue().name
             };
         } else {
             DebugLog(
                 LogType::Warn,
                 "Unknown property in shader definition file: %s\n",
-                section_it.key.Data()
+                section_it.first.Data()
             );
         }
     }
@@ -857,8 +857,8 @@ Bool ShaderCompiler::LoadShaderDefinitions(Bool precompile_shaders)
 
     // create a bundle for each section.
     for (const auto &it : m_definitions->GetSections()) {
-        const String &key = it.key;
-        const DefinitionsFile::Section &section = it.value;
+        const String &key = it.first;
+        const DefinitionsFile::Section &section = it.second;
 
         const Name name_from_string = CreateNameFromDynamicString(ANSIString(key));
 

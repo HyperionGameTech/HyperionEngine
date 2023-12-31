@@ -40,7 +40,7 @@ void SocketConnection::TriggerProc(Name event_name, Array<SocketProcArgument> &&
         return;
     }
 
-    it->value(std::move(args));
+    it->second(std::move(args));
 }
 
 bool SocketServer::Start()

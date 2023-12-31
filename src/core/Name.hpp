@@ -120,7 +120,7 @@ public:
             return ANSIString::empty;
         }
 
-        return it->value;
+        return it->second;
     }
 
 private:

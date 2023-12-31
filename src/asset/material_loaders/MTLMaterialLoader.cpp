@@ -240,18 +240,18 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
             auto textures_batch = state.asset_manager->CreateBatch();
             
             for (auto &it : texture_names_to_path) {
-                all_filepaths.PushBack(it.value);
+                all_filepaths.PushBack(it.second);
 
                 ++num_enqueued;
                 textures_batch->Add<Texture>(
-                    it.key,
-                    it.value
+                    it.first,
+                    it.second
                 );
                 if (paths_string.Any()) {
                     paths_string += ", ";
                 }
 
-                paths_string += it.value;
+                paths_string += it.second;
             }
 
             if (num_enqueued != 0) {
@@ -274,12 +274,12 @@ LoadedAsset MTLMaterialLoader::LoadAsset(LoaderState &state) const
         Material::TextureSet textures;
 
         for (auto &it : item.parameters) {
-            parameters.Set(it.key, Material::Parameter(
-                it.value.values.Data(),
-                it.value.values.Size()
+            parameters.Set(it.first, Material::Parameter(
+                it.second.values.Data(),
+                it.second.values.Size()
             ));
 
-            if (it.key == Material::MATERIAL_KEY_TRANSMISSION && it.value.values.Any([](float value) { return value > 0.0f; })) {
+            if (it.first == Material::MATERIAL_KEY_TRANSMISSION && it.second.values.Any([](float value) { return value > 0.0f; })) {
                 attributes.blend_mode = BlendMode::NORMAL;
                 attributes.bucket = BUCKET_TRANSLUCENT;
             }

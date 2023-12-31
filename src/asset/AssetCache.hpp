@@ -51,7 +51,7 @@ public:
         const auto it = m_handles.Find(key);
 
         if (it != m_handles.End()) {
-            return it->value;
+            return it->second;
         }
 
         return RefType { };

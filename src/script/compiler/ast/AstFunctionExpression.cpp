@@ -194,8 +194,8 @@ void AstFunctionExpression::Visit(AstVisitor *visitor, Module *mod)
     Array<SymbolMember_t> closure_obj_members;
 
     for (const auto &it : function_scope->GetClosureCaptures()) {
-        const String &name = it.key;
-        const RC<Identifier> &identifier = it.value;
+        const String &name = it.first;
+        const RC<Identifier> &identifier = it.second;
 
         AssertThrow(identifier != nullptr);
         AssertThrow(identifier->GetSymbolType() != nullptr);

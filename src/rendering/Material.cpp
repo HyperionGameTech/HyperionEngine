@@ -534,7 +534,7 @@ void MaterialGroup::Init()
     EngineComponentBase::Init();
 
     for (auto &it : m_materials) {
-        InitObject(it.value);
+        InitObject(it.second);
     }
 
     OnTeardown([this](...) {

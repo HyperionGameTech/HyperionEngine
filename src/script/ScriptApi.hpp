@@ -871,7 +871,7 @@ struct CxxToScriptValueImpl
             intern_value = vm::Value(vm::Value::HEAP_POINTER, { .ptr = ptr_result });
         }
 
-        vm::VMObject boxed_value(prototype_it->value);
+        vm::VMObject boxed_value(prototype_it->second);
         HYP_SCRIPT_SET_MEMBER(boxed_value, "__intern", intern_value);
 
         vm::Value final_value;

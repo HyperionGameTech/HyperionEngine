@@ -278,7 +278,7 @@ Handle<Shader> ShaderManagerSystem::GetOrCreate(const ShaderDefinition &definiti
     const auto it = m_map.Find(definition);
 
     if (it != m_map.End()) {
-        if (Handle<Shader> handle = it->value.Lock()) {
+        if (Handle<Shader> handle = it->second.Lock()) {
             if (EnsureContainsProperties(definition.GetProperties(), handle->GetCompiledShader().GetProperties())) {
                 return handle;
             } else {

@@ -71,12 +71,12 @@ public:
             for (const auto &it : item.params) {
                 out.SetProperty(
                     String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].key",
-                    FBOMData::FromString(it.key)
+                    FBOMData::FromString(it.first)
                 );
 
                 out.SetProperty(
                     String("descriptor_usages.") + String::ToString(index) + ".params[" + String::ToString(param_index) + "].value",
-                    FBOMData::FromString(it.value)
+                    FBOMData::FromString(it.second)
                 );
 
                 param_index++;

@@ -74,7 +74,7 @@ static void ReadPropertyValue(ByteBuffer &buffer, PLYModelLoader::PLYModel &mode
 
     AssertThrowMsg(it != model.property_types.End(), "Property with name %s not found", property_name.Data());
     
-    const SizeType offset = it->value.offset + row_offset;
+    const SizeType offset = it->second.offset + row_offset;
     AssertThrowMsg(offset < buffer.Size(), "Offset out of bounds (%u > %u)", offset, buffer.Size());
     AssertThrowMsg(offset + count <= buffer.Size(), "Offset + Size out of bounds (%u + %llu > %u)", offset, count, buffer.Size());
     
@@ -149,13 +149,13 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
 
         it.value.offset -= model.header_length;*/
 
-        DebugLog(LogType::Debug, "%s offset = %u type = %u\n", it.key.Data(), it.value.offset, it.value.type);
+        DebugLog(LogType::Debug, "%s offset = %u type = %u\n", it.first.Data(), it.second.offset, it.second.type);
 
-        if (IsCustomPropertyName(it.key)) {
-            const auto custom_data_it = model.custom_data.Find(it.key);
+        if (IsCustomPropertyName(it.first)) {
+            const auto custom_data_it = model.custom_data.Find(it.first);
 
             if (custom_data_it == model.custom_data.End()) {
-                model.custom_data.Set(it.key, ByteBuffer(num_vertices * PLYTypeSize(it.value.type)));
+                model.custom_data.Set(it.first, ByteBuffer(num_vertices * PLYTypeSize(it.second.type)));
             }
         }
     }
@@ -176,23 +176,23 @@ PLYModel PLYModelLoader::LoadModel(LoaderState &state)
         model.vertices[index] = vertex;
         
         for (const auto &it : model.property_types) {
-            if (!IsCustomPropertyName(it.key)) {
+            if (!IsCustomPropertyName(it.first)) {
                 continue;
             }
 
-            const auto custom_data_it = model.custom_data.Find(it.key);
+            const auto custom_data_it = model.custom_data.Find(it.first);
             AssertThrow(custom_data_it != model.custom_data.End());
 
-            const SizeType data_type_size = PLYTypeSize(it.value.type);
+            const SizeType data_type_size = PLYTypeSize(it.second.type);
             const SizeType offset = index * data_type_size;
 
             ReadPropertyValue(
                 buffer,
                 model,
                 row_offset,
-                it.key,
+                it.first,
                 data_type_size,
-                custom_data_it->value.Data() + offset
+                custom_data_it->second.Data() + offset
             );
         }
     }

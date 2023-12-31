@@ -225,8 +225,8 @@ public:
      */
     void SetCapacity(SizeType capacity, SizeType copy_offset = 0);
 
-    void PushBack(const ValueType &value);
-    void PushBack(ValueType &&value);
+    ValueType &PushBack(const ValueType &value);
+    ValueType &PushBack(ValueType &&value);
 
     /*! Push an item to the front of the container.
         If any free spaces are available, they are used.
@@ -234,14 +234,14 @@ public:
         Some padding is added so that successive calls to PushFront() do not incur an allocation
         each time.
         */
-    void PushFront(const ValueType &value);
+    ValueType &PushFront(const ValueType &value);
 
     /*! Push an item to the front of the container.
         If any free spaces are available, they are used.
         Else, new space is allocated and all current elements are shifted to the right.
         Some padding is added so that successive calls to PushFront() do not incur an allocation
         each time. */
-    void PushFront(ValueType &&value);
+    ValueType &PushFront(ValueType &&value);
 
     /*! Shift the array to the left by {count} times */
     void Shift(SizeType count);
@@ -784,7 +784,7 @@ void DynArray<T, NumInlineBytes>::Refit()
 }
 
 template <class T, SizeType NumInlineBytes>
-void DynArray<T, NumInlineBytes>::PushBack(const ValueType &value)
+auto DynArray<T, NumInlineBytes>::PushBack(const ValueType &value) -> ValueType&
 {
     if (m_size + 1 >= m_capacity) {
         if (m_capacity >= Size() + 1) {
@@ -796,10 +796,12 @@ void DynArray<T, NumInlineBytes>::PushBack(const ValueType &value)
 
     // set item at index
     Memory::Construct<T>(&GetStorage()[m_size++].data_buffer, value);
+
+    return Back();
 }
 
 template <class T, SizeType NumInlineBytes>
-void DynArray<T, NumInlineBytes>::PushBack(ValueType &&value)
+auto DynArray<T, NumInlineBytes>::PushBack(ValueType &&value) -> ValueType&
 {
     if (m_size + 1 >= m_capacity) {
         if (m_capacity >= Size() + 1) {
@@ -813,10 +815,12 @@ void DynArray<T, NumInlineBytes>::PushBack(ValueType &&value)
 
     // set item at index
     Memory::Construct<T>(&GetStorage()[m_size++].data_buffer, std::forward<ValueType>(value));
+
+    return Back();
 }
 
 template <class T, SizeType NumInlineBytes>
-void DynArray<T, NumInlineBytes>::PushFront(const ValueType &value)
+auto DynArray<T, NumInlineBytes>::PushFront(const ValueType &value) -> ValueType&
 {
     if (m_start_offset == 0) {
         // have to push everything else over by 1
@@ -853,10 +857,12 @@ void DynArray<T, NumInlineBytes>::PushFront(const ValueType &value)
     --m_start_offset;
 
     Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, value);
+
+    return Front();
 }
 
 template <class T, SizeType NumInlineBytes>
-void DynArray<T, NumInlineBytes>::PushFront(ValueType &&value)
+auto DynArray<T, NumInlineBytes>::PushFront(ValueType &&value) -> ValueType&
 {
     if (m_start_offset == 0) {
         // have to push everything else over by 1
@@ -893,6 +899,8 @@ void DynArray<T, NumInlineBytes>::PushFront(ValueType &&value)
     --m_start_offset;
 
     Memory::Construct<T>(&GetStorage()[m_start_offset].data_buffer, std::move(value));
+
+    return Front();
 }
 
 template <class T, SizeType NumInlineBytes>

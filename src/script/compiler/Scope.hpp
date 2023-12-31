@@ -72,7 +72,7 @@ public:
     {
         auto it = m_closure_captures.Find(name);
 
-        return it != m_closure_captures.End() ? it->value : nullptr;
+        return it != m_closure_captures.End() ? it->second : nullptr;
     }
 
     void AddClosureCapture(const String &name, const RC<Identifier> &ident) 

@@ -794,7 +794,7 @@ public:
             return false;
         }
 
-        out = it->value;
+        out = it->second;
 
         return true;
     }
@@ -809,12 +809,12 @@ public:
             return false;
         }
 
-        const auto version_it = it->value.compiled_shaders.FindIf([version_hash](const CompiledShader &item)
+        const auto version_it = it->second.compiled_shaders.FindIf([version_hash](const CompiledShader &item)
         {
             return item.definition.properties.GetHashCode().Value() == version_hash;
         });
 
-        if (version_it == it->value.compiled_shaders.End()) {
+        if (version_it == it->second.compiled_shaders.End()) {
             return false;
         }
 

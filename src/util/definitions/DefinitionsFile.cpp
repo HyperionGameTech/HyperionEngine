@@ -158,7 +158,9 @@ void DefinitionsFile::Parse()
             value.elements.PushBack(std::move(element));
         }
 
-        sections.Back().second[key] = std::move(value);
+        auto &last_section = sections.Back();
+        
+        last_section.second[key] = std::move(value);
     }
 
     m_sections.Clear();

@@ -70,7 +70,7 @@ public:
     static const HashMap<String, Operator> binary_operators;
     static const HashMap<String, Operator> unary_operators;
 
-    static inline bool IsBinaryOperator(const String &str, OperatorTypeBits match_bits = 0)
+    static inline Bool IsBinaryOperator(const String &str, OperatorTypeBits match_bits = 0)
     {
         const auto it = binary_operators.Find(str);
 
@@ -82,10 +82,10 @@ public:
             return true;
         }
 
-        return bool(it->value.GetType() & match_bits);
+        return Bool(it->second.GetType() & match_bits);
     }
 
-    static inline bool IsBinaryOperator(const String &str, const Operator *&out)
+    static inline Bool IsBinaryOperator(const String &str, const Operator *&out)
     {
         const auto it = binary_operators.Find(str);
 
@@ -93,12 +93,12 @@ public:
             return false;
         }
 
-        out = &it->value;
+        out = &it->second;
 
         return true;
     }
 
-    static inline bool IsBinaryOperator(const String &str, OperatorTypeBits match_bits, const Operator *&out)
+    static inline Bool IsBinaryOperator(const String &str, OperatorTypeBits match_bits, const Operator *&out)
     {
         const auto it = binary_operators.Find(str);
 
@@ -107,13 +107,13 @@ public:
         }
 
         if (match_bits == 0) {
-            out = &it->value;
+            out = &it->second;
 
             return true;
         }
 
-        if (it->value.GetType() & match_bits) {
-            out = &it->value;
+        if (it->second.GetType() & match_bits) {
+            out = &it->second;
 
             return true;
         }
@@ -121,7 +121,7 @@ public:
         return false;
     }
 
-    static inline bool IsUnaryOperator(const String &str, OperatorTypeBits match_bits = 0)
+    static inline Bool IsUnaryOperator(const String &str, OperatorTypeBits match_bits = 0)
     {
         const auto it = unary_operators.Find(str);
 
@@ -133,10 +133,10 @@ public:
             return true;
         }
 
-        return bool(it->value.GetType() & match_bits);
+        return Bool(it->second.GetType() & match_bits);
     }
 
-    static inline bool IsUnaryOperator(const String &str, const Operator *&out)
+    static inline Bool IsUnaryOperator(const String &str, const Operator *&out)
     {
         const auto it = unary_operators.Find(str);
 
@@ -144,12 +144,12 @@ public:
             return false;
         }
 
-        out = &it->value;
+        out = &it->second;
 
         return true;
     }
 
-    static inline bool IsUnaryOperator(const String &str, OperatorTypeBits match_bits, const Operator *&out)
+    static inline Bool IsUnaryOperator(const String &str, OperatorTypeBits match_bits, const Operator *&out)
     {
         const auto it = unary_operators.Find(str);
 
@@ -158,13 +158,13 @@ public:
         }
 
         if (match_bits == 0) {
-            out = &it->value;
+            out = &it->second;
 
             return true;
         }
 
-        if (it->value.GetType() & match_bits) {
-            out = &it->value;
+        if (it->second.GetType() & match_bits) {
+            out = &it->second;
 
             return true;
         }
@@ -178,34 +178,39 @@ public:
 public:
     Operator(
         Operators op_type,
-        int precedence,
-        int type,
-        bool modifies_value = false,
-        bool supports_overloading = false
+        Int precedence,
+        Int type,
+        Bool modifies_value = false,
+        Bool supports_overloading = false
     );
     Operator(const Operator &other);
 
     Operators GetOperatorType() const
         { return m_op_type; }
-    int GetType() const
+
+    Int GetType() const
         { return m_type; }
-    int GetPrecedence() const
+
+    Int GetPrecedence() const
         { return m_precedence; }
-    bool IsUnary() const
+
+    Bool IsUnary() const
         { return m_precedence == 0; }
-    bool ModifiesValue() const
+
+    Bool ModifiesValue() const
         { return m_modifies_value; }
-    bool SupportsOverloading() const
+
+    Bool SupportsOverloading() const
         { return m_supports_overloading; }
 
     String LookupStringValue() const;
 
 private:
     Operators m_op_type;
-    int m_precedence;
-    int m_type;
-    bool m_modifies_value;
-    bool m_supports_overloading;
+    Int m_precedence;
+    Int m_type;
+    Bool m_modifies_value;
+    Bool m_supports_overloading;
 };
 
 } // namespace hyperion::compiler

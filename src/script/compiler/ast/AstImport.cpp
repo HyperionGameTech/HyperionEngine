@@ -130,7 +130,7 @@ void AstImport::PerformImport(
         // modules that belong to the file into this scope
 
         // TODO: Fix issues with duplicated symbols...
-        for (RC<Module> &mod : it->value) {
+        for (RC<Module> &mod : it->second) {
             AstImport::CopyModules(
                 visitor,
                 mod.Get(),
