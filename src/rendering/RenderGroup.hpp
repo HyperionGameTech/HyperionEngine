@@ -145,8 +145,6 @@ private:
      * using CollectDrawCalls(). */
     void PerformRenderingIndirect(Frame *frame);
 
-    void UpdateDrawableLifetimes();
-
     void BindDescriptorSets(
         CommandBuffer *command_buffer,
         UInt scene_index
@@ -179,7 +177,6 @@ private:
     Array<EntityDrawProxy> m_draw_proxies;
 
     DrawCallCollection m_draw_state;
-    RenderResourceManager m_render_resources;
 };
 
 } // namespace hyperion::v2

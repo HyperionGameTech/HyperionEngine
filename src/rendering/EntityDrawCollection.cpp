@@ -79,60 +79,86 @@ void EntityDrawCollection::Insert(const RenderableAttributeSet &attributes, cons
 
 void EntityDrawCollection::SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list)
 {
-    auto &mapping = GetEntityList()[BucketToPassType(attributes.GetMaterialAttributes().bucket)];
+    const PassType pass_type = BucketToPassType(attributes.GetMaterialAttributes().bucket);
 
-    // TODO...
-    // Rather than recreate new render side resources,
-    // could we reuse the same object, using bitwise xor on the bitset
-    // to track IDs? Then jus iterate through bits in that and cross reference
-    // them with bits in the new one, and drop any references that are in that?
+    auto render_side_resources_it = m_render_side_resources[pass_type].Find(attributes);
 
+    if (render_side_resources_it == m_render_side_resources[pass_type].End()) {
+        const auto insert_result = m_render_side_resources[pass_type].Insert(attributes, { });
+        
+        render_side_resources_it = insert_result.first;
+    }
+
+    RenderResourceManager &render_side_resources = render_side_resources_it->second;
+
+    const Bitset prev_bitsets[3] = {
+        render_side_resources.GetResourceUsageMap<Mesh>()->usage_bits,
+        render_side_resources.GetResourceUsageMap<Material>()->usage_bits,
+        render_side_resources.GetResourceUsageMap<Skeleton>()->usage_bits
+    };
+
+    Bitset new_bitsets[3] = { }; // mesh, material, skeleton
+
+    // prevent these objects from going out of scope while rendering is happening
+    for (const EntityDrawProxy &draw_proxy : entity_list.drawables) {
+        new_bitsets[0].Set(draw_proxy.mesh_id.Value(), true);
+        new_bitsets[1].Set(draw_proxy.material_id.Value(), true);
+        new_bitsets[2].Set(draw_proxy.skeleton_id.Value(), true);
+    }
+
+    // Set each bitset to be the bits that are in the previous bitset, but not in the new one.
+    // This will give us a list of IDs that were removed.
+    for (UInt i = 0; i < std::size(prev_bitsets); i++) {
+        SizeType first_set_bit_index;
+
+        Bitset removed_id_bits = prev_bitsets[i] & ~new_bitsets[i];
+
+        // Iterate over the bits that were removed, and drop the references to them.
+        while ((first_set_bit_index = removed_id_bits.FirstSetBitIndex()) != SizeType(-1)) {
+            // Remove the reference
+            switch (i) {
+            case 0:
+                render_side_resources.SetIsUsed(ID<Mesh>(first_set_bit_index), false);
+                break;
+            case 1:
+                render_side_resources.SetIsUsed(ID<Material>(first_set_bit_index), false);
+                break;
+            case 2:
+                render_side_resources.SetIsUsed(ID<Skeleton>(first_set_bit_index), false);
+                break;
+            }
+
+            removed_id_bits.Set(first_set_bit_index, false);
+        }
+
+        Bitset newly_added_id_bits = new_bitsets[i] & ~prev_bitsets[i];
+
+        while ((first_set_bit_index = newly_added_id_bits.FirstSetBitIndex()) != SizeType(-1)) {
+            // Create a reference to it in the resources list.
+            switch (i) {
+            case 0:
+                render_side_resources.SetIsUsed(ID<Mesh>(first_set_bit_index), true);
+                break;
+            case 1:
+                render_side_resources.SetIsUsed(ID<Material>(first_set_bit_index), true);
+                break;
+            case 2:
+                render_side_resources.SetIsUsed(ID<Skeleton>(first_set_bit_index), true);
+                break;
+            }
+
+            newly_added_id_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    // @TODO: When no resources are used, cleanup
+
+    auto &mapping = GetEntityList()[pass_type];
     auto it = mapping.Find(attributes);
 
     if (it != mapping.End()) {
-        RenderResourceManager previous_resources = std::move(it->second.render_side_resources);
-
-        // prevent these objects from going out of scope while rendering is happening
-        for (const EntityDrawProxy &draw_proxy : entity_list.drawables) {
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.mesh_id,
-                previous_resources.TakeResourceUsage(draw_proxy.mesh_id),
-                true
-            );
-
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.material_id,
-                previous_resources.TakeResourceUsage(draw_proxy.material_id),
-                true
-            );
-
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.skeleton_id,
-                previous_resources.TakeResourceUsage(draw_proxy.skeleton_id),
-                true
-            );
-        }
-
         it->second = std::move(entity_list);
     } else {
-        // prevent these objects from going out of scope while rendering is happening
-        for (const EntityDrawProxy &draw_proxy : entity_list.drawables) {
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.mesh_id,
-                true
-            );
-
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.material_id,
-                true
-            );
-
-            entity_list.render_side_resources.SetIsUsed(
-                draw_proxy.skeleton_id,
-                true
-            );
-        }
-
         mapping.Set(attributes, std::move(entity_list));
     }
 }
@@ -197,7 +223,8 @@ void RenderList::UpdateRenderGroups()
 
     added_render_groups.Resize(iterators.Size());
 
-    const auto UpdateRenderGroupForAttributeSet = [this, &added_render_groups](IteratorType it, UInt index, UInt) {
+    const auto UpdateRenderGroupForAttributeSet = [this, &added_render_groups](IteratorType it, UInt index, UInt)
+    {
         const RenderableAttributeSet &attributes = it->first;
         EntityDrawCollection::EntityList &entity_list = it->second;
 
@@ -243,7 +270,7 @@ void RenderList::UpdateRenderGroups()
         TaskSystem::GetInstance().ParallelForEach(THREAD_POOL_RENDER_COLLECT, iterators, UpdateRenderGroupForAttributeSet);
     } else {
         for (UInt index = 0; index < iterators.Size(); index++) {
-            UpdateRenderGroupForAttributeSet(iterators[index], index, 0);
+            UpdateRenderGroupForAttributeSet(iterators[index], index, 0 /* unused */);
         }
     }
 

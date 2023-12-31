@@ -53,7 +53,10 @@ public:
     Bool operator!=(const DynBitset &other) const
         { return m_blocks.CompareBitwise(other.m_blocks); }
 
-    // DynBitset operator~() const;
+    /*! \brief Returns a DynBitset with all bits flipped. 
+        Note, that the number of bits in the returned bitset is the same as
+        the number of bits in the original bitset. */
+    DynBitset operator~() const;
 
     DynBitset operator<<(SizeType pos) const;
     DynBitset &operator<<=(SizeType pos);
@@ -67,6 +70,8 @@ public:
     DynBitset operator^(const DynBitset &other) const;
     DynBitset &operator^=(const DynBitset &other);
 
+    SizeType FirstSetBitIndex() const;
+
     HYP_FORCE_INLINE
     Bool Get(SizeType index) const
     {
@@ -78,7 +83,7 @@ public:
     Bool Test(SizeType index) const
         { return Get(index); }
 
-    void Set(SizeType index, bool value);
+    void Set(SizeType index, Bool value);
 
     /*! \brief Returns the total number of bits in the bitset. */
     SizeType NumBits() const

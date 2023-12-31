@@ -516,8 +516,6 @@ void HashMap<KeyType, ValueType>::CheckAndRebuildBuckets()
 
     const SizeType new_bucket_count = SizeType(Double(BucketCount()) / MaxLoadFactor());
 
-    DebugLog(LogType::Debug, "Rehashing HashMap from %u buckets to %u buckets.\n", BucketCount(), new_bucket_count);
-
     Array<HashBucket<KeyType, ValueType>, initial_bucket_size * sizeof(HashBucket<KeyType, ValueType>)> new_buckets;
     new_buckets.Resize(new_bucket_count);
 

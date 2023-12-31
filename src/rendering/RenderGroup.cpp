@@ -414,8 +414,7 @@ RenderAll(
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Array<DrawCall>> &divided_draw_calls,
-    const DrawCallCollection &draw_state,
-    const RenderResourceManager &render_resources
+    const DrawCallCollection &draw_state
 )
 {
     if (draw_state.draw_calls.Empty()) {
@@ -427,7 +426,7 @@ RenderAll(
 
     const UInt frame_index = frame->GetFrameIndex();
 
-    const auto num_batches = use_parallel_rendering
+    const UInt num_batches = use_parallel_rendering
         ? MathUtil::Min(UInt(TaskSystem::GetInstance().GetPool(THREAD_POOL_RENDER).threads.Size()), num_async_rendering_command_buffers)
         : 1u;
     
@@ -448,7 +447,8 @@ RenderAll(
         THREAD_POOL_RENDER,
         num_batches,
         divided_draw_calls,
-        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index, &render_resources](const Array<DrawCall> &draw_calls, UInt index, UInt) {
+        [frame, pipeline, indirect_renderer, &command_buffers, &command_buffers_recorded_states, frame_index](const Array<DrawCall> &draw_calls, UInt index, UInt)
+        {
             if (draw_calls.Empty()) {
                 return;
             }
@@ -478,11 +478,6 @@ RenderAll(
                             draw_call.skeleton_id.ToIndex(),
                             draw_call.material_id.ToIndex()
                         );
-
-#ifdef HYP_DEBUG_MODE
-                        // AssertThrowMsg(render_resources.IsUsed(draw_call.mesh_id), "Mesh ID not in used resource map; dangling pointer is possible!");
-                        // AssertThrowMsg(render_resources.IsUsed(draw_call.material_id), "Material ID not in used resource map; dangling pointer is possible!");
-#endif
 
                         if constexpr (IsIndirect) {
 #ifdef HYP_DEBUG_MODE
@@ -534,8 +529,7 @@ void RenderGroup::PerformRendering(Frame *frame)
         m_pipeline,
         &m_indirect_renderer,
         m_divided_draw_calls,
-        m_draw_state,
-        m_render_resources
+        m_draw_state
     );
 }
 
@@ -555,8 +549,7 @@ void RenderGroup::PerformRenderingIndirect(Frame *frame)
         m_pipeline,
         &m_indirect_renderer,
         m_divided_draw_calls,
-        m_draw_state,
-        m_render_resources
+        m_draw_state
     );
 }
 
@@ -572,8 +565,6 @@ void RenderGroup::SetDrawProxies(const Array<EntityDrawProxy> &draw_proxies)
     Threads::AssertOnThread(THREAD_RENDER | THREAD_TASK);
 
     m_draw_proxies = draw_proxies;
-
-    // UpdateDrawableLifetimes();
 }
 
 void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
@@ -581,37 +572,6 @@ void RenderGroup::SetDrawProxies(Array<EntityDrawProxy> &&draw_proxies)
     Threads::AssertOnThread(THREAD_RENDER | THREAD_TASK);
 
     m_draw_proxies = std::move(draw_proxies);
-
-    // UpdateDrawableLifetimes();
-}
-
-void RenderGroup::UpdateDrawableLifetimes()
-{
-    // TODO! Optimize : It eats at frame rate quite a bit
-
-    RenderResourceManager previous_resources = std::move(m_render_resources);
-
-    // prevent these objects from going out of scope while rendering is happening
-    // register any used objects from the drawable / draw call here
-    for (const EntityDrawProxy &draw_proxy : m_draw_proxies) {
-        m_render_resources.SetIsUsed(
-            draw_proxy.mesh_id,
-            previous_resources.TakeResourceUsage(draw_proxy.mesh_id),
-            true
-        );
-
-        m_render_resources.SetIsUsed(
-            draw_proxy.material_id,
-            previous_resources.TakeResourceUsage(draw_proxy.material_id),
-            true
-        );
-
-        m_render_resources.SetIsUsed(
-            draw_proxy.skeleton_id,
-            previous_resources.TakeResourceUsage(draw_proxy.skeleton_id),
-            true
-        );
-    }
 }
 
 // Proxied methods

@@ -7,6 +7,8 @@
 #include <core/lib/AtomicSemaphore.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/SafeDeleter.hpp>
+#include <system/StackDump.hpp>
+#include <system/Debug.hpp>
 #include <util/Defines.hpp>
 #include <Types.hpp>
 

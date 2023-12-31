@@ -64,13 +64,12 @@ public:
     {
         Array<EntityDrawProxy>  drawables;
         Handle<RenderGroup>     render_group;
-        RenderResourceManager   render_side_resources;
     };
 
     void Insert(const RenderableAttributeSet &attributes, const EntityDrawProxy &entity);
     void ClearEntities();
 
-    void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entities);
+    void SetRenderSideList(const RenderableAttributeSet &attributes, EntityList &&entity_list);
 
     FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList();
     const FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX> &GetEntityList() const;
@@ -83,7 +82,8 @@ public:
 private:
     static ThreadType GetThreadType();
 
-    FixedArray<FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, THREAD_TYPE_MAX> m_lists;
+    FixedArray<FixedArray<ArrayMap<RenderableAttributeSet, EntityList>, PASS_TYPE_MAX>, THREAD_TYPE_MAX>    m_lists;
+    FixedArray<ArrayMap<RenderableAttributeSet, RenderResourceManager>, PASS_TYPE_MAX>                      m_render_side_resources;
 };
 
 struct PushConstantData

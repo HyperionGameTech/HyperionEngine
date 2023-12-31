@@ -547,6 +547,11 @@ const RenderObjectHandle_Weak<T, PLATFORM> RenderObjectHandle_Weak<T, PLATFORM>:
     } \
     } \
 
+/*! \brief Enqueues a render object to be created with the given args on the render thread, or creates it immediately if already on the render thread.
+ *
+ *  \param ref The render object to create.
+ *  \param args The arguments to pass to the render object's constructor.
+ */
 template <class RefType, class ... Args>
 static inline void DeferCreate(RefType ref, Args &&... args)
 {

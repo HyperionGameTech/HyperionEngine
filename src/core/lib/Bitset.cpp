@@ -1,5 +1,10 @@
 #include <core/lib/Bitset.hpp>
 
+#ifdef HYP_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include <bitset> // for output
 
 namespace hyperion {
@@ -13,18 +18,19 @@ DynBitset::DynBitset(UInt64 value)
     RemoveLeadingZeros();
 }
 
-// DynBitset DynBitset::operator~() const
-// {
-//     DynBitset result = *this;
+DynBitset DynBitset::operator~() const
+{
+    DynBitset result;
+    result.m_blocks.Resize(m_blocks.Size());
 
-//     for (SizeType index = 0; index < result.m_blocks.Size(); ++index) {
-//         result.m_blocks[index] = ~result.m_blocks[index];
-//     }
+    for (SizeType index = 0; index < result.m_blocks.Size(); index++) {
+        result.m_blocks[index] = ~m_blocks[index];
+    }
 
-//     result.RemoveLeadingZeros();
+    result.RemoveLeadingZeros();
 
-//     return result;
-// }
+    return result;
+}
 
 DynBitset DynBitset::operator<<(SizeType pos) const
 {
@@ -173,6 +179,24 @@ Bool DynBitset::ToUInt64(UInt64 *out) const
 
         return m_blocks.Size() == 2;
     }
+}
+
+SizeType DynBitset::FirstSetBitIndex() const
+{
+    for (SizeType block_index = 0; block_index < m_blocks.Size(); block_index++) {
+        if (m_blocks[block_index] != 0) {
+#ifdef HYP_CLANG_OR_GCC
+            const SizeType bit_index = __builtin_ffsll(m_blocks[block_index]) - 1;
+#elif defined(HYP_MSVC)
+            unsigned long bit_index = 0;
+            _BitScanForward64(&bit_index, m_blocks[block_index]);
+#endif
+
+            return (block_index * DynBitset::num_bits_per_block) + bit_index;
+        }
+    }
+
+    return -1; // No set bit found
 }
 
 void DynBitset::RemoveLeadingZeros()

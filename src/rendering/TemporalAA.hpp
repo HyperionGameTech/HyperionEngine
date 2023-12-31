@@ -76,7 +76,11 @@ private:
         Result Destroy(Device *device);
     };
 
-    FixedArray<ImageOutput, max_frames_in_flight>       m_image_outputs;
+    Extent2D                                            m_extent;
+
+    Handle<Texture>                                     m_result_texture;
+    Handle<Texture>                                     m_history_texture;
+
     FixedArray<GPUBufferRef, max_frames_in_flight>      m_uniform_buffers;
     FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
     Handle<ComputePipeline>                             m_compute_taa;
