@@ -4,7 +4,7 @@
 
 namespace hyperion::v2 {
 
-Controller::Controller(bool receives_update)
+Controller::Controller(Bool receives_update)
     : m_owner(nullptr),
       m_receives_update(receives_update),
       m_script_valid(false)
@@ -55,7 +55,7 @@ void Controller::SetScript(Handle<Script> &&script)
     }
 }
 
-bool Controller::CreateScriptedObjects()
+Bool Controller::CreateScriptedObjects()
 {
     if (!m_script) {
         return false;
@@ -118,7 +118,7 @@ bool Controller::CreateScriptedObjects()
     }
 }
 
-bool Controller::CreateScriptedMethods()
+Bool Controller::CreateScriptedMethods()
 {
     if (!m_script->GetMember(m_self_object, "OnAdded", m_script_methods[SCRIPT_METHOD_ON_ADDED])) {
         DebugLog(

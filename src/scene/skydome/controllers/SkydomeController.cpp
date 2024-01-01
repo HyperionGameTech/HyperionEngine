@@ -74,20 +74,6 @@ void SkydomeController::OnAttachedToScene(ID<Scene> id)
             material->SetIsDepthTestEnabled(false);
             material->SetIsDepthWriteEnabled(false);
 
-            // auto skybox_texture = CreateObject<Texture>(TextureCube(
-            //     FixedArray<Handle<Texture>, 6> {
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/posx.jpg"),
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/negx.jpg"),
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/posy.jpg"),
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/negy.jpg"),
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/posz.jpg"),
-            //         g_asset_manager->Load<Texture>("textures/Lycksele/negz.jpg")
-            //     }
-            // ));
-
-            // skybox_texture->GetImage()->SetIsSRGB(true);
-            // material->SetTexture(Material::TextureKey::MATERIAL_TEXTURE_ALBEDO_MAP, skybox_texture);
-
             m_dome->SetMaterial(std::move(material));
         }
     }

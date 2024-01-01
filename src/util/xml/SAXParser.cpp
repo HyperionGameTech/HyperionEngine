@@ -25,16 +25,16 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
         return Result(Result::SAX_ERR, "File could not be read.");
     }
 
-    bool is_reading = false,
-         is_opening = false,
-         is_closing = false,
-         in_element = false,
-         in_comment = false,
-         in_characters = false,
-         in_header = false,
-         in_attributes = false,
-         in_attribute_value = false,
-         in_attribute_name = false;
+    Bool is_reading = false,
+        is_opening = false,
+        is_closing = false,
+        in_element = false,
+        in_comment = false,
+        in_characters = false,
+        in_header = false,
+        in_attributes = false,
+        in_attribute_value = false,
+        in_attribute_name = false;
 
     char last_char = '\0';
     String element_str, comment_str, value_str;
@@ -44,6 +44,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader<2048> *reader)
     // 2022-02-09: wtf
     // 2022-04-10: still lookin' good
     // 2023-10-15: never change, baby <3
+    // 2024-01-01: i'm still here, still kickin'. i love you.
     reader->ReadChars([&](char ch) {
         if (ch != '\t' && ch != '\n') {
             if (ch == '<') {

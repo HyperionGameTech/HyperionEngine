@@ -219,10 +219,10 @@ void SampleStreamer::InitGame()
 
     // // Add a reflection probe
     // TEMP: Commented out due to blending issues with multiple reflection probes
-    // m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(
-    //     HYP_NAME(ReflectionProbe0),
-    //     Vec3f(0.0f)
-    // );
+    m_scene->GetEnvironment()->AddRenderComponent<ReflectionProbeRenderer>(
+        HYP_NAME(ReflectionProbe0),
+        Vec3f(0.0f)
+    );
 
     m_scene->GetEnvironment()->AddRenderComponent<ScreenCaptureRenderComponent>(HYP_NAME(StreamingCapture), window_size);
 
@@ -230,18 +230,18 @@ void SampleStreamer::InitGame()
         auto sun = CreateObject<Entity>();
         sun->SetName(HYP_NAME(Sun));
         sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
-            Vector3(-0.105425f, 0.988823f, 0.105425f).Normalize(),
+            Vector3(-0.8f, 0.65f, 0.8f).Normalize(),
             Color(1.0f, 1.0f, 1.0f),
             5.0f
         )));
-        sun->SetTranslation(Vector3(-0.105425f, 0.988823f, 0.105425f));
+        sun->SetTranslation(Vector3(-0.8f, 0.65f, 0.8f));
         sun->AddController<ShadowMapController>();
         GetScene()->AddEntity(sun);
 
         Array<Handle<Light>> point_lights;
 
         point_lights.PushBack(CreateObject<Light>(PointLight(
-            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 6.0f, 0.0f),
             Color(1.0f, 1.0f, 1.0f),
             40.0f,
             200.35f
@@ -255,6 +255,7 @@ void SampleStreamer::InitGame()
 
         for (auto &light : point_lights) {
             auto point_light_entity = CreateObject<Entity>();
+            point_light_entity->SetTranslation(light->GetPosition());
             point_light_entity->AddController<LightController>(light);
             m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(HYP_NAME(PointShadowRenderer), light, Extent2D { 256, 256 });
             GetScene()->AddEntity(std::move(point_light_entity));

@@ -145,8 +145,8 @@ public:
         renderer::Result (*destroy_buffer_fn)(void *ptr, Device *device);
 
         template <class T>
-        BufferOrImageDeletionEntry(UniquePtr<T> &&renderable)
-            : Base(renderable.template Cast<void>(), initial_cycles_remaining),
+        BufferOrImageDeletionEntry(UniquePtr<T> &&ptr)
+            : Base(ptr.template Cast<void>(), initial_cycles_remaining),
               destroy_buffer_fn([](void *ptr, Device *device) {
                   auto *t_ptr = static_cast<T *>(ptr);
                   AssertThrow(t_ptr != nullptr);

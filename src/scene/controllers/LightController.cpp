@@ -82,7 +82,7 @@ void LightController::OnTransformUpdate(const Transform &transform)
     }
 
     if (m_light->GetType() == LightType::DIRECTIONAL) {
-        m_light->SetPosition((transform.GetTranslation()).Normalized());
+        m_light->SetPosition(transform.GetTranslation().Normalized());
     } else {
         m_light->SetPosition(transform.GetTranslation());
     }

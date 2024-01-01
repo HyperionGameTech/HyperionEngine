@@ -73,7 +73,7 @@ protected:
     };
 
 public:
-    Controller(bool receives_update = true);
+    Controller(Bool receives_update = true);
     Controller(const Controller &other) = delete;
     Controller &operator=(const Controller &other) = delete;
 
@@ -85,13 +85,13 @@ public:
     Entity *GetOwner() const
         { return m_owner; }
 
-    bool ReceivesUpdate() const
+    Bool ReceivesUpdate() const
         { return m_receives_update; }
 
-    bool HasScript() const
+    Bool HasScript() const
         { return m_script.IsValid(); }
 
-    bool IsScriptValid() const
+    Bool IsScriptValid() const
         { return m_script_valid; }
 
     void SetScript(const Handle<Script> &script);
@@ -134,18 +134,18 @@ public:
 #endif
 
 protected:
-    bool CreateScriptedObjects();
-    virtual bool CreateScriptedMethods();
+    Bool CreateScriptedObjects();
+    virtual Bool CreateScriptedMethods();
     
     Script::ObjectHandle m_self_object;
     FixedArray<Script::FunctionHandle, SCRIPT_METHOD_MAX> m_script_methods;
     Handle<Script> m_script;
-    bool m_script_valid;
+    Bool m_script_valid;
 
 private:
     String m_name;
     Entity *m_owner;
-    bool m_receives_update;
+    Bool m_receives_update;
 };
 
 class ControllerSet
@@ -210,20 +210,20 @@ public:
         return static_cast<T *>(Get(id));
     }
 
-    bool Has(TypeID type_id) const
+    Bool Has(TypeID type_id) const
     {
         return m_map.Find(type_id) != m_map.End();
     }
 
     template <class T>
-    bool Has() const
+    Bool Has() const
     {
         const auto id = TypeID::ForType<T>();
 
         return Has(id);
     }
     
-    bool Remove(TypeID type_id)
+    Bool Remove(TypeID type_id)
     {
         const auto it = m_map.Find(type_id);
 
@@ -237,7 +237,7 @@ public:
     }
     
     template <class T>
-    bool Remove()
+    Bool Remove()
     {
         const auto id = TypeID::ForType<T>();
 

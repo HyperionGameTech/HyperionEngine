@@ -87,7 +87,7 @@ void SkydomeRenderer::Init()
 
 void SkydomeRenderer::InitGame()
 {
-    auto dome_node = g_asset_manager->Load<Node>("models/dome.obj");
+    auto dome_node = g_asset_manager->Load<Node>("models/inv_sphere.obj");
     m_dome = dome_node[0].GetEntity();
 
     if (m_dome) {

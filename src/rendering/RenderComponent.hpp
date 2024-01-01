@@ -52,25 +52,33 @@ public:
     RenderComponentBase(RenderComponentName name, UInt render_frame_slicing = 0)
         : m_name(name),
           m_render_frame_slicing(MathUtil::NextMultiple(render_frame_slicing, max_frames_in_flight)),
-          m_render_frame_slicing_counter(MathUtil::MaxSafeValue<UInt>()),
+          m_render_frame_slicing_counter(0),
           m_index(~0u),
           m_parent(nullptr)
     {
     }
 
-    RenderComponentBase(const RenderComponentBase &other) = delete;
-    RenderComponentBase &operator=(const RenderComponentBase &other) = delete;
-    virtual ~RenderComponentBase() = default;
+    RenderComponentBase(const RenderComponentBase &other)               = delete;
+    RenderComponentBase &operator=(const RenderComponentBase &other)    = delete;
+    virtual ~RenderComponentBase()                                      = default;
 
-    RenderComponentName GetName() const { return m_name; }
+    RenderComponentName GetName() const
+        { return m_name; }
 
-    RenderEnvironment *GetParent() const { return m_parent; }
-    void SetParent(RenderEnvironment *parent) { m_parent = parent; }
+    RenderEnvironment *GetParent() const
+        { return m_parent; }
 
-    bool IsValidComponent() const { return m_index != ~0u; }
+    void SetParent(RenderEnvironment *parent)
+        { m_parent = parent; }
 
-    Index GetComponentIndex() const { return m_index; }
-    virtual void SetComponentIndex(Index index) { m_index = index; }
+    Bool IsValidComponent() const
+        { return m_index != ~0u; }
+
+    Index GetComponentIndex() const
+        { return m_index; }
+
+    virtual void SetComponentIndex(Index index)
+        { m_index = index; }
 
     /*! \brief Init the component. Runs in RENDER/MAIN thread. */
     virtual void ComponentInit() = 0;
@@ -83,10 +91,10 @@ public:
 
 protected:
     RenderComponentName m_name;
-    const UInt m_render_frame_slicing; // amount of frames to wait between render calls
-    UInt m_render_frame_slicing_counter; // amount of frames to wait between render calls
-    Index m_index;
-    RenderEnvironment *m_parent;
+    const UInt          m_render_frame_slicing; // amount of frames to wait between render calls
+    UInt                m_render_frame_slicing_counter; // amount of frames to wait between render calls
+    Index               m_index;
+    RenderEnvironment   *m_parent;
 };
 
 template <class Derived>
@@ -101,12 +109,15 @@ public:
     {
     }
 
-    RenderComponent(const RenderComponent &other) = delete;
-    RenderComponent &operator=(const RenderComponent &other) = delete;
-    virtual ~RenderComponent() override = default;
+    RenderComponent(const RenderComponent &other)               = delete;
+    RenderComponent &operator=(const RenderComponent &other)    = delete;
+    virtual ~RenderComponent() override                         = default;
 
-    bool IsComponentRenderInit() const { return m_component_is_render_init; }
-    bool IsComponentGameInit() const   { return m_component_is_game_init; }
+    Bool IsComponentRenderInit() const
+        { return m_component_is_render_init; }
+
+    Bool IsComponentGameInit() const
+        { return m_component_is_game_init; }
 
     virtual void SetComponentIndex(Index index) override final
     {
@@ -150,12 +161,8 @@ public:
     {
         Threads::AssertOnThread(THREAD_RENDER);
 
-        if (m_render_frame_slicing_counter >= m_render_frame_slicing) {
+        if (m_render_frame_slicing_counter++ % m_render_frame_slicing == 0) {
             static_cast<Derived *>(this)->OnRender(frame);
-
-            m_render_frame_slicing_counter = 0;
-        } else {
-            ++m_render_frame_slicing_counter;
         }
     }
 
@@ -165,8 +172,8 @@ protected:
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
 
 private:
-    bool m_component_is_render_init,
-         m_component_is_game_init;
+    Bool m_component_is_render_init,
+        m_component_is_game_init;
 };
 
 } // namespace hyperion::v2
