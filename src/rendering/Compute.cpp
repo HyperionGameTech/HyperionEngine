@@ -31,7 +31,7 @@ struct RENDER_COMMAND(CreateComputeShader) : renderer::RenderCommand
 #pragma endregion
     
 ComputePipeline::ComputePipeline(Handle<Shader> shader)
-    : EngineComponentBase(),
+    : BasicObject(),
       m_shader(std::move(shader)),
       m_pipeline(MakeRenderObject<renderer::ComputePipeline>())
 {
@@ -40,7 +40,7 @@ ComputePipeline::ComputePipeline(Handle<Shader> shader)
 ComputePipeline::ComputePipeline(
     Handle<Shader> shader,
     const Array<DescriptorSetRef> &used_descriptor_sets
-) : EngineComponentBase(),
+) : BasicObject(),
     m_shader(std::move(shader)),
     m_pipeline(MakeRenderObject<renderer::ComputePipeline>(used_descriptor_sets))
 {
@@ -60,7 +60,7 @@ void ComputePipeline::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
     
     if (InitObject(m_shader)) {
         PUSH_RENDER_COMMAND(

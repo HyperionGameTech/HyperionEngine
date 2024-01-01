@@ -82,7 +82,7 @@ private:
 };
 
 class RenderGroup
-    : public EngineComponentBase<STUB_CLASS(RenderGroup)>
+    : public BasicObject<STUB_CLASS(RenderGroup)>
 {
     friend class Engine;
     friend class Entity;

@@ -73,7 +73,7 @@ PostProcessingEffect::PostProcessingEffect(
     Stage stage,
     UInt index,
     InternalFormat image_format
-) : EngineComponentBase(),
+) : BasicObject(),
     m_pass(
         Handle<Shader>(),
         stage == Stage::PRE_SHADING
@@ -105,7 +105,7 @@ void PostProcessingEffect::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_shader = CreateShader();
     InitObject(m_shader);

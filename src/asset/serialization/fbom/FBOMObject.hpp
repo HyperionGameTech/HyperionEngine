@@ -128,7 +128,7 @@ public:
         out_object.GenerateUniqueID(object, flags);
 
         if (flags & FBOM_OBJECT_FLAGS_EXTERNAL) {
-            if constexpr (std::is_base_of_v<EngineComponentBaseBase, NormalizedType<T>>) {
+            if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
                 const String class_name_lower(StringUtil::ToLower(marshal.GetObjectType().name.Data()).c_str());
                 external_object_key = String::ToString(UInt64(out_object.GetUniqueID())) + ".hyp" + class_name_lower;
             } else {
@@ -160,7 +160,7 @@ public:
 
         // Set the ID of the object so we can reuse it.
         // TODO: clean this up a bit.
-        if constexpr (std::is_base_of_v<EngineComponentBaseBase, NormalizedType<T>>) {
+        if constexpr (std::is_base_of_v<BasicObjectBase, NormalizedType<T>>) {
             ID<T> id = object.GetID();
 
             HashCode hc;

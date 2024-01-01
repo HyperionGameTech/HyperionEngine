@@ -109,7 +109,7 @@ Scene::Scene(Handle<Camera> camera)
 Scene::Scene(
     Handle<Camera> camera,
     const InitInfo &info
-) : EngineComponentBase(info),
+) : BasicObject(info),
     HasDrawProxy(),
     m_camera(std::move(camera)),
     m_root_node_proxy(new Node("root")),
@@ -132,7 +132,7 @@ void Scene::Init()
         return;
     }
     
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     InitObject(m_camera);
     m_render_list.SetCamera(m_camera);

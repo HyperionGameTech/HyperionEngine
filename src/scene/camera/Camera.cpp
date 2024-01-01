@@ -101,7 +101,7 @@ Camera::Camera()
 }
 
 Camera::Camera(int width, int height)
-    : EngineComponentBase(),
+    : BasicObject(),
       HasDrawProxy(),
       m_fov(50.0f),
       m_width(width),
@@ -119,7 +119,7 @@ Camera::Camera(int width, int height)
 }
 
 Camera::Camera(float fov, int width, int height, float _near, float _far)
-    : EngineComponentBase(),
+    : BasicObject(),
       HasDrawProxy(),
       m_fov(fov),
       m_width(width),
@@ -132,7 +132,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
 }
 
 Camera::Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far)
-    : EngineComponentBase(),
+    : BasicObject(),
       HasDrawProxy(),
       m_fov(0.0f),
       m_width(width),
@@ -155,7 +155,7 @@ void Camera::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     //AssertThrowMsg(m_width > 0 && m_width < 100000 && m_width > 0 && m_height < 100000, "Invalid camera size");
 

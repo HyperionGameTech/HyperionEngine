@@ -230,7 +230,7 @@ void ParticleSpawner::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     if (m_params.texture) {
         InitObject(m_params.texture);
@@ -379,7 +379,7 @@ void ParticleSpawner::CreateComputePipelines()
 }
 
 ParticleSystem::ParticleSystem()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_particle_spawners(THREAD_RENDER),
       m_counter(0u)
 {
@@ -406,7 +406,7 @@ void ParticleSystem::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_quad_mesh = MeshBuilder::Quad();
     InitObject(m_quad_mesh);

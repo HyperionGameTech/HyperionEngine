@@ -20,7 +20,7 @@ class Camera;
 struct RenderCommand_UpdateLightShaderData;
 
 class Light
-    : public EngineComponentBase<STUB_CLASS(Light)>,
+    : public BasicObject<STUB_CLASS(Light)>,
       public HasDrawProxy<STUB_CLASS(Light)>
 {
     friend struct RenderCommand_UpdateLightShaderData;

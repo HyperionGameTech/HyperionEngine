@@ -42,7 +42,7 @@ struct RENDER_COMMAND(DestroyTLAS) : renderer::RenderCommand
 };
 
 TLAS::TLAS()
-    : EngineComponentBase()
+    : BasicObject()
 {
 }
 
@@ -76,7 +76,7 @@ void TLAS::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
     
     // add all pending to be added to the list
     if (m_has_blas_updates.load()) {

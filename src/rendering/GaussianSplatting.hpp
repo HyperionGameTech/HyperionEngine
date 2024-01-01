@@ -54,7 +54,7 @@ struct GaussianSplattingModelData {
 };
 
 class GaussianSplattingInstance
-    : public EngineComponentBase<STUB_CLASS(GaussianSplattingInstance)>
+    : public BasicObject<STUB_CLASS(GaussianSplattingInstance)>
 {
 public:
     enum SortStage
@@ -134,7 +134,7 @@ private:
 };
 
 class GaussianSplatting
-    : public EngineComponentBase<STUB_CLASS(GaussianSplatting)>
+    : public BasicObject<STUB_CLASS(GaussianSplatting)>
 {
 public:
     GaussianSplatting();

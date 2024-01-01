@@ -213,7 +213,7 @@ EnvProbe::EnvProbe(
     const Extent2D &dimensions,
     EnvProbeType env_probe_type,
     Handle<Shader> custom_shader
-) : EngineComponentBase(),
+) : BasicObject(),
     m_parent_scene(parent_scene),
     m_aabb(aabb),
     m_dimensions(dimensions),
@@ -254,7 +254,7 @@ void EnvProbe::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_draw_proxy = EnvProbeDrawProxy {
         .id = m_id,

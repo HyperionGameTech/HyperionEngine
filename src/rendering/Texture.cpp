@@ -436,7 +436,7 @@ Texture::Texture(
     Image &&image,
     FilterMode filter_mode,
     WrapMode wrap_mode
-) : EngineComponentBase(),
+) : BasicObject(),
     m_image(MakeRenderObject<Image>(std::move(image))),
     m_image_view(MakeRenderObject<ImageView>()),
     m_filter_mode(filter_mode),
@@ -446,7 +446,7 @@ Texture::Texture(
 }
 
 Texture::Texture(Texture &&other) noexcept
-    : EngineComponentBase(std::move(other)),
+    : BasicObject(std::move(other)),
       m_image(std::move(other.m_image)),
       m_image_view(std::move(other.m_image_view)),
       m_filter_mode(other.m_filter_mode),
@@ -474,7 +474,7 @@ void Texture::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     PUSH_RENDER_COMMAND(
         CreateTexture,

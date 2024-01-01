@@ -33,7 +33,7 @@ using renderer::Sampler;
 using renderer::CommandBuffer;
 
 class Texture
-    : public EngineComponentBase<STUB_CLASS(Texture)>
+    : public BasicObject<STUB_CLASS(Texture)>
 {
 public:
     static const FixedArray<std::pair<Vector3, Vector3>, 6> cubemap_directions;

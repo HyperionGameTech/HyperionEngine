@@ -266,7 +266,7 @@ Material::ParameterTable Material::DefaultParameters()
 }
 
 Material::Material()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_render_attributes { .bucket = Bucket::BUCKET_OPAQUE },
       m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
@@ -275,7 +275,7 @@ Material::Material()
 }
 
 Material::Material(Name name, Bucket bucket)
-    : EngineComponentBase(name),
+    : BasicObject(name),
       m_render_attributes { .bucket = bucket },
       m_is_dynamic(false),
       m_shader_data_state(ShaderDataState::DIRTY)
@@ -288,7 +288,7 @@ Material::Material(
     const MaterialAttributes &attributes,
     const ParameterTable &parameters,
     const TextureSet &textures
-) : EngineComponentBase(name),
+) : BasicObject(name),
     m_parameters(parameters),
     m_textures(textures),
     m_render_attributes(attributes),
@@ -320,7 +320,7 @@ void Material::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     for (SizeType i = 0; i < m_textures.Size(); i++) {
         if (Handle<Texture> &texture = m_textures.ValueAt(i)) {
@@ -516,7 +516,7 @@ Handle<Material> Material::Clone() const
 }
 
 MaterialGroup::MaterialGroup()
-    : EngineComponentBase()
+    : BasicObject()
 {
 }
 
@@ -531,7 +531,7 @@ void MaterialGroup::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     for (auto &it : m_materials) {
         InitObject(it.second);

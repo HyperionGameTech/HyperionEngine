@@ -42,7 +42,7 @@ struct RENDER_COMMAND(RemoveAllRenderComponents) : renderer::RenderCommand
 };
 
 RenderEnvironment::RenderEnvironment(Scene *scene)
-    : EngineComponentBase(),
+    : BasicObject(),
       m_scene(scene),
       m_global_timer(0.0f),
       m_frame_counter(0),
@@ -85,7 +85,7 @@ void RenderEnvironment::Init()
         return;
     }
     
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);

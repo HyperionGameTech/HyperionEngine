@@ -14,7 +14,7 @@ void RigidBody::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     // do nothing
 }

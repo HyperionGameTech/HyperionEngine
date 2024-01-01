@@ -20,7 +20,7 @@ using renderer::ImageView;
 ;
 
 class UIRenderer
-    : public EngineComponentBase<STUB_CLASS(UIRenderer)>,
+    : public BasicObject<STUB_CLASS(UIRenderer)>,
       public RenderComponent<UIRenderer>
 {
 public:

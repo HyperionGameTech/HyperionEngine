@@ -34,14 +34,14 @@ struct RENDER_COMMAND(UpdateSkeletonRenderData) : renderer::RenderCommand
 #pragma endregion
 
 Skeleton::Skeleton()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_root_bone(nullptr),
       m_shader_data_state(ShaderDataState::DIRTY)
 {
 }
 
 Skeleton::Skeleton(const NodeProxy &root_bone)
-    : EngineComponentBase()
+    : BasicObject()
 {
     if (root_bone && root_bone.Get()->GetType() == Node::Type::BONE) {
         m_root_bone = root_bone;
@@ -60,7 +60,7 @@ void Skeleton::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     Update(0.0166f);
 

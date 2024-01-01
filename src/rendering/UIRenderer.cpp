@@ -67,7 +67,7 @@ struct RENDER_COMMAND(DestroyUIDescriptors) : renderer::RenderCommand
 };
 
 UIRenderer::UIRenderer(const Handle<Scene> &scene)
-    : EngineComponentBase(),
+    : BasicObject(),
       RenderComponent(),
       m_scene(scene)
 {
@@ -92,7 +92,7 @@ void UIRenderer::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     CreateFramebuffer();
     CreateDescriptors();

@@ -9,7 +9,7 @@ namespace hyperion::v2 {
 using renderer::RTUpdateStateFlags;
 
 World::World()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_octree(BoundingBox(Vector3(-250.0f), Vector3(250.0f)))
 {
 }
@@ -33,7 +33,7 @@ void World::Init()
         InitObject(scene);
     }
     
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_physics_world.Init();
 

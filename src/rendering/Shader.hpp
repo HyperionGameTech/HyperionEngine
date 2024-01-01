@@ -46,7 +46,7 @@ struct SubShader
 };
 
 class Shader
-    : public EngineComponentBase<STUB_CLASS(Shader)>
+    : public BasicObject<STUB_CLASS(Shader)>
 {
 public:
     Shader();

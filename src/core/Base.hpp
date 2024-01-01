@@ -58,11 +58,11 @@ struct ComponentInitInfo
     ComponentFlags flags = 0x0;
 };
 
-class EngineComponentBaseBase { };
+class BasicObjectBase { };
 
 template <class Type>
-class EngineComponentBase
-    : public EngineComponentBaseBase,
+class BasicObject
+    : public BasicObjectBase,
       public CallbackTrackable<EngineCallbacks>
 {
     using InnerType = typename Type::InnerType;
@@ -72,22 +72,22 @@ public:
 
     static constexpr ID<InnerType> empty_id = ID<InnerType> { };
 
-    EngineComponentBase()
-        : EngineComponentBase(InitInfo { })
+    BasicObject()
+        : BasicObject(InitInfo { })
     {
     }
 
-    EngineComponentBase(Name name)
-        : EngineComponentBase(name, InitInfo { })
+    BasicObject(Name name)
+        : BasicObject(name, InitInfo { })
     {
     }
 
-    EngineComponentBase(const InitInfo &init_info)
-        : EngineComponentBase(Name::invalid, init_info)
+    BasicObject(const InitInfo &init_info)
+        : BasicObject(Name::invalid, init_info)
     {
     }
 
-    EngineComponentBase(Name name, const InitInfo &init_info)
+    BasicObject(Name name, const InitInfo &init_info)
         : CallbackTrackable(),
           m_name(name),
           m_init_info(init_info),
@@ -97,10 +97,10 @@ public:
     {
     }
 
-    EngineComponentBase(const EngineComponentBase &other) = delete;
-    EngineComponentBase &operator=(const EngineComponentBase &other) = delete;
+    BasicObject(const BasicObject &other) = delete;
+    BasicObject &operator=(const BasicObject &other) = delete;
 
-    EngineComponentBase(EngineComponentBase &&other) noexcept
+    BasicObject(BasicObject &&other) noexcept
         : CallbackTrackable(), // TODO: Get rid of callback trackable then we wont have to do a move for that.
           m_name(std::move(other.m_name)),
           m_init_info(std::move(other.m_init_info)),
@@ -113,9 +113,9 @@ public:
         other.m_is_ready.store(false);
     }
 
-    EngineComponentBase &operator=(EngineComponentBase &&other) noexcept = delete;
+    BasicObject &operator=(BasicObject &&other) noexcept = delete;
 
-    ~EngineComponentBase() = default;
+    ~BasicObject() = default;
 
     HYP_FORCE_INLINE InitInfo &GetInitInfo()
         { return m_init_info; }
@@ -166,7 +166,7 @@ public:
 
 protected:
     using Class = Type;
-    using Base = EngineComponentBase<Type>;
+    using Base = BasicObject<Type>;
 
     void Teardown()
     {
@@ -218,12 +218,12 @@ private:
 };
 
 template <class Type, class WrappedType>
-class EngineComponentWrapper : public EngineComponentBase<Type>
+class EngineComponentWrapper : public BasicObject<Type>
 {
 public:
     template <class ...Args>
     EngineComponentWrapper(Args &&... args)
-        : EngineComponentBase<Type>(),
+        : BasicObject<Type>(),
           m_wrapped(std::move(args)...),
           m_wrapped_created(false)
     {
@@ -261,7 +261,7 @@ public:
     template <class ...Args>
     void Create(Args &&... args)
     {
-        const char *wrapped_type_name = EngineComponentBase<Type>::GetClass().GetName();
+        const char *wrapped_type_name = BasicObject<Type>::GetClass().GetName();
 
         AssertThrowMsg(
             !m_wrapped_created,
@@ -284,7 +284,7 @@ public:
         m_wrapped_destroyed = false;
 #endif
 
-        EngineComponentBase<Type>::Init();
+        BasicObject<Type>::Init();
     }
 
     /* Standard non-specialized destruction function */
@@ -316,7 +316,7 @@ public:
         m_wrapped_destroyed = true;
 #endif
 
-        EngineComponentBase<Type>::Destroy();
+        BasicObject<Type>::Destroy();
     }
 
 protected:

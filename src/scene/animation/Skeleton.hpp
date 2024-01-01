@@ -50,7 +50,7 @@ struct SkeletonBoneData
 };
 
 class Skeleton
-    : public EngineComponentBase<STUB_CLASS(Skeleton)>
+    : public BasicObject<STUB_CLASS(Skeleton)>
 {
 public:
     Skeleton();

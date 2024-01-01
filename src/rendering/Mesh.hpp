@@ -33,7 +33,7 @@ using renderer::Topology;
 using renderer::IndirectDrawCommand;
 
 class Mesh
-    : public EngineComponentBase<STUB_CLASS(Mesh)>
+    : public BasicObject<STUB_CLASS(Mesh)>
 {
 public:
     using Index = UInt32;

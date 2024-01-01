@@ -61,7 +61,7 @@ public:
     virtual void CreateDescriptors() override;
 };
 
-class PostProcessingEffect : public EngineComponentBase<STUB_CLASS(PostProcessingEffect)>
+class PostProcessingEffect : public BasicObject<STUB_CLASS(PostProcessingEffect)>
 {
 public:
     enum Stage : UInt

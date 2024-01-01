@@ -30,7 +30,7 @@ namespace hyperion::v2 {
 using renderer::BlendMode;
 
 class Material
-    : public EngineComponentBase<STUB_CLASS(Material)>
+    : public BasicObject<STUB_CLASS(Material)>
 {
 public:
     static constexpr UInt max_parameters = 32u;
@@ -479,7 +479,7 @@ private:
     FixedArray<DescriptorSet *, max_frames_in_flight> m_descriptor_sets;
 };
 
-class MaterialGroup : public EngineComponentBase<STUB_CLASS(MaterialGroup)>
+class MaterialGroup : public BasicObject<STUB_CLASS(MaterialGroup)>
 {
 public:
     MaterialGroup();

@@ -14,7 +14,7 @@ namespace hyperion::v2 {
 using renderer::CommandBuffer;
 using renderer::DescriptorSet;
 
-class ComputePipeline : public EngineComponentBase<STUB_CLASS(ComputePipeline)>
+class ComputePipeline : public BasicObject<STUB_CLASS(ComputePipeline)>
 {
 public:
     ComputePipeline(Handle<Shader> shader);

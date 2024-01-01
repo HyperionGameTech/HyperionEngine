@@ -16,7 +16,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 {
     GraphicsPipelineRef                     pipeline;
     renderer::ShaderProgram                 *shader_program;
-    renderer::RenderPass                    *render_pass;
+    RenderPassRef                           render_pass;
     Array<FramebufferObjectRef>             framebuffers;
     Array<Array<renderer::CommandBuffer *>> command_buffers;
     RenderableAttributeSet                  attributes;
@@ -24,13 +24,13 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
     RENDER_COMMAND(CreateGraphicsPipeline)(
         GraphicsPipelineRef pipeline,
         renderer::ShaderProgram *shader_program,
-        renderer::RenderPass *render_pass,
+        RenderPassRef render_pass,
         Array<FramebufferObjectRef> &&framebuffers,
         Array<Array<renderer::CommandBuffer *>> &&command_buffers,
         const RenderableAttributeSet &attributes
     ) : pipeline(std::move(pipeline)),
         shader_program(shader_program),
-        render_pass(render_pass),
+        render_pass(std::move(render_pass)),
         framebuffers(std::move(framebuffers)),
         command_buffers(std::move(command_buffers)),
         attributes(attributes)
@@ -45,8 +45,8 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
             .cull_mode         = attributes.GetMaterialAttributes().cull_faces,
             .fill_mode         = attributes.GetMaterialAttributes().fill_mode,
             .blend_mode        = attributes.GetMaterialAttributes().blend_mode,
-            .depth_test        = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
-            .depth_write       = bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
+            .depth_test        = Bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_TEST),
+            .depth_write       = Bool(attributes.GetMaterialAttributes().flags & MaterialAttributes::RENDERABLE_ATTRIBUTE_FLAGS_DEPTH_WRITE),
             .shader            = shader_program,
             .render_pass       = render_pass,
             .stencil_state     = attributes.GetStencilState()
@@ -78,7 +78,7 @@ struct RENDER_COMMAND(CreateGraphicsPipeline) : renderer::RenderCommand
 RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     const RenderableAttributeSet &renderable_attributes
-) : EngineComponentBase(),
+) : BasicObject(),
     m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>()),
     m_shader(std::move(shader)),
     m_renderable_attributes(renderable_attributes)
@@ -89,7 +89,7 @@ RenderGroup::RenderGroup(
     Handle<Shader> &&shader,
     const RenderableAttributeSet &renderable_attributes,
     const Array<DescriptorSetRef> &used_descriptor_sets
-) : EngineComponentBase(),
+) : BasicObject(),
     m_pipeline(MakeRenderObject<renderer::GraphicsPipeline>(used_descriptor_sets)),
     m_shader(std::move(shader)),
     m_renderable_attributes(renderable_attributes)
@@ -120,7 +120,7 @@ void RenderGroup::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     // create our indirect renderer
     // will be created with some initial size.
@@ -143,14 +143,14 @@ void RenderGroup::Init()
     }
 
     OnInit(g_engine->callbacks.Once(EngineCallback::CREATE_GRAPHICS_PIPELINES, [this](...) {
-        renderer::RenderPass *render_pass = nullptr;
+        RenderPassRef render_pass;
         
         Array<FramebufferObjectRef> framebuffers;
         framebuffers.Reserve(m_fbos.Size());
 
         for (auto &fbo : m_fbos) {
-            if (render_pass == nullptr) {
-                render_pass = &fbo->GetRenderPass();
+            if (!render_pass.IsValid()) {
+                render_pass = fbo->GetRenderPass();
             }
 
             for (UInt frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
@@ -172,7 +172,8 @@ void RenderGroup::Init()
             command_buffers.PushBack(std::move(frame_command_buffers));
         }
 
-        PUSH_RENDER_COMMAND(CreateGraphicsPipeline, 
+        PUSH_RENDER_COMMAND(
+            CreateGraphicsPipeline, 
             m_pipeline,
             m_shader->GetShaderProgram(),
             render_pass,

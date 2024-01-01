@@ -134,7 +134,7 @@ Entity::Entity(
     Handle<Material> material,
     const RenderableAttributeSet &renderable_attributes,
     const InitInfo &init_info
-) : EngineComponentBase(name, init_info),
+) : BasicObject(name, init_info),
     HasDrawProxy(),
     m_mesh(std::move(mesh)),
     m_shader(std::move(shader)),
@@ -173,7 +173,7 @@ void Entity::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     // if (!m_shader) {
     //     SetShader(g_shader_manager->GetOrCreate(HYP_NAME(Forward)));

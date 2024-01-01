@@ -207,13 +207,13 @@ void ShaderGlobals::Destroy()
 }
 
 Shader::Shader()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_shader_program(MakeRenderObject<ShaderProgram>())
 {
 }
 
 Shader::Shader(const CompiledShader &compiled_shader)
-    : EngineComponentBase(),
+    : BasicObject(),
       m_compiled_shader(compiled_shader),
       m_shader_program(MakeRenderObject<ShaderProgram>())
 {
@@ -234,7 +234,7 @@ void Shader::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     if (!m_compiled_shader.IsValid()) {
         return;

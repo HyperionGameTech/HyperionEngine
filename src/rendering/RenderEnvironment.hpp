@@ -45,7 +45,7 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 };
 
 class RenderEnvironment
-    : public EngineComponentBase<STUB_CLASS(RenderEnvironment)>
+    : public BasicObject<STUB_CLASS(RenderEnvironment)>
 {
     using RenderComponentPendingRemovalEntry = Pair<TypeID, Name>;
 

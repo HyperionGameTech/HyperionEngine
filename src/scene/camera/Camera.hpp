@@ -113,7 +113,7 @@ class FirstPersonCameraController;
 class FollowCameraController;
 
 class Camera :
-    public EngineComponentBase<STUB_CLASS(Camera)>,
+    public BasicObject<STUB_CLASS(Camera)>,
     public HasDrawProxy<STUB_CLASS(Camera)>
 {
 public:

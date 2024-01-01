@@ -11,7 +11,7 @@
 namespace hyperion::v2 {
 
 UIScene::UIScene()
-    : EngineComponentBase()
+    : BasicObject()
 {
 }
 
@@ -26,7 +26,7 @@ void UIScene::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_scene = CreateObject<Scene>(CreateObject<Camera>());
 

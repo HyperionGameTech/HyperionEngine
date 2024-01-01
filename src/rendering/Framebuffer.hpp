@@ -11,7 +11,6 @@
 namespace hyperion::v2 {
 
 using renderer::CommandBuffer;
-;
 using renderer::AttachmentUsage;
 using renderer::Attachment;
 using renderer::RenderPass;
@@ -75,7 +74,7 @@ struct AttachmentMap
 };
 
 class Framebuffer
-    : public EngineComponentBase<STUB_CLASS(Framebuffer)>
+    : public BasicObject<STUB_CLASS(Framebuffer)>
 {
 public:
     Framebuffer(
@@ -120,16 +119,15 @@ public:
         { return m_attachment_map; }
 
     auto &GetAttachmentUsages()
-        { return m_render_pass.GetAttachmentUsages(); }
+        { return m_render_pass->GetAttachmentUsages(); }
 
     const auto &GetAttachmentUsages() const
-        { return m_render_pass.GetAttachmentUsages(); }
+        { return m_render_pass->GetAttachmentUsages(); }
 
     const FramebufferObjectRef &GetFramebuffer(UInt frame_index) const
         { return m_framebuffers[frame_index]; }
 
-    renderer::RenderPass &GetRenderPass() { return m_render_pass; }
-    const renderer::RenderPass &GetRenderPass() const { return m_render_pass; }
+    const RenderPassRef &GetRenderPass() const { return m_render_pass; }
 
     Extent2D GetExtent() const
         { return Extent2D(m_extent); }
@@ -142,7 +140,7 @@ public:
 private:
     AttachmentMap                                           m_attachment_map;
     FixedArray<FramebufferObjectRef, max_frames_in_flight>  m_framebuffers;
-    RenderPass                                              m_render_pass;
+    RenderPassRef                                           m_render_pass;
     Extent3D                                                m_extent;
 };
 

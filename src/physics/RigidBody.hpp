@@ -143,7 +143,7 @@ protected:
     Array<Float> m_vertices;
 };
 
-class RigidBody : public EngineComponentBase<STUB_CLASS(RigidBody)>
+class RigidBody : public BasicObject<STUB_CLASS(RigidBody)>
 {
 public:
     RigidBody(const PhysicsMaterial &physics_material)
@@ -152,7 +152,7 @@ public:
     }
 
     RigidBody(RC<PhysicsShape> &&shape, const PhysicsMaterial &physics_material)
-        : EngineComponentBase(),
+        : BasicObject(),
           m_shape(std::move(shape)),
           m_physics_material(physics_material),
           m_is_kinematic(true)

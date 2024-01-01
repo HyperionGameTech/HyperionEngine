@@ -249,7 +249,7 @@ void GaussianSplattingInstance::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     CreateBuffers();
     CreateShader();
@@ -618,7 +618,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 }
 
 GaussianSplatting::GaussianSplatting()
-    : EngineComponentBase()
+    : BasicObject()
 {
 }
 
@@ -633,7 +633,7 @@ void GaussianSplatting::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
     
     static const Array<Vertex> vertices = {
         Vertex {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},

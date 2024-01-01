@@ -121,7 +121,7 @@ Mesh::CalculateIndices(const Array<Vertex> &vertices)
 }
 
 Mesh::Mesh()
-    : EngineComponentBase(),
+    : BasicObject(),
       m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
       m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
       m_mesh_attributes {
@@ -136,7 +136,7 @@ Mesh::Mesh(
     const Array<Index> &indices,
     Topology topology,
     const VertexAttributeSet &vertex_attributes
-) : EngineComponentBase(),
+) : BasicObject(),
     m_vbo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_VERTEX_BUFFER)),
     m_ibo(MakeRenderObject<GPUBuffer>(GPUBufferType::MESH_INDEX_BUFFER)),
     m_mesh_attributes {
@@ -209,7 +209,7 @@ void Mesh::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 

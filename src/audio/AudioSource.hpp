@@ -11,7 +11,7 @@ namespace hyperion::v2 {
 
 class Engine;
 
-class AudioSource : public EngineComponentBase<STUB_CLASS(AudioSource)>
+class AudioSource : public BasicObject<STUB_CLASS(AudioSource)>
 {
 public:
     enum class Format : UInt

@@ -76,7 +76,7 @@ private:
     std::atomic<UInt> m_num_render_lists;
 };
 
-class World : public EngineComponentBase<STUB_CLASS(World)>
+class World : public BasicObject<STUB_CLASS(World)>
 {
 public:
     World();

@@ -14,7 +14,7 @@ namespace hyperion::v2 {
 using renderer::TopLevelAccelerationStructure;
 using renderer::RTUpdateStateFlags;
 
-class TLAS : public EngineComponentBase<STUB_CLASS(TLAS)>
+class TLAS : public BasicObject<STUB_CLASS(TLAS)>
 {
 public:
     TLAS();

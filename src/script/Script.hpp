@@ -31,7 +31,7 @@ namespace v2 {
 
 class Engine;
 
-class Script : public EngineComponentBase<STUB_CLASS(Script)>
+class Script : public BasicObject<STUB_CLASS(Script)>
 {
 public:
     using Bytes = Array<UByte>;

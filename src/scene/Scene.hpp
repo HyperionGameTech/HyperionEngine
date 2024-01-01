@@ -48,7 +48,7 @@ struct ComponentInitInfo<STUB_CLASS(Scene)>
 };
 
 class Scene
-    : public EngineComponentBase<STUB_CLASS(Scene)>,
+    : public BasicObject<STUB_CLASS(Scene)>,
       public HasDrawProxy<STUB_CLASS(Scene)>
 {
     friend class Entity;

@@ -24,7 +24,7 @@
 namespace hyperion::v2 {
 
 Script::Script(const SourceFile &source_file)
-    : EngineComponentBase(),
+    : BasicObject(),
       m_api_instance(source_file),
       m_vm(m_api_instance),
       m_source_file(source_file)
@@ -42,7 +42,7 @@ void Script::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 }
 
 bool Script::Compile()

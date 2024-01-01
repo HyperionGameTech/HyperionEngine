@@ -6,7 +6,7 @@
 namespace hyperion::v2 {
 
 AudioSource::AudioSource(Format format, const ByteBuffer &byte_buffer, SizeType freq)
-    : EngineComponentBase(),
+    : BasicObject(),
       m_format(format),
       m_data(byte_buffer),
       m_freq(freq),
@@ -27,7 +27,7 @@ void AudioSource::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     if (AudioManager::GetInstance()->IsInitialized()) {
         auto al_format = AL_FORMAT_MONO8;

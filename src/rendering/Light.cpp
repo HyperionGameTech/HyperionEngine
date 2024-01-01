@@ -73,7 +73,7 @@ Light::Light(
     const Color &color,
     float intensity,
     float radius
-) : EngineComponentBase(),
+) : BasicObject(),
     m_type(type),
     m_position(position),
     m_color(color),
@@ -86,7 +86,7 @@ Light::Light(
 }
 
 Light::Light(Light &&other) noexcept
-    : EngineComponentBase(std::move(other)),
+    : BasicObject(std::move(other)),
       m_type(other.m_type),
       m_position(other.m_position),
       m_color(other.m_color),
@@ -111,7 +111,7 @@ void Light::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     m_draw_proxy = LightDrawProxy {
         .id = m_id,

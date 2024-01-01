@@ -122,7 +122,7 @@ struct EnvProbeIndex
 };
 
 class EnvProbe
-    : public EngineComponentBase<STUB_CLASS(EnvProbe)>,
+    : public BasicObject<STUB_CLASS(EnvProbe)>,
       public HasDrawProxy<STUB_CLASS(EnvProbe)>
 {
 public:

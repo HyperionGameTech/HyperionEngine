@@ -46,7 +46,7 @@ public:
         Bool                                            depth_write = true;
 
         ShaderProgram<Platform::VULKAN>                 *shader = nullptr;
-        RenderPass<Platform::VULKAN>                    *render_pass = nullptr;
+        RenderPassRef<Platform::VULKAN>                 render_pass;
         Array<FramebufferObjectRef<Platform::VULKAN>>   fbos;
 
         // stencil

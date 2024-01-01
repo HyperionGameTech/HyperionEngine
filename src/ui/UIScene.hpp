@@ -31,7 +31,7 @@ namespace hyperion::v2 {
 
 ;
 
-class UIScene : public EngineComponentBase<STUB_CLASS(UIScene)>
+class UIScene : public BasicObject<STUB_CLASS(UIScene)>
 {
 public:
     UIScene();

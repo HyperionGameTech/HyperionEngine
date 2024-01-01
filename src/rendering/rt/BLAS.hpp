@@ -16,7 +16,7 @@ using renderer::BottomLevelAccelerationStructure;
 using renderer::AccelerationStructureFlagBits;
 using renderer::Frame;
 
-class BLAS : public EngineComponentBase<STUB_CLASS(BLAS)>
+class BLAS : public BasicObject<STUB_CLASS(BLAS)>
 {
 public:
     BLAS(

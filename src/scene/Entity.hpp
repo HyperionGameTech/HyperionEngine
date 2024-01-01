@@ -56,7 +56,7 @@ struct ComponentInitInfo<STUB_CLASS(Entity)>
 };
 
 class Entity :
-    public EngineComponentBase<STUB_CLASS(Entity)>,
+    public BasicObject<STUB_CLASS(Entity)>,
     public HasDrawProxy<STUB_CLASS(Entity)>
 {
     friend struct RenderCommand_UpdateEntityRenderData;

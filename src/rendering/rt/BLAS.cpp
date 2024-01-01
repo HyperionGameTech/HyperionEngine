@@ -40,7 +40,7 @@ BLAS::BLAS(
     Handle<Mesh> &&mesh,
     Handle<Material> &&material,
     const Transform &transform
-) : EngineComponentBase(),
+) : BasicObject(),
     m_entity_id(entity_id),
     m_mesh(std::move(mesh)),
     m_material(std::move(material)),
@@ -127,7 +127,7 @@ void BLAS::Init()
         return;
     }
 
-    EngineComponentBase::Init();
+    BasicObject::Init();
 
     UInt material_index = 0;
 

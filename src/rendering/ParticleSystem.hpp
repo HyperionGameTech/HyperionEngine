@@ -52,7 +52,7 @@ struct ParticleSpawnerParams
 };
 
 class ParticleSpawner
-    : public EngineComponentBase<STUB_CLASS(ParticleSpawner)>
+    : public BasicObject<STUB_CLASS(ParticleSpawner)>
 {
 public:
     ParticleSpawner();
@@ -117,7 +117,7 @@ private:
 };
 
 class ParticleSystem
-    : public EngineComponentBase<STUB_CLASS(ParticleSystem)>
+    : public BasicObject<STUB_CLASS(ParticleSystem)>
 {
 public:
     ParticleSystem();
