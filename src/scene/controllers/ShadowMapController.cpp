@@ -5,11 +5,19 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shadows.hpp>
 #include <Threads.hpp>
+#include <Engine.hpp>
 
 namespace hyperion::v2 {
 
 ShadowMapController::ShadowMapController()
     : Controller(true),
+      m_shadow_map_renderer(nullptr)
+{
+}
+
+ShadowMapController::ShadowMapController(Handle<Light> light)
+    : Controller(true),
+      m_light(std::move(light)),
       m_shadow_map_renderer(nullptr)
 {
 }
@@ -115,15 +123,15 @@ void ShadowMapController::OnAdded()
 {
     Threads::AssertOnThread(THREAD_GAME);
 
-    // Find LightController attached to Entity
-    if (LightController *light_controller = GetOwner()->GetController<LightController>()) {
-        m_light = light_controller->GetLight();
-
-        if (m_light) {
-            // TEMP: Should refactor this so it is more able to be dynamically bound
-            // and unbound, not dependent on a static index.
-            m_light->SetShadowMapIndex(0);
-        }
+    if (m_light) {
+        // TEMP: Should refactor this so it is more able to be dynamically bound
+        // and unbound, not dependent on a static index.
+        m_light->SetShadowMapIndex(0);
+    } else {
+        DebugLog(
+            LogType::Warn,
+            "ShadowMapController has invalid Light\n"
+        );
     }
 }
 

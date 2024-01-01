@@ -186,6 +186,9 @@ public:
     const FlatSet<ID<Scene>> &GetScenes() const
         { return m_scenes; }
 
+    const Array<Node *> &GetNodes() const
+        { return m_nodes; }
+
     Bool IsRenderable() const
         { return m_mesh && m_shader && m_material; }
 
@@ -233,6 +236,8 @@ public:
 
     void Init();
     void Update(GameCounter::TickUnit delta);
+
+    //// Deprecated: Use new ECS system
 
     /* All controller operations should only be used from the GAME thread */
 
@@ -351,6 +356,8 @@ public:
 
     const ControllerSet &GetControllers() const
         { return m_controllers; }
+
+    //// End deprecated
     
     void AddToOctree(Octree &octree);
     void SetNeedsOctreeUpdate()

@@ -7,6 +7,12 @@ AnimationController::AnimationController()
 {
 }
 
+AnimationController::AnimationController(Handle<Skeleton> skeleton)
+    : PlaybackController(),
+      m_skeleton(std::move(skeleton))
+{
+}
+
 void AnimationController::OnAdded()
 {
 }
@@ -18,6 +24,12 @@ void AnimationController::OnRemoved()
 
 void AnimationController::OnUpdate(GameCounter::TickUnit delta)
 {
+    if (!m_skeleton) {
+        m_state = { };
+
+        return;
+    }
+
     if (IsPlaying()) {
         if (m_skeleton && m_animation_index != ~0u) {
             Animation &animation = m_skeleton->GetAnimation(m_animation_index);
@@ -41,14 +53,14 @@ void AnimationController::OnUpdate(GameCounter::TickUnit delta)
 
 void AnimationController::OnAttachedToNode(Node *node)
 {
-    FindSkeleton(node);
+    // FindSkeleton(node);
 }
 
 void AnimationController::OnDetachedFromNode(Node *node)
 {
     m_skeleton.Reset();
 
-    FindSkeletonDirect(GetOwner());
+    // FindSkeletonDirect(GetOwner());
 }
 
 bool AnimationController::FindSkeleton(Node *node)

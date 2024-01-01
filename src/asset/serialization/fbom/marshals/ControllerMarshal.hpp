@@ -29,41 +29,41 @@ public:
 
     virtual FBOMResult Deserialize(const FBOMObject &in, UniquePtr<void> &out_object) const override
     {
-        String controller_name;
+        Name component_name;
 
-        if (auto err = in.GetProperty("controller_name").ReadString(controller_name)) {
+        if (auto err = in.GetProperty("component_name").ReadName(&component_name)) {
             return err;
         }
 
-        if (!g_engine->GetComponents().IsRegistered(controller_name.Data())) {
+        if (!g_engine->GetComponents().IsRegistered(component_name)) {
             DebugLog(
                 LogType::Error,
-                "Controller with name %s is not registered, cannot continue loading the controller\n",
-                controller_name.Data()
+                "Component with name %s is not registered, cannot continue loading the controller\n",
+                component_name.LookupString().Data()
             );
 
-            return { FBOMResult::FBOM_ERR, "Invalid controller - not registered" };
+            return { FBOMResult::FBOM_ERR, "Invalid component - not registered" };
         }
 
-        TypeID type_id = g_engine->GetComponents().GetControllerTypeID(controller_name.Data());
+        TypeID type_id = g_engine->GetComponents().GetControllerTypeID(component_name);
 
         if (!type_id) {
-            return { FBOMResult::FBOM_ERR, "Invalid controller type ID" };
+            return { FBOMResult::FBOM_ERR, "Invalid component type ID" };
         }
 
-        auto controller_ptr = g_engine->GetComponents().CreateByName(controller_name.Data());
+        auto component = g_engine->GetComponents().CreateByName(component_name);
 
-        if (!controller_ptr) {
-            return { FBOMResult::FBOM_ERR, "Failed to construct controller" };
+        if (!component) {
+            return { FBOMResult::FBOM_ERR, "Failed to construct component" };
         }
 
-        if (auto err = controller_ptr->Deserialize(in)) {
+        if (auto err = component->Deserialize(in)) {
             return err;
         }
 
         out_object = UniquePtr<ControllerSerializationWrapper>::Construct(ControllerSerializationWrapper {
             type_id,
-            std::move(controller_ptr)
+            std::move(component)
         });
 
         return { FBOMResult::FBOM_OK };

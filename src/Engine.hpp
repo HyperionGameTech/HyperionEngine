@@ -21,7 +21,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/FinalPass.hpp>
 #include <scene/World.hpp>
-#include <scene/System.hpp>
+#include <scene/EntityComponentManager.hpp>
 
 #include <GameThread.hpp>
 #include <Threads.hpp>
@@ -155,8 +155,8 @@ public:
     ShaderCompiler &GetShaderCompiler() { return m_shader_compiler; }
     const ShaderCompiler &GetShaderCompiler() const { return m_shader_compiler; }
 
-    ComponentRegistry &GetComponents() { return m_components; }
-    const ComponentRegistry &GetComponents() const { return m_components; }
+    EntityComponentManager &GetComponents() { return m_components; }
+    const EntityComponentManager &GetComponents() const { return m_components; }
 
     ImmediateMode &GetImmediateMode() { return m_immediate_mode; }
     const ImmediateMode &GetImmediateMode() const { return m_immediate_mode; }
@@ -301,7 +301,7 @@ private:
     FlatMap<RenderableAttributeSet, Handle<RenderGroup>> m_render_group_mapping;
     std::mutex m_render_group_mapping_mutex;
 
-    ComponentRegistry m_components;
+    EntityComponentManager m_components;
 
     PlaceholderData m_placeholder_data;
 

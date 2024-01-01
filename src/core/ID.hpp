@@ -117,6 +117,8 @@ struct EncodedID
 template <class T>
 struct ID : IDBase
 {
+    static const ID invalid;
+
     constexpr ID() = default;
 
     explicit ID(const IDBase &other)
@@ -167,6 +169,9 @@ struct ID : IDBase
         return hc;
     }
 };
+
+template <class T>
+const ID<T> ID<T>::invalid = ID<T>();
 
 } // namespace hyperion
 

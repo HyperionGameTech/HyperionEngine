@@ -8,7 +8,7 @@
 namespace hyperion::v2 {
 
 UIContainerController::UIContainerController()
-    : UIController(true)
+    : UIController(false)
 {
 }
 

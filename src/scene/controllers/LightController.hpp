@@ -13,11 +13,15 @@ class LightController : public Controller
 public:
     static constexpr const char *controller_name = "LightController";
 
-    LightController(const Handle<Light> &light);
+    LightController();
+    LightController(Handle<Light> light);
     virtual ~LightController() override = default;
 
     const Handle<Light> &GetLight() const
         { return m_light; }
+
+    void SetLight(Handle<Light> light)
+        { m_light = std::move(light); }
     
     virtual void OnAdded() override;
     virtual void OnRemoved() override;

@@ -18,7 +18,7 @@ struct TypeIDGenerator;
 
 struct TypeID
 {
-    using Value = UInt;
+    using ValueType = UInt;
 
 private:
 
@@ -26,7 +26,7 @@ private:
         Note, do not rely on using this directly! This could easily
         change between implementations, or depending on the order of which
         TypeIDs are instantiated. */
-    Value value;
+    ValueType value;
 
 public:
     template <class T>
@@ -34,7 +34,7 @@ public:
         { return TypeIDGenerator<T>::GetID(); }
 
     constexpr TypeID() : value { } { }
-    constexpr TypeID(const Value &id) : value(id) {}
+    constexpr TypeID(const ValueType &id) : value(id) {}
     constexpr TypeID(const TypeID &other)
         : value(other.value)
     {
@@ -61,7 +61,7 @@ public:
         return *this;
     }
 
-    TypeID &operator=(Value id)
+    TypeID &operator=(ValueType id)
     {
         value = id;
 
@@ -69,7 +69,7 @@ public:
     }
 
     HYP_FORCE_INLINE
-    explicit operator bool() const
+    explicit operator Bool() const
         { return value != ForType<void>().value; }
 
     HYP_FORCE_INLINE
@@ -99,6 +99,9 @@ public:
     HYP_FORCE_INLINE
     bool operator>=(const TypeID &other) const
         { return value >= other.value; }
+
+    ValueType Value() const
+        { return value; }
 
     HYP_FORCE_INLINE
     HashCode GetHashCode() const

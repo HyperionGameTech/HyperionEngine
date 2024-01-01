@@ -11,10 +11,10 @@
 namespace hyperion::v2 {
 
 PointShadowRenderer::PointShadowRenderer(
-    const Handle<Light> &light,
+    Handle<Light> light,
     const Extent2D &extent
 ) : RenderComponent(),
-    m_light(light),
+    m_light(std::move(light)),
     m_extent(extent)
 {
 }
@@ -86,8 +86,14 @@ void PointShadowRenderer::OnRender(Frame *frame)
 {
     Threads::AssertOnThread(THREAD_RENDER);
 
-    AssertThrow(m_env_probe.IsValid());
-    AssertThrow(m_light.IsValid());
+    if (!m_env_probe.IsValid() || !m_light.IsValid()) {
+        DebugLog(
+            LogType::Warn,
+            "Point shadow renderer attached to invalid Light or EnvProbe\n"
+        );
+
+        return;
+    }
 
     if (m_light->GetDrawProxy().visibility_bits & (1ull << SizeType(GetParent()->GetScene()->GetCamera().GetID().ToIndex()))) {
         if (!m_last_visibility_state) {

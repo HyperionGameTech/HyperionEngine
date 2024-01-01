@@ -206,9 +206,8 @@ void SampleStreamer::InitGame()
         auto btn_node = GetUI().GetScene()->GetRoot().AddChild();
         btn_node.SetEntity(CreateObject<Entity>());
         btn_node.GetEntity()->SetTranslation(Vector3(0.0f, 1.0f, 0.0f));
-        btn_node.GetEntity()->AddController<UIButtonController>();
 
-        if (UIButtonController *controller = btn_node.GetEntity()->GetController<UIButtonController>()) {
+        if (auto *controller = g_engine->GetComponents().Add<UIButtonController>(btn_node.GetEntity(), UniquePtr<UIButtonController>::Construct())) {
             controller->SetScript(g_asset_manager->Load<Script>("scripts/examples/ui_controller.hypscript"));
         }
 
@@ -229,13 +228,19 @@ void SampleStreamer::InitGame()
     {
         auto sun = CreateObject<Entity>();
         sun->SetName(HYP_NAME(Sun));
-        sun->AddController<LightController>(CreateObject<Light>(DirectionalLight(
+
+        auto *light_component = g_engine->GetComponents().Add<LightController>(sun, UniquePtr<LightController>::Construct(CreateObject<Light>(DirectionalLight(
             Vector3(-0.8f, 0.65f, 0.8f).Normalize(),
             Color(1.0f, 1.0f, 1.0f),
             5.0f
-        )));
+        ))));
+
         sun->SetTranslation(Vector3(-0.8f, 0.65f, 0.8f));
-        sun->AddController<ShadowMapController>();
+
+        g_engine->GetComponents().Add<ShadowMapController>(sun, UniquePtr<ShadowMapController>::Construct(
+            light_component->GetLight()
+        ));
+
         GetScene()->AddEntity(sun);
 
         Array<Handle<Light>> point_lights;
@@ -256,7 +261,7 @@ void SampleStreamer::InitGame()
         for (auto &light : point_lights) {
             auto point_light_entity = CreateObject<Entity>();
             point_light_entity->SetTranslation(light->GetPosition());
-            point_light_entity->AddController<LightController>(light);
+            g_engine->GetComponents().Add<LightController>(point_light_entity, UniquePtr<LightController>::Construct(light));
             m_scene->GetEnvironment()->AddRenderComponent<PointShadowRenderer>(HYP_NAME(PointShadowRenderer), light, Extent2D { 256, 256 });
             GetScene()->AddEntity(std::move(point_light_entity));
         }
@@ -265,7 +270,7 @@ void SampleStreamer::InitGame()
     // Add skybox
     {
         auto skydome_entity = CreateObject<Entity>();
-        skydome_entity->AddController<SkydomeController>();
+        g_engine->GetComponents().Add<SkydomeController>(skydome_entity, UniquePtr<SkydomeController>::Construct());
         GetScene()->AddEntity(skydome_entity);
     }
 
@@ -280,9 +285,9 @@ void SampleStreamer::InitGame()
         if (auto zombie = results["zombie"].Get<Node>()) {
             auto zombie_entity = zombie[0].GetEntity();
 
-            if (auto *animation_controller = zombie_entity->GetController<AnimationController>()) {
-                animation_controller->Play(1.0f, LoopMode::REPEAT);
-            }
+            // if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(zombie_entity, UniquePtr<AnimationController>::Construct(zombie_entity->GetSkeleton()))) {
+            //     animation_controller->Play(1.0f, LoopMode::REPEAT);
+            // }
 
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vector4(1.0f, 0.0f, 0.0f, 1.0f));
             zombie_entity->GetMaterial()->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.001f);
@@ -309,7 +314,7 @@ void SampleStreamer::InitGame()
             auto env_grid_entity = CreateObject<Entity>(HYP_NAME(EnvGridEntity));
             env_grid_entity->SetLocalAABB(BoundingBox(Vector3(-15.0f, -5.0f, -15.0f), Vector3(15.0f, 15.0f, 15.0f)));
             // env_grid_entity->SetLocalAABB(node.GetWorldAABB());
-            env_grid_entity->AddController<EnvGridController>();
+            g_engine->GetComponents().Add<EnvGridController>(env_grid_entity, UniquePtr<EnvGridController>::Construct());
             // env_grid_entity->AddController<AABBDebugController>();
             GetScene()->AddEntity(env_grid_entity);
 

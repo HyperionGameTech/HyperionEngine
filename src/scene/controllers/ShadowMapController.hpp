@@ -18,6 +18,7 @@ public:
     static constexpr const char *controller_name = "ShadowMapController";
 
     ShadowMapController();
+    ShadowMapController(Handle<Light> light);
     virtual ~ShadowMapController() override = default;
     
     virtual void OnAdded() override;
@@ -33,10 +34,10 @@ protected:
     void RemoveShadowMapRenderer();
     void UpdateShadowCamera(const Transform &transform);
 
-    WeakHandle<Scene> m_shadow_map_renderer_scene;
-    Name m_shadow_map_renderer_name;
-    ShadowMapRenderer *m_shadow_map_renderer;
-    Handle<Light> m_light;
+    Handle<Light>       m_light;
+    WeakHandle<Scene>   m_shadow_map_renderer_scene;
+    Name                m_shadow_map_renderer_name;
+    ShadowMapRenderer   *m_shadow_map_renderer;
 };
 
 } // namespace hyperion::v2

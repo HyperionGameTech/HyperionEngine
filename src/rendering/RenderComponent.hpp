@@ -139,6 +139,8 @@ public:
         // Threads::AssertOnThread(THREAD_RENDER);
         Threads::AssertOnThread(THREAD_GAME);
 
+        DebugLog(LogType::Info, "Initializing component %s\n", typeid(Derived).name());
+
         static_cast<Derived *>(this)->Init();
 
         m_component_is_render_init = true;
@@ -161,7 +163,7 @@ public:
     {
         Threads::AssertOnThread(THREAD_RENDER);
 
-        if (m_render_frame_slicing_counter++ % m_render_frame_slicing == 0) {
+        if (m_render_frame_slicing == 0 || m_render_frame_slicing_counter++ % m_render_frame_slicing == 0) {
             static_cast<Derived *>(this)->OnRender(frame);
         }
     }
@@ -171,7 +173,6 @@ public:
 protected:
     virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
 
-private:
     Bool m_component_is_render_init,
         m_component_is_game_init;
 };

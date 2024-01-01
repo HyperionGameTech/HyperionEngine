@@ -131,8 +131,8 @@ bool UIScene::OnInputEvent(
                 if (it.second >= 0.05f) {
                     if (const Handle<Entity> &entity = m_scene->FindEntityWithID(it.first)) {
                         // signal mouse drag
-                        for (auto &controller_it : entity->GetControllers()) {
-                            if (UIController *ui_controller = dynamic_cast<UIController *>(controller_it.second.Get())) {
+                        for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
+                            if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
                                 ui_controller->OnEvent(drag_event);
 
                                 event_handled = true;
@@ -153,8 +153,8 @@ bool UIScene::OnInputEvent(
                     hover_event.original_event = &event;
                     hover_event.mouse_position = mouse_screen;
 
-                    for (auto &it : entity->GetControllers()) {
-                        if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                    for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
+                        if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
                             ui_controller->OnEvent(hover_event);
 
                             event_handled = true;
@@ -190,8 +190,8 @@ bool UIScene::OnInputEvent(
             if (const Handle<Entity> &entity = m_scene->FindEntityWithID(ID<Entity>(hit.id))) {
                 m_mouse_held_times.Insert(entity->GetID(), 0.0f);
 
-                for (auto &it : entity->GetControllers()) {
-                    if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
                         ui_controller->OnEvent(ui_event);
                     }
                 }
@@ -225,8 +225,8 @@ bool UIScene::OnInputEvent(
             ui_event.mouse_position = mouse_screen;
 
             if (const Handle<Entity> &entity = m_scene->FindEntityWithID(it.first)) {
-                for (auto &it : entity->GetControllers()) {
-                    if (UIController *ui_controller = dynamic_cast<UIController *>(it.second.Get())) {
+                for (auto it = g_engine->GetComponents().Begin(entity->GetID()); it != g_engine->GetComponents().End(entity->GetID()); ++it) {
+                    if (UIController *ui_controller = dynamic_cast<UIController *>(&*it)) {
                         RayHit hit;
 
                         if (TestRay(mouse_screen, hit)) {

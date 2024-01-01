@@ -15,7 +15,14 @@ public:
     static constexpr const char *controller_name = "AnimationController";
 
     AnimationController();
+    AnimationController(Handle<Skeleton> skeleton);
     virtual ~AnimationController() override = default;
+
+    const Handle<Skeleton> &GetSkeleton() const
+        { return m_skeleton; }
+
+    void SetSkeleton(Handle<Skeleton> skeleton)
+        { m_skeleton = std::move(skeleton); }
 
     void Play(const String &animation_name, float speed, LoopMode loop_mode = LoopMode::ONCE);
     virtual void Play(float speed, LoopMode loop_mode = LoopMode::ONCE) override;
@@ -42,9 +49,9 @@ private:
     bool FindSkeleton(Node *node);
     bool FindSkeletonDirect(Entity *entity);
     
-    UInt m_animation_index = ~0u;
+    UInt                m_animation_index = ~0u;
 
-    Handle<Skeleton> m_skeleton;
+    Handle<Skeleton>    m_skeleton;
 };
 
 } // namespace hyperion::v2

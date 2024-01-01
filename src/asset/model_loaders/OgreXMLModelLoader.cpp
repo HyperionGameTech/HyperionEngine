@@ -249,8 +249,11 @@ LoadedAsset OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         );
 
         if (skeleton) {
-            entity->AddController<AnimationController>();
             entity->SetSkeleton(skeleton);
+            
+            if (auto *animation_controller = g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct(skeleton))) {
+                animation_controller->Play(1.0f, LoopMode::REPEAT);
+            }
         }
         
         NodeProxy node(new Node);

@@ -32,8 +32,8 @@ class Controller;
 
 struct ControllerSerializationWrapper
 {
-    TypeID type_id;
-    UniquePtr<Controller> controller;
+    TypeID                  type_id;
+    UniquePtr<Controller>   controller;
 };
 
 template <class T>
@@ -82,8 +82,19 @@ public:
 
     virtual ~Controller();
 
+    /*! \brief Get the owner of this controller.
+     *
+     *  \return The pointer to the Entity owner of this controller.
+     */
     Entity *GetOwner() const
         { return m_owner; }
+
+    /*! \brief Set the owner of this controller. Only to be used by the engine, internally.
+     *
+     *  \param owner The new owner of this controller.
+     */
+    void SetOwner(Entity *owner)
+        { m_owner = owner; }
 
     Bool ReceivesUpdate() const
         { return m_receives_update; }

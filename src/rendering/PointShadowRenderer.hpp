@@ -29,7 +29,7 @@ class PointShadowRenderer : public RenderComponent<PointShadowRenderer>
 public:
     static constexpr RenderComponentName component_name = RENDER_COMPONENT_POINT_SHADOW;
 
-    PointShadowRenderer(const Handle<Light> &light, const Extent2D &extent);
+    PointShadowRenderer(Handle<Light> light, const Extent2D &extent);
     PointShadowRenderer(const PointShadowRenderer &other) = delete;
     PointShadowRenderer &operator=(const PointShadowRenderer &other) = delete;
     virtual ~PointShadowRenderer() override;

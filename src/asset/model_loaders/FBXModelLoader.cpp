@@ -560,7 +560,8 @@ static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *node)
     
     if (Handle<Entity> &entity = node->GetEntity()) {
         entity->SetSkeleton(skeleton);
-        entity->AddController<AnimationController>();
+
+        g_engine->GetComponents().Add<AnimationController>(entity, UniquePtr<AnimationController>::Construct());
     }
 
     for (auto &child : node->GetChildren()) {

@@ -6,9 +6,15 @@
 
 namespace hyperion::v2 {
 
-LightController::LightController(const Handle<Light> &light)
+LightController::LightController()
     : Controller(true),
-      m_light(light)
+      m_light(Handle<Light>::empty)
+{
+}
+
+LightController::LightController(Handle<Light> light)
+    : Controller(true),
+      m_light(std::move(light))
 {
 }
 

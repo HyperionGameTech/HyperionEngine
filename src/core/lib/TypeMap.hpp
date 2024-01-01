@@ -64,17 +64,17 @@ public:
         return m_map.Set(id, std::move(value));
     }
 
-    InsertResult Set(const TypeID &type_id, const Value &value)
+    InsertResult Set(TypeID type_id, const Value &value)
     {
         return m_map.Set(type_id, value);
     }
 
-    InsertResult Set(const TypeID &type_id, Value &&value)
+    InsertResult Set(TypeID type_id, Value &&value)
     {
         return m_map.Set(type_id, std::move(value));
     }
 
-    Value &Get(const TypeID &type_id)
+    Value &Get(TypeID type_id)
     {
         Iterator it = m_map.Find(type_id);
         AssertThrow(it != m_map.End());
@@ -98,12 +98,12 @@ public:
         return m_map.Find(id);
     }
 
-    Iterator Find(const TypeID &type_id)
+    Iterator Find(TypeID type_id)
     {
         return m_map.Find(type_id);
     }
 
-    ConstIterator Find(const TypeID &type_id) const
+    ConstIterator Find(TypeID type_id) const
     {
         return m_map.Find(type_id);
     }
@@ -113,13 +113,13 @@ public:
         return m_map.Erase(it);
     }
 
-    bool Erase(const TypeID &type_id)
+    Bool Erase(TypeID type_id)
     {
         return m_map.Erase(type_id);
     }
 
     template <class T>
-    bool Erase()
+    Bool Erase()
     {
         return m_map.Erase(TypeID::ForType<T>());
     }
@@ -144,8 +144,13 @@ public:
         return it->second;
     }
 
+    Bool Contains(TypeID type_id) const
+    {
+        return m_map.Contains(type_id);
+    }
+
     template <class T>
-    bool Contains() const
+    Bool Contains() const
     {
         const auto id = TypeID::ForType<T>();
 
@@ -153,7 +158,7 @@ public:
     }
     
     template <class T>
-    bool Remove()
+    Bool Remove()
     {
         const auto it = Find<T>();
 
@@ -166,7 +171,7 @@ public:
         return true;
     }
 
-    bool Remove(const TypeID &type_id)
+    Bool Remove(TypeID type_id)
     {
         const auto it = m_map.Find(type_id);
 
@@ -184,10 +189,10 @@ public:
         m_map.Clear();
     }
 
-    bool Any() const
+    Bool Any() const
         { return m_map.Any(); }
 
-    bool Empty() const
+    Bool Empty() const
         { return m_map.Empty(); }
 
     HYP_DEF_STL_BEGIN_END(m_map.Begin(), m_map.End())

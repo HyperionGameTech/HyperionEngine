@@ -2,6 +2,7 @@
 #include <math/BoundingSphere.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <scene/Scene.hpp>
+#include <scene/EntityComponentManager.hpp>
 #include <Engine.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
@@ -156,6 +157,13 @@ Entity::Entity(
 
 Entity::~Entity()
 {
+    // Deprecated
+    for (auto &controller : m_controllers) {
+        controller.second->OnRemoved();
+    }
+
+    g_engine->GetComponents().Remove(GetID());
+
     Teardown();
 }
 
@@ -206,27 +214,6 @@ void Entity::Init()
         );
 
         SetReady(false);
-
-        // remove all controllers
-        for (auto &it : m_controllers) {
-            auto &controller = it.second;
-
-            if (!controller) {
-                continue;
-            }
-
-            for (Node *node : m_nodes) {
-                controller->OnDetachedFromNode(node);
-            }
-
-            for (const ID<Scene> &id : m_scenes) {
-                controller->OnDetachedFromScene(id);
-            }
-
-            controller->OnRemoved();
-        }
-
-        m_controllers.Clear();
 
         m_material.Reset();
         m_blas.Reset();
@@ -279,6 +266,7 @@ void Entity::Update(GameCounter::TickUnit delta)
 
 void Entity::UpdateControllers(GameCounter::TickUnit delta)
 {
+    // Deprecated
     for (auto &it : m_controllers) {
         if (!it.second->ReceivesUpdate()) {
             continue;
@@ -286,6 +274,13 @@ void Entity::UpdateControllers(GameCounter::TickUnit delta)
 
         it.second->OnUpdate(delta);
     }
+
+
+    // for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+    //     if (it->ReceivesUpdate()) {
+    //         it->OnUpdate(delta);
+    //     }
+    // }
 }
 
 void Entity::EnqueueRenderUpdates()
@@ -455,18 +450,26 @@ void Entity::SetIsAttachedToNode(Node *node, Bool is_attached_to_node)
     }
 
     if (is_attached_to_node) {
+        // Deprecated
         for (auto &controller : m_controllers) {
             controller.second->OnAttachedToNode(node);
+        }
+
+        for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+            it->OnAttachedToNode(node);
         }
 
         m_nodes.PushBack(node);
     } else {
         for (auto it = m_nodes.Begin(); it != m_nodes.End();) {
             if (*it == node) {
+                // Deprecated
                 for (auto &controller : m_controllers) {
-                    AssertThrow(controller.second != nullptr);
-
                     controller.second->OnDetachedFromNode(node);
+                }
+
+                for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+                    it->OnDetachedFromNode(node);
                 }
 
                 m_nodes.Erase(it);
@@ -504,10 +507,13 @@ void Entity::SetIsInScene(ID<Scene> id, Bool is_in_scene)
             }
         }
 
+        // Deprecated
         for (auto &controller : m_controllers) {
-            AssertThrow(controller.second != nullptr);
-
             controller.second->OnDetachedFromScene(id);
+        }
+
+        for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+            it->OnDetachedFromScene(id);
         }
 
         m_scenes.Erase(id);
@@ -520,10 +526,13 @@ void Entity::SetIsInScene(ID<Scene> id, Bool is_in_scene)
             }
         }
 
+        // Deprecated
         for (auto &controller : m_controllers) {
-            AssertThrow(controller.second != nullptr);
-
             controller.second->OnAttachedToScene(id);
+        }
+
+        for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+            it->OnAttachedToScene(id);
         }
     }
 
@@ -676,8 +685,8 @@ void Entity::UpdateWorldAABB(Bool propagate_to_controllers)
     }
 
     if (propagate_to_controllers) {
-        for (auto &it : m_controllers) {
-            it.second->OnTransformUpdate(m_transform);
+        for (auto it = g_engine->GetComponents().Begin(GetID()); it != g_engine->GetComponents().End(GetID()); ++it) {
+            it->OnTransformUpdate(m_transform);
         }
     }
 

@@ -8,7 +8,7 @@
 namespace hyperion::v2 {
 
 UIButtonController::UIButtonController()
-    : UIController(true)
+    : UIController(false)
 {
 }
 

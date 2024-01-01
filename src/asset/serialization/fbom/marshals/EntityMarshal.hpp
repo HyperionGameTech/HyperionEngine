@@ -45,8 +45,8 @@ public:
             out.AddChild(*material, FBOM_OBJECT_FLAGS_EXTERNAL);
         }
 
-        for (const auto &it : in_object.GetControllers()) {
-            out.AddChild(*it.second, FBOM_OBJECT_FLAGS_KEEP_UNIQUE);
+        for (auto it = g_engine->GetComponents().Begin(in_object.GetID()); it != g_engine->GetComponents().End(in_object.GetID()); ++it) {
+            out.AddChild(*it, FBOM_OBJECT_FLAGS_KEEP_UNIQUE);
         }
 
         return { FBOMResult::FBOM_OK };
@@ -107,7 +107,7 @@ public:
             } else if (node.GetType().IsOrExtends("Controller")) {
                 if (auto wrapper = node.deserialized.Get<ControllerSerializationWrapper>()) {
                     if (wrapper->controller) {
-                        (*entity_handle)->AddController(wrapper->type_id, std::move(wrapper->controller));
+                        g_engine->GetComponents().Add(*entity_handle, wrapper->type_id, std::move(wrapper->controller));
                     } else {
                         DebugLog(
                             LogType::Warn,
